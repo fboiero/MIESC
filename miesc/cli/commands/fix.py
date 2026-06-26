@@ -112,6 +112,13 @@ def _select_contract_for_function(
     return selected
 
 
+def _select_contract_containing_offset(source: str, offset: int) -> Optional[tuple[int, int]]:
+    for m_contract, _, contract_end, _ in _contract_candidates_for_function(source, None, None):
+        if m_contract.end() <= offset < contract_end:
+            return m_contract.end(), contract_end
+    return None
+
+
 def _contract_inherits_guard(source: str, contract_name: str, guard_name: str) -> bool:
     """Return True when contract inherits guard_name directly or through bases."""
     masked = _mask_comments(source)
@@ -206,24 +213,8 @@ def _ensure_modifier_defined(
             r"(?m)^\s*address\s+(?:(?:public|private|internal|external)\s+)?owner\b",
             body,
         )
-        if has_owner and not re.search(r"(?<![.\w])owner\s*=", body):
-            owner_decl_re = re.compile(
-                r"(?m)^(?P<indent>\s*)address\s+"
-                r"(?P<visibility>(?:(?:public|private|internal|external)\s+)?)"
-                r"owner\s*;"
-            )
-
-            def init_owner(match: re.Match[str]) -> str:
-                return (
-                    f"{match.group('indent')}address "
-                    f"{match.group('visibility')}owner = msg.sender;"
-                )
-
-            source = (
-                source[: m_contract.end()]
-                + owner_decl_re.sub(init_owner, source[m_contract.end() : contract_end], count=1)
-                + source[contract_end:]
-            )
+        if has_owner:
+            source, _ = _initialize_owner_state(source, m_contract.end(), contract_end)
             selected = _select_contract_for_function(source, target_function, line_hint)
             if selected is None:
                 return source
@@ -249,6 +240,56 @@ def _ensure_modifier_defined(
         else:
             source = source[:contract_body_end] + inline + "\n" + source[contract_body_end:]
     return source
+
+
+def _initialize_owner_state(
+    source: str,
+    contract_start: Optional[int] = None,
+    contract_end: Optional[int] = None,
+    line_hint: Optional[int] = None,
+) -> tuple[str, bool]:
+    """Initialize an existing uninitialized `owner` state variable."""
+    owner_decl_re = re.compile(
+        r"(?m)^(?P<indent>\s*)address\s+"
+        r"(?P<visibility>(?:(?:public|private|internal|external)\s+)?)"
+        r"owner\s*;"
+    )
+
+    search_start = contract_start or 0
+    search_end = contract_end or len(source)
+    segment = source[search_start:search_end]
+    masked_segment = _mask_comments(segment)
+    matches = list(owner_decl_re.finditer(masked_segment))
+    if not matches:
+        return source, False
+
+    if line_hint and len(matches) > 1:
+        chosen = min(
+            matches,
+            key=lambda m: abs(source[: search_start + m.start()].count("\n") + 1 - line_hint),
+        )
+    else:
+        chosen = matches[0]
+
+    absolute_start = search_start + chosen.start()
+    absolute_end = search_start + chosen.end()
+    selected = (
+        (contract_start, contract_end)
+        if contract_start is not None and contract_end is not None
+        else _select_contract_containing_offset(source, absolute_start)
+    )
+    if selected is None:
+        return source, False
+    body_start, body_end = selected
+    body = _mask_comments(source[body_start:body_end])
+    if re.search(r"(?<![.\w])owner\s*=", body):
+        return source, False
+
+    replacement = (
+        f"{chosen.group('indent')}address " f"{chosen.group('visibility')}owner = msg.sender;"
+    )
+    patched = source[:absolute_start] + replacement + source[absolute_end:]
+    return patched, patched != source
 
 
 def _add_modifier_to_function(
@@ -1174,6 +1215,12 @@ def apply_fix(source: str, finding: dict) -> tuple[str, bool]:
             patched, changed = _add_memory_to_uninitialized_struct(source, fn_name, line_hint)
             if changed:
                 return patched, True
+
+    if "uninitialized_state" in ftype and fn_name == "owner":
+        patched, changed = _initialize_owner_state(source, line_hint=line_hint)
+        if changed:
+            return patched, True
+        return source, False
 
     if fn_name and any(
         hint in fix_code.lower() for hint in ("uninitialized storage", "storage pointer", "memory")

@@ -881,6 +881,53 @@ contract Map {
         assert "address public owner = msg.sender;" in patched
         assert "function set(uint256 key, uint256 value) onlyOwner public" in patched
 
+    def test_uninitialized_state_initializes_owner(self):
+        source = """\
+pragma solidity ^0.4.24;
+
+contract Map {
+    address public owner;
+
+    function withdraw() public {
+        require(msg.sender == owner);
+        msg.sender.transfer(address(this).balance);
+    }
+}
+"""
+        finding = {
+            "type": "uninitialized-state",
+            "location": {"line": 4, "function": "owner"},
+            "fix_code": "initialize owner",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert changed
+        assert "address public owner = msg.sender;" in patched
+
+    def test_uninitialized_state_keeps_assigned_owner(self):
+        source = """\
+pragma solidity ^0.4.24;
+
+contract Wallet {
+    address public owner;
+
+    constructor() public {
+        owner = msg.sender;
+    }
+}
+"""
+        finding = {
+            "type": "uninitialized-state",
+            "location": {"line": 4, "function": "owner"},
+            "fix_code": "initialize owner",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert not changed
+        assert patched == source
+
     def test_arithmetic_inserts_safemath_on_legacy(self):
         finding = {
             "type": "arithmetic",
