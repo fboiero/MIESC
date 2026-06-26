@@ -318,7 +318,9 @@ omit = [
     # Internal test fixtures
     "src/miesc_tests/*",
     # Detectors with external dependencies
-    "src/detectors/smartbugs_detectors.py",
+    # smartbugs_detectors engine is pure-python (regex); covered ~93% by
+    # test_smartbugs_detectors.py (remaining lines are deep per-detector defensive
+    # branches) -> kept in coverage rather than hidden behind a false external-tool omit.
     # Duplicate/backup files
     # Additional legacy/utility modules (v3.x)
     "src/GPTLens_prompts.py",
