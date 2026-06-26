@@ -228,7 +228,7 @@ class DeFiAdapter:
         }
 
 
-def main():
+def main():  # pragma: no cover - manual demo harness, not shipped logic
     """Test the DeFi adapter."""
 
     adapter = DeFiAdapter()

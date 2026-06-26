@@ -381,7 +381,8 @@ omit = [
     "src/adapters/smartbugs_detector_adapter.py",
     # contract_clone_detector_adapter is pure-python (hashlib+regex similarity); fully
     # unit-tested by test_contract_clone_detector_adapter.py -> kept in coverage.
-    "src/adapters/defi_adapter.py",
+    # defi_adapter wraps the in-tree DeFiDetectorEngine (pure regex); fully unit-tested
+    # by test_defi_adapter.py -> kept in coverage.
     # advanced_detector_adapter wraps the in-tree AdvancedDetectorEngine (pure regex);
     # fully unit-tested by test_advanced_detector_adapter.py -> kept in coverage.
     "src/adapters/threat_model_adapter.py",
