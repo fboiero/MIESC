@@ -105,3 +105,64 @@ def test_analyze_source_clean_contract():
     out = _a().analyze_source("contract Empty { uint x; }")
     assert out["success"] is True
     assert isinstance(out["findings"], list)
+
+
+# --------------------------------------------------------------------------- #
+# engine detector branches (exercised through the adapter)
+# --------------------------------------------------------------------------- #
+def _cats(out):
+    return " ".join(f["title"] + f["description"] for f in out["findings"]).lower()
+
+
+def test_chainlink_without_staleness_check():
+    src = (
+        "contract Oracle {\n"
+        "  AggregatorV3Interface feed;\n"
+        "  function getPrice() public returns (int) {\n"
+        "    (, int price, , ,) = feed.latestRoundData();\n"
+        "    return price;\n"
+        "  }\n"
+        "}\n"
+    )
+    out = _a().analyze_source(src)
+    assert out["success"] is True
+    assert "staleness" in _cats(out)  # missing staleness + deviation checks flagged
+
+
+def test_zero_slippage_and_missing_deadline():
+    src = (
+        "contract Dex {\n"
+        "  function doSwap() public {\n"
+        "    uint amountOutMin = 0;\n"
+        "    router.swapExactTokensForTokens(amountOutMin);\n"
+        "  }\n"
+        "}\n"
+    )
+    out = _a().analyze_source(src)
+    assert out["success"] is True
+    text = _cats(out)
+    assert "slippage" in text or "deadline" in text
+
+
+def test_mev_liquidation_pattern():
+    src = (
+        "contract Lending {\n"
+        "  function liquidate(address user) public { _seize(user); }\n"
+        "}\n"
+    )
+    out = _a().analyze_source(src)
+    assert out["success"] is True
+    assert "mev" in _cats(out) or "liquidation" in _cats(out)
+
+
+def test_price_calc_reserve_ratio():
+    src = (
+        "contract Amm {\n"
+        "  function price() public view returns (uint) {\n"
+        "    return reserve0 / reserve1;\n"
+        "  }\n"
+        "}\n"
+    )
+    out = _a().analyze_source(src)
+    assert out["success"] is True
+    assert out["findings"]  # reserve-ratio price manipulation flagged

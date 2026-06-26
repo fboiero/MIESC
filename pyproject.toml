@@ -435,7 +435,8 @@ omit = [
     # Detector modules
     # advanced_detectors engine is pure-python (regex); covered by test_detectors.py +
     # test_advanced_detector_adapter.py -> kept in coverage.
-    "src/detectors/defi_detectors.py",
+    # defi_detectors engine is pure-python (regex); covered by test_defi_adapter.py
+    # -> kept in coverage.
     # Knowledge base
     "src/knowledge_base/*",
 ]

@@ -64,7 +64,7 @@ class DeFiDetector(ABC):
     @abstractmethod
     def detect(self, source_code: str, file_path: Optional[Path] = None) -> List[DeFiFinding]:
         """Detect vulnerabilities in source code."""
-        pass
+        pass  # pragma: no cover - abstract base method
 
 
 class FlashLoanDetector(DeFiDetector):
@@ -524,7 +524,7 @@ class DeFiDetectorEngine:
         return summary
 
 
-def main():
+def main():  # pragma: no cover - manual demo harness, not shipped logic
     """Example usage."""
     # Example vulnerable contract
     test_contract = """
