@@ -679,7 +679,7 @@ class AdvancedDetectorEngine:
         return summary
 
 
-def main():
+def main():  # pragma: no cover - manual demo harness, not shipped logic
     """Example usage."""
     test_contract = """
     // SPDX-License-Identifier: MIT

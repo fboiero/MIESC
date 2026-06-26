@@ -433,7 +433,8 @@ omit = [
     "src/agents/aderyn_agent.py",
     "src/agents/smartllm_agent.py",
     # Detector modules
-    "src/detectors/advanced_detectors.py",
+    # advanced_detectors engine is pure-python (regex); covered by test_detectors.py +
+    # test_advanced_detector_adapter.py -> kept in coverage.
     "src/detectors/defi_detectors.py",
     # Knowledge base
     "src/knowledge_base/*",

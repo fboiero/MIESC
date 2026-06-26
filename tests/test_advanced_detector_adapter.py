@@ -106,3 +106,35 @@ def test_analyze_source_clean_contract():
     out = _a().analyze_source("contract Empty { uint x; }")
     assert out["success"] is True
     assert isinstance(out["findings"], list)
+
+
+# --------------------------------------------------------------------------- #
+# engine edge branches (exercised through the adapter)
+# --------------------------------------------------------------------------- #
+def test_honeypot_pattern_is_critical():
+    # token-security detector: owner-only transfer -> "honeypot" description -> CRITICAL
+    src = (
+        "contract Token {\n"
+        "  address owner;\n"
+        "  function transfer(address _from, address _to) public {\n"
+        "    require(_from == owner || _to == owner);\n"
+        "  }\n"
+        "}\n"
+    )
+    out = _a().analyze_source(src)
+    assert out["success"] is True
+    hp = [f for f in out["findings"] if "honeypot" in f["description"].lower()]
+    assert hp and hp[0]["severity"] == "Critical"
+
+
+def test_proxy_good_pattern_is_skipped():
+    # proxy detector matches a "Good:" pattern (_disableInitializers) and skips it
+    src = (
+        "contract MyProxy is UUPSUpgradeable {\n"
+        "  constructor() { _disableInitializers(); }\n"
+        "}\n"
+    )
+    out = _a().analyze_source(src)
+    assert out["success"] is True
+    # the "Good:" pattern must not surface as a finding
+    assert not any("Good:" in f.get("description", "") for f in out["findings"])
