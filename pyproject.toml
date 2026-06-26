@@ -379,7 +379,8 @@ omit = [
     "src/adapters/llmsmartaudit_adapter.py",
     "src/adapters/gptscan_adapter.py",
     "src/adapters/propertygpt_adapter.py",
-    "src/adapters/smartbugs_ml_adapter.py",
+    # smartbugs_ml_adapter: numpy/sklearn are only probed for availability; inference is
+    # rule-based, fully unit-tested by test_smartbugs_ml_adapter.py -> kept in coverage.
     # smartbugs_detector_adapter wraps the in-tree SmartBugsDetectorEngine (pure regex);
     # fully unit-tested by test_smartbugs_detector_adapter.py -> kept in coverage.
     # contract_clone_detector_adapter is pure-python (hashlib+regex similarity); fully
