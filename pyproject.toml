@@ -381,7 +381,8 @@ omit = [
     "src/adapters/smartbugs_detector_adapter.py",
     "src/adapters/contract_clone_detector_adapter.py",
     "src/adapters/defi_adapter.py",
-    "src/adapters/advanced_detector_adapter.py",
+    # advanced_detector_adapter wraps the in-tree AdvancedDetectorEngine (pure regex);
+    # fully unit-tested by test_advanced_detector_adapter.py -> kept in coverage.
     "src/adapters/threat_model_adapter.py",
     "src/adapters/aderyn_adapter.py",
     # New v5.0.0 adapters (require external tools/models)
