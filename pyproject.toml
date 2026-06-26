@@ -402,7 +402,8 @@ omit = [
     # exploit_synthesizer_adapter: forge _run_poc branch is mocked, PoC generation /
     # interface extraction / normalization are pure, fully unit-tested by
     # test_exploit_synthesizer_adapter.py -> kept in coverage.
-    "src/adapters/vuln_verifier_adapter.py",
+    # vuln_verifier_adapter uses z3 (a Python library, present in the env -> not an
+    # external CLI tool) and is fully unit-tested by test_vuln_verifier_adapter.py.
     # remediation_validator_adapter is pure-python (no external CLI tool / no z3) and
     # fully unit-tested by test_remediation_validator_adapter.py -> kept in coverage.
     # Core modules with external dependencies
