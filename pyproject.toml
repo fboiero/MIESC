@@ -367,7 +367,8 @@ omit = [
     "src/adapters/smtchecker_adapter.py",
     "src/adapters/vertigo_adapter.py",
     "src/adapters/wake_adapter.py",
-    "src/adapters/mev_detector_adapter.py",
+    # mev_detector_adapter is pure-python (regex MEV patterns); fully unit-tested by
+    # test_mev_detector_adapter.py -> kept in coverage.
     # gas_analyzer_adapter is pure-python (regex gas anti-patterns); fully unit-tested
     # by test_gas_analyzer_adapter.py -> kept in coverage.
     # ML/LLM adapters (require external models)
