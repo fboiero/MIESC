@@ -380,7 +380,8 @@ omit = [
     "src/adapters/gptscan_adapter.py",
     "src/adapters/propertygpt_adapter.py",
     "src/adapters/smartbugs_ml_adapter.py",
-    "src/adapters/smartbugs_detector_adapter.py",
+    # smartbugs_detector_adapter wraps the in-tree SmartBugsDetectorEngine (pure regex);
+    # fully unit-tested by test_smartbugs_detector_adapter.py -> kept in coverage.
     # contract_clone_detector_adapter is pure-python (hashlib+regex similarity); fully
     # unit-tested by test_contract_clone_detector_adapter.py -> kept in coverage.
     # defi_adapter wraps the in-tree DeFiDetectorEngine (pure regex); fully unit-tested
