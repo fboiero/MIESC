@@ -388,7 +388,8 @@ omit = [
     # by test_defi_adapter.py -> kept in coverage.
     # advanced_detector_adapter wraps the in-tree AdvancedDetectorEngine (pure regex);
     # fully unit-tested by test_advanced_detector_adapter.py -> kept in coverage.
-    "src/adapters/threat_model_adapter.py",
+    # threat_model_adapter is pure-python (regex STRIDE/DREAD); fully unit-tested by
+    # test_threat_model_adapter.py -> kept in coverage.
     "src/adapters/aderyn_adapter.py",
     # New v5.0.0 adapters (require external tools/models)
     "src/adapters/fouranalyzer_adapter.py",
