@@ -354,3 +354,19 @@ class TestFinding:
         assert finding.line_end == 10
         assert finding.cwe == "CWE-123"
         assert finding.remediation == "Fix it"
+
+
+def test_sarif_region_includes_columns():
+    """SARIF _create_region must emit start/end columns when present (lines 204/207)."""
+    from src.core.exporters import Finding, SARIFExporter
+    import json as _json
+
+    f = Finding(
+        id="C1", type="reentrancy", severity="high", title="t", description="d",
+        file_path="C.sol", line_start=3, line_end=4, column_start=7, column_end=15,
+    )
+    doc = _json.loads(SARIFExporter().export([f]))
+    region = doc["runs"][0]["results"][0]["locations"][0]["physicalLocation"]["region"]
+    assert region["startColumn"] == 7
+    assert region["endColumn"] == 15
+    assert region["endLine"] == 4

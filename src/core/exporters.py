@@ -18,7 +18,7 @@ from typing import Any, Dict, List, Optional
 # Import version from miesc package
 try:
     from miesc import __version__ as MIESC_VERSION
-except ImportError:
+except ImportError:  # pragma: no cover - fallback when running outside the package
     MIESC_VERSION = "5.1.2"  # Fallback version
 
 

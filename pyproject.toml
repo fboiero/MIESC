@@ -422,7 +422,8 @@ omit = [
     "src/core/config_loader.py",
     "src/core/agent_protocol.py",
     "src/core/agent_registry.py",
-    "src/core/exporters.py",
+    # exporters is pure-python (json/xml/dataclasses); fully unit-tested by
+    # test_exporters.py -> kept in coverage.
     # tool_protocol is the foundational tool contract (dataclasses/enums/registry +
     # adapter helpers); unit-tested by test_tool_protocol.py -> kept in coverage.
     "src/core/rich_cli.py",
