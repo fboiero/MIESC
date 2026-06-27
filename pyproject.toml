@@ -423,7 +423,8 @@ omit = [
     "src/core/agent_protocol.py",
     "src/core/agent_registry.py",
     "src/core/exporters.py",
-    "src/core/tool_protocol.py",
+    # tool_protocol is the foundational tool contract (dataclasses/enums/registry +
+    # adapter helpers); unit-tested by test_tool_protocol.py -> kept in coverage.
     "src/core/rich_cli.py",
     # MCP modules (require full stack)
     "src/mcp_core/context_bus.py",
@@ -450,6 +451,7 @@ exclude_lines = [
     "raise NotImplementedError",
     "if __name__ == .__main__.:",
     "if TYPE_CHECKING:",
+    "@(abc\\.)?abstractmethod",
 ]
 fail_under = 79  # Coverage target: ~80% (fluctuates with new code)
 show_missing = true
