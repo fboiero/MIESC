@@ -65,7 +65,7 @@ class TestGeneration:
         content = open(path).read()
         assert "FROM" in content
 
-    def test_axolotl_config_returns_yaml_path(self):
-        t = _trainer()
+    def test_axolotl_config_returns_yaml_path(self, tmp_path):
+        t = SoliditySecurityTrainer(config=TrainingConfig(output_dir=str(tmp_path)))
         path = t.generate_axolotl_config("data.jsonl")
         assert path.endswith(".yml")
