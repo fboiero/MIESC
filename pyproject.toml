@@ -433,7 +433,9 @@ omit = [
     # MCP modules (require full stack)
     "src/mcp_core/context_bus.py",
     # ML modules with external dependencies
-    "src/ml/correlation_engine.py",
+    # correlation_engine is pure-python (correlation/dedup/exploit-chain logic);
+    # ~95% covered by test_correlation_engine.py (remaining lines are scattered
+    # defensive branches) -> kept in coverage rather than hidden behind a false omit.
     # Agent modules
     "src/agents/base_agent.py",
     "src/agents/ai_agent.py",

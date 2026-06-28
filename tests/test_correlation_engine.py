@@ -834,3 +834,122 @@ class TestCorrelationEngineCoverageCompletion:
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
+
+
+# =========================================================================== #
+# Deduplication feature + ExploitChainAnalyzer (large uncovered clusters).
+# =========================================================================== #
+from src.ml.correlation_engine import (  # noqa: E402
+    CorrelatedFinding,
+    CorrelationMethod,
+    ExploitChainAnalyzer,
+    SmartCorrelationEngine,
+)
+
+
+def _raw(vtype, tool, file="C.sol", line=10, func="withdraw", sev="high", conf=0.7, msg="m"):
+    return {
+        "type": vtype, "canonical_type": vtype, "severity": sev, "confidence": conf,
+        "tool": tool, "message": msg, "description": msg * 3,
+        "location": {"file": file, "line": line, "function": func},
+        "swc_id": "SWC-107", "cwe_id": "CWE-841",
+    }
+
+
+class TestDeduplication:
+    def test_deduplicate_merges_similar_and_keeps_unique(self):
+        eng = SmartCorrelationEngine()
+        findings = [
+            _raw("reentrancy", "slither", line=10),
+            _raw("reentrancy", "mythril", line=11),   # same 5-line bucket+func -> merges
+            _raw("arithmetic", "slither", line=50, func="add"),  # unique
+        ]
+        dedup = eng.deduplicate_findings(findings)
+        assert len(dedup) == 2
+        merged = next(f for f in dedup if f["_dedup"]["merged_count"] == 2)
+        assert merged["_dedup"]["is_cross_validated"] is True
+        assert set(merged["_dedup"]["tools"]) == {"slither", "mythril"}
+        assert merged["confidence"] > 0.7  # boosted by multi-tool confirmation
+
+    def test_deduplicate_empty(self):
+        assert SmartCorrelationEngine().deduplicate_findings([]) == []
+
+    def test_dedup_stats(self):
+        eng = SmartCorrelationEngine()
+        original = [_raw("reentrancy", "slither", line=10), _raw("reentrancy", "mythril", line=11)]
+        dedup = eng.deduplicate_findings(original)
+        stats = eng.get_deduplication_stats(original, dedup)
+        assert stats["original_count"] == 2
+        assert stats["deduplicated_count"] == 1
+        assert stats["merged_count"] == 1
+        assert stats["cross_validated_count"] == 1
+
+
+def _cf(vtype, sev="high", file="C.sol", func="withdraw", fid="F", conf=0.8):
+    return CorrelatedFinding(
+        id=fid, canonical_type=vtype, severity=sev, message="m",
+        location={"file": file, "line": 10, "function": func},
+        swc_id=None, cwe_id=None, source_findings=[], confirming_tools=["slither"],
+        correlation_method=CorrelationMethod.EXACT_MATCH if hasattr(
+            CorrelationMethod, "EXACT_MATCH") else list(CorrelationMethod)[0],
+        base_confidence=conf, tool_agreement_score=conf, context_score=conf,
+        ml_confidence=conf, final_confidence=conf, is_cross_validated=True,
+        false_positive_probability=0.1, remediation_priority=1,
+    )
+
+
+class TestExploitChainAnalyzer:
+    def test_fewer_than_two_returns_empty(self):
+        assert ExploitChainAnalyzer().analyze([_cf("reentrancy", fid="A")]) == []
+
+    def test_known_fund_drain_chain(self):
+        findings = [
+            _cf("reentrancy", fid="A"),
+            _cf("unchecked-call", fid="B"),
+        ]
+        chains = ExploitChainAnalyzer().analyze(findings)
+        names = [c.name for c in chains]
+        assert "Fund Drain Attack" in names
+        fund = next(c for c in chains if c.name == "Fund Drain Attack")
+        assert fund.attack_vector == "external"   # reentrancy -> external
+        assert fund.severity == "critical"
+
+    def test_proximity_chain_for_unknown_type_combo(self):
+        # two different, non-known-chain types in the same function -> proximity chain
+        findings = [
+            _cf("arithmetic", fid="A", func="f"),
+            _cf("dos", fid="B", func="f"),
+        ]
+        chains = ExploitChainAnalyzer().analyze(findings)
+        assert any("Combined Vulnerabilities" in c.name for c in chains)
+
+    def test_attack_vector_and_complexity_helpers(self):
+        a = ExploitChainAnalyzer()
+        assert a._determine_attack_vector({"access-control"}) == "privileged"
+        assert a._determine_attack_vector({"some-internal-only"}) == "internal"
+        assert a._determine_complexity({"arithmetic", "unchecked-call"}, 2) == "low"
+        assert a._determine_complexity({"front-running"}, 3) == "high"
+        assert a._determine_complexity({"front-running"}, 2) == "medium"
+
+
+class TestWeightedConfidence:
+    def test_empty_tools_returns_finding_confidence(self):
+        eng = SmartCorrelationEngine()
+        assert eng.calculate_weighted_confidence({"confidence": 0.6}, []) == 0.6
+
+    def test_two_high_confidence_tools_boost(self):
+        eng = SmartCorrelationEngine()
+        # slither (0.85) + echidna (0.88) -> high_confidence_tools >= 2 -> +0.10
+        c = eng.calculate_weighted_confidence({"confidence": 0.7}, ["slither", "echidna"])
+        assert c > 0.7
+
+    def test_one_high_one_low_moderate_boost(self):
+        eng = SmartCorrelationEngine()
+        # slither (high) + mythril (0.70, low) -> +0.05 branch
+        c = eng.calculate_weighted_confidence({"confidence": 0.7}, ["slither", "mythril"])
+        assert 0.0 < c <= 0.99
+
+    def test_get_tool_weight(self):
+        eng = SmartCorrelationEngine()
+        assert eng.get_tool_weight("slither") == 0.85
+        assert eng.get_tool_weight("unknown-tool") == 0.50
