@@ -457,3 +457,36 @@ class TestAgentRegistryDunder:
         r = repr(registry)
         assert "AgentRegistry" in r
         assert "2" in r
+
+
+# --------------------------------------------------------------------------- #
+# Dynamic agent-loader error branches (broken file, null spec, load failure).
+# --------------------------------------------------------------------------- #
+class TestAgentRegistryLoaderErrors:
+    def test_load_agents_from_broken_file(self, tmp_path):
+        from src.core.agent_registry import AgentRegistry
+
+        bad = tmp_path / "broken_agent.py"
+        bad.write_text("def (:\n  this is not valid python\n")
+        # exec_module raises -> caught -> returns [] (lines 226-227)
+        assert AgentRegistry()._load_agents_from_file(bad) == []
+
+    def test_load_agents_null_spec(self, tmp_path, monkeypatch):
+        import src.core.agent_registry as mod
+        from src.core.agent_registry import AgentRegistry
+
+        f = tmp_path / "x_agent.py"
+        f.write_text("# empty\n")
+        monkeypatch.setattr(mod.importlib.util, "spec_from_file_location",
+                            lambda *a, **k: None)  # spec is None (lines 201-203)
+        assert AgentRegistry()._load_agents_from_file(f) == []
+
+    def test_discover_directory_handles_load_failure(self, tmp_path, monkeypatch):
+        from src.core.agent_registry import AgentRegistry
+
+        (tmp_path / "foo_agent.py").write_text("# agent\n")
+        reg = AgentRegistry()
+        monkeypatch.setattr(reg, "_load_agents_from_file",
+                            lambda *a, **k: (_ for _ in ()).throw(RuntimeError("boom")))
+        # exception escapes the inner call -> caught by _discover_from_directory (180-181)
+        assert reg._discover_from_directory(tmp_path) == {}

@@ -164,7 +164,7 @@ class AgentRegistry:
         for agent_file in directory.glob("*_agent.py"):
             try:
                 # Skip __init__.py and non-agent files
-                if agent_file.name == "__init__.py":
+                if agent_file.name == "__init__.py":  # pragma: no cover - glob is *_agent.py
                     continue
 
                 logger.debug(f"Loading module: {agent_file}")

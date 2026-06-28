@@ -422,7 +422,8 @@ omit = [
     # config_loader is pure-python (yaml/dataclasses); fully unit-tested by
     # test_config_loader.py -> kept in coverage.
     "src/core/agent_protocol.py",
-    "src/core/agent_registry.py",
+    # agent_registry is pure-python (dynamic import discovery); fully unit-tested by
+    # test_agent_registry.py -> kept in coverage.
     # exporters is pure-python (json/xml/dataclasses); fully unit-tested by
     # test_exporters.py -> kept in coverage.
     # tool_protocol is the foundational tool contract (dataclasses/enums/registry +
