@@ -662,3 +662,68 @@ class TestRunServer:
         from src.mcp_core.websocket_server import run_server
 
         assert callable(run_server)
+
+
+# --------------------------------------------------------------------------- #
+# Heartbeat loop + run_server (async branches).
+# --------------------------------------------------------------------------- #
+def test_heartbeat_loop_emits_then_cancels():
+    import asyncio as _aio
+    from unittest.mock import AsyncMock, patch
+    from src.mcp_core.websocket_server import MIESCWebSocketServer
+
+    async def _run():
+        server = MIESCWebSocketServer(heartbeat_interval=0)
+        good = AsyncMock()
+        bad = AsyncMock()
+        bad.send.side_effect = Exception("client gone")  # exercises the per-client except
+        server._clients = {good, bad}
+        server._sessions = {}
+        # first sleep returns -> emit heartbeat; second raises -> break
+        with patch("src.mcp_core.websocket_server.asyncio.sleep",
+                   side_effect=[None, _aio.CancelledError()]):
+            await server._heartbeat_loop()
+        good.send.assert_awaited()
+
+    asyncio.run(_run())
+
+
+def test_run_server_starts_and_stops_on_cancel():
+    from unittest.mock import AsyncMock, patch
+    from src.mcp_core import websocket_server as ws
+
+    async def _run():
+        with patch.object(ws.MIESCWebSocketServer, "start", new=AsyncMock()), \
+             patch.object(ws.MIESCWebSocketServer, "stop", new=AsyncMock()) as stop, \
+             patch("src.mcp_core.websocket_server.asyncio.Future",
+                   side_effect=asyncio.CancelledError()):
+            await ws.run_server(host="localhost", port=9999)
+        stop.assert_awaited()
+
+    asyncio.run(_run())
+
+
+def test_handle_message_routes_commands():
+    import json as _json
+    from unittest.mock import AsyncMock
+    from src.mcp_core.websocket_server import MIESCWebSocketServer
+
+    async def _run():
+        server = MIESCWebSocketServer()
+        ws = AsyncMock()
+        server._subscriptions[ws] = set()  # normally seeded in _handle_client
+        # subscribe -> adds to subscriptions + sends ack
+        await server._handle_message(ws, _json.dumps({"command": "subscribe", "session_id": "s1"}))
+        assert "s1" in server._subscriptions[ws]
+        # unsubscribe -> discards
+        await server._handle_message(ws, _json.dumps({"command": "unsubscribe", "session_id": "s1"}))
+        assert "s1" not in server._subscriptions[ws]
+        # get_sessions -> sends the list
+        await server._handle_message(ws, _json.dumps({"command": "get_sessions"}))
+        # unknown command -> error
+        await server._handle_message(ws, _json.dumps({"command": "bogus"}))
+        # invalid JSON -> error
+        await server._handle_message(ws, "{not valid json")
+        ws.send.assert_awaited()
+
+    asyncio.run(_run())
