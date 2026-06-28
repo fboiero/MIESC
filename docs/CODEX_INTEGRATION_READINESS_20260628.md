@@ -1,25 +1,28 @@
 # Codex Integration Readiness - 2026-06-28
 
 This note records the current `lane/codex` integration state after the Paper 2
-fix-eval remediation loop. It is an operational handoff note, not a paper
-baseline, and it does not overwrite frozen paper artifacts or canonical
-benchmark outputs.
+fix-eval remediation loop and the LLM validator configuration-precedence fix.
+It is an operational handoff note, not a paper baseline, and it does not
+overwrite frozen paper artifacts or canonical benchmark outputs.
 
 ## Scope
 
 Pending Codex work is focused on Paper 2 remediation and fix-eval harness
-evidence:
+evidence, plus one LLM validator correctness fix:
 
 - `miesc/cli/commands/fix.py`
 - `benchmarks/fix_eval.py`
 - `tests/test_fix_command.py`
 - `tests/test_fix_eval_cli.py`
 - additive dated JSON evidence under `benchmarks/results/`
+- `src/llm/finding_validator.py`
+- `tests/test_finding_validator.py`
 
 `main` has advanced independently with 44 commits, mostly detection, triage, and
-coverage work. `lane/codex` has 17 commits pending. The Codex diff against
-`main` is additive for evidence artifacts plus focused remediation/harness
-changes.
+coverage work. As of the latest refresh, `main` has 46 commits not in this lane
+and `lane/codex` has 19 commits pending. The Codex diff against `main` is
+additive for evidence artifacts plus focused remediation/harness changes and a
+small LLM validator config fix.
 
 ## Validated State
 
@@ -50,6 +53,13 @@ git merge-tree $(git merge-base main lane/codex) main lane/codex
 Observed results:
 
 - `67 passed` for fix/fix-eval tests.
+- `442 passed` for the focused LLM/PoC gate:
+  `tests/test_llm_orchestrator.py`, `tests/test_ensemble_detector.py`,
+  `tests/test_llm_provider_health.py`, `tests/test_openllama_helper.py`,
+  `tests/test_embedding_rag.py`, `tests/test_vulnerability_rag.py`,
+  `tests/test_rag_utils.py`, `tests/test_remediation_generator.py`,
+  `tests/test_finding_validator.py`, `tests/test_poc_generator.py`,
+  `tests/test_foundry_runner.py`.
 - Ruff passed.
 - `git diff --check` passed.
 - `git merge-tree` did not expose conflicts for the Codex-owned files.
@@ -62,6 +72,8 @@ Low mechanical conflict risk:
   `benchmarks/fix_eval.py`, `miesc/cli/commands/fix.py`,
   `tests/test_fix_command.py`, `tests/test_fix_eval_cli.py`, or the new
   dated `benchmarks/results/fix_eval_*codex*.json` evidence files.
+- `main` also did not change `src/llm/finding_validator.py` or
+  `tests/test_finding_validator.py` since the merge base.
 - Claude still has an active detection-lane claim in LANES. Do not edit
   `src/adapters/**`, `src/core/intelligence.py`, or detection benchmark work
   from this lane.
@@ -96,7 +108,9 @@ When Fernando authorizes integration:
 
    ```bash
    python3 -m pytest -q tests/test_fix_command.py tests/test_fix_eval_cli.py
+   python3 -m pytest -q tests/test_llm_orchestrator.py tests/test_ensemble_detector.py tests/test_llm_provider_health.py tests/test_openllama_helper.py tests/test_embedding_rag.py tests/test_vulnerability_rag.py tests/test_rag_utils.py tests/test_remediation_generator.py tests/test_finding_validator.py tests/test_poc_generator.py tests/test_foundry_runner.py
    python3 -m ruff check benchmarks/fix_eval.py miesc/cli/commands/fix.py tests/test_fix_command.py tests/test_fix_eval_cli.py
+   python3 -m ruff check src/llm/finding_validator.py tests/test_finding_validator.py
    git diff --check HEAD~1..HEAD
    sh .paper-freeze-local/validate_paper_reproducibility_freeze.sh
    ```
@@ -106,4 +120,3 @@ When Fernando authorizes integration:
    ```bash
    git -c pack.threads=1 -c pack.windowMemory=32m -c pack.packSizeLimit=64m push origin main
    ```
-
