@@ -121,3 +121,60 @@ def test_calculate_overall_compliance():
     }
     score = a._calculate_overall_compliance(sample)
     assert isinstance(score, (int, float))
+
+
+def _mock_analyzers(agent, *, raises=False):
+    from unittest.mock import MagicMock
+    if raises:
+        def _boom(*a, **k):
+            raise RuntimeError("analyzer failed")
+        for attr in ("documentation_analyzer", "testing_analyzer",
+                     "maturity_analyzer", "security_practices_analyzer"):
+            m = MagicMock()
+            m.analyze_all.side_effect = _boom
+            setattr(agent, attr, m)
+        return
+    doc = MagicMock(); doc.analyze_all.return_value = {
+        "passes_audit_readiness": False,
+        "natspec": {"coverage_percentage": 50},
+        "readme": {"passes_threshold": False, "sections_missing": ["Install", "Usage"]}}
+    testing = MagicMock(); testing.analyze_all.return_value = {
+        "passes_audit_readiness": False,
+        "coverage": {"line_coverage": 60},
+        "property_tests": {"passes_threshold": False}}
+    maturity = MagicMock(); maturity.analyze_all.return_value = {
+        "passes_audit_readiness": False,
+        "maturity": {"maturity_score": 0.3, "maturity_level": "early"}}
+    security = MagicMock(); security.analyze_all.return_value = {
+        "passes_audit_readiness": False,
+        "practices": {"recommendations": ["Use ReentrancyGuard"]}}
+    agent.documentation_analyzer = doc
+    agent.testing_analyzer = testing
+    agent.maturity_analyzer = maturity
+    agent.security_practices_analyzer = security
+
+
+def test_comprehensive_audit_readiness_with_recommendations():
+    a = _agent()
+    _mock_analyzers(a)
+    res = a._comprehensive_audit_readiness_assessment(RICH, "/tmp/C.sol", "/tmp/proj")
+    assert "overall_score" in res
+    assert "readiness_status" in res
+    assert res["findings_severity"]["total"] == len(RICH)
+    assert res["recommendations"]  # recommendation branches fired
+
+
+def test_comprehensive_audit_readiness_handles_analyzer_errors():
+    a = _agent()
+    _mock_analyzers(a, raises=True)
+    res = a._comprehensive_audit_readiness_assessment(RICH, "/tmp/C.sol", "/tmp/proj")
+    # each analyzer error is captured, assessment still completes
+    assert res["documentation"]["passes_audit_readiness"] is False
+
+
+def test_analyze_runs_comprehensive_when_analyzers_present(monkeypatch):
+    a = _agent()
+    _mock_analyzers(a)
+    monkeypatch.setattr(a, "_aggregate_all_findings", lambda: RICH)
+    results = a.analyze("/tmp/proj/C.sol")
+    assert "audit_readiness" in results
