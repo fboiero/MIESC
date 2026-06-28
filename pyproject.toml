@@ -428,7 +428,8 @@ omit = [
     # test_exporters.py -> kept in coverage.
     # tool_protocol is the foundational tool contract (dataclasses/enums/registry +
     # adapter helpers); unit-tested by test_tool_protocol.py -> kept in coverage.
-    "src/core/rich_cli.py",
+    # rich_cli is pure-python (rich wrappers); fully unit-tested by test_rich_cli.py
+    # -> kept in coverage.
     # MCP modules (require full stack)
     "src/mcp_core/context_bus.py",
     # ML modules with external dependencies

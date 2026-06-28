@@ -599,3 +599,23 @@ class TestWithoutRich:
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
+
+
+# --------------------------------------------------------------------------- #
+# Behaviour when rich is unavailable (RICH_AVAILABLE patched False).
+# --------------------------------------------------------------------------- #
+def test_create_cli_returns_none_without_rich(monkeypatch):
+    import src.core.rich_cli as mod
+
+    monkeypatch.setattr(mod, "RICH_AVAILABLE", False)
+    assert mod.create_cli() is None  # factory returns None
+
+
+def test_richcli_init_raises_without_rich(monkeypatch):
+    import pytest as _pytest
+
+    import src.core.rich_cli as mod
+
+    monkeypatch.setattr(mod, "RICH_AVAILABLE", False)
+    with _pytest.raises(ImportError, match="Rich library not installed"):
+        mod.MIESCRichCLI()

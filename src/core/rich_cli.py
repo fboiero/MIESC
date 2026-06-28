@@ -38,7 +38,7 @@ try:
     from rich.tree import Tree
 
     RICH_AVAILABLE = True
-except ImportError:
+except ImportError:  # pragma: no cover - rich is a declared dependency
     RICH_AVAILABLE = False
 
 
