@@ -227,3 +227,118 @@ class TestHalmosStatusLogic:
             r = runner.run_halmos(str(tmp_path))
             assert r.status == "no_tests"
             assert r.rules_total == 0
+
+
+# =========================================================================== #
+# Runner subprocess branches (availability + subprocess mocked) + parse extras.
+# =========================================================================== #
+import src.formal.spec_runner as sr  # noqa: E402
+
+
+class _Proc:
+    def __init__(self, stdout="", stderr="", returncode=0):
+        self.stdout = stdout
+        self.stderr = stderr
+        self.returncode = returncode
+
+
+def _runner(monkeypatch, tool, available=True):
+    r = SpecRunner()
+    monkeypatch.setattr(r, f"is_{tool}_available", lambda: available)
+    return r
+
+
+class TestRunCertora:
+    def test_success(self, monkeypatch):
+        r = _runner(monkeypatch, "certora")
+        monkeypatch.setattr(sr.subprocess, "run",
+                            lambda *a, **k: _Proc(stdout="Rule x: VERIFIED"))
+        res = r.run_certora("C.sol", "C.spec")
+        assert res.status == "passed" and res.rules_passed == 1
+
+    def test_timeout(self, monkeypatch):
+        r = _runner(monkeypatch, "certora")
+        monkeypatch.setattr(sr.subprocess, "run",
+                            lambda *a, **k: (_ for _ in ()).throw(
+                                sr.subprocess.TimeoutExpired("certoraRun", 600)))
+        assert r.run_certora("C.sol", "C.spec").status == "timeout"
+
+    def test_error(self, monkeypatch):
+        r = _runner(monkeypatch, "certora")
+        monkeypatch.setattr(sr.subprocess, "run",
+                            lambda *a, **k: (_ for _ in ()).throw(OSError("boom")))
+        assert r.run_certora("C.sol", "C.spec").status == "error"
+
+    def test_not_available(self, monkeypatch):
+        r = _runner(monkeypatch, "certora", available=False)
+        assert r.run_certora("C.sol", "C.spec").status == "error"
+
+
+class TestRunHalmos:
+    def test_passed_with_contract_arg(self, monkeypatch):
+        r = _runner(monkeypatch, "halmos")
+        monkeypatch.setattr(sr.subprocess, "run",
+                            lambda *a, **k: _Proc(stdout="[PASS] check_inv"))
+        res = r.run_halmos("/dir", test_contract="MyTest")
+        assert res.status == "passed"
+
+    def test_failed(self, monkeypatch):
+        r = _runner(monkeypatch, "halmos")
+        monkeypatch.setattr(sr.subprocess, "run",
+                            lambda *a, **k: _Proc(stdout="[FAIL] check_bad"))
+        assert r.run_halmos("/dir").status == "failed"
+
+    def test_no_tests(self, monkeypatch):
+        r = _runner(monkeypatch, "halmos")
+        monkeypatch.setattr(sr.subprocess, "run", lambda *a, **k: _Proc(stdout="nothing"))
+        assert r.run_halmos("/dir").status == "no_tests"
+
+    def test_error(self, monkeypatch):
+        r = _runner(monkeypatch, "halmos")
+        monkeypatch.setattr(sr.subprocess, "run",
+                            lambda *a, **k: (_ for _ in ()).throw(OSError("boom")))
+        assert r.run_halmos("/dir").status == "error"
+
+
+class TestRunSmtchecker:
+    def test_runs(self, monkeypatch):
+        r = _runner(monkeypatch, "solc")  # smtchecker uses solc
+        monkeypatch.setattr(sr.subprocess, "run",
+                            lambda *a, **k: _Proc(stderr="Warning: assertion violation"))
+        res = r.run_smtchecker("C.sol")
+        assert res.tool == "smtchecker"
+
+    def test_error(self, monkeypatch):
+        r = _runner(monkeypatch, "solc")
+        monkeypatch.setattr(sr.subprocess, "run",
+                            lambda *a, **k: (_ for _ in ()).throw(OSError("boom")))
+        assert r.run_smtchecker("C.sol").status == "error"
+
+
+class TestParseExtras:
+    def test_strip_ansi_and_halmos_counterexamples(self):
+        out = "\x1b[32m[PASS]\x1b[0m a\n[FAIL] b\nCounterexample: x=1\n"
+        passed, failed, ce = SpecRunner._parse_halmos_output(out)
+        assert passed == 1 and failed == 1
+        assert ce == ["x=1"]
+
+    def test_parse_smtchecker_warnings(self):
+        stderr = "Warning: overflow here\nWarning: assertion fails\n"
+        w = SpecRunner._parse_smtchecker_warnings(stderr)
+        assert len(w) >= 1
+
+
+def test_run_all_available_runs_each_tool(monkeypatch):
+    from src.formal.spec_runner import run_all_available, VerificationResult
+
+    monkeypatch.setattr(SpecRunner, "availability_report",
+                        lambda self: {"smtchecker": True, "certora": True, "halmos": True})
+    monkeypatch.setattr(SpecRunner, "run_smtchecker",
+                        lambda self, c, **k: VerificationResult(tool="smtchecker", spec_file=c, status="passed"))
+    monkeypatch.setattr(SpecRunner, "run_certora",
+                        lambda self, c, s, **k: VerificationResult(tool="certora", spec_file=s, status="passed"))
+    monkeypatch.setattr(SpecRunner, "run_halmos",
+                        lambda self, d, **k: VerificationResult(tool="halmos", spec_file=d, status="passed"))
+
+    results = run_all_available("/proj/C.sol", spec_path="C.spec")
+    assert set(results) == {"smtchecker", "certora", "halmos"}
