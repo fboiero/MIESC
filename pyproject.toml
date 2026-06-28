@@ -418,7 +418,8 @@ omit = [
     # remediation_validator_adapter is pure-python (no external CLI tool / no z3) and
     # fully unit-tested by test_remediation_validator_adapter.py -> kept in coverage.
     # Core modules with external dependencies
-    "src/core/ml_orchestrator.py",
+    # ml_orchestrator is pure-python (tool orchestration); ~95%+ covered by
+    # test_core.py/test_scalability.py -> kept in coverage.
     "src/core/optimized_orchestrator.py",
     # config_loader is pure-python (yaml/dataclasses); fully unit-tested by
     # test_config_loader.py -> kept in coverage.

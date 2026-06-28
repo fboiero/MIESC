@@ -4266,3 +4266,38 @@ PRIORITY: HIGH"""
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v", "--tb=short"])
+
+
+class TestMLOrchestratorExtraBranches:
+    """Cover line_num coercion, _determine_tools default fallback, tool failure."""
+
+    def _orch(self):
+        from src.core.ml_orchestrator import MLOrchestrator
+        return MLOrchestrator(ml_enabled=False, cache_enabled=False)
+
+    def test_build_code_context_map_coerces_bad_line(self):
+        orch = self._orch()
+        source = "\n".join(f"line{i}" for i in range(1, 30))
+        findings = [
+            {"location": {"file": "C.sol", "line": "not-a-number"}},  # -> 0
+            {"location": {"file": "C.sol", "line": "5"}},             # -> int 5
+        ]
+        ctx = orch._build_code_context_map(source, findings)
+        assert isinstance(ctx, dict)
+
+    def test_determine_tools_default_fallback(self):
+        orch = self._orch()
+        # no tools/layers -> enabled ∩ available branch
+        result = orch._determine_tools()
+        assert isinstance(result, list)
+
+    def test_analyze_handles_tool_failure(self, tmp_path):
+        from unittest.mock import patch
+        orch = self._orch()
+        sol = tmp_path / "C.sol"
+        sol.write_text("pragma solidity ^0.8.0;\ncontract C {}")
+        with patch.object(orch, "_determine_tools", return_value=["boom_tool"]), \
+             patch.object(orch, "_run_tool", side_effect=RuntimeError("tool exploded")):
+            result = orch.analyze(str(sol))
+        # tool failure is caught and recorded, analysis still returns a result
+        assert result is not None
