@@ -103,6 +103,18 @@ def run_scan(sol_path, output_path, timeout=DEFAULT_SCAN_TIMEOUT):
     return None
 
 
+def run_scan_with_empty_retries(sol_path, output_path, timeout, retries):
+    """Run scan and retry only when the scan returns no findings."""
+    attempts = 0
+    scan = None
+    for attempt in range(retries + 1):
+        attempts = attempt + 1
+        scan = run_scan(sol_path, output_path, timeout=timeout)
+        if scan and scan.get("findings"):
+            break
+    return scan, attempts
+
+
 def compile_contract(sol_path):
     """Compile using the shared Paper 2 remediation pipeline taxonomy."""
     return compile_contract_evidence(Path(sol_path)).to_dict()
@@ -232,6 +244,12 @@ def main():
         help=f"Per-contract scan timeout in seconds (default: {DEFAULT_SCAN_TIMEOUT}).",
     )
     parser.add_argument(
+        "--scan-empty-retries",
+        type=int,
+        default=0,
+        help="Retry a contract scan this many times when it returns no findings.",
+    )
+    parser.add_argument(
         "--no-progress",
         action="store_true",
         help="Disable per-contract progress output.",
@@ -281,10 +299,11 @@ def main():
     if args.limit is not None:
         print(f"Limit: {args.limit} contract(s) per category")
     print(f"Scan timeout: {args.scan_timeout}s")
+    if args.scan_empty_retries:
+        print(f"Scan-empty retries: {args.scan_empty_retries}")
     if args.external_validator != "none":
         print(
-            f"External validator: {args.external_validator} "
-            f"({args.external_timeout}s timeout)"
+            f"External validator: {args.external_validator} " f"({args.external_timeout}s timeout)"
         )
 
     totals = defaultdict(int)
@@ -310,6 +329,7 @@ def main():
             "no_regression": 0,
             "fix_failed": 0,
             "scan_empty": 0,
+            "scan_retries": 0,
             "no_high": 0,
             "external_checked": 0,
             "external_clean_high": 0,
@@ -330,7 +350,13 @@ def main():
                 fixed_sol = tmp / "fixed.sol"
 
                 # Step 1: Scan
-                scan = run_scan(sol, scan_out, timeout=args.scan_timeout)
+                scan, scan_attempts = run_scan_with_empty_retries(
+                    sol,
+                    scan_out,
+                    timeout=args.scan_timeout,
+                    retries=max(args.scan_empty_retries, 0),
+                )
+                cat_results["scan_retries"] += max(scan_attempts - 1, 0)
                 if not scan or not scan.get("findings"):
                     cat_results["scan_empty"] += 1
                     if args.details_output:
@@ -341,6 +367,7 @@ def main():
                                 "status": "scan_empty",
                                 "fix_applied": False,
                                 "fix_output_summary": "scan produced no findings",
+                                "scan_attempts": scan_attempts,
                                 "high_before": 0,
                                 "high_after": None,
                                 "total_findings_before": 0,
@@ -364,6 +391,7 @@ def main():
                                 "status": "no_high",
                                 "fix_applied": False,
                                 "fix_output_summary": "scan produced no HIGH findings",
+                                "scan_attempts": scan_attempts,
                                 "high_before": high_before,
                                 "high_after": None,
                                 "total_findings_before": len(scan.get("findings", [])),
@@ -398,6 +426,7 @@ def main():
                                     "shared remediation pipeline: applied=0, "
                                     f"skipped={evidence.fixes_skipped}"
                                 )[:MAX_ERROR_CHARS],
+                                "scan_attempts": scan_attempts,
                                 "high_before": high_before,
                                 "high_after": None,
                                 "total_findings_before": len(scan.get("findings", [])),
@@ -484,6 +513,7 @@ def main():
                                 f"shared remediation pipeline: applied={evidence.fixes_applied}, "
                                 f"skipped={evidence.fixes_skipped}"
                             )[:MAX_ERROR_CHARS],
+                            "scan_attempts": scan_attempts,
                             "high_before": high_before,
                             "high_after": high_after,
                             "total_findings_before": total_before,
@@ -551,8 +581,7 @@ def main():
         sorted(external_high_checks.items(), key=lambda item: (-item[1], item[0]))
     )
     external_high_check_example_summary = {
-        check: external_high_check_examples[check]
-        for check in external_high_check_summary
+        check: external_high_check_examples[check] for check in external_high_check_summary
     }
     aggregate_payload = {
         "totals": dict(totals),
@@ -577,6 +606,7 @@ def main():
             "dataset": str(DATASET),
             "limit": args.limit,
             "scan_timeout": args.scan_timeout,
+            "scan_empty_retries": args.scan_empty_retries,
             "skip_rescan": args.skip_rescan,
             "external_validator": args.external_validator,
             "external_timeout": args.external_timeout,
