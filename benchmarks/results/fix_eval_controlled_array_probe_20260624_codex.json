@@ -1,0 +1,35 @@
+{
+  "artifact": "fix_eval_controlled_array_probe_20260624_codex",
+  "date": "2026-06-24",
+  "lane": "codex",
+  "scope": "Paper 2 remediation residual analysis",
+  "detector": "slither",
+  "check": "controlled-array-length",
+  "canonical_baseline_overwritten": false,
+  "representative_contract": "benchmarks/datasets/smartbugs-curated/dataset/bad_randomness/lottery.sol",
+  "reason_for_probe": "controlled-array-length is the highest remaining external Slither HIGH check in the full external remediation evidence after prior reentrancy improvements.",
+  "attempted_transform": {
+    "kind": "bounded_dynamic_array_push_guard",
+    "description": "Wrap a user-reachable dynamic array push with a fixed length guard before calling push.",
+    "example_before": "bets.push(Bet(msg.value, block.number, won));",
+    "example_after": "if (bets.length < 256) { bets.push(Bet(msg.value, block.number, won)); }"
+  },
+  "validation": {
+    "command": "slither <patched lottery.sol> --solc /Users/fboiero/.solc-select/artifacts/solc-0.4.26/solc-0.4.26 --json <slither.json>",
+    "result": "rejected",
+    "observed_high_checks": [
+      "controlled-array-length"
+    ],
+    "notes": "Slither still reports controlled-array-length after the bounded push guard, so this transform does not improve clean_high or high_findings metrics for the representative case."
+  },
+  "decision": {
+    "apply_generic_transform": false,
+    "rationale": "A generic bounded push guard adds semantic policy without removing the external HIGH detector finding. Applying it would increase code churn and risk without measurable Slither validation benefit.",
+    "recommended_handling": "Treat controlled-array-length as requiring contract-specific redesign, such as pull accounting, bounded batch processing, fixed-size storage with explicit eviction semantics, or a hand-authored ring buffer where semantics permit it."
+  },
+  "next_candidates": [
+    "weak-prng",
+    "remaining reentrancy-eth residuals",
+    "unchecked-transfer"
+  ]
+}

@@ -22,7 +22,7 @@ import asyncio
 import json
 import logging
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -148,12 +148,13 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
         Args:
             config: Validator configuration, uses defaults if not provided
         """
-        self.config = config or ValidatorConfig()
+        default_config = ValidatorConfig()
+        self.config = replace(config or default_config)
 
-        # Check for environment overrides
-        if os.environ.get("OLLAMA_HOST"):
+        # Environment values fill defaults, but an explicit caller config wins.
+        if os.environ.get("OLLAMA_HOST") and self.config.ollama_host == default_config.ollama_host:
             self.config.ollama_host = os.environ["OLLAMA_HOST"]
-        if os.environ.get("MIESC_LLM_MODEL"):
+        if os.environ.get("MIESC_LLM_MODEL") and self.config.model == default_config.model:
             self.config.model = os.environ["MIESC_LLM_MODEL"]
 
         self._session: Optional[aiohttp.ClientSession] = None

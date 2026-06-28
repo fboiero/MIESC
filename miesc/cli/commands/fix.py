@@ -112,6 +112,13 @@ def _select_contract_for_function(
     return selected
 
 
+def _select_contract_containing_offset(source: str, offset: int) -> Optional[tuple[int, int]]:
+    for m_contract, _, contract_end, _ in _contract_candidates_for_function(source, None, None):
+        if m_contract.end() <= offset < contract_end:
+            return m_contract.end(), contract_end
+    return None
+
+
 def _contract_inherits_guard(source: str, contract_name: str, guard_name: str) -> bool:
     """Return True when contract inherits guard_name directly or through bases."""
     masked = _mask_comments(source)
@@ -206,6 +213,13 @@ def _ensure_modifier_defined(
             r"(?m)^\s*address\s+(?:(?:public|private|internal|external)\s+)?owner\b",
             body,
         )
+        if has_owner:
+            source, _ = _initialize_owner_state(source, m_contract.end(), contract_end)
+            selected = _select_contract_for_function(source, target_function, line_hint)
+            if selected is None:
+                return source
+            m_contract, contract_end = selected
+            body = _mask_comments(source[m_contract.end() : contract_end])
         inline = "\n    // MIESC: Inline onlyOwner modifier\n"
         if not has_owner:
             inline += "    address public owner = msg.sender;\n"
@@ -226,6 +240,56 @@ def _ensure_modifier_defined(
         else:
             source = source[:contract_body_end] + inline + "\n" + source[contract_body_end:]
     return source
+
+
+def _initialize_owner_state(
+    source: str,
+    contract_start: Optional[int] = None,
+    contract_end: Optional[int] = None,
+    line_hint: Optional[int] = None,
+) -> tuple[str, bool]:
+    """Initialize an existing uninitialized `owner` state variable."""
+    owner_decl_re = re.compile(
+        r"(?m)^(?P<indent>\s*)address\s+"
+        r"(?P<visibility>(?:(?:public|private|internal|external)\s+)?)"
+        r"owner\s*;"
+    )
+
+    search_start = contract_start or 0
+    search_end = contract_end or len(source)
+    segment = source[search_start:search_end]
+    masked_segment = _mask_comments(segment)
+    matches = list(owner_decl_re.finditer(masked_segment))
+    if not matches:
+        return source, False
+
+    if line_hint and len(matches) > 1:
+        chosen = min(
+            matches,
+            key=lambda m: abs(source[: search_start + m.start()].count("\n") + 1 - line_hint),
+        )
+    else:
+        chosen = matches[0]
+
+    absolute_start = search_start + chosen.start()
+    absolute_end = search_start + chosen.end()
+    selected = (
+        (contract_start, contract_end)
+        if contract_start is not None and contract_end is not None
+        else _select_contract_containing_offset(source, absolute_start)
+    )
+    if selected is None:
+        return source, False
+    body_start, body_end = selected
+    body = _mask_comments(source[body_start:body_end])
+    if re.search(r"(?<![.\w])owner\s*=", body):
+        return source, False
+
+    replacement = (
+        f"{chosen.group('indent')}address " f"{chosen.group('visibility')}owner = msg.sender;"
+    )
+    patched = source[:absolute_start] + replacement + source[absolute_end:]
+    return patched, patched != source
 
 
 def _add_modifier_to_function(
@@ -387,6 +451,107 @@ def _apply_legacy_call_value_cei(
         r"\s*-=\s*(?P<dec_amount>[^;\n]+);[ \t]*(?:\n)?",
         re.MULTILINE,
     )
+    state_update_re = re.compile(
+        r"(?P<indent>[ \t]*)"
+        r"(?P<target>[A-Za-z_]\w*(?:\s*\[[^\]\n;]+\])?(?:\.[A-Za-z_]\w*)?)"
+        r"\s*(?P<op>-=|\+=|=)\s*(?P<value>[^;\n]+);[ \t]*(?:\n|$)",
+        re.MULTILINE,
+    )
+
+    def collect_state_updates(start: int) -> tuple[str, int, list[re.Match[str]]]:
+        updates: list[re.Match[str]] = []
+        cursor = start
+        chunks: list[str] = []
+        while True:
+            match_update = state_update_re.match(body, cursor)
+            if not match_update:
+                break
+            updates.append(match_update)
+            chunks.append(match_update.group(0))
+            cursor = match_update.end()
+        return "".join(chunks), cursor, updates
+
+    def has_matching_decrement(
+        updates: list[re.Match[str]], call_amount: str
+    ) -> Optional[re.Match[str]]:
+        for update in updates:
+            if update.group("op") == "-=" and _same_solidity_expr(
+                update.group("value"), call_amount
+            ):
+                return update
+        return None
+
+    require_call_re = re.compile(
+        r"(?P<indent>^[ \t]*)require\s*\(\s*"
+        r"(?P<call>[^\n{};]*?\.call\.value\s*\(\s*(?P<call_amount>[^)]+?)\s*\)"
+        r"\s*\(\s*\))\s*\)\s*;[ \t]*(?:\n|$)",
+        re.MULTILINE,
+    )
+    for match in require_call_re.finditer(body):
+        moved_updates, updates_end, updates = collect_state_updates(match.end())
+        if not updates or not has_matching_decrement(updates, match.group("call_amount")):
+            continue
+        prelude = (
+            f"{match.group('indent')}// MIESC: checks-effects-interactions "
+            "for legacy call.value\n"
+            f"{moved_updates}{match.group(0)}"
+        )
+        new_body = body[: match.start()] + prelude + body[updates_end:]
+        return source[:body_start] + new_body + source[body_end:], True
+
+    inverted_throw_re = re.compile(
+        r"(?P<indent>^[ \t]*)if\s*\(\s*!\s*\(\s*"
+        r"(?P<call>[^\n{};]*?\.call\.value\s*\(\s*(?P<call_amount>[^)]+?)\s*\)"
+        r"\s*\(\s*\))\s*\)\s*\)\s*\{\s*throw\s*;\s*\}[ \t]*(?:\n|$)",
+        re.MULTILINE,
+    )
+    for match in inverted_throw_re.finditer(body):
+        moved_updates, updates_end, updates = collect_state_updates(match.end())
+        if not updates:
+            continue
+        zero_assignment = next(
+            (
+                update
+                for update in updates
+                if update.group("op") == "=" and update.group("value").strip() == "0"
+            ),
+            None,
+        )
+        if zero_assignment is None:
+            continue
+        call_amount = match.group("call_amount").strip()
+        if re.match(r"^[A-Za-z_]\w*$", call_amount):
+            target = re.sub(r"\s+", "", zero_assignment.group("target"))
+            compact_prefix = re.sub(r"\s+", "", body[: match.start()])
+            if f"{call_amount}={target}" not in compact_prefix:
+                continue
+        prelude = (
+            f"{match.group('indent')}// MIESC: checks-effects-interactions "
+            "for legacy call.value\n"
+            f"{moved_updates}{match.group(0)}"
+        )
+        new_body = body[: match.start()] + prelude + body[updates_end:]
+        return source[:body_start] + new_body + source[body_end:], True
+
+    bool_call_re = re.compile(
+        r"(?P<indent>^[ \t]*)bool\s+(?P<var>[A-Za-z_]\w*)\s*=\s*"
+        r"(?P<call>[^\n{};]*?\.call\.value\s*\(\s*(?P<call_amount>[^)]+?)\s*\)"
+        r"\s*\(\s*\))\s*;[ \t]*(?:\n|$)",
+        re.MULTILINE,
+    )
+    for match in bool_call_re.finditer(body):
+        moved_updates, updates_end, updates = collect_state_updates(match.end())
+        decrement = has_matching_decrement(updates, match.group("call_amount"))
+        if decrement is None:
+            continue
+        check = f"{match.group('indent')}require({match.group('var')});\n"
+        prelude = (
+            f"{match.group('indent')}// MIESC: checks-effects-interactions "
+            "for legacy call.value\n"
+            f"{moved_updates}{match.group(0)}{check}"
+        )
+        new_body = body[: match.start()] + prelude + body[updates_end:]
+        return source[:body_start] + new_body + source[body_end:], True
 
     for match in call_re.finditer(body):
         opening_brace = body.find("{", match.end())
@@ -405,11 +570,43 @@ def _apply_legacy_call_value_cei(
         if not decrement:
             aliased_decrement = aliased_decrement_re.match(body, opening_brace + 1)
             if not aliased_decrement:
-                continue
+                following_decrement = decrement_re.match(body, block_close + 1)
+                if not following_decrement:
+                    continue
+                if not _same_solidity_expr(
+                    match.group("call_amount"), following_decrement.group("dec_amount")
+                ):
+                    continue
+                if_indent = match.group("if_indent")
+                dec_indent = following_decrement.group("dec_indent")
+                balance = following_decrement.group("balance").strip()
+                dec_amount = following_decrement.group("dec_amount").strip()
+                prelude = (
+                    f"{if_indent}// MIESC: checks-effects-interactions "
+                    "for legacy call.value\n"
+                    f"{if_indent}{balance} -= {dec_amount};\n"
+                )
+                rollback = (
+                    "\n"
+                    f"{if_indent}else\n"
+                    f"{if_indent}{{\n"
+                    f"{dec_indent}{balance} += {dec_amount};\n"
+                    f"{if_indent}}}"
+                )
+                new_body = (
+                    body[: match.start()]
+                    + prelude
+                    + body[match.start() : block_close + 1]
+                    + rollback
+                    + body[following_decrement.end() :]
+                )
+                return source[:body_start] + new_body + source[body_end:], True
         active_decrement = decrement or aliased_decrement
         if active_decrement is None:
             continue
-        if not _same_solidity_expr(match.group("call_amount"), active_decrement.group("dec_amount")):
+        if not _same_solidity_expr(
+            match.group("call_amount"), active_decrement.group("dec_amount")
+        ):
             continue
 
         if_indent = match.group("if_indent")
@@ -718,6 +915,20 @@ def _add_require_for_call(
         patched = source[:body_start] + new_body + source[body_end:]
         return patched, patched != source
 
+    token_transfer_re = re.compile(
+        r"(?P<indent>[ \t]*)(?P<call>"
+        r"(?!require\b|assert\b|if\b|return\b|bool\b)"
+        r"[^;\n]*\.(?:transfer|transferFrom|approve)\s*\([^;\n]*,[^;\n]*\))\s*;",
+        re.MULTILINE,
+    )
+    for call_m in token_transfer_re.finditer(body):
+        indent = call_m.group("indent")
+        call_bare = call_m.group("call").strip()
+        replacement = f'{indent}require({call_bare}, "Token transfer failed");'
+        new_body = body[: call_m.start()] + replacement + body[call_m.end() :]
+        patched = source[:body_start] + new_body + source[body_end:]
+        return patched, patched != source
+
     return source, False
 
 
@@ -820,6 +1031,102 @@ def _low_level_call_returns_bool(source: str, call_expr: str) -> bool:
     return ".send" in call_expr or bool(_LEGACY_LOW_LEVEL_CALL_HINT.search(source))
 
 
+def _add_memory_to_uninitialized_struct(
+    source: str,
+    function_name: str,
+    line_hint: Optional[int] = None,
+) -> tuple[str, bool]:
+    """Convert one legacy local struct variable from implicit storage to memory."""
+    struct_names = set(re.findall(r"\bstruct\s+([A-Z]\w*)\s*\{", _mask_comments(source)))
+    if not struct_names:
+        return source, False
+
+    def span_from_variable_name() -> Optional[tuple[int, int]]:
+        if not function_name:
+            return None
+        masked = _mask_comments(source)
+        variable_re = re.compile(
+            r"(?m)^[ \t]*(?P<type>"
+            + "|".join(re.escape(name) for name in sorted(struct_names))
+            + r")\s+"
+            + re.escape(function_name)
+            + r"\s*;[^\n]*$"
+        )
+        declarations = list(variable_re.finditer(masked))
+        if not declarations:
+            return None
+        if line_hint and len(declarations) > 1:
+            declaration = min(
+                declarations,
+                key=lambda m: abs(source[: m.start()].count("\n") + 1 - line_hint),
+            )
+        else:
+            declaration = declarations[0]
+        declaration_line = source[: declaration.start()].count("\n") + 1
+        inferred_function = _infer_function_at_line(source, declaration_line)
+        if not inferred_function:
+            return None
+        return _find_function_body_span(source, inferred_function, declaration_line)
+
+    span = _find_function_body_span(source, function_name, line_hint)
+    if span is None and line_hint:
+        inferred_function = _infer_function_at_line(source, line_hint)
+        if inferred_function and inferred_function != function_name:
+            span = _find_function_body_span(source, inferred_function, line_hint)
+    if span is None:
+        span = span_from_variable_name()
+    if span is None:
+        return source, False
+
+    body_start, body_end = span
+    body = source[body_start:body_end]
+    masked_body = _mask_comments(body)
+    declaration_re = re.compile(
+        r"(?m)^(?P<indent>[ \t]*)(?P<type>[A-Z]\w*)\s+"
+        r"(?P<name>[A-Za-z_]\w*)\s*;(?P<suffix>[^\n]*)$"
+    )
+
+    candidates: list[re.Match[str]] = []
+    for match in declaration_re.finditer(masked_body):
+        if match.group("type") not in struct_names:
+            continue
+        if re.search(r"\b(memory|storage|calldata)\b", match.group(0)):
+            continue
+        candidates.append(match)
+
+    if not candidates:
+        variable_span = span_from_variable_name()
+        if variable_span is None or variable_span == span:
+            return source, False
+        body_start, body_end = variable_span
+        body = source[body_start:body_end]
+        masked_body = _mask_comments(body)
+        candidates = [
+            match
+            for match in declaration_re.finditer(masked_body)
+            if match.group("type") in struct_names
+            and not re.search(r"\b(memory|storage|calldata)\b", match.group(0))
+        ]
+        if not candidates:
+            return source, False
+
+    if line_hint and len(candidates) > 1:
+        chosen = min(
+            candidates,
+            key=lambda m: abs(source[: body_start + m.start()].count("\n") + 1 - line_hint),
+        )
+    else:
+        chosen = candidates[0]
+
+    replacement = (
+        f"{chosen.group('indent')}{chosen.group('type')} memory "
+        f"{chosen.group('name')};{chosen.group('suffix')}"
+    )
+    new_body = body[: chosen.start()] + replacement + body[chosen.end() :]
+    patched = source[:body_start] + new_body + source[body_end:]
+    return patched, patched != source
+
+
 def _infer_function_at_line(source: str, line: int) -> str:
     """Find the nearest function declaration at or above `line`."""
     lines = _mask_comments(source).splitlines()
@@ -885,7 +1192,12 @@ def apply_fix(source: str, finding: dict) -> tuple[str, bool]:
             return source, changed
         return source, False
 
-    if "access_control" in ftype or "selfdestruct" in ftype or "arbitrary_send_eth" in ftype:
+    if (
+        "access_control" in ftype
+        or "selfdestruct" in ftype
+        or "arbitrary_send_eth" in ftype
+        or "controlled_delegatecall" in ftype
+    ):
         if fn_name:
             source, changed = _add_modifier_to_function(source, fn_name, "onlyOwner", line_hint)
             if changed:
@@ -893,10 +1205,34 @@ def apply_fix(source: str, finding: dict) -> tuple[str, bool]:
             return source, changed
         return source, False
 
-    if "unchecked_call" in ftype or "unchecked_low_level" in ftype:
+    if "unchecked_call" in ftype or "unchecked_low_level" in ftype or "unchecked_transfer" in ftype:
         if fn_name:
             return _add_require_for_call(source, fn_name, line_hint)
         return source, False
+
+    if "uninitialized_storage" in ftype:
+        if fn_name:
+            patched, changed = _add_memory_to_uninitialized_struct(source, fn_name, line_hint)
+            if changed:
+                return patched, True
+
+    if "uninitialized_state" in ftype and fn_name == "owner":
+        patched, changed = _initialize_owner_state(source, line_hint=line_hint)
+        if changed:
+            return patched, True
+        return source, False
+
+    if fn_name and any(
+        hint in fix_code.lower() for hint in ("uninitialized storage", "storage pointer", "memory")
+    ):
+        patched, changed = _add_memory_to_uninitialized_struct(source, fn_name, line_hint)
+        if changed:
+            return patched, True
+
+    if ftype == "other" and fn_name:
+        patched, changed = _add_memory_to_uninitialized_struct(source, fn_name, line_hint)
+        if changed:
+            return patched, True
 
     if "arithmetic" in ftype or "integer_overflow" in ftype or "overflow" in ftype:
         # Only insert SafeMath for pre-0.8 contracts
@@ -1174,6 +1510,8 @@ def fix(
             k in ftype_lower
             for k in ("access_control", "suicidal", "selfdestruct", "arbitrary_send_eth")
         ):
+            fix_cat = "access_control"
+        elif "controlled_delegatecall" in ftype_lower:
             fix_cat = "access_control"
         elif "unchecked" in ftype_lower:
             fix_cat = "unchecked_call"

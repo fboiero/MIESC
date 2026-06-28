@@ -1,0 +1,47 @@
+{
+  "artifact": "fix_eval_arbitrary_send_probe_20260625_codex",
+  "date": "2026-06-25",
+  "lane": "codex",
+  "scope": "Paper 2 remediation residual analysis",
+  "detector": "slither",
+  "check": "arbitrary-send-eth",
+  "canonical_baseline_overwritten": false,
+  "source_evidence": {
+    "details_artifact": "benchmarks/results/fix_eval_full_external_slither_details_20260625_codex_v4.json",
+    "remaining_full_external_count": 3,
+    "example_contracts": [
+      "benchmarks/datasets/smartbugs-curated/dataset/other/crypto_roulette.sol",
+      "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/reentrancy_bonus.sol",
+      "benchmarks/datasets/smartbugs-curated/dataset/time_manipulation/roulette.sol"
+    ]
+  },
+  "observed_patterns": [
+    "Game payout functions transfer the full balance to msg.sender when a winning condition is satisfied.",
+    "A reward withdrawal function sends ETH to a public recipient parameter that is also used by the caller-facing bonus flow.",
+    "The existing patcher already adds onlyOwner for stable arbitrary recipient findings when a function target is appropriate."
+  ],
+  "rejected_generic_transforms": [
+    {
+      "kind": "add_onlyOwner_to_payout_function",
+      "reason": "This can silence Slither but changes public game or reward payout semantics by preventing legitimate winners or recipients from receiving funds."
+    },
+    {
+      "kind": "rewrite_transfer_to_msg_sender_only",
+      "reason": "This only helps recipient-parameter cases and is not valid for all arbitrary-send findings. It can break intended claim-on-behalf or routing behavior without contract-specific requirements."
+    },
+    {
+      "kind": "inline_pull_payment_stub",
+      "reason": "A correct pull-payment redesign requires new accounting state, withdrawal flow, and tests. It cannot be inferred safely from one transfer expression."
+    }
+  ],
+  "decision": {
+    "apply_generic_transform": false,
+    "rationale": "The remaining arbitrary-send-eth cases require semantic redesign or contract-specific policy. Applying a generic access-control or recipient rewrite would improve detector output at the cost of honest remediation semantics.",
+    "recommended_handling": "Keep explanatory remediation for these residuals unless a contract-specific policy is supplied: pull payments for game payouts, recipient == msg.sender for self-claims, or owner/admin withdrawal only for treasury recovery functions."
+  },
+  "next_candidates": [
+    "controlled-delegatecall",
+    "remaining reentrancy-eth residuals",
+    "shadowing-state feasibility probe"
+  ]
+}

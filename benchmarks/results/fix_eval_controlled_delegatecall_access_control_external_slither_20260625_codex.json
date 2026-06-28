@@ -1,0 +1,78 @@
+{
+  "totals": {
+    "contracts": 18,
+    "fix_applied": 17,
+    "fix_compiles": 17,
+    "vuln_eliminated": 9,
+    "no_regression": 17,
+    "fix_failed": 0,
+    "scan_empty": 1,
+    "no_high": 0,
+    "external_checked": 17,
+    "external_clean_high": 14,
+    "external_findings": 3,
+    "external_errors": 0
+  },
+  "by_category": {
+    "access_control": {
+      "contracts": 18,
+      "fix_applied": 17,
+      "fix_compiles": 17,
+      "vuln_eliminated": 9,
+      "no_regression": 17,
+      "fix_failed": 0,
+      "scan_empty": 1,
+      "no_high": 0,
+      "external_checked": 17,
+      "external_clean_high": 14,
+      "external_findings": 3,
+      "external_errors": 0
+    }
+  },
+  "external_high_checks": {
+    "uninitialized-state": 2,
+    "controlled-array-length": 1,
+    "controlled-delegatecall": 1,
+    "reentrancy-eth": 1
+  },
+  "external_high_check_examples": {
+    "uninitialized-state": [
+      {
+        "category": "access_control",
+        "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/FibonacciBalance.sol",
+        "external_status": "findings",
+        "high_findings": 2
+      },
+      {
+        "category": "access_control",
+        "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/mapping_write.sol",
+        "external_status": "findings",
+        "high_findings": 2
+      }
+    ],
+    "controlled-array-length": [
+      {
+        "category": "access_control",
+        "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/mapping_write.sol",
+        "external_status": "findings",
+        "high_findings": 2
+      }
+    ],
+    "controlled-delegatecall": [
+      {
+        "category": "access_control",
+        "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/FibonacciBalance.sol",
+        "external_status": "findings",
+        "high_findings": 2
+      }
+    ],
+    "reentrancy-eth": [
+      {
+        "category": "access_control",
+        "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/parity_wallet_bug_2.sol",
+        "external_status": "findings",
+        "high_findings": 1
+      }
+    ]
+  }
+}

@@ -310,7 +310,9 @@ contract Bank {
 
         assert changed
         assert "MIESC: checks-effects-interactions for legacy call.value" in patched
-        assert "balances[msg.sender] -= _am;\n            if(msg.sender.call.value(_am)())" in patched
+        assert (
+            "balances[msg.sender] -= _am;\n            if(msg.sender.call.value(_am)())" in patched
+        )
         assert "else\n            {\n                balances[msg.sender] += _am;" in patched
         assert patched.index("balances[msg.sender] -= _am;") < patched.index(
             "if(msg.sender.call.value(_am)())"
@@ -342,6 +344,41 @@ contract Bank {
         assert changed
         assert "MIESC: checks-effects-interactions" not in patched
         assert "balances[msg.sender]-=fee;" in patched
+
+    def test_reentrancy_legacy_call_value_moves_following_balance_effect_before_call(self):
+        source = """\
+pragma solidity ^0.4.18;
+
+contract Reentrance {
+    mapping(address => uint) public balances;
+
+    function withdraw(uint _amount) public {
+        if(balances[msg.sender] >= _amount) {
+            if(msg.sender.call.value(_amount)()) {
+                _amount;
+            }
+            balances[msg.sender] -= _amount;
+        }
+    }
+}
+"""
+        finding = {
+            "type": "reentrancy",
+            "function": "withdraw",
+            "line": 6,
+            "fix_code": "add nonReentrant",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert changed
+        assert "MIESC: checks-effects-interactions for legacy call.value" in patched
+        assert patched.index("balances[msg.sender] -= _amount;") < patched.index(
+            "if(msg.sender.call.value(_amount)())"
+        )
+        assert "else\n            {" in patched
+        assert "balances[msg.sender] += _amount;" in patched
+        assert patched.count("balances[msg.sender] -= _amount;") == 1
 
     def test_reentrancy_legacy_call_value_moves_storage_alias_effect_before_call(self):
         source = """\
@@ -383,6 +420,100 @@ contract Bank {
         assert patched.index("acc.balance -= _am;") < patched.index(
             "if(msg.sender.call.value(_am)())"
         )
+
+    def test_reentrancy_legacy_require_call_value_moves_following_effects_before_call(self):
+        source = """\
+pragma solidity ^0.4.10;
+
+contract EtherStore {
+    uint256 public withdrawalLimit = 1 ether;
+    mapping(address => uint256) public lastWithdrawTime;
+    mapping(address => uint256) public balances;
+
+    function withdrawFunds (uint256 _weiToWithdraw) public {
+        require(balances[msg.sender] >= _weiToWithdraw);
+        require(_weiToWithdraw <= withdrawalLimit);
+        require(now >= lastWithdrawTime[msg.sender] + 1 weeks);
+        require(msg.sender.call.value(_weiToWithdraw)());
+        balances[msg.sender] -= _weiToWithdraw;
+        lastWithdrawTime[msg.sender] = now;
+    }
+}
+"""
+        finding = {
+            "type": "reentrancy",
+            "function": "withdrawFunds",
+            "fix_code": "add nonReentrant",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert changed
+        assert "MIESC: checks-effects-interactions for legacy call.value" in patched
+        assert patched.index("balances[msg.sender] -= _weiToWithdraw;") < patched.index(
+            "require(msg.sender.call.value(_weiToWithdraw)());"
+        )
+        assert patched.index("lastWithdrawTime[msg.sender] = now;") < patched.index(
+            "require(msg.sender.call.value(_weiToWithdraw)());"
+        )
+
+    def test_reentrancy_legacy_inverted_throw_call_value_moves_zeroing_before_call(self):
+        source = """\
+pragma solidity ^0.4.0;
+
+contract EtherBank{
+    mapping (address => uint) userBalances;
+
+    function withdrawBalance() {
+        uint amountToWithdraw = userBalances[msg.sender];
+        if (!(msg.sender.call.value(amountToWithdraw)())) { throw; }
+        userBalances[msg.sender] = 0;
+    }
+}
+"""
+        finding = {
+            "type": "reentrancy",
+            "function": "withdrawBalance",
+            "fix_code": "add nonReentrant",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert changed
+        assert "MIESC: checks-effects-interactions for legacy call.value" in patched
+        assert patched.index("userBalances[msg.sender] = 0;") < patched.index(
+            "if (!(msg.sender.call.value(amountToWithdraw)()))"
+        )
+
+    def test_reentrancy_legacy_bool_call_value_moves_decrement_and_requires_success(self):
+        source = """\
+pragma solidity ^0.4.2;
+
+contract SimpleDAO {
+  mapping (address => uint) public credit;
+
+  function withdraw(uint amount) {
+    if (credit[msg.sender] >= amount) {
+      bool res = msg.sender.call.value(amount)();
+      credit[msg.sender] -= amount;
+    }
+  }
+}
+"""
+        finding = {
+            "type": "reentrancy",
+            "function": "withdraw",
+            "fix_code": "add nonReentrant",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert changed
+        assert "MIESC: checks-effects-interactions for legacy call.value" in patched
+        assert patched.index("credit[msg.sender] -= amount;") < patched.index(
+            "bool res = msg.sender.call.value(amount)();"
+        )
+        assert "require(res);" in patched
 
     def test_reentrancy_normalizes_legacy_call_value_tuple_assignment(self):
         source = """\
@@ -678,6 +809,125 @@ contract Treasury {
         assert "address public owner = msg.sender;" in patched
         assert "function pay(address payable recipient) onlyOwner public" in patched
 
+    def test_controlled_delegatecall_adds_only_owner_to_named_function(self):
+        source = """\
+pragma solidity ^0.4.24;
+
+contract Proxy {
+    function forward(address callee, bytes _data) public {
+        require(callee.delegatecall(_data));
+    }
+}
+"""
+        finding = {
+            "type": "controlled-delegatecall",
+            "function": "forward",
+            "line": 4,
+            "fix_code": "guard delegatecall",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert changed
+        assert "MIESC: Inline onlyOwner modifier" in patched
+        assert "address public owner = msg.sender;" in patched
+        assert "function forward(address callee, bytes _data) onlyOwner public" in patched
+
+    def test_controlled_delegatecall_without_function_is_left_unchanged(self):
+        source = """\
+pragma solidity ^0.4.24;
+
+contract Proxy {
+    address public libraryAddress;
+
+    function() public {
+        require(libraryAddress.delegatecall(msg.data));
+    }
+}
+"""
+        finding = {
+            "type": "controlled-delegatecall",
+            "location": {"function": "unknown"},
+            "fix_code": "guard delegatecall",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert not changed
+        assert patched == source
+
+    def test_access_control_initializes_existing_owner_for_only_owner(self):
+        source = """\
+pragma solidity ^0.4.24;
+
+contract Map {
+    address public owner;
+    uint256[] map;
+
+    function set(uint256 key, uint256 value) public {
+        map[key] = value;
+    }
+}
+"""
+        finding = {
+            "type": "access_control",
+            "function": "set",
+            "fix_code": "add onlyOwner",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert changed
+        assert "address public owner = msg.sender;" in patched
+        assert "function set(uint256 key, uint256 value) onlyOwner public" in patched
+
+    def test_uninitialized_state_initializes_owner(self):
+        source = """\
+pragma solidity ^0.4.24;
+
+contract Map {
+    address public owner;
+
+    function withdraw() public {
+        require(msg.sender == owner);
+        msg.sender.transfer(address(this).balance);
+    }
+}
+"""
+        finding = {
+            "type": "uninitialized-state",
+            "location": {"line": 4, "function": "owner"},
+            "fix_code": "initialize owner",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert changed
+        assert "address public owner = msg.sender;" in patched
+
+    def test_uninitialized_state_keeps_assigned_owner(self):
+        source = """\
+pragma solidity ^0.4.24;
+
+contract Wallet {
+    address public owner;
+
+    constructor() public {
+        owner = msg.sender;
+    }
+}
+"""
+        finding = {
+            "type": "uninitialized-state",
+            "location": {"line": 4, "function": "owner"},
+            "fix_code": "initialize owner",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert not changed
+        assert patched == source
+
     def test_arithmetic_inserts_safemath_on_legacy(self):
         finding = {
             "type": "arithmetic",
@@ -724,6 +974,60 @@ contract Treasury {
         assert changed
         assert '(bool ok, ) = msg.sender.call{value: amount}("");' in patched
         assert 'require(ok, "Call failed");' in patched
+
+    def test_unchecked_token_transfer_gets_require_check(self):
+        source = """\
+pragma solidity ^0.4.24;
+
+contract Token {
+    function transfer(address _to, uint _value) returns (bool success);
+    function balanceOf(address _owner) constant returns (uint balance);
+}
+
+contract EtherGet {
+    address owner;
+
+    function withdrawTokens(address tokenContract) public {
+        Token tc = Token(tokenContract);
+        tc.transfer(owner, tc.balanceOf(this));
+    }
+}
+"""
+        finding = {
+            "type": "unchecked-transfer",
+            "function": "withdrawTokens",
+            "fix_code": "check token transfer return",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert changed
+        assert (
+            'require(tc.transfer(owner, tc.balanceOf(this)), "Token transfer failed");' in patched
+        )
+
+    def test_unchecked_transfer_does_not_wrap_eth_transfer(self):
+        source = """\
+pragma solidity ^0.4.24;
+
+contract EtherGet {
+    address owner;
+
+    function withdrawEther() public {
+        owner.transfer(this.balance);
+    }
+}
+"""
+        finding = {
+            "type": "unchecked-transfer",
+            "function": "withdrawEther",
+            "fix_code": "check transfer return",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert not changed
+        assert "owner.transfer(this.balance);" in patched
 
     def test_reentrancy_line_inference_uses_original_source_after_safemath_insert(self, tmp_path):
         source = """\
@@ -801,6 +1105,132 @@ contract Vault {
         assert "MIESC FIX: uninitialized_storage" in patched
         assert "Initialize storage references explicitly." in patched
         assert "function newRecord" not in patched
+
+    def test_uninitialized_storage_struct_gets_memory_location(self):
+        source = """\
+pragma solidity ^0.4.15;
+
+contract NameRegistrar {
+    struct NameRecord {
+        bytes32 name;
+        address mappedAddress;
+    }
+
+    mapping(address => NameRecord) public registeredNameRecord;
+
+    function register(bytes32 _name, address _mappedAddress) public {
+        NameRecord newRecord;
+        newRecord.name = _name;
+        newRecord.mappedAddress = _mappedAddress;
+        registeredNameRecord[msg.sender] = newRecord;
+    }
+}
+"""
+        finding = {
+            "type": "uninitialized-storage",
+            "function": "register",
+            "line": 12,
+            "fix_code": "Initialize storage references explicitly.",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert changed
+        assert "NameRecord memory newRecord;" in patched
+        assert "MIESC FIX: uninitialized_storage" not in patched
+
+    def test_uninitialized_storage_infers_function_when_location_names_variable(self):
+        source = """\
+pragma solidity ^0.4.15;
+
+contract NameRegistrar {
+    struct NameRecord {
+        bytes32 name;
+        address mappedAddress;
+    }
+
+    mapping(address => NameRecord) public registeredNameRecord;
+
+    function register(bytes32 _name, address _mappedAddress) public {
+        NameRecord newRecord;
+        newRecord.name = _name;
+        newRecord.mappedAddress = _mappedAddress;
+        registeredNameRecord[msg.sender] = newRecord;
+    }
+}
+"""
+        finding = {
+            "type": "uninitialized-storage",
+            "location": {"line": 12, "function": "newRecord"},
+            "fix_code": "Initialize storage references explicitly.",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert changed
+        assert "NameRecord memory newRecord;" in patched
+        assert "MIESC FIX: uninitialized_storage" not in patched
+
+    def test_uninitialized_storage_finds_variable_when_line_hint_shifted(self):
+        source = """\
+pragma solidity ^0.4.19;
+
+contract OpenAddressLottery {
+    struct SeedComponents {
+        uint component1;
+        uint component2;
+    }
+
+    function forceReseed() public {
+        SeedComponents s; // Uninitialized storage pointer
+        s.component1 = uint(msg.sender);
+        s.component2 = block.difficulty;
+    }
+}
+"""
+        finding = {
+            "type": "uninitialized-storage",
+            "location": {"line": 3, "function": "s"},
+            "fix_code": "Initialize storage references explicitly.",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert changed
+        assert "SeedComponents memory s;" in patched
+
+    def test_other_finding_with_uninitialized_storage_hint_gets_memory_location(self):
+        source = """\
+pragma solidity ^0.4.19;
+
+contract CryptoRoulette {
+    struct Game {
+        address player;
+        uint256 number;
+    }
+
+    Game[] public gamesPlayed;
+
+    function play(uint256 number) payable public {
+        Game game;
+        game.player = msg.sender;
+        game.number = number;
+        gamesPlayed.push(game);
+    }
+}
+"""
+        finding = {
+            "type": "other",
+            "function": "play",
+            "line": 12,
+            "fix_code": "Fix uninitialized storage pointer by using a memory struct.",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert changed
+        assert "Game memory game;" in patched
+        assert "MIESC FIX: other" not in patched
 
     def test_no_change_when_function_not_found(self):
         finding = {

@@ -170,6 +170,65 @@ def test_fix_eval_details_include_skipped_contract_statuses(monkeypatch, tmp_pat
     assert payload["contracts"][1]["evidence"]["fixes_skipped"] == 2
 
 
+def test_fix_eval_retries_empty_scan_before_marking_scan_empty(monkeypatch, tmp_path: Path):
+    dataset = tmp_path / "dataset"
+    category = dataset / "access_control"
+    category.mkdir(parents=True)
+    (category / "flaky.sol").write_text("pragma solidity 0.4.25; contract C {}\n")
+
+    scan_calls = []
+
+    def fake_run_scan(sol_path, output_path, timeout):
+        scan_calls.append((Path(sol_path).name, timeout))
+        if len(scan_calls) == 1:
+            return {"findings": []}
+        return {
+            "findings": [
+                {
+                    "severity": "HIGH",
+                    "type": "access_control",
+                    "fix_code": "add onlyOwner",
+                }
+            ]
+        }
+
+    def fake_remediate_contract(**kwargs):
+        return FakeEvidence()
+
+    details = tmp_path / "details.json"
+    monkeypatch.setattr(fix_eval, "DATASET", dataset)
+    monkeypatch.setattr(fix_eval, "run_scan", fake_run_scan)
+    monkeypatch.setattr(fix_eval, "remediate_contract", fake_remediate_contract)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "fix_eval.py",
+            "--category",
+            "access_control",
+            "--scan-timeout",
+            "5",
+            "--scan-empty-retries",
+            "1",
+            "--skip-rescan",
+            "--details-output",
+            str(details),
+            "--no-progress",
+        ],
+    )
+
+    fix_eval.main()
+
+    assert scan_calls == [("flaky.sol", 5), ("flaky.sol", 5)]
+    payload = json.loads(details.read_text())
+    assert payload["scan_empty_retries"] == 1
+    assert payload["totals"]["scan_empty"] == 0
+    assert payload["totals"]["scan_retries"] == 1
+    assert payload["totals"]["fix_applied"] == 1
+    assert payload["contracts"][0]["status"] == "applied"
+    assert payload["contracts"][0]["scan_attempts"] == 2
+
+
 def test_fix_eval_results_output_avoids_canonical_default(monkeypatch, tmp_path: Path):
     dataset = tmp_path / "dataset"
     category = dataset / "reentrancy"
@@ -268,9 +327,7 @@ def test_fix_eval_skip_rescan_can_write_noncanonical_results(monkeypatch, tmp_pa
     assert payload["totals"]["vuln_eliminated"] == 0
 
 
-def test_fix_eval_external_validator_runs_on_compiling_patches(
-    monkeypatch, tmp_path: Path
-):
+def test_fix_eval_external_validator_runs_on_compiling_patches(monkeypatch, tmp_path: Path):
     dataset = tmp_path / "dataset"
     category = dataset / "reentrancy"
     category.mkdir(parents=True)

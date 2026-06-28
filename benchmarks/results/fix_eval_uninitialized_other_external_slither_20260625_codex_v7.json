@@ -1,0 +1,60 @@
+{
+  "totals": {
+    "contracts": 3,
+    "fix_applied": 3,
+    "fix_compiles": 3,
+    "vuln_eliminated": 2,
+    "no_regression": 3,
+    "fix_failed": 0,
+    "scan_empty": 0,
+    "no_high": 0,
+    "external_checked": 3,
+    "external_clean_high": 1,
+    "external_findings": 2,
+    "external_errors": 0
+  },
+  "by_category": {
+    "other": {
+      "contracts": 3,
+      "fix_applied": 3,
+      "fix_compiles": 3,
+      "vuln_eliminated": 2,
+      "no_regression": 3,
+      "fix_failed": 0,
+      "scan_empty": 0,
+      "no_high": 0,
+      "external_checked": 3,
+      "external_clean_high": 1,
+      "external_findings": 2,
+      "external_errors": 0
+    }
+  },
+  "external_high_checks": {
+    "weak-prng": 2,
+    "arbitrary-send-eth": 1
+  },
+  "external_high_check_examples": {
+    "weak-prng": [
+      {
+        "category": "other",
+        "contract": "benchmarks/datasets/smartbugs-curated/dataset/other/crypto_roulette.sol",
+        "external_status": "findings",
+        "high_findings": 2
+      },
+      {
+        "category": "other",
+        "contract": "benchmarks/datasets/smartbugs-curated/dataset/other/open_address_lottery.sol",
+        "external_status": "findings",
+        "high_findings": 1
+      }
+    ],
+    "arbitrary-send-eth": [
+      {
+        "category": "other",
+        "contract": "benchmarks/datasets/smartbugs-curated/dataset/other/crypto_roulette.sol",
+        "external_status": "findings",
+        "high_findings": 2
+      }
+    ]
+  }
+}
