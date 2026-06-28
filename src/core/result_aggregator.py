@@ -413,11 +413,11 @@ class ResultAggregator:
             1 for f in self._aggregated if f.confirmations >= self.min_confirmations
         )
 
-        severity_counts = defaultdict(int)
+        severity_counts: Dict[str, int] = defaultdict(int)
         for f in self._aggregated:
             severity_counts[f.severity] += 1
 
-        tool_counts = defaultdict(int)
+        tool_counts: Dict[str, int] = defaultdict(int)
         for f in self._aggregated:
             for tool in f.tools:
                 tool_counts[tool] += 1

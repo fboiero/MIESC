@@ -331,7 +331,7 @@ class MIESCDatabase:
                 )
 
             conn.commit()
-            return conn.total_changes > 0
+            return bool(conn.total_changes > 0)
 
     def get_audit(self, audit_id: str) -> Optional[AuditRecord]:
         """Get audit by ID."""
@@ -569,7 +569,7 @@ class MIESCDatabase:
                 (1 if is_fp else 0, finding_id),
             )
             conn.commit()
-            return conn.total_changes > 0
+            return bool(conn.total_changes > 0)
 
     # =========================================================================
     # METRICS & STATISTICS
