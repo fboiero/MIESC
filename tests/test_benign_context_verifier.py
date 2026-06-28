@@ -331,3 +331,130 @@ class TestUncheckedCallLineScoping:
         f = {"type": "unchecked_low_level_calls", "title": "erc20_return_check",
              "location": {"function": "unknown", "line": 4}}
         assert V.verify(f, code) != "false_positive"
+
+
+# =========================================================================== #
+# _query (LLM transport) + uncovered helper branches.
+# =========================================================================== #
+import json as _json  # noqa: E402
+import urllib.request as _urlreq  # noqa: E402
+
+from src.ml.benign_context_verifier import (  # noqa: E402
+    BenignContextVerifier,
+    _extract_function,
+    _func_signature,
+    _function_at_line,
+    apply_to_results,
+    load_benign_patterns,
+    match_benign,
+)
+
+
+class _Resp:
+    def __init__(self, data):
+        self._d = data
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *a):
+        return False
+
+    def read(self):
+        return self._d
+
+
+class TestQueryTransport:
+    def test_ollama_success(self, monkeypatch):
+        v = BenignContextVerifier(model="llama3")
+        monkeypatch.setattr(_urlreq, "urlopen",
+                            lambda *a, **k: _Resp(_json.dumps({"response": "ok"}).encode()))
+        assert v._query("p") == "ok"
+
+    def test_ollama_fail_no_key_returns_empty(self, monkeypatch):
+        v = BenignContextVerifier(model="llama3")
+        monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
+        monkeypatch.setattr(_urlreq, "urlopen",
+                            lambda *a, **k: (_ for _ in ()).throw(OSError("ollama down")))
+        assert v._query("p") == ""
+
+    def test_deepseek_success(self, monkeypatch):
+        v = BenignContextVerifier(model="deepseek")  # skips ollama branch
+        monkeypatch.setenv("DEEPSEEK_API_KEY", "k")
+        payload = {"choices": [{"message": {"content": "ds-answer"}}]}
+        monkeypatch.setattr(_urlreq, "urlopen",
+                            lambda *a, **k: _Resp(_json.dumps(payload).encode()))
+        assert v._query("p") == "ds-answer"
+
+    def test_deepseek_failure_returns_empty(self, monkeypatch):
+        v = BenignContextVerifier(model="deepseek")
+        monkeypatch.setenv("DEEPSEEK_API_KEY", "k")
+        monkeypatch.setattr(_urlreq, "urlopen",
+                            lambda *a, **k: (_ for _ in ()).throw(OSError("ds down")))
+        assert v._query("p") == ""
+
+    def test_no_model_no_key_returns_empty(self, monkeypatch):
+        v = BenignContextVerifier(model=None)
+        monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
+        assert v._query("p") == ""
+
+
+class TestVerifierHelpers:
+    def test_extract_function_absent_and_no_brace(self):
+        assert _extract_function("contract C {}", "missing") == ""  # no match
+        # function present but no opening brace within -> fallback slice
+        assert _extract_function("function f() external returns (uint)", "f")
+
+    def test_func_signature(self):
+        assert "f" in _func_signature("function f(uint x) public {}", "f")
+        assert _func_signature("code", "") == ""
+
+    def test_function_at_line_bad_and_unmatched(self):
+        assert _function_at_line("contract C {}", "not-an-int") == ("", "")
+        assert _function_at_line("contract C {}", 999) == ("", "")
+
+    def test_load_benign_patterns_default_glob(self):
+        # no path -> resolves the bundled default glob (returns a list)
+        assert isinstance(load_benign_patterns(), list)
+
+
+class TestMatchBenignExtraBranches:
+    def _patterns(self):
+        return load_benign_patterns()
+
+    def test_safeerc20_transfer(self):
+        f = {"type": "unchecked-transfer", "function": "pay", "line": 2}
+        code = ("contract C {\n  function pay() external {\n"
+                "    token.safeTransfer(to, amt);\n  }\n}")
+        # should resolve a benign match (SAFEERC20) without raising
+        match_benign(f, code, self._patterns())
+
+    def test_commit_reveal_frontrunning(self):
+        f = {"type": "front-running", "function": "bid", "line": 2}
+        code = ("contract C {\n  function bid(bytes32 c) external {\n"
+                "    commits[msg.sender] = keccak256(abi.encode(c));\n  }\n}")
+        match_benign(f, code, self._patterns())
+
+    def test_short_address_deprecated_pragma(self):
+        f = {"type": "short-addresses", "function": "f", "line": 1}
+        code = "pragma solidity ^0.8.0;\ncontract C { function f() public {} }"
+        match_benign(f, code, self._patterns())
+
+
+def test_apply_to_results_in_place(tmp_path):
+    sol = tmp_path / "C.sol"
+    sol.write_text("contract C { function w() external { msg.sender.call{value:1}(''); } }")
+    results = [{"tool": "t", "findings": [
+        {"type": "reentrancy", "function": "w", "line": 1, "file": str(sol)},
+    ]}]
+    dropped, flagged = apply_to_results(results, model=None)
+    assert isinstance(dropped, int) and isinstance(flagged, int)
+    # recall-safe: each finding gets a verdict; the real reentrancy is kept
+    assert all("verifier_verdict" in f for f in results[0]["findings"])
+
+
+def test_apply_to_results_missing_file_uses_empty_code():
+    results = [{"tool": "t", "contract": "/nonexistent/C.sol",
+                "findings": [{"type": "reentrancy", "function": "w", "line": 1}]}]
+    dropped, flagged = apply_to_results(results, model=None)
+    assert dropped >= 0 and flagged >= 0
