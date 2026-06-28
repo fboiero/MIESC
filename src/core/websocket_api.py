@@ -39,7 +39,7 @@ try:
     from fastapi.middleware.cors import CORSMiddleware
 
     WEBSOCKET_AVAILABLE = True
-except ImportError:
+except ImportError:  # pragma: no cover - FastAPI/uvicorn are declared optional deps
     WEBSOCKET_AVAILABLE = False
     FastAPI = None  # type: ignore
     WebSocket = None  # type: ignore
