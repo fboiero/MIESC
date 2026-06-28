@@ -254,7 +254,7 @@ class DependencyAnalyzer:
         if parts:
             filename = parts[-1]
             return filename.replace(".sol", "")
-        return ""
+        return ""  # pragma: no cover - str.split always returns a non-empty list
 
     def _check_import(
         self, import_info: Dict, solidity_version: Optional[str]
@@ -367,7 +367,7 @@ class DependencyAnalyzer:
         return summary
 
 
-def main():
+def main():  # pragma: no cover - manual demo harness, not shipped logic
     """Example usage."""
     test_contract = """
     // SPDX-License-Identifier: MIT

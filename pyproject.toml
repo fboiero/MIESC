@@ -355,7 +355,8 @@ omit = [
     # Integration module (requires full stack)
     "src/integration/*",
     # Dependency analyzer (specialized)
-    "src/detectors/dependency_analyzer.py",
+    # dependency_analyzer is pure-python (regex supply-chain analysis); unit-tested by
+    # test_dependency_analyzer.py -> kept in coverage.
     # Tool adapters (require external CLI tools)
     "src/adapters/certora_adapter.py",
     "src/adapters/echidna_adapter.py",
