@@ -538,3 +538,13 @@ class TestContextBusIntegration:
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v", "--tb=short"])
+
+
+def test_get_context_bus_singleton_creation():
+    """Cover the singleton-creation branch of get_context_bus()."""
+    import src.mcp_core.context_bus as cb
+
+    cb._context_bus_instance = None  # force the creation path
+    first = cb.get_context_bus()
+    assert isinstance(first, cb.ContextBus)
+    assert cb.get_context_bus() is first  # singleton reused

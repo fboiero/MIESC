@@ -432,7 +432,8 @@ omit = [
     # rich_cli is pure-python (rich wrappers); fully unit-tested by test_rich_cli.py
     # -> kept in coverage.
     # MCP modules (require full stack)
-    "src/mcp_core/context_bus.py",
+    # context_bus is pure-python (async message bus); fully unit-tested by test_mcp.py
+    # -> kept in coverage.
     # ML modules with external dependencies
     # correlation_engine is pure-python (correlation/dedup/exploit-chain logic);
     # ~95% covered by test_correlation_engine.py (remaining lines are scattered
