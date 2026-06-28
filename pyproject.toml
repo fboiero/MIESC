@@ -420,7 +420,8 @@ omit = [
     # Core modules with external dependencies
     # ml_orchestrator is pure-python (tool orchestration); ~95%+ covered by
     # test_core.py/test_scalability.py -> kept in coverage.
-    "src/core/optimized_orchestrator.py",
+    # optimized_orchestrator is pure-python (cache + parallel tool orchestration);
+    # covered by test_core.py -> kept in coverage.
     # config_loader is pure-python (yaml/dataclasses); fully unit-tested by
     # test_config_loader.py -> kept in coverage.
     # agent_protocol is the pure-python agent contract (ABC + dataclasses); covered by

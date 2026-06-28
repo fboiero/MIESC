@@ -4301,3 +4301,62 @@ class TestMLOrchestratorExtraBranches:
             result = orch.analyze(str(sol))
         # tool failure is caught and recorded, analysis still returns a result
         assert result is not None
+
+
+class TestOptimizedOrchestratorExtra:
+    """ResultCache expiry/disk branches + performance metrics + warmup + batch."""
+
+    def test_result_cache_expiry_memory_and_disk(self, tmp_path):
+        from src.core.optimized_orchestrator import ResultCache
+        sol = tmp_path / "C.sol"
+        sol.write_text("contract C {}")
+        cache = ResultCache(cache_dir=str(tmp_path / "cache"), ttl_seconds=0)  # everything expires
+        cache.set("slither", str(sol), {"findings": []})
+        # memory entry invalid -> deleted; disk file invalid -> unlinked -> None
+        assert cache.get("slither", str(sol)) is None
+        cache.clear()
+
+    def test_result_cache_memory_hit(self, tmp_path):
+        from src.core.optimized_orchestrator import ResultCache
+        sol = tmp_path / "C.sol"
+        sol.write_text("contract C {}")
+        cache = ResultCache(cache_dir=str(tmp_path / "cache"), ttl_seconds=3600)
+        cache.set("slither", str(sol), {"findings": [1]})
+        assert cache.get("slither", str(sol)) == {"findings": [1]}
+
+    def _orch(self, tmp_path):
+        from src.core.optimized_orchestrator import OptimizedOrchestrator
+        return OptimizedOrchestrator(cache_enabled=True, max_workers=2)
+
+    def test_get_performance_metrics(self, tmp_path):
+        orch = self._orch(tmp_path)
+        m = orch.get_performance_metrics()
+        assert m["cache_enabled"] is True
+        assert "cache" in m
+        assert "max_workers" in m
+
+    def test_warmup_cache_no_cache_returns_zero(self):
+        from src.core.optimized_orchestrator import OptimizedOrchestrator
+        orch = OptimizedOrchestrator(cache_enabled=False)
+        assert orch.warmup_cache("/tmp/C.sol") == 0
+
+    def test_warmup_cache_runs_available_tools(self, tmp_path):
+        from unittest.mock import MagicMock, patch
+        orch = self._orch(tmp_path)
+        sol = tmp_path / "C.sol"
+        sol.write_text("contract C {}")
+        fake_tool = MagicMock()
+        fake_tool.name = "slither"
+        with patch.object(orch.discovery, "get_available_tools", return_value=[fake_tool]), \
+             patch.object(orch, "_run_tool", return_value={"status": "success", "findings": []}):
+            assert orch.warmup_cache(str(sol), tools=["slither"]) >= 0
+
+    def test_analyze_batch(self, tmp_path):
+        from unittest.mock import patch
+        orch = self._orch(tmp_path)
+        c1, c2 = tmp_path / "A.sol", tmp_path / "B.sol"
+        c1.write_text("contract A {}")
+        c2.write_text("contract B {}")
+        with patch.object(orch, "_determine_tools", return_value=[]):
+            results = orch.analyze_batch([str(c1), str(c2)])
+        assert len(results) == 2
