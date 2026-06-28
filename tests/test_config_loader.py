@@ -519,3 +519,33 @@ class TestMIESCConfigEdgeCases:
             # Should be sorted by priority
             priorities = [l.priority for l in layers]
             assert priorities == sorted(priorities)
+
+
+# --------------------------------------------------------------------------- #
+# Coverage for the no-config-file fallbacks and disabled-compliance branch.
+# --------------------------------------------------------------------------- #
+class TestConfigLoaderFallbacks:
+    def _reset(self):
+        from src.core.config_loader import MIESCConfig
+        MIESCConfig._instance = None
+
+    def test_defaults_when_no_config_file_exists(self, monkeypatch):
+        from pathlib import Path
+        from src.core.config_loader import MIESCConfig
+
+        self._reset()
+        monkeypatch.delenv("MIESC_CONFIG", raising=False)
+        monkeypatch.setattr(Path, "exists", lambda self: False)  # no search path matches
+        cfg = MIESCConfig()  # __new__ -> _load_config -> _find_config_file (default) + default cfg
+        assert str(cfg._find_config_file()).endswith("miesc.yaml")  # line: default path
+        assert isinstance(cfg._config, dict) and cfg._config  # line: default config loaded
+        self._reset()
+
+    def test_compliance_frameworks_empty_when_disabled(self):
+        from src.core.config_loader import MIESCConfig
+
+        self._reset()
+        cfg = MIESCConfig()
+        cfg._config = {"compliance": {"enabled": False}}
+        assert cfg.get_compliance_frameworks() == []
+        self._reset()

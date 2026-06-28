@@ -419,7 +419,8 @@ omit = [
     # Core modules with external dependencies
     "src/core/ml_orchestrator.py",
     "src/core/optimized_orchestrator.py",
-    "src/core/config_loader.py",
+    # config_loader is pure-python (yaml/dataclasses); fully unit-tested by
+    # test_config_loader.py -> kept in coverage.
     "src/core/agent_protocol.py",
     "src/core/agent_registry.py",
     # exporters is pure-python (json/xml/dataclasses); fully unit-tested by
