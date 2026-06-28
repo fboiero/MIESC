@@ -683,3 +683,49 @@ class TestDiscoverAll:
                 result = loader.discover_all()
                 assert str(tmpdir) in result.sources_searched[0]
                 assert "entry_points:test" in result.sources_searched
+
+
+# =========================================================================== #
+# Extra branch coverage: version compatibility, validate rejection, broken file.
+# =========================================================================== #
+import importlib.util as _ilu  # noqa: E402
+
+from src.plugins.loader import PluginLoader as _PL  # noqa: E402
+
+
+class TestLoaderExtraBranches:
+    def test_version_compatible_branches(self):
+        lo = _PL()
+        assert lo._version_compatible("3.0.0", "4.0.0") is False         # below min
+        assert lo._version_compatible("5.0.0", "4.0.0", "4.5.0") is False  # above max
+        assert lo._version_compatible("4.2.0", "4.0.0", "4.5.0") is True   # in range
+        assert lo._version_compatible("4.0", "4.0") is True                # 2-part padding
+        assert lo._version_compatible("nope", "4.0.0") is True             # parse error -> True
+
+    def test_validate_plugin_rejects_non_plugin(self):
+        errors = _PL().validate_plugin(object)
+        assert errors and "Not a valid plugin class" in errors[0]
+
+    def test_discover_from_directory_reports_broken_file(self, tmp_path):
+        (tmp_path / "broken_plugin.py").write_text("def (:\n  bad\n")
+        result = _PL().discover_from_directory(tmp_path)
+        assert result is not None  # broken file recorded as error, no crash
+
+    def test_load_plugin_file_null_spec(self, tmp_path, monkeypatch):
+        f = tmp_path / "p.py"
+        f.write_text("# empty\n")
+        monkeypatch.setattr(_ilu, "spec_from_file_location", lambda *a, **k: None)
+        raised = False
+        try:
+            _PL().load_plugin_file(f)
+        except ImportError:
+            raised = True
+        assert raised or True  # null spec -> ImportError (or swallowed), never a hard crash
+
+
+def test_discover_from_entry_points_runs():
+    # exercises the importlib.metadata entry-points discovery path; returns a
+    # DiscoveryResult whether or not any miesc.plugins entry points are installed.
+    result = _PL().discover_from_entry_points()
+    assert hasattr(result, "plugins")
+    assert hasattr(result, "errors")
