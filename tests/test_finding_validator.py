@@ -148,6 +148,23 @@ def test_init_applies_environment_overrides(monkeypatch):
     assert validator.config.model == "local-model:latest"
 
 
+def test_init_preserves_explicit_config_over_environment(monkeypatch):
+    monkeypatch.setenv("OLLAMA_HOST", "http://ollama.local:11434")
+    monkeypatch.setenv("MIESC_LLM_MODEL", "local-model:latest")
+    config = ValidatorConfig(
+        ollama_host="http://explicit.local:11434",
+        model="explicit-model",
+        enabled=False,
+    )
+
+    validator = LLMFindingValidator(config)
+
+    assert validator.config.ollama_host == "http://explicit.local:11434"
+    assert validator.config.model == "explicit-model"
+    assert validator.config.enabled is False
+    assert config.model == "explicit-model"
+
+
 def test_should_validate_respects_enabled_flag_and_min_severity():
     disabled = LLMFindingValidator(ValidatorConfig(enabled=False))
     high_only = LLMFindingValidator(ValidatorConfig(min_severity_to_validate="high"))
