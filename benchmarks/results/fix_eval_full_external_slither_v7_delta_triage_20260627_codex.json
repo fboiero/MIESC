@@ -1,0 +1,147 @@
+{
+  "artifact": "fix_eval_full_external_slither_v7_delta_triage_20260627_codex",
+  "scope": "Non-canonical triage of v7 aggregate deltas after uninitialized owner-state remediation.",
+  "baseline": {
+    "path": "benchmarks/results/fix_eval_full_external_slither_20260626_codex_v6.json",
+    "totals": {
+      "contracts": 143,
+      "fix_applied": 123,
+      "fix_compiles": 123,
+      "vuln_eliminated": 87,
+      "no_regression": 121,
+      "fix_failed": 0,
+      "scan_empty": 2,
+      "no_high": 18,
+      "external_checked": 123,
+      "external_clean_high": 67,
+      "external_findings": 56,
+      "external_errors": 0
+    },
+    "external_high_checks": {
+      "controlled-array-length": 28,
+      "weak-prng": 13,
+      "reentrancy-eth": 10,
+      "shadowing-state": 9,
+      "uninitialized-state": 4,
+      "arbitrary-send-eth": 3,
+      "controlled-delegatecall": 1,
+      "encode-packed-collision": 1
+    }
+  },
+  "candidate": {
+    "path": "benchmarks/results/fix_eval_full_external_slither_20260627_codex_v7.json",
+    "totals": {
+      "contracts": 143,
+      "fix_applied": 121,
+      "fix_compiles": 121,
+      "vuln_eliminated": 86,
+      "no_regression": 119,
+      "fix_failed": 0,
+      "scan_empty": 4,
+      "no_high": 18,
+      "external_checked": 121,
+      "external_clean_high": 65,
+      "external_findings": 56,
+      "external_errors": 0
+    },
+    "external_high_checks": {
+      "controlled-array-length": 28,
+      "weak-prng": 13,
+      "reentrancy-eth": 10,
+      "shadowing-state": 9,
+      "arbitrary-send-eth": 3,
+      "uninitialized-state": 3,
+      "controlled-delegatecall": 1,
+      "encode-packed-collision": 1
+    }
+  },
+  "contract_deltas": [
+    {
+      "category": "access_control",
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/mapping_write.sol",
+      "assessment": "intended improvement",
+      "v6": {
+        "vuln_eliminated": false,
+        "external_high_checks": [
+          "controlled-array-length",
+          "uninitialized-state"
+        ]
+      },
+      "v7": {
+        "vuln_eliminated": true,
+        "external_high_checks": [
+          "controlled-array-length"
+        ]
+      },
+      "note": "The new owner-state initializer removes the uninitialized-state residual while preserving compilation and no-regression."
+    },
+    {
+      "category": "access_control",
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/wallet_03_wrong_constructor.sol",
+      "assessment": "scan instability, not patcher regression",
+      "v6": {
+        "status": "applied",
+        "high_before": 3,
+        "total_findings_before": 12,
+        "fix_output_summary": "shared remediation pipeline: applied=4, skipped=0"
+      },
+      "v7": {
+        "status": "scan_empty",
+        "high_before": 0,
+        "total_findings_before": 0,
+        "fix_output_summary": "scan produced no findings"
+      },
+      "direct_rescan_after_v7": {
+        "findings": 8,
+        "high_or_critical_examples": [
+          "incorrect_constructor_name",
+          "constructor_mismatch"
+        ]
+      },
+      "note": "A direct scan after v7 produced findings again, so the v7 aggregate applied-set drop is attributable to scan_empty variability."
+    },
+    {
+      "category": "access_control",
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/wallet_04_confused_sign.sol",
+      "assessment": "scan instability, not patcher regression",
+      "v6": {
+        "status": "applied",
+        "high_before": 1,
+        "total_findings_before": 10,
+        "fix_output_summary": "shared remediation pipeline: applied=3, skipped=0"
+      },
+      "v7": {
+        "status": "scan_empty",
+        "high_before": 0,
+        "total_findings_before": 0,
+        "fix_output_summary": "scan produced no findings"
+      },
+      "direct_rescan_after_v7": {
+        "findings": 7,
+        "high_or_critical_examples": [
+          "confused_comparison"
+        ]
+      },
+      "note": "A direct scan after v7 produced findings again, so the v7 aggregate applied-set drop is attributable to scan_empty variability."
+    },
+    {
+      "category": "reentrancy",
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/spank_chain_payment.sol",
+      "assessment": "non-target aggregate fluctuation",
+      "v6": {
+        "vuln_eliminated": true,
+        "fix_output_summary": "shared remediation pipeline: applied=24, skipped=0"
+      },
+      "v7": {
+        "vuln_eliminated": false,
+        "fix_output_summary": "shared remediation pipeline: applied=24, skipped=0"
+      },
+      "note": "The same number of fixes were applied; this should be rechecked before treating v7 as a global regression or improvement."
+    }
+  ],
+  "conclusion": {
+    "owner_state_fix": "Valid for access_control/mapping_write.sol and reduces one uninitialized-state residual.",
+    "v7_global_status": "Do not promote v7 as a new paper/global baseline without a repeat full run or scan stability hardening.",
+    "recommended_next_step": "Stabilize or retry scan_empty contracts before comparing aggregate clean_high/applied metrics, then rerun full external evidence."
+  }
+}
