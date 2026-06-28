@@ -440,7 +440,8 @@ omit = [
     # ~95% covered by test_correlation_engine.py (remaining lines are scattered
     # defensive branches) -> kept in coverage rather than hidden behind a false omit.
     # Agent modules
-    "src/agents/base_agent.py",
+    # base_agent is the pure-python agent base (ABC + bus wiring); fully unit-tested by
+    # test_agents.py, abstract bodies auto-excluded -> kept in coverage.
     "src/agents/ai_agent.py",
     "src/agents/aderyn_agent.py",
     "src/agents/smartllm_agent.py",

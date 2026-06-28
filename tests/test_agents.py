@@ -840,3 +840,39 @@ class TestSMTCheckerAgent:
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v", "--tb=short"])
+
+
+class TestBaseAgentExtraBranches:
+    """Cover aggregate_contexts delegation and run() exception handling."""
+
+    def _agent(self, analyze_impl):
+        from unittest.mock import MagicMock, patch
+        from typing import Any, Dict, List
+        from src.agents.base_agent import BaseAgent
+
+        class _A(BaseAgent):
+            def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
+                return analyze_impl(contract_path, **kwargs)
+
+            def get_context_types(self) -> List[str]:
+                return ["test_findings"]
+
+        with patch("src.agents.base_agent.get_context_bus") as mock_bus:
+            bus = MagicMock()
+            mock_bus.return_value = bus
+            return _A("A", ["cap"], "test"), bus
+
+    def test_aggregate_contexts_delegates_to_bus(self):
+        agent, bus = self._agent(lambda p, **k: {})
+        bus.aggregate_contexts.return_value = {"static_findings": []}
+        out = agent.aggregate_contexts(["static_findings"])
+        bus.aggregate_contexts.assert_called_once_with(["static_findings"])
+        assert out == {"static_findings": []}
+
+    def test_run_returns_error_on_analyze_failure(self):
+        def _boom(path, **k):
+            raise RuntimeError("analyze exploded")
+
+        agent, _bus = self._agent(_boom)
+        result = agent.run("C.sol")
+        assert result == {"error": "analyze exploded"}
