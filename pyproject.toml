@@ -422,7 +422,8 @@ omit = [
     "src/core/optimized_orchestrator.py",
     # config_loader is pure-python (yaml/dataclasses); fully unit-tested by
     # test_config_loader.py -> kept in coverage.
-    "src/core/agent_protocol.py",
+    # agent_protocol is the pure-python agent contract (ABC + dataclasses); covered by
+    # test_core.py/test_agents.py, abstract bodies auto-excluded -> kept in coverage.
     # agent_registry is pure-python (dynamic import discovery); fully unit-tested by
     # test_agent_registry.py -> kept in coverage.
     # exporters is pure-python (json/xml/dataclasses); fully unit-tested by
