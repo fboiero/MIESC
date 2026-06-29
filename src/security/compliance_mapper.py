@@ -369,7 +369,7 @@ class ComplianceMapper:
         swc_id = existing_swc or self.get_swc_for_type(vuln_type)
 
         # Get CWE mappings
-        cwe_ids = []
+        cwe_ids: List[str] = []
         if existing_cwe:
             cwe_ids = [existing_cwe] if isinstance(existing_cwe, str) else existing_cwe
         elif swc_id and swc_id in self.SWC_TO_CWE:
