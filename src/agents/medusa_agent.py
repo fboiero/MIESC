@@ -73,7 +73,7 @@ class MedusaAgent(BaseAgent):
         return ["dynamic_findings", "medusa_results"]
 
     def analyze(
-        self, contract_path: str, test_limit: Optional[int] = None, **kwargs
+        self, contract_path: str, test_limit: Optional[int] = None, **kwargs: Any
     ) -> Dict[str, Any]:
         """
         Run Medusa fuzzing on contracts
@@ -271,7 +271,7 @@ class MedusaAgent(BaseAgent):
             "Corpus optimization",
         ]
 
-    def handle_message(self, message) -> None:
+    def handle_message(self, message: Any) -> None:
         """Handle MCP messages"""
         if message.context_type == "audit_request":
             contract = message.data.get("contract")

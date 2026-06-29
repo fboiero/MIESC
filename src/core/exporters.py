@@ -469,7 +469,7 @@ class ReportExporter:
         }
 
     def export(
-        self, findings: List[Finding], format: str, output_path: Optional[str] = None, **kwargs
+        self, findings: List[Finding], format: str, output_path: Optional[str] = None, **kwargs: Any
     ) -> str:
         """
         Export findings in the specified format.

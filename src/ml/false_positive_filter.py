@@ -745,7 +745,7 @@ class FalsePositiveFilter:
         with open(self.feedback_path, "w") as f:
             json.dump(data, f, indent=2)
 
-    def _parse_confidence(self, value) -> float:
+    def _parse_confidence(self, value: Any) -> float:
         """Parse confidence value, handling both float and string formats."""
         if isinstance(value, (int, float)):
             return float(value)

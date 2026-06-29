@@ -125,7 +125,7 @@ class AdapterIntegration:
             return None
 
     def run_multiple_adapters(
-        self, adapter_names: List[str], contract_path: str, **kwargs
+        self, adapter_names: List[str], contract_path: str, **kwargs: Any
     ) -> Dict[str, Any]:
         """
         Run multiple adapters and aggregate results

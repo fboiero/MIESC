@@ -316,7 +316,7 @@ class WakeAgent(BaseAgent):
             "LSP server integration",
         ]
 
-    def handle_message(self, message) -> None:
+    def handle_message(self, message: Any) -> None:
         """Handle MCP messages"""
         if message.context_type == "audit_request":
             contract = message.data.get("contract")

@@ -72,7 +72,7 @@ class HalmosAgent(BaseAgent):
         return ["symbolic_findings", "halmos_results"]
 
     def analyze(
-        self, contract_path: str, test_path: Optional[str] = None, **kwargs
+        self, contract_path: str, test_path: Optional[str] = None, **kwargs: Any
     ) -> Dict[str, Any]:
         """
         Run Halmos symbolic testing on contracts
@@ -271,7 +271,7 @@ class HalmosAgent(BaseAgent):
             "Exhaustive testing",
         ]
 
-    def handle_message(self, message) -> None:
+    def handle_message(self, message: Any) -> None:
         """Handle MCP messages"""
         if message.context_type == "audit_request":
             contract = message.data.get("contract")

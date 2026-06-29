@@ -72,7 +72,7 @@ class SMTCheckerAgent(BaseAgent):
         return ["formal_findings", "smtchecker_results"]
 
     def analyze(
-        self, contract_path: str, model_checker_engine: str = "all", **kwargs
+        self, contract_path: str, model_checker_engine: str = "all", **kwargs: Any
     ) -> Dict[str, Any]:
         """
         Run SMTChecker on contracts
@@ -295,7 +295,7 @@ class SMTCheckerAgent(BaseAgent):
             "CHC (Constrained Horn Clauses)",
         ]
 
-    def handle_message(self, message) -> None:
+    def handle_message(self, message: Any) -> None:
         """Handle MCP messages"""
         if message.context_type == "audit_request":
             contract = message.data.get("contract")

@@ -675,7 +675,7 @@ class AbstractChainAnalyzer(ABC):
         severity: str,
         message: str,
         location: Location,
-        **kwargs,
+        **kwargs: Any,
     ) -> Dict[str, Any]:
         """
         Create a normalized finding.

@@ -127,7 +127,7 @@ class ContractCloneDetectorAdapter:
         }
 
     def analyze(
-        self, contract_path: str, comparison_contracts: Optional[List[str]] = None, **kwargs
+        self, contract_path: str, comparison_contracts: Optional[List[str]] = None, **kwargs: Any
     ) -> Dict[str, Any]:
         """
         Analyze contract for clones/similarities

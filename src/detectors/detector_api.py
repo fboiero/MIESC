@@ -44,7 +44,7 @@ class Severity(Enum):
         """Convert string to Severity enum."""
         return cls(value.lower())
 
-    def __lt__(self, other) -> bool:
+    def __lt__(self, other: Any) -> bool:
         order = [Severity.INFO, Severity.LOW, Severity.MEDIUM, Severity.HIGH, Severity.CRITICAL]
         return order.index(self) < order.index(other)
 
@@ -257,7 +257,7 @@ class BaseDetector(ABC):
         code_snippet: Optional[str] = None,
         recommendation: str = "",
         references: Optional[List[str]] = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> Finding:
         """
         Helper method to create a Finding with detector defaults.
