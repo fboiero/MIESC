@@ -84,7 +84,7 @@ class EnhancedReporter:
         self.timestamp = datetime.now()
         self.start_time = None  # Will be set if analysis timing is tracked
 
-    def collect_all_findings(self):
+    def collect_all_findings(self) -> None:
         """Collect findings from all tools."""
         logger.info("Collecting findings from all tools...")
 
@@ -123,7 +123,7 @@ class EnhancedReporter:
 
         logger.info(f"Total findings collected: {len(self.findings)}")
 
-    def _collect_solhint(self):
+    def _collect_solhint(self) -> None:
         """Parse Solhint JSON results."""
         solhint_dir = self.results_dir / "solhint"
         if not solhint_dir.exists():
@@ -151,7 +151,7 @@ class EnhancedReporter:
             except Exception as e:
                 logger.warning(f" Failed to parse Solhint {json_file}: {e}")
 
-    def _collect_slither(self):
+    def _collect_slither(self) -> None:
         """Parse Slither JSON results."""
         slither_dir = self.results_dir / "slither"
         if not slither_dir.exists():
@@ -186,7 +186,7 @@ class EnhancedReporter:
             except Exception as e:
                 logger.warning(f" Failed to parse Slither {json_file}: {e}")
 
-    def _collect_surya(self):
+    def _collect_surya(self) -> None:
         """Collect Surya metrics (no findings)."""
         surya_dir = self.results_dir / "surya" / "outputs"
         if not surya_dir.exists():
@@ -201,7 +201,7 @@ class EnhancedReporter:
             except Exception as e:
                 logger.warning(f" Failed to parse Surya metrics: {e}")
 
-    def _collect_mythril(self):
+    def _collect_mythril(self) -> None:
         """Parse Mythril JSON results."""
         mythril_dir = self.results_dir / "mythril"
         if not mythril_dir.exists():
@@ -231,7 +231,7 @@ class EnhancedReporter:
             except Exception as e:
                 logger.warning(f" Failed to parse Mythril {json_file}: {e}")
 
-    def _collect_manticore(self):
+    def _collect_manticore(self) -> None:
         """Parse Manticore results and exploits."""
         manticore_dir = self.results_dir / "manticore"
         if not manticore_dir.exists():
@@ -261,7 +261,7 @@ class EnhancedReporter:
             except Exception as e:
                 logger.warning(f" Failed to parse Manticore workspace: {e}")
 
-    def _collect_echidna(self):
+    def _collect_echidna(self) -> None:
         """Parse Echidna results."""
         echidna_dir = self.results_dir / "echidna"
         if not echidna_dir.exists():
@@ -289,7 +289,7 @@ class EnhancedReporter:
             except Exception as e:
                 logger.warning(f" Failed to parse Echidna {txt_file}: {e}")
 
-    def _collect_medusa(self):
+    def _collect_medusa(self) -> None:
         """Parse Medusa results."""
         medusa_dir = self.results_dir / "medusa"
         if not medusa_dir.exists():
@@ -318,7 +318,7 @@ class EnhancedReporter:
             except Exception as e:
                 logger.warning(f" Failed to parse Medusa {json_file}: {e}")
 
-    def _collect_foundry_fuzz(self):
+    def _collect_foundry_fuzz(self) -> None:
         """Parse Foundry fuzz test results."""
         foundry_dir = self.results_dir / "foundry"
         if not foundry_dir.exists():
@@ -344,7 +344,7 @@ class EnhancedReporter:
             except Exception as e:
                 logger.warning(f" Failed to parse Foundry fuzz: {e}")
 
-    def _collect_foundry_invariants(self):
+    def _collect_foundry_invariants(self) -> None:
         """Parse Foundry invariant test results."""
         foundry_dir = self.results_dir / "foundry"
         if not foundry_dir.exists():
@@ -371,7 +371,7 @@ class EnhancedReporter:
             except Exception as e:
                 logger.warning(f" Failed to parse Foundry invariants: {e}")
 
-    def _collect_certora(self):
+    def _collect_certora(self) -> None:
         """Parse Certora verification results."""
         certora_dir = self.results_dir / "certora"
         if not certora_dir.exists():
@@ -398,7 +398,7 @@ class EnhancedReporter:
             except Exception as e:
                 logger.warning(f" Failed to parse Certora {json_file}: {e}")
 
-    def _collect_ai_triage(self):
+    def _collect_ai_triage(self) -> None:
         """Collect AI triage classifications."""
         ai_dir = self.results_dir / "ai_triage"
         if not ai_dir.exists():
@@ -504,7 +504,7 @@ class EnhancedReporter:
             ),
         )
 
-    def generate_json_report(self, output_file: Path):
+    def generate_json_report(self, output_file: Path) -> None:
         """Generate comprehensive JSON report."""
         summary = self.generate_executive_summary()
 
@@ -569,7 +569,7 @@ class EnhancedReporter:
 
         return stats
 
-    def generate_markdown_report(self, output_file: Path):
+    def generate_markdown_report(self, output_file: Path) -> None:
         """Generate Markdown report for GitHub/GitLab."""
         summary = self.generate_executive_summary()
         stats = self._generate_statistics()
@@ -671,7 +671,7 @@ Universidad de la Defensa Nacional (UNDEF) - IUA Córdoba | Maestría en Ciberde
         logger.info(f"Markdown report saved to: {output_file}")
 
 
-def main():
+def main() -> None:
     import argparse
 
     parser = argparse.ArgumentParser(description="Xaudit Enhanced Reporter v2.0")
