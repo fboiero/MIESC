@@ -329,7 +329,9 @@ class BenignContextVerifier:
 
     def filter(self, findings: list[dict[str, Any]], code: str) -> dict[str, list[dict[str, Any]]]:
         """Split findings into kept / dropped / flagged (recall-safe). 'kept' = report."""
-        kept, dropped, flagged = [], [], []
+        kept: list[dict[str, Any]] = []
+        dropped: list[dict[str, Any]] = []
+        flagged: list[dict[str, Any]] = []
         for f in findings:
             v = self.verify(f, code)
             f = {**f, "verifier_verdict": v}
