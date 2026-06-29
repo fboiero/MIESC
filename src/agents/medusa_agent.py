@@ -168,7 +168,7 @@ class MedusaAgent(BaseAgent):
 
     def _parse_medusa_output(self, stdout: str, stderr: str) -> Dict[str, Any]:
         """Parse Medusa output"""
-        findings = {"passed": [], "failed": [], "coverage": {}, "stats": {}}
+        findings: Dict[str, Any] = {"passed": [], "failed": [], "coverage": {}, "stats": {}}
 
         lines = stdout.split("\n") + stderr.split("\n")
 

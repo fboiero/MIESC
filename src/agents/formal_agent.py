@@ -65,7 +65,7 @@ class FormalAgent(BaseAgent):
         Returns:
             Dictionary with formal verification results
         """
-        results = {"formal_findings": [], "certora_results": {}, "z3_results": {}}
+        results: Dict[str, Any] = {"formal_findings": [], "certora_results": {}, "z3_results": {}}
 
         spec_file = kwargs.get("spec_file")
         timeout = kwargs.get("timeout", 1800)  # 30 minutes default

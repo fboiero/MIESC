@@ -70,7 +70,7 @@ class DynamicAgent(BaseAgent):
         Returns:
             Dictionary with results from all tools
         """
-        results = {
+        results: Dict[str, Any] = {
             "dynamic_findings": [],
             "echidna_results": {},
             "medusa_results": {},

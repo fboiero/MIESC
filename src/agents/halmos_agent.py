@@ -171,7 +171,7 @@ class HalmosAgent(BaseAgent):
 
     def _parse_halmos_output(self, stdout: str, stderr: str) -> Dict[str, Any]:
         """Parse Halmos output"""
-        findings = {"passed": [], "failed": [], "warnings": [], "stats": {}}
+        findings: Dict[str, Any] = {"passed": [], "failed": [], "warnings": [], "stats": {}}
 
         lines = stdout.split("\n") + stderr.split("\n")
 

@@ -17,7 +17,7 @@ Integration: Part of MIESC Framework v2.1
 import os
 import subprocess
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from src.agents.base_agent import BaseAgent
 from src.mcp_core.context_bus import MCPMessage
@@ -152,7 +152,7 @@ class AderynAgent(BaseAgent):
         try:
             content = report_path.read_text()
 
-            findings = {"high": [], "medium": [], "low": [], "stats": {}}
+            findings: Dict[str, Any] = {"high": [], "medium": [], "low": [], "stats": {}}
 
             # Extract issue counts
             lines = content.split("\n")
