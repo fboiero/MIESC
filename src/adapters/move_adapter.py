@@ -255,7 +255,7 @@ class MovePatternDetector:
         Returns:
             List of pattern matches
         """
-        findings = []
+        findings: List[Dict[str, Any]] = []
         lines = source_code.split("\n")
 
         all_patterns = [
@@ -526,7 +526,7 @@ class MoveAnalyzer(AbstractChainAnalyzer):
         Returns:
             List of findings
         """
-        findings = []
+        findings: List[Dict[str, Any]] = []
         source_code = contract.source_code
 
         if not source_code:
@@ -608,7 +608,7 @@ class MoveAnalyzer(AbstractChainAnalyzer):
 
     def _check_capability_handling(self, contract: AbstractContract) -> List[Dict[str, Any]]:
         """Check for capability handling issues."""
-        findings = []
+        findings: List[Dict[str, Any]] = []
 
         # Find capability structs
         cap_structs = []
@@ -652,7 +652,7 @@ class MoveAnalyzer(AbstractChainAnalyzer):
 
     def _check_object_safety(self, contract: AbstractContract) -> List[Dict[str, Any]]:
         """Check for object safety issues (Sui specific)."""
-        findings = []
+        findings: List[Dict[str, Any]] = []
 
         if self.variant != MoveChainVariant.SUI:
             return findings
