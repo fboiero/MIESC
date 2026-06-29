@@ -200,7 +200,7 @@ class VulnVerifierAdapter(ToolAdapter):
             logger.debug(f"Z3 verification failed: {e}")
             return self._verify_heuristic(finding, source_code, path, strategy)
 
-    def _verify_overflow_z3(self, finding: Dict, source: str, path: str, z3, solver) -> Dict:
+    def _verify_overflow_z3(self, finding: Dict, source: str, path: str, z3: Any, solver: Any) -> Dict:
         """Verify arithmetic overflow with Z3."""
         # Model uint256 variables
         a = z3.BitVec("a", 256)
@@ -248,7 +248,7 @@ class VulnVerifierAdapter(ToolAdapter):
                 "confidence": finding.get("confidence", 0.50),
             }
 
-    def _verify_access_z3(self, finding: Dict, source: str, path: str, z3, solver) -> Dict:
+    def _verify_access_z3(self, finding: Dict, source: str, path: str, z3: Any, solver: Any) -> Dict:
         """Verify access control with Z3."""
         owner = z3.BitVec("owner", 160)
         caller = z3.BitVec("caller", 160)
@@ -291,7 +291,7 @@ class VulnVerifierAdapter(ToolAdapter):
                 "confidence": 0.10,
             }
 
-    def _verify_reentrancy_z3(self, finding: Dict, source: str, path: str, z3, solver) -> Dict:
+    def _verify_reentrancy_z3(self, finding: Dict, source: str, path: str, z3: Any, solver: Any) -> Dict:
         """Verify reentrancy with Z3."""
         balance_before = z3.BitVec("balance_before", 256)
         balance_after = z3.BitVec("balance_after", 256)
@@ -344,7 +344,7 @@ class VulnVerifierAdapter(ToolAdapter):
             "confidence": finding.get("confidence", 0.50),
         }
 
-    def _verify_generic_z3(self, finding: Dict, source: str, path: str, z3, solver) -> Dict:
+    def _verify_generic_z3(self, finding: Dict, source: str, path: str, z3: Any, solver: Any) -> Dict:
         """Generic Z3 verification for other vulnerability types."""
         return self._verify_heuristic(finding, source, path, "state_manipulation")
 
