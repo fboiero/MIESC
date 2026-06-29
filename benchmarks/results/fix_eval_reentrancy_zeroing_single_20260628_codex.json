@@ -1,0 +1,58 @@
+{
+  "artifact": "reentrancy_zeroing_single_contract_probe",
+  "source_contract": "benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0xb7c5c5aa4d42967efe906e1b66cb8df9cebf04f7.sol",
+  "finding": {
+    "type": "reentrancy",
+    "function": "withdraw",
+    "fix_code": "add nonReentrant"
+  },
+  "changed": true,
+  "compile": {
+    "checked": true,
+    "compiles": true,
+    "solc": "/Users/fboiero/.solc-select/artifacts/solc-0.4.26/solc-0.4.26",
+    "returncode": 0,
+    "stdout": "\n======= <tmp>/fixed.sol:MiescReentrancyGuard =======\nBinary: \n6080604052348015600f57600080fd5b50603580601d6000396000f3006080604052600080fd00a165627a7a7230582066f8c4ee8320a18ed221716972f81cfffeb4444cfa87b5ef25baf1ae8d9d7b2c0029\n\n======= <tmp>/fixed.sol:keepMyEther =======\nBinary: \n608060405234801561001057600080fd5b50610255806100206000396000f30060806040526004361061004c576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff16806327e235e31461009b5780633ccfd60b146100f2575b34600160003373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002060008282540192505081905550005b3480156100a757600080fd5b506100dc600480360381019080803573ffffffffffffffffffffffffffffffffffffffff169060200190929190505050610109565b6040518082815260200191505060405180910390f35b3480156100fe57600080fd5b50610107610121565b005b60016020528060005260406000206000915090505481565b60008060009054906101000a900460ff1615151561013e57600080fd5b60016000806101000a81548160ff021916908315150217905550600160003373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020019081526020016000205490506000600160003373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff168152602001908152602001600020819055503373ffffffffffffffffffffffffffffffffffffffff168160405160006040518083038185875af1925050505060008060006101000a81548160ff021916908315150217905550505600a165627a7a7230582031b84f6242ba77315c09f179c7bee8259f8bb90e98e88bc515bab0cecac721470029\n",
+    "stderr": "<tmp>/fixed.sol:40:9: Warning: Return value of low-level calls not used.\n        msg.sender.call.value(_miescWithdrawAmount)();\n        ^-------------------------------------------^\n",
+    "failure_class": null
+  },
+  "original_external_validation": {
+    "checked": true,
+    "tool": "slither",
+    "status": "findings",
+    "returncode": 255,
+    "findings_total": 6,
+    "high_findings": 1,
+    "high_checks": [
+      "reentrancy-eth"
+    ],
+    "detector_summary": {
+      "high:reentrancy-eth": 1,
+      "informational:low-level-calls": 1,
+      "informational:naming-convention": 1,
+      "informational:solc-version": 2,
+      "medium:unchecked-lowlevel": 1
+    },
+    "stdout": "",
+    "stderr": "'/Users/fboiero/.solc-select/artifacts/solc-0.4.26/solc-0.4.26 --version' running\n'/Users/fboiero/.solc-select/artifacts/solc-0.4.26/solc-0.4.26 <tmp>/original.sol --combined-json abi,ast,bin,bin-runtime,srcmap,srcmap-runtime,userdoc,devdoc,hashes,compact-format --allow-paths .,<tmp>' running\nCompilation warnings/errors on <tmp>/original.sol:\n<tmp>/original.sol:25:9: Warning: Return value of low-level calls not used.\n        msg.sender.call.value(balances[msg.sender])();\n        ^-------------------------------------------^\n\n\nReentrancy in keepMyEther.withdraw() (<tmp>/original.sol#23-27):\n\tExternal calls:\n\t- msg.sender.call.value(balances[msg.sender])() (<tmp>/original.sol#25)\n\tState variables written after the call(s):\n\t- balances[msg.sender] = 0 (<tmp>/original.sol#26)\n\tkeepMyEther.balances (<tmp>/original.sol#17) can be used in cross function reentrancies:\n\t- keepMyEther.balances (<tmp>/original.sol#17)\n\t- keepMyEther.fallback() (<tmp>/original.sol#19-21)\n\t- keepMyEther.withdraw() (<tmp>/original.sol#23-27)\nReference: https://github.com/crytic/slither/wiki/Detector-Documentation#reentrancy-vulnerabilities\n\nkeepMyEther.withdraw() (<tmp>/original.sol#23-27) ignores return value by msg.sender.call.value(bala"
+  },
+  "patched_external_validation": {
+    "checked": true,
+    "tool": "slither",
+    "status": "clean_high",
+    "returncode": 255,
+    "findings_total": 5,
+    "high_findings": 0,
+    "high_checks": [],
+    "detector_summary": {
+      "informational:low-level-calls": 1,
+      "informational:naming-convention": 1,
+      "informational:solc-version": 2,
+      "medium:unchecked-lowlevel": 1
+    },
+    "stdout": "",
+    "stderr": "'/Users/fboiero/.solc-select/artifacts/solc-0.4.26/solc-0.4.26 --version' running\n'/Users/fboiero/.solc-select/artifacts/solc-0.4.26/solc-0.4.26 <tmp>/fixed.sol --combined-json abi,ast,bin,bin-runtime,srcmap,srcmap-runtime,userdoc,devdoc,hashes,compact-format --allow-paths .,<tmp>' running\nCompilation warnings/errors on <tmp>/fixed.sol:\n<tmp>/fixed.sol:40:9: Warning: Return value of low-level calls not used.\n        msg.sender.call.value(_miescWithdrawAmount)();\n        ^-------------------------------------------^\n\n\nkeepMyEther.withdraw() (<tmp>/fixed.sol#35-41) ignores return value by msg.sender.call.value(_miescWithdrawAmount)() (<tmp>/fixed.sol#40)\nReference: https://github.com/crytic/slither/wiki/Detector-Documentation#unchecked-low-level-calls\n\nVersion constraint ^0.4.23 contains known severe issues (https://solidity.readthedocs.io/en/latest/bugs.html)\n\t- DirtyBytesArrayToStorage\n\t- ABIDecodeTwoDimensionalArrayMemory\n\t- KeccakCaching\n\t- EmptyByteArrayCopy\n\t- DynamicArrayCleanup\n\t- ImplicitConstructorCallvalueCheck\n\t- TupleAssignmentMultiStackSlotComponents\n\t- MemoryArrayCreationOverflow\n\t- privateCanBeOverridden\n\t- SignedArrayStorageCopy\n\t- ABIEncoderV2StorageArrayWithMultiSlotElement\n\t- DynamicConstructorArgumentsClippedABIV2\n\t- UninitializedFunctionPointerInConstructor_0.4.x\n\t- IncorrectEventSignatureInLibraries_0.4.x\n\t- ABIEncoderV2PackedStorage_0.4.x\n\t- ExpExponentCleanup\n\t- EventStructWrongData.\nIt is used by:\n\t- ^0.4.23 (<tmp>/fixed.sol#7)\nsolc-0.4.26 is an outdated solc version. Use a more recent version (at least 0.8.0), if possible."
+  },
+  "patched_withdraw_snippet": "    function withdraw() nonReentrant public {\n        // <yes> <report> UNCHECKED_LL_CALLS\n        // MIESC: checks-effects-interactions for legacy call.value\n        uint256 _miescWithdrawAmount = balances[msg.sender];\n        balances[msg.sender] = 0;\n        msg.sender.call.value(_miescWithdrawAmount)();\n    }",
+  "interpretation": "Narrow CEI zeroing transform captures the withdrawal amount, zeroes the balance, then performs the legacy call.value using the captured amount."
+}
