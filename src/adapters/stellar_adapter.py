@@ -469,7 +469,7 @@ class SorobanParser:
     # Import patterns
     USE_PATTERN = r"use\s+(?:soroban_sdk|crate|super|self)(?:::[^;]+)?;"
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.contracts: List[SorobanContract] = []
 
     def parse(self, source_path: Union[str, Path]) -> SorobanContract:
@@ -691,7 +691,7 @@ class StellarAnalyzer(AbstractChainAnalyzer):
     Integrates with MIESC chain abstraction layer for unified analysis.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(ChainType.STELLAR, ContractLanguage.RUST)
         self.parser = SorobanParser()
 

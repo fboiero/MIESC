@@ -237,7 +237,7 @@ class RemediationEngine:
         "denial-of-service": "dos",
     }
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the remediation engine."""
         self._enriched_findings: List[EnrichedFinding] = []
         self._findings_by_type: Dict[str, List[EnrichedFinding]] = {}

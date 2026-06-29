@@ -638,7 +638,7 @@ class CentralizationDetector:
 class AdvancedDetectorEngine:
     """Engine to run all advanced detectors."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.detectors = [
             RugPullDetector(),
             GovernanceDetector(),

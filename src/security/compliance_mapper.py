@@ -338,7 +338,7 @@ class ComplianceMapper:
         "hardcoded-gas": "SWC-134",
     }
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the compliance mapper."""
         logger.info("ComplianceMapper initialized")
 

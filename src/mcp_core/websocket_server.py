@@ -511,7 +511,7 @@ class MIESCWebSocketServer:
 
 
 # Convenience function to run server
-async def run_server(host: str = "localhost", port: int = 8765):
+async def run_server(host: str = "localhost", port: int = 8765) -> None:
     """Run the MIESC WebSocket server."""
     server = MIESCWebSocketServer(host=host, port=port)
     await server.start()

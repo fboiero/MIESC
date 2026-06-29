@@ -162,7 +162,7 @@ class DependencyAnalyzer:
     layer = 9  # Layer 9: Dependency Analysis (post-thesis extension)
     description = "Dependency and supply chain security analysis"
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.import_pattern = re.compile(
             r'import\s+[{"]?([^";\s]+)["}]?\s*(?:from\s+["\']([^"\']+)["\'])?', re.MULTILINE
         )

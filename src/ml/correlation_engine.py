@@ -1499,7 +1499,7 @@ class ExploitChainAnalyzer:
         ),
     ]
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._chains: List[ExploitChain] = []
 
     def analyze(self, correlated_findings: List[CorrelatedFinding]) -> List[ExploitChain]:

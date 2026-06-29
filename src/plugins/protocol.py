@@ -203,7 +203,7 @@ class MIESCPlugin(ABC):
     _context: Optional[PluginContext] = None
     _config: Dict[str, Any] = field(default_factory=dict)
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize plugin instance."""
         self._state = PluginState.LOADED
         self._config = {}

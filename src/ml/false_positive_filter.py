@@ -1167,7 +1167,7 @@ class SemanticContextAnalyzer:
         r"// Safe - using CEI pattern",
     ]
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the semantic context analyzer."""
         self._version_cache: Dict[str, str] = {}
 

@@ -26,7 +26,7 @@ class PolicyMapper:
         Use ``ComplianceMapper`` directly instead.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize Policy Mapper."""
         self.mapper = ComplianceMapper()
 

@@ -25,7 +25,7 @@ class RiskEngine:
 
     SEVERITY_WEIGHTS = {"critical": 10, "high": 7, "medium": 4, "low": 2, "info": 1}
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize Risk Engine."""
         pass
 

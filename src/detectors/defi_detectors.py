@@ -481,7 +481,7 @@ class PriceManipulationDetector(DeFiDetector):
 class DeFiDetectorEngine:
     """Engine to run all DeFi detectors."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.detectors: List[DeFiDetector] = [
             FlashLoanDetector(),
             OracleManipulationDetector(),

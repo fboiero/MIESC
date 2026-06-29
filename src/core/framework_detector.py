@@ -104,7 +104,7 @@ class FrameworkDetector:
         Framework.BROWNIE: ["brownie-config.yaml"],
     }
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the framework detector."""
         self._cache: Dict[str, FrameworkConfig] = {}
 
@@ -499,7 +499,7 @@ class FrameworkDetector:
 
         return args
 
-    def clear_cache(self):
+    def clear_cache(self) -> None:
         """Clear the detection cache."""
         self._cache.clear()
 

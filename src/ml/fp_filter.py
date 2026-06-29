@@ -481,7 +481,7 @@ class FalsePositiveFilter:
             f"FP Filter initialized: strictness={strictness}, threshold={self.fp_threshold}, rag={self._rag_available}"
         )
 
-    def _compile_patterns(self):
+    def _compile_patterns(self) -> None:
         """Pre-compile regex patterns for better performance."""
         pattern_groups = {
             "library": self.SAFE_LIBRARY_PATTERNS,

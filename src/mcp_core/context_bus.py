@@ -48,7 +48,7 @@ class MCPMessage:
     data: Any
     metadata: Dict[str, Any] = field(default_factory=dict)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Validate message after creation."""
         if not self.protocol.startswith("mcp/"):
             logger.warning(f"MCPMessage: Non-standard protocol '{self.protocol}'")
@@ -88,7 +88,7 @@ class ContextBus:
         bus.subscribe("static_findings", handle_findings)
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the Context Bus."""
         # Storage: context_type -> List[MCPMessage]
         self._messages: Dict[str, List[MCPMessage]] = defaultdict(list)
