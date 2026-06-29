@@ -438,7 +438,7 @@ def safe_parse_llm_json(
         >>> else:
         ...     print(f"Parse failed: {result.errors}")
     """
-    warnings = []
+    warnings: List[str] = []
 
     if not content:
         return ValidationResult(
