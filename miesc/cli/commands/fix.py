@@ -553,6 +553,38 @@ def _apply_legacy_call_value_cei(
         new_body = body[: match.start()] + prelude + body[updates_end:]
         return source[:body_start] + new_body + source[body_end:], True
 
+    naked_call_re = re.compile(
+        r"(?P<indent>^[ \t]*)"
+        r"(?P<call>[^\n{};]*?\.call\.value\s*\(\s*(?P<call_amount>[^)]+?)\s*\)"
+        r"\s*\(\s*\))\s*;[ \t]*(?:\n|$)",
+        re.MULTILINE,
+    )
+    for match in naked_call_re.finditer(body):
+        _, _, updates = collect_state_updates(match.end())
+        if not updates:
+            continue
+        zero_assignment = updates[0]
+        if zero_assignment.group("op") != "=" or zero_assignment.group("value").strip() != "0":
+            continue
+        target = zero_assignment.group("target").strip()
+        if not _same_solidity_expr(target, match.group("call_amount")):
+            continue
+        indent = match.group("indent")
+        amount_var = "_miescWithdrawAmount"
+        prelude = (
+            f"{indent}// MIESC: checks-effects-interactions for legacy call.value\n"
+            f"{indent}uint256 {amount_var} = {target};\n"
+            f"{zero_assignment.group(0)}"
+            f"{indent}{match.group('call').replace(match.group('call_amount'), amount_var)};\n"
+        )
+        new_body = (
+            body[: match.start()]
+            + prelude
+            + body[match.end() : zero_assignment.start()]
+            + body[zero_assignment.end() :]
+        )
+        return source[:body_start] + new_body + source[body_end:], True
+
     for match in call_re.finditer(body):
         opening_brace = body.find("{", match.end())
         if opening_brace == -1:

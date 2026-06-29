@@ -515,6 +515,36 @@ contract SimpleDAO {
         )
         assert "require(res);" in patched
 
+    def test_reentrancy_legacy_naked_call_value_moves_zeroing_before_call(self):
+        source = """\
+pragma solidity ^0.4.19;
+
+contract keepMyEther {
+    mapping(address => uint256) public balances;
+
+    function withdraw() public {
+        msg.sender.call.value(balances[msg.sender])();
+        balances[msg.sender] = 0;
+    }
+}
+"""
+        finding = {
+            "type": "reentrancy",
+            "function": "withdraw",
+            "fix_code": "add nonReentrant",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert changed
+        assert "MIESC: checks-effects-interactions for legacy call.value" in patched
+        assert "uint256 _miescWithdrawAmount = balances[msg.sender];" in patched
+        assert "balances[msg.sender] = 0;" in patched
+        assert "msg.sender.call.value(_miescWithdrawAmount)();" in patched
+        assert patched.index("balances[msg.sender] = 0;") < patched.index(
+            "msg.sender.call.value(_miescWithdrawAmount)();"
+        )
+
     def test_reentrancy_normalizes_legacy_call_value_tuple_assignment(self):
         source = """\
 pragma solidity ^0.4.24;
