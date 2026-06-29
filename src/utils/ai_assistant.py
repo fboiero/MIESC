@@ -193,7 +193,7 @@ Output as JSON:
         return summary
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description="AI Assistant for Smart Contract Audit Triage")
     parser.add_argument(
         "--findings", required=True, help="Path to findings JSON file (e.g., from Slither)"

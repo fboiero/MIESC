@@ -206,7 +206,7 @@ class SmartBugsDetectorAdapter:
         }
 
 
-def main():  # pragma: no cover - manual demo harness, not shipped logic
+def main() -> None:  # pragma: no cover - manual demo harness, not shipped logic
     """Test the adapter."""
     adapter = SmartBugsDetectorAdapter()
 
