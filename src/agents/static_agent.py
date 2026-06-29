@@ -69,7 +69,7 @@ class StaticAgent(BaseAgent):
         Returns:
             Dictionary with results from all tools
         """
-        results = {
+        results: Dict[str, Any] = {
             "static_findings": [],
             "slither_results": {},
             "solhint_results": {},

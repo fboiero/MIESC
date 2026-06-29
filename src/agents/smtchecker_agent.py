@@ -164,7 +164,7 @@ class SMTCheckerAgent(BaseAgent):
 
     def _parse_smtchecker_output(self, stdout: str, stderr: str) -> Dict[str, Any]:
         """Parse SMTChecker output"""
-        findings = {"verified": [], "warnings": [], "errors": [], "stats": {}}
+        findings: Dict[str, Any] = {"verified": [], "warnings": [], "errors": [], "stats": {}}
 
         # Combine output
         output = stdout + "\n" + stderr
