@@ -101,7 +101,7 @@ class FlashLoanDetector(DeFiDetector):
     ]
 
     def detect(self, source_code: str, file_path: Optional[Path] = None) -> List[DeFiFinding]:
-        findings = []
+        findings: List[DeFiFinding] = []
         lines = source_code.split("\n")
 
         # Check for flash loan interfaces
@@ -188,7 +188,7 @@ class OracleManipulationDetector(DeFiDetector):
     DEVIATION_CHECK = r"(deviation|delta|diff)\s*[<>=]"
 
     def detect(self, source_code: str, file_path: Optional[Path] = None) -> List[DeFiFinding]:
-        findings = []
+        findings: List[DeFiFinding] = []
         lines = source_code.split("\n")
 
         # Check for spot price usage
@@ -301,7 +301,7 @@ class SandwichAttackDetector(DeFiDetector):
     }
 
     def detect(self, source_code: str, file_path: Optional[Path] = None) -> List[DeFiFinding]:
-        findings = []
+        findings: List[DeFiFinding] = []
         lines = source_code.split("\n")
 
         # Check for swap operations
@@ -383,7 +383,7 @@ class MEVExposureDetector(DeFiDetector):
     ]
 
     def detect(self, source_code: str, file_path: Optional[Path] = None) -> List[DeFiFinding]:
-        findings = []
+        findings: List[DeFiFinding] = []
         lines = source_code.split("\n")
 
         # Check for protection mechanisms
@@ -447,7 +447,7 @@ class PriceManipulationDetector(DeFiDetector):
     ]
 
     def detect(self, source_code: str, file_path: Optional[Path] = None) -> List[DeFiFinding]:
-        findings = []
+        findings: List[DeFiFinding] = []
         lines = source_code.split("\n")
 
         has_sanity_check = any(
