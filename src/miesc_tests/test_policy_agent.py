@@ -18,6 +18,7 @@ import json
 # Import module under test
 import sys
 from pathlib import Path
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
@@ -126,7 +127,7 @@ class TestPolicyAgent:
         assert agent.tests_path == Path(".") / "tests"
 
     @patch("subprocess.run")
-    def test_ruff_check_pass(self, mock_run) -> None:
+    def test_ruff_check_pass(self, mock_run: Any) -> None:
         """Test Ruff check passing"""
         mock_run.return_value = Mock(returncode=0, stdout="", stderr="")
 
@@ -137,7 +138,7 @@ class TestPolicyAgent:
         assert check.status == "pass"
 
     @patch("subprocess.run")
-    def test_ruff_check_fail(self, mock_run) -> None:
+    def test_ruff_check_fail(self, mock_run: Any) -> None:
         """Test Ruff check failing"""
         mock_run.return_value = Mock(returncode=1, stdout="error: Found 5 errors", stderr="")
 
@@ -148,7 +149,7 @@ class TestPolicyAgent:
         assert check.status == "fail"
 
     @patch("subprocess.run")
-    def test_bandit_check_with_high_severity(self, mock_run) -> None:
+    def test_bandit_check_with_high_severity(self, mock_run: Any) -> None:
         """Test Bandit check with high severity issues"""
         bandit_output = {"results": [{"issue_severity": "HIGH"}, {"issue_severity": "MEDIUM"}]}
 
@@ -161,7 +162,7 @@ class TestPolicyAgent:
         assert check.status == "fail"
         assert check.evidence["high_severity"] == 1
 
-    def test_secret_scanning_no_secrets(self, tmp_path) -> None:
+    def test_secret_scanning_no_secrets(self, tmp_path: Path) -> None:
         """Test secret scanning with no secrets found"""
         # Create temporary Python file without secrets
         test_file = tmp_path / "src" / "test.py"
@@ -174,7 +175,7 @@ class TestPolicyAgent:
         assert check.policy_id == "SEC-003"
         assert check.status == "pass"
 
-    def test_secret_scanning_with_secrets(self, tmp_path) -> None:
+    def test_secret_scanning_with_secrets(self, tmp_path: Path) -> None:
         """Test secret scanning with hardcoded secrets"""
         # Create temporary Python file with secret
         test_file = tmp_path / "src" / "test.py"
@@ -188,7 +189,7 @@ class TestPolicyAgent:
         assert check.status == "fail"
         assert check.severity == "critical"
 
-    def test_dependency_pinning_check(self, tmp_path) -> None:
+    def test_dependency_pinning_check(self, tmp_path: Path) -> None:
         """Test dependency version pinning check"""
         # Create requirements.txt with pinned dependencies
         req_file = tmp_path / "requirements.txt"
@@ -200,7 +201,7 @@ class TestPolicyAgent:
         assert check.policy_id == "DEP-002"
         assert check.status == "pass"
 
-    def test_dependency_pinning_check_unpinned(self, tmp_path) -> None:
+    def test_dependency_pinning_check_unpinned(self, tmp_path: Path) -> None:
         """Test dependency pinning check with unpinned packages"""
         # Create requirements.txt with unpinned dependencies
         req_file = tmp_path / "requirements.txt"
@@ -213,7 +214,7 @@ class TestPolicyAgent:
         assert check.status == "warning"
         assert check.evidence["unpinned_dependencies"] == 1
 
-    def test_tests_exist_check(self, tmp_path) -> None:
+    def test_tests_exist_check(self, tmp_path: Path) -> None:
         """Test checking for test files existence"""
         # Create test directory with test files
         tests_dir = tmp_path / "tests"
@@ -227,7 +228,7 @@ class TestPolicyAgent:
         assert check.status == "pass"
         assert check.evidence["test_files"] >= 1
 
-    def test_documentation_check(self, tmp_path) -> None:
+    def test_documentation_check(self, tmp_path: Path) -> None:
         """Test documentation completeness check"""
         # Create required documentation files
         (tmp_path / "README.md").write_text("# README")
@@ -294,7 +295,7 @@ class TestPolicyAgent:
         assert any("CRITICAL" in r for r in recommendations)
         assert any("secret" in r.lower() for r in recommendations)
 
-    def test_report_generation(self, tmp_path) -> None:
+    def test_report_generation(self, tmp_path: Path) -> None:
         """Test JSON report generation"""
         check = PolicyCheck(
             policy_id="TEST-001",
@@ -331,7 +332,7 @@ class TestPolicyAgent:
             data = json.load(f)
             assert data["compliance_score"] == 100.0
 
-    def test_markdown_report_generation(self, tmp_path) -> None:
+    def test_markdown_report_generation(self, tmp_path: Path) -> None:
         """Test Markdown report generation"""
         check = PolicyCheck(
             policy_id="TEST-001",
@@ -379,7 +380,7 @@ class TestPolicyAgentIntegration:
     """Integration tests for PolicyAgent"""
 
     @patch("subprocess.run")
-    def test_full_validation_workflow(self, mock_run, tmp_path) -> None:
+    def test_full_validation_workflow(self, mock_run: Any, tmp_path: Path) -> None:
         """Test complete validation workflow"""
         # Mock all subprocess calls to pass
         mock_run.return_value = Mock(returncode=0, stdout="", stderr="")
