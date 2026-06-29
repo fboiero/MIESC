@@ -124,7 +124,7 @@ class SmartBugsDetectorAdapter:
         self, findings: List[SmartBugsFinding], file_path: Path
     ) -> List[Dict[str, Any]]:
         """Convert SmartBugs findings to MIESC standard format."""
-        miesc_findings = []
+        miesc_findings: List[Dict[str, Any]] = []
 
         for finding in findings:
             miesc_finding = {
@@ -152,7 +152,7 @@ class SmartBugsDetectorAdapter:
         """Analyze source code directly."""
         try:
             findings = self.engine.analyze(source_code)
-            miesc_findings = []
+            miesc_findings: List[Dict[str, Any]] = []
 
             for finding in findings:
                 miesc_finding = {
