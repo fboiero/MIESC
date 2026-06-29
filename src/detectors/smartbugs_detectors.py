@@ -17,7 +17,7 @@ import re
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 
 class Severity(Enum):
@@ -770,7 +770,7 @@ class ReentrancyDetector:
         # Find functions with external calls
         in_function = False
         function_body_started = False
-        function_lines = []
+        function_lines: List[Tuple[int, str]] = []
         brace_count = 0
 
         for i, line in enumerate(lines, 1):
@@ -810,7 +810,7 @@ class ReentrancyDetector:
         dangerous = {}
         in_modifier = False
         modifier_name = ""
-        modifier_lines = []
+        modifier_lines: List[Tuple[int, str]] = []
         brace_count = 0
         body_started = False
 
@@ -860,7 +860,7 @@ class ReentrancyDetector:
         in_function = False
         function_body_started = False
         function_name = ""
-        function_lines = []
+        function_lines: List[Tuple[int, str]] = []
         brace_count = 0
 
         for line_num, line in enumerate(lines, 1):
