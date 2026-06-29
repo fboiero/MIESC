@@ -311,7 +311,7 @@ class WebDashboardGenerator:
 
     def _group_by_severity(self, items: List[Dict], key: str) -> Dict[str, int]:
         """Group items by severity level."""
-        severity_map = {}
+        severity_map: Dict[str, int] = {}
         for item in items:
             severity = item.get(key, "unknown").lower()
             severity_map[severity] = severity_map.get(severity, 0) + 1

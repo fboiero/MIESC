@@ -862,7 +862,7 @@ class MCPToolRegistry:
 
     def get_statistics(self) -> Dict[str, Any]:
         """Get registry statistics."""
-        categories = {}
+        categories: Dict[str, int] = {}
         for tool in self._tools.values():
             cat = tool.category.value
             categories[cat] = categories.get(cat, 0) + 1

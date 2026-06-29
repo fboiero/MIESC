@@ -381,7 +381,7 @@ class InternalGauge:
     def __init__(self, name: str, collector: InternalMetricsCollector):
         self.name = name
         self.collector = collector
-        self._labels = {}
+        self._labels: Dict[str, Any] = {}
 
     def labels(self, **kwargs) -> "InternalGauge":
         """Return labeled gauge."""

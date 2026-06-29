@@ -59,7 +59,7 @@ class XauditDashboard:
         if not slither_dir.exists():
             return {}
 
-        issues_by_severity = {"high": [], "medium": [], "low": [], "info": []}
+        issues_by_severity: Dict[str, list] = {"high": [], "medium": [], "low": [], "info": []}
 
         for json_file in slither_dir.glob("*.json"):
             try:
