@@ -16,6 +16,7 @@ Date: 2025-01-09
 """
 
 import logging
+from typing import Any, Dict, List, Optional
 
 # Layer 1 - Static Analysis (6 tools)
 from src.adapters.aderyn_adapter import AderynAdapter
@@ -98,7 +99,7 @@ from src.core.tool_protocol import ToolStatus, get_tool_registry
 logger = logging.getLogger(__name__)
 
 
-def register_all_adapters():
+def register_all_adapters() -> Dict[str, Any]:
     """
     Register all available tool adapters in the system.
 
@@ -236,7 +237,7 @@ def register_all_adapters():
     return report
 
 
-def get_available_adapters():
+def get_available_adapters() -> List[Any]:
     """
     Return list of available adapters (installed and ready).
 
@@ -247,7 +248,7 @@ def get_available_adapters():
     return registry.get_available_tools()
 
 
-def get_adapter_status_report():
+def get_adapter_status_report() -> Dict[str, Any]:
     """
     Generate complete adapter status report.
 
@@ -258,7 +259,7 @@ def get_adapter_status_report():
     return registry.get_tool_status_report()
 
 
-def get_adapter_by_name(name: str):
+def get_adapter_by_name(name: str) -> Optional[Any]:
     """
     Get specific adapter by name.
 

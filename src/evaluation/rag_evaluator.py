@@ -146,7 +146,7 @@ class RAGEvaluator:
                 logger.warning("EmbeddingRAG not available")
         return self._embedding_rag
 
-    def _get_adapter(self, adapter_name: str):
+    def _get_adapter(self, adapter_name: str) -> Optional[Any]:
         """Get or create an adapter instance."""
         if adapter_name not in self._adapters:
             # Dynamic import based on adapter name
