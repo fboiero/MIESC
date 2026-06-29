@@ -9,7 +9,7 @@ import logging
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import List
+from typing import Any, Dict, List
 
 from src.core.agent_protocol import (
     AgentCapability,
@@ -160,7 +160,7 @@ class SlitherAgent(SecurityAgent):
         # Format: "Contract.function (file.sol#line): Description"
         lines = output.split("\n")
 
-        current_finding = {}
+        current_finding: Dict[str, Any] = {}
         for line in lines:
             line = line.strip()
 

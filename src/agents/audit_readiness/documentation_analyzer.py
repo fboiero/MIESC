@@ -15,7 +15,7 @@ License: AGPL v3
 
 import logging
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 logger = logging.getLogger(__name__)
 
@@ -475,7 +475,7 @@ class DocumentationAnalyzer:
             diagram_patterns = ["*architecture*", "*arch*", "*diagram*"]
             diagram_extensions = [".png", ".svg", ".jpg", ".mermaid", ".puml"]
 
-            diagrams = []
+            diagrams: List[Path] = []
             for pattern in diagram_patterns:
                 for ext in diagram_extensions:
                     diagrams.extend(project_path.rglob(f"{pattern}{ext}"))
@@ -608,7 +608,7 @@ class DocumentationAnalyzer:
                 project_path / "docs" / "audits",
             ]
 
-            audit_reports = []
+            audit_reports: List[Path] = []
             for audit_dir in audit_dirs:
                 if audit_dir.exists():
                     audit_reports.extend(audit_dir.rglob("*.pdf"))
