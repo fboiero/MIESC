@@ -473,7 +473,7 @@ class FeedbackLoop:
 
     def get_vulnerability_insights(self) -> Dict[str, Any]:
         """Obtiene insights sobre tipos de vulnerabilidad."""
-        insights = {
+        insights: Dict[str, Any] = {
             "most_common": [],
             "most_disputed": [],
             "tool_specializations": {},
@@ -583,7 +583,7 @@ class FeedbackLoop:
         feedback_history = self.store.get_feedback_history(days=30)
 
         # Contar tipos de feedback
-        feedback_counts = defaultdict(int)
+        feedback_counts: Dict[str, int] = defaultdict(int)
         for fb in feedback_history:
             feedback_counts[fb.feedback_type.value] += 1
 
