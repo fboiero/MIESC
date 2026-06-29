@@ -192,7 +192,7 @@ class AgentRegistry:
         Returns:
             List of agent instances
         """
-        agents = []
+        agents: List[SecurityAgent] = []
 
         try:
             # Load module dynamically
@@ -312,7 +312,7 @@ class AgentRegistry:
                 capabilities[cap.value] = count
 
         # Count by language
-        languages = {}
+        languages: Dict[str, int] = {}
         for agent in self.agents.values():
             for lang in agent.supported_languages:
                 languages[lang] = languages.get(lang, 0) + 1
