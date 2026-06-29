@@ -27,7 +27,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import cast, Any, Dict, List, Optional
 
 
 class Severity(Enum):
@@ -389,7 +389,7 @@ class DetectorRegistry:
         """Get all registered detectors."""
         if not self._loaded_plugins:
             self._load_plugins()
-        return self._detectors
+        return cast(Dict[str, BaseDetector], self._detectors)
 
     def register(self, detector: BaseDetector) -> None:
         """

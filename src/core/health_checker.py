@@ -123,7 +123,7 @@ class HealthChecker:
         self._cache: Dict[str, ToolHealth] = {}
         self._cache_ttl = 60  # segundos
 
-    def _load_adapter(self, tool_name: str) -> None:
+    def _load_adapter(self, tool_name: str) -> Any:
         """Carga dinámicamente un adaptador."""
         if tool_name not in self.ADAPTER_MAP:
             return None

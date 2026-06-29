@@ -75,7 +75,7 @@ class RateLimiter:
         """
 
         @wraps(func)
-        def wrapper(*args: Any, **kwargs: Any) -> None:
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
             self._check_rate_limit()
             return func(*args, **kwargs)
 
@@ -384,7 +384,7 @@ def rate_limited_openai_call(func: Callable) -> Callable:
     """
 
     @wraps(func)
-    def wrapper(*args: Any, **kwargs: Any) -> None:
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
         # Check quota before making call
         model = kwargs.get("model", "gpt-4")
         openai_quota.check_quota(model)

@@ -18,7 +18,7 @@ License: AGPL-3.0
 from __future__ import annotations
 
 from enum import Enum
-from typing import Any, Dict, Iterable, Optional
+from typing import cast, Any, Dict, Iterable, Optional
 
 
 class CanonicalCategory(str, Enum):
@@ -236,7 +236,7 @@ def normalize_finding_type(
     blob = " ".join(str(c) for c in candidates).lower()
     for needle, cat in _SUBSTRING_FALLBACKS:
         if needle in blob:
-            return cat
+            return cast(Optional[CanonicalCategory], cat)
 
     return default
 
