@@ -55,25 +55,25 @@ class InternalMetricsCollector:
     Stores metrics in memory for later retrieval.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.metrics: List[MetricValue] = []
         self.counters: Dict[str, float] = {}
         self.gauges: Dict[str, float] = {}
         self.histograms: Dict[str, List[float]] = {}
 
-    def increment_counter(self, name: str, value: float = 1.0, labels: Dict[str, str] = None):
+    def increment_counter(self, name: str, value: float = 1.0, labels: Dict[str, str] = None) -> None:
         """Increment a counter metric."""
         key = self._make_key(name, labels)
         self.counters[key] = self.counters.get(key, 0) + value
         self.metrics.append(MetricValue(name, "counter", self.counters[key], labels or {}))
 
-    def set_gauge(self, name: str, value: float, labels: Dict[str, str] = None):
+    def set_gauge(self, name: str, value: float, labels: Dict[str, str] = None) -> None:
         """Set a gauge metric."""
         key = self._make_key(name, labels)
         self.gauges[key] = value
         self.metrics.append(MetricValue(name, "gauge", value, labels or {}))
 
-    def observe_histogram(self, name: str, value: float, labels: Dict[str, str] = None):
+    def observe_histogram(self, name: str, value: float, labels: Dict[str, str] = None) -> None:
         """Add observation to histogram."""
         key = self._make_key(name, labels)
         if key not in self.histograms:
@@ -100,7 +100,7 @@ class InternalMetricsCollector:
             "recent": self.metrics[-100:],
         }
 
-    def clear(self):
+    def clear(self) -> None:
         """Clear all metrics."""
         self.metrics.clear()
         self.counters.clear()
@@ -139,7 +139,7 @@ class MIESCMetrics:
             self.registry = None
             self._init_internal_metrics()
 
-    def _init_prometheus_metrics(self):
+    def _init_prometheus_metrics(self) -> None:
         """Initialize Prometheus metrics."""
         # Counters
         self.audits_total = Counter(
@@ -212,7 +212,7 @@ class MIESCMetrics:
         self.info = Info("miesc", "MIESC version and configuration info", registry=self.registry)
         self.info.info({"version": "5.1.2", "layers": "7", "python_version": "3.11"})
 
-    def _init_internal_metrics(self):
+    def _init_internal_metrics(self) -> None:
         """Initialize internal-only metrics when Prometheus is unavailable."""
         # Create wrapper objects that use internal collector
         self.audits_total = InternalCounter("miesc_audits_total", self.internal)
@@ -232,7 +232,7 @@ class MIESCMetrics:
         self.tools_available = InternalGauge("miesc_tools_available", self.internal)
         self.cache_size = InternalGauge("miesc_cache_size_bytes", self.internal)
 
-    def record_audit_start(self):
+    def record_audit_start(self) -> None:
         """Record the start of an audit."""
         if PROMETHEUS_AVAILABLE:
             self.active_audits.inc()
@@ -241,7 +241,7 @@ class MIESCMetrics:
                 "miesc_active_audits", self.internal.gauges.get("miesc_active_audits", 0) + 1
             )
 
-    def record_audit_end(self, status: str, duration: float, layers: int):
+    def record_audit_end(self, status: str, duration: float, layers: int) -> None:
         """Record the completion of an audit."""
         if PROMETHEUS_AVAILABLE:
             self.active_audits.dec()
@@ -257,7 +257,7 @@ class MIESCMetrics:
                 "miesc_audit_duration_seconds", duration, labels={"layers": str(layers)}
             )
 
-    def record_finding(self, severity: str, finding_type: str, layer: int, confidence: float):
+    def record_finding(self, severity: str, finding_type: str, layer: int, confidence: float) -> None:
         """Record a security finding."""
         if PROMETHEUS_AVAILABLE:
             self.findings_total.labels(severity=severity, type=finding_type, layer=str(layer)).inc()
@@ -271,7 +271,7 @@ class MIESCMetrics:
                 "miesc_finding_confidence", confidence, labels={"severity": severity}
             )
 
-    def record_tool_execution(self, tool: str, layer: int, duration: float, success: bool):
+    def record_tool_execution(self, tool: str, layer: int, duration: float, success: bool) -> None:
         """Record a tool execution."""
         status = "success" if success else "failure"
         if PROMETHEUS_AVAILABLE:
@@ -285,7 +285,7 @@ class MIESCMetrics:
                 "miesc_tool_execution_seconds", duration, labels={"tool": tool, "layer": str(layer)}
             )
 
-    def record_error(self, error_type: str, tool: str = "unknown"):
+    def record_error(self, error_type: str, tool: str = "unknown") -> None:
         """Record an error."""
         if PROMETHEUS_AVAILABLE:
             self.errors_total.labels(type=error_type, tool=tool).inc()
@@ -295,7 +295,7 @@ class MIESCMetrics:
             )
 
     @contextmanager
-    def measure_time(self, metric_name: str, labels: Dict[str, str] = None):
+    def measure_time(self, metric_name: str, labels: Dict[str, str] = None) -> None:
         """Context manager to measure execution time."""
         start = time.perf_counter()
         try:
@@ -321,7 +321,7 @@ class MIESCMetrics:
         """Get metrics as JSON-serializable dictionary."""
         return self.internal.get_metrics()
 
-    def start_http_server(self, port: int = 9090):
+    def start_http_server(self, port: int = 9090) -> None:
         """Start HTTP server to expose metrics."""
         if PROMETHEUS_AVAILABLE:
             start_http_server(port, registry=self.registry)
@@ -333,7 +333,7 @@ class MIESCMetrics:
 class InternalCounter:
     """Internal counter wrapper for when Prometheus is unavailable."""
 
-    def __init__(self, name: str, collector: InternalMetricsCollector):
+    def __init__(self, name: str, collector: InternalMetricsCollector) -> None:
         self.name = name
         self.collector = collector
 
@@ -342,7 +342,7 @@ class InternalCounter:
         self._labels = kwargs
         return self
 
-    def inc(self, value: float = 1.0):
+    def inc(self, value: float = 1.0) -> None:
         """Increment counter."""
         labels = getattr(self, "_labels", {})
         self.collector.increment_counter(self.name, value, labels)
@@ -360,13 +360,13 @@ class InternalHistogram:
         self._labels = kwargs
         return self
 
-    def observe(self, value: float):
+    def observe(self, value: float) -> None:
         """Record observation."""
         labels = getattr(self, "_labels", {})
         self.collector.observe_histogram(self.name, value, labels)
 
     @contextmanager
-    def time(self):
+    def time(self) -> None:
         """Context manager to measure time."""
         start = time.perf_counter()
         try:
@@ -388,29 +388,29 @@ class InternalGauge:
         self._labels = kwargs
         return self
 
-    def set(self, value: float):
+    def set(self, value: float) -> None:
         """Set gauge value."""
         self.collector.set_gauge(self.name, value, self._labels)
 
-    def inc(self, value: float = 1.0):
+    def inc(self, value: float = 1.0) -> None:
         """Increment gauge."""
         key = self.collector._make_key(self.name, self._labels)
         current = self.collector.gauges.get(key, 0)
         self.set(current + value)
 
-    def dec(self, value: float = 1.0):
+    def dec(self, value: float = 1.0) -> None:
         """Decrement gauge."""
         key = self.collector._make_key(self.name, self._labels)
         current = self.collector.gauges.get(key, 0)
         self.set(current - value)
 
 
-def timed(metric: str):
+def timed(metric: str) -> Callable:
     """Decorator to measure function execution time."""
 
     def decorator(func: Callable) -> Callable:
         @wraps(func)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args, **kwargs) -> Any:
             start = time.perf_counter()
             try:
                 return func(*args, **kwargs)
@@ -435,7 +435,7 @@ def get_metrics() -> MIESCMetrics:
     return _metrics
 
 
-def reset_metrics():
+def reset_metrics() -> None:
     """Reset the global metrics instance."""
     global _metrics
     _metrics = None
