@@ -255,7 +255,7 @@ class SecurityAgent(ABC):
         pass
 
     @abstractmethod
-    def analyze(self, contract: str, **kwargs) -> AnalysisResult:
+    def analyze(self, contract: str, **kwargs: Any) -> AnalysisResult:
         """
         Perform security analysis on the contract.
 

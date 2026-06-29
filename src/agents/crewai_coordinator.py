@@ -125,7 +125,7 @@ class CrewAICoordinator(BaseAgent):
     def get_context_types(self) -> List[str]:
         return ["crew_audit_plan", "crew_findings", "crew_summary"]
 
-    def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
+    def analyze(self, contract_path: str, **kwargs: Any) -> Dict[str, Any]:
         """
         Coordinate multi-agent analysis using CrewAI
 
@@ -244,7 +244,7 @@ class CrewAICoordinator(BaseAgent):
             "report_writer": report_writer,
         }
 
-    def _create_tasks(self, agents: Dict, contract_path: str, **kwargs) -> List:
+    def _create_tasks(self, agents: Dict, contract_path: str, **kwargs: Any) -> List:
         """Create tasks for the crew"""
 
         # Read contract

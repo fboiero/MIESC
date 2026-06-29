@@ -136,7 +136,7 @@ class ToolAdapter(ABC):
         pass
 
     @abstractmethod
-    def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
+    def analyze(self, contract_path: str, **kwargs: Any) -> Dict[str, Any]:
         """
         Execute analysis with the tool.
 

@@ -48,7 +48,7 @@ class BaseAgent(ABC):
         logger.info(f"{self.agent_name} initialized with capabilities: {capabilities}")
 
     @abstractmethod
-    def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
+    def analyze(self, contract_path: str, **kwargs: Any) -> Dict[str, Any]:
         """
         Perform analysis on contract
 
@@ -163,7 +163,7 @@ class BaseAgent(ABC):
             metadata={"status": "error"},
         )
 
-    def run(self, contract_path: str, **kwargs) -> Dict[str, Any]:
+    def run(self, contract_path: str, **kwargs: Any) -> Dict[str, Any]:
         """
         Main execution method with standardized workflow
 

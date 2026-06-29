@@ -100,7 +100,7 @@ class AdapterIntegration:
 
         return adapter
 
-    def run_adapter(self, name: str, contract_path: str, **kwargs) -> Optional[Dict[str, Any]]:
+    def run_adapter(self, name: str, contract_path: str, **kwargs: Any) -> Optional[Dict[str, Any]]:
         """
         Run a specific adapter on contract
 
@@ -177,7 +177,7 @@ class AdapterIntegration:
 # ============================================================================
 
 
-def integrate_static_analysis(contract_path: str, **kwargs) -> Dict[str, Any]:
+def integrate_static_analysis(contract_path: str, **kwargs: Any) -> Dict[str, Any]:
     """
     Integrate Layer 1 (Static Analysis) adapters:
     - GasAnalyzer: Gas optimization patterns
@@ -215,7 +215,7 @@ def integrate_static_analysis(contract_path: str, **kwargs) -> Dict[str, Any]:
     return results
 
 
-def integrate_dynamic_testing(contract_path: str, **kwargs) -> Dict[str, Any]:
+def integrate_dynamic_testing(contract_path: str, **kwargs: Any) -> Dict[str, Any]:
     """
     Integrate Layer 2 (Dynamic Testing) adapters:
     - VertigoAdapter: Mutation testing for test quality
@@ -250,7 +250,7 @@ def integrate_dynamic_testing(contract_path: str, **kwargs) -> Dict[str, Any]:
     return results
 
 
-def integrate_symbolic_execution(contract_path: str, **kwargs) -> Dict[str, Any]:
+def integrate_symbolic_execution(contract_path: str, **kwargs: Any) -> Dict[str, Any]:
     """
     Integrate Layer 3 (Symbolic Execution) adapters:
     - OyenteAdapter: Docker-based symbolic execution
@@ -284,7 +284,7 @@ def integrate_symbolic_execution(contract_path: str, **kwargs) -> Dict[str, Any]
     return results
 
 
-def integrate_threat_modeling(contract_path: str, **kwargs) -> Dict[str, Any]:
+def integrate_threat_modeling(contract_path: str, **kwargs: Any) -> Dict[str, Any]:
     """
     Integrate Layer 7 (Audit Readiness) adapters:
     - ThreatModelAdapter: STRIDE/DREAD threat analysis
@@ -331,7 +331,7 @@ def integrate_threat_modeling(contract_path: str, **kwargs) -> Dict[str, Any]:
 # ============================================================================
 
 
-def run_all_adapters(contract_path: str, **kwargs) -> Dict[str, Any]:
+def run_all_adapters(contract_path: str, **kwargs: Any) -> Dict[str, Any]:
     """
     Run ALL available adapters on contract (convenience function)
 

@@ -56,7 +56,7 @@ class DynamicAgent(BaseAgent):
             "vertigo_results",  # From VertigoAdapter (mutation testing)
         ]
 
-    def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
+    def analyze(self, contract_path: str, **kwargs: Any) -> Dict[str, Any]:
         """
         Run all dynamic testing tools on contract
 

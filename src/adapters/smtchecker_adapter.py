@@ -145,7 +145,7 @@ class SMTCheckerAdapter(ToolAdapter):
 
         return None
 
-    def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
+    def analyze(self, contract_path: str, **kwargs: Any) -> Dict[str, Any]:
         """
         Analyze contract using SMTChecker formal verification.
 

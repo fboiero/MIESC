@@ -244,7 +244,7 @@ class FourAnalyzerAdapter(ToolAdapter):
         # Fallback pattern analysis is always available
         return ToolStatus.AVAILABLE
 
-    def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
+    def analyze(self, contract_path: str, **kwargs: Any) -> Dict[str, Any]:
         start_time = time.time()
         contract_path = str(Path(contract_path).resolve())
 
@@ -256,7 +256,7 @@ class FourAnalyzerAdapter(ToolAdapter):
 
         return self._run_pattern_analysis(contract_path, start_time)
 
-    def _run_cli(self, contract_path: str, start_time: float, **kwargs) -> Dict[str, Any]:
+    def _run_cli(self, contract_path: str, start_time: float, **kwargs: Any) -> Dict[str, Any]:
         timeout = kwargs.get("timeout", 60)
         try:
             result = subprocess.run(

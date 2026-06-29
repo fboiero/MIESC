@@ -55,7 +55,7 @@ class StaticAgent(BaseAgent):
             "mev_detection_results",  # From MEVDetector adapter
         ]
 
-    def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
+    def analyze(self, contract_path: str, **kwargs: Any) -> Dict[str, Any]:
         """
         Run all static analysis tools on contract
 

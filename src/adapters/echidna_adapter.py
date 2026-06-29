@@ -133,7 +133,7 @@ class EchidnaAdapter(ToolAdapter):
             logger.error(f"Error checking Echidna availability: {e}")
             return ToolStatus.CONFIGURATION_ERROR
 
-    def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
+    def analyze(self, contract_path: str, **kwargs: Any) -> Dict[str, Any]:
         """
         Run Echidna property-based fuzzing on contract
 

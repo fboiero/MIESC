@@ -101,7 +101,7 @@ class HalmosAdapter(ToolAdapter):
             logger.error(f"Error checking Halmos: {e}")
             return ToolStatus.CONFIGURATION_ERROR
 
-    def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
+    def analyze(self, contract_path: str, **kwargs: Any) -> Dict[str, Any]:
         """
         Analyze contract using Halmos symbolic testing.
 

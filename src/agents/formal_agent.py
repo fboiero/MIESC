@@ -52,7 +52,7 @@ class FormalAgent(BaseAgent):
     def get_context_types(self) -> List[str]:
         return ["formal_findings", "certora_results", "z3_results"]
 
-    def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
+    def analyze(self, contract_path: str, **kwargs: Any) -> Dict[str, Any]:
         """
         Run formal verification tools on contract
 

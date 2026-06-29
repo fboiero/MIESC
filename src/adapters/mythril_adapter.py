@@ -163,7 +163,7 @@ class MythrilAdapter(ToolAdapter):
         env.setdefault("MPLCONFIGDIR", str(Path(tempfile.gettempdir()) / "miesc-matplotlib"))
         return env
 
-    def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
+    def analyze(self, contract_path: str, **kwargs: Any) -> Dict[str, Any]:
         """
         Execute Mythril symbolic execution analysis on the contract.
 

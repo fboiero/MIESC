@@ -258,7 +258,7 @@ class LLMBugScannerAdapter(ToolAdapter):
             logger.error(f"LLMBugScanner: Error checking Ollama availability: {e}")
             return ToolStatus.CONFIGURATION_ERROR
 
-    def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
+    def analyze(self, contract_path: str, **kwargs: Any) -> Dict[str, Any]:
         """
         Analyze Solidity contract using multi-LLM ensemble.
 

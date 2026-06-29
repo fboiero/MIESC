@@ -185,7 +185,7 @@ class DogeFuzzAdapter(ToolAdapter):
             logger.error(f"Error checking DogeFuzz availability: {e}")
             return ToolStatus.CONFIGURATION_ERROR
 
-    def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
+    def analyze(self, contract_path: str, **kwargs: Any) -> Dict[str, Any]:
         """
         Run DogeFuzz hybrid fuzzer on Solidity contract.
 

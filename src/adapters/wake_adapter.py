@@ -105,7 +105,7 @@ class WakeAdapter(ToolAdapter):
             logger.error(f"Error checking Wake: {e}")
             return ToolStatus.CONFIGURATION_ERROR
 
-    def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
+    def analyze(self, contract_path: str, **kwargs: Any) -> Dict[str, Any]:
         """
         Analyze contract using Wake testing framework.
 

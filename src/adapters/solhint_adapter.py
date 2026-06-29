@@ -166,7 +166,7 @@ class SolhintAdapter(ToolAdapter):
             logger.error(f"Error checking Solhint availability: {e}")
             return ToolStatus.CONFIGURATION_ERROR
 
-    def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
+    def analyze(self, contract_path: str, **kwargs: Any) -> Dict[str, Any]:
         """
         Run Solhint linting on contract
 

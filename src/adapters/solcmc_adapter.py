@@ -188,7 +188,7 @@ class SolCMCAdapter(ToolAdapter):
         except Exception:
             return None
 
-    def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
+    def analyze(self, contract_path: str, **kwargs: Any) -> Dict[str, Any]:
         start_time = time.time()
         contract_path = str(Path(contract_path).resolve())
         timeout = kwargs.get("timeout", 120)

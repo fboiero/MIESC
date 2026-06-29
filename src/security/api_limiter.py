@@ -14,7 +14,7 @@ import time
 from collections import deque
 from datetime import date, datetime, timedelta
 from functools import wraps
-from typing import Callable, Deque, Dict, Optional
+from typing import Any, Callable, Deque, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +75,7 @@ class RateLimiter:
         """
 
         @wraps(func)
-        def wrapper(*args, **kwargs) -> None:
+        def wrapper(*args: Any, **kwargs: Any) -> None:
             self._check_rate_limit()
             return func(*args, **kwargs)
 
@@ -384,7 +384,7 @@ def rate_limited_openai_call(func: Callable) -> Callable:
     """
 
     @wraps(func)
-    def wrapper(*args, **kwargs) -> None:
+    def wrapper(*args: Any, **kwargs: Any) -> None:
         # Check quota before making call
         model = kwargs.get("model", "gpt-4")
         openai_quota.check_quota(model)

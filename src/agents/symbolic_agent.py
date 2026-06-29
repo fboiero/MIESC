@@ -54,7 +54,7 @@ class SymbolicAgent(BaseAgent):
             "oyente_results",  # From OyenteAdapter (symbolic execution)
         ]
 
-    def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
+    def analyze(self, contract_path: str, **kwargs: Any) -> Dict[str, Any]:
         """
         Run symbolic execution tools on contract
 

@@ -138,7 +138,7 @@ class BridgeMonitorAdapter(ToolAdapter):
     def is_available(self) -> ToolStatus:
         return ToolStatus.AVAILABLE
 
-    def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
+    def analyze(self, contract_path: str, **kwargs: Any) -> Dict[str, Any]:
         start_time = time.time()
         contract_path = str(Path(contract_path).resolve())
 

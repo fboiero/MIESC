@@ -103,7 +103,7 @@ class VertigoAdapter(ToolAdapter):
             logger.error(f"Error checking Vertigo availability: {e}")
             return ToolStatus.CONFIGURATION_ERROR
 
-    def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
+    def analyze(self, contract_path: str, **kwargs: Any) -> Dict[str, Any]:
         """
         Ejecuta mutation testing con Vertigo.
 

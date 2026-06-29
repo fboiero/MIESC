@@ -273,7 +273,7 @@ class ThreatModelAdapter(ToolAdapter):
         """ThreatModel es built-in, siempre disponible"""
         return ToolStatus.AVAILABLE
 
-    def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
+    def analyze(self, contract_path: str, **kwargs: Any) -> Dict[str, Any]:
         """
         Ejecuta threat modeling en el contrato.
 

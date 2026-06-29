@@ -103,7 +103,7 @@ class VulnVerifierAdapter(ToolAdapter):
 
         return ToolStatus.AVAILABLE if self._z3_available else ToolStatus.AVAILABLE
 
-    def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
+    def analyze(self, contract_path: str, **kwargs: Any) -> Dict[str, Any]:
         start_time = time.time()
         contract_path = str(Path(contract_path).resolve())
         findings = kwargs.get("findings", [])

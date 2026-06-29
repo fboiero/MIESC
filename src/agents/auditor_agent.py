@@ -502,7 +502,7 @@ class AutonomousAuditorAgent(BaseAgent):
 
         logger.info(f"AutonomousAuditorAgent initialized with model={model}")
 
-    def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
+    def analyze(self, contract_path: str, **kwargs: Any) -> Dict[str, Any]:
         """
         Synchronous wrapper for audit.
 

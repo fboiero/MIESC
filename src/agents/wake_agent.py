@@ -71,7 +71,7 @@ class WakeAgent(BaseAgent):
         """Return list of context types this agent publishes"""
         return ["static_findings", "dynamic_findings", "wake_results"]
 
-    def analyze(self, contract_path: str, mode: str = "detect", **kwargs) -> Dict[str, Any]:
+    def analyze(self, contract_path: str, mode: str = "detect", **kwargs: Any) -> Dict[str, Any]:
         """
         Run Wake analysis on contracts
 
@@ -124,7 +124,7 @@ class WakeAgent(BaseAgent):
         except Exception as e:
             return {"error": f"Unexpected error: {str(e)}"}
 
-    def _run_detect(self, project_root: Path, **kwargs) -> Dict[str, Any]:
+    def _run_detect(self, project_root: Path, **kwargs: Any) -> Dict[str, Any]:
         """Run Wake vulnerability detection"""
         cmd = [self.wake_path, "detect", "all"]
 
@@ -151,7 +151,7 @@ class WakeAgent(BaseAgent):
             "findings": findings,
         }
 
-    def _run_test(self, project_root: Path, **kwargs) -> Dict[str, Any]:
+    def _run_test(self, project_root: Path, **kwargs: Any) -> Dict[str, Any]:
         """Run Wake tests (fuzzing)"""
         cmd = [self.wake_path, "test"]
 
@@ -182,7 +182,7 @@ class WakeAgent(BaseAgent):
             "findings": findings,
         }
 
-    def _run_compile(self, project_root: Path, **kwargs) -> Dict[str, Any]:
+    def _run_compile(self, project_root: Path, **kwargs: Any) -> Dict[str, Any]:
         """Run Wake compilation"""
         cmd = [self.wake_path, "compile"]
 

@@ -100,7 +100,7 @@ class SlitherAgent(SecurityAgent):
         path = Path(file_path)
         return path.suffix == ".sol" and path.exists()
 
-    def analyze(self, contract: str, **kwargs) -> AnalysisResult:
+    def analyze(self, contract: str, **kwargs: Any) -> AnalysisResult:
         """
         Run Slither analysis on contract.
 

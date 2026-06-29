@@ -96,7 +96,7 @@ class SmartBugsDetectorAdapter:
             is_optional=True,
         )
 
-    def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
+    def analyze(self, contract_path: str, **kwargs: Any) -> Dict[str, Any]:
         """Analyze a contract for SmartBugs-category vulnerabilities."""
         path = Path(contract_path)
 

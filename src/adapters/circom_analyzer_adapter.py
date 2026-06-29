@@ -176,7 +176,7 @@ class CircomAnalyzerAdapter(ToolAdapter):
     def can_analyze(self, contract_path: str) -> bool:
         return contract_path.endswith((".sol", ".circom"))
 
-    def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
+    def analyze(self, contract_path: str, **kwargs: Any) -> Dict[str, Any]:
         start_time = time.time()
         contract_path = str(Path(contract_path).resolve())
 
@@ -185,7 +185,7 @@ class CircomAnalyzerAdapter(ToolAdapter):
         else:
             return self._analyze_solidity_zk(contract_path, start_time)
 
-    def _analyze_circom(self, path: str, start_time: float, **kwargs) -> Dict[str, Any]:
+    def _analyze_circom(self, path: str, start_time: float, **kwargs: Any) -> Dict[str, Any]:
         if shutil.which("circomspect"):
             try:
                 timeout = kwargs.get("timeout", 120)

@@ -96,7 +96,7 @@ class AdvancedDetectorAdapter:
     def __init__(self) -> None:
         self.engine = AdvancedDetectorEngine()
 
-    def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
+    def analyze(self, contract_path: str, **kwargs: Any) -> Dict[str, Any]:
         """Analyze a contract for advanced vulnerabilities."""
         path = Path(contract_path)
 

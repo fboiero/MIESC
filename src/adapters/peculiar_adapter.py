@@ -247,7 +247,7 @@ class PeculiarAdapter(ToolAdapter):
             self._fallback_warning_emitted = True
         return ToolStatus.AVAILABLE
 
-    def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
+    def analyze(self, contract_path: str, **kwargs: Any) -> Dict[str, Any]:
         """
         Analyze a Solidity contract for vulnerabilities using Peculiar.
 

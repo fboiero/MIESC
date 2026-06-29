@@ -337,7 +337,7 @@ class InternalCounter:
         self.name = name
         self.collector = collector
 
-    def labels(self, **kwargs) -> "InternalCounter":
+    def labels(self, **kwargs: Any) -> "InternalCounter":
         """Return labeled counter."""
         self._labels = kwargs
         return self
@@ -355,7 +355,7 @@ class InternalHistogram:
         self.name = name
         self.collector = collector
 
-    def labels(self, **kwargs) -> "InternalHistogram":
+    def labels(self, **kwargs: Any) -> "InternalHistogram":
         """Return labeled histogram."""
         self._labels = kwargs
         return self
@@ -383,7 +383,7 @@ class InternalGauge:
         self.collector = collector
         self._labels: Dict[str, Any] = {}
 
-    def labels(self, **kwargs) -> "InternalGauge":
+    def labels(self, **kwargs: Any) -> "InternalGauge":
         """Return labeled gauge."""
         self._labels = kwargs
         return self
@@ -410,7 +410,7 @@ def timed(metric: str) -> Callable:
 
     def decorator(func: Callable) -> Callable:
         @wraps(func)
-        def wrapper(*args, **kwargs) -> Any:
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
             start = time.perf_counter()
             try:
                 return func(*args, **kwargs)

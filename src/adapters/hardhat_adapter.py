@@ -200,7 +200,7 @@ class HardhatAdapter(ToolAdapter):
             logger.error(f"Error checking Hardhat availability: {e}")
             return ToolStatus.CONFIGURATION_ERROR
 
-    def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
+    def analyze(self, contract_path: str, **kwargs: Any) -> Dict[str, Any]:
         """
         Run Hardhat analysis on contract
 

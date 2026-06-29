@@ -224,7 +224,7 @@ class CrossChainAdapter(ToolAdapter):
         """Cross-chain analyzer is always available (pattern-based)."""
         return ToolStatus.AVAILABLE
 
-    def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
+    def analyze(self, contract_path: str, **kwargs: Any) -> Dict[str, Any]:
         """
         Analyze contract for cross-chain vulnerabilities.
 

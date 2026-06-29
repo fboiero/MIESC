@@ -218,7 +218,7 @@ class MEVDetectorAdapter(ToolAdapter):
         """MEVDetector es built-in, siempre disponible"""
         return ToolStatus.AVAILABLE
 
-    def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
+    def analyze(self, contract_path: str, **kwargs: Any) -> Dict[str, Any]:
         """
         Ejecuta análisis de MEV en el contrato.
 
