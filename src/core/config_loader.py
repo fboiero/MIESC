@@ -6,7 +6,7 @@ Carga y gestiona la configuración centralizada desde config/miesc.yaml
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import cast, Any, Dict, List, Optional
 
 import yaml
 
@@ -101,27 +101,27 @@ class MIESCConfig:
     @property
     def version(self) -> str:
         """Versión de la configuración."""
-        return self._config.get("version", "5.1.2")
+        return cast(str, self._config.get("version", "5.1.2"))
 
     @property
     def global_config(self) -> Dict[str, Any]:
         """Configuración global."""
-        return self._config.get("global", {})
+        return cast(Dict[str, Any], self._config.get("global", {}))
 
     @property
     def max_workers(self) -> int:
         """Número máximo de workers para paralelismo."""
-        return self.global_config.get("max_workers", 4)
+        return cast(int, self.global_config.get("max_workers", 4))
 
     @property
     def cache_enabled(self) -> bool:
         """Si el caché está habilitado."""
-        return self.global_config.get("cache_enabled", True)
+        return cast(bool, self.global_config.get("cache_enabled", True))
 
     @property
     def log_level(self) -> str:
         """Nivel de logging."""
-        return self.global_config.get("log_level", "INFO")
+        return cast(str, self.global_config.get("log_level", "INFO"))
 
     def get_adapter_config(self, adapter_name: str) -> AdapterConfig:
         """Obtiene la configuración de un adaptador específico."""
@@ -181,45 +181,54 @@ class MIESCConfig:
 
     def get_llm_config(self) -> Dict[str, Any]:
         """Obtiene configuración de LLM."""
-        return self._config.get(
-            "llm",
-            {
-                "provider": "ollama",
-                "host": "http://localhost:11434",
-                "default_model": "deepseek-coder",
-            },
+        return cast(
+            Dict[str, Any],
+            self._config.get(
+                "llm",
+                {
+                    "provider": "ollama",
+                    "host": "http://localhost:11434",
+                    "default_model": "deepseek-coder",
+                },
+            ),
         )
 
     def get_results_config(self) -> Dict[str, Any]:
         """Obtiene configuración de resultados."""
-        return self._config.get(
-            "results",
-            {
-                "deduplication": {"enabled": True, "similarity_threshold": 0.85},
-                "cross_validation": {"enabled": True, "min_confirmations": 2},
-            },
+        return cast(
+            Dict[str, Any],
+            self._config.get(
+                "results",
+                {
+                    "deduplication": {"enabled": True, "similarity_threshold": 0.85},
+                    "cross_validation": {"enabled": True, "min_confirmations": 2},
+                },
+            ),
         )
 
     def get_compliance_frameworks(self) -> List[str]:
         """Obtiene frameworks de compliance habilitados."""
         compliance = self._config.get("compliance", {})
         if compliance.get("enabled", True):
-            return compliance.get("frameworks", ["ISO27001", "NIST", "OWASP", "CWE", "SWC"])
+            return cast(List[str], compliance.get("frameworks", ["ISO27001", "NIST", "OWASP", "CWE", "SWC"]))
         return []
 
     def get_chain_config(self, chain_name: Optional[str] = None) -> Dict[str, Any]:
         """Obtiene configuración de una blockchain específica."""
         chains = self._config.get("chains", {})
         target_chain = chain_name or chains.get("default", "ethereum")
-        return chains.get(
-            target_chain,
-            {
-                "name": "Ethereum",
-                "evm_version": "shanghai",
-                "solc_version": "0.8.19",
-                "chain_id": 1,
-                "enabled": True,
-            },
+        return cast(
+            Dict[str, Any],
+            chains.get(
+                target_chain,
+                {
+                    "name": "Ethereum",
+                    "evm_version": "shanghai",
+                    "solc_version": "0.8.19",
+                    "chain_id": 1,
+                    "enabled": True,
+                },
+            ),
         )
 
     def get_enabled_chains(self) -> List[str]:
@@ -234,7 +243,7 @@ class MIESCConfig:
     def get_license_plan_config(self, plan_name: str) -> Dict[str, Any]:
         """Obtiene configuración de un plan de licencia."""
         plans = self._config.get("license_plans", {})
-        return plans.get(plan_name.upper(), {})
+        return cast(Dict[str, Any], plans.get(plan_name.upper(), {}))
 
     def to_dict(self) -> Dict[str, Any]:
         """Exporta toda la configuración como diccionario."""
