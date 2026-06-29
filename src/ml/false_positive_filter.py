@@ -952,7 +952,7 @@ class FalsePositiveFilter:
         filtered_fps = []
 
         # Contar confirmaciones por ubicación
-        location_counts = defaultdict(int)
+        location_counts: Dict[str, int] = defaultdict(int)
         for f in findings:
             loc = f"{f.get('location', {}).get('file', '')}:{f.get('location', {}).get('line', 0)}"
             location_counts[loc] += 1
@@ -1033,7 +1033,7 @@ class FalsePositiveFilter:
         tp_count = sum(1 for e in self._feedback if e.is_true_positive)
         fp_count = len(self._feedback) - tp_count
 
-        type_breakdown = defaultdict(lambda: {"tp": 0, "fp": 0})
+        type_breakdown: Dict[str, Dict[str, int]] = defaultdict(lambda: {"tp": 0, "fp": 0})
         for entry in self._feedback:
             vtype = entry.features.vuln_type
             if entry.is_true_positive:
