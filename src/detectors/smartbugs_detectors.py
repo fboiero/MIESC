@@ -907,7 +907,7 @@ class ReentrancyDetector:
         findings: List,
         dangerous_modifiers: Dict[str, Dict[str, object]],
         external_calling_functions: Dict[str, Dict[str, object]],
-    ):
+    ) -> None:
         """Analyze a function for reentrancy patterns."""
         external_call_line = None
         external_call_code = None
@@ -1574,7 +1574,7 @@ class TimeManipulationDetector:
 class SmartBugsDetectorEngine:
     """Engine to run all SmartBugs-specific detectors."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.detectors = [
             ArithmeticDetector(),
             BadRandomnessDetector(),

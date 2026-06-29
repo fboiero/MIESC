@@ -25,7 +25,7 @@ from src.agents.base_agent import BaseAgent
 class WakeAgent(BaseAgent):
     """Python-based testing and analysis agent using Wake"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             agent_name="WakeAgent",
             capabilities=[
@@ -254,7 +254,7 @@ class WakeAgent(BaseAgent):
 
         return findings
 
-    def _publish_findings(self, contract: str, findings: Dict, analysis_type: str):
+    def _publish_findings(self, contract: str, findings: Dict, analysis_type: str) -> None:
         """Publish findings to MCP context bus"""
         try:
             self.contract_path = contract
@@ -316,7 +316,7 @@ class WakeAgent(BaseAgent):
             "LSP server integration",
         ]
 
-    def handle_message(self, message):
+    def handle_message(self, message) -> None:
         """Handle MCP messages"""
         if message.context_type == "audit_request":
             contract = message.data.get("contract")

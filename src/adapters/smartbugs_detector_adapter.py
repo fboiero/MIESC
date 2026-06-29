@@ -56,7 +56,7 @@ class SmartBugsDetectorAdapter:
         "informational": "Info",
     }
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.engine = SmartBugsDetectorEngine()
 
     def is_available(self) -> ToolStatus:

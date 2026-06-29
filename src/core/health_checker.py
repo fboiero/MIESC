@@ -306,29 +306,29 @@ def create_health_endpoints() -> Any:
     checker = HealthChecker()
 
     @router.get("/")
-    async def health_check():
+    async def health_check() -> Dict[str, Any]:
         """Health check básico."""
         return {"status": "healthy", "service": "MIESC"}
 
     @router.get("/tools")
-    async def tools_health():
+    async def tools_health() -> Dict[str, Any]:
         """Health check de todas las herramientas."""
         health = checker.check_all()
         return health.to_dict()
 
     @router.get("/tools/{tool_name}")
-    async def tool_health(tool_name: str):
+    async def tool_health(tool_name: str) -> Dict[str, Any]:
         """Health check de una herramienta específica."""
         health = checker.check_tool(tool_name)
         return health.to_dict()
 
     @router.get("/available")
-    async def available_tools():
+    async def available_tools() -> Dict[str, Any]:
         """Lista de herramientas disponibles."""
         return {"tools": checker.get_available_tools()}
 
     @router.get("/layers")
-    async def tools_by_layer():
+    async def tools_by_layer() -> Dict[str, Any]:
         """Herramientas agrupadas por capa."""
         return checker.get_tools_by_layer()
 

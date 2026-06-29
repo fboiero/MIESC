@@ -93,7 +93,7 @@ class AdvancedDetectorAdapter:
         "informational": "Info",
     }
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.engine = AdvancedDetectorEngine()
 
     def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:

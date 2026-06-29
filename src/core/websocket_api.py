@@ -409,7 +409,7 @@ def create_websocket_app() -> Optional["FastAPI"]:
     app.state.manager = manager
 
     @app.websocket("/ws")
-    async def websocket_endpoint(websocket: WebSocket):
+    async def websocket_endpoint(websocket: WebSocket) -> None:
         """Main WebSocket endpoint."""
         # Security: Validate authentication token if required
         token = websocket.query_params.get("token") or websocket.headers.get(
@@ -464,7 +464,7 @@ def create_websocket_app() -> Optional["FastAPI"]:
             manager.disconnect(websocket)
 
     @app.websocket("/ws/audit/{audit_id}")
-    async def audit_websocket(websocket: WebSocket, audit_id: str):
+    async def audit_websocket(websocket: WebSocket, audit_id: str) -> None:
         """WebSocket endpoint for specific audit."""
         # Security: Validate authentication token if required
         token = websocket.query_params.get("token") or websocket.headers.get(
@@ -505,7 +505,7 @@ def create_websocket_app() -> Optional["FastAPI"]:
             manager.disconnect(websocket)
 
     @app.get("/health")
-    async def health_check():
+    async def health_check() -> Dict[str, Any]:
         """Health check endpoint."""
         return {
             "status": "healthy",
@@ -514,7 +514,7 @@ def create_websocket_app() -> Optional["FastAPI"]:
         }
 
     @app.get("/status")
-    async def system_status():
+    async def system_status() -> Dict[str, Any]:
         """System status endpoint."""
         return {
             "websocket_available": True,
