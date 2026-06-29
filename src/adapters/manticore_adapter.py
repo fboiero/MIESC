@@ -18,7 +18,7 @@ import subprocess
 import tempfile
 import time
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import cast, Any, Dict, List
 
 from src.core.tool_protocol import (
     ToolAdapter,
@@ -406,7 +406,7 @@ class ManticoreAdapter(ToolAdapter):
             return None
 
         non_test_names = [name for name in names if not name.lower().endswith(("attacker", "test"))]
-        return non_test_names[0] if non_test_names else names[0]
+        return cast(str | None, non_test_names[0] if non_test_names else names[0])
 
 
 __all__ = ["ManticoreAdapter"]

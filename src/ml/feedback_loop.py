@@ -12,7 +12,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import cast, Any, Callable, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -197,7 +197,7 @@ class FeedbackStore:
         """Carga historial de feedback."""
         if not self._feedback_file.exists():
             return []
-        return self._load_json(self._feedback_file)
+        return cast(list[dict[str, Any]], self._load_json(self._feedback_file))
 
     def _save_json(self, path: Path, data: Any) -> None:
         """Guarda JSON a disco."""

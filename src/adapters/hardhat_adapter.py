@@ -24,7 +24,7 @@ import re
 import subprocess
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import cast, Any, Dict, List, Optional
 
 from src.core.tool_protocol import (
     ToolAdapter,
@@ -516,7 +516,7 @@ class HardhatAdapter(ToolAdapter):
         Normalize findings to MIESC standard format
         """
         if isinstance(raw_output, dict) and "findings" in raw_output:
-            return raw_output["findings"]
+            return cast(list[dict[str, Any]], raw_output["findings"])
         elif isinstance(raw_output, list):
             return raw_output
         else:

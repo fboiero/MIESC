@@ -16,7 +16,7 @@ import os
 import shutil
 import subprocess
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import cast, Any, Dict, List
 
 from src.core.tool_protocol import (
     ToolAdapter,
@@ -322,7 +322,7 @@ class VertigoAdapter(ToolAdapter):
         if total == 0:
             return 0.0
 
-        return round((killed / total) * 100, 2)
+        return cast(float, round((killed / total) * 100, 2))
 
     def _test_quality_level(self, mutation_score: float) -> str:
         """Convierte mutation score a nivel de calidad"""

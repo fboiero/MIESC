@@ -12,7 +12,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import cast, Any, Callable, Dict, List, Optional
 
 from .config_loader import MIESCConfig, get_config
 from .result_aggregator import ResultAggregator
@@ -228,7 +228,7 @@ class OptimizedOrchestrator:
             if self.cache and result.get("status") != "error":
                 self.cache.set(tool_name, contract_path, result)
 
-            return result
+            return cast(dict[str, Any], result)
 
         except Exception as e:
             return {

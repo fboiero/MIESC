@@ -20,7 +20,7 @@ import logging
 import math
 import time
 from collections import defaultdict
-from typing import Any, Dict, List
+from typing import cast, Any, Dict, List
 
 from src.core.tool_protocol import (
     ToolAdapter,
@@ -324,7 +324,7 @@ class AuditConsensusAdapter(ToolAdapter):
                 best_conf = conf
                 best = finding
 
-        return best or group["findings"][0]
+        return cast(dict[Any, Any], best or group["findings"][0])
 
     def normalize_findings(self, raw_output: Any) -> List[Dict[str, Any]]:
         if not raw_output:

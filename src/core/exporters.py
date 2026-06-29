@@ -13,7 +13,7 @@ import json
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import cast, Any, Dict, List, Optional
 
 # Import version from miesc package
 try:
@@ -493,7 +493,7 @@ class ReportExporter:
             )
 
         exporter = self.exporters[format]
-        return exporter.export(findings, output_path, **kwargs)
+        return cast(str, exporter.export(findings, output_path, **kwargs))
 
     def export_all(
         self, findings: List[Finding], output_dir: str, base_name: str = "report"

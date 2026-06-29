@@ -30,7 +30,7 @@ import logging
 import re
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, Generic, List, Optional, Type, TypeVar
+from typing import cast, Any, Dict, Generic, List, Optional, Type, TypeVar
 
 from pydantic import (
     BaseModel,
@@ -112,7 +112,7 @@ class CodeLocation(BaseModel):
             v = str(v)
         # Remove potentially dangerous characters
         v = re.sub(r"[<>\"'`;]", "", v)
-        return v[:500] if len(v) > 500 else v
+        return cast(str | None, v[:500] if len(v) > 500 else v)
 
 
 class VulnerabilityFinding(BaseModel):
@@ -250,7 +250,7 @@ class VulnerabilityFinding(BaseModel):
         # Remove script tags and dangerous patterns
         v = re.sub(r"<script[^>]*>.*?</script>", "", v, flags=re.IGNORECASE | re.DOTALL)
         v = re.sub(r"[<>]", "", v)
-        return v.strip()
+        return cast(str, v.strip())
 
     @field_validator("swc_id", "cwe_id", mode="before")
     @classmethod

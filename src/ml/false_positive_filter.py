@@ -52,7 +52,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import cast, Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -1409,7 +1409,7 @@ class SemanticContextAnalyzer:
         Positive values increase FP probability.
         """
         analysis = self.analyze_finding_context(finding, source_code)
-        return analysis["confidence_adjustment"]
+        return cast(float, analysis["confidence_adjustment"])
 
 
 # =============================================================================

@@ -21,7 +21,7 @@ from dataclasses import dataclass, field
 from difflib import SequenceMatcher
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set
+from typing import cast, Any, Dict, List, Optional, Set
 
 logger = logging.getLogger(__name__)
 
@@ -765,7 +765,7 @@ class SmartCorrelationEngine:
             Confianza ponderada entre 0.0 y 1.0
         """
         if not tools_reporting:
-            return finding.get("confidence", 0.5)
+            return cast(float, finding.get("confidence", 0.5))
 
         # Obtener peso total y ponderado
         total_weight = 0.0
@@ -778,7 +778,7 @@ class SmartCorrelationEngine:
             weighted_confidence += tool_weight * base_confidence
 
         if total_weight == 0:
-            return base_confidence
+            return cast(float, base_confidence)
 
         # Normalizar
         normalized_confidence = weighted_confidence / total_weight

@@ -32,7 +32,7 @@ import re
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import cast, Any, Dict, List, Optional, Union
 
 from src.core.chain_abstraction import (
     AbstractChainAnalyzer,
@@ -465,7 +465,7 @@ class SolanaAnalyzer(AbstractChainAnalyzer):
             if "option" in idl_type:
                 return f"Option<{self._idl_type_to_str(idl_type['option'])}>"
             if "defined" in idl_type:
-                return idl_type["defined"]
+                return cast(str, idl_type["defined"])
             if "array" in idl_type:
                 inner, size = idl_type["array"]
                 return f"[{self._idl_type_to_str(inner)}; {size}]"

@@ -28,7 +28,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import cast, Any, Callable, Dict, List, Optional
 
 from src.agents.base_agent import BaseAgent
 
@@ -679,7 +679,7 @@ class AutonomousAuditorAgent(BaseAgent):
             json_end = content.rfind("}") + 1
 
             if json_start >= 0 and json_end > json_start:
-                return json.loads(content[json_start:json_end])
+                return cast(dict[str, Any], json.loads(content[json_start:json_end]))
         except json.JSONDecodeError:
             pass
 

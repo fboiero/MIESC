@@ -34,7 +34,7 @@ import glob
 import json
 import os
 import re
-from typing import Any, Optional
+from typing import cast, Any, Optional
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 _DEFAULT_BENIGN_GLOB = os.path.join(_ROOT, "data", "rag", "benign_patterns_seed_*.jsonl")
@@ -285,7 +285,7 @@ class BenignContextVerifier:
                 req = urllib.request.Request(self.host.rstrip("/") + "/api/generate", data=body,
                                              headers={"Content-Type": "application/json"})
                 with urllib.request.urlopen(req, timeout=self.timeout) as r:
-                    return json.loads(r.read()).get("response", "")
+                    return cast(str, json.loads(r.read()).get("response", ""))
             except Exception:  # noqa: BLE001 - fall through to DeepSeek failover
                 pass
         key = os.environ.get("DEEPSEEK_API_KEY")
@@ -300,7 +300,7 @@ class BenignContextVerifier:
                                              headers={"Content-Type": "application/json",
                                                       "Authorization": f"Bearer {key}"})
                 with urllib.request.urlopen(req, timeout=self.timeout) as r:
-                    return json.loads(r.read())["choices"][0]["message"]["content"]
+                    return cast(str, json.loads(r.read())["choices"][0]["message"]["content"])
             except Exception:  # noqa: BLE001 - recall-safe: failure -> keep
                 return ""
         return ""

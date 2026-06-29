@@ -22,7 +22,7 @@ import functools
 import logging
 import subprocess
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, TypeVar, Union
+from typing import cast, Any, Callable, Dict, List, Optional, TypeVar, Union
 
 logger = logging.getLogger(__name__)
 
@@ -503,7 +503,7 @@ def handle_adapter_errors(func: F) -> F:
     @functools.wraps(func)
     def wrapper(*args: Any, **kwargs: Any) -> Dict[str, Any]:
         try:
-            return func(*args, **kwargs)
+            return cast(dict[str, Any], func(*args, **kwargs))
         except FileNotFoundError as e:
             logger.error(f"File not found: {e}")
             return _error_response(ErrorCode.CONTRACT_NOT_FOUND, str(e))

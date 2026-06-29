@@ -25,7 +25,7 @@ import re
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import cast, Any, Dict, List, Optional
 
 from miesc import __version__ as MIESC_VERSION
 
@@ -268,7 +268,7 @@ class SpecGenerator:
         if isinstance(location, dict):
             func = location.get("function", "")
             if func and func != "unknown":
-                return func
+                return cast(str, func)
         # Try parsing from message
         msg = finding.get("message", "") or finding.get("description", "")
         m = re.search(r"function[:\s]+(\w+)", msg, re.IGNORECASE)

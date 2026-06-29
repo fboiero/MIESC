@@ -8,7 +8,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional
+from typing import cast, TYPE_CHECKING, Any, Callable, Dict, List, Optional
 
 if TYPE_CHECKING:
     pass
@@ -242,7 +242,7 @@ class MLOrchestrator:
             if self.cache and result.get("status") != "error":
                 self.cache.set(tool_name, contract_path, result)
 
-            return result
+            return cast(dict[str, Any], result)
 
         except Exception as e:
             return {
@@ -411,7 +411,7 @@ class MLOrchestrator:
         loc2 = f2.get("location", {})
         line1 = loc1.get("line") or 0
         line2 = loc2.get("line") or 0
-        return loc1.get("file") == loc2.get("file") and abs(line1 - line2) <= 3
+        return cast(bool, loc1.get("file") == loc2.get("file") and abs(line1 - line2) <= 3)
 
     def _calculate_severity_distribution(
         self,

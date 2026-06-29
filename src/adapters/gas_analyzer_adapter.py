@@ -13,7 +13,7 @@ Date: 2025-01-09
 import logging
 import re
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import cast, Any, Dict, List
 
 from src.core.tool_protocol import (
     ToolAdapter,
@@ -208,7 +208,7 @@ class GasAnalyzerAdapter(ToolAdapter):
         pero este método está disponible para conversiones adicionales.
         """
         if isinstance(raw_output, dict) and "findings" in raw_output:
-            return raw_output["findings"]
+            return cast(list[dict[str, Any]], raw_output["findings"])
         return []
 
     def _analyze_patterns(self, source_code: str, contract_path: str) -> List[Dict[str, Any]]:

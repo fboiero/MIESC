@@ -19,7 +19,7 @@ from collections import Counter
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Optional
+from typing import cast, Any, Optional
 
 from miesc import __version__ as MIESC_VERSION
 from miesc.cli.commands.fix import _collect_fixable_findings, apply_fix
@@ -278,7 +278,7 @@ def run_scan(contract_path: Path, output_path: Path, timeout: int = 30) -> Optio
             env=env,
         )
         if output_path.exists():
-            return json.loads(output_path.read_text())
+            return cast(dict[str, Any] | None, json.loads(output_path.read_text()))
     except Exception:
         return None
     return None

@@ -24,7 +24,7 @@ Fecha: 2025-01-10
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import cast, Any, Dict, List, Optional
 
 from src.adapters import register_all_adapters
 from src.core.tool_protocol import ToolStatus, get_tool_registry
@@ -119,7 +119,7 @@ class AdapterIntegration:
         try:
             logger.info(f"Running adapter '{name}' on {contract_path}")
             result = adapter.analyze(contract_path, **kwargs)
-            return result
+            return cast(dict[str, Any] | None, result)
         except Exception as e:
             logger.error(f"Adapter '{name}' failed: {e}", exc_info=True)
             return None

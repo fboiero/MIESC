@@ -29,7 +29,7 @@ import subprocess
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import cast, Any, Dict, List, Optional, Set, Tuple
 
 from src.core.llm_config import get_ollama_host
 from src.core.tool_protocol import (
@@ -820,7 +820,7 @@ Respond with ONLY: VALID or FALSE_POSITIVE"""
                 return None
 
             with open(cache_file, "r") as f:
-                return json.load(f)
+                return cast(dict[str, Any] | None, json.load(f))
         except Exception as e:
             logger.error(f"Error reading cache: {e}")
             return None

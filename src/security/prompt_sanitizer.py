@@ -31,7 +31,7 @@ import logging
 import re
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import cast, Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -326,7 +326,7 @@ def sanitize_context(
         ratio = max_length / len(serialized)
         sanitized = _truncate_context(sanitized, ratio)
 
-    return sanitized
+    return cast(dict[str, Any], sanitized)
 
 
 def _truncate_context(context: Dict[str, Any], ratio: float) -> Dict[str, Any]:
@@ -342,7 +342,7 @@ def _truncate_context(context: Dict[str, Any], ratio: float) -> Dict[str, Any]:
             return [truncate_value(item) for item in value]
         return value
 
-    return truncate_value(context)
+    return cast(dict[str, Any], truncate_value(context))
 
 
 def sanitize_finding_text(text: str) -> str:

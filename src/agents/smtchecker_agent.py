@@ -18,7 +18,7 @@ Integration: Part of MIESC Framework v2.1+
 import os
 import subprocess
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import cast, Any, Dict, List, Optional
 
 from src.agents.base_agent import BaseAgent
 
@@ -157,8 +157,8 @@ class SMTCheckerAgent(BaseAgent):
             # Extract version from output
             for line in result.stdout.split("\n"):
                 if "Version:" in line:
-                    return line.split("Version:")[1].strip()
-            return result.stdout.strip()
+                    return cast(str, line.split("Version:")[1].strip())
+            return cast(str, result.stdout.strip())
         except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
             return "unknown"
 

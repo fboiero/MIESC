@@ -15,7 +15,7 @@ import logging
 import tempfile
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import cast, Any, Dict, List, Optional
 
 from src.core.tool_protocol import ToolCapability, ToolCategory, ToolMetadata, ToolStatus
 
@@ -419,7 +419,7 @@ class SmartBugsMLAdapter:
             if time.time() - cache_file.stat().st_mtime < 86400:
                 try:
                     with open(cache_file, "r") as f:
-                        return json.load(f)
+                        return cast(dict[str, Any] | None, json.load(f))
                 except Exception:
                     pass
         return None

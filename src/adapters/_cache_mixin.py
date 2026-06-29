@@ -16,7 +16,7 @@ import json
 import logging
 import time
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import cast, Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +43,7 @@ class LLMCacheMixin:
                 cache_file.unlink(missing_ok=True)
                 return None
             with open(cache_file, "r", encoding="utf-8") as f:
-                return json.load(f)
+                return cast(dict[str, Any] | None, json.load(f))
         except json.JSONDecodeError:
             logger.warning("%s: corrupted cache file %s", self._cache_name, cache_file)
             cache_file.unlink(missing_ok=True)

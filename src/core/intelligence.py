@@ -26,7 +26,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from typing import cast, Any, Dict, List, Optional, Tuple
 
 from src.core.finding_taxonomy import CanonicalCategory, normalize_finding_type
 
@@ -955,7 +955,7 @@ def calibrate_severity(finding: Dict[str, Any]) -> str:
         "warning": "Low",
         "error": "Medium",
     }
-    return severity_map.get(raw_severity.lower(), raw_severity)
+    return cast(str, severity_map.get(raw_severity.lower(), raw_severity))
 
 
 def _severity_rank(severity: str) -> int:

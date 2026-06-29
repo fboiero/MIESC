@@ -36,7 +36,7 @@ import logging
 import re
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import cast, Any, Dict, List, Optional, Set, Tuple
 
 from src.core.tool_protocol import (
     ToolAdapter,
@@ -335,7 +335,7 @@ class PeculiarAdapter(ToolAdapter):
             List of MIESC-standard finding dicts.
         """
         if isinstance(raw_output, dict) and "findings" in raw_output:
-            return raw_output["findings"]
+            return cast(list[dict[str, Any]], raw_output["findings"])
 
         # Handle raw prediction list from external tool invocation
         if isinstance(raw_output, list):

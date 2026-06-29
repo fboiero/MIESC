@@ -24,7 +24,7 @@ import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from threading import Lock
-from typing import Any, Dict, Optional
+from typing import cast, Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -376,7 +376,7 @@ class LLMAnalysisCache:
         """Load the cache index."""
         try:
             if self._index_file.exists():
-                return json.loads(self._index_file.read_text())
+                return cast(dict[str, Any], json.loads(self._index_file.read_text()))
         except Exception as e:
             logger.warning(f"Failed to load cache index: {e}")
         return {}
