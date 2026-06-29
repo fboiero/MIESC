@@ -319,7 +319,7 @@ class MIESCRichCLI:
 
         # Group by severity
         severity_order = ["critical", "high", "medium", "low", "info"]
-        grouped = {}
+        grouped: Dict[str, List[Dict[str, Any]]] = {}
         for f in findings:
             sev = f.get("severity", "info").lower()
             if sev not in grouped:
@@ -377,7 +377,7 @@ class MIESCRichCLI:
         tree = Tree("[bold]Audit Findings[/bold]")
 
         # Group by layer
-        by_layer = {}
+        by_layer: Dict[int, List[Dict[str, Any]]] = {}
         for f in findings:
             layer = f.get("layer", 0)
             if layer not in by_layer:
@@ -388,7 +388,7 @@ class MIESCRichCLI:
             layer_branch = tree.add(f"[bold cyan]Layer {layer}[/bold cyan]")
 
             # Group by tool within layer
-            by_tool = {}
+            by_tool: Dict[str, List[Dict[str, Any]]] = {}
             for f in by_layer[layer]:
                 tool = f.get("tool", "unknown")
                 if tool not in by_tool:
