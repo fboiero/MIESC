@@ -344,7 +344,7 @@ class MarkdownExporter:
 
         # Group by severity
         severity_order = ["critical", "high", "medium", "low", "info"]
-        grouped = {}
+        grouped: Dict[str, List[Finding]] = {}
         for finding in findings:
             sev = finding.severity.lower()
             if sev not in grouped:
@@ -441,7 +441,7 @@ class JSONExporter:
 
     def _count_severities(self, findings: List[Finding]) -> Dict[str, int]:
         """Count findings by severity."""
-        counts = {}
+        counts: Dict[str, int] = {}
         for f in findings:
             sev = f.severity.lower()
             counts[sev] = counts.get(sev, 0) + 1
