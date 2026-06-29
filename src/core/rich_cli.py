@@ -200,7 +200,7 @@ class MIESCRichCLI:
                 task_name = task["name"]
                 task_id = task_ids[task_name]
 
-                def update_progress(completed: float, description: str = None, _tid=task_id) -> None:
+                def update_progress(completed: float, description: str = None, _tid: Any = task_id) -> None:
                     progress.update(_tid, completed=completed)
                     if description:
                         progress.update(_tid, description=description)
@@ -256,7 +256,7 @@ class MIESCRichCLI:
 
                     try:
 
-                        def tool_progress(pct: float, _tt=tool_task) -> None:
+                        def tool_progress(pct: float, _tt: Any = tool_task) -> None:
                             progress.update(_tt, completed=pct)
 
                         findings = audit_func(layer_num, tool, tool_progress)

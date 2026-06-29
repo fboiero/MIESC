@@ -1,3 +1,4 @@
+from typing import Any
 """
 MIESC Core - Compatibility shim for legacy imports.
 
@@ -27,7 +28,7 @@ class MIESCCore:
         Use ``from miesc.api import run_full_audit`` instead.
     """
 
-    def __init__(self, config=None):
+    def __init__(self, config: Any = None) -> None:
         """Initialize MIESC Core with optional config."""
         self.orchestrator = OptimizedOrchestrator()
         self.config = config or {}

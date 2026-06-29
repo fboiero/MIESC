@@ -308,7 +308,7 @@ class MythrilAdapter(ToolAdapter):
 
             # Combine output
             class Result:
-                def __init__(self, stdout, stderr, returncode):
+                def __init__(self, stdout: Any, stderr: Any, returncode: int) -> None:
                     self.stdout = stdout
                     self.stderr = stderr
                     self.returncode = returncode

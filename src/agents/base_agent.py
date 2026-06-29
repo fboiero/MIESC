@@ -8,7 +8,7 @@ Each agent wraps one or more security tools and communicates via MCP Context Bus
 import logging
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Callable, Any, Dict, List, Optional
 
 from src.mcp_core.context_bus import MCPMessage, get_context_bus
 
@@ -95,7 +95,7 @@ class BaseAgent(ABC):
         self.bus.publish(message)
         logger.info(f"{self.agent_name} published {context_type} with {len(findings)} items")
 
-    def subscribe_to(self, context_types: List[str], callback) -> None:
+    def subscribe_to(self, context_types: List[str], callback: Callable) -> None:
         """
         Subscribe to context types from other agents
 

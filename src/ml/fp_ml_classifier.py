@@ -392,7 +392,7 @@ def create_sample_dataset(output_path: Path, n: int = 20) -> int:
         ("constants-instead-of-literals", "low", "aderyn", 0.3, None, False),
     ]
 
-    def row(tmpl):
+    def row(tmpl: Any) -> Any:
         vuln_type, sev, tool, conf, swc, label = tmpl
         finding = {
             "type": vuln_type,
