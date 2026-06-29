@@ -23,7 +23,7 @@ from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Iterator, Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -206,7 +206,7 @@ class MIESCDatabase:
             conn.commit()
 
     @contextmanager
-    def _get_connection(self) -> None:
+    def _get_connection(self) -> Iterator[sqlite3.Connection]:
         """Get database connection with proper error handling."""
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
