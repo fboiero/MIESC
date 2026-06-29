@@ -83,7 +83,7 @@ class ArithmeticDetector:
     ]
 
     def detect(self, source_code: str, file_path: Optional[Path] = None) -> List[SmartBugsFinding]:
-        findings = []
+        findings: List[SmartBugsFinding] = []
         lines = source_code.split("\n")
 
         # Check if Solidity 0.8+ (has built-in overflow checks)
@@ -265,7 +265,7 @@ class BadRandomnessDetector:
     ]
 
     def detect(self, source_code: str, file_path: Optional[Path] = None) -> List[SmartBugsFinding]:
-        findings = []
+        findings: List[SmartBugsFinding] = []
         lines = source_code.split("\n")
         reported_lines = set()  # Track already reported lines
 
@@ -350,7 +350,7 @@ class DenialOfServiceDetector:
     ]
 
     def detect(self, source_code: str, file_path: Optional[Path] = None) -> List[SmartBugsFinding]:
-        findings = []
+        findings: List[SmartBugsFinding] = []
         lines = source_code.split("\n")
         reported_lines = set()
         in_loop = False
@@ -496,7 +496,7 @@ class FrontRunningDetector:
     ]
 
     def detect(self, source_code: str, file_path: Optional[Path] = None) -> List[SmartBugsFinding]:
-        findings = []
+        findings: List[SmartBugsFinding] = []
         lines = source_code.split("\n")
         reported_lines = set()
 
@@ -670,7 +670,7 @@ class ShortAddressDetector:
     ]
 
     def detect(self, source_code: str, file_path: Optional[Path] = None) -> List[SmartBugsFinding]:
-        findings = []
+        findings: List[SmartBugsFinding] = []
         lines = source_code.split("\n")
 
         # Check for msg.data.length validation (protection against short address)
@@ -756,7 +756,7 @@ class ReentrancyDetector:
     ]
 
     def detect(self, source_code: str, file_path: Optional[Path] = None) -> List[SmartBugsFinding]:
-        findings = []
+        findings: List[SmartBugsFinding] = []
         lines = source_code.split("\n")
 
         # Check for ReentrancyGuard
@@ -1141,7 +1141,7 @@ class AccessControlDetector:
     ]
 
     def detect(self, source_code: str, file_path: Optional[Path] = None) -> List[SmartBugsFinding]:
-        findings = []
+        findings: List[SmartBugsFinding] = []
         lines = source_code.split("\n")
         uncommented_source = self._strip_comments(source_code)
 
@@ -1324,7 +1324,7 @@ class AccessControlDetector:
         self, source_code: str, lines: List[str]
     ) -> List[SmartBugsFinding]:
         """Detect pre-0.4.22 constructor-name typos that expose ownership setters."""
-        findings = []
+        findings: List[SmartBugsFinding] = []
         for contract_match in re.finditer(r"\bcontract\s+(\w+)\b", source_code):
             contract_name = contract_match.group(1)
             brace_pos = source_code.find("{", contract_match.end())
@@ -1390,7 +1390,7 @@ class UncheckedLowLevelCallsDetector:
     ]
 
     def detect(self, source_code: str, file_path: Optional[Path] = None) -> List[SmartBugsFinding]:
-        findings = []
+        findings: List[SmartBugsFinding] = []
         lines = source_code.split("\n")
 
         for i, line in enumerate(lines, 1):
@@ -1477,7 +1477,7 @@ class TimeManipulationDetector:
     ]
 
     def detect(self, source_code: str, file_path: Optional[Path] = None) -> List[SmartBugsFinding]:
-        findings = []
+        findings: List[SmartBugsFinding] = []
         lines = source_code.split("\n")
         reported = set()
 
