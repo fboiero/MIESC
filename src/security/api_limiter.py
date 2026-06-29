@@ -12,9 +12,9 @@ import logging
 import threading
 import time
 from collections import deque
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from functools import wraps
-from typing import Callable, Dict, Optional
+from typing import Callable, Deque, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +55,7 @@ class RateLimiter:
         self.max_calls = max_calls
         self.period = period
         self.burst_size = burst_size or max_calls
-        self.calls = deque(maxlen=max_calls * 2)  # Store call timestamps
+        self.calls: Deque[float] = deque(maxlen=max_calls * 2)  # Store call timestamps
         self.lock = threading.Lock()
 
         logger.debug(
@@ -195,13 +195,13 @@ class APIQuotaManager:
         self.daily_cost_limit = daily_cost_limit
 
         # Call tracking
-        self.daily_calls = {}  # {date: count}
-        self.monthly_calls = {}  # {month: count}
-        self.daily_costs = {}  # {date: cost}
+        self.daily_calls: Dict[date, int] = {}  # {date: count}
+        self.monthly_calls: Dict[date, int] = {}  # {month: count}
+        self.daily_costs: Dict[date, float] = {}  # {date: cost}
 
         # Model-specific tracking
-        self.model_calls = {}  # {model: count}
-        self.model_costs = {}  # {model: total_cost}
+        self.model_calls: Dict[str, int] = {}  # {model: count}
+        self.model_costs: Dict[str, float] = {}  # {model: total_cost}
 
         self.lock = threading.Lock()
 
