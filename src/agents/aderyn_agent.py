@@ -26,7 +26,7 @@ from src.mcp_core.context_bus import MCPMessage
 class AderynAgent(BaseAgent):
     """Ultra-fast static analyzer using Aderyn (Rust-based)"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             agent_name="AderynAgent",
             capabilities=[
@@ -188,7 +188,7 @@ class AderynAgent(BaseAgent):
         except Exception as e:
             return {"error": f"Failed to parse report: {str(e)}"}
 
-    def _publish_findings(self, contract: str, findings: Dict):
+    def _publish_findings(self, contract: str, findings: Dict) -> None:
         """Publish findings to MCP context bus"""
         try:
             self.contract_path = contract
@@ -244,7 +244,7 @@ class AderynAgent(BaseAgent):
             "87+ total detectors",
         ]
 
-    def handle_message(self, message: MCPMessage):
+    def handle_message(self, message: MCPMessage) -> None:
         """Handle MCP messages"""
         if message.context_type == "audit_request":
             contract = message.data.get("contract")

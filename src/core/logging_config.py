@@ -280,7 +280,7 @@ def get_logger(name: str) -> logging.Logger:
 
 
 @contextmanager
-def log_context(**kwargs: Any):
+def log_context(**kwargs: Any) -> None:
     """
     Context manager for temporarily adding context to logs.
 
@@ -299,7 +299,7 @@ def log_context(**kwargs: Any):
 
 
 @contextmanager
-def request_context(correlation_id: Optional[str] = None):
+def request_context(correlation_id: Optional[str] = None) -> None:
     """
     Context manager for request-scoped logging with correlation ID.
 
@@ -319,7 +319,7 @@ def request_context(correlation_id: Optional[str] = None):
             _correlation_id.set(None)
 
 
-def timed(logger: Optional[logging.Logger] = None, level: int = logging.DEBUG):
+def timed(logger: Optional[logging.Logger] = None, level: int = logging.DEBUG) -> Callable:
     """
     Decorator to log function execution time.
 

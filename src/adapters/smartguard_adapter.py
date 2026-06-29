@@ -208,7 +208,7 @@ class SmartGuardAdapter(ToolAdapter):
     Uses Ollama locally (100% sovereign, DPGA-compliant).
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self._cache_dir = Path.home() / ".miesc" / "smartguard_cache"
         self._cache_dir.mkdir(parents=True, exist_ok=True)
@@ -668,7 +668,7 @@ Fix: {vuln.fix_suggestion}
         except Exception:
             return None
 
-    def _cache_result(self, cache_key: str, result: Dict[str, Any]):
+    def _cache_result(self, cache_key: str, result: Dict[str, Any]) -> None:
         """Cache analysis result."""
         cache_file = self._cache_dir / f"{cache_key}.json"
 

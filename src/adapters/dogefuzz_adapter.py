@@ -97,7 +97,7 @@ class DogeFuzzAdapter(ToolAdapter):
     Based on arXiv:2409.01788 (September 2024).
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self._max_iterations = 10000
         self._timeout = 600  # 10 minutes
@@ -320,7 +320,7 @@ class DogeFuzzAdapter(ToolAdapter):
             logger.error(f"Error reading contract: {e}")
             return None
 
-    def _initialize_seed_pool(self, contract_code: str):
+    def _initialize_seed_pool(self, contract_code: str) -> None:
         """Initialize seed pool with initial interesting inputs."""
         logger.info("DogeFuzz: Initializing seed pool")
 
@@ -443,7 +443,7 @@ class DogeFuzzAdapter(ToolAdapter):
 
         return findings
 
-    def _estimate_coverage_targets(self, contract_code: str):
+    def _estimate_coverage_targets(self, contract_code: str) -> None:
         """Estimate coverage targets from source code (simplified)."""
         lines = contract_code.split("\n")
         self._global_coverage.total_statements = len(

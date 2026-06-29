@@ -26,7 +26,7 @@ from src.agents.base_agent import BaseAgent
 class SMTCheckerAgent(BaseAgent):
     """Formal verification agent using Solidity's built-in SMTChecker"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             agent_name="SMTCheckerAgent",
             capabilities=[
@@ -226,7 +226,7 @@ class SMTCheckerAgent(BaseAgent):
         else:
             return "unknown"
 
-    def _publish_findings(self, contract: str, findings: Dict):
+    def _publish_findings(self, contract: str, findings: Dict) -> None:
         """Publish findings to MCP context bus"""
         try:
             self.contract_path = contract
@@ -295,7 +295,7 @@ class SMTCheckerAgent(BaseAgent):
             "CHC (Constrained Horn Clauses)",
         ]
 
-    def handle_message(self, message):
+    def handle_message(self, message) -> None:
         """Handle MCP messages"""
         if message.context_type == "audit_request":
             contract = message.data.get("contract")

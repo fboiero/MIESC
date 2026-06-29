@@ -72,7 +72,7 @@ class MIESCRichCLI:
  ╚═╝     ╚═╝╚═╝╚══════╝╚══════╝ ╚═════╝
     """
 
-    def __init__(self, verbose: bool = False):
+    def __init__(self, verbose: bool = False) -> None:
         if not RICH_AVAILABLE:
             raise ImportError("Rich library not installed. Run: pip install rich")
 
@@ -200,7 +200,7 @@ class MIESCRichCLI:
                 task_name = task["name"]
                 task_id = task_ids[task_name]
 
-                def update_progress(completed: float, description: str = None, _tid=task_id):
+                def update_progress(completed: float, description: str = None, _tid=task_id) -> None:
                     progress.update(_tid, completed=completed)
                     if description:
                         progress.update(_tid, description=description)
@@ -256,7 +256,7 @@ class MIESCRichCLI:
 
                     try:
 
-                        def tool_progress(pct: float, _tt=tool_task):
+                        def tool_progress(pct: float, _tt=tool_task) -> None:
                             progress.update(_tt, completed=pct)
 
                         findings = audit_func(layer_num, tool, tool_progress)

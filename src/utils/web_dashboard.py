@@ -390,7 +390,7 @@ class WebDashboardGenerator:
             "coverage_artifacts": tools["surya"].get("graphs_generated", 0),
         }
 
-    def generate_html_dashboard(self, output_file: Path):
+    def generate_html_dashboard(self, output_file: Path) -> Path:
         """Generate a static HTML dashboard."""
         summary = self._calculate_summary()
         self.metrics["summary"] = summary
@@ -966,7 +966,7 @@ class WebDashboardGenerator:
 
         return html
 
-    def save_metrics_json(self, output_file: Path):
+    def save_metrics_json(self, output_file: Path) -> None:
         """Save complete metrics as JSON."""
         output_file.parent.mkdir(parents=True, exist_ok=True)
         with open(output_file, "w", encoding="utf-8") as f:
@@ -974,7 +974,7 @@ class WebDashboardGenerator:
         print(f"✅ Métricas JSON guardadas: {output_file}")  # noqa: T201
 
 
-def main():
+def main() -> None:
     import argparse
 
     parser = argparse.ArgumentParser(description="Generate a static HTML dashboard for Xaudit v2.0")

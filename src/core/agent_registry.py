@@ -12,7 +12,7 @@ import inspect
 import logging
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, Iterator, List, Optional
 
 from src.core.agent_protocol import AgentMetadata, SecurityAgent
 
@@ -30,12 +30,12 @@ class AgentRegistry:
     4. MCP servers (if available)
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.agents: Dict[str, SecurityAgent] = {}
         self._plugin_dirs: List[Path] = []
         self._init_plugin_dirs()
 
-    def _init_plugin_dirs(self):
+    def _init_plugin_dirs(self) -> None:
         """Initialize plugin directory paths"""
         # User plugin directory
         user_dir = Path.home() / ".miesc" / "agents"
@@ -350,7 +350,7 @@ class AgentRegistry:
         """Check if agent is registered"""
         return agent_name in self.agents
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[str]:
         """Iterate over agent names"""
         return iter(self.agents)
 

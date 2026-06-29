@@ -424,7 +424,7 @@ class SmartBugsMLAdapter:
                     pass
         return None
 
-    def _cache_result(self, contract_path: str, result: Dict[str, Any]):
+    def _cache_result(self, contract_path: str, result: Dict[str, Any]) -> None:
         """Cache prediction result"""
         cache_key = self._get_cache_key(contract_path)
         cache_file = self.cache_dir / f"{cache_key}.json"
@@ -446,6 +446,6 @@ class SmartBugsMLAdapter:
 
 
 # Adapter registration
-def register_adapter():
+def register_adapter() -> Dict[str, Any]:
     """Register SmartBugs-ML adapter with MIESC"""
     return {"adapter_class": SmartBugsMLAdapter, "metadata": SmartBugsMLAdapter.METADATA}

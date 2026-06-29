@@ -26,7 +26,7 @@ from src.agents.base_agent import BaseAgent
 class MedusaAgent(BaseAgent):
     """Parallel fuzzing agent using Medusa"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             agent_name="MedusaAgent",
             capabilities=[
@@ -209,7 +209,7 @@ class MedusaAgent(BaseAgent):
 
         return findings
 
-    def _publish_findings(self, contract: str, findings: Dict):
+    def _publish_findings(self, contract: str, findings: Dict) -> None:
         """Publish findings to MCP context bus"""
         try:
             self.contract_path = contract
@@ -271,7 +271,7 @@ class MedusaAgent(BaseAgent):
             "Corpus optimization",
         ]
 
-    def handle_message(self, message):
+    def handle_message(self, message) -> None:
         """Handle MCP messages"""
         if message.context_type == "audit_request":
             contract = message.data.get("contract")
