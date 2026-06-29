@@ -22,7 +22,7 @@ Version: 4.2.3
 
 import os
 from functools import lru_cache
-from typing import Any, Dict, Optional
+from typing import cast, Any, Dict, Optional
 
 # Default configuration (used if YAML not available)
 DEFAULT_CONFIG = {
@@ -105,7 +105,7 @@ def get_ollama_host() -> str:
     env_host = os.environ.get("OLLAMA_HOST")
     if env_host:
         return env_host
-    return _load_config().get("host", DEFAULT_CONFIG["host"])
+    return cast(str, _load_config().get("host", DEFAULT_CONFIG["host"]))
 
 
 def get_default_model() -> str:
@@ -118,7 +118,7 @@ def get_default_model() -> str:
     env_model = os.environ.get("MIESC_LLM_MODEL")
     if env_model:
         return env_model
-    return _load_config().get("default_model", DEFAULT_CONFIG["default_model"])
+    return cast(str, _load_config().get("default_model", DEFAULT_CONFIG["default_model"]))
 
 
 def get_model(use_case: str) -> str:
@@ -133,7 +133,7 @@ def get_model(use_case: str) -> str:
     """
     config = _load_config()
     models = config.get("models", {})
-    return models.get(use_case, get_default_model())
+    return cast(str, models.get(use_case, get_default_model()))
 
 
 def get_fallback_models() -> list:
@@ -142,7 +142,7 @@ def get_fallback_models() -> list:
     Returns:
         list: List of fallback model names in order of preference
     """
-    return _load_config().get("fallback_models", DEFAULT_CONFIG["fallback_models"])
+    return cast(list, _load_config().get("fallback_models", DEFAULT_CONFIG["fallback_models"]))
 
 
 def get_generation_options(role: Optional[str] = None) -> Dict[str, Any]:
@@ -165,7 +165,7 @@ def get_generation_options(role: Optional[str] = None) -> Dict[str, Any]:
             if key != "system_prompt":
                 base_options[key] = value
 
-    return base_options
+    return cast(Dict[str, Any], base_options)
 
 
 def get_role_system_prompt(role: str) -> str:
@@ -180,7 +180,7 @@ def get_role_system_prompt(role: str) -> str:
     config = _load_config()
     roles = config.get("roles", DEFAULT_CONFIG["roles"])
     role_config = roles.get(role, {})
-    return role_config.get("system_prompt", "")
+    return cast(str, role_config.get("system_prompt", ""))
 
 
 def get_retry_config() -> Dict[str, int]:
@@ -203,7 +203,7 @@ def get_cache_config() -> Dict[str, Any]:
         dict: {'enabled': bool, 'ttl_seconds': int, 'max_entries': int}
     """
     config = _load_config()
-    return config.get("cache", DEFAULT_CONFIG["cache"])
+    return cast(Dict[str, Any], config.get("cache", DEFAULT_CONFIG["cache"]))
 
 
 def clear_config_cache() -> None:
