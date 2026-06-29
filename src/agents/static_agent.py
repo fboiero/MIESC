@@ -33,7 +33,7 @@ class StaticAgent(BaseAgent):
     - "surya_results": Architecture visualization data
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             agent_name="StaticAgent",
             capabilities=[

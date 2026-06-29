@@ -43,7 +43,7 @@ class HalmosAdapter(ToolAdapter):
     - Support for `.t.sol` test files
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self._default_timeout = 300  # 5 minutes
         self._default_depth = 64  # Symbolic execution depth

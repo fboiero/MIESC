@@ -459,7 +459,7 @@ class ReportExporter:
         exporter.export(findings, "markdown", "report.md")
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.exporters = {
             "sarif": SARIFExporter(),
             "sonarqube": SonarQubeExporter(),

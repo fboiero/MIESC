@@ -37,7 +37,7 @@ class FormalAgent(BaseAgent):
     - "z3_results": Z3 SMT solver results
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             agent_name="FormalAgent",
             capabilities=[

@@ -87,7 +87,7 @@ class PolicyAgent(BaseAgent):
     - "audit_checklist": Trail of Bits checklist score [Layer 7 - Audit Readiness]
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             agent_name="PolicyAgent",
             capabilities=[

@@ -190,7 +190,7 @@ class BenchmarkResult:
             "contract_results": [r.to_dict() for r in self.contract_results],
         }
 
-    def save(self, path: Path):
+    def save(self, path: Path) -> None:
         """Save results to JSON file."""
         with open(path, "w") as f:
             json.dump(self.to_dict(), f, indent=2)

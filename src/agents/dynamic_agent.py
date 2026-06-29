@@ -35,7 +35,7 @@ class DynamicAgent(BaseAgent):
     - "foundry_results": Foundry fuzz test results
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             agent_name="DynamicAgent",
             capabilities=[

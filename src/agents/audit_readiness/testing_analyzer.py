@@ -31,7 +31,7 @@ class TestingAnalyzer:
     - Integration test coverage
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize TestingAnalyzer"""
         self.coverage_threshold = 90.0  # OpenZeppelin explicit requirement
 

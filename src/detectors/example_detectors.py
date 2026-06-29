@@ -287,7 +287,7 @@ class AccessControlDetector(PatternDetector):
 # =============================================================================
 
 
-def register_example_detectors():
+def register_example_detectors() -> None:
     """Register all example detectors with MIESC."""
     register_detector(UncheckedCallDetector())
     register_detector(FlashLoanDetector())

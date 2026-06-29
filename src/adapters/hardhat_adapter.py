@@ -548,7 +548,7 @@ class HardhatAdapter(ToolAdapter):
 
 
 # Adapter registration
-def register_adapter():
+def register_adapter() -> Dict[str, Any]:
     """Register Hardhat adapter with MIESC"""
     return {"adapter_class": HardhatAdapter, "metadata": HardhatAdapter.METADATA}
 

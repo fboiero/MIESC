@@ -448,7 +448,7 @@ class ContractCloneDetectorAdapter:
 
 
 # Adapter registration
-def register_adapter():
+def register_adapter() -> Dict[str, Any]:
     """Register Contract Clone Detector adapter with MIESC"""
     return {
         "adapter_class": ContractCloneDetectorAdapter,

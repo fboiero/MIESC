@@ -251,7 +251,7 @@ class NearAnalyzer(AbstractChainAnalyzer):
     NEAR contracts using near-sdk.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(ChainType.NEAR, ContractLanguage.RUST)
         self.pattern_detector = NearPatternDetector()
 

@@ -373,7 +373,7 @@ class EchidnaAdapter(ToolAdapter):
 
 
 # Adapter registration
-def register_adapter():
+def register_adapter() -> Dict[str, Any]:
     """Register Echidna adapter with MIESC"""
     return {"adapter_class": EchidnaAdapter, "metadata": EchidnaAdapter.METADATA}
 

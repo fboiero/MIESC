@@ -516,7 +516,7 @@ def analyze_contract_with_correlation(
 
 
 # CLI interface
-def main():
+def main() -> None:
     """Demo del API de correlación."""
 
     print("\n" + "=" * 60)  # noqa: T201

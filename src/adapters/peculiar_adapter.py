@@ -1506,7 +1506,7 @@ class PeculiarAdapter(ToolAdapter):
 # =============================================================================
 
 
-def register_adapter():
+def register_adapter() -> Dict[str, Any]:
     """Register Peculiar adapter with MIESC tool registry."""
     return {
         "adapter_class": PeculiarAdapter,

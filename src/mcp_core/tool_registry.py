@@ -172,7 +172,7 @@ class MCPToolRegistry:
         result = await registry.call_tool("miesc_run_audit", {"contract_path": "Token.sol"})
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the tool registry."""
         self._tools: Dict[str, MCPTool] = {}
         self._handlers: Dict[str, Callable] = {}

@@ -825,7 +825,7 @@ Respond with ONLY: VALID or FALSE_POSITIVE"""
             logger.error(f"Error reading cache: {e}")
             return None
 
-    def _cache_result(self, cache_key: str, result: Dict[str, Any]):
+    def _cache_result(self, cache_key: str, result: Dict[str, Any]) -> None:
         """Cache analysis result."""
         cache_file = self._cache_dir / f"{cache_key}.json"
 

@@ -464,7 +464,7 @@ class SolhintAdapter(ToolAdapter):
 
 
 # Adapter registration
-def register_adapter():
+def register_adapter() -> Dict[str, Any]:
     """Register Solhint adapter with MIESC"""
     return {"adapter_class": SolhintAdapter, "metadata": SolhintAdapter.METADATA}
 

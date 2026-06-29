@@ -163,7 +163,7 @@ class CrossChainAdapter(ToolAdapter):
     - Cross-chain MEV vectors
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self._supported_chains = {
             "ethereum",

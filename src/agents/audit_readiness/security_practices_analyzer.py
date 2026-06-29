@@ -34,7 +34,7 @@ class SecurityPracticesAnalyzer:
     - No hardcoded sensitive values
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize SecurityPracticesAnalyzer"""
         self.security_patterns = {
             "access_control": [

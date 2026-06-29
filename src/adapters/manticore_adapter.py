@@ -46,7 +46,7 @@ class ManticoreAdapter(ToolAdapter):
     - Timeout handling for complex contracts
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self._default_timeout = 600  # 10 minutes
         self._max_depth = 100  # Maximum symbolic execution depth

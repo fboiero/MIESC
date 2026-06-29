@@ -260,7 +260,7 @@ class ToolDiscovery:
             self.discover()
         return list(self._tools.keys())
 
-    def load_adapter(self, tool_name: str):
+    def load_adapter(self, tool_name: str) -> None:
         """Carga e instancia un adaptador."""
         tool = self.get_tool(tool_name)
         if not tool:

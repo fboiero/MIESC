@@ -76,7 +76,7 @@ class RAGEvaluationResult:
     adapters_tested: List[str] = field(default_factory=list)
     timestamp: str = ""
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Compute comparison after initialization."""
         if self.metrics_with_rag and self.metrics_without_rag:
             self.comparison = compare_metrics(self.metrics_without_rag, self.metrics_with_rag)
@@ -135,7 +135,7 @@ class RAGEvaluator:
         self._embedding_rag = None
         self._adapters: Dict[str, Any] = {}
 
-    def _get_embedding_rag(self):
+    def _get_embedding_rag(self) -> None:
         """Lazy initialization of EmbeddingRAG."""
         if self._embedding_rag is None:
             try:

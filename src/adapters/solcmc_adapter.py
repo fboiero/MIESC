@@ -106,7 +106,7 @@ class SolCMCAdapter(ToolAdapter):
     formal verification of contract properties.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self._solc_path: Optional[str] = None
         self._solc_version: Optional[str] = None

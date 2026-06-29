@@ -34,7 +34,7 @@ class SymbolicAgent(BaseAgent):
     - "manticore_results": Manticore execution traces
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             agent_name="SymbolicAgent",
             capabilities=[

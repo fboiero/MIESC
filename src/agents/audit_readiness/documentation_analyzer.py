@@ -30,7 +30,7 @@ class DocumentationAnalyzer:
     - Required documentation sections
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize DocumentationAnalyzer"""
         self.required_natspec_tags = {
             "contract": ["title", "author", "notice"],

@@ -96,7 +96,7 @@ class CrewAICoordinator(BaseAgent):
         if self.crewai_available:
             self._setup_llm()
 
-    def _setup_llm(self):
+    def _setup_llm(self) -> None:
         """Setup LLM for CrewAI"""
         if self.use_local_llm:
             try:

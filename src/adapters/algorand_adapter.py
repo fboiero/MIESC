@@ -731,7 +731,7 @@ class AlgorandAnalyzer(AbstractChainAnalyzer):
     Integrates with MIESC chain abstraction layer for unified analysis.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(ChainType.ALGORAND, ContractLanguage.TEAL)
         self.teal_parser = TealParser()
         self.pyteal_parser = PyTealParser()

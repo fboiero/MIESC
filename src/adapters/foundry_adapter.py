@@ -526,7 +526,7 @@ class FoundryAdapter(ToolAdapter):
 
 
 # Adapter registration
-def register_adapter():
+def register_adapter() -> Dict[str, Any]:
     """Register Foundry adapter with MIESC"""
     return {"adapter_class": FoundryAdapter, "metadata": FoundryAdapter.METADATA}
 

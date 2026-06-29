@@ -151,7 +151,7 @@ class SlitherAdapter(ToolAdapter):
             is_optional=True,  # DPGA compliance - graceful degradation
         )
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize SlitherAdapter with the correct binary path."""
         self._slither_binary = _find_slither_binary()
         logger.debug(f"SlitherAdapter using binary: {self._slither_binary}")

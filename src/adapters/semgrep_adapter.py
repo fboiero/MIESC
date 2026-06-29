@@ -747,7 +747,7 @@ class SemgrepAdapter(ToolAdapter):
 
 
 # Adapter registration
-def register_adapter():
+def register_adapter() -> Dict[str, Any]:
     """Register Semgrep adapter with MIESC"""
     return {"adapter_class": SemgrepAdapter, "metadata": SemgrepAdapter.METADATA}
 

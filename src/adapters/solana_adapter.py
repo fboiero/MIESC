@@ -275,7 +275,7 @@ class SolanaAnalyzer(AbstractChainAnalyzer):
     Solana programs using the Anchor framework.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(ChainType.SOLANA, ContractLanguage.RUST)
         self.pattern_detector = SolanaPatternDetector()
         self._idl_cache: Dict[str, AnchorIDL] = {}

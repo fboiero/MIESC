@@ -123,7 +123,7 @@ class ZKCircuitAdapter(ToolAdapter):
     Uses circomspect for static analysis and custom pattern matching.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self._cache_dir = Path.home() / ".miesc" / "zk_cache"
         self._cache_dir.mkdir(parents=True, exist_ok=True)

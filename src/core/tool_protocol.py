@@ -584,7 +584,7 @@ class ToolRegistry:
     Enables dynamic tool discovery without modifying core code.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._tools: Dict[str, ToolAdapter] = {}
         self._initialized = False
 

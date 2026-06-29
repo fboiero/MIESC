@@ -38,7 +38,7 @@ class MIESCConfig:
     _instance: Optional["MIESCConfig"] = None
     _config: Dict[str, Any] = {}
 
-    def __new__(cls):
+    def __new__(cls) -> "MIESCConfig":
         if cls._instance is None:
             cls._instance = super().__new__(cls)
             cls._instance._load_config()

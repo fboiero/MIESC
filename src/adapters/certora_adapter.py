@@ -45,7 +45,7 @@ class CertoraAdapter(ToolAdapter):
     - Requires API key and license
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self._default_timeout = 900  # 15 minutes (Certora can be slow)
 

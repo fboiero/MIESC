@@ -41,7 +41,7 @@ class WakeAdapter(ToolAdapter):
     - Detailed test result reporting
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self._default_timeout = 300  # 5 minutes
         self._wake_bin = self._find_wake_binary()

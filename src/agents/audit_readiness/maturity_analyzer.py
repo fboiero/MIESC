@@ -36,7 +36,7 @@ class MaturityAnalyzer:
     - Stability score
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize MaturityAnalyzer"""
         self.maturity_threshold = 0.6  # 60% maturity score to pass
 
