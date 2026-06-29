@@ -43,7 +43,7 @@ class AdapterIntegration:
     - Handle adapter failures gracefully (DPGA compliance)
     """
 
-    def __init__(self, auto_register: bool = True):
+    def __init__(self, auto_register: bool = True) -> None:
         """
         Initialize Adapter Integration Layer
 
@@ -76,7 +76,7 @@ class AdapterIntegration:
         )
         return report
 
-    def get_adapter(self, name: str):
+    def get_adapter(self, name: str) -> Optional[Any]:
         """
         Get adapter by name from registry
 

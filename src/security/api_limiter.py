@@ -43,7 +43,7 @@ class RateLimiter:
         ...         time.sleep(1)
     """
 
-    def __init__(self, max_calls: int, period: int, burst_size: Optional[int] = None):
+    def __init__(self, max_calls: int, period: int, burst_size: Optional[int] = None) -> None:
         """
         Initialize rate limiter.
 
@@ -75,13 +75,13 @@ class RateLimiter:
         """
 
         @wraps(func)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args, **kwargs) -> None:
             self._check_rate_limit()
             return func(*args, **kwargs)
 
         return wrapper
 
-    def _check_rate_limit(self):
+    def _check_rate_limit(self) -> None:
         """
         Check if rate limit allows another call.
 
@@ -148,7 +148,7 @@ class RateLimiter:
                 "reset_at": datetime.fromtimestamp(now + time_until_reset).isoformat(),
             }
 
-    def reset(self):
+    def reset(self) -> None:
         """Clear all rate limit history."""
         with self.lock:
             self.calls.clear()
@@ -258,7 +258,7 @@ class APIQuotaManager:
 
             return True
 
-    def record_call(self, model: str, tokens: Optional[int] = None, cost: Optional[float] = None):
+    def record_call(self, model: str, tokens: Optional[int] = None, cost: Optional[float] = None) -> None:
         """
         Record an API call for quota tracking.
 
@@ -333,7 +333,7 @@ class APIQuotaManager:
                 },
             }
 
-    def reset_daily(self):
+    def reset_daily(self) -> None:
         """Clear daily quota counters (typically called at midnight)."""
         with self.lock:
             today = datetime.now().date()
@@ -384,7 +384,7 @@ def rate_limited_openai_call(func: Callable) -> Callable:
     """
 
     @wraps(func)
-    def wrapper(*args, **kwargs):
+    def wrapper(*args, **kwargs) -> None:
         # Check quota before making call
         model = kwargs.get("model", "gpt-4")
         openai_quota.check_quota(model)

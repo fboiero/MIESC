@@ -123,7 +123,7 @@ class XauditDashboard:
 
         return {"violated": violated, "passed": passed, "total": violated + passed}
 
-    def generate_charts(self, output_dir: Path):
+    def generate_charts(self, output_dir: Path) -> None:
         """Generate visualization charts."""
         if plt is None:
             logger.warning("Skipping chart generation (matplotlib not available)")
@@ -142,7 +142,7 @@ class XauditDashboard:
 
         logger.info(f"Charts saved to: {output_dir}")
 
-    def _chart_severity_distribution(self, output_dir: Path):
+    def _chart_severity_distribution(self, output_dir: Path) -> None:
         """Bar chart of issues by severity."""
         severities = ["Critical", "High", "Medium", "Low"]
         counts = [
@@ -178,7 +178,7 @@ class XauditDashboard:
         plt.savefig(output_dir / "severity_distribution.png", dpi=300)
         plt.close()
 
-    def _chart_test_results(self, output_dir: Path):
+    def _chart_test_results(self, output_dir: Path) -> None:
         """Pie chart of test results."""
         foundry = self.metrics["foundry"]
         echidna = self.metrics["echidna"]
@@ -217,7 +217,7 @@ class XauditDashboard:
         plt.savefig(output_dir / "test_results.png", dpi=300)
         plt.close()
 
-    def _chart_summary_dashboard(self, output_dir: Path):
+    def _chart_summary_dashboard(self, output_dir: Path) -> None:
         """Summary dashboard with key metrics."""
         fig, ax = plt.subplots(figsize=(12, 8))
         ax.axis("off")
@@ -283,7 +283,7 @@ class XauditDashboard:
         plt.savefig(output_dir / "summary_dashboard.png", dpi=300)
         plt.close()
 
-    def generate_html_report(self, output_file: Path):
+    def generate_html_report(self, output_file: Path) -> None:
         """Generate HTML dashboard."""
         html_content = f"""
 <!DOCTYPE html>
@@ -365,7 +365,7 @@ class XauditDashboard:
         output_file.write_text(html_content)
         logger.info(f"HTML dashboard saved to: {output_file}")
 
-    def save_metrics_json(self, output_file: Path):
+    def save_metrics_json(self, output_file: Path) -> None:
         """Save metrics as JSON."""
         output_file.parent.mkdir(parents=True, exist_ok=True)
         with open(output_file, "w") as f:
@@ -373,7 +373,7 @@ class XauditDashboard:
         logger.info(f"Metrics JSON saved to: {output_file}")
 
 
-def main():
+def main() -> None:
     import argparse
 
     parser = argparse.ArgumentParser(description="Generate Xaudit Metrics Dashboard")

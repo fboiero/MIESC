@@ -44,7 +44,7 @@ class Severity(Enum):
         """Convert string to Severity enum."""
         return cls(value.lower())
 
-    def __lt__(self, other):
+    def __lt__(self, other) -> bool:
         order = [Severity.INFO, Severity.LOW, Severity.MEDIUM, Severity.HIGH, Severity.CRITICAL]
         return order.index(self) < order.index(other)
 
@@ -183,7 +183,7 @@ class BaseDetector(ABC):
     # Optional: target contract types (if empty, runs on all)
     target_patterns: List[str] = []  # e.g., ["ERC20", "Governor"]
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize detector."""
         self._enabled = True
         self._config: Dict[str, Any] = {}
@@ -194,7 +194,7 @@ class BaseDetector(ABC):
         return self._enabled
 
     @enabled.setter
-    def enabled(self, value: bool):
+    def enabled(self, value: bool) -> None:
         """Enable or disable detector."""
         self._enabled = value
 
@@ -377,7 +377,7 @@ class DetectorRegistry:
 
     _instance = None
 
-    def __new__(cls):
+    def __new__(cls) -> "DetectorRegistry":
         if cls._instance is None:
             cls._instance = super().__new__(cls)
             cls._instance._detectors: Dict[str, BaseDetector] = {}

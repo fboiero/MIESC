@@ -105,7 +105,7 @@ class WebSocketEvent:
 class ConnectionManager:
     """Manages WebSocket connections."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.active_connections: Set[WebSocket] = set()
         self.audit_subscriptions: Dict[str, Set[WebSocket]] = {}
 

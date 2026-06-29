@@ -123,7 +123,7 @@ class HealthChecker:
         self._cache: Dict[str, ToolHealth] = {}
         self._cache_ttl = 60  # segundos
 
-    def _load_adapter(self, tool_name: str):
+    def _load_adapter(self, tool_name: str) -> None:
         """Carga dinámicamente un adaptador."""
         if tool_name not in self.ADAPTER_MAP:
             return None
@@ -298,7 +298,7 @@ class HealthChecker:
 
 
 # FastAPI endpoints para health checks
-def create_health_endpoints():
+def create_health_endpoints() -> Any:
     """Crea endpoints de health check para FastAPI."""
     from fastapi import APIRouter
 
