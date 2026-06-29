@@ -133,7 +133,7 @@ class DeFiAdapter:
         self, findings: List[DeFiFinding], file_path: Path
     ) -> List[Dict[str, Any]]:
         """Convert DeFi findings to MIESC standard format."""
-        miesc_findings = []
+        miesc_findings: List[Dict[str, Any]] = []
 
         for finding in findings:
             swc_id = self.CATEGORY_TO_SWC.get(finding.category.value, "SWC-000")
@@ -165,7 +165,7 @@ class DeFiAdapter:
         """Analyze source code directly (without file)."""
         try:
             findings = self.engine.analyze(source_code)
-            miesc_findings = []
+            miesc_findings: List[Dict[str, Any]] = []
 
             for finding in findings:
                 swc_id = self.CATEGORY_TO_SWC.get(finding.category.value, "SWC-000")
