@@ -211,7 +211,7 @@ class WakeAgent(BaseAgent):
 
     def _parse_detect_output(self, stdout: str, stderr: str) -> Dict[str, Any]:
         """Parse Wake detect output"""
-        findings = {"vulnerabilities": [], "warnings": [], "stats": {}}
+        findings: Dict[str, Any] = {"vulnerabilities": [], "warnings": [], "stats": {}}
 
         lines = (stdout + "\n" + stderr).split("\n")
 
@@ -236,7 +236,7 @@ class WakeAgent(BaseAgent):
 
     def _parse_test_output(self, stdout: str, stderr: str) -> Dict[str, Any]:
         """Parse Wake test output"""
-        findings = {"passed": [], "failed": [], "stats": {}}
+        findings: Dict[str, Any] = {"passed": [], "failed": [], "stats": {}}
 
         lines = (stdout + "\n" + stderr).split("\n")
 
