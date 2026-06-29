@@ -414,7 +414,7 @@ class ThreatModelAdapter(ToolAdapter):
             }
 
         # Breakdown por categoría STRIDE
-        stride_breakdown = {}
+        stride_breakdown: Dict[str, int] = {}
         for threat in threats:
             category = threat.get("stride_category", "Unknown")
             stride_breakdown[category] = stride_breakdown.get(category, 0) + 1

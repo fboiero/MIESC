@@ -289,7 +289,7 @@ class RemediationValidatorAdapter(ToolAdapter):
 
     def _check_regressions(self, patched_code: str, original_code: str, path: str) -> List[Dict]:
         """Check for regressions introduced by the patch."""
-        regressions = []
+        regressions: List[Dict[str, Any]] = []
 
         if not original_code:
             return regressions

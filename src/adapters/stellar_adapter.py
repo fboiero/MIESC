@@ -574,7 +574,7 @@ class SorobanParser:
 
     def _parse_params(self, params_str: str) -> List[Tuple[str, str]]:
         """Parse function parameters."""
-        params = []
+        params: List[Tuple[str, str]] = []
         if not params_str.strip():
             return params
 

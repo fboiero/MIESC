@@ -529,7 +529,7 @@ class SemgrepAdapter(ToolAdapter):
     def _create_custom_rules_file(self) -> Optional[str]:
         """Create a temporary file with custom Semgrep rules"""
         try:
-            rules_yaml = {"rules": []}
+            rules_yaml: Dict[str, Any] = {"rules": []}
 
             for rule_id, rule_def in self.CUSTOM_RULES.items():
                 rule = {
