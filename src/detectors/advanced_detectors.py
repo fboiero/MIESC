@@ -119,7 +119,7 @@ class RugPullDetector:
     ]
 
     def detect(self, source_code: str, file_path: Optional[Path] = None) -> List[AdvancedFinding]:
-        findings = []
+        findings: List[AdvancedFinding] = []
         lines = source_code.split("\n")
 
         all_patterns = (
@@ -228,7 +228,7 @@ class GovernanceDetector:
     ]
 
     def detect(self, source_code: str, file_path: Optional[Path] = None) -> List[AdvancedFinding]:
-        findings = []
+        findings: List[AdvancedFinding] = []
         lines = source_code.split("\n")
 
         # Check if this is a governance contract
@@ -356,7 +356,7 @@ class TokenSecurityDetector:
     ]
 
     def detect(self, source_code: str, file_path: Optional[Path] = None) -> List[AdvancedFinding]:
-        findings = []
+        findings: List[AdvancedFinding] = []
         lines = source_code.split("\n")
 
         # Check if this is a token contract
@@ -463,7 +463,7 @@ class ProxyUpgradeDetector:
     ]
 
     def detect(self, source_code: str, file_path: Optional[Path] = None) -> List[AdvancedFinding]:
-        findings = []
+        findings: List[AdvancedFinding] = []
         lines = source_code.split("\n")
 
         # Check if this is a proxy/upgradeable contract
@@ -572,7 +572,7 @@ class CentralizationDetector:
     ]
 
     def detect(self, source_code: str, file_path: Optional[Path] = None) -> List[AdvancedFinding]:
-        findings = []
+        findings: List[AdvancedFinding] = []
         lines = source_code.split("\n")
 
         # Count owner-only functions
