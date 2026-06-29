@@ -68,7 +68,7 @@ class SymbolicAgent(BaseAgent):
         Returns:
             Dictionary with results from symbolic tools
         """
-        results = {"symbolic_findings": [], "mythril_results": {}, "manticore_results": {}}
+        results: Dict[str, Any] = {"symbolic_findings": [], "mythril_results": {}, "manticore_results": {}}
 
         max_depth = kwargs.get("max_depth", 128)
         timeout = kwargs.get("timeout", 900)  # 15 minutes default
@@ -377,7 +377,7 @@ class SymbolicAgent(BaseAgent):
         Returns:
             List of findings extracted from workspace
         """
-        findings = []
+        findings: List[Dict[str, Any]] = []
         contract_name = Path(contract_path).stem
         workspace_pattern = f"mcore_{contract_name}_*"
 
