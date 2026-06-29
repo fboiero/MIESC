@@ -80,7 +80,7 @@ class EnhancedReporter:
     def __init__(self, results_dir: Path):
         self.results_dir = Path(results_dir)
         self.findings: List[Finding] = []
-        self.metrics = defaultdict(dict)
+        self.metrics: Dict[str, Dict[str, Any]] = defaultdict(dict)
         self.timestamp = datetime.now()
         self.start_time = None  # Will be set if analysis timing is tracked
 
@@ -478,7 +478,7 @@ class EnhancedReporter:
 
     def generate_executive_summary(self) -> ExecutiveSummary:
         """Generate executive summary."""
-        severity_counts = defaultdict(int)
+        severity_counts: Dict[str, int] = defaultdict(int)
         for finding in self.findings:
             severity_counts[finding.severity] += 1
 
@@ -542,7 +542,7 @@ class EnhancedReporter:
 
     def _generate_statistics(self) -> Dict:
         """Generate detailed statistics."""
-        stats = {
+        stats: Dict[str, Any] = {
             "by_severity": defaultdict(int),
             "by_tool": defaultdict(int),
             "by_category": defaultdict(int),
