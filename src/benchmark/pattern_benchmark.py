@@ -313,7 +313,7 @@ class PatternBenchmarkRunner:
 
     def _detect_patterns(self, code: str, category: str) -> List[PatternMatch]:
         """Detect vulnerability patterns in code."""
-        matches = []
+        matches: List[PatternMatch] = []
 
         if category not in self.PATTERNS:
             return matches

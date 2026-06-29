@@ -43,7 +43,7 @@ class RiskEngine:
             return {"risk_level": "LOW", "risk_score": 0, "breakdown": {}}
 
         # Count by severity
-        severity_counts = {}
+        severity_counts: dict[str, int] = {}
         for finding in findings:
             sev = finding.get("severity", "info").lower()
             severity_counts[sev] = severity_counts.get(sev, 0) + 1
