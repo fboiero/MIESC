@@ -207,7 +207,7 @@ class NearPatternDetector:
         Returns:
             List of pattern matches
         """
-        findings = []
+        findings: List[Dict[str, Any]] = []
         lines = source_code.split("\n")
 
         all_patterns = [
@@ -465,7 +465,7 @@ class NearAnalyzer(AbstractChainAnalyzer):
         Returns:
             List of findings
         """
-        findings = []
+        findings: List[Dict[str, Any]] = []
         source_code = contract.source_code
 
         if not source_code:
@@ -551,7 +551,7 @@ class NearAnalyzer(AbstractChainAnalyzer):
 
     def _check_access_control(self, contract: AbstractContract) -> List[Dict[str, Any]]:
         """Check for access control issues."""
-        findings = []
+        findings: List[Dict[str, Any]] = []
         source = contract.source_code
 
         for func in contract.functions:
@@ -613,7 +613,7 @@ class NearAnalyzer(AbstractChainAnalyzer):
 
     def _check_callback_safety(self, contract: AbstractContract) -> List[Dict[str, Any]]:
         """Check for callback safety issues."""
-        findings = []
+        findings: List[Dict[str, Any]] = []
 
         for func in contract.functions:
             if "callback" not in func.name.lower():
@@ -641,7 +641,7 @@ class NearAnalyzer(AbstractChainAnalyzer):
 
     def _check_view_safety(self, contract: AbstractContract) -> List[Dict[str, Any]]:
         """Check for view function safety."""
-        findings = []
+        findings: List[Dict[str, Any]] = []
         source = contract.source_code
 
         for func in contract.functions:

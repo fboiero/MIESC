@@ -344,7 +344,7 @@ class ZKCircuitAdapter(ToolAdapter):
 
     def _run_circomspect(self, circuit_path: str) -> List[Dict[str, Any]]:
         """Run circomspect static analyzer."""
-        findings = []
+        findings: List[Dict[str, Any]] = []
 
         try:
             result = subprocess.run(
@@ -391,7 +391,7 @@ class ZKCircuitAdapter(ToolAdapter):
 
     def _parse_circomspect_text(self, output: str, circuit_path: str) -> List[Dict[str, Any]]:
         """Parse text output from circomspect."""
-        findings = []
+        findings: List[Dict[str, Any]] = []
         # Basic pattern matching for circomspect output
         pattern = r"(error|warning|info)\[(\w+)\]:\s*(.+?)(?=\n\n|\Z)"
         matches = re.findall(pattern, output, re.DOTALL)
@@ -416,7 +416,7 @@ class ZKCircuitAdapter(ToolAdapter):
         self, code: str, circuit_path: str, framework: ZKFramework
     ) -> List[Dict[str, Any]]:
         """Run ZK vulnerability pattern matching."""
-        findings = []
+        findings: List[Dict[str, Any]] = []
         lines = code.splitlines()
 
         # Framework-specific patterns
@@ -431,7 +431,7 @@ class ZKCircuitAdapter(ToolAdapter):
         self, code: str, lines: List[str], circuit_path: str
     ) -> List[Dict[str, Any]]:
         """Analyze Circom-specific patterns."""
-        findings = []
+        findings: List[Dict[str, Any]] = []
 
         # Pattern 1: Unused signals (declared but never used)
         signal_decl_pattern = r"signal\s+(input|output|private)?\s*(\w+)"
@@ -522,7 +522,7 @@ class ZKCircuitAdapter(ToolAdapter):
         self, code: str, lines: List[str], circuit_path: str
     ) -> List[Dict[str, Any]]:
         """Analyze Noir-specific patterns."""
-        findings = []
+        findings: List[Dict[str, Any]] = []
 
         # Noir-specific patterns
         # Pattern 1: Unconstrained functions
@@ -565,7 +565,7 @@ class ZKCircuitAdapter(ToolAdapter):
         self, code: str, circuit_path: str, framework: ZKFramework
     ) -> List[Dict[str, Any]]:
         """Analyze constraint completeness and soundness."""
-        findings = []
+        findings: List[Dict[str, Any]] = []
 
         if framework == ZKFramework.CIRCOM:
             # Count constraints vs signals

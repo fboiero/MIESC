@@ -284,7 +284,7 @@ class SMTCheckerAdapter(ToolAdapter):
 
     def _parse_smtchecker_output(self, output: str, contract_path: str) -> List[Dict[str, Any]]:
         """Parse SMTChecker output and extract findings."""
-        findings = []
+        findings: List[Dict[str, Any]] = []
 
         lines = output.split("\n")
 

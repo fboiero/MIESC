@@ -299,7 +299,7 @@ class ManticoreAdapter(ToolAdapter):
         self, output: str, contract_path: str, workspace: str
     ) -> List[Dict[str, Any]]:
         """Parse Manticore output and extract findings."""
-        findings = []
+        findings: List[Dict[str, Any]] = []
 
         # Parse textual output for key indicators
         lines = output.split("\n")

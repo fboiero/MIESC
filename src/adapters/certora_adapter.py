@@ -328,7 +328,7 @@ class CertoraAdapter(ToolAdapter):
         self, output: str, contract_path: str, spec_file: str
     ) -> List[Dict[str, Any]]:
         """Parse Certora output and extract findings."""
-        findings = []
+        findings: List[Dict[str, Any]] = []
 
         lines = output.split("\n")
 

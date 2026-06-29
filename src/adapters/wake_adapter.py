@@ -241,7 +241,7 @@ class WakeAdapter(ToolAdapter):
         self, output: str, contract_path: str, test_path: str
     ) -> List[Dict[str, Any]]:
         """Parse Wake output and extract findings."""
-        findings = []
+        findings: List[Dict[str, Any]] = []
 
         lines = output.split("\n")
 

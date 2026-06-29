@@ -230,7 +230,7 @@ class SolanaPatternDetector:
         Returns:
             List of pattern matches
         """
-        findings = []
+        findings: List[Dict[str, Any]] = []
         lines = source_code.split("\n")
 
         # Check all pattern categories
@@ -486,7 +486,7 @@ class SolanaAnalyzer(AbstractChainAnalyzer):
         Returns:
             List of findings
         """
-        findings = []
+        findings: List[Dict[str, Any]] = []
         source_code = contract.source_code
 
         if not source_code:
@@ -579,7 +579,7 @@ class SolanaAnalyzer(AbstractChainAnalyzer):
 
     def _check_signer_validation(self, contract: AbstractContract) -> List[Dict[str, Any]]:
         """Check for missing signer validation."""
-        findings = []
+        findings: List[Dict[str, Any]] = []
         source = contract.source_code
 
         # Look for instruction handlers without signer checks
@@ -623,7 +623,7 @@ class SolanaAnalyzer(AbstractChainAnalyzer):
 
     def _check_account_validation(self, contract: AbstractContract) -> List[Dict[str, Any]]:
         """Check for missing account validation."""
-        findings = []
+        findings: List[Dict[str, Any]] = []
         source = contract.source_code
 
         # Check for AccountInfo without validation
@@ -660,7 +660,7 @@ class SolanaAnalyzer(AbstractChainAnalyzer):
 
     def _check_arithmetic_safety(self, contract: AbstractContract) -> List[Dict[str, Any]]:
         """Check for unsafe arithmetic."""
-        findings = []
+        findings: List[Dict[str, Any]] = []
         source = contract.source_code
 
         # Dangerous patterns
@@ -696,7 +696,7 @@ class SolanaAnalyzer(AbstractChainAnalyzer):
 
     def _check_cpi_reentrancy(self, contract: AbstractContract) -> List[Dict[str, Any]]:
         """Check for CPI reentrancy risks."""
-        findings = []
+        findings: List[Dict[str, Any]] = []
         source = contract.source_code
 
         # Find invoke calls
