@@ -154,7 +154,7 @@ class PolicyAgent(BaseAgent):
         Returns:
             Dictionary with compliance results across all standards
         """
-        results = {
+        results: Dict[str, Any] = {
             "compliance_report": {},
             "iso27001_status": {},
             "nist_ssdf_status": {},
@@ -1727,7 +1727,7 @@ class PolicyAgent(BaseAgent):
         """
         logger.info("Running comprehensive audit readiness assessment")
 
-        result = {
+        result: Dict[str, Any] = {
             "documentation": None,
             "testing": None,
             "maturity": None,
