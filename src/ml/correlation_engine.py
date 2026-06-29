@@ -643,7 +643,7 @@ class SmartCorrelationEngine:
         # Determinar método de correlación predominante
         if len(group) > 1:
             methods = [self._find_correlation_method(group[0], f) for f in group[1:]]
-            method_counts = defaultdict(int)
+            method_counts: Dict[CorrelationMethod, int] = defaultdict(int)
             for m in methods:
                 if m:
                     method_counts[m] += 1
@@ -1078,9 +1078,9 @@ class SmartCorrelationEngine:
         high_confidence = sum(1 for f in self._correlated if f.final_confidence >= 0.7)
         likely_tp = sum(1 for f in self._correlated if f.false_positive_probability <= 0.4)
 
-        severity_dist = defaultdict(int)
-        type_dist = defaultdict(int)
-        tool_dist = defaultdict(int)
+        severity_dist: Dict[str, int] = defaultdict(int)
+        type_dist: Dict[str, int] = defaultdict(int)
+        tool_dist: Dict[str, int] = defaultdict(int)
 
         for f in self._correlated:
             severity_dist[f.severity] += 1
@@ -1748,7 +1748,7 @@ class ExploitChainAnalyzer:
         if not self._chains:
             return {"total": 0, "no_chains_detected": True}
 
-        severity_dist = defaultdict(int)
+        severity_dist: Dict[str, int] = defaultdict(int)
         for chain in self._chains:
             severity_dist[chain.severity] += 1
 
