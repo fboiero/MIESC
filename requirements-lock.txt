@@ -10,17 +10,17 @@ annotated-types==0.7.0
     # via pydantic
 attrs==26.1.0
     # via aiohttp
-bitarray==3.8.1
+bitarray==3.8.2
     # via eth-account
 cbor2==6.1.2
     # via crytic-compile
-certifi==2026.5.20
+certifi==2026.6.17
     # via requests
 charset-normalizer==3.4.7
     # via requests
 ckzg==2.1.7
     # via eth-account
-click==8.4.1
+click==8.4.2
     # via miesc (pyproject.toml)
 crytic-compile==0.4.1
     # via slither-analyzer
@@ -93,7 +93,7 @@ packaging==26.2
     #   solc-select
 parsimonious==0.11.0
     # via eth-abi
-prettytable==3.17.0
+prettytable==3.18.0
     # via slither-analyzer
 propcache==0.5.2
     # via
@@ -120,7 +120,7 @@ pyunormalize==17.0.0
     # via web3
 pyyaml==6.0.3
     # via miesc (pyproject.toml)
-regex==2026.5.9
+regex==2026.6.28
     # via parsimonious
 requests==2.34.2
     # via
