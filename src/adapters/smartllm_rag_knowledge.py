@@ -9,6 +9,8 @@ Author: Fernando Boiero
 Date: 2025-01-13
 """
 
+from typing import Any, Dict
+
 # ERC-20 Token Standard Knowledge
 ERC20_KNOWLEDGE = """
 ERC-20 Token Standard (Ethereum Request for Comment 20)
@@ -169,7 +171,7 @@ GAS OPTIMIZATION:
 """
 
 # Vulnerability Pattern Database - Extended SWC Registry Coverage
-VULNERABILITY_PATTERNS = {
+VULNERABILITY_PATTERNS: Dict[str, Dict[str, Any]] = {
     # ========== CRITICAL SEVERITY ==========
     "reentrancy": {
         "swc_id": "SWC-107",
@@ -369,7 +371,7 @@ VULNERABILITY_PATTERNS = {
 }
 
 # ========== DeFi-Specific Vulnerability Patterns ==========
-DEFI_VULNERABILITY_PATTERNS = {
+DEFI_VULNERABILITY_PATTERNS: Dict[str, Dict[str, Any]] = {
     "flash_loan_attack": {
         "description": "Flash loan enables price manipulation within single transaction",
         "example": "Borrow large amount → manipulate price → profit → repay",
@@ -464,7 +466,7 @@ DEFI_VULNERABILITY_PATTERNS = {
 }
 
 # ========== Governance Vulnerability Patterns ==========
-GOVERNANCE_VULNERABILITY_PATTERNS = {
+GOVERNANCE_VULNERABILITY_PATTERNS: Dict[str, Dict[str, Any]] = {
     "flash_loan_governance": {
         "description": "Governance voting power acquired via flash loan",
         "example": "Borrow tokens → vote → return tokens in same block",
@@ -1019,7 +1021,7 @@ def get_all_vulnerability_patterns() -> dict:
 # =============================================================================
 # ADVANCED VULNERABILITY PATTERNS - Research Level (Certora/OpenZeppelin/ToB)
 # =============================================================================
-ADVANCED_VULNERABILITY_PATTERNS = {
+ADVANCED_VULNERABILITY_PATTERNS: Dict[str, Any] = {
     # ========== REENTRANCY VARIANTS ==========
     "read_only_reentrancy": {
         "swc_id": "SWC-107-RO",
@@ -1214,7 +1216,7 @@ ADVANCED_VULNERABILITY_PATTERNS = {
 # =============================================================================
 # CROSS-CHAIN & BRIDGE PATTERNS
 # =============================================================================
-CROSS_CHAIN_PATTERNS = {
+CROSS_CHAIN_PATTERNS: Dict[str, Any] = {
     "bridge_message_replay": {
         "description": "Bridge message can be replayed on different chain or time",
         "example": "Message hash doesn't include chainId or nonce",
@@ -1257,7 +1259,7 @@ CROSS_CHAIN_PATTERNS = {
 # =============================================================================
 # PROXY & UPGRADEABILITY PATTERNS
 # =============================================================================
-PROXY_PATTERNS = {
+PROXY_PATTERNS: Dict[str, Any] = {
     "transparent_proxy_collision": {
         "description": "Admin functions clash with implementation functions",
         "example": "Both proxy and impl have transfer() - which is called?",
@@ -1310,7 +1312,7 @@ PROXY_PATTERNS = {
 # =============================================================================
 # ERC-4337 ACCOUNT ABSTRACTION PATTERNS
 # =============================================================================
-ACCOUNT_ABSTRACTION_PATTERNS = {
+ACCOUNT_ABSTRACTION_PATTERNS: Dict[str, Any] = {
     "aa_signature_replay": {
         "description": "UserOperation signature can be replayed across chains or accounts",
         "example": "UserOp signature doesn't include chainId or account address",
@@ -1354,7 +1356,7 @@ ACCOUNT_ABSTRACTION_PATTERNS = {
 # =============================================================================
 # RESTAKING PATTERNS (EigenLayer, Symbiotic, etc.)
 # =============================================================================
-RESTAKING_PATTERNS = {
+RESTAKING_PATTERNS: Dict[str, Any] = {
     "slashing_manipulation": {
         "description": "Operator can manipulate slashing conditions",
         "example": "Slashing requires off-chain data that operator controls",
@@ -1389,7 +1391,7 @@ RESTAKING_PATTERNS = {
 # =============================================================================
 # INTENT-BASED TRANSACTION PATTERNS
 # =============================================================================
-INTENT_PATTERNS = {
+INTENT_PATTERNS: Dict[str, Any] = {
     "intent_frontrunning": {
         "description": "Solver can extract value from user intent before fulfillment",
         "example": "User intends to swap, solver front-runs for better price",
@@ -1450,7 +1452,7 @@ L2_VULNERABILITIES = {
 # =============================================================================
 # ADVANCED MEV PATTERNS
 # =============================================================================
-MEV_ADVANCED_PATTERNS = {
+MEV_ADVANCED_PATTERNS: Dict[str, Any] = {
     "jit_liquidity": {
         "description": "Just-in-time liquidity added before large swap, removed after",
         "example": "MEV bot sees pending swap, adds LP, captures fees, removes",
@@ -1481,7 +1483,7 @@ MEV_ADVANCED_PATTERNS = {
     },
 }
 
-TOKEN_PATTERNS = {
+TOKEN_PATTERNS: Dict[str, Any] = {
     "fee_on_transfer": {
         "description": "Token takes fee on transfer, breaking assumptions",
         "example": "transfer(100) but recipient only gets 99 due to 1% fee",
@@ -1552,7 +1554,7 @@ TOKEN_PATTERNS = {
 # =============================================================================
 # FORMAL VERIFICATION INVARIANTS (Certora Style)
 # =============================================================================
-FORMAL_INVARIANTS = {
+FORMAL_INVARIANTS: Dict[str, Any] = {
     # ========== GLOBAL STATE INVARIANTS ==========
     "total_supply_consistency": {
         "description": "Sum of all balances equals total supply",
@@ -1636,7 +1638,7 @@ FORMAL_INVARIANTS = {
 # =============================================================================
 # REAL-WORLD EXPLOIT DATABASE (Rekt/Immunefi)
 # =============================================================================
-HISTORICAL_EXPLOITS = {
+HISTORICAL_EXPLOITS: Dict[str, Any] = {
     # ========== 2024 EXPLOITS ==========
     "radiant_capital_2024": {
         "date": "2024-10-16",
