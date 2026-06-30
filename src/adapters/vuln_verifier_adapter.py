@@ -62,7 +62,7 @@ class VulnVerifierAdapter(ToolAdapter):
 
     def __init__(self) -> None:
         super().__init__()
-        self._z3_available = None
+        self._z3_available: Optional[bool] = None
 
     def get_metadata(self) -> ToolMetadata:
         return ToolMetadata(

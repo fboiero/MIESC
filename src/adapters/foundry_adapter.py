@@ -445,7 +445,7 @@ class FoundryAdapter(ToolAdapter):
         Foundry gas report format:
         | Function | Min | Avg | Max | Calls |
         """
-        gas_report = {"available": False}
+        gas_report: Dict[str, Any] = {"available": False}
 
         # Look for gas report table
         if "gas report" in stdout.lower() or "|" in stdout:

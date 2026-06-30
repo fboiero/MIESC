@@ -274,8 +274,8 @@ class EchidnaAdapter(ToolAdapter):
         findings = []
 
         lines = stdout.split("\n")
-        current_finding = None
-        call_sequence = []
+        current_finding: Optional[Dict[str, Any]] = None
+        call_sequence: List[str] = []
 
         for line in lines:
             line = line.strip()
