@@ -26,7 +26,7 @@ import logging
 import os
 import re
 import time
-from typing import Any, Dict, List, Optional
+from typing import cast, Any, Dict, List, Optional
 
 from src.core.llm_config import get_ollama_host
 from src.core.ollama_models import list_ollama_models, select_ollama_model
@@ -45,7 +45,7 @@ try:
     _EMBEDDING_RAG_AVAILABLE = True
 except ImportError:
     _EMBEDDING_RAG_AVAILABLE = False
-    EmbeddingRAG = None
+    EmbeddingRAG = None  # type: ignore[assignment,misc]
 
 logger = logging.getLogger(__name__)
 
@@ -226,7 +226,7 @@ class PropertyGPTAdapter(ToolAdapter):
             logger.error(f"PropertyGPT availability check failed: {e}")
             return ToolStatus.CONFIGURATION_ERROR
 
-    def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
+    def analyze(self, contract_path: str, **kwargs: Any) -> Dict[str, Any]:
         """
         Generate formal properties for a Solidity contract.
 
@@ -330,7 +330,7 @@ class PropertyGPTAdapter(ToolAdapter):
         Returns:
             Dict with contract name, functions, state vars, events, modifiers
         """
-        info = {
+        info: Dict[str, Any] = {
             "name": "UnknownContract",
             "functions": [],
             "state_vars": [],
@@ -395,7 +395,7 @@ class PropertyGPTAdapter(ToolAdapter):
         else:
             raise ValueError(f"Unsupported LLM backend: {self.llm_backend}")
 
-        return properties
+        return cast(List[Dict[str, Any]], properties)
 
     def _build_propertygpt_prompt(self, contract_source: str, contract_info: Dict) -> str:
         """
@@ -513,7 +513,7 @@ Output: JSON array. Only generate properties relevant to THIS contract's logic.
                     json_match = re.search(r"\[.*\]", response_text, re.DOTALL)
                     if json_match:
                         properties = json.loads(json_match.group(0))
-                        return properties
+                        return cast(List[Dict[str, Any]], properties)
                     else:
                         logger.warning("Could not parse Ollama response as JSON")
                         return self._generate_fallback_properties()
@@ -605,7 +605,7 @@ Output: JSON array. Only generate properties relevant to THIS contract's logic.
 
         Note: Full validation requires Certora Prover.
         """
-        validation = {"valid": True, "errors": [], "warnings": []}
+        validation: Dict[str, Any] = {"valid": True, "errors": [], "warnings": []}
 
         # Basic syntax checks
         if "invariant" not in cvl_spec and "rule" not in cvl_spec:
@@ -663,6 +663,6 @@ Output: JSON array. Only generate properties relevant to THIS contract's logic.
 
 
 # Adapter registration
-def register_adapter():
+def register_adapter() -> Dict[str, Any]:
     """Register PropertyGPT adapter with MIESC."""
     return {"adapter_class": PropertyGPTAdapter, "metadata": PropertyGPTAdapter().get_metadata()}
