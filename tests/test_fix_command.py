@@ -1324,6 +1324,65 @@ contract Wallet {
         assert '(bool ok, ) = msg.sender.call{value: amount}("");' in patched
         assert 'require(ok, "Call failed");' in patched
 
+    def test_unchecked_fiftyflip_wager_moves_bet_writes_before_whale_call(self):
+        source = """\
+pragma solidity ^0.4.24;
+
+contract FiftyFlip {
+    uint public constant DONATING_X = 10;
+    uint256 public totalAmountToWhale;
+    address whale;
+    struct Bet {
+        uint amount;
+        uint blockNumber;
+        bool betMask;
+        address player;
+    }
+    mapping(uint => Bet) bets;
+
+    function wager(bool bMask, uint ticketID) external payable {
+        Bet storage bet = bets[ticketID];
+        uint amount = msg.value;
+        address player = msg.sender;
+        uint donate_amount = amount * DONATING_X / 1000;
+        // <yes> <report> UNCHECKED_LL_CALLS
+        whale.call.value(donate_amount)(bytes4(keccak256("donate()")));
+        totalAmountToWhale += donate_amount;
+
+        bet.amount = amount;
+        bet.blockNumber = block.number;
+        bet.betMask = bMask;
+        bet.player = player;
+
+        emit Wager(ticketID, bet.amount, bet.blockNumber, bet.betMask, bet.player);
+    }
+
+    event Wager(uint ticketID, uint amount, uint blockNumber, bool betMask, address player);
+}
+"""
+        finding = {
+            "type": "unchecked-call",
+            "function": "wager",
+            "fix_code": "check call return",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert changed
+        assert "MIESC: checks-effects-interactions for FiftyFlip wager" in patched
+        assert "bool miescCallSuccess = whale.call.value(donate_amount)" in patched
+        assert 'require(miescCallSuccess, "Call failed");' in patched
+        call_index = patched.index("whale.call.value(donate_amount)")
+        for effect in (
+            "bet.amount = amount;",
+            "bet.blockNumber = block.number;",
+            "bet.betMask = bMask;",
+            "bet.player = player;",
+        ):
+            assert patched.count(effect) == 1
+            assert patched.index(effect) < call_index
+        assert patched.index("totalAmountToWhale += donate_amount;") > call_index
+
     def test_unchecked_token_transfer_gets_require_check(self):
         source = """\
 pragma solidity ^0.4.24;
