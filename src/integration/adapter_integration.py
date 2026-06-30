@@ -138,7 +138,7 @@ class AdapterIntegration:
         Returns:
             Aggregated results from all adapters
         """
-        results = {
+        results: Dict[str, Any] = {
             "total_adapters": len(adapter_names),
             "successful": 0,
             "failed": 0,

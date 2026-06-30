@@ -1603,7 +1603,7 @@ class SmartBugsDetectorEngine:
 
     def get_summary(self, findings: List[SmartBugsFinding]) -> Dict:
         """Generate summary statistics."""
-        summary = {
+        summary: Dict[str, Any] = {
             "total": len(findings),
             "by_severity": {},
             "by_category": {},

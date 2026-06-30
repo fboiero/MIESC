@@ -55,7 +55,7 @@ class SARIFExporter:
     SARIF_VERSION = "2.1.0"
     SARIF_SCHEMA = "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json"
 
-    def __init__(self, tool_name: str = "MIESC", tool_version: str = None):
+    def __init__(self, tool_name: str = "MIESC", tool_version: Optional[str] = None):
         self.tool_name = tool_name
         self.tool_version = tool_version or MIESC_VERSION
 
@@ -135,7 +135,7 @@ class SARIFExporter:
 
     def _create_rule(self, finding: Finding) -> Dict[str, Any]:
         """Create a SARIF rule from a finding."""
-        rule = {
+        rule: Dict[str, Any] = {
             "id": self._get_rule_id(finding),
             "name": finding.type.replace("_", " ").title(),
             "shortDescription": {"text": finding.title},

@@ -24,7 +24,7 @@ import subprocess
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 try:
     import tomllib  # Python 3.11+
@@ -32,7 +32,7 @@ except ImportError:
     try:
         import tomli as tomllib  # Fallback for older Python
     except ImportError:
-        tomllib = None
+        tomllib = None  # type: ignore[assignment]
 
 logger = logging.getLogger(__name__)
 
@@ -108,7 +108,7 @@ class FrameworkDetector:
         """Initialize the framework detector."""
         self._cache: Dict[str, FrameworkConfig] = {}
 
-    def detect(self, path: str, use_cache: bool = True) -> FrameworkConfig:
+    def detect(self, path: Union[str, Path], use_cache: bool = True) -> FrameworkConfig:
         """
         Detect framework at the given path and extract configuration.
 

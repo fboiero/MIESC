@@ -506,7 +506,7 @@ class DeFiDetectorEngine:
 
     def get_summary(self, findings: List[DeFiFinding]) -> Dict:
         """Generate summary statistics."""
-        summary = {
+        summary: Dict[str, Any] = {
             "total": len(findings),
             "by_severity": {},
             "by_category": {},

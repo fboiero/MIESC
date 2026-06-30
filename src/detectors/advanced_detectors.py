@@ -663,7 +663,7 @@ class AdvancedDetectorEngine:
 
     def get_summary(self, findings: List[AdvancedFinding]) -> Dict:
         """Generate summary statistics."""
-        summary = {
+        summary: Dict[str, Any] = {
             "total": len(findings),
             "by_severity": {},
             "by_category": {},
