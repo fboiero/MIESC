@@ -474,7 +474,8 @@ def _rank_report_findings(findings: dict[str, Any], *, contract: str) -> None:
     cache: dict[str, str] = {}
 
     def code_for(f: dict[str, Any]) -> str:
-        loc = f.get("location") if isinstance(f.get("location"), dict) else {}
+        _loc = f.get("location")
+        loc = _loc if isinstance(_loc, dict) else {}
         path = loc.get("file") or f.get("file") or contract
         if path not in cache:
             try:

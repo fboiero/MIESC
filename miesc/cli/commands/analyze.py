@@ -105,9 +105,9 @@ def analyze(contract: str, chain: str | None, output: str | None, ci: bool, quie
         elif chain == "move":
             from src.adapters.move_adapter import MoveAnalyzer
 
-            analyzer = MoveAnalyzer()
+            analyzer: Any = MoveAnalyzer()
             # MoveAnalyzer is AbstractChainAnalyzer — use parse + detect
-            contract_obj = analyzer.parse_contract(Path(contract))
+            contract_obj = analyzer.parse(Path(contract))
             findings = analyzer.detect_vulnerabilities(contract_obj)
             result = {
                 "success": True,
@@ -122,7 +122,7 @@ def analyze(contract: str, chain: str | None, output: str | None, ci: bool, quie
             from src.adapters.solana_adapter import SolanaAnalyzer
 
             analyzer = SolanaAnalyzer()
-            contract_obj = analyzer.parse_contract(Path(contract))
+            contract_obj = analyzer.parse(Path(contract))
             findings = analyzer.detect_vulnerabilities(contract_obj)
             result = {
                 "success": True,

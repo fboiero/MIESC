@@ -73,7 +73,7 @@ except ImportError:
 
 # Try to import YAML for config
 try:
-    import yaml
+    import yaml  # type: ignore[import-untyped]
 
     YAML_AVAILABLE = True
 except ImportError:
@@ -158,7 +158,7 @@ def get_correlation_api() -> Any:
             logger.debug(f"MIESCCorrelationAPI not available: {e}")
             return None
 
-    if _MIESCCorrelationAPI:
+    if _MIESCCorrelationAPI is not None:
         return _MIESCCorrelationAPI()
     return None
 

@@ -128,9 +128,9 @@ def _contract_inherits_guard(source: str, contract_name: str, guard_name: str) -
         bases = []
         if match.group(2):
             bases = [
-                re.match(r"\s*(\w+)", base).group(1)
+                m.group(1)
                 for base in match.group(2).split(",")
-                if re.match(r"\s*(\w+)", base)
+                if (m := re.match(r"\s*(\w+)", base))
             ]
         inheritance[match.group(1)] = bases
 
@@ -156,9 +156,9 @@ def _remove_redundant_guard_inheritance(source: str, guard_name: str) -> str:
         bases = []
         if match.group(2):
             bases = [
-                re.match(r"\s*(\w+)", base).group(1)
+                m.group(1)
                 for base in match.group(2).split(",")
-                if re.match(r"\s*(\w+)", base)
+                if (m := re.match(r"\s*(\w+)", base))
             ]
         inheritance[match.group(1)] = bases
 
@@ -177,7 +177,7 @@ def _remove_redundant_guard_inheritance(source: str, guard_name: str) -> str:
             continue
         bases = [base.strip() for base in bases_text.split(",")]
         base_names = [
-            re.match(r"(\w+)", base).group(1) for base in bases if re.match(r"(\w+)", base)
+            m.group(1) for base in bases if (m := re.match(r"(\w+)", base))
         ]
         if guard_name not in base_names:
             continue
@@ -1039,7 +1039,12 @@ def _ensure_reentrancy_guard_import(
                     break
         source = "".join(lines)
     adjusted_line_hint = line_hint
-    if line_hint is not None and insert_at is not None and insert_at < line_hint:
+    if (
+        line_hint is not None
+        and insert_at is not None
+        and import_line is not None
+        and insert_at < line_hint
+    ):
         adjusted_line_hint = line_hint + import_line.count("\n")
 
     # Add ReentrancyGuard to the contract that owns the patched function.

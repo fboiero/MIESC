@@ -380,7 +380,7 @@ def _simple_render_template(template: str, variables: dict[str, Any]) -> str:
 def _markdown_to_html(markdown: str, title: str, use_premium_css: bool = True) -> str:
     """Convert markdown to HTML with professional styling."""
     try:
-        import markdown as md
+        import markdown as md  # type: ignore[import-untyped]
 
         html_body = md.markdown(markdown, extensions=["tables", "fenced_code", "toc", "attr_list"])
     except ImportError:
