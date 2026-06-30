@@ -21,7 +21,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set, Tuple, cast
 
 from src.agents.base_agent import BaseAgent
 
@@ -192,7 +192,7 @@ class DeepAuditAgent(BaseAgent):
     # Main entry point
     # -----------------------------------------------------------------------
 
-    def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
+    def analyze(self, contract_path: str, **kwargs: Any) -> Dict[str, Any]:
         """Run the 4-phase agentic deep audit."""
         self._start_time = time.monotonic()
         self.contract_path = contract_path
@@ -331,7 +331,7 @@ class DeepAuditAgent(BaseAgent):
         )
         return result
 
-    def _build_call_graph(self, source_code: str):
+    def _build_call_graph(self, source_code: str) -> Tuple[Any, List[Any], List[str]]:
         """Build call graph and extract entry points."""
         try:
             from src.ml.call_graph import CallGraphBuilder
@@ -344,13 +344,14 @@ class DeepAuditAgent(BaseAgent):
             ext_calls = []
             if hasattr(cg, "external_call_chains"):
                 for chain in cg.external_call_chains():
-                    ext_calls.extend([str(c) for c in chain[:2]])
+                    nodes: Any = getattr(chain, "nodes", chain)
+                    ext_calls.extend([str(c) for c in nodes][:2])
             return cg, entries, ext_calls[:20]
         except Exception as e:
             logger.debug(f"Call graph analysis failed: {e}")
             return None, [], []
 
-    def _run_taint_analysis(self, source_code: str):
+    def _run_taint_analysis(self, source_code: str) -> Any:
         """Run taint analysis to find data flow vulnerabilities."""
         try:
             from src.ml.taint_analysis import TaintAnalyzer
@@ -370,7 +371,7 @@ class DeepAuditAgent(BaseAgent):
             if count > 0:
                 scores[profile] = count
 
-        primary = max(scores, key=scores.get) if scores else "general"
+        primary = max(scores, key=lambda k: scores[k]) if scores else "general"
         return {
             "primary": primary,
             "scores": scores,
@@ -509,7 +510,7 @@ class DeepAuditAgent(BaseAgent):
         )
         return result
 
-    def _get_ml_orchestrator(self):
+    def _get_ml_orchestrator(self) -> Any:
         """Get MLOrchestrator instance (same as audit smart)."""
         try:
             from miesc.cli.utils import get_ml_orchestrator
@@ -610,7 +611,7 @@ class DeepAuditAgent(BaseAgent):
         return all_findings
 
     def _run_single_tool(
-        self, adapter, tool_name: str, contract_path: str, timeout: float
+        self, adapter: Any, tool_name: str, contract_path: str, timeout: float
     ) -> List[Dict[str, Any]]:
         """Run a single tool adapter and return normalized findings."""
         try:
@@ -627,9 +628,10 @@ class DeepAuditAgent(BaseAgent):
             from src.ml.fp_filter import FalsePositiveFilter
 
             fp = FalsePositiveFilter()
-            source = Path(self.contract_path).read_text() if self.contract_path else ""
-            result = fp.filter_findings(findings, source)
-            return result.get("filtered", findings) if isinstance(result, dict) else findings
+            # filter_findings returns (kept, removed, stats); the optional second arg is a
+            # code_contexts dict (NOT raw source) — pass findings and use defaults.
+            filtered, _removed, _stats = fp.filter_findings(findings)
+            return filtered
         except Exception:
             return findings
 
@@ -646,7 +648,7 @@ class DeepAuditAgent(BaseAgent):
     ) -> Dict[str, Any]:
         investigated: Set[str] = set()
         enriched_findings: List[Dict[str, Any]] = []
-        additional_tools: List[str] = set()
+        additional_tools: Set[str] = set()
         mitigated_count = 0
         exploit_chains: List[Dict] = []
 
@@ -939,7 +941,7 @@ Respond ONLY with JSON of the shape:
                 end = text.rindex("}") + 1
                 parsed = json_mod.loads(text[start:end])
                 parsed["_model"] = model
-                return parsed
+                return cast(Optional[Dict[Any, Any]], parsed)
             except (ValueError, json_mod.JSONDecodeError):
                 return {"confirmed": True, "reasoning": text[:200], "_model": model}
         except Exception as e:
@@ -1124,7 +1126,7 @@ Respond ONLY with JSON of the shape:
             logger.debug(f"Property generation for {func_name} failed: {e}")
             return None
 
-    def _find_attack_paths(self, call_graph, func_name: str) -> List[str]:
+    def _find_attack_paths(self, call_graph: Any, func_name: str) -> List[str]:
         """Find attack paths from entry points to the vulnerable function."""
         if not call_graph or not func_name:
             return []
@@ -1142,7 +1144,7 @@ Respond ONLY with JSON of the shape:
         if isinstance(loc, dict):
             func = loc.get("function", "")
             if func and func != "unknown":
-                return func
+                return cast(Optional[str], func)
         loc_str = str(loc)
         m = re.search(r"function\s+(\w+)", loc_str)
         if m:
@@ -1214,7 +1216,7 @@ Respond ONLY with JSON of the shape:
         correlated = self._correlate_findings(findings)
 
         # Compute severity distribution
-        summary = {"CRITICAL": 0, "HIGH": 0, "MEDIUM": 0, "LOW": 0, "INFO": 0}
+        summary: Dict[str, Any] = {"CRITICAL": 0, "HIGH": 0, "MEDIUM": 0, "LOW": 0, "INFO": 0}
         for f in correlated:
             sev = f.get("severity", "unknown").upper()
             if sev in summary:
@@ -1252,7 +1254,7 @@ Respond ONLY with JSON of the shape:
 
             result = correlate_findings(findings)
             if isinstance(result, dict):
-                return result.get("findings", findings)
+                return cast(List[Dict[str, Any]], result.get("findings", findings))
             return findings
         except Exception:
             return findings
@@ -1351,10 +1353,10 @@ Top findings:
 Focus on: business risk, deployment recommendation (GO/NO-GO/CONDITIONAL), and top 3 remediation priorities.
 Write for a non-technical executive audience."""
 
-            async def run():
+            async def run() -> str:
                 await orch.initialize()
                 response = await orch.query(prompt)
-                return response.content if response else ""
+                return cast(str, response.content) if response else ""
 
             result = asyncio.run(run())
             if result:
@@ -1432,7 +1434,7 @@ Write for a non-technical executive audience."""
 # ---------------------------------------------------------------------------
 
 
-def run_deep_audit(contract_path: str, **kwargs) -> Dict[str, Any]:
+def run_deep_audit(contract_path: str, **kwargs: Any) -> Dict[str, Any]:
     """Run a deep agentic audit on a contract.
 
     Args:
