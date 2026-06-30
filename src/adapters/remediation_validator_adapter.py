@@ -57,7 +57,7 @@ REMEDIATION_STATUS = {
 }
 
 # Common remediation patterns for each vulnerability type
-EXPECTED_REMEDIATIONS = {
+EXPECTED_REMEDIATIONS: Dict[str, Dict[str, Any]] = {
     "reentrancy": {
         "patterns": [
             r"nonReentrant",

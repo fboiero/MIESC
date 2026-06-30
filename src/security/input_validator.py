@@ -11,7 +11,7 @@ import logging
 import os
 import re
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -300,7 +300,7 @@ def validate_analysis_inputs(
     Raises:
         SecurityError: If any validation fails
     """
-    validated = {}
+    validated: Dict[str, Any] = {}
 
     # Always validate contract path
     validated["contract_path"] = validate_contract_path(contract_path)

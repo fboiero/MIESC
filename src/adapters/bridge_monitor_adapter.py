@@ -196,11 +196,11 @@ class BridgeMonitorAdapter(ToolAdapter):
         # Deduplicate
         seen = set()
         deduped = []
-        for f in raw_findings:
-            key = f"{f['type']}:{f.get('line', 0)}"
+        for finding in raw_findings:
+            key = f"{finding['type']}:{finding.get('line', 0)}"
             if key not in seen:
                 seen.add(key)
-                deduped.append(f)
+                deduped.append(finding)
 
         findings = self.normalize_findings(deduped)
 

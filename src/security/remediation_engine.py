@@ -67,7 +67,7 @@ class EnrichedFinding:
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
-        result = {
+        result: Dict[str, Any] = {
             "id": self.id,
             "type": self.type,
             "severity": self.severity,

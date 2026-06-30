@@ -339,7 +339,7 @@ class ExperimentRecord:
     metrics: Dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
-        data = {
+        data: Dict[str, Any] = {
             "experiment_id": self.experiment_id,
             "seed": self.seed,
             "start_time": self.start_time,

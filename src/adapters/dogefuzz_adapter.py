@@ -587,7 +587,7 @@ class DogeFuzzAdapter(ToolAdapter):
         # Simplified: Simulate execution result
         # In reality, would use EVM execution engine
 
-        result = {
+        result: Dict[str, Any] = {
             "crashed": False,
             "violated_invariant": False,
             "gas_used": random.randint(21000, 500000),
