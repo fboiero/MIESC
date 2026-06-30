@@ -16,7 +16,7 @@ import logging
 import os
 import time
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from src.agents.base_agent import BaseAgent
 
@@ -39,7 +39,7 @@ class SmartLLMAgent(BaseAgent):
     - smartllm_rag_context: Retrieved context from KB
     """
 
-    def __init__(self, model_path: str = None, use_local_llm: bool = True):
+    def __init__(self, model_path: Optional[str] = None, use_local_llm: bool = True) -> None:
         super().__init__(
             agent_name="SmartLLMAgent",
             capabilities=[
@@ -107,7 +107,7 @@ class SmartLLMAgent(BaseAgent):
             logger.warning(f"Failed to load local LLM: {e}")
             return False
 
-    def _initialize_knowledge_base(self):
+    def _initialize_knowledge_base(self) -> None:
         """Initialize RAG knowledge base"""
         # Create KB directory if it doesn't exist
         os.makedirs(self.kb_path, exist_ok=True)
@@ -184,7 +184,7 @@ class SmartLLMAgent(BaseAgent):
     def get_context_types(self) -> List[str]:
         return ["smartllm_findings", "smartllm_explanations", "smartllm_rag_context"]
 
-    def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
+    def analyze(self, contract_path: str, **kwargs: Any) -> Dict[str, Any]:
         """
         Run SmartLLM analysis with local LLM + RAG.
 
@@ -336,7 +336,7 @@ Respond with:
 
         return prompt
 
-    def _parse_llm_response(self, response: str, pattern: Dict) -> Dict:
+    def _parse_llm_response(self, response: str, pattern: Dict) -> Optional[Dict]:
         """Parse LLM response into structured format"""
 
         # Simple parsing
