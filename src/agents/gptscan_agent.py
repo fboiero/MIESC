@@ -14,7 +14,7 @@ import json
 import logging
 import os
 import subprocess
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 try:
     from dotenv import load_dotenv
@@ -43,7 +43,7 @@ class GPTScanAgent(BaseAgent):
     - gptscan_analysis: Detailed GPT analysis
     """
 
-    def __init__(self, openai_api_key: str = None):
+    def __init__(self, openai_api_key: Optional[str] = None) -> None:
         super().__init__(
             agent_name="GPTScanAgent",
             capabilities=[
@@ -73,7 +73,7 @@ class GPTScanAgent(BaseAgent):
     def get_context_types(self) -> List[str]:
         return ["gptscan_findings", "gptscan_logic_vulnerabilities", "gptscan_analysis"]
 
-    def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
+    def analyze(self, contract_path: str, **kwargs: Any) -> Dict[str, Any]:
         """
         Run GPTScan analysis.
 
@@ -129,7 +129,7 @@ class GPTScanAgent(BaseAgent):
             "tool_version": "gptscan-miesc-1.0",
         }
 
-    def _run_static_analysis(self, contract_path: str, **kwargs) -> Dict[str, Any]:
+    def _run_static_analysis(self, contract_path: str, **kwargs: Any) -> Dict[str, Any]:
         """Run Slither static analysis (GPTScan uses Slither as base)"""
         try:
             timeout = kwargs.get("timeout", 300)
@@ -190,7 +190,7 @@ class GPTScanAgent(BaseAgent):
 
     def _extract_patterns(self, static_results: Dict, contract_path: str) -> List[Dict]:
         """Extract code patterns for GPT analysis"""
-        patterns = []
+        patterns: List[Any] = []
 
         try:
             with open(contract_path, "r") as f:
@@ -235,7 +235,7 @@ class GPTScanAgent(BaseAgent):
             try:
                 prompt = self._generate_gpt_prompt(pattern, contract_path)
 
-                response = self.openai.ChatCompletion.create(
+                response = self.openai.OpenAI(api_key=self.openai_api_key).chat.completions.create(
                     model="gpt-4",
                     messages=[
                         {
@@ -248,7 +248,7 @@ class GPTScanAgent(BaseAgent):
                     max_tokens=800,
                 )
 
-                gpt_response = response.choices[0].message.content
+                gpt_response = response.choices[0].message.content or ""
 
                 # Parse GPT response
                 analysis = self._parse_gpt_response(gpt_response, pattern)
@@ -317,7 +317,7 @@ Be concise but thorough.
         self, static_results: Dict, patterns: List[Dict], gpt_analysis: Dict
     ) -> List[Dict]:
         """Combine static + GPT into unified findings"""
-        findings = []
+        findings: List[Dict[str, Any]] = []
 
         # If GPT is enabled, use GPT analysis
         if gpt_analysis.get("gpt_enabled") and gpt_analysis.get("analyses"):
