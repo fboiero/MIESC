@@ -27,7 +27,7 @@ import time
 import urllib.error
 import urllib.request
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 from src.adapters._cache_mixin import LLMCacheMixin
 from src.adapters._ollama_mixin import OllamaCallMixin
@@ -137,7 +137,7 @@ VULNERABILITY_REGISTRY = {
 }
 
 # Pattern-based fallback rules for offline analysis
-FALLBACK_PATTERNS = [
+FALLBACK_PATTERNS: List[Dict[str, Any]] = [
     {
         "name": "reentrancy",
         "pattern": r"\.call\{.*value.*\}|\.call\.value\(",
@@ -313,7 +313,7 @@ Respond with ONLY the JSON object. No explanations outside JSON."""
     # Ollama URLs resolved at runtime via get_ollama_host()
     # Supports OLLAMA_HOST env var and config/miesc.yaml
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         _base = get_ollama_host()
         self._ollama_base_url = _base
@@ -441,7 +441,7 @@ Respond with ONLY the JSON object. No explanations outside JSON."""
             logger.error(f"Error checking Ollama availability: {e}")
             return ToolStatus.CONFIGURATION_ERROR
 
-    def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
+    def analyze(self, contract_path: str, **kwargs: Any) -> Dict[str, Any]:
         """
         Analyze a Solidity contract using CodeLlama via Ollama HTTP API.
 
@@ -527,7 +527,7 @@ Respond with ONLY the JSON object. No explanations outside JSON."""
                 continue
 
             vuln_type = finding.get("type", finding.get("category", "unknown"))
-            registry_entry = VULNERABILITY_REGISTRY.get(vuln_type, {})
+            registry_entry = VULNERABILITY_REGISTRY.get(vuln_type or "", {})
 
             # Determine severity with validation
             raw_severity = finding.get("severity", "Medium")
@@ -627,7 +627,7 @@ Respond with ONLY the JSON object. No explanations outside JSON."""
         try:
             req = urllib.request.Request(self._ollama_tags_url, method="GET")
             with urllib.request.urlopen(req, timeout=5) as resp:
-                return resp.status == 200
+                return bool(resp.status == 200)
         except Exception:
             return False
 
@@ -640,7 +640,7 @@ Respond with ONLY the JSON object. No explanations outside JSON."""
         contract_code: str,
         contract_path: str,
         timeout: int,
-        **kwargs,
+        **kwargs: Any,
     ) -> Dict[str, Any]:
         """
         Run security analysis using CodeLlama via Ollama HTTP API.
@@ -715,7 +715,7 @@ Respond with ONLY the JSON object. No explanations outside JSON."""
         Returns:
             List of parsed finding dictionaries
         """
-        findings = []
+        findings: List[Dict[str, Any]] = []
 
         # Strategy 1: Extract JSON from code block
         parsed = self._extract_json_block(llm_response)
@@ -768,7 +768,7 @@ Respond with ONLY the JSON object. No explanations outside JSON."""
         match = re.search(r"```json\s*(.*?)\s*```", text, re.DOTALL)
         if match:
             try:
-                return json.loads(match.group(1))
+                return cast(Optional[Dict[Any, Any]], json.loads(match.group(1)))
             except json.JSONDecodeError:
                 pass
         return None
@@ -787,7 +787,7 @@ Respond with ONLY the JSON object. No explanations outside JSON."""
                     depth -= 1
                     if depth == 0:
                         try:
-                            return json.loads(text[start : start + i + 1])
+                            return cast(Optional[Dict[Any, Any]], json.loads(text[start : start + i + 1]))
                         except json.JSONDecodeError:
                             break
 
@@ -796,12 +796,12 @@ Respond with ONLY the JSON object. No explanations outside JSON."""
         json_end = text.rfind("}") + 1
         if json_start != -1 and json_end > json_start:
             try:
-                return json.loads(text[json_start:json_end])
+                return cast(Optional[Dict[Any, Any]], json.loads(text[json_start:json_end]))
             except json.JSONDecodeError:
                 # Try removing trailing commas
                 cleaned = re.sub(r",\s*([}\]])", r"\1", text[json_start:json_end])
                 try:
-                    return json.loads(cleaned)
+                    return cast(Optional[Dict[Any, Any]], json.loads(cleaned))
                 except json.JSONDecodeError:
                     pass
 
@@ -813,7 +813,7 @@ Respond with ONLY the JSON object. No explanations outside JSON."""
 
         Last resort when JSON parsing fails entirely.
         """
-        findings = []
+        findings: List[Dict[str, Any]] = []
         text_lower = text.lower()
 
         keyword_map = {
@@ -838,7 +838,7 @@ Respond with ONLY the JSON object. No explanations outside JSON."""
         for keyword, (severity, vuln_type) in keyword_map.items():
             if keyword in text_lower and vuln_type not in seen_types:
                 seen_types.add(vuln_type)
-                registry_entry = VULNERABILITY_REGISTRY.get(vuln_type, {})
+                registry_entry = VULNERABILITY_REGISTRY.get(vuln_type or "", {})
 
                 findings.append(
                     {
