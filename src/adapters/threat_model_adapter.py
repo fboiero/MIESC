@@ -47,7 +47,7 @@ class ThreatModelAdapter(ToolAdapter):
     """
 
     # Patrones para detectar amenazas STRIDE
-    STRIDE_PATTERNS = {
+    STRIDE_PATTERNS: Dict[str, Dict[str, Any]] = {
         # SPOOFING: Suplantación de identidad
         "spoofing_tx_origin": {
             "regex": r"tx\.origin\s*==",
@@ -423,7 +423,7 @@ class ThreatModelAdapter(ToolAdapter):
         avg_dread = sum(t.get("dread_score", 0) for t in threats) / len(threats)
 
         # Categoría de mayor riesgo
-        highest_risk = max(stride_breakdown, key=stride_breakdown.get)
+        highest_risk = max(stride_breakdown, key=lambda k: stride_breakdown[k])
 
         # Audit readiness score (100 - penalización por amenazas)
         # Cada amenaza Critical -10, High -5, Medium -2, Low -1

@@ -97,7 +97,7 @@ CIRCOM_VULNERABILITIES = {
 }
 
 # Patterns for Solidity contracts that use ZK proofs
-ZK_SOLIDITY_PATTERNS = {
+ZK_SOLIDITY_PATTERNS: Dict[str, Dict[str, Any]] = {
     "unverified_proof": {
         "severity": "Critical",
         "confidence": 0.85,
