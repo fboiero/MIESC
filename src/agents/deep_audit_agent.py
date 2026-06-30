@@ -1186,12 +1186,20 @@ Respond ONLY with JSON of the shape:
     def _detect_exploit_chains(self, findings: List[Dict]) -> List[Dict]:
         """Detect exploit chains across findings."""
         try:
-            from src.ml.correlation_engine import ExploitChainAnalyzer
+            from src.ml.correlation_engine import ExploitChainAnalyzer, SmartCorrelationEngine
 
+            # ExploitChainAnalyzer.analyze needs CorrelatedFinding objects, not raw dicts:
+            # build them via the correlation engine first.
+            engine = SmartCorrelationEngine()
+            engine.add_findings("deep_audit", findings)
+            correlated = engine.correlate()
             analyzer = ExploitChainAnalyzer()
-            chains = analyzer.analyze(findings)
+            chains = analyzer.analyze(correlated)
             if isinstance(chains, list):
-                return [c.__dict__ if hasattr(c, "__dict__") else c for c in chains]
+                return cast(
+                    List[Dict[str, Any]],
+                    [c.__dict__ if hasattr(c, "__dict__") else c for c in chains],
+                )
             return []
         except Exception as e:
             logger.debug(f"Exploit chain detection failed: {e}")
@@ -1252,7 +1260,8 @@ Respond ONLY with JSON of the shape:
         try:
             from src.ml.correlation_engine import correlate_findings
 
-            result = correlate_findings(findings)
+            # correlate_findings expects tool_results: Dict[tool_name, List[finding]]
+            result = correlate_findings({"deep_audit": findings})
             if isinstance(result, dict):
                 return cast(List[Dict[str, Any]], result.get("findings", findings))
             return findings
