@@ -536,15 +536,44 @@ def _apply_legacy_call_value_cei(
     bool_call_re = re.compile(
         r"(?P<indent>^[ \t]*)bool\s+(?P<var>[A-Za-z_]\w*)\s*=\s*"
         r"(?P<call>[^\n{};]*?\.call\.value\s*\(\s*(?P<call_amount>[^)]+?)\s*\)"
-        r"\s*\(\s*\))\s*;[ \t]*(?:\n|$)",
+        r"\s*\([^;\n{}]*\))\s*;[ \t]*(?:\n|$)",
+        re.MULTILINE,
+    )
+    require_var_re = re.compile(
+        r"(?P<indent>[ \t]*)require\s*\(\s*(?P<var>[A-Za-z_]\w*)\s*\)\s*;" r"[ \t]*(?:\n|$)",
         re.MULTILINE,
     )
     for match in bool_call_re.finditer(body):
-        moved_updates, updates_end, updates = collect_state_updates(match.end())
+        require_match = require_var_re.match(body, match.end())
+        updates_start = match.end()
+        if require_match and require_match.group("var") == match.group("var"):
+            updates_start = require_match.end()
+        moved_updates, updates_end, updates = collect_state_updates(updates_start)
         decrement = has_matching_decrement(updates, match.group("call_amount"))
-        if decrement is None:
+        zero_assignment = next(
+            (
+                update
+                for update in updates
+                if update.group("op") == "=" and update.group("value").strip() == "0"
+            ),
+            None,
+        )
+        if decrement is None and zero_assignment is None:
             continue
-        check = f"{match.group('indent')}require({match.group('var')});\n"
+        if zero_assignment is not None:
+            call_amount = match.group("call_amount").strip()
+            target = re.sub(r"\s+", "", zero_assignment.group("target"))
+            if re.match(r"^[A-Za-z_]\w*$", call_amount):
+                compact_prefix = re.sub(r"\s+", "", body[: match.start()])
+                if f"{call_amount}={target}" not in compact_prefix:
+                    continue
+            elif not _same_solidity_expr(target, call_amount):
+                continue
+        check = (
+            require_match.group(0)
+            if require_match
+            else f"{match.group('indent')}require({match.group('var')});\n"
+        )
         prelude = (
             f"{match.group('indent')}// MIESC: checks-effects-interactions "
             "for legacy call.value\n"
@@ -1260,9 +1289,9 @@ def apply_fix(source: str, finding: dict) -> tuple[str, bool]:
             source, changed = _add_modifier_to_function(source, fn_name, "nonReentrant", line_hint)
             if changed:
                 source = _ensure_reentrancy_guard_import(source, fn_name, line_hint)
+            source, tuple_changed = _normalize_legacy_call_value_tuple_assignment(source)
             source, cei_changed = _apply_legacy_call_value_cei(source, fn_name, line_hint)
             source, indirect_changed = _apply_indirect_boolean_claim_cei(source, fn_name, line_hint)
-            source, tuple_changed = _normalize_legacy_call_value_tuple_assignment(source)
             return source, changed or cei_changed or indirect_changed or tuple_changed
         return source, False
 
