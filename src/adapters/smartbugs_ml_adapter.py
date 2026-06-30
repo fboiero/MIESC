@@ -228,7 +228,7 @@ class SmartBugsMLAdapter:
         Returns:
             Dict of feature name -> value
         """
-        features = {}
+        features: Dict[str, float] = {}
 
         # Basic code metrics
         features["loc"] = len(contract_code.split("\n"))
