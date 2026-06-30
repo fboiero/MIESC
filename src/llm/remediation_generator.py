@@ -21,7 +21,7 @@ import json
 import logging
 import re
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple
+from typing import cast, Any, Dict, List, Optional, Tuple
 
 import aiohttp
 
@@ -71,7 +71,7 @@ class RemediationResult:
 
 
 # Known remediation patterns by vulnerability type
-REMEDIATION_PATTERNS = {
+REMEDIATION_PATTERNS: Dict[str, Dict[str, Any]] = {
     "reentrancy": {
         "pattern_name": "ReentrancyGuard + CEI",
         "imports": [
@@ -281,7 +281,7 @@ class RemediationGenerator:
             # Process in batches
             semaphore = asyncio.Semaphore(max_concurrent)
 
-            async def process_with_semaphore(finding):
+            async def process_with_semaphore(finding: Dict[str, Any]) -> Any:
                 async with semaphore:
                     return await self.generate_remediation(finding, code)
 
@@ -289,7 +289,7 @@ class RemediationGenerator:
             results = await asyncio.gather(*tasks, return_exceptions=True)
 
             for result in results:
-                if isinstance(result, Exception):
+                if isinstance(result, BaseException):
                     logger.warning(f"Remediation generation failed: {result}")
                     failure_count += 1
                 else:
@@ -430,7 +430,7 @@ class RemediationGenerator:
                 json_str = content.strip()
 
             if json_str:
-                return json.loads(repair_common_json_errors(json_str))
+                return cast(Dict[str, Any], json.loads(repair_common_json_errors(json_str)))
         except json.JSONDecodeError as e:
             logger.debug(f"JSON parse error: {e}")
 
@@ -446,7 +446,7 @@ class RemediationGenerator:
 
         # If snippet is provided, use it
         if finding.get("snippet"):
-            return finding["snippet"]
+            return cast(str, finding["snippet"])
 
         # Try to extract by function name
         func_name = location.get("function")
