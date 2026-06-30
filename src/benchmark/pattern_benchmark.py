@@ -18,7 +18,7 @@ import re
 import time
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Dict, List
+from typing import Any, Dict, List
 
 from .dataset_loader import VulnerableContract
 
@@ -82,7 +82,7 @@ class PatternBenchmarkRunner:
     """
 
     # Vulnerability detection patterns
-    PATTERNS = {
+    PATTERNS: Dict[str, Dict[str, Any]] = {
         "reentrancy": {
             "patterns": [
                 # Classic reentrancy: external call before state update

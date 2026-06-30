@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 
 
 # Vulnerability patterns for fallback analysis
-FOURANALYZER_PATTERNS = {
+FOURANALYZER_PATTERNS: Dict[str, Dict[str, Any]] = {
     "centralization_risk": {
         "severity": "Medium",
         "confidence": 0.75,
@@ -328,11 +328,11 @@ class FourAnalyzerAdapter(ToolAdapter):
         # Deduplicate by type+line
         seen = set()
         deduped = []
-        for f in raw_findings:
-            key = f"{f['type']}:{f['line']}"
+        for finding in raw_findings:
+            key = f"{finding['type']}:{finding['line']}"
             if key not in seen:
                 seen.add(key)
-                deduped.append(f)
+                deduped.append(finding)
 
         findings = self.normalize_findings(deduped)
 

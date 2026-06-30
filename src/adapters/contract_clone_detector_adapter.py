@@ -164,7 +164,7 @@ class ContractCloneDetectorAdapter:
             features = self._extract_features(contract_code)
 
             # Find clones if comparison contracts provided
-            clones_found = []
+            clones_found: List[Dict[str, Any]] = []
             if comparison_contracts:
                 for comp_path in comparison_contracts:
                     similarity = self._calculate_similarity(contract_code, comp_path)
@@ -252,7 +252,7 @@ class ContractCloneDetectorAdapter:
         - Events
         - Modifiers
         """
-        features = {}
+        features: Dict[str, Any] = {}
 
         # Basic metrics
         features["loc"] = len(code.split("\n"))
