@@ -38,7 +38,7 @@ from src.core.tool_protocol import (
 logger = logging.getLogger(__name__)
 
 
-MULTI_TX_PATTERNS = {
+MULTI_TX_PATTERNS: Dict[str, Dict[str, Any]] = {
     "multi_tx_reentrancy": {
         "severity": "Critical",
         "confidence": 0.85,
@@ -309,11 +309,11 @@ class PakalaAdapter(ToolAdapter):
         # Deduplicate
         seen = set()
         deduped = []
-        for f in raw_findings:
-            key = f"{f['type']}:{f['line']}"
+        for finding in raw_findings:
+            key = f"{finding['type']}:{finding['line']}"
             if key not in seen:
                 seen.add(key)
-                deduped.append(f)
+                deduped.append(finding)
 
         findings = self.normalize_findings(deduped)
 

@@ -19,7 +19,7 @@ import re
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 
 class DependencyRisk(Enum):
@@ -46,7 +46,7 @@ class DependencyFinding:
 
 
 # Known vulnerable OpenZeppelin versions and their issues
-OPENZEPPELIN_VULNERABILITIES = {
+OPENZEPPELIN_VULNERABILITIES: Dict[str, List[Any]] = {
     # Format: (min_version, max_version, severity, description, cve)
     "ERC20Pausable": [
         ("3.0.0", "4.1.0", DependencyRisk.HIGH, "Potential reentrancy in pause mechanism", None)
@@ -349,7 +349,7 @@ class DependencyAnalyzer:
 
     def get_summary(self, findings: List[DependencyFinding]) -> Dict:
         """Generate summary statistics."""
-        summary = {"total": len(findings), "by_severity": {}, "by_package": {}, "cves": []}
+        summary: Dict[str, Any] = {"total": len(findings), "by_severity": {}, "by_package": {}, "cves": []}
 
         for finding in findings:
             # Count by severity

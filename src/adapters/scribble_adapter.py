@@ -38,7 +38,7 @@ from src.core.tool_protocol import (
 logger = logging.getLogger(__name__)
 
 
-SCRIBBLE_ANNOTATION_PATTERNS = {
+SCRIBBLE_ANNOTATION_PATTERNS: Dict[str, Dict[str, Any]] = {
     "invariant_violation": {
         "severity": "High",
         "confidence": 0.85,
@@ -285,11 +285,11 @@ class ScribbleAdapter(ToolAdapter):
         # Deduplicate by type+line
         seen = set()
         deduped = []
-        for f in raw_findings:
-            key = f"{f['type']}:{f['line']}"
+        for finding in raw_findings:
+            key = f"{finding['type']}:{finding['line']}"
             if key not in seen:
                 seen.add(key)
-                deduped.append(f)
+                deduped.append(finding)
 
         findings = self.normalize_findings(deduped)
 

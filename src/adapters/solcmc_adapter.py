@@ -38,7 +38,7 @@ from src.core.tool_protocol import (
 logger = logging.getLogger(__name__)
 
 
-SOLCMC_TARGETS = {
+SOLCMC_TARGETS: Dict[str, Dict[str, Any]] = {
     "assert": {
         "severity": "High",
         "swc_id": "SWC-110",
@@ -204,6 +204,16 @@ class SolCMCAdapter(ToolAdapter):
 
     def _run_solcmc(self, contract_path: str, start_time: float, timeout: int) -> Dict[str, Any]:
         solc = self._solc_path or shutil.which("solc")
+        if not solc:
+            return {
+                "tool": "solcmc",
+                "version": self._solc_version or "unknown",
+                "status": "error",
+                "findings": [],
+                "metadata": {"mode": "chc_engine", "contract": contract_path},
+                "execution_time": time.time() - start_time,
+                "error": "solc binary not found",
+            }
         targets = ",".join(SOLCMC_TARGETS.keys())
 
         cmd = [
