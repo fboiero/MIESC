@@ -79,14 +79,14 @@ try:
 except ImportError:
     # ChromaDB/sentence-transformers not installed
     _EMBEDDING_RAG_AVAILABLE = False
-    EmbeddingRAG = None
-    HybridRAG = None
-    RetrievalResult = None
-    VulnerabilityDocument = None
-    VULNERABILITY_KNOWLEDGE_BASE = None
-    get_rag = None
-    search_vulnerabilities = None
-    get_context_for_finding = None
+    EmbeddingRAG = None  # type: ignore[assignment,misc]
+    HybridRAG = None  # type: ignore[assignment,misc]
+    RetrievalResult = None  # type: ignore[assignment,misc]
+    VulnerabilityDocument = None  # type: ignore[assignment,misc]
+    VULNERABILITY_KNOWLEDGE_BASE = None  # type: ignore[assignment,misc]
+    get_rag = None  # type: ignore[assignment,misc]
+    search_vulnerabilities = None  # type: ignore[assignment,misc]
+    get_context_for_finding = None  # type: ignore[assignment,misc]
 
 __all__ = [
     # Legacy OpenLLaMA helpers
