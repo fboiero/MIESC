@@ -27,7 +27,7 @@ import logging
 import os
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 from src.core.tool_protocol import (
     ToolAdapter,
@@ -109,19 +109,25 @@ class FrontierLLMAdapter(ToolAdapter):
             provider: "anthropic", "openai", or "auto" (detect from env vars)
         """
         self._provider = provider
-        self._model = None
-        self._client = None
+        self._model: Optional[str] = None
+        self._client: Any = None
 
     def get_metadata(self) -> ToolMetadata:
         return ToolMetadata(
             name="frontier_llm",
             version="1.0.0",
-            description="Frontier LLM security analysis (Claude/GPT API)",
             category=ToolCategory.AI_ANALYSIS,
+            author="Fernando Boiero",
+            license="AGPL-3.0",
+            homepage="https://github.com/fboiero/MIESC",
+            repository="https://github.com/fboiero/MIESC",
+            documentation="https://github.com/fboiero/MIESC",
+            installation_cmd="pip install anthropic openai",
             capabilities=[
                 ToolCapability(
                     name="semantic_audit",
                     description="Deep semantic vulnerability detection using frontier models",
+                    supported_languages=["solidity"],
                     detection_types=[
                         "business_logic",
                         "economic_exploit",
@@ -313,7 +319,7 @@ class FrontierLLMAdapter(ToolAdapter):
 
         return ToolStatus.NOT_INSTALLED
 
-    def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
+    def analyze(self, contract_path: str, **kwargs: Any) -> Dict[str, Any]:
         """Analyze contract using frontier LLM API.
 
         Supports multi-pass analysis via ``deep=True`` kwarg:
@@ -505,7 +511,7 @@ class FrontierLLMAdapter(ToolAdapter):
         }
 
     def _analyze_chunked(
-        self, contract_path: str, source_code: str, start_time: float, **kwargs
+        self, contract_path: str, source_code: str, start_time: float, **kwargs: Any
     ) -> Dict[str, Any]:
         """C: Split large codebase into chunks and analyze each separately."""
         # Split by file markers (// ===== FILE: ...) or by size
@@ -555,9 +561,9 @@ class FrontierLLMAdapter(ToolAdapter):
         self,
         source_code: str,
         pass1_findings: List[Dict],
-        provider: str,
+        provider: Optional[str],
         rag_context: str,
-        **kwargs,
+        **kwargs: Any,
     ) -> List[Dict]:
         """B: Second-pass analysis targeting areas flagged in Pass 1."""
         if not pass1_findings:
@@ -594,14 +600,14 @@ Respond with a JSON array."""
             if provider == "anthropic":
                 import anthropic
 
-                client = anthropic.Anthropic()
+                client: Any = anthropic.Anthropic()
                 msg = client.messages.create(
                     model=kwargs.get("model", "claude-sonnet-4-6"),
                     max_tokens=4096,
                     system=AUDIT_SYSTEM_PROMPT,
                     messages=[{"role": "user", "content": deep_prompt}],
                 )
-                return self._parse_response(msg.content[0].text)
+                return self._parse_response(getattr(msg.content[0], "text", ""))
             elif provider == "openai":
                 import openai
 
@@ -620,7 +626,7 @@ Respond with a JSON array."""
         return []
 
     def _debate_verify(
-        self, source_code: str, findings: List[Dict], provider: str, **kwargs
+        self, source_code: str, findings: List[Dict], provider: Optional[str], **kwargs: Any
     ) -> List[Dict]:
         """F: 2-agent debate — challenger verifies each finding.
 
@@ -658,13 +664,13 @@ Respond with a JSON array."""
                 if provider == "anthropic":
                     import anthropic
 
-                    client = anthropic.Anthropic()
+                    client: Any = anthropic.Anthropic()
                     msg = client.messages.create(
                         model="claude-haiku-4-5-20251001",  # Cheaper model for verification
                         max_tokens=500,
                         messages=[{"role": "user", "content": challenge_prompt}],
                     )
-                    response = msg.content[0].text
+                    response = getattr(msg.content[0], "text", "")
                 elif provider == "openai":
                     import openai
 
@@ -860,11 +866,11 @@ Respond with a JSON array."""
             prompt = rag_section + "\n" + prompt
         return prompt
 
-    def _analyze_anthropic(self, source_code: str, **kwargs) -> List[Dict]:
+    def _analyze_anthropic(self, source_code: str, **kwargs: Any) -> List[Dict]:
         """Call Anthropic Claude API."""
         import anthropic
 
-        client = anthropic.Anthropic()
+        client: Any = anthropic.Anthropic()
         rag_context = kwargs.pop("rag_context", "")
         model = kwargs.get("model", "claude-sonnet-4-6")
         self._model = model
@@ -880,13 +886,13 @@ Respond with a JSON array."""
             messages=[{"role": "user", "content": user_prompt}],
         )
 
-        return self._parse_response(message.content[0].text)
+        return self._parse_response(getattr(message.content[0], "text", ""))
 
-    def _analyze_openai(self, source_code: str, **kwargs) -> List[Dict]:
+    def _analyze_openai(self, source_code: str, **kwargs: Any) -> List[Dict]:
         """Call OpenAI API (supports GPT-4o, GPT-4.1, GPT-5, o-series)."""
         import openai
 
-        client = openai.OpenAI()
+        client: Any = openai.OpenAI()
         rag_context = kwargs.pop("rag_context", "")
         model = kwargs.get("model", "gpt-4o")
         self._model = model
@@ -973,13 +979,13 @@ Respond with a JSON array."""
                 base = model.split(":")[0]
                 for m in installed:
                     if base in m:
-                        return m
+                        return cast(str, m)
         except Exception:
             pass
 
         return preferred[0]  # Default to best, will be auto-pulled
 
-    def _analyze_ollama(self, source_code: str, **kwargs) -> List[Dict]:
+    def _analyze_ollama(self, source_code: str, **kwargs: Any) -> List[Dict]:
         """Call local Ollama model with the same audit prompt as frontier models."""
         import urllib.request
 
@@ -1184,7 +1190,7 @@ Respond with a JSON array."""
         if isinstance(raw_output, list):
             return raw_output
         if isinstance(raw_output, dict):
-            return raw_output.get("findings", [])
+            return cast(List[Dict[str, Any]], raw_output.get("findings", []))
         return []
 
     def _error_result(self, start_time: float, error_msg: str) -> Dict[str, Any]:
