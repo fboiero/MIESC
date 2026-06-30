@@ -318,6 +318,78 @@ contract Bank {
             "if(msg.sender.call.value(_am)())"
         )
 
+    def test_reentrancy_legacy_call_value_simple_decrement_uses_require(self):
+        source = """\
+pragma solidity ^0.4.19;
+
+contract TokenBank {
+    mapping (address => uint) public Holders;
+
+    function WithdrawToHolder(address _addr, uint _wei) public {
+        if(Holders[_addr]>0)
+        {
+            if(_addr.call.value(_wei)())
+            {
+                Holders[_addr]-=_wei;
+            }
+        }
+    }
+}
+"""
+        finding = {
+            "type": "reentrancy",
+            "function": "WithdrawToHolder",
+            "fix_code": "add nonReentrant",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert changed
+        assert "MIESC: checks-effects-interactions for legacy call.value" in patched
+        assert "Holders[_addr] -= _wei;" in patched
+        assert "require(_addr.call.value(_wei)());" in patched
+        assert "Holders[_addr] += _wei;" not in patched
+        assert patched.index("Holders[_addr] -= _wei;") < patched.index(
+            "require(_addr.call.value(_wei)());"
+        )
+
+    def test_reentrancy_legacy_call_value_scans_function_when_finding_points_elsewhere(self):
+        source = """\
+pragma solidity ^0.4.24;
+
+contract ReentrancyCrossFunction {
+    mapping (address => uint) private userBalances;
+
+    function transfer(address to, uint amount) public {
+        if (userBalances[msg.sender] >= amount) {
+            userBalances[to] += amount;
+            userBalances[msg.sender] -= amount;
+        }
+    }
+
+    function withdrawBalance() public {
+        uint amountToWithdraw = userBalances[msg.sender];
+        (bool success, ) = msg.sender.call.value(amountToWithdraw)("");
+        require(success);
+        userBalances[msg.sender] = 0;
+    }
+}
+"""
+        finding = {
+            "type": "reentrancy",
+            "function": "transfer",
+            "fix_code": "add nonReentrant",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert changed
+        assert "MIESC: checks-effects-interactions for legacy call.value" in patched
+        assert patched.index("userBalances[msg.sender] = 0;") < patched.index(
+            'bool success = msg.sender.call.value(amountToWithdraw)("");'
+        )
+        assert patched.count("userBalances[msg.sender] = 0;") == 1
+
     def test_reentrancy_legacy_call_value_keeps_mismatched_effect_in_place(self):
         source = """\
 pragma solidity ^0.4.19;

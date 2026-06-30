@@ -681,6 +681,16 @@ def _apply_legacy_call_value_cei(
                 f"{active_decrement.group('field').strip()}"
             )
         dec_amount = active_decrement.group("dec_amount").strip()
+        block_tail = body[active_decrement.end() : block_close]
+        if not block_tail.strip():
+            prelude = (
+                f"{if_indent}// MIESC: checks-effects-interactions for legacy call.value\n"
+                f"{if_indent}{balance} -= {dec_amount};\n"
+                f"{if_indent}require({call});\n"
+            )
+            new_body = body[: match.start()] + prelude + body[block_close + 1 :]
+            return source[:body_start] + new_body + source[body_end:], True
+
         prelude = (
             f"{if_indent}// MIESC: checks-effects-interactions for legacy call.value\n"
             f"{if_indent}{balance} -= {dec_amount};\n"
@@ -704,6 +714,20 @@ def _apply_legacy_call_value_cei(
         )
         return source[:body_start] + new_body + source[body_end:], True
 
+    return source, False
+
+
+def _apply_legacy_call_value_cei_any_function(source: str) -> tuple[str, bool]:
+    function_re = re.compile(r"\bfunction\s+([A-Za-z_]\w*)\s*\(")
+    seen: set[str] = set()
+    for match in function_re.finditer(source):
+        function_name = match.group(1)
+        if function_name in seen:
+            continue
+        seen.add(function_name)
+        source, changed = _apply_legacy_call_value_cei(source, function_name)
+        if changed:
+            return source, True
     return source, False
 
 
@@ -1305,6 +1329,8 @@ def apply_fix(source: str, finding: dict) -> tuple[str, bool]:
                 source = _ensure_reentrancy_guard_import(source, fn_name, line_hint)
             source, tuple_changed = _normalize_legacy_call_value_tuple_assignment(source)
             source, cei_changed = _apply_legacy_call_value_cei(source, fn_name, line_hint)
+            if not cei_changed:
+                source, cei_changed = _apply_legacy_call_value_cei_any_function(source)
             source, indirect_changed = _apply_indirect_boolean_claim_cei(source, fn_name, line_hint)
             if not indirect_changed:
                 source, indirect_changed = _apply_indirect_boolean_claim_cei_any_function(source)
