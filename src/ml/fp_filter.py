@@ -421,11 +421,11 @@ class FalsePositiveFilter:
 
     def __init__(
         self,
-        fp_threshold: float = None,
+        fp_threshold: Optional[float] = None,
         strictness: str = "medium",
-        filter_test_files: bool = None,
-        filter_interfaces: bool = None,
-        filter_informational: bool = None,
+        filter_test_files: Optional[bool] = None,
+        filter_interfaces: Optional[bool] = None,
+        filter_informational: Optional[bool] = None,
         use_rag: bool = True,
     ):
         """
@@ -935,7 +935,7 @@ class FalsePositiveFilter:
         """
         filtered = []
         removed = []
-        stats = {
+        stats: Dict[str, Any] = {
             "total": len(findings),
             "filtered": 0,
             "by_category": {},
