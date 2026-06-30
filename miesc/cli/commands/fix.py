@@ -758,6 +758,20 @@ def _apply_indirect_boolean_claim_cei(
     return source, False
 
 
+def _apply_indirect_boolean_claim_cei_any_function(source: str) -> tuple[str, bool]:
+    function_re = re.compile(r"\bfunction\s+([A-Za-z_]\w*)\s*\(")
+    seen: set[str] = set()
+    for match in function_re.finditer(source):
+        function_name = match.group(1)
+        if function_name in seen:
+            continue
+        seen.add(function_name)
+        source, changed = _apply_indirect_boolean_claim_cei(source, function_name)
+        if changed:
+            return source, True
+    return source, False
+
+
 def _normalize_legacy_call_value_tuple_assignment(source: str) -> tuple[str, bool]:
     """Rewrite legacy call.value tuple assignments to single bool assignments.
 
@@ -1292,6 +1306,8 @@ def apply_fix(source: str, finding: dict) -> tuple[str, bool]:
             source, tuple_changed = _normalize_legacy_call_value_tuple_assignment(source)
             source, cei_changed = _apply_legacy_call_value_cei(source, fn_name, line_hint)
             source, indirect_changed = _apply_indirect_boolean_claim_cei(source, fn_name, line_hint)
+            if not indirect_changed:
+                source, indirect_changed = _apply_indirect_boolean_claim_cei_any_function(source)
             return source, changed or cei_changed or indirect_changed or tuple_changed
         return source, False
 

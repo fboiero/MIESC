@@ -618,6 +618,44 @@ contract Reentrancy_bonus {
         assert "        withdrawReward(recipient); // external payout path" in patched
         assert patched.count("claimedBonus[recipient] = true;") == 1
 
+    def test_reentrancy_indirect_payout_scans_caller_when_finding_points_to_callee(self):
+        source = """\
+pragma solidity ^0.4.24;
+
+contract Reentrancy_bonus {
+    mapping (address => bool) private claimedBonus;
+    mapping (address => uint) private rewardsForA;
+
+    function withdrawReward(address recipient) public {
+        uint amountToWithdraw = rewardsForA[recipient];
+        rewardsForA[recipient] = 0;
+        bool success = recipient.call.value(amountToWithdraw)("");
+        require(success);
+    }
+
+    function getFirstWithdrawalBonus(address recipient) public {
+        require(!claimedBonus[recipient]);
+        rewardsForA[recipient] += 100;
+        withdrawReward(recipient);
+        claimedBonus[recipient] = true;
+    }
+}
+"""
+        finding = {
+            "type": "reentrancy",
+            "function": "withdrawReward",
+            "fix_code": "add nonReentrant",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert changed
+        assert "MIESC: checks-effects-interactions for indirect payout" in patched
+        assert patched.index("claimedBonus[recipient] = true;") < patched.index(
+            "withdrawReward(recipient);"
+        )
+        assert patched.count("claimedBonus[recipient] = true;") == 1
+
     def test_reentrancy_normalizes_legacy_call_value_tuple_assignment(self):
         source = """\
 pragma solidity ^0.4.24;
