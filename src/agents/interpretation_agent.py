@@ -83,7 +83,7 @@ class InterpretationAgent(BaseAgent):
     def get_context_types(self) -> List[str]:
         return ["interpreted_findings", "correlation_analysis", "confidence_scores"]
 
-    def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
+    def analyze(self, contract_path: str, **kwargs: Any) -> Dict[str, Any]:
         """
         Interpret and enhance findings from all detection agents
 
@@ -97,7 +97,7 @@ class InterpretationAgent(BaseAgent):
         Returns:
             Dictionary with interpreted findings and analysis
         """
-        results = {
+        results: Dict[str, Any] = {
             "interpreted_findings": [],
             "correlation_analysis": {},
             "confidence_scores": {},
@@ -147,7 +147,7 @@ class InterpretationAgent(BaseAgent):
         results["normalized_severity"] = normalized
 
         # Publish interpreted results
-        self.publish_findings("interpreted_findings", interpreted)
+        self.publish_findings("interpreted_findings", {"interpreted_findings": interpreted})
         self.publish_findings("correlation_analysis", correlation)
         self.publish_findings("confidence_scores", confidence_scores)
 
@@ -273,7 +273,7 @@ Respond in JSON format:
 }}
 """
 
-        response = openai.ChatCompletion.create(
+        response = openai.OpenAI(api_key=self.api_key).chat.completions.create(
             model=self.model,
             messages=[
                 {
@@ -290,7 +290,7 @@ Respond in JSON format:
             max_tokens=4000,
         )
 
-        result = json.loads(response.choices[0].message.content)
+        result = json.loads(response.choices[0].message.content or "{}")
 
         # Merge interpretation with original findings
         interpreted = []
@@ -310,7 +310,7 @@ Respond in JSON format:
         Returns:
             Correlation analysis dictionary
         """
-        correlation = {
+        correlation: Dict[str, Any] = {
             "high_confidence_findings": [],
             "single_tool_findings": [],
             "conflicting_findings": [],
@@ -318,7 +318,7 @@ Respond in JSON format:
         }
 
         # Group findings by location (file, function, line)
-        location_groups = {}
+        location_groups: Dict[str, List[Any]] = {}
         for finding in findings:
             location_key = self._get_location_key(finding)
             if location_key not in location_groups:
@@ -374,7 +374,7 @@ Respond in JSON format:
         Returns:
             List of duplicate groups
         """
-        duplicates = []
+        duplicates: List[Dict[str, Any]] = []
         processed = set()
 
         for i, finding1 in enumerate(findings):
