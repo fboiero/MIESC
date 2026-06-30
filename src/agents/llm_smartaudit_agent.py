@@ -13,7 +13,7 @@ Repository: https://github.com/Marvinmw/LLM-SmartAudit (Not public yet as of Oct
 import logging
 import os
 import time
-from typing import Any, Dict, List
+from typing import Optional, Any, Dict, List
 
 from src.agents.base_agent import BaseAgent
 
@@ -42,7 +42,7 @@ class LLMSmartAuditAgent(BaseAgent):
     - llm_smartaudit_report: Comprehensive report
     """
 
-    def __init__(self, openai_api_key: str = None):
+    def __init__(self, openai_api_key: Optional[str] = None) -> None:
         super().__init__(
             agent_name="LLMSmartAuditAgent",
             capabilities=[
@@ -72,7 +72,7 @@ class LLMSmartAuditAgent(BaseAgent):
     def get_context_types(self) -> List[str]:
         return ["llm_smartaudit_findings", "llm_smartaudit_analysis", "llm_smartaudit_report"]
 
-    def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
+    def analyze(self, contract_path: str, **kwargs: Any) -> Dict[str, Any]:
         """
         Run LLM-SmartAudit multi-agent conversation.
 
@@ -142,7 +142,7 @@ Be concise. Focus on security-relevant aspects.
 """
 
             try:
-                response = self.openai.ChatCompletion.create(
+                response = self.openai.OpenAI(api_key=self.openai_api_key).chat.completions.create(
                     model="gpt-4",
                     messages=[
                         {"role": "system", "content": "You are a smart contract security expert."},
@@ -152,7 +152,7 @@ Be concise. Focus on security-relevant aspects.
                     max_tokens=800,
                 )
 
-                analysis_text = response.choices[0].message.content
+                analysis_text = response.choices[0].message.content or ""
 
                 return {
                     "structure": "Analyzed with LLM",
@@ -223,7 +223,7 @@ Format as a numbered list.
 """
 
             try:
-                response = self.openai.ChatCompletion.create(
+                response = self.openai.OpenAI(api_key=self.openai_api_key).chat.completions.create(
                     model="gpt-4",
                     messages=[
                         {
@@ -236,7 +236,7 @@ Format as a numbered list.
                     max_tokens=1200,
                 )
 
-                vuln_text = response.choices[0].message.content
+                vuln_text = response.choices[0].message.content or ""
 
                 # Parse vulnerabilities (simple parsing)
                 vulnerabilities = self._parse_vulnerabilities(vuln_text)
@@ -347,7 +347,7 @@ Format as a numbered list.
 
         # Simple parsing (can be improved)
         lines = vuln_text.split("\n")
-        current_vuln = {}
+        current_vuln: Dict[str, Any] = {}
 
         for line in lines:
             line = line.strip()
