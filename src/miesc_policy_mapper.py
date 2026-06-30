@@ -40,10 +40,13 @@ class PolicyMapper:
         Returns:
             dict with policy mappings and compliance score
         """
-        mapped = self.mapper.map_findings(findings)
+        # ComplianceMapper.map_findings returns List[Tuple[finding, ComplianceMapping]];
+        # expose the per-finding mappings and the report's overall compliance score.
+        mappings = self.mapper.map_findings(findings)
+        report = self.mapper.generate_report(findings)
         return {
-            "policies": mapped.get("mappings", []),
-            "compliance_score": mapped.get("score", 0),
+            "policies": [mapping.to_dict() for _finding, mapping in mappings],
+            "compliance_score": report.overall_score,
             "standards": ["OWASP", "SWC", "CWE", "ISO27001"],
         }
 
