@@ -2,6 +2,11 @@
 Algorand Adapter
 ================
 
+⚠️  EXPERIMENTAL / ROADMAP — NOT production-validated.
+This non-EVM adapter uses pattern-based (regex/heuristic) detection only and is
+NOT registered in the active tool. EVM analysis is the production-ready surface.
+Non-EVM chains are future work (in test/development). See docs/MULTICHAIN.md.
+
 Adapter for analyzing Algorand smart contracts written in TEAL and PyTeal.
 
 Features:
