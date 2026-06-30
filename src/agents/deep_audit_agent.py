@@ -1110,7 +1110,7 @@ Respond ONLY with JSON of the shape:
             )
             loc["function"] = func_name
             enriched_input["location"] = loc
-            specs = generator.generate_specs([enriched_input], format=SpecFormat.CVL)
+            specs = generator.generate_batch([enriched_input], format=SpecFormat.CVL)
             if not specs:
                 return None
             spec = specs[0]
@@ -1353,7 +1353,7 @@ Write for a non-technical executive audience."""
 
             async def run():
                 await orch.initialize()
-                response = await orch.analyze(prompt)
+                response = await orch.query(prompt)
                 return response.content if response else ""
 
             result = asyncio.run(run())
