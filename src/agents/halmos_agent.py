@@ -93,13 +93,13 @@ class HalmosAgent(BaseAgent):
 
         try:
             # Prepare paths
-            contract_path = Path(contract_path)
+            contract_file = Path(contract_path)
 
             # Determine project root (look for foundry.toml)
-            if contract_path.is_file():
-                project_root = contract_path.parent
+            if contract_file.is_file():
+                project_root = contract_file.parent
             else:
-                project_root = contract_path
+                project_root = contract_file
 
             # Look for foundry.toml
             while project_root != project_root.parent:
@@ -108,10 +108,10 @@ class HalmosAgent(BaseAgent):
                 project_root = project_root.parent
             else:
                 # No foundry.toml found, use contract directory
-                project_root = contract_path.parent if contract_path.is_file() else contract_path
+                project_root = contract_file.parent if contract_file.is_file() else contract_file
 
             # Build Halmos command
-            cmd = [self.halmos_path]
+            cmd = [self.halmos_path or "halmos"]
 
             # Add solver timeout
             solver_timeout = kwargs.get("solver_timeout", 60000)  # 60 seconds default
@@ -163,7 +163,7 @@ class HalmosAgent(BaseAgent):
         """Get Halmos version"""
         try:
             result = subprocess.run(
-                [self.halmos_path, "--version"], capture_output=True, text=True, timeout=5
+                [self.halmos_path or "halmos", "--version"], capture_output=True, text=True, timeout=5
             )
             return cast(str, result.stdout.strip())
         except (subprocess.TimeoutExpired, FileNotFoundError, OSError):

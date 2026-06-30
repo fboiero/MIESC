@@ -95,14 +95,14 @@ class SMTCheckerAgent(BaseAgent):
 
         try:
             # Prepare path
-            contract_path = Path(contract_path)
-            if not contract_path.exists():
-                return {"error": f"Contract not found: {contract_path}"}
+            contract_file = Path(contract_path)
+            if not contract_file.exists():
+                return {"error": f"Contract not found: {contract_file}"}
 
             # Build solc command with SMTChecker
             cmd = [
-                self.solc_path,
-                str(contract_path),
+                self.solc_path or "solc",
+                str(contract_file),
                 "--model-checker-engine",
                 model_checker_engine,
                 "--model-checker-show-unproved",  # Show all results
@@ -152,7 +152,7 @@ class SMTCheckerAgent(BaseAgent):
         """Get Solidity compiler version"""
         try:
             result = subprocess.run(
-                [self.solc_path, "--version"], capture_output=True, text=True, timeout=5
+                [self.solc_path or "solc", "--version"], capture_output=True, text=True, timeout=5
             )
             # Extract version from output
             for line in result.stdout.split("\n"):

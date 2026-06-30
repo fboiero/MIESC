@@ -91,13 +91,13 @@ class WakeAgent(BaseAgent):
 
         try:
             # Prepare paths
-            contract_path = Path(contract_path)
+            contract_file = Path(contract_path)
 
             # Determine project root
-            if contract_path.is_file():
-                project_root = contract_path.parent
+            if contract_file.is_file():
+                project_root = contract_file.parent
             else:
-                project_root = contract_path
+                project_root = contract_file
 
             # Look for wake.toml
             while project_root != project_root.parent:
@@ -105,7 +105,7 @@ class WakeAgent(BaseAgent):
                     break
                 project_root = project_root.parent
             else:
-                project_root = contract_path.parent if contract_path.is_file() else contract_path
+                project_root = contract_file.parent if contract_file.is_file() else contract_file
 
             # Build Wake command based on mode
             if mode == "detect":
@@ -126,7 +126,7 @@ class WakeAgent(BaseAgent):
 
     def _run_detect(self, project_root: Path, **kwargs: Any) -> Dict[str, Any]:
         """Run Wake vulnerability detection"""
-        cmd = [self.wake_path, "detect", "all"]
+        cmd = [self.wake_path or "wake", "detect", "all"]
 
         # Add paths if specified
         paths = kwargs.get("paths", [])
@@ -153,7 +153,7 @@ class WakeAgent(BaseAgent):
 
     def _run_test(self, project_root: Path, **kwargs: Any) -> Dict[str, Any]:
         """Run Wake tests (fuzzing)"""
-        cmd = [self.wake_path, "test"]
+        cmd = [self.wake_path or "wake", "test"]
 
         # Add test paths if specified
         test_paths = kwargs.get("test_paths", [])
@@ -184,7 +184,7 @@ class WakeAgent(BaseAgent):
 
     def _run_compile(self, project_root: Path, **kwargs: Any) -> Dict[str, Any]:
         """Run Wake compilation"""
-        cmd = [self.wake_path, "compile"]
+        cmd = [self.wake_path or "wake", "compile"]
 
         result = subprocess.run(
             cmd, capture_output=True, text=True, timeout=60, cwd=str(project_root)
@@ -203,7 +203,7 @@ class WakeAgent(BaseAgent):
         """Get Wake version"""
         try:
             result = subprocess.run(
-                [self.wake_path, "--version"], capture_output=True, text=True, timeout=5
+                [self.wake_path or "wake", "--version"], capture_output=True, text=True, timeout=5
             )
             return cast(str, result.stdout.strip())
         except (subprocess.TimeoutExpired, FileNotFoundError, OSError):

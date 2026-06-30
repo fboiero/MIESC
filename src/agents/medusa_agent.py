@@ -94,13 +94,13 @@ class MedusaAgent(BaseAgent):
 
         try:
             # Prepare paths
-            contract_path = Path(contract_path)
+            contract_file = Path(contract_path)
 
             # Determine project root
-            if contract_path.is_file():
-                project_root = contract_path.parent
+            if contract_file.is_file():
+                project_root = contract_file.parent
             else:
-                project_root = contract_path
+                project_root = contract_file
 
             # Look for foundry.toml or medusa.json
             while project_root != project_root.parent:
@@ -110,10 +110,10 @@ class MedusaAgent(BaseAgent):
                     break
                 project_root = project_root.parent
             else:
-                project_root = contract_path.parent if contract_path.is_file() else contract_path
+                project_root = contract_file.parent if contract_file.is_file() else contract_file
 
             # Build Medusa command
-            cmd = [self.medusa_path, "fuzz"]
+            cmd = [self.medusa_path or "medusa", "fuzz"]
 
             # Add test limit
             if test_limit:

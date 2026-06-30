@@ -91,14 +91,14 @@ class AderynAgent(BaseAgent):
 
         try:
             # Prepare path - Aderyn needs directory
-            contract_path = Path(contract_path)
-            if contract_path.is_file():
-                analysis_dir = contract_path.parent
+            contract_file = Path(contract_path)
+            if contract_file.is_file():
+                analysis_dir = contract_file.parent
             else:
-                analysis_dir = contract_path
+                analysis_dir = contract_file
 
             # Run Aderyn
-            cmd = [self.aderyn_path, str(analysis_dir)]
+            cmd = [self.aderyn_path or "aderyn", str(analysis_dir)]
 
             if output_dir:
                 cmd.extend(["--output", output_dir])
@@ -141,7 +141,7 @@ class AderynAgent(BaseAgent):
         """Get Aderyn version"""
         try:
             result = subprocess.run(
-                [self.aderyn_path, "--version"], capture_output=True, text=True, timeout=5
+                [self.aderyn_path or "aderyn", "--version"], capture_output=True, text=True, timeout=5
             )
             return cast(str, result.stdout.strip())
         except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
