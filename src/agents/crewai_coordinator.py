@@ -384,7 +384,7 @@ Make it clear and actionable for developers.""",
         # Simple parsing - look for severity indicators
         lines = text.split("\n")
 
-        current_finding = {}
+        current_finding: Dict[str, Any] = {}
         for line in lines:
             line = line.strip()
 

@@ -23,7 +23,7 @@ import subprocess
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import cast, Any, Dict, List, Optional, Tuple
 
 from src.core.llm_config import get_default_model
 from src.core.ollama_models import select_ollama_model
@@ -664,7 +664,7 @@ Fix: {vuln.fix_suggestion}
                 return None
 
             with open(cache_file, "r") as f:
-                return json.load(f)
+                return cast(Optional[Dict[str, Any]], json.load(f))
         except Exception:
             return None
 

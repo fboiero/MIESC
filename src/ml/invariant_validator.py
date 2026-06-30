@@ -645,7 +645,7 @@ class InvariantValidator:
         Returns:
             Dictionary with feedback data for ML
         """
-        feedback = {
+        feedback: Dict[str, Any] = {
             "contract_hash": report.contract_hash,
             "timestamp": report.timestamp.isoformat(),
             "pass_rate": report.pass_rate,

@@ -24,7 +24,7 @@ import os
 import subprocess
 import time
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import cast, Any, Dict, List, Optional
 
 from src.security.llm_output_validator import (
     extract_json_from_text,
@@ -225,7 +225,7 @@ OUTPUT (JSON only):
             Remediation advice string
         """
         if not self.is_available():
-            return finding.get("recommendation", "Review and address the identified issue")
+            return cast(str, finding.get("recommendation", "Review and address the identified issue"))
 
         prompt = f"""Generate specific remediation advice for this vulnerability.
 
@@ -286,7 +286,7 @@ REMEDIATION ADVICE:"""
                     data = json.loads(resp.read())
                     response = data.get("response", "").strip()
                     if response:
-                        return response
+                        return cast(Optional[str], response)
 
             except (urllib.error.URLError, urllib.error.HTTPError) as e:
                 logger.warning(f"LLM HTTP attempt {attempt} failed: {e}")

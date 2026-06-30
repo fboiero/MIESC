@@ -140,7 +140,7 @@ Respond in JSON format with this structure:
     def get_context_types(self) -> List[str]:
         return ["ollama_findings", "ollama_analysis", "ollama_recommendations"]
 
-    def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
+    def analyze(self, contract_path: str, **kwargs: Any) -> Dict[str, Any]:
         """
         Analyze contract with Ollama LLM
 
@@ -208,7 +208,7 @@ Respond in JSON format with this structure:
             "execution_time": execution_time,
         }
 
-    def _build_analysis_prompt(self, contract_code: str, **kwargs) -> str:
+    def _build_analysis_prompt(self, contract_code: str, **kwargs: Any) -> str:
         """Build analysis prompt for LLM"""
 
         focus_functions = kwargs.get("focus_functions")

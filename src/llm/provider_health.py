@@ -26,7 +26,7 @@ def extract_openai_compatible_model_ids(payload: dict) -> Set[str]:
     """Extract model identifiers from OpenAI-compatible model list payloads."""
     models = payload.get("data", payload.get("models", []))
     return {
-        model.get("id") or model.get("name")
+        model.get("id") or model.get("name") or ""
         for model in models
         if isinstance(model, dict) and (model.get("id") or model.get("name"))
     }

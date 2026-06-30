@@ -513,7 +513,7 @@ class AutonomousAuditorAgent(BaseAgent):
         Returns:
             Audit results dictionary
         """
-        return asyncio.run(self.audit(contract_path, **kwargs))
+        return cast(Dict[str, Any], asyncio.run(self.audit(contract_path, **kwargs)))
 
     def get_context_types(self) -> List[str]:
         """Return context types this agent publishes."""

@@ -630,7 +630,7 @@ This code implements proper protection against {ex.vulnerability_type.replace('_
         return paths
 
 
-def main():
+def main() -> None:
     """Generate Solidity security fine-tuning dataset."""
     generator = SoliditySecurityDatasetGenerator(output_dir="data/fine_tuning")
     paths = generator.generate_full_dataset()

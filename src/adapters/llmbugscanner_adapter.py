@@ -51,7 +51,7 @@ try:
     _EMBEDDING_RAG_AVAILABLE = True
 except ImportError:
     _EMBEDDING_RAG_AVAILABLE = False
-    EmbeddingRAG = None
+    EmbeddingRAG = None  # type: ignore[assignment,misc]
 
 logger = logging.getLogger(__name__)
 

@@ -27,7 +27,7 @@ import logging
 import time
 import urllib.error
 import urllib.request
-from typing import Any, Dict, Optional
+from typing import cast, Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -85,7 +85,7 @@ class OllamaCallMixin:
                     if resp.status == 200:
                         text = json.loads(resp.read().decode("utf-8")).get("response", "")
                         if text:
-                            return text
+                            return cast(Optional[str], text)
                         logger.warning("%s: empty response (attempt %d)", log_prefix, attempt)
                     else:
                         logger.warning(
