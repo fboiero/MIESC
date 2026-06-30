@@ -726,7 +726,7 @@ class CrossChainAdapter(ToolAdapter):
         """Create a finding dictionary."""
         vuln_info = CROSSCHAIN_VULNERABILITY_PATTERNS.get(category, {})
 
-        location = {"file": contract_path}
+        location: Dict[str, Any] = {"file": contract_path}
         if line_number:
             location["line"] = line_number
         if line_content:

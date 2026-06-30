@@ -16,7 +16,7 @@ import re
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 
 class Severity(Enum):
@@ -639,7 +639,7 @@ class AdvancedDetectorEngine:
     """Engine to run all advanced detectors."""
 
     def __init__(self) -> None:
-        self.detectors = [
+        self.detectors: List[Any] = [
             RugPullDetector(),
             GovernanceDetector(),
             TokenSecurityDetector(),

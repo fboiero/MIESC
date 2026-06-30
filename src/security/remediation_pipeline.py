@@ -138,8 +138,8 @@ def select_solc(sol_path: Path) -> str:
         min_patch = int(version.group(2)) if version and version.group(2) else 0
         candidates = [f"{base}.{patch}" for patch in range(99, min_patch - 1, -1)]
 
-    for version in candidates:
-        candidate = SOLC_DIR / f"solc-{version}" / f"solc-{version}"
+    for ver in candidates:
+        candidate = SOLC_DIR / f"solc-{ver}" / f"solc-{ver}"
         if candidate.exists():
             return str(candidate)
 

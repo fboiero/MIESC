@@ -12,7 +12,7 @@ import inspect
 import logging
 import sys
 from pathlib import Path
-from typing import Dict, Iterator, List, Optional
+from typing import Any, Dict, Iterator, List, Optional
 
 from src.core.agent_protocol import AgentMetadata, SecurityAgent
 
@@ -122,7 +122,7 @@ class AgentRegistry:
         Returns:
             List of agent metadata
         """
-        agents = self.agents.values()
+        agents = list(self.agents.values())
 
         if available_only:
             agents = [a for a in agents if a.is_available()]
@@ -291,7 +291,7 @@ class AgentRegistry:
 
         return filtered
 
-    def get_statistics(self) -> Dict[str, any]:
+    def get_statistics(self) -> Dict[str, Any]:
         """
         Get registry statistics.
 

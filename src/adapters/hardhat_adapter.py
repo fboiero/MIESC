@@ -21,6 +21,7 @@ Version: 1.0.0
 
 import logging
 import re
+import os
 import subprocess
 import time
 from pathlib import Path
@@ -416,7 +417,7 @@ class HardhatAdapter(ToolAdapter):
                 timeout=self.timeout,
                 text=True,
                 cwd=project_dir,
-                env={**subprocess.os.environ, **env},
+                env={**os.environ, **env},
             )
 
             # Parse gas report output

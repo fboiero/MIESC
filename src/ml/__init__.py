@@ -430,7 +430,7 @@ class MLPipeline:
 
     def get_ml_report(self) -> Dict[str, Any]:
         """Genera reporte del estado del módulo ML."""
-        report = {
+        report: Dict[str, Any] = {
             "fp_filter": self.fp_filter.get_statistics(),
             "clusterer": self.clusterer.get_summary(),
         }

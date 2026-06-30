@@ -466,7 +466,7 @@ class OptimizedOrchestrator:
         Returns:
             Dict con métricas de caché y ejecución
         """
-        metrics = {
+        metrics: Dict[str, Any] = {
             "max_workers": self.max_workers,
             "cache_enabled": self.cache is not None,
             "available_tools": len(self.discovery.get_available_tools()),

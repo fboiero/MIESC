@@ -132,10 +132,10 @@ class RAGEvaluator:
         self.results_dir = Path(results_dir) if results_dir else Path("./evaluation_results")
         self.results_dir.mkdir(parents=True, exist_ok=True)
 
-        self._embedding_rag = None
+        self._embedding_rag: Optional[Any] = None
         self._adapters: Dict[str, Any] = {}
 
-    def _get_embedding_rag(self) -> None:
+    def _get_embedding_rag(self) -> Optional[Any]:
         """Lazy initialization of EmbeddingRAG."""
         if self._embedding_rag is None:
             try:

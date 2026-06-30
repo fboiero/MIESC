@@ -432,7 +432,7 @@ PRIORITY: [HIGH/MEDIUM/LOW]
         findings: List[CorrelatedFinding],
     ) -> Dict[str, Any]:
         """Parse LLM response into structured root cause data."""
-        root_causes = []
+        root_causes: List[Dict[str, Any]] = []
         grouped_findings: Dict[str, List[int]] = {}
 
         lines = llm_response.strip().split("\n")

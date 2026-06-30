@@ -17,7 +17,7 @@ import re
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 
 class Severity(Enum):
@@ -1575,7 +1575,7 @@ class SmartBugsDetectorEngine:
     """Engine to run all SmartBugs-specific detectors."""
 
     def __init__(self) -> None:
-        self.detectors = [
+        self.detectors: List[Any] = [
             ArithmeticDetector(),
             BadRandomnessDetector(),
             DenialOfServiceDetector(),
