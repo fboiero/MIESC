@@ -332,7 +332,7 @@ class FoundryRunner:
         """
         result = self.run_test(poc_path)
 
-        validation = {
+        validation: Dict[str, Any] = {
             "path": str(poc_path),
             "valid": result.success,
             "tests_passed": result.passed,
@@ -439,7 +439,7 @@ class FoundryRunner:
             status = TestStatus.PASSED if data.get("success") else TestStatus.FAILED
             tests.append(
                 TestResult(
-                    name=data.get("test_name") or data.get("name"),
+                    name=data.get("test_name") or data.get("name") or "",
                     status=status,
                     gas_used=data.get("gas"),
                     logs=data.get("logs", []),
@@ -497,7 +497,7 @@ class FoundryRunner:
             )
 
             # Parse gas report
-            report = {
+            report: Dict[str, Any] = {
                 "contracts": {},
                 "total_deployment_gas": 0,
                 "total_runtime_gas": 0,
@@ -519,7 +519,7 @@ class FoundryRunner:
 
                     contract, method, min_gas, max_gas, avg_gas, calls = cells
                     try:
-                        method_report = {
+                        method_report: Dict[str, Any] = {
                             "min": int(min_gas.replace(",", "")),
                             "max": int(max_gas.replace(",", "")),
                             "avg": int(avg_gas.replace(",", "")),
