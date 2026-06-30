@@ -83,8 +83,8 @@ class SoliditySecurityTrainer:
     def __init__(self, config: Optional[TrainingConfig] = None):
         """Initialize trainer with configuration."""
         self.config = config or TrainingConfig()
-        self.model = None
-        self.tokenizer = None
+        self.model: Any = None
+        self.tokenizer: Any = None
 
     def check_dependencies(self) -> Dict[str, bool]:
         """Check if required dependencies are installed."""
@@ -435,7 +435,7 @@ TEMPLATE """{{{{if .System}}}}{{{{.System}}}}{{{{end}}}}
         config_path = Path(self.config.output_dir) / "axolotl_config.yml"
         config_path.parent.mkdir(parents=True, exist_ok=True)
 
-        import yaml
+        import yaml  # type: ignore[import-untyped]
 
         with open(config_path, "w") as f:
             yaml.dump(config, f, default_flow_style=False)
@@ -444,7 +444,7 @@ TEMPLATE """{{{{if .System}}}}{{{{.System}}}}{{{{end}}}}
         return str(config_path)
 
 
-def main():
+def main() -> None:
     """Example usage of the fine-tuning trainer."""
     # Create configuration
     config = TrainingConfig(
