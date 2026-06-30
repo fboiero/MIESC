@@ -376,11 +376,13 @@ class DetectorRegistry:
     """
 
     _instance = None
+    _detectors: Dict[str, BaseDetector]
+    _loaded_plugins: bool
 
     def __new__(cls) -> "DetectorRegistry":
         if cls._instance is None:
             cls._instance = super().__new__(cls)
-            cls._instance._detectors: Dict[str, BaseDetector] = {}
+            cls._instance._detectors = {}
             cls._instance._loaded_plugins = False
         return cls._instance
 
@@ -433,7 +435,8 @@ class DetectorRegistry:
             if hasattr(entry_points, "select"):
                 detectors_eps = entry_points.select(group="miesc.detectors")
             else:
-                detectors_eps = entry_points.get("miesc.detectors", [])
+                # Fallback for Python <3.10 where entry_points() returned a dict
+                detectors_eps = entry_points.get("miesc.detectors", [])  # type: ignore[attr-defined]
 
             for ep in detectors_eps:
                 try:
@@ -474,7 +477,7 @@ class DetectorRegistry:
 
     def get_summary(self, findings: List[Finding]) -> Dict[str, Any]:
         """Generate summary statistics for findings."""
-        summary = {
+        summary: Dict[str, Any] = {
             "total": len(findings),
             "by_severity": {},
             "by_category": {},
