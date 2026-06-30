@@ -41,7 +41,7 @@ try:
     _EMBEDDING_RAG_AVAILABLE = True
 except ImportError:
     _EMBEDDING_RAG_AVAILABLE = False
-    EmbeddingRAG = None
+    EmbeddingRAG = None  # type: ignore[assignment,misc]
     KNOWLEDGE_BASE_VERSION = "unavailable"
 
 logger = logging.getLogger(__name__)
@@ -127,7 +127,7 @@ CONTRACT:
 
 Respond ONLY with valid JSON. Prioritize security issues over style issues."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self._default_timeout = 120
         self._init_cache("llmsmartaudit")
@@ -210,7 +210,7 @@ Respond ONLY with valid JSON. Prioritize security issues over style issues."""
             logger.error(f"LLMSmartAudit: Error checking Ollama: {e}")
             return ToolStatus.CONFIGURATION_ERROR
 
-    def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
+    def analyze(self, contract_path: str, **kwargs: Any) -> Dict[str, Any]:
         """
         Analyze contract using Ollama for LLM-SmartAudit style analysis.
 
@@ -411,7 +411,7 @@ Respond ONLY with valid JSON. Prioritize security issues over style issues."""
 
     def _parse_llmsmartaudit_output(self, output: str, contract_path: str) -> List[Dict[str, Any]]:
         """Parse LLM-SmartAudit output and extract findings."""
-        findings = []
+        findings: List[Dict[str, Any]] = []
 
         try:
             # Robust JSON extraction (balanced braces + repair) before falling
@@ -464,7 +464,7 @@ Respond ONLY with valid JSON. Prioritize security issues over style issues."""
 
     def _parse_text_output(self, output: str, contract_path: str) -> List[Dict[str, Any]]:
         """Fallback text parsing for non-JSON output."""
-        findings = []
+        findings: List[Dict[str, Any]] = []
 
         # Look for common patterns in text output
         patterns = {
