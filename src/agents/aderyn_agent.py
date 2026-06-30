@@ -72,17 +72,18 @@ class AderynAgent(BaseAgent):
         """Return list of context types this agent publishes"""
         return ["static_findings", "aderyn_results"]
 
-    def analyze(self, contract_path: str, output_dir: Optional[str] = None) -> Dict:
+    def analyze(self, contract_path: str, **kwargs: Any) -> Dict[str, Any]:
         """
         Run Aderyn analysis on contracts
 
         Args:
             contract_path: Path to contract file or directory
-            output_dir: Optional output directory for report
+            **kwargs: Optional parameters (output_dir: directory for report)
 
         Returns:
             Dictionary with findings and stats
         """
+        output_dir: Optional[str] = kwargs.get("output_dir")
         if not self.is_available():
             return {
                 "error": "Aderyn not installed",

@@ -966,12 +966,6 @@ class StellarAnalyzer(AbstractChainAnalyzer):
 # ============================================================================
 
 
-# Add STELLAR to ChainType if not present
-if not hasattr(ChainType, "STELLAR"):
-    # Dynamically add STELLAR
-    ChainType.STELLAR = "stellar"
-
-
 # Register analyzer
 try:
     register_chain_analyzer(StellarAnalyzer())
