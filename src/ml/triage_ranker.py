@@ -44,7 +44,8 @@ def _structural_features(finding: dict[str, Any], code: str) -> list[float]:
         _is_cei, _timestamp_is_benign, match_benign,
     )
 
-    loc = finding.get("location") if isinstance(finding.get("location"), dict) else {}
+    _loc = finding.get("location")
+    loc = _loc if isinstance(_loc, dict) else {}
     fn = finding.get("function") or loc.get("function") or ""
     line = finding.get("line") or loc.get("line") or 0
     try:
@@ -146,7 +147,8 @@ def rank_results(all_results: list[dict[str, Any]], *, contract: str = "") -> in
     cache: dict[str, str] = {}
 
     def code_for(f: dict[str, Any]) -> str:
-        loc = f.get("location") if isinstance(f.get("location"), dict) else {}
+        _loc = f.get("location")
+        loc = _loc if isinstance(_loc, dict) else {}
         path = f.get("file") or loc.get("file") or contract
         if path not in cache:
             try:
