@@ -7,7 +7,7 @@ Provides actionable guidance for developers, auditors, and security teams
 
 import json
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 try:
     import openai
@@ -82,7 +82,7 @@ class RecommendationAgent(BaseAgent):
             "prevention_strategy",
         ]
 
-    def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
+    def analyze(self, contract_path: str, **kwargs: Any) -> Dict[str, Any]:
         """
         Generate comprehensive recommendations based on audit results
 
@@ -99,7 +99,7 @@ class RecommendationAgent(BaseAgent):
         Returns:
             Dictionary with recommendations and action items
         """
-        results = {
+        results: Dict[str, Any] = {
             "next_steps": [],
             "remediation_roadmap": {},
             "deployment_readiness": {},
@@ -159,7 +159,7 @@ class RecommendationAgent(BaseAgent):
         results["risk_assessment"] = risk
 
         # Publish recommendations
-        self.publish_findings("next_steps", next_steps)
+        self.publish_findings("next_steps", {"next_steps": next_steps})
         self.publish_findings("remediation_roadmap", roadmap)
         self.publish_findings("deployment_readiness", readiness)
 
@@ -189,7 +189,7 @@ class RecommendationAgent(BaseAgent):
 
         for messages in contexts.values():
             if messages:
-                return messages[-1].data  # Get latest summary
+                return cast(Dict[str, Any], messages[-1].data)  # Get latest summary
 
         return {}
 
@@ -265,7 +265,7 @@ Respond in JSON format:
 }}
 """
 
-            response = openai.ChatCompletion.create(
+            response = openai.OpenAI(api_key=self.api_key).chat.completions.create(
                 model=self.model,
                 messages=[
                     {
@@ -282,8 +282,8 @@ Respond in JSON format:
                 max_tokens=3000,
             )
 
-            result = json.loads(response.choices[0].message.content)
-            return result["next_steps"]
+            result = json.loads(response.choices[0].message.content or "{}")
+            return cast(List[Dict[str, Any]], result["next_steps"])
 
         except Exception as e:
             logger.error(f"RecommendationAgent: Next steps generation failed: {e}")
@@ -354,7 +354,7 @@ Respond in JSON format:
         Returns:
             Remediation roadmap dictionary
         """
-        roadmap = {
+        roadmap: Dict[str, Any] = {
             "phases": [],
             "total_findings": len(findings),
             "estimated_completion": timeline,
@@ -362,7 +362,7 @@ Respond in JSON format:
         }
 
         # Group findings by severity
-        by_severity = {"Critical": [], "High": [], "Medium": [], "Low": [], "Info": []}
+        by_severity: Dict[str, List[Any]] = {"Critical": [], "High": [], "Medium": [], "Low": [], "Info": []}
         for finding in findings:
             severity = finding.get("severity", "Medium")
             by_severity[severity].append(finding)
@@ -657,7 +657,7 @@ Respond in JSON format:
         high_count = sum(1 for f in findings if f.get("severity") == "High")
 
         # Calculate risk score
-        risk_score = critical_count * 10 + high_count * 5
+        risk_score: float = critical_count * 10 + high_count * 5
         if value_at_risk > 10_000_000:
             risk_score *= 1.5
         if target_env == "mainnet":
