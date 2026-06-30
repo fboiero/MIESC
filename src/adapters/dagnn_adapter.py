@@ -30,7 +30,7 @@ import subprocess
 import tempfile
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import cast, Any, Dict, List, Optional, Tuple
 
 from src.core.tool_protocol import (
     ToolAdapter,
@@ -196,9 +196,9 @@ class DAGNNAdapter(ToolAdapter):
             return ToolStatus.NOT_INSTALLED
         except Exception as e:
             logger.error(f"DA-GNN availability check failed: {e}")
-            return ToolStatus.ERROR
+            return ToolStatus.CONFIGURATION_ERROR
 
-    def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
+    def analyze(self, contract_path: str, **kwargs: Any) -> Dict[str, Any]:
         """
         Analyze contract using DA-GNN graph neural network.
 
@@ -334,8 +334,8 @@ class DAGNNAdapter(ToolAdapter):
 
     def _extract_graph_manual(self, source_code: str) -> Dict[str, Any]:
         """Fallback: Manual graph extraction from source code."""
-        nodes = []
-        edges = []
+        nodes: List[Any] = []
+        edges: List[Any] = []
         node_features = []
 
         # Extract functions as graph nodes
@@ -390,8 +390,8 @@ class DAGNNAdapter(ToolAdapter):
     def _parse_slither_output(self, output: str) -> Tuple[List[Dict], List[Dict]]:
         """Parse Slither CFG output to extract nodes and edges."""
         # Simplified parser - production would use Slither Python API
-        nodes = []
-        edges = []
+        nodes: List[Any] = []
+        edges: List[Any] = []
         return nodes, edges
 
     def _extract_node_features(self, nodes: List[Dict], contract_path: str) -> List[List[float]]:
@@ -673,7 +673,7 @@ class DAGNNAdapter(ToolAdapter):
         }
         return recommendations.get(vuln_class, "Review and fix vulnerability")
 
-    def _save_graph(self, graph_data: Dict, output_path: str):
+    def _save_graph(self, graph_data: Dict, output_path: str) -> None:
         """Save graph representation to file (JSON format)."""
         try:
             with open(output_path, "w") as f:
@@ -685,7 +685,7 @@ class DAGNNAdapter(ToolAdapter):
     def normalize_findings(self, raw_output: Any) -> List[Dict[str, Any]]:
         """Convert DA-GNN output to MIESC findings format."""
         if isinstance(raw_output, dict) and "findings" in raw_output:
-            return raw_output["findings"]
+            return cast(List[Dict[str, Any]], raw_output["findings"])
         return []
 
     def can_analyze(self, contract_path: str) -> bool:
@@ -703,6 +703,6 @@ class DAGNNAdapter(ToolAdapter):
 
 
 # Adapter registration
-def register_adapter():
+def register_adapter() -> Dict[str, Any]:
     """Register DA-GNN adapter with MIESC."""
     return {"adapter_class": DAGNNAdapter, "metadata": DAGNNAdapter().get_metadata()}
