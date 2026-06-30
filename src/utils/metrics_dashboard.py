@@ -9,7 +9,7 @@ import logging
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Dict
+from typing import Any, Dict, Union
 
 logger = logging.getLogger(__name__)
 
@@ -20,19 +20,19 @@ try:
     matplotlib.use("Agg")  # Non-interactive backend
 except ImportError:
     print("Warning: matplotlib not installed. Run: pip install matplotlib")  # noqa: T201
-    plt = None
+    plt = None  # type: ignore[assignment]
 
 
 class XauditDashboard:
     """Generate metrics dashboard from analysis results."""
 
-    def __init__(self, results_dir: str):
+    def __init__(self, results_dir: Union[str, Path]):
         self.results_dir = Path(results_dir)
         self.metrics = self.collect_metrics()
 
     def collect_metrics(self) -> Dict:
         """Collect all metrics from analysis results."""
-        metrics = {
+        metrics: Dict[str, Any] = {
             "timestamp": datetime.now().isoformat(),
             "slither": self._collect_slither_metrics(),
             "foundry": self._collect_foundry_metrics(),
