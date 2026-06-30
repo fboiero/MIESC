@@ -185,7 +185,7 @@ class AuditProgressTracker:
         self.audit_id = audit_id
         self.total_layers = total_layers
         self.current_layer = 0
-        self.current_tool = None
+        self.current_tool: Optional[str] = None
         self.findings_count = 0
         self.tools_completed = 0
         self.total_tools = 0
@@ -533,7 +533,7 @@ class WebSocketServer:
         self.host = host
         self.port = port
         self.app = create_websocket_app()
-        self._server = None
+        self._server: Optional[Any] = None
 
     def run(self) -> None:
         """Run the WebSocket server (blocking)."""
