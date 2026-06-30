@@ -16,7 +16,7 @@ import subprocess
 import tempfile
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple, cast
 
 from src.core.tool_protocol import (
     ToolAdapter,
@@ -776,7 +776,7 @@ auto_detect_solc = false
         for item in artifacts.iterdir():
             match = re.fullmatch(r"solc-(\d+)\.(\d+)\.(\d+)", item.name)
             if match:
-                versions.append(tuple(int(part) for part in match.groups()))
+                versions.append(cast(Tuple[int, int, int], tuple(int(part) for part in match.groups())))
         return sorted(versions)
 
     def _parse_pragma_constraints(self, pragma: str) -> List[Tuple[str, Tuple[int, int, int]]]:
@@ -784,7 +784,7 @@ auto_detect_solc = false
         constraints: List[Tuple[str, Tuple[int, int, int]]] = []
         for raw_op, version_text in re.findall(r"(\^|~|>=|<=|>|<|=)?\s*(\d+\.\d+\.\d+)", pragma):
             op = raw_op or "="
-            version = tuple(int(part) for part in version_text.split("."))
+            version = cast(Tuple[int, int, int], tuple(int(part) for part in version_text.split(".")))
 
             if op == "^":
                 constraints.append((">=", version))
