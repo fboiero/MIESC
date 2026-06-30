@@ -145,7 +145,7 @@ def semantic_dedup(findings: List[Dict[str, Any]]) -> List[MergedFinding]:
 # 3. Pattern detectors for 0%-recall categories
 # =============================================================================
 
-ZERO_RECALL_PATTERNS = {
+ZERO_RECALL_PATTERNS: Dict[str, Dict[str, Any]] = {
     "time_manipulation": {
         "patterns": [
             r"\bblock\.timestamp\b",
