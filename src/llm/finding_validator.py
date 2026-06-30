@@ -24,7 +24,7 @@ import logging
 import os
 from dataclasses import dataclass, replace
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import cast, Any, Dict, List, Optional, Tuple
 
 import aiohttp
 
@@ -172,7 +172,7 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
             self._session = aiohttp.ClientSession(timeout=timeout)
         return self._session
 
-    async def close(self):
+    async def close(self) -> None:
         """Close the aiohttp session."""
         if self._session and not self._session.closed:
             await self._session.close()
@@ -301,7 +301,7 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
                 raise RuntimeError(f"Ollama API error {resp.status}: {error_text}")
 
             data = await resp.json()
-            return data.get("response", "")
+            return cast(str, data.get("response", ""))
 
     def _parse_response(self, response: str, finding_id: str) -> LLMValidation:
         """Parse LLM response into LLMValidation."""
@@ -411,7 +411,7 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
             batch_validations = await asyncio.gather(*tasks, return_exceptions=True)
 
             for finding, validation in zip(batch, batch_validations, strict=False):
-                if isinstance(validation, Exception):
+                if isinstance(validation, BaseException):
                     logger.warning(f"Validation exception: {validation}")
                     validations.append(
                         LLMValidation(
@@ -527,7 +527,7 @@ def validate_findings_sync(
     """
     validator = LLMFindingValidator(config)
 
-    async def run():
+    async def run() -> Tuple[List[Dict[str, Any]], List[LLMValidation]]:
         try:
             return await validator.validate_findings_batch(findings, code_contexts)
         finally:
