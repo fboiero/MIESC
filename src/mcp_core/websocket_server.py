@@ -180,8 +180,12 @@ class MIESCWebSocketServer:
 
         logger.info("MIESC WebSocket server stopped")
 
-    async def _handle_client(self, websocket: WebSocketServerProtocol, path: str) -> None:
-        """Handle a new WebSocket client connection."""
+    async def _handle_client(self, websocket: WebSocketServerProtocol) -> None:
+        """Handle a new WebSocket client connection.
+
+        Note: websockets >= 11 invokes the connection handler with a single
+        argument (the connection); the legacy ``path`` parameter was removed.
+        """
         self._clients.add(websocket)
         self._subscriptions[websocket] = set()
 
