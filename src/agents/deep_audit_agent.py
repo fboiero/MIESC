@@ -199,7 +199,7 @@ class DeepAuditAgent(BaseAgent):
         source_code = Path(contract_path).read_text()
 
         logger.info(f"DeepAuditAgent starting on {contract_path}")
-        report = {
+        report: Dict[str, Any] = {
             "contract": contract_path,
             "agent": "DeepAuditAgent",
             "phases": {},
