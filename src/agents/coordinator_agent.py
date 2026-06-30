@@ -7,7 +7,7 @@ Implements intelligent task delegation and workflow optimization
 
 import json
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 try:
     import openai
@@ -67,8 +67,8 @@ class CoordinatorAgent(BaseAgent):
             openai.api_key = api_key
 
         # Track active agents
-        self.active_agents = {}
-        self.audit_state = {
+        self.active_agents: Dict[str, Any] = {}
+        self.audit_state: Dict[str, Any] = {
             "status": "idle",
             "current_phase": None,
             "completed_phases": [],
@@ -79,7 +79,7 @@ class CoordinatorAgent(BaseAgent):
         }
 
         # Learning from previous audits
-        self.audit_history = []
+        self.audit_history: List[Any] = []
 
         # Subscribe to all agent outputs for monitoring
         self.subscribe_to(
@@ -97,7 +97,7 @@ class CoordinatorAgent(BaseAgent):
     def get_context_types(self) -> List[str]:
         return ["audit_plan", "audit_progress", "audit_summary"]
 
-    def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
+    def analyze(self, contract_path: str, **kwargs: Any) -> Dict[str, Any]:
         """
         Orchestrate complete multi-agent audit workflow
 
@@ -112,7 +112,7 @@ class CoordinatorAgent(BaseAgent):
         Returns:
             Dictionary with orchestration results and final audit summary
         """
-        results = {"audit_plan": {}, "audit_progress": [], "audit_summary": {}}
+        results: Dict[str, Any] = {"audit_plan": {}, "audit_progress": [], "audit_summary": {}}
 
         # Phase 1: Generate audit plan
         logger.info(f"CoordinatorAgent: Generating audit plan for {contract_path}")
@@ -133,7 +133,7 @@ class CoordinatorAgent(BaseAgent):
 
         return results
 
-    def _generate_audit_plan(self, contract_path: str, **kwargs) -> Dict[str, Any]:
+    def _generate_audit_plan(self, contract_path: str, **kwargs: Any) -> Dict[str, Any]:
         """
         Generate intelligent audit plan based on contract analysis
 
@@ -245,7 +245,7 @@ Respond in JSON format with optimized plan:
 """
 
         try:
-            response = openai.ChatCompletion.create(
+            response = openai.OpenAI(api_key=self.api_key).chat.completions.create(
                 model=self.model,
                 messages=[
                     {
@@ -258,7 +258,7 @@ Respond in JSON format with optimized plan:
                 max_tokens=1500,
             )
 
-            optimized = json.loads(response.choices[0].message.content)
+            optimized = json.loads(response.choices[0].message.content or "{}")
 
             # Merge optimizations into base plan
             if "recommended_phases" in optimized:
@@ -320,7 +320,7 @@ Respond in JSON:
 }}
 """
 
-            response = openai.ChatCompletion.create(
+            response = openai.OpenAI(api_key=self.api_key).chat.completions.create(
                 model=self.model,
                 messages=[
                     {
@@ -333,13 +333,13 @@ Respond in JSON:
                 max_tokens=1500,
             )
 
-            analysis = json.loads(response.choices[0].message.content)
+            analysis = json.loads(response.choices[0].message.content or "{}")
 
             # Store for adaptive planning
             self.audit_state["contract_complexity"] = analysis["complexity"]
             self.audit_state["risk_level"] = analysis.get("risk_score", 50)
 
-            return analysis
+            return cast(Dict[str, Any], analysis)
 
         except Exception as e:
             logger.error(f"CoordinatorAgent: Complexity analysis failed: {e}")
@@ -362,7 +362,7 @@ Respond in JSON:
         risk_score = complexity_analysis.get("risk_score", 50)
         complexity_analysis.get("recommended_tools", [])
 
-        selected_agents = []
+        selected_agents: List[Dict[str, Any]] = []
 
         # Always include static analysis (fast)
         selected_agents.append(
@@ -499,7 +499,7 @@ Respond in JSON:
         )
 
     def _execute_audit_plan(
-        self, plan: Dict[str, Any], contract_path: str, **kwargs
+        self, plan: Dict[str, Any], contract_path: str, **kwargs: Any
     ) -> List[Dict[str, Any]]:
         """
         Execute audit plan and track progress
@@ -629,7 +629,7 @@ Respond in JSON:
         Returns:
             Dictionary mapping OWASP category to count
         """
-        owasp_counts = {}
+        owasp_counts: Dict[str, int] = {}
 
         for vuln in vulnerabilities:
             owasp_cat = vuln.get("owasp_category")
