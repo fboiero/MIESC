@@ -44,7 +44,7 @@ Publishes compliance reports and standards mapping to Context Bus.
 
 import logging
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 # Layer 7 - Audit Readiness Analyzers (OpenZeppelin Guide)
 from src.agents.audit_readiness import (
@@ -114,10 +114,10 @@ class PolicyAgent(BaseAgent):
         # Initialize Layer 7 - Audit Readiness Analyzers
         logger.info("Initializing Layer 7 (Audit Readiness) analyzers")
         try:
-            self.documentation_analyzer = DocumentationAnalyzer()
-            self.testing_analyzer = TestingAnalyzer()
-            self.maturity_analyzer = MaturityAnalyzer()
-            self.security_practices_analyzer = SecurityPracticesAnalyzer()
+            self.documentation_analyzer: Optional[DocumentationAnalyzer] = DocumentationAnalyzer()
+            self.testing_analyzer: Optional[TestingAnalyzer] = TestingAnalyzer()
+            self.maturity_analyzer: Optional[MaturityAnalyzer] = MaturityAnalyzer()
+            self.security_practices_analyzer: Optional[SecurityPracticesAnalyzer] = SecurityPracticesAnalyzer()
             logger.info("Layer 7 analyzers initialized successfully")
         except Exception as e:
             logger.warning(f"Layer 7 analyzers initialization failed: {e}")
@@ -286,7 +286,7 @@ class PolicyAgent(BaseAgent):
         Returns:
             Dictionary with control status
         """
-        controls = {
+        controls: Dict[str, Dict[str, Any]] = {
             "A.8.8": {
                 "name": "Management of technical vulnerabilities",
                 "status": "implemented",
@@ -391,7 +391,7 @@ class PolicyAgent(BaseAgent):
         Returns:
             Dictionary with category coverage
         """
-        categories = {
+        categories: Dict[str, Dict[str, Any]] = {
             "SC01-Reentrancy": {"detected": 0, "tools": set()},
             "SC02-Access-Control": {"detected": 0, "tools": set()},
             "SC03-Arithmetic": {"detected": 0, "tools": set()},
@@ -464,7 +464,7 @@ class PolicyAgent(BaseAgent):
             "unencrypted_secrets": "SWC-136",
         }
 
-        classified = {}
+        classified: Dict[str, Dict[str, Any]] = {}
         unclassified = []
 
         for finding in findings:
@@ -516,7 +516,7 @@ class PolicyAgent(BaseAgent):
         Returns:
             Dictionary with DASP coverage analysis
         """
-        dasp_categories = {
+        dasp_categories: Dict[str, Dict[str, Any]] = {
             "DASP-01-Reentrancy": {
                 "name": "Reentrancy",
                 "keywords": ["reentrancy", "reentrant", "callback"],
@@ -737,7 +737,7 @@ class PolicyAgent(BaseAgent):
         Returns:
             Dictionary with SCSVS level assessment
         """
-        level_checks = {
+        level_checks: Dict[str, Dict[str, Any]] = {
             "L1": {
                 "name": "Level 1 - Basic Security",
                 "requirements": [
@@ -971,7 +971,7 @@ class PolicyAgent(BaseAgent):
         Returns:
             Dictionary with checklist completion status
         """
-        checklist_categories = {
+        checklist_categories: Dict[str, Dict[str, Any]] = {
             "access_control": {
                 "name": "Access Control and Authorization",
                 "items_checked": 0,
@@ -1092,7 +1092,7 @@ class PolicyAgent(BaseAgent):
         Returns:
             Dictionary with DeFi-specific risk assessment
         """
-        risk_categories = {
+        risk_categories: Dict[str, Dict[str, Any]] = {
             "smart_contract_risk": {
                 "name": "Smart Contract Technical Risk",
                 "level": "low",
@@ -1346,7 +1346,7 @@ class PolicyAgent(BaseAgent):
         Returns:
             Dictionary with DORA compliance status
         """
-        dora_pillars = {
+        dora_pillars: Dict[str, Dict[str, Any]] = {
             "ict_risk_management": {
                 "name": "ICT Risk Management (Chapter II)",
                 "requirements": [
@@ -1693,7 +1693,7 @@ class PolicyAgent(BaseAgent):
         return recommendations[:10]  # Limit to top 10 most important
 
     def _comprehensive_audit_readiness_assessment(
-        self, findings: List[Dict[str, Any]], contract_path: str = None, project_root: str = None
+        self, findings: List[Dict[str, Any]], contract_path: Optional[str] = None, project_root: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         [LAYER 7 - AUDIT READINESS - COMPREHENSIVE]
@@ -1861,7 +1861,7 @@ class PolicyAgent(BaseAgent):
             result["overall_score"] = 0.0
 
         # Penalize for critical/high findings
-        severity_penalty = 0
+        severity_penalty = 0.0
         if critical > 0:
             severity_penalty = 0.5  # 50% penalty for ANY critical
         elif high > 5:

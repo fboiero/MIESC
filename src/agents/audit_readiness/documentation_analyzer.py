@@ -15,7 +15,7 @@ License: AGPL v3
 
 import logging
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -643,7 +643,7 @@ class DocumentationAnalyzer:
             logger.error(f"Error analyzing audit history: {e}")
             return {"error": str(e), "passes_threshold": False}
 
-    def analyze_all(self, contract_path: str, project_root: str = None) -> Dict[str, Any]:
+    def analyze_all(self, contract_path: str, project_root: Optional[str] = None) -> Dict[str, Any]:
         """
         Complete documentation analysis
 
