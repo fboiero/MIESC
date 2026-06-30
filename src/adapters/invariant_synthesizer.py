@@ -25,7 +25,7 @@ import time
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import cast, Any, Dict, List, Optional
 
 from src.adapters.smartllm_rag_knowledge import (
     FORMAL_INVARIANTS,
@@ -114,7 +114,7 @@ class InvariantSynthesizer:
     pattern-based invariant suggestions.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the invariant synthesizer."""
         self._model = get_model(USE_CASE_PROPERTY_GENERATION)
         self._ollama_host = get_ollama_host()
@@ -522,7 +522,7 @@ IMPORTANT RULES:
                 invariants.append(
                     SynthesizedInvariant(
                         name=inv.get("name", "unnamed_invariant"),
-                        description=inv.get("formal_spec", inv.get("natural_language", "")),
+                        description=inv.get("formal_spec") or inv.get("natural_language") or "",
                         category=category,
                         importance=inv.get("importance", "MEDIUM"),
                         natural_language=inv.get("natural_language", ""),
@@ -886,11 +886,11 @@ function invariant_{name}() public {{
                 return None
 
             with open(cache_file, "r") as f:
-                return json.load(f)
+                return cast(Optional[Dict[str, Any]], json.load(f))
         except Exception:
             return None
 
-    def _cache_result(self, cache_key: str, result: Dict[str, Any]):
+    def _cache_result(self, cache_key: str, result: Dict[str, Any]) -> None:
         """Cache result."""
         cache_file = self._cache_dir / f"{cache_key}.json"
 
@@ -902,7 +902,7 @@ function invariant_{name}() public {{
 
     def _count_by_category(self, invariants: List[SynthesizedInvariant]) -> Dict[str, int]:
         """Count invariants by category."""
-        counts = {}
+        counts: Dict[str, int] = {}
         for inv in invariants:
             cat = inv.category.value
             counts[cat] = counts.get(cat, 0) + 1
@@ -910,7 +910,7 @@ function invariant_{name}() public {{
 
     def _count_by_importance(self, invariants: List[SynthesizedInvariant]) -> Dict[str, int]:
         """Count invariants by importance."""
-        counts = {}
+        counts: Dict[str, int] = {}
         for inv in invariants:
             imp = inv.importance
             counts[imp] = counts.get(imp, 0) + 1
