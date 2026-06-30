@@ -30,7 +30,7 @@ try:
     import tomllib  # Python 3.11+
 except ImportError:
     try:
-        import tomli as tomllib  # Fallback for older Python
+        import tomli as tomllib  # type: ignore[no-redef]  # Fallback for older Python
     except ImportError:
         tomllib = None  # type: ignore[assignment]
 
@@ -132,14 +132,19 @@ class FrameworkDetector:
         # Search for framework config files
         framework, config_file = self._find_framework(path)
 
-        # Extract configuration based on framework
+        # Extract configuration based on framework.
+        # A detected framework always yields a non-None config_file from _find_framework.
         if framework == Framework.FOUNDRY:
+            assert config_file is not None
             config = self._parse_foundry(path, config_file)
         elif framework == Framework.HARDHAT:
+            assert config_file is not None
             config = self._parse_hardhat(path, config_file)
         elif framework == Framework.TRUFFLE:
+            assert config_file is not None
             config = self._parse_truffle(path, config_file)
         elif framework == Framework.BROWNIE:
+            assert config_file is not None
             config = self._parse_brownie(path, config_file)
         else:
             config = FrameworkConfig(
@@ -418,7 +423,7 @@ class FrameworkDetector:
         config.out_path = root / "build"
 
         try:
-            import yaml
+            import yaml  # type: ignore[import-untyped]
 
             with open(config_file) as f:
                 data = yaml.safe_load(f)
