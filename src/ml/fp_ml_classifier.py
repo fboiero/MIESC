@@ -191,7 +191,7 @@ class AuditorTrainedFPClassifier:
 
     def __init__(self, model_path: Optional[Path] = None):
         self.model_path = model_path or self.DEFAULT_MODEL_PATH
-        self.model = None
+        self.model: Any = None
         self._sklearn_available = self._check_sklearn()
         self._load_model()
 
