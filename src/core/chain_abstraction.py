@@ -674,7 +674,7 @@ class AbstractChainAnalyzer(ABC):
         vuln_type: str,
         severity: str,
         message: str,
-        location: Location,
+        location: Optional[Location],
         **kwargs: Any,
     ) -> Dict[str, Any]:
         """
@@ -695,12 +695,12 @@ class AbstractChainAnalyzer(ABC):
         mapping = get_vulnerability_mapping(canonical_type)
 
         finding = {
-            "id": f"{self.chain_type.value}-{canonical_type}-{location.line}",
+            "id": f"{self.chain_type.value}-{canonical_type}-{location.line if location else 0}",
             "type": canonical_type,
             "original_type": vuln_type,
             "severity": severity,
             "confidence": kwargs.get("confidence", 0.8),
-            "location": location.to_dict(),
+            "location": location.to_dict() if location else None,
             "message": message,
             "description": kwargs.get("description", message),
             "recommendation": kwargs.get("recommendation", ""),
