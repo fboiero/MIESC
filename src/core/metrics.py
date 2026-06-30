@@ -14,7 +14,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from functools import wraps
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, Iterator, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -61,19 +61,19 @@ class InternalMetricsCollector:
         self.gauges: Dict[str, float] = {}
         self.histograms: Dict[str, List[float]] = {}
 
-    def increment_counter(self, name: str, value: float = 1.0, labels: Dict[str, str] = None) -> None:
+    def increment_counter(self, name: str, value: float = 1.0, labels: Optional[Dict[str, str]] = None) -> None:
         """Increment a counter metric."""
         key = self._make_key(name, labels)
         self.counters[key] = self.counters.get(key, 0) + value
         self.metrics.append(MetricValue(name, "counter", self.counters[key], labels or {}))
 
-    def set_gauge(self, name: str, value: float, labels: Dict[str, str] = None) -> None:
+    def set_gauge(self, name: str, value: float, labels: Optional[Dict[str, str]] = None) -> None:
         """Set a gauge metric."""
         key = self._make_key(name, labels)
         self.gauges[key] = value
         self.metrics.append(MetricValue(name, "gauge", value, labels or {}))
 
-    def observe_histogram(self, name: str, value: float, labels: Dict[str, str] = None) -> None:
+    def observe_histogram(self, name: str, value: float, labels: Optional[Dict[str, str]] = None) -> None:
         """Add observation to histogram."""
         key = self._make_key(name, labels)
         if key not in self.histograms:
@@ -81,7 +81,7 @@ class InternalMetricsCollector:
         self.histograms[key].append(value)
         self.metrics.append(MetricValue(name, "histogram", value, labels or {}))
 
-    def _make_key(self, name: str, labels: Dict[str, str] = None) -> str:
+    def _make_key(self, name: str, labels: Optional[Dict[str, str]] = None) -> str:
         """Create a unique key from name and labels."""
         if not labels:
             return name
@@ -128,6 +128,19 @@ class MIESCMetrics:
         # Track tool execution
         metrics.tool_execution_seconds.labels(tool="slither").observe(2.5)
     """
+
+    registry: Optional["CollectorRegistry"]
+    audits_total: Any
+    findings_total: Any
+    tool_executions_total: Any
+    errors_total: Any
+    audit_duration_seconds: Any
+    tool_execution_seconds: Any
+    finding_confidence: Any
+    active_audits: Any
+    tools_available: Any
+    cache_size: Any
+    info: Any
 
     def __init__(self, registry: Optional["CollectorRegistry"] = None):
         self.internal = InternalMetricsCollector()
@@ -295,7 +308,7 @@ class MIESCMetrics:
             )
 
     @contextmanager
-    def measure_time(self, metric_name: str, labels: Dict[str, str] = None) -> None:
+    def measure_time(self, metric_name: str, labels: Optional[Dict[str, str]] = None) -> Iterator[None]:
         """Context manager to measure execution time."""
         start = time.perf_counter()
         try:
@@ -324,6 +337,7 @@ class MIESCMetrics:
     def start_http_server(self, port: int = 9090) -> None:
         """Start HTTP server to expose metrics."""
         if PROMETHEUS_AVAILABLE:
+            assert self.registry is not None
             start_http_server(port, registry=self.registry)
             logger.info(f"Prometheus metrics server started on port {port}")
         else:
@@ -366,7 +380,7 @@ class InternalHistogram:
         self.collector.observe_histogram(self.name, value, labels)
 
     @contextmanager
-    def time(self) -> None:
+    def time(self) -> Iterator[None]:
         """Context manager to measure time."""
         start = time.perf_counter()
         try:
