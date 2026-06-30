@@ -120,7 +120,7 @@ class EvaluationMetrics:
     model_name: str = ""
 
     # Per-severity breakdown
-    by_severity: Dict[str, Dict[str, int]] = field(default_factory=dict)
+    by_severity: Dict[str, Dict[str, float]] = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert metrics to dictionary."""

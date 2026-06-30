@@ -8,13 +8,13 @@ import json
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union
 
 
 class WebDashboardGenerator:
     """Generate a static local HTML dashboard for Xaudit results."""
 
-    def __init__(self, results_dir: str):
+    def __init__(self, results_dir: Union[str, Path]):
         self.results_dir = Path(results_dir)
         self.metrics = self._collect_all_metrics()
 
@@ -202,7 +202,7 @@ class WebDashboardGenerator:
         if not medusa_dir.exists():
             return {"executed": False, "tests": []}
 
-        tests = []
+        tests: List[Dict[str, Any]] = []
         for json_file in medusa_dir.glob("*.json"):
             try:
                 with open(json_file) as f:
@@ -232,7 +232,7 @@ class WebDashboardGenerator:
         if not foundry_dir.exists():
             return {"executed": False, "tests": []}
 
-        tests = []
+        tests: List[Dict[str, Any]] = []
         for txt_file in foundry_dir.glob("*.txt"):
             try:
                 content = txt_file.read_text()
