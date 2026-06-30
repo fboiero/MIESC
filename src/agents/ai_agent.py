@@ -7,7 +7,7 @@ Consumes findings from other agents and performs intelligent triage
 
 import json
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 try:
     import openai
@@ -83,7 +83,7 @@ class AIAgent(BaseAgent):
     def get_context_types(self) -> List[str]:
         return ["ai_triage", "false_positives", "root_cause_analysis"]
 
-    def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
+    def analyze(self, contract_path: str, **kwargs: Any) -> Dict[str, Any]:
         """
         Perform AI-assisted triage on aggregated findings
 
@@ -96,7 +96,7 @@ class AIAgent(BaseAgent):
         Returns:
             Dictionary with triage results
         """
-        results = {"ai_triage": [], "false_positives": [], "root_cause_analysis": []}
+        results: Dict[str, Any] = {"ai_triage": [], "false_positives": [], "root_cause_analysis": []}
 
         # Aggregate findings from all layers
         aggregated = kwargs.get("aggregated_findings")
@@ -197,7 +197,7 @@ class AIAgent(BaseAgent):
             prompt = self._build_triage_prompt(findings, contract_source)
 
             # Call GPT-4 for triage
-            response = openai.ChatCompletion.create(
+            response = openai.OpenAI(api_key=self.api_key).chat.completions.create(
                 model=self.model,
                 messages=[
                     {
@@ -216,7 +216,7 @@ class AIAgent(BaseAgent):
             )
 
             # Parse response
-            triage_result = json.loads(response.choices[0].message.content)
+            triage_result = json.loads(response.choices[0].message.content or "{}")
 
             return {
                 "triaged": triage_result.get("real_vulnerabilities", []),
@@ -372,7 +372,7 @@ Respond in JSON format:
 }}
 """
 
-            response = openai.ChatCompletion.create(
+            response = openai.OpenAI(api_key=self.api_key).chat.completions.create(
                 model=self.model,
                 messages=[
                     {
@@ -385,7 +385,7 @@ Respond in JSON format:
                 max_tokens=2000,
             )
 
-            return json.loads(response.choices[0].message.content)
+            return cast(Dict[str, Any], json.loads(response.choices[0].message.content or "{}"))
 
         except Exception as e:
             logger.error(f"AIAgent: Root cause analysis error: {e}")
@@ -410,7 +410,7 @@ Respond in JSON format:
             ["static_findings", "dynamic_findings", "symbolic_findings", "formal_findings"]
         )
 
-        correlated = {
+        correlated: Dict[str, Any] = {
             "finding_id": finding_id,
             "detected_by": [],
             "consistency_score": 0.0,
