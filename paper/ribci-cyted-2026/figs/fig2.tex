@@ -1,0 +1,19 @@
+\documentclass[border=6pt]{standalone}
+\usepackage{amsmath,amssymb}
+\usepackage[T1]{fontenc}
+\begin{document}
+\footnotesize
+\setlength{\fboxsep}{2pt}
+\setlength{\fboxrule}{0.3pt}
+\begin{tabular}{c}
+\fbox{{\scriptsize \textbf{Stage 1}: \texttt{miesc scan} $\rightarrow$ findings.json}} \\[2pt]
+$\downarrow$ \\[1pt]
+\fbox{{\scriptsize \textbf{Stage 2}: \texttt{miesc fix} $\rightarrow$ contract.fixed.sol}} \\[2pt]
+$\downarrow$ \\[1pt]
+\fbox{{\scriptsize \textbf{Stage 3}: \texttt{miesc test-gen} $\rightarrow$ test/*.t.sol}} \\[2pt]
+$\downarrow$ \\[1pt]
+\fbox{{\scriptsize \textbf{Stage 4}: \texttt{miesc specs} + \texttt{miesc verify}}} \\[2pt]
+$\downarrow$ \\[1pt]
+\fbox{{\scriptsize \textbf{Stage 5}: \texttt{miesc compliance} + \texttt{miesc report}}}
+\end{tabular}
+\end{document}

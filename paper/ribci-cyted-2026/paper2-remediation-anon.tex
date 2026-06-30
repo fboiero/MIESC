@@ -65,7 +65,7 @@ smart contracts, automated program repair, exploit testing, formal verification,
 \section{Introduction}
 % ===========================================================================
 
-The smart contract security ecosystem has invested heavily in \emph{detection}---static analyzers~\cite{feist2019slither}, fuzzers~\cite{grieco2020echidna}, symbolic executors~\cite{mueller2018smashing}, and more recently LLM-based auditors~\cite{sun2024gptscan}---but comparatively little in what happens \emph{after} a vulnerability is found. In practice, the workflow looks like this:
+The smart contract security ecosystem has invested heavily in \emph{detection}---static analyzers~[1], fuzzers~[2], symbolic executors~[3], and more recently LLM-based auditors~[4]---but comparatively little in what happens \emph{after} a vulnerability is found. In practice, the workflow looks like this:
 
 \begin{enumerate}
     \item A tool reports: ``Reentrancy in \texttt{withdraw()} (HIGH).''
@@ -102,13 +102,13 @@ We evaluate patch quality on the SmartBugs-curated corpus (143 contracts, 10 vul
 
 \subsection{Automated Program Repair for Smart Contracts}
 
-SCRepair~\cite{screpair2020} uses genetic programming to mutate Solidity source code until tests pass, but requires pre-existing test suites. sGuard~\cite{nguyen2021sguard} inserts runtime checks (reentrancy locks, integer overflow guards) at near-100\% compilation but does not generate tests to verify the fix. Elysium~\cite{elysium2022} operates at the bytecode level, achieving +30\% fix rate over its predecessor Shield but limited to 7~SWC categories. ACFIX~\cite{acfix2024} uses LLMs guided by mined RBAC practices to fix access control vulnerabilities, achieving 94.9\% fix rate but targeting only a single vulnerability class. SCPatcher~\cite{scpatcher2025} applies RAG-enhanced LLMs to general-purpose patching, reporting 81.5\% fix rate and 91\% compilation.
+SCRepair~[5] uses genetic programming to mutate Solidity source code until tests pass, but requires pre-existing test suites. sGuard~[6] inserts runtime checks (reentrancy locks, integer overflow guards) at near-100\% compilation but does not generate tests to verify the fix. Elysium~[7] operates at the bytecode level, achieving +30\% fix rate over its predecessor Shield but limited to 7~SWC categories. ACFIX~[8] uses LLMs guided by mined RBAC practices to fix access control vulnerabilities, achieving 94.9\% fix rate but targeting only a single vulnerability class. SCPatcher~[9] applies RAG-enhanced LLMs to general-purpose patching, reporting 81.5\% fix rate and 91\% compilation.
 
 MIESC differs in three ways: (1)~patch candidates are \emph{self-contained} in the sense that they avoid new library imports, (2)~exploit tests are generated alongside patches to check the vulnerable and patched paths, and (3)~the pipeline extends beyond patching to formal specifications and compliance mapping. Section~\ref{sec:comparison} provides a detailed feature comparison.
 
 \subsection{Test Generation for Smart Contracts}
 
-Foundry~\cite{foundry2025} and Echidna~\cite{grieco2020echidna} provide fuzzing and property-based testing frameworks, but require developers to write test properties manually. Harvey~\cite{harvey2020} generates high-coverage test inputs but not exploit-specific test cases.
+Foundry~[10] and Echidna~[2] provide fuzzing and property-based testing frameworks, but require developers to write test properties manually. Harvey~[11] generates high-coverage test inputs but not exploit-specific test cases.
 
 MIESC's \texttt{test-gen} command generates vulnerability-specific exploit tests: a reentrancy finding produces a test with an attacker contract that re-enters the victim, while a selfdestruct finding produces an unauthorized-caller test. The generated artifacts serve two roles: exploit-confirmation tests demonstrate the vulnerable behavior on the original contract, and fixed-version regression tests verify that the same path is blocked after patching.
 
@@ -118,7 +118,7 @@ In the repair tools surveyed in this paper, compliance mapping is outside the re
 
 \subsection{LLM-Assisted Security Analysis}
 
-GPTScan~\cite{sun2024gptscan} combines GPT-4 with program analysis for logic vulnerability detection but produces no patches. EVMBench~\cite{evmbench2026} evaluates LLM agents on real audit reports but measures only detection recall, not remediation. The SmartBugs framework~\cite{smartbugs2023} provides execution infrastructure for tool evaluation but includes no patching capabilities. MIESC builds on these detection advances by extending the pipeline beyond detection into actionable remediation artifacts.
+GPTScan~[4] combines GPT-4 with program analysis for logic vulnerability detection but produces no patches. EVMBench~[12] evaluates LLM agents on real audit reports but measures only detection recall, not remediation. The SmartBugs framework~[13] provides execution infrastructure for tool evaluation but includes no patching capabilities. MIESC builds on these detection advances by extending the pipeline beyond detection into actionable remediation artifacts.
 
 % ===========================================================================
 \section{Pipeline Architecture}
@@ -131,24 +131,14 @@ The remediation pipeline consists of five stages, each consuming the output of t
 \footnotesize
 \setlength{\fboxsep}{2pt}
 \setlength{\fboxrule}{0.3pt}
-\begin{tabular}{c}
-\fbox{{\scriptsize \textbf{Stage 1}: \texttt{miesc scan} $\rightarrow$ findings.json}} \\[2pt]
-$\downarrow$ \\[1pt]
-\fbox{{\scriptsize \textbf{Stage 2}: \texttt{miesc fix} $\rightarrow$ contract.fixed.sol}} \\[2pt]
-$\downarrow$ \\[1pt]
-\fbox{{\scriptsize \textbf{Stage 3}: \texttt{miesc test-gen} $\rightarrow$ test/*.t.sol}} \\[2pt]
-$\downarrow$ \\[1pt]
-\fbox{{\scriptsize \textbf{Stage 4}: \texttt{miesc specs} + \texttt{miesc verify}}} \\[2pt]
-$\downarrow$ \\[1pt]
-\fbox{{\scriptsize \textbf{Stage 5}: \texttt{miesc compliance} + \texttt{miesc report}}}
-\end{tabular}
+\includegraphics[width=\linewidth]{figs/fig2-1.png}
 \caption{MIESC remediation pipeline. Each stage consumes the output of the previous stage, producing a progressively more complete security artifact.}
 \label{fig:pipeline}
 \end{figure}
 
 \subsection{Stage 1: Detection}
 
-Described in our companion paper~\cite{boiero2025miesc}. The latest SmartBugs full-corpus reproducible profile reaches 95.8\% recall on 143 contracts, while the EVMBench local high-severity extraction reaches 92.5\% recall using a four-provider union ensemble over 120 local findings. The scanner outputs a normalized JSON with findings, severity, location, confidence, canonical category, and remediation fields consumed by the patcher.
+Described in our companion paper~[14]. The latest SmartBugs full-corpus reproducible profile reaches 95.8\% recall on 143 contracts, while the EVMBench local high-severity extraction reaches 92.5\% recall using a four-provider union ensemble over 120 local findings. The scanner outputs a normalized JSON with findings, severity, location, confidence, canonical category, and remediation fields consumed by the patcher.
 
 \subsection{Stage 2: Patch Generation}
 
@@ -236,7 +226,7 @@ Templates exist for reentrancy (deploys attacker contract with re-entrant \textt
 
 \subsection{Experimental Setup}
 
-We evaluate the remediation stage on the SmartBugs-curated corpus~\cite{ferreira2020smartbugs}: 143 contracts spanning 10 vulnerability categories (reentrancy, access control, unchecked low-level calls, arithmetic, denial of service, front running, short addresses, time manipulation, bad randomness, and other). The remediation metrics are generated by \texttt{benchmarks/fix\_eval.py} and stored in \texttt{benchmarks/results/fix\_eval\_results.json}; Paper~2 claims are traced in \texttt{paper2\_claims\_matrix.json}. The v2 baseline also runs opt-in Slither validation on patched contracts that compile, recording external HIGH findings separately from the internal MIESC re-scan. Derived artifacts further summarize patch quality by transformation class and standalone compilation failures by category.
+We evaluate the remediation stage on the SmartBugs-curated corpus~[15]: 143 contracts spanning 10 vulnerability categories (reentrancy, access control, unchecked low-level calls, arithmetic, denial of service, front running, short addresses, time manipulation, bad randomness, and other). The remediation metrics are generated by \texttt{benchmarks/fix\_eval.py} and stored in \texttt{benchmarks/results/fix\_eval\_results.json}; Paper~2 claims are traced in \texttt{paper2\_claims\_matrix.json}. The v2 baseline also runs opt-in Slither validation on patched contracts that compile, recording external HIGH findings separately from the internal MIESC re-scan. Derived artifacts further summarize patch quality by transformation class and standalone compilation failures by category.
 
 \textbf{Metric definitions.} \emph{Fix applied} means the patcher produced a modified source file for at least one fixable HIGH/CRITICAL finding. \emph{Standalone compilation} means the patched file compiles without restoring the original project dependency tree. \emph{Vulnerability eliminated} means a MIESC re-scan reports fewer HIGH/CRITICAL findings for the target category. \emph{No regression} is a bounded re-scan criterion: the patched contract does not materially increase the finding count under the same scanner; it is not a proof of full functional equivalence. \emph{External clean-HIGH} means a separate Slither validation run over patched contracts that compile reports no HIGH findings.
 
@@ -364,7 +354,7 @@ The exploit-confirmation assertion (\texttt{assertGt(balance, 1 ether)}) passes 
 
 \subsection{Stage 4: Formal Verification}
 
-The formal verification stage applies the Solidity compiler's built-in SMTChecker using the Constrained Horn Clauses (CHC) engine~\cite{halmos2023}. Unlike fuzzers that generate concrete test inputs, CHC-based verification checks encoded properties over symbolic execution paths via fixed-point computation over the contract's control-flow graph.
+The formal verification stage applies the Solidity compiler's built-in SMTChecker using the Constrained Horn Clauses (CHC) engine~[16]. Unlike fuzzers that generate concrete test inputs, CHC-based verification checks encoded properties over symbolic execution paths via fixed-point computation over the contract's control-flow graph.
 
 \textbf{Methodology.} For each finding, \texttt{miesc specs} generates one or more \texttt{assert()} statements encoding the property that should hold after patching. The SMTChecker is invoked with \texttt{-{}-model-checker-engine chc} and \texttt{-{}-model-checker-targets assert,underflow,overflow}. We compare warnings between the original and patched contracts.
 
@@ -421,11 +411,11 @@ Table~\ref{tab:e2e} traces the full pipeline on a single illustrative contract. 
 \toprule
 \textbf{Tool} & \textbf{Yr} & \textbf{Vulns} & \textbf{Fix\%} & \textbf{Comp.\%} & \textbf{T} & \textbf{S/C} \\
 \midrule
-SCRepair~\cite{screpair2020} & '20 & GP & --- & --- & Req\textsuperscript{a} & \texttimes/\texttimes \\
-sGuard~\cite{nguyen2021sguard} & '21 & 4 & --- & ${\sim}$100 & \texttimes & \texttimes/\texttimes \\
-Elysium~\cite{elysium2022} & '22 & 7 SWC & +30\textsuperscript{b} & --- & \texttimes & \texttimes/\texttimes \\
-ACFIX~\cite{acfix2024} & '24 & 1 & 94.9 & --- & \texttimes & \texttimes/\texttimes \\
-SCPatcher~\cite{scpatcher2025} & '25 & Gen. & 81.5 & 91 & \texttimes & \texttimes/\texttimes \\
+SCRepair~[5] & '20 & GP & --- & --- & Req\textsuperscript{a} & \texttimes/\texttimes \\
+sGuard~[6] & '21 & 4 & --- & ${\sim}$100 & \texttimes & \texttimes/\texttimes \\
+Elysium~[7] & '22 & 7 SWC & +30\textsuperscript{b} & --- & \texttimes & \texttimes/\texttimes \\
+ACFIX~[8] & '24 & 1 & 94.9 & --- & \texttimes & \texttimes/\texttimes \\
+SCPatcher~[9] & '25 & Gen. & 81.5 & 91 & \texttimes & \texttimes/\texttimes \\
 \textbf{MIESC} & \textbf{'26} & \textbf{10 cats.} & \textbf{70} & \textbf{100} & \checkmark & \checkmark/\checkmark \\
 \bottomrule
 \end{tabular}
@@ -490,11 +480,11 @@ We identify four threats to the validity of our evaluation:
 
 \textbf{Internal validity.} (1)~\emph{LLM non-determinism}: the detection stage can use frontier LLMs, whose outputs may vary across model versions and provider-side updates. The reproducible Paper~1 profile fixes the evaluated artifact and records layer selection, but future API runs may differ. (2)~\emph{Re-scan verification}: vulnerability elimination is measured by re-scanning the patched contract with the same pipeline family that detected the original vulnerability. A false negative on re-scan would inflate the elimination rate. The v2 baseline mitigates this by adding external Slither validation over every patched contract that compiles, reporting clean-HIGH results and residual HIGH findings separately from the MIESC re-scan rather than merging them into a single success metric.
 
-\textbf{External validity.} (3)~\emph{Corpus selection bias}: SmartBugs-curated consists primarily of contracts from 2017--2019 with known vulnerabilities. These contracts are simpler (avg.\ 85 LoC) and more heavily studied than production DeFi protocols (avg.\ 500+ LoC with complex inheritance). Results on production code may differ, particularly for the compilation rate (which depends heavily on dependency availability). (4)~\emph{Vulnerability distribution}: the corpus over-represents reentrancy (31 contracts) and unchecked low-level calls (52 contracts) relative to their frequency in production code. Categories like oracle manipulation, MEV, and flash loan attacks---which dominate real-world exploits~\cite{atzei2017survey}---are absent from SmartBugs.
+\textbf{External validity.} (3)~\emph{Corpus selection bias}: SmartBugs-curated consists primarily of contracts from 2017--2019 with known vulnerabilities. These contracts are simpler (avg.\ 85 LoC) and more heavily studied than production DeFi protocols (avg.\ 500+ LoC with complex inheritance). Results on production code may differ, particularly for the compilation rate (which depends heavily on dependency availability). (4)~\emph{Vulnerability distribution}: the corpus over-represents reentrancy (31 contracts) and unchecked low-level calls (52 contracts) relative to their frequency in production code. Categories like oracle manipulation, MEV, and flash loan attacks---which dominate real-world exploits~[17]---are absent from SmartBugs.
 
 \textbf{Construct validity.} (5)~\emph{Compilation $\neq$ correctness}: a compiling patch is not necessarily semantically correct. The patch could introduce subtle behavioral changes (e.g., a reentrancy guard that blocks legitimate callback patterns). Our no-regression criterion measures only re-scan finding growth under the same pipeline, and the external Slither clean-HIGH metric measures only residual HIGH findings under one independent analyzer; neither proves preservation of all original functional behavior. (6)~\emph{Artifact granularity}: test generation, formal verification, and compliance reporting are evaluated end-to-end on an illustrative contract, while patch quality is measured corpus-wide. We therefore do not claim corpus-wide proof coverage for all generated artifacts.
 
-\textbf{Mitigation strategy.} We address threats (3) and (4) by additionally reporting EVMBench results (120 business-logic vulnerabilities from real audit reports) in our companion paper~\cite{boiero2025miesc}, where MIESC achieves 92.5\% recall on a corpus that includes oracle manipulation, flash loans, and governance attacks.
+\textbf{Mitigation strategy.} We address threats (3) and (4) by additionally reporting EVMBench results (120 business-logic vulnerabilities from real audit reports) in our companion paper~[14], where MIESC achieves 92.5\% recall on a corpus that includes oracle manipulation, flash loans, and governance attacks.
 
 % ===========================================================================
 \section{Conclusion and Future Work}
@@ -516,125 +506,26 @@ MIESC is available under AGPL-3.0 at the project repository (link withheld for d
 
 Acknowledgments are omitted in this version for double-blind review. The authors thank the Ethereum security community and the developers of Foundry, Slither, and OpenZeppelin.
 
-% Generated by IEEEtran.bst, version: 1.14 (2015/08/26)
-\begin{thebibliography}{10}
-\providecommand{\url}[1]{#1}
-\csname url@samestyle\endcsname
-\providecommand{\newblock}{\relax}
-\providecommand{\bibinfo}[2]{#2}
-\providecommand{\BIBentrySTDinterwordspacing}{\spaceskip=0pt\relax}
-\providecommand{\BIBentryALTinterwordstretchfactor}{4}
-\providecommand{\BIBentryALTinterwordspacing}{\spaceskip=\fontdimen2\font plus
-\BIBentryALTinterwordstretchfactor\fontdimen3\font minus
-  \fontdimen4\font\relax}
-\providecommand{\BIBforeignlanguage}[2]{{%
-\expandafter\ifx\csname l@#1\endcsname\relax
-\typeout{** WARNING: IEEEtran.bst: No hyphenation pattern has been}%
-\typeout{** loaded for the language `#1'. Using the pattern for}%
-\typeout{** the default language instead.}%
-\else
-\language=\csname l@#1\endcsname
-\fi
-#2}}
-\providecommand{\BIBdecl}{\relax}
-\BIBdecl
-
-\bibitem{feist2019slither}
-J.~Feist, G.~Grieco, and A.~Groce, ``Slither: A static analysis framework for
-  smart contracts,'' in \emph{2019 IEEE/ACM 2nd International Workshop on
-  Emerging Trends in Software Engineering for Blockchain (WETSEB)}.\hskip 1em
-  plus 0.5em minus 0.4em\relax IEEE, 2019, pp. 8--15.
-
-\bibitem{grieco2020echidna}
-G.~Grieco, W.~Song, A.~Cygan, J.~Feist, and A.~Groce, ``Echidna: Effective,
-  usable, and fast fuzzing for smart contracts,'' in \emph{Proceedings of the
-  29th ACM SIGSOFT International Symposium on Software Testing and Analysis
-  (ISSTA)}.\hskip 1em plus 0.5em minus 0.4em\relax ACM, 2020, pp. 557--560.
-
-\bibitem{mueller2018smashing}
-B.~Mueller, ``Smashing {Ethereum} smart contracts for fun and real profit,'' in
-  \emph{HITB Security Conference}, 2018.
-
-\bibitem{sun2024gptscan}
-Y.~Sun, D.~Wu, Y.~Xue, H.~Liu, H.~Wang, Z.~Xu, X.~Xie, and Y.~Liu, ``{GPTScan}:
-  Detecting logic vulnerabilities in smart contracts by combining {GPT} with
-  program analysis,'' in \emph{Proceedings of the IEEE/ACM 46th International
-  Conference on Software Engineering (ICSE)}.\hskip 1em plus 0.5em minus
-  0.4em\relax ACM, 2024, pp. 1--13.
-
-\bibitem{screpair2020}
-X.~Yu, H.~Zhao, B.~Hou, Z.~Ying, and B.~Shi, ``Smart contract repair,''
-  \emph{ACM Transactions on Software Engineering and Methodology (TOSEM)},
-  vol.~29, no.~4, pp. 1--32, 2020.
-
-\bibitem{nguyen2021sguard}
-T.~D. Nguyen, L.~H. Pham, J.~Sun, Y.~Lin, and Q.~T. Minh, ``{sGuard}: Towards
-  fixing vulnerable smart contracts automatically,'' in \emph{2021 IEEE
-  Symposium on Security and Privacy (SP)}.\hskip 1em plus 0.5em minus
-  0.4em\relax IEEE, 2021, pp. 1349--1367.
-
-\bibitem{elysium2022}
-M.~Rodler, W.~Li, G.~O. Karame, and L.~Davi, ``Elysium: Context-aware
-  bytecode-level patching to automatically heal vulnerable smart contracts,''
-  in \emph{Proceedings of the 31st ACM SIGSOFT International Symposium on
-  Software Testing and Analysis (ISSTA)}.\hskip 1em plus 0.5em minus
-  0.4em\relax ACM, 2022, pp. 742--754.
-
-\bibitem{acfix2024}
-L.~Zhang, K.~Li, K.~Sun, D.~Wu, Y.~Liu, H.~Tian, and Y.~Liu, ``{ACFIX}: Guiding
-  {LLMs} with mined common {RBAC} practices for context-aware repair of access
-  control vulnerabilities in smart contracts,'' \emph{IEEE Transactions on
-  Software Engineering}, vol.~50, no.~7, pp. 1837--1853, 2024.
-
-\bibitem{scpatcher2025}
-S.-L. Li, Y.-T. Chen, and W.-C. Huang, ``{SCPatcher}: Automated smart contract
-  patching via {RAG}-enhanced {LLM},'' \emph{arXiv preprint arXiv:2604.00687},
-  2025.
-
-\bibitem{foundry2025}
-{Paradigm}, ``Foundry: {Ethereum} development toolkit,''
-  \url{https://github.com/foundry-rs/foundry}, 2025.
-
-\bibitem{harvey2020}
-V.~W{\"u}stholz and M.~Christakis, ``Harvey: A greybox fuzzer for smart
-  contracts,'' \url{https://arxiv.org/abs/2005.03350}, 2020.
-
-\bibitem{evmbench2026}
-\BIBentryALTinterwordspacing
-A.~Gupta, V.~Gottimukkala, D.~Robinson, Paradigm, and OpenAI, ``{EVMBench}:
-  Evaluating {AI} agents on smart contract security,'' \emph{arXiv preprint
-  arXiv:2603.04915}, 2026. [Online]. Available:
-  \url{https://github.com/paradigmxyz/evmbench}
-\BIBentrySTDinterwordspacing
-
-\bibitem{smartbugs2023}
-M.~di~Angelo, T.~Durieux, J.~F. Ferreira, and G.~Salzer, ``{SmartBugs} 2.0: An
-  execution framework for weakness detection in {Ethereum} smart contracts,''
-  in \emph{Proceedings of the 38th IEEE/ACM International Conference on
-  Automated Software Engineering (ASE)}.\hskip 1em plus 0.5em minus 0.4em\relax
-  IEEE, 2023, pp. 2102--2105.
-
-\bibitem{boiero2025miesc}
-Anonymous Author(s), ``{MIESC}: Multi-layer intelligent evaluation for smart
-  contracts,'' companion paper under review (citation anonymized for double-blind
-  review).
-
-\bibitem{ferreira2020smartbugs}
-J.~F. Ferreira, P.~Cruz, T.~Durieux, and R.~Abreu, ``{SmartBugs}: A framework
-  to analyze {Solidity} smart contracts,'' in \emph{Proceedings of the 35th
-  IEEE/ACM International Conference on Automated Software Engineering
-  (ASE)}.\hskip 1em plus 0.5em minus 0.4em\relax ACM, 2020, pp. 1349--1352.
-
-\bibitem{halmos2023}
-{a16z crypto}, ``Halmos: Symbolic testing for {EVM} smart contracts,''
-  \url{https://github.com/a16z/halmos}, 2023.
-
-\bibitem{atzei2017survey}
-N.~Atzei, M.~Bartoletti, and T.~Cimoli, ``A survey of attacks on {Ethereum}
-  smart contracts ({SoK}),'' \emph{Proceedings of the 6th International
-  Conference on Principles of Security and Trust (POST)}, pp. 164--186, 2017.
-
-\end{thebibliography}
+\section*{References}
+\begin{enumerate}
+\item J.~Feist, G.~Grieco, and A.~Groce, ``Slither: A static analysis framework for smart contracts,'' in \emph{2019 IEEE/ACM 2nd International Workshop on Emerging Trends in Software Engineering for Blockchain (WETSEB)}. IEEE, 2019, pp. 8--15.
+\item G.~Grieco, W.~Song, A.~Cygan, J.~Feist, and A.~Groce, ``Echidna: Effective, usable, and fast fuzzing for smart contracts,'' in \emph{Proceedings of the 29th ACM SIGSOFT International Symposium on Software Testing and Analysis (ISSTA)}. ACM, 2020, pp. 557--560.
+\item B.~Mueller, ``Smashing {Ethereum} smart contracts for fun and real profit,'' in \emph{HITB Security Conference}, 2018.
+\item Y.~Sun, D.~Wu, Y.~Xue, H.~Liu, H.~Wang, Z.~Xu, X.~Xie, and Y.~Liu, ``{GPTScan}: Detecting logic vulnerabilities in smart contracts by combining {GPT} with program analysis,'' in \emph{Proceedings of the IEEE/ACM 46th International Conference on Software Engineering (ICSE)}. ACM, 2024, pp. 1--13.
+\item X.~Yu, H.~Zhao, B.~Hou, Z.~Ying, and B.~Shi, ``Smart contract repair,'' \emph{ACM Transactions on Software Engineering and Methodology (TOSEM)}, vol.~29, no.~4, pp. 1--32, 2020.
+\item T.~D. Nguyen, L.~H. Pham, J.~Sun, Y.~Lin, and Q.~T. Minh, ``{sGuard}: Towards fixing vulnerable smart contracts automatically,'' in \emph{2021 IEEE Symposium on Security and Privacy (SP)}. IEEE, 2021, pp. 1349--1367.
+\item M.~Rodler, W.~Li, G.~O. Karame, and L.~Davi, ``Elysium: Context-aware bytecode-level patching to automatically heal vulnerable smart contracts,'' in \emph{Proceedings of the 31st ACM SIGSOFT International Symposium on Software Testing and Analysis (ISSTA)}. ACM, 2022, pp. 742--754.
+\item L.~Zhang, K.~Li, K.~Sun, D.~Wu, Y.~Liu, H.~Tian, and Y.~Liu, ``{ACFIX}: Guiding {LLMs} with mined common {RBAC} practices for context-aware repair of access control vulnerabilities in smart contracts,'' \emph{IEEE Transactions on Software Engineering}, vol.~50, no.~7, pp. 1837--1853, 2024.
+\item S.-L. Li, Y.-T. Chen, and W.-C. Huang, ``{SCPatcher}: Automated smart contract patching via {RAG}-enhanced {LLM},'' \emph{arXiv preprint arXiv:2604.00687}, 2025.
+\item {Paradigm}, ``Foundry: {Ethereum} development toolkit,'' \url{https://github.com/foundry-rs/foundry}, 2025.
+\item V.~W{\"u}stholz and M.~Christakis, ``Harvey: A greybox fuzzer for smart contracts,'' \url{https://arxiv.org/abs/2005.03350}, 2020.
+\item A.~Gupta, V.~Gottimukkala, D.~Robinson, Paradigm, and OpenAI, ``{EVMBench}: Evaluating {AI} agents on smart contract security,'' \emph{arXiv preprint arXiv:2603.04915}, 2026. [Online]. Available: \url{https://github.com/paradigmxyz/evmbench}
+\item M.~di~Angelo, T.~Durieux, J.~F. Ferreira, and G.~Salzer, ``{SmartBugs} 2.0: An execution framework for weakness detection in {Ethereum} smart contracts,'' in \emph{Proceedings of the 38th IEEE/ACM International Conference on Automated Software Engineering (ASE)}. IEEE, 2023, pp. 2102--2105.
+\item Anonymous Author(s), ``{MIESC}: Multi-layer intelligent evaluation for smart contracts,'' \emph{arXiv preprint}, 2026.
+\item J.~F. Ferreira, P.~Cruz, T.~Durieux, and R.~Abreu, ``{SmartBugs}: A framework to analyze {Solidity} smart contracts,'' in \emph{Proceedings of the 35th IEEE/ACM International Conference on Automated Software Engineering (ASE)}. ACM, 2020, pp. 1349--1352.
+\item {a16z crypto}, ``Halmos: Symbolic testing for {EVM} smart contracts,'' \url{https://github.com/a16z/halmos}, 2023.
+\item N.~Atzei, M.~Bartoletti, and T.~Cimoli, ``A survey of attacks on {Ethereum} smart contracts ({SoK}),'' \emph{Proceedings of the 6th International Conference on Principles of Security and Trust (POST)}, pp. 164--186, 2017.
+\end{enumerate}
 
 
 \end{document}

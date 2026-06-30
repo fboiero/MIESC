@@ -56,9 +56,9 @@ smart contracts, blockchain security, vulnerability detection, defense-in-depth,
 \section{Introduction}
 % ===========================================================================
 
-Smart contracts govern over \$100 billion in decentralized finance (DeFi) protocols, yet vulnerabilities continue to cause catastrophic losses: the Wormhole bridge exploit (\$320M, 2022), the Euler Finance hack (\$197M, 2023), and the Curve Finance reentrancy attack (\$70M, 2023) underscore the urgency of rigorous security analysis before deployment~\cite{atzei2017survey}.
+Smart contracts govern over \$100 billion in decentralized finance (DeFi) protocols, yet vulnerabilities continue to cause catastrophic losses: the Wormhole bridge exploit (\$320M, 2022), the Euler Finance hack (\$197M, 2023), and the Curve Finance reentrancy attack (\$70M, 2023) underscore the urgency of rigorous security analysis before deployment~[1].
 
-Existing automated tools---Slither~\cite{feist2019slither}, Mythril~\cite{mueller2018smashing}, Echidna~\cite{grieco2020echidna}---each implement a single analysis technique and capture only a subset of vulnerabilities. Durieux et al.~\cite{durieux2020empirical} evaluated 9 tools on 47,587 contracts and found that no single tool achieved both high precision and high recall. In practice, a security researcher preparing a pre-audit report runs 5--10 tools independently, normalizes their heterogeneous outputs by hand, and cross-references findings to filter duplicates---a workflow that takes 4--8 hours per contract and does not scale to the thousands of contracts deployed weekly on Ethereum and its Layer-2 networks.
+Existing automated tools---Slither~[2], Mythril~[3], Echidna~[4]---each implement a single analysis technique and capture only a subset of vulnerabilities. Durieux et al.~[5] evaluated 9 tools on 47,587 contracts and found that no single tool achieved both high precision and high recall. In practice, a security researcher preparing a pre-audit report runs 5--10 tools independently, normalizes their heterogeneous outputs by hand, and cross-references findings to filter duplicates---a workflow that takes 4--8 hours per contract and does not scale to the thousands of contracts deployed weekly on Ethereum and its Layer-2 networks.
 
 We address this gap with MIESC, a framework that:
 \begin{enumerate}
@@ -80,48 +80,36 @@ MIESC is designed as a \emph{pre-audit triage tool}, not a replacement for manua
 
 \subsection{Single-Technique Analysis Tools}
 
-\textbf{Static analysis.} Slither~\cite{feist2019slither} uses intermediate representation (SlithIR) to detect vulnerability patterns with low false positive rates. Aderyn~\cite{aderyn2024} implements Rust-based AST analysis for high performance. Solhint provides Solidity-specific linting rules.
+\textbf{Static analysis.} Slither~[2] uses intermediate representation (SlithIR) to detect vulnerability patterns with low false positive rates. Aderyn~[6] implements Rust-based AST analysis for high performance. Solhint provides Solidity-specific linting rules.
 
-\textbf{Dynamic testing.} Echidna~\cite{grieco2020echidna} performs property-based fuzzing using coverage-guided input generation. Foundry's forge tool combines unit testing with fuzz-based invariant checking. Medusa extends fuzzing with corpus-based strategies.
+\textbf{Dynamic testing.} Echidna~[4] performs property-based fuzzing using coverage-guided input generation. Foundry's forge tool combines unit testing with fuzz-based invariant checking. Medusa extends fuzzing with corpus-based strategies.
 
-\textbf{Symbolic execution.} Mythril~\cite{mueller2018smashing} explores execution paths using SMT solving to find reachable vulnerabilities. Halmos~\cite{halmos2023} enables symbolic testing within the Foundry framework. Manticore~\cite{mossberg2019manticore} combines symbolic execution with concrete execution.
+\textbf{Symbolic execution.} Mythril~[3] explores execution paths using SMT solving to find reachable vulnerabilities. Halmos~[7] enables symbolic testing within the Foundry framework. Manticore~[8] combines symbolic execution with concrete execution.
 
 \textbf{Formal verification.} Certora Prover verifies user-specified properties using SMT-based techniques. SMTChecker is Solidity's built-in formal verification engine.
 
 \subsection{Multi-Tool Frameworks}
 
-SmartBugs~\cite{ferreira2020smartbugs} orchestrates 19 analysis tools with Docker-based execution and SARIF output. It serves primarily as an academic benchmarking framework. SmartBugs 2.0~\cite{smartbugs2023} added parallel execution and improved tool integration.
+SmartBugs~[9] orchestrates 19 analysis tools with Docker-based execution and SARIF output. It serves primarily as an academic benchmarking framework. SmartBugs 2.0~[10] added parallel execution and improved tool integration.
 
 MIESC differs from SmartBugs in three aspects relevant to this evaluation: (1)~it integrates 35 analysis modules (13 external + 22 internal) across 9 layers vs.\ 25 tools, (2)~it adds AI/LLM semantic analysis and RAG-enhanced false-positive filtering, and (3)~it emits operational artifacts such as SARIF, reports, and GitHub Action outputs for CI/CD integration.
 
 \subsection{AI-Enhanced Security Analysis}
 
-GPTScan~\cite{sun2024gptscan} combines GPT-4 with static analysis for logic vulnerability detection, achieving results that complement pattern-based tools. Other recent approaches apply local LLMs for multi-agent auditing (LLMSmartAudit) and RAG-enhanced code analysis (SmartLLM). LLMBugScanner proposes a multi-LLM ensemble specifically for smart contract bugs. EVMBench~\cite{evmbench2026}, curated by OpenAI and Paradigm from 40 Code4rena-derived repositories with 117 curated vulnerabilities, has become a standard benchmark for LLM-based auditing; Cecuro reports 87.7\% recall on this benchmark in its public evaluation~\cite{cecuro2026} (a vendor press release rather than a peer-reviewed result). These tools demonstrate the potential of AI-assisted auditing but operate as standalone analyzers. MIESC combines multi-tool static orchestration \emph{with} a multi-provider LLM ensemble, using their outputs alongside static, dynamic, and symbolic results for cross-validated findings.
+GPTScan~[11] combines GPT-4 with static analysis for logic vulnerability detection, achieving results that complement pattern-based tools. Other recent approaches apply local LLMs for multi-agent auditing (LLMSmartAudit) and RAG-enhanced code analysis (SmartLLM). LLMBugScanner proposes a multi-LLM ensemble specifically for smart contract bugs. EVMBench~[12], curated by OpenAI and Paradigm from 40 Code4rena-derived repositories with 117 curated vulnerabilities, has become a standard benchmark for LLM-based auditing; Cecuro reports 87.7\% recall on this benchmark in its public evaluation~[13] (a vendor press release rather than a peer-reviewed result). These tools demonstrate the potential of AI-assisted auditing but operate as standalone analyzers. MIESC combines multi-tool static orchestration \emph{with} a multi-provider LLM ensemble, using their outputs alongside static, dynamic, and symbolic results for cross-validated findings.
 
 % ===========================================================================
 \section{Architecture}
 % ===========================================================================
 
-MIESC implements a \emph{defense-in-depth} architecture organized into 9 layers, following the principle that multiple independent security mechanisms provide stronger protection than any single mechanism~\cite{saltzer1975protection}. Figure~\ref{fig:arch} illustrates the analysis pipeline; each layer targets complementary vulnerability classes (Table~\ref{tab:layers}).
+MIESC implements a \emph{defense-in-depth} architecture organized into 9 layers, following the principle that multiple independent security mechanisms provide stronger protection than any single mechanism~[14]. Figure~\ref{fig:arch} illustrates the analysis pipeline; each layer targets complementary vulnerability classes (Table~\ref{tab:layers}).
 
 \begin{figure}[htbp]
 \centering
 \footnotesize
 \setlength{\fboxsep}{2pt}
 \setlength{\fboxrule}{0.3pt}
-\begin{tabular}{c}
-\fbox{\textbf{Source code} {\scriptsize (.sol / .cairo / .move / .rs)}} \\[2pt]
-$\downarrow$ \\[1pt]
-\fbox{{\scriptsize \textbf{L1--4}: Slither $\cdot$ Aderyn $\cdot$ Mythril $\cdot$ Halmos $\cdot$ Echidna $\cdot$ Certora}} \\[2pt]
-$\downarrow$ \\[1pt]
-\fbox{{\scriptsize \textbf{L5--6}: Multi-provider LLM ensemble + RAG + Protocol map}} \\[2pt]
-$\downarrow$ \\[1pt]
-\fbox{{\scriptsize \textbf{Intelligence}: Bayesian confidence $\cdot$ Dedup $\cdot$ FP suppression}} \\[2pt]
-$\downarrow$ \\[1pt]
-\fbox{{\scriptsize \textbf{L7--9}: DeFi patterns $\cdot$ Exploit validation $\cdot$ Consensus}} \\[2pt]
-$\downarrow$ \\[1pt]
-\fbox{{\scriptsize \textbf{Output}: Report $\cdot$ SARIF $\cdot$ \texttt{fix} $\cdot$ \texttt{test-gen} $\cdot$ \texttt{verify} $\cdot$ \texttt{compliance}}}
-\end{tabular}
+\includegraphics[width=\linewidth]{figs/fig1-1.png}
 \caption{MIESC pipeline: 9 defense layers with multi-provider LLM ensemble and intelligence engine for cross-tool confidence scoring.}
 \label{fig:arch}
 \end{figure}
@@ -193,7 +181,7 @@ The FP filter employs a multi-signal approach:
 \subsection{Agentic Deep Audit}
 \label{sec:deepaudit}
 
-Beyond batch orchestration, MIESC includes a \emph{DeepAuditAgent} that implements an autonomous 4-phase investigation loop inspired by intelligent agent architectures~\cite{wooldridge1995intelligent}. Agents communicate via a Model Context Protocol (MCP) bus~\cite{mcp2024}, enabling modular coordination:
+Beyond batch orchestration, MIESC includes a \emph{DeepAuditAgent} that implements an autonomous 4-phase investigation loop inspired by intelligent agent architectures~[15]. Agents communicate via a Model Context Protocol (MCP) bus~[16], enabling modular coordination:
 
 \begin{enumerate}
     \item \textbf{Reconnaissance}: Static call graph construction, taint analysis, risk profiling (DeFi, proxy, bridge, token), and attack surface scoring.
@@ -237,7 +225,7 @@ The chain-agnostic orchestration layer and the finding-normalization schema are 
 
 \subsection{Experimental Setup}
 
-We evaluate MIESC on three complementary datasets. First, SmartBugs-curated~\cite{durieux2020empirical} provides 143 Solidity contracts across 10 vulnerability categories and serves as the classical pattern-based benchmark. Second, an 11-case real-exploit corpus evaluates whether MIESC flags the vulnerability class behind confirmed DeFi incidents. Third, EVMBench~\cite{evmbench2026} evaluates semantic business-logic vulnerabilities from Code4rena-derived audits.
+We evaluate MIESC on three complementary datasets. First, SmartBugs-curated~[5] provides 143 Solidity contracts across 10 vulnerability categories and serves as the classical pattern-based benchmark. Second, an 11-case real-exploit corpus evaluates whether MIESC flags the vulnerability class behind confirmed DeFi incidents. Third, EVMBench~[12] evaluates semantic business-logic vulnerabilities from Code4rena-derived audits.
 
 \textbf{Environment}: macOS ARM64 (Apple Silicon), 48GB unified memory. The SmartBugs artifacts reported here were produced with MIESC v5.4.0/v5.4.1 and Python 3.14.4 on 2026-05-06 through 2026-05-09, then consolidated in the Paper~1 v2 evidence freeze on 2026-06-23. EVMBench provider runs use stored MIESC result artifacts; the reproducible ensemble artifact is generated by \texttt{generate\_paper1\_artifacts.py}, which computes a deterministic union over matched \texttt{audit:vulnerability} keys.
 
@@ -265,10 +253,10 @@ SmartCheck\textsuperscript{*} & 4.2\% & 18.9\% & 6.9\% \\
 \end{tabular}
 
 \vspace{2pt}
-\footnotesize{\textsuperscript{*}Baseline from Durieux et al.~\cite{durieux2020empirical}}
+\footnotesize{\textsuperscript{*}Baseline from Durieux et al.~[5]}
 \end{table}
 
-Table~\ref{tab:smartbugs} shows the latest full-corpus reproducible SmartBugs profile stored in the repository as \texttt{paper1\_smartbugs\_eval\_layers\_1\_6\_7.json}. MIESC reaches 95.8\% recall and 35.9\% F1, substantially above the single-tool baselines reported by Durieux et al.~\cite{durieux2020empirical}. This benchmark is useful for classical vulnerability patterns, but it is not the central evidence for business-logic vulnerabilities; that role is played by EVMBench (Section~\ref{sec:evmbench}).
+Table~\ref{tab:smartbugs} shows the latest full-corpus reproducible SmartBugs profile stored in the repository as \texttt{paper1\_smartbugs\_eval\_layers\_1\_6\_7.json}. MIESC reaches 95.8\% recall and 35.9\% F1, substantially above the single-tool baselines reported by Durieux et al.~[5]. This benchmark is useful for classical vulnerability patterns, but it is not the central evidence for business-logic vulnerabilities; that role is played by EVMBench (Section~\ref{sec:evmbench}).
 
 The lower precision (9--23\%) reflects informational findings (pragma version, naming conventions) that inflate the false positive count. For pre-audit triage, recall is the priority: missed vulnerabilities become production exploits costing millions, while false positives are filtered during manual review at negligible cost.
 
@@ -403,9 +391,9 @@ On EVMBench, static-only analysis reaches 18.3\% recall, while LLM providers det
 
 \subsection{Comparison with SmartBugs 2.0}
 
-SmartBugs 2.0~\cite{smartbugs2023} is the closest comparable framework, integrating 25 analysis tools with Docker-based execution. However, SmartBugs focuses on providing a \emph{benchmarking platform} and does not publish detection metrics (precision, recall) on its own curated dataset. The tools it integrates (Mythril, Slither, Securify, Oyente, etc.) are individually benchmarked in Durieux et al.~\cite{durieux2020empirical}, where the best single tool achieves 43.2\% recall (Slither).
+SmartBugs 2.0~[10] is the closest comparable framework, integrating 25 analysis tools with Docker-based execution. However, SmartBugs focuses on providing a \emph{benchmarking platform} and does not publish detection metrics (precision, recall) on its own curated dataset. The tools it integrates (Mythril, Slither, Securify, Oyente, etc.) are individually benchmarked in Durieux et al.~[5], where the best single tool achieves 43.2\% recall (Slither).
 
-A direct recall comparison is not possible because SmartBugs does not publish framework-level detection metrics on the curated dataset. However, the individual tools it integrates achieve at most 43.2\% recall independently~\cite{durieux2020empirical}. MIESC's latest full-corpus SmartBugs profile reaches 95.8\% recall, and its EVMBench ensemble reaches 92.5\% recall on the local high-severity extraction. The differentiator is not tool count alone but (1)~normalization across heterogeneous tool outputs, (2)~cross-tool confidence and false-positive filtering, and (3)~LLM layers that detect vulnerability classes---front running, bad randomness, and business logic---that static analysis structurally struggles to reach.
+A direct recall comparison is not possible because SmartBugs does not publish framework-level detection metrics on the curated dataset. However, the individual tools it integrates achieve at most 43.2\% recall independently~[5]. MIESC's latest full-corpus SmartBugs profile reaches 95.8\% recall, and its EVMBench ensemble reaches 92.5\% recall on the local high-severity extraction. The differentiator is not tool count alone but (1)~normalization across heterogeneous tool outputs, (2)~cross-tool confidence and false-positive filtering, and (3)~LLM layers that detect vulnerability classes---front running, bad randomness, and business logic---that static analysis structurally struggles to reach.
 
 \subsection{False Positive Management}
 
@@ -417,7 +405,7 @@ Two real-world exploits were not detected: the BonqDAO oracle manipulation (\$12
 
 \subsection{Threats to Validity}
 
-\textbf{Internal validity.} The SmartBugs-curated ground truth was established by Durieux et al.~\cite{durieux2020empirical} and may contain labeling errors. Our finding classifier maps MIESC tool outputs to SmartBugs categories using SWC IDs and keyword matching, which may introduce classification errors. EVMBench matching also differs from the official judge protocol: our local extraction uses a multi-signal matcher and stored provider artifacts. We mitigate this by publishing the matcher, provider JSONs, and the deterministic ensemble artifact.
+\textbf{Internal validity.} The SmartBugs-curated ground truth was established by Durieux et al.~[5] and may contain labeling errors. Our finding classifier maps MIESC tool outputs to SmartBugs categories using SWC IDs and keyword matching, which may introduce classification errors. EVMBench matching also differs from the official judge protocol: our local extraction uses a multi-signal matcher and stored provider artifacts. We mitigate this by publishing the matcher, provider JSONs, and the deterministic ensemble artifact.
 
 \textbf{External validity.} The SmartBugs benchmark contains contracts from 2016--2020, which may not represent modern DeFi protocols. We address this with the real-world exploit evaluation (2020--2023 exploits), though the 11-exploit sample is small, and with EVMBench business-logic findings from Code4rena-derived audits. The official EVMBench paper reports 117 curated vulnerabilities, while our local artifact evaluates 120 high-severity findings; this difference is explicitly documented in the reproducibility files.
 
@@ -465,123 +453,28 @@ Acknowledgments are omitted in this version for double-blind review. The authors
 
 \subsection*{Data Availability}
 
-MIESC source code, benchmark scripts, ground truth datasets, and evaluation results are publicly available at the project repository (link withheld for double-blind review) under AGPL-3.0. The SmartBugs-curated dataset is from Durieux et al.~\cite{durieux2020empirical}. The real-world exploit dataset was curated from DeFiHackLabs (\url{https://github.com/SunWeb3Sec/DeFiHackLabs}). Paper-specific reproducibility artifacts are documented in \texttt{PAPER1\_REPRODUCIBILITY.md}, with generated outputs \texttt{paper1\_claims\_matrix.json}, \texttt{evmbench\_static\_40.json}, \texttt{evmbench\_ensemble\_40.json}, and \texttt{paper1\_smartbugs\_local\_ollama\_followup\_20260623.json}.
+MIESC source code, benchmark scripts, ground truth datasets, and evaluation results are publicly available at the project repository (link withheld for double-blind review) under AGPL-3.0. The SmartBugs-curated dataset is from Durieux et al.~[5]. The real-world exploit dataset was curated from DeFiHackLabs (\url{https://github.com/SunWeb3Sec/DeFiHackLabs}). Paper-specific reproducibility artifacts are documented in \texttt{PAPER1\_REPRODUCIBILITY.md}, with generated outputs \texttt{paper1\_claims\_matrix.json}, \texttt{evmbench\_static\_40.json}, \texttt{evmbench\_ensemble\_40.json}, and \texttt{paper1\_smartbugs\_local\_ollama\_followup\_20260623.json}.
 
 % \balance
-% Generated by IEEEtran.bst, version: 1.14 (2015/08/26)
-\begin{thebibliography}{10}
-\providecommand{\url}[1]{#1}
-\csname url@samestyle\endcsname
-\providecommand{\newblock}{\relax}
-\providecommand{\bibinfo}[2]{#2}
-\providecommand{\BIBentrySTDinterwordspacing}{\spaceskip=0pt\relax}
-\providecommand{\BIBentryALTinterwordstretchfactor}{4}
-\providecommand{\BIBentryALTinterwordspacing}{\spaceskip=\fontdimen2\font plus
-\BIBentryALTinterwordstretchfactor\fontdimen3\font minus
-  \fontdimen4\font\relax}
-\providecommand{\BIBforeignlanguage}[2]{{%
-\expandafter\ifx\csname l@#1\endcsname\relax
-\typeout{** WARNING: IEEEtran.bst: No hyphenation pattern has been}%
-\typeout{** loaded for the language `#1'. Using the pattern for}%
-\typeout{** the default language instead.}%
-\else
-\language=\csname l@#1\endcsname
-\fi
-#2}}
-\providecommand{\BIBdecl}{\relax}
-\BIBdecl
-
-\bibitem{atzei2017survey}
-N.~Atzei, M.~Bartoletti, and T.~Cimoli, ``A survey of attacks on {Ethereum}
-  smart contracts ({SoK}),'' \emph{Proceedings of the 6th International
-  Conference on Principles of Security and Trust (POST)}, pp. 164--186, 2017.
-
-\bibitem{feist2019slither}
-J.~Feist, G.~Grieco, and A.~Groce, ``Slither: A static analysis framework for
-  smart contracts,'' in \emph{2019 IEEE/ACM 2nd International Workshop on
-  Emerging Trends in Software Engineering for Blockchain (WETSEB)}.\hskip 1em
-  plus 0.5em minus 0.4em\relax IEEE, 2019, pp. 8--15.
-
-\bibitem{mueller2018smashing}
-B.~Mueller, ``Smashing {Ethereum} smart contracts for fun and real profit,'' in
-  \emph{HITB Security Conference}, 2018.
-
-\bibitem{grieco2020echidna}
-G.~Grieco, W.~Song, A.~Cygan, J.~Feist, and A.~Groce, ``Echidna: Effective,
-  usable, and fast fuzzing for smart contracts,'' in \emph{Proceedings of the
-  29th ACM SIGSOFT International Symposium on Software Testing and Analysis
-  (ISSTA)}.\hskip 1em plus 0.5em minus 0.4em\relax ACM, 2020, pp. 557--560.
-
-\bibitem{durieux2020empirical}
-T.~Durieux, J.~F. Ferreira, R.~Abreu, and P.~Cruz, ``Empirical review of
-  automated analysis tools on 47,587 {Ethereum} smart contracts,'' in
-  \emph{Proceedings of the ACM/IEEE 42nd International Conference on Software
-  Engineering (ICSE)}.\hskip 1em plus 0.5em minus 0.4em\relax ACM, 2020, pp.
-  530--541.
-
-\bibitem{aderyn2024}
-{Cyfrin}, ``Aderyn: Rust-based {Solidity} ast analyzer,''
-  \url{https://github.com/Cyfrin/aderyn}, 2024.
-
-\bibitem{halmos2023}
-{a16z crypto}, ``Halmos: Symbolic testing for {EVM} smart contracts,''
-  \url{https://github.com/a16z/halmos}, 2023.
-
-\bibitem{mossberg2019manticore}
-M.~Mossberg, F.~Manzano, E.~Hennenfent, A.~Groce, G.~Grieco, J.~Feist,
-  T.~Brunson, and A.~Dinaburg, ``Manticore: A user-friendly symbolic execution
-  framework for binaries and smart contracts,'' in \emph{2019 34th IEEE/ACM
-  International Conference on Automated Software Engineering (ASE)}.\hskip 1em
-  plus 0.5em minus 0.4em\relax IEEE, 2019, pp. 1186--1189.
-
-\bibitem{ferreira2020smartbugs}
-J.~F. Ferreira, P.~Cruz, T.~Durieux, and R.~Abreu, ``{SmartBugs}: A framework
-  to analyze {Solidity} smart contracts,'' in \emph{Proceedings of the 35th
-  IEEE/ACM International Conference on Automated Software Engineering
-  (ASE)}.\hskip 1em plus 0.5em minus 0.4em\relax ACM, 2020, pp. 1349--1352.
-
-\bibitem{smartbugs2023}
-M.~di~Angelo, T.~Durieux, J.~F. Ferreira, and G.~Salzer, ``{SmartBugs} 2.0: An
-  execution framework for weakness detection in {Ethereum} smart contracts,''
-  in \emph{Proceedings of the 38th IEEE/ACM International Conference on
-  Automated Software Engineering (ASE)}.\hskip 1em plus 0.5em minus 0.4em\relax
-  IEEE, 2023, pp. 2102--2105.
-
-\bibitem{sun2024gptscan}
-Y.~Sun, D.~Wu, Y.~Xue, H.~Liu, H.~Wang, Z.~Xu, X.~Xie, and Y.~Liu, ``{GPTScan}:
-  Detecting logic vulnerabilities in smart contracts by combining {GPT} with
-  program analysis,'' in \emph{Proceedings of the IEEE/ACM 46th International
-  Conference on Software Engineering (ICSE)}.\hskip 1em plus 0.5em minus
-  0.4em\relax ACM, 2024, pp. 1--13.
-
-\bibitem{evmbench2026}
-\BIBentryALTinterwordspacing
-A.~Gupta, V.~Gottimukkala, D.~Robinson, Paradigm, and OpenAI, ``{EVMBench}:
-  Evaluating {AI} agents on smart contract security,'' \emph{arXiv preprint
-  arXiv:2603.04915}, 2026. [Online]. Available:
-  \url{https://github.com/paradigmxyz/evmbench}
-\BIBentrySTDinterwordspacing
-
-\bibitem{cecuro2026}
-{Cecuro}, ``{AI} audit firm cecuro outperforms nearest rival by 2x on {OpenAI}
-  smart contract exploit benchmark,''
-  \url{https://chainwire.org/2026/04/16/ai-audit-firm-cecuro-outperforms-nearest-rival-by-2x-on-openai-smart-contract-exploit-benchmark/},
-  2026, press release; vendor-reported result, not a peer-reviewed evaluation.
-
-\bibitem{saltzer1975protection}
-J.~H. Saltzer and M.~D. Schroeder, ``The protection of information in computer
-  systems,'' \emph{Proceedings of the IEEE}, vol.~63, no.~9, pp. 1278--1308,
-  1975.
-
-\bibitem{wooldridge1995intelligent}
-M.~Wooldridge and N.~R. Jennings, ``Intelligent agents: Theory and practice,''
-  \emph{The Knowledge Engineering Review}, vol.~10, no.~2, pp. 115--152, 1995.
-
-\bibitem{mcp2024}
-{Anthropic}, ``Model context protocol specification,''
-  \url{https://modelcontextprotocol.io}, 2024.
-
-\end{thebibliography}
+\section*{References}
+\begin{enumerate}
+\item N.~Atzei, M.~Bartoletti, and T.~Cimoli, ``A survey of attacks on {Ethereum} smart contracts ({SoK}),'' \emph{Proceedings of the 6th International Conference on Principles of Security and Trust (POST)}, pp. 164--186, 2017.
+\item J.~Feist, G.~Grieco, and A.~Groce, ``Slither: A static analysis framework for smart contracts,'' in \emph{2019 IEEE/ACM 2nd International Workshop on Emerging Trends in Software Engineering for Blockchain (WETSEB)}. IEEE, 2019, pp. 8--15.
+\item B.~Mueller, ``Smashing {Ethereum} smart contracts for fun and real profit,'' in \emph{HITB Security Conference}, 2018.
+\item G.~Grieco, W.~Song, A.~Cygan, J.~Feist, and A.~Groce, ``Echidna: Effective, usable, and fast fuzzing for smart contracts,'' in \emph{Proceedings of the 29th ACM SIGSOFT International Symposium on Software Testing and Analysis (ISSTA)}. ACM, 2020, pp. 557--560.
+\item T.~Durieux, J.~F. Ferreira, R.~Abreu, and P.~Cruz, ``Empirical review of automated analysis tools on 47,587 {Ethereum} smart contracts,'' in \emph{Proceedings of the ACM/IEEE 42nd International Conference on Software Engineering (ICSE)}. ACM, 2020, pp. 530--541.
+\item {Cyfrin}, ``Aderyn: Rust-based {Solidity} ast analyzer,'' \url{https://github.com/Cyfrin/aderyn}, 2024.
+\item {a16z crypto}, ``Halmos: Symbolic testing for {EVM} smart contracts,'' \url{https://github.com/a16z/halmos}, 2023.
+\item M.~Mossberg, F.~Manzano, E.~Hennenfent, A.~Groce, G.~Grieco, J.~Feist, T.~Brunson, and A.~Dinaburg, ``Manticore: A user-friendly symbolic execution framework for binaries and smart contracts,'' in \emph{2019 34th IEEE/ACM International Conference on Automated Software Engineering (ASE)}. IEEE, 2019, pp. 1186--1189.
+\item J.~F. Ferreira, P.~Cruz, T.~Durieux, and R.~Abreu, ``{SmartBugs}: A framework to analyze {Solidity} smart contracts,'' in \emph{Proceedings of the 35th IEEE/ACM International Conference on Automated Software Engineering (ASE)}. ACM, 2020, pp. 1349--1352.
+\item M.~di~Angelo, T.~Durieux, J.~F. Ferreira, and G.~Salzer, ``{SmartBugs} 2.0: An execution framework for weakness detection in {Ethereum} smart contracts,'' in \emph{Proceedings of the 38th IEEE/ACM International Conference on Automated Software Engineering (ASE)}. IEEE, 2023, pp. 2102--2105.
+\item Y.~Sun, D.~Wu, Y.~Xue, H.~Liu, H.~Wang, Z.~Xu, X.~Xie, and Y.~Liu, ``{GPTScan}: Detecting logic vulnerabilities in smart contracts by combining {GPT} with program analysis,'' in \emph{Proceedings of the IEEE/ACM 46th International Conference on Software Engineering (ICSE)}. ACM, 2024, pp. 1--13.
+\item A.~Gupta, V.~Gottimukkala, D.~Robinson, Paradigm, and OpenAI, ``{EVMBench}: Evaluating {AI} agents on smart contract security,'' \emph{arXiv preprint arXiv:2603.04915}, 2026. [Online]. Available: \url{https://github.com/paradigmxyz/evmbench}
+\item {Cecuro}, ``{AI} audit firm cecuro outperforms nearest rival by 2x on {OpenAI} smart contract exploit benchmark,'' \url{https://chainwire.org/2026/04/16/ai-audit-firm-cecuro-outperforms-nearest-rival-by-2x-on-openai-smart-contract-exploit-benchmark/}, 2026, press release; vendor-reported result, not a peer-reviewed evaluation.
+\item J.~H. Saltzer and M.~D. Schroeder, ``The protection of information in computer systems,'' \emph{Proceedings of the IEEE}, vol.~63, no.~9, pp. 1278--1308, 1975.
+\item M.~Wooldridge and N.~R. Jennings, ``Intelligent agents: Theory and practice,'' \emph{The Knowledge Engineering Review}, vol.~10, no.~2, pp. 115--152, 1995.
+\item {Anthropic}, ``Model context protocol specification,'' \url{https://modelcontextprotocol.io}, 2024.
+\end{enumerate}
 
 
 \end{document}
