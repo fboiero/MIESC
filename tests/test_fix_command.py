@@ -515,6 +515,40 @@ contract SimpleDAO {
         )
         assert "require(res);" in patched
 
+    def test_reentrancy_legacy_bool_call_value_moves_zeroing_after_require_before_call(self):
+        source = """\
+pragma solidity ^0.4.24;
+
+contract ReentrancyCrossFunction {
+    mapping (address => uint) private userBalances;
+
+    function withdrawBalance() public {
+        uint amountToWithdraw = userBalances[msg.sender];
+        (bool success, ) = msg.sender.call.value(amountToWithdraw)("");
+        require(success);
+        userBalances[msg.sender] = 0;
+    }
+}
+"""
+        finding = {
+            "type": "reentrancy",
+            "function": "withdrawBalance",
+            "fix_code": "add nonReentrant",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert changed
+        assert "(bool success, )" not in patched
+        assert "MIESC: checks-effects-interactions for legacy call.value" in patched
+        assert patched.index("userBalances[msg.sender] = 0;") < patched.index(
+            'bool success = msg.sender.call.value(amountToWithdraw)("");'
+        )
+        assert patched.index('bool success = msg.sender.call.value(amountToWithdraw)("");') < (
+            patched.index("require(success);")
+        )
+        assert patched.count("userBalances[msg.sender] = 0;") == 1
+
     def test_reentrancy_legacy_naked_call_value_moves_zeroing_before_call(self):
         source = """\
 pragma solidity ^0.4.19;
