@@ -55,7 +55,7 @@ class MCPToolParameter:
 
     def to_json_schema(self) -> Dict[str, Any]:
         """Convert to JSON Schema format."""
-        schema = {
+        schema: Dict[str, Any] = {
             "type": self.type,
             "description": self.description,
         }

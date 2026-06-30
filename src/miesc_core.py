@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Optional
 """
 MIESC Core - Compatibility shim for legacy imports.
 
@@ -33,7 +33,7 @@ class MIESCCore:
         self.orchestrator = OptimizedOrchestrator()
         self.config = config or {}
 
-    def analyze(self, contract_path: str, tools: list = None) -> dict:
+    def analyze(self, contract_path: str, tools: Optional[list] = None) -> dict:
         """
         Analyze a smart contract.
 
@@ -80,7 +80,7 @@ class MIESCCore:
         except Exception as e:
             return {"findings": [], "metadata": {"error": str(e)}, "success": False}
 
-    def scan(self, contract_path: str, tools: list = None) -> dict:
+    def scan(self, contract_path: str, tools: Optional[list] = None) -> dict:
         """Alias for analyze() for backwards compatibility."""
         return self.analyze(contract_path, tools=tools)
 

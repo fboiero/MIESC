@@ -172,7 +172,8 @@ def match_benign(finding: dict[str, Any], code: str, patterns: list[dict[str, An
         return has("BENIGN-CONSTRUCTOR-MODERN")
 
     # --- Scope-dependent patterns need the enclosing function ---
-    loc = finding.get("location") if isinstance(finding.get("location"), dict) else {}
+    _loc = finding.get("location")
+    loc = _loc if isinstance(_loc, dict) else {}
     fn = finding.get("function") or loc.get("function") or ""
     line = loc.get("line")
     if fn and fn not in ("unknown", ""):
@@ -319,7 +320,8 @@ class BenignContextVerifier:
         if benign is not None:
             # contextual mitigations (guards) only FLAG; type-deterministic patterns drop
             return "needs_review" if benign["id"] in _CONTEXTUAL_BENIGN else "false_positive"
-        loc = finding.get("location") if isinstance(finding.get("location"), dict) else {}
+        _loc = finding.get("location")
+        loc = _loc if isinstance(_loc, dict) else {}
         fn = finding.get("function") or loc.get("function") or ""
         if fn and fn not in ("unknown", "") and _extract_function(code, fn) == "":
             return "needs_review"  # cited function absent -> flag, do not drop

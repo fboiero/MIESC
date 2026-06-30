@@ -200,7 +200,7 @@ class MIESCRichCLI:
                 task_name = task["name"]
                 task_id = task_ids[task_name]
 
-                def update_progress(completed: float, description: str = None, _tid: Any = task_id) -> None:
+                def update_progress(completed: float, description: Optional[str] = None, _tid: Any = task_id) -> None:
                     progress.update(_tid, completed=completed)
                     if description:
                         progress.update(_tid, description=description)
@@ -464,7 +464,7 @@ class MIESCRichCLI:
             return "sarif"
 
     def show_completion(
-        self, duration: float, findings_count: int, output_path: str = None
+        self, duration: float, findings_count: int, output_path: Optional[str] = None
     ) -> None:
         """Show audit completion message."""
         content = Table(show_header=False, box=None)

@@ -649,7 +649,7 @@ class SmartCorrelationEngine:
                     method_counts[m] += 1
 
             if method_counts:
-                correlation_method = max(method_counts, key=method_counts.get)
+                correlation_method = max(method_counts, key=lambda k: method_counts[k])
             else:
                 correlation_method = CorrelationMethod.SEMANTIC
         else:
@@ -877,7 +877,7 @@ class SmartCorrelationEngine:
             file_path = finding["location"].get("file", "")
 
             # Señales positivas (probable TP)
-            positive_signals = 0
+            positive_signals = 0.0
 
             # Patrones peligrosos en el snippet
             dangerous_patterns = [
@@ -891,7 +891,7 @@ class SmartCorrelationEngine:
                     positive_signals += 0.15
 
             # Señales negativas (probable FP)
-            negative_signals = 0
+            negative_signals = 0.0
 
             # Archivos de test
             if re.search(r"test[s]?[/\\]|\.t\.sol$|Test\.sol$|Mock", file_path, re.I):
