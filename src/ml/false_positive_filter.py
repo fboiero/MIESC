@@ -399,7 +399,7 @@ class FalsePositiveFilter:
 
     # v2.1: Context-aware FP patterns
     # These require code context analysis to determine if FP
-    CONTEXT_AWARE_FP_PATTERNS = {
+    CONTEXT_AWARE_FP_PATTERNS: Dict[str, Dict[str, Any]] = {
         # incorrect-equality: FP when comparing enums, hashes, or existence checks
         "incorrect-equality": {
             "base_fp": 0.40,
@@ -1191,7 +1191,7 @@ class SemanticContextAnalyzer:
         vuln_type = finding.get("type", "").lower()
         context = function_code or source_code
 
-        analysis = {
+        analysis: Dict[str, Any] = {
             "confidence_adjustment": 0.0,
             "reasons": [],
             "guards_detected": [],
