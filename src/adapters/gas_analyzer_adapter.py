@@ -39,7 +39,7 @@ class GasAnalyzerAdapter(ToolAdapter):
     """
 
     # Patrones de anti-patrones de gas
-    GAS_PATTERNS = {
+    GAS_PATTERNS: Dict[str, Dict[str, Any]] = {
         # SLOAD innecesario en loop
         "sload_in_loop": {
             "regex": r"for\s*\([^)]*\)\s*{[^}]*\b(\w+)\[",

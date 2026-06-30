@@ -7,7 +7,7 @@ from logs to prevent credential leakage and data exposure.
 
 import logging
 import re
-from typing import List, Optional, Tuple
+from typing import List, Literal, Optional, Tuple, cast
 
 
 class SecureFormatter(logging.Formatter):
@@ -102,7 +102,7 @@ class SecureFormatter(logging.Formatter):
             redact_ips: Whether to redact IP addresses (default: False)
             custom_patterns: Additional patterns to redact [(pattern, replacement), ...]
         """
-        super().__init__(fmt=fmt, datefmt=datefmt, style=style)
+        super().__init__(fmt=fmt, datefmt=datefmt, style=cast(Literal["%", "{", "$"], style))
 
         # Copy default patterns
         self.patterns = self.SENSITIVE_PATTERNS.copy()

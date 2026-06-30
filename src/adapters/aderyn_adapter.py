@@ -243,7 +243,9 @@ class AderynAdapter(ToolAdapter):
                 external_imports = self._detect_imports(contract_path)
                 if external_imports:
                     logger.info(f"Detected external imports: {external_imports}")
-                    # Set up workspace with dependencies (reuse temp_workspace)
+                    # Set up workspace with dependencies (reuse temp_workspace).
+                    # temp_workspace is non-None here: set via mkdtemp in the is_file() branch above.
+                    assert temp_workspace is not None
                     self._install_deps_in_workspace(temp_workspace, contract_path, external_imports)
 
             # Build command - always analyze the directory, not a single file

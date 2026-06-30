@@ -547,7 +547,7 @@ class SemgrepAdapter(ToolAdapter):
                 rules_yaml["rules"].append(rule)
 
             # Write to temp file
-            import yaml
+            import yaml  # type: ignore[import-untyped]
 
             fd, path = tempfile.mkstemp(suffix=".yaml", prefix="semgrep_miesc_")
             with open(path, "w") as f:

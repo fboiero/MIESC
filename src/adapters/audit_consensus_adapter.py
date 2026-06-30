@@ -178,7 +178,7 @@ class AuditConsensusAdapter(ToolAdapter):
                     continue
 
                 vuln_type = self._normalize_vuln_type(
-                    finding.get("type", finding.get("check", "unknown"))
+                    finding.get("type") or finding.get("check") or "unknown"
                 )
                 file_path = finding.get("location", {}).get("file", "")
                 line = finding.get("location", {}).get("line", 0)
