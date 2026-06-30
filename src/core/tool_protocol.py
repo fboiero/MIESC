@@ -631,7 +631,7 @@ class ToolRegistry:
 
         Useful for diagnostics and installation verification.
         """
-        report = {
+        report: Dict[str, Any] = {
             "total_tools": len(self._tools),
             "available": 0,
             "not_installed": 0,
