@@ -50,7 +50,7 @@ SOURCE_TIER_WEIGHTS = {
 }
 
 
-def _get_chromadb():
+def _get_chromadb() -> Any:
     """Lazy import for chromadb."""
     global _chromadb
     if _chromadb is None:
@@ -65,7 +65,7 @@ def _get_chromadb():
     return _chromadb
 
 
-def _get_sentence_transformer():
+def _get_sentence_transformer() -> Any:
     """Lazy import for sentence-transformers."""
     global _sentence_transformers
     if _sentence_transformers is None:
@@ -4484,9 +4484,9 @@ class EmbeddingRAG:
         self.persist_dir.mkdir(parents=True, exist_ok=True)
 
         # Lazy-loaded components
-        self._embedder = None
-        self._client = None
-        self._collection = None
+        self._embedder: Any = None
+        self._client: Any = None
+        self._collection: Any = None
         self._initialized = False
 
         # O(1) document lookup index (built on first access)
@@ -4940,7 +4940,7 @@ class EmbeddingRAG:
         n = n_results or self.top_k
 
         # Deduplicate queries while preserving order mapping
-        unique_queries = []
+        unique_queries: List[Any] = []
         query_to_index: Dict[str, int] = {}
         original_to_unique: List[int] = []
 
@@ -5215,8 +5215,8 @@ class HybridRAG(EmbeddingRAG):
         """
         super().__init__(persist_directory, embedding_model, top_k)
         self.embedding_weight = embedding_weight
-        self._bm25 = None
-        self._corpus = None
+        self._bm25: Any = None
+        self._corpus: Any = None
 
     def _ensure_initialized(self) -> None:
         """Initialize both embedding and BM25 indexes."""
@@ -5437,8 +5437,8 @@ def batch_get_context_for_findings(
             type_to_context[vuln_type] = "No similar vulnerabilities found in knowledge base."
         else:
             context_parts = ["## Similar Known Vulnerabilities\n"]
-            for result in results[:3]:  # Limit to top 3 for brevity
-                context_parts.append(result.to_context())
+            for res in results[:3]:  # Limit to top 3 for brevity
+                context_parts.append(res.to_context())
                 context_parts.append("\n---\n")
             type_to_context[vuln_type] = "".join(context_parts)
 
