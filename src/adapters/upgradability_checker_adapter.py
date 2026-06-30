@@ -74,7 +74,7 @@ PROXY_PATTERNS = {
     ],
 }
 
-UPGRADABILITY_VULNERABILITIES = {
+UPGRADABILITY_VULNERABILITIES: Dict[str, Dict[str, Any]] = {
     "storage_collision": {
         "severity": "Critical",
         "confidence": 0.88,
@@ -263,11 +263,11 @@ class UpgradabilityCheckerAdapter(ToolAdapter):
         # Deduplicate
         seen = set()
         deduped = []
-        for f in raw_findings:
-            key = f"{f['type']}:{f.get('line', 0)}"
+        for finding in raw_findings:
+            key = f"{finding['type']}:{finding.get('line', 0)}"
             if key not in seen:
                 seen.add(key)
-                deduped.append(f)
+                deduped.append(finding)
 
         findings = self.normalize_findings(deduped)
 
@@ -511,9 +511,10 @@ class UpgradabilityCheckerAdapter(ToolAdapter):
             if not isinstance(item, dict):
                 continue
 
-            vuln_key = item.get("vuln_key", item.get("type", "unknown"))
-            vuln_config = UPGRADABILITY_VULNERABILITIES.get(
-                vuln_key, UPGRADABILITY_VULNERABILITIES.get("storage_collision")
+            vuln_key = item.get("vuln_key") or item.get("type") or "unknown"
+            vuln_config = (
+                UPGRADABILITY_VULNERABILITIES.get(vuln_key)
+                or UPGRADABILITY_VULNERABILITIES["storage_collision"]
             )
 
             finding_id = hashlib.md5(
