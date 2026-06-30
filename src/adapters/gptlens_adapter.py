@@ -35,7 +35,7 @@ import time
 import urllib.error
 import urllib.request
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import cast, Any, Dict, List, Optional, Tuple
 
 from src.adapters._cache_mixin import LLMCacheMixin
 from src.adapters._ollama_mixin import OllamaCallMixin
@@ -271,7 +271,7 @@ class GPTLensAdapter(OllamaCallMixin, LLMCacheMixin, ToolAdapter):
         self,
         auditor_model: str = DEFAULT_AUDITOR_MODEL,
         critic_model: str = DEFAULT_CRITIC_MODEL,
-        ollama_url: str = None,
+        ollama_url: Optional[str] = None,
     ):
         """
         Initialize GPTLens adapter.
@@ -411,7 +411,7 @@ class GPTLensAdapter(OllamaCallMixin, LLMCacheMixin, ToolAdapter):
             logger.error("GPTLens: Error checking Ollama availability: %s", e)
             return ToolStatus.CONFIGURATION_ERROR
 
-    def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
+    def analyze(self, contract_path: str, **kwargs: Any) -> Dict[str, Any]:
         """
         Execute GPTLens dual-role analysis on a Solidity contract.
 
@@ -642,7 +642,7 @@ class GPTLensAdapter(OllamaCallMixin, LLMCacheMixin, ToolAdapter):
             List of normalized finding dictionaries
         """
         if isinstance(raw_output, dict):
-            return raw_output.get("findings", [])
+            return cast(List[Dict[str, Any]], raw_output.get("findings", []))
         return []
 
     def can_analyze(self, contract_path: str) -> bool:
@@ -816,7 +816,7 @@ class GPTLensAdapter(OllamaCallMixin, LLMCacheMixin, ToolAdapter):
                 if keyword.lower() in combined_text:
                     return vuln_type
 
-        return raw.get("type", "logic_error")
+        return cast(str, raw.get("type", "logic_error"))
 
     def _normalize_severity(self, severity: str) -> str:
         """
@@ -1199,7 +1199,7 @@ class GPTLensAdapter(OllamaCallMixin, LLMCacheMixin, ToolAdapter):
         json_block = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", response, re.DOTALL)
         if json_block:
             try:
-                return json.loads(json_block.group(1))
+                return cast(Optional[Dict[Any, Any]], json.loads(json_block.group(1)))
             except json.JSONDecodeError:
                 pass
 
@@ -1215,7 +1215,7 @@ class GPTLensAdapter(OllamaCallMixin, LLMCacheMixin, ToolAdapter):
                     depth -= 1
                     if depth == 0:
                         try:
-                            return json.loads(response[start : start + i + 1])
+                            return cast(Optional[Dict[Any, Any]], json.loads(response[start : start + i + 1]))
                         except json.JSONDecodeError:
                             break
 
@@ -1225,7 +1225,7 @@ class GPTLensAdapter(OllamaCallMixin, LLMCacheMixin, ToolAdapter):
         if json_start != -1 and json_end > json_start:
             json_str = response[json_start:json_end]
             try:
-                return json.loads(json_str)
+                return cast(Optional[Dict[Any, Any]], json.loads(json_str))
             except json.JSONDecodeError:
                 pass
 
@@ -1233,7 +1233,7 @@ class GPTLensAdapter(OllamaCallMixin, LLMCacheMixin, ToolAdapter):
             repaired = self._repair_json(json_str)
             if repaired:
                 try:
-                    return json.loads(repaired)
+                    return cast(Optional[Dict[Any, Any]], json.loads(repaired))
                 except json.JSONDecodeError:
                     pass
 
@@ -2030,7 +2030,7 @@ class GPTLensAdapter(OllamaCallMixin, LLMCacheMixin, ToolAdapter):
         before = code[:position]
         match = re.findall(r"function\s+(\w+)", before)
         if match:
-            return match[-1]
+            return cast(str, match[-1])
         return ""
 
     def _read_contract(self, contract_path: str) -> Optional[str]:
