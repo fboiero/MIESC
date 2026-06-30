@@ -125,7 +125,7 @@ class TestAIAuditAssistant:
         )
 
         mock_openai = MagicMock()
-        mock_openai.ChatCompletion.create.return_value = mock_response
+        mock_openai.OpenAI.return_value.chat.completions.create.return_value = mock_response
 
         with patch.dict(sys.modules, {"openai": mock_openai}):
             from src.utils.ai_assistant import AIAuditAssistant
@@ -140,7 +140,7 @@ class TestAIAuditAssistant:
     def test_classify_finding_api_error(self, mock_openai_env, sample_finding):
         """Test classification handles API errors gracefully."""
         mock_openai = MagicMock()
-        mock_openai.ChatCompletion.create.side_effect = Exception("API Error")
+        mock_openai.OpenAI.return_value.chat.completions.create.side_effect = Exception("API Error")
 
         with patch.dict(sys.modules, {"openai": mock_openai}):
             from src.utils.ai_assistant import AIAuditAssistant
@@ -253,7 +253,7 @@ class TestAIAssistantMain:
         )
 
         mock_openai = MagicMock()
-        mock_openai.ChatCompletion.create.return_value = mock_response
+        mock_openai.OpenAI.return_value.chat.completions.create.return_value = mock_response
 
         # Mock sys.argv
         test_args = [
@@ -305,7 +305,7 @@ class TestAIAssistantMain:
         )
 
         mock_openai = MagicMock()
-        mock_openai.ChatCompletion.create.return_value = mock_response
+        mock_openai.OpenAI.return_value.chat.completions.create.return_value = mock_response
 
         # Use default output path
         test_args = ["ai_assistant.py", "--findings", str(temp_findings_file)]
