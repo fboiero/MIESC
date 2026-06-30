@@ -805,7 +805,7 @@ class ReentrancyDetector:
 
         return findings
 
-    def _find_external_calling_modifiers(self, lines: List[str]) -> Dict[str, Dict[str, object]]:
+    def _find_external_calling_modifiers(self, lines: List[str]) -> Dict[str, Dict[str, Any]]:
         """Return modifiers that perform an external call before `_` executes."""
         dangerous = {}
         in_modifier = False
@@ -841,7 +841,7 @@ class ReentrancyDetector:
 
     def _modifier_external_call_before_placeholder(
         self, modifier_lines: List
-    ) -> Optional[Dict[str, object]]:
+    ) -> Optional[Dict[str, Any]]:
         """Find an external call before the modifier's `_` continuation point."""
         for line_num, line in modifier_lines:
             stripped = line.strip()
@@ -854,7 +854,7 @@ class ReentrancyDetector:
                     return {"line": line_num, "code": stripped}
         return None
 
-    def _find_external_calling_functions(self, lines: List[str]) -> Dict[str, Dict[str, object]]:
+    def _find_external_calling_functions(self, lines: List[str]) -> Dict[str, Dict[str, Any]]:
         """Return functions that can perform an external value/control transfer."""
         functions = {}
         in_function = False
@@ -888,7 +888,7 @@ class ReentrancyDetector:
 
         return functions
 
-    def _first_relevant_external_call(self, function_lines: List) -> Optional[Dict[str, object]]:
+    def _first_relevant_external_call(self, function_lines: List) -> Optional[Dict[str, Any]]:
         """Find the first external call in a function body."""
         for line_num, line in function_lines:
             stripped = line.strip()
@@ -905,8 +905,8 @@ class ReentrancyDetector:
         self,
         function_lines: List,
         findings: List,
-        dangerous_modifiers: Dict[str, Dict[str, object]],
-        external_calling_functions: Dict[str, Dict[str, object]],
+        dangerous_modifiers: Dict[str, Dict[str, Any]],
+        external_calling_functions: Dict[str, Dict[str, Any]],
     ) -> None:
         """Analyze a function for reentrancy patterns."""
         external_call_line = None
@@ -1234,7 +1234,7 @@ class AccessControlDetector:
         )
         return re.sub(r"//.*", "", without_blocks)
 
-    def _extract_functions(self, source_code: str) -> List[Dict[str, object]]:
+    def _extract_functions(self, source_code: str) -> List[Dict[str, Any]]:
         """Extract Solidity function-like blocks with line numbers."""
         functions = []
         function_pattern = re.compile(r"\bfunction\s+(\w*)\s*\([^)]*\)|\bconstructor\s*\([^)]*\)")
@@ -1268,7 +1268,7 @@ class AccessControlDetector:
             )
         return functions
 
-    def _is_public_entrypoint(self, function: Dict[str, object]) -> bool:
+    def _is_public_entrypoint(self, function: Dict[str, Any]) -> bool:
         """Return whether a function can be called externally."""
         header = str(function["header"])
         if re.search(r"\b(?:private|internal)\b", header):
@@ -1278,12 +1278,12 @@ class AccessControlDetector:
             or re.match(r"\s*function\s+\w*\s*\(", header)
         )
 
-    def _is_protected(self, function: Dict[str, object]) -> bool:
+    def _is_protected(self, function: Dict[str, Any]) -> bool:
         """Check access-control only inside the function signature/body."""
         context = str(function["text"])
         return any(re.search(pattern, context, re.I) for pattern in self.ACCESS_CONTROL_PATTERNS)
 
-    def _has_arbitrary_array_write(self, function: Dict[str, object], source_code: str) -> bool:
+    def _has_arbitrary_array_write(self, function: Dict[str, Any], source_code: str) -> bool:
         """Detect public writes to storage arrays through caller-controlled indexes."""
         text = str(function["text"])
         header = str(function["header"])

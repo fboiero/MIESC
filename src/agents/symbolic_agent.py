@@ -137,7 +137,7 @@ class SymbolicAgent(BaseAgent):
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
 
             # Parse JSON output
-            vulnerabilities = []
+            vulnerabilities: List[Dict[str, Any]] = []
             try:
                 data = json.loads(result.stdout) if result.stdout else {}
 
@@ -204,7 +204,7 @@ class SymbolicAgent(BaseAgent):
 
             # Parse output with enhanced extraction
             output = result.stdout if result.stdout else result.stderr
-            vulnerabilities = []
+            vulnerabilities: List[Dict[str, Any]] = []
             exploits = []
             paths_explored = 0
             states_explored = 0
