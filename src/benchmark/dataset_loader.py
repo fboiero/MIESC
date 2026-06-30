@@ -15,7 +15,7 @@ import re
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set
 
 
 class VulnerabilityCategory(Enum):
@@ -368,7 +368,7 @@ class DatasetLoader:
 
     def get_statistics(self) -> Dict:
         """Get dataset statistics."""
-        stats = {
+        stats: Dict[str, Any] = {
             "total_contracts": len(self._contracts),
             "total_vulnerabilities": sum(c.total_vuln_count for c in self._contracts),
             "by_category": {},
