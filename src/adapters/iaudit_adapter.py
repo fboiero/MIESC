@@ -36,7 +36,7 @@ import time
 import urllib.error
 import urllib.request
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import cast, Any, Dict, List, Optional, Tuple
 
 from src.adapters._cache_mixin import LLMCacheMixin
 from src.adapters._ollama_mixin import OllamaCallMixin
@@ -319,7 +319,7 @@ class IAuditAdapter(OllamaCallMixin, LLMCacheMixin, ToolAdapter):
 
     def __init__(
         self,
-        ollama_url: str = None,
+        ollama_url: Optional[str] = None,
         model: Optional[str] = None,
         planner_timeout: int = DEFAULT_PLANNER_TIMEOUT,
         detector_timeout: int = DEFAULT_DETECTOR_TIMEOUT,
@@ -449,7 +449,7 @@ class IAuditAdapter(OllamaCallMixin, LLMCacheMixin, ToolAdapter):
             logger.error(f"iAudit: Error checking Ollama availability: {e}")
             return self._check_ollama_cli()
 
-    def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
+    def analyze(self, contract_path: str, **kwargs: Any) -> Dict[str, Any]:
         """
         Analyze a Solidity smart contract using the multi-agent pipeline.
 
@@ -605,7 +605,7 @@ class IAuditAdapter(OllamaCallMixin, LLMCacheMixin, ToolAdapter):
         contract_code: str,
         contract_path: str,
         start_time: float,
-        **kwargs,
+        **kwargs: Any,
     ) -> Dict[str, Any]:
         """
         Execute the full Planner -> Detector -> Reviewer pipeline.
@@ -971,7 +971,7 @@ class IAuditAdapter(OllamaCallMixin, LLMCacheMixin, ToolAdapter):
                 for name in model_names:
                     if keyword in name:
                         logger.info(f"iAudit: Selected model '{name}'")
-                        return name
+                        return cast(str, name)
 
         except Exception as e:
             logger.debug(f"iAudit: Model detection via API failed: {e}")
@@ -1013,7 +1013,7 @@ class IAuditAdapter(OllamaCallMixin, LLMCacheMixin, ToolAdapter):
         Returns:
             List of parsed finding dictionaries
         """
-        findings = []
+        findings: List[Dict[str, Any]] = []
 
         parsed = self._extract_json_robust(raw_output)
         if parsed is None:
@@ -1259,7 +1259,7 @@ class IAuditAdapter(OllamaCallMixin, LLMCacheMixin, ToolAdapter):
         Returns:
             Analysis result dictionary with pattern-matched findings
         """
-        findings = []
+        findings: List[Dict[str, Any]] = []
         lines = contract_code.split("\n")
         finding_counter = 0
 
@@ -1515,7 +1515,7 @@ class IAuditAdapter(OllamaCallMixin, LLMCacheMixin, ToolAdapter):
         json_block = re.search(r"```json\s*(.*?)\s*```", text, re.DOTALL)
         if json_block:
             try:
-                return json.loads(json_block.group(1))
+                return cast(Optional[Dict[Any, Any]], json.loads(json_block.group(1)))
             except json.JSONDecodeError:
                 pass
 
@@ -1534,7 +1534,7 @@ class IAuditAdapter(OllamaCallMixin, LLMCacheMixin, ToolAdapter):
         if json_start != -1 and json_end > json_start:
             json_str = text[json_start:json_end]
             try:
-                return json.loads(json_str)
+                return cast(Optional[Dict[Any, Any]], json.loads(json_str))
             except json.JSONDecodeError:
                 pass
 
@@ -1542,7 +1542,7 @@ class IAuditAdapter(OllamaCallMixin, LLMCacheMixin, ToolAdapter):
             repaired = self._repair_json(json_str)
             if repaired:
                 try:
-                    return json.loads(repaired)
+                    return cast(Optional[Dict[Any, Any]], json.loads(repaired))
                 except json.JSONDecodeError:
                     pass
 
@@ -1569,7 +1569,7 @@ class IAuditAdapter(OllamaCallMixin, LLMCacheMixin, ToolAdapter):
                 depth -= 1
                 if depth == 0:
                     try:
-                        return json.loads(text[start : i + 1])
+                        return cast(Optional[Dict[Any, Any]], json.loads(text[start : i + 1]))
                     except json.JSONDecodeError:
                         return None
         return None
