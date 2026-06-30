@@ -37,7 +37,7 @@ from contextvars import ContextVar
 from datetime import datetime
 from functools import wraps
 from pathlib import Path
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict, Iterator, Optional
 
 # Context variable for correlation ID (request tracing)
 _correlation_id: ContextVar[Optional[str]] = ContextVar("correlation_id", default=None)
@@ -80,7 +80,7 @@ class StructuredFormatter(logging.Formatter):
     """
 
     def format(self, record: logging.LogRecord) -> str:
-        log_data = {
+        log_data: Dict[str, Any] = {
             "timestamp": datetime.utcnow().isoformat() + "Z",
             "level": record.levelname,
             "logger": record.name,
@@ -235,6 +235,7 @@ def setup_logging(
     root_logger.handlers.clear()
 
     # Create formatter
+    formatter: logging.Formatter
     if json_format:
         formatter = StructuredFormatter()
     else:
@@ -280,7 +281,7 @@ def get_logger(name: str) -> logging.Logger:
 
 
 @contextmanager
-def log_context(**kwargs: Any) -> None:
+def log_context(**kwargs: Any) -> Iterator[None]:
     """
     Context manager for temporarily adding context to logs.
 
@@ -299,7 +300,7 @@ def log_context(**kwargs: Any) -> None:
 
 
 @contextmanager
-def request_context(correlation_id: Optional[str] = None) -> None:
+def request_context(correlation_id: Optional[str] = None) -> Iterator[str]:
     """
     Context manager for request-scoped logging with correlation ID.
 
