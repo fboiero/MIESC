@@ -24,7 +24,7 @@ import logging
 import os
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import cast, Any, Dict, List, Optional
 
 import aiohttp
 
@@ -395,7 +395,7 @@ Response (JSON array only):"""
         if not self._initialized:
             await self.initialize()
 
-        last_error = None
+        last_error: Optional[BaseException] = None
 
         for provider in self.providers:
             if provider not in self._available_providers:
@@ -459,7 +459,7 @@ Response (JSON array only):"""
         model_findings: Dict[str, List[Dict]] = {}
 
         for model, result in zip(models, results, strict=False):
-            if isinstance(result, Exception):
+            if isinstance(result, BaseException):
                 logger.warning(f"Model {model} failed: {result}")
             else:
                 model_findings[model] = result
@@ -689,7 +689,7 @@ Response (JSON array only):"""
         failed_models: List[str] = []
 
         for model, result in zip(self._available_models, results, strict=False):
-            if isinstance(result, Exception):
+            if isinstance(result, BaseException):
                 logger.warning(f"Model {model} failed: {result}")
                 failed_models.append(model)
             else:
@@ -803,7 +803,7 @@ Response (JSON array only):"""
                     for f in findings:
                         if isinstance(f, dict):
                             f["_source_model"] = model
-                    return findings
+                    return cast(List[Dict[str, Any]], findings)
 
         except json.JSONDecodeError as e:
             logger.debug(f"JSON parse error for {model}: {e}")
