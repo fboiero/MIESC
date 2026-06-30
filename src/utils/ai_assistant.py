@@ -76,7 +76,7 @@ Output as JSON:
 """
 
         try:
-            response = openai.ChatCompletion.create(
+            response = openai.OpenAI(api_key=self.api_key).chat.completions.create(
                 model=self.model,
                 messages=[
                     {
@@ -89,7 +89,7 @@ Output as JSON:
                 max_tokens=500,
             )
 
-            ai_response = response.choices[0].message.content
+            ai_response = response.choices[0].message.content or ""
             # Extract JSON from response
             ai_data = json.loads(ai_response.strip().replace("```json", "").replace("```", ""))
 
@@ -126,7 +126,7 @@ Output as JSON:
     def prioritize_findings(self, findings: List[Dict]) -> List[Dict]:
         """Sort findings by AI risk score and severity."""
 
-        def get_priority(f):
+        def get_priority(f: Dict[str, Any]) -> Any:
             ai_class = f.get("ai_classification", {})
             risk = ai_class.get("risk_score", 0)
             severity_map = {"High": 3, "Medium": 2, "Low": 1, "Informational": 0}
