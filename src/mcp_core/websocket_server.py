@@ -30,7 +30,7 @@ from miesc import __version__ as MIESC_VERSION
 
 try:
     import websockets
-    from websockets.server import WebSocketServerProtocol
+    from websockets.server import WebSocketServerProtocol  # type: ignore[attr-defined]
 
     WEBSOCKETS_AVAILABLE = True
 except ImportError:
@@ -155,8 +155,8 @@ class MIESCWebSocketServer:
         # Event handlers
         self._event_handlers: Dict[str, Callable] = {}
 
-        self._server = None
-        self._heartbeat_task = None
+        self._server: Optional[Any] = None
+        self._heartbeat_task: Optional[Any] = None
 
     async def start(self) -> None:
         """Start the WebSocket server."""

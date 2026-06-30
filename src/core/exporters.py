@@ -421,7 +421,7 @@ class JSONExporter:
         include_metadata: bool = True,
     ) -> str:
         """Export findings to JSON format."""
-        data = {"findings": [asdict(f) for f in findings]}
+        data: Dict[str, Any] = {"findings": [asdict(f) for f in findings]}
 
         if include_metadata:
             data["metadata"] = {
@@ -460,7 +460,7 @@ class ReportExporter:
     """
 
     def __init__(self) -> None:
-        self.exporters = {
+        self.exporters: Dict[str, Any] = {
             "sarif": SARIFExporter(),
             "sonarqube": SonarQubeExporter(),
             "checkmarx": CheckmarxExporter(),
