@@ -23,7 +23,7 @@ import logging
 import subprocess
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import cast, Any, Dict, List, Optional
 
 from src.adapters.smartllm_rag_knowledge import (
     get_relevant_knowledge,
@@ -54,10 +54,10 @@ try:
     _EMBEDDING_RAG_AVAILABLE = True
 except ImportError:
     _EMBEDDING_RAG_AVAILABLE = False
-    EmbeddingRAG = None
+    EmbeddingRAG = None  # type: ignore[assignment,misc]
     KNOWLEDGE_BASE_VERSION = "unavailable"
-    get_context_for_finding = None
-    batch_get_context_for_findings = None
+    get_context_for_finding = None  # type: ignore[assignment]
+    batch_get_context_for_findings = None  # type: ignore[assignment]
 from src.adapters._cache_mixin import LLMCacheMixin
 from src.adapters._ollama_mixin import OllamaCallMixin
 from src.core.llm_config import (
@@ -87,7 +87,7 @@ class SmartLLMAdapter(OllamaCallMixin, LLMCacheMixin, ToolAdapter):
     Retries on failure (max 3 attempts). No API keys required.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self._init_cache("smartllm")
         # Set True by _call_ollama_with_retry on a clock kill; read by analyze()
@@ -214,7 +214,7 @@ class SmartLLMAdapter(OllamaCallMixin, LLMCacheMixin, ToolAdapter):
             logger.error(f"SmartLLM: Error checking Ollama availability: {e}")
             return ToolStatus.CONFIGURATION_ERROR
 
-    def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
+    def analyze(self, contract_path: str, **kwargs: Any) -> Dict[str, Any]:
         """
         Analyze Solidity contract using local Ollama LLM.
 
@@ -443,7 +443,7 @@ class SmartLLMAdapter(OllamaCallMixin, LLMCacheMixin, ToolAdapter):
 
         # Simple function extraction (brace counting)
         functions = []
-        current_func = []
+        current_func: List[Any] = []
         brace_count = 0
         in_function = False
 
@@ -911,7 +911,7 @@ Report ONLY vulnerabilities confirmed by your step-by-step analysis. Quality ove
                     # Map severity to uppercase
                     severity = vuln.severity.upper() if vuln.severity else "MEDIUM"
 
-                    normalized = {
+                    normalized: Dict[str, Any] = {
                         "id": f"smartllm-{idx+1}",
                         "title": vuln.title,
                         "description": vuln.description,
@@ -1063,7 +1063,7 @@ Report ONLY vulnerabilities confirmed by your step-by-step analysis. Quality ove
         json_block_match = re.search(r"```json\s*(.*?)\s*```", text, re.DOTALL)
         if json_block_match:
             try:
-                return json.loads(json_block_match.group(1))
+                return cast(Optional[Dict[Any, Any]], json.loads(json_block_match.group(1)))
             except json.JSONDecodeError:
                 pass
 
@@ -1080,7 +1080,7 @@ Report ONLY vulnerabilities confirmed by your step-by-step analysis. Quality ove
                     depth -= 1
                     if depth == 0:
                         try:
-                            return json.loads(text[start : start + i + 1])
+                            return cast(Optional[Dict[Any, Any]], json.loads(text[start : start + i + 1]))
                         except json.JSONDecodeError:
                             break
 
@@ -1089,7 +1089,7 @@ Report ONLY vulnerabilities confirmed by your step-by-step analysis. Quality ove
         json_end = text.rfind("}") + 1
         if json_start != -1 and json_end > json_start:
             try:
-                return json.loads(text[json_start:json_end])
+                return cast(Optional[Dict[Any, Any]], json.loads(text[json_start:json_end]))
             except json.JSONDecodeError:
                 pass
 
@@ -1113,7 +1113,7 @@ Report ONLY vulnerabilities confirmed by your step-by-step analysis. Quality ove
 
         # 2. Fix unescaped newlines in strings (common in code snippets)
         # Replace actual newlines in string values with \n
-        def fix_string_newlines(match):
+        def fix_string_newlines(match: Any) -> str:
             content = match.group(1)
             # Escape actual newlines
             content = content.replace("\n", "\\n")
@@ -1152,7 +1152,7 @@ Report ONLY vulnerabilities confirmed by your step-by-step analysis. Quality ove
 
         # 3. Try to parse
         try:
-            return json.loads(json_str)
+            return cast(Optional[Dict[Any, Any]], json.loads(json_str))
         except json.JSONDecodeError:
             pass
 
@@ -1346,7 +1346,7 @@ Report ONLY vulnerabilities confirmed by your step-by-step analysis. Quality ove
         if (
             self._use_embedding_rag
             and self._embedding_rag
-            and batch_get_context_for_findings
+            and batch_get_context_for_findings is not None
             and initial_findings
         ):
             try:
@@ -1540,7 +1540,7 @@ Report ONLY vulnerabilities confirmed by your step-by-step analysis. Quality ove
         if preloaded_context:
             vuln_context_str = preloaded_context
             vuln_mitigation = "See context above for mitigation strategies."
-        elif self._use_embedding_rag and self._embedding_rag and get_context_for_finding:
+        elif self._use_embedding_rag and self._embedding_rag and get_context_for_finding is not None:
             try:
                 # EmbeddingRAG returns a formatted string
                 vuln_context_str = get_context_for_finding(finding, contract_code[:1000])
