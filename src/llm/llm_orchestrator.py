@@ -16,7 +16,7 @@ import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import cast, Any, Dict, List, Optional
 
 import aiohttp
 
@@ -173,7 +173,7 @@ class OllamaBackend(LLMBackend):
             import aiohttp
 
             async with aiohttp.ClientSession() as session:
-                async with session.get(f"{self.base_url}/api/tags", timeout=5) as resp:
+                async with session.get(f"{self.base_url}/api/tags", timeout=aiohttp.ClientTimeout(total=5)) as resp:
                     if resp.status == 200:
                         data = await resp.json()
                         models = [m["name"] for m in data.get("models", [])]
@@ -365,7 +365,7 @@ class AnthropicBackend(LLMBackend):
             messages=[{"role": "user", "content": prompt}],
         )
 
-        content = response.content[0].text if response.content else ""
+        content = getattr(response.content[0], "text", "") if response.content else ""
         tokens = response.usage.input_tokens + response.usage.output_tokens if response.usage else 0
 
         return LLMResponse(
@@ -589,7 +589,7 @@ Provide a comprehensive security analysis in JSON format."""
 
             # Convert validated findings to dict format
             # Handle both Pydantic objects and raw dicts (from model_construct in lenient mode)
-            vulnerabilities = []
+            vulnerabilities: List[Dict[str, Any]] = []
             for vuln in validated.vulnerabilities:
                 if isinstance(vuln, dict):
                     # Already a dict (from lenient parsing)
@@ -655,13 +655,14 @@ Provide a comprehensive security analysis in JSON format."""
             else:
                 data = {}
 
-            vulnerabilities = data.get("vulnerabilities", [])
+            vulnerabilities = cast(List[Dict[str, Any]], data.get("vulnerabilities", []))
 
             # Truncate and sanitize unvalidated data
-            for vuln in vulnerabilities:
-                for key in list(vuln.keys()):
-                    if isinstance(vuln[key], str) and len(vuln[key]) > 5000:
-                        vuln[key] = vuln[key][:5000] + "...[truncated]"
+            for vuln_dict in vulnerabilities:
+                for key in list(vuln_dict.keys()):
+                    val = vuln_dict[key]
+                    if isinstance(val, str) and len(val) > 5000:
+                        vuln_dict[key] = val[:5000] + "...[truncated]"
 
             severity_assessment = {
                 "critical": sum(1 for v in vulnerabilities if v.get("severity") == "critical"),
@@ -752,7 +753,7 @@ async def analyze_solidity(code: str, model: str = "deepseek-coder:6.7b") -> Vul
 
 if __name__ == "__main__":
     # Example usage
-    async def main():
+    async def main() -> None:
         code = """
         pragma solidity ^0.8.0;
 
