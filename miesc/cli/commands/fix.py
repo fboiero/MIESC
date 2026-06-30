@@ -536,7 +536,7 @@ def _apply_legacy_call_value_cei(
     bool_call_re = re.compile(
         r"(?P<indent>^[ \t]*)bool\s+(?P<var>[A-Za-z_]\w*)\s*=\s*"
         r"(?P<call>[^\n{};]*?\.call\.value\s*\(\s*(?P<call_amount>[^)]+?)\s*\)"
-        r"\s*\([^;\n{}]*\))\s*;[ \t]*(?:\n|$)",
+        r"\s*\([^;\n{}]*\))\s*;[ \t]*(?://[^\n]*)?(?:\n|$)",
         re.MULTILINE,
     )
     require_var_re = re.compile(
