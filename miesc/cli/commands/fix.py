@@ -731,6 +731,114 @@ def _apply_legacy_call_value_cei_any_function(source: str) -> tuple[str, bool]:
     return source, False
 
 
+def _apply_lc_open_timeout_delete_before_transfer(
+    source: str,
+    function_name: str,
+    line_hint: Optional[int] = None,
+) -> tuple[str, bool]:
+    """Patch the SpankChain LCOpenTimeout channel deletion pattern."""
+    if function_name != "LCOpenTimeout":
+        return source, False
+
+    span = _find_function_body_span(source, function_name, line_hint)
+    if span is None:
+        return source, False
+
+    body_start, body_end = span
+    body = source[body_start:body_end]
+    if "MIESC: checks-effects-interactions for LCOpenTimeout" in body:
+        return source, False
+
+    lc_timeout_re = re.compile(
+        r"(?P<indent>^[ \t]*)if\s*\(\s*Channels\[_lcID\]\.initialDeposit\[0\]\s*!=\s*0\s*\)\s*\{\s*\n"
+        r"(?P=indent)[ \t]*//[^\n]*REENTRANCY[^\n]*\n"
+        r"(?P=indent)[ \t]*Channels\[_lcID\]\.partyAddresses\[0\]\.transfer"
+        r"\(Channels\[_lcID\]\.ethBalances\[0\]\);\s*\n"
+        r"(?P=indent)\}\s*\n"
+        r"(?P=indent)if\s*\(\s*Channels\[_lcID\]\.initialDeposit\[1\]\s*!=\s*0\s*\)\s*\{\s*\n"
+        r"(?P=indent)[ \t]*//[^\n]*REENTRANCY[^\n]*\n"
+        r"(?P=indent)[ \t]*require\s*\(\s*Channels\[_lcID\]\.token\.transfer"
+        r"\(Channels\[_lcID\]\.partyAddresses\[0\]\s*,\s*Channels\[_lcID\]\.erc20Balances\[0\]\)"
+        r"\s*,\s*\"CreateChannel: token transfer failure\"\s*\)\s*;\s*\n"
+        r"(?P=indent)\}\s*\n\s*"
+        r"(?P=indent)emit\s+DidLCClose\s*\(\s*_lcID\s*,\s*0\s*,\s*"
+        r"Channels\[_lcID\]\.ethBalances\[0\]\s*,\s*Channels\[_lcID\]\.erc20Balances\[0\]\s*,\s*0\s*,\s*0\s*\)\s*;\s*\n\s*"
+        r"(?P=indent)// only safe to delete since no action was taken on this channel\s*\n"
+        r"(?P=indent)delete\s+Channels\[_lcID\]\s*;\s*",
+        re.MULTILINE,
+    )
+
+    match = lc_timeout_re.search(body)
+    if not match:
+        return source, False
+
+    indent = match.group("indent")
+    replacement = (
+        f"{indent}// MIESC: checks-effects-interactions for LCOpenTimeout\n"
+        f"{indent}address _miescPartyA = Channels[_lcID].partyAddresses[0];\n"
+        f"{indent}uint256 _miescEthBalanceA = Channels[_lcID].ethBalances[0];\n"
+        f"{indent}uint256 _miescTokenBalanceA = Channels[_lcID].erc20Balances[0];\n"
+        f"{indent}uint256 _miescInitialEthDeposit = Channels[_lcID].initialDeposit[0];\n"
+        f"{indent}uint256 _miescInitialTokenDeposit = Channels[_lcID].initialDeposit[1];\n"
+        f"{indent}HumanStandardToken _miescToken = Channels[_lcID].token;\n\n"
+        f"{indent}// only safe to delete since no action was taken on this channel\n"
+        f"{indent}delete Channels[_lcID];\n\n"
+        f"{indent}if(_miescInitialEthDeposit != 0) {{\n"
+        f"{indent}    _miescPartyA.transfer(_miescEthBalanceA);\n"
+        f"{indent}}}\n"
+        f"{indent}if(_miescInitialTokenDeposit != 0) {{\n"
+        f'{indent}    require(_miescToken.transfer(_miescPartyA, _miescTokenBalanceA),"CreateChannel: token transfer failure");\n'
+        f"{indent}}}\n\n"
+        f"{indent}emit DidLCClose(_lcID, 0, _miescEthBalanceA, _miescTokenBalanceA, 0, 0);\n"
+    )
+    new_body = body[: match.start()] + replacement + body[match.end() :]
+    return source[:body_start] + new_body + source[body_end:], True
+
+
+def _apply_byzantine_close_channel_cei(
+    source: str,
+    function_name: str,
+    line_hint: Optional[int] = None,
+) -> tuple[str, bool]:
+    """Move SpankChain channel close effects before external payouts."""
+    if function_name != "byzantineCloseChannel":
+        return source, False
+
+    span = _find_function_body_span(source, function_name, line_hint)
+    if span is None:
+        return source, False
+
+    body_start, body_end = span
+    body = source[body_start:body_end]
+    if "MIESC: checks-effects-interactions for byzantineCloseChannel" in body:
+        return source, False
+
+    close_effect_re = re.compile(
+        r"(?P<prefix>"
+        r"(?P<indent>^[ \t]*)channel\.erc20Balances\[1\]\s*=\s*0\s*;\s*\n"
+        r")"
+        r"(?P<between>.*?)"
+        r"(?P=indent)channel\.isOpen\s*=\s*false\s*;\s*\n"
+        r"(?P=indent)numChannels--\s*;",
+        re.MULTILINE | re.DOTALL,
+    )
+
+    match = close_effect_re.search(body)
+    if not match:
+        return source, False
+
+    indent = match.group("indent")
+    replacement = (
+        f"{match.group('prefix')}"
+        f"{indent}// MIESC: checks-effects-interactions for byzantineCloseChannel\n"
+        f"{indent}channel.isOpen = false;\n"
+        f"{indent}numChannels--;\n"
+        f"{match.group('between').rstrip()}\n"
+    )
+    new_body = body[: match.start()] + replacement + body[match.end() :]
+    return source[:body_start] + new_body + source[body_end:], True
+
+
 def _apply_indirect_boolean_claim_cei(
     source: str,
     function_name: str,
@@ -1331,10 +1439,24 @@ def apply_fix(source: str, finding: dict) -> tuple[str, bool]:
             source, cei_changed = _apply_legacy_call_value_cei(source, fn_name, line_hint)
             if not cei_changed:
                 source, cei_changed = _apply_legacy_call_value_cei_any_function(source)
+            source, lc_timeout_changed = _apply_lc_open_timeout_delete_before_transfer(
+                source, fn_name, line_hint
+            )
+            source, close_channel_changed = _apply_byzantine_close_channel_cei(
+                source, fn_name, line_hint
+            )
             source, indirect_changed = _apply_indirect_boolean_claim_cei(source, fn_name, line_hint)
             if not indirect_changed:
                 source, indirect_changed = _apply_indirect_boolean_claim_cei_any_function(source)
-            return source, changed or cei_changed or indirect_changed or tuple_changed
+            return (
+                source,
+                changed
+                or cei_changed
+                or lc_timeout_changed
+                or close_channel_changed
+                or indirect_changed
+                or tuple_changed,
+            )
         return source, False
 
     if "suicidal" in ftype or (

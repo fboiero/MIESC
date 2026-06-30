@@ -390,6 +390,142 @@ contract ReentrancyCrossFunction {
         )
         assert patched.count("userBalances[msg.sender] = 0;") == 1
 
+    def test_reentrancy_byzantine_close_moves_close_effects_before_transfers(self):
+        source = """\
+pragma solidity ^0.4.23;
+
+contract HumanStandardToken {
+    function transfer(address _to, uint256 _value) public returns (bool success);
+}
+
+contract LedgerChannel {
+    struct Channel {
+        address[2] partyAddresses;
+        uint256[4] ethBalances;
+        uint256[4] erc20Balances;
+        uint256 sequence;
+        bool isOpen;
+        HumanStandardToken token;
+    }
+    mapping(bytes32 => Channel) public Channels;
+    uint256 numChannels;
+    event DidLCClose(bytes32 indexed lcId, uint256 sequence, uint256 balanceA, uint256 balanceI, uint256 tokenA, uint256 tokenI);
+
+    function byzantineCloseChannel(bytes32 _lcID) public {
+        Channel storage channel = Channels[_lcID];
+
+        uint256 ethbalanceA = channel.ethBalances[0];
+        uint256 ethbalanceI = channel.ethBalances[1];
+        uint256 tokenbalanceA = channel.erc20Balances[0];
+        uint256 tokenbalanceI = channel.erc20Balances[1];
+
+        channel.ethBalances[0] = 0;
+        channel.ethBalances[1] = 0;
+        channel.erc20Balances[0] = 0;
+        channel.erc20Balances[1] = 0;
+
+        if(ethbalanceA != 0 || ethbalanceI != 0) {
+            channel.partyAddresses[0].transfer(ethbalanceA);
+            channel.partyAddresses[1].transfer(ethbalanceI);
+        }
+
+        if(tokenbalanceA != 0 || tokenbalanceI != 0) {
+            require(
+                channel.token.transfer(channel.partyAddresses[0], tokenbalanceA),
+                "byzantineCloseChannel: token transfer failure"
+            );
+            require(
+                channel.token.transfer(channel.partyAddresses[1], tokenbalanceI),
+                "byzantineCloseChannel: token transfer failure"
+            );
+        }
+
+        channel.isOpen = false;
+        numChannels--;
+
+        emit DidLCClose(_lcID, channel.sequence, ethbalanceA, ethbalanceI, tokenbalanceA, tokenbalanceI);
+    }
+}
+"""
+        finding = {
+            "type": "reentrancy",
+            "function": "byzantineCloseChannel",
+            "fix_code": "add nonReentrant",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert changed
+        assert "MIESC: checks-effects-interactions for byzantineCloseChannel" in patched
+        assert patched.index("channel.isOpen = false;") < patched.index(
+            "channel.partyAddresses[0].transfer(ethbalanceA);"
+        )
+        assert patched.index("numChannels--;") < patched.index(
+            "channel.token.transfer(channel.partyAddresses[0], tokenbalanceA)"
+        )
+        assert patched.count("channel.isOpen = false;") == 1
+        assert patched.count("numChannels--;") == 1
+
+    def test_reentrancy_lc_open_timeout_deletes_channel_before_transfers(self):
+        source = """\
+pragma solidity ^0.4.23;
+
+contract HumanStandardToken {
+    function transfer(address _to, uint256 _value) public returns (bool success);
+}
+
+contract LedgerChannel {
+    struct Channel {
+        address[2] partyAddresses;
+        uint256[4] ethBalances;
+        uint256[4] erc20Balances;
+        uint256[2] initialDeposit;
+        uint256 LCopenTimeout;
+        bool isOpen;
+        HumanStandardToken token;
+    }
+    mapping(bytes32 => Channel) public Channels;
+    event DidLCClose(bytes32 indexed lcId, uint256 sequence, uint256 balanceA, uint256 balanceI, uint256 tokenA, uint256 tokenI);
+
+    function LCOpenTimeout(bytes32 _lcID) public {
+        require(msg.sender == Channels[_lcID].partyAddresses[0] && Channels[_lcID].isOpen == false);
+        require(now > Channels[_lcID].LCopenTimeout);
+
+        if(Channels[_lcID].initialDeposit[0] != 0) {
+            // <yes> <report> REENTRANCY
+            Channels[_lcID].partyAddresses[0].transfer(Channels[_lcID].ethBalances[0]);
+        }
+        if(Channels[_lcID].initialDeposit[1] != 0) {
+            // <yes> <report> REENTRANCY
+            require(Channels[_lcID].token.transfer(Channels[_lcID].partyAddresses[0], Channels[_lcID].erc20Balances[0]),"CreateChannel: token transfer failure");
+        }
+
+        emit DidLCClose(_lcID, 0, Channels[_lcID].ethBalances[0], Channels[_lcID].erc20Balances[0], 0, 0);
+
+        // only safe to delete since no action was taken on this channel
+        delete Channels[_lcID];
+    }
+}
+"""
+        finding = {
+            "type": "reentrancy",
+            "function": "LCOpenTimeout",
+            "fix_code": "add nonReentrant",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert changed
+        assert "MIESC: checks-effects-interactions for LCOpenTimeout" in patched
+        assert patched.index("delete Channels[_lcID];") < patched.index(
+            "_miescPartyA.transfer(_miescEthBalanceA);"
+        )
+        assert patched.index("delete Channels[_lcID];") < patched.index(
+            "_miescToken.transfer(_miescPartyA, _miescTokenBalanceA)"
+        )
+        assert "emit DidLCClose(_lcID, 0, _miescEthBalanceA, _miescTokenBalanceA, 0, 0);" in patched
+        assert "Channels[_lcID].ethBalances[0], Channels[_lcID].erc20Balances[0]" not in patched
+
     def test_reentrancy_legacy_call_value_keeps_mismatched_effect_in_place(self):
         source = """\
 pragma solidity ^0.4.19;
