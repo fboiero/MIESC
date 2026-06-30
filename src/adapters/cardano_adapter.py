@@ -39,7 +39,7 @@ import re
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import cast, Any, Dict, List, Optional, Tuple, Union
 
 from src.core.chain_abstraction import (
     AbstractChainAnalyzer,
@@ -247,10 +247,10 @@ class PlutusParser:
         contract.data_types = self._parse_data_types(content)
 
         # Parse validators
-        contract.validators = self._parse_validators(content)
+        contract.validators = cast(List[Union[PlutusValidator, AikenValidator]], self._parse_validators(content))
 
         # Parse minting policies
-        contract.minting_policies = self._parse_minting_policies(content)
+        contract.minting_policies = cast(List[Union[PlutusValidator, AikenValidator]], self._parse_minting_policies(content))
 
         return contract
 
@@ -439,7 +439,7 @@ class AikenParser:
         contract.data_types = self._parse_types(content)
 
         # Parse validators
-        contract.validators = self._parse_validators(content, path)
+        contract.validators = cast(List[Union[PlutusValidator, AikenValidator]], self._parse_validators(content, path))
 
         return contract
 
@@ -614,7 +614,7 @@ class CardanoPatternDetector:
 
         for validator in contract.validators:
             # Check for missing datum validation
-            if not validator.has_datum_check:
+            if not getattr(validator, "has_datum_check", False):
                 findings.append(
                     {
                         "type": CardanoVulnerability.MISSING_DATUM_VALIDATION.value,
@@ -627,7 +627,7 @@ class CardanoPatternDetector:
                 )
 
             # Check for missing signer check
-            if not validator.has_signer_check:
+            if not getattr(validator, "has_signer_check", False):
                 findings.append(
                     {
                         "type": CardanoVulnerability.MISSING_SIGNER_CHECK.value,
@@ -640,7 +640,7 @@ class CardanoPatternDetector:
                 )
 
             # Check for missing value validation
-            if not validator.has_value_check:
+            if not getattr(validator, "has_value_check", False):
                 findings.append(
                     {
                         "type": CardanoVulnerability.VALUE_NOT_PRESERVED.value,
@@ -654,7 +654,7 @@ class CardanoPatternDetector:
 
         # Check minting policies
         for policy in contract.minting_policies:
-            if not policy.has_signer_check:
+            if not getattr(policy, "has_signer_check", False):
                 findings.append(
                     {
                         "type": CardanoVulnerability.UNAUTHORIZED_MINTING.value,
@@ -716,7 +716,7 @@ class CardanoPatternDetector:
                 )
 
             # Check for incomplete pattern matching
-            when_clauses = validator.when_clauses if hasattr(validator, "when_clauses") else []
+            when_clauses = getattr(validator, "when_clauses", []) if hasattr(validator, "when_clauses") else []
             if not any("_" in c or "else" in c.lower() for c in when_clauses):
                 # No catch-all pattern
                 if when_clauses:
@@ -864,10 +864,10 @@ class CardanoAnalyzer(AbstractChainAnalyzer):
                     "script_type": validator.script_type.value,
                     "datum_type": validator.datum_type,
                     "redeemer_type": validator.redeemer_type,
-                    "has_datum_check": validator.has_datum_check,
-                    "has_signer_check": validator.has_signer_check,
-                    "has_time_check": validator.has_time_check,
-                    "has_value_check": validator.has_value_check,
+                    "has_datum_check": getattr(validator, "has_datum_check", False),
+                    "has_signer_check": getattr(validator, "has_signer_check", False),
+                    "has_time_check": getattr(validator, "has_time_check", False),
+                    "has_value_check": getattr(validator, "has_value_check", False),
                 },
             )
             functions.append(func)
@@ -908,7 +908,7 @@ class CardanoAnalyzer(AbstractChainAnalyzer):
                     "script_type": validator.script_type.value,
                     "datum_type": validator.datum_type,
                     "redeemer_type": validator.redeemer_type,
-                    "when_clauses": validator.when_clauses,
+                    "when_clauses": getattr(validator, "when_clauses", []),
                 },
             )
             functions.append(func)
