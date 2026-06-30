@@ -39,7 +39,7 @@ try:
     _EMBEDDING_RAG_AVAILABLE = True
 except ImportError:
     _EMBEDDING_RAG_AVAILABLE = False
-    EmbeddingRAG = None
+    EmbeddingRAG = None  # type: ignore[assignment,misc]
 
 logger = logging.getLogger(__name__)
 
@@ -159,7 +159,7 @@ CONTRACT CODE:
 
 Respond ONLY with valid JSON. Report ONLY vulnerabilities you are CONFIDENT about after self-verification."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self._default_timeout = 300  # 5 min for large contracts with LLM
         # Set True by _run_ollama_analysis on a clock kill; read by analyze() to
@@ -179,8 +179,8 @@ Respond ONLY with valid JSON. Report ONLY vulnerabilities you are CONFIDENT abou
         return hashlib.sha256(f"gptscan:{model}:{contract_code}".encode("utf-8")).hexdigest()
 
         # Initialize EmbeddingRAG if available
-        self._embedding_rag = None
-        self._use_rag = False
+        self._embedding_rag: Any = None
+        self._use_rag: bool = False
         if _EMBEDDING_RAG_AVAILABLE:
             try:
                 self._embedding_rag = EmbeddingRAG()
@@ -260,7 +260,7 @@ Respond ONLY with valid JSON. Report ONLY vulnerabilities you are CONFIDENT abou
             logger.error(f"Error checking Ollama: {e}")
             return ToolStatus.CONFIGURATION_ERROR
 
-    def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
+    def analyze(self, contract_path: str, **kwargs: Any) -> Dict[str, Any]:
         """
         Analyze contract using Ollama LLM for GPTScan-style analysis.
 
@@ -471,7 +471,7 @@ Respond ONLY with valid JSON. Report ONLY vulnerabilities you are CONFIDENT abou
 
     def _parse_gptscan_output(self, output: str, contract_path: str) -> List[Dict[str, Any]]:
         """Parse GPTScan output and extract findings."""
-        findings = []
+        findings: List[Dict[str, Any]] = []
 
         try:
             # Robust JSON extraction (balanced braces + repair) before falling
@@ -521,7 +521,7 @@ Respond ONLY with valid JSON. Report ONLY vulnerabilities you are CONFIDENT abou
 
     def _parse_text_output(self, output: str, contract_path: str) -> List[Dict[str, Any]]:
         """Fallback text parsing for non-JSON output."""
-        findings = []
+        findings: List[Dict[str, Any]] = []
 
         # Look for common vulnerability keywords
         keywords = {
