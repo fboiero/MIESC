@@ -1,0 +1,73 @@
+{
+  "artifact": "reentrancy_bonus_indirect_claim_probe",
+  "source_contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/reentrancy_bonus.sol",
+  "finding": {
+    "type": "reentrancy",
+    "function": "getFirstWithdrawalBonus",
+    "fix_code": "add nonReentrant"
+  },
+  "changed": true,
+  "prior_shape_compile": {
+    "checked": true,
+    "compiles": true,
+    "solc": "/Users/fboiero/.solc-select/artifacts/solc-0.4.26/solc-0.4.26",
+    "returncode": 0,
+    "stdout": "\n======= <tmp>/prior_shape.sol:MiescReentrancyGuard =======\nBinary: \n6080604052348015600f57600080fd5b50603580601d6000396000f3006080604052600080fd00a165627a7a72305820fe66650ea1ade8b4fed05167c6c5de10ed1c68ae1e203f010a7ab9559f5d1c6e0029\n\n======= <tmp>/prior_shape.sol:Reentrancy_bonus =======\nBinary: \n608060405234801561001057600080fd5b5061032c806100206000396000f30060806040526004361061004c576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff1680637d1c54f814610051578063b86e321c14610094575b600080fd5b34801561005d57600080fd5b50610092600480360381019080803573ffffffffffffffffffffffffffffffffffffffff1690602001909291905050506100d7565b005b3480156100a057600080fd5b506100d5600480360381019080803573ffffffffffffffffffffffffffffffffffffffff169060200190929190505050610231565b005b6000809054906101000a900460ff161515156100f257600080fd5b60016000806101000a81548160ff021916908315150217905550600260008273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002060009054906101000a900460ff1615151561016557600080fd5b6064600360008373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff168152602001908152602001600020600082825401925050819055506101bc81610231565b6001600260008373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002060006101000a81548160ff02191690831515021790555060008060006101000a81548160ff02191690831515021790555050565b600080600360008473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020019081526020016000205491506000600360008573ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff168152602001908152602001600020819055508273ffffffffffffffffffffffffffffffffffffffff168260405180602001905060006040518083038185875af19250505090508015156102fb57600080fd5",
+    "stderr": "",
+    "failure_class": null
+  },
+  "compile": {
+    "checked": true,
+    "compiles": true,
+    "solc": "/Users/fboiero/.solc-select/artifacts/solc-0.4.26/solc-0.4.26",
+    "returncode": 0,
+    "stdout": "\n======= <tmp>/fixed.sol:MiescReentrancyGuard =======\nBinary: \n6080604052348015600f57600080fd5b50603580601d6000396000f3006080604052600080fd00a165627a7a72305820d80462247ad1ce31d072297a42792e23d570c25da8c680cc260c339389bdb1fe0029\n\n======= <tmp>/fixed.sol:Reentrancy_bonus =======\nBinary: \n608060405234801561001057600080fd5b5061032c806100206000396000f30060806040526004361061004c576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff1680637d1c54f814610051578063b86e321c14610094575b600080fd5b34801561005d57600080fd5b50610092600480360381019080803573ffffffffffffffffffffffffffffffffffffffff1690602001909291905050506100d7565b005b3480156100a057600080fd5b506100d5600480360381019080803573ffffffffffffffffffffffffffffffffffffffff169060200190929190505050610231565b005b6000809054906101000a900460ff161515156100f257600080fd5b60016000806101000a81548160ff021916908315150217905550600260008273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002060009054906101000a900460ff1615151561016557600080fd5b6064600360008373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff168152602001908152602001600020600082825401925050819055506001600260008373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002060006101000a81548160ff02191690831515021790555061021481610231565b60008060006101000a81548160ff02191690831515021790555050565b600080600360008473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020019081526020016000205491506000600360008573ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff168152602001908152602001600020819055508273ffffffffffffffffffffffffffffffffffffffff168260405180602001905060006040518083038185875af19250505090508015156102fb57600080fd5b5050505600a",
+    "stderr": "",
+    "failure_class": null
+  },
+  "prior_shape_external_validation": {
+    "checked": true,
+    "tool": "slither",
+    "status": "findings",
+    "returncode": 255,
+    "findings_total": 7,
+    "high_findings": 1,
+    "high_checks": [
+      "arbitrary-send-eth"
+    ],
+    "detector_summary": {
+      "high:arbitrary-send-eth": 1,
+      "informational:low-level-calls": 1,
+      "informational:naming-convention": 1,
+      "informational:solc-version": 2,
+      "informational:unused-state": 1,
+      "low:missing-zero-check": 1
+    },
+    "stdout": "",
+    "stderr": "'/Users/fboiero/.solc-select/artifacts/solc-0.4.26/solc-0.4.26 --version' running\n'/Users/fboiero/.solc-select/artifacts/solc-0.4.26/solc-0.4.26 <tmp>/prior_shape.sol --combined-json abi,ast,bin,bin-runtime,srcmap,srcmap-runtime,userdoc,devdoc,hashes,compact-format --allow-paths .,<tmp>' running\n\nReentrancy_bonus.withdrawReward(address) (<tmp>/prior_shape.sol#28-33) sends eth to arbitrary user\n\tDangerous calls:\n\t- success = recipient.call.value(amountToWithdraw)() (<tmp>/prior_shape.sol#31)\nReference: https://github.com/crytic/slither/wiki/Detector-Documentation#functions-that-send-ether-to-arbitrary-destinations\n\nReentrancy_bonus.withdrawReward(address).recipient (<tmp>/prior_shape.sol#28) lacks a zero-check on :\n\t\t- success = recipient.call.value(amountToWithdraw)() (<tmp>/prior_shape.sol#31)\nReference: https://github.com/crytic/slither/wiki/Detector-Documentation#missing-zero-address-validation\n\nVersion constraint ^0.4.24 contains known severe issues (https://solidity.readthedocs.io/en/latest/bugs.html)\n\t- DirtyBytesArrayToStorage\n\t- ABIDecodeTwoDimensionalArrayMemory\n\t- KeccakCaching\n\t- EmptyByteArrayCopy\n\t- DynamicArrayCleanup\n\t- ImplicitConstructorCallvalueCheck\n\t- TupleAssignmentMultiStackSlotComponents\n\t- MemoryArrayCreationOverflow\n\t- privateCanBeOverridden\n\t- SignedArrayStorageCopy\n\t- ABIEncoderV2StorageArrayWithMultiSlotElement\n\t- DynamicConstructorArgumentsClippedABIV2\n\t- UninitializedFunctionPointerInConstructor_0.4.x\n\t- IncorrectEventSignatureInLibraries_0.4.x\n\t- ABIEncoderV2PackedStorage_0.4.x\n\t- ExpExponentCleanup\n\t- EventStructWrongData.\nIt is used by:\n\t- ^0.4.24 (../../"
+  },
+  "patched_external_validation": {
+    "checked": true,
+    "tool": "slither",
+    "status": "findings",
+    "returncode": 255,
+    "findings_total": 7,
+    "high_findings": 1,
+    "high_checks": [
+      "arbitrary-send-eth"
+    ],
+    "detector_summary": {
+      "high:arbitrary-send-eth": 1,
+      "informational:low-level-calls": 1,
+      "informational:naming-convention": 1,
+      "informational:solc-version": 2,
+      "informational:unused-state": 1,
+      "low:missing-zero-check": 1
+    },
+    "stdout": "",
+    "stderr": "'/Users/fboiero/.solc-select/artifacts/solc-0.4.26/solc-0.4.26 --version' running\n'/Users/fboiero/.solc-select/artifacts/solc-0.4.26/solc-0.4.26 <tmp>/fixed.sol --combined-json abi,ast,bin,bin-runtime,srcmap,srcmap-runtime,userdoc,devdoc,hashes,compact-format --allow-paths .,<tmp>' running\n\nReentrancy_bonus.withdrawReward(address) (<tmp>/fixed.sol#28-33) sends eth to arbitrary user\n\tDangerous calls:\n\t- success = recipient.call.value(amountToWithdraw)() (<tmp>/fixed.sol#31)\nReference: https://github.com/crytic/slither/wiki/Detector-Documentation#functions-that-send-ether-to-arbitrary-destinations\n\nReentrancy_bonus.withdrawReward(address).recipient (<tmp>/fixed.sol#28) lacks a zero-check on :\n\t\t- success = recipient.call.value(amountToWithdraw)() (<tmp>/fixed.sol#31)\nReference: https://github.com/crytic/slither/wiki/Detector-Documentation#missing-zero-address-validation\n\nVersion constraint ^0.4.24 contains known severe issues (https://solidity.readthedocs.io/en/latest/bugs.html)\n\t- DirtyBytesArrayToStorage\n\t- ABIDecodeTwoDimensionalArrayMemory\n\t- KeccakCaching\n\t- EmptyByteArrayCopy\n\t- DynamicArrayCleanup\n\t- ImplicitConstructorCallvalueCheck\n\t- TupleAssignmentMultiStackSlotComponents\n\t- MemoryArrayCreationOverflow\n\t- privateCanBeOverridden\n\t- SignedArrayStorageCopy\n\t- ABIEncoderV2StorageArrayWithMultiSlotElement\n\t- DynamicConstructorArgumentsClippedABIV2\n\t- UninitializedFunctionPointerInConstructor_0.4.x\n\t- IncorrectEventSignatureInLibraries_0.4.x\n\t- ABIEncoderV2PackedStorage_0.4.x\n\t- ExpExponentCleanup\n\t- EventStructWrongData.\nIt is used by:\n\t- ^0.4.24 (<tmp>"
+  },
+  "patched_function_snippet": "    function getFirstWithdrawalBonus(address recipient) nonReentrant public {\n        require(!claimedBonus[recipient]); // Each recipient should only be able to claim the bonus once\n\n        rewardsForA[recipient] += 100;\n        // <yes> <report> REENTRANCY\n        // MIESC: checks-effects-interactions for indirect payout\n        claimedBonus[recipient] = true;\n        withdrawReward(recipient); // At this point, the caller will be able to execute getFirstWithdrawalBonus again.\n    }",
+  "interpretation": "Narrow indirect CEI transform moves a one-time boolean claim before a payout helper call. On the current toolchain, the prior patched shape and the new patched shape both compile and both leave only arbitrary-send-eth as HIGH under Slither; this is semantic hardening and ordering hygiene, not an aggregate external-HIGH uplift claim.",
+  "promotion_note": "Do not use this single-contract probe as Paper 2 metric uplift evidence. It documents a conservative CEI ordering improvement while preserving visible payout residuals."
+}

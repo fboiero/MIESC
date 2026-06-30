@@ -678,6 +678,57 @@ def _apply_legacy_call_value_cei(
     return source, False
 
 
+def _apply_indirect_boolean_claim_cei(
+    source: str,
+    function_name: str,
+    line_hint: Optional[int] = None,
+) -> tuple[str, bool]:
+    """Move a one-time boolean claim before an indirect external payout call.
+
+    This intentionally targets a narrow cross-function reentrancy pattern:
+
+        withdrawReward(recipient);
+        claimedBonus[recipient] = true;
+
+    If the payout reverts, Solidity reverts the earlier boolean write too.  We
+    avoid broader statement reordering because generic indirect-call analysis
+    needs full control-flow and interprocedural context.
+    """
+    span = _find_function_body_span(source, function_name, line_hint)
+    if span is None:
+        return source, False
+
+    body_start, body_end = span
+    body = source[body_start:body_end]
+    if "MIESC: checks-effects-interactions for indirect payout" in body:
+        return source, False
+
+    indirect_claim_re = re.compile(
+        r"(?P<call_indent>^[ \t]*)"
+        r"(?P<call>(?P<callee>[A-Za-z_]\w*)\s*\(\s*(?P<arg>[^;\n]+?)\s*\)\s*;"
+        r"[ \t]*(?P<trailing_comment>//[^\n]*)?(?:\n|$))"
+        r"(?P<assign_indent>[ \t]*)"
+        r"(?P<target>[A-Za-z_]\w*\s*\[\s*(?P<key>[^\]\n]+?)\s*\])"
+        r"\s*=\s*true\s*;[ \t]*(?:\n|$)",
+        re.MULTILINE,
+    )
+
+    for match in indirect_claim_re.finditer(body):
+        if not _same_solidity_expr(match.group("arg"), match.group("key")):
+            continue
+        indent = match.group("call_indent")
+        assignment = f"{match.group('assign_indent')}{match.group('target')} = true;\n"
+        prelude = (
+            f"{indent}// MIESC: checks-effects-interactions for indirect payout\n"
+            f"{assignment}"
+            f"{indent}{match.group('call')}"
+        )
+        new_body = body[: match.start()] + prelude + body[match.end() :]
+        return source[:body_start] + new_body + source[body_end:], True
+
+    return source, False
+
+
 def _normalize_legacy_call_value_tuple_assignment(source: str) -> tuple[str, bool]:
     """Rewrite legacy call.value tuple assignments to single bool assignments.
 
@@ -1210,8 +1261,9 @@ def apply_fix(source: str, finding: dict) -> tuple[str, bool]:
             if changed:
                 source = _ensure_reentrancy_guard_import(source, fn_name, line_hint)
             source, cei_changed = _apply_legacy_call_value_cei(source, fn_name, line_hint)
+            source, indirect_changed = _apply_indirect_boolean_claim_cei(source, fn_name, line_hint)
             source, tuple_changed = _normalize_legacy_call_value_tuple_assignment(source)
-            return source, changed or cei_changed or tuple_changed
+            return source, changed or cei_changed or indirect_changed or tuple_changed
         return source, False
 
     if "suicidal" in ftype or (

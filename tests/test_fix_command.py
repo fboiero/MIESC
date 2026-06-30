@@ -545,6 +545,45 @@ contract keepMyEther {
             "msg.sender.call.value(_miescWithdrawAmount)();"
         )
 
+    def test_reentrancy_indirect_payout_moves_boolean_claim_before_call(self):
+        source = """\
+pragma solidity ^0.4.24;
+
+contract Reentrancy_bonus {
+    mapping (address => bool) private claimedBonus;
+    mapping (address => uint) private rewardsForA;
+
+    function withdrawReward(address recipient) public {
+        uint amountToWithdraw = rewardsForA[recipient];
+        rewardsForA[recipient] = 0;
+        (bool success, ) = recipient.call.value(amountToWithdraw)("");
+        require(success);
+    }
+
+    function getFirstWithdrawalBonus(address recipient) public {
+        require(!claimedBonus[recipient]);
+        rewardsForA[recipient] += 100;
+        withdrawReward(recipient); // external payout path
+        claimedBonus[recipient] = true;
+    }
+}
+"""
+        finding = {
+            "type": "reentrancy",
+            "function": "getFirstWithdrawalBonus",
+            "fix_code": "add nonReentrant",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert changed
+        assert "MIESC: checks-effects-interactions for indirect payout" in patched
+        assert patched.index("claimedBonus[recipient] = true;") < patched.index(
+            "withdrawReward(recipient); // external payout path"
+        )
+        assert "        withdrawReward(recipient); // external payout path" in patched
+        assert patched.count("claimedBonus[recipient] = true;") == 1
+
     def test_reentrancy_normalizes_legacy_call_value_tuple_assignment(self):
         source = """\
 pragma solidity ^0.4.24;
