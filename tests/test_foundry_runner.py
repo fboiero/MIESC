@@ -786,7 +786,7 @@ class TestIntegration:
         # Create mock test file
         test_file = tmp_path / "test" / "Exploit.t.sol"
         test_file.parent.mkdir(parents=True, exist_ok=True)
-        test_file.write_text("// Test file")
+        test_file.write_text("// Test file", encoding="utf-8")
 
         mock_result = MagicMock()
         mock_result.returncode = 0
@@ -803,7 +803,7 @@ class TestIntegration:
         """Test complete validation flow."""
         test_file = tmp_path / "test" / "Exploit.t.sol"
         test_file.parent.mkdir(parents=True, exist_ok=True)
-        test_file.write_text("// Test file")
+        test_file.write_text("// Test file", encoding="utf-8")
 
         mock_result = MagicMock()
         mock_result.returncode = 0
@@ -899,7 +899,7 @@ class TestValidatePoCEdgeCases:
         """Test validate_poc when exploit fails (lines 346-347)."""
         test_file = tmp_path / "test" / "Exploit.t.sol"
         test_file.parent.mkdir(parents=True, exist_ok=True)
-        test_file.write_text("// Test file")
+        test_file.write_text("// Test file", encoding="utf-8")
 
         mock_result = MagicMock()
         mock_result.returncode = 0
@@ -916,7 +916,7 @@ class TestValidatePoCEdgeCases:
         """Test validate_poc with PROFIT indicator."""
         test_file = tmp_path / "test" / "Exploit.t.sol"
         test_file.parent.mkdir(parents=True, exist_ok=True)
-        test_file.write_text("// Test file")
+        test_file.write_text("// Test file", encoding="utf-8")
 
         mock_result = MagicMock()
         mock_result.returncode = 0
@@ -932,7 +932,7 @@ class TestValidatePoCEdgeCases:
         """Test validate_poc without exploit indicators."""
         test_file = tmp_path / "test" / "Exploit.t.sol"
         test_file.parent.mkdir(parents=True, exist_ok=True)
-        test_file.write_text("// Test file")
+        test_file.write_text("// Test file", encoding="utf-8")
 
         mock_result = MagicMock()
         mock_result.returncode = 0
@@ -1015,7 +1015,7 @@ class TestHighGasUsageWarning:
         """Test warning for high gas usage (lines 356-359)."""
         test_file = tmp_path / "test" / "Exploit.t.sol"
         test_file.parent.mkdir(parents=True, exist_ok=True)
-        test_file.write_text("// Test file")
+        test_file.write_text("// Test file", encoding="utf-8")
 
         mock_result = MagicMock()
         mock_result.returncode = 0

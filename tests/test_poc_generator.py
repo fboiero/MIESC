@@ -782,7 +782,7 @@ class TestIntegration:
 
         # Verify file
         assert saved_path.exists()
-        content = saved_path.read_text()
+        content = saved_path.read_text(encoding="utf-8")
 
         # Check content
         assert "SPDX-License-Identifier" in content
@@ -846,11 +846,11 @@ class TestIntegration:
 
         # Save to JSON
         json_path = tmp_path / "poc_metadata.json"
-        with open(json_path, "w") as f:
+        with open(json_path, "w", encoding="utf-8") as f:
             json.dump(poc_dict, f, indent=2)
 
         # Reload
-        with open(json_path, "r") as f:
+        with open(json_path, "r", encoding="utf-8") as f:
             loaded = json.load(f)
 
         assert loaded["name"] == poc.name
