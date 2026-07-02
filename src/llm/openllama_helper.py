@@ -335,14 +335,17 @@ INSIGHTS:"""
     def _parse_priorities(self, llm_response: str) -> Dict[int, Dict[str, Any]]:
         """Parse priority assignments from LLM response."""
         try:
-            json_str = extract_json_from_text(llm_response)
+            stripped = llm_response.strip()
+            json_str = stripped if stripped.startswith("[") else extract_json_from_text(llm_response)
             if json_str is None:
-                json_str = llm_response.strip()
+                json_str = stripped
 
             if not json_str:
                 return {}
 
             parsed = json.loads(repair_common_json_errors(json_str))
+            if not isinstance(parsed, dict):
+                return {}
 
             priorities = {}
             for item in parsed.get("priorities", []):

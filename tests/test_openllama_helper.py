@@ -277,3 +277,13 @@ def test_parse_priorities_returns_empty_on_unparseable_response():
     helper = OpenLLaMAHelper()
 
     assert helper._parse_priorities("not json") == {}
+
+
+def test_parse_priorities_rejects_non_object_json():
+    helper = OpenLLaMAHelper()
+
+    priorities = helper._parse_priorities(
+        '[{"priorities": [{"index": 0, "priority": 9, "reason": "nested object"}]}]'
+    )
+
+    assert priorities == {}
