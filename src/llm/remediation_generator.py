@@ -425,12 +425,15 @@ class RemediationGenerator:
     def _parse_json_response(self, content: str) -> Dict[str, Any]:
         """Parse JSON from LLM response."""
         try:
-            json_str = extract_json_from_text(content)
+            stripped = content.strip()
+            json_str = stripped if stripped.startswith("[") else extract_json_from_text(content)
             if json_str is None:
-                json_str = content.strip()
+                json_str = stripped
 
             if json_str:
-                return cast(Dict[str, Any], json.loads(repair_common_json_errors(json_str)))
+                parsed = json.loads(repair_common_json_errors(json_str))
+                if isinstance(parsed, dict):
+                    return parsed
         except json.JSONDecodeError as e:
             logger.debug(f"JSON parse error: {e}")
 
