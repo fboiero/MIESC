@@ -7,7 +7,7 @@ push.
 
 ## Scope
 
-Pending Codex work since current `main` is nine local commits:
+Pending Codex work since current `main` is twelve local commits:
 
 - `13e55f7 docs: promote post-spank paper2 candidate`
 - `f7926f5 docs: add post-spank promotion audit`
@@ -18,6 +18,9 @@ Pending Codex work since current `main` is nine local commits:
 - `8bddc12 docs: add paper2 vnext integration readiness`
 - `a157497 style(llm): sort typing imports`
 - `d399cfa chore(poc): use explicit utf8 template IO`
+- `340b13d docs: refresh codex integration readiness`
+- `185635c chore(poc): read templates as utf8`
+- `76df8e5 test(poc): use explicit utf8 temp IO`
 
 The lane touches:
 
@@ -34,8 +37,9 @@ The lane touches:
 - this integration handoff:
   `docs/CODEX_INTEGRATION_READINESS_20260701.md`
 - mechanical LLM import-order maintenance under `src/llm/*.py`
-- PoC template UTF-8 file I/O in `src/poc/poc_generator.py` and
-  `tests/test_poc_generator.py`
+- PoC template and temporary test UTF-8 file I/O in
+  `src/poc/poc_generator.py`, `tests/test_poc_generator.py`, and
+  `tests/test_foundry_runner.py`
 
 No Paper 1 baseline artifact is changed by this lane.
 
@@ -100,8 +104,9 @@ Observed results:
 - `git merge-tree` exited 0; no structural merge conflict was reported.
 - `288 passed` for focused LLM/RAG/remediation/provider tests.
 - Ruff passed for the LLM scopes touched by import ordering.
-- `146 passed` for focused PoC/Foundry runner tests.
-- Ruff passed for the PoC scopes touched by explicit UTF-8 template I/O.
+- `147 passed` for focused PoC/Foundry runner tests after the template-load
+  and temporary test I/O UTF-8 maintenance commits.
+- Ruff passed for the PoC scopes touched by explicit UTF-8 template/test I/O.
 
 ## Integration Risk
 
