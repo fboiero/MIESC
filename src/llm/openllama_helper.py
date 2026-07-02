@@ -305,7 +305,7 @@ REMEDIATION ADVICE:"""
         prompt = f"""Analyze this security finding from {adapter_name} and provide expert insights.
 
 FINDING:
-{json.dumps(finding, indent=2)}
+{json.dumps(finding, indent=2, sort_keys=True)}
 
 CONTRACT CONTEXT:
 {context[:1000]}

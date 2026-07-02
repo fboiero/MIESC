@@ -173,6 +173,20 @@ def test_private_helpers_format_summary_and_severity():
     assert len(summary.split(" - ", 1)[1]) == 100
 
 
+def test_generate_insights_sorts_finding_keys(monkeypatch):
+    helper = OpenLLaMAHelper()
+    captured = {}
+
+    def fake_call_llm(prompt):
+        captured["prompt"] = prompt
+        return "insight"
+
+    monkeypatch.setattr(helper, "_call_llm", fake_call_llm)
+
+    assert helper._generate_insights({"z_key": 1, "a_key": 2}, "contract C {}", "adapter")
+    assert captured["prompt"].index('"a_key"') < captured["prompt"].index('"z_key"')
+
+
 def test_convenience_functions_delegate_to_helper(monkeypatch):
     calls = []
 
