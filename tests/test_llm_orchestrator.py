@@ -245,6 +245,33 @@ class TestOllamaBackend:
         assert hasattr(backend, "analyze")
         assert hasattr(backend, "config")
 
+    def test_analyze_context_prompt_sorts_keys(self):
+        """Test context serialization is deterministic in provider prompts."""
+
+        async def run_test():
+            config = LLMConfig(provider=LLMProvider.OLLAMA, model="codellama")
+            backend = OllamaBackend(config)
+
+            mock_response = MagicMock()
+            mock_response.status = 200
+            mock_response.json = AsyncMock(
+                return_value={
+                    "message": {"content": "{}"},
+                    "eval_count": 1,
+                    "prompt_eval_count": 2,
+                }
+            )
+            mock_session = _aiohttp_session_with_response("post", mock_response)
+
+            with patch("aiohttp.ClientSession", return_value=mock_session):
+                await backend.analyze("prompt", {"z_key": 1, "a_key": 2})
+
+            post_payload = mock_session.__aenter__.return_value.post.call_args.kwargs["json"]
+            system_prompt = post_payload["messages"][0]["content"]
+            assert system_prompt.index('"a_key"') < system_prompt.index('"z_key"')
+
+        asyncio.run(run_test())
+
 
 class TestOpenAIBackend:
     """Test OpenAIBackend implementation."""

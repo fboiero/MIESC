@@ -491,7 +491,7 @@ Response (JSON array only):"""
 
         prompt = self.DETECTION_PROMPT.format(code=code)
         if context:
-            prompt += f"\n\nAdditional context:\n{json.dumps(context, indent=2)}"
+            prompt += f"\n\nAdditional context:\n{json.dumps(context, indent=2, sort_keys=True)}"
 
         headers = {
             "Authorization": f"Bearer {self.openai_api_key}",
@@ -547,7 +547,7 @@ Response (JSON array only):"""
 
         prompt = self.DETECTION_PROMPT.format(code=code)
         if context:
-            prompt += f"\n\nAdditional context:\n{json.dumps(context, indent=2)}"
+            prompt += f"\n\nAdditional context:\n{json.dumps(context, indent=2, sort_keys=True)}"
 
         headers = {
             "Authorization": f"Bearer {self.deepseek_api_key}",
@@ -609,7 +609,7 @@ Response (JSON array only):"""
 
         prompt = self.DETECTION_PROMPT.format(code=code)
         if context:
-            prompt += f"\n\nAdditional context:\n{json.dumps(context, indent=2)}"
+            prompt += f"\n\nAdditional context:\n{json.dumps(context, indent=2, sort_keys=True)}"
 
         headers = {
             "x-api-key": self.anthropic_api_key,
@@ -739,7 +739,7 @@ Response (JSON array only):"""
         prompt = self.DETECTION_PROMPT.format(code=code)
 
         if context:
-            prompt += f"\n\nAdditional context:\n{json.dumps(context, indent=2)}"
+            prompt += f"\n\nAdditional context:\n{json.dumps(context, indent=2, sort_keys=True)}"
 
         payload = {
             "model": model,

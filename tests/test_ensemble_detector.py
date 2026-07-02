@@ -913,8 +913,15 @@ class TestLLMEnsembleDetectorQueryMethods:
             mock_session.__aexit__ = AsyncMock(return_value=None)
 
             with patch("aiohttp.ClientSession", return_value=mock_session):
-                results = await multi_provider_detector._query_openai("gpt-4", "contract code")
+                results = await multi_provider_detector._query_openai(
+                    "gpt-4",
+                    "contract code",
+                    {"z_key": 1, "a_key": 2},
+                )
                 assert isinstance(results, list)
+                post_payload = mock_session_instance.post.call_args.kwargs["json"]
+                user_prompt = post_payload["messages"][1]["content"]
+                assert user_prompt.index('"a_key"') < user_prompt.index('"z_key"')
 
         asyncio.run(run_test())
 

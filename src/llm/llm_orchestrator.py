@@ -193,7 +193,9 @@ class OllamaBackend(LLMBackend):
 
         system_prompt = self.get_system_prompt()
         if context:
-            system_prompt += f"\n\nAdditional context:\n{json.dumps(context, indent=2)}"
+            system_prompt += (
+                f"\n\nAdditional context:\n{json.dumps(context, indent=2, sort_keys=True)}"
+            )
 
         payload = {
             "model": self.config.model,
@@ -254,7 +256,9 @@ class OpenAIBackend(LLMBackend):
 
         system_prompt = self.get_system_prompt()
         if context:
-            system_prompt += f"\n\nAdditional context:\n{json.dumps(context, indent=2)}"
+            system_prompt += (
+                f"\n\nAdditional context:\n{json.dumps(context, indent=2, sort_keys=True)}"
+            )
 
         response = await client.chat.completions.create(
             model=self.config.model,
@@ -311,7 +315,9 @@ class DeepSeekBackend(LLMBackend):
 
         system_prompt = self.get_system_prompt()
         if context:
-            system_prompt += f"\n\nAdditional context:\n{json.dumps(context, indent=2)}"
+            system_prompt += (
+                f"\n\nAdditional context:\n{json.dumps(context, indent=2, sort_keys=True)}"
+            )
 
         response = await client.chat.completions.create(
             model=self.config.model,
@@ -356,7 +362,9 @@ class AnthropicBackend(LLMBackend):
 
         system_prompt = self.get_system_prompt()
         if context:
-            system_prompt += f"\n\nAdditional context:\n{json.dumps(context, indent=2)}"
+            system_prompt += (
+                f"\n\nAdditional context:\n{json.dumps(context, indent=2, sort_keys=True)}"
+            )
 
         response = await client.messages.create(
             model=self.config.model,
