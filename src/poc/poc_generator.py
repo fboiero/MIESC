@@ -396,7 +396,8 @@ class PoCGenerator:
 
     def _resolve_vulnerability_type(self, finding: Dict[str, Any]) -> VulnerabilityType:
         """Resolve finding type to VulnerabilityType enum."""
-        finding_type = finding.get("type", "").lower().strip()
+        raw_finding_type = finding.get("type", "")
+        finding_type = raw_finding_type.lower().strip() if isinstance(raw_finding_type, str) else ""
 
         # Try direct alias lookup
         if finding_type in self.TYPE_ALIASES:
