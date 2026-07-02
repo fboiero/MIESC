@@ -1,0 +1,309 @@
+openapi: 3.1.0
+info:
+  title: MIESC Core REST API
+  version: "5.4.3"
+  description: |
+    Local REST API for the MIESC open core. The hosted web UI, team workflows,
+    licensing, and product dashboards live in the platform layer.
+  contact:
+    name: Fernando Boiero
+    email: fboiero@frvm.utn.edu.ar
+  license:
+    name: AGPL-3.0
+    url: https://www.gnu.org/licenses/agpl-3.0.html
+    identifier: AGPL-3.0-only
+
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+
+tags:
+  - name: Health
+    description: System health and runtime status
+  - name: Analysis
+    description: Smart contract analysis endpoints
+  - name: Tools
+    description: Tool and layer discovery
+  - name: Remediation
+    description: Remediation generation and validation
+  - name: Reports
+    description: Inline report handling
+
+paths:
+  /:
+    get:
+      tags: [Health]
+      summary: API root
+      operationId: getRoot
+      responses:
+        "200":
+          description: API metadata and endpoint index
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RootResponse"
+
+  /api/v1/health/:
+    get:
+      tags: [Health]
+      summary: System health check
+      operationId: getHealth
+      responses:
+        "200":
+          description: Health status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+
+  /api/v1/tools/:
+    get:
+      tags: [Tools]
+      summary: List available tools
+      operationId: listTools
+      responses:
+        "200":
+          description: Tool inventory
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
+  /api/v1/tools/{tool_name}/:
+    get:
+      tags: [Tools]
+      summary: Get tool information
+      operationId: getTool
+      parameters:
+        - name: tool_name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Tool metadata
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        "404":
+          description: Tool not found
+
+  /api/v1/layers/:
+    get:
+      tags: [Tools]
+      summary: List analysis layers
+      operationId: listLayers
+      responses:
+        "200":
+          description: Layer inventory
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
+  /api/v1/analyze/quick/:
+    post:
+      tags: [Analysis]
+      summary: Run quick analysis
+      operationId: analyzeQuick
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AnalyzeRequest"
+      responses:
+        "200":
+          description: Analysis result
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        "400":
+          description: Invalid request
+
+  /api/v1/analyze/full/:
+    post:
+      tags: [Analysis]
+      summary: Run full multi-layer audit
+      operationId: analyzeFull
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AnalyzeRequest"
+      responses:
+        "200":
+          description: Analysis result
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        "400":
+          description: Invalid request
+
+  /api/v1/analyze/layer/{layer_num}/:
+    post:
+      tags: [Analysis]
+      summary: Run one analysis layer
+      operationId: analyzeLayer
+      parameters:
+        - name: layer_num
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AnalyzeRequest"
+      responses:
+        "200":
+          description: Layer analysis result
+        "400":
+          description: Invalid request
+
+  /api/v1/analyze/tool/{tool_name}/:
+    post:
+      tags: [Analysis]
+      summary: Run one tool
+      operationId: analyzeTool
+      parameters:
+        - name: tool_name
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AnalyzeRequest"
+      responses:
+        "200":
+          description: Tool analysis result
+        "400":
+          description: Invalid request
+
+  /api/v1/remediate/:
+    post:
+      tags: [Remediation]
+      summary: Generate remediation guidance
+      operationId: remediateContract
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Remediation result
+
+  /api/v1/validate-remediation/:
+    post:
+      tags: [Remediation]
+      summary: Validate remediation changes
+      operationId: validateRemediation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Validation result
+
+  /api/v1/reports/:
+    get:
+      tags: [Reports]
+      summary: Report endpoint metadata
+      operationId: listReports
+      responses:
+        "200":
+          description: Report endpoint information
+    post:
+      tags: [Reports]
+      summary: Submit inline report data
+      operationId: createReport
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "201":
+          description: Report accepted
+        "400":
+          description: Invalid request
+
+components:
+  schemas:
+    RootResponse:
+      type: object
+      properties:
+        service:
+          type: string
+          example: MIESC REST API
+        version:
+          type: string
+        description:
+          type: string
+        endpoints:
+          type: object
+          additionalProperties: true
+
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+        version:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        tools:
+          type: object
+          additionalProperties: true
+        dependencies:
+          type: object
+          additionalProperties: true
+
+    AnalyzeRequest:
+      type: object
+      properties:
+        contract_code:
+          type: string
+          description: Solidity source code to analyze.
+        contract_path:
+          type: string
+          description: Local path to a Solidity contract.
+        timeout:
+          type: integer
+          default: 300
+        format:
+          type: string
+          enum: [json, sarif]
+          default: json
+      oneOf:
+        - required: [contract_code]
+        - required: [contract_path]

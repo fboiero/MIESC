@@ -1,0 +1,142 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1300 900" font-family="Arial, Helvetica, sans-serif">
+  <!-- Background -->
+  <rect width="1300" height="900" fill="#ffffff"/>
+  
+  <!-- Title -->
+  <text x="650" y="40" text-anchor="middle" font-size="28" font-weight="bold" fill="#2c3e50">
+    Heterogeneidad de Outputs - Mismo Hallazgo, Diferentes Formatos
+  </text>
+  <text x="650" y="70" text-anchor="middle" font-size="16" fill="#7f8c8d">
+    Reentrancy en Bank.sol:42 detectado por 3 herramientas
+  </text>
+  
+  <!-- Slither Output -->
+  <rect x="50" y="100" width="380" height="320" fill="#1e272e" rx="8" stroke="#27ae60" stroke-width="3"/>
+  <rect x="50" y="100" width="380" height="45" fill="#27ae60" rx="8"/>
+  <rect x="50" y="135" width="380" height="10" fill="#27ae60"/>
+  <text x="240" y="130" text-anchor="middle" font-size="20" font-weight="bold" fill="white">Slither</text>
+  
+  <!-- Slither JSON -->
+  <text x="70" y="175" font-size="14" fill="#aaa" font-family="Consolas, monospace">{</text>
+  <text x="90" y="200" font-size="14" font-family="Consolas, monospace">
+    <tspan fill="#f39c12">"check"</tspan><tspan fill="#aaa">:</tspan>
+    <tspan fill="#2ecc71">"reentrancy-eth"</tspan><tspan fill="#aaa">,</tspan>
+  </text>
+  <text x="90" y="225" font-size="14" font-family="Consolas, monospace">
+    <tspan fill="#f39c12">"impact"</tspan><tspan fill="#aaa">:</tspan>
+    <tspan fill="#e74c3c">"High"</tspan><tspan fill="#aaa">,</tspan>
+  </text>
+  <text x="90" y="250" font-size="14" font-family="Consolas, monospace">
+    <tspan fill="#f39c12">"confidence"</tspan><tspan fill="#aaa">:</tspan>
+    <tspan fill="#f39c12">"Medium"</tspan><tspan fill="#aaa">,</tspan>
+  </text>
+  <text x="90" y="275" font-size="14" font-family="Consolas, monospace">
+    <tspan fill="#f39c12">"elements"</tspan><tspan fill="#aaa">: [{</tspan>
+  </text>
+  <text x="110" y="300" font-size="14" font-family="Consolas, monospace">
+    <tspan fill="#f39c12">"source_mapping"</tspan><tspan fill="#aaa">: {</tspan>
+  </text>
+  <text x="130" y="325" font-size="14" font-family="Consolas, monospace">
+    <tspan fill="#f39c12">"filename"</tspan><tspan fill="#aaa">:</tspan>
+    <tspan fill="#2ecc71">"Bank.sol"</tspan><tspan fill="#aaa">,</tspan>
+  </text>
+  <text x="130" y="350" font-size="14" font-family="Consolas, monospace">
+    <tspan fill="#f39c12">"lines"</tspan><tspan fill="#aaa">: [</tspan>
+    <tspan fill="#3498db">42</tspan><tspan fill="#aaa">]</tspan>
+  </text>
+  <text x="110" y="375" font-size="14" fill="#aaa" font-family="Consolas, monospace">}}]</text>
+  <text x="70" y="400" font-size="14" fill="#aaa" font-family="Consolas, monospace">}</text>
+  
+  <!-- Mythril Output -->
+  <rect x="460" y="100" width="380" height="320" fill="#1e272e" rx="8" stroke="#9b59b6" stroke-width="3"/>
+  <rect x="460" y="100" width="380" height="45" fill="#9b59b6" rx="8"/>
+  <rect x="460" y="135" width="380" height="10" fill="#9b59b6"/>
+  <text x="650" y="130" text-anchor="middle" font-size="20" font-weight="bold" fill="white">Mythril</text>
+  
+  <!-- Mythril Plain Text -->
+  <text x="480" y="180" font-size="14" fill="#f1c40f" font-family="Consolas, monospace" font-weight="bold">==== State change after external call ====</text>
+  <text x="480" y="220" font-size="14" font-family="Consolas, monospace">
+    <tspan fill="#aaa">SWC ID: </tspan>
+    <tspan fill="#e74c3c" font-weight="bold">107</tspan>
+  </text>
+  <text x="480" y="255" font-size="14" font-family="Consolas, monospace">
+    <tspan fill="#aaa">Severity: </tspan>
+    <tspan fill="#e74c3c">High</tspan>
+  </text>
+  <text x="480" y="290" font-size="14" font-family="Consolas, monospace">
+    <tspan fill="#aaa">Contract: </tspan>
+    <tspan fill="#3498db">Bank</tspan>
+  </text>
+  <text x="480" y="325" font-size="14" font-family="Consolas, monospace">
+    <tspan fill="#aaa">Function name: </tspan>
+    <tspan fill="#2ecc71">withdraw</tspan>
+  </text>
+  <text x="480" y="360" font-size="14" font-family="Consolas, monospace">
+    <tspan fill="#aaa">PC address: </tspan>
+    <tspan fill="#9b59b6">1234</tspan>
+  </text>
+  
+  <!-- GPTScan Output -->
+  <rect x="870" y="100" width="380" height="320" fill="#1e272e" rx="8" stroke="#e74c3c" stroke-width="3"/>
+  <rect x="870" y="100" width="380" height="45" fill="#e74c3c" rx="8"/>
+  <rect x="870" y="135" width="380" height="10" fill="#e74c3c"/>
+  <text x="1060" y="130" text-anchor="middle" font-size="20" font-weight="bold" fill="white">GPTScan</text>
+  
+  <!-- GPTScan JSON -->
+  <text x="890" y="175" font-size="14" fill="#aaa" font-family="Consolas, monospace">{</text>
+  <text x="910" y="205" font-size="14" font-family="Consolas, monospace">
+    <tspan fill="#f39c12">"vulnerability"</tspan><tspan fill="#aaa">:</tspan>
+  </text>
+  <text x="930" y="230" font-size="13" font-family="Consolas, monospace">
+    <tspan fill="#2ecc71">"Reentrancy vulnerability</tspan>
+  </text>
+  <text x="930" y="255" font-size="13" font-family="Consolas, monospace">
+    <tspan fill="#2ecc71"> in withdraw function"</tspan><tspan fill="#aaa">,</tspan>
+  </text>
+  <text x="910" y="290" font-size="14" font-family="Consolas, monospace">
+    <tspan fill="#f39c12">"severity"</tspan><tspan fill="#aaa">:</tspan>
+    <tspan fill="#e74c3c">"CRITICAL"</tspan><tspan fill="#aaa">,</tspan>
+  </text>
+  <text x="910" y="325" font-size="14" font-family="Consolas, monospace">
+    <tspan fill="#f39c12">"line"</tspan><tspan fill="#aaa">:</tspan>
+    <tspan fill="#3498db">42</tspan>
+  </text>
+  <text x="890" y="360" font-size="14" fill="#aaa" font-family="Consolas, monospace">}</text>
+  
+  <!-- Observations Section -->
+  <rect x="50" y="450" width="1200" height="430" fill="#f8f9fa" rx="8" stroke="#bdc3c7" stroke-width="2"/>
+  <text x="650" y="490" text-anchor="middle" font-size="22" font-weight="bold" fill="#2c3e50">Observaciones - Problemas de Heterogeneidad</text>
+  
+  <!-- Observation 1: Naming -->
+  <rect x="80" y="515" width="1140" height="70" fill="#ffeaa7" rx="6"/>
+  <text x="110" y="545" font-size="18" font-weight="bold" fill="#d68910">🏷️ Nomenclatura Inconsistente</text>
+  <text x="110" y="572" font-size="15" fill="#6d5200">
+    Slither: "reentrancy-eth" │ Mythril: "State change after external call" │ GPTScan: "Reentrancy vulnerability"
+  </text>
+  
+  <!-- Observation 2: Severity -->
+  <rect x="80" y="600" width="1140" height="70" fill="#fab1a0" rx="6"/>
+  <text x="110" y="630" font-size="18" font-weight="bold" fill="#c0392b">⚠️ Severidades No Normalizadas</text>
+  <text x="110" y="657" font-size="15" fill="#641e16">
+    Slither: "High" │ GPTScan: "CRITICAL" — Mismo concepto, diferente nomenclatura
+  </text>
+  
+  <!-- Observation 3: Standards -->
+  <rect x="80" y="685" width="1140" height="70" fill="#81ecec" rx="6"/>
+  <text x="110" y="715" font-size="18" font-weight="bold" fill="#0984e3">📋 Referencias a Estándares</text>
+  <text x="110" y="742" font-size="15" fill="#0c5460">
+    Solo Mythril referencia el estándar SWC-107 — Las otras herramientas no incluyen taxonomía estándar
+  </text>
+  
+  <!-- Observation 4: Structure -->
+  <rect x="80" y="770" width="1140" height="70" fill="#dfe6e9" rx="6"/>
+  <text x="110" y="800" font-size="18" font-weight="bold" fill="#2d3436">📦 Formato Estructural</text>
+  <text x="110" y="827" font-size="15" fill="#2d3436">
+    Slither: JSON anidado │ Mythril: Texto plano │ GPTScan: JSON simple — Parsing completamente diferente
+  </text>
+  
+  <!-- Arrow pointing to need for normalization -->
+  <text x="650" y="870" text-anchor="middle" font-size="18" font-weight="bold" fill="#e74c3c">
+    → Necesidad crítica de normalización para deduplicación y análisis unificado
+  </text>
+</svg>

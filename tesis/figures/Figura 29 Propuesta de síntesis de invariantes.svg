@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 500" font-family="Arial, Helvetica, sans-serif">
+  <!-- Background -->
+  <rect width="700" height="500" fill="#ffffff"/>
+  
+  <!-- Title -->
+  <text x="350" y="30" text-anchor="middle" font-size="20" font-weight="bold" fill="#2c3e50">
+    Propuesta de Síntesis de Invariantes
+  </text>
+  
+  <!-- Arrow marker -->
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+      <polygon points="0 0, 10 4, 0 8" fill="#555"/>
+    </marker>
+  </defs>
+  
+  <!-- Entrada -->
+  <rect x="225" y="55" width="250" height="50" fill="#3498db" rx="8" stroke="#2980b9" stroke-width="2"/>
+  <text x="350" y="85" text-anchor="middle" font-size="14" font-weight="bold" fill="white">Entrada: Contrato Solidity</text>
+  
+  <!-- Arrow 1 -->
+  <line x1="350" y1="105" x2="350" y2="135" stroke="#555" stroke-width="2" marker-end="url(#arrow)"/>
+  
+  <!-- Paso 1 -->
+  <rect x="150" y="145" width="400" height="55" fill="#27ae60" rx="8" stroke="#1e8449" stroke-width="2"/>
+  <text x="175" y="168" font-size="12" font-weight="bold" fill="white">Paso 1:</text>
+  <text x="235" y="168" font-size="12" fill="white">Análisis estático</text>
+  <text x="175" y="188" font-size="11" fill="#d5f5e3">→ Variables de estado, funciones públicas</text>
+  
+  <!-- Arrow 2 -->
+  <line x1="350" y1="200" x2="350" y2="230" stroke="#555" stroke-width="2" marker-end="url(#arrow)"/>
+  
+  <!-- Paso 2 -->
+  <rect x="150" y="240" width="400" height="55" fill="#9b59b6" rx="8" stroke="#8e44ad" stroke-width="2"/>
+  <text x="175" y="263" font-size="12" font-weight="bold" fill="white">Paso 2:</text>
+  <text x="235" y="263" font-size="12" fill="white">LLM genera candidatos de invariantes</text>
+  <text x="175" y="283" font-size="11" fill="#e8daef">→ Propiedades inferidas del contexto</text>
+  
+  <!-- Arrow 3 -->
+  <line x1="350" y1="295" x2="350" y2="325" stroke="#555" stroke-width="2" marker-end="url(#arrow)"/>
+  
+  <!-- Paso 3 -->
+  <rect x="150" y="335" width="400" height="55" fill="#f39c12" rx="8" stroke="#d68910" stroke-width="2"/>
+  <text x="175" y="358" font-size="12" font-weight="bold" fill="white">Paso 3:</text>
+  <text x="235" y="358" font-size="12" fill="white">Halmos/SMTChecker valida invariantes</text>
+  <text x="175" y="378" font-size="11" fill="#fef9e7">→ Descarta candidatos inválidos</text>
+  
+  <!-- Arrow 4 -->
+  <line x1="350" y1="390" x2="350" y2="420" stroke="#555" stroke-width="2" marker-end="url(#arrow)"/>
+  
+  <!-- Salida -->
+  <rect x="175" y="430" width="350" height="55" fill="#e74c3c" rx="8" stroke="#c0392b" stroke-width="2"/>
+  <text x="200" y="453" font-size="12" font-weight="bold" fill="white">Salida:</text>
+  <text x="255" y="453" font-size="12" fill="white">Especificación CVL verificada</text>
+  <text x="200" y="473" font-size="11" fill="#fdedec">→ Lista para Certora Prover</text>
+  
+  <!-- Side labels -->
+  <rect x="570" y="145" width="80" height="25" fill="#d5f5e3" rx="4"/>
+  <text x="610" y="162" text-anchor="middle" font-size="9" fill="#1e8449">Slither</text>
+  
+  <rect x="570" y="240" width="80" height="25" fill="#e8daef" rx="4"/>
+  <text x="610" y="257" text-anchor="middle" font-size="9" fill="#8e44ad">GPT/Llama</text>
+  
+  <rect x="570" y="335" width="80" height="25" fill="#fef9e7" rx="4"/>
+  <text x="610" y="352" text-anchor="middle" font-size="9" fill="#d68910">SMT Solver</text>
+  
+  <rect x="570" y="430" width="80" height="25" fill="#fdedec" rx="4"/>
+  <text x="610" y="447" text-anchor="middle" font-size="9" fill="#c0392b">Certora</text>
+</svg>
