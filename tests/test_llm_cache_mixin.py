@@ -73,6 +73,19 @@ def test_gptscan_inherits_cache_mixin():
     assert issubclass(GPTScanAdapter, LLMCacheMixin)
 
 
+def test_gptscan_init_sets_rag_attributes():
+    """Regression: _use_rag/_embedding_rag were dead code after a return in
+    _get_cache_key, so __init__ never set them and _run_ollama_analysis crashed
+    with AttributeError on every scan. The existing tests missed it because they
+    mock _run_ollama_analysis (the very method that read the attribute).
+    """
+    adapter = GPTScanAdapter()
+    assert hasattr(adapter, "_use_rag")
+    assert hasattr(adapter, "_embedding_rag")
+    # the exact access that used to raise AttributeError must be safe now
+    _ = adapter._use_rag and adapter._embedding_rag
+
+
 def test_gptscan_second_scan_hits_cache(tmp_path):
     adapter = GPTScanAdapter()
     adapter._cache_dir = tmp_path
