@@ -508,8 +508,9 @@ class FoundryRunner:
                 if line.strip().startswith("{"):
                     try:
                         data = json.loads(line)
-                        if "gas_report" in data:
-                            report["contracts"] = data["gas_report"]
+                        gas_report = data.get("gas_report")
+                        if isinstance(gas_report, dict):
+                            report["contracts"] = gas_report
                     except json.JSONDecodeError:
                         continue
                 elif line.strip().startswith("|") and "----" not in line:
