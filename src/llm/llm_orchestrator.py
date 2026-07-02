@@ -577,7 +577,11 @@ Provide a comprehensive security analysis in JSON format."""
         """Generate cache key from prompt and context."""
         import hashlib
 
-        content = prompt + json.dumps(context or {}, sort_keys=True)
+        content = json.dumps(
+            {"context": context or {}, "prompt": prompt},
+            sort_keys=True,
+            separators=(",", ":"),
+        )
         return hashlib.sha256(content.encode()).hexdigest()[:16]
 
     def _parse_analysis(self, response: LLMResponse) -> VulnerabilityAnalysis:
