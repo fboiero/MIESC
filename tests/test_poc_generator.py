@@ -241,7 +241,7 @@ class TestPoCTemplate:
         assert saved_path.suffix == ".sol"
         assert "reentrancy" in saved_path.name.lower()
 
-        content = saved_path.read_text()
+        content = saved_path.read_text(encoding="utf-8")
         assert "SPDX-License-Identifier" in content
 
     def test_template_to_dict(self):

@@ -95,7 +95,7 @@ class PoCTemplate:
         filename = f"PoC_{self.vulnerability_type.value}_{self.name}.t.sol"
         filepath = output_path / filename
 
-        with open(filepath, "w") as f:
+        with open(filepath, "w", encoding="utf-8") as f:
             f.write(self.solidity_code)
 
         logger.info(f"PoC saved to {filepath}")
