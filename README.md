@@ -155,7 +155,7 @@ MIESC has two linked research tracks. Paper 1 evaluates detection and multi-laye
 | Paper | Focus | Main reproducible evidence | Artifacts |
 |-------|-------|----------------------------|-----------|
 | [Paper 1](./paper/miesc-paper.pdf) | Multi-layer smart contract security evaluation | SmartBugs: 95.8% recall on 143 contracts, with a local Ollama follow-up reported at 97.9%; DeFi exploits: 81.8% recall on 11 incidents; EVMBench ensemble: 111/120 high-severity findings, 92.5% recall | [Reproducibility](./paper/PAPER1_REPRODUCIBILITY.md), [claims matrix](./benchmarks/results/paper1_claims_matrix.json) |
-| [Paper 2](./paper/paper2-remediation.pdf) | Verifiable remediation artifacts | 123/143 fixes applied; 123/123 patched contracts compile standalone; 86/123 eliminate the original finding by re-scan; 121/123 pass bounded no-regression | [Reproducibility](./paper/PAPER2_REPRODUCIBILITY.md), [claims matrix](./benchmarks/results/paper2_claims_matrix.json), [experiment audit](./benchmarks/results/paper2_experiment_audit.json) |
+| [Paper 2](./paper/paper2-remediation.pdf) | Verifiable remediation artifacts | 123/143 fixes applied; 123/123 patched contracts compile standalone; 88/123 eliminate the original finding by re-scan; 121/123 pass bounded no-regression; 70/123 clean-HIGH under external Slither | [Reproducibility](./paper/PAPER2_REPRODUCIBILITY.md), [claims matrix](./benchmarks/results/paper2_claims_matrix.json), [experiment audit](./benchmarks/results/paper2_experiment_audit.json) |
 
 For research citation and review, the canonical current claims are the two paper PDFs, their reproducibility notes, and the `benchmarks/results/paper*_claims_matrix.json` files. The platform alignment plan maps these paper results into CLI, API, MCP, RAG, and remediation workflow requirements: [Paper learnings and platform alignment](./docs/roadmap/PAPER_LEARNINGS_PLATFORM_ALIGNMENT.md). RAG source selection and weighting are governed by the [RAG source policy](./docs/guides/RAG_SOURCE_POLICY.md). Older release notes, thesis drafts, and roadmap documents are kept for project history and may contain previous benchmark runs or version-specific metrics.
 
@@ -626,7 +626,7 @@ MIESC was developed as a Master's thesis in Cyberdefense at [UNDEF-IUA](https://
 - **95.8% recall** on the latest full-corpus reproducible local SmartBugs profile; Slither alone baseline: 43.2%
 - Paper 1 reports a local Ollama follow-up on the residual SmartBugs misses at 140/143 (97.9%); the reproducible corpus artifact remains the 95.8% JSON profile.
 - Paper 1 now treats EVMBench as the primary business-logic benchmark: static-only reaches 22/120 (18.3%), while the reproducible four-provider ensemble reaches 111/120 (92.5%)
-- Paper 2 evaluates remediation artifacts: 123/143 fixes applied, 123/123 patched contracts compile standalone, 86/123 eliminate the original finding by re-scan, and 121/123 pass bounded no-regression
+- Paper 2 evaluates remediation artifacts: 123/143 fixes applied, 123/123 patched contracts compile standalone, 88/123 eliminate the original finding by re-scan, 121/123 pass bounded no-regression, and 70/123 are clean-HIGH under external Slither
 - Reproducible SmartBugs profile runs in 737.0s total (~5.15 sec/contract)
 - Canonical results: [Paper 1 reproducibility](./paper/PAPER1_REPRODUCIBILITY.md), [Paper 2 reproducibility](./paper/PAPER2_REPRODUCIBILITY.md), [Paper 1 claims matrix](./benchmarks/results/paper1_claims_matrix.json), [Paper 2 claims matrix](./benchmarks/results/paper2_claims_matrix.json)
 

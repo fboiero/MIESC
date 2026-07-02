@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
@@ -26,6 +27,11 @@ def pct(num: int, den: int) -> float:
 def load_json(path: Path) -> dict[str, Any]:
     with path.open("r", encoding="utf-8") as fh:
         return json.load(fh)
+
+
+def reproducible_generated_at() -> str:
+    epoch = int(os.environ.get("SOURCE_DATE_EPOCH", "0"))
+    return datetime.fromtimestamp(epoch, timezone.utc).isoformat()
 
 
 def compile_originals(contracts: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
@@ -113,7 +119,7 @@ def main() -> None:
 
     payload = {
         "artifact": "paper2_experiment_audit",
-        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "generated_at": reproducible_generated_at(),
         "source_artifact": str(DETAILS.relative_to(ROOT)),
         "scope": "Paper 2 remediation experiment validity audit; does not modify Paper 1 detection evidence.",
         "totals": {
