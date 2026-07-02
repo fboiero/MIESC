@@ -675,6 +675,18 @@ class TestGasReport:
 
         assert report["contracts"] == {"Vault": {"methods": {}}}
 
+    def test_get_gas_report_ignores_non_object_json_report(self, runner):
+        """Test non-object JSON gas_report values are ignored."""
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = '{"gas_report": ["not", "a", "mapping"]}\n'
+        mock_result.stderr = ""
+
+        with patch("subprocess.run", return_value=mock_result):
+            report = runner.get_gas_report()
+
+        assert report["contracts"] == {}
+
     def test_get_gas_report_ignores_malformed_json_line(self, runner):
         """Test malformed JSON lines do not abort gas report parsing."""
         mock_result = MagicMock()
