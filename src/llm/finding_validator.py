@@ -306,11 +306,19 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
     def _parse_response(self, response: str, finding_id: str) -> LLMValidation:
         """Parse LLM response into LLMValidation."""
         try:
-            json_str = extract_json_from_text(response)
+            stripped = response.strip()
+            json_str = stripped if stripped.startswith("[") else extract_json_from_text(response)
             if not json_str:
                 raise ValueError("No JSON found in response")
 
             data = json.loads(repair_common_json_errors(json_str))
+            if not isinstance(data, dict):
+                return LLMValidation(
+                    finding_id=finding_id,
+                    result=ValidationResult.UNCERTAIN,
+                    confidence=0.5,
+                    reasoning="LLM validation response must be a JSON object",
+                )
 
             # Map result string to enum
             result_str = str(data.get("result", "")).lower()
