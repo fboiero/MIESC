@@ -112,6 +112,16 @@ def test_parse_response_repairs_invalid_backslash_escapes():
     assert validation.reasoning == r"pattern \d+ matched"
 
 
+def test_parse_response_falls_back_for_non_object_json():
+    validator = LLMFindingValidator(ValidatorConfig())
+
+    validation = validator._parse_response('[{"result": "valid", "confidence": 0.9}]', "F-6")
+
+    assert validation.finding_id == "F-6"
+    assert validation.result == ValidationResult.UNCERTAIN
+    assert validation.confidence == 0.5
+
+
 @pytest.mark.parametrize(
     ("response", "expected_result", "expected_confidence"),
     [
