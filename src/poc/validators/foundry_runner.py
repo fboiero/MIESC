@@ -423,26 +423,33 @@ class FoundryRunner:
         tests = []
 
         # Handle different JSON formats from forge
-        if "test_results" in data:
-            for contract, results in data["test_results"].items():
+        test_results = data.get("test_results")
+        if isinstance(test_results, dict):
+            for contract, results in test_results.items():
+                if not isinstance(results, dict):
+                    continue
                 for test_name, result in results.items():
+                    if not isinstance(result, dict):
+                        continue
                     status = TestStatus.PASSED if result.get("success") else TestStatus.FAILED
+                    logs = result.get("logs", [])
                     tests.append(
                         TestResult(
                             name=f"{contract}::{test_name}",
                             status=status,
                             gas_used=result.get("gas"),
-                            logs=result.get("logs", []),
+                            logs=logs if isinstance(logs, list) else [],
                         )
                     )
         elif "success" in data and (data.get("test_name") or data.get("name")):
             status = TestStatus.PASSED if data.get("success") else TestStatus.FAILED
+            logs = data.get("logs", [])
             tests.append(
                 TestResult(
                     name=data.get("test_name") or data.get("name") or "",
                     status=status,
                     gas_used=data.get("gas"),
-                    logs=data.get("logs", []),
+                    logs=logs if isinstance(logs, list) else [],
                 )
             )
 

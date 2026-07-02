@@ -601,6 +601,38 @@ class TestParseOutput:
         assert tests[0].gas_used == 12345
         assert tests[0].logs == ["ok"]
 
+    def test_parse_json_test_results_ignores_malformed_shapes(self, runner):
+        """Test malformed JSON test result shapes are ignored."""
+        tests = runner._parse_test_results(
+            {
+                "test_results": {
+                    "test/Bad.t.sol:BadTest": ["not", "a", "mapping"],
+                    "test/Mixed.t.sol:MixedTest": {
+                        "bad_entry": "not a result mapping",
+                        "test_ok": {"success": True, "gas": 123, "logs": "not a list"},
+                    },
+                }
+            }
+        )
+
+        assert len(tests) == 1
+        assert tests[0].name == "test/Mixed.t.sol:MixedTest::test_ok"
+        assert tests[0].status == TestStatus.PASSED
+        assert tests[0].logs == []
+
+    def test_parse_flat_json_test_result_normalizes_logs(self, runner):
+        """Test flat JSON test result ignores non-list logs."""
+        tests = runner._parse_test_results(
+            {
+                "test_name": "test_foo",
+                "success": True,
+                "logs": "not a list",
+            }
+        )
+
+        assert len(tests) == 1
+        assert tests[0].logs == []
+
     def test_parse_empty_output(self, runner):
         """Test parsing empty output."""
         tests = runner._parse_text_output("")
@@ -1007,8 +1039,8 @@ More text
         # Should handle gracefully
         assert isinstance(result, FoundryResult)
 
-    def test_parse_forge_output_parser_type_error_falls_back_to_text(self, runner, caplog):
-        """Test parser exceptions do not block text fallback."""
+    def test_parse_forge_output_bad_test_results_shape_falls_back_to_text(self, runner, caplog):
+        """Test malformed test_results shape does not block text fallback."""
         import logging
 
         stdout = '{"test_results": null}\n[PASS] test_fromText() (gas: 123)'
@@ -1017,7 +1049,7 @@ More text
             result = runner._parse_forge_output(stdout, "", 0, 100.0)
 
         assert [test.name for test in result.tests] == ["test_fromText"]
-        assert any("JSON parsing failed" in r.message for r in caplog.records)
+        assert not any("JSON parsing failed" in r.message for r in caplog.records)
 
 
 class TestHighGasUsageWarning:
