@@ -529,10 +529,15 @@ class TestLLMOrchestrator:
         key2 = orchestrator._get_cache_key("prompt1", None)
         key3 = orchestrator._get_cache_key("prompt2", None)
         key4 = orchestrator._get_cache_key("prompt1", {"context": "test"})
+        key5 = orchestrator._get_cache_key("prompt1", {"z": 1, "a": 2})
+        key6 = orchestrator._get_cache_key("prompt1", {"a": 2, "z": 1})
+        key7 = orchestrator._get_cache_key("prompt1{}", None)
 
         assert key1 == key2  # Same prompt, same key
         assert key1 != key3  # Different prompt
         assert key1 != key4  # Different context
+        assert key5 == key6  # Context key order is stable
+        assert key1 != key7  # Prompt/context boundary is explicit
 
     def test_parse_analysis_valid_json(self):
         """Test parsing valid JSON response."""
