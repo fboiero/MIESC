@@ -409,6 +409,12 @@ class TestTypeResolution:
         vuln_type = generator._resolve_vulnerability_type(unknown_type_finding)
         assert vuln_type == VulnerabilityType.REENTRANCY
 
+    def test_resolve_non_string_type_defaults_reentrancy(self, generator):
+        """Test non-string finding type defaults to reentrancy."""
+        for type_value in [None, ["reentrancy"], {"name": "reentrancy"}]:
+            vuln_type = generator._resolve_vulnerability_type({"type": type_value})
+            assert vuln_type == VulnerabilityType.REENTRANCY
+
     def test_resolve_case_insensitive(self, generator):
         """Test type resolution is case insensitive."""
         for type_str in ["REENTRANCY", "Reentrancy", "ReEntrancy"]:
