@@ -24,7 +24,7 @@ import os
 import subprocess
 import time
 from dataclasses import dataclass
-from typing import cast, Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 from src.security.llm_output_validator import (
     extract_json_from_text,

@@ -21,7 +21,7 @@ import json
 import logging
 import re
 from dataclasses import dataclass
-from typing import cast, Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, cast
 
 import aiohttp
 
