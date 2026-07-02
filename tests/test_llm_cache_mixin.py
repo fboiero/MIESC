@@ -98,6 +98,39 @@ def test_gptscan_second_scan_hits_cache(tmp_path):
     assert calls["n"] == 1  # LLM ran only once; second scan served from cache
 
 
+def test_cache_disabled_env_parsing():
+    from src.adapters._cache_mixin import _cache_disabled
+
+    for val in ("1", "true", "TRUE", "yes", " Yes "):
+        with patch.dict(os.environ, {"MIESC_DISABLE_LLM_CACHE": val}):
+            assert _cache_disabled() is True
+    for val in ("", "0", "false", "no", "off"):
+        with patch.dict(os.environ, {"MIESC_DISABLE_LLM_CACHE": val}):
+            assert _cache_disabled() is False
+    with patch.dict(os.environ, {}, clear=True):
+        assert _cache_disabled() is False
+
+
+def test_bypass_skips_read_even_when_entry_exists(tmp_path):
+    """With the bypass on, a fresh cached entry must NOT be served (variance runs)."""
+    h = _harness(tmp_path, ttl=1000)
+    h._cache_result("k", {"status": "success"})
+    assert h._get_cached_result("k") == {"status": "success"}  # baseline: cache hits
+    with patch.dict(os.environ, {"MIESC_DISABLE_LLM_CACHE": "1"}):
+        assert h._get_cached_result("k") is None  # bypass forces a miss
+
+
+def test_bypass_skips_write(tmp_path):
+    """With the bypass on, results must not be written to disk."""
+    h = _harness(tmp_path, ttl=1000)
+    with patch.dict(os.environ, {"MIESC_DISABLE_LLM_CACHE": "1"}):
+        h._cache_result("k", {"status": "success"})
+    assert not list(Path(tmp_path).glob("*.json"))  # nothing persisted
+    # and once the bypass is off, caching resumes normally
+    h._cache_result("k", {"status": "success"})
+    assert (tmp_path / "k.json").exists()
+
+
 def test_gptscan_timeout_not_cached(tmp_path):
     """A timed-out run must NOT be cached (so it re-runs next time)."""
     adapter = GPTScanAdapter()

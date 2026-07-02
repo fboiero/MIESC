@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import time
 from pathlib import Path
 from typing import cast, Any, Dict, Optional
@@ -21,6 +22,16 @@ from typing import cast, Any, Dict, Optional
 logger = logging.getLogger(__name__)
 
 DEFAULT_CACHE_TTL = 86400  # 24 hours
+
+
+def _cache_disabled() -> bool:
+    """True when the on-disk LLM cache is disabled via env var.
+
+    Set MIESC_DISABLE_LLM_CACHE=1 to force fresh model calls on every scan —
+    required for variance experiments (e.g. the ablation's --runs N), where a
+    cache hit would otherwise return an identical result and report SD=0.
+    """
+    return os.environ.get("MIESC_DISABLE_LLM_CACHE", "").strip().lower() in {"1", "true", "yes"}
 
 
 class LLMCacheMixin:
@@ -34,6 +45,8 @@ class LLMCacheMixin:
 
     def _get_cached_result(self, cache_key: str) -> Optional[Dict[str, Any]]:
         """Return a fresh cached result, or None. Stale/corrupt entries deleted."""
+        if _cache_disabled():
+            return None
         cache_file = self._cache_dir / f"{cache_key}.json"
         if not cache_file.exists():
             return None
@@ -54,6 +67,8 @@ class LLMCacheMixin:
 
     def _cache_result(self, cache_key: str, result: Dict[str, Any]) -> None:
         """Best-effort write of a result to the cache."""
+        if _cache_disabled():
+            return
         cache_file = self._cache_dir / f"{cache_key}.json"
         try:
             with open(cache_file, "w", encoding="utf-8") as f:
