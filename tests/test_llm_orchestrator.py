@@ -603,6 +603,46 @@ class TestLLMOrchestrator:
         assert analysis.severity_assessment["low"] == 1
         assert analysis.analysis_summary == "Recovered by fallback"
 
+    def test_parse_analysis_legacy_fallback_filters_invalid_vulnerabilities(self, monkeypatch):
+        """Test legacy fallback ignores non-list/non-dict vulnerabilities."""
+
+        class InvalidValidation:
+            is_valid = False
+            data = None
+            errors = ["forced invalid schema"]
+
+        monkeypatch.setattr(
+            "src.llm.llm_orchestrator.safe_parse_llm_json",
+            lambda *_args, **_kwargs: InvalidValidation(),
+        )
+
+        orchestrator = LLMOrchestrator([])
+        response = LLMResponse(
+            content='{"vulnerabilities": {"severity": "high"}, "summary": "Bad shape"}',
+            provider="test",
+            model="test",
+        )
+
+        analysis = orchestrator._parse_analysis(response)
+
+        assert analysis.vulnerabilities == []
+        assert analysis.severity_assessment["high"] == 0
+        assert analysis.analysis_summary == "Bad shape"
+
+        mixed_response = LLMResponse(
+            content=(
+                '{"vulnerabilities": ["noise", {"severity": "high", "type": "reentrancy"}], '
+                '"summary": "Mixed shape"}'
+            ),
+            provider="test",
+            model="test",
+        )
+
+        mixed_analysis = orchestrator._parse_analysis(mixed_response)
+
+        assert mixed_analysis.vulnerabilities == [{"severity": "high", "type": "reentrancy"}]
+        assert mixed_analysis.severity_assessment["high"] == 1
+
     def test_parse_analysis_invalid_json(self):
         """Test parsing invalid JSON response."""
         orchestrator = LLMOrchestrator([])

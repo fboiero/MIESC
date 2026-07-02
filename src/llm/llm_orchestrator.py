@@ -16,7 +16,7 @@ import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, Dict, List, Optional
 
 import aiohttp
 
@@ -667,7 +667,12 @@ Provide a comprehensive security analysis in JSON format."""
             else:
                 data = {}
 
-            vulnerabilities = cast(List[Dict[str, Any]], data.get("vulnerabilities", []))
+            raw_vulnerabilities = data.get("vulnerabilities", [])
+            vulnerabilities = (
+                [vuln for vuln in raw_vulnerabilities if isinstance(vuln, dict)]
+                if isinstance(raw_vulnerabilities, list)
+                else []
+            )
 
             # Truncate and sanitize unvalidated data
             for vuln_dict in vulnerabilities:
