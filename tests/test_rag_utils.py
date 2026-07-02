@@ -37,7 +37,28 @@ def test_make_cache_key_includes_strategy_and_filters():
 
     assert base != filtered
     assert base != multi_step
-    assert len(base) == 32
+    assert len(base) == 64
+
+
+def test_make_cache_key_preserves_field_boundaries():
+    joined_collision_a = make_cache_key(
+        knowledge_base_version="v1",
+        strategy="semantic",
+        query="alpha|beta",
+        filter_category=None,
+        filter_severity=None,
+        n_results=5,
+    )
+    joined_collision_b = make_cache_key(
+        knowledge_base_version="v1",
+        strategy="semantic|alpha",
+        query="beta",
+        filter_category=None,
+        filter_severity=None,
+        n_results=5,
+    )
+
+    assert joined_collision_a != joined_collision_b
 
 
 def test_cache_helpers_store_hit_expire_and_respect_disabled():

@@ -1,6 +1,7 @@
 """Utility helpers for RAG retrieval and caching."""
 
 import hashlib
+import json
 import time
 from typing import Any, Dict, List, Optional, Tuple, TypeVar
 
@@ -17,15 +18,16 @@ def make_cache_key(
     strategy: str = "semantic",
 ) -> str:
     """Generate a stable cache key for a RAG search query."""
-    key_parts = [
-        knowledge_base_version,
-        strategy,
-        query[:200],
-        str(filter_category),
-        str(filter_severity),
-        str(n_results),
-    ]
-    return hashlib.md5("|".join(key_parts).encode()).hexdigest()
+    key_payload = {
+        "filter_category": filter_category,
+        "filter_severity": filter_severity,
+        "knowledge_base_version": knowledge_base_version,
+        "n_results": n_results,
+        "query": query[:200],
+        "strategy": strategy,
+    }
+    content = json.dumps(key_payload, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(content.encode()).hexdigest()
 
 
 def get_cached_result(
