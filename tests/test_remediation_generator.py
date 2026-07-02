@@ -81,6 +81,14 @@ def test_parse_json_response_repairs_invalid_backslash_escapes():
     assert "Regex escapes" in result["explanation"]
 
 
+def test_parse_json_response_rejects_non_object_json():
+    generator = RemediationGenerator()
+
+    result = generator._parse_json_response('[{"fixed_code": "contract Fixed {}"}]')
+
+    assert result == {}
+
+
 @pytest.mark.parametrize(
     ("vuln_type", "code", "expected_fragment", "expected_explanation"),
     [
