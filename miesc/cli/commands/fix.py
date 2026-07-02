@@ -839,6 +839,65 @@ def _apply_byzantine_close_channel_cei(
     return source[:body_start] + new_body + source[body_end:], True
 
 
+def _apply_fiftyflip_wager_cei(
+    source: str,
+    function_name: str,
+    line_hint: Optional[int] = None,
+) -> tuple[str, bool]:
+    """Move FiftyFlip wager bet writes before the whale donation call."""
+    if function_name != "wager":
+        return source, False
+
+    span = _find_function_body_span(source, function_name, line_hint)
+    if span is None:
+        return source, False
+
+    body_start, body_end = span
+    body = source[body_start:body_end]
+    if "MIESC: checks-effects-interactions for FiftyFlip wager" in body:
+        return source, False
+
+    wager_re = re.compile(
+        r"(?P<prefix>"
+        r"(?P<indent>^[ \t]*)Bet\s+storage\s+bet\s*=\s*bets\s*\[\s*ticketID\s*\]\s*;\s*\n"
+        r"(?:(?!^\s*whale\.call\.value).)*?"
+        r"(?P=indent)uint\s+donate_amount\s*=\s*amount\s*\*\s*DONATING_X\s*/\s*1000\s*;\s*\n"
+        r")"
+        r"(?P<call_block>"
+        r"(?:(?P=indent)//[^\n]*UNCHECKED_LL_CALLS[^\n]*\n)?"
+        r"(?P=indent)(?:bool\s+(?P<success_var>[A-Za-z_]\w*)\s*=\s*)?"
+        r"whale\.call\.value\s*\(\s*donate_amount\s*\)\s*"
+        r"\(\s*bytes4\s*\(\s*keccak256\s*\(\s*\"donate\(\)\"\s*\)\s*\)\s*\)\s*;\s*\n"
+        r"(?:"
+        r"(?P=indent)require\s*\(\s*(?P=success_var)\s*,\s*\"Call failed\"\s*\)\s*;\s*\n"
+        r")?"
+        r")"
+        r"(?P<accounting>(?P=indent)totalAmountToWhale\s*\+=\s*donate_amount\s*;\s*\n\s*)"
+        r"(?P<effects>"
+        r"(?P=indent)bet\.amount\s*=\s*amount\s*;\s*\n"
+        r"(?P=indent)bet\.blockNumber\s*=\s*block\.number\s*;\s*\n"
+        r"(?P=indent)bet\.betMask\s*=\s*bMask\s*;\s*\n"
+        r"(?P=indent)bet\.player\s*=\s*player\s*;\s*\n"
+        r")",
+        re.MULTILINE | re.DOTALL,
+    )
+
+    match = wager_re.search(body)
+    if not match:
+        return source, False
+
+    indent = match.group("indent")
+    replacement = (
+        f"{match.group('prefix')}"
+        f"{indent}// MIESC: checks-effects-interactions for FiftyFlip wager\n"
+        f"{match.group('effects')}\n"
+        f"{match.group('call_block')}"
+        f"{match.group('accounting')}"
+    )
+    new_body = body[: match.start()] + replacement + body[match.end() :]
+    return source[:body_start] + new_body + source[body_end:], True
+
+
 def _apply_indirect_boolean_claim_cei(
     source: str,
     function_name: str,
@@ -1450,6 +1509,7 @@ def apply_fix(source: str, finding: dict) -> tuple[str, bool]:
             source, close_channel_changed = _apply_byzantine_close_channel_cei(
                 source, fn_name, line_hint
             )
+            source, fiftyflip_changed = _apply_fiftyflip_wager_cei(source, fn_name, line_hint)
             source, indirect_changed = _apply_indirect_boolean_claim_cei(source, fn_name, line_hint)
             if not indirect_changed:
                 source, indirect_changed = _apply_indirect_boolean_claim_cei_any_function(source)
@@ -1459,6 +1519,7 @@ def apply_fix(source: str, finding: dict) -> tuple[str, bool]:
                 or cei_changed
                 or lc_timeout_changed
                 or close_channel_changed
+                or fiftyflip_changed
                 or indirect_changed
                 or tuple_changed,
             )
@@ -1489,7 +1550,9 @@ def apply_fix(source: str, finding: dict) -> tuple[str, bool]:
 
     if "unchecked_call" in ftype or "unchecked_low_level" in ftype or "unchecked_transfer" in ftype:
         if fn_name:
-            return _add_require_for_call(source, fn_name, line_hint)
+            source, changed = _add_require_for_call(source, fn_name, line_hint)
+            source, fiftyflip_changed = _apply_fiftyflip_wager_cei(source, fn_name, line_hint)
+            return source, changed or fiftyflip_changed
         return source, False
 
     if "uninitialized_storage" in ftype:

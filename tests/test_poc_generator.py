@@ -241,7 +241,7 @@ class TestPoCTemplate:
         assert saved_path.suffix == ".sol"
         assert "reentrancy" in saved_path.name.lower()
 
-        content = saved_path.read_text()
+        content = saved_path.read_text(encoding="utf-8")
         assert "SPDX-License-Identifier" in content
 
     def test_template_to_dict(self):
@@ -514,6 +514,17 @@ class TestTemplateLoading:
         template2 = generator._load_template(VulnerabilityType.REENTRANCY)
         assert template1 == template2
 
+    def test_load_template_uses_utf8(self, tmp_path):
+        """Test loading template files with explicit UTF-8 encoding."""
+        template_dir = tmp_path / "templates"
+        template_dir.mkdir()
+        template_path = template_dir / "reentrancy.t.sol"
+        template_path.write_text("// cafe accented: café\n", encoding="utf-8")
+
+        generator = PoCGenerator(templates_dir=template_dir)
+
+        assert "café" in generator._load_template(VulnerabilityType.REENTRANCY)
+
 
 # =============================================================================
 # Template Customization Tests
@@ -771,7 +782,7 @@ class TestIntegration:
 
         # Verify file
         assert saved_path.exists()
-        content = saved_path.read_text()
+        content = saved_path.read_text(encoding="utf-8")
 
         # Check content
         assert "SPDX-License-Identifier" in content
@@ -835,11 +846,11 @@ class TestIntegration:
 
         # Save to JSON
         json_path = tmp_path / "poc_metadata.json"
-        with open(json_path, "w") as f:
+        with open(json_path, "w", encoding="utf-8") as f:
             json.dump(poc_dict, f, indent=2)
 
         # Reload
-        with open(json_path, "r") as f:
+        with open(json_path, "r", encoding="utf-8") as f:
             loaded = json.load(f)
 
         assert loaded["name"] == poc.name

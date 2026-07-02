@@ -1,6 +1,6 @@
 {
   "artifact": "paper2_experiment_audit",
-  "generated_at": "2026-06-23T13:37:56.702905+00:00",
+  "generated_at": "2026-07-02T02:06:00+00:00",
   "source_artifact": "benchmarks/results/paper2_compile_failure_taxonomy.json",
   "scope": "Paper 2 remediation experiment validity audit; does not modify Paper 1 detection evidence.",
   "totals": {
@@ -24,20 +24,20 @@
   },
   "joint_success_metrics": {
     "compile_and_eliminate": {
-      "count": 86,
-      "rate": 0.6014
+      "count": 88,
+      "rate": 0.6154
     },
     "compile_and_no_regression": {
       "count": 121,
       "rate": 0.8462
     },
     "eliminate_and_no_regression": {
-      "count": 85,
-      "rate": 0.5944
+      "count": 87,
+      "rate": 0.6084
     },
     "compile_eliminate_and_no_regression": {
-      "count": 85,
-      "rate": 0.5944
+      "count": 87,
+      "rate": 0.6084
     }
   },
   "no_regression_sensitivity": {
@@ -67,7 +67,7 @@
     },
     "finding_delta_distribution": {
       "-141": 1,
-      "-58": 1,
+      "-57": 1,
       "-54": 1,
       "-46": 1,
       "-31": 1,
@@ -83,17 +83,17 @@
       "-10": 2,
       "-9": 1,
       "-8": 9,
-      "-7": 15,
-      "-6": 6,
-      "-5": 3,
+      "-7": 14,
+      "-6": 8,
+      "-5": 2,
       "-4": 7,
-      "-3": 16,
-      "-2": 11,
+      "-3": 18,
+      "-2": 9,
       "-1": 17,
       "0": 8,
       "1": 6,
       "4": 1,
-      "7": 1
+      "6": 1
     }
   },
   "by_category_compile_transitions": {

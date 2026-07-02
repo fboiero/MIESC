@@ -1,0 +1,119 @@
+{
+  "totals": {
+    "contracts": 52,
+    "fix_applied": 47,
+    "fix_compiles": 47,
+    "vuln_eliminated": 34,
+    "no_regression": 47,
+    "fix_failed": 0,
+    "scan_empty": 1,
+    "scan_retries": 1,
+    "no_high": 4,
+    "external_checked": 47,
+    "external_clean_high": 30,
+    "external_findings": 17,
+    "external_errors": 0
+  },
+  "by_category": {
+    "unchecked_low_level_calls": {
+      "contracts": 52,
+      "fix_applied": 47,
+      "fix_compiles": 47,
+      "vuln_eliminated": 34,
+      "no_regression": 47,
+      "fix_failed": 0,
+      "scan_empty": 1,
+      "scan_retries": 1,
+      "no_high": 4,
+      "external_checked": 47,
+      "external_clean_high": 30,
+      "external_findings": 17,
+      "external_errors": 0
+    }
+  },
+  "external_high_checks": {
+    "shadowing-state": 8,
+    "weak-prng": 6,
+    "controlled-array-length": 4,
+    "reentrancy-eth": 1,
+    "uninitialized-state": 1
+  },
+  "external_high_check_examples": {
+    "shadowing-state": [
+      {
+        "category": "unchecked_low_level_calls",
+        "contract": "benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0x39cfd754c85023648bf003bea2dd498c5612abfa.sol",
+        "external_status": "findings",
+        "high_findings": 1
+      },
+      {
+        "category": "unchecked_low_level_calls",
+        "contract": "benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0x3a0e9acd953ffc0dd18d63603488846a6b8b2b01.sol",
+        "external_status": "findings",
+        "high_findings": 1
+      },
+      {
+        "category": "unchecked_low_level_calls",
+        "contract": "benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0x627fa62ccbb1c1b04ffaecd72a53e37fc0e17839.sol",
+        "external_status": "findings",
+        "high_findings": 1
+      }
+    ],
+    "weak-prng": [
+      {
+        "category": "unchecked_low_level_calls",
+        "contract": "benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0x07f7ecb66d788ab01dc93b9b71a88401de7d0f2e.sol",
+        "external_status": "findings",
+        "high_findings": 1
+      },
+      {
+        "category": "unchecked_low_level_calls",
+        "contract": "benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0x663e4229142a27f00bafb5d087e1e730648314c3.sol",
+        "external_status": "findings",
+        "high_findings": 4
+      },
+      {
+        "category": "unchecked_low_level_calls",
+        "contract": "benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0x7d09edb07d23acb532a82be3da5c17d9d85806b4.sol",
+        "external_status": "findings",
+        "high_findings": 1
+      }
+    ],
+    "controlled-array-length": [
+      {
+        "category": "unchecked_low_level_calls",
+        "contract": "benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0x663e4229142a27f00bafb5d087e1e730648314c3.sol",
+        "external_status": "findings",
+        "high_findings": 4
+      },
+      {
+        "category": "unchecked_low_level_calls",
+        "contract": "benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0x84d9ec85c9c568eb332b7226a8f826d897e0a4a8.sol",
+        "external_status": "findings",
+        "high_findings": 1
+      },
+      {
+        "category": "unchecked_low_level_calls",
+        "contract": "benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0xb620cee6b52f96f3c6b253e6eea556aa2d214a99.sol",
+        "external_status": "findings",
+        "high_findings": 2
+      }
+    ],
+    "reentrancy-eth": [
+      {
+        "category": "unchecked_low_level_calls",
+        "contract": "benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0x663e4229142a27f00bafb5d087e1e730648314c3.sol",
+        "external_status": "findings",
+        "high_findings": 4
+      }
+    ],
+    "uninitialized-state": [
+      {
+        "category": "unchecked_low_level_calls",
+        "contract": "benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/lotto.sol",
+        "external_status": "findings",
+        "high_findings": 2
+      }
+    ]
+  }
+}

@@ -1,6 +1,6 @@
 {
   "artifact": "paper2_compile_failure_by_category",
-  "generated_at": "1970-01-01T00:00:00+00:00",
+  "generated_at": "2026-07-02T02:06:00+00:00",
   "source_artifact": "benchmarks/results/fix_eval_results.json",
   "scope": "Standalone compilation failures for Paper 2 patched artifacts.",
   "limitations": "This artifact identifies where compilation fails by category. It does not classify root causes such as missing imports, Solidity version mismatch, or undefined symbols because fix_eval_results.json does not preserve per-contract compiler stderr.",

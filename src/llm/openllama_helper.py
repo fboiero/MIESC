@@ -24,7 +24,7 @@ import os
 import subprocess
 import time
 from dataclasses import dataclass
-from typing import cast, Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 from src.security.llm_output_validator import (
     extract_json_from_text,
@@ -305,7 +305,7 @@ REMEDIATION ADVICE:"""
         prompt = f"""Analyze this security finding from {adapter_name} and provide expert insights.
 
 FINDING:
-{json.dumps(finding, indent=2)}
+{json.dumps(finding, indent=2, sort_keys=True)}
 
 CONTRACT CONTEXT:
 {context[:1000]}

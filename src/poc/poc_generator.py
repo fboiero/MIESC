@@ -95,7 +95,7 @@ class PoCTemplate:
         filename = f"PoC_{self.vulnerability_type.value}_{self.name}.t.sol"
         filepath = output_path / filename
 
-        with open(filepath, "w") as f:
+        with open(filepath, "w", encoding="utf-8") as f:
             f.write(self.solidity_code)
 
         logger.info(f"PoC saved to {filepath}")
@@ -456,7 +456,7 @@ class PoCGenerator:
         template_path = self.templates_dir / template_name
 
         if template_path.exists():
-            with open(template_path, "r") as f:
+            with open(template_path, "r", encoding="utf-8") as f:
                 template = f.read()
         else:
             # Use embedded default template

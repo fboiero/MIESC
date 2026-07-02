@@ -1,41 +1,41 @@
 {
   "totals": {
     "contracts": 143,
-    "fix_applied": 123,
-    "fix_compiles": 123,
-    "vuln_eliminated": 88,
-    "no_regression": 121,
+    "fix_applied": 122,
+    "fix_compiles": 122,
+    "vuln_eliminated": 85,
+    "no_regression": 118,
     "fix_failed": 0,
-    "scan_empty": 2,
-    "scan_retries": 2,
+    "scan_empty": 3,
+    "scan_retries": 3,
     "no_high": 18,
-    "external_checked": 123,
+    "external_checked": 122,
     "external_clean_high": 70,
-    "external_findings": 53,
+    "external_findings": 52,
     "external_errors": 0
   },
   "by_category": {
     "access_control": {
       "contracts": 18,
-      "fix_applied": 17,
-      "fix_compiles": 17,
-      "vuln_eliminated": 10,
-      "no_regression": 17,
+      "fix_applied": 16,
+      "fix_compiles": 16,
+      "vuln_eliminated": 9,
+      "no_regression": 16,
       "fix_failed": 0,
-      "scan_empty": 1,
-      "scan_retries": 1,
+      "scan_empty": 2,
+      "scan_retries": 2,
       "no_high": 0,
-      "external_checked": 17,
+      "external_checked": 16,
       "external_clean_high": 14,
-      "external_findings": 3,
+      "external_findings": 2,
       "external_errors": 0
     },
     "arithmetic": {
       "contracts": 15,
       "fix_applied": 4,
       "fix_compiles": 4,
-      "vuln_eliminated": 3,
-      "no_regression": 4,
+      "vuln_eliminated": 2,
+      "no_regression": 3,
       "fix_failed": 0,
       "scan_empty": 0,
       "scan_retries": 0,
@@ -109,8 +109,8 @@
       "contracts": 31,
       "fix_applied": 31,
       "fix_compiles": 31,
-      "vuln_eliminated": 30,
-      "no_regression": 29,
+      "vuln_eliminated": 29,
+      "no_regression": 28,
       "fix_failed": 0,
       "scan_empty": 0,
       "scan_retries": 0,
@@ -171,9 +171,8 @@
     "weak-prng": 13,
     "shadowing-state": 9,
     "arbitrary-send-eth": 3,
-    "reentrancy-eth": 3,
-    "uninitialized-state": 3,
-    "controlled-delegatecall": 1,
+    "reentrancy-eth": 2,
+    "uninitialized-state": 2,
     "encode-packed-collision": 1
   },
   "external_high_check_examples": {
@@ -269,21 +268,9 @@
         "contract": "benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0x663e4229142a27f00bafb5d087e1e730648314c3.sol",
         "external_status": "findings",
         "high_findings": 4
-      },
-      {
-        "category": "unchecked_low_level_calls",
-        "contract": "benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0xe09b1ab8111c2729a76f16de96bc86a7af837928.sol",
-        "external_status": "findings",
-        "high_findings": 3
       }
     ],
     "uninitialized-state": [
-      {
-        "category": "access_control",
-        "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/FibonacciBalance.sol",
-        "external_status": "findings",
-        "high_findings": 2
-      },
       {
         "category": "denial_of_service",
         "contract": "benchmarks/datasets/smartbugs-curated/dataset/denial_of_service/send_loop.sol",
@@ -293,14 +280,6 @@
       {
         "category": "unchecked_low_level_calls",
         "contract": "benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/lotto.sol",
-        "external_status": "findings",
-        "high_findings": 2
-      }
-    ],
-    "controlled-delegatecall": [
-      {
-        "category": "access_control",
-        "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/FibonacciBalance.sol",
         "external_status": "findings",
         "high_findings": 2
       }

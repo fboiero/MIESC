@@ -24,7 +24,7 @@ import logging
 import os
 from dataclasses import dataclass, replace
 from enum import Enum
-from typing import cast, Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, cast
 
 import aiohttp
 

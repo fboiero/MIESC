@@ -1,6 +1,6 @@
 {
   "artifact": "paper2_claims_matrix",
-  "generated_at": "1970-01-01T00:00:00+00:00",
+  "generated_at": "2026-07-02T02:06:00+00:00",
   "purpose": "Trace Paper 2 remediation claims to local artifacts.",
   "paper1_compatibility_rule": "Paper 2 may inherit Paper 1 detection claims but must not regenerate or change Paper 1 detection evidence.",
   "claims": [
@@ -36,7 +36,7 @@
     },
     {
       "claim_id": "vulnerability_elimination_rate",
-      "paper_claim": "86 of 123 patched contracts reduce HIGH/CRITICAL findings on re-scan.",
+      "paper_claim": "88 of 123 patched contracts reduce HIGH/CRITICAL findings on re-scan.",
       "source_artifact": "benchmarks/results/fix_eval_results.json",
       "status": "supported",
       "scope": "corpus_wide_bounded_rescan",
@@ -44,9 +44,9 @@
       "metric_definition": "A re-scan reported fewer HIGH/CRITICAL findings for the target category.",
       "unit": "patched contracts",
       "value": {
-        "vuln_eliminated": 86,
+        "vuln_eliminated": 88,
         "fix_applied": 123,
-        "rate": 0.6992
+        "rate": 0.7154
       }
     },
     {
@@ -93,7 +93,7 @@
     },
     {
       "claim_id": "external_slither_validation",
-      "paper_claim": "External Slither validation checked 123 compiled patched contracts; 58 had no HIGH findings, 65 residual HIGH findings were reported, and 0 external validation errors occurred.",
+      "paper_claim": "External Slither validation checked 123 compiled patched contracts; 70 had no HIGH findings, 53 residual HIGH findings were reported, and 0 external validation errors occurred.",
       "source_artifact": "benchmarks/results/fix_eval_results.json",
       "status": "supported",
       "scope": "compiled_patched_contracts_external_validation",
@@ -102,10 +102,10 @@
       "unit": "patched contracts",
       "value": {
         "external_checked": 123,
-        "external_clean_high": 58,
-        "external_findings": 65,
+        "external_clean_high": 70,
+        "external_findings": 53,
         "external_errors": 0,
-        "clean_high_rate": 0.4715
+        "clean_high_rate": 0.5691
       }
     },
     {
@@ -121,14 +121,15 @@
           "contracts": 18,
           "fix_applied": 17,
           "fix_compiles": 17,
-          "vuln_eliminated": 9,
+          "vuln_eliminated": 10,
           "no_regression": 17,
           "fix_failed": 0,
           "scan_empty": 1,
+          "scan_retries": 1,
           "no_high": 0,
           "external_checked": 17,
-          "external_clean_high": 13,
-          "external_findings": 4,
+          "external_clean_high": 14,
+          "external_findings": 3,
           "external_errors": 0
         },
         "arithmetic": {
@@ -139,6 +140,7 @@
           "no_regression": 4,
           "fix_failed": 0,
           "scan_empty": 0,
+          "scan_retries": 0,
           "no_high": 11,
           "external_checked": 4,
           "external_clean_high": 4,
@@ -153,6 +155,7 @@
           "no_regression": 7,
           "fix_failed": 0,
           "scan_empty": 0,
+          "scan_retries": 0,
           "no_high": 1,
           "external_checked": 7,
           "external_clean_high": 2,
@@ -167,6 +170,7 @@
           "no_regression": 5,
           "fix_failed": 0,
           "scan_empty": 0,
+          "scan_retries": 0,
           "no_high": 1,
           "external_checked": 5,
           "external_clean_high": 3,
@@ -181,6 +185,7 @@
           "no_regression": 4,
           "fix_failed": 0,
           "scan_empty": 0,
+          "scan_retries": 0,
           "no_high": 0,
           "external_checked": 4,
           "external_clean_high": 4,
@@ -191,14 +196,15 @@
           "contracts": 3,
           "fix_applied": 3,
           "fix_compiles": 3,
-          "vuln_eliminated": 1,
+          "vuln_eliminated": 2,
           "no_regression": 3,
           "fix_failed": 0,
           "scan_empty": 0,
+          "scan_retries": 0,
           "no_high": 0,
           "external_checked": 3,
-          "external_clean_high": 0,
-          "external_findings": 3,
+          "external_clean_high": 1,
+          "external_findings": 2,
           "external_errors": 0
         },
         "reentrancy": {
@@ -209,10 +215,11 @@
           "no_regression": 29,
           "fix_failed": 0,
           "scan_empty": 0,
+          "scan_retries": 0,
           "no_high": 0,
           "external_checked": 31,
-          "external_clean_high": 2,
-          "external_findings": 29,
+          "external_clean_high": 9,
+          "external_findings": 22,
           "external_errors": 0
         },
         "short_addresses": {
@@ -223,6 +230,7 @@
           "no_regression": 1,
           "fix_failed": 0,
           "scan_empty": 0,
+          "scan_retries": 0,
           "no_high": 0,
           "external_checked": 1,
           "external_clean_high": 1,
@@ -237,6 +245,7 @@
           "no_regression": 4,
           "fix_failed": 0,
           "scan_empty": 0,
+          "scan_retries": 0,
           "no_high": 1,
           "external_checked": 4,
           "external_clean_high": 2,
@@ -251,10 +260,11 @@
           "no_regression": 47,
           "fix_failed": 0,
           "scan_empty": 1,
+          "scan_retries": 1,
           "no_high": 4,
           "external_checked": 47,
-          "external_clean_high": 27,
-          "external_findings": 20,
+          "external_clean_high": 30,
+          "external_findings": 17,
           "external_errors": 0
         }
       }
@@ -296,20 +306,20 @@
         },
         "joint_success_metrics": {
           "compile_and_eliminate": {
-            "count": 86,
-            "rate": 0.6014
+            "count": 88,
+            "rate": 0.6154
           },
           "compile_and_no_regression": {
             "count": 121,
             "rate": 0.8462
           },
           "eliminate_and_no_regression": {
-            "count": 85,
-            "rate": 0.5944
+            "count": 87,
+            "rate": 0.6084
           },
           "compile_eliminate_and_no_regression": {
-            "count": 85,
-            "rate": 0.5944
+            "count": 87,
+            "rate": 0.6084
           }
         },
         "no_regression_sensitivity": {
