@@ -26,6 +26,8 @@ License: AGPL-3.0
 
 import argparse
 import json
+import os
+import statistics
 import sys
 import time
 from collections import defaultdict
@@ -73,11 +75,85 @@ CONFIGS = {
 }
 
 
+# LLM-backed tools: their output is non-deterministic even with a fixed seed,
+# so configs including them must be repeated N times to report mean ± SD.
+# SOURCE_DATE_EPOCH only fixes artifact timestamps, not LLM sampling.
+LLM_TOOLS = {"smartllm", "gptscan"}
+
+
+def config_is_stochastic(config):
+    """True if the config invokes an LLM tool (needs N>1 repetitions)."""
+    tools = config["tools"]
+    if tools is None:  # None == all available layers, which include the LLM ones
+        return True
+    return bool(set(tools) & LLM_TOOLS)
+
+
+def _mean_sd(values):
+    """Return (mean, sample-SD) rounded; SD is 0.0 for a single value."""
+    mean = statistics.fmean(values)
+    sd = statistics.stdev(values) if len(values) > 1 else 0.0
+    return round(mean, 4), round(sd, 4)
+
+
+def aggregate_runs(config_name, config, run_results):
+    """Collapse N single-run results into mean ± SD.
+
+    Keeps the ``metrics`` key holding the MEAN (backward compatible with any
+    reader of a single-run file) and adds ``metrics_std`` plus the raw
+    per-run overall metrics under ``runs``.
+    """
+    agg_metrics, agg_std = {}, {}
+    for key in ("precision", "recall", "f1"):
+        mean, sd = _mean_sd([r["metrics"][key] for r in run_results])
+        agg_metrics[key] = mean
+        agg_std[key] = sd
+    for key in ("tp", "fp", "fn"):
+        agg_metrics[key] = round(statistics.fmean([r["metrics"][key] for r in run_results]), 1)
+
+    by_cat = {}
+    for cat in run_results[0]["by_category"]:
+        entry = {}
+        for key in ("precision", "recall", "f1"):
+            mean, sd = _mean_sd([r["by_category"][cat][key] for r in run_results])
+            entry[key] = mean
+            entry[f"{key}_sd"] = sd
+        for key in ("tp", "fp", "fn"):
+            entry[key] = round(statistics.fmean([r["by_category"][cat][key] for r in run_results]), 1)
+        by_cat[cat] = entry
+
+    # Per-contract: majority vote across runs (detected in >= half the runs).
+    # This gives one stable outcome per contract for the paired McNemar test.
+    n = len(run_results)
+    per_contract = {}
+    for path in run_results[0].get("per_contract", {}):
+        hits = sum(1 for r in run_results if r.get("per_contract", {}).get(path))
+        per_contract[path] = hits * 2 >= n
+
+    return {
+        "config": config_name,
+        "name": config["name"],
+        "tools": config["tools"] or "all_available",
+        "num_runs": len(run_results),
+        "stochastic": config_is_stochastic(config),
+        "metrics": agg_metrics,
+        "metrics_std": agg_std,
+        "runs": [r["metrics"] for r in run_results],
+        "by_category": by_cat,
+        "per_contract": per_contract,
+        "per_contract_runs": [r.get("per_contract", {}) for r in run_results],
+    }
+
+
 def run_ablation_config(config_name, config, contracts_by_cat):
     """Run one ablation configuration and return metrics."""
     tools = config["tools"]
     total_tp, total_fp, total_fn = 0, 0, 0
     category_results = {}
+    # Per-contract detection outcome (True = the contract's true-category vuln was
+    # detected). Needed for the paired McNemar test (P1-A.2): with vs without the
+    # intelligence layer over the SAME contracts.
+    per_contract = {}
 
     print(f"\n  --- {config['name']} ({config['description']}) ---")
 
@@ -93,7 +169,9 @@ def run_ablation_config(config_name, config, contracts_by_cat):
                 cat = classify_finding(f)
                 detected[cat] += 1
 
-            if category in detected:
+            hit = category in detected
+            per_contract[str(sol_file)] = hit
+            if hit:
                 cat_tp += 1
             else:
                 cat_fn += 1
@@ -134,6 +212,7 @@ def run_ablation_config(config_name, config, contracts_by_cat):
             "tp": total_tp, "fp": total_fp, "fn": total_fn,
         },
         "by_category": category_results,
+        "per_contract": per_contract,
     }
 
 
@@ -141,7 +220,29 @@ def main():
     parser = argparse.ArgumentParser(description="MIESC Ablation Study")
     parser.add_argument("--config", help="Run single config (L1_static, L1_L3_symbolic, L1_L5_llm, L1_L3_L5, all_layers)")
     parser.add_argument("--save", action="store_true")
+    parser.add_argument(
+        "--runs", type=int, default=1,
+        help="Repetitions for the --variance-config; report mean ± SD. All other "
+             "configs run once. Default: 1.",
+    )
+    parser.add_argument(
+        "--variance-config", default="all_layers", choices=list(CONFIGS.keys()),
+        help="Which config gets --runs repetitions for variance (default: all_layers, "
+             "the headline config).",
+    )
     args = parser.parse_args()
+    if args.runs < 1:
+        parser.error("--runs must be >= 1")
+    if args.runs > 1 and not config_is_stochastic(CONFIGS[args.variance_config]):
+        print(f"  WARNING: --variance-config {args.variance_config} is deterministic; "
+              f"repeating it yields SD=0 trivially.")
+    # A disk cache hit makes repeated LLM runs identical (fake SD=0). Worse, the
+    # cache key is (tool:model:contract) with no config, so a variance config would
+    # hit results seeded by an earlier config. When measuring variance, force fresh
+    # model calls across the WHOLE run.
+    if args.runs > 1:
+        os.environ["MIESC_DISABLE_LLM_CACHE"] = "1"
+        print("  LLM cache DISABLED for this run (variance measurement).")
 
     dataset_path = find_dataset()
     contracts_by_cat = get_contracts_by_category(dataset_path)
@@ -157,8 +258,20 @@ def main():
     results = []
 
     for name, config in configs_to_run.items():
-        r = run_ablation_config(name, config, contracts_by_cat)
-        results.append(r)
+        # Only the designated variance config repeats; everything else runs once
+        # (deterministic, or variance not needed there). Keeps runtime bounded.
+        reps = args.runs if (args.runs > 1 and name == args.variance_config) else 1
+        if reps > 1:
+            print(f"\n  === {config['name']}: {reps} runs (stochastic LLM config) ===")
+        run_results = []
+        for i in range(reps):
+            if reps > 1:
+                print(f"  [run {i + 1}/{reps}]")
+            run_results.append(run_ablation_config(name, config, contracts_by_cat))
+        if len(run_results) == 1:
+            results.append(run_results[0])
+        else:
+            results.append(aggregate_runs(name, config, run_results))
 
     elapsed = time.time() - start
 
@@ -166,11 +279,14 @@ def main():
     print(f"\n{'='*60}")
     print(f"  ABLATION STUDY SUMMARY")
     print(f"{'='*60}")
-    print(f"  {'Configuration':<35} {'Recall':>8} {'Prec':>8} {'F1':>8}")
-    print(f"  {'-'*35} {'-'*8} {'-'*8} {'-'*8}")
+    print(f"  {'Configuration':<35} {'Recall':>14} {'Prec':>8} {'F1':>8} {'Runs':>5}")
+    print(f"  {'-'*35} {'-'*14} {'-'*8} {'-'*8} {'-'*5}")
     for r in results:
         m = r["metrics"]
-        print(f"  {r['name']:<35} {m['recall']:>7.1%} {m['precision']:>7.1%} {m['f1']:>7.1%}")
+        sd = r.get("metrics_std")
+        nruns = r.get("num_runs", 1)
+        recall_str = f"{m['recall']:.1%} ± {sd['recall']:.1%}" if sd else f"{m['recall']:.1%}"
+        print(f"  {r['name']:<35} {recall_str:>14} {m['precision']:>7.1%} {m['f1']:>7.1%} {nruns:>5}")
     print(f"\n  Total time: {elapsed:.0f}s")
     print(f"{'='*60}\n")
 
@@ -185,6 +301,9 @@ def main():
                 "miesc_version": "5.1.1",
                 "dataset": "SmartBugs-curated",
                 "total_contracts": total,
+                "runs_requested": args.runs,
+                "variance_config": args.variance_config,
+                "llm_cache_disabled": bool(args.runs > 1),
                 "execution_time_seconds": round(elapsed, 2),
                 "configurations": results,
             }, f, indent=2)
