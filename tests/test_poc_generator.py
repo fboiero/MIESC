@@ -514,6 +514,17 @@ class TestTemplateLoading:
         template2 = generator._load_template(VulnerabilityType.REENTRANCY)
         assert template1 == template2
 
+    def test_load_template_uses_utf8(self, tmp_path):
+        """Test loading template files with explicit UTF-8 encoding."""
+        template_dir = tmp_path / "templates"
+        template_dir.mkdir()
+        template_path = template_dir / "reentrancy.t.sol"
+        template_path.write_text("// cafe accented: café\n", encoding="utf-8")
+
+        generator = PoCGenerator(templates_dir=template_dir)
+
+        assert "café" in generator._load_template(VulnerabilityType.REENTRANCY)
+
 
 # =============================================================================
 # Template Customization Tests

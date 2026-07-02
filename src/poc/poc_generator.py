@@ -456,7 +456,7 @@ class PoCGenerator:
         template_path = self.templates_dir / template_name
 
         if template_path.exists():
-            with open(template_path, "r") as f:
+            with open(template_path, "r", encoding="utf-8") as f:
                 template = f.read()
         else:
             # Use embedded default template
