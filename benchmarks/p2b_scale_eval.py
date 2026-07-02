@@ -16,8 +16,10 @@ Robust / deterministic (measured here, no external solver needed):
   * specs_generated_rate   — % contracts where `specs` emitted a spec file
   * compliance_coverage    — mean (mapped findings / total findings)
 
-Toolchain-dependent (measured only when --with-toolchain and forge/solc work;
-run this AFTER the ablation frees the machine, with the fixed solc on PATH):
+Toolchain-dependent (NOT yet implemented — see _toolchain_compile_check /
+_toolchain_discharge_check; they return None = 'unmeasured' so the harness never
+fabricates a false 0%). Implementing them needs a real Foundry project and a
+merged SMTChecker contract, validated on a free machine:
   * tests_compile_rate     — % generated tests that compile (forge)
   * specs_discharge_rate   — % specs SMTChecker can process (solc model-checker)
 
@@ -122,17 +124,36 @@ def eval_contract(sol_path, workdir, scan_timeout, with_toolchain):
         rec["compliance_coverage"] = compliance_coverage(comp_json)
 
     if with_toolchain:
-        # Toolchain-dependent — validate/refine these after the machine is free.
-        if rec["test_generated"]:
-            test_file = next(test_dir.rglob("*.sol"), None)
-            if test_file:
-                ok, _ = run(["forge", "build", "--contracts", str(test_file)], 120)
-                rec["test_compiles"] = ok
-        if rec["spec_generated"]:
-            ok, _ = run(["solc", "--model-checker-engine", "chc", str(spec_file)], 120)
-            rec["spec_discharges"] = ok
+        # NOTE (anti-artifact): a naive `forge build <file>` / `solc <asserts>`
+        # ALWAYS fails — a Foundry test needs a project (foundry.toml + forge-std
+        # + the contract under src/), and the SMTChecker spec is annotations that
+        # must be merged into the contract. A blind run would report a FALSE 0%
+        # compile/discharge rate. Until these are implemented against a real
+        # project on a free machine, leave them UNMEASURED (None), never False.
+        rec["test_compiles"] = _toolchain_compile_check(test_dir, sol_path) if rec["test_generated"] else None
+        rec["spec_discharges"] = _toolchain_discharge_check(spec_file, sol_path) if rec["spec_generated"] else None
 
     return rec
+
+
+def _toolchain_compile_check(test_dir, sol_path):
+    """Return True/False if a real Foundry compile check runs, else None.
+
+    Not yet implemented: needs a minimal Foundry project (foundry.toml, forge-std,
+    the contract under src/, the generated test under test/) and `forge build`.
+    Returning None keeps the metric honestly 'unmeasured' rather than a false 0%.
+    """
+    return None
+
+
+def _toolchain_discharge_check(spec_file, sol_path):
+    """Return True/False if a real SMTChecker discharge check runs, else None.
+
+    Not yet implemented: the `specs -f smtchecker` output is annotations that must
+    be merged into the contract before `solc --model-checker-engine chc` can run.
+    Returning None keeps the metric honestly 'unmeasured' rather than a false 0%.
+    """
+    return None
 
 
 def main():
@@ -148,6 +169,9 @@ def main():
     sample = stratified_sample(get_contracts_by_category(dataset), args.sample)
     print(f"P2-B at-scale eval: {len(sample)} contracts "
           f"(toolchain={'on' if args.with_toolchain else 'off'})")
+    if args.with_toolchain:
+        print("  WARNING: compile/discharge checks are stubs (report None, not 0%). "
+              "Implement _toolchain_*_check against a real project before trusting them.")
 
     records = []
     for i, (cat, sol) in enumerate(sample, 1):
@@ -173,7 +197,7 @@ def main():
 
     print("\n=== P2-B SUMMARY ===")
     for k, v in summary.items():
-        shown = f"{v:.1%}" if isinstance(v, float) else str(v)
+        shown = f"{v:.1%}" if isinstance(v, float) else ("not measured" if v is None else str(v))
         print(f"  {k:<26} {shown}")
 
     if args.save:
