@@ -7,7 +7,7 @@ push.
 
 ## Scope
 
-Pending Codex work since current `main` is six local commits:
+Pending Codex work since current `main` is nine local commits:
 
 - `13e55f7 docs: promote post-spank paper2 candidate`
 - `f7926f5 docs: add post-spank promotion audit`
@@ -15,6 +15,9 @@ Pending Codex work since current `main` is six local commits:
 - `2bc8d9a fix: close FiftyFlip wager reentrancy residual`
 - `1eaa7b4 docs: audit post-FiftyFlip full evidence`
 - `b4ffc1b paper2: promote post-spank vnext baseline`
+- `8bddc12 docs: add paper2 vnext integration readiness`
+- `a157497 style(llm): sort typing imports`
+- `d399cfa chore(poc): use explicit utf8 template IO`
 
 The lane touches:
 
@@ -28,6 +31,11 @@ The lane touches:
   `paper/PAPER2_REPRODUCIBILITY.md`, `paper/ARXIV_SUBMISSION.md`
 - public README metric summaries
 - non-frozen planning/audit docs under `docs/`
+- this integration handoff:
+  `docs/CODEX_INTEGRATION_READINESS_20260701.md`
+- mechanical LLM import-order maintenance under `src/llm/*.py`
+- PoC template UTF-8 file I/O in `src/poc/poc_generator.py` and
+  `tests/test_poc_generator.py`
 
 No Paper 1 baseline artifact is changed by this lane.
 
@@ -73,6 +81,10 @@ python3 -m ruff check benchmarks/audit_paper2_experiment.py benchmarks/generate_
 git diff --check
 PATH=/usr/bin:/bin:/usr/sbin:/sbin /bin/sh .paper-freeze-local/validate_paper_reproducibility_freeze.sh
 git merge-tree $(git merge-base main HEAD) main HEAD
+python3 -m pytest -q tests/test_llm_orchestrator.py tests/test_ensemble_detector.py tests/test_llm_provider_health.py tests/test_openllama_helper.py tests/test_remediation_generator.py tests/test_finding_validator.py tests/test_vulnerability_rag.py
+python3 -m ruff check src/llm tests/test_llm_orchestrator.py tests/test_ensemble_detector.py tests/test_llm_provider_health.py tests/test_openllama_helper.py tests/test_remediation_generator.py tests/test_finding_validator.py tests/test_vulnerability_rag.py
+python3 -m pytest -q tests/test_poc_generator.py tests/test_foundry_runner.py
+python3 -m ruff check src/poc tests/test_poc_generator.py tests/test_foundry_runner.py
 ```
 
 Observed results:
@@ -86,6 +98,10 @@ Observed results:
 - Local paper reproducibility freeze validation passed after regenerating the
   local-only freeze manifest for the authorized v-next baseline.
 - `git merge-tree` exited 0; no structural merge conflict was reported.
+- `288 passed` for focused LLM/RAG/remediation/provider tests.
+- Ruff passed for the LLM scopes touched by import ordering.
+- `146 passed` for focused PoC/Foundry runner tests.
+- Ruff passed for the PoC scopes touched by explicit UTF-8 template I/O.
 
 ## Integration Risk
 
@@ -131,6 +147,10 @@ When Fernando authorizes merge/push:
    (cd paper && pdflatex paper2-remediation.tex && bibtex paper2-remediation && pdflatex paper2-remediation.tex && pdflatex paper2-remediation.tex)
    python3 -m pytest -q tests/test_generate_paper2_artifacts.py tests/test_fix_eval_cli.py tests/test_fix_command.py
    python3 -m ruff check benchmarks/audit_paper2_experiment.py benchmarks/generate_paper2_artifacts.py benchmarks/fix_eval.py miesc/cli/commands/fix.py tests/test_generate_paper2_artifacts.py tests/test_fix_eval_cli.py tests/test_fix_command.py
+   python3 -m pytest -q tests/test_llm_orchestrator.py tests/test_ensemble_detector.py tests/test_llm_provider_health.py tests/test_openllama_helper.py tests/test_remediation_generator.py tests/test_finding_validator.py tests/test_vulnerability_rag.py
+   python3 -m ruff check src/llm tests/test_llm_orchestrator.py tests/test_ensemble_detector.py tests/test_llm_provider_health.py tests/test_openllama_helper.py tests/test_remediation_generator.py tests/test_finding_validator.py tests/test_vulnerability_rag.py
+   python3 -m pytest -q tests/test_poc_generator.py tests/test_foundry_runner.py
+   python3 -m ruff check src/poc tests/test_poc_generator.py tests/test_foundry_runner.py
    git diff --check HEAD~1..HEAD
    PATH=/usr/bin:/bin:/usr/sbin:/sbin /bin/sh .paper-freeze-local/validate_paper_reproducibility_freeze.sh
    ```
