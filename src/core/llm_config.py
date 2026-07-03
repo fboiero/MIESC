@@ -131,6 +131,11 @@ def get_model(use_case: str) -> str:
     Returns:
         str: Model name for the use case, or default if not configured
     """
+    # A global env override takes precedence over per-use-case config, so a whole
+    # run can be pinned to one model (e.g. a faster model for a benchmark sweep).
+    env_model = os.environ.get("MIESC_LLM_MODEL")
+    if env_model:
+        return env_model
     config = _load_config()
     models = config.get("models", {})
     return cast(str, models.get(use_case, get_default_model()))

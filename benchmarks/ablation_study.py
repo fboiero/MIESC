@@ -226,6 +226,7 @@ def _write_results(outfile, results, total, args, elapsed, partial):
         "total_contracts": total,
         "runs_requested": args.runs,
         "variance_config": args.variance_config,
+        "llm_model": os.environ.get("MIESC_LLM_MODEL", "config-default"),
         "llm_cache_disabled": bool(args.runs > 1),
         "partial": partial,
         "configs_completed": len(results),
