@@ -24,7 +24,7 @@ import logging
 import os
 from dataclasses import dataclass, replace
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple, cast
+from typing import Any, Dict, List, Optional, Tuple
 
 import aiohttp
 
@@ -302,7 +302,8 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
                 raise RuntimeError(f"Ollama API error {resp.status}: {error_text}")
 
             data = await resp.json()
-            return cast(str, data.get("response", ""))
+            response = data.get("response", "")
+            return response if isinstance(response, str) else ""
 
     def _parse_response(self, response: str, finding_id: str) -> LLMValidation:
         """Parse LLM response into LLMValidation."""
