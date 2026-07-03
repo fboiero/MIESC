@@ -206,7 +206,8 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
         if not self.config.enabled:
             return False
 
-        severity = finding.get("severity", "").lower()
+        severity_value = finding.get("severity", "")
+        severity = severity_value.lower() if isinstance(severity_value, str) else ""
         min_severity = self.config.min_severity_to_validate.lower()
 
         finding_level = self.SEVERITY_ORDER.get(severity, 0)

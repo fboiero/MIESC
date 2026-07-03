@@ -184,6 +184,7 @@ def test_should_validate_respects_enabled_flag_and_min_severity():
     assert high_only.should_validate({"severity": "HIGH"}) is True
     assert high_only.should_validate({"severity": "critical"}) is True
     assert high_only.should_validate({"severity": "unknown"}) is False
+    assert high_only.should_validate({"severity": ["HIGH"]}) is False
 
 
 @pytest.mark.parametrize(
