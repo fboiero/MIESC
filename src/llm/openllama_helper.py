@@ -347,8 +347,14 @@ INSIGHTS:"""
             if not isinstance(parsed, dict):
                 return {}
 
+            priority_items = parsed.get("priorities", [])
+            if not isinstance(priority_items, list):
+                return {}
+
             priorities = {}
-            for item in parsed.get("priorities", []):
+            for item in priority_items:
+                if not isinstance(item, dict):
+                    continue
                 idx = item.get("index")
                 if idx is not None:
                     priorities[idx] = {
