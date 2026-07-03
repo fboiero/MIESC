@@ -133,17 +133,31 @@ def test_generate_quick_fix_returns_original_for_unknown_pattern():
     assert explanation == "No known pattern for this vulnerability type"
 
 
+def test_generate_quick_fix_returns_original_for_non_string_type():
+    generator = RemediationGenerator()
+    code = "function noop() public {}"
+
+    fixed, explanation = generator.generate_quick_fix(["reentrancy"], code)
+
+    assert fixed == code
+    assert explanation == "No known pattern for this vulnerability type"
+
+
 def test_get_pattern_template_and_info_for_known_and_unknown_types():
     generator = RemediationGenerator()
 
     template = generator.get_pattern_template("ReEntrancy")
     known_info = generator._get_pattern_info("reentrancy")
     unknown_info = generator._get_pattern_info("unknown")
+    malformed_template = generator.get_pattern_template(["reentrancy"])
+    malformed_info = generator._get_pattern_info(["reentrancy"])
 
     assert template["pattern_name"] == "ReentrancyGuard + CEI"
     assert "**Pattern**: ReentrancyGuard + CEI" in known_info
     assert "**Modifier**: nonReentrant" in known_info
     assert unknown_info == "No specific pattern known. Use security best practices."
+    assert malformed_template == {}
+    assert malformed_info == "No specific pattern known. Use security best practices."
 
 
 def test_extract_vulnerable_code_prefers_snippet():

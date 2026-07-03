@@ -198,8 +198,7 @@ class RemediationGenerator:
         Returns:
             Remediation object with fixed code
         """
-        vuln_type_value = finding.get("type", "unknown")
-        vuln_type = vuln_type_value.lower() if isinstance(vuln_type_value, str) else "unknown"
+        vuln_type = self._parse_vuln_type(finding.get("type", "unknown"))
         severity = finding.get("severity", "medium")
         title = finding.get("title", finding.get("type", "Unknown"))
         description = finding.get("description", "")
@@ -331,7 +330,8 @@ class RemediationGenerator:
         Returns:
             Tuple of (fixed_code, explanation)
         """
-        pattern = REMEDIATION_PATTERNS.get(vuln_type.lower())
+        vuln_type = self._parse_vuln_type(vuln_type)
+        pattern = REMEDIATION_PATTERNS.get(vuln_type)
 
         if not pattern:
             return function_code, "No known pattern for this vulnerability type"
@@ -340,7 +340,7 @@ class RemediationGenerator:
         changes = []
 
         # Apply pattern-specific fixes
-        if vuln_type.lower() == "reentrancy":
+        if vuln_type == "reentrancy":
             # Add nonReentrant modifier
             if "nonReentrant" not in fixed:
                 # Find function declaration and add modifier
@@ -349,7 +349,7 @@ class RemediationGenerator:
                 )
                 changes.append("Added nonReentrant modifier")
 
-        elif vuln_type.lower() == "access-control":
+        elif vuln_type == "access-control":
             # Add onlyOwner modifier
             if "onlyOwner" not in fixed and "onlyRole" not in fixed:
                 fixed = re.sub(
@@ -357,7 +357,7 @@ class RemediationGenerator:
                 )
                 changes.append("Added onlyOwner modifier")
 
-        elif vuln_type.lower() == "unchecked-call":
+        elif vuln_type == "unchecked-call":
             # Replace transfer with safeTransfer
             if "safeTransfer" not in fixed:
                 fixed = re.sub(r"\.transfer\s*\(", ".safeTransfer(", fixed)
@@ -380,7 +380,7 @@ class RemediationGenerator:
         Returns:
             Pattern template with imports, modifiers, etc.
         """
-        return REMEDIATION_PATTERNS.get(vuln_type.lower(), {})
+        return REMEDIATION_PATTERNS.get(self._parse_vuln_type(vuln_type), {})
 
     async def _query_llm(self, prompt: str) -> Dict[str, Any]:
         """Query the LLM and parse JSON response."""
@@ -473,9 +473,14 @@ class RemediationGenerator:
         lines = full_code.split("\n")
         return "\n".join(lines[: min(50, len(lines))])
 
+    @staticmethod
+    def _parse_vuln_type(value: Any) -> str:
+        """Normalize vulnerability type fields without trusting malformed shapes."""
+        return value.lower() if isinstance(value, str) and value else "unknown"
+
     def _get_pattern_info(self, vuln_type: str) -> str:
         """Get pattern information for the vulnerability type."""
-        pattern = REMEDIATION_PATTERNS.get(vuln_type.lower())
+        pattern = REMEDIATION_PATTERNS.get(self._parse_vuln_type(vuln_type))
 
         if not pattern:
             return "No specific pattern known. Use security best practices."
