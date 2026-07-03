@@ -225,7 +225,7 @@ OUTPUT (JSON only):
             Remediation advice string
         """
         if not self.is_available():
-            return cast(str, finding.get("recommendation", "Review and address the identified issue"))
+            return self._recommendation_fallback(finding)
 
         prompt = f"""Generate specific remediation advice for this vulnerability.
 
@@ -248,7 +248,7 @@ INSTRUCTIONS:
 REMEDIATION ADVICE:"""
 
         response = self._call_llm(prompt)
-        return response if response else finding.get("recommendation", "")
+        return response if response else self._recommendation_fallback(finding)
 
     # ============================================================================
     # PRIVATE HELPER METHODS
@@ -325,6 +325,13 @@ INSIGHTS:"""
         if not isinstance(severity, str):
             return 0
         return severity_map.get(severity.upper(), 0)
+
+    def _recommendation_fallback(self, finding: Dict[str, Any]) -> str:
+        """Return a string remediation fallback for malformed finding shapes."""
+        recommendation = finding.get("recommendation")
+        if isinstance(recommendation, str):
+            return recommendation
+        return "Review and address the identified issue"
 
     def _create_findings_summary(self, findings: List[Dict[str, Any]]) -> str:
         """Create concise summary of findings for LLM."""
