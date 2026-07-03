@@ -374,9 +374,13 @@ INSIGHTS:"""
                     continue
                 idx = item.get("index")
                 if isinstance(idx, int) and not isinstance(idx, bool):
+                    priority = item.get("priority", 5)
+                    reason = item.get("reason", "")
                     priorities[idx] = {
-                        "priority": item.get("priority", 5),
-                        "reason": item.get("reason", ""),
+                        "priority": priority
+                        if isinstance(priority, int) and not isinstance(priority, bool)
+                        else 5,
+                        "reason": reason if isinstance(reason, str) else "",
                     }
 
             return priorities
