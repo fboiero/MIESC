@@ -334,6 +334,40 @@ def test_apply_validation_defaults_malformed_original_confidence():
     assert updated["confidence"] == pytest.approx(0.85)
 
 
+def test_apply_validation_ignores_unknown_suggested_severity():
+    validator = LLMFindingValidator(ValidatorConfig())
+    finding = {"id": "F-1", "severity": "high", "confidence": 0.7}
+    validation = LLMValidation(
+        "F-1",
+        ValidationResult.VALID,
+        0.9,
+        "confirmed",
+        suggested_severity="urgent",
+    )
+
+    updated = validator._apply_validation(finding, validation)
+
+    assert updated is not None
+    assert updated["_llm_validation"].get("severity_adjusted", False) is False
+
+
+def test_apply_validation_handles_malformed_current_severity():
+    validator = LLMFindingValidator(ValidatorConfig())
+    finding = {"id": "F-1", "severity": ["high"], "confidence": 0.7}
+    validation = LLMValidation(
+        "F-1",
+        ValidationResult.VALID,
+        0.9,
+        "confirmed",
+        suggested_severity="critical",
+    )
+
+    updated = validator._apply_validation(finding, validation)
+
+    assert updated is not None
+    assert updated["_llm_validation"]["severity_adjusted"] is True
+
+
 def test_get_statistics_reports_counts_and_config():
     validator = LLMFindingValidator(ValidatorConfig(model="test-model", enabled=False))
     validator._validated_count = 4
