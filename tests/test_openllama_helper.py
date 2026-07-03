@@ -167,6 +167,19 @@ def test_generate_remediation_advice_defaults_when_recommendation_missing(monkey
     )
 
 
+def test_generate_remediation_advice_defaults_for_non_string_recommendation(monkeypatch):
+    helper = OpenLLaMAHelper()
+    monkeypatch.setattr(helper, "is_available", lambda: False)
+
+    assert (
+        helper.generate_remediation_advice(
+            {"recommendation": ["not", "a", "string"]},
+            "contract C {}",
+        )
+        == "Review and address the identified issue"
+    )
+
+
 def test_generate_remediation_advice_returns_llm_response(monkeypatch):
     helper = OpenLLaMAHelper()
     monkeypatch.setattr(helper, "is_available", lambda: True)
@@ -175,6 +188,33 @@ def test_generate_remediation_advice_returns_llm_response(monkeypatch):
     advice = helper.generate_remediation_advice({"title": "Missing auth"}, "contract C {}")
 
     assert advice == "patch the access check"
+
+
+def test_generate_remediation_advice_falls_back_to_string_recommendation(monkeypatch):
+    helper = OpenLLaMAHelper()
+    monkeypatch.setattr(helper, "is_available", lambda: True)
+    monkeypatch.setattr(helper, "_call_llm", lambda prompt: "")
+
+    advice = helper.generate_remediation_advice(
+        {"recommendation": "Use onlyOwner"},
+        "contract C {}",
+    )
+
+    assert advice == "Use onlyOwner"
+
+
+def test_generate_remediation_advice_empty_llm_rejects_non_string_recommendation(monkeypatch):
+    helper = OpenLLaMAHelper()
+    monkeypatch.setattr(helper, "is_available", lambda: True)
+    monkeypatch.setattr(helper, "_call_llm", lambda prompt: "")
+
+    assert (
+        helper.generate_remediation_advice(
+            {"recommendation": {"text": "Use onlyOwner"}},
+            "contract C {}",
+        )
+        == "Review and address the identified issue"
+    )
 
 
 def test_private_helpers_format_summary_and_severity():
