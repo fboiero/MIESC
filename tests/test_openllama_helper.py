@@ -84,6 +84,29 @@ def test_enhance_findings_only_processes_top_severity_items(monkeypatch):
     assert "llm_insights" not in findings[4]
 
 
+def test_enhance_findings_handles_non_string_severity(monkeypatch):
+    helper = OpenLLaMAHelper()
+    findings = [
+        {"severity": ["HIGH"], "title": "malformed"},
+        {"severity": "HIGH", "title": "high"},
+    ]
+    enhanced_titles = []
+
+    monkeypatch.setattr(helper, "is_available", lambda: True)
+
+    def fake_generate(finding, context, adapter_name):
+        enhanced_titles.append(finding["title"])
+        return f"insight for {finding['title']}"
+
+    monkeypatch.setattr(helper, "_generate_insights", fake_generate)
+
+    result = helper.enhance_findings(findings, "contract C {}", "adapter")
+
+    assert result is findings
+    assert enhanced_titles == ["high", "malformed"]
+    assert findings[0]["llm_enhanced"] is True
+
+
 def test_explain_technical_output_uses_fallback_when_unavailable(monkeypatch):
     helper = OpenLLaMAHelper()
     monkeypatch.setattr(helper, "is_available", lambda: False)
@@ -169,6 +192,7 @@ def test_private_helpers_format_summary_and_severity():
 
     assert helper._severity_score("critical") == 4
     assert helper._severity_score("unknown") == 0
+    assert helper._severity_score(["HIGH"]) == 0
     assert summary.startswith("0. [HIGH] Unchecked call - ")
     assert len(summary.split(" - ", 1)[1]) == 100
 
