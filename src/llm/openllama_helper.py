@@ -337,9 +337,17 @@ INSIGHTS:"""
         """Create concise summary of findings for LLM."""
         summary_lines = []
         for idx, finding in enumerate(findings):
-            line = f"{idx}. [{finding.get('severity', 'UNKNOWN')}] {finding.get('title', 'Unknown')} - {finding.get('description', '')[:100]}"
+            description = self._truncate_text(finding.get("description"), limit=100)
+            line = f"{idx}. [{finding.get('severity', 'UNKNOWN')}] {finding.get('title', 'Unknown')} - {description}"
             summary_lines.append(line)
         return "\n".join(summary_lines)
+
+    @staticmethod
+    def _truncate_text(value: Any, limit: int) -> str:
+        """Return a bounded string only when the input is textual."""
+        if not isinstance(value, str):
+            return ""
+        return value[:limit]
 
     def _parse_priorities(self, llm_response: str) -> Dict[int, Dict[str, Any]]:
         """Parse priority assignments from LLM response."""
