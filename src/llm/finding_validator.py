@@ -369,12 +369,12 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
             )
 
     @staticmethod
-    def _parse_confidence(value: Any) -> float:
+    def _parse_confidence(value: Any, default: float = 0.5) -> float:
         """Parse confidence from LLM JSON without trusting malformed shapes."""
         try:
             return float(value)
         except (TypeError, ValueError):
-            return 0.5
+            return default
 
     @staticmethod
     def _parse_text(value: Any, default: str) -> str:
@@ -497,7 +497,7 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
         }
 
         # Adjust confidence based on validation
-        original_confidence = finding.get("confidence", 0.7)
+        original_confidence = self._parse_confidence(finding.get("confidence", 0.7), default=0.7)
 
         if validation.result == ValidationResult.VALID:
             # Boost confidence for confirmed valid
