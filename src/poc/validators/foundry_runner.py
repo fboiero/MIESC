@@ -437,7 +437,7 @@ class FoundryRunner:
                         TestResult(
                             name=f"{contract}::{test_name}",
                             status=status,
-                            gas_used=result.get("gas"),
+                            gas_used=self._normalize_gas_value(result.get("gas")),
                             logs=logs if isinstance(logs, list) else [],
                         )
                     )
@@ -448,12 +448,25 @@ class FoundryRunner:
                 TestResult(
                     name=data.get("test_name") or data.get("name") or "",
                     status=status,
-                    gas_used=data.get("gas"),
+                    gas_used=self._normalize_gas_value(data.get("gas")),
                     logs=logs if isinstance(logs, list) else [],
                 )
             )
 
         return tests
+
+    @staticmethod
+    def _normalize_gas_value(value: Any) -> Optional[int]:
+        """Normalize Forge JSON gas values without trusting malformed shapes."""
+        if isinstance(value, bool):
+            return None
+        if isinstance(value, int):
+            return value
+        if isinstance(value, str):
+            normalized = value.replace(",", "").strip()
+            if normalized.isdigit():
+                return int(normalized)
+        return None
 
     def _parse_text_output(self, output: str) -> List[TestResult]:
         """Parse test results from text output."""

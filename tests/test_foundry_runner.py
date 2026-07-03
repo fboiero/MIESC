@@ -620,6 +620,37 @@ class TestParseOutput:
         assert tests[0].status == TestStatus.PASSED
         assert tests[0].logs == []
 
+    def test_parse_json_test_results_normalizes_gas_values(self, runner):
+        """Test JSON gas values are numeric before aggregate totals use them."""
+        tests = runner._parse_test_results(
+            {
+                "test_results": {
+                    "test/Mixed.t.sol:MixedTest": {
+                        "test_int": {"success": True, "gas": 123},
+                        "test_string": {"success": True, "gas": "1,234"},
+                        "test_bad": {"success": True, "gas": ["not numeric"]},
+                        "test_bool": {"success": True, "gas": True},
+                    },
+                }
+            }
+        )
+
+        assert [test.gas_used for test in tests] == [123, 1234, None, None]
+
+    def test_parse_forge_output_ignores_malformed_json_gas(self, runner):
+        """Test malformed JSON gas values do not break total gas aggregation."""
+        output = (
+            '{"test_results": {"test/Bad.t.sol:BadTest": {'
+            '"test_bad": {"success": true, "gas": ["not numeric"]},'
+            '"test_ok": {"success": true, "gas": "1,000"}'
+            "}}}\n"
+        )
+
+        result = runner._parse_forge_output(output, "", 0, 10)
+
+        assert result.total_tests == 2
+        assert result.total_gas == 1000
+
     def test_parse_flat_json_test_result_normalizes_logs(self, runner):
         """Test flat JSON test result ignores non-list logs."""
         tests = runner._parse_test_results(
