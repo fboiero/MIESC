@@ -333,8 +333,9 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
             result = result_map.get(result_str, ValidationResult.UNCERTAIN)
 
             # Handle is_valid field for simpler responses
-            if "is_valid" in data and result_str not in result_map:
-                result = ValidationResult.VALID if data["is_valid"] else ValidationResult.LIKELY_FP
+            is_valid = data.get("is_valid")
+            if isinstance(is_valid, bool) and result_str not in result_map:
+                result = ValidationResult.VALID if is_valid else ValidationResult.LIKELY_FP
 
             return LLMValidation(
                 finding_id=finding_id,
