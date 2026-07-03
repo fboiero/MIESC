@@ -50,6 +50,34 @@ async def test_validate_finding_degrades_to_uncertain_on_runtime_error(monkeypat
     assert "Ollama API error" in validation.reasoning
 
 
+@pytest.mark.asyncio
+async def test_call_ollama_returns_empty_string_for_non_string_response(monkeypatch):
+    validator = LLMFindingValidator(ValidatorConfig())
+
+    class FakeResponse:
+        status = 200
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return None
+
+        async def json(self):
+            return {"response": ["not text"]}
+
+    class FakeSession:
+        def post(self, *_args, **_kwargs):
+            return FakeResponse()
+
+    async def fake_get_session():
+        return FakeSession()
+
+    monkeypatch.setattr(validator, "_get_session", fake_get_session)
+
+    assert await validator._call_ollama("prompt") == ""
+
+
 def test_parse_response_accepts_wrapped_json():
     validator = LLMFindingValidator(ValidatorConfig())
     response = """
