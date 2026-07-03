@@ -82,6 +82,17 @@ def test_parse_response_maps_simple_is_valid_payload():
     assert validation.reasoning == "Protected path."
 
 
+def test_parse_response_ignores_non_bool_is_valid_payload():
+    validator = LLMFindingValidator(ValidatorConfig())
+    response = '{"is_valid": "false", "confidence": 0.73, "reasoning": "String flag."}'
+
+    validation = validator._parse_response(response, "F-3b")
+
+    assert validation.result == ValidationResult.UNCERTAIN
+    assert validation.confidence == 0.73
+    assert validation.reasoning == "String flag."
+
+
 def test_parse_response_repairs_common_llm_json_errors():
     validator = LLMFindingValidator(ValidatorConfig())
     response = """
