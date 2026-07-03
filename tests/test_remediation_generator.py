@@ -255,6 +255,28 @@ async def test_generate_remediation_falls_back_to_vulnerable_code(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_generate_remediation_defaults_non_string_finding_type(monkeypatch):
+    generator = RemediationGenerator()
+    finding = {
+        "id": "F-2b",
+        "type": ["reentrancy"],
+        "severity": "LOW",
+        "snippet": "function withdraw() public {}",
+    }
+
+    async def fake_query(prompt):
+        assert "- **Type**: unknown" in prompt
+        return {"fixed_code": "function withdraw() public {}"}
+
+    monkeypatch.setattr(generator, "_query_llm", fake_query)
+
+    remediation = await generator.generate_remediation(finding, "contract C {}")
+
+    assert remediation.vulnerability_type == "unknown"
+    assert remediation.pattern_used is None
+
+
+@pytest.mark.asyncio
 async def test_generate_remediations_parallel_counts_exceptions(monkeypatch):
     generator = RemediationGenerator()
     findings = [{"id": "A"}, {"id": "B"}, {"id": "C"}]
