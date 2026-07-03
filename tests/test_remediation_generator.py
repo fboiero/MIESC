@@ -182,6 +182,17 @@ def test_extract_vulnerable_code_ignores_non_string_snippet():
     assert extracted == "contract C { function other() public {} }"
 
 
+def test_extract_vulnerable_code_ignores_non_object_location():
+    generator = RemediationGenerator()
+
+    extracted = generator._extract_vulnerable_code(
+        {"location": ["line 10"]},
+        "contract C { function other() public {} }",
+    )
+
+    assert extracted == "contract C { function other() public {} }"
+
+
 def test_extract_vulnerable_code_by_function_name():
     generator = RemediationGenerator()
     code = """

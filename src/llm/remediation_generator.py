@@ -446,7 +446,8 @@ class RemediationGenerator:
         full_code: str,
     ) -> str:
         """Extract the vulnerable code section from full contract."""
-        location = finding.get("location", {})
+        location_value = finding.get("location", {})
+        location = location_value if isinstance(location_value, dict) else {}
 
         # If snippet is provided, use it
         snippet = finding.get("snippet")
