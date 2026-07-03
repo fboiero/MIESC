@@ -515,8 +515,8 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
         # Apply severity suggestion if provided and different
         if validation.suggested_severity:
             suggested = validation.suggested_severity.lower()
-            current = finding.get("severity", "").lower()
-            if suggested != current:
+            current = self._parse_text(finding.get("severity"), "").lower()
+            if suggested in self.SEVERITY_ORDER and suggested != current:
                 logger.debug(f"Severity adjustment suggested: {current} -> {suggested}")
                 updated["_llm_validation"]["severity_adjusted"] = True
                 # Don't auto-adjust severity, just note it
