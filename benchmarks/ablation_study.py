@@ -216,6 +216,27 @@ def run_ablation_config(config_name, config, contracts_by_cat):
     }
 
 
+def _write_results(outfile, results, total, args, elapsed, partial):
+    """Write/checkpoint results. Called after every config so a killed run keeps
+    its completed configs instead of losing everything. Atomic (tmp + replace)."""
+    payload = {
+        "timestamp": outfile.stem.replace("ablation_study_", ""),
+        "miesc_version": "5.1.1",
+        "dataset": "SmartBugs-curated",
+        "total_contracts": total,
+        "runs_requested": args.runs,
+        "variance_config": args.variance_config,
+        "llm_cache_disabled": bool(args.runs > 1),
+        "partial": partial,
+        "configs_completed": len(results),
+        "execution_time_seconds": round(elapsed, 2),
+        "configurations": results,
+    }
+    tmp = outfile.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(payload, indent=2))
+    tmp.replace(outfile)  # atomic: a kill mid-write can't corrupt the real file
+
+
 def main():
     parser = argparse.ArgumentParser(description="MIESC Ablation Study")
     parser.add_argument("--config", help="Run single config (L1_static, L1_L3_symbolic, L1_L5_llm, L1_L3_L5, all_layers)")
@@ -257,6 +278,13 @@ def main():
     start = time.time()
     results = []
 
+    outfile = None
+    if args.save:
+        outdir = PROJECT_ROOT / "benchmarks" / "results"
+        outdir.mkdir(parents=True, exist_ok=True)
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        outfile = outdir / f"ablation_study_{ts}.json"
+
     for name, config in configs_to_run.items():
         # Only the designated variance config repeats; everything else runs once
         # (deterministic, or variance not needed there). Keeps runtime bounded.
@@ -272,6 +300,10 @@ def main():
             results.append(run_results[0])
         else:
             results.append(aggregate_runs(name, config, run_results))
+        # Checkpoint after every config so an interrupted run keeps its progress.
+        if outfile is not None:
+            _write_results(outfile, results, total, args, time.time() - start, partial=True)
+            print(f"  [checkpoint] {len(results)}/{len(configs_to_run)} configs → {outfile.name}")
 
     elapsed = time.time() - start
 
@@ -290,23 +322,8 @@ def main():
     print(f"\n  Total time: {elapsed:.0f}s")
     print(f"{'='*60}\n")
 
-    if args.save:
-        outdir = PROJECT_ROOT / "benchmarks" / "results"
-        outdir.mkdir(parents=True, exist_ok=True)
-        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-        outfile = outdir / f"ablation_study_{ts}.json"
-        with open(outfile, "w") as f:
-            json.dump({
-                "timestamp": ts,
-                "miesc_version": "5.1.1",
-                "dataset": "SmartBugs-curated",
-                "total_contracts": total,
-                "runs_requested": args.runs,
-                "variance_config": args.variance_config,
-                "llm_cache_disabled": bool(args.runs > 1),
-                "execution_time_seconds": round(elapsed, 2),
-                "configurations": results,
-            }, f, indent=2)
+    if outfile is not None:
+        _write_results(outfile, results, total, args, elapsed, partial=False)
         print(f"  Saved to: {outfile}")
 
 
