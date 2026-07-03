@@ -198,7 +198,8 @@ class RemediationGenerator:
         Returns:
             Remediation object with fixed code
         """
-        vuln_type = finding.get("type", "unknown").lower()
+        vuln_type_value = finding.get("type", "unknown")
+        vuln_type = vuln_type_value.lower() if isinstance(vuln_type_value, str) else "unknown"
         severity = finding.get("severity", "medium")
         title = finding.get("title", finding.get("type", "Unknown"))
         description = finding.get("description", "")
