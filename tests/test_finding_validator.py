@@ -112,6 +112,17 @@ def test_parse_response_repairs_invalid_backslash_escapes():
     assert validation.reasoning == r"pattern \d+ matched"
 
 
+def test_parse_response_defaults_malformed_confidence():
+    validator = LLMFindingValidator(ValidatorConfig())
+    response = '{"result": "valid", "confidence": ["high"], "reasoning": "Confirmed."}'
+
+    validation = validator._parse_response(response, "F-5b")
+
+    assert validation.result == ValidationResult.VALID
+    assert validation.confidence == 0.5
+    assert validation.reasoning == "Confirmed."
+
+
 def test_parse_response_falls_back_for_non_object_json():
     validator = LLMFindingValidator(ValidatorConfig())
 

@@ -339,7 +339,7 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
             return LLMValidation(
                 finding_id=finding_id,
                 result=result,
-                confidence=float(data.get("confidence", 0.5)),
+                confidence=self._parse_confidence(data.get("confidence", 0.5)),
                 reasoning=data.get("reasoning", "No reasoning provided"),
                 suggested_severity=data.get("suggested_severity"),
                 remediation_hint=data.get("remediation_hint"),
@@ -365,6 +365,14 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
                 confidence=confidence,
                 reasoning=response[:200] if response else "Parse error",
             )
+
+    @staticmethod
+    def _parse_confidence(value: Any) -> float:
+        """Parse confidence from LLM JSON without trusting malformed shapes."""
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return 0.5
 
     async def validate_findings_batch(
         self,
