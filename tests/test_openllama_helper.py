@@ -237,6 +237,22 @@ def test_private_helpers_format_summary_and_severity():
     assert len(summary.split(" - ", 1)[1]) == 100
 
 
+def test_create_findings_summary_ignores_non_string_description():
+    helper = OpenLLaMAHelper()
+
+    summary = helper._create_findings_summary(
+        [
+            {
+                "severity": "LOW",
+                "title": "Malformed description",
+                "description": ["not", "text"],
+            }
+        ]
+    )
+
+    assert summary == "0. [LOW] Malformed description - "
+
+
 def test_generate_insights_sorts_finding_keys(monkeypatch):
     helper = OpenLLaMAHelper()
     captured = {}
