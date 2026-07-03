@@ -319,9 +319,11 @@ INSIGHTS:"""
 
         return self._call_llm(prompt)
 
-    def _severity_score(self, severity: str) -> int:
+    def _severity_score(self, severity: Any) -> int:
         """Convert severity string to numeric score."""
         severity_map = {"CRITICAL": 4, "HIGH": 3, "MEDIUM": 2, "LOW": 1, "INFO": 0}
+        if not isinstance(severity, str):
+            return 0
         return severity_map.get(severity.upper(), 0)
 
     def _create_findings_summary(self, findings: List[Dict[str, Any]]) -> str:
