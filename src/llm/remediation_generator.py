@@ -21,7 +21,7 @@ import json
 import logging
 import re
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple, cast
+from typing import Any, Dict, List, Optional, Tuple
 
 import aiohttp
 
@@ -449,8 +449,9 @@ class RemediationGenerator:
         location = finding.get("location", {})
 
         # If snippet is provided, use it
-        if finding.get("snippet"):
-            return cast(str, finding["snippet"])
+        snippet = finding.get("snippet")
+        if isinstance(snippet, str) and snippet:
+            return snippet
 
         # Try to extract by function name
         func_name = location.get("function")

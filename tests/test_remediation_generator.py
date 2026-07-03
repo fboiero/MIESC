@@ -157,6 +157,17 @@ def test_extract_vulnerable_code_prefers_snippet():
     assert extracted == "function vulnerable() public {}"
 
 
+def test_extract_vulnerable_code_ignores_non_string_snippet():
+    generator = RemediationGenerator()
+
+    extracted = generator._extract_vulnerable_code(
+        {"snippet": ["function vulnerable() public {}"]},
+        "contract C { function other() public {} }",
+    )
+
+    assert extracted == "contract C { function other() public {} }"
+
+
 def test_extract_vulnerable_code_by_function_name():
     generator = RemediationGenerator()
     code = """
