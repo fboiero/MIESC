@@ -373,7 +373,7 @@ INSIGHTS:"""
                 if not isinstance(item, dict):
                     continue
                 idx = item.get("index")
-                if idx is not None:
+                if isinstance(idx, int) and not isinstance(idx, bool):
                     priorities[idx] = {
                         "priority": item.get("priority", 5),
                         "reason": item.get("reason", ""),
