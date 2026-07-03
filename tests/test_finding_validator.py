@@ -123,6 +123,26 @@ def test_parse_response_defaults_malformed_confidence():
     assert validation.reasoning == "Confirmed."
 
 
+def test_parse_response_defaults_malformed_text_fields():
+    validator = LLMFindingValidator(ValidatorConfig())
+    response = """
+    {
+        "result": "valid",
+        "confidence": 0.8,
+        "reasoning": ["not text"],
+        "suggested_severity": ["HIGH"],
+        "remediation_hint": {"fix": "use CEI"}
+    }
+    """
+
+    validation = validator._parse_response(response, "F-5c")
+
+    assert validation.result == ValidationResult.VALID
+    assert validation.reasoning == "No reasoning provided"
+    assert validation.suggested_severity is None
+    assert validation.remediation_hint is None
+
+
 def test_parse_response_falls_back_for_non_object_json():
     validator = LLMFindingValidator(ValidatorConfig())
 

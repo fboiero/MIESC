@@ -340,9 +340,9 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
                 finding_id=finding_id,
                 result=result,
                 confidence=self._parse_confidence(data.get("confidence", 0.5)),
-                reasoning=data.get("reasoning", "No reasoning provided"),
-                suggested_severity=data.get("suggested_severity"),
-                remediation_hint=data.get("remediation_hint"),
+                reasoning=self._parse_text(data.get("reasoning"), "No reasoning provided"),
+                suggested_severity=self._parse_optional_text(data.get("suggested_severity")),
+                remediation_hint=self._parse_optional_text(data.get("remediation_hint")),
             )
 
         except (json.JSONDecodeError, ValueError) as e:
@@ -373,6 +373,16 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
             return float(value)
         except (TypeError, ValueError):
             return 0.5
+
+    @staticmethod
+    def _parse_text(value: Any, default: str) -> str:
+        """Return text only when the LLM field has a string shape."""
+        return value if isinstance(value, str) else default
+
+    @classmethod
+    def _parse_optional_text(cls, value: Any) -> Optional[str]:
+        """Return optional text only when the LLM field has a string shape."""
+        return cls._parse_text(value, "") or None
 
     async def validate_findings_batch(
         self,
