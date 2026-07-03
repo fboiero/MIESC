@@ -395,3 +395,21 @@ def test_parse_priorities_skips_malformed_priority_items():
     )
 
     assert priorities == {1: {"priority": 8, "reason": "valid"}}
+
+
+def test_parse_priorities_skips_non_integer_indexes():
+    helper = OpenLLaMAHelper()
+
+    priorities = helper._parse_priorities(
+        """
+        {
+            "priorities": [
+                {"index": "1", "priority": 9, "reason": "string index"},
+                {"index": true, "priority": 7, "reason": "bool index"},
+                {"index": 2, "priority": 8, "reason": "valid index"}
+            ]
+        }
+        """
+    )
+
+    assert priorities == {2: {"priority": 8, "reason": "valid index"}}
