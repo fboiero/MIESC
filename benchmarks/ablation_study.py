@@ -252,6 +252,11 @@ def main():
         help="Which config gets --runs repetitions for variance (default: all_layers, "
              "the headline config).",
     )
+    parser.add_argument(
+        "--resume", type=Path, default=None,
+        help="Continue a prior ablation JSON: skip configs already completed there and "
+             "append to the same file. Survives a run that was interrupted between configs.",
+    )
     args = parser.parse_args()
     if args.runs < 1:
         parser.error("--runs must be >= 1")
@@ -280,13 +285,24 @@ def main():
     results = []
 
     outfile = None
-    if args.save:
+    done_configs = set()
+    if args.resume and args.resume.exists():
+        prev = json.loads(args.resume.read_text())
+        results = list(prev.get("configurations", []))
+        done_configs = {c["config"] for c in results}
+        outfile = args.resume  # keep appending to the same file
+        print(f"  RESUME from {args.resume.name}: {len(done_configs)} configs done "
+              f"({sorted(done_configs)})")
+    elif args.save:
         outdir = PROJECT_ROOT / "benchmarks" / "results"
         outdir.mkdir(parents=True, exist_ok=True)
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
         outfile = outdir / f"ablation_study_{ts}.json"
 
     for name, config in configs_to_run.items():
+        if name in done_configs:
+            print(f"  [skip] {config['name']} — already in resume file")
+            continue
         # Only the designated variance config repeats; everything else runs once
         # (deterministic, or variance not needed there). Keeps runtime bounded.
         reps = args.runs if (args.runs > 1 and name == args.variance_config) else 1
