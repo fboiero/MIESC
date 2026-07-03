@@ -417,7 +417,8 @@ class PoCGenerator:
         location = finding.get("location", {})
 
         if isinstance(location, dict):
-            return location.get("function") or location.get("func")
+            function_name = location.get("function") or location.get("func")
+            return function_name if isinstance(function_name, str) else None
         elif isinstance(location, str):
             # Try to parse function from string
             match = re.search(r"function\s+(\w+)", location)

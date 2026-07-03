@@ -460,6 +460,15 @@ class TestFunctionExtraction:
         func = generator._extract_function_name(finding)
         assert func == "transfer"
 
+    def test_extract_ignores_non_string_function_name(self, generator):
+        """Test extraction ignores non-string function values."""
+        for location in [
+            {"function": ["withdraw"]},
+            {"func": {"name": "withdraw"}},
+        ]:
+            func = generator._extract_function_name({"type": "reentrancy", "location": location})
+            assert func is None
+
 
 # =============================================================================
 # PoC Name Generation Tests
