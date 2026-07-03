@@ -287,3 +287,31 @@ def test_parse_priorities_rejects_non_object_json():
     )
 
     assert priorities == {}
+
+
+def test_parse_priorities_rejects_non_list_priorities():
+    helper = OpenLLaMAHelper()
+
+    priorities = helper._parse_priorities(
+        '{"priorities": {"index": 0, "priority": 9, "reason": "wrong shape"}}'
+    )
+
+    assert priorities == {}
+
+
+def test_parse_priorities_skips_malformed_priority_items():
+    helper = OpenLLaMAHelper()
+
+    priorities = helper._parse_priorities(
+        """
+        {
+            "priorities": [
+                "not an object",
+                {"index": 1, "priority": 8, "reason": "valid"},
+                ["also invalid"]
+            ]
+        }
+        """
+    )
+
+    assert priorities == {1: {"priority": 8, "reason": "valid"}}
