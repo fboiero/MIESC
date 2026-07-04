@@ -85,6 +85,23 @@ def test_fetch_openai_compatible_model_ids_success():
     asyncio.run(run_test())
 
 
+def test_fetch_openai_compatible_model_ids_rejects_malformed_endpoint_credentials():
+    """Test malformed endpoint/key shapes are rejected before opening a session."""
+
+    async def run_test():
+        with patch("aiohttp.ClientSession") as session:
+            models = await fetch_openai_compatible_model_ids(
+                ["https://api.deepseek.example"],
+                {"token": "bad"},
+                provider_name="DeepSeek",
+            )
+
+        assert models == set()
+        session.assert_not_called()
+
+    asyncio.run(run_test())
+
+
 def test_fetch_openai_compatible_model_ids_malformed_payload():
     """Test malformed successful JSON payloads are treated as unavailable."""
 
