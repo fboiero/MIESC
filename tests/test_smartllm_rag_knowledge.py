@@ -31,6 +31,22 @@ from src.adapters.smartllm_rag_knowledge import (
     get_relevant_knowledge,
     get_vulnerability_context,
 )
+from src.llm.embedding_rag import EmbeddingRAG, VulnerabilityDocument
+
+
+class _ExplodingCollection:
+    def add(self, **_kwargs):
+        raise AssertionError("Malformed custom vulnerability should not reach collection.add")
+
+
+class _ExplodingEmbedder:
+    def encode(self, _texts):
+        raise AssertionError("Malformed custom vulnerability should not be embedded")
+
+
+class _UninitializedEmbeddingRAG(EmbeddingRAG):
+    def _ensure_initialized(self):
+        raise AssertionError("Malformed custom vulnerability should not initialize RAG")
 
 # ---------------------------------------------------------------------------
 # detect_contract_type
@@ -289,3 +305,45 @@ class TestRelevantKnowledgeDispatch:
         code = f"contract C {{ /* {keyword} */ uint x; }}"
         out = get_relevant_knowledge(code)
         assert len(out) > self.BASELINE  # a specialized section was appended
+
+
+class TestEmbeddingRAGCustomVulnerabilityShapes:
+    def test_rejects_non_document_before_index_or_cache_mutation(self, tmp_path):
+        rag = _UninitializedEmbeddingRAG(persist_directory=str(tmp_path))
+        rag._embedder = _ExplodingEmbedder()
+        rag._collection = _ExplodingCollection()
+        rag._doc_index = {"existing": object()}
+        rag._query_cache = {"stale": (0.0, [])}
+        rag._cache_hits = 2
+        rag._cache_misses = 3
+
+        with pytest.raises(TypeError, match="VulnerabilityDocument"):
+            rag.add_custom_vulnerability({"id": "CUSTOM-001"})  # type: ignore[arg-type]
+
+        assert list(rag._doc_index) == ["existing"]
+        assert rag._query_cache == {"stale": (0.0, [])}
+        assert rag._cache_hits == 2
+        assert rag._cache_misses == 3
+
+    @pytest.mark.parametrize("bad_id", ["", "   ", ["CUSTOM-001"]])
+    def test_rejects_malformed_document_id_before_index_or_cache_mutation(
+        self,
+        tmp_path,
+        bad_id,
+    ):
+        rag = _UninitializedEmbeddingRAG(persist_directory=str(tmp_path))
+        rag._embedder = _ExplodingEmbedder()
+        rag._collection = _ExplodingCollection()
+        rag._doc_index = {"existing": object()}
+        rag._query_cache = {"stale": (0.0, [])}
+        vulnerability = VulnerabilityDocument(
+            id=bad_id,  # type: ignore[arg-type]
+            title="Custom Finding",
+            description="Custom vulnerability description",
+        )
+
+        with pytest.raises(ValueError, match="non-empty string"):
+            rag.add_custom_vulnerability(vulnerability)
+
+        assert list(rag._doc_index) == ["existing"]
+        assert rag._query_cache == {"stale": (0.0, [])}
