@@ -366,6 +366,13 @@ class FrontierLLMAdapter(ToolAdapter):
             else:
                 return self._error_result(start_time, f"Unknown provider: {provider}")
         except Exception as e:
+            # A provider-comparison benchmark must NOT silently substitute a
+            # different provider on failure — that corrupts the comparison (a
+            # failed gpt run would return Claude findings). Opt out of the
+            # resilience fallback with MIESC_FRONTIER_NO_FALLBACK.
+            if os.environ.get("MIESC_FRONTIER_NO_FALLBACK"):
+                logger.error(f"FrontierLLM: {provider} failed, fallback disabled: {e}")
+                return self._error_result(start_time, f"{provider} failed (no fallback): {e}")
             # Auto-fallback: if primary provider fails, try the other one
             fallback = "openai" if provider == "anthropic" else "anthropic"
             fallback_key = "OPENAI_API_KEY" if fallback == "openai" else "ANTHROPIC_API_KEY"

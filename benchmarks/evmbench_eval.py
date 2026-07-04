@@ -615,6 +615,10 @@ def main():
 
     global _USE_LLM_JUDGE
     _USE_LLM_JUDGE = args.judge
+    # A provider comparison must fail loudly, never silently fall back to another
+    # provider (a failed gpt run must NOT return Claude findings).
+    if args.model:
+        os.environ["MIESC_FRONTIER_NO_FALLBACK"] = "1"
     audits = load_audits(max_audits=args.max_audits, single_audit=args.audit)
     mode = f"static+{args.model}" if args.model else ("static+LLM" if args.llm else "static")
     print(f"Evaluating MIESC on {len(audits)} EVMBench audits [{mode}]")
