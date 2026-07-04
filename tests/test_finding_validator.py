@@ -78,6 +78,35 @@ async def test_call_ollama_returns_empty_string_for_non_string_response(monkeypa
     assert await validator._call_ollama("prompt") == ""
 
 
+@pytest.mark.asyncio
+@pytest.mark.parametrize("payload", [["not a dict"], "not a dict", None])
+async def test_call_ollama_returns_empty_string_for_non_object_payload(monkeypatch, payload):
+    validator = LLMFindingValidator(ValidatorConfig())
+
+    class FakeResponse:
+        status = 200
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return None
+
+        async def json(self):
+            return payload
+
+    class FakeSession:
+        def post(self, *_args, **_kwargs):
+            return FakeResponse()
+
+    async def fake_get_session():
+        return FakeSession()
+
+    monkeypatch.setattr(validator, "_get_session", fake_get_session)
+
+    assert await validator._call_ollama("prompt") == ""
+
+
 def test_parse_response_accepts_wrapped_json():
     validator = LLMFindingValidator(ValidatorConfig())
     response = """

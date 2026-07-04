@@ -302,6 +302,9 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
                 raise RuntimeError(f"Ollama API error {resp.status}: {error_text}")
 
             data = await resp.json()
+            if not isinstance(data, dict):
+                return ""
+
             response = data.get("response", "")
             return response if isinstance(response, str) else ""
 
