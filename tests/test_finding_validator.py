@@ -403,6 +403,7 @@ def test_should_validate_respects_enabled_flag_and_min_severity():
     assert high_only.should_validate({"severity": "critical"}) is True
     assert high_only.should_validate({"severity": "unknown"}) is False
     assert high_only.should_validate({"severity": ["HIGH"]}) is False
+    assert high_only.should_validate(["not", "a", "finding"]) is False
 
 
 @pytest.mark.parametrize(
@@ -654,6 +655,47 @@ async def test_validate_findings_batch_applies_results_and_preserves_unvalidated
     assert [finding["id"] for finding in validated] == ["A", "C"]
     assert validated[0]["confidence"] == pytest.approx(0.75)
     assert validated[0]["_llm_validation"]["result"] == "valid"
+
+
+@pytest.mark.asyncio
+async def test_validate_findings_batch_preserves_malformed_entries(monkeypatch):
+    validator = LLMFindingValidator(ValidatorConfig())
+    malformed_entry = ["not", "a", "finding"]
+    malformed_severity = {"id": "B", "severity": ["high"]}
+    findings = [
+        {
+            "id": "A",
+            "severity": "high",
+            "confidence": 0.6,
+            "location": ["A.sol"],
+        },
+        malformed_entry,
+        malformed_severity,
+    ]
+    seen_contexts = []
+
+    async def available():
+        return True
+
+    monkeypatch.setattr(validator, "is_available", available)
+
+    async def fake_validate(finding, code_context):
+        seen_contexts.append((finding["id"], code_context))
+        return LLMValidation(finding["id"], ValidationResult.VALID, 0.9, "valid")
+
+    monkeypatch.setattr(validator, "validate_finding", fake_validate)
+
+    validated, validations = await validator.validate_findings_batch(
+        findings,
+        code_contexts={"A.sol": "contract A {}"},
+    )
+
+    assert seen_contexts == [("A", "")]
+    assert [validation.finding_id for validation in validations] == ["A"]
+    assert validated[0]["id"] == "A"
+    assert validated[0]["_llm_validation"]["result"] == "valid"
+    assert malformed_entry in validated
+    assert malformed_severity in validated
 
 
 @pytest.mark.asyncio

@@ -37,6 +37,17 @@ def test_is_available_returns_false_when_model_missing(monkeypatch):
     assert helper.is_available() is False
 
 
+def test_is_available_rejects_non_string_ollama_list_output(monkeypatch):
+    helper = OpenLLaMAHelper(LLMConfig(model="test-model"))
+
+    monkeypatch.setattr(
+        "subprocess.run",
+        lambda *args, **kwargs: subprocess.CompletedProcess(args[0], 0, stdout=["test-model"]),
+    )
+
+    assert helper.is_available() is False
+
+
 def test_is_available_returns_false_on_runtime_error(monkeypatch):
     helper = OpenLLaMAHelper()
 

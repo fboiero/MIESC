@@ -444,7 +444,10 @@ class FoundryRunner:
                 for test_name, result in results.items():
                     if not isinstance(result, dict):
                         continue
-                    status = TestStatus.PASSED if result.get("success") else TestStatus.FAILED
+                    test_name = self._normalize_test_name(test_name)
+                    status = self._normalize_success_status(result.get("success"))
+                    if test_name is None or status is None:
+                        continue
                     logs = self._normalize_logs(result.get("logs"))
                     tests.append(
                         TestResult(
@@ -455,11 +458,14 @@ class FoundryRunner:
                         )
                     )
         elif "success" in data and (data.get("test_name") or data.get("name")):
-            status = TestStatus.PASSED if data.get("success") else TestStatus.FAILED
+            name = self._normalize_test_name(data.get("test_name") or data.get("name"))
+            status = self._normalize_success_status(data.get("success"))
+            if name is None or status is None:
+                return tests
             logs = self._normalize_logs(data.get("logs"))
             tests.append(
                 TestResult(
-                    name=data.get("test_name") or data.get("name") or "",
+                    name=name,
                     status=status,
                     gas_used=self._normalize_gas_value(data.get("gas")),
                     logs=logs,
@@ -467,6 +473,22 @@ class FoundryRunner:
             )
 
         return tests
+
+    @staticmethod
+    def _normalize_test_name(value: Any) -> Optional[str]:
+        """Normalize Forge JSON test names without accepting malformed shapes."""
+        if isinstance(value, str) and value:
+            return value
+        return None
+
+    @staticmethod
+    def _normalize_success_status(value: Any) -> Optional[TestStatus]:
+        """Normalize Forge JSON success flags to test statuses."""
+        if value is True:
+            return TestStatus.PASSED
+        if value is False:
+            return TestStatus.FAILED
+        return None
 
     @staticmethod
     def _normalize_logs(value: Any) -> List[str]:

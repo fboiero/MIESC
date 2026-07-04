@@ -200,8 +200,11 @@ class RemediationGenerator:
         """
         vuln_type = self._parse_vuln_type(finding.get("type", "unknown"))
         severity = self._string_or_default(finding.get("severity"), "medium")
-        title = finding.get("title", finding.get("type", "Unknown"))
-        description = finding.get("description", "")
+        title = self._string_or_default(
+            finding.get("title"),
+            self._string_or_default(finding.get("type"), "Unknown"),
+        )
+        description = self._string_or_default(finding.get("description"), "")
 
         # Extract vulnerable code section
         vulnerable_code = self._extract_vulnerable_code(finding, code)
@@ -237,7 +240,7 @@ class RemediationGenerator:
                 fixed_code = f"{imports_str}\n\n{fixed_code}"
 
         return Remediation(
-            finding_id=finding.get("id", "unknown"),
+            finding_id=self._string_or_default(finding.get("id"), "unknown"),
             vulnerability_type=vuln_type,
             severity=severity,
             vulnerable_code=vulnerable_code,
