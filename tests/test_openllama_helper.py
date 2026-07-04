@@ -119,6 +119,44 @@ def test_enhance_findings_handles_non_string_severity(monkeypatch):
     assert findings[0]["llm_enhanced"] is True
 
 
+def test_enhance_findings_returns_malformed_top_level_findings(monkeypatch):
+    helper = OpenLLaMAHelper()
+    findings = {"severity": "HIGH", "title": "not a list"}
+
+    monkeypatch.setattr(helper, "is_available", lambda: True)
+
+    def fail_generate(*args, **kwargs):
+        raise AssertionError("malformed top-level findings should not be enhanced")
+
+    monkeypatch.setattr(helper, "_generate_insights", fail_generate)
+
+    assert helper.enhance_findings(findings, "contract C {}", "adapter") is findings
+
+
+def test_enhance_findings_skips_non_dict_items_and_defaults_prompt_inputs(monkeypatch):
+    helper = OpenLLaMAHelper()
+    findings = [
+        ["not", "a", "finding"],
+        {"severity": "HIGH", "title": "valid"},
+        "malformed",
+    ]
+    calls = []
+
+    monkeypatch.setattr(helper, "is_available", lambda: True)
+
+    def fake_generate(finding, context, adapter_name):
+        calls.append((finding, context, adapter_name))
+        return "insight"
+
+    monkeypatch.setattr(helper, "_generate_insights", fake_generate)
+
+    result = helper.enhance_findings(findings, {"source": "contract C {}"}, ["slither"])
+
+    assert result is findings
+    assert calls == [({"severity": "HIGH", "title": "valid", "llm_insights": "insight", "llm_enhanced": True}, "", "adapter")]
+    assert findings[1]["llm_enhanced"] is True
+
+
 def test_explain_technical_output_uses_fallback_when_unavailable(monkeypatch):
     helper = OpenLLaMAHelper()
     monkeypatch.setattr(helper, "is_available", lambda: False)
