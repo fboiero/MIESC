@@ -925,6 +925,40 @@ class TestLLMEnsembleDetectorVoting:
         assert results[0].total_models == 1
         assert results[0].supporting_models == ["model2"]
 
+    def test_ensemble_vote_defaults_malformed_location_boundaries(self, detector):
+        """Malformed location fields should not crash grouping or leak reprs."""
+        detector.consensus_threshold = 2
+
+        findings = {
+            "model1": [
+                {
+                    "type": "reentrancy",
+                    "severity": "high",
+                    "title": "Reentrancy",
+                    "description": "External call before update",
+                    "location": {"function": {"name": "withdraw"}, "line": {"number": 10}},
+                    "confidence": 0.9,
+                }
+            ],
+            "model2": [
+                {
+                    "type": "reentrancy",
+                    "severity": "high",
+                    "title": "Reentrancy",
+                    "description": "External call before update",
+                    "location": ["withdraw", 10],
+                    "confidence": 0.8,
+                }
+            ],
+        }
+
+        results = detector._ensemble_vote(findings)
+
+        assert len(results) == 1
+        assert results[0].location == {}
+        assert results[0].votes == 2
+        assert results[0].supporting_models == ["model1", "model2"]
+
 
 class TestLLMEnsembleDetectorQueryMethods:
     """Tests for model query methods."""
@@ -1310,6 +1344,49 @@ class TestLLMEnsembleDetectorIntegration:
             assert result.models_used == ["model2"]
             assert result.total_raw_findings == 1
             assert len(result.findings) == 0
+
+        asyncio.run(run_test())
+
+    def test_detect_vulnerabilities_defaults_malformed_location_before_stats(
+        self, detector, vulnerable_code
+    ):
+        """Malformed aggregation fields should not break result statistics."""
+
+        async def run_test():
+            detector._initialized = True
+            detector._available_models = ["model1", "model2"]
+            detector.consensus_threshold = 2
+
+            async def mock_query(model, code, context=None):
+                if model == "model1":
+                    return [
+                        {
+                            "type": "reentrancy",
+                            "severity": "high",
+                            "title": "Reentrancy",
+                            "description": "External call before state update",
+                            "location": {"function": {"name": "withdraw"}, "line": "not-a-line"},
+                            "confidence": 0.9,
+                        }
+                    ]
+                return [
+                    {
+                        "type": "reentrancy",
+                        "severity": "high",
+                        "title": "Reentrancy",
+                        "description": "External call before state update",
+                        "location": {"function": ["withdraw"], "line": ["10"]},
+                        "confidence": 0.8,
+                    }
+                ]
+
+            with patch.object(detector, "_query_model", side_effect=mock_query):
+                result = await detector.detect_vulnerabilities(vulnerable_code)
+
+            assert result.total_raw_findings == 2
+            assert result.filtered_findings == 1
+            assert len(result.findings) == 1
+            assert result.findings[0].location == {"line": "not-a-line"}
 
         asyncio.run(run_test())
 

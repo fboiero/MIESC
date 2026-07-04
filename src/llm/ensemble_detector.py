@@ -952,7 +952,7 @@ Response (JSON array only):"""
                         severity=self._safe_text(finding.get("severity"), "medium").lower(),
                         title=self._safe_text(finding.get("title"), vuln_type),
                         description=self._safe_text(finding.get("description"), ""),
-                        location=finding.get("location", {}),
+                        location=self._safe_location(finding.get("location")),
                         confidence=aggregated_confidence,
                         votes=votes,
                         total_models=total_models,
@@ -1003,6 +1003,27 @@ Response (JSON array only):"""
             return value
         return default
 
+    @staticmethod
+    def _safe_int(value: Any, default: int) -> int:
+        """Return an int for scalar values without accepting container reprs."""
+        if isinstance(value, (dict, list, tuple, set)):
+            return default
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return default
+
+    @staticmethod
+    def _safe_location(value: Any) -> Dict[str, Any]:
+        """Return scalar location fields only when the model supplied an object."""
+        if not isinstance(value, dict):
+            return {}
+        return {
+            key: field_value
+            for key, field_value in value.items()
+            if isinstance(key, str) and not isinstance(field_value, (dict, list, tuple, set))
+        }
+
     def _create_finding_signature(self, finding: Dict[str, Any]) -> str:
         """
         Create a unique signature for grouping similar findings.
@@ -1011,17 +1032,13 @@ Response (JSON array only):"""
         and approximately the same location.
         """
         vuln_type = self._safe_text(finding.get("type"), "").lower()
-        location = finding.get("location", {})
+        location = self._safe_location(finding.get("location"))
 
         # Extract location components
-        if isinstance(location, dict):
-            func = location.get("function", "")
-            line = location.get("line", 0)
-            # Round line to nearest 5 for approximate matching
-            line_group = (int(line) // 5) * 5 if line else 0
-        else:
-            func = str(location)
-            line_group = 0
+        func = self._safe_text(location.get("function"), "")
+        line = self._safe_int(location.get("line"), 0)
+        # Round line to nearest 5 for approximate matching.
+        line_group = (line // 5) * 5 if line else 0
 
         # Create signature
         sig_content = f"{vuln_type}:{func}:{line_group}"
