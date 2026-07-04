@@ -202,7 +202,7 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
             logger.debug(f"Ollama not available: {e}")
             return False
 
-    def should_validate(self, finding: Dict[str, Any]) -> bool:
+    def should_validate(self, finding: Any) -> bool:
         """
         Determine if a finding should be validated by LLM.
 
@@ -212,7 +212,7 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
         Returns:
             True if should validate, False otherwise
         """
-        if not self.config.enabled:
+        if not self.config.enabled or not isinstance(finding, dict):
             return False
 
         severity_value = finding.get("severity", "")
@@ -455,12 +455,15 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
             # Validate batch concurrently
             tasks = []
             for finding in batch:
-                file_path = finding.get("location", {}).get("file", "")
+                location_value = finding.get("location", {})
+                location = location_value if isinstance(location_value, dict) else {}
+                file_path = self._parse_text(location.get("file"), "")
+                snippet = self._parse_text(location.get("snippet"), "")
                 code_context = ""
-                if code_contexts and file_path:
+                if isinstance(code_contexts, dict) and file_path:
                     code_context = code_contexts.get(file_path, "")
-                elif finding.get("location", {}).get("snippet"):
-                    code_context = finding["location"]["snippet"]
+                elif snippet:
+                    code_context = snippet
 
                 tasks.append(self.validate_finding(finding, code_context))
 
