@@ -394,6 +394,27 @@ async def test_generate_remediation_defaults_non_string_finding_type(monkeypatch
 
 
 @pytest.mark.asyncio
+async def test_generate_remediation_defaults_non_string_severity(monkeypatch):
+    generator = RemediationGenerator()
+    finding = {
+        "id": "F-2d",
+        "type": "reentrancy",
+        "severity": ["HIGH"],
+        "snippet": "function withdraw() public {}",
+    }
+
+    async def fake_query(prompt):
+        assert "- **Severity**: medium" in prompt
+        return {"fixed_code": "function withdraw() public {}"}
+
+    monkeypatch.setattr(generator, "_query_llm", fake_query)
+
+    remediation = await generator.generate_remediation(finding, "contract C {}")
+
+    assert remediation.severity == "medium"
+
+
+@pytest.mark.asyncio
 async def test_generate_remediation_normalizes_malformed_llm_result_fields(monkeypatch):
     generator = RemediationGenerator()
     finding = {
