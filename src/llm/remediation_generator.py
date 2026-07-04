@@ -456,7 +456,7 @@ class RemediationGenerator:
 
         # Try to extract by function name
         func_name = location.get("function")
-        if func_name:
+        if isinstance(func_name, str) and func_name:
             pattern = rf"function\s+{re.escape(func_name)}\s*\([^)]*\)[^{{]*\{{[^}}]*\}}"
             match = re.search(pattern, full_code, re.DOTALL)
             if match:
@@ -464,7 +464,7 @@ class RemediationGenerator:
 
         # Try to extract by line number
         line = location.get("line")
-        if line and isinstance(line, int):
+        if isinstance(line, int) and not isinstance(line, bool) and line > 0:
             lines = full_code.split("\n")
             start = max(0, line - 5)
             end = min(len(lines), line + 10)
