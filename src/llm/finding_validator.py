@@ -333,6 +333,12 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
                 raise ValueError("No JSON found in response")
 
             data = json.loads(repair_common_json_errors(json_str))
+            if (
+                isinstance(data, list)
+                and len(data) == 1
+                and isinstance(data[0], dict)
+            ):
+                data = data[0]
             if not isinstance(data, dict):
                 return LLMValidation(
                     finding_id=finding_id,
