@@ -1,3 +1,4 @@
+import json
 import subprocess
 
 from src.llm.openllama_helper import (
@@ -120,6 +121,42 @@ def test_explain_technical_output_returns_llm_response(monkeypatch):
     monkeypatch.setattr(helper, "_call_llm", lambda prompt: "plain explanation")
 
     assert helper.explain_technical_output("raw output", "tool") == "plain explanation"
+
+
+def test_call_llm_ignores_non_object_generate_payload(monkeypatch):
+    helper = OpenLLaMAHelper(LLMConfig(retry_attempts=1))
+
+    class FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            return json.dumps([{"response": "wrong envelope"}]).encode()
+
+    monkeypatch.setattr("urllib.request.urlopen", lambda *args, **kwargs: FakeResponse())
+
+    assert helper._call_llm("prompt") is None
+
+
+def test_call_llm_ignores_non_string_generate_response(monkeypatch):
+    helper = OpenLLaMAHelper(LLMConfig(retry_attempts=1))
+
+    class FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            return json.dumps({"response": ["not", "text"]}).encode()
+
+    monkeypatch.setattr("urllib.request.urlopen", lambda *args, **kwargs: FakeResponse())
+
+    assert helper._call_llm("prompt") is None
 
 
 def test_prioritize_findings_applies_valid_indices_only(monkeypatch):

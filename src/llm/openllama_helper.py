@@ -24,7 +24,7 @@ import os
 import subprocess
 import time
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, Dict, List, Optional
 
 from src.security.llm_output_validator import (
     extract_json_from_text,
@@ -284,9 +284,14 @@ REMEDIATION ADVICE:"""
                 )
                 with urllib.request.urlopen(req, timeout=self.config.timeout) as resp:
                     data = json.loads(resp.read())
-                    response = data.get("response", "").strip()
+                    if not isinstance(data, dict):
+                        continue
+                    raw_response = data.get("response", "")
+                    if not isinstance(raw_response, str):
+                        continue
+                    response = raw_response.strip()
                     if response:
-                        return cast(Optional[str], response)
+                        return response
 
             except (urllib.error.URLError, urllib.error.HTTPError) as e:
                 logger.warning(f"LLM HTTP attempt {attempt} failed: {e}")
