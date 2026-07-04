@@ -712,6 +712,33 @@ class TestBatchGeneration:
 
         assert len(pocs) == 2
 
+    def test_generate_batch_skips_malformed_entries_before_generation(
+        self, generator, reentrancy_finding, caplog
+    ):
+        """Test malformed batch entries are skipped before generate is called."""
+        from unittest.mock import patch
+
+        findings = [
+            reentrancy_finding,
+            None,
+            ["type", "overflow"],
+            "reentrancy",
+            {"type": "overflow", "location": {"function": "calc"}},
+        ]
+
+        original_generate = generator.generate
+
+        with patch.object(generator, "generate", wraps=original_generate) as generate_spy:
+            pocs = generator.generate_batch(findings, "Test.sol")
+
+        assert len(pocs) == 2
+        assert generate_spy.call_count == 2
+        assert [call.args[0] for call in generate_spy.call_args_list] == [
+            reentrancy_finding,
+            {"type": "overflow", "location": {"function": "calc"}},
+        ]
+        assert "Skipping malformed finding entry in PoC batch" in caplog.text
+
     def test_generate_batch_empty_list(self, generator):
         """Test batch generation with empty list."""
         pocs = generator.generate_batch([], "Test.sol")

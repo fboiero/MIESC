@@ -388,6 +388,8 @@ class FoundryRunner:
         """Parse forge test output."""
         tests = []
         total_gas = 0
+        stdout = self._normalize_output_text(stdout)
+        stderr = self._normalize_output_text(stderr)
 
         # Try to parse JSON output
         try:
@@ -430,6 +432,15 @@ class FoundryRunner:
             forge_version=forge_version,
             error=stderr if returncode != 0 else None,
         )
+
+    @staticmethod
+    def _normalize_output_text(value: Any) -> str:
+        """Normalize subprocess output to text before parsing."""
+        if isinstance(value, str):
+            return value
+        if isinstance(value, bytes):
+            return value.decode("utf-8", errors="replace")
+        return ""
 
     def _parse_test_results(self, data: Dict[str, Any]) -> List[TestResult]:
         """Parse test results from JSON data."""

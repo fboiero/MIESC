@@ -1188,6 +1188,17 @@ More text
         assert [test.name for test in result.tests] == ["test_fromText"]
         assert not any("JSON parsing failed" in r.message for r in caplog.records)
 
+    def test_parse_forge_output_normalizes_malformed_stream_shapes(self, runner):
+        """Test bytes stdout and missing stderr do not break output parsing."""
+        stdout = b'{"test_name": "test_bytes", "success": true, "gas": "2,100"}\n'
+
+        result = runner._parse_forge_output(stdout, None, 1, 100.0)
+
+        assert [test.name for test in result.tests] == ["test_bytes"]
+        assert result.total_gas == 2100
+        assert result.raw_output == stdout.decode()
+        assert result.error == ""
+
 
 class TestHighGasUsageWarning:
     """Tests for high gas usage warning in validate_poc."""

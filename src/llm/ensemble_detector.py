@@ -524,7 +524,7 @@ Response (JSON array only):"""
                         raise ProviderUnavailable(f"OpenAI error: {error_text}")
 
                     data = await resp.json()
-                    content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+                    content = self._extract_openai_compatible_content(data, "OpenAI")
 
                     return self._parse_model_response(content, model)
 
@@ -580,12 +580,36 @@ Response (JSON array only):"""
                         raise ProviderUnavailable(f"DeepSeek error: {error_text}")
 
                     data = await resp.json()
-                    content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+                    content = self._extract_openai_compatible_content(data, "DeepSeek")
 
                     return self._parse_model_response(content, model)
 
         except aiohttp.ClientError as e:
             raise ProviderUnavailable(f"DeepSeek connection error: {e}") from e
+
+    @staticmethod
+    def _extract_openai_compatible_content(data: Any, provider_name: str) -> str:
+        """Extract chat content from OpenAI-compatible response payloads."""
+        if not isinstance(data, dict):
+            raise ProviderUnavailable(f"{provider_name} response payload is malformed")
+
+        choices = data.get("choices")
+        if not isinstance(choices, list) or not choices:
+            raise ProviderUnavailable(f"{provider_name} response choices are malformed")
+
+        first_choice = choices[0]
+        if not isinstance(first_choice, dict):
+            raise ProviderUnavailable(f"{provider_name} response choice is malformed")
+
+        message = first_choice.get("message")
+        if not isinstance(message, dict):
+            raise ProviderUnavailable(f"{provider_name} response message is malformed")
+
+        content = message.get("content")
+        if not isinstance(content, str):
+            raise ProviderUnavailable(f"{provider_name} response content is malformed")
+
+        return content
 
     async def _query_anthropic(
         self,
