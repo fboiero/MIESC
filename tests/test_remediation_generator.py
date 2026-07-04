@@ -540,6 +540,33 @@ async def test_generate_remediation_normalizes_malformed_llm_result_fields(monke
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("llm_result", [["not", "an", "object"], "not an object", None])
+async def test_generate_remediation_defaults_malformed_llm_result_container(
+    monkeypatch, llm_result
+):
+    generator = RemediationGenerator()
+    finding = {
+        "id": "F-2f",
+        "type": "reentrancy",
+        "severity": "HIGH",
+        "snippet": "function withdraw() public {}",
+    }
+
+    async def fake_query(_prompt):
+        return llm_result
+
+    monkeypatch.setattr(generator, "_query_llm", fake_query)
+
+    remediation = await generator.generate_remediation(finding, "contract C {}")
+
+    assert remediation.fixed_code == "function withdraw() public {}"
+    assert remediation.explanation == ""
+    assert remediation.changes_summary == []
+    assert remediation.test_suggestions == []
+    assert remediation.references == []
+
+
+@pytest.mark.asyncio
 async def test_generate_remediations_parallel_counts_exceptions(monkeypatch):
     generator = RemediationGenerator()
     findings = [{"id": "A"}, {"id": "B"}, {"id": "C"}]
