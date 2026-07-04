@@ -222,13 +222,13 @@ class RemediationGenerator:
         # Query LLM
         result = await self._query_llm(prompt)
 
-        # Parse result
-        fixed_code = result.get("fixed_code", vulnerable_code)
-        explanation = result.get("explanation", "")
-        changes = result.get("changes", [])
-        imports = result.get("imports_needed", [])
-        tests = result.get("test_suggestions", [])
-        references = result.get("references", [])
+        # Parse result without trusting malformed LLM field shapes.
+        fixed_code = self._string_or_default(result.get("fixed_code"), vulnerable_code)
+        explanation = self._string_or_default(result.get("explanation"), "")
+        changes = self._string_list_or_empty(result.get("changes"))
+        imports = self._string_list_or_empty(result.get("imports_needed"))
+        tests = self._string_list_or_empty(result.get("test_suggestions"))
+        references = self._string_list_or_empty(result.get("references"))
 
         # Add imports to fixed code if not present
         if imports:
@@ -478,6 +478,18 @@ class RemediationGenerator:
     def _parse_vuln_type(value: Any) -> str:
         """Normalize vulnerability type fields without trusting malformed shapes."""
         return value.lower() if isinstance(value, str) and value else "unknown"
+
+    @staticmethod
+    def _string_or_default(value: Any, default: str) -> str:
+        """Return string values from LLM results, falling back on malformed shapes."""
+        return value if isinstance(value, str) else default
+
+    @staticmethod
+    def _string_list_or_empty(value: Any) -> List[str]:
+        """Return only string list items from LLM results."""
+        if not isinstance(value, list):
+            return []
+        return [item for item in value if isinstance(item, str)]
 
     def _get_pattern_info(self, vuln_type: str) -> str:
         """Get pattern information for the vulnerability type."""
