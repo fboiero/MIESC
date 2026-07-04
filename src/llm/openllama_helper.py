@@ -310,13 +310,14 @@ REMEDIATION ADVICE:"""
         self, finding: Dict[str, Any], context: str, adapter_name: str
     ) -> Optional[str]:
         """Generate insights for a single finding."""
-        prompt = f"""Analyze this security finding from {adapter_name} and provide expert insights.
+        finding_json = self._prompt_finding_json(finding)
+        prompt = f"""Analyze this security finding from {self._prompt_text(adapter_name, default='adapter')} and provide expert insights.
 
 FINDING:
-{json.dumps(finding, indent=2, sort_keys=True)}
+{finding_json}
 
 CONTRACT CONTEXT:
-{context[:1000]}
+{self._prompt_text(context, limit=1000)}
 
 Provide 2-3 sentence expert analysis focusing on:
 1. Why this matters
@@ -375,6 +376,28 @@ INSIGHTS:"""
         if isinstance(value, dict):
             return json.dumps(value, sort_keys=True)
         return "{}"
+
+    @classmethod
+    def _prompt_finding_json(cls, finding: Any) -> str:
+        """Render a finding as bounded JSON with unsupported field shapes defaulted."""
+        if not isinstance(finding, dict):
+            normalized: Dict[str, Any] = {}
+        else:
+            normalized = {
+                str(key): cls._prompt_json_value(value) for key, value in finding.items()
+            }
+        return json.dumps(normalized, indent=2, sort_keys=True)
+
+    @classmethod
+    def _prompt_json_value(cls, value: Any) -> Any:
+        """Keep JSON-safe scalar values and recursively default malformed shapes."""
+        if isinstance(value, (str, int, float, bool)) or value is None:
+            return value
+        if isinstance(value, list):
+            return [cls._prompt_json_value(item) for item in value]
+        if isinstance(value, dict):
+            return {str(key): cls._prompt_json_value(item) for key, item in value.items()}
+        return ""
 
     def _parse_priorities(self, llm_response: str) -> Dict[int, Dict[str, Any]]:
         """Parse priority assignments from LLM response."""
