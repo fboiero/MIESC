@@ -341,12 +341,31 @@ def test_parse_response_defaults_malformed_text_fields():
     assert validation.remediation_hint is None
 
 
-def test_parse_response_falls_back_for_non_object_json():
+def test_parse_response_accepts_single_object_array_payload():
     validator = LLMFindingValidator(ValidatorConfig())
 
     validation = validator._parse_response('[{"result": "valid", "confidence": 0.9}]', "F-6")
 
     assert validation.finding_id == "F-6"
+    assert validation.result == ValidationResult.VALID
+    assert validation.confidence == 0.9
+
+
+def test_parse_response_bounds_confidence_from_single_object_array_payload():
+    validator = LLMFindingValidator(ValidatorConfig())
+
+    validation = validator._parse_response('[{"result": "valid", "confidence": 1.7}]', "F-6b")
+
+    assert validation.result == ValidationResult.VALID
+    assert validation.confidence == 0.5
+
+
+def test_parse_response_falls_back_for_non_object_json():
+    validator = LLMFindingValidator(ValidatorConfig())
+
+    validation = validator._parse_response('[{"result": "valid"}, {"result": "likely_fp"}]', "F-6c")
+
+    assert validation.finding_id == "F-6c"
     assert validation.result == ValidationResult.UNCERTAIN
     assert validation.confidence == 0.5
 

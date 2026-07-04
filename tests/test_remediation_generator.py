@@ -477,6 +477,32 @@ async def test_generate_remediation_defaults_malformed_contract_code(monkeypatch
 
 
 @pytest.mark.asyncio
+async def test_generate_remediation_defaults_malformed_finding_context(monkeypatch):
+    generator = RemediationGenerator()
+
+    async def fake_query(prompt):
+        assert "- **Type**: unknown" in prompt
+        assert "- **Severity**: medium" in prompt
+        assert "- **Title**: Unknown" in prompt
+        assert "```solidity\ncontract C {}\n```" in prompt
+        return {"fixed_code": "contract Fixed {}"}
+
+    monkeypatch.setattr(generator, "_query_llm", fake_query)
+
+    remediation = await generator.generate_remediation(
+        ["malformed finding"],
+        "contract C {}",
+    )
+
+    assert remediation.finding_id == "unknown"
+    assert remediation.vulnerability_type == "unknown"
+    assert remediation.severity == "medium"
+    assert remediation.vulnerable_code == "contract C {}"
+    assert remediation.fixed_code == "contract Fixed {}"
+    assert remediation.pattern_used is None
+
+
+@pytest.mark.asyncio
 async def test_generate_remediation_normalizes_malformed_llm_result_fields(monkeypatch):
     generator = RemediationGenerator()
     finding = {
