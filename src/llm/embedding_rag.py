@@ -50,6 +50,19 @@ SOURCE_TIER_WEIGHTS = {
 }
 
 
+def _coerce_text_list(value: Any) -> List[str]:
+    """Return a safe string list for loose metadata fields."""
+    if value is None:
+        return []
+    if isinstance(value, (str, bytes)):
+        values = [value]
+    elif isinstance(value, (list, tuple, set)):
+        values = value
+    else:
+        values = [value]
+    return [str(item) for item in values if item is not None]
+
+
 def _get_chromadb() -> Any:
     """Lazy import for chromadb."""
     global _chromadb
@@ -108,6 +121,8 @@ class VulnerabilityDocument:
 
     def to_text(self) -> str:
         """Convert to searchable text representation."""
+        references = _coerce_text_list(self.references)
+        tags = _coerce_text_list(self.tags)
         parts = [
             f"Title: {self.title}",
             f"Category: {self.category}",
@@ -126,22 +141,24 @@ class VulnerabilityDocument:
             parts.append(f"Fixed Code Pattern:\n{self.fixed_code}")
         if self.attack_scenario:
             parts.append(f"Attack Scenario: {self.attack_scenario}")
-        if self.references:
-            parts.append(f"References: {', '.join(self.references)}")
-        if self.tags:
-            parts.append(f"Tags: {', '.join(self.tags)}")
+        if references:
+            parts.append(f"References: {', '.join(references)}")
+        if tags:
+            parts.append(f"Tags: {', '.join(tags)}")
         return "\n".join(parts)
 
     def to_metadata(self) -> Dict[str, Any]:
         """Convert to ChromaDB metadata format."""
+        tags = _coerce_text_list(self.tags)
+        references = _coerce_text_list(self.references)
         return {
             "swc_id": self.swc_id or "",
             "cwe_id": self.cwe_id or "",
             "title": self.title,
             "severity": self.severity,
             "category": self.category,
-            "tags": ",".join(self.tags),
-            "references": ",".join(self.references),
+            "tags": ",".join(tags),
+            "references": ",".join(references),
             "source_tier": self.source_tier,
             "source_type": self.source_type,
             "has_exploit": bool(self.real_exploit),
@@ -165,7 +182,7 @@ class RetrievalResult:
     def to_context(self) -> str:
         """Convert to LLM context string."""
         steps = "; ".join(self.retrieval_steps) if self.retrieval_steps else "semantic search"
-        references = ", ".join(self.document.references[:3]) or "N/A"
+        references = ", ".join(_coerce_text_list(self.document.references)[:3]) or "N/A"
         return (
             f"**{self.document.title}** (Score: {self.similarity_score:.2f})\n"
             f"- Category: {self.document.category}\n"
@@ -4643,7 +4660,12 @@ class EmbeddingRAG:
         query_lower = original_query.lower()
         exact_cues = 0.0
 
-        for cue in [doc.category, doc.swc_id or "", doc.cwe_id or "", *doc.tags[:8]]:
+        for cue in [
+            doc.category,
+            doc.swc_id or "",
+            doc.cwe_id or "",
+            *_coerce_text_list(doc.tags)[:8],
+        ]:
             cue_lower = cue.lower()
             if cue_lower and cue_lower in query_lower:
                 exact_cues += 0.025
