@@ -445,28 +445,35 @@ class FoundryRunner:
                     if not isinstance(result, dict):
                         continue
                     status = TestStatus.PASSED if result.get("success") else TestStatus.FAILED
-                    logs = result.get("logs", [])
+                    logs = self._normalize_logs(result.get("logs"))
                     tests.append(
                         TestResult(
                             name=f"{contract}::{test_name}",
                             status=status,
                             gas_used=self._normalize_gas_value(result.get("gas")),
-                            logs=logs if isinstance(logs, list) else [],
+                            logs=logs,
                         )
                     )
         elif "success" in data and (data.get("test_name") or data.get("name")):
             status = TestStatus.PASSED if data.get("success") else TestStatus.FAILED
-            logs = data.get("logs", [])
+            logs = self._normalize_logs(data.get("logs"))
             tests.append(
                 TestResult(
                     name=data.get("test_name") or data.get("name") or "",
                     status=status,
                     gas_used=self._normalize_gas_value(data.get("gas")),
-                    logs=logs if isinstance(logs, list) else [],
+                    logs=logs,
                 )
             )
 
         return tests
+
+    @staticmethod
+    def _normalize_logs(value: Any) -> List[str]:
+        """Normalize Forge JSON logs to string entries only."""
+        if not isinstance(value, list):
+            return []
+        return [log for log in value if isinstance(log, str)]
 
     @staticmethod
     def _normalize_gas_value(value: Any) -> Optional[int]:

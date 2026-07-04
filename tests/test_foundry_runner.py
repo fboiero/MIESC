@@ -680,6 +680,37 @@ class TestParseOutput:
         assert len(tests) == 1
         assert tests[0].logs == []
 
+    def test_parse_json_test_results_filters_non_string_log_entries(self, runner):
+        """Test nested JSON log lists do not propagate non-string entries."""
+        tests = runner._parse_test_results(
+            {
+                "test_results": {
+                    "test/Mixed.t.sol:MixedTest": {
+                        "test_logs": {
+                            "success": True,
+                            "logs": ["first", {"event": "bad"}, 123, ["nested"], "last"],
+                        },
+                    },
+                }
+            }
+        )
+
+        assert len(tests) == 1
+        assert tests[0].logs == ["first", "last"]
+
+    def test_parse_flat_json_test_result_filters_non_string_log_entries(self, runner):
+        """Test flat JSON log lists do not propagate non-string entries."""
+        tests = runner._parse_test_results(
+            {
+                "test_name": "test_foo",
+                "success": True,
+                "logs": ["ok", {"decoded": False}, 0],
+            }
+        )
+
+        assert len(tests) == 1
+        assert tests[0].logs == ["ok"]
+
     def test_parse_empty_output(self, runner):
         """Test parsing empty output."""
         tests = runner._parse_text_output("")
