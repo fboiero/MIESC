@@ -899,6 +899,32 @@ class TestLLMEnsembleDetectorVoting:
         assert "{" not in results[0].title
         assert "[" not in results[0].description
 
+    def test_ensemble_vote_ignores_malformed_model_finding_payloads(self, detector):
+        """Malformed per-model finding containers should not enter voting."""
+        detector.consensus_threshold = 1
+
+        findings = {
+            "model1": {"type": "reentrancy", "severity": "high"},
+            "model2": [
+                ["not", "a", "finding"],
+                {
+                    "type": "reentrancy",
+                    "severity": "high",
+                    "title": "Reentrancy",
+                    "description": "External call before update",
+                    "location": {"function": "withdraw", "line": 10},
+                    "confidence": 0.9,
+                },
+            ],
+        }
+
+        results = detector._ensemble_vote(findings)
+
+        assert len(results) == 1
+        assert results[0].votes == 1
+        assert results[0].total_models == 1
+        assert results[0].supporting_models == ["model2"]
+
 
 class TestLLMEnsembleDetectorQueryMethods:
     """Tests for model query methods."""
@@ -1254,6 +1280,38 @@ That's my finding."""
 
 class TestLLMEnsembleDetectorIntegration:
     """Integration tests for LLMEnsembleDetector."""
+
+    def test_detect_vulnerabilities_ignores_malformed_model_result(
+        self, detector, vulnerable_code
+    ):
+        """Malformed query results should be excluded before stats and voting."""
+
+        async def run_test():
+            detector._initialized = True
+            detector._available_models = ["model1", "model2"]
+
+            async def mock_query(model, code, context=None):
+                if model == "model1":
+                    return {"type": "reentrancy", "severity": "high"}
+                return [
+                    {
+                        "type": "reentrancy",
+                        "severity": "high",
+                        "title": "Reentrancy",
+                        "description": "External call before state update",
+                        "location": {"function": "withdraw", "line": 10},
+                        "confidence": 0.9,
+                    }
+                ]
+
+            with patch.object(detector, "_query_model", side_effect=mock_query):
+                result = await detector.detect_vulnerabilities(vulnerable_code)
+
+            assert result.models_used == ["model2"]
+            assert result.total_raw_findings == 1
+            assert len(result.findings) == 0
+
+        asyncio.run(run_test())
 
     def test_full_workflow_mocked(self, detector, vulnerable_code, sample_model_findings):
         """Test full detection workflow with mocked responses."""
