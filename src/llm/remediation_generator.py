@@ -415,6 +415,9 @@ class RemediationGenerator:
                         raise RuntimeError(f"LLM error: {await resp.text()}")
 
                     data = await resp.json()
+                    if not isinstance(data, dict):
+                        return {}
+
                     message = data.get("message", {})
                     content = message.get("content", "") if isinstance(message, dict) else ""
                     content = self._string_or_default(content, "")
