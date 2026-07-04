@@ -246,14 +246,16 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
         start_time = time.time()
 
         finding_id = finding.get("id", "unknown")
+        location_value = finding.get("location", {})
+        location = location_value if isinstance(location_value, dict) else {}
 
         # Build prompt
         prompt = self.VALIDATION_PROMPT.format(
             finding_type=finding.get("type", "unknown"),
             severity=finding.get("severity", "unknown"),
             tool=finding.get("tool", "unknown"),
-            file=finding.get("location", {}).get("file", "unknown"),
-            line=finding.get("location", {}).get("line", 0),
+            file=location.get("file", "unknown"),
+            line=location.get("line", 0),
             message=finding.get("message", finding.get("description", "No message")),
             code_snippet=code_context[:1500] if code_context else "Not available",
             contract_context=contract_context[:500] if contract_context else "Not available",

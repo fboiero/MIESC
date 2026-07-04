@@ -87,6 +87,31 @@ async def test_validate_finding_degrades_to_uncertain_on_runtime_error(monkeypat
 
 
 @pytest.mark.asyncio
+async def test_validate_finding_uses_defaults_for_malformed_location(monkeypatch):
+    validator = LLMFindingValidator(ValidatorConfig())
+    captured = {}
+    finding = {
+        "id": "F-1b",
+        "type": "reentrancy",
+        "severity": "high",
+        "location": ["Bank.sol", 42],
+        "message": "External call before state update",
+    }
+
+    async def fake_call(prompt):
+        captured["prompt"] = prompt
+        return '{"result": "valid", "confidence": 0.8, "reasoning": "Confirmed."}'
+
+    monkeypatch.setattr(validator, "_call_ollama", fake_call)
+
+    validation = await validator.validate_finding(finding, "contract Bank {}")
+
+    assert validation.finding_id == "F-1b"
+    assert validation.result == ValidationResult.VALID
+    assert "- **Location**: unknown:0" in captured["prompt"]
+
+
+@pytest.mark.asyncio
 async def test_call_ollama_returns_empty_string_for_non_string_response(monkeypatch):
     validator = LLMFindingValidator(ValidatorConfig())
 
