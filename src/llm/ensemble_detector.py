@@ -935,16 +935,17 @@ Response (JSON array only):"""
                 finding = group["finding"]
 
                 # Calculate aggregated confidence
-                base_confidence = float(finding.get("confidence", 0.7))
+                base_confidence = self._safe_float(finding.get("confidence"), 0.7)
                 vote_bonus = min(0.2, votes * 0.05)  # Up to +0.2 for votes
                 aggregated_confidence = min(0.99, base_confidence + vote_bonus)
+                vuln_type = self._safe_text(finding.get("type"), "unknown")
 
                 validated.append(
                     EnsembleFinding(
-                        type=finding.get("type", "unknown"),
-                        severity=finding.get("severity", "medium").lower(),
-                        title=finding.get("title", finding.get("type", "Unknown")),
-                        description=finding.get("description", ""),
+                        type=vuln_type,
+                        severity=self._safe_text(finding.get("severity"), "medium").lower(),
+                        title=self._safe_text(finding.get("title"), vuln_type),
+                        description=self._safe_text(finding.get("description"), ""),
                         location=finding.get("location", {}),
                         confidence=aggregated_confidence,
                         votes=votes,
@@ -964,6 +965,23 @@ Response (JSON array only):"""
 
         return validated
 
+    @staticmethod
+    def _safe_float(value: Any, default: float) -> float:
+        """Return a float for scalar values without accepting container reprs."""
+        if isinstance(value, (dict, list, tuple, set)):
+            return default
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return default
+
+    @staticmethod
+    def _safe_text(value: Any, default: str) -> str:
+        """Return text fields only when the model supplied an actual string."""
+        if isinstance(value, str):
+            return value
+        return default
+
     def _create_finding_signature(self, finding: Dict[str, Any]) -> str:
         """
         Create a unique signature for grouping similar findings.
@@ -971,7 +989,7 @@ Response (JSON array only):"""
         Findings are considered similar if they have the same type
         and approximately the same location.
         """
-        vuln_type = finding.get("type", "").lower()
+        vuln_type = self._safe_text(finding.get("type"), "").lower()
         location = finding.get("location", {})
 
         # Extract location components
