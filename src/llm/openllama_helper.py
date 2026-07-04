@@ -77,7 +77,9 @@ class OpenLLaMAHelper:
         try:
             result = subprocess.run(["ollama", "list"], capture_output=True, timeout=5, text=True)
 
-            if result.returncode == 0 and self.config.model in result.stdout:
+            model_list = result.stdout if isinstance(result.stdout, str) else ""
+
+            if result.returncode == 0 and self.config.model in model_list:
                 self._available = True
                 logger.info(f"OpenLLaMA: {self.config.model} available")
             else:
