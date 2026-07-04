@@ -302,6 +302,10 @@ class PoCGenerator:
         """
         pocs = []
         for finding in findings:
+            if not isinstance(finding, dict):
+                logger.warning("Skipping malformed finding entry in PoC batch")
+                continue
+
             try:
                 poc = self.generate(finding, target_contract, options)
                 pocs.append(poc)
