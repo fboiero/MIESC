@@ -63,6 +63,53 @@ def _coerce_text_list(value: Any) -> List[str]:
     return [str(item) for item in values if item is not None]
 
 
+def _coerce_query_text(value: Any) -> str:
+    """Return safe query text for cache keys, vector search, and ranking."""
+    if isinstance(value, str):
+        return value
+    if isinstance(value, bytes):
+        return value.decode("utf-8", errors="replace")
+    if value is None:
+        return ""
+    return str(value)
+
+
+def _similarity_from_distance(distance: Any) -> float:
+    """Convert a loose Chroma distance value to a bounded similarity score."""
+    try:
+        similarity = 1.0 - float(distance)
+    except (TypeError, ValueError):
+        return 0.0
+    return max(0.0, min(similarity, 1.0))
+
+
+def _result_rows(results: Any, key: str) -> List[Any]:
+    """Read Chroma result rows only when the payload shape is list-like."""
+    if not isinstance(results, dict):
+        return []
+    rows = results.get(key)
+    if isinstance(rows, (list, tuple)):
+        return list(rows)
+    return []
+
+
+def _result_row(rows: List[Any], index: int) -> List[Any]:
+    """Read one list-like row from a Chroma result payload."""
+    if index >= len(rows):
+        return []
+    row = rows[index]
+    if isinstance(row, (list, tuple)):
+        return list(row)
+    return []
+
+
+def _result_value(row: List[Any], index: int) -> Any:
+    """Read an aligned value from a Chroma result row."""
+    if index >= len(row):
+        return None
+    return row[index]
+
+
 def _get_chromadb() -> Any:
     """Lazy import for chromadb."""
     global _chromadb
@@ -4657,7 +4704,7 @@ class EmbeddingRAG:
     ) -> "RetrievalResult":
         """Re-rank a retrieval result by similarity, source quality, and exact evidence cues."""
         doc = result.document
-        query_lower = original_query.lower()
+        query_lower = _coerce_query_text(original_query).lower()
         exact_cues = 0.0
 
         for cue in [
@@ -4822,10 +4869,11 @@ class EmbeddingRAG:
         """
         self._ensure_initialized()
 
+        query_text = _coerce_query_text(query)
         n = n_results or self.top_k
 
         # Check cache first
-        cache_key = self._get_cache_key(query, filter_category, filter_severity, n)
+        cache_key = self._get_cache_key(query_text, filter_category, filter_severity, n)
         cached = self._get_cached_result(cache_key)
         if cached is not None:
             logger.debug(f"Cache hit for query (key={cache_key[:8]})")
@@ -4835,7 +4883,7 @@ class EmbeddingRAG:
 
         # Query ChromaDB
         results = self._collection.query(
-            query_texts=[query],
+            query_texts=[query_text],
             n_results=n,
             where=where_filter,
             include=["documents", "metadatas", "distances"],
@@ -4843,28 +4891,33 @@ class EmbeddingRAG:
 
         # Convert to RetrievalResult objects using O(1) lookup
         retrieval_results = []
+        id_rows = _result_rows(results, "ids")
+        distance_rows = _result_rows(results, "distances")
 
-        if results["ids"] and results["ids"][0]:
-            for i, doc_id in enumerate(results["ids"][0]):
+        first_id_row = _result_row(id_rows, 0)
+        first_distance_row = _result_row(distance_rows, 0)
+        if first_id_row:
+            for i, doc_id in enumerate(first_id_row):
+                if not isinstance(doc_id, str):
+                    continue
                 # O(1) lookup instead of O(n) linear search
                 original_doc = self._doc_index.get(doc_id)
 
                 if original_doc:
                     # ChromaDB returns distance, convert to similarity
-                    distance = results["distances"][0][i] if results["distances"] else 0
-                    similarity = 1 - distance  # Cosine distance to similarity
+                    similarity = _similarity_from_distance(_result_value(first_distance_row, i))
 
                     retrieval_results.append(
                         RetrievalResult(
                             document=original_doc,
                             similarity_score=similarity,
-                            relevance_reason=self._explain_relevance(query, original_doc),
+                            relevance_reason=self._explain_relevance(query_text, original_doc),
                         )
                     )
 
         retrieval_results = self._dedupe_and_rank(
             retrieval_results,
-            original_query=query,
+            original_query=query_text,
             step="semantic",
             n_results=n,
         )
@@ -4893,8 +4946,9 @@ class EmbeddingRAG:
         self._ensure_initialized()
         n = n_results or self.top_k
 
+        query_text = _coerce_query_text(query)
         cache_key = self._get_cache_key(
-            query, filter_category, filter_severity, n, strategy="multi_step"
+            query_text, filter_category, filter_severity, n, strategy="multi_step"
         )
         cached = self._get_cached_result(cache_key)
         if cached is not None:
@@ -4902,7 +4956,7 @@ class EmbeddingRAG:
             return cached
 
         all_results: List[RetrievalResult] = []
-        expanded_queries = self._expand_query(query)
+        expanded_queries = self._expand_query(query_text)
         for idx, expanded_query in enumerate(expanded_queries):
             step = "direct_query" if idx == 0 else f"expanded_query_{idx}"
             step_results = self.search(
@@ -4923,7 +4977,7 @@ class EmbeddingRAG:
 
         ranked = self._dedupe_and_rank(
             all_results,
-            original_query=query,
+            original_query=query_text,
             step="evidence_rerank",
             n_results=n,
         )
@@ -4967,10 +5021,11 @@ class EmbeddingRAG:
         original_to_unique: List[int] = []
 
         for q in queries:
-            q_normalized = q[:200]  # Truncate for comparison
+            query_text = _coerce_query_text(q)
+            q_normalized = query_text[:200]  # Truncate for comparison
             if q_normalized not in query_to_index:
                 query_to_index[q_normalized] = len(unique_queries)
-                unique_queries.append(q)
+                unique_queries.append(query_text)
             original_to_unique.append(query_to_index[q_normalized])
 
         logger.debug(f"Batch search: {len(queries)} queries -> {len(unique_queries)} unique")
@@ -4999,19 +5054,22 @@ class EmbeddingRAG:
                 where=where_filter,
                 include=["documents", "metadatas", "distances"],
             )
+            id_rows = _result_rows(results, "ids")
+            distance_rows = _result_rows(results, "distances")
 
             # Process results for each query
             for batch_idx, (unique_idx, query) in enumerate(uncached_queries):
                 retrieval_results = []
 
-                if results["ids"] and batch_idx < len(results["ids"]):
-                    for i, doc_id in enumerate(results["ids"][batch_idx]):
+                id_row = _result_row(id_rows, batch_idx)
+                distance_row = _result_row(distance_rows, batch_idx)
+                if id_row:
+                    for i, doc_id in enumerate(id_row):
+                        if not isinstance(doc_id, str):
+                            continue
                         original_doc = self._doc_index.get(doc_id)
                         if original_doc:
-                            distance = (
-                                results["distances"][batch_idx][i] if results["distances"] else 0
-                            )
-                            similarity = 1 - distance
+                            similarity = _similarity_from_distance(_result_value(distance_row, i))
                             retrieval_results.append(
                                 self._rank_result(
                                     RetrievalResult(
@@ -5149,7 +5207,7 @@ class EmbeddingRAG:
         """Generate explanation for why a document is relevant."""
         reasons = []
 
-        query_lower = query.lower()
+        query_lower = _coerce_query_text(query).lower()
 
         if doc.swc_id and doc.swc_id.lower() in query_lower:
             reasons.append(f"Matches SWC ID: {doc.swc_id}")
