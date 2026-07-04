@@ -856,6 +856,40 @@ class TestGasReport:
             "Vault": {"methods": {"deposit": {"avg": 100}}},
         }
 
+    def test_get_gas_report_filters_malformed_json_method_reports(self, runner):
+        """Test JSON gas_report method entries must be object payloads."""
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = (
+            '{"gas_report": {'
+            '"Vault": {"methods": {'
+            '"deposit": {"avg": 100},'
+            '"broken": ["not", "a", "method report"],'
+            '"scalar": 123'
+            "}}"
+            "}}\n"
+        )
+        mock_result.stderr = ""
+
+        with patch("subprocess.run", return_value=mock_result):
+            report = runner.get_gas_report()
+
+        assert report["contracts"] == {
+            "Vault": {"methods": {"deposit": {"avg": 100}}},
+        }
+
+    def test_get_gas_report_ignores_malformed_json_methods_shape(self, runner):
+        """Test JSON gas_report methods payloads must be object mappings."""
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = '{"gas_report": {"Vault": {"methods": ["bad"]}}}\n'
+        mock_result.stderr = ""
+
+        with patch("subprocess.run", return_value=mock_result):
+            report = runner.get_gas_report()
+
+        assert report["contracts"] == {"Vault": {"methods": {}}}
+
     def test_get_gas_report_ignores_malformed_json_line(self, runner):
         """Test malformed JSON lines do not abort gas report parsing."""
         mock_result = MagicMock()
