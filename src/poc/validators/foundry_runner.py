@@ -606,10 +606,13 @@ class FoundryRunner:
             }
 
             # Extract gas data from output
-            for line in result.stdout.split("\n"):
+            stdout = self._normalize_output_text(result.stdout)
+            for line in stdout.split("\n"):
                 if line.strip().startswith("{"):
                     try:
                         data = json.loads(line)
+                        if not isinstance(data, dict):
+                            continue
                         gas_report = data.get("gas_report")
                         normalized_report = self._normalize_gas_report(gas_report)
                         if normalized_report:

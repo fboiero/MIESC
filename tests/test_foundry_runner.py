@@ -952,6 +952,40 @@ class TestGasReport:
         assert report["contracts"]["Vault"]["methods"]["withdraw"]["avg"] == 15
         assert report["total_runtime_gas"] == 30
 
+    def test_get_gas_report_normalizes_malformed_stream_shapes(self, runner):
+        """Test malformed stdout shapes do not abort gas report parsing."""
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = (
+            b'["not", "a", "gas report object"]\n'
+            b"| Contract | Method | Min | Max | Avg | # calls |\n"
+            b"|----------|--------|-----|-----|-----|---------|\n"
+            b"| Vault    | deposit | 10 | 20 | 15 | 2 |\n"
+        )
+        mock_result.stderr = ""
+
+        with patch("subprocess.run", return_value=mock_result):
+            report = runner.get_gas_report()
+
+        assert report["contracts"]["Vault"]["methods"]["deposit"]["avg"] == 15
+        assert report["total_runtime_gas"] == 30
+
+    def test_get_gas_report_treats_missing_stdout_as_empty(self, runner):
+        """Test missing stdout is handled as an empty gas report."""
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = None
+        mock_result.stderr = ""
+
+        with patch("subprocess.run", return_value=mock_result):
+            report = runner.get_gas_report()
+
+        assert report == {
+            "contracts": {},
+            "total_deployment_gas": 0,
+            "total_runtime_gas": 0,
+        }
+
     def test_get_gas_report_error(self, runner):
         """Test gas report with error."""
         with patch("subprocess.run", side_effect=OSError("Error")):
