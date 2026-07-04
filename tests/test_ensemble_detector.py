@@ -862,6 +862,43 @@ class TestLLMEnsembleDetectorVoting:
         # With threshold=1, single model finding should pass
         assert isinstance(results, list)
 
+    def test_ensemble_vote_malformed_display_fields_are_defaulted(self, detector):
+        """Malformed scalar display fields should not crash or leak reprs."""
+        detector.consensus_threshold = 2
+
+        findings = {
+            "model1": [
+                {
+                    "type": "reentrancy",
+                    "severity": {"label": "high"},
+                    "title": {"text": "Reentrancy"},
+                    "description": ["External call before update"],
+                    "location": {"function": "withdraw", "line": 10},
+                    "confidence": {"score": 0.95},
+                }
+            ],
+            "model2": [
+                {
+                    "type": "reentrancy",
+                    "severity": "high",
+                    "title": "Reentrancy",
+                    "description": "External call before update",
+                    "location": {"function": "withdraw", "line": 11},
+                    "confidence": 0.9,
+                }
+            ],
+        }
+
+        results = detector._ensemble_vote(findings)
+
+        assert len(results) == 1
+        assert results[0].severity == "medium"
+        assert results[0].title == "reentrancy"
+        assert results[0].description == ""
+        assert results[0].confidence == pytest.approx(0.8)
+        assert "{" not in results[0].title
+        assert "[" not in results[0].description
+
 
 class TestLLMEnsembleDetectorQueryMethods:
     """Tests for model query methods."""

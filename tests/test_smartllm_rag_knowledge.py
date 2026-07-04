@@ -31,7 +31,7 @@ from src.adapters.smartllm_rag_knowledge import (
     get_relevant_knowledge,
     get_vulnerability_context,
 )
-from src.llm.embedding_rag import EmbeddingRAG, VulnerabilityDocument
+from src.llm.embedding_rag import EmbeddingRAG, RetrievalResult, VulnerabilityDocument
 
 
 class _ExplodingCollection:
@@ -325,6 +325,48 @@ class TestEmbeddingRAGCustomVulnerabilityShapes:
         assert rag._cache_hits == 2
         assert rag._cache_misses == 3
 
+    def test_malformed_tags_and_references_render_as_text_and_metadata(self):
+        vulnerability = VulnerabilityDocument(
+            id="CUSTOM-001",
+            title="Custom Finding",
+            description="Custom vulnerability description",
+            tags=["custom", 123, None],
+            references="https://example.invalid/advisory",
+        )
+
+        text = vulnerability.to_text()
+        metadata = vulnerability.to_metadata()
+
+        assert "Tags: custom, 123" in text
+        assert "References: https://example.invalid/advisory" in text
+        assert metadata["tags"] == "custom,123"
+        assert metadata["references"] == "https://example.invalid/advisory"
+
+    def test_scalar_tags_and_malformed_references_do_not_break_context_or_ranking(
+        self,
+        tmp_path,
+    ):
+        rag = EmbeddingRAG(persist_directory=str(tmp_path))
+        vulnerability = VulnerabilityDocument(
+            id="CUSTOM-002",
+            title="Scalar Tags",
+            description="Custom vulnerability description",
+            category="custom",
+            tags=42,  # type: ignore[arg-type]
+            references=["https://one.invalid", 7, None, "https://four.invalid"],
+        )
+        result = RetrievalResult(
+            document=vulnerability,
+            similarity_score=0.5,
+            relevance_reason="test",
+        )
+
+        context = result.to_context()
+        ranked = rag._rank_result(result, original_query="custom 42", step="test")
+
+        assert "- References: https://one.invalid, 7, https://four.invalid" in context
+        assert ranked.similarity_score > result.similarity_score
+
     @pytest.mark.parametrize("bad_id", ["", "   ", ["CUSTOM-001"]])
     def test_rejects_malformed_document_id_before_index_or_cache_mutation(
         self,
@@ -336,6 +378,8 @@ class TestEmbeddingRAGCustomVulnerabilityShapes:
         rag._collection = _ExplodingCollection()
         rag._doc_index = {"existing": object()}
         rag._query_cache = {"stale": (0.0, [])}
+        rag._cache_hits = 2
+        rag._cache_misses = 3
         vulnerability = VulnerabilityDocument(
             id=bad_id,  # type: ignore[arg-type]
             title="Custom Finding",
@@ -347,3 +391,5 @@ class TestEmbeddingRAGCustomVulnerabilityShapes:
 
         assert list(rag._doc_index) == ["existing"]
         assert rag._query_cache == {"stale": (0.0, [])}
+        assert rag._cache_hits == 2
+        assert rag._cache_misses == 3

@@ -527,11 +527,26 @@ class FoundryRunner:
         if not isinstance(value, dict):
             return {}
 
-        return {
-            contract: report
-            for contract, report in value.items()
-            if isinstance(contract, str) and isinstance(report, dict)
-        }
+        normalized = {}
+        for contract, report in value.items():
+            if not isinstance(contract, str) or not isinstance(report, dict):
+                continue
+
+            contract_report = dict(report)
+            methods = contract_report.get("methods")
+            if "methods" in contract_report:
+                contract_report["methods"] = (
+                    {
+                        method: metrics
+                        for method, metrics in methods.items()
+                        if isinstance(method, str) and isinstance(metrics, dict)
+                    }
+                    if isinstance(methods, dict)
+                    else {}
+                )
+            normalized[contract] = contract_report
+
+        return normalized
 
     def _parse_text_output(self, output: str) -> List[TestResult]:
         """Parse test results from text output."""

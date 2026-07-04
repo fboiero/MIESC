@@ -739,6 +739,20 @@ class TestBatchGeneration:
         ]
         assert "Skipping malformed finding entry in PoC batch" in caplog.text
 
+    @pytest.mark.parametrize("findings", [None, {"type": "reentrancy"}, "reentrancy"])
+    def test_generate_batch_rejects_malformed_top_level_container(
+        self, generator, findings, caplog
+    ):
+        """Test malformed top-level findings containers return no PoCs."""
+        from unittest.mock import patch
+
+        with patch.object(generator, "generate", wraps=generator.generate) as generate_spy:
+            pocs = generator.generate_batch(findings, "Test.sol")
+
+        assert pocs == []
+        assert generate_spy.call_count == 0
+        assert "Skipping malformed findings container in PoC batch" in caplog.text
+
     def test_generate_batch_empty_list(self, generator):
         """Test batch generation with empty list."""
         pocs = generator.generate_batch([], "Test.sol")

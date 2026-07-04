@@ -356,6 +356,36 @@ def test_generate_insights_sorts_finding_keys(monkeypatch):
     assert captured["prompt"].index('"a_key"') < captured["prompt"].index('"z_key"')
 
 
+def test_generate_insights_defaults_unsupported_finding_field_shapes(monkeypatch):
+    helper = OpenLLaMAHelper()
+    captured = {}
+
+    def fake_call_llm(prompt):
+        captured["prompt"] = prompt
+        return "insight"
+
+    monkeypatch.setattr(helper, "_call_llm", fake_call_llm)
+
+    assert helper._generate_insights(
+        {
+            "title": "Missing auth",
+            "metadata": {"owner": object()},
+            "evidence": [object(), "reachable"],
+        },
+        {"source": "contract C {}"},
+        ["slither"],
+    )
+
+    assert "Analyze this security finding from adapter" in captured["prompt"]
+    assert "CONTRACT CONTEXT:\n\n" in captured["prompt"]
+    assert '"title": "Missing auth"' in captured["prompt"]
+    assert '"owner": ""' in captured["prompt"]
+    assert '"evidence": [\n    "",\n    "reachable"\n  ]' in captured["prompt"]
+    assert "<object object at" not in captured["prompt"]
+    assert "{'source':" not in captured["prompt"]
+    assert "['slither']" not in captured["prompt"]
+
+
 def test_convenience_functions_delegate_to_helper(monkeypatch):
     calls = []
 
