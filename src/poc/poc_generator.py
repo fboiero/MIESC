@@ -285,7 +285,7 @@ class PoCGenerator:
 
     def generate_batch(
         self,
-        findings: List[Dict[str, Any]],
+        findings: Any,
         target_contract: str,
         options: Optional[GenerationOptions] = None,
     ) -> List[PoCTemplate]:
@@ -301,6 +301,10 @@ class PoCGenerator:
             List of generated PoCTemplates
         """
         pocs = []
+        if not isinstance(findings, list):
+            logger.warning("Skipping malformed findings container in PoC batch")
+            return pocs
+
         for finding in findings:
             if not isinstance(finding, dict):
                 logger.warning("Skipping malformed finding entry in PoC batch")
