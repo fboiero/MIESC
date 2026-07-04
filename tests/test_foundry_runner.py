@@ -836,6 +836,26 @@ class TestGasReport:
 
         assert report["contracts"] == {}
 
+    def test_get_gas_report_filters_malformed_json_contract_reports(self, runner):
+        """Test JSON gas_report contract entries must be object payloads."""
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = (
+            '{"gas_report": {'
+            '"Vault": {"methods": {"deposit": {"avg": 100}}},'
+            '"Broken": ["not", "a", "contract report"],'
+            '"Scalar": 123'
+            "}}\n"
+        )
+        mock_result.stderr = ""
+
+        with patch("subprocess.run", return_value=mock_result):
+            report = runner.get_gas_report()
+
+        assert report["contracts"] == {
+            "Vault": {"methods": {"deposit": {"avg": 100}}},
+        }
+
     def test_get_gas_report_ignores_malformed_json_line(self, runner):
         """Test malformed JSON lines do not abort gas report parsing."""
         mock_result = MagicMock()

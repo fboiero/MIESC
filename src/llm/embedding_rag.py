@@ -5100,6 +5100,11 @@ class EmbeddingRAG:
         Args:
             vulnerability: VulnerabilityDocument to add
         """
+        if not isinstance(vulnerability, VulnerabilityDocument):
+            raise TypeError("Custom vulnerability must be a VulnerabilityDocument")
+        if not isinstance(vulnerability.id, str) or not vulnerability.id.strip():
+            raise ValueError("Custom vulnerability id must be a non-empty string")
+
         self._ensure_initialized()
 
         # Generate embedding

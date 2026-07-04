@@ -5,7 +5,7 @@ Shared provider health helpers for OpenAI-compatible LLM APIs.
 import asyncio
 import json
 import logging
-from typing import Set
+from typing import Any, Set
 
 import aiohttp
 
@@ -22,14 +22,25 @@ PROVIDER_HEALTH_ERRORS = (
 )
 
 
-def extract_openai_compatible_model_ids(payload: dict) -> Set[str]:
+def extract_openai_compatible_model_ids(payload: Any) -> Set[str]:
     """Extract model identifiers from OpenAI-compatible model list payloads."""
-    models = payload.get("data", payload.get("models", []))
-    return {
-        model.get("id") or model.get("name") or ""
-        for model in models
-        if isinstance(model, dict) and (model.get("id") or model.get("name"))
-    }
+    if not isinstance(payload, dict):
+        return set()
+
+    models = payload.get("data")
+    if not isinstance(models, list):
+        models = payload.get("models")
+    if not isinstance(models, list):
+        return set()
+
+    model_ids: Set[str] = set()
+    for model in models:
+        if not isinstance(model, dict):
+            continue
+        model_id = model.get("id") or model.get("name")
+        if isinstance(model_id, str) and model_id:
+            model_ids.add(model_id)
+    return model_ids
 
 
 async def fetch_openai_compatible_model_ids(

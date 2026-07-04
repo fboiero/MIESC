@@ -43,6 +43,24 @@ def test_extract_openai_compatible_model_ids_models_name_payload():
     assert extract_openai_compatible_model_ids(payload) == {"model-a", "model-b"}
 
 
+def test_extract_openai_compatible_model_ids_malformed_shapes():
+    """Test malformed model payload shapes are ignored safely."""
+    payload = {
+        "data": "not-a-model-list",
+        "models": [
+            {"id": ["not", "hashable"]},
+            {"id": ""},
+            {"name": 123},
+            "not-a-model-object",
+            {"id": "model-a", "name": "ignored-fallback"},
+        ],
+    }
+
+    assert extract_openai_compatible_model_ids(payload) == {"model-a"}
+    assert extract_openai_compatible_model_ids(["not-a-payload-object"]) == set()
+    assert extract_openai_compatible_model_ids({"data": None, "models": None}) == set()
+
+
 def test_fetch_openai_compatible_model_ids_success():
     """Test fetching model IDs from a compatible endpoint."""
 
@@ -63,6 +81,26 @@ def test_fetch_openai_compatible_model_ids_success():
         session.__aenter__.return_value.get.assert_called_once()
         url = session.__aenter__.return_value.get.call_args.args[0]
         assert url == "https://api.deepseek.example/v1/models"
+
+    asyncio.run(run_test())
+
+
+def test_fetch_openai_compatible_model_ids_malformed_payload():
+    """Test malformed successful JSON payloads are treated as unavailable."""
+
+    async def run_test():
+        response = MagicMock()
+        response.status = 200
+        response.json = AsyncMock(return_value=["not-a-payload-object"])
+        session = _aiohttp_session_with_response("get", response)
+
+        with patch("aiohttp.ClientSession", return_value=session):
+            models = await fetch_openai_compatible_model_ids(
+                "https://api.deepseek.example",
+                "test-key",
+            )
+
+        assert models == set()
 
     asyncio.run(run_test())
 

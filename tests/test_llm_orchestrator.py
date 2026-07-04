@@ -780,6 +780,96 @@ class TestLLMOrchestrator:
 
         asyncio.run(run_test())
 
+    def test_query_falls_back_after_malformed_provider_response(self):
+        """Test query falls back when a backend returns an invalid result shape."""
+
+        async def run_test():
+            configs = [
+                LLMConfig(
+                    provider=LLMProvider.OLLAMA,
+                    model="primary",
+                    retry_attempts=1,
+                    retry_delay=0,
+                ),
+                LLMConfig(
+                    provider=LLMProvider.OPENAI,
+                    model="fallback",
+                    api_key="key",
+                    retry_attempts=1,
+                    retry_delay=0,
+                ),
+            ]
+            orchestrator = LLMOrchestrator(configs)
+            orchestrator.backends["ollama:primary"].available = True
+            orchestrator.backends["openai:fallback"].available = True
+
+            malformed_response = {"content": "dict shape is not an LLMResponse"}
+            fallback_response = LLMResponse(
+                content="fallback content",
+                provider="openai",
+                model="fallback",
+            )
+            primary_analyze = AsyncMock(return_value=malformed_response)
+            fallback_analyze = AsyncMock(return_value=fallback_response)
+            orchestrator.backends["ollama:primary"].analyze = primary_analyze
+            orchestrator.backends["openai:fallback"].analyze = fallback_analyze
+
+            result = await orchestrator.query("test prompt")
+
+            assert result is fallback_response
+            assert list(orchestrator.cache.values()) == [fallback_response]
+            primary_analyze.assert_awaited_once()
+            fallback_analyze.assert_awaited_once()
+
+        asyncio.run(run_test())
+
+    def test_query_falls_back_after_malformed_response_content(self):
+        """Test query falls back when a backend returns non-string content."""
+
+        async def run_test():
+            configs = [
+                LLMConfig(
+                    provider=LLMProvider.OLLAMA,
+                    model="primary",
+                    retry_attempts=1,
+                    retry_delay=0,
+                ),
+                LLMConfig(
+                    provider=LLMProvider.OPENAI,
+                    model="fallback",
+                    api_key="key",
+                    retry_attempts=1,
+                    retry_delay=0,
+                ),
+            ]
+            orchestrator = LLMOrchestrator(configs)
+            orchestrator.backends["ollama:primary"].available = True
+            orchestrator.backends["openai:fallback"].available = True
+
+            malformed_response = LLMResponse(
+                content=["not", "text"],
+                provider="ollama",
+                model="primary",
+            )
+            fallback_response = LLMResponse(
+                content="fallback content",
+                provider="openai",
+                model="fallback",
+            )
+            primary_analyze = AsyncMock(return_value=malformed_response)
+            fallback_analyze = AsyncMock(return_value=fallback_response)
+            orchestrator.backends["ollama:primary"].analyze = primary_analyze
+            orchestrator.backends["openai:fallback"].analyze = fallback_analyze
+
+            result = await orchestrator.query("test prompt")
+
+            assert result is fallback_response
+            assert list(orchestrator.cache.values()) == [fallback_response]
+            primary_analyze.assert_awaited_once()
+            fallback_analyze.assert_awaited_once()
+
+        asyncio.run(run_test())
+
     def test_analyze_contract_structure(self):
         """Test analyze_contract method structure."""
         config = LLMConfig(provider=LLMProvider.OPENAI, model="gpt-4", api_key="test-key")
