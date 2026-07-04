@@ -471,7 +471,7 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
                 snippet = self._parse_text(location.get("snippet"), "")
                 code_context = ""
                 if isinstance(code_contexts, dict) and file_path:
-                    code_context = code_contexts.get(file_path, "")
+                    code_context = self._parse_text(code_contexts.get(file_path), "")
                 elif snippet:
                     code_context = snippet
 
