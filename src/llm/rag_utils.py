@@ -5,6 +5,11 @@ import json
 import time
 from typing import Any, Dict, List, Optional, Tuple, TypeVar
 
+from src.security.llm_output_validator import (
+    extract_json_from_text,
+    repair_common_json_errors,
+)
+
 T = TypeVar("T")
 
 
@@ -109,3 +114,31 @@ def build_metadata_filter(
     if len(conditions) == 1:
         return conditions[0]
     return {"$and": conditions}
+
+
+def parse_repaired_json_object(content: Any, *, max_json_chars: int = 50_000) -> Dict[str, Any]:
+    """Extract and repair a bounded JSON object from an LLM/RAG response."""
+    if not isinstance(content, str):
+        return {}
+
+    stripped = content.strip()
+    if not stripped:
+        return {}
+    if stripped.startswith("["):
+        return {}
+
+    json_str = extract_json_from_text(content)
+    if json_str is None:
+        json_str = stripped if stripped.startswith("{") else None
+
+    if not json_str or len(json_str) > max_json_chars:
+        return {}
+
+    try:
+        parsed = json.loads(repair_common_json_errors(json_str))
+    except json.JSONDecodeError:
+        return {}
+
+    if isinstance(parsed, dict):
+        return parsed
+    return {}

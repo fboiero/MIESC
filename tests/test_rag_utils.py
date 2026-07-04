@@ -7,6 +7,7 @@ from src.llm.rag_utils import (
     cache_stats,
     get_cached_result,
     make_cache_key,
+    parse_repaired_json_object,
     store_cached_result,
 )
 
@@ -116,3 +117,33 @@ def test_build_metadata_filter():
     assert build_metadata_filter("reentrancy", "high") == {
         "$and": [{"category": "reentrancy"}, {"severity": "high"}]
     }
+
+
+def test_parse_repaired_json_object_extracts_and_repairs_object_candidate():
+    content = """
+    RAG analysis:
+    ```json
+    {
+        category: "reentrancy",
+        "severity": "high",
+    }
+    ```
+    """
+
+    assert parse_repaired_json_object(content) == {
+        "category": "reentrancy",
+        "severity": "high",
+    }
+
+
+def test_parse_repaired_json_object_rejects_non_object_json_boundaries():
+    assert parse_repaired_json_object('[{"category": "reentrancy"}]') == {}
+    assert parse_repaired_json_object('"reentrancy"') == {}
+    assert parse_repaired_json_object("no json {missing end") == {}
+    assert parse_repaired_json_object({"category": "reentrancy"}) == {}
+
+
+def test_parse_repaired_json_object_rejects_oversized_json_candidate():
+    content = '{"description": "' + ("x" * 32) + '"}'
+
+    assert parse_repaired_json_object(content, max_json_chars=20) == {}
