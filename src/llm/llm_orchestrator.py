@@ -564,6 +564,16 @@ Provide a comprehensive security analysis in JSON format."""
             for attempt in range(backend.config.retry_attempts):
                 try:
                     response = await backend.analyze(prompt, context)
+                    if not isinstance(response, LLMResponse):
+                        raise ValueError(
+                            f"Malformed LLM response from {key}: "
+                            f"expected LLMResponse, got {type(response).__name__}"
+                        )
+                    if not isinstance(response.content, str):
+                        raise ValueError(
+                            f"Malformed LLM response from {key}: "
+                            f"content must be str, got {type(response.content).__name__}"
+                        )
                     self.cache[cache_key] = response
                     return response
                 except LLM_RUNTIME_ERRORS as e:
