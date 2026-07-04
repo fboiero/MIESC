@@ -245,18 +245,22 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
 
         start_time = time.time()
 
-        finding_id = finding.get("id", "unknown")
+        finding_id = self._parse_text(finding.get("id"), "unknown")
         location_value = finding.get("location", {})
         location = location_value if isinstance(location_value, dict) else {}
+        message = self._parse_text(
+            finding.get("message"),
+            self._parse_text(finding.get("description"), "No message"),
+        )
 
         # Build prompt
         prompt = self.VALIDATION_PROMPT.format(
-            finding_type=finding.get("type", "unknown"),
-            severity=finding.get("severity", "unknown"),
-            tool=finding.get("tool", "unknown"),
-            file=location.get("file", "unknown"),
-            line=location.get("line", 0),
-            message=finding.get("message", finding.get("description", "No message")),
+            finding_type=self._parse_text(finding.get("type"), "unknown"),
+            severity=self._parse_text(finding.get("severity"), "unknown"),
+            tool=self._parse_text(finding.get("tool"), "unknown"),
+            file=self._parse_text(location.get("file"), "unknown"),
+            line=self._parse_location_line(location.get("line")),
+            message=message,
             code_snippet=code_context[:1500] if code_context else "Not available",
             contract_context=contract_context[:500] if contract_context else "Not available",
         )
@@ -399,6 +403,15 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
     def _parse_optional_text(cls, value: Any) -> Optional[str]:
         """Return optional text only when the LLM field has a string shape."""
         return cls._parse_text(value, "") or None
+
+    @staticmethod
+    def _parse_location_line(value: Any) -> Any:
+        """Return a prompt-safe line value for known scalar line shapes."""
+        if isinstance(value, bool):
+            return 0
+        if isinstance(value, (int, str)):
+            return value
+        return 0
 
     async def validate_findings_batch(
         self,

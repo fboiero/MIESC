@@ -112,6 +112,64 @@ async def test_validate_finding_uses_defaults_for_malformed_location(monkeypatch
 
 
 @pytest.mark.asyncio
+async def test_validate_finding_defaults_malformed_prompt_scalar_fields(monkeypatch):
+    validator = LLMFindingValidator(ValidatorConfig())
+    captured = {}
+    finding = {
+        "id": ["F-1c"],
+        "type": {"name": "reentrancy"},
+        "severity": True,
+        "tool": ["slither"],
+        "location": {"file": {"path": "Bank.sol"}, "line": False},
+        "message": ["External call before state update"],
+        "description": {"text": "fallback"},
+    }
+
+    async def fake_call(prompt):
+        captured["prompt"] = prompt
+        return '{"result": "valid", "confidence": 0.8, "reasoning": "Confirmed."}'
+
+    monkeypatch.setattr(validator, "_call_ollama", fake_call)
+
+    validation = await validator.validate_finding(finding, "contract Bank {}")
+
+    assert validation.finding_id == "unknown"
+    assert "- **Type**: unknown" in captured["prompt"]
+    assert "- **Reported Severity**: unknown" in captured["prompt"]
+    assert "- **Tool**: unknown" in captured["prompt"]
+    assert "- **Location**: unknown:0" in captured["prompt"]
+    assert "- **Message**: No message" in captured["prompt"]
+    assert "['F-1c']" not in captured["prompt"]
+    assert "{'name': 'reentrancy'}" not in captured["prompt"]
+    assert "True" not in captured["prompt"]
+
+
+@pytest.mark.asyncio
+async def test_validate_finding_uses_valid_description_when_message_missing(monkeypatch):
+    validator = LLMFindingValidator(ValidatorConfig())
+    captured = {}
+
+    async def fake_call(prompt):
+        captured["prompt"] = prompt
+        return '{"result": "valid", "confidence": 0.8, "reasoning": "Confirmed."}'
+
+    monkeypatch.setattr(validator, "_call_ollama", fake_call)
+
+    await validator.validate_finding(
+        {
+            "id": "F-1d",
+            "type": "reentrancy",
+            "severity": "high",
+            "tool": "slither",
+            "description": "External call before state update",
+        },
+        "contract Bank {}",
+    )
+
+    assert "- **Message**: External call before state update" in captured["prompt"]
+
+
+@pytest.mark.asyncio
 async def test_call_ollama_returns_empty_string_for_non_string_response(monkeypatch):
     validator = LLMFindingValidator(ValidatorConfig())
 
