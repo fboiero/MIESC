@@ -901,10 +901,16 @@ Respond with a JSON array."""
         rag_note = f" +RAG({len(rag_context)})" if rag_context else ""
         logger.info(f"FrontierLLM: Calling {model} ({len(source_code)} chars{rag_note})")
 
-        # GPT-5 and o-series use max_completion_tokens instead of max_tokens
-        token_param = {}
+        # GPT-5 and o-series use max_completion_tokens instead of max_tokens.
+        # Reasoning models spend part of that budget on hidden reasoning BEFORE
+        # emitting output; at 16384 the reasoning consumed the whole allowance and
+        # the visible content came back empty (0 chars). Give a much larger budget
+        # and cap reasoning effort so tokens are left for the actual answer.
+        token_param: Dict[str, Any] = {}
+        extra: Dict[str, Any] = {}
         if model.startswith(("gpt-5", "o1", "o3", "o4")):
-            token_param["max_completion_tokens"] = 16384
+            token_param["max_completion_tokens"] = 32768
+            extra["reasoning_effort"] = "low"
         else:
             token_param["max_tokens"] = 4096
 
@@ -915,6 +921,7 @@ Respond with a JSON array."""
                 {"role": "user", "content": user_prompt},
             ],
             **token_param,
+            **extra,
         )
 
         return self._parse_response(response.choices[0].message.content)
