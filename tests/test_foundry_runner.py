@@ -542,6 +542,50 @@ class TestValidatePoC:
 
         assert any("gas" in w.lower() for w in validation["warnings"])
 
+    def test_validate_poc_ignores_malformed_raw_output_and_error_shapes(self, runner):
+        """Test validation does not trust non-text output or error containers."""
+        malformed_result = FoundryResult(
+            success=True,
+            tests=[],
+            total_tests=0,
+            passed=0,
+            failed=0,
+            skipped=0,
+            total_gas=0,
+            execution_time_ms=100,
+            raw_output=["PROFIT: fake"],
+            error={"message": "not a string"},
+        )
+
+        with patch.object(runner, "run_test", return_value=malformed_result):
+            validation = runner.validate_poc("test/exploit.t.sol")
+
+        assert validation["exploit_demonstrated"] is None
+        assert validation["errors"] == []
+        assert any("Could not determine" in w for w in validation["warnings"])
+
+    def test_validate_poc_decodes_bytes_raw_output_and_error(self, runner):
+        """Test validation still accepts subprocess-like byte output fields."""
+        bytes_result = FoundryResult(
+            success=True,
+            tests=[],
+            total_tests=0,
+            passed=0,
+            failed=0,
+            skipped=0,
+            total_gas=0,
+            execution_time_ms=100,
+            raw_output=b"PROFIT: 1 ETH",
+            error=b"Assertion failed",
+        )
+
+        with patch.object(runner, "run_test", return_value=bytes_result):
+            validation = runner.validate_poc("test/exploit.t.sol")
+
+        assert validation["valid"] is True
+        assert validation["exploit_demonstrated"] is True
+        assert validation["errors"] == ["Assertion failed"]
+
 
 # =============================================================================
 # Parse Output Tests

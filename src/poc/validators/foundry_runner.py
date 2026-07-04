@@ -344,6 +344,8 @@ class FoundryRunner:
             Validation result dict
         """
         result = self.run_test(poc_path)
+        raw_output = self._normalize_output_text(result.raw_output)
+        error = self._normalize_output_text(result.error)
 
         validation: Dict[str, Any] = {
             "path": str(poc_path),
@@ -358,9 +360,9 @@ class FoundryRunner:
 
         # Check for exploit success indicators in output
         if result.success and expected_profit:
-            if "PROFIT" in result.raw_output:
+            if "PROFIT" in raw_output:
                 validation["exploit_demonstrated"] = True
-            elif "FAILED" in result.raw_output:
+            elif "FAILED" in raw_output:
                 validation["exploit_demonstrated"] = False
                 validation["warnings"].append("Exploit may not have succeeded")
             else:
@@ -368,8 +370,8 @@ class FoundryRunner:
                 validation["warnings"].append("Could not determine exploit success")
 
         # Check for common issues
-        if result.error:
-            validation["errors"].append(result.error)
+        if error:
+            validation["errors"].append(error)
 
         if result.total_gas > 10_000_000:
             validation["warnings"].append(

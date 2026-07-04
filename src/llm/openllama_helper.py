@@ -106,19 +106,29 @@ class OpenLLaMAHelper:
         Returns:
             Enhanced findings with additional 'llm_insights' field
         """
+        if not isinstance(findings, list):
+            return findings
         if not self.is_available() or not findings:
             return findings
 
         try:
+            valid_findings = [finding for finding in findings if isinstance(finding, dict)]
+            if not valid_findings:
+                return findings
+            prompt_context = context if isinstance(context, str) else ""
+            prompt_adapter_name = adapter_name if isinstance(adapter_name, str) else "adapter"
+
             # Select top findings to process (avoid overwhelming LLM)
             top_findings = sorted(
-                findings, key=lambda f: self._severity_score(f.get("severity", "LOW")), reverse=True
+                valid_findings,
+                key=lambda f: self._severity_score(f.get("severity", "LOW")),
+                reverse=True,
             )[
                 :5
             ]  # Top 5 most severe
 
             for finding in top_findings:
-                insights = self._generate_insights(finding, context, adapter_name)
+                insights = self._generate_insights(finding, prompt_context, prompt_adapter_name)
                 if insights:
                     finding["llm_insights"] = insights
                     finding["llm_enhanced"] = True

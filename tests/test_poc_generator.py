@@ -1177,6 +1177,42 @@ class TestCustomizePoCTemplate:
         assert "Vm.sol" in poc.solidity_code
         assert "IVault.sol" in poc.solidity_code
 
+    def test_malformed_custom_imports_container_is_ignored(self, generator, caplog):
+        """Test scalar custom imports do not become per-character import lines."""
+        options = GenerationOptions(custom_imports="forge-std/Vm.sol")
+
+        finding = {"type": "reentrancy", "severity": "high", "description": "Test"}
+        with caplog.at_level("WARNING"):
+            poc = generator.generate(finding, "Token.sol", options)
+
+        assert 'import "f";' not in poc.solidity_code
+        assert "forge-std/Vm.sol" not in poc.solidity_code
+        assert "Skipping malformed custom imports container in PoC options" in caplog.text
+
+    def test_malformed_custom_import_entries_and_setup_code_are_ignored(
+        self, generator, caplog
+    ):
+        """Test malformed custom option entries do not leak reprs into templates."""
+        options = GenerationOptions(
+            custom_imports=[
+                "forge-std/Vm.sol",
+                {"path": "bad/Import.sol"},
+                ["nested/Import.sol"],
+            ],
+            custom_setup_code={"line": "token = new MockToken();"},
+        )
+
+        finding = {"type": "reentrancy", "severity": "high", "description": "Test"}
+        with caplog.at_level("WARNING"):
+            poc = generator.generate(finding, "Token.sol", options)
+
+        assert 'import "forge-std/Vm.sol";' in poc.solidity_code
+        assert "{'path': 'bad/Import.sol'}" not in poc.solidity_code
+        assert "['nested/Import.sol']" not in poc.solidity_code
+        assert "{'line': 'token = new MockToken();'}" not in poc.solidity_code
+        assert "token = new MockToken();" not in poc.solidity_code
+        assert "Skipping malformed custom import entry in PoC options" in caplog.text
+
 
 class TestGasAndTraceExtraction:
     """Tests for gas and trace extraction (lines 618-621, 626-629)."""

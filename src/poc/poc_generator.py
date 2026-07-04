@@ -432,6 +432,26 @@ class PoCGenerator:
             return value
         return default
 
+    def _option_text_field(self, options: GenerationOptions, key: str, default: str) -> str:
+        """Return string option fields only; ignore malformed object/list shapes."""
+        value = getattr(options, key, default)
+        if isinstance(value, str):
+            return value
+        return default
+
+    def _custom_import_lines(self, options: GenerationOptions) -> str:
+        """Build custom import statements from a list of string paths."""
+        imports = getattr(options, "custom_imports", [])
+        if not isinstance(imports, list):
+            logger.warning("Skipping malformed custom imports container in PoC options")
+            return ""
+
+        import_paths = [imp for imp in imports if isinstance(imp, str)]
+        if len(import_paths) != len(imports):
+            logger.warning("Skipping malformed custom import entry in PoC options")
+
+        return "\n".join(f'import "{imp}";' for imp in import_paths)
+
     def _extract_function_name(self, finding: Dict[str, Any]) -> Optional[str]:
         """Extract target function name from finding."""
         location = finding.get("location", {})
@@ -507,8 +527,10 @@ class PoCGenerator:
             "{{TARGET_FUNCTION}}": target_function or "vulnerable",
             "{{TEST_NAME}}": test_name,
             "{{VULNERABILITY_TYPE}}": vuln_type.value,
-            "{{ATTACKER_BALANCE}}": options.attacker_balance,
-            "{{VICTIM_BALANCE}}": options.victim_balance,
+            "{{ATTACKER_BALANCE}}": self._option_text_field(
+                options, "attacker_balance", "100 ether"
+            ),
+            "{{VICTIM_BALANCE}}": self._option_text_field(options, "victim_balance", "10 ether"),
             "{{DESCRIPTION}}": self._finding_text_field(finding, "description", ""),
             "{{SEVERITY}}": self._finding_text_field(finding, "severity", "medium"),
             "{{TIMESTAMP}}": datetime.now().strftime("%Y-%m-%d %H:%M"),
@@ -520,13 +542,14 @@ class PoCGenerator:
             result = result.replace(placeholder, str(value))
 
         # Add custom imports
-        if options.custom_imports:
-            import_lines = "\n".join(f'import "{imp}";' for imp in options.custom_imports)
+        import_lines = self._custom_import_lines(options)
+        if import_lines:
             result = result.replace("// {{CUSTOM_IMPORTS}}", import_lines)
 
         # Add custom setup
-        if options.custom_setup_code:
-            result = result.replace("// {{CUSTOM_SETUP}}", options.custom_setup_code)
+        setup_code = self._option_text_field(options, "custom_setup_code", "")
+        if setup_code:
+            result = result.replace("// {{CUSTOM_SETUP}}", setup_code)
 
         # Add fork configuration
         if options.fork_url and options.fork_block:

@@ -24,7 +24,7 @@ import logging
 import os
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, Dict, List, Optional
 
 import aiohttp
 
@@ -851,7 +851,7 @@ Response (JSON array only):"""
                 # Normalize findings
                 normalized = []
                 for f in findings:
-                    if isinstance(f, dict) and f.get("type"):
+                    if isinstance(f, dict) and self._safe_text(f.get("type"), "").strip():
                         # Add source model
                         f["_source_model"] = model
                         normalized.append(f)
@@ -862,9 +862,9 @@ Response (JSON array only):"""
                 if content.strip().startswith("["):
                     findings = json.loads(repair_common_json_errors(content))
                     for f in findings:
-                        if isinstance(f, dict):
+                        if isinstance(f, dict) and self._safe_text(f.get("type"), "").strip():
                             f["_source_model"] = model
-                    return cast(List[Dict[str, Any]], findings)
+                    return [f for f in findings if isinstance(f, dict) and "_source_model" in f]
 
         except json.JSONDecodeError as e:
             logger.debug(f"JSON parse error for {model}: {e}")
