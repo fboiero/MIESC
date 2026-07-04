@@ -272,6 +272,47 @@ class TestOllamaBackend:
 
         asyncio.run(run_test())
 
+    def test_analyze_context_prompt_sanitizes_non_json_shapes(self):
+        """Test provider context prompt serialization handles opaque objects safely."""
+
+        class OpaqueContext:
+            pass
+
+        async def run_test():
+            config = LLMConfig(provider=LLMProvider.OLLAMA, model="codellama")
+            backend = OllamaBackend(config)
+
+            mock_response = MagicMock()
+            mock_response.status = 200
+            mock_response.json = AsyncMock(
+                return_value={
+                    "message": {"content": "{}"},
+                    "eval_count": 1,
+                    "prompt_eval_count": 2,
+                }
+            )
+            mock_session = _aiohttp_session_with_response("post", mock_response)
+
+            with patch("aiohttp.ClientSession", return_value=mock_session):
+                await backend.analyze(
+                    "prompt",
+                    {
+                        "opaque": OpaqueContext(),
+                        "raw_bytes": b"secret bytes",
+                        "nested": {"values": {3, 1, 2}},
+                    },
+                )
+
+            post_payload = mock_session.__aenter__.return_value.post.call_args.kwargs["json"]
+            system_prompt = post_payload["messages"][0]["content"]
+            assert '"opaque": "<non-serializable:OpaqueContext>"' in system_prompt
+            assert '"raw_bytes": "<bytes:12>"' in system_prompt
+            assert '"values": [\n      1,\n      2,\n      3\n    ]' in system_prompt
+            assert "object at 0x" not in system_prompt
+            assert "secret bytes" not in system_prompt
+
+        asyncio.run(run_test())
+
 
 class TestOpenAIBackend:
     """Test OpenAIBackend implementation."""
@@ -538,6 +579,36 @@ class TestLLMOrchestrator:
         assert key1 != key4  # Different context
         assert key5 == key6  # Context key order is stable
         assert key1 != key7  # Prompt/context boundary is explicit
+
+    def test_cache_key_generation_sanitizes_non_json_context(self):
+        """Test cache key generation handles non-JSON context shapes."""
+
+        class OpaqueContext:
+            pass
+
+        orchestrator = LLMOrchestrator([])
+
+        key1 = orchestrator._get_cache_key(
+            "prompt",
+            {
+                OpaqueContext(): "opaque key",
+                "opaque": OpaqueContext(),
+                "raw_bytes": b"secret bytes",
+                "values": {3, 1, 2},
+            },
+        )
+        key2 = orchestrator._get_cache_key(
+            "prompt",
+            {
+                OpaqueContext(): "opaque key",
+                "opaque": OpaqueContext(),
+                "raw_bytes": b"secret bytes",
+                "values": {2, 3, 1},
+            },
+        )
+
+        assert len(key1) == 16
+        assert key1 == key2
 
     def test_parse_analysis_valid_json(self):
         """Test parsing valid JSON response."""

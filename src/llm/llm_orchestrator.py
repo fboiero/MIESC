@@ -11,6 +11,7 @@ License: AGPL-3.0
 import asyncio
 import json
 import logging
+import math
 import os
 import time
 from abc import ABC, abstractmethod
@@ -54,6 +55,55 @@ LLM_RUNTIME_ERRORS = (
     asyncio.TimeoutError,
     json.JSONDecodeError,
 )
+
+
+def _json_safe_context(value: Any, seen: Optional[set[int]] = None) -> Any:
+    """Return a JSON-serializable context shape without object repr fallbacks."""
+    if seen is None:
+        seen = set()
+
+    if value is None or isinstance(value, (str, bool, int)):
+        return value
+    if isinstance(value, float):
+        return value if math.isfinite(value) else None
+    if isinstance(value, bytes):
+        return f"<bytes:{len(value)}>"
+
+    value_id = id(value)
+    if value_id in seen:
+        return f"<circular:{type(value).__name__}>"
+
+    if isinstance(value, dict):
+        seen.add(value_id)
+        safe_dict = {}
+        for key, item in value.items():
+            if isinstance(key, str):
+                safe_key = key
+            elif key is None or isinstance(key, (bool, int, float)):
+                safe_key = str(key)
+            else:
+                safe_key = f"<key:{type(key).__name__}>"
+            safe_dict[safe_key] = _json_safe_context(item, seen)
+        seen.remove(value_id)
+        return safe_dict
+
+    if isinstance(value, (list, tuple)):
+        seen.add(value_id)
+        safe_list = [_json_safe_context(item, seen) for item in value]
+        seen.remove(value_id)
+        return safe_list
+    if isinstance(value, set):
+        seen.add(value_id)
+        safe_list = [_json_safe_context(item, seen) for item in value]
+        seen.remove(value_id)
+        return sorted(safe_list, key=lambda item: json.dumps(item, sort_keys=True))
+
+    return f"<non-serializable:{type(value).__name__}>"
+
+
+def _context_json(value: Dict) -> str:
+    """Serialize context for provider prompts using the safe context shape."""
+    return json.dumps(_json_safe_context(value), indent=2, sort_keys=True)
 
 
 class LLMProvider(Enum):
@@ -193,9 +243,7 @@ class OllamaBackend(LLMBackend):
 
         system_prompt = self.get_system_prompt()
         if context:
-            system_prompt += (
-                f"\n\nAdditional context:\n{json.dumps(context, indent=2, sort_keys=True)}"
-            )
+            system_prompt += f"\n\nAdditional context:\n{_context_json(context)}"
 
         payload = {
             "model": self.config.model,
@@ -256,9 +304,7 @@ class OpenAIBackend(LLMBackend):
 
         system_prompt = self.get_system_prompt()
         if context:
-            system_prompt += (
-                f"\n\nAdditional context:\n{json.dumps(context, indent=2, sort_keys=True)}"
-            )
+            system_prompt += f"\n\nAdditional context:\n{_context_json(context)}"
 
         response = await client.chat.completions.create(
             model=self.config.model,
@@ -315,9 +361,7 @@ class DeepSeekBackend(LLMBackend):
 
         system_prompt = self.get_system_prompt()
         if context:
-            system_prompt += (
-                f"\n\nAdditional context:\n{json.dumps(context, indent=2, sort_keys=True)}"
-            )
+            system_prompt += f"\n\nAdditional context:\n{_context_json(context)}"
 
         response = await client.chat.completions.create(
             model=self.config.model,
@@ -362,9 +406,7 @@ class AnthropicBackend(LLMBackend):
 
         system_prompt = self.get_system_prompt()
         if context:
-            system_prompt += (
-                f"\n\nAdditional context:\n{json.dumps(context, indent=2, sort_keys=True)}"
-            )
+            system_prompt += f"\n\nAdditional context:\n{_context_json(context)}"
 
         response = await client.messages.create(
             model=self.config.model,
@@ -588,7 +630,7 @@ Provide a comprehensive security analysis in JSON format."""
         import hashlib
 
         content = json.dumps(
-            {"context": context or {}, "prompt": prompt},
+            {"context": _json_safe_context(context or {}), "prompt": prompt},
             sort_keys=True,
             separators=(",", ":"),
         )
