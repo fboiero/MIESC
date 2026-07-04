@@ -287,6 +287,19 @@ class FoundryRunner:
                 raw_output="",
                 error=f"Tests timed out after {timeout}s",
             )
+        except FOUNDRY_RUNTIME_ERRORS as e:
+            return FoundryResult(
+                success=False,
+                tests=[],
+                total_tests=0,
+                passed=0,
+                failed=0,
+                skipped=0,
+                total_gas=0,
+                execution_time_ms=(time.time() - start_time) * 1000,
+                raw_output="",
+                error=str(e),
+            )
 
     def compile(self) -> bool:
         """

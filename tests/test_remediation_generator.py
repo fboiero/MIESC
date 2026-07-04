@@ -313,6 +313,43 @@ async def test_generate_remediation_defaults_non_string_finding_type(monkeypatch
 
 
 @pytest.mark.asyncio
+async def test_generate_remediation_normalizes_malformed_llm_result_fields(monkeypatch):
+    generator = RemediationGenerator()
+    finding = {
+        "id": "F-2c",
+        "type": "reentrancy",
+        "severity": "HIGH",
+        "snippet": "function withdraw() public {}",
+    }
+
+    async def fake_query(_prompt):
+        return {
+            "fixed_code": {"code": "contract Fixed {}"},
+            "explanation": ["Uses CEI"],
+            "changes": ["valid change", {"bad": "shape"}, 7],
+            "imports_needed": [
+                "import {ReentrancyGuard} from 'oz.sol';",
+                {"bad": "import"},
+                7,
+            ],
+            "test_suggestions": ["valid test", None],
+            "references": "OpenZeppelin",
+        }
+
+    monkeypatch.setattr(generator, "_query_llm", fake_query)
+
+    remediation = await generator.generate_remediation(finding, "contract C {}")
+
+    assert remediation.fixed_code == (
+        "import {ReentrancyGuard} from 'oz.sol';\n\nfunction withdraw() public {}"
+    )
+    assert remediation.explanation == ""
+    assert remediation.changes_summary == ["valid change"]
+    assert remediation.test_suggestions == ["valid test"]
+    assert remediation.references == []
+
+
+@pytest.mark.asyncio
 async def test_generate_remediations_parallel_counts_exceptions(monkeypatch):
     generator = RemediationGenerator()
     findings = [{"id": "A"}, {"id": "B"}, {"id": "C"}]
