@@ -91,7 +91,7 @@ def test_fetch_openai_compatible_model_ids_malformed_payload():
     async def run_test():
         response = MagicMock()
         response.status = 200
-        response.json = AsyncMock(return_value=["not-a-payload-object"])
+        response.json = AsyncMock(return_value={"data": "not-a-model-list", "models": None})
         session = _aiohttp_session_with_response("get", response)
 
         with patch("aiohttp.ClientSession", return_value=session):
@@ -103,6 +103,50 @@ def test_fetch_openai_compatible_model_ids_malformed_payload():
         assert models == set()
 
     asyncio.run(run_test())
+
+
+def test_fetch_openai_compatible_model_ids_json_decode_error():
+    """Test JSON decoding failures are treated as unavailable."""
+
+    async def run_test():
+        response = MagicMock()
+        response.status = 200
+        response.json = AsyncMock(side_effect=ValueError("invalid json"))
+        session = _aiohttp_session_with_response("get", response)
+
+        with patch("aiohttp.ClientSession", return_value=session):
+            models = await fetch_openai_compatible_model_ids(
+                "https://api.deepseek.example",
+                "test-key",
+            )
+
+        assert models == set()
+
+    asyncio.run(run_test())
+
+
+def test_fetch_openai_compatible_model_ids_logs_non_object_payload(caplog):
+    """Test non-object JSON payloads are rejected at fetch boundary."""
+
+    async def run_test():
+        response = MagicMock()
+        response.status = 200
+        response.json = AsyncMock(return_value=["not-a-payload-object"])
+        session = _aiohttp_session_with_response("get", response)
+
+        with patch("aiohttp.ClientSession", return_value=session):
+            models = await fetch_openai_compatible_model_ids(
+                "https://api.deepseek.example",
+                "test-key",
+                provider_name="DeepSeek",
+            )
+
+        assert models == set()
+
+    with caplog.at_level("DEBUG", logger="src.llm.provider_health"):
+        asyncio.run(run_test())
+
+    assert "DeepSeek model check returned malformed JSON body" in caplog.text
 
 
 def test_fetch_openai_compatible_model_ids_non_200():
