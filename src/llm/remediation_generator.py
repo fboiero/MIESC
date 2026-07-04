@@ -199,7 +199,7 @@ class RemediationGenerator:
             Remediation object with fixed code
         """
         vuln_type = self._parse_vuln_type(finding.get("type", "unknown"))
-        severity = finding.get("severity", "medium")
+        severity = self._string_or_default(finding.get("severity"), "medium")
         title = finding.get("title", finding.get("type", "Unknown"))
         description = finding.get("description", "")
 
