@@ -464,6 +464,8 @@ Response (JSON array only):"""
             else:
                 model_findings[model] = result
 
+        model_findings = self._normalize_model_findings(model_findings)
+
         if not model_findings:
             raise ProviderUnavailable(f"All models failed for {provider.value}")
 
@@ -756,6 +758,8 @@ Response (JSON array only):"""
             else:
                 model_findings[model] = result
 
+        model_findings = self._normalize_model_findings(model_findings)
+
         # Aggregate with voting
         validated_findings = self._ensemble_vote(model_findings)
 
@@ -881,6 +885,8 @@ Response (JSON array only):"""
         Findings are grouped by type and location, then validated
         based on the voting strategy.
         """
+        model_findings = self._normalize_model_findings(model_findings)
+
         if not model_findings:
             return []
 
@@ -964,6 +970,21 @@ Response (JSON array only):"""
         validated.sort(key=lambda f: (severity_order.get(f.severity, 5), -f.confidence))
 
         return validated
+
+    @staticmethod
+    def _normalize_model_findings(
+        model_findings: Dict[str, Any],
+    ) -> Dict[str, List[Dict[str, Any]]]:
+        """Keep only per-model finding lists and dict finding entries."""
+        normalized: Dict[str, List[Dict[str, Any]]] = {}
+
+        for model, findings in model_findings.items():
+            if not isinstance(findings, list):
+                logger.warning("Ignoring malformed findings payload from model %s", model)
+                continue
+            normalized[model] = [finding for finding in findings if isinstance(finding, dict)]
+
+        return normalized
 
     @staticmethod
     def _safe_float(value: Any, default: float) -> float:

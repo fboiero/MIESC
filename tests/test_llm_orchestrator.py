@@ -810,6 +810,66 @@ class TestLLMOrchestrator:
         assert result.content == "cached content"
         assert result.cached is True
 
+    def test_query_ignores_malformed_cached_response(self):
+        """Test query evicts malformed cache entries and uses an available backend."""
+
+        async def run_test():
+            config = LLMConfig(
+                provider=LLMProvider.OLLAMA,
+                model="fresh",
+                retry_attempts=1,
+                retry_delay=0,
+            )
+            orchestrator = LLMOrchestrator([config])
+            orchestrator.backends["ollama:fresh"].available = True
+
+            cache_key = orchestrator._get_cache_key("test prompt", None)
+            orchestrator.cache[cache_key] = {"content": "cached dict is malformed"}
+
+            fresh_response = LLMResponse(content="fresh content", provider="ollama", model="fresh")
+            analyze = AsyncMock(return_value=fresh_response)
+            orchestrator.backends["ollama:fresh"].analyze = analyze
+
+            result = await orchestrator.query("test prompt")
+
+            assert result is fresh_response
+            assert orchestrator.cache[cache_key] is fresh_response
+            analyze.assert_awaited_once()
+
+        asyncio.run(run_test())
+
+    def test_query_ignores_cached_response_with_malformed_content(self):
+        """Test query evicts cached LLMResponse entries with non-string content."""
+
+        async def run_test():
+            config = LLMConfig(
+                provider=LLMProvider.OLLAMA,
+                model="fresh",
+                retry_attempts=1,
+                retry_delay=0,
+            )
+            orchestrator = LLMOrchestrator([config])
+            orchestrator.backends["ollama:fresh"].available = True
+
+            cache_key = orchestrator._get_cache_key("test prompt", None)
+            orchestrator.cache[cache_key] = LLMResponse(
+                content=["cached", "list"],
+                provider="cache",
+                model="cache",
+            )
+
+            fresh_response = LLMResponse(content="fresh content", provider="ollama", model="fresh")
+            analyze = AsyncMock(return_value=fresh_response)
+            orchestrator.backends["ollama:fresh"].analyze = analyze
+
+            result = await orchestrator.query("test prompt")
+
+            assert result is fresh_response
+            assert orchestrator.cache[cache_key] is fresh_response
+            analyze.assert_awaited_once()
+
+        asyncio.run(run_test())
+
     def test_query_falls_back_after_client_error(self):
         """Test query falls back when primary backend has a client error."""
 

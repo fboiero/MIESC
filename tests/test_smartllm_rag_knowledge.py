@@ -48,6 +48,17 @@ class _UninitializedEmbeddingRAG(EmbeddingRAG):
     def _ensure_initialized(self):
         raise AssertionError("Malformed custom vulnerability should not initialize RAG")
 
+
+class _MalformedSearchCollection:
+    def __init__(self, payload):
+        self.payload = payload
+        self.query_texts = None
+
+    def query(self, **kwargs):
+        self.query_texts = kwargs["query_texts"]
+        return self.payload
+
+
 # ---------------------------------------------------------------------------
 # detect_contract_type
 # ---------------------------------------------------------------------------
@@ -393,3 +404,55 @@ class TestEmbeddingRAGCustomVulnerabilityShapes:
         assert rag._query_cache == {"stale": (0.0, [])}
         assert rag._cache_hits == 2
         assert rag._cache_misses == 3
+
+
+class TestEmbeddingRAGSearchBoundaryShapes:
+    def test_search_coerces_query_and_bounds_malformed_similarity_metadata(self, tmp_path):
+        vulnerability = VulnerabilityDocument(
+            id="CUSTOM-003",
+            title="Malformed Similarity Boundary",
+            description="Custom vulnerability description",
+            category="custom",
+        )
+        collection = _MalformedSearchCollection(
+            {
+                "ids": [["CUSTOM-003", ["bad-id"], "missing-doc"]],
+                "distances": [["not-a-number", -0.25, 3.0]],
+            }
+        )
+        rag = EmbeddingRAG(persist_directory=str(tmp_path))
+        rag._initialized = True
+        rag._collection = collection
+        rag._doc_index = {"CUSTOM-003": vulnerability}
+
+        results = rag.search(["custom"], n_results=3)  # type: ignore[arg-type]
+
+        assert collection.query_texts == ["['custom']"]
+        assert [result.document.id for result in results] == ["CUSTOM-003"]
+        assert 0.0 <= results[0].similarity_score < 0.3
+        assert results[0].relevance_reason == "Matches category: custom"
+
+    def test_batch_search_skips_malformed_result_rows_and_query_values(self, tmp_path):
+        vulnerability = VulnerabilityDocument(
+            id="CUSTOM-004",
+            title="Batch Boundary",
+            description="Custom vulnerability description",
+        )
+        collection = _MalformedSearchCollection(
+            {
+                "ids": [["CUSTOM-004"], "bad-row"],
+                "distances": [[0.2], [0.1]],
+            }
+        )
+        rag = EmbeddingRAG(persist_directory=str(tmp_path), enable_cache=False)
+        rag._initialized = True
+        rag._collection = collection
+        rag._doc_index = {"CUSTOM-004": vulnerability}
+
+        results = rag.batch_search([b"batch", {"q": "bad"}], n_results=2)  # type: ignore[list-item]
+
+        assert collection.query_texts == ["batch", "{'q': 'bad'}"]
+        assert [[result.document.id for result in row] for row in results] == [
+            ["CUSTOM-004"],
+            [],
+        ]

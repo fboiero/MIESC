@@ -452,6 +452,25 @@ class PoCGenerator:
 
         return "\n".join(f'import "{imp}";' for imp in import_paths)
 
+    def _fork_config(self, options: GenerationOptions) -> str:
+        """Build fork setup only from well-formed option fields."""
+        fork_url = getattr(options, "fork_url", None)
+        fork_block = getattr(options, "fork_block", None)
+
+        if fork_url is None or fork_block is None:
+            return ""
+
+        if not isinstance(fork_url, str) or not isinstance(fork_block, int) or isinstance(
+            fork_block, bool
+        ):
+            logger.warning("Skipping malformed fork configuration in PoC options")
+            return ""
+
+        return f"""
+        // Fork mainnet
+        vm.createSelectFork("{fork_url}", {fork_block});
+"""
+
     def _extract_function_name(self, finding: Dict[str, Any]) -> Optional[str]:
         """Extract target function name from finding."""
         location = finding.get("location", {})
@@ -552,11 +571,8 @@ class PoCGenerator:
             result = result.replace("// {{CUSTOM_SETUP}}", setup_code)
 
         # Add fork configuration
-        if options.fork_url and options.fork_block:
-            fork_config = f"""
-        // Fork mainnet
-        vm.createSelectFork("{options.fork_url}", {options.fork_block});
-"""
+        fork_config = self._fork_config(options)
+        if fork_config:
             result = result.replace("// {{FORK_CONFIG}}", fork_config)
 
         # Remove unused placeholders

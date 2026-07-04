@@ -1213,6 +1213,22 @@ class TestCustomizePoCTemplate:
         assert "token = new MockToken();" not in poc.solidity_code
         assert "Skipping malformed custom import entry in PoC options" in caplog.text
 
+    def test_malformed_fork_options_are_ignored(self, generator, caplog):
+        """Test malformed fork options do not leak container reprs into templates."""
+        options = GenerationOptions(
+            fork_url={"url": "https://eth-mainnet.example"},
+            fork_block=["18500000"],
+        )
+
+        finding = {"type": "reentrancy", "severity": "high", "description": "Test"}
+        with caplog.at_level("WARNING"):
+            poc = generator.generate(finding, "Token.sol", options)
+
+        assert "createSelectFork" not in poc.solidity_code
+        assert "{'url': 'https://eth-mainnet.example'}" not in poc.solidity_code
+        assert "['18500000']" not in poc.solidity_code
+        assert "Skipping malformed fork configuration in PoC options" in caplog.text
+
 
 class TestGasAndTraceExtraction:
     """Tests for gas and trace extraction (lines 618-621, 626-629)."""
