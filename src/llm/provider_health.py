@@ -59,8 +59,12 @@ async def fetch_openai_compatible_model_ids(
                 headers=headers,
                 timeout=aiohttp.ClientTimeout(total=timeout),
             ) as resp:
-                if resp.status != 200:
-                    logger.debug("%s model check failed with status %s", provider_name, resp.status)
+                status = getattr(resp, "status", None)
+                if not isinstance(status, int):
+                    logger.debug("%s model check returned malformed response status", provider_name)
+                    return set()
+                if status != 200:
+                    logger.debug("%s model check failed with status %s", provider_name, status)
                     return set()
 
                 payload = await resp.json()
