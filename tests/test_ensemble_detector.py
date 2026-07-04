@@ -1232,6 +1232,20 @@ That's my finding."""
         assert len(results) == 1
         assert results[0]["description"] == r"pattern \d+"
 
+    def test_parse_rejects_malformed_type_fields(self, detector):
+        """Test parser drops findings whose type is not a real string."""
+        response = """[
+            {"type": {"name": "reentrancy"}, "severity": "high", "title": "Bad"},
+            {"type": ["access-control"], "severity": "medium", "title": "Bad"},
+            {"type": "unchecked-call", "severity": "low", "title": "Good"}
+        ]"""
+
+        results = detector._parse_model_response(response, "test-model")
+
+        assert len(results) == 1
+        assert results[0]["type"] == "unchecked-call"
+        assert results[0]["_source_model"] == "test-model"
+
 
 # =============================================================================
 # Integration Tests
