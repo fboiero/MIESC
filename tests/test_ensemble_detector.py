@@ -979,6 +979,53 @@ class TestLLMEnsembleDetectorQueryMethods:
 
         asyncio.run(run_test())
 
+    def test_query_anthropic_uses_first_text_content_block(
+        self, multi_provider_detector, llm_response_json
+    ):
+        """Test Anthropic skips non-text content blocks before parsing text."""
+
+        async def run_test():
+            mock_response = MagicMock()
+            mock_response.status = 200
+            mock_response.json = AsyncMock(
+                return_value={
+                    "content": [
+                        {"type": "tool_use", "name": "ignored"},
+                        {"type": "text", "text": llm_response_json},
+                    ]
+                }
+            )
+
+            mock_session = _aiohttp_session_with_response("post", mock_response)
+
+            with patch("aiohttp.ClientSession", return_value=mock_session):
+                results = await multi_provider_detector._query_anthropic(
+                    "claude-3-sonnet", "contract code"
+                )
+
+            assert len(results) == 1
+            assert results[0]["type"] == "reentrancy"
+
+        asyncio.run(run_test())
+
+    def test_query_anthropic_rejects_malformed_text_block(self, multi_provider_detector):
+        """Test Anthropic malformed content blocks fail as provider unavailable."""
+
+        async def run_test():
+            mock_response = MagicMock()
+            mock_response.status = 200
+            mock_response.json = AsyncMock(return_value={"content": [{"type": "text"}]})
+
+            mock_session = _aiohttp_session_with_response("post", mock_response)
+
+            with patch("aiohttp.ClientSession", return_value=mock_session):
+                with pytest.raises(ProviderUnavailable, match="Anthropic response text"):
+                    await multi_provider_detector._query_anthropic(
+                        "claude-3-sonnet", "contract code"
+                    )
+
+        asyncio.run(run_test())
+
     def test_query_deepseek_success(self, llm_response_json):
         """Test successful DeepSeek query."""
 
@@ -1058,6 +1105,22 @@ class TestLLMEnsembleDetectorQueryMethods:
 
             with patch("aiohttp.ClientSession", return_value=mock_session):
                 with pytest.raises(RuntimeError, match="Ollama error"):
+                    await detector._query_model("test-model", "contract code")
+
+        asyncio.run(run_test())
+
+    def test_query_model_rejects_malformed_ollama_message(self, detector):
+        """Test Ollama malformed message payloads fail as provider unavailable."""
+
+        async def run_test():
+            mock_response = MagicMock()
+            mock_response.status = 200
+            mock_response.json = AsyncMock(return_value={"message": ["not", "an", "object"]})
+
+            mock_session = _aiohttp_session_with_response("post", mock_response)
+
+            with patch("aiohttp.ClientSession", return_value=mock_session):
+                with pytest.raises(ProviderUnavailable, match="Ollama response message"):
                     await detector._query_model("test-model", "contract code")
 
         asyncio.run(run_test())

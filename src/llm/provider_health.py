@@ -63,7 +63,12 @@ async def fetch_openai_compatible_model_ids(
                     logger.debug("%s model check failed with status %s", provider_name, resp.status)
                     return set()
 
-                return extract_openai_compatible_model_ids(await resp.json())
+                payload = await resp.json()
+                if not isinstance(payload, dict):
+                    logger.debug("%s model check returned malformed JSON body", provider_name)
+                    return set()
+
+                return extract_openai_compatible_model_ids(payload)
     except PROVIDER_HEALTH_ERRORS as e:
         logger.debug("%s model check failed: %s", provider_name, e)
         return set()

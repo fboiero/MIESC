@@ -611,6 +611,43 @@ Response (JSON array only):"""
 
         return content
 
+    @staticmethod
+    def _extract_anthropic_content(data: Any) -> str:
+        """Extract the first text block from an Anthropic messages response."""
+        if not isinstance(data, dict):
+            raise ProviderUnavailable("Anthropic response payload is malformed")
+
+        content_blocks = data.get("content")
+        if not isinstance(content_blocks, list) or not content_blocks:
+            raise ProviderUnavailable("Anthropic response content is malformed")
+
+        for block in content_blocks:
+            if not isinstance(block, dict):
+                continue
+            if block.get("type", "text") != "text":
+                continue
+            text = block.get("text")
+            if isinstance(text, str):
+                return text
+
+        raise ProviderUnavailable("Anthropic response text is malformed")
+
+    @staticmethod
+    def _extract_ollama_content(data: Any) -> str:
+        """Extract chat content from an Ollama response payload."""
+        if not isinstance(data, dict):
+            raise ProviderUnavailable("Ollama response payload is malformed")
+
+        message = data.get("message")
+        if not isinstance(message, dict):
+            raise ProviderUnavailable("Ollama response message is malformed")
+
+        content = message.get("content")
+        if not isinstance(content, str):
+            raise ProviderUnavailable("Ollama response content is malformed")
+
+        return content
+
     async def _query_anthropic(
         self,
         model: str,
@@ -661,7 +698,7 @@ Response (JSON array only):"""
                         raise ProviderUnavailable(f"Anthropic error: {error_text}")
 
                     data = await resp.json()
-                    content = data.get("content", [{}])[0].get("text", "")
+                    content = self._extract_anthropic_content(data)
 
                     return self._parse_model_response(content, model)
 
@@ -792,7 +829,7 @@ Response (JSON array only):"""
                         raise RuntimeError(f"Ollama error: {await resp.text()}")
 
                     data = await resp.json()
-                    content = data.get("message", {}).get("content", "")
+                    content = self._extract_ollama_content(data)
 
                     return self._parse_model_response(content, model)
 

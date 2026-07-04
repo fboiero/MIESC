@@ -274,6 +274,17 @@ def test_extract_vulnerable_code_ignores_malformed_location_fields():
     assert line_extracted == code
 
 
+def test_extract_vulnerable_code_defaults_non_string_contract_code():
+    generator = RemediationGenerator()
+
+    extracted = generator._extract_vulnerable_code(
+        {},
+        {"contract_code": "contract C { function other() public {} }"},
+    )
+
+    assert extracted == ""
+
+
 def test_extract_vulnerable_code_by_function_name():
     generator = RemediationGenerator()
     code = """
@@ -438,6 +449,31 @@ async def test_generate_remediation_defaults_malformed_prompt_scalar_fields(monk
     remediation = await generator.generate_remediation(finding, "contract C {}")
 
     assert remediation.finding_id == "unknown"
+
+
+@pytest.mark.asyncio
+async def test_generate_remediation_defaults_malformed_contract_code(monkeypatch):
+    generator = RemediationGenerator()
+    finding = {
+        "id": "F-2e",
+        "type": "reentrancy",
+        "severity": "HIGH",
+    }
+
+    async def fake_query(prompt):
+        assert "contract_code" not in prompt
+        assert "```solidity\n\n```" in prompt
+        return {}
+
+    monkeypatch.setattr(generator, "_query_llm", fake_query)
+
+    remediation = await generator.generate_remediation(
+        finding,
+        {"contract_code": "contract C { function withdraw() public {} }"},
+    )
+
+    assert remediation.vulnerable_code == ""
+    assert remediation.fixed_code == ""
 
 
 @pytest.mark.asyncio
