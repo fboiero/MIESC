@@ -224,7 +224,7 @@ class RemediationGenerator:
         )
 
         # Query LLM
-        result = await self._query_llm(prompt)
+        result = self._dict_or_empty(await self._query_llm(prompt))
 
         # Parse result without trusting malformed LLM field shapes.
         fixed_code = self._string_or_default(result.get("fixed_code"), vulnerable_code)

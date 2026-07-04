@@ -51,6 +51,10 @@ async def fetch_openai_compatible_model_ids(
     provider_name: str = "provider",
 ) -> Set[str]:
     """Fetch model identifiers from an OpenAI-compatible /v1/models endpoint."""
+    if not isinstance(base_url, str) or not isinstance(api_key, str):
+        logger.debug("%s model check received malformed endpoint credentials", provider_name)
+        return set()
+
     headers = {"Authorization": f"Bearer {api_key}"}
     try:
         async with aiohttp.ClientSession() as session:

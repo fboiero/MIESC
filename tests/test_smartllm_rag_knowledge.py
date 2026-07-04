@@ -456,3 +456,29 @@ class TestEmbeddingRAGSearchBoundaryShapes:
             ["CUSTOM-004"],
             [],
         ]
+
+    def test_batch_search_discards_malformed_cached_result_and_queries_collection(self, tmp_path):
+        vulnerability = VulnerabilityDocument(
+            id="CUSTOM-005",
+            title="Malformed Cache Boundary",
+            description="Custom vulnerability description",
+        )
+        collection = _MalformedSearchCollection(
+            {
+                "ids": [["CUSTOM-005"]],
+                "distances": [[0.2]],
+            }
+        )
+        rag = EmbeddingRAG(persist_directory=str(tmp_path))
+        rag._initialized = True
+        rag._collection = collection
+        rag._doc_index = {"CUSTOM-005": vulnerability}
+        cache_key = rag._get_cache_key("batch", None, None, 1)
+        rag._query_cache = {cache_key: (9999999999.0, ["not-a-retrieval-result"])}
+
+        results = rag.batch_search(["batch"], n_results=1)
+
+        assert collection.query_texts == ["batch"]
+        assert [[result.document.id for result in row] for row in results] == [["CUSTOM-005"]]
+        assert rag._cache_hits == 0
+        assert rag._cache_misses == 1

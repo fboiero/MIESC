@@ -260,6 +260,39 @@ def test_prioritize_findings_applies_valid_indices_only(monkeypatch):
     assert "llm_priority" not in findings[0]
 
 
+def test_prioritize_findings_skips_malformed_parsed_priority_boundaries(monkeypatch):
+    helper = OpenLLaMAHelper()
+    findings = [
+        {"title": "A", "severity": "LOW"},
+        "not a finding",
+        {"title": "C", "severity": "HIGH"},
+        {"title": "D", "severity": "MEDIUM"},
+    ]
+
+    monkeypatch.setattr(helper, "is_available", lambda: True)
+    monkeypatch.setattr(helper, "_call_llm", lambda prompt: "priorities")
+    monkeypatch.setattr(
+        helper,
+        "_parse_priorities",
+        lambda response: {
+            0: ["not", "a", "priority"],
+            1: {"priority": 9, "reason": "malformed finding"},
+            2: {"priority": True, "reason": {"why": "bad shape"}},
+            3: {"priority": 7, "reason": "valid"},
+        },
+    )
+
+    result = helper.prioritize_findings(findings, "contract C {}")
+
+    assert result is findings
+    assert "llm_priority" not in findings[0]
+    assert findings[1] == "not a finding"
+    assert findings[2]["llm_priority"] == 5
+    assert findings[2]["llm_reason"] == ""
+    assert findings[3]["llm_priority"] == 7
+    assert findings[3]["llm_reason"] == "valid"
+
+
 def test_generate_remediation_advice_uses_recommendation_when_unavailable(monkeypatch):
     helper = OpenLLaMAHelper()
     monkeypatch.setattr(helper, "is_available", lambda: False)

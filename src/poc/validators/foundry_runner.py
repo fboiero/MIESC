@@ -421,8 +421,10 @@ class FoundryRunner:
         version_match = re.search(r"forge (\d+\.\d+\.\d+)", stdout + stderr)
         forge_version = version_match.group(1) if version_match else None
 
+        normalized_returncode = returncode if isinstance(returncode, int) else 1
+
         return FoundryResult(
-            success=returncode == 0,
+            success=normalized_returncode == 0,
             tests=tests,
             total_tests=len(tests),
             passed=passed,
@@ -432,7 +434,7 @@ class FoundryRunner:
             execution_time_ms=execution_time,
             raw_output=stdout + stderr,
             forge_version=forge_version,
-            error=stderr if returncode != 0 else None,
+            error=stderr if normalized_returncode != 0 else None,
         )
 
     @staticmethod

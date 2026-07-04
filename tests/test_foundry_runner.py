@@ -1311,6 +1311,19 @@ More text
         assert result.raw_output == stdout.decode()
         assert result.error == ""
 
+    def test_parse_forge_output_treats_malformed_returncode_as_failure(self, runner):
+        """Test malformed returncode shapes are not treated as successful runs."""
+        result = runner._parse_forge_output(
+            "[PASS] test_text() (gas: 123)",
+            b"raw-error",
+            "0",
+            100.0,
+        )
+
+        assert result.success is False
+        assert result.error == "raw-error"
+        assert [test.name for test in result.tests] == ["test_text"]
+
 
 class TestHighGasUsageWarning:
     """Tests for high gas usage warning in validate_poc."""

@@ -1046,6 +1046,29 @@ class TestPoCRunMethod:
         assert result.success is False
         assert "Assertion failed" in result.error
 
+    def test_run_normalizes_malformed_subprocess_output_shapes(
+        self, generator, sample_poc, tmp_path
+    ):
+        """Test malformed stdout/stderr shapes do not leak reprs into PoC results."""
+        from unittest.mock import MagicMock, patch
+
+        test_dir = tmp_path / "test" / "exploits"
+        test_dir.mkdir(parents=True)
+
+        mock_result = MagicMock()
+        mock_result.returncode = "0"
+        mock_result.stdout = b"[PASS] test_exploit() (gas: 12,345)"
+        mock_result.stderr = {"error": "bad"}
+
+        with patch("subprocess.run", return_value=mock_result):
+            result = generator.run(sample_poc, tmp_path, verbose=False)
+
+        assert result.success is False
+        assert result.output == "[PASS] test_exploit() (gas: 12,345)"
+        assert result.gas_used == 12345
+        assert result.error == ""
+        assert "{'error': 'bad'}" not in result.output
+
     def test_run_timeout(self, generator, sample_poc, tmp_path):
         """Test PoC run timeout (lines 362-368)."""
         import subprocess

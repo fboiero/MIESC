@@ -28,6 +28,15 @@ from typing import Any, Dict, List, Optional, Union
 logger = logging.getLogger(__name__)
 
 
+def _normalize_output_text(value: Any) -> str:
+    """Normalize subprocess output fields without leaking container reprs."""
+    if isinstance(value, str):
+        return value
+    if isinstance(value, bytes):
+        return value.decode("utf-8", errors="replace")
+    return ""
+
+
 class VulnerabilityType(Enum):
     """Supported vulnerability types for PoC generation."""
 
@@ -368,8 +377,11 @@ class PoCGenerator:
             execution_time = (time.time() - start_time) * 1000
 
             # Parse output
-            success = result.returncode == 0
-            output = result.stdout + result.stderr
+            returncode = result.returncode if isinstance(result.returncode, int) else 1
+            success = returncode == 0
+            stdout = _normalize_output_text(getattr(result, "stdout", ""))
+            stderr = _normalize_output_text(getattr(result, "stderr", ""))
+            output = stdout + stderr
 
             # Extract gas used
             gas_used = self._extract_gas_from_output(output)
@@ -379,7 +391,7 @@ class PoCGenerator:
                 output=output,
                 gas_used=gas_used,
                 execution_time_ms=execution_time,
-                error=None if success else result.stderr,
+                error=None if success else stderr,
                 traces=self._extract_traces(output),
             )
 

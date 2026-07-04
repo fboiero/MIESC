@@ -1001,6 +1001,34 @@ class TestLLMOrchestrator:
 
         asyncio.run(run_test())
 
+    def test_query_ignores_malformed_provider_route(self):
+        """Test query falls back when provider routing input has an invalid shape."""
+
+        async def run_test():
+            config = LLMConfig(
+                provider=LLMProvider.OLLAMA,
+                model="primary",
+                retry_attempts=1,
+                retry_delay=0,
+            )
+            orchestrator = LLMOrchestrator([config])
+            orchestrator.backends["ollama:primary"].available = True
+
+            response = LLMResponse(
+                content="primary content",
+                provider="ollama",
+                model="primary",
+            )
+            analyze = AsyncMock(return_value=response)
+            orchestrator.backends["ollama:primary"].analyze = analyze
+
+            result = await orchestrator.query("test prompt", provider=["not", "a", "key"])
+
+            assert result is response
+            analyze.assert_awaited_once()
+
+        asyncio.run(run_test())
+
     def test_analyze_contract_structure(self):
         """Test analyze_contract method structure."""
         config = LLMConfig(provider=LLMProvider.OPENAI, model="gpt-4", api_key="test-key")
