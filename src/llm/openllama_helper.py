@@ -216,9 +216,19 @@ OUTPUT (JSON only):
             if response:
                 priorities = self._parse_priorities(response)
                 for idx, priority_data in priorities.items():
-                    if 0 <= idx < len(findings):
-                        findings[idx]["llm_priority"] = priority_data["priority"]
-                        findings[idx]["llm_reason"] = priority_data["reason"]
+                    if (
+                        0 <= idx < len(findings)
+                        and isinstance(findings[idx], dict)
+                        and isinstance(priority_data, dict)
+                    ):
+                        priority = priority_data.get("priority", 5)
+                        reason = priority_data.get("reason", "")
+                        findings[idx]["llm_priority"] = (
+                            priority
+                            if isinstance(priority, int) and not isinstance(priority, bool)
+                            else 5
+                        )
+                        findings[idx]["llm_reason"] = reason if isinstance(reason, str) else ""
 
             return findings
 
@@ -359,6 +369,8 @@ INSIGHTS:"""
         """Create concise summary of findings for LLM."""
         summary_lines = []
         for idx, finding in enumerate(findings):
+            if not isinstance(finding, dict):
+                finding = {}
             description = self._truncate_text(finding.get("description"), limit=100)
             line = f"{idx}. [{finding.get('severity', 'UNKNOWN')}] {finding.get('title', 'Unknown')} - {description}"
             summary_lines.append(line)
