@@ -653,6 +653,45 @@ class TestParseOutput:
 
         assert [test.gas_used for test in tests] == [123, 1234, None, None]
 
+    def test_parse_json_test_results_ignores_malformed_name_and_status(self, runner):
+        """Test nested JSON results require string names and boolean success values."""
+        tests = runner._parse_test_results(
+            {
+                "test_results": {
+                    "test/Mixed.t.sol:MixedTest": {
+                        "test_ok": {"success": True},
+                        "test_bad_status": {"success": "true"},
+                        123: {"success": True},
+                    },
+                }
+            }
+        )
+
+        assert len(tests) == 1
+        assert tests[0].name == "test/Mixed.t.sol:MixedTest::test_ok"
+        assert tests[0].status == TestStatus.PASSED
+
+    def test_parse_flat_json_test_result_ignores_malformed_name_and_status(self, runner):
+        """Test flat JSON results require a string name and boolean success value."""
+        assert (
+            runner._parse_test_results(
+                {
+                    "test_name": ["test_bad"],
+                    "success": True,
+                }
+            )
+            == []
+        )
+        assert (
+            runner._parse_test_results(
+                {
+                    "test_name": "test_bad_status",
+                    "success": "false",
+                }
+            )
+            == []
+        )
+
     def test_parse_forge_output_ignores_malformed_json_gas(self, runner):
         """Test malformed JSON gas values do not break total gas aggregation."""
         output = (
