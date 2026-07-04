@@ -661,6 +661,25 @@ class TestGeneratePoC:
 
         assert poc.description == reentrancy_finding["description"]
 
+    def test_generate_ignores_malformed_text_field_shapes(self, generator):
+        """Test malformed text fields do not leak container reprs into PoC output."""
+        finding = {
+            "type": "reentrancy",
+            "severity": {"level": "critical"},
+            "description": ["external call before state update"],
+            "id": {"value": "VULN-001"},
+            "rule": ["reentrancy-rule"],
+            "location": {"function": "withdraw"},
+        }
+
+        poc = generator.generate(finding, "Bank.sol")
+
+        assert poc.description == ""
+        assert poc.finding_id is None
+        assert "medium" in poc.solidity_code
+        assert "['external call before state update']" not in poc.solidity_code
+        assert "{'level': 'critical'}" not in poc.solidity_code
+
 
 # =============================================================================
 # Batch Generation Tests

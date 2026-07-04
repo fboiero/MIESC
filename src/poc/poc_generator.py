@@ -246,8 +246,11 @@ class PoCGenerator:
 
         # Extract finding details
         target_function = self._extract_function_name(finding)
-        description = finding.get("description", "")
-        severity = finding.get("severity", "medium")
+        description = self._finding_text_field(finding, "description", "")
+        severity = self._finding_text_field(finding, "severity", "medium")
+        finding_id = self._finding_text_field(finding, "id") or self._finding_text_field(
+            finding, "rule"
+        )
 
         # Generate PoC name
         poc_name = self._generate_poc_name(target_contract, vuln_type, target_function)
@@ -271,7 +274,7 @@ class PoCGenerator:
             solidity_code=solidity_code,
             target_contract=target_contract,
             target_function=target_function,
-            finding_id=finding.get("id") or finding.get("rule"),
+            finding_id=finding_id,
             description=description,
             prerequisites=self._get_prerequisites(vuln_type),
             expected_outcome=self._get_expected_outcome(vuln_type, severity),
@@ -412,6 +415,15 @@ class PoCGenerator:
         logger.warning(f"Unknown vulnerability type: {finding_type}, defaulting to REENTRANCY")
         return VulnerabilityType.REENTRANCY
 
+    def _finding_text_field(
+        self, finding: Dict[str, Any], key: str, default: Optional[str] = None
+    ) -> Optional[str]:
+        """Return string finding fields only; ignore malformed object/list shapes."""
+        value = finding.get(key, default)
+        if isinstance(value, str):
+            return value
+        return default
+
     def _extract_function_name(self, finding: Dict[str, Any]) -> Optional[str]:
         """Extract target function name from finding."""
         location = finding.get("location", {})
@@ -489,8 +501,8 @@ class PoCGenerator:
             "{{VULNERABILITY_TYPE}}": vuln_type.value,
             "{{ATTACKER_BALANCE}}": options.attacker_balance,
             "{{VICTIM_BALANCE}}": options.victim_balance,
-            "{{DESCRIPTION}}": finding.get("description", ""),
-            "{{SEVERITY}}": finding.get("severity", "medium"),
+            "{{DESCRIPTION}}": self._finding_text_field(finding, "description", ""),
+            "{{SEVERITY}}": self._finding_text_field(finding, "severity", "medium"),
             "{{TIMESTAMP}}": datetime.now().strftime("%Y-%m-%d %H:%M"),
         }
 
