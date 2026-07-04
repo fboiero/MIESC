@@ -4662,13 +4662,22 @@ class EmbeddingRAG:
 
     def _get_cached_result(self, cache_key: str) -> Optional[List["RetrievalResult"]]:
         """Get cached result if valid (not expired)."""
-        results, hit, _expired = get_cached_result(
-            self._query_cache,
-            cache_key,
-            enabled=self.enable_cache,
-            ttl_seconds=self.CACHE_TTL_SECONDS,
-        )
+        try:
+            results, hit, _expired = get_cached_result(
+                self._query_cache,
+                cache_key,
+                enabled=self.enable_cache,
+                ttl_seconds=self.CACHE_TTL_SECONDS,
+            )
+        except (TypeError, ValueError):
+            self._query_cache.pop(cache_key, None)
+            return None
         if hit:
+            if not isinstance(results, list) or any(
+                not isinstance(result, RetrievalResult) for result in results
+            ):
+                self._query_cache.pop(cache_key, None)
+                return None
             self._cache_hits += 1
         return results
 
