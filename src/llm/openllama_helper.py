@@ -229,16 +229,17 @@ OUTPUT (JSON only):
         if not self.is_available():
             return self._recommendation_fallback(finding)
 
+        normalized_finding = finding if isinstance(finding, dict) else {}
         prompt = f"""Generate specific remediation advice for this vulnerability.
 
 VULNERABILITY:
-Title: {finding.get('title', 'Unknown')}
-Severity: {finding.get('severity', 'UNKNOWN')}
-Description: {finding.get('description', '')}
-Location: {finding.get('location', {})}
+Title: {self._prompt_text(normalized_finding.get('title'), default='Unknown')}
+Severity: {self._prompt_text(normalized_finding.get('severity'), default='UNKNOWN')}
+Description: {self._prompt_text(normalized_finding.get('description'))}
+Location: {self._prompt_location(normalized_finding.get('location'))}
 
 CONTRACT CODE (excerpt):
-{contract_code[:1500]}
+{self._prompt_text(contract_code, limit=1500)}
 
 INSTRUCTIONS:
 1. Provide specific code-level fix recommendations
@@ -335,6 +336,8 @@ INSIGHTS:"""
 
     def _recommendation_fallback(self, finding: Dict[str, Any]) -> str:
         """Return a string remediation fallback for malformed finding shapes."""
+        if not isinstance(finding, dict):
+            return "Review and address the identified issue"
         recommendation = finding.get("recommendation")
         if isinstance(recommendation, str):
             return recommendation
@@ -355,6 +358,23 @@ INSIGHTS:"""
         if not isinstance(value, str):
             return ""
         return value[:limit]
+
+    @staticmethod
+    def _prompt_text(value: Any, default: str = "", limit: Optional[int] = None) -> str:
+        """Return stable prompt text without serializing malformed field shapes."""
+        if not isinstance(value, str):
+            return default
+        text = value if limit is None else value[:limit]
+        return text if text else default
+
+    @staticmethod
+    def _prompt_location(value: Any) -> str:
+        """Render supported location shapes without leaking Python reprs."""
+        if isinstance(value, str):
+            return value
+        if isinstance(value, dict):
+            return json.dumps(value, sort_keys=True)
+        return "{}"
 
     def _parse_priorities(self, llm_response: str) -> Dict[int, Dict[str, Any]]:
         """Parse priority assignments from LLM response."""

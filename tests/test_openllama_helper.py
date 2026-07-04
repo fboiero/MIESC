@@ -228,6 +228,16 @@ def test_generate_remediation_advice_defaults_for_non_string_recommendation(monk
     )
 
 
+def test_generate_remediation_advice_defaults_for_non_dict_finding(monkeypatch):
+    helper = OpenLLaMAHelper()
+    monkeypatch.setattr(helper, "is_available", lambda: False)
+
+    assert (
+        helper.generate_remediation_advice(["not", "a", "finding"], "contract C {}")
+        == "Review and address the identified issue"
+    )
+
+
 def test_generate_remediation_advice_returns_llm_response(monkeypatch):
     helper = OpenLLaMAHelper()
     monkeypatch.setattr(helper, "is_available", lambda: True)
@@ -249,6 +259,37 @@ def test_generate_remediation_advice_falls_back_to_string_recommendation(monkeyp
     )
 
     assert advice == "Use onlyOwner"
+
+
+def test_generate_remediation_advice_sanitizes_malformed_prompt_fields(monkeypatch):
+    helper = OpenLLaMAHelper()
+    captured = {}
+
+    monkeypatch.setattr(helper, "is_available", lambda: True)
+
+    def fake_call_llm(prompt):
+        captured["prompt"] = prompt
+        return "review the vulnerable path"
+
+    monkeypatch.setattr(helper, "_call_llm", fake_call_llm)
+
+    advice = helper.generate_remediation_advice(
+        {
+            "title": ["Missing auth"],
+            "severity": {"level": "HIGH"},
+            "description": ["not", "text"],
+            "location": ["line", 12],
+        },
+        {"source": "contract C {}"},
+    )
+
+    assert advice == "review the vulnerable path"
+    assert "Title: Unknown" in captured["prompt"]
+    assert "Severity: UNKNOWN" in captured["prompt"]
+    assert "Description: \n" in captured["prompt"]
+    assert "Location: {}" in captured["prompt"]
+    assert "{'source':" not in captured["prompt"]
+    assert "['Missing auth']" not in captured["prompt"]
 
 
 def test_generate_remediation_advice_empty_llm_rejects_non_string_recommendation(monkeypatch):
