@@ -48,6 +48,17 @@ def test_is_available_rejects_non_string_ollama_list_output(monkeypatch):
     assert helper.is_available() is False
 
 
+def test_is_available_returns_false_on_malformed_ollama_result(monkeypatch):
+    helper = OpenLLaMAHelper(LLMConfig(model="test-model"))
+
+    class MalformedResult:
+        stdout = "test-model"
+
+    monkeypatch.setattr("subprocess.run", lambda *args, **kwargs: MalformedResult())
+
+    assert helper.is_available() is False
+
+
 def test_is_available_returns_false_on_runtime_error(monkeypatch):
     helper = OpenLLaMAHelper()
 
@@ -202,6 +213,24 @@ def test_call_llm_ignores_non_string_generate_response(monkeypatch):
 
         def read(self):
             return json.dumps({"response": ["not", "text"]}).encode()
+
+    monkeypatch.setattr("urllib.request.urlopen", lambda *args, **kwargs: FakeResponse())
+
+    assert helper._call_llm("prompt") is None
+
+
+def test_call_llm_ignores_malformed_generate_body(monkeypatch):
+    helper = OpenLLaMAHelper(LLMConfig(retry_attempts=1))
+
+    class FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            return None
 
     monkeypatch.setattr("urllib.request.urlopen", lambda *args, **kwargs: FakeResponse())
 

@@ -77,9 +77,10 @@ class OpenLLaMAHelper:
         try:
             result = subprocess.run(["ollama", "list"], capture_output=True, timeout=5, text=True)
 
-            model_list = result.stdout if isinstance(result.stdout, str) else ""
+            returncode = result.returncode if hasattr(result, "returncode") else None
+            model_list = result.stdout if isinstance(getattr(result, "stdout", None), str) else ""
 
-            if result.returncode == 0 and self.config.model in model_list:
+            if returncode == 0 and self.config.model in model_list:
                 self._available = True
                 logger.info(f"OpenLLaMA: {self.config.model} available")
             else:
@@ -308,7 +309,7 @@ REMEDIATION ADVICE:"""
 
             except (urllib.error.URLError, urllib.error.HTTPError) as e:
                 logger.warning(f"LLM HTTP attempt {attempt} failed: {e}")
-            except (json.JSONDecodeError, OSError, TimeoutError, ValueError) as e:
+            except (json.JSONDecodeError, OSError, TimeoutError, TypeError, ValueError) as e:
                 logger.error(f"LLM call attempt {attempt} error: {e}")
 
             if attempt < self.config.retry_attempts:
