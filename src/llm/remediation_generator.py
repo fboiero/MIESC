@@ -198,6 +198,7 @@ class RemediationGenerator:
         Returns:
             Remediation object with fixed code
         """
+        finding = self._dict_or_empty(finding)
         vuln_type = self._parse_vuln_type(finding.get("type", "unknown"))
         severity = self._string_or_default(finding.get("severity"), "medium")
         title = self._string_or_default(
@@ -499,6 +500,11 @@ class RemediationGenerator:
         if not isinstance(value, list):
             return []
         return [item for item in value if isinstance(item, str)]
+
+    @staticmethod
+    def _dict_or_empty(value: Any) -> Dict[str, Any]:
+        """Return mapping-shaped vulnerability findings only."""
+        return value if isinstance(value, dict) else {}
 
     def _get_pattern_info(self, vuln_type: str) -> str:
         """Get pattern information for the vulnerability type."""
