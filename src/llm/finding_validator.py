@@ -185,10 +185,19 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
                 if resp.status != 200:
                     return False
                 data = await resp.json()
-                models = [m.get("name", "") for m in data.get("models", [])]
+                if not isinstance(data, dict):
+                    return False
+
+                models_value = data.get("models", [])
+                models = models_value if isinstance(models_value, list) else []
+                model_names = [
+                    name
+                    for model in models
+                    if isinstance(model, dict) and isinstance(name := model.get("name"), str)
+                ]
                 # Check if our model is available
                 model_base = self.config.model.split(":")[0]
-                return any(model_base in m for m in models)
+                return any(model_base in name for name in model_names)
         except VALIDATOR_RUNTIME_ERRORS as e:
             logger.debug(f"Ollama not available: {e}")
             return False

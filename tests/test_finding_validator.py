@@ -27,6 +27,42 @@ async def test_is_available_returns_false_on_client_error(monkeypatch):
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "payload",
+    [
+        ["not a dict"],
+        {"models": "not a list"},
+        {"models": ["not a dict", {"name": ["not text"]}]},
+    ],
+)
+async def test_is_available_returns_false_for_malformed_tags_payload(monkeypatch, payload):
+    validator = LLMFindingValidator(ValidatorConfig())
+
+    class FakeResponse:
+        status = 200
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return None
+
+        async def json(self):
+            return payload
+
+    class FakeSession:
+        def get(self, *_args, **_kwargs):
+            return FakeResponse()
+
+    async def fake_get_session():
+        return FakeSession()
+
+    monkeypatch.setattr(validator, "_get_session", fake_get_session)
+
+    assert await validator.is_available() is False
+
+
+@pytest.mark.asyncio
 async def test_validate_finding_degrades_to_uncertain_on_runtime_error(monkeypatch):
     validator = LLMFindingValidator(ValidatorConfig())
     finding = {
