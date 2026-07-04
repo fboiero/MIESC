@@ -413,6 +413,22 @@ class TestRunAllTestsBasic:
         assert result.success is False
         assert "timed out" in result.error.lower()
 
+    def test_run_all_tests_runtime_error_returns_result(self, runner):
+        """Test run_all_tests returns structured result for runtime errors."""
+        with patch("subprocess.run", side_effect=RuntimeError("forge unavailable")):
+            result = runner.run_all_tests()
+
+        assert result.success is False
+        assert result.tests == []
+        assert result.total_tests == 0
+        assert result.passed == 0
+        assert result.failed == 0
+        assert result.skipped == 0
+        assert result.total_gas == 0
+        assert result.raw_output == ""
+        assert result.execution_time_ms >= 0
+        assert result.error == "forge unavailable"
+
 
 # =============================================================================
 # Compile Tests
