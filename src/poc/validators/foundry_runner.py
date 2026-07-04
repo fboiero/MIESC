@@ -510,6 +510,18 @@ class FoundryRunner:
                 return int(normalized)
         return None
 
+    @staticmethod
+    def _normalize_gas_report(value: Any) -> Dict[str, Any]:
+        """Normalize Forge JSON gas_report payloads to contract mappings only."""
+        if not isinstance(value, dict):
+            return {}
+
+        return {
+            contract: report
+            for contract, report in value.items()
+            if isinstance(contract, str) and isinstance(report, dict)
+        }
+
     def _parse_text_output(self, output: str) -> List[TestResult]:
         """Parse test results from text output."""
         tests = []
@@ -571,8 +583,9 @@ class FoundryRunner:
                     try:
                         data = json.loads(line)
                         gas_report = data.get("gas_report")
-                        if isinstance(gas_report, dict):
-                            report["contracts"] = gas_report
+                        normalized_report = self._normalize_gas_report(gas_report)
+                        if normalized_report:
+                            report["contracts"] = normalized_report
                     except json.JSONDecodeError:
                         continue
                 elif line.strip().startswith("|") and "----" not in line:
