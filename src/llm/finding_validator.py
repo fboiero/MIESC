@@ -21,6 +21,7 @@ Version: 1.0.0
 import asyncio
 import json
 import logging
+import math
 import os
 from dataclasses import dataclass, replace
 from enum import Enum
@@ -390,9 +391,12 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
     def _parse_confidence(value: Any, default: float = 0.5) -> float:
         """Parse confidence from LLM JSON without trusting malformed shapes."""
         try:
-            return float(value)
+            confidence = float(value)
         except (TypeError, ValueError):
             return default
+        if not math.isfinite(confidence) or not 0.0 <= confidence <= 1.0:
+            return default
+        return confidence
 
     @staticmethod
     def _parse_text(value: Any, default: str) -> str:

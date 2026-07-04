@@ -310,6 +310,17 @@ def test_parse_response_defaults_malformed_confidence():
     assert validation.reasoning == "Confirmed."
 
 
+@pytest.mark.parametrize("confidence", ['"nan"', '"inf"', -0.1, 1.5])
+def test_parse_response_defaults_non_finite_or_out_of_range_confidence(confidence):
+    validator = LLMFindingValidator(ValidatorConfig())
+    response = f'{{"result": "valid", "confidence": {confidence}, "reasoning": "Confirmed."}}'
+
+    validation = validator._parse_response(response, "F-5d")
+
+    assert validation.result == ValidationResult.VALID
+    assert validation.confidence == 0.5
+
+
 def test_parse_response_defaults_malformed_text_fields():
     validator = LLMFindingValidator(ValidatorConfig())
     response = """
@@ -481,6 +492,18 @@ def test_apply_validation_defaults_malformed_original_confidence():
 
     assert updated is not None
     assert updated["confidence"] == pytest.approx(0.85)
+
+
+@pytest.mark.parametrize("confidence", ["nan", float("inf"), -0.1, 1.5])
+def test_apply_validation_defaults_non_finite_or_out_of_range_original_confidence(confidence):
+    validator = LLMFindingValidator(ValidatorConfig())
+    finding = {"id": "F-1", "severity": "high", "confidence": confidence}
+    validation = LLMValidation("F-1", ValidationResult.LIKELY_FP, 0.9, "weak signal")
+
+    updated = validator._apply_validation(finding, validation)
+
+    assert updated is not None
+    assert updated["confidence"] == pytest.approx(0.42)
 
 
 def test_apply_validation_ignores_unknown_suggested_severity():
