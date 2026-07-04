@@ -415,6 +415,32 @@ async def test_generate_remediation_defaults_non_string_severity(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_generate_remediation_defaults_malformed_prompt_scalar_fields(monkeypatch):
+    generator = RemediationGenerator()
+    finding = {
+        "id": True,
+        "type": "reentrancy",
+        "severity": "HIGH",
+        "title": ["bad title"],
+        "description": {"bad": "description"},
+        "snippet": "function withdraw() public {}",
+    }
+
+    async def fake_query(prompt):
+        assert "- **Title**: reentrancy" in prompt
+        assert "- **Description**: \n" in prompt
+        assert "bad title" not in prompt
+        assert "bad" not in prompt
+        return {"fixed_code": "function withdraw() public {}"}
+
+    monkeypatch.setattr(generator, "_query_llm", fake_query)
+
+    remediation = await generator.generate_remediation(finding, "contract C {}")
+
+    assert remediation.finding_id == "unknown"
+
+
+@pytest.mark.asyncio
 async def test_generate_remediation_normalizes_malformed_llm_result_fields(monkeypatch):
     generator = RemediationGenerator()
     finding = {
