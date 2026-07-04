@@ -49,6 +49,38 @@ async def test_query_llm_returns_empty_dict_on_client_error(monkeypatch):
     assert await generator._query_llm("fix this") == {}
 
 
+@pytest.mark.asyncio
+@pytest.mark.parametrize("payload", [{"message": ["not a dict"]}, {"message": {"content": ["not text"]}}])
+async def test_query_llm_returns_empty_dict_for_malformed_message_payload(monkeypatch, payload):
+    generator = RemediationGenerator()
+
+    class FakeResponse:
+        status = 200
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return False
+
+        async def json(self):
+            return payload
+
+    class FakeSession:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return False
+
+        def post(self, *_args, **_kwargs):
+            return FakeResponse()
+
+    monkeypatch.setattr(aiohttp, "ClientSession", lambda: FakeSession())
+
+    assert await generator._query_llm("fix this") == {}
+
+
 def test_parse_json_response_repairs_common_llm_json_errors():
     generator = RemediationGenerator()
     response = """
