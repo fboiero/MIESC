@@ -936,6 +936,22 @@ class TestLLMEnsembleDetectorQueryMethods:
 
         asyncio.run(run_test())
 
+    def test_query_openai_rejects_malformed_choices(self, multi_provider_detector):
+        """Test OpenAI malformed choices payloads fail as provider unavailable."""
+
+        async def run_test():
+            mock_response = MagicMock()
+            mock_response.status = 200
+            mock_response.json = AsyncMock(return_value={"choices": []})
+
+            mock_session = _aiohttp_session_with_response("post", mock_response)
+
+            with patch("aiohttp.ClientSession", return_value=mock_session):
+                with pytest.raises(ProviderUnavailable, match="OpenAI response choices"):
+                    await multi_provider_detector._query_openai("gpt-4", "contract code")
+
+        asyncio.run(run_test())
+
     def test_query_anthropic_success(self, multi_provider_detector, llm_response_json):
         """Test successful Anthropic query."""
 
@@ -1005,6 +1021,28 @@ class TestLLMEnsembleDetectorQueryMethods:
 
             with pytest.raises(ProviderUnavailable):
                 await detector._query_deepseek("deepseek-v4-flash", "code")
+
+        asyncio.run(run_test())
+
+    def test_query_deepseek_rejects_malformed_content(self):
+        """Test DeepSeek non-string content fails as provider unavailable."""
+
+        async def run_test():
+            detector = LLMEnsembleDetector(
+                providers=[LLMProvider.DEEPSEEK],
+                deepseek_api_key="test-key",
+            )
+            mock_response = MagicMock()
+            mock_response.status = 200
+            mock_response.json = AsyncMock(
+                return_value={"choices": [{"message": {"content": ["not", "text"]}}]}
+            )
+
+            mock_session = _aiohttp_session_with_response("post", mock_response)
+
+            with patch("aiohttp.ClientSession", return_value=mock_session):
+                with pytest.raises(ProviderUnavailable, match="DeepSeek response content"):
+                    await detector._query_deepseek("deepseek-v4-flash", "contract code")
 
         asyncio.run(run_test())
 
