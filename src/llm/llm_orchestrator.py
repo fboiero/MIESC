@@ -586,8 +586,12 @@ Provide a comprehensive security analysis in JSON format."""
         cache_key = self._get_cache_key(prompt, context)
         if cache_key in self.cache:
             cached = self.cache[cache_key]
-            cached.cached = True
-            return cached
+            if not isinstance(cached, LLMResponse) or not isinstance(cached.content, str):
+                logger.warning("Ignoring malformed cached LLM response for key %s", cache_key)
+                self.cache.pop(cache_key, None)
+            else:
+                cached.cached = True
+                return cached
 
         # Select backend
         backend_key = provider or self.primary_provider
