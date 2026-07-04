@@ -594,13 +594,22 @@ Provide a comprehensive security analysis in JSON format."""
                 return cached
 
         # Select backend
-        backend_key = provider or self.primary_provider
-        if not backend_key:
+        backend_key = provider if provider is not None else self.primary_provider
+        if backend_key is not None and not isinstance(backend_key, str):
+            logger.warning(
+                "Ignoring malformed LLM backend route of type %s",
+                type(backend_key).__name__,
+            )
+            backend_key = None
+        if not backend_key and not self.backends:
             raise RuntimeError("No LLM backends available")
 
         # Try with fallback
         errors = []
-        backends_to_try = [backend_key] + [k for k in self.backends.keys() if k != backend_key]
+        backends_to_try = []
+        if backend_key:
+            backends_to_try.append(backend_key)
+        backends_to_try.extend(k for k in self.backends.keys() if k != backend_key)
 
         for key in backends_to_try:
             backend = self.backends.get(key)
