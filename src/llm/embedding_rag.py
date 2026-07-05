@@ -75,6 +75,13 @@ def _coerce_query_text(value: Any) -> str:
     return str(value)
 
 
+def _coerce_cache_query_text(value: Any) -> str:
+    """Return cache-key query text only for text-like values."""
+    if isinstance(value, (str, bytes)):
+        return _coerce_query_text(value)
+    return ""
+
+
 def _coerce_batch_queries(value: Any) -> List[Any]:
     """Return an ordered batch query container, or an empty batch when malformed."""
     if isinstance(value, (list, tuple)):
@@ -4765,7 +4772,7 @@ class EmbeddingRAG:
         strategy: str = "semantic",
     ) -> str:
         """Generate cache key for a search query."""
-        query_text = _coerce_query_text(query)
+        query_text = _coerce_cache_query_text(query)
         category_filter = _coerce_filter_text(filter_category)
         severity_filter = _coerce_filter_text(filter_severity)
         n = _coerce_result_count(n_results, self.top_k)
