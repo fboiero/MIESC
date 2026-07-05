@@ -1068,6 +1068,23 @@ class TestGasReport:
             "Vault": {"methods": {"deposit": {"avg": 100}}},
         }
 
+    def test_get_gas_report_ignores_blank_contract_and_method_names(self, runner):
+        """Test blank gas report contract and method names are ignored."""
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = (
+            '{"gas_report": {"": {"methods": {"bad": {"avg": 1}}}, '
+            '"Vault": {"methods": {"": {"avg": 2}, "deposit": {"avg": 100}}}}}\n'
+        )
+        mock_result.stderr = ""
+
+        with patch("subprocess.run", return_value=mock_result):
+            report = runner.get_gas_report()
+
+        assert report["contracts"] == {
+            "Vault": {"methods": {"deposit": {"avg": 100}}},
+        }
+
     def test_get_gas_report_filters_malformed_json_method_reports(self, runner):
         """Test JSON gas_report method entries must be object payloads."""
         mock_result = MagicMock()

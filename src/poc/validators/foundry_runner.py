@@ -603,7 +603,7 @@ class FoundryRunner:
 
         normalized = {}
         for contract, report in value.items():
-            if not isinstance(contract, str) or not isinstance(report, dict):
+            if not isinstance(contract, str) or not contract.strip() or not isinstance(report, dict):
                 continue
 
             contract_report = dict(report)
@@ -613,7 +613,7 @@ class FoundryRunner:
                     {
                         method: metrics
                         for method, metrics in methods.items()
-                        if isinstance(method, str) and isinstance(metrics, dict)
+                        if isinstance(method, str) and method.strip() and isinstance(metrics, dict)
                     }
                     if isinstance(methods, dict)
                     else {}
