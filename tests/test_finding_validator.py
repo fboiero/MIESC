@@ -499,6 +499,15 @@ def test_parse_response_text_fallback(response, expected_result, expected_confid
     assert validation.reasoning == response
 
 
+def test_parse_response_text_fallback_defaults_malformed_reasoning():
+    validator = LLMFindingValidator(ValidatorConfig())
+
+    validation = validator._parse_response(["not", "text"], "F-7b")
+
+    assert validation.result == ValidationResult.UNCERTAIN
+    assert validation.reasoning == "Parse error"
+
+
 def test_init_applies_environment_overrides(monkeypatch):
     monkeypatch.setenv("OLLAMA_HOST", "http://ollama.local:11434")
     monkeypatch.setenv("MIESC_LLM_MODEL", "local-model:latest")
