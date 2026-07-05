@@ -651,12 +651,13 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
             "fp_detected_count": fp_detected_count,
             "fp_rate": (fp_detected_count / max(validated_count, 1)),
             "config": {
-                "model": self._parse_text(self.config.model, ValidatorConfig().model),
-                "min_severity": self._parse_text(
-                    self.config.min_severity_to_validate,
+                "model": self._config_text(self.config, "model", ValidatorConfig().model),
+                "min_severity": self._config_text(
+                    self.config,
+                    "min_severity_to_validate",
                     ValidatorConfig().min_severity_to_validate,
                 ),
-                "enabled": self.config.enabled is True,
+                "enabled": self._config_enabled(self.config),
             },
         }
 
@@ -666,6 +667,16 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
         if isinstance(value, bool) or not isinstance(value, int):
             return 0
         return max(value, 0)
+
+    @staticmethod
+    def _config_text(config: Any, key: str, default: str) -> str:
+        """Read config text fields without trusting the container shape."""
+        return LLMFindingValidator._parse_text(getattr(config, key, default), default)
+
+    @staticmethod
+    def _config_enabled(config: Any) -> bool:
+        """Read the enabled flag without trusting the container shape."""
+        return getattr(config, "enabled", False) is True
 
 
 # Convenience function for synchronous usage
