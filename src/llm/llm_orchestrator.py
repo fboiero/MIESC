@@ -542,6 +542,7 @@ class LLMOrchestrator:
         self.backends: Dict[str, LLMBackend] = {}
         self.primary_provider: Optional[str] = None
         self.cache: Dict[str, LLMResponse] = {}
+        self.cache_timestamps: Dict[str, float] = {}
         self.cache_ttl: int = 3600  # 1 hour
         self.cache_max_entries: int = 128
 
@@ -711,6 +712,11 @@ Provide a comprehensive security analysis in JSON format."""
             if cache_error is not None:
                 logger.warning("Ignoring malformed cached LLM response for key %s", cache_key)
                 cache.pop(cache_key, None)
+                self.cache_timestamps.pop(cache_key, None)
+            elif not self._cache_entry_is_fresh(cache_key):
+                logger.warning("Ignoring expired cached LLM response for key %s", cache_key)
+                cache.pop(cache_key, None)
+                self.cache_timestamps.pop(cache_key, None)
             else:
                 cached.cached = True
                 return cached
@@ -873,6 +879,19 @@ Provide a comprehensive security analysis in JSON format."""
             return 1
         return raw_limit
 
+    def _cache_ttl_seconds(self) -> float:
+        """Return a conservative finite cache TTL for malformed orchestrator state."""
+        raw_ttl = self.cache_ttl
+        if (
+            isinstance(raw_ttl, bool)
+            or not isinstance(raw_ttl, (int, float))
+            or not math.isfinite(raw_ttl)
+            or raw_ttl < 0
+        ):
+            logger.warning("Malformed LLM cache_ttl=%r; using 0", raw_ttl)
+            return 0.0
+        return float(raw_ttl)
+
     def _cache_state(self) -> Dict[str, LLMResponse]:
         """Return a usable cache mapping, resetting malformed in-memory state."""
         if isinstance(self.cache, dict):
@@ -882,18 +901,38 @@ Provide a comprehensive security analysis in JSON format."""
             type(self.cache).__name__,
         )
         self.cache = {}
+        self.cache_timestamps = {}
         return self.cache
+
+    def _cache_entry_is_fresh(self, cache_key: str) -> bool:
+        """Return whether a cached response is still within the configured TTL."""
+        cached_at = self.cache_timestamps.get(cache_key)
+        if cached_at is None:
+            return True
+        if (
+            isinstance(cached_at, bool)
+            or not isinstance(cached_at, (int, float))
+            or not math.isfinite(cached_at)
+        ):
+            logger.warning(
+                "Malformed LLM cache timestamp for key %s; treating as expired",
+                cache_key,
+            )
+            return False
+        return time.time() - float(cached_at) <= self._cache_ttl_seconds()
 
     def _cache_response(self, cache_key: str, response: LLMResponse) -> None:
         """Store a response and evict oldest cache entries beyond the size limit."""
         cache = self._cache_state()
         cache[cache_key] = response
+        self.cache_timestamps[cache_key] = time.time()
         entry_limit = self._cache_entry_limit()
         while len(cache) > entry_limit:
             oldest_key = next(iter(cache), None)
             if oldest_key is None:
                 break
             cache.pop(oldest_key, None)
+            self.cache_timestamps.pop(oldest_key, None)
 
     def _get_cache_key(self, prompt: str, context: Optional[Dict]) -> str:
         """Generate cache key from prompt and context."""
@@ -1116,6 +1155,7 @@ Provide a comprehensive security analysis in JSON format."""
     def clear_cache(self) -> None:
         """Clear the response cache."""
         self._cache_state().clear()
+        self.cache_timestamps.clear()
 
 
 # Convenience function for simple usage
