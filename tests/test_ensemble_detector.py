@@ -1142,7 +1142,7 @@ class TestLLMEnsembleDetectorVoting:
         assert results[0].severity == "medium"
         assert results[0].title == "reentrancy"
         assert results[0].description == ""
-        assert results[0].confidence == pytest.approx(0.8)
+        assert results[0].confidence == pytest.approx(0.9)
         assert "{" not in results[0].title
         assert "[" not in results[0].description
 
@@ -1243,6 +1243,57 @@ class TestLLMEnsembleDetectorVoting:
 
         assert len(results) == 2
         assert [finding.confidence for finding in results] == pytest.approx([0.75, 0.75])
+
+    def test_ensemble_vote_averages_malformed_vote_confidence_boundary(self, detector):
+        """Malformed confidence on later votes should affect aggregate confidence."""
+        detector.consensus_threshold = 2
+
+        findings = {
+            "model1": [
+                {
+                    "type": "reentrancy",
+                    "severity": "high",
+                    "title": "Reentrancy",
+                    "description": "External call before update",
+                    "location": {"function": "withdraw", "line": 10},
+                    "confidence": 1.0,
+                }
+            ],
+            "model2": [
+                {
+                    "type": "reentrancy",
+                    "severity": "high",
+                    "title": "Reentrancy",
+                    "description": "External call before update",
+                    "location": {"function": "withdraw", "line": 11},
+                    "confidence": {"score": 0.95},
+                }
+            ],
+            "model3": [
+                {
+                    "type": "reentrancy",
+                    "severity": "high",
+                    "title": "Reentrancy",
+                    "description": "External call before update",
+                    "location": {"function": "withdraw", "line": 12},
+                    "confidence": 0.1,
+                }
+            ],
+        }
+
+        results = detector._ensemble_vote(findings)
+
+        assert len(results) == 1
+        assert results[0].votes == 3
+        assert results[0].confidence == pytest.approx(0.75)
+
+    def test_aggregate_vote_confidence_defaults_malformed_container(self):
+        """Malformed aggregate confidence containers should default safely."""
+        assert LLMEnsembleDetector._aggregate_vote_confidence({"confidence": 0.9}) == 0.7
+        assert LLMEnsembleDetector._aggregate_vote_confidence([]) == 0.7
+        assert LLMEnsembleDetector._aggregate_vote_confidence(
+            [True, {"score": 0.9}, float("inf")]
+        ) == pytest.approx(0.7)
 
     def test_ensemble_vote_ignores_malformed_model_finding_payloads(self, detector):
         """Malformed per-model finding containers should not enter voting."""
