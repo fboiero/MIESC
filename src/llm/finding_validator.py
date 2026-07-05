@@ -468,6 +468,15 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
         return text.upper() if normalized in cls.SEVERITY_ORDER else None
 
     @staticmethod
+    def _exception_reason(exc: BaseException) -> str:
+        """Describe validation exceptions without trusting malformed __str__."""
+        try:
+            detail = str(exc)
+        except Exception:
+            detail = exc.__class__.__name__
+        return f"Exception: {detail}"[:200]
+
+    @staticmethod
     def _parse_location_line(value: Any) -> Any:
         """Return a prompt-safe line value for known scalar line shapes."""
         if isinstance(value, bool):
@@ -548,13 +557,13 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
 
             for finding, validation in zip(batch, batch_validations, strict=False):
                 if isinstance(validation, BaseException):
-                    logger.warning(f"Validation exception: {validation}")
+                    logger.warning("Validation exception: %s", self._exception_reason(validation))
                     validations.append(
                         LLMValidation(
                             finding_id=self._parse_text(finding.get("id"), "unknown"),
                             result=ValidationResult.UNCERTAIN,
                             confidence=0.5,
-                            reasoning=f"Exception: {validation}",
+                            reasoning=self._exception_reason(validation),
                         )
                     )
                     validated_findings.append(finding)

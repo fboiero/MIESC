@@ -995,6 +995,31 @@ async def test_validate_findings_batch_defaults_malformed_exception_finding_id(m
 
 
 @pytest.mark.asyncio
+async def test_validate_findings_batch_handles_malformed_exception_text(monkeypatch):
+    validator = LLMFindingValidator(ValidatorConfig(batch_size=1))
+    finding = {"id": "F-1", "severity": "high"}
+
+    class BadException(RuntimeError):
+        def __str__(self):
+            raise RuntimeError("bad str")
+
+    async def available():
+        return True
+
+    monkeypatch.setattr(validator, "is_available", available)
+
+    async def fail_validate(_finding, _code_context):
+        raise BadException()
+
+    monkeypatch.setattr(validator, "validate_finding", fail_validate)
+
+    validated, validations = await validator.validate_findings_batch([finding])
+
+    assert validated == [finding]
+    assert validations[0].reasoning == "Exception: BadException"
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize("findings", [None, {"id": "A"}, "high finding"])
 async def test_validate_findings_batch_rejects_malformed_top_level_container(
     monkeypatch, findings
