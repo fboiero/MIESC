@@ -240,6 +240,33 @@ def test_remediation_to_dict_bounds_exported_gas_impact(gas_impact, expected):
     assert remediation.to_dict()["gas_impact"] == expected
 
 
+def test_remediation_to_dict_deduplicates_test_suggestions_export_boundary():
+    remediation = Remediation(
+        finding_id="F-1",
+        vulnerability_type="reentrancy",
+        severity="high",
+        vulnerable_code="function withdraw() public {}",
+        fixed_code="function withdraw() public nonReentrant {}",
+        explanation="uses guard",
+        changes_summary=[],
+        test_suggestions=[
+            "  reentrant attacker test  ",
+            "reentrant attacker test",
+            {"bad": "test"},
+            "",
+            "withdraw succeeds for user",
+            "withdraw succeeds for user",
+        ],
+        references=[],
+        confidence=0.8,
+    )
+
+    assert remediation.to_dict()["test_suggestions"] == [
+        "reentrant attacker test",
+        "withdraw succeeds for user",
+    ]
+
+
 def test_remediation_result_to_dict_normalizes_malformed_export_metadata():
     remediation = Remediation(
         finding_id="F-1",
