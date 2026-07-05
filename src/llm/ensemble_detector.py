@@ -242,13 +242,13 @@ Response (JSON array only):"""
         """
         self.models = self._normalize_configured_models(models)
         self.base_url = ollama_base_url
-        self.voting_strategy = voting_strategy
+        self.voting_strategy = self._normalize_voting_strategy(voting_strategy)
         self.consensus_threshold = self._normalize_consensus_threshold(consensus_threshold)
         self.timeout = timeout
         self.temperature = temperature
 
         # Multi-provider support (v4.4.0)
-        self.providers = providers or [LLMProvider.OLLAMA]
+        self.providers = self._normalize_providers(providers)
         self.openai_api_key = openai_api_key or os.environ.get("OPENAI_API_KEY")
         self.anthropic_api_key = anthropic_api_key or os.environ.get("ANTHROPIC_API_KEY")
         self.deepseek_api_key = deepseek_api_key or os.environ.get("DEEPSEEK_API_KEY")
@@ -263,7 +263,7 @@ Response (JSON array only):"""
         logger.info(
             f"LLMEnsembleDetector initialized with {len(self.models)} models, "
             f"providers={[p.value for p in self.providers]}, "
-            f"strategy={voting_strategy.value}, threshold={self.consensus_threshold}"
+            f"strategy={self.voting_strategy.value}, threshold={self.consensus_threshold}"
         )
 
     @classmethod
@@ -297,6 +297,54 @@ Response (JSON array only):"""
             return 2
 
         return max(1, threshold)
+
+    @staticmethod
+    def _normalize_voting_strategy(voting_strategy: Any) -> VotingStrategy:
+        """Return a supported voting strategy without trusting enum-like inputs."""
+        if isinstance(voting_strategy, VotingStrategy):
+            return voting_strategy
+
+        if isinstance(voting_strategy, str):
+            try:
+                return VotingStrategy(voting_strategy.strip().lower())
+            except ValueError:
+                pass
+
+        logger.warning("Ignoring malformed ensemble voting strategy; using threshold")
+        return VotingStrategy.THRESHOLD
+
+    @staticmethod
+    def _normalize_providers(providers: Any) -> List[LLMProvider]:
+        """Return configured providers while filtering malformed provider entries."""
+        if providers is None:
+            return [LLMProvider.OLLAMA]
+
+        if not isinstance(providers, (list, tuple, set)):
+            logger.warning("Ignoring malformed ensemble provider list; using Ollama")
+            return [LLMProvider.OLLAMA]
+
+        normalized: List[LLMProvider] = []
+        for provider in providers:
+            if isinstance(provider, LLMProvider):
+                normalized_provider = provider
+            elif isinstance(provider, str):
+                try:
+                    normalized_provider = LLMProvider(provider.strip().lower())
+                except ValueError:
+                    logger.warning("Ignoring unknown ensemble provider: %r", provider)
+                    continue
+            else:
+                logger.warning("Ignoring malformed ensemble provider entry: %r", provider)
+                continue
+
+            if normalized_provider not in normalized:
+                normalized.append(normalized_provider)
+
+        if not normalized:
+            logger.warning("No valid ensemble providers configured; using Ollama")
+            return [LLMProvider.OLLAMA]
+
+        return normalized
 
     async def initialize(self) -> Dict[str, bool]:
         """
