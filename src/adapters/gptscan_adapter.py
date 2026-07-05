@@ -389,8 +389,15 @@ Respond ONLY with valid JSON. Report ONLY vulnerabilities you are CONFIDENT abou
 
     def _detect_best_model(self) -> str:
         """Detect the best available Ollama model for security analysis via HTTP API."""
+        import os
         import urllib.error
         import urllib.request
+
+        # An explicit MIESC_LLM_MODEL override wins over the availability heuristic
+        # (e.g. pinning a benchmark to 14B for tractability / to avoid model thrash).
+        env_model = os.environ.get("MIESC_LLM_MODEL")
+        if env_model:
+            return env_model
 
         try:
             ollama_host = get_ollama_host()

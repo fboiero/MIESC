@@ -72,6 +72,18 @@ CONFIGS = {
         "tools": None,  # None = all available
         "description": "Full 9-layer analysis",
     },
+    # Single-LLM-auditor baselines for the head-to-head: MIESC-full (orchestration)
+    # vs one LLM auditor alone, on the same corpus and ground truth.
+    "gptscan_only": {
+        "name": "GPTScan alone (single LLM auditor)",
+        "tools": ["gptscan"],
+        "description": "One LLM auditor, no orchestration",
+    },
+    "smartllm_only": {
+        "name": "SmartLLM alone (single LLM auditor)",
+        "tools": ["smartllm"],
+        "description": "One LLM auditor, no orchestration",
+    },
 }
 
 
