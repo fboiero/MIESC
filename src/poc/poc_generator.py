@@ -346,8 +346,15 @@ class PoCGenerator:
         """
         import time
 
-        project_path = Path(project_dir)
         start_time = time.time()
+        if not isinstance(project_dir, (str, Path)):
+            return PoCResult(
+                success=False,
+                output="",
+                execution_time_ms=0,
+                error="Malformed project directory",
+            )
+        project_path = Path(project_dir)
         if not isinstance(poc, PoCTemplate):
             return PoCResult(
                 success=False,
