@@ -43,6 +43,7 @@ OLLAMA_RUNTIME_ERRORS = (
 LLM_PROCESSING_ERRORS = (AttributeError, KeyError, TypeError, ValueError, RuntimeError)
 MAX_PRIORITY_RESPONSE_CHARS = 20_000
 MAX_PRIORITY_TEXT_CHARS = 1_000
+MAX_ANALYZE_RESPONSE_CHARS = 4_000
 MAX_REMEDIATION_RESPONSE_CHARS = 4_000
 MAX_GENERATE_RESPONSE_BYTES = 64 * 1024
 
@@ -416,7 +417,7 @@ Provide 2-3 sentence expert analysis focusing on:
 
 INSIGHTS:"""
 
-        return self._llm_text_response(self._call_llm(prompt))
+        return self._llm_text_response(self._call_llm(prompt), limit=MAX_ANALYZE_RESPONSE_CHARS)
 
     def _severity_score(self, severity: Any) -> int:
         """Convert severity string to numeric score."""
