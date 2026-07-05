@@ -37,13 +37,15 @@ def extract_openai_compatible_model_ids(payload: Any) -> Set[str]:
     for model in models:
         if not isinstance(model, dict):
             continue
-        raw_model_id = model.get("id")
-        model_id = raw_model_id.strip() if isinstance(raw_model_id, str) else ""
-        if not model_id:
-            model_id = model.get("name")
-        if isinstance(model_id, str) and (model_id := model_id.strip()):
+        model_id = _model_id_text(model.get("id")) or _model_id_text(model.get("name"))
+        if model_id:
             model_ids.add(model_id)
     return model_ids
+
+
+def _model_id_text(value: Any) -> str:
+    """Return model identifiers only from scalar text fields."""
+    return value.strip() if isinstance(value, str) and value.strip() else ""
 
 
 async def fetch_openai_compatible_model_ids(
