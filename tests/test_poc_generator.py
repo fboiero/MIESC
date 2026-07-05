@@ -876,6 +876,16 @@ class TestGeneratePoC:
         assert "['external call before state update']" not in poc.solidity_code
         assert "{'level': 'critical'}" not in poc.solidity_code
 
+    def test_generate_defaults_malformed_target_contract_shape(self, generator):
+        """Malformed target contracts should not leak reprs into the generated PoC."""
+        finding = {"type": "reentrancy", "severity": "high", "description": "Test"}
+
+        poc = generator.generate(finding, {"path": "contracts/Token.sol"})
+
+        assert poc.target_contract == ""
+        assert "{'path': 'contracts/Token.sol'}" not in poc.solidity_code
+        assert "{'path': 'contracts/Token.sol'}" not in poc.name
+
 
 # =============================================================================
 # Batch Generation Tests

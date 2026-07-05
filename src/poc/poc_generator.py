@@ -71,6 +71,14 @@ def _safe_import_path(value: Any) -> bool:
     return ":" not in text and not text.startswith("/")
 
 
+def _safe_contract_text(value: Any) -> str:
+    """Return a contract identifier only from plain text or path objects."""
+    if isinstance(value, (str, Path)):
+        text = str(value).strip()
+        return text if text else ""
+    return ""
+
+
 def _safe_isoformat(value: Any) -> str:
     """Return ISO timestamps only from datetime-like values."""
     return value.isoformat() if isinstance(value, datetime) else ""
@@ -306,6 +314,7 @@ class PoCGenerator:
 
         # Extract finding details
         target_function = self._extract_function_name(finding)
+        target_contract_text = _safe_contract_text(target_contract)
         description = self._finding_text_field(finding, "description", "")
         severity = self._finding_text_field(finding, "severity", "medium")
         finding_id = self._finding_text_field(finding, "id") or self._finding_text_field(
@@ -332,7 +341,7 @@ class PoCGenerator:
             name=poc_name,
             vulnerability_type=vuln_type,
             solidity_code=solidity_code,
-            target_contract=target_contract,
+            target_contract=target_contract_text,
             target_function=target_function,
             finding_id=finding_id,
             description=description,
@@ -630,12 +639,16 @@ class PoCGenerator:
     ) -> str:
         """Customize template with finding-specific details."""
         # Prepare replacements
-        contract_name = Path(target_contract).stem
+        contract_name = (
+            _safe_filename_part(Path(target_contract).stem, "contract")
+            if isinstance(target_contract, (str, Path))
+            else "contract"
+        )
         test_name = f"test_exploit_{vuln_type.value}"
 
         replacements = {
             "{{CONTRACT_NAME}}": contract_name,
-            "{{TARGET_CONTRACT}}": target_contract,
+            "{{TARGET_CONTRACT}}": _safe_contract_text(target_contract),
             "{{TARGET_FUNCTION}}": target_function or "vulnerable",
             "{{TEST_NAME}}": test_name,
             "{{VULNERABILITY_TYPE}}": vuln_type.value,
