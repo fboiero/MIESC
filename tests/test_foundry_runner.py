@@ -317,6 +317,17 @@ class TestFoundryCommandBuilders:
         with pytest.raises(ValueError, match="Malformed Foundry test path"):
             runner._build_run_test_command(test_path)
 
+    def test_build_run_test_command_ignores_malformed_match_options(self, runner):
+        """Malformed match filters should not reach forge arguments."""
+        cmd = runner._build_run_test_command(
+            "test/Bank.t.sol",
+            match_test=["testExploit"],
+            match_contract="  ",
+        )
+
+        assert "--match-test" not in cmd
+        assert "--match-contract" not in cmd
+
     def test_build_run_test_command_ignores_malformed_fork_options(self, tmp_path):
         """Malformed fork options are ignored before command construction."""
         with patch.object(FoundryRunner, "_check_foundry_installation"):

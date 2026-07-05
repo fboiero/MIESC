@@ -667,6 +667,7 @@ Response (JSON array only):"""
                         raise ProviderUnavailable(f"OpenAI error: {error_text}")
 
                     data = await resp.json()
+                    self._validate_optional_response_metadata(data, "OpenAI")
                     content = self._extract_openai_compatible_content(data, "OpenAI")
 
                     return self._parse_model_response(content, model)
@@ -723,6 +724,7 @@ Response (JSON array only):"""
                         raise ProviderUnavailable(f"DeepSeek error: {error_text}")
 
                     data = await resp.json()
+                    self._validate_optional_response_metadata(data, "DeepSeek")
                     content = self._extract_openai_compatible_content(data, "DeepSeek")
 
                     return self._parse_model_response(content, model)
@@ -753,6 +755,39 @@ Response (JSON array only):"""
             raise ProviderUnavailable(f"{provider_name} response content is malformed")
 
         return content
+
+    @classmethod
+    def _validate_optional_response_metadata(cls, data: Any, provider_name: str) -> None:
+        """Reject malformed optional latency/token metadata on provider responses."""
+        if not isinstance(data, dict):
+            raise ProviderUnavailable(f"{provider_name} response payload is malformed")
+
+        usage = data.get("usage")
+        if usage is not None:
+            if not isinstance(usage, dict):
+                raise ProviderUnavailable(f"{provider_name} response usage is malformed")
+            for key in (
+                "prompt_tokens",
+                "completion_tokens",
+                "total_tokens",
+                "input_tokens",
+                "output_tokens",
+            ):
+                if key in usage and not cls._is_nonnegative_finite_scalar(usage[key]):
+                    raise ProviderUnavailable(f"{provider_name} response token metadata is malformed")
+
+        for key in (
+            "total_duration",
+            "load_duration",
+            "prompt_eval_duration",
+            "eval_duration",
+        ):
+            if key in data and not cls._is_nonnegative_finite_scalar(data[key]):
+                raise ProviderUnavailable(f"{provider_name} response latency metadata is malformed")
+
+        for key in ("prompt_eval_count", "eval_count"):
+            if key in data and not cls._is_nonnegative_finite_scalar(data[key]):
+                raise ProviderUnavailable(f"{provider_name} response token metadata is malformed")
 
     @staticmethod
     def _extract_anthropic_content(data: Any) -> str:
@@ -841,6 +876,7 @@ Response (JSON array only):"""
                         raise ProviderUnavailable(f"Anthropic error: {error_text}")
 
                     data = await resp.json()
+                    self._validate_optional_response_metadata(data, "Anthropic")
                     content = self._extract_anthropic_content(data)
 
                     return self._parse_model_response(content, model)
@@ -974,6 +1010,7 @@ Response (JSON array only):"""
                         raise RuntimeError(f"Ollama error: {await resp.text()}")
 
                     data = await resp.json()
+                    self._validate_optional_response_metadata(data, "Ollama")
                     content = self._extract_ollama_content(data)
 
                     return self._parse_model_response(content, model)
@@ -1136,6 +1173,17 @@ Response (JSON array only):"""
             return float(value)
         except (TypeError, ValueError):
             return default
+
+    @staticmethod
+    def _is_nonnegative_finite_scalar(value: Any) -> bool:
+        """Return whether response metadata is a finite non-negative scalar."""
+        if isinstance(value, bool) or isinstance(value, (dict, list, tuple, set)):
+            return False
+        try:
+            normalized = float(value)
+        except (TypeError, ValueError):
+            return False
+        return math.isfinite(normalized) and normalized >= 0
 
     @staticmethod
     def _safe_confidence(value: Any, default: float) -> float:

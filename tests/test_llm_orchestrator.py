@@ -1117,6 +1117,57 @@ class TestLLMOrchestrator:
 
         asyncio.run(run_test())
 
+    def test_query_falls_back_after_malformed_response_usage_metadata(self):
+        """Test query falls back when response usage or metadata fields are malformed."""
+
+        async def run_test():
+            configs = [
+                LLMConfig(
+                    provider=LLMProvider.OLLAMA,
+                    model="primary",
+                    retry_attempts=1,
+                    retry_delay=0,
+                ),
+                LLMConfig(
+                    provider=LLMProvider.OPENAI,
+                    model="fallback",
+                    api_key="key",
+                    retry_attempts=1,
+                    retry_delay=0,
+                ),
+            ]
+            orchestrator = LLMOrchestrator(configs)
+            orchestrator.backends["ollama:primary"].available = True
+            orchestrator.backends["openai:fallback"].available = True
+
+            malformed_response = LLMResponse(
+                content="primary content",
+                provider="ollama",
+                model="primary",
+                tokens_used=-1,
+                metadata=["not", "metadata"],
+            )
+            fallback_response = LLMResponse(
+                content="fallback content",
+                provider="openai",
+                model="fallback",
+                tokens_used=12,
+                metadata={"request_id": "ok"},
+            )
+            primary_analyze = AsyncMock(return_value=malformed_response)
+            fallback_analyze = AsyncMock(return_value=fallback_response)
+            orchestrator.backends["ollama:primary"].analyze = primary_analyze
+            orchestrator.backends["openai:fallback"].analyze = fallback_analyze
+
+            result = await orchestrator.query("test prompt")
+
+            assert result is fallback_response
+            assert list(orchestrator.cache.values()) == [fallback_response]
+            primary_analyze.assert_awaited_once()
+            fallback_analyze.assert_awaited_once()
+
+        asyncio.run(run_test())
+
     def test_query_uses_single_attempt_for_malformed_retry_attempts(self):
         """Test malformed retry_attempts cannot crash the query attempt loop."""
 
@@ -1312,6 +1363,31 @@ class TestIntegration:
         analysis = orchestrator._parse_analysis(response)
         expected_avg = (0.8 + 0.6 + 1.0) / 3
         assert abs(analysis.confidence_score - expected_avg) < 0.001
+
+    def test_confidence_score_bounds_malformed_legacy_values(self, monkeypatch):
+        """Test malformed legacy confidence values are bounded before averaging."""
+        orchestrator = LLMOrchestrator([])
+        monkeypatch.setattr(
+            "src.llm.llm_orchestrator.safe_parse_llm_json",
+            lambda *_args, **_kwargs: MagicMock(is_valid=False, data=None, errors=["forced"]),
+        )
+
+        response = LLMResponse(
+            content=(
+                '{"vulnerabilities": ['
+                '{"confidence": "high"}, '
+                '{"confidence": 1.5}, '
+                '{"confidence": -0.25}'
+                "]}"
+            ),
+            provider="test",
+            model="test",
+        )
+
+        analysis = orchestrator._parse_analysis(response)
+
+        assert [vuln["confidence"] for vuln in analysis.vulnerabilities] == [0.5, 1.0, 0.0]
+        assert abs(analysis.confidence_score - 0.5) < 0.001
 
     def test_recommendations_extraction(self):
         """Test recommendations extraction from vulnerabilities."""

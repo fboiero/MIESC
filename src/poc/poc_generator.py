@@ -18,6 +18,7 @@ Version: 1.0.0
 
 import logging
 import re
+import string
 import subprocess
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -26,6 +27,15 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
 logger = logging.getLogger(__name__)
+
+_FILENAME_SAFE_CHARS = f"-_() {string.ascii_letters}{string.digits}"
+
+
+def _safe_filename_part(value: Any, default: str = "template") -> str:
+    """Return a bounded filename segment without path separators."""
+    text = value.strip() if isinstance(value, str) else ""
+    safe = "".join(ch for ch in text if ch in _FILENAME_SAFE_CHARS).strip()
+    return safe[:80] or default
 
 
 def _normalize_output_text(value: Any) -> str:
@@ -105,7 +115,10 @@ class PoCTemplate:
         output_path = Path(output_dir)
         output_path.mkdir(parents=True, exist_ok=True)
 
-        filename = f"PoC_{self.vulnerability_type.value}_{self.name}.t.sol"
+        filename = (
+            f"PoC_{_safe_filename_part(self.vulnerability_type.value, 'unknown')}_"
+            f"{_safe_filename_part(self.name)}.t.sol"
+        )
         filepath = output_path / filename
 
         with open(filepath, "w", encoding="utf-8") as f:

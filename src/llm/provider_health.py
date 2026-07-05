@@ -69,6 +69,9 @@ async def fetch_openai_compatible_model_ids(
     if isinstance(timeout, bool) or not isinstance(timeout, (int, float)):
         logger.debug("%s model check received malformed timeout", provider_label)
         return set()
+    if timeout <= 0:
+        logger.debug("%s model check received malformed timeout", provider_label)
+        return set()
 
     headers = {"Authorization": f"Bearer {api_key}"}
     try:

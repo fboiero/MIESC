@@ -128,6 +128,24 @@ def _coerce_embedding_model_name(value: Any) -> str:
     return text or EmbeddingRAG.DEFAULT_MODEL
 
 
+def _collection_metadata_text(collection: Any, key: str) -> Optional[str]:
+    """Return a string collection metadata value, or None when malformed."""
+    metadata = getattr(collection, "metadata", None)
+    if not isinstance(metadata, dict):
+        return None
+
+    value = metadata.get(key)
+    if isinstance(value, bytes):
+        text = value.decode("utf-8", errors="replace")
+    elif isinstance(value, str):
+        text = value
+    else:
+        return None
+
+    text = text.strip()
+    return text or None
+
+
 def _similarity_from_distance(distance: Any) -> float:
     """Convert a loose Chroma distance value to a bounded similarity score."""
     try:
@@ -4649,7 +4667,8 @@ class EmbeddingRAG:
             # Check if we need to populate the knowledge base
             expected_count = len(VULNERABILITY_KNOWLEDGE_BASE)
             current_count = self._collection.count()
-            current_version = (getattr(self._collection, "metadata", None) or {}).get(
+            current_version = _collection_metadata_text(
+                self._collection,
                 "knowledge_base_version"
             )
             if current_count == 0:

@@ -258,6 +258,21 @@ class TestPoCTemplate:
         with pytest.raises(ValueError, match="Malformed PoC output directory"):
             template.save(output_dir)
 
+    def test_template_save_sanitizes_filename_segments(self, tmp_path):
+        """Template names should not create nested paths or unsafe filenames."""
+        template = PoCTemplate(
+            name="../Exploit:One",
+            vulnerability_type=VulnerabilityType.REENTRANCY,
+            solidity_code="// SPDX-License-Identifier: MIT\ncontract Test {}",
+            target_contract="Bank.sol",
+            target_function="withdraw",
+        )
+
+        saved_path = template.save(tmp_path)
+
+        assert saved_path.parent == tmp_path
+        assert saved_path.name == "PoC_reentrancy_ExploitOne.t.sol"
+
     def test_template_to_dict(self):
         """Test converting template to dictionary."""
         template = PoCTemplate(

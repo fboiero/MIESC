@@ -435,6 +435,8 @@ async def test_generate_remediation_uses_llm_result_and_pattern(monkeypatch):
             "imports_needed": ["import {ReentrancyGuard} from 'oz.sol';"],
             "test_suggestions": ["reentrant attacker test"],
             "references": ["OpenZeppelin"],
+            "implementation_complexity": " High ",
+            "deployment_risk": " low ",
         }
 
     monkeypatch.setattr(generator, "_query_llm", fake_query)
@@ -447,6 +449,8 @@ async def test_generate_remediation_uses_llm_result_and_pattern(monkeypatch):
     assert remediation.fixed_code.startswith("import {ReentrancyGuard}")
     assert remediation.changes_summary == ["added guard"]
     assert remediation.test_suggestions == ["reentrant attacker test"]
+    assert remediation.implementation_complexity == "high"
+    assert remediation.deployment_risk == "low"
 
 
 @pytest.mark.asyncio
@@ -674,6 +678,61 @@ async def test_generate_remediation_normalizes_malformed_llm_result_fields(monke
     assert remediation.changes_summary == ["valid change"]
     assert remediation.test_suggestions == ["valid test"]
     assert remediation.references == []
+
+
+@pytest.mark.asyncio
+async def test_generate_remediation_defaults_malformed_complexity_and_risk_payloads(
+    monkeypatch,
+):
+    generator = RemediationGenerator()
+    finding = {
+        "id": "F-2k",
+        "type": "reentrancy",
+        "severity": "HIGH",
+        "snippet": "function withdraw() public {}",
+    }
+
+    async def fake_query(_prompt):
+        return {
+            "fixed_code": "contract Fixed {}",
+            "complexity": {"level": "low"},
+            "risk_level": ["critical"],
+        }
+
+    monkeypatch.setattr(generator, "_query_llm", fake_query)
+
+    remediation = await generator.generate_remediation(finding, "contract C {}")
+
+    assert remediation.fixed_code == "contract Fixed {}"
+    assert remediation.implementation_complexity == "medium"
+    assert remediation.deployment_risk == "medium"
+
+
+@pytest.mark.asyncio
+async def test_generate_remediation_accepts_bounded_complexity_and_risk_aliases(
+    monkeypatch,
+):
+    generator = RemediationGenerator()
+    finding = {
+        "id": "F-2l",
+        "type": "reentrancy",
+        "severity": "HIGH",
+        "snippet": "function withdraw() public {}",
+    }
+
+    async def fake_query(_prompt):
+        return {
+            "fixed_code": "contract Fixed {}",
+            "complexity": "LOW",
+            "risk_level": "Critical",
+        }
+
+    monkeypatch.setattr(generator, "_query_llm", fake_query)
+
+    remediation = await generator.generate_remediation(finding, "contract C {}")
+
+    assert remediation.implementation_complexity == "low"
+    assert remediation.deployment_risk == "critical"
 
 
 @pytest.mark.asyncio

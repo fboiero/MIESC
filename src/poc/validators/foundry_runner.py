@@ -169,10 +169,10 @@ class FoundryRunner:
             raise ValueError("Malformed Foundry test path")
         cmd = ["forge", "test", "--match-path", test_path_text]
 
-        if match_test:
-            cmd.extend(["--match-test", match_test])
-        if match_contract:
-            cmd.extend(["--match-contract", match_contract])
+        if isinstance(match_test, str) and match_test.strip():
+            cmd.extend(["--match-test", match_test.strip()])
+        if isinstance(match_contract, str) and match_contract.strip():
+            cmd.extend(["--match-contract", match_contract.strip()])
 
         return self._apply_common_test_options(cmd)
 

@@ -97,6 +97,37 @@ def test_is_available_returns_false_on_malformed_ollama_result(monkeypatch):
     assert helper.is_available() is False
 
 
+def test_is_available_rejects_bool_returncode(monkeypatch):
+    helper = OpenLLaMAHelper(LLMConfig(model="test-model"))
+
+    monkeypatch.setattr(
+        "subprocess.run",
+        lambda *args, **kwargs: subprocess.CompletedProcess(
+            args[0],
+            False,
+            stdout="test-model",
+        ),
+    )
+
+    assert helper.is_available() is False
+
+
+def test_is_available_handles_malformed_stderr_accessor(monkeypatch):
+    helper = OpenLLaMAHelper(LLMConfig(model="test-model"))
+
+    class MalformedResult:
+        returncode = 1
+        stdout = ""
+
+        @property
+        def stderr(self):
+            raise RuntimeError("bad stderr")
+
+    monkeypatch.setattr("subprocess.run", lambda *args, **kwargs: MalformedResult())
+
+    assert helper.is_available() is False
+
+
 def test_is_available_returns_false_on_runtime_error(monkeypatch):
     helper = OpenLLaMAHelper()
 
