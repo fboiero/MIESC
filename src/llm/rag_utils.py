@@ -13,6 +13,16 @@ from src.security.llm_output_validator import (
 T = TypeVar("T")
 
 
+def _safe_text(value: Any) -> str:
+    """Return plain text only, dropping malformed or control-character values."""
+    if not isinstance(value, str):
+        return ""
+    text = value.strip()
+    if not text or any(ord(ch) < 32 for ch in text):
+        return ""
+    return text
+
+
 def make_cache_key(
     *,
     knowledge_base_version: str,
@@ -24,12 +34,12 @@ def make_cache_key(
 ) -> str:
     """Generate a stable cache key for a RAG search query."""
     key_payload = {
-        "filter_category": filter_category,
-        "filter_severity": filter_severity,
-        "knowledge_base_version": knowledge_base_version,
+        "filter_category": _safe_text(filter_category),
+        "filter_severity": _safe_text(filter_severity),
+        "knowledge_base_version": _safe_text(knowledge_base_version),
         "n_results": n_results,
-        "query": query[:200],
-        "strategy": strategy,
+        "query": _safe_text(query)[:200],
+        "strategy": _safe_text(strategy) or "semantic",
     }
     content = json.dumps(key_payload, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(content.encode()).hexdigest()
@@ -104,10 +114,12 @@ def build_metadata_filter(
 ) -> Optional[Dict[str, Any]]:
     """Build the ChromaDB metadata filter for category/severity constraints."""
     conditions = []
-    if filter_category:
-        conditions.append({"category": filter_category})
-    if filter_severity:
-        conditions.append({"severity": filter_severity})
+    safe_category = _safe_text(filter_category)
+    safe_severity = _safe_text(filter_severity)
+    if safe_category:
+        conditions.append({"category": safe_category})
+    if safe_severity:
+        conditions.append({"severity": safe_severity})
 
     if not conditions:
         return None
