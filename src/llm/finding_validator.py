@@ -157,12 +157,26 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
             self.config.ollama_host = os.environ["OLLAMA_HOST"]
         if os.environ.get("MIESC_LLM_MODEL") and self.config.model == default_config.model:
             self.config.model = os.environ["MIESC_LLM_MODEL"]
+        if not isinstance(self.config.ollama_host, str) or not self.config.ollama_host.strip():
+            self.config.ollama_host = default_config.ollama_host
+        else:
+            self.config.ollama_host = self.config.ollama_host.strip()
+        if not isinstance(self.config.model, str) or not self.config.model.strip():
+            self.config.model = default_config.model
+        else:
+            self.config.model = self.config.model.strip()
         if (
             isinstance(self.config.timeout_seconds, bool)
             or not isinstance(self.config.timeout_seconds, (int, float))
             or self.config.timeout_seconds <= 0
         ):
             self.config.timeout_seconds = default_config.timeout_seconds
+        if (
+            isinstance(self.config.batch_size, bool)
+            or not isinstance(self.config.batch_size, int)
+            or self.config.batch_size <= 0
+        ):
+            self.config.batch_size = default_config.batch_size
         if isinstance(self.config.min_severity_to_validate, str):
             min_severity = self.config.min_severity_to_validate.strip().lower()
         else:
