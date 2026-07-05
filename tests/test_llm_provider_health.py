@@ -275,6 +275,26 @@ def test_fetch_openai_compatible_model_ids_malformed_payload():
     asyncio.run(run_test())
 
 
+def test_fetch_openai_compatible_model_ids_accepts_sync_json_payload():
+    """Test sync JSON adapters are tolerated at the response boundary."""
+
+    async def run_test():
+        response = MagicMock()
+        response.status = 200
+        response.json = MagicMock(return_value={"data": [{"id": "model-a"}]})
+        session = _aiohttp_session_with_response("get", response)
+
+        with patch("aiohttp.ClientSession", return_value=session):
+            models = await fetch_openai_compatible_model_ids(
+                "https://api.deepseek.example",
+                "test-key",
+            )
+
+        assert models == {"model-a"}
+
+    asyncio.run(run_test())
+
+
 def test_fetch_openai_compatible_model_ids_json_decode_error():
     """Test JSON decoding failures are treated as unavailable."""
 
