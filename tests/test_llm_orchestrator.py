@@ -1173,6 +1173,36 @@ class TestLLMOrchestrator:
 
         assert preferences == ["ollama:codellama", "openai:gpt-4"]
 
+    def test_preferred_models_filters_unsafe_backend_names(self):
+        """Test unsafe preferred backend/model names cannot cross selection boundary."""
+        orchestrator = LLMOrchestrator([])
+
+        preferences = orchestrator._preferred_models_for_task(
+            [
+                "ollama:codellama",
+                " openai:gpt-4",
+                "deepseek:model\nshadow",
+                "anthropic:claude\t3",
+                "openai:gpt-4",
+            ]
+        )
+
+        assert preferences == ["ollama:codellama", "openai:gpt-4"]
+
+    def test_preferred_models_rejects_malformed_list_contents(self):
+        """Test malformed preferred model list iteration falls back safely."""
+
+        class MalformedPreferredModels(list):
+            def __iter__(self):
+                raise ValueError("bad preferred models")
+
+        orchestrator = LLMOrchestrator([])
+
+        assert (
+            orchestrator._preferred_models_for_task(MalformedPreferredModels(["ollama:test"]))
+            == []
+        )
+
     def test_get_available_providers(self):
         """Test getting available providers."""
         configs = [

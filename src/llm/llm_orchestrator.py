@@ -1233,8 +1233,14 @@ Provide a comprehensive security analysis in JSON format."""
                 type(preferred_models).__name__,
             )
             return []
-        models = [model for model in preferred_models if isinstance(model, str) and model]
-        if len(models) != len(preferred_models):
+        try:
+            raw_models = list(preferred_models)
+        except (TypeError, ValueError):
+            logger.warning("Ignoring malformed preferred model list contents")
+            return []
+
+        models = [model for model in raw_models if _is_safe_backend_name(model)]
+        if len(models) != len(raw_models):
             logger.warning("Ignoring malformed preferred model entries")
         return models
 
