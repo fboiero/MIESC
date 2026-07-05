@@ -641,6 +641,25 @@ class TestLLMOrchestrator:
         assert orchestrator.primary_provider == "ollama:codellama"
         assert orchestrator.backends["ollama:codellama"].config.model == "codellama"
 
+    def test_add_backend_rejects_control_character_model_identity(self):
+        """Test control characters cannot cross the model identifier boundary."""
+        orchestrator = LLMOrchestrator([])
+        config = LLMConfig(provider=LLMProvider.OLLAMA, model="codellama\nopenai:gpt-4")
+
+        orchestrator._add_backend(config)
+
+        assert orchestrator.backends == {}
+        assert orchestrator.primary_provider is None
+
+    def test_add_backend_allows_colon_model_identity(self):
+        """Test normal provider model identifiers with colons remain valid."""
+        orchestrator = LLMOrchestrator([])
+        config = LLMConfig(provider=LLMProvider.OLLAMA, model="deepseek-coder:6.7b")
+
+        orchestrator._add_backend(config)
+
+        assert "ollama:deepseek-coder:6.7b" in orchestrator.backends
+
     def test_add_deepseek_backend(self):
         """Test adding DeepSeek backend."""
         orchestrator = LLMOrchestrator([])

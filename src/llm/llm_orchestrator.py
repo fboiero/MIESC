@@ -169,6 +169,16 @@ def _bounded_confidence(value: Any, default: float = 0.5) -> float:
     return min(max(float(value), 0.0), 1.0)
 
 
+def _normalized_model_identifier(value: Any) -> Optional[str]:
+    """Return a safe model identifier, or None for malformed config values."""
+    if not isinstance(value, str):
+        return None
+    model = value.strip()
+    if not model or any(ord(char) < 32 or ord(char) == 127 for char in model):
+        return None
+    return model
+
+
 class LLMProvider(Enum):
     """Supported LLM providers."""
 
@@ -582,14 +592,14 @@ class LLMOrchestrator:
     def _add_backend(self, config: LLMConfig) -> None:
         """Add a backend based on configuration."""
         backend: LLMBackend
-        if not isinstance(config.model, str) or not config.model.strip():
+        model = _normalized_model_identifier(config.model)
+        if model is None:
             logger.warning(
                 "Ignoring LLM backend with malformed model identity: %r",
                 config.model,
             )
             return
 
-        model = config.model.strip()
         if model != config.model:
             config = replace(config, model=model)
 
