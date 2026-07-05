@@ -1283,14 +1283,25 @@ Response (JSON array only):"""
 
     def get_model_status(self) -> Dict[str, Any]:
         """Get current model status information."""
+        configured_models = self._status_model_list(self.models)
+        available_models = self._status_model_list(self._available_models)
         return {
-            "configured_models": self.models,
-            "available_models": self._available_models,
+            "configured_models": configured_models,
+            "available_models": available_models,
             "voting_strategy": self.voting_strategy.value,
             "consensus_threshold": self.consensus_threshold,
-            "model_weights": {m: self.MODEL_WEIGHTS.get(m, 1.0) for m in self.models},
+            "model_weights": {m: self.MODEL_WEIGHTS.get(m, 1.0) for m in configured_models},
             "initialized": self._initialized,
         }
+
+    @staticmethod
+    def _status_model_list(models: Any) -> List[str]:
+        """Return a defensive, serializable model id list for public status."""
+        if not isinstance(models, (list, tuple, set)):
+            logger.warning("Ignoring malformed ensemble model status list")
+            return []
+
+        return [model.strip() for model in models if isinstance(model, str) and model.strip()]
 
 
 # Convenience function for simple usage
