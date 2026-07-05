@@ -547,9 +547,9 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
                 snippet = self._parse_text(location.get("snippet"), "")
                 code_context = ""
                 if isinstance(code_contexts, dict) and file_path:
-                    code_context = self._parse_text(code_contexts.get(file_path), "")
+                    code_context = self._parse_text(code_contexts.get(file_path), "")[:1500]
                 elif snippet:
-                    code_context = snippet
+                    code_context = snippet[:1500]
 
                 tasks.append(self.validate_finding(finding, code_context))
 

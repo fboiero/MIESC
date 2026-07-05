@@ -1072,6 +1072,28 @@ async def test_validate_findings_batch_ignores_malformed_code_context_values(mon
 
 
 @pytest.mark.asyncio
+async def test_validate_findings_batch_bounds_code_context_values(monkeypatch):
+    validator = LLMFindingValidator(ValidatorConfig())
+    findings = [{"id": "A", "severity": "high", "location": {"file": "A.sol"}}]
+    seen_contexts = []
+
+    async def available():
+        return True
+
+    monkeypatch.setattr(validator, "is_available", available)
+
+    async def fake_validate(finding, code_context):
+        seen_contexts.append((finding["id"], code_context))
+        return LLMValidation(finding["id"], ValidationResult.VALID, 0.9, "valid")
+
+    monkeypatch.setattr(validator, "validate_finding", fake_validate)
+
+    await validator.validate_findings_batch(findings, code_contexts={"A.sol": "x" * 2000})
+
+    assert seen_contexts == [("A", "x" * 1500)]
+
+
+@pytest.mark.asyncio
 async def test_validate_findings_batch_records_validation_exceptions(monkeypatch):
     validator = LLMFindingValidator(ValidatorConfig())
     finding = {"id": "A", "severity": "high"}
