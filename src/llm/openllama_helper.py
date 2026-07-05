@@ -397,25 +397,44 @@ REMEDIATION ADVICE:"""
                         logger.warning("LLM generate response payload too large to parse safely")
                         continue
 
-                    data = json.loads(raw_body)
-                    if not isinstance(data, dict):
-                        continue
-                    raw_response = data.get("response", "")
-                    if not isinstance(raw_response, str):
-                        continue
-                    response = raw_response.strip()
+                    response = self._ollama_generate_response_text(raw_body)
                     if response:
                         return response
 
             except (urllib.error.URLError, urllib.error.HTTPError) as e:
                 logger.warning(f"LLM HTTP attempt {attempt} failed: {e}")
-            except (json.JSONDecodeError, OSError, TimeoutError, TypeError, ValueError) as e:
+            except (
+                json.JSONDecodeError,
+                OSError,
+                RuntimeError,
+                TimeoutError,
+                TypeError,
+                ValueError,
+            ) as e:
                 logger.error(f"LLM call attempt {attempt} error: {e}")
 
             if attempt < retry_attempts:
                 time.sleep(retry_delay)
 
         return None
+
+    @staticmethod
+    def _ollama_generate_response_text(raw_body: Any) -> Optional[str]:
+        """Extract a non-empty Ollama response string from a bounded JSON body."""
+        data = json.loads(raw_body)
+        if not isinstance(data, dict):
+            return None
+        try:
+            raw_response = data.get("response", "")
+        except (AttributeError, TypeError, ValueError, RuntimeError):
+            return None
+        if not isinstance(raw_response, str):
+            return None
+        try:
+            response = raw_response.strip()
+        except (AttributeError, TypeError, ValueError, RuntimeError):
+            return None
+        return response or None
 
     @staticmethod
     def _bounded_number(value: Any, *, default: float, minimum: float, maximum: float) -> float:

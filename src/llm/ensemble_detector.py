@@ -1124,11 +1124,15 @@ Response (JSON array only):"""
                     finding_groups[signature] = {
                         "finding": finding,
                         "votes": [],
+                        "confidences": [],
                         "models": [],
                         "raw_responses": {},
                     }
 
                 finding_groups[signature]["votes"].append(self._model_weight(model))
+                finding_groups[signature]["confidences"].append(
+                    self._safe_confidence(finding.get("confidence"), 0.7)
+                )
                 finding_groups[signature]["models"].append(model)
                 finding_groups[signature]["raw_responses"][model] = (
                     self._safe_raw_response_payload(finding)
@@ -1165,7 +1169,7 @@ Response (JSON array only):"""
                 finding = group["finding"]
 
                 # Calculate aggregated confidence
-                base_confidence = self._safe_confidence(finding.get("confidence"), 0.7)
+                base_confidence = self._aggregate_vote_confidence(group["confidences"])
                 vote_bonus = min(0.2, votes * 0.05)  # Up to +0.2 for votes
                 aggregated_confidence = min(0.99, base_confidence + vote_bonus)
                 vuln_type = self._safe_text(finding.get("type"), "unknown")
@@ -1194,6 +1198,18 @@ Response (JSON array only):"""
         validated.sort(key=lambda f: (severity_order.get(f.severity, 5), -f.confidence))
 
         return validated
+
+    @staticmethod
+    def _aggregate_vote_confidence(confidences: Any) -> float:
+        """Return bounded mean confidence across model votes."""
+        if not isinstance(confidences, list) or not confidences:
+            return 0.7
+
+        normalized = [
+            LLMEnsembleDetector._safe_confidence(confidence, 0.7)
+            for confidence in confidences
+        ]
+        return sum(normalized) / len(normalized)
 
     @staticmethod
     def _normalize_model_findings(

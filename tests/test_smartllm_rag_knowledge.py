@@ -145,8 +145,10 @@ class _FakeClientForInit:
 class _FakeChromaForInit:
     def __init__(self, client):
         self.client = client
+        self.persistent_path = None
 
-    def PersistentClient(self, **_kwargs):  # noqa: N802 - mirrors ChromaDB API
+    def PersistentClient(self, **kwargs):  # noqa: N802 - mirrors ChromaDB API
+        self.persistent_path = kwargs["path"]
         return self.client
 
 
@@ -433,6 +435,85 @@ class TestRelevantKnowledgeDispatch:
 
 
 class TestEmbeddingRAGCustomVulnerabilityShapes:
+    @pytest.mark.parametrize(
+        "bad_directory",
+        [
+            "",
+            "   ",
+            "bad\x00path",
+            ["not-a-path"],
+        ],
+    )
+    def test_malformed_persist_directory_uses_default_path(
+        self,
+        tmp_path,
+        monkeypatch,
+        bad_directory,
+    ):
+        fallback = tmp_path / "fallback" / "chromadb"
+        monkeypatch.setattr(
+            embedding_rag_module,
+            "_default_persist_directory",
+            lambda: fallback,
+        )
+
+        rag = EmbeddingRAG(persist_directory=bad_directory)  # type: ignore[arg-type]
+
+        assert rag.persist_dir == fallback
+        assert rag.persist_dir.is_dir()
+        assert rag._initialized is False
+
+    def test_file_persist_directory_falls_back_before_chroma_initialization(
+        self,
+        tmp_path,
+        monkeypatch,
+    ):
+        fallback = tmp_path / "fallback" / "chromadb"
+        malformed_file = tmp_path / "not-a-directory"
+        malformed_file.write_text("not a directory", encoding="utf-8")
+        monkeypatch.setattr(
+            embedding_rag_module,
+            "_default_persist_directory",
+            lambda: fallback,
+        )
+        existing_collection = _FakeCollectionForInit(
+            {"knowledge_base_version": embedding_rag_module.KNOWLEDGE_BASE_VERSION},
+            len(embedding_rag_module.VULNERABILITY_KNOWLEDGE_BASE),
+        )
+        rag = _RecordingInitializeRAG(
+            persist_directory=str(malformed_file),
+            existing_collection=existing_collection,
+        )
+        fake_chroma = _FakeChromaForInit(rag.fake_client)
+
+        monkeypatch.setattr(
+            embedding_rag_module,
+            "_get_sentence_transformer",
+            lambda: lambda _model_name: object(),
+        )
+        monkeypatch.setattr(
+            embedding_rag_module,
+            "_get_chromadb",
+            lambda: fake_chroma,
+        )
+
+        rag._ensure_initialized()
+
+        assert rag.persist_dir == fallback
+        assert fake_chroma.persistent_path == str(fallback)
+        assert "\x00" not in fake_chroma.persistent_path
+        assert rag._initialized is True
+
+    def test_bytes_persist_directory_is_decoded_and_stripped(self, tmp_path):
+        persist_dir = tmp_path / "byte-path"
+
+        rag = EmbeddingRAG(
+            persist_directory=f"  {persist_dir}  ".encode(),  # type: ignore[arg-type]
+        )
+
+        assert rag.persist_dir == persist_dir
+        assert rag.persist_dir.is_dir()
+
     @pytest.mark.parametrize("bad_model", ["", "   ", None, ["bad-model"]])
     def test_malformed_embedding_model_config_uses_default_before_initialization(
         self,

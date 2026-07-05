@@ -19,6 +19,7 @@ Date: February 2026
 
 import logging
 import math
+import os
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -206,6 +207,56 @@ def _coerce_collection_name(value: Any) -> str:
     if _SAFE_COLLECTION_NAME_RE.fullmatch(text):
         return text
     return DEFAULT_COLLECTION_NAME
+
+
+def _default_persist_directory() -> Path:
+    """Return the default on-disk Chroma persistence directory."""
+    return Path.home() / ".miesc" / "chromadb"
+
+
+def _coerce_persist_directory(value: Any) -> Path:
+    """Return a filesystem-safe Chroma persistence directory."""
+    if value is None:
+        return _default_persist_directory()
+
+    if isinstance(value, bytes):
+        path_text = value.decode("utf-8", errors="replace").strip()
+        if not path_text:
+            return _default_persist_directory()
+        path_value: Any = path_text
+    elif isinstance(value, str):
+        path_text = value.strip()
+        if not path_text or "\x00" in path_text:
+            return _default_persist_directory()
+        path_value = path_text
+    elif isinstance(value, os.PathLike):
+        path_value = value
+    else:
+        return _default_persist_directory()
+
+    try:
+        persist_dir = Path(path_value).expanduser()
+    except (TypeError, ValueError, OSError):
+        return _default_persist_directory()
+
+    if "\x00" in str(persist_dir):
+        return _default_persist_directory()
+    return persist_dir
+
+
+def _ensure_persist_directory(value: Any) -> Path:
+    """Create a usable Chroma persistence directory, falling back on malformed paths."""
+    persist_dir = _coerce_persist_directory(value)
+    try:
+        persist_dir.mkdir(parents=True, exist_ok=True)
+        if persist_dir.is_dir():
+            return persist_dir
+    except (OSError, TypeError, ValueError):
+        logger.warning("Ignoring malformed Chroma persist directory", exc_info=True)
+
+    fallback = _default_persist_directory()
+    fallback.mkdir(parents=True, exist_ok=True)
+    return fallback
 
 
 def _is_indexable_document(value: Any) -> bool:
@@ -4751,11 +4802,7 @@ class EmbeddingRAG:
         self.enable_cache = enable_cache
 
         # Set up persistence directory
-        if persist_directory is None:
-            self.persist_dir = Path.home() / ".miesc" / "chromadb"
-        else:
-            self.persist_dir = Path(persist_directory)
-        self.persist_dir.mkdir(parents=True, exist_ok=True)
+        self.persist_dir = _ensure_persist_directory(persist_directory)
 
         # Lazy-loaded components
         self._embedder: Any = None

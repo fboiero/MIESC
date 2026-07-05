@@ -102,6 +102,13 @@ def test_extract_openai_compatible_model_ids_ignores_oversized_ids():
     assert extract_openai_compatible_model_ids(payload) == {"valid-model"}
 
 
+def test_extract_openai_compatible_model_ids_ignores_control_chars():
+    """Test model identifiers with control characters are ignored."""
+    payload = {"data": [{"id": "bad\nmodel"}, {"name": "also\tbad"}, {"id": "valid-model"}]}
+
+    assert extract_openai_compatible_model_ids(payload) == {"valid-model"}
+
+
 def test_extract_openai_compatible_model_ids_dedupes_normalized_duplicates():
     """Test duplicate IDs collapse after whitespace normalization."""
     payload = {

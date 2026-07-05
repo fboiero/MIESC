@@ -850,8 +850,10 @@ class TestParseOutput:
                     "test/Mixed.t.sol:MixedTest": {
                         "test_ok": {"success": True},
                         "test_bad_status": {"success": "true"},
+                        "test_bad\nname": {"success": True},
                         123: {"success": True},
                     },
+                    "test/Bad.t.sol:Bad\nContract": {"test_ok": {"success": True}},
                 }
             }
         )

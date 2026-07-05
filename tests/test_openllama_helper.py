@@ -321,6 +321,101 @@ def test_call_llm_ignores_non_string_generate_response(monkeypatch):
     assert helper._call_llm("prompt") is None
 
 
+def test_call_llm_ignores_generate_payload_with_bad_response_accessor(monkeypatch):
+    helper = OpenLLaMAHelper(LLMConfig(retry_attempts=1))
+    original_json_loads = json.loads
+
+    class MalformedPayload(dict):
+        def get(self, *args, **kwargs):
+            raise RuntimeError("bad response accessor")
+
+    class FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            return b'{"response": "ignored"}'
+
+    monkeypatch.setattr("urllib.request.urlopen", lambda *args, **kwargs: FakeResponse())
+    monkeypatch.setattr(
+        "json.loads",
+        lambda raw, *args, **kwargs: MalformedPayload()
+        if raw == b'{"response": "ignored"}'
+        else original_json_loads(raw, *args, **kwargs),
+    )
+
+    assert helper._call_llm("prompt") is None
+
+
+def test_call_llm_ignores_generate_payload_with_bad_response_strip(monkeypatch):
+    helper = OpenLLaMAHelper(LLMConfig(retry_attempts=1))
+    original_json_loads = json.loads
+
+    class MalformedText(str):
+        def strip(self, *args, **kwargs):
+            raise RuntimeError("bad response text")
+
+    class FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            return b'{"response": "ignored"}'
+
+    monkeypatch.setattr("urllib.request.urlopen", lambda *args, **kwargs: FakeResponse())
+    monkeypatch.setattr(
+        "json.loads",
+        lambda raw, *args, **kwargs: {"response": MalformedText("bad")}
+        if raw == b'{"response": "ignored"}'
+        else original_json_loads(raw, *args, **kwargs),
+    )
+
+    assert helper._call_llm("prompt") is None
+
+
+def test_call_llm_retries_after_malformed_response_body_read(monkeypatch):
+    helper = OpenLLaMAHelper(LLMConfig(retry_attempts=2, retry_delay=0))
+    calls = 0
+
+    class MalformedResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            raise RuntimeError("bad body")
+
+    class ValidResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            return json.dumps({"response": "recovered"}).encode()
+
+    def fake_urlopen(*args, **kwargs):
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            return MalformedResponse()
+        return ValidResponse()
+
+    monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
+
+    assert helper._call_llm("prompt") == "recovered"
+    assert calls == 2
+
+
 def test_call_llm_ignores_malformed_generate_body(monkeypatch):
     helper = OpenLLaMAHelper(LLMConfig(retry_attempts=1))
 
