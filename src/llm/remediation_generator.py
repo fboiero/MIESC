@@ -50,6 +50,19 @@ def _export_optional_string(value: Any) -> Optional[str]:
     return None
 
 
+def _export_explanation(value: Any) -> str:
+    """Return a safe explanation string for export payloads."""
+    if not isinstance(value, str):
+        return ""
+
+    try:
+        normalized = value.strip()
+    except (AttributeError, TypeError, ValueError):
+        return ""
+
+    return normalized
+
+
 def _export_string_list(value: Any) -> List[str]:
     """Return only non-empty string list items for export payloads."""
     if not isinstance(value, list):
@@ -182,7 +195,7 @@ class Remediation:
             ),
             "vulnerable_code": _export_string(self.vulnerable_code, ""),
             "fixed_code": _export_string(self.fixed_code, ""),
-            "explanation": _export_string(self.explanation, ""),
+            "explanation": _export_explanation(self.explanation),
             "changes_summary": _export_string_list(self.changes_summary),
             "test_suggestions": _export_unique_string_list(self.test_suggestions),
             "references": _export_string_list(self.references),
