@@ -61,6 +61,16 @@ def _safe_text_list(value: Any) -> List[str]:
     return [item.strip() for item in value if isinstance(item, str) and item.strip()]
 
 
+def _safe_import_path(value: Any) -> bool:
+    """Accept only local/package-style Solidity import paths."""
+    if not isinstance(value, str):
+        return False
+    text = value.strip()
+    if not text or "\\" in text or ".." in text or any(ord(ch) < 32 for ch in text):
+        return False
+    return ":" not in text and not text.startswith("/")
+
+
 def _safe_isoformat(value: Any) -> str:
     """Return ISO timestamps only from datetime-like values."""
     return value.isoformat() if isinstance(value, datetime) else ""
@@ -521,7 +531,7 @@ class PoCGenerator:
             logger.warning("Skipping malformed custom imports container in PoC options")
             return ""
 
-        import_paths = [imp for imp in imports if isinstance(imp, str)]
+        import_paths = [imp.strip() for imp in imports if _safe_import_path(imp)]
         if len(import_paths) != len(imports):
             logger.warning("Skipping malformed custom import entry in PoC options")
 

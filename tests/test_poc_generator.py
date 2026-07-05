@@ -1484,6 +1484,26 @@ class TestCustomizePoCTemplate:
         assert "token = new MockToken();" not in poc.solidity_code
         assert "Skipping malformed custom import entry in PoC options" in caplog.text
 
+    def test_malformed_custom_import_paths_are_ignored(self, generator, caplog):
+        """Unsafe custom import path strings should not reach generated Solidity."""
+        options = GenerationOptions(
+            custom_imports=[
+                "@openzeppelin/contracts/token/ERC20/IERC20.sol",
+                "../Secrets.sol",
+                "http://evil/import.sol",
+                "bad\npath.sol",
+            ]
+        )
+        finding = {"type": "reentrancy", "severity": "high", "description": "Test"}
+
+        with caplog.at_level("WARNING"):
+            poc = generator.generate(finding, "Token.sol", options)
+
+        assert "IERC20.sol" in poc.solidity_code
+        assert "../Secrets.sol" not in poc.solidity_code
+        assert "http://evil" not in poc.solidity_code
+        assert "Skipping malformed custom import entry in PoC options" in caplog.text
+
     def test_malformed_fork_options_are_ignored(self, generator, caplog):
         """Test malformed fork options do not leak container reprs into templates."""
         options = GenerationOptions(
