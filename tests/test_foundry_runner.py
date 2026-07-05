@@ -1479,6 +1479,19 @@ More text
         assert result.error == "raw-error"
         assert [test.name for test in result.tests] == ["test_text"]
 
+    def test_parse_forge_output_extracts_version_from_normalized_streams(self, runner):
+        """Test forge version extraction ignores malformed stream shapes."""
+        result = runner._parse_forge_output(
+            ["forge 9.9.9"],
+            b"forge 0.2.0\n[PASS] test_text() (gas: 123)",
+            False,
+            100.0,
+        )
+
+        assert result.forge_version == "0.2.0"
+        assert result.success is False
+        assert [test.name for test in result.tests] == ["test_text"]
+
 
 class TestHighGasUsageWarning:
     """Tests for high gas usage warning in validate_poc."""
