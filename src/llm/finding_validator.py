@@ -532,7 +532,7 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
                     logger.warning(f"Validation exception: {validation}")
                     validations.append(
                         LLMValidation(
-                            finding_id=finding.get("id", "unknown"),
+                            finding_id=self._parse_text(finding.get("id"), "unknown"),
                             result=ValidationResult.UNCERTAIN,
                             confidence=0.5,
                             reasoning=f"Exception: {validation}",
