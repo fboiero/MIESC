@@ -1046,6 +1046,10 @@ Provide a comprehensive security analysis in JSON format."""
             if pref in self.backends and self._backend_is_available(pref, self.backends[pref]):
                 return pref
 
+        for key, backend in self.backends.items():
+            if self._backend_is_available(key, backend):
+                return key
+
         return self.primary_provider or list(self.backends.keys())[0]
 
     def get_available_providers(self) -> List[str]:
