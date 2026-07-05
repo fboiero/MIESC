@@ -590,6 +590,24 @@ class TestLLMEnsembleDetectorInitialize:
 
         asyncio.run(run_test())
 
+    def test_initialize_ignores_malformed_ollama_model_payload(self, detector):
+        """Malformed Ollama tag payloads should not cross the availability boundary."""
+
+        async def run_test():
+            mock_response = MagicMock()
+            mock_response.status = 200
+            mock_response.json = AsyncMock(return_value={"models": {"name": "test-model-1"}})
+            mock_session = _aiohttp_session_with_response("get", mock_response)
+
+            with patch("aiohttp.ClientSession", return_value=mock_session):
+                status = await detector.initialize()
+
+            assert detector._initialized
+            assert detector._available_models == []
+            assert status == {"test-model-1": False, "test-model-2": False}
+
+        asyncio.run(run_test())
+
     def test_initialize_connection_error(self, detector):
         """Test initialization with connection error."""
 
@@ -641,6 +659,31 @@ class TestLLMEnsembleDetectorProviderAvailability:
             with patch("aiohttp.ClientSession", return_value=mock_session):
                 models = await detector._check_provider_availability(LLMProvider.OLLAMA)
                 assert "test-model" in models
+
+        asyncio.run(run_test())
+
+    def test_check_ollama_filters_malformed_model_entries(self, detector):
+        """Malformed Ollama tag entries should be ignored without dropping valid ids."""
+
+        async def run_test():
+            mock_response = MagicMock()
+            mock_response.status = 200
+            mock_response.json = AsyncMock(
+                return_value={
+                    "models": [
+                        {"name": " test-model "},
+                        {"name": ""},
+                        {"model": "wrong-key"},
+                        "bad-entry",
+                    ]
+                }
+            )
+            mock_session = _aiohttp_session_with_response("get", mock_response)
+
+            with patch("aiohttp.ClientSession", return_value=mock_session):
+                models = await detector._check_provider_availability(LLMProvider.OLLAMA)
+
+            assert models == ["test-model"]
 
         asyncio.run(run_test())
 
@@ -719,6 +762,26 @@ class TestLLMEnsembleDetectorProviderAvailability:
             mock_session = _aiohttp_session_with_response("get", mock_response)
 
             with patch("aiohttp.ClientSession", return_value=mock_session):
+                models = await detector._check_provider_availability(LLMProvider.DEEPSEEK)
+
+            assert models == []
+
+        asyncio.run(run_test())
+
+    def test_check_deepseek_ignores_malformed_remote_model_list(self):
+        """Malformed DeepSeek model id containers should not mark models available."""
+
+        async def run_test():
+            detector = LLMEnsembleDetector(
+                providers=[LLMProvider.DEEPSEEK],
+                deepseek_api_key="test-key",
+            )
+
+            with patch(
+                "src.llm.ensemble_detector.fetch_openai_compatible_model_ids",
+                new_callable=AsyncMock,
+            ) as mock_fetch_models:
+                mock_fetch_models.return_value = {"id": "deepseek-v4-flash"}
                 models = await detector._check_provider_availability(LLMProvider.DEEPSEEK)
 
             assert models == []
