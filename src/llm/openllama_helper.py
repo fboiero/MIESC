@@ -270,10 +270,10 @@ OUTPUT (JSON only):
         prompt = f"""Generate specific remediation advice for this vulnerability.
 
 VULNERABILITY:
-Title: {self._prompt_text(normalized_finding.get('title'), default='Unknown')}
-Severity: {self._prompt_text(normalized_finding.get('severity'), default='UNKNOWN')}
-Description: {self._prompt_text(normalized_finding.get('description'))}
-Location: {self._prompt_location(normalized_finding.get('location'))}
+Title: {self._prompt_text(self._mapping_get(normalized_finding, 'title'), default='Unknown')}
+Severity: {self._prompt_text(self._mapping_get(normalized_finding, 'severity'), default='UNKNOWN')}
+Description: {self._prompt_text(self._mapping_get(normalized_finding, 'description'))}
+Location: {self._prompt_location(self._mapping_get(normalized_finding, 'location'))}
 
 CONTRACT CODE (excerpt):
 {self._prompt_text(contract_code, limit=1500)}
@@ -430,7 +430,7 @@ INSIGHTS:"""
         """Return a string remediation fallback for malformed finding shapes."""
         if not isinstance(finding, dict):
             return "Review and address the identified issue"
-        recommendation = finding.get("recommendation")
+        recommendation = self._mapping_get(finding, "recommendation")
         if isinstance(recommendation, str):
             recommendation = recommendation.strip()
             if recommendation:
@@ -446,6 +446,16 @@ INSIGHTS:"""
         if limit is not None and len(response) > limit:
             response = response[:limit]
         return response or None
+
+    @staticmethod
+    def _mapping_get(mapping: Any, key: str, default: Any = None) -> Any:
+        """Read optional mapping fields without trusting malformed dict subclasses."""
+        if not isinstance(mapping, dict):
+            return default
+        try:
+            return mapping.get(key, default)
+        except (AttributeError, TypeError, ValueError, RuntimeError, RecursionError):
+            return default
 
     @staticmethod
     def _priority_item_text(value: Any) -> str:
