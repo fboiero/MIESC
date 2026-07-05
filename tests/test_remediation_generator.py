@@ -767,6 +767,56 @@ async def test_generate_remediation_drops_blank_llm_list_entries(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_generate_remediation_skips_duplicate_fixed_code_imports(monkeypatch):
+    generator = RemediationGenerator()
+    finding = {
+        "id": "F-2m",
+        "type": "reentrancy",
+        "severity": "HIGH",
+        "snippet": "function withdraw() public {}",
+    }
+    import_line = "import {ReentrancyGuard} from 'oz.sol';"
+
+    async def fake_query(_prompt):
+        return {
+            "fixed_code": f"{import_line}\n\ncontract Fixed {{}}",
+            "imports_needed": [import_line, import_line, {"bad": "import"}],
+        }
+
+    monkeypatch.setattr(generator, "_query_llm", fake_query)
+
+    remediation = await generator.generate_remediation(finding, "contract C {}")
+
+    assert remediation.fixed_code == f"{import_line}\n\ncontract Fixed {{}}"
+    assert remediation.fixed_code.count(import_line) == 1
+
+
+@pytest.mark.asyncio
+async def test_generate_remediation_deduplicates_imports_before_prepending(monkeypatch):
+    generator = RemediationGenerator()
+    finding = {
+        "id": "F-2n",
+        "type": "reentrancy",
+        "severity": "HIGH",
+        "snippet": "function withdraw() public {}",
+    }
+    import_line = "import {ReentrancyGuard} from 'oz.sol';"
+
+    async def fake_query(_prompt):
+        return {
+            "fixed_code": "contract Fixed {}",
+            "imports_needed": [import_line, import_line, ["bad import"]],
+        }
+
+    monkeypatch.setattr(generator, "_query_llm", fake_query)
+
+    remediation = await generator.generate_remediation(finding, "contract C {}")
+
+    assert remediation.fixed_code == f"{import_line}\n\ncontract Fixed {{}}"
+    assert remediation.fixed_code.count(import_line) == 1
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize("fixed_code", ["", " \n\t "])
 async def test_generate_remediation_defaults_blank_fixed_code_payload(
     monkeypatch, fixed_code

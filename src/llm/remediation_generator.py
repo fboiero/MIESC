@@ -232,7 +232,7 @@ class RemediationGenerator:
         fixed_code = self._fixed_code_or_default(result.get("fixed_code"), vulnerable_code)
         explanation = self._string_or_default(result.get("explanation"), "")
         changes = self._string_list_or_empty(result.get("changes"))
-        imports = self._string_list_or_empty(result.get("imports_needed"))
+        imports = self._imports_to_prepend(fixed_code, result.get("imports_needed"))
         tests = self._string_list_or_empty(result.get("test_suggestions"))
         references = self._string_list_or_empty(result.get("references"))
         implementation_complexity = self._normalized_level(
@@ -529,6 +529,19 @@ class RemediationGenerator:
         if not isinstance(value, list):
             return []
         return [item.strip() for item in value if isinstance(item, str) and item.strip()]
+
+    @classmethod
+    def _imports_to_prepend(cls, fixed_code: str, value: Any) -> List[str]:
+        """Return unique imports that are not already present in fixed code."""
+        existing_lines = {line.strip() for line in fixed_code.splitlines()}
+        imports = []
+        seen = set()
+        for import_line in cls._string_list_or_empty(value):
+            if import_line in seen or import_line in existing_lines:
+                continue
+            seen.add(import_line)
+            imports.append(import_line)
+        return imports
 
     @staticmethod
     def _dict_or_empty(value: Any) -> Dict[str, Any]:
