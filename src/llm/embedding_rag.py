@@ -74,6 +74,27 @@ def _coerce_query_text(value: Any) -> str:
     return str(value)
 
 
+def _coerce_filter_text(value: Any) -> Optional[str]:
+    """Return safe scalar metadata filter text, or no filter for malformed values."""
+    text = _coerce_query_text(value).strip() if isinstance(value, (str, bytes)) else ""
+    return text or None
+
+
+def _coerce_result_count(value: Any, fallback: Any) -> int:
+    """Return a positive result count for cache keys and Chroma query calls."""
+    candidates = (value, fallback, EmbeddingRAG.DEFAULT_TOP_K)
+    for candidate in candidates:
+        if isinstance(candidate, bool):
+            continue
+        try:
+            count = int(candidate)
+        except (TypeError, ValueError):
+            continue
+        if count > 0:
+            return count
+    return EmbeddingRAG.DEFAULT_TOP_K
+
+
 def _similarity_from_distance(distance: Any) -> float:
     """Convert a loose Chroma distance value to a bounded similarity score."""
     try:
@@ -4513,6 +4534,7 @@ class EmbeddingRAG:
     """
 
     DEFAULT_MODEL = "all-MiniLM-L6-v2"  # Fast, good quality embeddings
+    DEFAULT_TOP_K = 5
     COLLECTION_NAME = "miesc_vulnerabilities"
 
     # Cache settings
@@ -4523,7 +4545,7 @@ class EmbeddingRAG:
         self,
         persist_directory: Optional[str] = None,
         embedding_model: str = DEFAULT_MODEL,
-        top_k: int = 5,
+        top_k: int = DEFAULT_TOP_K,
         enable_cache: bool = True,
     ):
         """
@@ -4536,7 +4558,7 @@ class EmbeddingRAG:
             top_k: Number of results to return from searches.
             enable_cache: Enable query result caching (default: True).
         """
-        self.top_k = top_k
+        self.top_k = _coerce_result_count(top_k, self.DEFAULT_TOP_K)
         self.embedding_model_name = embedding_model
         self.enable_cache = enable_cache
 
@@ -4884,16 +4906,18 @@ class EmbeddingRAG:
         self._ensure_initialized()
 
         query_text = _coerce_query_text(query)
-        n = n_results or self.top_k
+        n = _coerce_result_count(n_results, self.top_k)
+        category_filter = _coerce_filter_text(filter_category)
+        severity_filter = _coerce_filter_text(filter_severity)
 
         # Check cache first
-        cache_key = self._get_cache_key(query_text, filter_category, filter_severity, n)
+        cache_key = self._get_cache_key(query_text, category_filter, severity_filter, n)
         cached = self._get_cached_result(cache_key)
         if cached is not None:
             logger.debug(f"Cache hit for query (key={cache_key[:8]})")
             return cached
 
-        where_filter = build_metadata_filter(filter_category, filter_severity)
+        where_filter = build_metadata_filter(category_filter, severity_filter)
 
         # Query ChromaDB
         results = self._collection.query(
@@ -4958,11 +4982,13 @@ class EmbeddingRAG:
         4. Deduplicate so one source cluster does not dominate the context.
         """
         self._ensure_initialized()
-        n = n_results or self.top_k
+        n = _coerce_result_count(n_results, self.top_k)
+        category_filter = _coerce_filter_text(filter_category)
+        severity_filter = _coerce_filter_text(filter_severity)
 
         query_text = _coerce_query_text(query)
         cache_key = self._get_cache_key(
-            query_text, filter_category, filter_severity, n, strategy="multi_step"
+            query_text, category_filter, severity_filter, n, strategy="multi_step"
         )
         cached = self._get_cached_result(cache_key)
         if cached is not None:
@@ -4975,8 +5001,8 @@ class EmbeddingRAG:
             step = "direct_query" if idx == 0 else f"expanded_query_{idx}"
             step_results = self.search(
                 expanded_query,
-                filter_category=filter_category,
-                filter_severity=filter_severity,
+                filter_category=category_filter,
+                filter_severity=severity_filter,
                 n_results=max(n * 2, 6),
             )
             all_results.extend(
@@ -5027,7 +5053,9 @@ class EmbeddingRAG:
 
         self._ensure_initialized()
 
-        n = n_results or self.top_k
+        n = _coerce_result_count(n_results, self.top_k)
+        category_filter = _coerce_filter_text(filter_category)
+        severity_filter = _coerce_filter_text(filter_severity)
 
         # Deduplicate queries while preserving order mapping
         unique_queries: List[Any] = []
@@ -5049,7 +5077,7 @@ class EmbeddingRAG:
         uncached_queries: List[Tuple[int, str]] = []
 
         for i, q in enumerate(unique_queries):
-            cache_key = self._get_cache_key(q, filter_category, filter_severity, n)
+            cache_key = self._get_cache_key(q, category_filter, severity_filter, n)
             cached = self._get_cached_result(cache_key)
             if cached is not None:
                 cached_results[i] = cached
@@ -5058,7 +5086,7 @@ class EmbeddingRAG:
 
         # Query ChromaDB for uncached queries
         if uncached_queries:
-            where_filter = build_metadata_filter(filter_category, filter_severity)
+            where_filter = build_metadata_filter(category_filter, severity_filter)
 
             # Batch query to ChromaDB
             query_texts = [q for _, q in uncached_queries]
@@ -5099,7 +5127,7 @@ class EmbeddingRAG:
                             )
 
                 # Cache this result
-                cache_key = self._get_cache_key(query, filter_category, filter_severity, n)
+                cache_key = self._get_cache_key(query, category_filter, severity_filter, n)
                 self._cache_result(cache_key, retrieval_results)
                 cached_results[unique_idx] = retrieval_results
 

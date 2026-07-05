@@ -53,10 +53,30 @@ class _MalformedSearchCollection:
     def __init__(self, payload):
         self.payload = payload
         self.query_texts = None
+        self.n_results = None
+        self.where = "unset"
 
     def query(self, **kwargs):
         self.query_texts = kwargs["query_texts"]
+        self.n_results = kwargs["n_results"]
+        self.where = kwargs["where"]
         return self.payload
+
+
+class _RecordingMultiStepRAG(EmbeddingRAG):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.search_calls = []
+
+    def _ensure_initialized(self):
+        self._initialized = True
+
+    def _expand_query(self, query):
+        return [query]
+
+    def search(self, query, filter_category=None, filter_severity=None, n_results=None):
+        self.search_calls.append((query, filter_category, filter_severity, n_results))
+        return []
 
 
 # ---------------------------------------------------------------------------
@@ -431,6 +451,47 @@ class TestEmbeddingRAGSearchBoundaryShapes:
         assert [result.document.id for result in results] == ["CUSTOM-003"]
         assert 0.0 <= results[0].similarity_score < 0.3
         assert results[0].relevance_reason == "Matches category: custom"
+
+    def test_search_bounds_malformed_result_count_and_filter_values(self, tmp_path):
+        vulnerability = VulnerabilityDocument(
+            id="CUSTOM-COUNT",
+            title="Malformed Count Boundary",
+            description="Custom vulnerability description",
+        )
+        collection = _MalformedSearchCollection(
+            {
+                "ids": [["CUSTOM-COUNT"]],
+                "distances": [[0.2]],
+            }
+        )
+        rag = EmbeddingRAG(persist_directory=str(tmp_path), top_k=2)
+        rag._initialized = True
+        rag._collection = collection
+        rag._doc_index = {"CUSTOM-COUNT": vulnerability}
+
+        results = rag.search(
+            "count boundary",
+            filter_category=["bad"],  # type: ignore[arg-type]
+            filter_severity={"bad": "filter"},  # type: ignore[arg-type]
+            n_results={"bad": "count"},  # type: ignore[arg-type]
+        )
+
+        assert collection.n_results == 2
+        assert collection.where is None
+        assert [result.document.id for result in results] == ["CUSTOM-COUNT"]
+
+    def test_multi_step_search_normalizes_count_and_filters_before_expansion(self, tmp_path):
+        rag = _RecordingMultiStepRAG(persist_directory=str(tmp_path), top_k="bad")  # type: ignore[arg-type]
+
+        results = rag.multi_step_search(
+            b"count boundary",
+            filter_category=["bad"],  # type: ignore[arg-type]
+            filter_severity=b" high ",
+            n_results=False,  # type: ignore[arg-type]
+        )
+
+        assert results == []
+        assert rag.search_calls == [("count boundary", None, "high", 10)]
 
     def test_batch_search_skips_malformed_result_rows_and_query_values(self, tmp_path):
         vulnerability = VulnerabilityDocument(
