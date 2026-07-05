@@ -527,6 +527,65 @@ def test_call_llm_accepts_bounded_string_generate_payload(monkeypatch):
     assert helper._call_llm("prompt") == "bounded text"
 
 
+def test_call_llm_accepts_line_delimited_generate_fragments(monkeypatch):
+    helper = OpenLLaMAHelper(LLMConfig(retry_attempts=1))
+
+    class FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            return (
+                b'{"response": "hello "}\n'
+                b'{"response": ["not", "text"]}\n'
+                b"not json\n"
+                b'{"response": "world"}\n'
+                b'{"done": true}\n'
+            )
+
+    monkeypatch.setattr("urllib.request.urlopen", lambda *args, **kwargs: FakeResponse())
+
+    assert helper._call_llm("prompt") == "hello world"
+
+
+def test_call_llm_ignores_malformed_line_delimited_generate_fragments(monkeypatch):
+    helper = OpenLLaMAHelper(LLMConfig(retry_attempts=1))
+    original_json_loads = json.loads
+
+    class MalformedPayload(dict):
+        def get(self, *args, **kwargs):
+            raise RuntimeError("bad fragment accessor")
+
+    class MalformedText(str):
+        def strip(self, *args, **kwargs):
+            raise RuntimeError("bad fragment text")
+
+    class FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            return b'{"response": "bad accessor"}\n{"response": "bad strip"}\n{"response": "ok"}'
+
+    def fake_json_loads(raw, *args, **kwargs):
+        if raw == b'{"response": "bad accessor"}':
+            return MalformedPayload()
+        if raw == b'{"response": "bad strip"}':
+            return {"response": MalformedText("bad")}
+        return original_json_loads(raw, *args, **kwargs)
+
+    monkeypatch.setattr("urllib.request.urlopen", lambda *args, **kwargs: FakeResponse())
+    monkeypatch.setattr("json.loads", fake_json_loads)
+
+    assert helper._call_llm("prompt") == "ok"
+
+
 def test_call_llm_defaults_malformed_timeout_and_retry_config(monkeypatch):
     helper = OpenLLaMAHelper(LLMConfig(timeout=["slow"], retry_attempts=["many"], retry_delay=False))
     calls = []

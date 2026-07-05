@@ -65,6 +65,16 @@ class _RecordingEmbedder:
         return _ListEmbedding([[0.1, 0.2] for _ in documents])
 
 
+class _StaticEmbeddingEmbedder:
+    def __init__(self, values):
+        self.values = values
+        self.documents = None
+
+    def encode(self, documents, **_kwargs):
+        self.documents = documents
+        return _ListEmbedding(self.values)
+
+
 class _RecordingIndexCollection:
     def __init__(self):
         self.add_payload = None
@@ -848,6 +858,79 @@ class TestEmbeddingRAGCustomVulnerabilityShapes:
         assert embedder.documents == [valid.to_text()]
         assert collection.add_payload["ids"] == ["CUSTOM-VALID"]
         assert collection.add_payload["metadatas"] == [valid.to_metadata()]
+
+    def test_malformed_embedding_vectors_are_skipped_in_index_payloads(
+        self,
+        tmp_path,
+        monkeypatch,
+    ):
+        valid = VulnerabilityDocument(
+            id="CUSTOM-VECTOR-VALID",
+            title="Valid Vector",
+            description="Custom vulnerability description",
+        )
+        bad_nan = VulnerabilityDocument(
+            id="CUSTOM-VECTOR-NAN",
+            title="NaN Vector",
+            description="Custom vulnerability description",
+        )
+        bad_text = VulnerabilityDocument(
+            id="CUSTOM-VECTOR-TEXT",
+            title="Text Vector",
+            description="Custom vulnerability description",
+        )
+        collection = _RecordingIndexCollection()
+        embedder = _StaticEmbeddingEmbedder(
+            [
+                [0.1, "0.2"],
+                [0.3, float("nan")],
+                [0.4, "not-a-number"],
+            ]
+        )
+        rag = EmbeddingRAG(persist_directory=str(tmp_path))
+        rag._collection = collection
+        rag._embedder = embedder
+
+        monkeypatch.setattr(
+            embedding_rag_module,
+            "VULNERABILITY_KNOWLEDGE_BASE",
+            [valid, bad_nan, bad_text],
+        )
+
+        rag._index_knowledge_base()
+
+        assert embedder.documents == [valid.to_text(), bad_nan.to_text(), bad_text.to_text()]
+        assert collection.add_payload["ids"] == ["CUSTOM-VECTOR-VALID"]
+        assert collection.add_payload["embeddings"] == [[0.1, 0.2]]
+        assert collection.add_payload["documents"] == [valid.to_text()]
+
+    def test_custom_vulnerability_rejects_malformed_embedding_vector_before_mutation(
+        self,
+        tmp_path,
+    ):
+        vulnerability = VulnerabilityDocument(
+            id="CUSTOM-BAD-VECTOR",
+            title="Malformed Embedding Vector",
+            description="Custom vulnerability description",
+        )
+        collection = _RecordingIndexCollection()
+        rag = EmbeddingRAG(persist_directory=str(tmp_path))
+        rag._initialized = True
+        rag._collection = collection
+        rag._embedder = _StaticEmbeddingEmbedder([[0.1, float("inf")]])
+        rag._doc_index = {"existing": vulnerability}
+        rag._query_cache = {"stale": (0.0, [])}
+        rag._cache_hits = 2
+        rag._cache_misses = 3
+
+        with pytest.raises(ValueError, match="finite numeric vector"):
+            rag.add_custom_vulnerability(vulnerability)
+
+        assert collection.add_payload is None
+        assert rag._doc_index == {"existing": vulnerability}
+        assert rag._query_cache == {"stale": (0.0, [])}
+        assert rag._cache_hits == 2
+        assert rag._cache_misses == 3
 
 
 class TestEmbeddingRAGSearchBoundaryShapes:

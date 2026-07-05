@@ -1002,6 +1002,61 @@ class TestLLMEnsembleDetectorDetectWithFallback:
 
         asyncio.run(run_test())
 
+    def test_fallback_filters_malformed_provider_status_map_entries(
+        self, multi_provider_detector, vulnerable_code
+    ):
+        """Malformed provider status keys/lists should not break fallback selection."""
+
+        async def run_test():
+            multi_provider_detector._initialized = True
+            multi_provider_detector._available_providers = {
+                "ollama": [{"id": "bad"}, " ollama-model "],
+                LLMProvider.OPENAI: "gpt-4",
+                ("bad",): ["bad-model"],
+                "unknown": ["bad-model"],
+                "anthropic": [" claude-3-haiku-20240307 "],
+            }
+
+            async def mock_detect(provider, code, context):
+                return [
+                    EnsembleFinding(
+                        type="test",
+                        severity="low",
+                        title="Test",
+                        description="Test",
+                        location={},
+                        confidence=0.5,
+                        votes=1,
+                        total_models=1,
+                        supporting_models=[provider.value],
+                    )
+                ]
+
+            with patch.object(
+                multi_provider_detector, "_detect_with_provider", side_effect=mock_detect
+            ) as mock_detect:
+                results = await multi_provider_detector.detect_with_fallback(vulnerable_code)
+
+            assert results[0].supporting_models == ["ollama"]
+            mock_detect.assert_awaited_once()
+            assert mock_detect.await_args.args[0] == LLMProvider.OLLAMA
+
+        asyncio.run(run_test())
+
+    def test_fallback_rejects_malformed_provider_status_map(
+        self, multi_provider_detector, vulnerable_code
+    ):
+        """A malformed provider status map should fail as unavailable, not crash."""
+
+        async def run_test():
+            multi_provider_detector._initialized = True
+            multi_provider_detector._available_providers = ["ollama", "gpt-4"]
+
+            with pytest.raises(AllProvidersUnavailable):
+                await multi_provider_detector.detect_with_fallback(vulnerable_code)
+
+        asyncio.run(run_test())
+
 
 class TestLLMEnsembleDetectorVoting:
     """Tests for ensemble voting mechanism."""
@@ -2307,6 +2362,19 @@ class TestLLMEnsembleDetectorIntegration:
             assert queried_models == ["model1", "model2"]
             assert len(results) == 1
             assert results[0].supporting_models == ["model1", "model2"]
+
+        asyncio.run(run_test())
+
+    def test_detect_with_provider_rejects_malformed_provider_status_map(
+        self, detector, vulnerable_code
+    ):
+        """Malformed provider status maps should not raise attribute errors."""
+
+        async def run_test():
+            detector._available_providers = ["model1", "model2"]
+
+            with pytest.raises(ProviderUnavailable, match="No models available"):
+                await detector._detect_with_provider(LLMProvider.OLLAMA, vulnerable_code)
 
         asyncio.run(run_test())
 

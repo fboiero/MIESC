@@ -403,6 +403,36 @@ def test_remediation_to_dict_deduplicates_test_suggestions_export_boundary():
     ]
 
 
+def test_remediation_to_dict_filters_malformed_generated_test_names_export_boundary():
+    remediation = Remediation(
+        finding_id="F-1",
+        vulnerability_type="reentrancy",
+        severity="high",
+        vulnerable_code="function withdraw() public {}",
+        fixed_code="function withdraw() public nonReentrant {}",
+        explanation="uses guard",
+        changes_summary=[],
+        test_suggestions=[
+            "  reentrant attacker test  ",
+            "reentrant attacker test",
+            "../test/Reentrant.t.sol",
+            "C:\\temp\\Reentrant.t.sol",
+            "test_withdraw\ninject",
+            ".",
+            {"bad": "test"},
+            "",
+            "withdraw succeeds for user",
+        ],
+        references=[],
+        confidence=0.8,
+    )
+
+    assert remediation.to_dict()["test_suggestions"] == [
+        "reentrant attacker test",
+        "withdraw succeeds for user",
+    ]
+
+
 def test_remediation_to_dict_filters_malformed_reference_link_export_boundary():
     remediation = Remediation(
         finding_id="F-1",
@@ -1323,6 +1353,40 @@ async def test_generate_remediation_deduplicates_generated_test_and_reference_me
     assert remediation.references == [
         "OpenZeppelin ReentrancyGuard",
         "Solidity security considerations",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_generate_remediation_filters_malformed_generated_test_names(monkeypatch):
+    generator = RemediationGenerator()
+    finding = {
+        "id": "F-2p",
+        "type": "reentrancy",
+        "severity": "HIGH",
+        "snippet": "function withdraw() public {}",
+    }
+
+    async def fake_query(_prompt):
+        return {
+            "fixed_code": "contract Fixed {}",
+            "test_suggestions": [
+                "  reentrant attacker test  ",
+                "reentrant attacker test",
+                "/tmp/Reentrant.t.sol",
+                "test_withdraw\r\nforge clean",
+                "..",
+                ["bad test"],
+                "withdraw succeeds for user",
+            ],
+        }
+
+    monkeypatch.setattr(generator, "_query_llm", fake_query)
+
+    remediation = await generator.generate_remediation(finding, "contract C {}")
+
+    assert remediation.test_suggestions == [
+        "reentrant attacker test",
+        "withdraw succeeds for user",
     ]
 
 

@@ -719,6 +719,8 @@ class FoundryRunner:
                         continue
 
                     contract, method, min_gas, max_gas, avg_gas, calls = cells
+                    if not _safe_match_filter(contract) or not _safe_match_filter(method):
+                        continue
                     try:
                         method_report: Dict[str, Any] = {
                             "min": int(min_gas.replace(",", "")),
