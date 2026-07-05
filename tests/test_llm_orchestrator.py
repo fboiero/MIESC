@@ -1155,6 +1155,17 @@ class TestLLMOrchestrator:
         assert selected == "anthropic:healthy"
         assert orchestrator.backends["ollama:primary"].available is False
 
+    def test_select_model_skips_malformed_backend_values(self):
+        """Test model selection ignores malformed backend registry values."""
+        config = LLMConfig(provider=LLMProvider.OLLAMA, model="healthy")
+        orchestrator = LLMOrchestrator([config])
+        orchestrator.backends["ollama:healthy"].available = True
+        orchestrator.backends["ollama:shadow"] = object()
+
+        selected = orchestrator.select_model_for_task("vulnerability_detection")
+
+        assert selected == "ollama:healthy"
+
     def test_preferred_models_rejects_malformed_list_container(self):
         """Test malformed preferred model list containers fall back safely."""
         orchestrator = LLMOrchestrator([])

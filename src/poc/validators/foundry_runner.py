@@ -631,7 +631,13 @@ class FoundryRunner:
 
         normalized = {}
         for contract, report in value.items():
-            if not isinstance(contract, str) or not contract.strip() or not isinstance(report, dict):
+            if not isinstance(contract, str) or not isinstance(report, dict):
+                continue
+            try:
+                contract_name = contract.strip()
+            except (AttributeError, TypeError, ValueError):
+                continue
+            if not contract_name or any(ord(ch) < 32 for ch in contract_name):
                 continue
 
             contract_report = dict(report)
@@ -641,12 +647,15 @@ class FoundryRunner:
                     {
                         method: metrics
                         for method, metrics in methods.items()
-                        if isinstance(method, str) and method.strip() and isinstance(metrics, dict)
+                        if isinstance(method, str)
+                        and isinstance(metrics, dict)
+                        and method.strip()
+                        and not any(ord(ch) < 32 for ch in method.strip())
                     }
                     if isinstance(methods, dict)
                     else {}
                 )
-            normalized[contract] = contract_report
+            normalized[contract_name] = contract_report
 
         return normalized
 

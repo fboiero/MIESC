@@ -922,6 +922,13 @@ Provide a comprehensive security analysis in JSON format."""
         """Return backend entries with strict string keys for routing/status boundaries."""
         valid_backends = []
         for key, backend in self.backends.items():
+            if not isinstance(backend, LLMBackend):
+                logger.warning(
+                    "Ignoring malformed LLM backend value for key %r: %s",
+                    key,
+                    type(backend).__name__,
+                )
+                continue
             if _is_safe_backend_name(key):
                 valid_backends.append((key, backend))
                 continue

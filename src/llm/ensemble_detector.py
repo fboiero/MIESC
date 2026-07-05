@@ -448,7 +448,7 @@ Response (JSON array only):"""
     @classmethod
     def _provider_status_map(cls, provider_status: Any) -> Dict[LLMProvider, List[str]]:
         """Return a defensive provider-to-model availability map."""
-        if not isinstance(provider_status, dict):
+        if not isinstance(provider_status, Mapping):
             logger.warning("Ignoring malformed ensemble provider status map")
             return {}
 

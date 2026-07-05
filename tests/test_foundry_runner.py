@@ -1124,6 +1124,26 @@ class TestGasReport:
 
         assert report["contracts"] == {"Vault": {"methods": {}}}
 
+    def test_normalize_gas_report_strips_and_rejects_control_chars(self, runner):
+        """Test gas-report normalization rejects control chars in names."""
+        normalized = runner._normalize_gas_report(
+            {
+                "Vault\nshadow": {
+                    "methods": {
+                        "withdraw": {"avg": 1},
+                        "bad\nmethod": {"avg": 2},
+                    }
+                },
+                "CleanVault": {
+                    "methods": {
+                        "deposit": {"avg": 3},
+                    }
+                },
+            }
+        )
+
+        assert normalized == {"CleanVault": {"methods": {"deposit": {"avg": 3}}}}
+
     def test_get_gas_report_ignores_malformed_stdout_shape(self, runner):
         """Malformed gas report stdout should normalize to an empty report."""
         mock_result = MagicMock()

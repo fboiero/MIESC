@@ -146,6 +146,12 @@ def test_ollama_list_model_names_skips_malformed_rows():
     assert OpenLLaMAHelper._ollama_list_model_names(ModelList("")) == ("valid-model",)
 
 
+def test_ollama_list_model_names_accepts_bytes_payload():
+    payload = b"NAME                 ID\nvalid-model          abc123\n"
+
+    assert OpenLLaMAHelper._ollama_list_model_names(payload) == ("valid-model",)
+
+
 def test_is_available_returns_false_on_malformed_ollama_result(monkeypatch):
     helper = OpenLLaMAHelper(LLMConfig(model="test-model"))
 

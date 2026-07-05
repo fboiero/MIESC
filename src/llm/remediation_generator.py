@@ -873,7 +873,18 @@ class RemediationGenerator:
         """Return only non-empty string list items from LLM results."""
         if not isinstance(value, list):
             return []
-        return [item.strip() for item in value if isinstance(item, str) and item.strip()]
+        items = []
+        for item in value:
+            if not isinstance(item, str):
+                continue
+            try:
+                text = item.strip()
+            except (AttributeError, TypeError, ValueError):
+                continue
+            if not text or any(ord(ch) < 32 for ch in text):
+                continue
+            items.append(text)
+        return items
 
     @classmethod
     def _unique_string_list_or_empty(cls, value: Any) -> List[str]:

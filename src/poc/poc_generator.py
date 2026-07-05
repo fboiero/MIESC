@@ -575,7 +575,15 @@ class PoCGenerator:
 
         if isinstance(location, dict):
             function_name = location.get("function") or location.get("func")
-            return function_name if isinstance(function_name, str) else None
+            if not isinstance(function_name, str):
+                return None
+            try:
+                normalized = function_name.strip()
+            except (AttributeError, TypeError, ValueError):
+                return None
+            if not normalized or any(ord(ch) < 32 for ch in normalized):
+                return None
+            return normalized
         elif isinstance(location, str):
             # Try to parse function from string
             match = re.search(r"function\s+(\w+)", location)

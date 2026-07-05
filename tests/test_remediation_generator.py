@@ -1255,6 +1255,35 @@ async def test_generate_remediation_normalizes_malformed_llm_result_fields(monke
 
 
 @pytest.mark.asyncio
+async def test_generate_remediation_filters_control_char_string_lists(monkeypatch):
+    generator = RemediationGenerator()
+    finding = {
+        "id": "F-2d",
+        "type": "reentrancy",
+        "severity": "HIGH",
+        "snippet": "function withdraw() public {}",
+    }
+
+    async def fake_query(_prompt):
+        return {
+            "fixed_code": "contract Fixed {}",
+            "explanation": "Uses CEI",
+            "changes": ["  valid change  ", "bad\nchange", {"bad": "shape"}],
+            "imports_needed": [],
+            "test_suggestions": ["valid test", "bad\ttest"],
+            "references": ["OpenZeppelin", "bad\nreference"],
+        }
+
+    monkeypatch.setattr(generator, "_query_llm", fake_query)
+
+    remediation = await generator.generate_remediation(finding, "contract C {}")
+
+    assert remediation.changes_summary == ["valid change"]
+    assert remediation.test_suggestions == ["valid test"]
+    assert remediation.references == ["OpenZeppelin"]
+
+
+@pytest.mark.asyncio
 async def test_generate_remediation_defaults_malformed_complexity_and_risk_payloads(
     monkeypatch,
 ):

@@ -1196,6 +1196,28 @@ class TestEmbeddingRAGSearchBoundaryShapes:
         assert collection.where is None
         assert [result.document.id for result in results] == ["CUSTOM-COUNT"]
 
+    def test_search_ignores_control_char_result_counts(self, tmp_path):
+        vulnerability = VulnerabilityDocument(
+            id="CUSTOM-COUNT-TEXT",
+            title="Malformed Count Text Boundary",
+            description="Custom vulnerability description",
+        )
+        collection = _MalformedSearchCollection(
+            {
+                "ids": [["CUSTOM-COUNT-TEXT"]],
+                "distances": [[0.2]],
+            }
+        )
+        rag = EmbeddingRAG(persist_directory=str(tmp_path), top_k=2)
+        rag._initialized = True
+        rag._collection = collection
+        rag._doc_index = {"CUSTOM-COUNT-TEXT": vulnerability}
+
+        results = rag.search("count boundary", n_results="2\n")
+
+        assert collection.n_results == 2
+        assert [result.document.id for result in results] == ["CUSTOM-COUNT-TEXT"]
+
     def test_search_drops_malformed_metadata_filter_builder_output(
         self,
         tmp_path,

@@ -671,7 +671,16 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
     @staticmethod
     def _config_text(config: Any, key: str, default: str) -> str:
         """Read config text fields without trusting the container shape."""
-        return LLMFindingValidator._parse_text(getattr(config, key, default), default)
+        value = LLMFindingValidator._parse_text(getattr(config, key, default), default)
+        if not isinstance(value, str):
+            return default
+        try:
+            text = value.strip()
+        except (AttributeError, TypeError, ValueError):
+            return default
+        if not text or any(ord(ch) < 32 for ch in text):
+            return default
+        return text
 
     @staticmethod
     def _config_enabled(config: Any) -> bool:

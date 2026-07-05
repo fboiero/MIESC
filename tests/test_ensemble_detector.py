@@ -16,6 +16,7 @@ Date: January 2026
 """
 
 import asyncio
+from types import MappingProxyType
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import aiohttp
@@ -530,6 +531,22 @@ class TestLLMEnsembleDetectorInit:
             "model1": 1.0,
             "model2": 1.0,
             "model3": 1.0,
+        }
+
+    def test_provider_status_map_accepts_mapping_views(self):
+        """Provider status normalization should accept generic mapping views."""
+        raw_status = MappingProxyType(
+            {
+                LLMProvider.OLLAMA: [" model-a ", {"bad": "entry"}],
+                "openai": ("model-b", " "),
+            }
+        )
+
+        normalized = LLMEnsembleDetector._provider_status_map(raw_status)
+
+        assert normalized == {
+            LLMProvider.OLLAMA: ["model-a"],
+            LLMProvider.OPENAI: ["model-b"],
         }
 
 

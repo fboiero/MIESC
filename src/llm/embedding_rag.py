@@ -159,6 +159,8 @@ def _coerce_result_count(value: Any, fallback: Any) -> int:
     for candidate in candidates:
         if isinstance(candidate, bool):
             continue
+        if isinstance(candidate, str) and any(ord(ch) < 32 for ch in candidate):
+            continue
         try:
             count = int(candidate)
         except (TypeError, ValueError):

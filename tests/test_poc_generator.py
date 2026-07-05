@@ -610,6 +610,18 @@ class TestFunctionExtraction:
             func = generator._extract_function_name({"type": "reentrancy", "location": location})
             assert func is None
 
+    def test_extract_strips_and_rejects_control_chars(self, generator):
+        """Test extraction trims clean function names and rejects control chars."""
+        clean = generator._extract_function_name(
+            {"type": "reentrancy", "location": {"function": " withdraw "}}
+        )
+        malformed = generator._extract_function_name(
+            {"type": "reentrancy", "location": {"function": "withdraw\nshadow"}}
+        )
+
+        assert clean == "withdraw"
+        assert malformed is None
+
 
 # =============================================================================
 # PoC Name Generation Tests

@@ -312,6 +312,11 @@ REMEDIATION ADVICE:"""
     @staticmethod
     def _ollama_list_model_names(model_list: Any) -> tuple[str, ...]:
         """Extract bounded model names from Ollama list output."""
+        if isinstance(model_list, (bytes, bytearray)):
+            try:
+                model_list = bytes(model_list).decode("utf-8", errors="replace")
+            except (AttributeError, TypeError, ValueError, RuntimeError):
+                return ()
         if not isinstance(model_list, str):
             return ()
 

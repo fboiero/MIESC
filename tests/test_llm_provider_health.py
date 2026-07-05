@@ -8,6 +8,7 @@ import pytest
 
 from src.llm.provider_health import (
     _authorization_headers,
+    _model_list,
     extract_openai_compatible_model_ids,
     fetch_openai_compatible_model_ids,
 )
@@ -67,6 +68,12 @@ def test_extract_openai_compatible_model_ids_nested_model_alias():
 
     assert extract_openai_compatible_model_ids(payload) == {"model-a"}
     assert extract_openai_compatible_model_ids({"models": {"model": {"id": "bad"}}}) == set()
+
+
+def test_model_list_accepts_items_alias():
+    payload = {"models": {"items": [{"id": "model-a"}]}}
+
+    assert _model_list(payload) == [{"id": "model-a"}]
 
 
 def test_extract_openai_compatible_model_ids_malformed_shapes():
