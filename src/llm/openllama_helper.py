@@ -79,15 +79,19 @@ class OpenLLaMAHelper:
         try:
             result = subprocess.run(["ollama", "list"], capture_output=True, timeout=5, text=True)
 
-            returncode = result.returncode if hasattr(result, "returncode") else None
-            model_list = result.stdout if isinstance(getattr(result, "stdout", None), str) else ""
+            returncode = self._subprocess_returncode(result)
+            model_list = self._subprocess_text(result, "stdout")
 
-            if returncode == 0 and self._ollama_model_available(self.config.model, model_list):
+            if self._successful_returncode(returncode) and self._ollama_model_available(
+                self.config.model, model_list
+            ):
                 self._available = True
                 logger.info(f"OpenLLaMA: {self.config.model} available")
             else:
                 self._available = False
-                logger.warning(f"OpenLLaMA: {self.config.model} not found")
+                stderr = self._subprocess_text(result, "stderr", limit=500)
+                detail = f": {stderr}" if stderr else ""
+                logger.warning(f"OpenLLaMA: {self.config.model} not found{detail}")
 
         except OLLAMA_RUNTIME_ERRORS as e:
             self._available = False
@@ -297,6 +301,33 @@ REMEDIATION ADVICE:"""
             if columns and columns[0] == model:
                 return True
         return False
+
+    @staticmethod
+    def _subprocess_returncode(result: Any) -> Optional[int]:
+        """Return a real integer subprocess return code, rejecting bools and bad accessors."""
+        try:
+            returncode = result.returncode
+        except (AttributeError, TypeError, ValueError, RuntimeError):
+            return None
+        if isinstance(returncode, int) and not isinstance(returncode, bool):
+            return returncode
+        return None
+
+    @staticmethod
+    def _successful_returncode(returncode: Any) -> bool:
+        """Return true only for a valid successful process return code."""
+        return isinstance(returncode, int) and not isinstance(returncode, bool) and returncode == 0
+
+    @staticmethod
+    def _subprocess_text(result: Any, attr: str, limit: int = 20_000) -> str:
+        """Read subprocess text attributes without trusting malformed result objects."""
+        try:
+            value = getattr(result, attr)
+        except (AttributeError, TypeError, ValueError, RuntimeError):
+            return ""
+        if not isinstance(value, str):
+            return ""
+        return value[:limit]
 
     def _call_llm(self, prompt: str) -> Optional[str]:
         """Call Ollama LLM via HTTP API (clean output, no ANSI escapes)."""
