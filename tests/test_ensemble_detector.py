@@ -364,6 +364,40 @@ class TestLLMEnsembleDetectorInit:
         assert multi_provider_detector.openai_api_key == "test-openai-key"
         assert multi_provider_detector.anthropic_api_key == "test-anthropic-key"
 
+    def test_api_keys_are_stripped_at_config_boundary(self):
+        """Configured API keys should be normalized before reaching headers."""
+        detector = LLMEnsembleDetector(
+            providers=[LLMProvider.OPENAI, LLMProvider.ANTHROPIC, LLMProvider.DEEPSEEK],
+            openai_api_key="  test-openai-key  ",
+            anthropic_api_key="\ttest-anthropic-key\n",
+            deepseek_api_key="  test-deepseek-key  ",
+        )
+
+        assert detector.openai_api_key == "test-openai-key"
+        assert detector.anthropic_api_key == "test-anthropic-key"
+        assert detector.deepseek_api_key == "test-deepseek-key"
+
+    def test_malformed_api_key_config_uses_env_fallback(self):
+        """Malformed API key values should not become truthy provider credentials."""
+        with patch.dict(
+            "os.environ",
+            {
+                "OPENAI_API_KEY": " env-openai-key ",
+                "ANTHROPIC_API_KEY": " ",
+                "DEEPSEEK_API_KEY": "env-deepseek-key",
+            },
+        ):
+            detector = LLMEnsembleDetector(
+                providers=[LLMProvider.OPENAI, LLMProvider.ANTHROPIC, LLMProvider.DEEPSEEK],
+                openai_api_key={"key": "bad"},
+                anthropic_api_key=["bad"],
+                deepseek_api_key=False,
+            )
+
+        assert detector.openai_api_key == "env-openai-key"
+        assert detector.anthropic_api_key is None
+        assert detector.deepseek_api_key == "env-deepseek-key"
+
     def test_string_provider_entries_are_normalized_and_deduped(self):
         """String provider config should normalize to enum values once."""
         detector = LLMEnsembleDetector(providers=["openai", LLMProvider.OPENAI, "anthropic"])

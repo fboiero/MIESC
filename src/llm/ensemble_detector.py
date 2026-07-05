@@ -252,9 +252,11 @@ Response (JSON array only):"""
 
         # Multi-provider support (v4.4.0)
         self.providers = self._normalize_providers(providers)
-        self.openai_api_key = openai_api_key or os.environ.get("OPENAI_API_KEY")
-        self.anthropic_api_key = anthropic_api_key or os.environ.get("ANTHROPIC_API_KEY")
-        self.deepseek_api_key = deepseek_api_key or os.environ.get("DEEPSEEK_API_KEY")
+        self.openai_api_key = self._normalize_api_key(openai_api_key, "OPENAI_API_KEY")
+        self.anthropic_api_key = self._normalize_api_key(
+            anthropic_api_key, "ANTHROPIC_API_KEY"
+        )
+        self.deepseek_api_key = self._normalize_api_key(deepseek_api_key, "DEEPSEEK_API_KEY")
         self.deepseek_base_url = (
             deepseek_base_url or os.environ.get("DEEPSEEK_BASE_URL") or "https://api.deepseek.com"
         )
@@ -338,6 +340,23 @@ Response (JSON array only):"""
             return cls.DEFAULT_TEMPERATURE
 
         return min(cls.MAX_TEMPERATURE, max(0.0, normalized_temperature))
+
+    @staticmethod
+    def _normalize_api_key(api_key: Any, env_name: str) -> Optional[str]:
+        """Return a non-empty API key string from config or environment."""
+        if isinstance(api_key, str):
+            normalized = api_key.strip()
+            if normalized:
+                return normalized
+        elif api_key is not None:
+            logger.warning("Ignoring malformed ensemble API key for %s", env_name)
+
+        env_value = os.environ.get(env_name)
+        if not isinstance(env_value, str):
+            return None
+
+        normalized_env_value = env_value.strip()
+        return normalized_env_value or None
 
     @staticmethod
     def _normalize_voting_strategy(voting_strategy: Any) -> VotingStrategy:
