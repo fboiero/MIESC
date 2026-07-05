@@ -1060,6 +1060,66 @@ class TestLLMOrchestrator:
 
         asyncio.run(run_test())
 
+    def test_query_uses_single_attempt_for_malformed_retry_attempts(self):
+        """Test malformed retry_attempts cannot crash the query attempt loop."""
+
+        async def run_test():
+            config = LLMConfig(
+                provider=LLMProvider.OLLAMA,
+                model="primary",
+                retry_attempts=3,
+                retry_delay=0,
+            )
+            config.retry_attempts = True
+            orchestrator = LLMOrchestrator([config])
+            orchestrator.backends["ollama:primary"].available = True
+
+            response = LLMResponse(
+                content="primary content",
+                provider="ollama",
+                model="primary",
+            )
+            analyze = AsyncMock(return_value=response)
+            orchestrator.backends["ollama:primary"].analyze = analyze
+
+            result = await orchestrator.query("test prompt")
+
+            assert result is response
+            analyze.assert_awaited_once()
+
+        asyncio.run(run_test())
+
+    def test_query_uses_zero_delay_for_malformed_retry_delay(self):
+        """Test malformed retry_delay cannot break retry sleep handling."""
+
+        async def run_test():
+            config = LLMConfig(
+                provider=LLMProvider.OLLAMA,
+                model="primary",
+                retry_attempts=2,
+                retry_delay=0,
+            )
+            config.retry_delay = "soon"
+            orchestrator = LLMOrchestrator([config])
+            orchestrator.backends["ollama:primary"].available = True
+
+            response = LLMResponse(
+                content="primary content",
+                provider="ollama",
+                model="primary",
+            )
+            analyze = AsyncMock(side_effect=[aiohttp.ClientError("transient"), response])
+            orchestrator.backends["ollama:primary"].analyze = analyze
+
+            with patch("asyncio.sleep", new_callable=AsyncMock) as sleep:
+                result = await orchestrator.query("test prompt")
+
+            assert result is response
+            assert analyze.await_count == 2
+            sleep.assert_awaited_once_with(0.0)
+
+        asyncio.run(run_test())
+
     def test_query_ignores_malformed_provider_route(self):
         """Test query falls back when provider routing input has an invalid shape."""
 
