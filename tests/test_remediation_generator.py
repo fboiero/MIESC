@@ -467,6 +467,34 @@ def test_remediation_to_dict_filters_malformed_reference_link_export_boundary():
     ]
 
 
+def test_remediation_to_dict_skips_malformed_reference_title_export_boundary():
+    class MalformedString(str):
+        def strip(self, *_args, **_kwargs):
+            raise ValueError("malformed reference title")
+
+    remediation = Remediation(
+        finding_id="F-1",
+        vulnerability_type="reentrancy",
+        severity="high",
+        vulnerable_code="function withdraw() public {}",
+        fixed_code="function withdraw() public nonReentrant {}",
+        explanation="uses guard",
+        changes_summary=[],
+        test_suggestions=[],
+        references=[
+            MalformedString("OpenZeppelin ReentrancyGuard"),
+            "  OpenZeppelin ReentrancyGuard  ",
+            "[Solidity security](https://docs.soliditylang.org/en/latest/security-considerations.html)",
+        ],
+        confidence=0.8,
+    )
+
+    assert remediation.to_dict()["references"] == [
+        "OpenZeppelin ReentrancyGuard",
+        "[Solidity security](https://docs.soliditylang.org/en/latest/security-considerations.html)",
+    ]
+
+
 @pytest.mark.parametrize(
     ("validation_notes", "expected"),
     [
