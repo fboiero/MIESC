@@ -677,6 +677,37 @@ async def test_generate_remediation_normalizes_malformed_llm_result_fields(monke
 
 
 @pytest.mark.asyncio
+async def test_generate_remediation_drops_blank_llm_list_entries(monkeypatch):
+    generator = RemediationGenerator()
+    finding = {
+        "id": "F-2j",
+        "type": "reentrancy",
+        "severity": "HIGH",
+        "snippet": "function withdraw() public {}",
+    }
+
+    async def fake_query(_prompt):
+        return {
+            "fixed_code": "contract Fixed {}",
+            "changes": ["  added guard  ", "", " \n\t "],
+            "imports_needed": ["  import {ReentrancyGuard} from 'oz.sol';  ", "  "],
+            "test_suggestions": ["  reentrant attacker test  ", "\t"],
+            "references": ["  OpenZeppelin ReentrancyGuard  ", ""],
+        }
+
+    monkeypatch.setattr(generator, "_query_llm", fake_query)
+
+    remediation = await generator.generate_remediation(finding, "contract C {}")
+
+    assert remediation.fixed_code == (
+        "import {ReentrancyGuard} from 'oz.sol';\n\ncontract Fixed {}"
+    )
+    assert remediation.changes_summary == ["added guard"]
+    assert remediation.test_suggestions == ["reentrant attacker test"]
+    assert remediation.references == ["OpenZeppelin ReentrancyGuard"]
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize("fixed_code", ["", " \n\t "])
 async def test_generate_remediation_defaults_blank_fixed_code_payload(
     monkeypatch, fixed_code

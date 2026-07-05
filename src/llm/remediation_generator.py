@@ -511,10 +511,10 @@ class RemediationGenerator:
 
     @staticmethod
     def _string_list_or_empty(value: Any) -> List[str]:
-        """Return only string list items from LLM results."""
+        """Return only non-empty string list items from LLM results."""
         if not isinstance(value, list):
             return []
-        return [item for item in value if isinstance(item, str)]
+        return [item.strip() for item in value if isinstance(item, str) and item.strip()]
 
     @staticmethod
     def _dict_or_empty(value: Any) -> Dict[str, Any]:

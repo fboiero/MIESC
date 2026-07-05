@@ -571,6 +571,28 @@ class TestLLMOrchestrator:
         orchestrator._add_backend(config)
         assert "ollama:test" in orchestrator.backends
 
+    def test_add_backend_ignores_malformed_model_identity(self):
+        """Test malformed model identities are not registered as backend keys."""
+        orchestrator = LLMOrchestrator([])
+        config = LLMConfig(provider=LLMProvider.OLLAMA, model="test")
+        config.model = ["not", "a", "model"]
+
+        orchestrator._add_backend(config)
+
+        assert orchestrator.backends == {}
+        assert orchestrator.primary_provider is None
+
+    def test_add_backend_strips_model_identity(self):
+        """Test model identities are normalized before backend registration."""
+        orchestrator = LLMOrchestrator([])
+        config = LLMConfig(provider=LLMProvider.OLLAMA, model="  codellama  ")
+
+        orchestrator._add_backend(config)
+
+        assert "ollama:codellama" in orchestrator.backends
+        assert orchestrator.primary_provider == "ollama:codellama"
+        assert orchestrator.backends["ollama:codellama"].config.model == "codellama"
+
     def test_add_deepseek_backend(self):
         """Test adding DeepSeek backend."""
         orchestrator = LLMOrchestrator([])

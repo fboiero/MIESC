@@ -433,6 +433,20 @@ def test_init_preserves_explicit_config_over_environment(monkeypatch):
     assert config.model == "explicit-model"
 
 
+def test_init_normalizes_endpoint_model_and_batch_config():
+    validator = LLMFindingValidator(
+        ValidatorConfig(
+            ollama_host=" http://ollama.local:11434 ",
+            model=" local-model ",
+            batch_size=0,
+        )
+    )
+
+    assert validator.config.ollama_host == "http://ollama.local:11434"
+    assert validator.config.model == "local-model"
+    assert validator.config.batch_size == ValidatorConfig().batch_size
+
+
 @pytest.mark.parametrize("timeout", [0, -1, True, ["60"]])
 def test_init_defaults_malformed_timeout_config(timeout):
     validator = LLMFindingValidator(ValidatorConfig(timeout_seconds=timeout))
