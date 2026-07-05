@@ -1189,6 +1189,16 @@ class TestLLMOrchestrator:
 
         assert preferences == ["ollama:codellama", "openai:gpt-4"]
 
+    def test_preferred_models_accepts_sequence_aliases(self):
+        """Test preferred backend alias sequences can be normalized from tuples."""
+        orchestrator = LLMOrchestrator([])
+
+        preferences = orchestrator._preferred_models_for_task(
+            ("ollama:codellama", None, "openai:gpt-4")
+        )
+
+        assert preferences == ["ollama:codellama", "openai:gpt-4"]
+
     def test_preferred_models_rejects_malformed_list_contents(self):
         """Test malformed preferred model list iteration falls back safely."""
 

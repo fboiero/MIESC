@@ -15,6 +15,7 @@ import math
 import os
 import time
 from abc import ABC, abstractmethod
+from collections.abc import Sequence
 from dataclasses import dataclass, field, replace
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
@@ -1224,10 +1225,12 @@ Provide a comprehensive security analysis in JSON format."""
         return self._backend_items()[0][0]
 
     def _preferred_models_for_task(self, preferred_models: Any) -> List[str]:
-        """Return strict preferred model keys from a potentially malformed list."""
+        """Return strict preferred model keys from a potentially malformed sequence."""
         if preferred_models is None:
             return []
-        if not isinstance(preferred_models, list):
+        if not isinstance(preferred_models, Sequence) or isinstance(
+            preferred_models, (str, bytes, bytearray)
+        ):
             logger.warning(
                 "Ignoring malformed preferred model list of type %s",
                 type(preferred_models).__name__,
