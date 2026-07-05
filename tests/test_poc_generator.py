@@ -968,6 +968,8 @@ class TestUtilityMethods:
         assert "available_templates" in info
         assert "type_aliases" in info
         assert len(info["type_aliases"]) > 10
+        assert all(isinstance(template, str) for template in info["available_templates"])
+        assert "reentrancy" in info["available_templates"]
 
     def test_type_aliases_coverage(self, generator):
         """Test type aliases cover common variations."""

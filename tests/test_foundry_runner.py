@@ -1505,6 +1505,13 @@ More text
         assert result.error == "raw-error"
         assert [test.name for test in result.tests] == ["test_text"]
 
+    @pytest.mark.parametrize("execution_time", [None, True, -1.0, float("nan"), float("inf")])
+    def test_parse_forge_output_defaults_malformed_execution_time(self, runner, execution_time):
+        """Test malformed execution timing metadata does not leak to results."""
+        result = runner._parse_forge_output("[PASS] test_text() (gas: 123)", "", 0, execution_time)
+
+        assert result.execution_time_ms == 0.0
+
     def test_parse_forge_output_extracts_version_from_normalized_streams(self, runner):
         """Test forge version extraction ignores malformed stream shapes."""
         result = runner._parse_forge_output(

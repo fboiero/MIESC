@@ -1272,6 +1272,8 @@ Response (JSON array only):"""
     @staticmethod
     def _safe_confidence(value: Any, default: float) -> float:
         """Return a finite model confidence bounded to the documented 0.0-1.0 range."""
+        if isinstance(value, bool):
+            return default
         confidence = LLMEnsembleDetector._safe_float(value, default)
         if not math.isfinite(confidence) or confidence < 0.0 or confidence > 1.0:
             return default

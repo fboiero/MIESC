@@ -798,7 +798,9 @@ contract {{CONTRACT_NAME}}ExploitTest is Test {
         """Get information about available templates."""
         return {
             "templates_dir": str(self.templates_dir),
-            "available_templates": list(self.TEMPLATE_MAP.keys()),
+            "available_templates": [
+                _safe_vulnerability_type_value(vuln_type) for vuln_type in self.TEMPLATE_MAP
+            ],
             "type_aliases": {k: v.value for k, v in self.TYPE_ALIASES.items()},
         }
 

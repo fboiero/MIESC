@@ -402,7 +402,7 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
                 finding_id=finding_id,
                 result=result,
                 confidence=self._parse_confidence(data.get("confidence", 0.5)),
-                reasoning=self._parse_text(data.get("reasoning"), "No reasoning provided"),
+                reasoning=self._parse_text(data.get("reasoning"), "No reasoning provided")[:2000],
                 suggested_severity=self._parse_optional_text(data.get("suggested_severity")),
                 remediation_hint=self._parse_optional_text(data.get("remediation_hint")),
             )

@@ -102,6 +102,7 @@ def test_remediation_to_dict_normalizes_malformed_export_metadata():
         pattern_used=["ReentrancyGuard"],
         implementation_complexity="extreme",
         deployment_risk=" Critical ",
+        gas_impact={"impact": "high"},
         affected_lines=["3", 4, 0, -1, True, 2.5, float("inf"), {"line": 7}, 3],
     )
 
@@ -122,6 +123,7 @@ def test_remediation_to_dict_normalizes_malformed_export_metadata():
         "pattern_used": None,
         "implementation_complexity": "medium",
         "deployment_risk": "critical",
+        "gas_impact": "medium",
     }
 
 
@@ -206,6 +208,36 @@ def test_remediation_to_dict_bounds_exported_severity(severity, expected):
     )
 
     assert remediation.to_dict()["severity"] == expected
+
+
+@pytest.mark.parametrize(
+    ("gas_impact", "expected"),
+    [
+        (" HIGH ", "high"),
+        ("none", "none"),
+        ("NoNe", "none"),
+        ("critical", "medium"),
+        ({"impact": "low"}, "medium"),
+        (["low"], "medium"),
+        (None, "medium"),
+    ],
+)
+def test_remediation_to_dict_bounds_exported_gas_impact(gas_impact, expected):
+    remediation = Remediation(
+        finding_id="F-1",
+        vulnerability_type="reentrancy",
+        severity="high",
+        vulnerable_code="function withdraw() public {}",
+        fixed_code="function withdraw() public nonReentrant {}",
+        explanation="uses guard",
+        changes_summary=[],
+        test_suggestions=[],
+        references=[],
+        confidence=0.8,
+        gas_impact=gas_impact,
+    )
+
+    assert remediation.to_dict()["gas_impact"] == expected
 
 
 def test_remediation_result_to_dict_normalizes_malformed_export_metadata():
