@@ -741,6 +741,24 @@ async def test_validate_findings_batch_preserves_malformed_entries(monkeypatch):
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("findings", [None, {"id": "A"}, "high finding"])
+async def test_validate_findings_batch_rejects_malformed_top_level_container(
+    monkeypatch, findings
+):
+    validator = LLMFindingValidator(ValidatorConfig())
+
+    async def available():
+        raise AssertionError("availability should not be checked for malformed containers")
+
+    monkeypatch.setattr(validator, "is_available", available)
+
+    validated, validations = await validator.validate_findings_batch(findings)
+
+    assert validated == []
+    assert validations == []
+
+
+@pytest.mark.asyncio
 async def test_validate_findings_batch_ignores_malformed_code_context_values(monkeypatch):
     validator = LLMFindingValidator(ValidatorConfig())
     findings = [

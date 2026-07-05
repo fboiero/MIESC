@@ -225,7 +225,9 @@ OUTPUT (JSON only):
                         reason = priority_data.get("reason", "")
                         findings[idx]["llm_priority"] = (
                             priority
-                            if isinstance(priority, int) and not isinstance(priority, bool)
+                            if isinstance(priority, int)
+                            and not isinstance(priority, bool)
+                            and 1 <= priority <= 10
                             else 5
                         )
                         findings[idx]["llm_reason"] = reason if isinstance(reason, str) else ""
@@ -451,7 +453,9 @@ INSIGHTS:"""
                     reason = item.get("reason", "")
                     priorities[idx] = {
                         "priority": priority
-                        if isinstance(priority, int) and not isinstance(priority, bool)
+                        if isinstance(priority, int)
+                        and not isinstance(priority, bool)
+                        and 1 <= priority <= 10
                         else 5,
                         "reason": reason if isinstance(reason, str) else "",
                     }

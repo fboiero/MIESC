@@ -348,6 +348,13 @@ class PoCGenerator:
 
         project_path = Path(project_dir)
         start_time = time.time()
+        if not isinstance(poc, PoCTemplate):
+            return PoCResult(
+                success=False,
+                output="",
+                execution_time_ms=0,
+                error="Malformed PoC template",
+            )
 
         # Save PoC to project
         test_dir = project_path / "test" / "exploits"

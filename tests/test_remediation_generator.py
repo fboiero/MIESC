@@ -31,6 +31,65 @@ async def test_generate_remediations_sequential_counts_runtime_failures(monkeypa
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("findings", ["not a list", {"id": "A"}, None])
+async def test_generate_remediations_rejects_malformed_batch_container(
+    monkeypatch, findings
+):
+    generator = RemediationGenerator()
+
+    async def fake_generate(_finding, _code):
+        raise AssertionError("malformed batch container should not be processed")
+
+    monkeypatch.setattr(generator, "generate_remediation", fake_generate)
+
+    result = await generator.generate_remediations(findings, "contract Test {}")
+
+    assert result.success_count == 0
+    assert result.failure_count == 1
+    assert result.remediations == []
+
+
+@pytest.mark.asyncio
+async def test_generate_remediations_skips_malformed_batch_entries(monkeypatch):
+    generator = RemediationGenerator()
+    processed_ids = []
+    findings = [
+        {"id": "A"},
+        ["malformed"],
+        {"id": "B"},
+        "not a finding",
+    ]
+
+    async def fake_generate(finding, _code):
+        processed_ids.append(finding["id"])
+        return Remediation(
+            finding_id=finding["id"],
+            vulnerability_type="unknown",
+            severity="medium",
+            vulnerable_code="",
+            fixed_code="",
+            explanation="",
+            changes_summary=[],
+            test_suggestions=[],
+            references=[],
+            confidence=0.8,
+        )
+
+    monkeypatch.setattr(generator, "generate_remediation", fake_generate)
+
+    result = await generator.generate_remediations(
+        findings,
+        "contract Test {}",
+        parallel=False,
+    )
+
+    assert result.success_count == 2
+    assert result.failure_count == 2
+    assert processed_ids == ["A", "B"]
+    assert [rem.finding_id for rem in result.remediations] == ["A", "B"]
+
+
+@pytest.mark.asyncio
 async def test_query_llm_returns_empty_dict_on_client_error(monkeypatch):
     generator = RemediationGenerator()
 

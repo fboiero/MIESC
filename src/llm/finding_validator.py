@@ -440,6 +440,9 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
         """
         if not self.config.enabled:
             return findings, []
+        if not isinstance(findings, list):
+            logger.warning("Skipping malformed findings container for LLM validation")
+            return [], []
 
         # Check availability
         if not await self.is_available():

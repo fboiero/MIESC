@@ -313,6 +313,48 @@ class TestOllamaBackend:
 
         asyncio.run(run_test())
 
+    def test_analyze_rejects_malformed_response_object(self):
+        """Test malformed Ollama response payloads fail as provider errors."""
+
+        async def run_test():
+            config = LLMConfig(provider=LLMProvider.OLLAMA, model="codellama")
+            backend = OllamaBackend(config)
+
+            mock_response = MagicMock()
+            mock_response.status = 200
+            mock_response.json = AsyncMock(return_value=["not", "an", "object"])
+            mock_session = _aiohttp_session_with_response("post", mock_response)
+
+            with patch("aiohttp.ClientSession", return_value=mock_session):
+                with pytest.raises(ValueError, match="expected object"):
+                    await backend.analyze("prompt")
+
+        asyncio.run(run_test())
+
+    def test_analyze_rejects_malformed_response_content(self):
+        """Test malformed Ollama message content cannot become an LLMResponse."""
+
+        async def run_test():
+            config = LLMConfig(provider=LLMProvider.OLLAMA, model="codellama")
+            backend = OllamaBackend(config)
+
+            mock_response = MagicMock()
+            mock_response.status = 200
+            mock_response.json = AsyncMock(
+                return_value={
+                    "message": {"content": {"text": "not a string"}},
+                    "eval_count": 1,
+                    "prompt_eval_count": 2,
+                }
+            )
+            mock_session = _aiohttp_session_with_response("post", mock_response)
+
+            with patch("aiohttp.ClientSession", return_value=mock_session):
+                with pytest.raises(ValueError, match="content must be str"):
+                    await backend.analyze("prompt")
+
+        asyncio.run(run_test())
+
 
 class TestOpenAIBackend:
     """Test OpenAIBackend implementation."""
