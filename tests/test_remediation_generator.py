@@ -392,6 +392,66 @@ def test_remediation_to_dict_deduplicates_validation_notes_export_boundary(
     assert remediation.to_dict()["validation_notes"] == expected
 
 
+def test_remediation_to_dict_exports_safe_patch_filename_and_file_path():
+    remediation = Remediation(
+        finding_id="F-1",
+        vulnerability_type="reentrancy",
+        severity="high",
+        vulnerable_code="function withdraw() public {}",
+        fixed_code="function withdraw() public nonReentrant {}",
+        explanation="uses guard",
+        changes_summary=[],
+        test_suggestions=[],
+        references=[],
+        confidence=0.8,
+        patch_filename="  Vault.fixed.sol  ",
+        patch_file_path=" build/remediation/Vault.fixed.sol ",
+    )
+
+    exported = remediation.to_dict()
+
+    assert exported["patch_filename"] == "Vault.fixed.sol"
+    assert exported["patch_file_path"] == "build/remediation/Vault.fixed.sol"
+
+
+@pytest.mark.parametrize(
+    ("patch_filename", "patch_file_path"),
+    [
+        ("../Vault.sol", "build/../Vault.sol"),
+        ("contracts/Vault.sol", "/tmp/Vault.sol"),
+        ("contracts\\Vault.sol", "build\\Vault.sol"),
+        ("Vault.sol\nnext", "build/Vault.sol\x00"),
+        (["Vault.sol"], {"path": "build/Vault.sol"}),
+        (".", "."),
+        ("..", ".."),
+        ("C:Vault.sol", "C:/tmp/Vault.sol"),
+    ],
+)
+def test_remediation_to_dict_omits_malformed_patch_filename_and_file_path(
+    patch_filename,
+    patch_file_path,
+):
+    remediation = Remediation(
+        finding_id="F-1",
+        vulnerability_type="reentrancy",
+        severity="high",
+        vulnerable_code="function withdraw() public {}",
+        fixed_code="function withdraw() public nonReentrant {}",
+        explanation="uses guard",
+        changes_summary=[],
+        test_suggestions=[],
+        references=[],
+        confidence=0.8,
+        patch_filename=patch_filename,
+        patch_file_path=patch_file_path,
+    )
+
+    exported = remediation.to_dict()
+
+    assert "patch_filename" not in exported
+    assert "patch_file_path" not in exported
+
+
 def test_remediation_result_to_dict_normalizes_malformed_export_metadata():
     remediation = Remediation(
         finding_id="F-1",
