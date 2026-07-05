@@ -407,6 +407,19 @@ class TestRunTest:
         assert result.success is False
         assert "timed out" in result.error.lower()
 
+    @pytest.mark.parametrize("timeout", [True, 0, -1, float("inf"), ["300"]])
+    def test_run_test_defaults_malformed_timeout(self, runner, sample_forge_output, timeout):
+        """Malformed runtime timeouts fall back before subprocess execution."""
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = sample_forge_output
+        mock_result.stderr = ""
+
+        with patch("subprocess.run", return_value=mock_result) as mock_run:
+            runner.run_test("test/Bank.t.sol", timeout=timeout)
+
+        assert mock_run.call_args.kwargs["timeout"] == 300
+
     def test_run_test_with_match_test(self, runner, sample_forge_output):
         """Test run with test name matcher."""
         mock_result = MagicMock()
@@ -477,6 +490,19 @@ class TestRunAllTestsBasic:
 
         assert result.success is False
         assert "timed out" in result.error.lower()
+
+    @pytest.mark.parametrize("timeout", [True, 0, -1, float("inf"), ["600"]])
+    def test_run_all_tests_defaults_malformed_timeout(self, runner, sample_forge_output, timeout):
+        """Malformed all-test runtime timeouts fall back before subprocess execution."""
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = sample_forge_output
+        mock_result.stderr = ""
+
+        with patch("subprocess.run", return_value=mock_result) as mock_run:
+            runner.run_all_tests(timeout=timeout)
+
+        assert mock_run.call_args.kwargs["timeout"] == 600
 
     def test_run_all_tests_runtime_error_returns_result(self, runner):
         """Test run_all_tests returns structured result for runtime errors."""

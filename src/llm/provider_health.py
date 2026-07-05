@@ -54,7 +54,8 @@ async def fetch_openai_compatible_model_ids(
     provider_name: str = "provider",
 ) -> Set[str]:
     """Fetch model identifiers from an OpenAI-compatible /v1/models endpoint."""
-    provider_label = provider_name if isinstance(provider_name, str) and provider_name else "provider"
+    provider_label = provider_name.strip() if isinstance(provider_name, str) else ""
+    provider_label = provider_label or "provider"
     if not isinstance(base_url, str) or not isinstance(api_key, str):
         logger.debug("%s model check received malformed endpoint credentials", provider_label)
         return set()

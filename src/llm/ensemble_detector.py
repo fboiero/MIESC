@@ -406,6 +406,41 @@ Response (JSON array only):"""
 
         return normalized
 
+    @staticmethod
+    def _extract_availability_model_ids(data: Any, list_key: str, id_key: str) -> List[str]:
+        """Return string model ids from provider availability payloads."""
+        if not isinstance(data, dict):
+            logger.warning("Ignoring malformed provider model availability payload")
+            return []
+
+        models = data.get(list_key, [])
+        if not isinstance(models, list):
+            logger.warning("Ignoring malformed provider model availability list")
+            return []
+
+        model_ids = []
+        for model in models:
+            if not isinstance(model, dict):
+                logger.warning("Ignoring malformed provider model availability entry: %r", model)
+                continue
+
+            model_id = model.get(id_key)
+            if isinstance(model_id, str) and model_id.strip():
+                model_ids.append(model_id.strip())
+            else:
+                logger.warning("Ignoring malformed provider model id: %r", model_id)
+
+        return model_ids
+
+    @staticmethod
+    def _normalize_remote_model_ids(model_ids: Any) -> set[str]:
+        """Return string model ids from a provider-health model id result."""
+        if not isinstance(model_ids, (list, tuple, set)):
+            logger.warning("Ignoring malformed provider remote model id list")
+            return set()
+
+        return {model_id.strip() for model_id in model_ids if isinstance(model_id, str) and model_id.strip()}
+
     async def initialize(self) -> Dict[str, bool]:
         """
         Initialize detector and check model availability across all providers.
@@ -436,7 +471,9 @@ Response (JSON array only):"""
                     ) as resp:
                         if resp.status == 200:
                             data = await resp.json()
-                            installed_models = [m["name"] for m in data.get("models", [])]
+                            installed_models = self._extract_availability_model_ids(
+                                data, "models", "name"
+                            )
 
                             for model in self.models:
                                 # Check exact match or prefix match
@@ -477,7 +514,9 @@ Response (JSON array only):"""
                     ) as resp:
                         if resp.status == 200:
                             data = await resp.json()
-                            available = [m["name"] for m in data.get("models", [])]
+                            available = self._extract_availability_model_ids(
+                                data, "models", "name"
+                            )
             except ENSEMBLE_RUNTIME_ERRORS as e:
                 logger.debug(f"Ollama not available: {e}")
 
@@ -507,8 +546,9 @@ Response (JSON array only):"""
                 self.deepseek_api_key,
                 provider_name="DeepSeek",
             )
+            remote_model_ids = self._normalize_remote_model_ids(remote_models)
             configured = self.PROVIDER_MODELS[LLMProvider.DEEPSEEK]
-            available = [model for model in configured if model in remote_models]
+            available = [model for model in configured if model in remote_model_ids]
             logger.debug("DeepSeek available with %s configured models", len(available))
 
         return available

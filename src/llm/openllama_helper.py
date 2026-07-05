@@ -43,6 +43,7 @@ OLLAMA_RUNTIME_ERRORS = (
 LLM_PROCESSING_ERRORS = (AttributeError, KeyError, TypeError, ValueError, RuntimeError)
 MAX_PRIORITY_RESPONSE_CHARS = 20_000
 MAX_REMEDIATION_RESPONSE_CHARS = 4_000
+MAX_GENERATE_RESPONSE_BYTES = 64 * 1024
 
 
 @dataclass
@@ -358,7 +359,18 @@ REMEDIATION ADVICE:"""
                     headers={"Content-Type": "application/json"},
                 )
                 with urllib.request.urlopen(req, timeout=self.config.timeout) as resp:
-                    data = json.loads(resp.read())
+                    raw_body = resp.read()
+                    if isinstance(raw_body, str):
+                        payload_size = len(raw_body.encode("utf-8"))
+                    elif isinstance(raw_body, (bytes, bytearray)):
+                        payload_size = len(raw_body)
+                    else:
+                        continue
+                    if payload_size > MAX_GENERATE_RESPONSE_BYTES:
+                        logger.warning("LLM generate response payload too large to parse safely")
+                        continue
+
+                    data = json.loads(raw_body)
                     if not isinstance(data, dict):
                         continue
                     raw_response = data.get("response", "")

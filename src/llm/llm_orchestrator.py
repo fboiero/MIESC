@@ -526,6 +526,7 @@ class LLMOrchestrator:
         self.primary_provider: Optional[str] = None
         self.cache: Dict[str, LLMResponse] = {}
         self.cache_ttl: int = 3600  # 1 hour
+        self.cache_max_entries: int = 128
 
         # Default configurations if none provided
         if configs is None:
@@ -727,7 +728,7 @@ Provide a comprehensive security analysis in JSON format."""
                     response_error = self._response_boundary_error(response, key)
                     if response_error is not None:
                         raise ValueError(response_error)
-                    self.cache[cache_key] = response
+                    self._cache_response(cache_key, response)
                     return response
                 except LLM_RUNTIME_ERRORS as e:
                     errors.append(f"{key} attempt {attempt + 1}: {e}")
@@ -805,6 +806,24 @@ Provide a comprehensive security analysis in JSON format."""
             )
             return 0.0
         return float(raw_delay)
+
+    def _cache_entry_limit(self) -> int:
+        """Return a conservative cache size limit for malformed orchestrator state."""
+        raw_limit = self.cache_max_entries
+        if isinstance(raw_limit, bool) or not isinstance(raw_limit, int) or raw_limit < 1:
+            logger.warning("Malformed LLM cache_max_entries=%r; using 1", raw_limit)
+            return 1
+        return raw_limit
+
+    def _cache_response(self, cache_key: str, response: LLMResponse) -> None:
+        """Store a response and evict oldest cache entries beyond the size limit."""
+        self.cache[cache_key] = response
+        entry_limit = self._cache_entry_limit()
+        while len(self.cache) > entry_limit:
+            oldest_key = next(iter(self.cache), None)
+            if oldest_key is None:
+                break
+            self.cache.pop(oldest_key, None)
 
     def _get_cache_key(self, prompt: str, context: Optional[Dict]) -> str:
         """Generate cache key from prompt and context."""

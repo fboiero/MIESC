@@ -457,6 +457,17 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
             return value
         return 0
 
+    @staticmethod
+    def _parse_nonnegative_int(value: Any, default: int = 0) -> int:
+        """Return non-negative integer metadata only for scalar numeric shapes."""
+        if isinstance(value, bool):
+            return default
+        if isinstance(value, int):
+            return value if value >= 0 else default
+        if isinstance(value, float) and math.isfinite(value):
+            return int(value) if value >= 0 else default
+        return default
+
     async def validate_findings_batch(
         self,
         findings: List[Dict[str, Any]],
@@ -571,6 +582,7 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
             "confidence": validation.confidence,
             "reasoning": validation.reasoning,
             "suggested_severity": validation.suggested_severity,
+            "validation_time_ms": self._parse_nonnegative_int(validation.validation_time_ms),
         }
 
         # Adjust confidence based on validation
