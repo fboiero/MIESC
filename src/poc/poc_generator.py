@@ -745,7 +745,7 @@ contract {{CONTRACT_NAME}}ExploitTest is Test {
         elif vuln_type in (VulnerabilityType.FRONT_RUNNING, VulnerabilityType.PRICE_MANIPULATION):
             prereqs.append("Mempool access or simulation environment")
 
-        return prereqs
+        return _safe_text_list(prereqs)
 
     def _get_expected_outcome(self, vuln_type: VulnerabilityType, severity: str) -> str:
         """Get expected outcome description."""

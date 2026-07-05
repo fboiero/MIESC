@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import aiohttp
 
 from src.llm.provider_health import (
+    _authorization_headers,
     extract_openai_compatible_model_ids,
     fetch_openai_compatible_model_ids,
 )
@@ -204,6 +205,17 @@ def test_fetch_openai_compatible_model_ids_rejects_empty_api_key():
         session.assert_not_called()
 
     asyncio.run(run_test())
+
+
+def test_authorization_headers_keep_api_key_out_of_debug_logs(caplog):
+    """Test API key handling stays isolated from provider health debug logging."""
+    secret = "sk-test-secret"
+
+    with caplog.at_level("DEBUG", logger="src.llm.provider_health"):
+        headers = _authorization_headers(secret)
+
+    assert headers == {"Authorization": f"Bearer {secret}"}
+    assert secret not in caplog.text
 
 
 def test_fetch_openai_compatible_model_ids_rejects_malformed_timeout():

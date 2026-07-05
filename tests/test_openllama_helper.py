@@ -397,6 +397,21 @@ def test_prioritize_findings_applies_valid_indices_only(monkeypatch):
     assert "llm_priority" not in findings[0]
 
 
+def test_prioritize_findings_ignores_malformed_parsed_priorities_container(monkeypatch):
+    helper = OpenLLaMAHelper()
+    findings = [{"title": "A", "severity": "LOW"}]
+
+    monkeypatch.setattr(helper, "is_available", lambda: True)
+    monkeypatch.setattr(helper, "_call_llm", lambda prompt: "priorities")
+    monkeypatch.setattr(helper, "_parse_priorities", lambda response: ["not", "a", "mapping"])
+
+    result = helper.prioritize_findings(findings, "contract C {}")
+
+    assert result is findings
+    assert "llm_priority" not in findings[0]
+    assert "llm_reason" not in findings[0]
+
+
 def test_prioritize_findings_skips_malformed_parsed_priority_boundaries(monkeypatch):
     helper = OpenLLaMAHelper()
     findings = [

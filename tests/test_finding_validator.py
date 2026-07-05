@@ -432,6 +432,18 @@ def test_parse_response_bounds_reasoning_text():
     assert validation.reasoning == "x" * 2000
 
 
+def test_parse_response_bounds_optional_text_fields():
+    validator = LLMFindingValidator(ValidatorConfig())
+    response = (
+        '{"result": "valid", "confidence": 0.8, "reasoning": "Confirmed.", '
+        '"remediation_hint": "' + ("x" * 700) + '"}'
+    )
+
+    validation = validator._parse_response(response, "F-5f")
+
+    assert validation.remediation_hint == "x" * 500
+
+
 def test_parse_response_accepts_single_object_array_payload():
     validator = LLMFindingValidator(ValidatorConfig())
 

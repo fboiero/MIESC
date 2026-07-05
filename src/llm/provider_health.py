@@ -96,7 +96,7 @@ async def fetch_openai_compatible_model_ids(
         logger.debug("%s model check received malformed timeout", provider_label)
         return set()
 
-    headers = {"Authorization": f"Bearer {api_key}"}
+    headers = _authorization_headers(api_key)
     try:
         async with aiohttp.ClientSession() as session:
             async with session.get(
@@ -117,8 +117,12 @@ async def fetch_openai_compatible_model_ids(
                 if not isinstance(payload, dict):
                     logger.debug("%s model check returned malformed JSON body", provider_label)
                     return set()
-
                 return extract_openai_compatible_model_ids(payload)
     except PROVIDER_HEALTH_ERRORS as e:
         logger.debug("%s model check failed: %s", provider_label, e)
         return set()
+
+
+def _authorization_headers(api_key: str) -> dict[str, str]:
+    """Build auth headers without exposing credentials to logging paths."""
+    return {"Authorization": f"Bearer {api_key}"}

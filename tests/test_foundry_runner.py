@@ -1492,6 +1492,15 @@ More text
         assert result.raw_output == stdout.decode()
         assert result.error == ""
 
+    def test_parse_forge_output_bounds_raw_output_size(self, runner):
+        """Test raw output is capped while parsing still succeeds."""
+        output = "[PASS] test_text() (gas: 123)\n" + ("x" * 210_000)
+
+        result = runner._parse_forge_output(output, "", 0, 100.0)
+
+        assert [test.name for test in result.tests] == ["test_text"]
+        assert len(result.raw_output) == 200_000
+
     def test_parse_forge_output_treats_malformed_returncode_as_failure(self, runner):
         """Test malformed returncode shapes are not treated as successful runs."""
         result = runner._parse_forge_output(

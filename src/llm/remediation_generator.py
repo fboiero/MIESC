@@ -57,6 +57,18 @@ def _export_string_list(value: Any) -> List[str]:
     return [item.strip() for item in value if isinstance(item, str) and item.strip()]
 
 
+def _export_unique_string_list(value: Any) -> List[str]:
+    """Return unique non-empty string list items for export payloads."""
+    exported = []
+    seen = set()
+    for item in _export_string_list(value):
+        if item in seen:
+            continue
+        seen.add(item)
+        exported.append(item)
+    return exported
+
+
 def _export_level(value: Any, allowed: set[str], default: str) -> str:
     """Return a bounded lowercase level for export payloads."""
     if isinstance(value, str):
@@ -171,7 +183,7 @@ class Remediation:
             "fixed_code": _export_string(self.fixed_code, ""),
             "explanation": _export_string(self.explanation, ""),
             "changes_summary": _export_string_list(self.changes_summary),
-            "test_suggestions": _export_string_list(self.test_suggestions),
+            "test_suggestions": _export_unique_string_list(self.test_suggestions),
             "references": _export_string_list(self.references),
             "confidence": _export_confidence(self.confidence),
             "affected_lines": _export_positive_int_list(self.affected_lines),

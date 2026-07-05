@@ -1135,6 +1135,42 @@ class TestLLMOrchestrator:
 
         asyncio.run(run_test())
 
+    def test_query_ignores_cached_response_with_malformed_identity_status(self):
+        """Test cached LLMResponse identity/status fields cannot cross the boundary."""
+
+        async def run_test():
+            config = LLMConfig(
+                provider=LLMProvider.OLLAMA,
+                model="fresh",
+                retry_attempts=1,
+                retry_delay=0,
+            )
+            orchestrator = LLMOrchestrator([config])
+            orchestrator.backends["ollama:fresh"].available = True
+
+            cache_key = orchestrator._get_cache_key("test prompt", None)
+            cached_response = LLMResponse(
+                content="cached content",
+                provider="cache",
+                model="cache",
+            )
+            cached_response.provider = ["cache"]
+            cached_response.model = {"model": "cache"}
+            cached_response.cached = "yes"
+            orchestrator.cache[cache_key] = cached_response
+
+            fresh_response = LLMResponse(content="fresh content", provider="ollama", model="fresh")
+            analyze = AsyncMock(return_value=fresh_response)
+            orchestrator.backends["ollama:fresh"].analyze = analyze
+
+            result = await orchestrator.query("test prompt")
+
+            assert result is fresh_response
+            assert orchestrator.cache[cache_key] is fresh_response
+            analyze.assert_awaited_once()
+
+        asyncio.run(run_test())
+
     def test_query_evicts_oldest_cache_entry_at_size_limit(self):
         """Test response caching evicts the oldest entry after crossing the size limit."""
 

@@ -757,6 +757,16 @@ Provide a comprehensive security analysis in JSON format."""
                 f"Malformed LLM response from {source}: "
                 f"content must be str, got {type(response.content).__name__}"
             )
+        if not isinstance(response.provider, str):
+            return (
+                f"Malformed LLM response from {source}: "
+                f"provider must be str, got {type(response.provider).__name__}"
+            )
+        if not isinstance(response.model, str):
+            return (
+                f"Malformed LLM response from {source}: "
+                f"model must be str, got {type(response.model).__name__}"
+            )
         if isinstance(response.tokens_used, bool) or not isinstance(response.tokens_used, int):
             return (
                 f"Malformed LLM response from {source}: "
@@ -781,6 +791,11 @@ Provide a comprehensive security analysis in JSON format."""
             return (
                 f"Malformed LLM response from {source}: "
                 f"metadata must be dict, got {type(response.metadata).__name__}"
+            )
+        if not isinstance(response.cached, bool):
+            return (
+                f"Malformed LLM response from {source}: "
+                f"cached must be bool, got {type(response.cached).__name__}"
             )
         return None
 

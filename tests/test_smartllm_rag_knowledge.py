@@ -772,6 +772,29 @@ class TestEmbeddingRAGSearchBoundaryShapes:
 
         assert [result.document.id for result in results] == ["CUSTOM-METADATA-ALIGNED"]
 
+    def test_search_skips_blank_result_ids(self, tmp_path):
+        valid = VulnerabilityDocument(
+            id="CUSTOM-ID-VALID",
+            title="Valid Result ID",
+            description="Custom vulnerability description",
+        )
+        collection = _MalformedSearchCollection(
+            {
+                "ids": [["", "   ", "CUSTOM-ID-VALID"]],
+                "documents": [["empty id text", "blank id text", "valid id text"]],
+                "metadatas": [[{"id": ""}, {"id": "   "}, {"id": "CUSTOM-ID-VALID"}]],
+                "distances": [[0.0, 0.0, 0.2]],
+            }
+        )
+        rag = EmbeddingRAG(persist_directory=str(tmp_path))
+        rag._initialized = True
+        rag._collection = collection
+        rag._doc_index = {"CUSTOM-ID-VALID": valid}
+
+        results = rag.search("result id boundary", n_results=3)
+
+        assert [result.document.id for result in results] == ["CUSTOM-ID-VALID"]
+
     def test_search_bounds_malformed_result_count_and_filter_values(self, tmp_path):
         vulnerability = VulnerabilityDocument(
             id="CUSTOM-COUNT",
@@ -1034,6 +1057,31 @@ class TestEmbeddingRAGSearchBoundaryShapes:
 
         assert [[result.document.id for result in row] for row in results] == [
             ["CUSTOM-BATCH-METADATA-ALIGNED"]
+        ]
+
+    def test_batch_search_skips_blank_result_ids(self, tmp_path):
+        valid = VulnerabilityDocument(
+            id="CUSTOM-BATCH-ID-VALID",
+            title="Valid Batch Result ID",
+            description="Custom vulnerability description",
+        )
+        collection = _MalformedSearchCollection(
+            {
+                "ids": [["", "   ", "CUSTOM-BATCH-ID-VALID"]],
+                "documents": [["empty id text", "blank id text", "valid id text"]],
+                "metadatas": [[{"id": ""}, {"id": "   "}, {"id": "CUSTOM-BATCH-ID-VALID"}]],
+                "distances": [[0.0, 0.0, 0.2]],
+            }
+        )
+        rag = EmbeddingRAG(persist_directory=str(tmp_path), enable_cache=False)
+        rag._initialized = True
+        rag._collection = collection
+        rag._doc_index = {"CUSTOM-BATCH-ID-VALID": valid}
+
+        results = rag.batch_search(["result id boundary"], n_results=3)
+
+        assert [[result.document.id for result in row] for row in results] == [
+            ["CUSTOM-BATCH-ID-VALID"]
         ]
 
     def test_batch_search_discards_malformed_cached_result_and_queries_collection(self, tmp_path):
