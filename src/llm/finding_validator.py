@@ -211,7 +211,8 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
         try:
             session = await self._get_session()
             async with session.get(f"{self.config.ollama_host}/api/tags") as resp:
-                if resp.status != 200:
+                status = resp.status
+                if not isinstance(status, int) or isinstance(status, bool) or status != 200:
                     return False
                 data = await resp.json()
                 if not isinstance(data, dict):

@@ -63,6 +63,35 @@ async def test_is_available_returns_false_for_malformed_tags_payload(monkeypatch
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("status", ["200", True, None])
+async def test_is_available_returns_false_for_malformed_response_status(monkeypatch, status):
+    validator = LLMFindingValidator(ValidatorConfig())
+
+    class FakeResponse:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return None
+
+        async def json(self):
+            raise AssertionError("malformed status should short-circuit before JSON parsing")
+
+    FakeResponse.status = status
+
+    class FakeSession:
+        def get(self, *_args, **_kwargs):
+            return FakeResponse()
+
+    async def fake_get_session():
+        return FakeSession()
+
+    monkeypatch.setattr(validator, "_get_session", fake_get_session)
+
+    assert await validator.is_available() is False
+
+
+@pytest.mark.asyncio
 async def test_is_available_trims_model_names(monkeypatch):
     validator = LLMFindingValidator(ValidatorConfig())
     configured_model = validator.config.model
