@@ -2,6 +2,7 @@ import json
 import subprocess
 
 from src.llm.openllama_helper import (
+    MAX_GENERATE_RESPONSE_BYTES,
     MAX_PRIORITY_RESPONSE_CHARS,
     MAX_REMEDIATION_RESPONSE_CHARS,
     LLMConfig,
@@ -312,6 +313,42 @@ def test_call_llm_ignores_malformed_generate_body(monkeypatch):
     monkeypatch.setattr("urllib.request.urlopen", lambda *args, **kwargs: FakeResponse())
 
     assert helper._call_llm("prompt") is None
+
+
+def test_call_llm_ignores_oversized_generate_payload(monkeypatch):
+    helper = OpenLLaMAHelper(LLMConfig(retry_attempts=1))
+
+    class FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            return b"x" * (MAX_GENERATE_RESPONSE_BYTES + 1)
+
+    monkeypatch.setattr("urllib.request.urlopen", lambda *args, **kwargs: FakeResponse())
+
+    assert helper._call_llm("prompt") is None
+
+
+def test_call_llm_accepts_bounded_string_generate_payload(monkeypatch):
+    helper = OpenLLaMAHelper(LLMConfig(retry_attempts=1))
+
+    class FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            return json.dumps({"response": "bounded text"})
+
+    monkeypatch.setattr("urllib.request.urlopen", lambda *args, **kwargs: FakeResponse())
+
+    assert helper._call_llm("prompt") == "bounded text"
 
 
 def test_prioritize_findings_applies_valid_indices_only(monkeypatch):
