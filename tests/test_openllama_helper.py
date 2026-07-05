@@ -39,6 +39,42 @@ def test_is_available_returns_false_when_model_missing(monkeypatch):
     assert helper.is_available() is False
 
 
+def test_is_available_matches_exact_ollama_model_name(monkeypatch):
+    helper = OpenLLaMAHelper(LLMConfig(model="qwen2.5-coder:14b"))
+
+    monkeypatch.setattr(
+        "subprocess.run",
+        lambda *args, **kwargs: subprocess.CompletedProcess(
+            args[0],
+            0,
+            stdout=(
+                "NAME                 ID              SIZE      MODIFIED\n"
+                "qwen2.5-coder:14b    abc123          9.0 GB    2 days ago\n"
+            ),
+        ),
+    )
+
+    assert helper.is_available() is True
+
+
+def test_is_available_rejects_partial_ollama_model_name(monkeypatch):
+    helper = OpenLLaMAHelper(LLMConfig(model="qwen"))
+
+    monkeypatch.setattr(
+        "subprocess.run",
+        lambda *args, **kwargs: subprocess.CompletedProcess(
+            args[0],
+            0,
+            stdout=(
+                "NAME                 ID              SIZE      MODIFIED\n"
+                "qwen2.5-coder:14b    abc123          9.0 GB    2 days ago\n"
+            ),
+        ),
+    )
+
+    assert helper.is_available() is False
+
+
 def test_is_available_rejects_non_string_ollama_list_output(monkeypatch):
     helper = OpenLLaMAHelper(LLMConfig(model="test-model"))
 

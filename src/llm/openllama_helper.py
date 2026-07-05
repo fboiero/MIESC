@@ -82,7 +82,7 @@ class OpenLLaMAHelper:
             returncode = result.returncode if hasattr(result, "returncode") else None
             model_list = result.stdout if isinstance(getattr(result, "stdout", None), str) else ""
 
-            if returncode == 0 and self.config.model in model_list:
+            if returncode == 0 and self._ollama_model_available(self.config.model, model_list):
                 self._available = True
                 logger.info(f"OpenLLaMA: {self.config.model} available")
             else:
@@ -283,6 +283,20 @@ REMEDIATION ADVICE:"""
     # ============================================================================
     # PRIVATE HELPER METHODS
     # ============================================================================
+
+    @staticmethod
+    def _ollama_model_available(model: Any, model_list: Any) -> bool:
+        """Return true only for exact model names from `ollama list` output."""
+        if not isinstance(model, str) or not model:
+            return False
+        if not isinstance(model_list, str):
+            return False
+
+        for line in model_list.splitlines():
+            columns = line.split()
+            if columns and columns[0] == model:
+                return True
+        return False
 
     def _call_llm(self, prompt: str) -> Optional[str]:
         """Call Ollama LLM via HTTP API (clean output, no ANSI escapes)."""
