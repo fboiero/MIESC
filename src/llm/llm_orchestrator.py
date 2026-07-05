@@ -829,8 +829,18 @@ Provide a comprehensive security analysis in JSON format."""
         """Generate cache key from prompt and context."""
         import hashlib
 
+        try:
+            safe_context = _cache_key_context({} if context is None else context)
+        except (TypeError, ValueError, RecursionError) as e:
+            logger.warning(
+                "Malformed LLM cache key context of type %s; using fallback boundary: %s",
+                type(context).__name__,
+                e,
+            )
+            safe_context = {"__malformed_context__": type(context).__name__}
+
         content = json.dumps(
-            {"context": _cache_key_context(context or {}), "prompt": prompt},
+            {"context": safe_context, "prompt": prompt},
             sort_keys=True,
             separators=(",", ":"),
         )
