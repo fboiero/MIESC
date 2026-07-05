@@ -266,6 +266,26 @@ def test_generate_quick_fix_returns_original_for_non_string_type():
     assert explanation == "No known pattern for this vulnerability type"
 
 
+def test_generate_quick_fix_normalizes_padded_type():
+    generator = RemediationGenerator()
+    code = "function withdraw() public {}"
+
+    fixed, explanation = generator.generate_quick_fix(" ReEntrancy \n", code)
+
+    assert "public nonReentrant" in fixed
+    assert "Added nonReentrant modifier" in explanation
+
+
+def test_generate_quick_fix_defaults_whitespace_only_type():
+    generator = RemediationGenerator()
+    code = "function noop() public {}"
+
+    fixed, explanation = generator.generate_quick_fix(" \n\t ", code)
+
+    assert fixed == code
+    assert explanation == "No known pattern for this vulnerability type"
+
+
 @pytest.mark.parametrize("function_code", [None, ["function withdraw() public {}"], {"code": "bad"}])
 def test_generate_quick_fix_defaults_malformed_function_code(function_code):
     generator = RemediationGenerator()
@@ -463,6 +483,54 @@ async def test_generate_remediation_defaults_non_string_finding_type(monkeypatch
 
     async def fake_query(prompt):
         assert "- **Type**: unknown" in prompt
+        return {"fixed_code": "function withdraw() public {}"}
+
+    monkeypatch.setattr(generator, "_query_llm", fake_query)
+
+    remediation = await generator.generate_remediation(finding, "contract C {}")
+
+    assert remediation.vulnerability_type == "unknown"
+    assert remediation.pattern_used is None
+
+
+@pytest.mark.asyncio
+async def test_generate_remediation_normalizes_padded_finding_type(monkeypatch):
+    generator = RemediationGenerator()
+    finding = {
+        "id": "F-2g",
+        "type": " ReEntrancy \n",
+        "severity": "LOW",
+        "snippet": "function withdraw() public {}",
+    }
+
+    async def fake_query(prompt):
+        assert "- **Type**: reentrancy" in prompt
+        assert "- **Title**: reentrancy" in prompt
+        assert "ReentrancyGuard + CEI" in prompt
+        return {"fixed_code": "function withdraw() public {}"}
+
+    monkeypatch.setattr(generator, "_query_llm", fake_query)
+
+    remediation = await generator.generate_remediation(finding, "contract C {}")
+
+    assert remediation.vulnerability_type == "reentrancy"
+    assert remediation.pattern_used == "ReentrancyGuard + CEI"
+
+
+@pytest.mark.asyncio
+async def test_generate_remediation_defaults_whitespace_only_finding_type(monkeypatch):
+    generator = RemediationGenerator()
+    finding = {
+        "id": "F-2h",
+        "type": " \n\t ",
+        "severity": "LOW",
+        "snippet": "function withdraw() public {}",
+    }
+
+    async def fake_query(prompt):
+        assert "- **Type**: unknown" in prompt
+        assert "- **Title**: Unknown" in prompt
+        assert "\n\t" not in prompt
         return {"fixed_code": "function withdraw() public {}"}
 
     monkeypatch.setattr(generator, "_query_llm", fake_query)
