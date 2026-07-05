@@ -431,6 +431,8 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
     @staticmethod
     def _parse_confidence(value: Any, default: float = 0.5) -> float:
         """Parse confidence from LLM JSON without trusting malformed shapes."""
+        if isinstance(value, bool):
+            return default
         try:
             confidence = float(value)
         except (TypeError, ValueError):
