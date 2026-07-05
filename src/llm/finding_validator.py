@@ -220,9 +220,10 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
                 models_value = data.get("models", [])
                 models = models_value if isinstance(models_value, list) else []
                 model_names = [
-                    name
+                    name.strip()
                     for model in models
                     if isinstance(model, dict) and isinstance(name := model.get("name"), str)
+                    and name.strip()
                 ]
                 # Check if our model is available
                 model_base = self.config.model.split(":")[0]

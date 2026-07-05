@@ -63,6 +63,35 @@ async def test_is_available_returns_false_for_malformed_tags_payload(monkeypatch
 
 
 @pytest.mark.asyncio
+async def test_is_available_trims_model_names(monkeypatch):
+    validator = LLMFindingValidator(ValidatorConfig())
+    configured_model = validator.config.model
+
+    class FakeResponse:
+        status = 200
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return None
+
+        async def json(self):
+            return {"models": [{"name": f" {configured_model} "}, {"name": "  "}]}
+
+    class FakeSession:
+        def get(self, *_args, **_kwargs):
+            return FakeResponse()
+
+    async def fake_get_session():
+        return FakeSession()
+
+    monkeypatch.setattr(validator, "_get_session", fake_get_session)
+
+    assert await validator.is_available() is True
+
+
+@pytest.mark.asyncio
 async def test_validate_finding_degrades_to_uncertain_on_runtime_error(monkeypatch):
     validator = LLMFindingValidator(ValidatorConfig())
     finding = {
