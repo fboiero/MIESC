@@ -914,6 +914,7 @@ class TestPrerequisitesAndOutcomes:
         prereqs = generator._get_prerequisites(VulnerabilityType.REENTRANCY)
 
         assert len(prereqs) >= 2
+        assert all(isinstance(prereq, str) for prereq in prereqs)
         assert any("Foundry" in p for p in prereqs)
 
     def test_get_prerequisites_flash_loan(self, generator):
