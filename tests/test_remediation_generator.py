@@ -767,6 +767,50 @@ async def test_generate_remediation_drops_blank_llm_list_entries(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_generate_remediation_deduplicates_generated_test_and_reference_metadata(
+    monkeypatch,
+):
+    generator = RemediationGenerator()
+    finding = {
+        "id": "F-2o",
+        "type": "reentrancy",
+        "severity": "HIGH",
+        "snippet": "function withdraw() public {}",
+    }
+
+    async def fake_query(_prompt):
+        return {
+            "fixed_code": "contract Fixed {}",
+            "test_suggestions": [
+                "  reentrant attacker test  ",
+                "reentrant attacker test",
+                {"bad": "test"},
+                "",
+                "withdraw succeeds for user",
+            ],
+            "references": [
+                "OpenZeppelin ReentrancyGuard",
+                ["bad reference"],
+                "  OpenZeppelin ReentrancyGuard  ",
+                "Solidity security considerations",
+            ],
+        }
+
+    monkeypatch.setattr(generator, "_query_llm", fake_query)
+
+    remediation = await generator.generate_remediation(finding, "contract C {}")
+
+    assert remediation.test_suggestions == [
+        "reentrant attacker test",
+        "withdraw succeeds for user",
+    ]
+    assert remediation.references == [
+        "OpenZeppelin ReentrancyGuard",
+        "Solidity security considerations",
+    ]
+
+
+@pytest.mark.asyncio
 async def test_generate_remediation_skips_duplicate_fixed_code_imports(monkeypatch):
     generator = RemediationGenerator()
     finding = {
