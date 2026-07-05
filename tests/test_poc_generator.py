@@ -1085,6 +1085,14 @@ class TestPoCRunMethod:
         assert result.output == ""
         assert result.error == "Malformed project directory"
 
+    def test_run_rejects_empty_project_dir(self, generator, sample_poc):
+        """Test empty project dirs do not resolve implicitly to the current directory."""
+        result = generator.run(sample_poc, "  ", verbose=False)
+
+        assert result.success is False
+        assert result.output == ""
+        assert result.error == "Malformed project directory"
+
     def test_run_timeout(self, generator, sample_poc, tmp_path):
         """Test PoC run timeout (lines 362-368)."""
         import subprocess
