@@ -13,6 +13,7 @@ import time
 
 import pytest
 
+import src.llm.embedding_rag as embedding_rag_module
 from src.adapters.smartllm_rag_knowledge import (
     _get_account_abstraction_knowledge,
     _get_cross_chain_knowledge,
@@ -79,6 +80,57 @@ class _RecordingMultiStepRAG(EmbeddingRAG):
     def search(self, query, filter_category=None, filter_severity=None, n_results=None):
         self.search_calls.append((query, filter_category, filter_severity, n_results))
         return []
+
+
+class _FakeCollectionForInit:
+    def __init__(self, metadata, count):
+        self.metadata = metadata
+        self._count = count
+
+    def count(self):
+        return self._count
+
+
+class _FakeClientForInit:
+    def __init__(self, existing_collection):
+        self.existing_collection = existing_collection
+        self.created_collection = _FakeCollectionForInit(
+            {"knowledge_base_version": "created"},
+            0,
+        )
+        self.deleted_names = []
+        self.created_metadata = None
+
+    def get_or_create_collection(self, **_kwargs):
+        return self.existing_collection
+
+    def delete_collection(self, name):
+        self.deleted_names.append(name)
+
+    def create_collection(self, **kwargs):
+        self.created_metadata = kwargs["metadata"]
+        return self.created_collection
+
+
+class _FakeChromaForInit:
+    def __init__(self, client):
+        self.client = client
+
+    def PersistentClient(self, **_kwargs):  # noqa: N802 - mirrors ChromaDB API
+        return self.client
+
+
+class _RecordingInitializeRAG(EmbeddingRAG):
+    def __init__(self, *args, existing_collection, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fake_client = _FakeClientForInit(existing_collection)
+        self.indexed_count = 0
+
+    def _build_doc_index(self):
+        self._doc_index = {"existing": object()}
+
+    def _index_knowledge_base(self):
+        self.indexed_count += 1
 
 
 # ---------------------------------------------------------------------------
@@ -365,6 +417,53 @@ class TestEmbeddingRAGCustomVulnerabilityShapes:
         assert rag.embedding_model_name == "all-mpnet-base-v2"
         assert rag._collection_metadata()["embedding_model"] == "all-mpnet-base-v2"
         assert rag._initialized is False
+
+    @pytest.mark.parametrize(
+        "metadata",
+        [
+            None,
+            [],
+            {"knowledge_base_version": ["bad-version"]},
+            {"knowledge_base_version": "   "},
+        ],
+    )
+    def test_malformed_collection_metadata_version_reindexes(
+        self,
+        tmp_path,
+        monkeypatch,
+        metadata,
+    ):
+        existing_collection = _FakeCollectionForInit(
+            metadata,
+            len(embedding_rag_module.VULNERABILITY_KNOWLEDGE_BASE),
+        )
+        rag = _RecordingInitializeRAG(
+            persist_directory=str(tmp_path),
+            existing_collection=existing_collection,
+        )
+        fake_chroma = _FakeChromaForInit(rag.fake_client)
+
+        monkeypatch.setattr(
+            embedding_rag_module,
+            "_get_sentence_transformer",
+            lambda: lambda _model_name: object(),
+        )
+        monkeypatch.setattr(
+            embedding_rag_module,
+            "_get_chromadb",
+            lambda: fake_chroma,
+        )
+
+        rag._ensure_initialized()
+
+        assert rag.fake_client.deleted_names == [EmbeddingRAG.COLLECTION_NAME]
+        assert (
+            rag.fake_client.created_metadata["knowledge_base_version"]
+            == embedding_rag_module.KNOWLEDGE_BASE_VERSION
+        )
+        assert rag._collection is rag.fake_client.created_collection
+        assert rag.indexed_count == 1
+        assert rag._initialized is True
 
     def test_rejects_non_document_before_index_or_cache_mutation(self, tmp_path):
         rag = _UninitializedEmbeddingRAG(persist_directory=str(tmp_path))
