@@ -618,6 +618,41 @@ def test_apply_validation_handles_malformed_current_severity():
     assert updated["_llm_validation"]["severity_adjusted"] is True
 
 
+@pytest.mark.parametrize("validation_time_ms", [True, -1, float("inf"), ["12"]])
+def test_apply_validation_defaults_malformed_validation_time(validation_time_ms):
+    validator = LLMFindingValidator(ValidatorConfig())
+    finding = {"id": "F-1", "severity": "high", "confidence": 0.7}
+    validation = LLMValidation(
+        "F-1",
+        ValidationResult.VALID,
+        0.9,
+        "confirmed",
+        validation_time_ms=validation_time_ms,
+    )
+
+    updated = validator._apply_validation(finding, validation)
+
+    assert updated is not None
+    assert updated["_llm_validation"]["validation_time_ms"] == 0
+
+
+def test_apply_validation_preserves_valid_validation_time():
+    validator = LLMFindingValidator(ValidatorConfig())
+    finding = {"id": "F-1", "severity": "high", "confidence": 0.7}
+    validation = LLMValidation(
+        "F-1",
+        ValidationResult.VALID,
+        0.9,
+        "confirmed",
+        validation_time_ms=12.9,
+    )
+
+    updated = validator._apply_validation(finding, validation)
+
+    assert updated is not None
+    assert updated["_llm_validation"]["validation_time_ms"] == 12
+
+
 def test_get_statistics_reports_counts_and_config():
     validator = LLMFindingValidator(ValidatorConfig(model="test-model", enabled=False))
     validator._validated_count = 4
