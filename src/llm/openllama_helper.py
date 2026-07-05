@@ -41,6 +41,8 @@ OLLAMA_RUNTIME_ERRORS = (
     subprocess.SubprocessError,
 )
 LLM_PROCESSING_ERRORS = (AttributeError, KeyError, TypeError, ValueError, RuntimeError)
+MAX_PRIORITY_RESPONSE_CHARS = 20_000
+MAX_REMEDIATION_RESPONSE_CHARS = 4_000
 
 
 @dataclass
@@ -274,7 +276,9 @@ INSTRUCTIONS:
 REMEDIATION ADVICE:"""
 
         response = self._call_llm(prompt)
-        return self._llm_text_response(response) or self._recommendation_fallback(finding)
+        return self._llm_text_response(
+            response, limit=MAX_REMEDIATION_RESPONSE_CHARS
+        ) or self._recommendation_fallback(finding)
 
     # ============================================================================
     # PRIVATE HELPER METHODS
@@ -368,11 +372,13 @@ INSIGHTS:"""
         return "Review and address the identified issue"
 
     @staticmethod
-    def _llm_text_response(value: Any) -> Optional[str]:
+    def _llm_text_response(value: Any, limit: Optional[int] = None) -> Optional[str]:
         """Return stripped LLM text while rejecting malformed response shapes."""
         if not isinstance(value, str):
             return None
         response = value.strip()
+        if limit is not None and len(response) > limit:
+            response = response[:limit]
         return response or None
 
     def _create_findings_summary(self, findings: List[Dict[str, Any]]) -> str:
@@ -436,6 +442,12 @@ INSIGHTS:"""
     def _parse_priorities(self, llm_response: str) -> Dict[int, Dict[str, Any]]:
         """Parse priority assignments from LLM response."""
         try:
+            if not isinstance(llm_response, str):
+                return {}
+            if len(llm_response) > MAX_PRIORITY_RESPONSE_CHARS:
+                logger.warning("Priority response too large to parse safely")
+                return {}
+
             stripped = llm_response.strip()
             json_str = stripped if stripped.startswith("[") else extract_json_from_text(llm_response)
             if json_str is None:
