@@ -77,8 +77,7 @@ async def fetch_openai_compatible_model_ids(
     provider_name: str = "provider",
 ) -> Set[str]:
     """Fetch model identifiers from an OpenAI-compatible /v1/models endpoint."""
-    provider_label = provider_name.strip() if isinstance(provider_name, str) else ""
-    provider_label = provider_label or "provider"
+    provider_label = _provider_label(provider_name)
     if not isinstance(base_url, str) or not isinstance(api_key, str):
         logger.debug("%s model check received malformed endpoint credentials", provider_label)
         return set()
@@ -127,6 +126,12 @@ async def fetch_openai_compatible_model_ids(
 def _authorization_headers(api_key: str) -> dict[str, str]:
     """Build auth headers without exposing credentials to logging paths."""
     return {"Authorization": f"Bearer {api_key}"}
+
+
+def _provider_label(provider_name: Any) -> str:
+    """Return a bounded provider label for logs."""
+    label = provider_name.strip() if isinstance(provider_name, str) else ""
+    return (label or "provider")[:80]
 
 
 def _valid_model_base_url(base_url: str) -> bool:
