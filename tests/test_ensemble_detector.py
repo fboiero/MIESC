@@ -1224,6 +1224,27 @@ class TestLLMEnsembleDetectorQueryMethods:
 
         asyncio.run(run_test())
 
+    def test_query_openai_rejects_malformed_token_metadata(self, multi_provider_detector):
+        """Test OpenAI malformed token metadata fails as provider unavailable."""
+
+        async def run_test():
+            mock_response = MagicMock()
+            mock_response.status = 200
+            mock_response.json = AsyncMock(
+                return_value={
+                    "choices": [{"message": {"content": "[]"}}],
+                    "usage": {"total_tokens": {"count": 1}},
+                }
+            )
+
+            mock_session = _aiohttp_session_with_response("post", mock_response)
+
+            with patch("aiohttp.ClientSession", return_value=mock_session):
+                with pytest.raises(ProviderUnavailable, match="OpenAI response token metadata"):
+                    await multi_provider_detector._query_openai("gpt-4", "contract code")
+
+        asyncio.run(run_test())
+
     def test_query_anthropic_success(self, multi_provider_detector, llm_response_json):
         """Test successful Anthropic query."""
 
@@ -1393,6 +1414,27 @@ class TestLLMEnsembleDetectorQueryMethods:
 
             with patch("aiohttp.ClientSession", return_value=mock_session):
                 with pytest.raises(ProviderUnavailable, match="Ollama response message"):
+                    await detector._query_model("test-model", "contract code")
+
+        asyncio.run(run_test())
+
+    def test_query_model_rejects_malformed_latency_metadata(self, detector):
+        """Test Ollama malformed latency metadata fails as provider unavailable."""
+
+        async def run_test():
+            mock_response = MagicMock()
+            mock_response.status = 200
+            mock_response.json = AsyncMock(
+                return_value={
+                    "message": {"content": "[]"},
+                    "total_duration": ["not", "a", "duration"],
+                }
+            )
+
+            mock_session = _aiohttp_session_with_response("post", mock_response)
+
+            with patch("aiohttp.ClientSession", return_value=mock_session):
+                with pytest.raises(ProviderUnavailable, match="Ollama response latency metadata"):
                     await detector._query_model("test-model", "contract code")
 
         asyncio.run(run_test())
