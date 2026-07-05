@@ -35,6 +35,8 @@ def _safe_filename_part(value: Any, default: str = "template") -> str:
     """Return a bounded filename segment without path separators."""
     text = value.strip() if isinstance(value, str) else ""
     safe = "".join(ch for ch in text if ch in _FILENAME_SAFE_CHARS).strip()
+    if text and not safe:
+        return default
     return safe[:80] or default
 
 

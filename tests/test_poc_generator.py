@@ -273,6 +273,20 @@ class TestPoCTemplate:
         assert saved_path.parent == tmp_path
         assert saved_path.name == "PoC_reentrancy_ExploitOne.t.sol"
 
+    def test_template_save_defaults_empty_safe_filename_segment(self, tmp_path):
+        """Template names that sanitize to empty should use the filename fallback."""
+        template = PoCTemplate(
+            name="////",
+            vulnerability_type=VulnerabilityType.REENTRANCY,
+            solidity_code="// SPDX-License-Identifier: MIT\ncontract Test {}",
+            target_contract="Bank.sol",
+            target_function="withdraw",
+        )
+
+        saved_path = template.save(tmp_path)
+
+        assert saved_path.name == "PoC_reentrancy_template.t.sol"
+
     def test_template_to_dict(self):
         """Test converting template to dictionary."""
         template = PoCTemplate(
