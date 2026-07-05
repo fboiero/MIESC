@@ -89,6 +89,71 @@ async def test_generate_remediations_skips_malformed_batch_entries(monkeypatch):
     assert [rem.finding_id for rem in result.remediations] == ["A", "B"]
 
 
+def test_remediation_to_dict_normalizes_malformed_export_metadata():
+    remediation = Remediation(
+        finding_id=["F-1"],
+        vulnerability_type={"type": "reentrancy"},
+        severity=" ",
+        vulnerable_code={"code": "contract C {}"},
+        fixed_code=["contract Fixed {}"],
+        explanation=None,
+        changes_summary=["  added guard  ", {"bad": "change"}, ""],
+        test_suggestions="run tests",
+        references=["OpenZeppelin", ["bad reference"], "  "],
+        confidence=float("nan"),
+        pattern_used=["ReentrancyGuard"],
+        implementation_complexity="extreme",
+        deployment_risk=" Critical ",
+    )
+
+    exported = remediation.to_dict()
+
+    assert exported == {
+        "finding_id": "unknown",
+        "vulnerability_type": "unknown",
+        "severity": "medium",
+        "vulnerable_code": "",
+        "fixed_code": "",
+        "explanation": "",
+        "changes_summary": ["added guard"],
+        "test_suggestions": [],
+        "references": ["OpenZeppelin"],
+        "confidence": 0.0,
+        "pattern_used": None,
+        "implementation_complexity": "medium",
+        "deployment_risk": "critical",
+    }
+
+
+def test_remediation_result_to_dict_normalizes_malformed_export_metadata():
+    remediation = Remediation(
+        finding_id="F-1",
+        vulnerability_type="reentrancy",
+        severity="high",
+        vulnerable_code="function withdraw() public {}",
+        fixed_code="function withdraw() public nonReentrant {}",
+        explanation="uses guard",
+        changes_summary=[],
+        test_suggestions=[],
+        references=[],
+        confidence=0.8,
+    )
+    result = RemediationResult(
+        remediations=[remediation, {"bad": "remediation"}],
+        success_count=True,
+        failure_count=-3,
+        execution_time_ms=float("inf"),
+    )
+
+    exported = result.to_dict()
+
+    assert len(exported["remediations"]) == 1
+    assert exported["remediations"][0]["finding_id"] == "F-1"
+    assert exported["success_count"] == 0
+    assert exported["failure_count"] == 0
+    assert exported["execution_time_ms"] == 0.0
+
+
 @pytest.mark.asyncio
 async def test_query_llm_returns_empty_dict_on_client_error(monkeypatch):
     generator = RemediationGenerator()

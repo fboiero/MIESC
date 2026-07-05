@@ -19,6 +19,7 @@ Date: January 2026
 import asyncio
 import json
 import logging
+import math
 import re
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
@@ -29,6 +30,67 @@ from src.security.llm_output_validator import (
     extract_json_from_text,
     repair_common_json_errors,
 )
+
+
+def _export_string(value: Any, default: str) -> str:
+    """Return a non-empty string for export payloads."""
+    if isinstance(value, str):
+        normalized = value.strip()
+        if normalized:
+            return normalized
+    return default
+
+
+def _export_optional_string(value: Any) -> Optional[str]:
+    """Return a non-empty optional string for export payloads."""
+    if isinstance(value, str):
+        normalized = value.strip()
+        if normalized:
+            return normalized
+    return None
+
+
+def _export_string_list(value: Any) -> List[str]:
+    """Return only non-empty string list items for export payloads."""
+    if not isinstance(value, list):
+        return []
+    return [item.strip() for item in value if isinstance(item, str) and item.strip()]
+
+
+def _export_level(value: Any, allowed: set[str], default: str) -> str:
+    """Return a bounded lowercase level for export payloads."""
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if normalized in allowed:
+            return normalized
+    return default
+
+
+def _export_non_negative_float(value: Any, default: float = 0.0) -> float:
+    """Return a finite non-negative float for export payloads."""
+    if isinstance(value, bool):
+        return default
+
+    try:
+        normalized = float(value)
+    except (TypeError, ValueError):
+        return default
+
+    return normalized if math.isfinite(normalized) and normalized >= 0 else default
+
+
+def _export_non_negative_int(value: Any) -> int:
+    """Return a non-negative integer for export payloads."""
+    if isinstance(value, bool):
+        return 0
+
+    try:
+        normalized = int(value)
+    except (TypeError, ValueError):
+        return 0
+
+    return normalized if normalized >= 0 else 0
+
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +123,32 @@ class Remediation:
     implementation_complexity: str = "medium"
     deployment_risk: str = "medium"
 
+    def to_dict(self) -> Dict[str, Any]:
+        """Export remediation data without trusting malformed field values."""
+        return {
+            "finding_id": _export_string(self.finding_id, "unknown"),
+            "vulnerability_type": _export_string(self.vulnerability_type, "unknown"),
+            "severity": _export_string(self.severity, "medium"),
+            "vulnerable_code": _export_string(self.vulnerable_code, ""),
+            "fixed_code": _export_string(self.fixed_code, ""),
+            "explanation": _export_string(self.explanation, ""),
+            "changes_summary": _export_string_list(self.changes_summary),
+            "test_suggestions": _export_string_list(self.test_suggestions),
+            "references": _export_string_list(self.references),
+            "confidence": _export_non_negative_float(self.confidence),
+            "pattern_used": _export_optional_string(self.pattern_used),
+            "implementation_complexity": _export_level(
+                self.implementation_complexity,
+                {"low", "medium", "high"},
+                "medium",
+            ),
+            "deployment_risk": _export_level(
+                self.deployment_risk,
+                {"low", "medium", "high", "critical"},
+                "medium",
+            ),
+        }
+
 
 @dataclass
 class RemediationResult:
@@ -70,6 +158,20 @@ class RemediationResult:
     success_count: int
     failure_count: int
     execution_time_ms: float
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Export generation results without trusting malformed field values."""
+        remediations = self.remediations if isinstance(self.remediations, list) else []
+        return {
+            "remediations": [
+                remediation.to_dict()
+                for remediation in remediations
+                if isinstance(remediation, Remediation)
+            ],
+            "success_count": _export_non_negative_int(self.success_count),
+            "failure_count": _export_non_negative_int(self.failure_count),
+            "execution_time_ms": _export_non_negative_float(self.execution_time_ms),
+        }
 
 
 # Known remediation patterns by vulnerability type
