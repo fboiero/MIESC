@@ -619,7 +619,7 @@ Response (JSON array only):"""
         Returns:
             List of findings from this provider
         """
-        models = self._available_providers.get(provider, [])[:3]  # Max 3 models
+        models = self._status_model_list(self._available_providers.get(provider, []))[:3]
 
         if not models:
             raise ProviderUnavailable(f"No models available for {provider.value}")
@@ -947,7 +947,9 @@ Response (JSON array only):"""
         if not self._initialized:
             await self.initialize()
 
-        if not self._available_models:
+        available_models = self._status_model_list(self._available_models)
+
+        if not available_models:
             logger.error("No LLM models available for ensemble detection")
             return EnsembleResult(
                 findings=[],
@@ -961,7 +963,7 @@ Response (JSON array only):"""
             )
 
         # Query all available models in parallel
-        tasks = [self._query_model(model, code, context) for model in self._available_models]
+        tasks = [self._query_model(model, code, context) for model in available_models]
 
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
@@ -969,7 +971,7 @@ Response (JSON array only):"""
         model_findings: Dict[str, List[Dict]] = {}
         failed_models: List[str] = []
 
-        for model, result in zip(self._available_models, results, strict=False):
+        for model, result in zip(available_models, results, strict=False):
             if isinstance(result, BaseException):
                 logger.warning(f"Model {model} failed: {result}")
                 failed_models.append(model)
@@ -994,7 +996,7 @@ Response (JSON array only):"""
         return EnsembleResult(
             findings=validated_findings,
             models_used=list(model_findings.keys()),
-            models_available=self._available_models,
+            models_available=available_models,
             models_failed=failed_models,
             execution_time_ms=execution_time,
             consensus_threshold=self.consensus_threshold,

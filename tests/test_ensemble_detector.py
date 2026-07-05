@@ -1949,6 +1949,40 @@ class TestLLMEnsembleDetectorIntegration:
 
         asyncio.run(run_test())
 
+    def test_detect_vulnerabilities_filters_malformed_available_model_ids_before_payload(
+        self, detector, vulnerable_code
+    ):
+        """Malformed available model ids should not enter query payload construction."""
+
+        async def run_test():
+            detector._initialized = True
+            detector._available_models = [{"id": "model1"}, " model1 ", "", ["bad"], "model2"]
+            detector.consensus_threshold = 2
+            queried_models = []
+
+            async def mock_query(model, code, context=None):
+                queried_models.append(model)
+                return [
+                    {
+                        "type": "reentrancy",
+                        "severity": "high",
+                        "title": "Reentrancy",
+                        "description": "External call before state update",
+                        "location": {"function": "withdraw", "line": 10},
+                        "confidence": 0.9,
+                    }
+                ]
+
+            with patch.object(detector, "_query_model", side_effect=mock_query):
+                result = await detector.detect_vulnerabilities(vulnerable_code)
+
+            assert queried_models == ["model1", "model2"]
+            assert result.models_available == ["model1", "model2"]
+            assert result.models_used == ["model1", "model2"]
+            assert len(result.findings) == 1
+
+        asyncio.run(run_test())
+
     def test_full_workflow_mocked(self, detector, vulnerable_code, sample_model_findings):
         """Test full detection workflow with mocked responses."""
 
@@ -1980,6 +2014,43 @@ class TestLLMEnsembleDetectorIntegration:
                 assert len(results) == 1
                 assert results[0].type == "reentrancy"
                 assert results[0].votes == 3
+
+        asyncio.run(run_test())
+
+    def test_detect_with_provider_filters_malformed_model_ids_before_payload(
+        self, detector, vulnerable_code
+    ):
+        """Malformed provider model ids should not enter provider query payloads."""
+
+        async def run_test():
+            detector._available_providers = {
+                LLMProvider.OLLAMA: [{"id": "model1"}, " model1 ", "", ["bad"], "model2"]
+            }
+            detector.consensus_threshold = 2
+            queried_models = []
+
+            async def mock_query(model, code, context=None):
+                queried_models.append(model)
+                return [
+                    {
+                        "type": "reentrancy",
+                        "severity": "high",
+                        "title": "Reentrancy",
+                        "description": "External call before state update",
+                        "location": {"function": "withdraw", "line": 10},
+                        "confidence": 0.9,
+                    }
+                ]
+
+            with patch.object(detector, "_query_model", side_effect=mock_query):
+                results = await detector._detect_with_provider(
+                    LLMProvider.OLLAMA,
+                    vulnerable_code,
+                )
+
+            assert queried_models == ["model1", "model2"]
+            assert len(results) == 1
+            assert results[0].supporting_models == ["model1", "model2"]
 
         asyncio.run(run_test())
 
