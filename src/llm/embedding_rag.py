@@ -182,6 +182,18 @@ def _result_value(row: List[Any], index: int) -> Any:
     return row[index]
 
 
+def _has_aligned_optional_result_value(
+    rows: List[Any],
+    row_index: int,
+    value_index: int,
+) -> bool:
+    """Return whether a present optional Chroma row has an aligned value."""
+    if not rows:
+        return True
+    row = _result_row(rows, row_index)
+    return value_index < len(row)
+
+
 def _get_chromadb() -> Any:
     """Lazy import for chromadb."""
     global _chromadb
@@ -4993,12 +5005,18 @@ class EmbeddingRAG:
         retrieval_results = []
         id_rows = _result_rows(results, "ids")
         distance_rows = _result_rows(results, "distances")
+        document_rows = _result_rows(results, "documents")
+        metadata_rows = _result_rows(results, "metadatas")
 
         first_id_row = _result_row(id_rows, 0)
         first_distance_row = _result_row(distance_rows, 0)
         if first_id_row:
             for i, doc_id in enumerate(first_id_row):
                 if not isinstance(doc_id, str):
+                    continue
+                if not _has_aligned_optional_result_value(document_rows, 0, i):
+                    continue
+                if not _has_aligned_optional_result_value(metadata_rows, 0, i):
                     continue
                 # O(1) lookup instead of O(n) linear search
                 original_doc = self._doc_index.get(doc_id)
@@ -5161,6 +5179,8 @@ class EmbeddingRAG:
             )
             id_rows = _result_rows(results, "ids")
             distance_rows = _result_rows(results, "distances")
+            document_rows = _result_rows(results, "documents")
+            metadata_rows = _result_rows(results, "metadatas")
 
             # Process results for each query
             for batch_idx, (unique_idx, query) in enumerate(uncached_queries):
@@ -5171,6 +5191,10 @@ class EmbeddingRAG:
                 if id_row:
                     for i, doc_id in enumerate(id_row):
                         if not isinstance(doc_id, str):
+                            continue
+                        if not _has_aligned_optional_result_value(document_rows, batch_idx, i):
+                            continue
+                        if not _has_aligned_optional_result_value(metadata_rows, batch_idx, i):
                             continue
                         original_doc = self._doc_index.get(doc_id)
                         if original_doc:

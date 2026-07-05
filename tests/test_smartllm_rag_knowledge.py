@@ -578,6 +578,49 @@ class TestEmbeddingRAGSearchBoundaryShapes:
         assert 0.0 <= results[0].similarity_score < 0.3
         assert results[0].relevance_reason == "Matches category: custom"
 
+    def test_search_skips_ids_without_aligned_document_and_metadata_rows(self, tmp_path):
+        valid = VulnerabilityDocument(
+            id="CUSTOM-ALIGNED",
+            title="Aligned Result",
+            description="Custom vulnerability description",
+        )
+        missing_document = VulnerabilityDocument(
+            id="CUSTOM-MISSING-DOCUMENT",
+            title="Missing Document Row",
+            description="Custom vulnerability description",
+        )
+        missing_metadata = VulnerabilityDocument(
+            id="CUSTOM-MISSING-METADATA",
+            title="Missing Metadata Row",
+            description="Custom vulnerability description",
+        )
+        collection = _MalformedSearchCollection(
+            {
+                "ids": [
+                    [
+                        "CUSTOM-ALIGNED",
+                        "CUSTOM-MISSING-DOCUMENT",
+                        "CUSTOM-MISSING-METADATA",
+                    ]
+                ],
+                "documents": [["aligned text", "metadata-only text"]],
+                "metadatas": [[{"id": "CUSTOM-ALIGNED"}]],
+                "distances": [[0.2, 0.1, 0.0]],
+            }
+        )
+        rag = EmbeddingRAG(persist_directory=str(tmp_path))
+        rag._initialized = True
+        rag._collection = collection
+        rag._doc_index = {
+            "CUSTOM-ALIGNED": valid,
+            "CUSTOM-MISSING-DOCUMENT": missing_document,
+            "CUSTOM-MISSING-METADATA": missing_metadata,
+        }
+
+        results = rag.search("aligned", n_results=3)
+
+        assert [result.document.id for result in results] == ["CUSTOM-ALIGNED"]
+
     def test_search_bounds_malformed_result_count_and_filter_values(self, tmp_path):
         vulnerability = VulnerabilityDocument(
             id="CUSTOM-COUNT",
@@ -669,6 +712,40 @@ class TestEmbeddingRAGSearchBoundaryShapes:
         assert collection.query_texts == ["batch", "{'q': 'bad'}"]
         assert [[result.document.id for result in row] for row in results] == [
             ["CUSTOM-004"],
+            [],
+        ]
+
+    def test_batch_search_skips_present_malformed_document_metadata_rows(self, tmp_path):
+        first = VulnerabilityDocument(
+            id="CUSTOM-BATCH-ALIGNED",
+            title="Batch Aligned",
+            description="Custom vulnerability description",
+        )
+        second = VulnerabilityDocument(
+            id="CUSTOM-BATCH-SKIPPED",
+            title="Batch Skipped",
+            description="Custom vulnerability description",
+        )
+        collection = _MalformedSearchCollection(
+            {
+                "ids": [["CUSTOM-BATCH-ALIGNED"], ["CUSTOM-BATCH-SKIPPED"]],
+                "documents": [["aligned text"], "bad-row"],
+                "metadatas": [[{"id": "CUSTOM-BATCH-ALIGNED"}], []],
+                "distances": [[0.2], [0.1]],
+            }
+        )
+        rag = EmbeddingRAG(persist_directory=str(tmp_path), enable_cache=False)
+        rag._initialized = True
+        rag._collection = collection
+        rag._doc_index = {
+            "CUSTOM-BATCH-ALIGNED": first,
+            "CUSTOM-BATCH-SKIPPED": second,
+        }
+
+        results = rag.batch_search(["first", "second"], n_results=1)
+
+        assert [[result.document.id for result in row] for row in results] == [
+            ["CUSTOM-BATCH-ALIGNED"],
             [],
         ]
 
