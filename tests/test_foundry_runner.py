@@ -553,6 +553,21 @@ class TestCompile:
 
         assert success is False
 
+    def test_compile_failure_normalizes_malformed_stderr(self, runner, caplog):
+        """Malformed compile stderr should not leak container reprs into logs."""
+        mock_result = MagicMock()
+        mock_result.returncode = 1
+        mock_result.stdout = ""
+        mock_result.stderr = ["Error: ParserError"]
+
+        with caplog.at_level("ERROR", logger="src.poc.validators.foundry_runner"):
+            with patch("subprocess.run", return_value=mock_result):
+                success = runner.compile()
+
+        assert success is False
+        assert "Compilation failed:" in caplog.text
+        assert "['Error: ParserError']" not in caplog.text
+
     def test_compile_exception(self, runner):
         """Test compilation with exception."""
         with patch("subprocess.run", side_effect=OSError("Unknown error")):

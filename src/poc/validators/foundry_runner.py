@@ -354,7 +354,8 @@ class FoundryRunner:
                 logger.info("Compilation successful")
                 return True
             else:
-                logger.error(f"Compilation failed: {result.stderr}")
+                error_text = self._normalize_output_text(getattr(result, "stderr", ""))
+                logger.error("Compilation failed: %s", error_text)
                 return False
 
         except FOUNDRY_RUNTIME_ERRORS as e:
