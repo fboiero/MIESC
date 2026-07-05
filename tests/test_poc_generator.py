@@ -657,6 +657,50 @@ class TestTemplateCustomization:
         assert "createSelectFork" in result
         assert "18500000" in result
 
+    @pytest.mark.parametrize(
+        "fork_url, fork_block",
+        [
+            ("  ", 18500000),
+            (["https://rpc.example"], 18500000),
+            ("https://rpc.example", 0),
+            ("https://rpc.example", True),
+        ],
+    )
+    def test_customize_skips_malformed_fork_config(
+        self, generator, reentrancy_finding, fork_url, fork_block
+    ):
+        """Malformed fork options should not reach generated Solidity."""
+        template = "// {{FORK_CONFIG}}\ncode here"
+        options = GenerationOptions(fork_url=fork_url, fork_block=fork_block)
+
+        result = generator._customize_template(
+            template,
+            vuln_type=VulnerabilityType.REENTRANCY,
+            target_contract="Test.sol",
+            target_function="test",
+            finding=reentrancy_finding,
+            options=options,
+        )
+
+        assert "createSelectFork" not in result
+        assert "{{FORK_CONFIG}}" not in result
+
+    def test_customize_strips_fork_url(self, generator, reentrancy_finding):
+        """Fork URL text is normalized before it is inserted into the template."""
+        template = "// {{FORK_CONFIG}}\ncode here"
+        options = GenerationOptions(fork_url=" https://rpc.example ", fork_block=18500000)
+
+        result = generator._customize_template(
+            template,
+            vuln_type=VulnerabilityType.REENTRANCY,
+            target_contract="Test.sol",
+            target_function="test",
+            finding=reentrancy_finding,
+            options=options,
+        )
+
+        assert 'vm.createSelectFork("https://rpc.example", 18500000);' in result
+
 
 # =============================================================================
 # Generate PoC Tests
