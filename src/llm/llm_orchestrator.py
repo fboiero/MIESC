@@ -17,7 +17,7 @@ import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field, replace
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import aiohttp
 
@@ -614,7 +614,7 @@ class LLMOrchestrator:
     async def initialize(self) -> Dict[str, bool]:
         """Initialize all backends and check availability."""
         status = {}
-        for key, backend in self.backends.items():
+        for key, backend in self._backend_items():
             try:
                 raw_available = await backend.health_check()
                 if not isinstance(raw_available, bool):
@@ -721,7 +721,7 @@ Provide a comprehensive security analysis in JSON format."""
         backends_to_try = []
         if backend_key:
             backends_to_try.append(backend_key)
-        backends_to_try.extend(k for k in self.backends.keys() if k != backend_key)
+        backends_to_try.extend(k for k, _backend in self._backend_items() if k != backend_key)
 
         for key in backends_to_try:
             backend = self.backends.get(key)
@@ -810,6 +810,19 @@ Provide a comprehensive security analysis in JSON format."""
         )
         backend.available = False
         return False
+
+    def _backend_items(self) -> List[Tuple[str, LLMBackend]]:
+        """Return backend entries with strict string keys for routing/status boundaries."""
+        valid_backends = []
+        for key, backend in self.backends.items():
+            if isinstance(key, str) and key:
+                valid_backends.append((key, backend))
+                continue
+            logger.warning(
+                "Ignoring malformed LLM backend key of type %s",
+                type(key).__name__,
+            )
+        return valid_backends
 
     def _retry_attempt_count(self, backend: LLMBackend) -> int:
         """Return a conservative retry count for malformed backend config."""
@@ -1057,17 +1070,19 @@ Provide a comprehensive security analysis in JSON format."""
 
         preferences = self._preferred_models_for_task(task_preferences.get(task))
         if not preferences:
-            preferences = list(self.backends.keys())
+            preferences = [key for key, _backend in self._backend_items()]
 
         for pref in preferences:
             if pref in self.backends and self._backend_is_available(pref, self.backends[pref]):
                 return pref
 
-        for key, backend in self.backends.items():
+        for key, backend in self._backend_items():
             if self._backend_is_available(key, backend):
                 return key
 
-        return self.primary_provider or list(self.backends.keys())[0]
+        if isinstance(self.primary_provider, str) and self.primary_provider:
+            return self.primary_provider
+        return self._backend_items()[0][0]
 
     def _preferred_models_for_task(self, preferred_models: Any) -> List[str]:
         """Return strict preferred model keys from a potentially malformed list."""
@@ -1086,7 +1101,7 @@ Provide a comprehensive security analysis in JSON format."""
 
     def get_available_providers(self) -> List[str]:
         """Get list of available providers."""
-        return [k for k, v in self.backends.items() if self._backend_is_available(k, v)]
+        return [k for k, v in self._backend_items() if self._backend_is_available(k, v)]
 
     def clear_cache(self) -> None:
         """Clear the response cache."""

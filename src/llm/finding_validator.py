@@ -356,6 +356,7 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
 
     def _parse_response(self, response: str, finding_id: str) -> LLMValidation:
         """Parse LLM response into LLMValidation."""
+        response = self._parse_text(response, "")
         try:
             stripped = response.strip()
             json_str = stripped if stripped.startswith("[") else extract_json_from_text(response)
@@ -425,7 +426,7 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
                 finding_id=finding_id,
                 result=result,
                 confidence=confidence,
-                reasoning=response[:200] if response else "Parse error",
+                reasoning=(self._parse_text(response, "Parse error") or "Parse error")[:200],
             )
 
     @staticmethod

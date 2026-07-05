@@ -1115,6 +1115,19 @@ class TestGasReport:
         assert report["contracts"] == {}
         assert report["total_runtime_gas"] == 0
 
+    def test_get_gas_report_bounds_raw_stdout_before_parsing(self, runner):
+        """Test oversized gas report stdout is capped before table parsing."""
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = "x" * 210_000 + "\n| Vault | withdraw | 10 | 20 | 15 | 2 |\n"
+        mock_result.stderr = ""
+
+        with patch("subprocess.run", return_value=mock_result):
+            report = runner.get_gas_report()
+
+        assert report["contracts"] == {}
+        assert report["total_runtime_gas"] == 0
+
     def test_get_gas_report_ignores_malformed_json_line(self, runner):
         """Test malformed JSON lines do not abort gas report parsing."""
         mock_result = MagicMock()

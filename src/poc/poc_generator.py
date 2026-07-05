@@ -749,6 +749,7 @@ contract {{CONTRACT_NAME}}ExploitTest is Test {
 
     def _get_expected_outcome(self, vuln_type: VulnerabilityType, severity: str) -> str:
         """Get expected outcome description."""
+        severity = severity.strip().lower() if isinstance(severity, str) else "medium"
         outcomes = {
             VulnerabilityType.REENTRANCY: "Drain funds from contract through recursive calls",
             VulnerabilityType.FLASH_LOAN: "Profit from flash loan attack",

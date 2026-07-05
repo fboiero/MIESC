@@ -2,6 +2,7 @@ import json
 import subprocess
 
 from src.llm.openllama_helper import (
+    MAX_ANALYZE_RESPONSE_CHARS,
     MAX_GENERATE_RESPONSE_BYTES,
     MAX_PRIORITY_RESPONSE_CHARS,
     MAX_PRIORITY_TEXT_CHARS,
@@ -859,6 +860,18 @@ def test_generate_insights_rejects_malformed_llm_response(monkeypatch):
     monkeypatch.setattr(helper, "_call_llm", lambda prompt: {"insight": "reachable exploit"})
 
     assert helper._generate_insights({"title": "Missing auth"}, "contract C {}", "adapter") is None
+
+
+def test_generate_insights_caps_oversized_analyze_output(monkeypatch):
+    helper = OpenLLaMAHelper()
+    oversized = "x" * (MAX_ANALYZE_RESPONSE_CHARS + 100)
+
+    monkeypatch.setattr(helper, "_call_llm", lambda prompt: oversized)
+
+    assert (
+        helper._generate_insights({"title": "Missing auth"}, "contract C {}", "adapter")
+        == "x" * MAX_ANALYZE_RESPONSE_CHARS
+    )
 
 
 def test_convenience_functions_delegate_to_helper(monkeypatch):

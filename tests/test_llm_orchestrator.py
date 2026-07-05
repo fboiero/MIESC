@@ -701,6 +701,18 @@ class TestLLMOrchestrator:
         assert orchestrator.get_available_providers() == []
         assert backend.available is False
 
+    def test_get_available_providers_ignores_malformed_backend_key(self):
+        """Test malformed backend keys cannot cross provider status output."""
+        config = LLMConfig(provider=LLMProvider.OLLAMA, model="healthy")
+        orchestrator = LLMOrchestrator([config])
+        orchestrator.backends["ollama:healthy"].available = True
+
+        malformed_backend = MagicMock()
+        malformed_backend.available = True
+        orchestrator.backends[("ollama", "malformed")] = malformed_backend
+
+        assert orchestrator.get_available_providers() == ["ollama:healthy"]
+
     def test_cache_key_generation(self):
         """Test cache key generation."""
         orchestrator = LLMOrchestrator([])
@@ -1532,6 +1544,47 @@ class TestLLMOrchestrator:
             result = await orchestrator.query("test prompt", provider=["not", "a", "key"])
 
             assert result is response
+            analyze.assert_awaited_once()
+
+        asyncio.run(run_test())
+
+    def test_query_ignores_malformed_backend_key(self):
+        """Test fallback routing skips malformed internal backend keys."""
+
+        async def run_test():
+            config = LLMConfig(
+                provider=LLMProvider.OLLAMA,
+                model="primary",
+                retry_attempts=1,
+                retry_delay=0,
+            )
+            orchestrator = LLMOrchestrator([config])
+            orchestrator.primary_provider = None
+            orchestrator.backends["ollama:primary"].available = True
+
+            malformed_backend = MagicMock()
+            malformed_backend.available = True
+            malformed_backend.analyze = AsyncMock(
+                return_value=LLMResponse(
+                    content="malformed-key content",
+                    provider="ollama",
+                    model="malformed",
+                )
+            )
+            orchestrator.backends[("ollama", "malformed")] = malformed_backend
+
+            response = LLMResponse(
+                content="primary content",
+                provider="ollama",
+                model="primary",
+            )
+            analyze = AsyncMock(return_value=response)
+            orchestrator.backends["ollama:primary"].analyze = analyze
+
+            result = await orchestrator.query("test prompt")
+
+            assert result is response
+            malformed_backend.analyze.assert_not_awaited()
             analyze.assert_awaited_once()
 
         asyncio.run(run_test())

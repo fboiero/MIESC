@@ -193,7 +193,7 @@ def _similarity_from_distance(distance: Any) -> float:
     """Convert a loose Chroma distance value to a bounded similarity score."""
     try:
         distance_value = float(distance)
-    except (TypeError, ValueError):
+    except Exception:
         return 0.0
     if not math.isfinite(distance_value):
         return 0.0
@@ -204,7 +204,7 @@ def _bounded_similarity_score(score: Any) -> float:
     """Return a finite similarity score in the supported 0..1 range."""
     try:
         score_value = float(score)
-    except (TypeError, ValueError):
+    except Exception:
         return 0.0
     if not math.isfinite(score_value):
         return 0.0
