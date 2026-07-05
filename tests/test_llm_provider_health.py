@@ -53,6 +53,14 @@ def test_extract_openai_compatible_model_ids_nested_models_data_alias():
     assert extract_openai_compatible_model_ids({"models": {"data": {"id": "bad"}}}) == set()
 
 
+def test_extract_openai_compatible_model_ids_nested_models_alias():
+    """Test nested models/models aliases are accepted only when list-shaped."""
+    payload = {"models": {"models": [{"id": "model-a"}]}}
+
+    assert extract_openai_compatible_model_ids(payload) == {"model-a"}
+    assert extract_openai_compatible_model_ids({"models": {"models": {"id": "bad"}}}) == set()
+
+
 def test_extract_openai_compatible_model_ids_malformed_shapes():
     """Test malformed model payload shapes are ignored safely."""
     payload = {
