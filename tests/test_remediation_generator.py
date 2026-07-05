@@ -263,6 +263,41 @@ def test_remediation_to_dict_bounds_exported_severity(severity, expected):
 
 
 @pytest.mark.parametrize(
+    ("field_name", "field_value", "expected"),
+    [
+        ("severity", "high", "medium"),
+        ("deployment_risk", "critical", "medium"),
+    ],
+)
+def test_remediation_to_dict_defaults_malformed_level_export_boundary(
+    field_name,
+    field_value,
+    expected,
+):
+    class MalformedString(str):
+        def strip(self, *_args, **_kwargs):
+            raise ValueError("malformed level")
+
+    remediation_kwargs = {
+        "finding_id": "F-1",
+        "vulnerability_type": "reentrancy",
+        "severity": "high",
+        "vulnerable_code": "function withdraw() public {}",
+        "fixed_code": "function withdraw() public nonReentrant {}",
+        "explanation": "uses guard",
+        "changes_summary": [],
+        "test_suggestions": [],
+        "references": [],
+        "confidence": 0.8,
+    }
+    remediation_kwargs[field_name] = MalformedString(field_value)
+
+    remediation = Remediation(**remediation_kwargs)
+
+    assert remediation.to_dict()[field_name] == expected
+
+
+@pytest.mark.parametrize(
     ("gas_impact", "expected"),
     [
         (" HIGH ", "high"),

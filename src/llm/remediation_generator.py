@@ -85,7 +85,10 @@ def _export_unique_string_list(value: Any) -> List[str]:
 def _export_level(value: Any, allowed: set[str], default: str) -> str:
     """Return a bounded lowercase level for export payloads."""
     if isinstance(value, str):
-        normalized = value.strip().lower()
+        try:
+            normalized = value.strip().lower()
+        except (AttributeError, TypeError, ValueError):
+            return default
         if normalized in allowed:
             return normalized
     return default
