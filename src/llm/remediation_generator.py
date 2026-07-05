@@ -79,6 +79,12 @@ def _export_non_negative_float(value: Any, default: float = 0.0) -> float:
     return normalized if math.isfinite(normalized) and normalized >= 0 else default
 
 
+def _export_confidence(value: Any, default: float = 0.0) -> float:
+    """Return a finite confidence value bounded to the probability range."""
+    normalized = _export_non_negative_float(value, default)
+    return normalized if normalized <= 1.0 else default
+
+
 def _export_non_negative_int(value: Any) -> int:
     """Return a non-negative integer for export payloads."""
     if isinstance(value, bool):
@@ -135,7 +141,7 @@ class Remediation:
             "changes_summary": _export_string_list(self.changes_summary),
             "test_suggestions": _export_string_list(self.test_suggestions),
             "references": _export_string_list(self.references),
-            "confidence": _export_non_negative_float(self.confidence),
+            "confidence": _export_confidence(self.confidence),
             "pattern_used": _export_optional_string(self.pattern_used),
             "implementation_complexity": _export_level(
                 self.implementation_complexity,
