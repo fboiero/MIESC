@@ -493,6 +493,34 @@ class TestEmbeddingRAGSearchBoundaryShapes:
         assert results == []
         assert rag.search_calls == [("count boundary", None, "high", 10)]
 
+    @pytest.mark.parametrize(
+        "queries",
+        [
+            "single query",
+            b"single query",
+            {"query": "mapping"},
+            {"query"},
+            42,
+            None,
+        ],
+    )
+    def test_batch_search_rejects_malformed_query_containers_before_initialization(
+        self,
+        tmp_path,
+        queries,
+    ):
+        rag = _UninitializedEmbeddingRAG(persist_directory=str(tmp_path))
+        rag._query_cache = {"stale": (0.0, [])}
+        rag._cache_hits = 2
+        rag._cache_misses = 3
+
+        results = rag.batch_search(queries)  # type: ignore[arg-type]
+
+        assert results == []
+        assert rag._query_cache == {"stale": (0.0, [])}
+        assert rag._cache_hits == 2
+        assert rag._cache_misses == 3
+
     def test_batch_search_skips_malformed_result_rows_and_query_values(self, tmp_path):
         vulnerability = VulnerabilityDocument(
             id="CUSTOM-004",
