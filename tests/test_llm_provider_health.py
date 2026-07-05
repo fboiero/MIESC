@@ -205,6 +205,26 @@ def test_fetch_openai_compatible_model_ids_defaults_malformed_provider_name(capl
     assert "{'name': 'DeepSeek'}" not in caplog.text
 
 
+def test_fetch_openai_compatible_model_ids_defaults_blank_provider_name(caplog):
+    """Test blank provider labels fall back to the generic log prefix."""
+
+    async def run_test():
+        with patch("aiohttp.ClientSession") as session:
+            models = await fetch_openai_compatible_model_ids(
+                ["https://api.deepseek.example"],
+                "test-key",
+                provider_name="   ",
+            )
+
+        assert models == set()
+        session.assert_not_called()
+
+    with caplog.at_level("DEBUG", logger="src.llm.provider_health"):
+        asyncio.run(run_test())
+
+    assert "provider model check received malformed endpoint credentials" in caplog.text
+
+
 def test_fetch_openai_compatible_model_ids_malformed_payload():
     """Test malformed successful JSON payloads are treated as unavailable."""
 
