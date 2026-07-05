@@ -238,6 +238,11 @@ def _result_value(row: List[Any], index: int) -> Any:
     return row[index]
 
 
+def _is_valid_result_id(value: Any) -> bool:
+    """Return whether a Chroma result id is usable for document lookup."""
+    return isinstance(value, str) and bool(value.strip())
+
+
 def _has_aligned_optional_result_value(
     rows: List[Any],
     row_index: int,
@@ -5092,7 +5097,7 @@ class EmbeddingRAG:
         first_distance_row = _result_row(distance_rows, 0)
         if first_id_row:
             for i, doc_id in enumerate(first_id_row):
-                if not isinstance(doc_id, str):
+                if not _is_valid_result_id(doc_id):
                     continue
                 if not _has_aligned_optional_result_value(document_rows, 0, i):
                     continue
@@ -5276,7 +5281,7 @@ class EmbeddingRAG:
                 distance_row = _result_row(distance_rows, batch_idx)
                 if id_row:
                     for i, doc_id in enumerate(id_row):
-                        if not isinstance(doc_id, str):
+                        if not _is_valid_result_id(doc_id):
                             continue
                         if not _has_aligned_optional_result_value(document_rows, batch_idx, i):
                             continue
