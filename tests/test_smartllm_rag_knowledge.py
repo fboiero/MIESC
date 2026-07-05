@@ -741,6 +741,37 @@ class TestEmbeddingRAGSearchBoundaryShapes:
 
         assert [result.document.id for result in results] == ["CUSTOM-ALIGNED"]
 
+    def test_search_skips_present_malformed_metadata_values(self, tmp_path):
+        valid = VulnerabilityDocument(
+            id="CUSTOM-METADATA-ALIGNED",
+            title="Aligned Metadata",
+            description="Custom vulnerability description",
+        )
+        malformed = VulnerabilityDocument(
+            id="CUSTOM-METADATA-MALFORMED",
+            title="Malformed Metadata",
+            description="Custom vulnerability description",
+        )
+        collection = _MalformedSearchCollection(
+            {
+                "ids": [["CUSTOM-METADATA-ALIGNED", "CUSTOM-METADATA-MALFORMED"]],
+                "documents": [["aligned text", "malformed metadata text"]],
+                "metadatas": [[{"id": "CUSTOM-METADATA-ALIGNED"}, ["bad-metadata"]]],
+                "distances": [[0.2, 0.1]],
+            }
+        )
+        rag = EmbeddingRAG(persist_directory=str(tmp_path))
+        rag._initialized = True
+        rag._collection = collection
+        rag._doc_index = {
+            "CUSTOM-METADATA-ALIGNED": valid,
+            "CUSTOM-METADATA-MALFORMED": malformed,
+        }
+
+        results = rag.search("metadata boundary", n_results=2)
+
+        assert [result.document.id for result in results] == ["CUSTOM-METADATA-ALIGNED"]
+
     def test_search_bounds_malformed_result_count_and_filter_values(self, tmp_path):
         vulnerability = VulnerabilityDocument(
             id="CUSTOM-COUNT",
@@ -965,6 +996,44 @@ class TestEmbeddingRAGSearchBoundaryShapes:
         assert [[result.document.id for result in row] for row in results] == [
             ["CUSTOM-BATCH-ALIGNED"],
             [],
+        ]
+
+    def test_batch_search_skips_present_malformed_metadata_values(self, tmp_path):
+        valid = VulnerabilityDocument(
+            id="CUSTOM-BATCH-METADATA-ALIGNED",
+            title="Batch Aligned Metadata",
+            description="Custom vulnerability description",
+        )
+        malformed = VulnerabilityDocument(
+            id="CUSTOM-BATCH-METADATA-MALFORMED",
+            title="Batch Malformed Metadata",
+            description="Custom vulnerability description",
+        )
+        collection = _MalformedSearchCollection(
+            {
+                "ids": [
+                    [
+                        "CUSTOM-BATCH-METADATA-ALIGNED",
+                        "CUSTOM-BATCH-METADATA-MALFORMED",
+                    ]
+                ],
+                "documents": [["aligned text", "malformed metadata text"]],
+                "metadatas": [[{"id": "CUSTOM-BATCH-METADATA-ALIGNED"}, "bad-metadata"]],
+                "distances": [[0.2, 0.1]],
+            }
+        )
+        rag = EmbeddingRAG(persist_directory=str(tmp_path), enable_cache=False)
+        rag._initialized = True
+        rag._collection = collection
+        rag._doc_index = {
+            "CUSTOM-BATCH-METADATA-ALIGNED": valid,
+            "CUSTOM-BATCH-METADATA-MALFORMED": malformed,
+        }
+
+        results = rag.batch_search(["metadata boundary"], n_results=2)
+
+        assert [[result.document.id for result in row] for row in results] == [
+            ["CUSTOM-BATCH-METADATA-ALIGNED"]
         ]
 
     def test_batch_search_discards_malformed_cached_result_and_queries_collection(self, tmp_path):

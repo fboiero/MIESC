@@ -250,6 +250,18 @@ def _has_aligned_optional_result_value(
     return value_index < len(row)
 
 
+def _has_valid_optional_result_metadata(
+    rows: List[Any],
+    row_index: int,
+    value_index: int,
+) -> bool:
+    """Return whether a present Chroma metadata result is aligned and mapping-shaped."""
+    if not rows:
+        return True
+    row = _result_row(rows, row_index)
+    return value_index < len(row) and isinstance(row[value_index], dict)
+
+
 def _get_chromadb() -> Any:
     """Lazy import for chromadb."""
     global _chromadb
@@ -5084,7 +5096,7 @@ class EmbeddingRAG:
                     continue
                 if not _has_aligned_optional_result_value(document_rows, 0, i):
                     continue
-                if not _has_aligned_optional_result_value(metadata_rows, 0, i):
+                if not _has_valid_optional_result_metadata(metadata_rows, 0, i):
                     continue
                 # O(1) lookup instead of O(n) linear search
                 original_doc = self._doc_index.get(doc_id)
@@ -5268,7 +5280,9 @@ class EmbeddingRAG:
                             continue
                         if not _has_aligned_optional_result_value(document_rows, batch_idx, i):
                             continue
-                        if not _has_aligned_optional_result_value(metadata_rows, batch_idx, i):
+                        if not _has_valid_optional_result_metadata(
+                            metadata_rows, batch_idx, i
+                        ):
                             continue
                         original_doc = self._doc_index.get(doc_id)
                         if original_doc:
