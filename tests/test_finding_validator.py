@@ -676,6 +676,19 @@ def test_get_statistics_avoids_division_by_zero():
     assert validator.get_statistics()["fp_rate"] == 0
 
 
+def test_validate_findings_sync_rejects_malformed_findings_container(monkeypatch):
+    with monkeypatch.context() as m:
+        m.setattr(
+            "src.llm.finding_validator.LLMFindingValidator",
+            lambda *_args, **_kwargs: pytest.fail("validator should not be constructed"),
+        )
+
+        validated, validations = validate_findings_sync({"id": "F-1"})
+
+    assert validated == []
+    assert validations == []
+
+
 def test_get_statistics_defaults_mutated_malformed_config_metadata():
     validator = LLMFindingValidator(ValidatorConfig(model="test-model", enabled=True))
     validator.config.model = ["test-model"]
