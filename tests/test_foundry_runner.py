@@ -246,6 +246,15 @@ class TestFoundryRunnerInit:
         assert runner.verbosity == 3
         assert runner.gas_report is True
 
+    @pytest.mark.parametrize("project_dir", [None, {"path": "."}, "  "])
+    def test_initialization_rejects_malformed_project_dir(self, project_dir):
+        """Malformed project dirs are rejected before Path coercion or forge checks."""
+        with patch.object(FoundryRunner, "_check_foundry_installation") as check_foundry:
+            with pytest.raises(ValueError, match="Malformed Foundry project directory"):
+                FoundryRunner(project_dir=project_dir)
+
+        check_foundry.assert_not_called()
+
     def test_foundry_not_installed_raises(self, tmp_path):
         """Test error when Foundry not installed."""
         with patch("subprocess.run", side_effect=FileNotFoundError):

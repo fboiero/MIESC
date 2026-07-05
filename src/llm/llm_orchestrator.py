@@ -645,7 +645,9 @@ Provide a comprehensive security analysis in JSON format."""
             if not backend or not backend.available:
                 continue
 
-            for attempt in range(backend.config.retry_attempts):
+            retry_attempts = self._retry_attempt_count(backend)
+            retry_delay = self._retry_delay_seconds(backend)
+            for attempt in range(retry_attempts):
                 try:
                     response = await backend.analyze(prompt, context)
                     if not isinstance(response, LLMResponse):
@@ -662,10 +664,41 @@ Provide a comprehensive security analysis in JSON format."""
                     return response
                 except LLM_RUNTIME_ERRORS as e:
                     errors.append(f"{key} attempt {attempt + 1}: {e}")
-                    if attempt < backend.config.retry_attempts - 1:
-                        await asyncio.sleep(backend.config.retry_delay)
+                    if attempt < retry_attempts - 1:
+                        await asyncio.sleep(retry_delay)
 
         raise RuntimeError(f"All LLM backends failed: {errors}")
+
+    def _retry_attempt_count(self, backend: LLMBackend) -> int:
+        """Return a conservative retry count for malformed backend config."""
+        raw_attempts = backend.config.retry_attempts
+        if isinstance(raw_attempts, bool) or not isinstance(raw_attempts, int) or raw_attempts < 1:
+            logger.warning(
+                "Backend %s:%s has malformed retry_attempts=%r; using 1",
+                backend.config.provider.value,
+                backend.config.model,
+                raw_attempts,
+            )
+            return 1
+        return raw_attempts
+
+    def _retry_delay_seconds(self, backend: LLMBackend) -> float:
+        """Return a conservative retry delay for malformed backend config."""
+        raw_delay = backend.config.retry_delay
+        if (
+            not isinstance(raw_delay, (int, float))
+            or isinstance(raw_delay, bool)
+            or not math.isfinite(raw_delay)
+            or raw_delay < 0
+        ):
+            logger.warning(
+                "Backend %s:%s has malformed retry_delay=%r; using 0",
+                backend.config.provider.value,
+                backend.config.model,
+                raw_delay,
+            )
+            return 0.0
+        return float(raw_delay)
 
     def _get_cache_key(self, prompt: str, context: Optional[Dict]) -> str:
         """Generate cache key from prompt and context."""

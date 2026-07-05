@@ -401,13 +401,14 @@ INSIGHTS:"""
         text = value if limit is None else value[:limit]
         return text if text else default
 
-    @staticmethod
-    def _prompt_location(value: Any) -> str:
+    @classmethod
+    def _prompt_location(cls, value: Any) -> str:
         """Render supported location shapes without leaking Python reprs."""
         if isinstance(value, str):
             return value
         if isinstance(value, dict):
-            return json.dumps(value, sort_keys=True)
+            normalized = {str(key): cls._prompt_json_value(item) for key, item in value.items()}
+            return json.dumps(normalized, sort_keys=True)
         return "{}"
 
     @classmethod

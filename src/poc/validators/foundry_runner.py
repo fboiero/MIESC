@@ -98,6 +98,10 @@ class FoundryRunner:
             verbosity: Test verbosity level (1-5)
             gas_report: Enable gas reporting
         """
+        if not isinstance(project_dir, (str, Path)):
+            raise ValueError("Malformed Foundry project directory")
+        if isinstance(project_dir, str) and not project_dir.strip():
+            raise ValueError("Malformed Foundry project directory")
         self.project_dir = Path(project_dir)
         self.fork_url = fork_url
         self.fork_block = fork_block

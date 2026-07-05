@@ -74,6 +74,13 @@ def _coerce_query_text(value: Any) -> str:
     return str(value)
 
 
+def _coerce_batch_queries(value: Any) -> List[Any]:
+    """Return an ordered batch query container, or an empty batch when malformed."""
+    if isinstance(value, (list, tuple)):
+        return list(value)
+    return []
+
+
 def _coerce_filter_text(value: Any) -> Optional[str]:
     """Return safe scalar metadata filter text, or no filter for malformed values."""
     text = _coerce_query_text(value).strip() if isinstance(value, (str, bytes)) else ""
@@ -5048,7 +5055,8 @@ class EmbeddingRAG:
             - Uses single ChromaDB call for all unique queries
             - 50-75% faster than sequential searches
         """
-        if not queries:
+        query_batch = _coerce_batch_queries(queries)
+        if not query_batch:
             return []
 
         self._ensure_initialized()
@@ -5062,7 +5070,7 @@ class EmbeddingRAG:
         query_to_index: Dict[str, int] = {}
         original_to_unique: List[int] = []
 
-        for q in queries:
+        for q in query_batch:
             query_text = _coerce_query_text(q)
             q_normalized = query_text[:200]  # Truncate for comparison
             if q_normalized not in query_to_index:
@@ -5070,7 +5078,7 @@ class EmbeddingRAG:
                 unique_queries.append(query_text)
             original_to_unique.append(query_to_index[q_normalized])
 
-        logger.debug(f"Batch search: {len(queries)} queries -> {len(unique_queries)} unique")
+        logger.debug(f"Batch search: {len(query_batch)} queries -> {len(unique_queries)} unique")
 
         # Check cache for each unique query
         cached_results: Dict[int, List[RetrievalResult]] = {}
@@ -5132,7 +5140,7 @@ class EmbeddingRAG:
                 cached_results[unique_idx] = retrieval_results
 
         # Map back to original query order
-        return [cached_results[original_to_unique[i]] for i in range(len(queries))]
+        return [cached_results[original_to_unique[i]] for i in range(len(query_batch))]
 
     def search_by_finding(
         self,

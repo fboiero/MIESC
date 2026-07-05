@@ -430,6 +430,21 @@ def test_init_defaults_malformed_timeout_config(timeout):
     assert validator.config.timeout_seconds == ValidatorConfig().timeout_seconds
 
 
+@pytest.mark.parametrize("min_severity", [None, ["high"], "urgent"])
+def test_init_defaults_malformed_min_severity_config(min_severity):
+    validator = LLMFindingValidator(ValidatorConfig(min_severity_to_validate=min_severity))
+
+    assert validator.config.min_severity_to_validate == ValidatorConfig().min_severity_to_validate
+    assert validator.should_validate({"severity": "medium"}) is True
+
+
+def test_init_normalizes_min_severity_config():
+    validator = LLMFindingValidator(ValidatorConfig(min_severity_to_validate=" HIGH "))
+
+    assert validator.config.min_severity_to_validate == "high"
+    assert validator.should_validate({"severity": "medium"}) is False
+
+
 def test_should_validate_respects_enabled_flag_and_min_severity():
     disabled = LLMFindingValidator(ValidatorConfig(enabled=False))
     high_only = LLMFindingValidator(ValidatorConfig(min_severity_to_validate="high"))

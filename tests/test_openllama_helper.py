@@ -444,6 +444,31 @@ def test_generate_remediation_advice_sanitizes_malformed_prompt_fields(monkeypat
     assert "['Missing auth']" not in captured["prompt"]
 
 
+def test_generate_remediation_advice_sanitizes_malformed_location_dict(monkeypatch):
+    helper = OpenLLaMAHelper()
+    captured = {}
+
+    monkeypatch.setattr(helper, "is_available", lambda: True)
+
+    def fake_call_llm(prompt):
+        captured["prompt"] = prompt
+        return "review the vulnerable path"
+
+    monkeypatch.setattr(helper, "_call_llm", fake_call_llm)
+
+    advice = helper.generate_remediation_advice(
+        {
+            "title": "Missing auth",
+            "location": {"line": 12, "node": object()},
+        },
+        "contract C {}",
+    )
+
+    assert advice == "review the vulnerable path"
+    assert 'Location: {"line": 12, "node": ""}' in captured["prompt"]
+    assert "<object object at" not in captured["prompt"]
+
+
 def test_generate_remediation_advice_empty_llm_rejects_non_string_recommendation(monkeypatch):
     helper = OpenLLaMAHelper()
     monkeypatch.setattr(helper, "is_available", lambda: True)

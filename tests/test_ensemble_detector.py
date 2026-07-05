@@ -346,11 +346,38 @@ class TestLLMEnsembleDetectorInit:
         detector = LLMEnsembleDetector(voting_strategy=VotingStrategy.MAJORITY)
         assert detector.voting_strategy == VotingStrategy.MAJORITY
 
+    def test_string_voting_strategy_is_normalized(self):
+        """String strategy config should be accepted at the public boundary."""
+        detector = LLMEnsembleDetector(voting_strategy="majority")
+        assert detector.voting_strategy == VotingStrategy.MAJORITY
+
+    def test_malformed_voting_strategy_uses_threshold(self):
+        """Malformed strategy config should not crash logging or voting."""
+        detector = LLMEnsembleDetector(voting_strategy={"strategy": "majority"})
+
+        assert detector.voting_strategy == VotingStrategy.THRESHOLD
+        assert detector.get_model_status()["voting_strategy"] == "threshold"
+
     def test_multi_provider_init(self, multi_provider_detector):
         """Test initialization with multiple providers."""
         assert len(multi_provider_detector.providers) == 3
         assert multi_provider_detector.openai_api_key == "test-openai-key"
         assert multi_provider_detector.anthropic_api_key == "test-anthropic-key"
+
+    def test_string_provider_entries_are_normalized_and_deduped(self):
+        """String provider config should normalize to enum values once."""
+        detector = LLMEnsembleDetector(providers=["openai", LLMProvider.OPENAI, "anthropic"])
+        assert detector.providers == [LLMProvider.OPENAI, LLMProvider.ANTHROPIC]
+
+    def test_malformed_provider_config_uses_ollama_default(self):
+        """Malformed provider containers should not be iterated as providers."""
+        detector = LLMEnsembleDetector(providers="openai")
+        assert detector.providers == [LLMProvider.OLLAMA]
+
+    def test_mixed_malformed_provider_entries_are_filtered(self):
+        """Unknown provider entries should be ignored without dropping valid ones."""
+        detector = LLMEnsembleDetector(providers=[{"name": "openai"}, "unknown", "deepseek"])
+        assert detector.providers == [LLMProvider.DEEPSEEK]
 
     def test_deepseek_init(self):
         """Test initialization with DeepSeek provider."""

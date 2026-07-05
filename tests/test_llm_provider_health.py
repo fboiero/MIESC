@@ -61,6 +61,18 @@ def test_extract_openai_compatible_model_ids_malformed_shapes():
     assert extract_openai_compatible_model_ids({"data": None, "models": None}) == set()
 
 
+def test_extract_openai_compatible_model_ids_falls_back_from_malformed_id_to_name():
+    """Test malformed id fields do not suppress a valid model name fallback."""
+    payload = {
+        "data": [
+            {"id": ["bad"], "name": " fallback-model "},
+            {"id": "   ", "name": "ignored-empty-id"},
+        ]
+    }
+
+    assert extract_openai_compatible_model_ids(payload) == {"fallback-model", "ignored-empty-id"}
+
+
 def test_fetch_openai_compatible_model_ids_success():
     """Test fetching model IDs from a compatible endpoint."""
 

@@ -163,6 +163,14 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
             or self.config.timeout_seconds <= 0
         ):
             self.config.timeout_seconds = default_config.timeout_seconds
+        if isinstance(self.config.min_severity_to_validate, str):
+            min_severity = self.config.min_severity_to_validate.strip().lower()
+        else:
+            min_severity = ""
+        if min_severity in self.SEVERITY_ORDER:
+            self.config.min_severity_to_validate = min_severity
+        else:
+            self.config.min_severity_to_validate = default_config.min_severity_to_validate
 
         self._session: Optional[aiohttp.ClientSession] = None
         self._validated_count = 0

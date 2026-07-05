@@ -203,7 +203,7 @@ class RemediationGenerator:
         severity = self._string_or_default(finding.get("severity"), "medium")
         title = self._string_or_default(
             finding.get("title"),
-            self._string_or_default(finding.get("type"), "Unknown"),
+            vuln_type if vuln_type != "unknown" else "Unknown",
         )
         description = self._string_or_default(finding.get("description"), "")
 
@@ -491,7 +491,11 @@ class RemediationGenerator:
     @staticmethod
     def _parse_vuln_type(value: Any) -> str:
         """Normalize vulnerability type fields without trusting malformed shapes."""
-        return value.lower() if isinstance(value, str) and value else "unknown"
+        if not isinstance(value, str):
+            return "unknown"
+
+        normalized = value.strip().lower()
+        return normalized if normalized else "unknown"
 
     @staticmethod
     def _string_or_default(value: Any, default: str) -> str:

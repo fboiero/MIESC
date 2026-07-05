@@ -354,6 +354,13 @@ class PoCGenerator:
                 execution_time_ms=0,
                 error="Malformed project directory",
             )
+        if isinstance(project_dir, str) and not project_dir.strip():
+            return PoCResult(
+                success=False,
+                output="",
+                execution_time_ms=0,
+                error="Malformed project directory",
+            )
         project_path = Path(project_dir)
         if not isinstance(poc, PoCTemplate):
             return PoCResult(
