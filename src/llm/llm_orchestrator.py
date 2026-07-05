@@ -349,8 +349,15 @@ class OllamaBackend(LLMBackend):
                     )
                 eval_count = data.get("eval_count", 0)
                 prompt_eval_count = data.get("prompt_eval_count", 0)
-                if not isinstance(eval_count, int) or not isinstance(prompt_eval_count, int):
+                if (
+                    isinstance(eval_count, bool)
+                    or isinstance(prompt_eval_count, bool)
+                    or not isinstance(eval_count, int)
+                    or not isinstance(prompt_eval_count, int)
+                ):
                     raise ValueError("Malformed Ollama response: token counts must be integers")
+                if eval_count < 0 or prompt_eval_count < 0:
+                    raise ValueError("Malformed Ollama response: token counts must be non-negative")
                 tokens = eval_count + prompt_eval_count
 
         return LLMResponse(
