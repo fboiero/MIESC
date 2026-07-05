@@ -375,6 +375,55 @@ def test_call_llm_accepts_bounded_string_generate_payload(monkeypatch):
     assert helper._call_llm("prompt") == "bounded text"
 
 
+def test_call_llm_defaults_malformed_timeout_and_retry_config(monkeypatch):
+    helper = OpenLLaMAHelper(LLMConfig(timeout=["slow"], retry_attempts=["many"], retry_delay=False))
+    calls = []
+
+    class FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            return json.dumps({"response": "bounded text"}).encode()
+
+    def fake_urlopen(req, timeout):
+        calls.append((req.full_url, timeout))
+        return FakeResponse()
+
+    monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
+
+    assert helper._call_llm("prompt") == "bounded text"
+    assert calls == [("http://localhost:11434/api/generate", 120.0)]
+
+
+def test_call_llm_defaults_malformed_ollama_host(monkeypatch):
+    helper = OpenLLaMAHelper(LLMConfig(retry_attempts=1))
+    calls = []
+
+    class FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            return json.dumps({"response": "bounded text"}).encode()
+
+    def fake_urlopen(req, timeout):
+        calls.append(req.full_url)
+        return FakeResponse()
+
+    monkeypatch.setenv("OLLAMA_HOST", "https://")
+    monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
+
+    assert helper._call_llm("prompt") == "bounded text"
+    assert calls == ["http://localhost:11434/api/generate"]
+
+
 def test_prioritize_findings_applies_valid_indices_only(monkeypatch):
     helper = OpenLLaMAHelper()
     findings = [{"title": "A", "severity": "LOW"}, {"title": "B", "severity": "HIGH"}]
