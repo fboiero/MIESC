@@ -4,6 +4,7 @@ import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import aiohttp
+import pytest
 
 from src.llm.provider_health import (
     _authorization_headers,
@@ -197,6 +198,31 @@ def test_fetch_openai_compatible_model_ids_rejects_credentials_in_base_url():
         with patch("aiohttp.ClientSession") as session:
             models = await fetch_openai_compatible_model_ids(
                 "https://user:password@api.deepseek.example",
+                "test-key",
+                provider_name="DeepSeek",
+            )
+
+        assert models == set()
+        session.assert_not_called()
+
+    asyncio.run(run_test())
+
+
+@pytest.mark.parametrize(
+    "base_url",
+    [
+        "https://api.deepseek.example/v1",
+        "https://api.deepseek.example?tenant=a",
+        "https://api.deepseek.example#models",
+    ],
+)
+def test_fetch_openai_compatible_model_ids_rejects_endpoint_path_parts(base_url):
+    """Test base URLs must not include endpoint paths, query strings, or fragments."""
+
+    async def run_test():
+        with patch("aiohttp.ClientSession") as session:
+            models = await fetch_openai_compatible_model_ids(
+                base_url,
                 "test-key",
                 provider_name="DeepSeek",
             )

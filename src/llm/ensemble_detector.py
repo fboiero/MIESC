@@ -1359,7 +1359,7 @@ Response (JSON array only):"""
             "available_models": available_models,
             "voting_strategy": self.voting_strategy.value,
             "consensus_threshold": self.consensus_threshold,
-            "model_weights": {m: self.MODEL_WEIGHTS.get(m, 1.0) for m in configured_models},
+            "model_weights": {m: self._model_weight(m) for m in configured_models},
             "initialized": self._initialized,
         }
 

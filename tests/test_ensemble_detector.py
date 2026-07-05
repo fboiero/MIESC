@@ -517,6 +517,21 @@ class TestLLMEnsembleDetectorInit:
         assert status["available_models"] == ["model1"]
         assert status["model_weights"] == {"model1": 1.0}
 
+    def test_model_status_defaults_malformed_model_weights(self, monkeypatch):
+        """Malformed configured model weights should not leak through public status."""
+        monkeypatch.setattr(
+            LLMEnsembleDetector,
+            "MODEL_WEIGHTS",
+            {"model1": {"weight": 1.2}, "model2": float("inf"), "model3": -1.0},
+        )
+        detector = LLMEnsembleDetector(models=["model1", "model2", "model3"])
+
+        assert detector.get_model_status()["model_weights"] == {
+            "model1": 1.0,
+            "model2": 1.0,
+            "model3": 1.0,
+        }
+
 
 class TestLLMEnsembleDetectorConstants:
     """Tests for LLMEnsembleDetector class constants."""

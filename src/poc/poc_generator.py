@@ -56,7 +56,7 @@ def _safe_text_list(value: Any) -> List[str]:
     """Return only string list entries from template metadata."""
     if not isinstance(value, list):
         return []
-    return [item for item in value if isinstance(item, str)]
+    return [item.strip() for item in value if isinstance(item, str) and item.strip()]
 
 
 def _safe_isoformat(value: Any) -> str:

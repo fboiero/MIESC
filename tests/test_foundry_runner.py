@@ -311,7 +311,10 @@ class TestFoundryCommandBuilders:
         assert "18500000" in cmd
         assert cmd[-1] == "--json"
 
-    @pytest.mark.parametrize("test_path", [None, {"path": "test/Bank.t.sol"}, "  "])
+    @pytest.mark.parametrize(
+        "test_path",
+        [None, {"path": "test/Bank.t.sol"}, "  ", "test/Bank.t.sol\n--debug"],
+    )
     def test_build_run_test_command_rejects_malformed_test_path(self, runner, test_path):
         """Malformed test paths are rejected before command construction."""
         with pytest.raises(ValueError, match="Malformed Foundry test path"):

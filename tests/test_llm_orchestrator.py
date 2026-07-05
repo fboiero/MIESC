@@ -1081,9 +1081,11 @@ class TestLLMOrchestrator:
         orchestrator = LLMOrchestrator([])
         orchestrator.cache["key1"] = "value1"
         orchestrator.cache["key2"] = "value2"
+        orchestrator.cache_timestamps["key1"] = 1.0
 
         orchestrator.clear_cache()
         assert len(orchestrator.cache) == 0
+        assert orchestrator.cache_timestamps == {}
 
     def test_query_no_backends(self):
         """Test query with no available backends."""
@@ -1259,6 +1261,70 @@ class TestLLMOrchestrator:
 
             assert result is fresh_response
             assert list(orchestrator.cache.values()) == [fresh_response]
+
+        asyncio.run(run_test())
+
+    def test_query_evicts_expired_cache_entry(self):
+        """Test timestamped cache entries expire after the configured TTL."""
+
+        async def run_test():
+            config = LLMConfig(
+                provider=LLMProvider.OLLAMA,
+                model="fresh",
+                retry_attempts=1,
+                retry_delay=0,
+            )
+            orchestrator = LLMOrchestrator([config])
+            orchestrator.backends["ollama:fresh"].available = True
+            orchestrator.cache_ttl = 1
+
+            cache_key = orchestrator._get_cache_key("test prompt", None)
+            cached_response = LLMResponse(content="cached content", provider="cache", model="cache")
+            orchestrator.cache[cache_key] = cached_response
+            orchestrator.cache_timestamps[cache_key] = 1.0
+
+            fresh_response = LLMResponse(content="fresh content", provider="ollama", model="fresh")
+            analyze = AsyncMock(return_value=fresh_response)
+            orchestrator.backends["ollama:fresh"].analyze = analyze
+
+            with patch("src.llm.llm_orchestrator.time.time", return_value=3.0):
+                result = await orchestrator.query("test prompt")
+
+            assert result is fresh_response
+            assert orchestrator.cache[cache_key] is fresh_response
+            analyze.assert_awaited_once()
+
+        asyncio.run(run_test())
+
+    def test_query_uses_zero_ttl_for_malformed_cache_ttl(self):
+        """Test malformed cache TTL config cannot break cache freshness checks."""
+
+        async def run_test():
+            config = LLMConfig(
+                provider=LLMProvider.OLLAMA,
+                model="fresh",
+                retry_attempts=1,
+                retry_delay=0,
+            )
+            orchestrator = LLMOrchestrator([config])
+            orchestrator.backends["ollama:fresh"].available = True
+            orchestrator.cache_ttl = "forever"
+
+            cache_key = orchestrator._get_cache_key("test prompt", None)
+            cached_response = LLMResponse(content="cached content", provider="cache", model="cache")
+            orchestrator.cache[cache_key] = cached_response
+            orchestrator.cache_timestamps[cache_key] = 1.0
+
+            fresh_response = LLMResponse(content="fresh content", provider="ollama", model="fresh")
+            analyze = AsyncMock(return_value=fresh_response)
+            orchestrator.backends["ollama:fresh"].analyze = analyze
+
+            with patch("src.llm.llm_orchestrator.time.time", return_value=1.1):
+                result = await orchestrator.query("test prompt")
+
+            assert result is fresh_response
+            assert orchestrator.cache[cache_key] is fresh_response
+            analyze.assert_awaited_once()
 
         asyncio.run(run_test())
 

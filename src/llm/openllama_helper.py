@@ -46,6 +46,10 @@ MAX_PRIORITY_TEXT_CHARS = 1_000
 MAX_ANALYZE_RESPONSE_CHARS = 4_000
 MAX_REMEDIATION_RESPONSE_CHARS = 4_000
 MAX_GENERATE_RESPONSE_BYTES = 64 * 1024
+DEFAULT_OLLAMA_HOST = "http://localhost:11434"
+MIN_LLM_TIMEOUT_SECONDS = 1.0
+MAX_LLM_TIMEOUT_SECONDS = 600.0
+MAX_LLM_RETRY_ATTEMPTS = 10
 
 
 @dataclass
@@ -340,11 +344,37 @@ REMEDIATION ADVICE:"""
     def _call_llm(self, prompt: str) -> Optional[str]:
         """Call Ollama LLM via HTTP API (clean output, no ANSI escapes)."""
         import urllib.error
+        import urllib.parse
         import urllib.request
 
-        host = os.environ.get("OLLAMA_HOST", "http://localhost:11434")
-        if not host.startswith("http"):
+        host = self._ollama_generate_host(os.environ.get("OLLAMA_HOST", DEFAULT_OLLAMA_HOST))
+        timeout = self._bounded_number(
+            getattr(self.config, "timeout", LLMConfig.timeout),
+            default=LLMConfig.timeout,
+            minimum=MIN_LLM_TIMEOUT_SECONDS,
+            maximum=MAX_LLM_TIMEOUT_SECONDS,
+        )
+        retry_attempts = int(
+            self._bounded_number(
+                getattr(self.config, "retry_attempts", LLMConfig.retry_attempts),
+                default=LLMConfig.retry_attempts,
+                minimum=1,
+                maximum=MAX_LLM_RETRY_ATTEMPTS,
+            )
+        )
+        retry_delay = self._bounded_number(
+            getattr(self.config, "retry_delay", LLMConfig.retry_delay),
+            default=LLMConfig.retry_delay,
+            minimum=0.0,
+            maximum=60.0,
+        )
+
+        if not host.startswith(("http://", "https://")):
             host = f"http://{host}"
+        parsed_host = urllib.parse.urlparse(host)
+        if parsed_host.scheme not in {"http", "https"} or not parsed_host.netloc:
+            host = DEFAULT_OLLAMA_HOST
+        host = host.rstrip("/")
 
         payload = json.dumps(
             {
@@ -358,14 +388,14 @@ REMEDIATION ADVICE:"""
             }
         ).encode()
 
-        for attempt in range(1, self.config.retry_attempts + 1):
+        for attempt in range(1, retry_attempts + 1):
             try:
                 req = urllib.request.Request(
                     f"{host}/api/generate",
                     data=payload,
                     headers={"Content-Type": "application/json"},
                 )
-                with urllib.request.urlopen(req, timeout=self.config.timeout) as resp:
+                with urllib.request.urlopen(req, timeout=timeout) as resp:
                     raw_body = resp.read()
                     if isinstance(raw_body, str):
                         payload_size = len(raw_body.encode("utf-8"))
@@ -392,10 +422,31 @@ REMEDIATION ADVICE:"""
             except (json.JSONDecodeError, OSError, TimeoutError, TypeError, ValueError) as e:
                 logger.error(f"LLM call attempt {attempt} error: {e}")
 
-            if attempt < self.config.retry_attempts:
-                time.sleep(self.config.retry_delay)
+            if attempt < retry_attempts:
+                time.sleep(retry_delay)
 
         return None
+
+    @staticmethod
+    def _bounded_number(value: Any, *, default: float, minimum: float, maximum: float) -> float:
+        """Return a finite numeric config value within a defensive range."""
+        if isinstance(value, bool):
+            return float(default)
+        try:
+            normalized = float(value)
+        except (TypeError, ValueError):
+            return float(default)
+        if not minimum <= normalized <= maximum:
+            return float(default)
+        return normalized
+
+    @staticmethod
+    def _ollama_generate_host(value: Any) -> str:
+        """Return a stripped endpoint string or the default Ollama host."""
+        if not isinstance(value, str):
+            return DEFAULT_OLLAMA_HOST
+        endpoint = value.strip()
+        return endpoint or DEFAULT_OLLAMA_HOST
 
     def _generate_insights(
         self, finding: Dict[str, Any], context: str, adapter_name: str

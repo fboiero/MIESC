@@ -405,7 +405,9 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
                 result=result,
                 confidence=self._parse_confidence(data.get("confidence", 0.5)),
                 reasoning=self._parse_text(data.get("reasoning"), "No reasoning provided")[:2000],
-                suggested_severity=self._parse_optional_text(data.get("suggested_severity")),
+                suggested_severity=self._parse_suggested_severity(
+                    data.get("suggested_severity")
+                ),
                 remediation_hint=self._parse_optional_text(data.get("remediation_hint")),
             )
 
@@ -455,6 +457,15 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
         if len(text) > 500:
             text = text[:500]
         return text or None
+
+    @classmethod
+    def _parse_suggested_severity(cls, value: Any) -> Optional[str]:
+        """Return only known severity labels from optional LLM output."""
+        text = cls._parse_optional_text(value)
+        if not text:
+            return None
+        normalized = text.lower()
+        return text.upper() if normalized in cls.SEVERITY_ORDER else None
 
     @staticmethod
     def _parse_location_line(value: Any) -> Any:

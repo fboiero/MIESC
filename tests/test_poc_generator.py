@@ -319,6 +319,21 @@ class TestPoCTemplate:
         assert d["prerequisites"] == ["Foundry installed"]
         assert d["expected_outcome"] == ""
 
+    def test_template_to_dict_strips_and_skips_blank_prerequisites(self):
+        """Blank prerequisite entries should not be exported."""
+        template = PoCTemplate(
+            name="TestExploit",
+            vulnerability_type=VulnerabilityType.REENTRANCY,
+            solidity_code="// Code",
+            target_contract="Bank.sol",
+            target_function=None,
+            prerequisites=[" Foundry installed ", "  ", "\n", "anvil ready"],
+        )
+
+        d = template.to_dict()
+
+        assert d["prerequisites"] == ["Foundry installed", "anvil ready"]
+
     def test_template_to_dict_defaults_malformed_created_at(self):
         """Malformed template timestamps should not break metadata export."""
         template = PoCTemplate(
