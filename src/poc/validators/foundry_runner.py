@@ -34,6 +34,16 @@ FOUNDRY_PARSE_ERRORS = (AttributeError, TypeError, ValueError)
 MAX_RAW_OUTPUT_CHARS = 200_000
 
 
+def _safe_match_filter(value: Any) -> str:
+    """Return forge match filters only when they are plain text."""
+    if not isinstance(value, str) or any(ord(ch) < 32 for ch in value):
+        return ""
+    text = value.strip()
+    if not text:
+        return ""
+    return text
+
+
 class TestStatus(Enum):
     """Test execution status."""
 
@@ -171,10 +181,12 @@ class FoundryRunner:
             raise ValueError("Malformed Foundry test path")
         cmd = ["forge", "test", "--match-path", test_path_text]
 
-        if isinstance(match_test, str) and match_test.strip():
-            cmd.extend(["--match-test", match_test.strip()])
-        if isinstance(match_contract, str) and match_contract.strip():
-            cmd.extend(["--match-contract", match_contract.strip()])
+        match_test_text = _safe_match_filter(match_test)
+        if match_test_text:
+            cmd.extend(["--match-test", match_test_text])
+        match_contract_text = _safe_match_filter(match_contract)
+        if match_contract_text:
+            cmd.extend(["--match-contract", match_contract_text])
 
         return self._apply_common_test_options(cmd)
 

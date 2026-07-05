@@ -324,8 +324,8 @@ class TestFoundryCommandBuilders:
         """Malformed match filters should not reach forge arguments."""
         cmd = runner._build_run_test_command(
             "test/Bank.t.sol",
-            match_test=["testExploit"],
-            match_contract="  ",
+            match_test="testExploit\n--debug",
+            match_contract="\tBankTest",
         )
 
         assert "--match-test" not in cmd
