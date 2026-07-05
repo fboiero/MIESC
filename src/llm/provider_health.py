@@ -37,8 +37,11 @@ def extract_openai_compatible_model_ids(payload: Any) -> Set[str]:
     for model in models:
         if not isinstance(model, dict):
             continue
-        model_id = model.get("id") or model.get("name")
-        if isinstance(model_id, str) and model_id:
+        raw_model_id = model.get("id")
+        model_id = raw_model_id.strip() if isinstance(raw_model_id, str) else ""
+        if not model_id:
+            model_id = model.get("name")
+        if isinstance(model_id, str) and (model_id := model_id.strip()):
             model_ids.add(model_id)
     return model_ids
 
