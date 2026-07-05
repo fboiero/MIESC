@@ -535,6 +535,24 @@ class TestEmbeddingRAGCustomVulnerabilityShapes:
         assert metadata["tags"] == "custom,123"
         assert metadata["references"] == "https://example.invalid/advisory"
 
+    def test_nested_metadata_list_tags_are_skipped_in_text_and_metadata(self):
+        vulnerability = VulnerabilityDocument(
+            id="CUSTOM-TAG-LIST-BOUNDARY",
+            title="Custom Finding",
+            description="Custom vulnerability description",
+            tags=["custom", ["nested", "tag"], {"bad": "tag"}, b"bytes-tag"],
+            references=["https://example.invalid/advisory", ["nested-ref"]],
+        )
+
+        text = vulnerability.to_text()
+        metadata = vulnerability.to_metadata()
+
+        assert "Tags: custom, bytes-tag" in text
+        assert "nested" not in text
+        assert "{'bad': 'tag'}" not in text
+        assert metadata["tags"] == "custom,bytes-tag"
+        assert metadata["references"] == "https://example.invalid/advisory"
+
     def test_malformed_document_text_fields_do_not_abort_rendering(self):
         vulnerability = VulnerabilityDocument(
             id="CUSTOM-TEXT-BOUNDARY",

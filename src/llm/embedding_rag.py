@@ -65,6 +65,8 @@ def _coerce_text_list(value: Any) -> List[str]:
     for item in values:
         if item is None:
             continue
+        if isinstance(item, (dict, list, tuple, set)):
+            continue
         try:
             text_values.append(
                 item.decode("utf-8", errors="replace")
