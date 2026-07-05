@@ -769,6 +769,76 @@ class TestEmbeddingRAGSearchBoundaryShapes:
         assert collection.where is None
         assert [result.document.id for result in results] == ["CUSTOM-COUNT"]
 
+    def test_search_drops_malformed_metadata_filter_builder_output(
+        self,
+        tmp_path,
+        monkeypatch,
+    ):
+        vulnerability = VulnerabilityDocument(
+            id="CUSTOM-FILTER",
+            title="Malformed Filter Boundary",
+            description="Custom vulnerability description",
+        )
+        collection = _MalformedSearchCollection(
+            {
+                "ids": [["CUSTOM-FILTER"]],
+                "distances": [[0.2]],
+            }
+        )
+        rag = EmbeddingRAG(persist_directory=str(tmp_path))
+        rag._initialized = True
+        rag._collection = collection
+        rag._doc_index = {"CUSTOM-FILTER": vulnerability}
+        monkeypatch.setattr(
+            embedding_rag_module,
+            "build_metadata_filter",
+            lambda _category, _severity: ["bad-filter"],
+        )
+
+        results = rag.search(
+            "filter boundary",
+            filter_category="custom",
+            filter_severity="medium",
+            n_results=1,
+        )
+
+        assert collection.where is None
+        assert [result.document.id for result in results] == ["CUSTOM-FILTER"]
+
+    def test_batch_search_drops_raising_metadata_filter_builder(self, tmp_path, monkeypatch):
+        vulnerability = VulnerabilityDocument(
+            id="CUSTOM-BATCH-FILTER",
+            title="Malformed Batch Filter Boundary",
+            description="Custom vulnerability description",
+        )
+        collection = _MalformedSearchCollection(
+            {
+                "ids": [["CUSTOM-BATCH-FILTER"]],
+                "distances": [[0.2]],
+            }
+        )
+        rag = EmbeddingRAG(persist_directory=str(tmp_path), enable_cache=False)
+        rag._initialized = True
+        rag._collection = collection
+        rag._doc_index = {"CUSTOM-BATCH-FILTER": vulnerability}
+
+        def raise_filter_error(_category, _severity):
+            raise TypeError("malformed filter")
+
+        monkeypatch.setattr(embedding_rag_module, "build_metadata_filter", raise_filter_error)
+
+        results = rag.batch_search(
+            ["filter boundary"],
+            filter_category="custom",
+            filter_severity="medium",
+            n_results=1,
+        )
+
+        assert collection.where is None
+        assert [[result.document.id for result in row] for row in results] == [
+            ["CUSTOM-BATCH-FILTER"]
+        ]
+
     def test_multi_step_search_normalizes_count_and_filters_before_expansion(self, tmp_path):
         rag = _RecordingMultiStepRAG(persist_directory=str(tmp_path), top_k="bad")  # type: ignore[arg-type]
 
