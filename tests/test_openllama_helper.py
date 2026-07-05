@@ -293,6 +293,37 @@ def test_prioritize_findings_skips_malformed_parsed_priority_boundaries(monkeypa
     assert findings[3]["llm_reason"] == "valid"
 
 
+def test_prioritize_findings_defaults_out_of_range_parsed_priorities(monkeypatch):
+    helper = OpenLLaMAHelper()
+    findings = [
+        {"title": "A", "severity": "LOW"},
+        {"title": "B", "severity": "HIGH"},
+        {"title": "C", "severity": "MEDIUM"},
+    ]
+
+    monkeypatch.setattr(helper, "is_available", lambda: True)
+    monkeypatch.setattr(helper, "_call_llm", lambda prompt: "priorities")
+    monkeypatch.setattr(
+        helper,
+        "_parse_priorities",
+        lambda response: {
+            0: {"priority": 0, "reason": "too low"},
+            1: {"priority": 11, "reason": "too high"},
+            2: {"priority": 10, "reason": "valid"},
+        },
+    )
+
+    result = helper.prioritize_findings(findings, "contract C {}")
+
+    assert result is findings
+    assert findings[0]["llm_priority"] == 5
+    assert findings[0]["llm_reason"] == "too low"
+    assert findings[1]["llm_priority"] == 5
+    assert findings[1]["llm_reason"] == "too high"
+    assert findings[2]["llm_priority"] == 10
+    assert findings[2]["llm_reason"] == "valid"
+
+
 def test_generate_remediation_advice_uses_recommendation_when_unavailable(monkeypatch):
     helper = OpenLLaMAHelper()
     monkeypatch.setattr(helper, "is_available", lambda: False)
@@ -651,4 +682,28 @@ def test_parse_priorities_defaults_malformed_priority_payload_fields():
     assert priorities == {
         0: {"priority": 5, "reason": ""},
         1: {"priority": 5, "reason": "bool priority"},
+    }
+
+
+def test_parse_priorities_defaults_out_of_range_priority_scores():
+    helper = OpenLLaMAHelper()
+
+    priorities = helper._parse_priorities(
+        """
+        {
+            "priorities": [
+                {"index": 0, "priority": 0, "reason": "too low"},
+                {"index": 1, "priority": 11, "reason": "too high"},
+                {"index": 2, "priority": 1, "reason": "minimum"},
+                {"index": 3, "priority": 10, "reason": "maximum"}
+            ]
+        }
+        """
+    )
+
+    assert priorities == {
+        0: {"priority": 5, "reason": "too low"},
+        1: {"priority": 5, "reason": "too high"},
+        2: {"priority": 1, "reason": "minimum"},
+        3: {"priority": 10, "reason": "maximum"},
     }
