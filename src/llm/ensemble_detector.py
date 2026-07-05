@@ -21,6 +21,7 @@ import asyncio
 import hashlib
 import json
 import logging
+import math
 import os
 from dataclasses import dataclass, field
 from enum import Enum
@@ -941,7 +942,7 @@ Response (JSON array only):"""
                 finding = group["finding"]
 
                 # Calculate aggregated confidence
-                base_confidence = self._safe_float(finding.get("confidence"), 0.7)
+                base_confidence = self._safe_confidence(finding.get("confidence"), 0.7)
                 vote_bonus = min(0.2, votes * 0.05)  # Up to +0.2 for votes
                 aggregated_confidence = min(0.99, base_confidence + vote_bonus)
                 vuln_type = self._safe_text(finding.get("type"), "unknown")
@@ -995,6 +996,14 @@ Response (JSON array only):"""
             return float(value)
         except (TypeError, ValueError):
             return default
+
+    @staticmethod
+    def _safe_confidence(value: Any, default: float) -> float:
+        """Return a finite model confidence bounded to the documented 0.0-1.0 range."""
+        confidence = LLMEnsembleDetector._safe_float(value, default)
+        if not math.isfinite(confidence) or confidence < 0.0 or confidence > 1.0:
+            return default
+        return confidence
 
     @staticmethod
     def _safe_text(value: Any, default: str) -> str:

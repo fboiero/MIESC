@@ -899,6 +899,38 @@ class TestLLMEnsembleDetectorVoting:
         assert "{" not in results[0].title
         assert "[" not in results[0].description
 
+    def test_ensemble_vote_defaults_nonfinite_and_out_of_range_confidence(self, detector):
+        """Malformed confidence values should not leak into aggregate confidence."""
+        detector.consensus_threshold = 1
+
+        findings = {
+            "model1": [
+                {
+                    "type": "reentrancy",
+                    "severity": "high",
+                    "title": "Negative confidence",
+                    "description": "External call before update",
+                    "location": {"function": "withdraw", "line": 10},
+                    "confidence": -5.0,
+                }
+            ],
+            "model2": [
+                {
+                    "type": "access-control",
+                    "severity": "medium",
+                    "title": "NaN confidence",
+                    "description": "Owner check missing",
+                    "location": {"function": "setOwner", "line": 20},
+                    "confidence": "nan",
+                }
+            ],
+        }
+
+        results = detector._ensemble_vote(findings)
+
+        assert len(results) == 2
+        assert [finding.confidence for finding in results] == pytest.approx([0.75, 0.75])
+
     def test_ensemble_vote_ignores_malformed_model_finding_payloads(self, detector):
         """Malformed per-model finding containers should not enter voting."""
         detector.consensus_threshold = 1
