@@ -582,7 +582,7 @@ class FoundryRunner:
         """Normalize Forge JSON test names without accepting malformed shapes."""
         if isinstance(value, str):
             name = value.strip()
-            if name and not any(ord(ch) < 32 for ch in name):
+            if name and not any(ord(ch) < 32 or ord(ch) == 127 for ch in name):
                 return name
         return None
 
@@ -619,7 +619,7 @@ class FoundryRunner:
             return value
         if isinstance(value, str):
             normalized = value.replace(",", "").strip()
-            if normalized.isdigit():
+            if normalized.isdigit() and len(normalized) <= 12:
                 return int(normalized)
         return None
 

@@ -149,6 +149,8 @@ def _authorization_headers(api_key: str) -> dict[str, str]:
 def _provider_label(provider_name: Any) -> str:
     """Return a bounded provider label for logs."""
     label = provider_name.strip() if isinstance(provider_name, str) else ""
+    if any(ord(ch) < 32 or ord(ch) == 127 for ch in label):
+        return "provider"
     return (label or "provider")[:80]
 
 
@@ -162,4 +164,5 @@ def _valid_model_base_url(base_url: str) -> bool:
         and not parsed.query
         and not parsed.fragment
         and not (parsed.username or parsed.password)
+        and not any(ord(ch) < 32 or ord(ch) == 127 for ch in base_url)
     )

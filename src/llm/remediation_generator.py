@@ -214,6 +214,7 @@ def _export_generated_test_name(value: Any) -> Optional[str]:
         or "\\" in normalized
         or _EXPORT_WINDOWS_DRIVE_RE.match(normalized)
         or _EXPORT_TEST_NAME_CONTROL_RE.search(normalized)
+        or len(normalized) > 120
     ):
         return None
     return normalized

@@ -348,7 +348,7 @@ REMEDIATION ADVICE:"""
         model = value.strip()
         if not model or len(model) > MAX_OLLAMA_MODEL_NAME_CHARS:
             return None
-        if any(char.isspace() for char in model):
+        if any(char.isspace() for char in model) or any(ord(char) < 32 or ord(char) == 127 for char in model):
             return None
         return model
 

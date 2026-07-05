@@ -1218,6 +1218,13 @@ class TestEmbeddingRAGSearchBoundaryShapes:
         assert collection.n_results == 2
         assert [result.document.id for result in results] == ["CUSTOM-COUNT-TEXT"]
 
+    def test_coerce_embedding_model_name_rejects_control_chars(self):
+        assert embedding_rag_module._coerce_embedding_model_name("  custom-model  ") == "custom-model"
+        assert (
+            embedding_rag_module._coerce_embedding_model_name("custom\nmodel")
+            == EmbeddingRAG.DEFAULT_MODEL
+        )
+
     def test_search_drops_malformed_metadata_filter_builder_output(
         self,
         tmp_path,

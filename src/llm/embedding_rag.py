@@ -193,6 +193,8 @@ def _coerce_embedding_model_name(value: Any) -> str:
         return EmbeddingRAG.DEFAULT_MODEL
 
     text = text.strip()
+    if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+        return EmbeddingRAG.DEFAULT_MODEL
     return text or EmbeddingRAG.DEFAULT_MODEL
 
 

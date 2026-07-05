@@ -9,6 +9,8 @@ import pytest
 from src.llm.provider_health import (
     _authorization_headers,
     _model_list,
+    _provider_label,
+    _valid_model_base_url,
     extract_openai_compatible_model_ids,
     fetch_openai_compatible_model_ids,
 )
@@ -74,6 +76,13 @@ def test_model_list_accepts_items_alias():
     payload = {"models": {"items": [{"id": "model-a"}]}}
 
     assert _model_list(payload) == [{"id": "model-a"}]
+
+
+def test_provider_label_and_base_url_reject_control_chars():
+    assert _provider_label("Deep\nSeek") == "provider"
+    assert _valid_model_base_url("https://api.deepseek.example") is True
+    assert _valid_model_base_url("https://api.deepseek.example/v1") is False
+    assert _valid_model_base_url("https://api.deepseek.example/\n") is False
 
 
 def test_extract_openai_compatible_model_ids_malformed_shapes():

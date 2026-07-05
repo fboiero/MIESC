@@ -20,6 +20,7 @@ from src.poc.poc_generator import (
     PoCResult,
     PoCTemplate,
     VulnerabilityType,
+    _safe_contract_text,
 )
 
 # =============================================================================
@@ -621,6 +622,10 @@ class TestFunctionExtraction:
 
         assert clean == "withdraw"
         assert malformed is None
+
+    def test_safe_contract_text_strips_and_rejects_control_chars(self):
+        assert _safe_contract_text("  contracts/Bank.sol  ") == "contracts/Bank.sol"
+        assert _safe_contract_text("Bank\n.sol") == ""
 
 
 # =============================================================================

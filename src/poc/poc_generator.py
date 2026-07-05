@@ -75,7 +75,9 @@ def _safe_contract_text(value: Any) -> str:
     """Return a contract identifier only from plain text or path objects."""
     if isinstance(value, (str, Path)):
         text = str(value).strip()
-        return text if text else ""
+        if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+            return ""
+        return text
     return ""
 
 

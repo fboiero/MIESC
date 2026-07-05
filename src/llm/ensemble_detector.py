@@ -443,7 +443,15 @@ Response (JSON array only):"""
             logger.warning("Ignoring malformed provider remote model id list")
             return set()
 
-        return {model_id.strip() for model_id in model_ids if isinstance(model_id, str) and model_id.strip()}
+        normalized = set()
+        for model_id in model_ids:
+            if not isinstance(model_id, str):
+                continue
+            cleaned = model_id.strip()
+            if not cleaned or any(ord(ch) < 32 or ord(ch) == 127 for ch in cleaned):
+                continue
+            normalized.add(cleaned)
+        return normalized
 
     @classmethod
     def _provider_status_map(cls, provider_status: Any) -> Dict[LLMProvider, List[str]]:

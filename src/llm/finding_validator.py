@@ -456,6 +456,8 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
     def _parse_optional_text(cls, value: Any) -> Optional[str]:
         """Return optional text only when the LLM field has a string shape."""
         text = cls._parse_text(value, "").strip()
+        if any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+            return None
         if len(text) > 500:
             text = text[:500]
         return text or None

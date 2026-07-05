@@ -215,6 +215,11 @@ def _non_negative_int_stat(value: Any, field_name: str, source: str) -> int:
 
 def _normalized_model_identifier(value: Any) -> Optional[str]:
     """Return a safe model identifier, or None for malformed config values."""
+    if isinstance(value, bytes):
+        try:
+            value = value.decode("utf-8", errors="replace")
+        except (AttributeError, TypeError, ValueError, UnicodeDecodeError):
+            return None
     if not isinstance(value, str):
         return None
     model = value.strip()

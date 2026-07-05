@@ -533,6 +533,12 @@ class TestLLMEnsembleDetectorInit:
             "model3": 1.0,
         }
 
+    def test_normalize_remote_model_ids_strips_and_rejects_control_chars(self):
+        """Remote model ids should be normalized before fallback selection."""
+        assert LLMEnsembleDetector._normalize_remote_model_ids(
+            [" model-a ", "bad\nmodel", None, "model-b"]
+        ) == {"model-a", "model-b"}
+
     def test_provider_status_map_accepts_mapping_views(self):
         """Provider status normalization should accept generic mapping views."""
         raw_status = MappingProxyType(

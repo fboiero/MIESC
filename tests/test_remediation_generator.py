@@ -5,6 +5,7 @@ from src.llm.remediation_generator import (
     Remediation,
     RemediationGenerator,
     RemediationResult,
+    _export_generated_test_name,
     generate_fix,
     get_quick_fix,
 )
@@ -1281,6 +1282,11 @@ async def test_generate_remediation_filters_control_char_string_lists(monkeypatc
     assert remediation.changes_summary == ["valid change"]
     assert remediation.test_suggestions == ["valid test"]
     assert remediation.references == ["OpenZeppelin"]
+
+
+def test_export_generated_test_name_strips_and_rejects_control_chars():
+    assert _export_generated_test_name("  test_exploit_reentrancy  ") == "test_exploit_reentrancy"
+    assert _export_generated_test_name("test\nshadow") is None
 
 
 @pytest.mark.asyncio

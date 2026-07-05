@@ -1144,6 +1144,10 @@ class TestGasReport:
 
         assert normalized == {"CleanVault": {"methods": {"deposit": {"avg": 3}}}}
 
+    def test_normalize_test_name_strips_and_rejects_control_chars(self):
+        assert FoundryRunner._normalize_test_name("  testWithdraw()  ") == "testWithdraw()"
+        assert FoundryRunner._normalize_test_name("testWithdraw\nshadow") is None
+
     def test_get_gas_report_ignores_malformed_stdout_shape(self, runner):
         """Malformed gas report stdout should normalize to an empty report."""
         mock_result = MagicMock()

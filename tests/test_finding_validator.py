@@ -849,6 +849,13 @@ def test_get_statistics_normalizes_control_char_config_text():
     }
 
 
+def test_parse_optional_text_rejects_control_chars():
+    validator = LLMFindingValidator(ValidatorConfig())
+
+    assert validator._parse_optional_text("  remediation hint  ") == "remediation hint"
+    assert validator._parse_optional_text("remediation\nhint") is None
+
+
 def test_get_statistics_defaults_malformed_config_container():
     validator = LLMFindingValidator(ValidatorConfig(model="test-model", enabled=True))
     validator.config = {

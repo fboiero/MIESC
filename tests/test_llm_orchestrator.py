@@ -23,6 +23,7 @@ from src.llm.llm_orchestrator import (
     OllamaBackend,
     OpenAIBackend,
     VulnerabilityAnalysis,
+    _normalized_model_identifier,
     analyze_solidity,
 )
 
@@ -730,6 +731,10 @@ class TestLLMOrchestrator:
 
         assert orchestrator.backends == {}
         assert orchestrator.primary_provider is None
+
+    def test_normalized_model_identifier_accepts_bytes_and_strips(self):
+        """Test bytes model identifiers are decoded and normalized."""
+        assert _normalized_model_identifier(b"  codellama  ") == "codellama"
 
     def test_add_backend_allows_colon_model_identity(self):
         """Test normal provider model identifiers with colons remain valid."""
