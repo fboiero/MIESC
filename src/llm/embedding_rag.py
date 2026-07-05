@@ -5747,7 +5747,7 @@ class HybridRAG(EmbeddingRAG):
         """
         self._ensure_initialized()
 
-        n = n_results or self.top_k
+        n = _coerce_result_count(n_results, self.top_k)
 
         # Get embedding results (fetch more for reranking)
         embedding_results = super().search(query, filter_category, filter_severity, n_results=n * 2)

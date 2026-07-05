@@ -571,13 +571,20 @@ def test_call_llm_ignores_malformed_line_delimited_generate_fragments(monkeypatc
             return False
 
         def read(self):
-            return b'{"response": "bad accessor"}\n{"response": "bad strip"}\n{"response": "ok"}'
+            return (
+                b'{"response": "bad accessor"}\n'
+                b'{"response": "bad strip"}\n'
+                b'{"response": "bad chunk"}\n'
+                b'{"response": "ok"}'
+            )
 
     def fake_json_loads(raw, *args, **kwargs):
         if raw == b'{"response": "bad accessor"}':
             return MalformedPayload()
         if raw == b'{"response": "bad strip"}':
             return {"response": MalformedText("bad")}
+        if raw == b'{"response": "bad chunk"}':
+            raise RuntimeError("bad streamed chunk")
         return original_json_loads(raw, *args, **kwargs)
 
     monkeypatch.setattr("urllib.request.urlopen", lambda *args, **kwargs: FakeResponse())

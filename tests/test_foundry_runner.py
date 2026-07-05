@@ -1206,6 +1206,23 @@ method | 10 | 20 | 15 | 2 |
             "Vault": {"methods": {"withdraw": {"min": 10, "max": 20, "avg": 15, "calls": 2}}}
         }
 
+    def test_get_gas_report_ignores_header_row_variants(self, runner):
+        """Test mixed-case gas table headers are still treated as headers."""
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = """| CONTRACT | METHOD | MIN | MAX | AVG | CALLS |
+|----------|--------|-----|-----|-----|-------|
+| Vault | deposit | 10 | 20 | 15 | 2 |
+"""
+        mock_result.stderr = ""
+
+        with patch("subprocess.run", return_value=mock_result):
+            report = runner.get_gas_report()
+
+        assert report["contracts"] == {
+            "Vault": {"methods": {"deposit": {"min": 10, "max": 20, "avg": 15, "calls": 2}}}
+        }
+
     def test_get_gas_report_treats_missing_stdout_as_empty(self, runner):
         """Test missing stdout is handled as an empty gas report."""
         mock_result = MagicMock()

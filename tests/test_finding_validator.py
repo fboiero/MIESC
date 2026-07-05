@@ -835,6 +835,23 @@ def test_get_statistics_defaults_mutated_malformed_config_metadata():
     }
 
 
+def test_get_statistics_defaults_malformed_config_container():
+    validator = LLMFindingValidator(ValidatorConfig(model="test-model", enabled=True))
+    validator.config = {
+        "model": ["test-model"],
+        "min_severity_to_validate": {"level": "high"},
+        "enabled": "yes",
+    }
+
+    stats = validator.get_statistics()
+
+    assert stats["config"] == {
+        "model": ValidatorConfig().model,
+        "min_severity": ValidatorConfig().min_severity_to_validate,
+        "enabled": False,
+    }
+
+
 def test_get_statistics_defaults_malformed_counter_state():
     validator = LLMFindingValidator(ValidatorConfig())
     validator._validated_count = ["10"]

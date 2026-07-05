@@ -35,7 +35,7 @@ from src.adapters.smartllm_rag_knowledge import (
     get_relevant_knowledge,
     get_vulnerability_context,
 )
-from src.llm.embedding_rag import EmbeddingRAG, RetrievalResult, VulnerabilityDocument
+from src.llm.embedding_rag import EmbeddingRAG, HybridRAG, RetrievalResult, VulnerabilityDocument
 
 
 class _ExplodingCollection:
@@ -1684,3 +1684,36 @@ class TestEmbeddingRAGSearchBoundaryShapes:
         assert cached == [result]
         assert rag._query_cache == {cache_key: (cached_at, [result])}
         assert rag._cache_hits == 1
+
+
+class TestHybridRAGSearchBoundaryShapes:
+    @pytest.mark.parametrize(
+        "requested,expected",
+        [
+            ({"bad": "count"}, 6),
+            (2, 4),
+        ],
+    )
+    def test_search_coerces_result_limit_before_fetching_embeddings(
+        self,
+        tmp_path,
+        monkeypatch,
+        requested,
+        expected,
+    ):
+        calls = []
+
+        def record_search(self, query, filter_category=None, filter_severity=None, n_results=None):
+            calls.append((query, filter_category, filter_severity, n_results))
+            return []
+
+        monkeypatch.setattr(EmbeddingRAG, "search", record_search)
+
+        rag = HybridRAG(persist_directory=str(tmp_path), top_k=3)
+        rag._initialized = True
+        rag._bm25 = None
+
+        results = rag.search("hybrid boundary", n_results=requested)  # type: ignore[arg-type]
+
+        assert results == []
+        assert calls == [("hybrid boundary", None, None, expected)]

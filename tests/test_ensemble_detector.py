@@ -1057,6 +1057,45 @@ class TestLLMEnsembleDetectorDetectWithFallback:
 
         asyncio.run(run_test())
 
+    def test_fallback_filters_malformed_provider_score_map_entries(
+        self, multi_provider_detector, vulnerable_code
+    ):
+        """Provider score maps should tolerate mixed invalid and valid model keys."""
+
+        async def run_test():
+            multi_provider_detector._initialized = True
+            multi_provider_detector._available_providers = {
+                "ollama": {"bad-model": 0.2, " ollama-model ": 0.9, "": 0.1},
+                LLMProvider.OPENAI: {"gpt-4": 0.8},
+                "unknown": {"ignored": 1.0},
+            }
+
+            async def mock_detect(provider, code, context):
+                return [
+                    EnsembleFinding(
+                        type="test",
+                        severity="low",
+                        title="Test",
+                        description="Test",
+                        location={},
+                        confidence=0.5,
+                        votes=1,
+                        total_models=1,
+                        supporting_models=[provider.value],
+                    )
+                ]
+
+            with patch.object(
+                multi_provider_detector, "_detect_with_provider", side_effect=mock_detect
+            ) as mock_detect:
+                results = await multi_provider_detector.detect_with_fallback(vulnerable_code)
+
+            assert results[0].supporting_models == ["ollama"]
+            mock_detect.assert_awaited_once()
+            assert mock_detect.await_args.args[0] == LLMProvider.OLLAMA
+
+        asyncio.run(run_test())
+
 
 class TestLLMEnsembleDetectorVoting:
     """Tests for ensemble voting mechanism."""
@@ -2336,6 +2375,49 @@ class TestLLMEnsembleDetectorIntegration:
         async def run_test():
             detector._available_providers = {
                 LLMProvider.OLLAMA: [{"id": "model1"}, " model1 ", "", ["bad"], "model2"]
+            }
+            detector.consensus_threshold = 2
+            queried_models = []
+
+            async def mock_query(model, code, context=None):
+                queried_models.append(model)
+                return [
+                    {
+                        "type": "reentrancy",
+                        "severity": "high",
+                        "title": "Reentrancy",
+                        "description": "External call before state update",
+                        "location": {"function": "withdraw", "line": 10},
+                        "confidence": 0.9,
+                    }
+                ]
+
+            with patch.object(detector, "_query_model", side_effect=mock_query):
+                results = await detector._detect_with_provider(
+                    LLMProvider.OLLAMA,
+                    vulnerable_code,
+                )
+
+            assert queried_models == ["model1", "model2"]
+            assert len(results) == 1
+            assert results[0].supporting_models == ["model1", "model2"]
+
+        asyncio.run(run_test())
+
+    def test_detect_with_provider_handles_provider_score_map_entries(
+        self, detector, vulnerable_code
+    ):
+        """Provider score maps should yield the valid model keys for querying."""
+
+        async def run_test():
+            detector._available_providers = {
+                LLMProvider.OLLAMA: {
+                    ("bad",): 0.2,
+                    " model1 ": 0.8,
+                    123: 0.6,
+                    "": 0.1,
+                    "model2": 0.6,
+                },
             }
             detector.consensus_threshold = 2
             queried_models = []

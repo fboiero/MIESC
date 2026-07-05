@@ -145,13 +145,20 @@ def _export_reference_url(value: str) -> Optional[str]:
 
 def _export_reference(value: Any) -> Optional[str]:
     """Return a safe exported remediation reference."""
-    normalized = _export_optional_string(value)
+    try:
+        normalized = _export_optional_string(value)
+    except (AttributeError, TypeError, ValueError):
+        return None
+
     if normalized is None or _EXPORT_REFERENCE_CONTROL_RE.search(normalized):
         return None
 
     markdown_link = _EXPORT_MARKDOWN_LINK_RE.fullmatch(normalized)
     if markdown_link:
-        label = markdown_link.group(1).strip()
+        try:
+            label = markdown_link.group(1).strip()
+        except (AttributeError, TypeError, ValueError):
+            return None
         url = _export_reference_url(markdown_link.group(2))
         if label and url is not None:
             return f"[{label}]({url})"
