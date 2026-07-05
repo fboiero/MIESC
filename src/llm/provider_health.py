@@ -14,6 +14,7 @@ import aiohttp
 
 logger = logging.getLogger(__name__)
 MAX_MODEL_ID_CHARS = 200
+MAX_MODEL_IDS = 1000
 
 PROVIDER_HEALTH_ERRORS = (
     aiohttp.ClientError,
@@ -43,6 +44,8 @@ def extract_openai_compatible_model_ids(payload: Any) -> Set[str]:
         if not model_id or model_id in model_ids:
             continue
         model_ids.add(model_id)
+        if len(model_ids) >= MAX_MODEL_IDS:
+            break
     return model_ids
 
 

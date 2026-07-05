@@ -116,6 +116,18 @@ def test_extract_openai_compatible_model_ids_dedupes_normalized_duplicates():
     assert extract_openai_compatible_model_ids(payload) == {"model-a", "model-b"}
 
 
+def test_extract_openai_compatible_model_ids_bounds_payload_size():
+    """Test oversized model payloads are bounded before returning IDs."""
+    payload = {"data": [{"id": f"model-{i}"} for i in range(1205)]}
+
+    models = extract_openai_compatible_model_ids(payload)
+
+    assert len(models) == 1000
+    assert "model-0" in models
+    assert "model-999" in models
+    assert "model-1000" not in models
+
+
 def test_fetch_openai_compatible_model_ids_success():
     """Test fetching model IDs from a compatible endpoint."""
 
