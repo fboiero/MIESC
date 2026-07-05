@@ -168,6 +168,7 @@ class Remediation:
     deployment_risk: str = "medium"
     gas_impact: str = "medium"
     affected_lines: Optional[List[int]] = None
+    validation_notes: Optional[List[str]] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Export remediation data without trusting malformed field values."""
@@ -203,6 +204,7 @@ class Remediation:
                 {"none", "low", "medium", "high"},
                 "medium",
             ),
+            "validation_notes": _export_unique_string_list(self.validation_notes),
         }
 
 

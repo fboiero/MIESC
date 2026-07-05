@@ -124,6 +124,7 @@ def test_remediation_to_dict_normalizes_malformed_export_metadata():
         "implementation_complexity": "medium",
         "deployment_risk": "critical",
         "gas_impact": "medium",
+        "validation_notes": [],
     }
 
 
@@ -265,6 +266,44 @@ def test_remediation_to_dict_deduplicates_test_suggestions_export_boundary():
         "reentrant attacker test",
         "withdraw succeeds for user",
     ]
+
+
+@pytest.mark.parametrize(
+    ("validation_notes", "expected"),
+    [
+        (
+            [
+                "  validated compile path  ",
+                {"bad": "note"},
+                "",
+                "validated compile path",
+                "manual review required",
+            ],
+            ["validated compile path", "manual review required"],
+        ),
+        ("validated compile path", []),
+        (None, []),
+    ],
+)
+def test_remediation_to_dict_deduplicates_validation_notes_export_boundary(
+    validation_notes,
+    expected,
+):
+    remediation = Remediation(
+        finding_id="F-1",
+        vulnerability_type="reentrancy",
+        severity="high",
+        vulnerable_code="function withdraw() public {}",
+        fixed_code="function withdraw() public nonReentrant {}",
+        explanation="uses guard",
+        changes_summary=[],
+        test_suggestions=[],
+        references=[],
+        confidence=0.8,
+        validation_notes=validation_notes,
+    )
+
+    assert remediation.to_dict()["validation_notes"] == expected
 
 
 def test_remediation_result_to_dict_normalizes_malformed_export_metadata():
