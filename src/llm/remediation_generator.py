@@ -277,9 +277,10 @@ class RemediationGenerator:
 
         start_time = time.time()
 
+        findings, malformed_count = self._normalize_batch_findings(findings)
         remediations = []
         success_count = 0
-        failure_count = 0
+        failure_count = malformed_count
 
         if parallel and len(findings) > 1:
             # Process in batches
@@ -505,6 +506,15 @@ class RemediationGenerator:
     def _dict_or_empty(value: Any) -> Dict[str, Any]:
         """Return mapping-shaped vulnerability findings only."""
         return value if isinstance(value, dict) else {}
+
+    @staticmethod
+    def _normalize_batch_findings(value: Any) -> Tuple[List[Dict[str, Any]], int]:
+        """Return valid batch findings and a count of malformed batch entries."""
+        if not isinstance(value, list):
+            return [], 1
+
+        findings = [item for item in value if isinstance(item, dict)]
+        return findings, len(value) - len(findings)
 
     def _get_pattern_info(self, vuln_type: str) -> str:
         """Get pattern information for the vulnerability type."""
