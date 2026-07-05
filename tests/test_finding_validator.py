@@ -305,6 +305,15 @@ def test_parse_response_accepts_wrapped_json():
     assert validation.reasoning == "Guarded by onlyOwner."
 
 
+def test_parse_response_defaults_malformed_finding_id():
+    validator = LLMFindingValidator(ValidatorConfig())
+
+    validation = validator._parse_response('{"result": "valid", "confidence": 0.8}', ["F-2"])
+
+    assert validation.finding_id == "unknown"
+    assert validation.result == ValidationResult.VALID
+
+
 def test_parse_response_maps_simple_is_valid_payload():
     validator = LLMFindingValidator(ValidatorConfig())
     response = '{"is_valid": false, "confidence": 0.73, "reasoning": "Protected path."}'

@@ -356,6 +356,7 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
 
     def _parse_response(self, response: str, finding_id: str) -> LLMValidation:
         """Parse LLM response into LLMValidation."""
+        finding_id = self._parse_text(finding_id, "unknown")[:200] or "unknown"
         response = self._parse_text(response, "")
         try:
             stripped = response.strip()
