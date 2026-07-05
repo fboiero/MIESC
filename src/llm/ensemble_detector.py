@@ -163,6 +163,7 @@ class LLMEnsembleDetector:
     DEFAULT_TIMEOUT = 120
     DEFAULT_TEMPERATURE = 0.1
     MAX_TEMPERATURE = 2.0
+    MAX_MODEL_LABEL_LENGTH = 200
     VALID_SEVERITIES = frozenset({"critical", "high", "medium", "low", "info"})
 
     # Model weights based on code analysis expertise
@@ -1202,10 +1203,10 @@ Response (JSON array only):"""
         normalized: Dict[str, List[Dict[str, Any]]] = {}
 
         for model, findings in model_findings.items():
-            if not isinstance(model, str) or not model.strip():
+            model_id = LLMEnsembleDetector._safe_model_label(model)
+            if model_id is None:
                 logger.warning("Ignoring malformed ensemble model id in findings payload")
                 continue
-            model_id = model.strip()
             if not isinstance(findings, list):
                 logger.warning("Ignoring malformed findings payload from model %s", model_id)
                 continue
@@ -1292,6 +1293,21 @@ Response (JSON array only):"""
         if isinstance(value, str):
             return value
         return default
+
+    @classmethod
+    def _safe_model_label(cls, value: Any) -> Optional[str]:
+        """Return a safe model/provider label for result metadata keys."""
+        if not isinstance(value, str):
+            return None
+
+        label = value.strip()
+        if not label or len(label) > cls.MAX_MODEL_LABEL_LENGTH:
+            return None
+
+        if any(ord(char) < 32 or ord(char) == 127 for char in label):
+            return None
+
+        return label
 
     @classmethod
     def _safe_severity(cls, value: Any) -> str:
