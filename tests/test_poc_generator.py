@@ -295,6 +295,30 @@ class TestPoCTemplate:
         assert d["finding_id"] == "VULN-001"
         assert "created_at" in d
 
+    def test_template_to_dict_defaults_malformed_text_fields(self):
+        """Malformed template fields should not leak container reprs into metadata."""
+        template = PoCTemplate(
+            name=["TestExploit"],
+            vulnerability_type=VulnerabilityType.REENTRANCY,
+            solidity_code="// Code",
+            target_contract={"path": "Bank.sol"},
+            target_function=["withdraw"],
+            finding_id={"id": "VULN-001"},
+            description=["Test description"],
+            prerequisites=["Foundry installed", {"bad": "entry"}],
+            expected_outcome={"outcome": "Drain funds"},
+        )
+
+        d = template.to_dict()
+
+        assert d["name"] == "template"
+        assert d["target_contract"] == ""
+        assert d["target_function"] is None
+        assert d["finding_id"] is None
+        assert d["description"] == ""
+        assert d["prerequisites"] == ["Foundry installed"]
+        assert d["expected_outcome"] == ""
+
     def test_template_defaults(self):
         """Test template default values."""
         template = PoCTemplate(

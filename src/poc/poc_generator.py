@@ -47,6 +47,18 @@ def _normalize_output_text(value: Any) -> str:
     return ""
 
 
+def _safe_optional_text(value: Any) -> Optional[str]:
+    """Return optional text fields only when the template supplied text."""
+    return value if isinstance(value, str) else None
+
+
+def _safe_text_list(value: Any) -> List[str]:
+    """Return only string list entries from template metadata."""
+    if not isinstance(value, list):
+        return []
+    return [item for item in value if isinstance(item, str)]
+
+
 class VulnerabilityType(Enum):
     """Supported vulnerability types for PoC generation."""
 
@@ -130,14 +142,14 @@ class PoCTemplate:
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
         return {
-            "name": self.name,
+            "name": self.name if isinstance(self.name, str) else "template",
             "vulnerability_type": self.vulnerability_type.value,
-            "target_contract": self.target_contract,
-            "target_function": self.target_function,
-            "finding_id": self.finding_id,
-            "description": self.description,
-            "prerequisites": self.prerequisites,
-            "expected_outcome": self.expected_outcome,
+            "target_contract": self.target_contract if isinstance(self.target_contract, str) else "",
+            "target_function": _safe_optional_text(self.target_function),
+            "finding_id": _safe_optional_text(self.finding_id),
+            "description": self.description if isinstance(self.description, str) else "",
+            "prerequisites": _safe_text_list(self.prerequisites),
+            "expected_outcome": self.expected_outcome if isinstance(self.expected_outcome, str) else "",
             "created_at": self.created_at.isoformat(),
         }
 
