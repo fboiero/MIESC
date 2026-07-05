@@ -1197,6 +1197,38 @@ class TestLLMEnsembleDetectorVoting:
         assert len(results) == 2
         assert [finding.confidence for finding in results] == pytest.approx([0.75, 0.75])
 
+    def test_ensemble_vote_defaults_boolean_confidence_before_aggregation(self, detector):
+        """Boolean confidence values should not be treated as numeric model confidence."""
+        detector.consensus_threshold = 1
+
+        findings = {
+            "model1": [
+                {
+                    "type": "reentrancy",
+                    "severity": "high",
+                    "title": "Boolean true confidence",
+                    "description": "External call before update",
+                    "location": {"function": "withdraw", "line": 10},
+                    "confidence": True,
+                }
+            ],
+            "model2": [
+                {
+                    "type": "access-control",
+                    "severity": "medium",
+                    "title": "Boolean false confidence",
+                    "description": "Owner check missing",
+                    "location": {"function": "setOwner", "line": 20},
+                    "confidence": False,
+                }
+            ],
+        }
+
+        results = detector._ensemble_vote(findings)
+
+        assert len(results) == 2
+        assert [finding.confidence for finding in results] == pytest.approx([0.75, 0.75])
+
     def test_ensemble_vote_ignores_malformed_model_finding_payloads(self, detector):
         """Malformed per-model finding containers should not enter voting."""
         detector.consensus_threshold = 1
