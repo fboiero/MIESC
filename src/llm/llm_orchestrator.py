@@ -268,8 +268,27 @@ class OllamaBackend(LLMBackend):
                     raise RuntimeError(f"Ollama error: {await resp.text()}")
 
                 data = await resp.json()
-                content = data.get("message", {}).get("content", "")
-                tokens = data.get("eval_count", 0) + data.get("prompt_eval_count", 0)
+                if not isinstance(data, dict):
+                    raise ValueError(
+                        f"Malformed Ollama response: expected object, got {type(data).__name__}"
+                    )
+                message = data.get("message", {})
+                if not isinstance(message, dict):
+                    raise ValueError(
+                        "Malformed Ollama response: message must be object, "
+                        f"got {type(message).__name__}"
+                    )
+                content = message.get("content", "")
+                if not isinstance(content, str):
+                    raise ValueError(
+                        "Malformed Ollama response: content must be str, "
+                        f"got {type(content).__name__}"
+                    )
+                eval_count = data.get("eval_count", 0)
+                prompt_eval_count = data.get("prompt_eval_count", 0)
+                if not isinstance(eval_count, int) or not isinstance(prompt_eval_count, int):
+                    raise ValueError("Malformed Ollama response: token counts must be integers")
+                tokens = eval_count + prompt_eval_count
 
         return LLMResponse(
             content=content,
