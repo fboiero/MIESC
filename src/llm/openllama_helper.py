@@ -159,13 +159,14 @@ class OpenLLaMAHelper:
         Returns:
             Human-readable explanation
         """
+        fallback_output = self._prompt_text(technical_output)
         if not self.is_available():
-            return technical_output
+            return fallback_output
 
-        prompt = f"""You are a security expert. Explain this technical output from {adapter_name} in clear, accessible language.
+        prompt = f"""You are a security expert. Explain this technical output from {self._prompt_text(adapter_name, default='adapter')} in clear, accessible language.
 
 TECHNICAL OUTPUT:
-{technical_output[:2000]}  # Truncate to fit context
+{self._prompt_text(technical_output, limit=2000)}  # Truncate to fit context
 
 INSTRUCTIONS:
 1. Summarize what the tool found
@@ -176,7 +177,7 @@ INSTRUCTIONS:
 OUTPUT (plain text):"""
 
         response = self._call_llm(prompt)
-        return self._llm_text_response(response) or technical_output
+        return self._llm_text_response(response) or fallback_output
 
     def prioritize_findings(
         self, findings: List[Dict[str, Any]], contract_code: str

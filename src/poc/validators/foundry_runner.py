@@ -460,11 +460,11 @@ class FoundryRunner:
         skipped = sum(1 for t in tests if t.status == TestStatus.SKIPPED)
         total_gas = sum(t.gas_used or 0 for t in tests)
 
-        # Get forge version
-        version_match = re.search(r"forge (\d+\.\d+\.\d+)", stdout + stderr)
-        forge_version = version_match.group(1) if version_match else None
+        forge_version = self._extract_forge_version(stdout, stderr)
 
-        normalized_returncode = returncode if isinstance(returncode, int) else 1
+        normalized_returncode = (
+            returncode if isinstance(returncode, int) and not isinstance(returncode, bool) else 1
+        )
 
         return FoundryResult(
             success=normalized_returncode == 0,
@@ -488,6 +488,12 @@ class FoundryRunner:
         if isinstance(value, bytes):
             return value.decode("utf-8", errors="replace")
         return ""
+
+    def _extract_forge_version(self, *outputs: Any) -> Optional[str]:
+        """Extract forge semantic version from normalized subprocess streams."""
+        combined_output = "".join(self._normalize_output_text(output) for output in outputs)
+        version_match = re.search(r"\bforge (\d+\.\d+\.\d+)\b", combined_output)
+        return version_match.group(1) if version_match else None
 
     def _parse_test_results(self, data: Dict[str, Any]) -> List[TestResult]:
         """Parse test results from JSON data."""

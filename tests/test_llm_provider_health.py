@@ -92,6 +92,20 @@ def test_extract_openai_compatible_model_ids_ignores_oversized_ids():
     assert extract_openai_compatible_model_ids(payload) == {"valid-model"}
 
 
+def test_extract_openai_compatible_model_ids_dedupes_normalized_duplicates():
+    """Test duplicate IDs collapse after whitespace normalization."""
+    payload = {
+        "data": [
+            {"id": " model-a "},
+            {"id": "model-a", "name": "ignored-fallback"},
+            {"id": "", "name": " model-a "},
+            {"id": "model-b"},
+        ]
+    }
+
+    assert extract_openai_compatible_model_ids(payload) == {"model-a", "model-b"}
+
+
 def test_fetch_openai_compatible_model_ids_success():
     """Test fetching model IDs from a compatible endpoint."""
 

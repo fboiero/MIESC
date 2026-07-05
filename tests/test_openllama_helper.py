@@ -262,6 +262,28 @@ def test_explain_technical_output_falls_back_on_malformed_llm_response(monkeypat
     assert helper.explain_technical_output("raw output", "tool") == "raw output"
 
 
+def test_explain_technical_output_sanitizes_malformed_prompt_inputs(monkeypatch):
+    helper = OpenLLaMAHelper()
+    captured = {}
+
+    monkeypatch.setattr(helper, "is_available", lambda: True)
+
+    def fake_call_llm(prompt):
+        captured["prompt"] = prompt
+        return "plain explanation"
+
+    monkeypatch.setattr(helper, "_call_llm", fake_call_llm)
+
+    assert (
+        helper.explain_technical_output({"stdout": ["raw", "output"]}, ["slither"])
+        == "plain explanation"
+    )
+    assert "technical output from adapter" in captured["prompt"]
+    assert "TECHNICAL OUTPUT:\n  # Truncate to fit context" in captured["prompt"]
+    assert "{'stdout':" not in captured["prompt"]
+    assert "['slither']" not in captured["prompt"]
+
+
 def test_call_llm_ignores_non_object_generate_payload(monkeypatch):
     helper = OpenLLaMAHelper(LLMConfig(retry_attempts=1))
 

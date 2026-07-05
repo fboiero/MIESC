@@ -95,6 +95,18 @@ def _coerce_filter_text(value: Any) -> Optional[str]:
     return text or None
 
 
+def _safe_metadata_filter(
+    filter_category: Optional[str],
+    filter_severity: Optional[str],
+) -> Optional[Dict[str, Any]]:
+    """Build a Chroma metadata filter only when it has a safe mapping shape."""
+    try:
+        where_filter = build_metadata_filter(filter_category, filter_severity)
+    except (TypeError, ValueError):
+        return None
+    return where_filter if isinstance(where_filter, dict) else None
+
+
 def _coerce_result_count(value: Any, fallback: Any) -> int:
     """Return a positive result count for cache keys and Chroma query calls."""
     candidates = (value, fallback, EmbeddingRAG.DEFAULT_TOP_K)
@@ -5033,7 +5045,7 @@ class EmbeddingRAG:
             logger.debug(f"Cache hit for query (key={cache_key[:8]})")
             return cached
 
-        where_filter = build_metadata_filter(category_filter, severity_filter)
+        where_filter = _safe_metadata_filter(category_filter, severity_filter)
 
         # Query ChromaDB
         results = self._collection.query(
@@ -5209,7 +5221,7 @@ class EmbeddingRAG:
 
         # Query ChromaDB for uncached queries
         if uncached_queries:
-            where_filter = build_metadata_filter(category_filter, severity_filter)
+            where_filter = _safe_metadata_filter(category_filter, severity_filter)
 
             # Batch query to ChromaDB
             query_texts = [q for _, q in uncached_queries]

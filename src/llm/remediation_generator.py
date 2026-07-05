@@ -134,7 +134,11 @@ class Remediation:
         return {
             "finding_id": _export_string(self.finding_id, "unknown"),
             "vulnerability_type": _export_string(self.vulnerability_type, "unknown"),
-            "severity": _export_string(self.severity, "medium"),
+            "severity": _export_level(
+                self.severity,
+                {"info", "informational", "low", "medium", "high", "critical"},
+                "medium",
+            ),
             "vulnerable_code": _export_string(self.vulnerable_code, ""),
             "fixed_code": _export_string(self.fixed_code, ""),
             "explanation": _export_string(self.explanation, ""),

@@ -1317,6 +1317,8 @@ Response (JSON array only):"""
         # Extract location components
         func = self._safe_text(location.get("function"), "")
         line = self._safe_int(location.get("line"), 0)
+        if line < 0:
+            line = 0
         # Round line to nearest 5 for approximate matching.
         line_group = (line // 5) * 5 if line else 0
 

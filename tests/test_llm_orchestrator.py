@@ -1162,6 +1162,41 @@ class TestLLMOrchestrator:
 
         asyncio.run(run_test())
 
+    def test_query_resets_malformed_cache_state_before_writing_response(self):
+        """Test malformed orchestrator cache state cannot break response caching."""
+
+        async def run_test():
+            config = LLMConfig(
+                provider=LLMProvider.OLLAMA,
+                model="fresh",
+                retry_attempts=1,
+                retry_delay=0,
+            )
+            orchestrator = LLMOrchestrator([config])
+            orchestrator.cache = ["not", "a", "cache"]
+            orchestrator.backends["ollama:fresh"].available = True
+
+            fresh_response = LLMResponse(content="fresh content", provider="ollama", model="fresh")
+            orchestrator.backends["ollama:fresh"].analyze = AsyncMock(return_value=fresh_response)
+
+            result = await orchestrator.query("fresh prompt")
+
+            assert result is fresh_response
+            assert orchestrator.cache == {
+                orchestrator._get_cache_key("fresh prompt", None): fresh_response
+            }
+
+        asyncio.run(run_test())
+
+    def test_clear_cache_resets_malformed_cache_state(self):
+        """Test malformed orchestrator cache state cannot break cache clearing."""
+        orchestrator = LLMOrchestrator([])
+        orchestrator.cache = ("not", "a", "cache")
+
+        orchestrator.clear_cache()
+
+        assert orchestrator.cache == {}
+
     def test_query_falls_back_after_client_error(self):
         """Test query falls back when primary backend has a client error."""
 

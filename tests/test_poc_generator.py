@@ -1492,6 +1492,11 @@ Traces:
         traces = generator._extract_traces(output)
         assert traces is None
 
+    @pytest.mark.parametrize("output", [None, b"Traces:\n  [CALL] x()", ["Traces:"]])
+    def test_extract_traces_ignores_malformed_output_shapes(self, generator, output):
+        """Test malformed trace output shapes do not leak reprs or crash."""
+        assert generator._extract_traces(output) is None
+
 
 class TestPoCResultWithGasAndTraces:
     """Tests for PoCResult with gas and traces from run method."""
