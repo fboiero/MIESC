@@ -568,6 +568,21 @@ class TestCompile:
         assert "Compilation failed:" in caplog.text
         assert "['Error: ParserError']" not in caplog.text
 
+    @pytest.mark.parametrize("returncode", [False, "0", None])
+    def test_compile_rejects_malformed_returncode(self, runner, caplog, returncode):
+        """Malformed compile return codes should not be treated as success."""
+        mock_result = MagicMock()
+        mock_result.returncode = returncode
+        mock_result.stdout = "Compiling..."
+        mock_result.stderr = ""
+
+        with caplog.at_level("ERROR", logger="src.poc.validators.foundry_runner"):
+            with patch("subprocess.run", return_value=mock_result):
+                success = runner.compile()
+
+        assert success is False
+        assert "malformed forge return code" in caplog.text
+
     def test_compile_exception(self, runner):
         """Test compilation with exception."""
         with patch("subprocess.run", side_effect=OSError("Unknown error")):
