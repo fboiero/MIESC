@@ -18,6 +18,7 @@ Version: 1.0.0
 
 import json
 import logging
+import math
 import re
 import subprocess
 import time
@@ -188,6 +189,17 @@ class FoundryRunner:
 
         return self._apply_common_test_options(cmd)
 
+    @staticmethod
+    def _normalize_timeout_seconds(value: Any, default: int) -> int:
+        """Return a positive finite subprocess timeout."""
+        if isinstance(value, bool):
+            return default
+        if isinstance(value, int):
+            return value if value > 0 else default
+        if isinstance(value, float) and math.isfinite(value):
+            return int(value) if value > 0 else default
+        return default
+
     def run_test(
         self,
         test_path: Union[str, Path],
@@ -208,6 +220,7 @@ class FoundryRunner:
             FoundryResult with test results
         """
         start_time = time.time()
+        timeout = self._normalize_timeout_seconds(timeout, 300)
 
         cmd = self._build_run_test_command(test_path, match_test, match_contract)
 
@@ -274,6 +287,7 @@ class FoundryRunner:
             FoundryResult with all test results
         """
         start_time = time.time()
+        timeout = self._normalize_timeout_seconds(timeout, 600)
 
         cmd = self._build_run_all_tests_command(test_dir)
 
