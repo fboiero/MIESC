@@ -101,8 +101,12 @@ class FoundryRunner:
         self.project_dir = Path(project_dir)
         self.fork_url = fork_url
         self.fork_block = fork_block
-        self.verbosity = verbosity
-        self.gas_report = gas_report
+        self.verbosity = (
+            verbosity
+            if not isinstance(verbosity, bool) and isinstance(verbosity, int) and 1 <= verbosity <= 5
+            else 3
+        )
+        self.gas_report = gas_report if isinstance(gas_report, bool) else True
 
         self._check_foundry_installation()
 
