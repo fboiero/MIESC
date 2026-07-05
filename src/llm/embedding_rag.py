@@ -315,6 +315,42 @@ def _bounded_similarity_score(score: Any) -> float:
     return max(0.0, min(score_value, 1.0))
 
 
+def _coerce_embedding_vector(value: Any) -> Optional[List[float]]:
+    """Return a finite numeric embedding vector, or None when malformed."""
+    if hasattr(value, "tolist"):
+        try:
+            value = value.tolist()
+        except Exception:
+            return None
+    if not isinstance(value, (list, tuple)):
+        return None
+
+    vector = []
+    for item in value:
+        if isinstance(item, bool):
+            return None
+        try:
+            number = float(item)
+        except Exception:
+            return None
+        if not math.isfinite(number):
+            return None
+        vector.append(number)
+    return vector or None
+
+
+def _coerce_embedding_rows(value: Any) -> List[Any]:
+    """Return list-like embedding rows from loose model output."""
+    if hasattr(value, "tolist"):
+        try:
+            value = value.tolist()
+        except Exception:
+            return []
+    if isinstance(value, (list, tuple)):
+        return list(value)
+    return []
+
+
 def _result_rows(results: Any, key: str) -> List[Any]:
     """Read Chroma result rows only when the payload shape is list-like."""
     if not isinstance(results, dict):
@@ -5139,16 +5175,35 @@ class EmbeddingRAG:
 
         # Generate embeddings
         embeddings = self._embedder.encode(documents, show_progress_bar=True)
+        embedding_rows = _coerce_embedding_rows(embeddings)
+
+        add_documents = []
+        add_metadatas = []
+        add_ids = []
+        add_embeddings = []
+        for index, embedding_row in enumerate(embedding_rows[: len(documents)]):
+            embedding_vector = _coerce_embedding_vector(embedding_row)
+            if embedding_vector is None:
+                logger.warning("Skipping malformed embedding vector during indexing")
+                continue
+            add_documents.append(documents[index])
+            add_metadatas.append(metadatas[index])
+            add_ids.append(ids[index])
+            add_embeddings.append(embedding_vector)
+
+        if not add_embeddings:
+            logger.warning("No valid embedding vectors generated during indexing")
+            return
 
         # Add to ChromaDB
         self._collection.add(
-            documents=documents,
-            embeddings=embeddings.tolist(),
-            metadatas=metadatas,
-            ids=ids,
+            documents=add_documents,
+            embeddings=add_embeddings,
+            metadatas=add_metadatas,
+            ids=add_ids,
         )
 
-        logger.info(f"Indexed {len(documents)} vulnerability documents")
+        logger.info(f"Indexed {len(add_documents)} vulnerability documents")
 
     def search(
         self,
@@ -5534,12 +5589,18 @@ class EmbeddingRAG:
         self._ensure_initialized()
 
         # Generate embedding
-        embedding = self._embedder.encode([vulnerability.to_text()])[0]
+        vulnerability_text = vulnerability.to_text()
+        embedding_rows = _coerce_embedding_rows(self._embedder.encode([vulnerability_text]))
+        embedding = (
+            _coerce_embedding_vector(embedding_rows[0]) if embedding_rows else None
+        )
+        if embedding is None:
+            raise ValueError("Custom vulnerability embedding must be a finite numeric vector")
 
         # Add to ChromaDB
         self._collection.add(
-            documents=[vulnerability.to_text()],
-            embeddings=[embedding.tolist()],
+            documents=[vulnerability_text],
+            embeddings=[embedding],
             metadatas=[vulnerability.to_metadata()],
             ids=[vulnerability.id],
         )
