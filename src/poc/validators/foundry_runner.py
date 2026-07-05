@@ -678,7 +678,9 @@ class FoundryRunner:
             }
 
             # Extract gas data from output
-            stdout = self._normalize_output_text(getattr(result, "stdout", ""))
+            stdout = self._normalize_output_text(getattr(result, "stdout", ""))[
+                :MAX_RAW_OUTPUT_CHARS
+            ]
             for line in stdout.split("\n"):
                 if line.strip().startswith("{"):
                     try:
