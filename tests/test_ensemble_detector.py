@@ -1906,10 +1906,10 @@ class TestLLMEnsembleDetectorIntegration:
 
         asyncio.run(run_test())
 
-    def test_detect_vulnerabilities_defaults_malformed_location_before_stats(
+    def test_detect_vulnerabilities_drops_malformed_consensus_location_before_stats(
         self, detector, vulnerable_code
     ):
-        """Malformed aggregation fields should not break result statistics."""
+        """Malformed consensus location fields should not leak into result statistics."""
 
         async def run_test():
             detector._initialized = True
@@ -1945,7 +1945,7 @@ class TestLLMEnsembleDetectorIntegration:
             assert result.total_raw_findings == 2
             assert result.filtered_findings == 1
             assert len(result.findings) == 1
-            assert result.findings[0].location == {"line": "not-a-line"}
+            assert result.findings[0].location == {}
 
         asyncio.run(run_test())
 

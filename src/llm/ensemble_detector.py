@@ -1309,16 +1309,22 @@ Response (JSON array only):"""
         except (OverflowError, TypeError, ValueError):
             return default
 
-    @staticmethod
-    def _safe_location(value: Any) -> Dict[str, Any]:
+    @classmethod
+    def _safe_location(cls, value: Any) -> Dict[str, Any]:
         """Return scalar location fields only when the model supplied an object."""
         if not isinstance(value, dict):
             return {}
-        return {
-            key: field_value
-            for key, field_value in value.items()
-            if isinstance(key, str) and not isinstance(field_value, (dict, list, tuple, set))
-        }
+        location: Dict[str, Any] = {}
+        for key, field_value in value.items():
+            if not isinstance(key, str) or isinstance(field_value, (dict, list, tuple, set)):
+                continue
+            if key == "line":
+                line = cls._safe_int(field_value, 0)
+                if cls._is_nonnegative_finite_scalar(field_value):
+                    location[key] = line
+                continue
+            location[key] = field_value
+        return location
 
     def _create_finding_signature(self, finding: Dict[str, Any]) -> str:
         """
