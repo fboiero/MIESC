@@ -1463,6 +1463,10 @@ class TestGasAndTraceExtraction:
         gas = generator._extract_gas_from_output(output)
         assert gas is None
 
+    def test_extract_gas_ignores_malformed_output_shape(self, generator):
+        """Malformed gas output containers should not leak reprs into parsing."""
+        assert generator._extract_gas_from_output(["gas: 123"]) is None
+
     def test_extract_gas_multiple_values(self, generator):
         """Test gas extraction picks first match."""
         output = "gas: 100\ngas: 200\ngas: 300"

@@ -159,6 +159,11 @@ class _RecordingInitializeRAG(EmbeddingRAG):
         self.indexed_count += 1
 
 
+class _ExplodingStringValue:
+    def __str__(self):
+        raise AssertionError("Malformed cache query should not be stringified")
+
+
 # ---------------------------------------------------------------------------
 # detect_contract_type
 # ---------------------------------------------------------------------------
@@ -913,18 +918,18 @@ class TestEmbeddingRAGSearchBoundaryShapes:
         assert rag._query_cache == {"stale": (0.0, [])}
         assert rag._cache_misses == 3
 
-    def test_cache_key_normalizes_malformed_direct_inputs(self, tmp_path):
+    def test_cache_key_bounds_malformed_direct_query_inputs(self, tmp_path):
         rag = EmbeddingRAG(persist_directory=str(tmp_path), top_k=2)
 
         cache_key = rag._get_cache_key(
-            {"query": "oracle"},  # type: ignore[arg-type]
+            _ExplodingStringValue(),  # type: ignore[arg-type]
             ["bad-category"],  # type: ignore[arg-type]
             b" high ",
             {"bad": "count"},  # type: ignore[arg-type]
             strategy=None,  # type: ignore[arg-type]
         )
         expected = rag._get_cache_key(
-            "{'query': 'oracle'}",
+            "",
             None,
             "high",
             2,

@@ -454,8 +454,12 @@ INSIGHTS:"""
         for idx, finding in enumerate(findings):
             if not isinstance(finding, dict):
                 finding = {}
-            description = self._truncate_text(finding.get("description"), limit=100)
-            line = f"{idx}. [{finding.get('severity', 'UNKNOWN')}] {finding.get('title', 'Unknown')} - {description}"
+            severity = self._summary_field_text(
+                finding.get("severity"), default="UNKNOWN", limit=40
+            )
+            title = self._summary_field_text(finding.get("title"), default="Unknown", limit=200)
+            description = self._summary_field_text(finding.get("description"), limit=100)
+            line = f"{idx}. [{severity}] {title} - {description}"
             summary_lines.append(line)
         return "\n".join(summary_lines)
 
@@ -465,6 +469,14 @@ INSIGHTS:"""
         if not isinstance(value, str):
             return ""
         return value[:limit]
+
+    @staticmethod
+    def _summary_field_text(value: Any, default: str = "", limit: Optional[int] = None) -> str:
+        """Return bounded single-line text for finding summaries."""
+        if not isinstance(value, str):
+            return default
+        text = value if limit is None else value[:limit]
+        return " ".join(text.split()) if text else default
 
     @staticmethod
     def _prompt_text(value: Any, default: str = "", limit: Optional[int] = None) -> str:

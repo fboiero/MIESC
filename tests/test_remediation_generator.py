@@ -182,6 +182,43 @@ def test_remediation_result_to_dict_normalizes_malformed_export_metadata():
     assert exported["execution_time_ms"] == 0.0
 
 
+def test_remediation_result_to_dict_skips_malformed_remediation_exports():
+    class NonObjectExportRemediation(Remediation):
+        def to_dict(self):
+            return ["not an export object"]
+
+    class RaisingExportRemediation(Remediation):
+        def to_dict(self):
+            raise TypeError("malformed export")
+
+    valid = Remediation(
+        finding_id="F-1",
+        vulnerability_type="reentrancy",
+        severity="high",
+        vulnerable_code="function withdraw() public {}",
+        fixed_code="function withdraw() public nonReentrant {}",
+        explanation="uses guard",
+        changes_summary=[],
+        test_suggestions=[],
+        references=[],
+        confidence=0.8,
+    )
+    non_object = NonObjectExportRemediation(**valid.__dict__)
+    raising = RaisingExportRemediation(**valid.__dict__)
+    result = RemediationResult(
+        remediations=[valid, non_object, raising],
+        success_count=3,
+        failure_count=0,
+        execution_time_ms=12.5,
+    )
+
+    exported = result.to_dict()
+
+    assert len(exported["remediations"]) == 1
+    assert exported["remediations"][0]["finding_id"] == "F-1"
+    assert exported["success_count"] == 3
+
+
 @pytest.mark.asyncio
 async def test_query_llm_returns_empty_dict_on_client_error(monkeypatch):
     generator = RemediationGenerator()
