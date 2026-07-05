@@ -1243,11 +1243,11 @@ Response (JSON array only):"""
     @staticmethod
     def _safe_int(value: Any, default: int) -> int:
         """Return an int for scalar values without accepting container reprs."""
-        if isinstance(value, (dict, list, tuple, set)):
+        if isinstance(value, bool) or isinstance(value, (dict, list, tuple, set)):
             return default
         try:
             return int(value)
-        except (TypeError, ValueError):
+        except (OverflowError, TypeError, ValueError):
             return default
 
     @staticmethod

@@ -1223,6 +1223,21 @@ class TestLLMEnsembleDetectorVoting:
         assert results[0].votes == 2
         assert results[0].supporting_models == ["model1", "model2"]
 
+    def test_finding_signature_defaults_nonfinite_line_scalar(self, detector):
+        """Non-finite scalar line values should not crash signature grouping."""
+        malformed = {
+            "type": "reentrancy",
+            "location": {"function": "withdraw", "line": float("inf")},
+        }
+        defaulted = {
+            "type": "reentrancy",
+            "location": {"function": "withdraw"},
+        }
+
+        assert detector._create_finding_signature(malformed) == detector._create_finding_signature(
+            defaulted
+        )
+
 
 class TestLLMEnsembleDetectorQueryMethods:
     """Tests for model query methods."""
