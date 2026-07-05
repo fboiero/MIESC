@@ -183,6 +183,14 @@ def test_explain_technical_output_returns_llm_response(monkeypatch):
     assert helper.explain_technical_output("raw output", "tool") == "plain explanation"
 
 
+def test_explain_technical_output_falls_back_on_malformed_llm_response(monkeypatch):
+    helper = OpenLLaMAHelper()
+    monkeypatch.setattr(helper, "is_available", lambda: True)
+    monkeypatch.setattr(helper, "_call_llm", lambda prompt: {"response": "plain explanation"})
+
+    assert helper.explain_technical_output("raw output", "tool") == "raw output"
+
+
 def test_call_llm_ignores_non_object_generate_payload(monkeypatch):
     helper = OpenLLaMAHelper(LLMConfig(retry_attempts=1))
 
@@ -392,6 +400,19 @@ def test_generate_remediation_advice_falls_back_to_string_recommendation(monkeyp
     assert advice == "Use onlyOwner"
 
 
+def test_generate_remediation_advice_falls_back_on_malformed_llm_response(monkeypatch):
+    helper = OpenLLaMAHelper()
+    monkeypatch.setattr(helper, "is_available", lambda: True)
+    monkeypatch.setattr(helper, "_call_llm", lambda prompt: ["patch the access check"])
+
+    advice = helper.generate_remediation_advice(
+        {"recommendation": "Use onlyOwner"},
+        "contract C {}",
+    )
+
+    assert advice == "Use onlyOwner"
+
+
 def test_generate_remediation_advice_sanitizes_malformed_prompt_fields(monkeypatch):
     helper = OpenLLaMAHelper()
     captured = {}
@@ -515,6 +536,13 @@ def test_generate_insights_defaults_unsupported_finding_field_shapes(monkeypatch
     assert "<object object at" not in captured["prompt"]
     assert "{'source':" not in captured["prompt"]
     assert "['slither']" not in captured["prompt"]
+
+
+def test_generate_insights_rejects_malformed_llm_response(monkeypatch):
+    helper = OpenLLaMAHelper()
+    monkeypatch.setattr(helper, "_call_llm", lambda prompt: {"insight": "reachable exploit"})
+
+    assert helper._generate_insights({"title": "Missing auth"}, "contract C {}", "adapter") is None
 
 
 def test_convenience_functions_delegate_to_helper(monkeypatch):
