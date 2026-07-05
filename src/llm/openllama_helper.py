@@ -226,6 +226,8 @@ OUTPUT (JSON only):
             response = self._call_llm(prompt)
             if response:
                 priorities = self._parse_priorities(response)
+                if not isinstance(priorities, dict):
+                    return findings
                 for idx, priority_data in priorities.items():
                     if (
                         0 <= idx < len(findings)
