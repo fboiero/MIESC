@@ -39,6 +39,7 @@ _EXPORT_REFERENCE_CONTROL_RE = re.compile(r"[\x00-\x1f\x7f]")
 _EXPORT_REFERENCE_URL_RE = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*://|^www\.", re.IGNORECASE)
 _EXPORT_REFERENCE_SCHEME_RE = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:")
 _EXPORT_MARKDOWN_LINK_RE = re.compile(r"^\[([^\]\x00-\x1f\x7f]+)\]\(([^()\s\x00-\x1f\x7f]+)\)$")
+_EXPORT_TEST_NAME_CONTROL_RE = re.compile(r"[\x00-\x1f\x7f]")
 
 
 def _export_string(value: Any, default: str) -> str:
@@ -196,6 +197,37 @@ def _export_unique_string_list(value: Any) -> List[str]:
     return exported
 
 
+def _export_generated_test_name(value: Any) -> Optional[str]:
+    """Return a safe generated test name for export payloads."""
+    normalized = _export_optional_string(value)
+    if (
+        normalized is None
+        or normalized in {".", ".."}
+        or "/" in normalized
+        or "\\" in normalized
+        or _EXPORT_WINDOWS_DRIVE_RE.match(normalized)
+        or _EXPORT_TEST_NAME_CONTROL_RE.search(normalized)
+    ):
+        return None
+    return normalized
+
+
+def _export_generated_test_names(value: Any) -> List[str]:
+    """Return unique safe generated test names for export payloads."""
+    if not isinstance(value, list):
+        return []
+
+    exported = []
+    seen = set()
+    for item in value:
+        test_name = _export_generated_test_name(item)
+        if test_name is None or test_name in seen:
+            continue
+        seen.add(test_name)
+        exported.append(test_name)
+    return exported
+
+
 def _export_level(value: Any, allowed: set[str], default: str) -> str:
     """Return a bounded lowercase level for export payloads."""
     if isinstance(value, str):
@@ -316,7 +348,7 @@ class Remediation:
             "fixed_code": _export_code_or_patch_text(self.fixed_code, ""),
             "explanation": _export_explanation(self.explanation),
             "changes_summary": _export_string_list(self.changes_summary),
-            "test_suggestions": _export_unique_string_list(self.test_suggestions),
+            "test_suggestions": _export_generated_test_names(self.test_suggestions),
             "references": _export_reference_list(self.references),
             "confidence": _export_confidence(self.confidence),
             "affected_lines": _export_positive_int_list(self.affected_lines),
@@ -539,7 +571,7 @@ class RemediationGenerator:
         explanation = self._string_or_default(result.get("explanation"), "")
         changes = self._string_list_or_empty(result.get("changes"))
         imports = self._imports_to_prepend(fixed_code, result.get("imports_needed"))
-        tests = self._unique_string_list_or_empty(result.get("test_suggestions"))
+        tests = _export_generated_test_names(result.get("test_suggestions"))
         references = self._unique_string_list_or_empty(result.get("references"))
         implementation_complexity = self._normalized_level(
             result.get("implementation_complexity", result.get("complexity")),
