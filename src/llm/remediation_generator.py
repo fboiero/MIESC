@@ -154,6 +154,7 @@ class Remediation:
     pattern_used: Optional[str] = None
     implementation_complexity: str = "medium"
     deployment_risk: str = "medium"
+    gas_impact: str = "medium"
     affected_lines: Optional[List[int]] = None
 
     def to_dict(self) -> Dict[str, Any]:
@@ -183,6 +184,11 @@ class Remediation:
             "deployment_risk": _export_level(
                 self.deployment_risk,
                 {"low", "medium", "high", "critical"},
+                "medium",
+            ),
+            "gas_impact": _export_level(
+                self.gas_impact,
+                {"none", "low", "medium", "high"},
                 "medium",
             ),
         }
