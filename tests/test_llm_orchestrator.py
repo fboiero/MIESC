@@ -986,6 +986,66 @@ class TestLLMOrchestrator:
 
         asyncio.run(run_test())
 
+    def test_query_evicts_oldest_cache_entry_at_size_limit(self):
+        """Test response caching evicts the oldest entry after crossing the size limit."""
+
+        async def run_test():
+            config = LLMConfig(
+                provider=LLMProvider.OLLAMA,
+                model="fresh",
+                retry_attempts=1,
+                retry_delay=0,
+            )
+            orchestrator = LLMOrchestrator([config])
+            orchestrator.cache_max_entries = 2
+            orchestrator.backends["ollama:fresh"].available = True
+
+            oldest_response = LLMResponse(content="oldest", provider="cache", model="cache")
+            middle_response = LLMResponse(content="middle", provider="cache", model="cache")
+            oldest_key = orchestrator._get_cache_key("oldest prompt", None)
+            middle_key = orchestrator._get_cache_key("middle prompt", None)
+            orchestrator.cache[oldest_key] = oldest_response
+            orchestrator.cache[middle_key] = middle_response
+
+            fresh_response = LLMResponse(content="fresh content", provider="ollama", model="fresh")
+            orchestrator.backends["ollama:fresh"].analyze = AsyncMock(return_value=fresh_response)
+
+            result = await orchestrator.query("fresh prompt")
+
+            assert result is fresh_response
+            assert oldest_key not in orchestrator.cache
+            assert list(orchestrator.cache.values()) == [middle_response, fresh_response]
+
+        asyncio.run(run_test())
+
+    def test_query_uses_conservative_limit_for_malformed_cache_size(self):
+        """Test malformed cache size config cannot break cache eviction."""
+
+        async def run_test():
+            config = LLMConfig(
+                provider=LLMProvider.OLLAMA,
+                model="fresh",
+                retry_attempts=1,
+                retry_delay=0,
+            )
+            orchestrator = LLMOrchestrator([config])
+            orchestrator.cache_max_entries = "many"
+            orchestrator.backends["ollama:fresh"].available = True
+
+            stale_response = LLMResponse(content="stale", provider="cache", model="cache")
+            stale_key = orchestrator._get_cache_key("stale prompt", None)
+            orchestrator.cache[stale_key] = stale_response
+
+            fresh_response = LLMResponse(content="fresh content", provider="ollama", model="fresh")
+            orchestrator.backends["ollama:fresh"].analyze = AsyncMock(return_value=fresh_response)
+
+            result = await orchestrator.query("fresh prompt")
+
+            assert result is fresh_response
+            assert list(orchestrator.cache.values()) == [fresh_response]
+
+        asyncio.run(run_test())
+
     def test_query_falls_back_after_client_error(self):
         """Test query falls back when primary backend has a client error."""
 
