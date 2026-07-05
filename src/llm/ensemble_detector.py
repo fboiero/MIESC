@@ -240,10 +240,10 @@ Response (JSON array only):"""
             deepseek_api_key: DeepSeek API key (or from DEEPSEEK_API_KEY env)
             deepseek_base_url: DeepSeek API base URL
         """
-        self.models = models or self.DEFAULT_MODELS
+        self.models = self._normalize_configured_models(models)
         self.base_url = ollama_base_url
         self.voting_strategy = voting_strategy
-        self.consensus_threshold = consensus_threshold
+        self.consensus_threshold = self._normalize_consensus_threshold(consensus_threshold)
         self.timeout = timeout
         self.temperature = temperature
 
@@ -263,8 +263,40 @@ Response (JSON array only):"""
         logger.info(
             f"LLMEnsembleDetector initialized with {len(self.models)} models, "
             f"providers={[p.value for p in self.providers]}, "
-            f"strategy={voting_strategy.value}, threshold={consensus_threshold}"
+            f"strategy={voting_strategy.value}, threshold={self.consensus_threshold}"
         )
+
+    @classmethod
+    def _normalize_configured_models(cls, models: Any) -> List[str]:
+        """Return configured model ids without treating malformed containers as models."""
+        if models is None:
+            return list(cls.DEFAULT_MODELS)
+
+        if not isinstance(models, (list, tuple, set)):
+            logger.warning("Ignoring malformed ensemble model list; using defaults")
+            return list(cls.DEFAULT_MODELS)
+
+        normalized = [model.strip() for model in models if isinstance(model, str) and model.strip()]
+        if not normalized:
+            logger.warning("No valid ensemble model names configured; using defaults")
+            return list(cls.DEFAULT_MODELS)
+
+        return normalized
+
+    @staticmethod
+    def _normalize_consensus_threshold(consensus_threshold: Any) -> int:
+        """Return a positive integer threshold for vote comparisons."""
+        if isinstance(consensus_threshold, bool):
+            logger.warning("Ignoring malformed ensemble consensus threshold; using default")
+            return 2
+
+        try:
+            threshold = int(consensus_threshold)
+        except (TypeError, ValueError):
+            logger.warning("Ignoring malformed ensemble consensus threshold; using default")
+            return 2
+
+        return max(1, threshold)
 
     async def initialize(self) -> Dict[str, bool]:
         """

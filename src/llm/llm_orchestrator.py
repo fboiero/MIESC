@@ -535,7 +535,17 @@ class LLMOrchestrator:
         status = {}
         for key, backend in self.backends.items():
             try:
-                available = await backend.health_check()
+                raw_available = await backend.health_check()
+                if not isinstance(raw_available, bool):
+                    logger.warning(
+                        "Backend %s health check returned malformed availability %s; "
+                        "treating as unavailable",
+                        key,
+                        type(raw_available).__name__,
+                    )
+                    raw_available = False
+                available = raw_available
+                backend.available = available
                 status[key] = available
                 if available and self.primary_provider is None:
                     self.primary_provider = key

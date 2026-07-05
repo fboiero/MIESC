@@ -331,6 +331,16 @@ class TestLLMEnsembleDetectorInit:
         detector = LLMEnsembleDetector(models=models)
         assert detector.models == models
 
+    def test_malformed_model_list_uses_default_models(self):
+        """A scalar model list should not be iterated as individual model ids."""
+        detector = LLMEnsembleDetector(models="not-a-model-list")
+        assert detector.models == LLMEnsembleDetector.DEFAULT_MODELS
+
+    def test_model_list_keeps_only_nonempty_model_names(self):
+        """Malformed model entries should not cross the configured model boundary."""
+        detector = LLMEnsembleDetector(models=[" custom-model ", "", None, {"name": "bad"}])
+        assert detector.models == ["custom-model"]
+
     def test_custom_voting_strategy(self):
         """Test initialization with custom voting strategy."""
         detector = LLMEnsembleDetector(voting_strategy=VotingStrategy.MAJORITY)
@@ -380,6 +390,16 @@ class TestLLMEnsembleDetectorInit:
         """Test timeout parameter."""
         detector = LLMEnsembleDetector(timeout=60)
         assert detector.timeout == 60
+
+    def test_malformed_consensus_threshold_uses_default(self):
+        """A non-numeric threshold should not break vote comparisons later."""
+        detector = LLMEnsembleDetector(consensus_threshold={"votes": 2})
+        assert detector.consensus_threshold == 2
+
+    def test_consensus_threshold_is_positive(self):
+        """A zero or negative threshold should not make every finding pass."""
+        detector = LLMEnsembleDetector(consensus_threshold=0)
+        assert detector.consensus_threshold == 1
 
 
 class TestLLMEnsembleDetectorConstants:
@@ -861,6 +881,39 @@ class TestLLMEnsembleDetectorVoting:
         results = detector._ensemble_vote(findings)
         # With threshold=1, single model finding should pass
         assert isinstance(results, list)
+
+    def test_ensemble_vote_with_malformed_threshold_does_not_crash(self):
+        """Constructor-normalized malformed thresholds should remain safe during voting."""
+        detector = LLMEnsembleDetector(consensus_threshold=["bad"])
+
+        findings = {
+            "model1": [
+                {
+                    "type": "reentrancy",
+                    "severity": "high",
+                    "title": "Reentrancy",
+                    "description": "External call before update",
+                    "location": {"function": "withdraw", "line": 10},
+                    "confidence": 0.9,
+                }
+            ],
+            "model2": [
+                {
+                    "type": "reentrancy",
+                    "severity": "high",
+                    "title": "Reentrancy",
+                    "description": "External call before update",
+                    "location": {"function": "withdraw", "line": 11},
+                    "confidence": 0.8,
+                }
+            ],
+        }
+
+        results = detector._ensemble_vote(findings)
+
+        assert len(results) == 1
+        assert detector.consensus_threshold == 2
+        assert results[0].votes == 2
 
     def test_ensemble_vote_malformed_display_fields_are_defaulted(self, detector):
         """Malformed scalar display fields should not crash or leak reprs."""

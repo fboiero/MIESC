@@ -604,6 +604,23 @@ class TestLLMOrchestrator:
         assert "openai:gpt-4" in status
         assert status["openai:gpt-4"] is True
 
+    def test_initialize_treats_malformed_availability_as_unavailable(self):
+        """Test malformed health-check availability cannot mark a backend available."""
+
+        async def run_test():
+            config = LLMConfig(provider=LLMProvider.OLLAMA, model="malformed")
+            orchestrator = LLMOrchestrator([config])
+            backend = orchestrator.backends["ollama:malformed"]
+            backend.available = True
+            backend.health_check = AsyncMock(return_value={"available": True})
+
+            status = await orchestrator.initialize()
+
+            assert status == {"ollama:malformed": False}
+            assert backend.available is False
+
+        asyncio.run(run_test())
+
     def test_cache_key_generation(self):
         """Test cache key generation."""
         orchestrator = LLMOrchestrator([])

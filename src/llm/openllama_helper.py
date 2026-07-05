@@ -168,7 +168,7 @@ INSTRUCTIONS:
 OUTPUT (plain text):"""
 
         response = self._call_llm(prompt)
-        return response if response else technical_output
+        return self._llm_text_response(response) or technical_output
 
     def prioritize_findings(
         self, findings: List[Dict[str, Any]], contract_code: str
@@ -274,7 +274,7 @@ INSTRUCTIONS:
 REMEDIATION ADVICE:"""
 
         response = self._call_llm(prompt)
-        return response if response else self._recommendation_fallback(finding)
+        return self._llm_text_response(response) or self._recommendation_fallback(finding)
 
     # ============================================================================
     # PRIVATE HELPER METHODS
@@ -349,7 +349,7 @@ Provide 2-3 sentence expert analysis focusing on:
 
 INSIGHTS:"""
 
-        return self._call_llm(prompt)
+        return self._llm_text_response(self._call_llm(prompt))
 
     def _severity_score(self, severity: Any) -> int:
         """Convert severity string to numeric score."""
@@ -366,6 +366,14 @@ INSIGHTS:"""
         if isinstance(recommendation, str):
             return recommendation
         return "Review and address the identified issue"
+
+    @staticmethod
+    def _llm_text_response(value: Any) -> Optional[str]:
+        """Return stripped LLM text while rejecting malformed response shapes."""
+        if not isinstance(value, str):
+            return None
+        response = value.strip()
+        return response or None
 
     def _create_findings_summary(self, findings: List[Dict[str, Any]]) -> str:
         """Create concise summary of findings for LLM."""

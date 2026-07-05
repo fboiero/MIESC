@@ -1077,6 +1077,14 @@ class TestPoCRunMethod:
         assert result.output == ""
         assert result.error == "Malformed PoC template"
 
+    def test_run_rejects_malformed_project_dir(self, generator, sample_poc):
+        """Test malformed project dirs are rejected before Path coercion or save()."""
+        result = generator.run(sample_poc, {"path": "bad"}, verbose=False)
+
+        assert result.success is False
+        assert result.output == ""
+        assert result.error == "Malformed project directory"
+
     def test_run_timeout(self, generator, sample_poc, tmp_path):
         """Test PoC run timeout (lines 362-368)."""
         import subprocess

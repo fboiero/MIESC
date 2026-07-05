@@ -336,6 +336,9 @@ class RemediationGenerator:
             Tuple of (fixed_code, explanation)
         """
         vuln_type = self._parse_vuln_type(vuln_type)
+        if not isinstance(function_code, str):
+            return "", "No function code available for quick fix"
+
         pattern = REMEDIATION_PATTERNS.get(vuln_type)
 
         if not pattern:

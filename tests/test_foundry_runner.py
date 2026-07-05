@@ -234,6 +234,18 @@ class TestFoundryRunnerInit:
         assert runner_with_fork.fork_block == 18500000
         assert runner_with_fork.verbosity == 4
 
+    def test_initialization_defaults_malformed_verbosity_and_gas_report(self, tmp_path):
+        """Malformed runner options fall back to safe command defaults."""
+        with patch.object(FoundryRunner, "_check_foundry_installation"):
+            runner = FoundryRunner(
+                project_dir=tmp_path,
+                verbosity=["vvv"],
+                gas_report="yes",
+            )
+
+        assert runner.verbosity == 3
+        assert runner.gas_report is True
+
     def test_foundry_not_installed_raises(self, tmp_path):
         """Test error when Foundry not installed."""
         with patch("subprocess.run", side_effect=FileNotFoundError):
