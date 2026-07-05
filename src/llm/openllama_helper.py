@@ -426,7 +426,9 @@ INSIGHTS:"""
             return "Review and address the identified issue"
         recommendation = finding.get("recommendation")
         if isinstance(recommendation, str):
-            return recommendation
+            recommendation = recommendation.strip()
+            if recommendation:
+                return recommendation[:MAX_REMEDIATION_RESPONSE_CHARS]
         return "Review and address the identified issue"
 
     @staticmethod

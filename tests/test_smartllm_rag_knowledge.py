@@ -48,6 +48,31 @@ class _ExplodingEmbedder:
         raise AssertionError("Malformed custom vulnerability should not be embedded")
 
 
+class _ListEmbedding:
+    def __init__(self, values):
+        self.values = values
+
+    def tolist(self):
+        return self.values
+
+
+class _RecordingEmbedder:
+    def __init__(self):
+        self.documents = None
+
+    def encode(self, documents, **_kwargs):
+        self.documents = documents
+        return _ListEmbedding([[0.1, 0.2] for _ in documents])
+
+
+class _RecordingIndexCollection:
+    def __init__(self):
+        self.add_payload = None
+
+    def add(self, **kwargs):
+        self.add_payload = kwargs
+
+
 class _UninitializedEmbeddingRAG(EmbeddingRAG):
     def _ensure_initialized(self):
         raise AssertionError("Malformed custom vulnerability should not initialize RAG")
@@ -551,6 +576,41 @@ class TestEmbeddingRAGCustomVulnerabilityShapes:
         assert rag._query_cache == {"stale": (0.0, [])}
         assert rag._cache_hits == 2
         assert rag._cache_misses == 3
+
+    def test_malformed_knowledge_base_document_is_skipped_in_index_payloads(
+        self,
+        tmp_path,
+        monkeypatch,
+    ):
+        valid = VulnerabilityDocument(
+            id="CUSTOM-VALID",
+            title="Valid Custom Finding",
+            description="Custom vulnerability description",
+        )
+        invalid_id = VulnerabilityDocument(
+            id=["bad-id"],  # type: ignore[arg-type]
+            title="Invalid Custom Finding",
+            description="Custom vulnerability description",
+        )
+        collection = _RecordingIndexCollection()
+        embedder = _RecordingEmbedder()
+        rag = EmbeddingRAG(persist_directory=str(tmp_path))
+        rag._collection = collection
+        rag._embedder = embedder
+
+        monkeypatch.setattr(
+            embedding_rag_module,
+            "VULNERABILITY_KNOWLEDGE_BASE",
+            [valid, {"not": "a-document"}, invalid_id],
+        )
+
+        rag._build_doc_index()
+        rag._index_knowledge_base()
+
+        assert rag._doc_index == {"CUSTOM-VALID": valid}
+        assert embedder.documents == [valid.to_text()]
+        assert collection.add_payload["ids"] == ["CUSTOM-VALID"]
+        assert collection.add_payload["metadatas"] == [valid.to_metadata()]
 
 
 class TestEmbeddingRAGSearchBoundaryShapes:

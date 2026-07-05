@@ -125,6 +125,34 @@ def test_remediation_to_dict_normalizes_malformed_export_metadata():
     }
 
 
+@pytest.mark.parametrize(
+    ("confidence", "expected"),
+    [
+        (1.0, 1.0),
+        ("0.25", 0.25),
+        (1.01, 0.0),
+        (-0.01, 0.0),
+        (True, 0.0),
+        (float("inf"), 0.0),
+    ],
+)
+def test_remediation_to_dict_bounds_exported_confidence(confidence, expected):
+    remediation = Remediation(
+        finding_id="F-1",
+        vulnerability_type="reentrancy",
+        severity="high",
+        vulnerable_code="function withdraw() public {}",
+        fixed_code="function withdraw() public nonReentrant {}",
+        explanation="uses guard",
+        changes_summary=[],
+        test_suggestions=[],
+        references=[],
+        confidence=confidence,
+    )
+
+    assert remediation.to_dict()["confidence"] == expected
+
+
 def test_remediation_result_to_dict_normalizes_malformed_export_metadata():
     remediation = Remediation(
         finding_id="F-1",

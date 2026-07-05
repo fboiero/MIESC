@@ -64,6 +64,11 @@ def _safe_isoformat(value: Any) -> str:
     return value.isoformat() if isinstance(value, datetime) else ""
 
 
+def _safe_vulnerability_type_value(value: Any) -> str:
+    """Return vulnerability type values only from the expected enum shape."""
+    return value.value if isinstance(value, VulnerabilityType) else "unknown"
+
+
 class VulnerabilityType(Enum):
     """Supported vulnerability types for PoC generation."""
 
@@ -133,7 +138,7 @@ class PoCTemplate:
         output_path.mkdir(parents=True, exist_ok=True)
 
         filename = (
-            f"PoC_{_safe_filename_part(self.vulnerability_type.value, 'unknown')}_"
+            f"PoC_{_safe_filename_part(_safe_vulnerability_type_value(self.vulnerability_type), 'unknown')}_"
             f"{_safe_filename_part(self.name)}.t.sol"
         )
         filepath = output_path / filename
@@ -148,7 +153,7 @@ class PoCTemplate:
         """Convert to dictionary."""
         return {
             "name": self.name if isinstance(self.name, str) else "template",
-            "vulnerability_type": self.vulnerability_type.value,
+            "vulnerability_type": _safe_vulnerability_type_value(self.vulnerability_type),
             "target_contract": self.target_contract if isinstance(self.target_contract, str) else "",
             "target_function": _safe_optional_text(self.target_function),
             "finding_id": _safe_optional_text(self.finding_id),

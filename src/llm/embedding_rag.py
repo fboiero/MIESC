@@ -129,6 +129,15 @@ def _coerce_embedding_model_name(value: Any) -> str:
     return text or EmbeddingRAG.DEFAULT_MODEL
 
 
+def _is_indexable_document(value: Any) -> bool:
+    """Return whether a knowledge-base entry is safe for document index payloads."""
+    return (
+        isinstance(value, VulnerabilityDocument)
+        and isinstance(value.id, str)
+        and bool(value.id.strip())
+    )
+
+
 def _collection_metadata_text(collection: Any, key: str) -> Optional[str]:
     """Return a string collection metadata value, or None when malformed."""
     metadata = getattr(collection, "metadata", None)
@@ -4740,6 +4749,9 @@ class EmbeddingRAG:
             return  # Already built
 
         for doc in VULNERABILITY_KNOWLEDGE_BASE:
+            if not _is_indexable_document(doc):
+                logger.warning("Skipping malformed vulnerability document in lookup index")
+                continue
             self._doc_index[doc.id] = doc
 
         logger.debug(f"Built document index with {len(self._doc_index)} entries")
@@ -4957,6 +4969,9 @@ class EmbeddingRAG:
         ids = []
 
         for vuln in VULNERABILITY_KNOWLEDGE_BASE:
+            if not _is_indexable_document(vuln):
+                logger.warning("Skipping malformed vulnerability document during indexing")
+                continue
             documents.append(vuln.to_text())
             metadatas.append(vuln.to_metadata())
             ids.append(vuln.id)

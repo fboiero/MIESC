@@ -3,6 +3,7 @@ Shared provider health helpers for OpenAI-compatible LLM APIs.
 """
 
 import asyncio
+import inspect
 import json
 import logging
 import math
@@ -93,7 +94,8 @@ async def fetch_openai_compatible_model_ids(
                     logger.debug("%s model check failed with status %s", provider_label, status)
                     return set()
 
-                payload = await resp.json()
+                raw_payload = resp.json()
+                payload = await raw_payload if inspect.isawaitable(raw_payload) else raw_payload
                 if not isinstance(payload, dict):
                     logger.debug("%s model check returned malformed JSON body", provider_label)
                     return set()

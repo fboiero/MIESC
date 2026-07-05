@@ -451,6 +451,41 @@ def test_generate_remediation_advice_uses_recommendation_when_unavailable(monkey
     assert advice == "Use checks-effects-interactions"
 
 
+def test_generate_remediation_advice_trims_recommendation_fallback(monkeypatch):
+    helper = OpenLLaMAHelper()
+    monkeypatch.setattr(helper, "is_available", lambda: False)
+
+    advice = helper.generate_remediation_advice(
+        {"recommendation": "\n  Use checks-effects-interactions  \t"},
+        "contract C {}",
+    )
+
+    assert advice == "Use checks-effects-interactions"
+
+
+def test_generate_remediation_advice_caps_oversized_recommendation_fallback(monkeypatch):
+    helper = OpenLLaMAHelper()
+    oversized = "x" * (MAX_REMEDIATION_RESPONSE_CHARS + 100)
+    monkeypatch.setattr(helper, "is_available", lambda: False)
+
+    advice = helper.generate_remediation_advice(
+        {"recommendation": oversized},
+        "contract C {}",
+    )
+
+    assert advice == "x" * MAX_REMEDIATION_RESPONSE_CHARS
+
+
+def test_generate_remediation_advice_defaults_for_blank_recommendation(monkeypatch):
+    helper = OpenLLaMAHelper()
+    monkeypatch.setattr(helper, "is_available", lambda: False)
+
+    assert (
+        helper.generate_remediation_advice({"recommendation": " \n\t "}, "contract C {}")
+        == "Review and address the identified issue"
+    )
+
+
 def test_generate_remediation_advice_defaults_when_recommendation_missing(monkeypatch):
     helper = OpenLLaMAHelper()
     monkeypatch.setattr(helper, "is_available", lambda: False)

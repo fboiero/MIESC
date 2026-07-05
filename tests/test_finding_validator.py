@@ -863,6 +863,27 @@ async def test_validate_findings_batch_preserves_malformed_entries(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_validate_findings_batch_defaults_malformed_exception_finding_id(monkeypatch):
+    validator = LLMFindingValidator(ValidatorConfig(batch_size=1))
+    finding = {"id": ["F-1"], "severity": "high"}
+
+    async def available():
+        return True
+
+    monkeypatch.setattr(validator, "is_available", available)
+
+    async def fail_validate(_finding, _code_context):
+        raise RuntimeError("validation exploded")
+
+    monkeypatch.setattr(validator, "validate_finding", fail_validate)
+
+    validated, validations = await validator.validate_findings_batch([finding])
+
+    assert validated == [finding]
+    assert validations[0].finding_id == "unknown"
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize("findings", [None, {"id": "A"}, "high finding"])
 async def test_validate_findings_batch_rejects_malformed_top_level_container(
     monkeypatch, findings

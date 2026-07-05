@@ -355,6 +355,54 @@ class TestOllamaBackend:
 
         asyncio.run(run_test())
 
+    def test_analyze_rejects_bool_token_counts(self):
+        """Test boolean Ollama token counts cannot cross the response boundary."""
+
+        async def run_test():
+            config = LLMConfig(provider=LLMProvider.OLLAMA, model="codellama")
+            backend = OllamaBackend(config)
+
+            mock_response = MagicMock()
+            mock_response.status = 200
+            mock_response.json = AsyncMock(
+                return_value={
+                    "message": {"content": "{}"},
+                    "eval_count": True,
+                    "prompt_eval_count": 2,
+                }
+            )
+            mock_session = _aiohttp_session_with_response("post", mock_response)
+
+            with patch("aiohttp.ClientSession", return_value=mock_session):
+                with pytest.raises(ValueError, match="token counts must be integers"):
+                    await backend.analyze("prompt")
+
+        asyncio.run(run_test())
+
+    def test_analyze_rejects_negative_token_counts(self):
+        """Test negative Ollama token counts cannot cross the response boundary."""
+
+        async def run_test():
+            config = LLMConfig(provider=LLMProvider.OLLAMA, model="codellama")
+            backend = OllamaBackend(config)
+
+            mock_response = MagicMock()
+            mock_response.status = 200
+            mock_response.json = AsyncMock(
+                return_value={
+                    "message": {"content": "{}"},
+                    "eval_count": -1,
+                    "prompt_eval_count": 2,
+                }
+            )
+            mock_session = _aiohttp_session_with_response("post", mock_response)
+
+            with patch("aiohttp.ClientSession", return_value=mock_session):
+                with pytest.raises(ValueError, match="token counts must be non-negative"):
+                    await backend.analyze("prompt")
+
+        asyncio.run(run_test())
+
 
 class TestOpenAIBackend:
     """Test OpenAIBackend implementation."""

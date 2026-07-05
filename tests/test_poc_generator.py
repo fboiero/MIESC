@@ -334,6 +334,36 @@ class TestPoCTemplate:
 
         assert d["created_at"] == ""
 
+    def test_template_to_dict_defaults_malformed_vulnerability_type(self):
+        """Malformed vulnerability type metadata should not break export."""
+        template = PoCTemplate(
+            name="TestExploit",
+            vulnerability_type=VulnerabilityType.REENTRANCY,
+            solidity_code="// Code",
+            target_contract="Bank.sol",
+            target_function="withdraw",
+        )
+        template.vulnerability_type = {"type": "reentrancy"}
+
+        d = template.to_dict()
+
+        assert d["vulnerability_type"] == "unknown"
+
+    def test_template_save_defaults_malformed_vulnerability_type(self, tmp_path):
+        """Malformed vulnerability types should still produce a safe filename."""
+        template = PoCTemplate(
+            name="TestExploit",
+            vulnerability_type=VulnerabilityType.REENTRANCY,
+            solidity_code="// Code",
+            target_contract="Bank.sol",
+            target_function="withdraw",
+        )
+        template.vulnerability_type = {"type": "reentrancy"}
+
+        saved_path = template.save(tmp_path)
+
+        assert saved_path.name == "PoC_unknown_TestExploit.t.sol"
+
     def test_template_defaults(self):
         """Test template default values."""
         template = PoCTemplate(
