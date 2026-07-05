@@ -15,7 +15,7 @@ import math
 import os
 import time
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
@@ -567,6 +567,16 @@ class LLMOrchestrator:
     def _add_backend(self, config: LLMConfig) -> None:
         """Add a backend based on configuration."""
         backend: LLMBackend
+        if not isinstance(config.model, str) or not config.model.strip():
+            logger.warning(
+                "Ignoring LLM backend with malformed model identity: %r",
+                config.model,
+            )
+            return
+
+        model = config.model.strip()
+        if model != config.model:
+            config = replace(config, model=model)
 
         if config.provider == LLMProvider.OLLAMA:
             backend = OllamaBackend(config)
