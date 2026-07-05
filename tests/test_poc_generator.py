@@ -942,6 +942,12 @@ class TestPrerequisitesAndOutcomes:
 
         assert "unauthorized" in outcome.lower() or "privileged" in outcome.lower()
 
+    def test_get_expected_outcome_defaults_malformed_severity(self, generator):
+        """Test malformed severity values do not affect outcome generation."""
+        outcome = generator._get_expected_outcome(VulnerabilityType.REENTRANCY, ["critical"])
+
+        assert "drain" in outcome.lower() or "fund" in outcome.lower()
+
 
 # =============================================================================
 # Utility Methods Tests
