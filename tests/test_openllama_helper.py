@@ -4,6 +4,7 @@ import subprocess
 from src.llm.openllama_helper import (
     MAX_GENERATE_RESPONSE_BYTES,
     MAX_PRIORITY_RESPONSE_CHARS,
+    MAX_PRIORITY_TEXT_CHARS,
     MAX_REMEDIATION_RESPONSE_CHARS,
     LLMConfig,
     OpenLLaMAHelper,
@@ -866,6 +867,27 @@ def test_parse_priorities_defaults_malformed_priority_payload_fields():
     assert priorities == {
         0: {"priority": 5, "reason": ""},
         1: {"priority": 5, "reason": "bool priority"},
+    }
+
+
+def test_parse_priorities_bounds_priority_reason_text_fields():
+    helper = OpenLLaMAHelper()
+    oversized_reason = "x" * (MAX_PRIORITY_TEXT_CHARS + 10)
+
+    priorities = helper._parse_priorities(
+        json.dumps(
+            {
+                "priorities": [
+                    {"index": 0, "priority": 8, "reason": oversized_reason},
+                    {"index": 1, "priority": 6, "reason": ["not", "text"]},
+                ]
+            }
+        )
+    )
+
+    assert priorities == {
+        0: {"priority": 8, "reason": "x" * MAX_PRIORITY_TEXT_CHARS},
+        1: {"priority": 6, "reason": ""},
     }
 
 
