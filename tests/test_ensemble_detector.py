@@ -1357,6 +1357,21 @@ class TestLLMEnsembleDetectorVoting:
             defaulted
         )
 
+    def test_finding_signature_defaults_negative_line_scalar(self, detector):
+        """Negative line values should not split otherwise matching signature groups."""
+        malformed = {
+            "type": "reentrancy",
+            "location": {"function": "withdraw", "line": -10},
+        }
+        defaulted = {
+            "type": "reentrancy",
+            "location": {"function": "withdraw"},
+        }
+
+        assert detector._create_finding_signature(malformed) == detector._create_finding_signature(
+            defaulted
+        )
+
 
 class TestLLMEnsembleDetectorQueryMethods:
     """Tests for model query methods."""
