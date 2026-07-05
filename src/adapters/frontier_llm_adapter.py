@@ -873,6 +873,39 @@ Respond with a JSON array."""
             prompt = rag_section + "\n" + prompt
         return prompt
 
+    # Approx USD per 1M tokens (input, output). Token COUNTS logged are EXACT
+    # (from the API usage object); only the $ estimate uses this table — update
+    # it when provider prices change.
+    _PRICING = {
+        "gpt-4o": (2.50, 10.00),
+        "gpt-5": (1.25, 10.00),
+        "claude-sonnet-4-6": (3.00, 15.00),
+        "claude-opus": (15.00, 75.00),
+    }
+
+    def _record_usage(self, model: str, in_tok: int, out_tok: int, reasoning_tok: int = 0) -> None:
+        """Log exact token usage + estimated cost; append to a ledger if set.
+
+        Set MIESC_FRONTIER_USAGE_LOG=<path> to accumulate one JSON line per call
+        across subprocesses (the benchmark reads it to report per-audit cost).
+        """
+        pin, pout = next((p for k, p in self._PRICING.items() if model.startswith(k)), (0.0, 0.0))
+        cost = (in_tok * pin + out_tok * pout) / 1_000_000
+        logger.info(
+            "FrontierLLM usage [%s]: in=%d out=%d%s ~$%.4f",
+            model, in_tok, out_tok, f" reasoning={reasoning_tok}" if reasoning_tok else "", cost,
+        )
+        ledger = os.environ.get("MIESC_FRONTIER_USAGE_LOG")
+        if ledger:
+            try:
+                with open(ledger, "a", encoding="utf-8") as f:
+                    f.write(json.dumps({
+                        "model": model, "input_tokens": in_tok, "output_tokens": out_tok,
+                        "reasoning_tokens": reasoning_tok, "cost_usd": round(cost, 6),
+                    }) + "\n")
+            except Exception:  # noqa: BLE001 - ledger is best-effort
+                pass
+
     def _analyze_anthropic(self, source_code: str, **kwargs: Any) -> List[Dict]:
         """Call Anthropic Claude API."""
         import anthropic
@@ -893,6 +926,10 @@ Respond with a JSON array."""
             messages=[{"role": "user", "content": user_prompt}],
         )
 
+        u = getattr(message, "usage", None)
+        if u:
+            self._record_usage(model, getattr(u, "input_tokens", 0) or 0,
+                               getattr(u, "output_tokens", 0) or 0)
         return self._parse_response(getattr(message.content[0], "text", ""))
 
     def _analyze_openai(self, source_code: str, **kwargs: Any) -> List[Dict]:
@@ -931,6 +968,14 @@ Respond with a JSON array."""
             **extra,
         )
 
+        u = getattr(response, "usage", None)
+        if u:
+            reasoning = 0
+            details = getattr(u, "completion_tokens_details", None)
+            if details:
+                reasoning = getattr(details, "reasoning_tokens", 0) or 0
+            self._record_usage(model, getattr(u, "prompt_tokens", 0) or 0,
+                               getattr(u, "completion_tokens", 0) or 0, reasoning)
         return self._parse_response(response.choices[0].message.content)
 
     def _ensure_ollama_model(self, model: str) -> bool:

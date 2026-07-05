@@ -619,6 +619,12 @@ def main():
     # provider (a failed gpt run must NOT return Claude findings).
     if args.model:
         os.environ["MIESC_FRONTIER_NO_FALLBACK"] = "1"
+        # Per-run token/cost ledger: the frontier adapter appends one JSON line
+        # per API call (across the per-audit subprocesses) so we can report cost.
+        RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+        ledger = RESULTS_DIR / f".usage_{args.model}.jsonl"
+        ledger.write_text("")  # truncate for this run
+        os.environ["MIESC_FRONTIER_USAGE_LOG"] = str(ledger)
     audits = load_audits(max_audits=args.max_audits, single_audit=args.audit)
     mode = f"static+{args.model}" if args.model else ("static+LLM" if args.llm else "static")
     print(f"Evaluating MIESC on {len(audits)} EVMBench audits [{mode}]")
@@ -678,6 +684,25 @@ def main():
             "results": results,
         }, f, indent=2)
     print(f"\nResults saved to {output_file}")
+
+    # Token/cost report from the usage ledger (frontier runs only)
+    ledger_path = os.environ.get("MIESC_FRONTIER_USAGE_LOG")
+    if ledger_path and Path(ledger_path).exists():
+        calls = [json.loads(ln) for ln in Path(ledger_path).read_text().splitlines() if ln.strip()]
+        if calls:
+            tin = sum(c["input_tokens"] for c in calls)
+            tout = sum(c["output_tokens"] for c in calls)
+            treason = sum(c.get("reasoning_tokens", 0) for c in calls)
+            tcost = sum(c["cost_usd"] for c in calls)
+            per_audit = tcost / ok_count if ok_count else 0
+            print(f"\n{'='*60}")
+            print("Token / cost report (exact tokens, $ at table prices)")
+            print(f"{'='*60}")
+            print(f"  API calls:     {len(calls)}")
+            print(f"  input tokens:  {tin:,}")
+            print(f"  output tokens: {tout:,}" + (f"  (reasoning: {treason:,})" if treason else ""))
+            print(f"  est. cost:     ${tcost:.2f}   ~${per_audit:.3f}/audit "
+                  f"over {ok_count} audits ({args.runs} runs each)")
 
 
 if __name__ == "__main__":
