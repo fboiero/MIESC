@@ -766,6 +766,8 @@ contract {{CONTRACT_NAME}}ExploitTest is Test {
 
     def _extract_gas_from_output(self, output: str) -> Optional[int]:
         """Extract gas used from forge output."""
+        if not isinstance(output, str):
+            return None
         match = re.search(r"gas:\s*([\d,]+)", output)
         if match:
             return int(match.group(1).replace(",", ""))
