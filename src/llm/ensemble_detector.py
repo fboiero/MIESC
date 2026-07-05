@@ -23,6 +23,7 @@ import json
 import logging
 import math
 import os
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional
@@ -1459,7 +1460,7 @@ Response (JSON array only):"""
     @staticmethod
     def _status_model_list(models: Any) -> List[str]:
         """Return a defensive, serializable model id list for public status."""
-        if not isinstance(models, (list, tuple, set)):
+        if not isinstance(models, (list, tuple, set, Mapping)):
             logger.warning("Ignoring malformed ensemble model status list")
             return []
 
