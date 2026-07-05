@@ -1246,7 +1246,12 @@ Response (JSON array only):"""
         """Return a shallow raw response copy with JSON-object-compatible keys."""
         if not isinstance(finding, dict):
             return {}
-        return {key: value for key, value in finding.items() if isinstance(key, str)}
+        payload = {key: value for key, value in finding.items() if isinstance(key, str)}
+        if "confidence_explanation" in payload and not isinstance(
+            payload["confidence_explanation"], str
+        ):
+            payload.pop("confidence_explanation")
+        return payload
 
     @staticmethod
     def _safe_float(value: Any, default: float) -> float:

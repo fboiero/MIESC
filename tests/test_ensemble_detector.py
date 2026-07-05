@@ -1335,6 +1335,44 @@ class TestLLMEnsembleDetectorVoting:
         assert list(results[0].raw_responses) == ["model1", "model2"]
         assert ("tuple", "key") not in results[0].raw_responses["model1"]
 
+    def test_ensemble_vote_drops_malformed_confidence_explanation_payload(self, detector):
+        """Malformed confidence explanations should not leak container payloads."""
+        detector.consensus_threshold = 2
+
+        findings = {
+            "model1": [
+                {
+                    "type": "reentrancy",
+                    "severity": "high",
+                    "title": "Reentrancy",
+                    "description": "External call before update",
+                    "location": {"function": "withdraw", "line": 10},
+                    "confidence": 0.9,
+                    "confidence_explanation": {"reason": "looks exploitable"},
+                }
+            ],
+            "model2": [
+                {
+                    "type": "reentrancy",
+                    "severity": "high",
+                    "title": "Reentrancy",
+                    "description": "External call before update",
+                    "location": {"function": "withdraw", "line": 11},
+                    "confidence": 0.8,
+                    "confidence_explanation": "Confirmed by external call before update.",
+                }
+            ],
+        }
+
+        results = detector._ensemble_vote(findings)
+
+        assert len(results) == 1
+        assert "confidence_explanation" not in results[0].raw_responses["model1"]
+        assert (
+            results[0].raw_responses["model2"]["confidence_explanation"]
+            == "Confirmed by external call before update."
+        )
+
     def test_weighted_vote_defaults_malformed_model_weights(self, monkeypatch):
         """Bad weight entries should not crash weighted voting."""
         monkeypatch.setattr(
