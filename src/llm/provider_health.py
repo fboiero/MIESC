@@ -137,6 +137,11 @@ def _provider_label(provider_name: Any) -> str:
 def _valid_model_base_url(base_url: str) -> bool:
     """Accept only HTTP(S) provider URLs without embedded credentials."""
     parsed = urlsplit(base_url)
-    return parsed.scheme in {"http", "https"} and bool(parsed.netloc) and not (
-        parsed.username or parsed.password
+    return (
+        parsed.scheme in {"http", "https"}
+        and bool(parsed.netloc)
+        and parsed.path in {"", "/"}
+        and not parsed.query
+        and not parsed.fragment
+        and not (parsed.username or parsed.password)
     )
