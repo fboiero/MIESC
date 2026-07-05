@@ -144,7 +144,7 @@ class PoCTemplate:
         filepath = output_path / filename
 
         with open(filepath, "w", encoding="utf-8") as f:
-            f.write(self.solidity_code)
+            f.write(_normalize_output_text(self.solidity_code))
 
         logger.info(f"PoC saved to {filepath}")
         return filepath
