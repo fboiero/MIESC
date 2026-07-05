@@ -411,9 +411,14 @@ class FoundryRunner:
         if error:
             validation["errors"].append(error)
 
-        if result.total_gas > 10_000_000:
+        total_gas = (
+            result.total_gas
+            if isinstance(result.total_gas, int) and not isinstance(result.total_gas, bool)
+            else 0
+        )
+        if total_gas > 10_000_000:
             validation["warnings"].append(
-                f"High gas usage ({result.total_gas:,}) may indicate inefficient exploit"
+                f"High gas usage ({total_gas:,}) may indicate inefficient exploit"
             )
 
         return validation
