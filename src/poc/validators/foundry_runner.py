@@ -133,9 +133,13 @@ class FoundryRunner:
         if self.gas_report:
             cmd.append("--gas-report")
 
-        if self.fork_url:
+        if isinstance(self.fork_url, str) and self.fork_url:
             cmd.extend(["--fork-url", self.fork_url])
-            if self.fork_block:
+            if (
+                isinstance(self.fork_block, int)
+                and not isinstance(self.fork_block, bool)
+                and self.fork_block > 0
+            ):
                 cmd.extend(["--fork-block-number", str(self.fork_block)])
 
         cmd.append("--json")

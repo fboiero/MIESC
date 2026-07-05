@@ -278,6 +278,21 @@ class TestFoundryCommandBuilders:
         assert "18500000" in cmd
         assert cmd[-1] == "--json"
 
+    def test_build_run_test_command_ignores_malformed_fork_options(self, tmp_path):
+        """Malformed fork options are ignored before command construction."""
+        with patch.object(FoundryRunner, "_check_foundry_installation"):
+            runner = FoundryRunner(
+                project_dir=tmp_path,
+                fork_url={"url": "bad"},
+                fork_block=["18500000"],
+            )
+
+        cmd = runner._build_run_test_command("test/Bank.t.sol")
+
+        assert "--fork-url" not in cmd
+        assert "--fork-block-number" not in cmd
+        assert cmd[-1] == "--json"
+
     def test_build_run_all_tests_command_without_dir_omits_match_path(self, runner):
         """All-test commands do not restrict path unless a directory is provided."""
         cmd = runner._build_run_all_tests_command()
