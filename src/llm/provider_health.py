@@ -12,6 +12,7 @@ from typing import Any, Set
 import aiohttp
 
 logger = logging.getLogger(__name__)
+MAX_MODEL_ID_CHARS = 200
 
 PROVIDER_HEALTH_ERRORS = (
     aiohttp.ClientError,
@@ -47,7 +48,10 @@ def extract_openai_compatible_model_ids(payload: Any) -> Set[str]:
 
 def _model_id_text(value: Any) -> str:
     """Return model identifiers only from scalar text fields."""
-    return value.strip() if isinstance(value, str) and value.strip() else ""
+    model_id = value.strip() if isinstance(value, str) else ""
+    if not model_id or len(model_id) > MAX_MODEL_ID_CHARS:
+        return ""
+    return model_id
 
 
 async def fetch_openai_compatible_model_ids(

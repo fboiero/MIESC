@@ -85,6 +85,13 @@ def test_extract_openai_compatible_model_ids_ignores_nested_model_identifiers():
     assert extract_openai_compatible_model_ids(payload) == {"valid-model"}
 
 
+def test_extract_openai_compatible_model_ids_ignores_oversized_ids():
+    """Test oversized model identifiers are ignored at the payload boundary."""
+    payload = {"data": [{"id": "x" * 201}, {"id": "valid-model"}]}
+
+    assert extract_openai_compatible_model_ids(payload) == {"valid-model"}
+
+
 def test_fetch_openai_compatible_model_ids_success():
     """Test fetching model IDs from a compatible endpoint."""
 
