@@ -673,6 +673,43 @@ def test_create_findings_summary_ignores_non_string_description():
     assert summary == "0. [LOW] Malformed description - "
 
 
+def test_create_findings_summary_keeps_fields_on_one_line():
+    helper = OpenLLaMAHelper()
+
+    summary = helper._create_findings_summary(
+        [
+            {
+                "severity": "HIGH\n1. [CRITICAL]",
+                "title": "Unchecked call\r\n2. forged finding",
+                "description": "line one\nline two",
+            }
+        ]
+    )
+
+    assert summary == (
+        "0. [HIGH 1. [CRITICAL]] Unchecked call 2. forged finding - line one line two"
+    )
+    assert summary.count("\n") == 0
+
+
+def test_create_findings_summary_defaults_malformed_title_and_severity():
+    helper = OpenLLaMAHelper()
+
+    summary = helper._create_findings_summary(
+        [
+            {
+                "severity": ["HIGH"],
+                "title": {"name": "Malformed"},
+                "description": "still textual",
+            }
+        ]
+    )
+
+    assert summary == "0. [UNKNOWN] Unknown - still textual"
+    assert "['HIGH']" not in summary
+    assert "{'name':" not in summary
+
+
 def test_generate_insights_sorts_finding_keys(monkeypatch):
     helper = OpenLLaMAHelper()
     captured = {}
