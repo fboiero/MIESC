@@ -341,6 +341,31 @@ class TestRelevantKnowledgeDispatch:
 
 
 class TestEmbeddingRAGCustomVulnerabilityShapes:
+    @pytest.mark.parametrize("bad_model", ["", "   ", None, ["bad-model"]])
+    def test_malformed_embedding_model_config_uses_default_before_initialization(
+        self,
+        tmp_path,
+        bad_model,
+    ):
+        rag = EmbeddingRAG(
+            persist_directory=str(tmp_path),
+            embedding_model=bad_model,  # type: ignore[arg-type]
+        )
+
+        assert rag.embedding_model_name == EmbeddingRAG.DEFAULT_MODEL
+        assert rag._collection_metadata()["embedding_model"] == EmbeddingRAG.DEFAULT_MODEL
+        assert rag._initialized is False
+
+    def test_embedding_model_config_strips_bytes_before_initialization(self, tmp_path):
+        rag = EmbeddingRAG(
+            persist_directory=str(tmp_path),
+            embedding_model=b"  all-mpnet-base-v2  ",  # type: ignore[arg-type]
+        )
+
+        assert rag.embedding_model_name == "all-mpnet-base-v2"
+        assert rag._collection_metadata()["embedding_model"] == "all-mpnet-base-v2"
+        assert rag._initialized is False
+
     def test_rejects_non_document_before_index_or_cache_mutation(self, tmp_path):
         rag = _UninitializedEmbeddingRAG(persist_directory=str(tmp_path))
         rag._embedder = _ExplodingEmbedder()

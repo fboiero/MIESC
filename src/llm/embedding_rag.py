@@ -115,6 +115,19 @@ def _coerce_cache_ttl_seconds(value: Any) -> int:
     return ttl
 
 
+def _coerce_embedding_model_name(value: Any) -> str:
+    """Return a non-empty sentence-transformers model name."""
+    if isinstance(value, bytes):
+        text = value.decode("utf-8", errors="replace")
+    elif isinstance(value, str):
+        text = value
+    else:
+        return EmbeddingRAG.DEFAULT_MODEL
+
+    text = text.strip()
+    return text or EmbeddingRAG.DEFAULT_MODEL
+
+
 def _similarity_from_distance(distance: Any) -> float:
     """Convert a loose Chroma distance value to a bounded similarity score."""
     try:
@@ -4580,7 +4593,7 @@ class EmbeddingRAG:
             enable_cache: Enable query result caching (default: True).
         """
         self.top_k = _coerce_result_count(top_k, self.DEFAULT_TOP_K)
-        self.embedding_model_name = embedding_model
+        self.embedding_model_name = _coerce_embedding_model_name(embedding_model)
         self.enable_cache = enable_cache
 
         # Set up persistence directory
@@ -4605,7 +4618,8 @@ class EmbeddingRAG:
         self._cache_misses = 0
 
         logger.debug(
-            f"EmbeddingRAG configured with model={embedding_model}, top_k={top_k}, cache={enable_cache}"
+            f"EmbeddingRAG configured with model={self.embedding_model_name}, "
+            f"top_k={self.top_k}, cache={enable_cache}"
         )
 
     def _ensure_initialized(self) -> None:
