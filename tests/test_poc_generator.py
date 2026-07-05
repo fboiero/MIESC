@@ -244,6 +244,20 @@ class TestPoCTemplate:
         content = saved_path.read_text(encoding="utf-8")
         assert "SPDX-License-Identifier" in content
 
+    @pytest.mark.parametrize("output_dir", [None, {"path": "bad"}, "  "])
+    def test_template_save_rejects_malformed_output_dir(self, output_dir):
+        """Malformed output dirs are rejected before Path coercion."""
+        template = PoCTemplate(
+            name="TestExploit",
+            vulnerability_type=VulnerabilityType.REENTRANCY,
+            solidity_code="// SPDX-License-Identifier: MIT\ncontract Test {}",
+            target_contract="Bank.sol",
+            target_function="withdraw",
+        )
+
+        with pytest.raises(ValueError, match="Malformed PoC output directory"):
+            template.save(output_dir)
+
     def test_template_to_dict(self):
         """Test converting template to dictionary."""
         template = PoCTemplate(

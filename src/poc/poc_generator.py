@@ -98,6 +98,10 @@ class PoCTemplate:
         Returns:
             Path to saved file
         """
+        if not isinstance(output_dir, (str, Path)):
+            raise ValueError("Malformed PoC output directory")
+        if isinstance(output_dir, str) and not output_dir.strip():
+            raise ValueError("Malformed PoC output directory")
         output_path = Path(output_dir)
         output_path.mkdir(parents=True, exist_ok=True)
 
