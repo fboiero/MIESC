@@ -878,6 +878,32 @@ class TestParseOutput:
             == []
         )
 
+    def test_parse_json_test_results_accepts_known_string_statuses(self, runner):
+        """Test explicit Forge status strings normalize without accepting arbitrary text."""
+        tests = runner._parse_test_results(
+            {
+                "test_results": {
+                    "test/Mixed.t.sol:MixedTest": {
+                        "test_pass": {"success": " passed "},
+                        "test_fail": {"success": "FAILED"},
+                        "test_skip": {"success": "skipped"},
+                        "test_bad": {"success": "maybe"},
+                    },
+                }
+            }
+        )
+
+        assert [test.name for test in tests] == [
+            "test/Mixed.t.sol:MixedTest::test_pass",
+            "test/Mixed.t.sol:MixedTest::test_fail",
+            "test/Mixed.t.sol:MixedTest::test_skip",
+        ]
+        assert [test.status for test in tests] == [
+            TestStatus.PASSED,
+            TestStatus.FAILED,
+            TestStatus.SKIPPED,
+        ]
+
     def test_parse_forge_output_ignores_malformed_json_gas(self, runner):
         """Test malformed JSON gas values do not break total gas aggregation."""
         output = (
