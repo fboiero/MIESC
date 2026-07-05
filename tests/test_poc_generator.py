@@ -1069,6 +1069,14 @@ class TestPoCRunMethod:
         assert result.error == ""
         assert "{'error': 'bad'}" not in result.output
 
+    def test_run_rejects_malformed_poc_template(self, generator, tmp_path):
+        """Test malformed PoC template objects are rejected before save()."""
+        result = generator.run({"name": "bad"}, tmp_path, verbose=False)
+
+        assert result.success is False
+        assert result.output == ""
+        assert result.error == "Malformed PoC template"
+
     def test_run_timeout(self, generator, sample_poc, tmp_path):
         """Test PoC run timeout (lines 362-368)."""
         import subprocess
