@@ -474,7 +474,7 @@ class FoundryRunner:
             failed=failed,
             skipped=skipped,
             total_gas=total_gas,
-            execution_time_ms=execution_time,
+            execution_time_ms=self._normalize_execution_time(execution_time),
             raw_output=stdout + stderr,
             forge_version=forge_version,
             error=stderr if normalized_returncode != 0 else None,
@@ -494,6 +494,14 @@ class FoundryRunner:
         combined_output = "".join(self._normalize_output_text(output) for output in outputs)
         version_match = re.search(r"\bforge (\d+\.\d+\.\d+)\b", combined_output)
         return version_match.group(1) if version_match else None
+
+    @staticmethod
+    def _normalize_execution_time(value: Any) -> float:
+        """Normalize execution timings without trusting malformed subprocess metadata."""
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            return 0.0
+        execution_time = float(value)
+        return execution_time if math.isfinite(execution_time) and execution_time >= 0 else 0.0
 
     def _parse_test_results(self, data: Dict[str, Any]) -> List[TestResult]:
         """Parse test results from JSON data."""
