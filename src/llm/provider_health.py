@@ -64,6 +64,9 @@ def _model_list(payload: dict[str, Any]) -> Any:
         nested_models = models.get("models")
         if isinstance(nested_models, list):
             return nested_models
+        nested_model = models.get("model")
+        if isinstance(nested_model, list):
+            return nested_model
     return None
 
 
