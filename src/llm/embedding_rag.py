@@ -89,6 +89,20 @@ def _coerce_batch_queries(value: Any) -> List[Any]:
     return []
 
 
+def _coerce_batch_query_text(value: Any) -> Tuple[bool, str]:
+    """Return one safe batch query text, marking entries that cannot be coerced."""
+    if isinstance(value, str):
+        return True, value
+    if isinstance(value, bytes):
+        return True, value.decode("utf-8", errors="replace")
+    if value is None:
+        return True, ""
+    try:
+        return True, str(value)
+    except Exception:
+        return False, ""
+
+
 def _coerce_filter_text(value: Any) -> Optional[str]:
     """Return safe scalar metadata filter text, or no filter for malformed values."""
     text = _coerce_query_text(value).strip() if isinstance(value, (str, bytes)) else ""
@@ -5186,24 +5200,30 @@ class EmbeddingRAG:
         if not query_batch:
             return []
 
-        self._ensure_initialized()
-
         n = _coerce_result_count(n_results, self.top_k)
         category_filter = _coerce_filter_text(filter_category)
         severity_filter = _coerce_filter_text(filter_severity)
 
         # Deduplicate queries while preserving order mapping
-        unique_queries: List[Any] = []
+        unique_queries: List[str] = []
         query_to_index: Dict[str, int] = {}
-        original_to_unique: List[int] = []
+        original_to_unique: List[Optional[int]] = []
 
         for q in query_batch:
-            query_text = _coerce_query_text(q)
+            is_valid_query, query_text = _coerce_batch_query_text(q)
+            if not is_valid_query:
+                original_to_unique.append(None)
+                continue
             q_normalized = query_text[:200]  # Truncate for comparison
             if q_normalized not in query_to_index:
                 query_to_index[q_normalized] = len(unique_queries)
                 unique_queries.append(query_text)
             original_to_unique.append(query_to_index[q_normalized])
+
+        if not unique_queries:
+            return [[] for _ in query_batch]
+
+        self._ensure_initialized()
 
         logger.debug(f"Batch search: {len(query_batch)} queries -> {len(unique_queries)} unique")
 
@@ -5273,7 +5293,10 @@ class EmbeddingRAG:
                 cached_results[unique_idx] = retrieval_results
 
         # Map back to original query order
-        return [cached_results[original_to_unique[i]] for i in range(len(query_batch))]
+        return [
+            cached_results[unique_idx] if unique_idx is not None else []
+            for unique_idx in original_to_unique
+        ]
 
     def search_by_finding(
         self,

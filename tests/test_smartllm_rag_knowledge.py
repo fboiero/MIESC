@@ -905,6 +905,34 @@ class TestEmbeddingRAGSearchBoundaryShapes:
             [],
         ]
 
+    def test_batch_search_skips_unstringifiable_query_entries(self, tmp_path):
+        vulnerability = VulnerabilityDocument(
+            id="CUSTOM-BATCH-QUERY",
+            title="Batch Query Boundary",
+            description="Custom vulnerability description",
+        )
+        collection = _MalformedSearchCollection(
+            {
+                "ids": [["CUSTOM-BATCH-QUERY"]],
+                "distances": [[0.2]],
+            }
+        )
+        rag = EmbeddingRAG(persist_directory=str(tmp_path), enable_cache=False)
+        rag._initialized = True
+        rag._collection = collection
+        rag._doc_index = {"CUSTOM-BATCH-QUERY": vulnerability}
+
+        results = rag.batch_search(
+            ["batch", _ExplodingStringValue()],
+            n_results=1,
+        )
+
+        assert collection.query_texts == ["batch"]
+        assert [[result.document.id for result in row] for row in results] == [
+            ["CUSTOM-BATCH-QUERY"],
+            [],
+        ]
+
     def test_batch_search_skips_present_malformed_document_metadata_rows(self, tmp_path):
         first = VulnerabilityDocument(
             id="CUSTOM-BATCH-ALIGNED",

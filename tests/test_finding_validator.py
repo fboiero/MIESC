@@ -378,7 +378,7 @@ def test_parse_response_defaults_malformed_confidence():
     assert validation.reasoning == "Confirmed."
 
 
-@pytest.mark.parametrize("confidence", ['"nan"', '"inf"', -0.1, 1.5])
+@pytest.mark.parametrize("confidence", ['"nan"', '"inf"', -0.1, 1.5, "true", "false"])
 def test_parse_response_defaults_non_finite_or_out_of_range_confidence(confidence):
     validator = LLMFindingValidator(ValidatorConfig())
     response = f'{{"result": "valid", "confidence": {confidence}, "reasoning": "Confirmed."}}'

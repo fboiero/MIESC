@@ -461,6 +461,32 @@ def test_prioritize_findings_defaults_out_of_range_parsed_priorities(monkeypatch
     assert findings[2]["llm_reason"] == "valid"
 
 
+def test_prioritize_findings_sanitizes_malformed_contract_prompt(monkeypatch):
+    helper = OpenLLaMAHelper()
+    findings = [{"title": "A", "severity": "LOW"}]
+    captured = {}
+
+    monkeypatch.setattr(helper, "is_available", lambda: True)
+
+    def fake_call_llm(prompt):
+        captured["prompt"] = prompt
+        return "priorities"
+
+    monkeypatch.setattr(helper, "_call_llm", fake_call_llm)
+    monkeypatch.setattr(
+        helper,
+        "_parse_priorities",
+        lambda response: {0: {"priority": 6, "reason": "reachable"}},
+    )
+
+    result = helper.prioritize_findings(findings, {"source": "contract C {}"})
+
+    assert result is findings
+    assert findings[0]["llm_priority"] == 6
+    assert "CONTRACT CONTEXT:\n  # First 1000 chars" in captured["prompt"]
+    assert "{'source':" not in captured["prompt"]
+
+
 def test_generate_remediation_advice_uses_recommendation_when_unavailable(monkeypatch):
     helper = OpenLLaMAHelper()
     monkeypatch.setattr(helper, "is_available", lambda: False)

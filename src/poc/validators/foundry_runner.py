@@ -552,6 +552,14 @@ class FoundryRunner:
             return TestStatus.PASSED
         if value is False:
             return TestStatus.FAILED
+        if isinstance(value, str):
+            status = value.strip().lower()
+            if status in {"pass", "passed", "success"}:
+                return TestStatus.PASSED
+            if status in {"fail", "failed", "failure"}:
+                return TestStatus.FAILED
+            if status in {"skip", "skipped"}:
+                return TestStatus.SKIPPED
         return None
 
     @staticmethod

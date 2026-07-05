@@ -997,6 +997,21 @@ class TestLLMOrchestrator:
         selected = orchestrator.select_model_for_task("unknown_task")
         assert selected == "ollama:test"
 
+    def test_select_model_fallback_skips_malformed_backend_status(self):
+        """Test model selection fallback keeps malformed status out of metrics boundary."""
+        configs = [
+            LLMConfig(provider=LLMProvider.OLLAMA, model="primary"),
+            LLMConfig(provider=LLMProvider.ANTHROPIC, model="healthy", api_key="key"),
+        ]
+        orchestrator = LLMOrchestrator(configs)
+        orchestrator.backends["ollama:primary"].available = {"available": True}
+        orchestrator.backends["anthropic:healthy"].available = True
+
+        selected = orchestrator.select_model_for_task("vulnerability_detection")
+
+        assert selected == "anthropic:healthy"
+        assert orchestrator.backends["ollama:primary"].available is False
+
     def test_get_available_providers(self):
         """Test getting available providers."""
         configs = [

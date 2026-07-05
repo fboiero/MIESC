@@ -30,9 +30,7 @@ def extract_openai_compatible_model_ids(payload: Any) -> Set[str]:
     if not isinstance(payload, dict):
         return set()
 
-    models = payload.get("data")
-    if not isinstance(models, list):
-        models = payload.get("models")
+    models = _model_list(payload)
     if not isinstance(models, list):
         return set()
 
@@ -45,6 +43,21 @@ def extract_openai_compatible_model_ids(payload: Any) -> Set[str]:
             continue
         model_ids.add(model_id)
     return model_ids
+
+
+def _model_list(payload: dict[str, Any]) -> Any:
+    """Return supported OpenAI-compatible model list aliases."""
+    models = payload.get("data")
+    if isinstance(models, list):
+        return models
+    models = payload.get("models")
+    if isinstance(models, list):
+        return models
+    if isinstance(models, dict):
+        nested_data = models.get("data")
+        if isinstance(nested_data, list):
+            return nested_data
+    return None
 
 
 def _model_id_text(value: Any) -> str:
