@@ -163,6 +163,7 @@ class LLMEnsembleDetector:
     DEFAULT_TIMEOUT = 120
     DEFAULT_TEMPERATURE = 0.1
     MAX_TEMPERATURE = 2.0
+    VALID_SEVERITIES = frozenset({"critical", "high", "medium", "low", "info"})
 
     # Model weights based on code analysis expertise
     MODEL_WEIGHTS = {
@@ -1169,7 +1170,7 @@ Response (JSON array only):"""
                 validated.append(
                     EnsembleFinding(
                         type=vuln_type,
-                        severity=self._safe_text(finding.get("severity"), "medium").lower(),
+                        severity=self._safe_severity(finding.get("severity")),
                         title=self._safe_text(finding.get("title"), vuln_type),
                         description=self._safe_text(finding.get("description"), ""),
                         location=self._safe_location(finding.get("location")),
@@ -1282,6 +1283,14 @@ Response (JSON array only):"""
         if isinstance(value, str):
             return value
         return default
+
+    @classmethod
+    def _safe_severity(cls, value: Any) -> str:
+        """Return a normalized known severity, defaulting malformed labels."""
+        severity = cls._safe_text(value, "").strip().lower()
+        if severity in cls.VALID_SEVERITIES:
+            return severity
+        return "medium"
 
     @staticmethod
     def _safe_int(value: Any, default: int) -> int:

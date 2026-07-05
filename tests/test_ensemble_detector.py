@@ -1131,6 +1131,40 @@ class TestLLMEnsembleDetectorVoting:
         assert "{" not in results[0].title
         assert "[" not in results[0].description
 
+    def test_ensemble_vote_defaults_malformed_severity_signature_boundary(self, detector):
+        """Malformed severity labels should not split votes or leak to output."""
+        detector.consensus_threshold = 2
+
+        findings = {
+            "model1": [
+                {
+                    "type": "reentrancy",
+                    "severity": "critical/high",
+                    "title": "Reentrancy",
+                    "description": "External call before update",
+                    "location": {"function": "withdraw", "line": 10},
+                    "confidence": 0.9,
+                }
+            ],
+            "model2": [
+                {
+                    "type": "reentrancy",
+                    "severity": "HIGH",
+                    "title": "Reentrancy",
+                    "description": "External call before update",
+                    "location": {"function": "withdraw", "line": 11},
+                    "confidence": 0.8,
+                }
+            ],
+        }
+
+        results = detector._ensemble_vote(findings)
+
+        assert len(results) == 1
+        assert results[0].votes == 2
+        assert results[0].severity == "medium"
+        assert results[0].supporting_models == ["model1", "model2"]
+
     def test_ensemble_vote_defaults_nonfinite_and_out_of_range_confidence(self, detector):
         """Malformed confidence values should not leak into aggregate confidence."""
         detector.consensus_threshold = 1
