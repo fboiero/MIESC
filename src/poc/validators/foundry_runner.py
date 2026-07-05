@@ -103,8 +103,12 @@ class FoundryRunner:
         if isinstance(project_dir, str) and not project_dir.strip():
             raise ValueError("Malformed Foundry project directory")
         self.project_dir = Path(project_dir)
-        self.fork_url = fork_url
-        self.fork_block = fork_block
+        self.fork_url = fork_url.strip() if isinstance(fork_url, str) and fork_url.strip() else None
+        self.fork_block = (
+            fork_block
+            if not isinstance(fork_block, bool) and isinstance(fork_block, int) and fork_block > 0
+            else None
+        )
         self.verbosity = (
             verbosity
             if not isinstance(verbosity, bool) and isinstance(verbosity, int) and 1 <= verbosity <= 5
