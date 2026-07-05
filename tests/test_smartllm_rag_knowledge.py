@@ -164,6 +164,11 @@ class _ExplodingStringValue:
         raise AssertionError("Malformed cache query should not be stringified")
 
 
+class _ExplodingFloatValue:
+    def __float__(self):
+        raise RuntimeError("Malformed distance should not abort result conversion")
+
+
 # ---------------------------------------------------------------------------
 # detect_contract_type
 # ---------------------------------------------------------------------------
@@ -678,6 +683,29 @@ class TestEmbeddingRAGSearchBoundaryShapes:
         assert scores_by_id["CUSTOM-NEG-INF"] < 0.3
         assert scores_by_id["CUSTOM-NEGATIVE-DISTANCE"] > 0.9
 
+    def test_search_bounds_malformed_distance_score_objects(self, tmp_path):
+        vulnerability = VulnerabilityDocument(
+            id="CUSTOM-BAD-DISTANCE",
+            title="Malformed Distance Object Boundary",
+            description="Custom vulnerability description",
+        )
+        collection = _MalformedSearchCollection(
+            {
+                "ids": [["CUSTOM-BAD-DISTANCE"]],
+                "distances": [[_ExplodingFloatValue()]],
+            }
+        )
+        rag = EmbeddingRAG(persist_directory=str(tmp_path))
+        rag._initialized = True
+        rag._collection = collection
+        rag._doc_index = {"CUSTOM-BAD-DISTANCE": vulnerability}
+
+        results = rag.search("distance score boundary", n_results=1)
+
+        assert [result.document.id for result in results] == ["CUSTOM-BAD-DISTANCE"]
+        assert math.isfinite(results[0].similarity_score)
+        assert 0.0 <= results[0].similarity_score < 0.3
+
     @pytest.mark.parametrize("score", [float("nan"), float("inf"), float("-inf"), -0.5])
     def test_rank_result_bounds_non_finite_and_negative_scores(self, tmp_path, score):
         vulnerability = VulnerabilityDocument(
@@ -986,6 +1014,31 @@ class TestEmbeddingRAGSearchBoundaryShapes:
             ["CUSTOM-BATCH-QUERY"],
             [],
         ]
+
+    def test_batch_search_bounds_malformed_distance_score_objects(self, tmp_path):
+        vulnerability = VulnerabilityDocument(
+            id="CUSTOM-BATCH-BAD-DISTANCE",
+            title="Batch Malformed Distance Boundary",
+            description="Custom vulnerability description",
+        )
+        collection = _MalformedSearchCollection(
+            {
+                "ids": [["CUSTOM-BATCH-BAD-DISTANCE"]],
+                "distances": [[_ExplodingFloatValue()]],
+            }
+        )
+        rag = EmbeddingRAG(persist_directory=str(tmp_path), enable_cache=False)
+        rag._initialized = True
+        rag._collection = collection
+        rag._doc_index = {"CUSTOM-BATCH-BAD-DISTANCE": vulnerability}
+
+        results = rag.batch_search(["distance score boundary"], n_results=1)
+
+        assert [[result.document.id for result in row] for row in results] == [
+            ["CUSTOM-BATCH-BAD-DISTANCE"]
+        ]
+        assert math.isfinite(results[0][0].similarity_score)
+        assert 0.0 <= results[0][0].similarity_score < 0.3
 
     def test_batch_search_skips_present_malformed_document_metadata_rows(self, tmp_path):
         first = VulnerabilityDocument(
