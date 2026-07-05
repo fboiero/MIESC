@@ -23,6 +23,7 @@ import math
 import re
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
+from urllib.parse import urlparse
 
 import aiohttp
 
@@ -34,6 +35,10 @@ from src.security.llm_output_validator import (
 _EXPORT_PATH_CONTROL_RE = re.compile(r"[\x00-\x1f\x7f]")
 _EXPORT_WINDOWS_DRIVE_RE = re.compile(r"^[A-Za-z]:")
 _EXPORT_DIFF_HUNK_RE = re.compile(r"^@@ -\d+(?:,\d+)? \+\d+(?:,\d+)? @@(?: .*)?$")
+_EXPORT_REFERENCE_CONTROL_RE = re.compile(r"[\x00-\x1f\x7f]")
+_EXPORT_REFERENCE_URL_RE = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*://|^www\.", re.IGNORECASE)
+_EXPORT_REFERENCE_SCHEME_RE = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:")
+_EXPORT_MARKDOWN_LINK_RE = re.compile(r"^\[([^\]\x00-\x1f\x7f]+)\]\(([^()\s\x00-\x1f\x7f]+)\)$")
 
 
 def _export_string(value: Any, default: str) -> str:
@@ -120,6 +125,63 @@ def _export_string_list(value: Any) -> List[str]:
     if not isinstance(value, list):
         return []
     return [item.strip() for item in value if isinstance(item, str) and item.strip()]
+
+
+def _export_reference_url(value: str) -> Optional[str]:
+    """Return a safe HTTP(S) reference URL."""
+    if _EXPORT_REFERENCE_CONTROL_RE.search(value) or any(char.isspace() for char in value):
+        return None
+
+    parsed = urlparse(value)
+    if parsed.scheme.lower() not in {"http", "https"} or not parsed.netloc:
+        return None
+
+    if parsed.username or parsed.password or not parsed.hostname:
+        return None
+
+    return value
+
+
+def _export_reference(value: Any) -> Optional[str]:
+    """Return a safe exported remediation reference."""
+    normalized = _export_optional_string(value)
+    if normalized is None or _EXPORT_REFERENCE_CONTROL_RE.search(normalized):
+        return None
+
+    markdown_link = _EXPORT_MARKDOWN_LINK_RE.fullmatch(normalized)
+    if markdown_link:
+        label = markdown_link.group(1).strip()
+        url = _export_reference_url(markdown_link.group(2))
+        if label and url is not None:
+            return f"[{label}]({url})"
+        return None
+
+    if "](" in normalized or normalized.startswith("["):
+        return None
+
+    if _EXPORT_REFERENCE_URL_RE.match(normalized) or _EXPORT_REFERENCE_SCHEME_RE.match(normalized):
+        return _export_reference_url(normalized)
+
+    if "<" in normalized or ">" in normalized:
+        return None
+
+    return normalized
+
+
+def _export_reference_list(value: Any) -> List[str]:
+    """Return safe remediation references without malformed links or URLs."""
+    if not isinstance(value, list):
+        return []
+
+    exported = []
+    seen = set()
+    for item in value:
+        reference = _export_reference(item)
+        if reference is None or reference in seen:
+            continue
+        seen.add(reference)
+        exported.append(reference)
+    return exported
 
 
 def _export_unique_string_list(value: Any) -> List[str]:
@@ -255,7 +317,7 @@ class Remediation:
             "explanation": _export_explanation(self.explanation),
             "changes_summary": _export_string_list(self.changes_summary),
             "test_suggestions": _export_unique_string_list(self.test_suggestions),
-            "references": _export_string_list(self.references),
+            "references": _export_reference_list(self.references),
             "confidence": _export_confidence(self.confidence),
             "affected_lines": _export_positive_int_list(self.affected_lines),
             "pattern_used": _export_optional_string(self.pattern_used),
