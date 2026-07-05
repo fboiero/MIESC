@@ -956,6 +956,7 @@ class TestUtilityMethods:
 
         assert isinstance(types, list)
         assert len(types) == 16
+        assert len(types) == len(set(types))
         assert "reentrancy" in types
         assert "flash_loan" in types
 

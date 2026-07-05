@@ -785,7 +785,14 @@ contract {{CONTRACT_NAME}}ExploitTest is Test {
 
     def get_supported_types(self) -> List[str]:
         """Get list of supported vulnerability types."""
-        return [vt.value for vt in VulnerabilityType]
+        supported_types = []
+        seen = set()
+        for vuln_type in VulnerabilityType:
+            value = _safe_vulnerability_type_value(vuln_type)
+            if value != "unknown" and value not in seen:
+                supported_types.append(value)
+                seen.add(value)
+        return supported_types
 
     def get_template_info(self) -> Dict[str, Any]:
         """Get information about available templates."""
