@@ -362,7 +362,12 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
                 )
 
             # Map result string to enum
-            result_str = str(data.get("result", "")).lower()
+            result_value = data.get("result", "")
+            result_str = (
+                result_value.strip().lower().replace("-", "_")
+                if isinstance(result_value, str)
+                else ""
+            )
             result_map = {
                 "valid": ValidationResult.VALID,
                 "likely_valid": ValidationResult.LIKELY_VALID,
