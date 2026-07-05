@@ -431,6 +431,19 @@ def test_parse_response_strips_blank_optional_text_fields():
     assert validation.remediation_hint is None
 
 
+def test_parse_response_ignores_unknown_suggested_severity():
+    validator = LLMFindingValidator(ValidatorConfig())
+    response = (
+        '{"result": "valid", "confidence": 0.8, "reasoning": "Confirmed.", '
+        '"suggested_severity": "urgent"}'
+    )
+
+    validation = validator._parse_response(response, "F-5g")
+
+    assert validation.result == ValidationResult.VALID
+    assert validation.suggested_severity is None
+
+
 def test_parse_response_bounds_reasoning_text():
     validator = LLMFindingValidator(ValidatorConfig())
     response = '{"result": "valid", "confidence": 0.8, "reasoning": "' + ("x" * 2500) + '"}'
