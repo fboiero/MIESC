@@ -196,8 +196,10 @@ def run_miesc_scan(sol_files, output_path, llm_enhance=False, repo_dir=None, fro
                         and "/interface" not in f.lower()]
         if source_files:
             import tempfile as _tf
-            # Budget: ~100KB max concat (fits in Claude's context with room for prompt)
-            MAX_CONCAT_BYTES = 100_000
+            # Budget: ~100KB max concat by default (fits gpt-4o / low-TPM tiers).
+            # Override with MIESC_CONCAT_MAX_BYTES to send full contracts to a
+            # large-context model (e.g. Claude 200k) for an untruncated evaluation.
+            MAX_CONCAT_BYTES = int(os.environ.get("MIESC_CONCAT_MAX_BYTES", "100000"))
             # Sort by size descending, take the most important files first
             source_files_sized = sorted(source_files, key=lambda f: os.path.getsize(f), reverse=True)
             # Skip pure interface files (I*.sol) and keep implementation files
@@ -209,12 +211,17 @@ def run_miesc_scan(sol_files, output_path, llm_enhance=False, repo_dir=None, fro
             total_written = 0
             files_included = 0
             for sf in impl_files:
-                file_size = os.path.getsize(sf)
-                if total_written + file_size > MAX_CONCAT_BYTES and files_included > 0:
+                if total_written >= MAX_CONCAT_BYTES:
                     break
                 concat.write(f"// ===== FILE: {Path(sf).name} =====\n")
                 try:
                     content = open(sf).read()
+                    # Hard cap: truncate any file (even a single huge one) to the
+                    # remaining budget so the concat never overflows the model's
+                    # context / rate-limit window.
+                    remaining = MAX_CONCAT_BYTES - total_written
+                    if len(content) > remaining:
+                        content = content[:remaining] + "\n// ...(truncated to fit context budget)\n"
                     concat.write(content)
                     total_written += len(content)
                     files_included += 1

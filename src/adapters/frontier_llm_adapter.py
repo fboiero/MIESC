@@ -921,7 +921,7 @@ Respond with a JSON array."""
 
         message = client.messages.create(
             model=model,
-            max_tokens=4096,
+            max_tokens=8192,  # complex contracts produce long reports; 4096 truncated → 0 findings
             system=AUDIT_SYSTEM_PROMPT,
             messages=[{"role": "user", "content": user_prompt}],
         )
@@ -956,7 +956,7 @@ Respond with a JSON array."""
             token_param["max_completion_tokens"] = 32768
             extra["reasoning_effort"] = "low"
         else:
-            token_param["max_tokens"] = 4096
+            token_param["max_tokens"] = 8192
 
         response = client.chat.completions.create(
             model=model,
