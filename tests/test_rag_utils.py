@@ -62,6 +62,31 @@ def test_make_cache_key_preserves_field_boundaries():
     assert joined_collision_a != joined_collision_b
 
 
+def test_make_cache_key_defaults_malformed_fields():
+    malformed = make_cache_key(
+        knowledge_base_version={"version": "v1"},  # type: ignore[arg-type]
+        query=["alpha", "beta"],  # type: ignore[arg-type]
+        filter_category={"category": "reentrancy"},  # type: ignore[arg-type]
+        filter_severity=" high\npriority ",  # type: ignore[arg-type]
+        n_results=5,
+        strategy={"strategy": "semantic"},  # type: ignore[arg-type]
+    )
+    safe = make_cache_key(
+        knowledge_base_version="",
+        query="",
+        filter_category="",
+        filter_severity="",
+        n_results=5,
+    )
+
+    assert malformed == safe
+
+
+def test_build_metadata_filter_ignores_malformed_text_boundaries():
+    assert build_metadata_filter("reentrancy\naccess-control", "high") == {"severity": "high"}
+    assert build_metadata_filter({"category": "reentrancy"}, " high ") == {"severity": "high"}
+
+
 def test_cache_helpers_store_hit_expire_and_respect_disabled():
     cache = {}
 
