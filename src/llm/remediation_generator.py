@@ -58,6 +58,8 @@ class Remediation:
     references: List[str]
     confidence: float
     pattern_used: Optional[str] = None
+    implementation_complexity: str = "medium"
+    deployment_risk: str = "medium"
 
 
 @dataclass
@@ -233,6 +235,16 @@ class RemediationGenerator:
         imports = self._string_list_or_empty(result.get("imports_needed"))
         tests = self._string_list_or_empty(result.get("test_suggestions"))
         references = self._string_list_or_empty(result.get("references"))
+        implementation_complexity = self._normalized_level(
+            result.get("implementation_complexity", result.get("complexity")),
+            {"low", "medium", "high"},
+            "medium",
+        )
+        deployment_risk = self._normalized_level(
+            result.get("deployment_risk", result.get("risk_level")),
+            {"low", "medium", "high", "critical"},
+            "medium",
+        )
 
         # Add imports to fixed code if not present
         if imports:
@@ -252,6 +264,8 @@ class RemediationGenerator:
             references=references,
             confidence=0.8,
             pattern_used=REMEDIATION_PATTERNS.get(vuln_type, {}).get("pattern_name"),
+            implementation_complexity=implementation_complexity,
+            deployment_risk=deployment_risk,
         )
 
     async def generate_remediations(
@@ -520,6 +534,15 @@ class RemediationGenerator:
     def _dict_or_empty(value: Any) -> Dict[str, Any]:
         """Return mapping-shaped vulnerability findings only."""
         return value if isinstance(value, dict) else {}
+
+    @staticmethod
+    def _normalized_level(value: Any, allowed: set[str], default: str) -> str:
+        """Return a bounded lowercase level from LLM result metadata."""
+        if not isinstance(value, str):
+            return default
+
+        normalized = value.strip().lower()
+        return normalized if normalized in allowed else default
 
     @staticmethod
     def _normalize_batch_findings(value: Any) -> Tuple[List[Dict[str, Any]], int]:
