@@ -45,6 +45,14 @@ def _safe_match_filter(value: Any) -> str:
     return text
 
 
+def _is_gas_report_header_row(cells: List[str]) -> bool:
+    """Return True only for normalized gas-report header rows."""
+    if len(cells) != 6:
+        return False
+    normalized = [cell.strip().lower() for cell in cells]
+    return normalized == ["contract", "method", "min", "max", "avg", "calls"]
+
+
 class TestStatus(Enum):
     """Test execution status."""
 
@@ -715,7 +723,7 @@ class FoundryRunner:
                         continue
                 elif line.strip().startswith("|") and "----" not in line:
                     cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
-                    if len(cells) != 6 or cells[0].lower() == "contract":
+                    if len(cells) != 6 or _is_gas_report_header_row(cells):
                         continue
 
                     contract, method, min_gas, max_gas, avg_gas, calls = cells
