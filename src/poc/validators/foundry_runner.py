@@ -350,7 +350,11 @@ class FoundryRunner:
                 timeout=120,
             )
 
-            if result.returncode == 0:
+            returncode = result.returncode
+            if not isinstance(returncode, int) or isinstance(returncode, bool):
+                logger.error("Compilation failed: malformed forge return code")
+                return False
+            if returncode == 0:
                 logger.info("Compilation successful")
                 return True
             else:

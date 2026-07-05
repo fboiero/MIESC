@@ -59,6 +59,11 @@ def _safe_text_list(value: Any) -> List[str]:
     return [item for item in value if isinstance(item, str)]
 
 
+def _safe_isoformat(value: Any) -> str:
+    """Return ISO timestamps only from datetime-like values."""
+    return value.isoformat() if isinstance(value, datetime) else ""
+
+
 class VulnerabilityType(Enum):
     """Supported vulnerability types for PoC generation."""
 
@@ -150,7 +155,7 @@ class PoCTemplate:
             "description": self.description if isinstance(self.description, str) else "",
             "prerequisites": _safe_text_list(self.prerequisites),
             "expected_outcome": self.expected_outcome if isinstance(self.expected_outcome, str) else "",
-            "created_at": self.created_at.isoformat(),
+            "created_at": _safe_isoformat(self.created_at),
         }
 
 

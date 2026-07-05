@@ -884,6 +884,70 @@ class TestEmbeddingRAGSearchBoundaryShapes:
         assert rag._query_cache == {"stale": (0.0, [])}
         assert rag._cache_hits == 2
 
+    def test_cached_result_evicts_invalid_cached_row_type(self, tmp_path):
+        vulnerability = VulnerabilityDocument(
+            id="CUSTOM-CACHE-ROW",
+            title="Cache Row Boundary",
+            description="Custom vulnerability description",
+        )
+        result = RetrievalResult(
+            document=vulnerability,
+            similarity_score=0.5,
+            relevance_reason="test",
+        )
+        rag = EmbeddingRAG(persist_directory=str(tmp_path))
+        cache_key = rag._get_cache_key("row boundary", None, None, 1)
+        rag._query_cache = {cache_key: [time.time(), [result]]}  # type: ignore[dict-item]
+        rag._cache_hits = 2
+
+        cached = rag._get_cached_result(cache_key)
+
+        assert cached is None
+        assert rag._query_cache == {}
+        assert rag._cache_hits == 2
+
+    def test_search_evicts_stale_cached_result_and_queries_collection(self, tmp_path):
+        stale = VulnerabilityDocument(
+            id="CUSTOM-STALE-CACHED",
+            title="Stale Cached",
+            description="Cached vulnerability description",
+        )
+        fresh = VulnerabilityDocument(
+            id="CUSTOM-FRESH-RESULT",
+            title="Fresh Result",
+            description="Fresh vulnerability description",
+        )
+        collection = _MalformedSearchCollection(
+            {
+                "ids": [["CUSTOM-FRESH-RESULT"]],
+                "distances": [[0.2]],
+            }
+        )
+        rag = EmbeddingRAG(persist_directory=str(tmp_path))
+        rag._initialized = True
+        rag._collection = collection
+        rag._doc_index = {"CUSTOM-FRESH-RESULT": fresh}
+        cache_key = rag._get_cache_key("stale boundary", None, None, 1)
+        rag._query_cache = {
+            cache_key: (
+                time.time() - EmbeddingRAG.DEFAULT_CACHE_TTL_SECONDS - 1,
+                [
+                    RetrievalResult(
+                        document=stale,
+                        similarity_score=1.0,
+                        relevance_reason="stale",
+                    )
+                ],
+            )
+        }
+
+        results = rag.search("stale boundary", n_results=1)
+
+        assert collection.query_texts == ["stale boundary"]
+        assert [result.document.id for result in results] == ["CUSTOM-FRESH-RESULT"]
+        assert rag._cache_hits == 0
+        assert rag._cache_misses == 1
+
     def test_cached_result_uses_default_ttl_when_class_ttl_is_malformed(self, tmp_path):
         vulnerability = VulnerabilityDocument(
             id="CUSTOM-TTL",

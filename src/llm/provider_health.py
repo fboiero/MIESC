@@ -5,6 +5,7 @@ Shared provider health helpers for OpenAI-compatible LLM APIs.
 import asyncio
 import json
 import logging
+import math
 from typing import Any, Set
 
 import aiohttp
@@ -72,7 +73,7 @@ async def fetch_openai_compatible_model_ids(
     if isinstance(timeout, bool) or not isinstance(timeout, (int, float)):
         logger.debug("%s model check received malformed timeout", provider_label)
         return set()
-    if timeout <= 0:
+    if not math.isfinite(float(timeout)) or timeout <= 0:
         logger.debug("%s model check received malformed timeout", provider_label)
         return set()
 

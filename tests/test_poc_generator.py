@@ -319,6 +319,21 @@ class TestPoCTemplate:
         assert d["prerequisites"] == ["Foundry installed"]
         assert d["expected_outcome"] == ""
 
+    def test_template_to_dict_defaults_malformed_created_at(self):
+        """Malformed template timestamps should not break metadata export."""
+        template = PoCTemplate(
+            name="TestExploit",
+            vulnerability_type=VulnerabilityType.REENTRANCY,
+            solidity_code="// Code",
+            target_contract="Bank.sol",
+            target_function="withdraw",
+        )
+        template.created_at = ["2026-01-01"]
+
+        d = template.to_dict()
+
+        assert d["created_at"] == ""
+
     def test_template_defaults(self):
         """Test template default values."""
         template = PoCTemplate(

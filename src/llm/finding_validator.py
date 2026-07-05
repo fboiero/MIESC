@@ -646,6 +646,10 @@ def validate_findings_sync(
     Returns:
         Tuple of (validated_findings, validations)
     """
+    if not isinstance(findings, list):
+        logger.warning("Skipping malformed findings container for synchronous LLM validation")
+        return [], []
+
     validator = LLMFindingValidator(config)
 
     async def run() -> Tuple[List[Dict[str, Any]], List[LLMValidation]]:

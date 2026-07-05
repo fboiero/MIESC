@@ -196,6 +196,24 @@ def test_fetch_openai_compatible_model_ids_rejects_non_positive_timeout():
     asyncio.run(run_test())
 
 
+def test_fetch_openai_compatible_model_ids_rejects_non_finite_timeout():
+    """Test non-finite timeout values are rejected before opening a session."""
+
+    async def run_test():
+        with patch("aiohttp.ClientSession") as session:
+            models = await fetch_openai_compatible_model_ids(
+                "https://api.deepseek.example",
+                "test-key",
+                timeout=float("inf"),
+                provider_name="DeepSeek",
+            )
+
+        assert models == set()
+        session.assert_not_called()
+
+    asyncio.run(run_test())
+
+
 def test_fetch_openai_compatible_model_ids_defaults_malformed_provider_name(caplog):
     """Test malformed provider_name shapes do not leak reprs into logs."""
 

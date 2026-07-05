@@ -721,6 +721,34 @@ class TestLLMOrchestrator:
         assert len(key1) == 16
         assert key1 == key2
 
+    def test_cache_key_generation_handles_non_string_prompt(self):
+        """Test malformed non-string prompts cannot break cache key generation."""
+        orchestrator = LLMOrchestrator([])
+
+        bytes_prompt_key = orchestrator._get_cache_key(b"prompt", None)
+        string_prompt_key = orchestrator._get_cache_key("prompt", None)
+        list_prompt_key = orchestrator._get_cache_key(["prompt"], None)
+
+        assert len(bytes_prompt_key) == 16
+        assert bytes_prompt_key != string_prompt_key
+        assert bytes_prompt_key != list_prompt_key
+
+    def test_cache_key_generation_handles_opaque_prompt(self):
+        """Test opaque prompt objects fall back to a stable type boundary."""
+
+        class OpaquePrompt:
+            pass
+
+        orchestrator = LLMOrchestrator([])
+
+        key1 = orchestrator._get_cache_key(OpaquePrompt(), {"a": 1})
+        key2 = orchestrator._get_cache_key(OpaquePrompt(), {"a": 1})
+        key3 = orchestrator._get_cache_key(OpaquePrompt(), {"a": 2})
+
+        assert len(key1) == 16
+        assert key1 == key2
+        assert key1 != key3
+
     def test_cache_key_generation_preserves_non_string_key_boundaries(self):
         """Test non-string context keys cannot collide with same-looking strings."""
         orchestrator = LLMOrchestrator([])
