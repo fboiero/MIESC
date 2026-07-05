@@ -169,6 +169,17 @@ def _bounded_confidence(value: Any, default: float = 0.5) -> float:
     return min(max(float(value), 0.0), 1.0)
 
 
+def _non_negative_int_stat(value: Any, field_name: str, source: str) -> int:
+    """Return a strict non-negative integer stat from a backend response."""
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise ValueError(
+            f"Malformed {source}: {field_name} must be int, got {type(value).__name__}"
+        )
+    if value < 0:
+        raise ValueError(f"Malformed {source}: {field_name} must be non-negative")
+    return value
+
+
 def _normalized_model_identifier(value: Any) -> Optional[str]:
     """Return a safe model identifier, or None for malformed config values."""
     if not isinstance(value, str):
@@ -415,11 +426,22 @@ class OpenAIBackend(LLMBackend):
             max_tokens=self.config.max_tokens,
         )
 
+        usage = getattr(response, "usage", None)
+        tokens = (
+            _non_negative_int_stat(
+                getattr(usage, "total_tokens", 0),
+                "usage.total_tokens",
+                "OpenAI response",
+            )
+            if usage
+            else 0
+        )
+
         return LLMResponse(
             content=response.choices[0].message.content or "",
             provider="openai",
             model=self.config.model,
-            tokens_used=response.usage.total_tokens if response.usage else 0,
+            tokens_used=tokens,
             latency_ms=(time.time() - start_time) * 1000,
         )
 
@@ -472,11 +494,22 @@ class DeepSeekBackend(LLMBackend):
             max_tokens=self.config.max_tokens,
         )
 
+        usage = getattr(response, "usage", None)
+        tokens = (
+            _non_negative_int_stat(
+                getattr(usage, "total_tokens", 0),
+                "usage.total_tokens",
+                "DeepSeek response",
+            )
+            if usage
+            else 0
+        )
+
         return LLMResponse(
             content=response.choices[0].message.content or "",
             provider="deepseek",
             model=self.config.model,
-            tokens_used=response.usage.total_tokens if response.usage else 0,
+            tokens_used=tokens,
             latency_ms=(time.time() - start_time) * 1000,
         )
 
@@ -515,7 +548,18 @@ class AnthropicBackend(LLMBackend):
         )
 
         content = getattr(response.content[0], "text", "") if response.content else ""
-        tokens = response.usage.input_tokens + response.usage.output_tokens if response.usage else 0
+        usage = getattr(response, "usage", None)
+        tokens = 0
+        if usage:
+            tokens = _non_negative_int_stat(
+                getattr(usage, "input_tokens", 0),
+                "usage.input_tokens",
+                "Anthropic response",
+            ) + _non_negative_int_stat(
+                getattr(usage, "output_tokens", 0),
+                "usage.output_tokens",
+                "Anthropic response",
+            )
 
         return LLMResponse(
             content=content,

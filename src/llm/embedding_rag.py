@@ -19,6 +19,7 @@ Date: February 2026
 
 import logging
 import math
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -38,6 +39,8 @@ _chromadb = None
 _sentence_transformers = None
 
 KNOWLEDGE_BASE_VERSION = "2026-05-06-paper1-source-review-v4"
+DEFAULT_COLLECTION_NAME = "miesc_vulnerabilities"
+_SAFE_COLLECTION_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{1,61}[A-Za-z0-9]$")
 
 SOURCE_TIER_WEIGHTS = {
     "standard": 1.00,
@@ -188,6 +191,21 @@ def _coerce_embedding_model_name(value: Any) -> str:
 
     text = text.strip()
     return text or EmbeddingRAG.DEFAULT_MODEL
+
+
+def _coerce_collection_name(value: Any) -> str:
+    """Return a Chroma-safe collection name, or the default namespace."""
+    if isinstance(value, bytes):
+        text = value.decode("utf-8", errors="replace")
+    elif isinstance(value, str):
+        text = value
+    else:
+        return DEFAULT_COLLECTION_NAME
+
+    text = text.strip()
+    if _SAFE_COLLECTION_NAME_RE.fullmatch(text):
+        return text
+    return DEFAULT_COLLECTION_NAME
 
 
 def _is_indexable_document(value: Any) -> bool:
@@ -4704,7 +4722,7 @@ class EmbeddingRAG:
 
     DEFAULT_MODEL = "all-MiniLM-L6-v2"  # Fast, good quality embeddings
     DEFAULT_TOP_K = 5
-    COLLECTION_NAME = "miesc_vulnerabilities"
+    COLLECTION_NAME = DEFAULT_COLLECTION_NAME
 
     # Cache settings
     CACHE_MAX_SIZE = 256
@@ -4764,6 +4782,8 @@ class EmbeddingRAG:
             return
 
         try:
+            collection_name = self._collection_name()
+
             # Build O(1) document lookup index
             self._build_doc_index()
 
@@ -4778,7 +4798,7 @@ class EmbeddingRAG:
 
             # Get or create collection with optimized HNSW parameters
             self._collection = self._client.get_or_create_collection(
-                name=self.COLLECTION_NAME,
+                name=collection_name,
                 metadata=self._collection_metadata(),
             )
 
@@ -4798,9 +4818,9 @@ class EmbeddingRAG:
                     f"(current_count={current_count}, expected_count={expected_count}, "
                     f"current_version={current_version}, expected_version={KNOWLEDGE_BASE_VERSION})"
                 )
-                self._client.delete_collection(self.COLLECTION_NAME)
+                self._client.delete_collection(collection_name)
                 self._collection = self._client.create_collection(
-                    name=self.COLLECTION_NAME,
+                    name=collection_name,
                     metadata=self._collection_metadata(),
                 )
                 self._index_knowledge_base()
@@ -4814,6 +4834,10 @@ class EmbeddingRAG:
                 f"Required dependency not found: {e}. "
                 "Install with: pip install chromadb sentence-transformers"
             ) from e
+
+    def _collection_name(self) -> str:
+        """Return a safe Chroma collection namespace."""
+        return _coerce_collection_name(self.COLLECTION_NAME)
 
     def _collection_metadata(self) -> Dict[str, Any]:
         """Metadata used to decide whether a persisted Chroma index is current."""
@@ -5508,13 +5532,14 @@ class EmbeddingRAG:
     def reindex(self) -> None:
         """Force reindex of the entire knowledge base."""
         self._ensure_initialized()
+        collection_name = self._collection_name()
 
         # Delete existing collection
-        self._client.delete_collection(self.COLLECTION_NAME)
+        self._client.delete_collection(collection_name)
 
         # Recreate
         self._collection = self._client.create_collection(
-            name=self.COLLECTION_NAME, metadata=self._collection_metadata()
+            name=collection_name, metadata=self._collection_metadata()
         )
         self._doc_index.clear()
         self._build_doc_index()

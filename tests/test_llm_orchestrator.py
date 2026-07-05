@@ -5,6 +5,8 @@ Tests the multi-backend LLM orchestration for security analysis.
 """
 
 import asyncio
+import sys
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import aiohttp
@@ -437,6 +439,30 @@ class TestOpenAIBackend:
         result = asyncio.run(backend.health_check())
         assert result is False
 
+    def test_analyze_rejects_malformed_usage_tokens(self):
+        """Test malformed OpenAI token stats cannot cross the response boundary."""
+
+        async def run_test():
+            class FakeAsyncOpenAI:
+                def __init__(self, **_kwargs):
+                    self.chat = SimpleNamespace(
+                        completions=SimpleNamespace(create=AsyncMock(return_value=response))
+                    )
+
+            response = SimpleNamespace(
+                choices=[SimpleNamespace(message=SimpleNamespace(content="{}"))],
+                usage=SimpleNamespace(total_tokens="12"),
+            )
+            fake_openai = SimpleNamespace(AsyncOpenAI=FakeAsyncOpenAI)
+            config = LLMConfig(provider=LLMProvider.OPENAI, model="gpt-4", api_key="key")
+            backend = OpenAIBackend(config)
+
+            with patch.dict(sys.modules, {"openai": fake_openai}):
+                with pytest.raises(ValueError, match="usage.total_tokens must be int"):
+                    await backend.analyze("prompt")
+
+        asyncio.run(run_test())
+
 
 class TestAnthropicBackend:
     """Test AnthropicBackend implementation."""
@@ -473,6 +499,32 @@ class TestAnthropicBackend:
         backend.api_key = None
         result = asyncio.run(backend.health_check())
         assert result is False
+
+    def test_analyze_rejects_malformed_usage_tokens(self):
+        """Test malformed Anthropic token stats cannot cross the response boundary."""
+
+        async def run_test():
+            class FakeAsyncAnthropic:
+                def __init__(self, **_kwargs):
+                    self.messages = SimpleNamespace(create=AsyncMock(return_value=response))
+
+            response = SimpleNamespace(
+                content=[SimpleNamespace(text="{}")],
+                usage=SimpleNamespace(input_tokens=1, output_tokens=-1),
+            )
+            fake_anthropic = SimpleNamespace(AsyncAnthropic=FakeAsyncAnthropic)
+            config = LLMConfig(
+                provider=LLMProvider.ANTHROPIC,
+                model="claude-3-opus",
+                api_key="key",
+            )
+            backend = AnthropicBackend(config)
+
+            with patch.dict(sys.modules, {"anthropic": fake_anthropic}):
+                with pytest.raises(ValueError, match="usage.output_tokens must be non-negative"):
+                    await backend.analyze("prompt")
+
+        asyncio.run(run_test())
 
 
 class TestDeepSeekBackend:
@@ -568,6 +620,34 @@ class TestDeepSeekBackend:
         backend.api_key = None
         result = asyncio.run(backend.health_check())
         assert result is False
+
+    def test_analyze_rejects_bool_usage_tokens(self):
+        """Test boolean DeepSeek token stats cannot cross the response boundary."""
+
+        async def run_test():
+            class FakeAsyncOpenAI:
+                def __init__(self, **_kwargs):
+                    self.chat = SimpleNamespace(
+                        completions=SimpleNamespace(create=AsyncMock(return_value=response))
+                    )
+
+            response = SimpleNamespace(
+                choices=[SimpleNamespace(message=SimpleNamespace(content="{}"))],
+                usage=SimpleNamespace(total_tokens=True),
+            )
+            fake_openai = SimpleNamespace(AsyncOpenAI=FakeAsyncOpenAI)
+            config = LLMConfig(
+                provider=LLMProvider.DEEPSEEK,
+                model="deepseek-v4-flash",
+                api_key="key",
+            )
+            backend = DeepSeekBackend(config)
+
+            with patch.dict(sys.modules, {"openai": fake_openai}):
+                with pytest.raises(ValueError, match="usage.total_tokens must be int"):
+                    await backend.analyze("prompt")
+
+        asyncio.run(run_test())
 
 
 class TestLLMOrchestrator:

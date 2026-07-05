@@ -376,17 +376,7 @@ REMEDIATION ADVICE:"""
             host = DEFAULT_OLLAMA_HOST
         host = host.rstrip("/")
 
-        payload = json.dumps(
-            {
-                "model": self.config.model,
-                "prompt": prompt,
-                "stream": False,
-                "options": {
-                    "temperature": 0.1,
-                    "num_predict": 500,
-                },
-            }
-        ).encode()
+        payload = self._ollama_generate_payload(prompt)
 
         for attempt in range(1, retry_attempts + 1):
             try:
@@ -439,6 +429,40 @@ REMEDIATION ADVICE:"""
         if not minimum <= normalized <= maximum:
             return float(default)
         return normalized
+
+    def _ollama_generate_payload(self, prompt: Any) -> bytes:
+        """Build a JSON-safe Ollama generate request body."""
+        model = getattr(self.config, "model", LLMConfig.model)
+        if not isinstance(model, str) or not model.strip():
+            model = LLMConfig.model
+
+        options = {
+            "temperature": self._bounded_number(
+                LLMConfig.temperature,
+                default=LLMConfig.temperature,
+                minimum=0.0,
+                maximum=2.0,
+            ),
+            "num_predict": int(
+                self._bounded_number(
+                    500,
+                    default=500,
+                    minimum=1,
+                    maximum=128_000,
+                )
+            ),
+        }
+        body = {
+            "model": model,
+            "prompt": prompt if isinstance(prompt, str) else "",
+            "stream": False,
+            "options": options,
+        }
+        encoded = json.dumps(body, allow_nan=False).encode()
+        parsed = json.loads(encoded)
+        if not isinstance(parsed, dict) or not isinstance(parsed.get("options"), dict):
+            raise ValueError("Malformed Ollama request body")
+        return encoded
 
     @staticmethod
     def _ollama_generate_host(value: Any) -> str:

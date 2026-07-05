@@ -124,16 +124,20 @@ class _FakeClientForInit:
             {"knowledge_base_version": "created"},
             0,
         )
+        self.get_or_create_name = None
         self.deleted_names = []
+        self.created_name = None
         self.created_metadata = None
 
-    def get_or_create_collection(self, **_kwargs):
+    def get_or_create_collection(self, **kwargs):
+        self.get_or_create_name = kwargs["name"]
         return self.existing_collection
 
     def delete_collection(self, name):
         self.deleted_names.append(name)
 
     def create_collection(self, **kwargs):
+        self.created_name = kwargs["name"]
         self.created_metadata = kwargs["metadata"]
         return self.created_collection
 
@@ -493,6 +497,7 @@ class TestEmbeddingRAGCustomVulnerabilityShapes:
         rag._ensure_initialized()
 
         assert rag.fake_client.deleted_names == [EmbeddingRAG.COLLECTION_NAME]
+        assert rag.fake_client.created_name == EmbeddingRAG.COLLECTION_NAME
         assert (
             rag.fake_client.created_metadata["knowledge_base_version"]
             == embedding_rag_module.KNOWLEDGE_BASE_VERSION
@@ -500,6 +505,107 @@ class TestEmbeddingRAGCustomVulnerabilityShapes:
         assert rag._collection is rag.fake_client.created_collection
         assert rag.indexed_count == 1
         assert rag._initialized is True
+
+    @pytest.mark.parametrize(
+        "bad_name",
+        [
+            "",
+            "  ",
+            "bad/name",
+            "bad\nname",
+            "ab",
+            "a" * 64,
+            ["bad-name"],
+        ],
+    )
+    def test_malformed_collection_name_uses_default_namespace(
+        self,
+        tmp_path,
+        monkeypatch,
+        bad_name,
+    ):
+        existing_collection = _FakeCollectionForInit(
+            {"knowledge_base_version": embedding_rag_module.KNOWLEDGE_BASE_VERSION},
+            len(embedding_rag_module.VULNERABILITY_KNOWLEDGE_BASE),
+        )
+        rag = _RecordingInitializeRAG(
+            persist_directory=str(tmp_path),
+            existing_collection=existing_collection,
+        )
+        fake_chroma = _FakeChromaForInit(rag.fake_client)
+
+        monkeypatch.setattr(EmbeddingRAG, "COLLECTION_NAME", bad_name)
+        monkeypatch.setattr(
+            embedding_rag_module,
+            "_get_sentence_transformer",
+            lambda: lambda _model_name: object(),
+        )
+        monkeypatch.setattr(
+            embedding_rag_module,
+            "_get_chromadb",
+            lambda: fake_chroma,
+        )
+
+        rag._ensure_initialized()
+
+        assert rag.fake_client.get_or_create_name == embedding_rag_module.DEFAULT_COLLECTION_NAME
+        assert rag.fake_client.deleted_names == []
+        assert rag.fake_client.created_name is None
+        assert rag.indexed_count == 0
+        assert rag._initialized is True
+
+    def test_collection_name_strips_valid_bytes_namespace(self, tmp_path, monkeypatch):
+        existing_collection = _FakeCollectionForInit(
+            {"knowledge_base_version": embedding_rag_module.KNOWLEDGE_BASE_VERSION},
+            len(embedding_rag_module.VULNERABILITY_KNOWLEDGE_BASE),
+        )
+        rag = _RecordingInitializeRAG(
+            persist_directory=str(tmp_path),
+            existing_collection=existing_collection,
+        )
+        fake_chroma = _FakeChromaForInit(rag.fake_client)
+
+        monkeypatch.setattr(EmbeddingRAG, "COLLECTION_NAME", b"  custom_namespace  ")
+        monkeypatch.setattr(
+            embedding_rag_module,
+            "_get_sentence_transformer",
+            lambda: lambda _model_name: object(),
+        )
+        monkeypatch.setattr(
+            embedding_rag_module,
+            "_get_chromadb",
+            lambda: fake_chroma,
+        )
+
+        rag._ensure_initialized()
+
+        assert rag.fake_client.get_or_create_name == "custom_namespace"
+        assert rag._initialized is True
+
+    def test_reindex_uses_default_namespace_for_malformed_collection_name(
+        self,
+        tmp_path,
+        monkeypatch,
+    ):
+        existing_collection = _FakeCollectionForInit(
+            {"knowledge_base_version": embedding_rag_module.KNOWLEDGE_BASE_VERSION},
+            len(embedding_rag_module.VULNERABILITY_KNOWLEDGE_BASE),
+        )
+        rag = _RecordingInitializeRAG(
+            persist_directory=str(tmp_path),
+            existing_collection=existing_collection,
+        )
+        rag._initialized = True
+        rag._client = rag.fake_client
+        rag._collection = existing_collection
+
+        monkeypatch.setattr(EmbeddingRAG, "COLLECTION_NAME", "../bad")
+
+        rag.reindex()
+
+        assert rag.fake_client.deleted_names == [embedding_rag_module.DEFAULT_COLLECTION_NAME]
+        assert rag.fake_client.created_name == embedding_rag_module.DEFAULT_COLLECTION_NAME
+        assert rag.indexed_count == 1
 
     def test_rejects_non_document_before_index_or_cache_mutation(self, tmp_path):
         rag = _UninitializedEmbeddingRAG(persist_directory=str(tmp_path))

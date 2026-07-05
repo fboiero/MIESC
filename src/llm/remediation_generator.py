@@ -31,6 +31,9 @@ from src.security.llm_output_validator import (
     repair_common_json_errors,
 )
 
+_EXPORT_PATH_CONTROL_RE = re.compile(r"[\x00-\x1f\x7f]")
+_EXPORT_WINDOWS_DRIVE_RE = re.compile(r"^[A-Za-z]:")
+
 
 def _export_string(value: Any, default: str) -> str:
     """Return a non-empty string for export payloads."""
@@ -48,6 +51,40 @@ def _export_optional_string(value: Any) -> Optional[str]:
         if normalized:
             return normalized
     return None
+
+
+def _export_patch_filename(value: Any) -> Optional[str]:
+    """Return a safe patch filename without path traversal or separators."""
+    normalized = _export_optional_string(value)
+    if (
+        normalized is None
+        or normalized in {".", ".."}
+        or "/" in normalized
+        or "\\" in normalized
+        or _EXPORT_WINDOWS_DRIVE_RE.match(normalized)
+        or _EXPORT_PATH_CONTROL_RE.search(normalized)
+    ):
+        return None
+    return normalized
+
+
+def _export_patch_file_path(value: Any) -> Optional[str]:
+    """Return a safe relative patch file path for export payloads."""
+    normalized = _export_optional_string(value)
+    if (
+        normalized is None
+        or normalized.startswith("/")
+        or "\\" in normalized
+        or _EXPORT_WINDOWS_DRIVE_RE.match(normalized)
+        or _EXPORT_PATH_CONTROL_RE.search(normalized)
+    ):
+        return None
+
+    parts = [part for part in normalized.split("/") if part]
+    if not parts or any(part in {".", ".."} for part in parts):
+        return None
+
+    return "/".join(parts)
 
 
 def _export_explanation(value: Any) -> str:
@@ -185,10 +222,12 @@ class Remediation:
     gas_impact: str = "medium"
     affected_lines: Optional[List[int]] = None
     validation_notes: Optional[List[str]] = None
+    patch_filename: Optional[str] = None
+    patch_file_path: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Export remediation data without trusting malformed field values."""
-        return {
+        exported = {
             "finding_id": _export_string(self.finding_id, "unknown"),
             "vulnerability_type": _export_string(self.vulnerability_type, "unknown"),
             "severity": _export_level(
@@ -222,6 +261,13 @@ class Remediation:
             ),
             "validation_notes": _export_unique_string_list(self.validation_notes),
         }
+        patch_filename = _export_patch_filename(self.patch_filename)
+        patch_file_path = _export_patch_file_path(self.patch_file_path)
+        if patch_filename is not None:
+            exported["patch_filename"] = patch_filename
+        if patch_file_path is not None:
+            exported["patch_file_path"] = patch_file_path
+        return exported
 
 
 @dataclass

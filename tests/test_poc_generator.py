@@ -379,6 +379,20 @@ class TestPoCTemplate:
 
         assert saved_path.name == "PoC_unknown_TestExploit.t.sol"
 
+    def test_template_save_defaults_malformed_solidity_code(self, tmp_path):
+        """Malformed Solidity payloads should not leak reprs into saved files."""
+        template = PoCTemplate(
+            name="TestExploit",
+            vulnerability_type=VulnerabilityType.REENTRANCY,
+            solidity_code={"code": "contract Exploit {}"},
+            target_contract="Bank.sol",
+            target_function=None,
+        )
+
+        saved_path = template.save(tmp_path)
+
+        assert saved_path.read_text(encoding="utf-8") == ""
+
     def test_template_defaults(self):
         """Test template default values."""
         template = PoCTemplate(

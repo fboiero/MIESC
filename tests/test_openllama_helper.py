@@ -399,6 +399,47 @@ def test_call_llm_defaults_malformed_timeout_and_retry_config(monkeypatch):
     assert calls == [("http://localhost:11434/api/generate", 120.0)]
 
 
+def test_call_llm_sanitizes_malformed_generate_request_body_fields(monkeypatch):
+    helper = OpenLLaMAHelper(
+        LLMConfig(
+            model=["bad-model"],
+            temperature=float("nan"),
+            max_tokens={"bad": "tokens"},
+            retry_attempts=1,
+        )
+    )
+    bodies = []
+
+    class FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            return json.dumps({"response": "bounded text"}).encode()
+
+    def fake_urlopen(req, timeout):
+        bodies.append(json.loads(req.data.decode()))
+        return FakeResponse()
+
+    monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
+
+    assert helper._call_llm(["bad", "prompt"]) == "bounded text"
+    assert bodies == [
+        {
+            "model": "qwen2.5-coder:14b",
+            "prompt": "",
+            "stream": False,
+            "options": {
+                "temperature": 0.1,
+                "num_predict": 500,
+            },
+        }
+    ]
+
+
 def test_call_llm_defaults_malformed_ollama_host(monkeypatch):
     helper = OpenLLaMAHelper(LLMConfig(retry_attempts=1))
     calls = []
