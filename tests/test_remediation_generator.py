@@ -266,6 +266,16 @@ def test_generate_quick_fix_returns_original_for_non_string_type():
     assert explanation == "No known pattern for this vulnerability type"
 
 
+@pytest.mark.parametrize("function_code", [None, ["function withdraw() public {}"], {"code": "bad"}])
+def test_generate_quick_fix_defaults_malformed_function_code(function_code):
+    generator = RemediationGenerator()
+
+    fixed, explanation = generator.generate_quick_fix("reentrancy", function_code)
+
+    assert fixed == ""
+    assert explanation == "No function code available for quick fix"
+
+
 def test_get_pattern_template_and_info_for_known_and_unknown_types():
     generator = RemediationGenerator()
 
@@ -684,3 +694,10 @@ def test_get_quick_fix_convenience_function():
 
     assert "onlyOwner" in fixed
     assert "Ownable" in explanation
+
+
+def test_get_quick_fix_convenience_function_defaults_malformed_code():
+    fixed, explanation = get_quick_fix("access-control", {"code": "function admin() public {}"})
+
+    assert fixed == ""
+    assert explanation == "No function code available for quick fix"
