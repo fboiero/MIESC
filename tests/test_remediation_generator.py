@@ -677,6 +677,34 @@ async def test_generate_remediation_normalizes_malformed_llm_result_fields(monke
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("fixed_code", ["", " \n\t "])
+async def test_generate_remediation_defaults_blank_fixed_code_payload(
+    monkeypatch, fixed_code
+):
+    generator = RemediationGenerator()
+    finding = {
+        "id": "F-2i",
+        "type": "reentrancy",
+        "severity": "HIGH",
+        "snippet": "function withdraw() public {}",
+    }
+
+    async def fake_query(_prompt):
+        return {
+            "fixed_code": fixed_code,
+            "imports_needed": ["import {ReentrancyGuard} from 'oz.sol';"],
+        }
+
+    monkeypatch.setattr(generator, "_query_llm", fake_query)
+
+    remediation = await generator.generate_remediation(finding, "contract C {}")
+
+    assert remediation.fixed_code == (
+        "import {ReentrancyGuard} from 'oz.sol';\n\nfunction withdraw() public {}"
+    )
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize("llm_result", [["not", "an", "object"], "not an object", None])
 async def test_generate_remediation_defaults_malformed_llm_result_container(
     monkeypatch, llm_result
