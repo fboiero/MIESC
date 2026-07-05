@@ -572,11 +572,15 @@ class PoCGenerator:
         target_function: Optional[str],
     ) -> str:
         """Generate a descriptive PoC name."""
-        contract_name = Path(target_contract).stem
-        type_name = vuln_type.value.replace("_", "")
+        contract_name = _safe_filename_part(
+            Path(target_contract).stem if isinstance(target_contract, (str, Path)) else "",
+            "contract",
+        )
+        type_name = _safe_filename_part(vuln_type.value.replace("_", ""), "unknown")
+        function_name = _safe_filename_part(target_function, "") if target_function else ""
 
-        if target_function:
-            return f"{contract_name}_{target_function}_{type_name}"
+        if function_name:
+            return f"{contract_name}_{function_name}_{type_name}"
         else:
             return f"{contract_name}_{type_name}"
 
