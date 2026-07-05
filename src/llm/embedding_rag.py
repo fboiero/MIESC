@@ -18,6 +18,7 @@ Date: February 2026
 """
 
 import logging
+import math
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -149,10 +150,23 @@ def _collection_metadata_text(collection: Any, key: str) -> Optional[str]:
 def _similarity_from_distance(distance: Any) -> float:
     """Convert a loose Chroma distance value to a bounded similarity score."""
     try:
-        similarity = 1.0 - float(distance)
+        distance_value = float(distance)
     except (TypeError, ValueError):
         return 0.0
-    return max(0.0, min(similarity, 1.0))
+    if not math.isfinite(distance_value):
+        return 0.0
+    return _bounded_similarity_score(1.0 - distance_value)
+
+
+def _bounded_similarity_score(score: Any) -> float:
+    """Return a finite similarity score in the supported 0..1 range."""
+    try:
+        score_value = float(score)
+    except (TypeError, ValueError):
+        return 0.0
+    if not math.isfinite(score_value):
+        return 0.0
+    return max(0.0, min(score_value, 1.0))
 
 
 def _result_rows(results: Any, key: str) -> List[Any]:
@@ -4827,7 +4841,8 @@ class EmbeddingRAG:
             if cue_lower and cue_lower in query_lower:
                 exact_cues += 0.025
 
-        weighted_score = (result.similarity_score * 0.78) + (self._source_quality(doc) * 0.22)
+        similarity_score = _bounded_similarity_score(result.similarity_score)
+        weighted_score = (similarity_score * 0.78) + (self._source_quality(doc) * 0.22)
         weighted_score = min(weighted_score + min(exact_cues, 0.12), 1.0)
 
         steps = [*result.retrieval_steps, step, f"source_tier={doc.source_tier}"]
