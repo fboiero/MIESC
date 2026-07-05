@@ -202,7 +202,7 @@ OUTPUT (plain text):"""
             prompt = f"""Analyze these security findings for a smart contract and assign priority scores (1-10, 10=critical).
 
 CONTRACT CONTEXT:
-{contract_code[:1000]}  # First 1000 chars
+{self._prompt_text(contract_code, limit=1000)}  # First 1000 chars
 
 FINDINGS:
 {findings_summary}
