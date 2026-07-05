@@ -485,12 +485,15 @@ INSIGHTS:"""
     @classmethod
     def _prompt_finding_json(cls, finding: Any) -> str:
         """Render a finding as bounded JSON with unsupported field shapes defaulted."""
-        if not isinstance(finding, dict):
-            normalized: Dict[str, Any] = {}
-        else:
-            normalized = {
-                str(key): cls._prompt_json_value(value) for key, value in finding.items()
-            }
+        try:
+            if not isinstance(finding, dict):
+                normalized: Dict[str, Any] = {}
+            else:
+                normalized = {
+                    str(key): cls._prompt_json_value(value) for key, value in finding.items()
+                }
+        except (AttributeError, TypeError, ValueError, RuntimeError, RecursionError):
+            normalized = {}
         return json.dumps(normalized, indent=2, sort_keys=True)
 
     @classmethod

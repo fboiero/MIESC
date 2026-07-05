@@ -682,6 +682,29 @@ def test_generate_insights_defaults_unsupported_finding_field_shapes(monkeypatch
     assert "['slither']" not in captured["prompt"]
 
 
+def test_generate_insights_defaults_cyclic_finding_metadata(monkeypatch):
+    helper = OpenLLaMAHelper()
+    captured = {}
+    metadata = {"source": "adapter"}
+    metadata["self"] = metadata
+
+    def fake_call_llm(prompt):
+        captured["prompt"] = prompt
+        return "insight"
+
+    monkeypatch.setattr(helper, "_call_llm", fake_call_llm)
+
+    assert helper._generate_insights(
+        {"title": "Missing auth", "metadata": metadata},
+        "contract C {}",
+        "adapter",
+    )
+
+    assert "FINDING:\n{}" in captured["prompt"]
+    assert "'self':" not in captured["prompt"]
+    assert "<RecursionError" not in captured["prompt"]
+
+
 def test_generate_insights_rejects_malformed_llm_response(monkeypatch):
     helper = OpenLLaMAHelper()
     monkeypatch.setattr(helper, "_call_llm", lambda prompt: {"insight": "reachable exploit"})
