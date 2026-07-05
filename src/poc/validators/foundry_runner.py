@@ -528,6 +528,9 @@ class FoundryRunner:
         test_results = data.get("test_results")
         if isinstance(test_results, dict):
             for contract, results in test_results.items():
+                contract_name = self._normalize_test_name(contract)
+                if contract_name is None:
+                    continue
                 if not isinstance(results, dict):
                     continue
                 for test_name, result in results.items():
@@ -540,7 +543,7 @@ class FoundryRunner:
                     logs = self._normalize_logs(result.get("logs"))
                     tests.append(
                         TestResult(
-                            name=f"{contract}::{test_name}",
+                            name=f"{contract_name}::{test_name}",
                             status=status,
                             gas_used=self._normalize_gas_value(result.get("gas")),
                             logs=logs,
@@ -566,8 +569,10 @@ class FoundryRunner:
     @staticmethod
     def _normalize_test_name(value: Any) -> Optional[str]:
         """Normalize Forge JSON test names without accepting malformed shapes."""
-        if isinstance(value, str) and value:
-            return value
+        if isinstance(value, str):
+            name = value.strip()
+            if name and not any(ord(ch) < 32 for ch in name):
+                return name
         return None
 
     @staticmethod
