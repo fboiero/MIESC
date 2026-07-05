@@ -4772,6 +4772,11 @@ class EmbeddingRAG:
         if not isinstance(cache_key, str):
             return None
 
+        cached_entry = self._query_cache.get(cache_key)
+        if cached_entry is not None and not isinstance(cached_entry, tuple):
+            self._query_cache.pop(cache_key, None)
+            return None
+
         try:
             results, hit, _expired = get_cached_result(
                 self._query_cache,
