@@ -164,7 +164,10 @@ class FoundryRunner:
         match_contract: Optional[str] = None,
     ) -> List[str]:
         """Build the forge command for a specific test file."""
-        cmd = ["forge", "test", "--match-path", str(test_path)]
+        test_path_text = str(test_path).strip() if isinstance(test_path, (str, Path)) else ""
+        if not test_path_text:
+            raise ValueError("Malformed Foundry test path")
+        cmd = ["forge", "test", "--match-path", test_path_text]
 
         if match_test:
             cmd.extend(["--match-test", match_test])

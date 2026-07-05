@@ -311,6 +311,12 @@ class TestFoundryCommandBuilders:
         assert "18500000" in cmd
         assert cmd[-1] == "--json"
 
+    @pytest.mark.parametrize("test_path", [None, {"path": "test/Bank.t.sol"}, "  "])
+    def test_build_run_test_command_rejects_malformed_test_path(self, runner, test_path):
+        """Malformed test paths are rejected before command construction."""
+        with pytest.raises(ValueError, match="Malformed Foundry test path"):
+            runner._build_run_test_command(test_path)
+
     def test_build_run_test_command_ignores_malformed_fork_options(self, tmp_path):
         """Malformed fork options are ignored before command construction."""
         with patch.object(FoundryRunner, "_check_foundry_installation"):
