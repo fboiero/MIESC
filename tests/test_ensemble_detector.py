@@ -1180,6 +1180,82 @@ class TestLLMEnsembleDetectorVoting:
         assert results[0].severity == "medium"
         assert results[0].supporting_models == ["model1", "model2"]
 
+    def test_ensemble_vote_drops_malformed_vulnerability_type_boundary(self, detector):
+        """Malformed vulnerability type/category labels should not create consensus."""
+        detector.consensus_threshold = 2
+
+        findings = {
+            "model1": [
+                {
+                    "type": {"category": "reentrancy"},
+                    "severity": "high",
+                    "title": "Malformed type object",
+                    "description": "External call before update",
+                    "location": {"function": "withdraw", "line": 10},
+                    "confidence": 0.9,
+                }
+            ],
+            "model2": [
+                {
+                    "type": ["reentrancy"],
+                    "severity": "high",
+                    "title": "Malformed type list",
+                    "description": "External call before update",
+                    "location": {"function": "withdraw", "line": 11},
+                    "confidence": 0.8,
+                }
+            ],
+            "model3": [
+                {
+                    "type": " reentrancy ",
+                    "severity": "high",
+                    "title": "Valid type",
+                    "description": "External call before update",
+                    "location": {"function": "withdraw", "line": 12},
+                    "confidence": 0.7,
+                }
+            ],
+        }
+
+        results = detector._ensemble_vote(findings)
+
+        assert results == []
+
+    def test_ensemble_vote_drops_control_character_vulnerability_type_boundary(
+        self, detector
+    ):
+        """Control characters in consensus type/category labels should be rejected."""
+        detector.consensus_threshold = 1
+
+        findings = {
+            "model1": [
+                {
+                    "type": "reentrancy\naccess-control",
+                    "severity": "high",
+                    "title": "Malformed type",
+                    "description": "External call before update",
+                    "location": {"function": "withdraw", "line": 10},
+                    "confidence": 0.9,
+                }
+            ],
+            "model2": [
+                {
+                    "type": "access-control",
+                    "severity": "medium",
+                    "title": "Valid type",
+                    "description": "Owner check missing",
+                    "location": {"function": "setOwner", "line": 20},
+                    "confidence": 0.8,
+                }
+            ],
+        }
+
+        results = detector._ensemble_vote(findings)
+
+        assert len(results) == 1
+        assert results[0].type == "access-control"
+        assert results[0].supporting_models == ["model2"]
+
     def test_ensemble_vote_defaults_nonfinite_and_out_of_range_confidence(self, detector):
         """Malformed confidence values should not leak into aggregate confidence."""
         detector.consensus_threshold = 1
@@ -2072,6 +2148,60 @@ class TestLLMEnsembleDetectorIntegration:
             assert result.filtered_findings == 1
             assert len(result.findings) == 1
             assert result.findings[0].location == {}
+
+        asyncio.run(run_test())
+
+    def test_detect_vulnerabilities_drops_malformed_consensus_type_before_stats(
+        self, detector, vulnerable_code
+    ):
+        """Malformed consensus type/category fields should not enter stats or voting."""
+
+        async def run_test():
+            detector._initialized = True
+            detector._available_models = ["model1", "model2", "model3"]
+            detector.consensus_threshold = 2
+
+            async def mock_query(model, code, context=None):
+                if model == "model1":
+                    return [
+                        {
+                            "type": {"category": "reentrancy"},
+                            "severity": "high",
+                            "title": "Malformed type object",
+                            "description": "External call before state update",
+                            "location": {"function": "withdraw", "line": 10},
+                            "confidence": 0.9,
+                        }
+                    ]
+                if model == "model2":
+                    return [
+                        {
+                            "type": "reentrancy\naccess-control",
+                            "severity": "high",
+                            "title": "Malformed type control character",
+                            "description": "External call before state update",
+                            "location": {"function": "withdraw", "line": 11},
+                            "confidence": 0.8,
+                        }
+                    ]
+                return [
+                    {
+                        "type": "reentrancy",
+                        "severity": "high",
+                        "title": "Valid type",
+                        "description": "External call before state update",
+                        "location": {"function": "withdraw", "line": 12},
+                        "confidence": 0.7,
+                    }
+                ]
+
+            with patch.object(detector, "_query_model", side_effect=mock_query):
+                result = await detector.detect_vulnerabilities(vulnerable_code)
+
+            assert result.total_raw_findings == 1
+            assert result.filtered_findings == 1
+            assert result.models_used == ["model1", "model2", "model3"]
+            assert result.findings == []
 
         asyncio.run(run_test())
 
