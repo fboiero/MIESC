@@ -453,8 +453,11 @@ REMEDIATION ADVICE:"""
 
     @staticmethod
     def _ollama_generate_response_text(raw_body: Any) -> Optional[str]:
-        """Extract a non-empty Ollama response string from a bounded JSON body."""
-        data = json.loads(raw_body)
+        """Extract a non-empty Ollama response string from bounded JSON/line JSON."""
+        try:
+            data = json.loads(raw_body)
+        except json.JSONDecodeError:
+            return OpenLLaMAHelper._ollama_generate_line_response_text(raw_body)
         if not isinstance(data, dict):
             return None
         try:
@@ -468,6 +471,43 @@ REMEDIATION ADVICE:"""
         except (AttributeError, TypeError, ValueError, RuntimeError):
             return None
         return response or None
+
+    @staticmethod
+    def _ollama_generate_line_response_text(raw_body: Any) -> Optional[str]:
+        """Extract text from newline-delimited Ollama response fragments."""
+        if not isinstance(raw_body, (str, bytes, bytearray)):
+            return None
+
+        try:
+            lines = raw_body.splitlines()
+        except (AttributeError, TypeError, ValueError, RuntimeError):
+            return None
+
+        fragments = []
+        for line in lines:
+            if not line:
+                continue
+            try:
+                data = json.loads(line)
+            except (json.JSONDecodeError, TypeError, ValueError):
+                continue
+            if not isinstance(data, dict):
+                continue
+            try:
+                raw_response = data.get("response", "")
+            except (AttributeError, TypeError, ValueError, RuntimeError):
+                continue
+            if not isinstance(raw_response, str):
+                continue
+            try:
+                has_text = bool(raw_response.strip())
+            except (AttributeError, TypeError, ValueError, RuntimeError):
+                continue
+            if has_text:
+                fragments.append(raw_response)
+
+        response_text = "".join(fragments).strip()
+        return response_text or None
 
     @staticmethod
     def _bounded_number(value: Any, *, default: float, minimum: float, maximum: float) -> float:
