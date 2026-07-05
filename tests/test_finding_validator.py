@@ -228,6 +228,26 @@ async def test_validate_finding_uses_valid_description_when_message_missing(monk
 
 
 @pytest.mark.asyncio
+async def test_validate_finding_defaults_malformed_contract_context(monkeypatch):
+    validator = LLMFindingValidator(ValidatorConfig())
+    captured = {}
+
+    async def fake_call(prompt):
+        captured["prompt"] = prompt
+        return '{"result": "valid", "confidence": 0.8, "reasoning": "Confirmed."}'
+
+    monkeypatch.setattr(validator, "_call_ollama", fake_call)
+
+    await validator.validate_finding(
+        {"id": "F-1e", "type": "reentrancy", "severity": "high"},
+        "contract Bank {}",
+        contract_context={"bad": "context"},
+    )
+
+    assert "{'bad': 'context'}" not in captured["prompt"]
+
+
+@pytest.mark.asyncio
 async def test_call_ollama_returns_empty_string_for_non_string_response(monkeypatch):
     validator = LLMFindingValidator(ValidatorConfig())
 

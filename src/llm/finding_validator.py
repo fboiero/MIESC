@@ -293,7 +293,9 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
             line=self._parse_location_line(location.get("line")),
             message=message,
             code_snippet=code_context[:1500] if code_context else "Not available",
-            contract_context=contract_context[:500] if contract_context else "Not available",
+            contract_context=(
+                self._parse_text(contract_context, "")[:500] if contract_context else "Not available"
+            ),
         )
 
         try:
