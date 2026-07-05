@@ -456,7 +456,7 @@ REMEDIATION ADVICE:"""
         """Extract a non-empty Ollama response string from bounded JSON/line JSON."""
         try:
             data = json.loads(raw_body)
-        except json.JSONDecodeError:
+        except (json.JSONDecodeError, TypeError, ValueError, RuntimeError):
             return OpenLLaMAHelper._ollama_generate_line_response_text(raw_body)
         if not isinstance(data, dict):
             return None
@@ -489,7 +489,7 @@ REMEDIATION ADVICE:"""
                 continue
             try:
                 data = json.loads(line)
-            except (json.JSONDecodeError, TypeError, ValueError):
+            except (json.JSONDecodeError, TypeError, ValueError, RuntimeError):
                 continue
             if not isinstance(data, dict):
                 continue
