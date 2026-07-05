@@ -46,6 +46,7 @@ MAX_PRIORITY_TEXT_CHARS = 1_000
 MAX_ANALYZE_RESPONSE_CHARS = 4_000
 MAX_REMEDIATION_RESPONSE_CHARS = 4_000
 MAX_GENERATE_RESPONSE_BYTES = 64 * 1024
+MAX_OLLAMA_MODEL_NAME_CHARS = 256
 DEFAULT_OLLAMA_HOST = "http://localhost:11434"
 MIN_LLM_TIMEOUT_SECONDS = 1.0
 MAX_LLM_TIMEOUT_SECONDS = 600.0
@@ -303,16 +304,48 @@ REMEDIATION ADVICE:"""
     @staticmethod
     def _ollama_model_available(model: Any, model_list: Any) -> bool:
         """Return true only for exact model names from `ollama list` output."""
-        if not isinstance(model, str) or not model:
+        model_name = OpenLLaMAHelper._ollama_model_name(model)
+        if model_name is None:
             return False
-        if not isinstance(model_list, str):
-            return False
+        return model_name in OpenLLaMAHelper._ollama_list_model_names(model_list)
 
-        for line in model_list.splitlines():
-            columns = line.split()
-            if columns and columns[0] == model:
-                return True
-        return False
+    @staticmethod
+    def _ollama_list_model_names(model_list: Any) -> tuple[str, ...]:
+        """Extract bounded model names from Ollama list output."""
+        if not isinstance(model_list, str):
+            return ()
+
+        try:
+            lines = model_list.splitlines()
+        except (AttributeError, TypeError, ValueError, RuntimeError):
+            return ()
+
+        names = []
+        for line in lines:
+            if not isinstance(line, str):
+                continue
+            try:
+                columns = line.split(maxsplit=1)
+            except (AttributeError, TypeError, ValueError, RuntimeError):
+                continue
+            if not columns:
+                continue
+            model_name = OpenLLaMAHelper._ollama_model_name(columns[0])
+            if model_name is not None and model_name != "NAME":
+                names.append(model_name)
+        return tuple(names)
+
+    @staticmethod
+    def _ollama_model_name(value: Any) -> Optional[str]:
+        """Normalize a single Ollama model identifier without accepting malformed text."""
+        if not isinstance(value, str):
+            return None
+        model = value.strip()
+        if not model or len(model) > MAX_OLLAMA_MODEL_NAME_CHARS:
+            return None
+        if any(char.isspace() for char in model):
+            return None
+        return model
 
     @staticmethod
     def _subprocess_returncode(result: Any) -> Optional[int]:
