@@ -691,6 +691,16 @@ class TestLLMOrchestrator:
 
         asyncio.run(run_test())
 
+    def test_get_available_providers_treats_malformed_status_as_unavailable(self):
+        """Test malformed backend availability fields cannot cross status helpers."""
+        config = LLMConfig(provider=LLMProvider.OLLAMA, model="malformed")
+        orchestrator = LLMOrchestrator([config])
+        backend = orchestrator.backends["ollama:malformed"]
+        backend.available = {"available": True}
+
+        assert orchestrator.get_available_providers() == []
+        assert backend.available is False
+
     def test_cache_key_generation(self):
         """Test cache key generation."""
         orchestrator = LLMOrchestrator([])
@@ -1419,6 +1429,35 @@ class TestLLMOrchestrator:
 
             assert result is response
             analyze.assert_awaited_once()
+
+        asyncio.run(run_test())
+
+    def test_query_skips_backend_with_malformed_status_payload(self):
+        """Test query routing treats malformed backend status as unavailable."""
+
+        async def run_test():
+            config = LLMConfig(
+                provider=LLMProvider.OLLAMA,
+                model="primary",
+                retry_attempts=1,
+                retry_delay=0,
+            )
+            orchestrator = LLMOrchestrator([config])
+            backend = orchestrator.backends["ollama:primary"]
+            backend.available = {"available": True}
+            backend.analyze = AsyncMock(
+                return_value=LLMResponse(
+                    content="primary content",
+                    provider="ollama",
+                    model="primary",
+                )
+            )
+
+            with pytest.raises(RuntimeError, match="All LLM backends failed"):
+                await orchestrator.query("test prompt")
+
+            backend.analyze.assert_not_awaited()
+            assert backend.available is False
 
         asyncio.run(run_test())
 

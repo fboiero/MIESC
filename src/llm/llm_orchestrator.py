@@ -724,7 +724,7 @@ Provide a comprehensive security analysis in JSON format."""
 
         for key in backends_to_try:
             backend = self.backends.get(key)
-            if not backend or not backend.available:
+            if not backend or not self._backend_is_available(key, backend):
                 continue
 
             retry_attempts = self._retry_attempt_count(backend)
@@ -782,6 +782,18 @@ Provide a comprehensive security analysis in JSON format."""
                 f"metadata must be dict, got {type(response.metadata).__name__}"
             )
         return None
+
+    def _backend_is_available(self, key: str, backend: LLMBackend) -> bool:
+        """Return a strict backend availability status for routing/status helpers."""
+        if isinstance(backend.available, bool):
+            return backend.available
+        logger.warning(
+            "Backend %s has malformed availability %s; treating as unavailable",
+            key,
+            type(backend.available).__name__,
+        )
+        backend.available = False
+        return False
 
     def _retry_attempt_count(self, backend: LLMBackend) -> int:
         """Return a conservative retry count for malformed backend config."""
@@ -1018,14 +1030,14 @@ Provide a comprehensive security analysis in JSON format."""
         preferences = task_preferences.get(task, list(self.backends.keys()))
 
         for pref in preferences:
-            if pref in self.backends and self.backends[pref].available:
+            if pref in self.backends and self._backend_is_available(pref, self.backends[pref]):
                 return pref
 
         return self.primary_provider or list(self.backends.keys())[0]
 
     def get_available_providers(self) -> List[str]:
         """Get list of available providers."""
-        return [k for k, v in self.backends.items() if v.available]
+        return [k for k, v in self.backends.items() if self._backend_is_available(k, v)]
 
     def clear_cache(self) -> None:
         """Clear the response cache."""
