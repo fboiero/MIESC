@@ -1012,6 +1012,24 @@ class TestLLMOrchestrator:
         assert selected == "anthropic:healthy"
         assert orchestrator.backends["ollama:primary"].available is False
 
+    def test_preferred_models_rejects_malformed_list_container(self):
+        """Test malformed preferred model list containers fall back safely."""
+        orchestrator = LLMOrchestrator([])
+
+        assert orchestrator._preferred_models_for_task({"model": "ollama:test"}) == []
+        assert orchestrator._preferred_models_for_task("ollama:test") == []
+        assert orchestrator._preferred_models_for_task(None) == []
+
+    def test_preferred_models_filters_malformed_entries(self):
+        """Test malformed preferred model entries cannot cross selection boundary."""
+        orchestrator = LLMOrchestrator([])
+
+        preferences = orchestrator._preferred_models_for_task(
+            ["ollama:codellama", None, "", {"model": "openai:gpt-4"}, "openai:gpt-4"]
+        )
+
+        assert preferences == ["ollama:codellama", "openai:gpt-4"]
+
     def test_get_available_providers(self):
         """Test getting available providers."""
         configs = [

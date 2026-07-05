@@ -1040,7 +1040,9 @@ Provide a comprehensive security analysis in JSON format."""
             "explanation": ["anthropic:claude-3-sonnet", "ollama:llama2:13b"],
         }
 
-        preferences = task_preferences.get(task, list(self.backends.keys()))
+        preferences = self._preferred_models_for_task(task_preferences.get(task))
+        if not preferences:
+            preferences = list(self.backends.keys())
 
         for pref in preferences:
             if pref in self.backends and self._backend_is_available(pref, self.backends[pref]):
@@ -1051,6 +1053,21 @@ Provide a comprehensive security analysis in JSON format."""
                 return key
 
         return self.primary_provider or list(self.backends.keys())[0]
+
+    def _preferred_models_for_task(self, preferred_models: Any) -> List[str]:
+        """Return strict preferred model keys from a potentially malformed list."""
+        if preferred_models is None:
+            return []
+        if not isinstance(preferred_models, list):
+            logger.warning(
+                "Ignoring malformed preferred model list of type %s",
+                type(preferred_models).__name__,
+            )
+            return []
+        models = [model for model in preferred_models if isinstance(model, str) and model]
+        if len(models) != len(preferred_models):
+            logger.warning("Ignoring malformed preferred model entries")
+        return models
 
     def get_available_providers(self) -> List[str]:
         """Get list of available providers."""
