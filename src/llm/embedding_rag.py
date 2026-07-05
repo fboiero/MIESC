@@ -4683,6 +4683,11 @@ class EmbeddingRAG:
 
     def _cache_result(self, cache_key: str, results: List["RetrievalResult"]) -> None:
         """Cache search results."""
+        if not isinstance(cache_key, str) or not isinstance(results, list):
+            return
+        if any(not isinstance(result, RetrievalResult) for result in results):
+            return
+
         stored = store_cached_result(
             self._query_cache,
             cache_key,

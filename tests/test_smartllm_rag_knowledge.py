@@ -482,3 +482,26 @@ class TestEmbeddingRAGSearchBoundaryShapes:
         assert [[result.document.id for result in row] for row in results] == [["CUSTOM-005"]]
         assert rag._cache_hits == 0
         assert rag._cache_misses == 1
+
+    @pytest.mark.parametrize(
+        "cache_key,results",
+        [
+            ("custom", "not-a-list"),
+            ("custom", ["not-a-retrieval-result"]),
+            (["bad-key"], []),
+        ],
+    )
+    def test_cache_result_rejects_malformed_storage_payloads(
+        self,
+        tmp_path,
+        cache_key,
+        results,
+    ):
+        rag = EmbeddingRAG(persist_directory=str(tmp_path))
+        rag._query_cache = {"stale": (0.0, [])}
+        rag._cache_misses = 3
+
+        rag._cache_result(cache_key, results)  # type: ignore[arg-type]
+
+        assert rag._query_cache == {"stale": (0.0, [])}
+        assert rag._cache_misses == 3
