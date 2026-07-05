@@ -32,9 +32,7 @@ async def test_generate_remediations_sequential_counts_runtime_failures(monkeypa
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("findings", ["not a list", {"id": "A"}, None])
-async def test_generate_remediations_rejects_malformed_batch_container(
-    monkeypatch, findings
-):
+async def test_generate_remediations_rejects_malformed_batch_container(monkeypatch, findings):
     generator = RemediationGenerator()
 
     async def fake_generate(_finding, _code):
@@ -104,6 +102,7 @@ def test_remediation_to_dict_normalizes_malformed_export_metadata():
         pattern_used=["ReentrancyGuard"],
         implementation_complexity="extreme",
         deployment_risk=" Critical ",
+        affected_lines=["3", 4, 0, -1, True, 2.5, float("inf"), {"line": 7}, 3],
     )
 
     exported = remediation.to_dict()
@@ -119,10 +118,38 @@ def test_remediation_to_dict_normalizes_malformed_export_metadata():
         "test_suggestions": [],
         "references": ["OpenZeppelin"],
         "confidence": 0.0,
+        "affected_lines": [3, 4],
         "pattern_used": None,
         "implementation_complexity": "medium",
         "deployment_risk": "critical",
     }
+
+
+@pytest.mark.parametrize(
+    ("affected_lines", "expected"),
+    [
+        ([1, "2", " 3 ", 1], [1, 2, 3]),
+        ([0, -1, True, False, 1.5, float("nan"), float("inf"), "bad"], []),
+        ("1,2,3", []),
+        (None, []),
+    ],
+)
+def test_remediation_to_dict_normalizes_affected_lines_export_boundary(affected_lines, expected):
+    remediation = Remediation(
+        finding_id="F-1",
+        vulnerability_type="reentrancy",
+        severity="high",
+        vulnerable_code="function withdraw() public {}",
+        fixed_code="function withdraw() public nonReentrant {}",
+        explanation="uses guard",
+        changes_summary=[],
+        test_suggestions=[],
+        references=[],
+        confidence=0.8,
+        affected_lines=affected_lines,
+    )
+
+    assert remediation.to_dict()["affected_lines"] == expected
 
 
 @pytest.mark.parametrize(
@@ -267,7 +294,9 @@ async def test_query_llm_returns_empty_dict_on_client_error(monkeypatch):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("payload", [{"message": ["not a dict"]}, {"message": {"content": ["not text"]}}])
+@pytest.mark.parametrize(
+    "payload", [{"message": ["not a dict"]}, {"message": {"content": ["not text"]}}]
+)
 async def test_query_llm_returns_empty_dict_for_malformed_message_payload(monkeypatch, payload):
     generator = RemediationGenerator()
 
@@ -444,7 +473,9 @@ def test_generate_quick_fix_defaults_whitespace_only_type():
     assert explanation == "No known pattern for this vulnerability type"
 
 
-@pytest.mark.parametrize("function_code", [None, ["function withdraw() public {}"], {"code": "bad"}])
+@pytest.mark.parametrize(
+    "function_code", [None, ["function withdraw() public {}"], {"code": "bad"}]
+)
 def test_generate_quick_fix_defaults_malformed_function_code(function_code):
     generator = RemediationGenerator()
 
@@ -1020,9 +1051,7 @@ async def test_generate_remediation_deduplicates_imports_before_prepending(monke
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("fixed_code", ["", " \n\t "])
-async def test_generate_remediation_defaults_blank_fixed_code_payload(
-    monkeypatch, fixed_code
-):
+async def test_generate_remediation_defaults_blank_fixed_code_payload(monkeypatch, fixed_code):
     generator = RemediationGenerator()
     finding = {
         "id": "F-2i",

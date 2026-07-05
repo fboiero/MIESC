@@ -98,6 +98,32 @@ def _export_non_negative_int(value: Any) -> int:
     return normalized if normalized >= 0 else 0
 
 
+def _export_positive_int_list(value: Any) -> List[int]:
+    """Return unique positive integer list items for export payloads."""
+    if not isinstance(value, list):
+        return []
+
+    exported = []
+    seen = set()
+    for item in value:
+        if isinstance(item, bool):
+            continue
+        if isinstance(item, float) and not item.is_integer():
+            continue
+
+        try:
+            normalized = int(item)
+        except (TypeError, ValueError, OverflowError):
+            continue
+
+        if normalized <= 0 or normalized in seen:
+            continue
+        seen.add(normalized)
+        exported.append(normalized)
+
+    return exported
+
+
 logger = logging.getLogger(__name__)
 
 REMEDIATION_RUNTIME_ERRORS = (
@@ -128,6 +154,7 @@ class Remediation:
     pattern_used: Optional[str] = None
     implementation_complexity: str = "medium"
     deployment_risk: str = "medium"
+    affected_lines: Optional[List[int]] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Export remediation data without trusting malformed field values."""
@@ -146,6 +173,7 @@ class Remediation:
             "test_suggestions": _export_string_list(self.test_suggestions),
             "references": _export_string_list(self.references),
             "confidence": _export_confidence(self.confidence),
+            "affected_lines": _export_positive_int_list(self.affected_lines),
             "pattern_used": _export_optional_string(self.pattern_used),
             "implementation_complexity": _export_level(
                 self.implementation_complexity,
