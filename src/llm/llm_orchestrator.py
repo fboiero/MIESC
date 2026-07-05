@@ -694,12 +694,13 @@ Provide a comprehensive security analysis in JSON format."""
         """
         # Check cache
         cache_key = self._get_cache_key(prompt, context)
-        if cache_key in self.cache:
-            cached = self.cache[cache_key]
+        cache = self._cache_state()
+        if cache_key in cache:
+            cached = cache[cache_key]
             cache_error = self._response_boundary_error(cached, "cache")
             if cache_error is not None:
                 logger.warning("Ignoring malformed cached LLM response for key %s", cache_key)
-                self.cache.pop(cache_key, None)
+                cache.pop(cache_key, None)
             else:
                 cached.cached = True
                 return cached
@@ -834,15 +835,27 @@ Provide a comprehensive security analysis in JSON format."""
             return 1
         return raw_limit
 
+    def _cache_state(self) -> Dict[str, LLMResponse]:
+        """Return a usable cache mapping, resetting malformed in-memory state."""
+        if isinstance(self.cache, dict):
+            return self.cache
+        logger.warning(
+            "Malformed LLM cache state %s; resetting response cache",
+            type(self.cache).__name__,
+        )
+        self.cache = {}
+        return self.cache
+
     def _cache_response(self, cache_key: str, response: LLMResponse) -> None:
         """Store a response and evict oldest cache entries beyond the size limit."""
-        self.cache[cache_key] = response
+        cache = self._cache_state()
+        cache[cache_key] = response
         entry_limit = self._cache_entry_limit()
-        while len(self.cache) > entry_limit:
-            oldest_key = next(iter(self.cache), None)
+        while len(cache) > entry_limit:
+            oldest_key = next(iter(cache), None)
             if oldest_key is None:
                 break
-            self.cache.pop(oldest_key, None)
+            cache.pop(oldest_key, None)
 
     def _get_cache_key(self, prompt: str, context: Optional[Dict]) -> str:
         """Generate cache key from prompt and context."""
@@ -1041,7 +1054,7 @@ Provide a comprehensive security analysis in JSON format."""
 
     def clear_cache(self) -> None:
         """Clear the response cache."""
-        self.cache.clear()
+        self._cache_state().clear()
 
 
 # Convenience function for simple usage
