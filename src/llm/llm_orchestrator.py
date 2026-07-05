@@ -162,6 +162,13 @@ def _cache_key_dict_key(key: Any) -> List[Any]:
     return ["non_serializable", type(key).__name__]
 
 
+def _bounded_confidence(value: Any, default: float = 0.5) -> float:
+    """Return a finite confidence value in the expected 0..1 range."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+        return default
+    return min(max(float(value), 0.0), 1.0)
+
+
 class LLMProvider(Enum):
     """Supported LLM providers."""
 
@@ -681,7 +688,8 @@ Provide a comprehensive security analysis in JSON format."""
         cache_key = self._get_cache_key(prompt, context)
         if cache_key in self.cache:
             cached = self.cache[cache_key]
-            if not isinstance(cached, LLMResponse) or not isinstance(cached.content, str):
+            cache_error = self._response_boundary_error(cached, "cache")
+            if cache_error is not None:
                 logger.warning("Ignoring malformed cached LLM response for key %s", cache_key)
                 self.cache.pop(cache_key, None)
             else:
@@ -716,16 +724,9 @@ Provide a comprehensive security analysis in JSON format."""
             for attempt in range(retry_attempts):
                 try:
                     response = await backend.analyze(prompt, context)
-                    if not isinstance(response, LLMResponse):
-                        raise ValueError(
-                            f"Malformed LLM response from {key}: "
-                            f"expected LLMResponse, got {type(response).__name__}"
-                        )
-                    if not isinstance(response.content, str):
-                        raise ValueError(
-                            f"Malformed LLM response from {key}: "
-                            f"content must be str, got {type(response.content).__name__}"
-                        )
+                    response_error = self._response_boundary_error(response, key)
+                    if response_error is not None:
+                        raise ValueError(response_error)
                     self.cache[cache_key] = response
                     return response
                 except LLM_RUNTIME_ERRORS as e:
@@ -734,6 +735,45 @@ Provide a comprehensive security analysis in JSON format."""
                         await asyncio.sleep(retry_delay)
 
         raise RuntimeError(f"All LLM backends failed: {errors}")
+
+    def _response_boundary_error(self, response: Any, source: str) -> Optional[str]:
+        """Return a validation error for malformed response boundary fields."""
+        if not isinstance(response, LLMResponse):
+            return (
+                f"Malformed LLM response from {source}: "
+                f"expected LLMResponse, got {type(response).__name__}"
+            )
+        if not isinstance(response.content, str):
+            return (
+                f"Malformed LLM response from {source}: "
+                f"content must be str, got {type(response.content).__name__}"
+            )
+        if isinstance(response.tokens_used, bool) or not isinstance(response.tokens_used, int):
+            return (
+                f"Malformed LLM response from {source}: "
+                f"tokens_used must be int, got {type(response.tokens_used).__name__}"
+            )
+        if response.tokens_used < 0:
+            return (
+                f"Malformed LLM response from {source}: "
+                f"tokens_used must be non-negative, got {response.tokens_used}"
+            )
+        if (
+            isinstance(response.latency_ms, bool)
+            or not isinstance(response.latency_ms, (int, float))
+            or not math.isfinite(response.latency_ms)
+            or response.latency_ms < 0
+        ):
+            return (
+                f"Malformed LLM response from {source}: "
+                f"latency_ms must be finite non-negative number, got {response.latency_ms!r}"
+            )
+        if not isinstance(response.metadata, dict):
+            return (
+                f"Malformed LLM response from {source}: "
+                f"metadata must be dict, got {type(response.metadata).__name__}"
+            )
+        return None
 
     def _retry_attempt_count(self, backend: LLMBackend) -> int:
         """Return a conservative retry count for malformed backend config."""
@@ -803,7 +843,7 @@ Provide a comprehensive security analysis in JSON format."""
                         "severity": vuln.get("severity", "medium"),
                         "title": vuln.get("title", ""),
                         "description": vuln.get("description", ""),
-                        "confidence": vuln.get("confidence", 0.5),
+                        "confidence": _bounded_confidence(vuln.get("confidence", 0.5)),
                         "swc_id": vuln.get("swc_id"),
                         "cwe_id": vuln.get("cwe_id"),
                         "remediation": vuln.get("remediation"),
@@ -816,7 +856,7 @@ Provide a comprehensive security analysis in JSON format."""
                         "severity": vuln.severity,
                         "title": vuln.title,
                         "description": vuln.description,
-                        "confidence": vuln.confidence,
+                        "confidence": _bounded_confidence(vuln.confidence),
                         "swc_id": vuln.swc_id,
                         "cwe_id": vuln.cwe_id,
                         "remediation": vuln.remediation,
@@ -873,6 +913,8 @@ Provide a comprehensive security analysis in JSON format."""
                     val = vuln_dict[key]
                     if isinstance(val, str) and len(val) > 5000:
                         vuln_dict[key] = val[:5000] + "...[truncated]"
+                if "confidence" in vuln_dict:
+                    vuln_dict["confidence"] = _bounded_confidence(vuln_dict["confidence"])
 
             severity_assessment = {
                 "critical": sum(1 for v in vulnerabilities if v.get("severity") == "critical"),
@@ -888,7 +930,9 @@ Provide a comprehensive security analysis in JSON format."""
                 recommendations=[
                     v.get("remediation", "")[:2000] for v in vulnerabilities if v.get("remediation")
                 ],
-                confidence_score=sum(v.get("confidence", 0.5) for v in vulnerabilities)
+                confidence_score=sum(
+                    _bounded_confidence(v.get("confidence", 0.5)) for v in vulnerabilities
+                )
                 / max(len(vulnerabilities), 1),
                 analysis_summary=str(data.get("summary", "Analysis completed"))[:2000],
                 raw_response=content,
