@@ -1124,7 +1124,7 @@ Response (JSON array only):"""
                         "raw_responses": {},
                     }
 
-                finding_groups[signature]["votes"].append(self.MODEL_WEIGHTS.get(model, 1.0))
+                finding_groups[signature]["votes"].append(self._model_weight(model))
                 finding_groups[signature]["models"].append(model)
                 finding_groups[signature]["raw_responses"][model] = (
                     self._safe_raw_response_payload(finding)
@@ -1153,7 +1153,7 @@ Response (JSON array only):"""
             elif self.voting_strategy == VotingStrategy.WEIGHTED:
                 # Weighted threshold based on available model weights
                 max_possible_weight = sum(
-                    self.MODEL_WEIGHTS.get(m, 1.0) for m in model_findings.keys()
+                    self._model_weight(m) for m in model_findings.keys()
                 )
                 passes = weighted_votes >= max_possible_weight * 0.5
 
@@ -1211,6 +1211,34 @@ Response (JSON array only):"""
             )
 
         return normalized
+
+    @classmethod
+    def _model_weight(cls, model: Any) -> float:
+        """Return a finite positive model weight, defaulting malformed entries."""
+        if not isinstance(model, str) or not model.strip():
+            return 1.0
+
+        weights = cls.MODEL_WEIGHTS
+        if not isinstance(weights, dict):
+            logger.warning("Ignoring malformed ensemble model weights; using default")
+            return 1.0
+
+        weight = weights.get(model.strip(), 1.0)
+        if isinstance(weight, bool) or isinstance(weight, (dict, list, tuple, set)):
+            logger.warning("Ignoring malformed ensemble model weight for %s", model.strip())
+            return 1.0
+
+        try:
+            normalized_weight = float(weight)
+        except (TypeError, ValueError):
+            logger.warning("Ignoring malformed ensemble model weight for %s", model.strip())
+            return 1.0
+
+        if not math.isfinite(normalized_weight) or normalized_weight <= 0.0:
+            logger.warning("Ignoring malformed ensemble model weight for %s", model.strip())
+            return 1.0
+
+        return normalized_weight
 
     @staticmethod
     def _safe_raw_response_payload(finding: Any) -> Dict[str, Any]:

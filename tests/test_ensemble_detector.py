@@ -1269,6 +1269,79 @@ class TestLLMEnsembleDetectorVoting:
         assert list(results[0].raw_responses) == ["model1", "model2"]
         assert ("tuple", "key") not in results[0].raw_responses["model1"]
 
+    def test_weighted_vote_defaults_malformed_model_weights(self, monkeypatch):
+        """Bad weight entries should not crash weighted voting."""
+        monkeypatch.setattr(
+            LLMEnsembleDetector,
+            "MODEL_WEIGHTS",
+            {"model1": "bad", "model2": float("nan"), "model3": {"weight": 1.2}},
+        )
+        detector = LLMEnsembleDetector(voting_strategy=VotingStrategy.WEIGHTED)
+
+        findings = {
+            "model1": [
+                {
+                    "type": "reentrancy",
+                    "severity": "high",
+                    "title": "Reentrancy",
+                    "description": "External call before update",
+                    "location": {"function": "withdraw", "line": 10},
+                    "confidence": 0.9,
+                }
+            ],
+            "model2": [
+                {
+                    "type": "reentrancy",
+                    "severity": "high",
+                    "title": "Reentrancy",
+                    "description": "External call before update",
+                    "location": {"function": "withdraw", "line": 11},
+                    "confidence": 0.8,
+                }
+            ],
+            "model3": [
+                {
+                    "type": "reentrancy",
+                    "severity": "high",
+                    "title": "Reentrancy",
+                    "description": "External call before update",
+                    "location": {"function": "withdraw", "line": 12},
+                    "confidence": 0.7,
+                }
+            ],
+        }
+
+        results = detector._ensemble_vote(findings)
+
+        assert len(results) == 1
+        assert results[0].votes == 3
+
+    def test_weighted_vote_does_not_let_negative_weights_lower_threshold(self, monkeypatch):
+        """Negative weights should default instead of making minority votes pass."""
+        monkeypatch.setattr(
+            LLMEnsembleDetector,
+            "MODEL_WEIGHTS",
+            {"model1": 1.0, "model2": -100.0, "model3": -100.0},
+        )
+        detector = LLMEnsembleDetector(voting_strategy=VotingStrategy.WEIGHTED)
+
+        findings = {
+            "model1": [
+                {
+                    "type": "reentrancy",
+                    "severity": "high",
+                    "title": "Reentrancy",
+                    "description": "External call before update",
+                    "location": {"function": "withdraw", "line": 10},
+                    "confidence": 0.9,
+                }
+            ],
+            "model2": [],
+            "model3": [],
+        }
+
+        assert detector._ensemble_vote(findings) == []
+
     def test_finding_signature_defaults_nonfinite_line_scalar(self, detector):
         """Non-finite scalar line values should not crash signature grouping."""
         malformed = {
