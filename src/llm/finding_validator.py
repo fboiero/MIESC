@@ -157,6 +157,12 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
             self.config.ollama_host = os.environ["OLLAMA_HOST"]
         if os.environ.get("MIESC_LLM_MODEL") and self.config.model == default_config.model:
             self.config.model = os.environ["MIESC_LLM_MODEL"]
+        if (
+            isinstance(self.config.timeout_seconds, bool)
+            or not isinstance(self.config.timeout_seconds, (int, float))
+            or self.config.timeout_seconds <= 0
+        ):
+            self.config.timeout_seconds = default_config.timeout_seconds
 
         self._session: Optional[aiohttp.ClientSession] = None
         self._validated_count = 0

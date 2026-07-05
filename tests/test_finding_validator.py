@@ -423,6 +423,13 @@ def test_init_preserves_explicit_config_over_environment(monkeypatch):
     assert config.model == "explicit-model"
 
 
+@pytest.mark.parametrize("timeout", [0, -1, True, ["60"]])
+def test_init_defaults_malformed_timeout_config(timeout):
+    validator = LLMFindingValidator(ValidatorConfig(timeout_seconds=timeout))
+
+    assert validator.config.timeout_seconds == ValidatorConfig().timeout_seconds
+
+
 def test_should_validate_respects_enabled_flag_and_min_severity():
     disabled = LLMFindingValidator(ValidatorConfig(enabled=False))
     high_only = LLMFindingValidator(ValidatorConfig(min_severity_to_validate="high"))
