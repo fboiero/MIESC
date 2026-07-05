@@ -233,8 +233,8 @@ class RemediationGenerator:
         explanation = self._string_or_default(result.get("explanation"), "")
         changes = self._string_list_or_empty(result.get("changes"))
         imports = self._imports_to_prepend(fixed_code, result.get("imports_needed"))
-        tests = self._string_list_or_empty(result.get("test_suggestions"))
-        references = self._string_list_or_empty(result.get("references"))
+        tests = self._unique_string_list_or_empty(result.get("test_suggestions"))
+        references = self._unique_string_list_or_empty(result.get("references"))
         implementation_complexity = self._normalized_level(
             result.get("implementation_complexity", result.get("complexity")),
             {"low", "medium", "high"},
@@ -529,6 +529,18 @@ class RemediationGenerator:
         if not isinstance(value, list):
             return []
         return [item.strip() for item in value if isinstance(item, str) and item.strip()]
+
+    @classmethod
+    def _unique_string_list_or_empty(cls, value: Any) -> List[str]:
+        """Return unique non-empty string list items from LLM metadata."""
+        items = []
+        seen = set()
+        for item in cls._string_list_or_empty(value):
+            if item in seen:
+                continue
+            seen.add(item)
+            items.append(item)
+        return items
 
     @classmethod
     def _imports_to_prepend(cls, fixed_code: str, value: Any) -> List[str]:

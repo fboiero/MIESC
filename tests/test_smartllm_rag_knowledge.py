@@ -9,6 +9,7 @@ individually; their output is exercised via get_relevant_knowledge.
 
 from __future__ import annotations
 
+import math
 import time
 
 import pytest
@@ -577,6 +578,60 @@ class TestEmbeddingRAGSearchBoundaryShapes:
         assert [result.document.id for result in results] == ["CUSTOM-003"]
         assert 0.0 <= results[0].similarity_score < 0.3
         assert results[0].relevance_reason == "Matches category: custom"
+
+    def test_search_bounds_non_finite_and_negative_distances(self, tmp_path):
+        documents = {
+            doc_id: VulnerabilityDocument(
+                id=doc_id,
+                title=doc_id,
+                description="Custom vulnerability description",
+            )
+            for doc_id in (
+                "CUSTOM-NAN",
+                "CUSTOM-POS-INF",
+                "CUSTOM-NEG-INF",
+                "CUSTOM-NEGATIVE-DISTANCE",
+            )
+        }
+        collection = _MalformedSearchCollection(
+            {
+                "ids": [list(documents)],
+                "distances": [[float("nan"), float("inf"), float("-inf"), -0.25]],
+            }
+        )
+        rag = EmbeddingRAG(persist_directory=str(tmp_path))
+        rag._initialized = True
+        rag._collection = collection
+        rag._doc_index = documents
+
+        results = rag.search("distance boundary", n_results=4)
+        scores_by_id = {result.document.id: result.similarity_score for result in results}
+
+        assert set(scores_by_id) == set(documents)
+        assert all(math.isfinite(score) for score in scores_by_id.values())
+        assert all(0.0 <= score <= 1.0 for score in scores_by_id.values())
+        assert scores_by_id["CUSTOM-NEG-INF"] < 0.3
+        assert scores_by_id["CUSTOM-NEGATIVE-DISTANCE"] > 0.9
+
+    @pytest.mark.parametrize("score", [float("nan"), float("inf"), float("-inf"), -0.5])
+    def test_rank_result_bounds_non_finite_and_negative_scores(self, tmp_path, score):
+        vulnerability = VulnerabilityDocument(
+            id="CUSTOM-SCORE",
+            title="Malformed Score Boundary",
+            description="Custom vulnerability description",
+        )
+        rag = EmbeddingRAG(persist_directory=str(tmp_path))
+        result = RetrievalResult(
+            document=vulnerability,
+            similarity_score=score,
+            relevance_reason="test",
+        )
+
+        ranked = rag._rank_result(result, original_query="score boundary")
+
+        assert math.isfinite(ranked.similarity_score)
+        assert 0.0 <= ranked.similarity_score <= 1.0
+        assert ranked.similarity_score < 0.3
 
     def test_search_skips_ids_without_aligned_document_and_metadata_rows(self, tmp_path):
         valid = VulnerabilityDocument(

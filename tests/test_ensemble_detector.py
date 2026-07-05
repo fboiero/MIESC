@@ -491,6 +491,32 @@ class TestLLMEnsembleDetectorInit:
         detector = LLMEnsembleDetector(consensus_threshold=0)
         assert detector.consensus_threshold == 1
 
+    def test_model_status_returns_defensive_model_lists(self):
+        """Public status callers should not mutate detector model state."""
+        detector = LLMEnsembleDetector(models=["model1", "model2"])
+        detector._available_models = ["model1"]
+
+        status = detector.get_model_status()
+        status["configured_models"].append("injected-model")
+        status["available_models"].append("injected-model")
+
+        assert detector.models == ["model1", "model2"]
+        assert detector._available_models == ["model1"]
+        assert detector.get_model_status()["configured_models"] == ["model1", "model2"]
+        assert detector.get_model_status()["available_models"] == ["model1"]
+
+    def test_model_status_filters_malformed_model_metadata(self):
+        """Malformed internal model metadata should not break status serialization."""
+        detector = LLMEnsembleDetector(models=["model1"])
+        detector.models = [" model1 ", {"name": "bad"}, "", None]
+        detector._available_models = [" model1 ", ["bad"], ""]
+
+        status = detector.get_model_status()
+
+        assert status["configured_models"] == ["model1"]
+        assert status["available_models"] == ["model1"]
+        assert status["model_weights"] == {"model1": 1.0}
+
 
 class TestLLMEnsembleDetectorConstants:
     """Tests for LLMEnsembleDetector class constants."""

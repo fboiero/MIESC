@@ -523,15 +523,19 @@ class PoCGenerator:
         if fork_url is None or fork_block is None:
             return ""
 
-        if not isinstance(fork_url, str) or not isinstance(fork_block, int) or isinstance(
-            fork_block, bool
+        if (
+            not isinstance(fork_url, str)
+            or not fork_url.strip()
+            or not isinstance(fork_block, int)
+            or isinstance(fork_block, bool)
+            or fork_block <= 0
         ):
             logger.warning("Skipping malformed fork configuration in PoC options")
             return ""
 
         return f"""
         // Fork mainnet
-        vm.createSelectFork("{fork_url}", {fork_block});
+        vm.createSelectFork("{fork_url.strip()}", {fork_block});
 """
 
     def _extract_function_name(self, finding: Dict[str, Any]) -> Optional[str]:

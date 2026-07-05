@@ -73,6 +73,18 @@ def test_extract_openai_compatible_model_ids_falls_back_from_malformed_id_to_nam
     assert extract_openai_compatible_model_ids(payload) == {"fallback-model", "ignored-empty-id"}
 
 
+def test_extract_openai_compatible_model_ids_ignores_nested_model_identifiers():
+    """Test nested id/name objects do not leak reprs or become accepted identifiers."""
+    payload = {
+        "data": [
+            {"id": {"value": "model-a"}, "name": {"value": "model-b"}},
+            {"id": " valid-model ", "name": {"value": "ignored"}},
+        ]
+    }
+
+    assert extract_openai_compatible_model_ids(payload) == {"valid-model"}
+
+
 def test_fetch_openai_compatible_model_ids_success():
     """Test fetching model IDs from a compatible endpoint."""
 

@@ -676,6 +676,21 @@ def test_get_statistics_avoids_division_by_zero():
     assert validator.get_statistics()["fp_rate"] == 0
 
 
+def test_get_statistics_defaults_mutated_malformed_config_metadata():
+    validator = LLMFindingValidator(ValidatorConfig(model="test-model", enabled=True))
+    validator.config.model = ["test-model"]
+    validator.config.min_severity_to_validate = {"level": "high"}
+    validator.config.enabled = "yes"
+
+    stats = validator.get_statistics()
+
+    assert stats["config"] == {
+        "model": ValidatorConfig().model,
+        "min_severity": ValidatorConfig().min_severity_to_validate,
+        "enabled": False,
+    }
+
+
 @pytest.mark.asyncio
 async def test_validate_finding_success_updates_counters(monkeypatch):
     validator = LLMFindingValidator(ValidatorConfig())

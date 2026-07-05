@@ -691,6 +691,36 @@ class TestLLMOrchestrator:
         assert len(key1) == 16
         assert key1 == key2
 
+    def test_cache_key_generation_handles_malformed_context_truthiness(self):
+        """Test malformed context truthiness cannot break cache key generation."""
+
+        class MalformedContext(dict):
+            def __len__(self):
+                raise ValueError("bad context length")
+
+        orchestrator = LLMOrchestrator([])
+
+        key1 = orchestrator._get_cache_key("prompt", MalformedContext({"a": 1}))
+        key2 = orchestrator._get_cache_key("prompt", MalformedContext({"b": 2}))
+
+        assert len(key1) == 16
+        assert key1 != key2
+
+    def test_cache_key_generation_handles_malformed_context_items(self):
+        """Test malformed context item traversal falls back at the boundary."""
+
+        class MalformedContext(dict):
+            def items(self):
+                raise TypeError("bad context items")
+
+        orchestrator = LLMOrchestrator([])
+
+        key1 = orchestrator._get_cache_key("prompt", MalformedContext({"a": 1}))
+        key2 = orchestrator._get_cache_key("prompt", MalformedContext({"b": 2}))
+
+        assert len(key1) == 16
+        assert key1 == key2
+
     def test_cache_key_generation_preserves_non_string_key_boundaries(self):
         """Test non-string context keys cannot collide with same-looking strings."""
         orchestrator = LLMOrchestrator([])

@@ -42,6 +42,7 @@ OLLAMA_RUNTIME_ERRORS = (
 )
 LLM_PROCESSING_ERRORS = (AttributeError, KeyError, TypeError, ValueError, RuntimeError)
 MAX_PRIORITY_RESPONSE_CHARS = 20_000
+MAX_PRIORITY_TEXT_CHARS = 1_000
 MAX_REMEDIATION_RESPONSE_CHARS = 4_000
 MAX_GENERATE_RESPONSE_BYTES = 64 * 1024
 
@@ -438,6 +439,13 @@ INSIGHTS:"""
             response = response[:limit]
         return response or None
 
+    @staticmethod
+    def _priority_item_text(value: Any) -> str:
+        """Return bounded text for optional priority item string fields."""
+        if not isinstance(value, str):
+            return ""
+        return value[:MAX_PRIORITY_TEXT_CHARS]
+
     def _create_findings_summary(self, findings: List[Dict[str, Any]]) -> str:
         """Create concise summary of findings for LLM."""
         summary_lines = []
@@ -528,14 +536,14 @@ INSIGHTS:"""
                 idx = item.get("index")
                 if isinstance(idx, int) and not isinstance(idx, bool):
                     priority = item.get("priority", 5)
-                    reason = item.get("reason", "")
+                    reason = self._priority_item_text(item.get("reason", ""))
                     priorities[idx] = {
                         "priority": priority
                         if isinstance(priority, int)
                         and not isinstance(priority, bool)
                         and 1 <= priority <= 10
                         else 5,
-                        "reason": reason if isinstance(reason, str) else "",
+                        "reason": reason,
                     }
 
             return priorities
