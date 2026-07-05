@@ -56,6 +56,38 @@ LLM_RUNTIME_ERRORS = (
     json.JSONDecodeError,
 )
 
+_BACKEND_ERROR_TEXT_LIMIT = 500
+
+
+def _safe_backend_error_text(error: Any) -> str:
+    """Return bounded printable backend error text without trusting __str__."""
+    try:
+        text = str(error)
+    except Exception:
+        return f"<unprintable:{type(error).__name__}>"
+
+    if not text:
+        return f"<empty:{type(error).__name__}>"
+
+    safe_chars = []
+    for char in text[:_BACKEND_ERROR_TEXT_LIMIT]:
+        ordinal = ord(char)
+        if char == "\n":
+            safe_chars.append("\\n")
+        elif char == "\r":
+            safe_chars.append("\\r")
+        elif char == "\t":
+            safe_chars.append("\\t")
+        elif ordinal < 32 or ordinal == 127:
+            safe_chars.append(f"\\x{ordinal:02x}")
+        else:
+            safe_chars.append(char)
+
+    safe_text = "".join(safe_chars)
+    if len(text) > _BACKEND_ERROR_TEXT_LIMIT:
+        safe_text += "...<truncated>"
+    return safe_text
+
 
 def _json_safe_context(value: Any, seen: Optional[set[int]] = None) -> Any:
     """Return a JSON-serializable context shape without object repr fallbacks."""
@@ -316,7 +348,7 @@ class OllamaBackend(LLMBackend):
                         )
                         return self.available
         except LLM_RUNTIME_ERRORS as e:
-            logger.debug(f"Ollama health check failed: {e}")
+            logger.debug("Ollama health check failed: %s", _safe_backend_error_text(e))
         return False
 
     async def analyze(self, prompt: str, context: Optional[Dict] = None) -> LLMResponse:
@@ -349,7 +381,8 @@ class OllamaBackend(LLMBackend):
                 timeout=aiohttp.ClientTimeout(total=self.config.timeout),
             ) as resp:
                 if resp.status != 200:
-                    raise RuntimeError(f"Ollama error: {await resp.text()}")
+                    error_text = _safe_backend_error_text(await resp.text())
+                    raise RuntimeError(f"Ollama error: {error_text}")
 
                 data = await resp.json()
                 if not isinstance(data, dict):
@@ -688,7 +721,11 @@ class LLMOrchestrator:
                 logger.info(f"Backend {key}: {'available' if available else 'unavailable'}")
             except LLM_RUNTIME_ERRORS as e:
                 status[key] = False
-                logger.warning(f"Backend {key} health check failed: {e}")
+                logger.warning(
+                    "Backend %s health check failed: %s",
+                    key,
+                    _safe_backend_error_text(e),
+                )
         return status
 
     async def analyze_contract(
@@ -799,11 +836,13 @@ Provide a comprehensive security analysis in JSON format."""
                     self._cache_response(cache_key, response)
                     return response
                 except LLM_RUNTIME_ERRORS as e:
-                    errors.append(f"{key} attempt {attempt + 1}: {e}")
+                    errors.append(
+                        f"{key} attempt {attempt + 1}: {_safe_backend_error_text(e)}"
+                    )
                     if attempt < retry_attempts - 1:
                         await asyncio.sleep(retry_delay)
 
-        raise RuntimeError(f"All LLM backends failed: {errors}")
+        raise RuntimeError(f"All LLM backends failed: {'; '.join(errors)}")
 
     def _response_boundary_error(self, response: Any, source: str) -> Optional[str]:
         """Return a validation error for malformed response boundary fields."""
@@ -997,7 +1036,7 @@ Provide a comprehensive security analysis in JSON format."""
             logger.warning(
                 "Malformed LLM cache key context of type %s; using fallback boundary: %s",
                 type(context).__name__,
-                e,
+                _safe_backend_error_text(e),
             )
             safe_context = {"__malformed_context__": type(context).__name__}
 

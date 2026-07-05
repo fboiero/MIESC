@@ -1783,6 +1783,61 @@ class TestLLMOrchestrator:
 
         asyncio.run(run_test())
 
+    def test_query_bounds_backend_exception_text(self):
+        """Test backend exception text cannot cross the final error boundary raw."""
+
+        async def run_test():
+            config = LLMConfig(
+                provider=LLMProvider.OLLAMA,
+                model="primary",
+                retry_attempts=1,
+                retry_delay=0,
+            )
+            orchestrator = LLMOrchestrator([config])
+            backend = orchestrator.backends["ollama:primary"]
+            backend.available = True
+            backend.analyze = AsyncMock(
+                side_effect=RuntimeError("bad\nline\tname\x00" + ("x" * 600))
+            )
+
+            with pytest.raises(RuntimeError) as exc_info:
+                await orchestrator.query("test prompt")
+
+            message = str(exc_info.value)
+            assert "bad\\nline\\tname\\x00" in message
+            assert "\x00" not in message
+            assert "\n" not in message
+            assert "...<truncated>" in message
+            assert len(message) < 700
+
+        asyncio.run(run_test())
+
+    def test_query_handles_unprintable_backend_exception(self):
+        """Test backend exceptions with broken __str__ stay inside query errors."""
+
+        class UnprintableRuntimeError(RuntimeError):
+            def __str__(self):
+                raise ValueError("broken exception string")
+
+        async def run_test():
+            config = LLMConfig(
+                provider=LLMProvider.OLLAMA,
+                model="primary",
+                retry_attempts=1,
+                retry_delay=0,
+            )
+            orchestrator = LLMOrchestrator([config])
+            backend = orchestrator.backends["ollama:primary"]
+            backend.available = True
+            backend.analyze = AsyncMock(side_effect=UnprintableRuntimeError())
+
+            with pytest.raises(RuntimeError) as exc_info:
+                await orchestrator.query("test prompt")
+
+            assert "<unprintable:UnprintableRuntimeError>" in str(exc_info.value)
+
+        asyncio.run(run_test())
+
     def test_analyze_contract_structure(self):
         """Test analyze_contract method structure."""
         config = LLMConfig(provider=LLMProvider.OPENAI, model="gpt-4", api_key="test-key")
