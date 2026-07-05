@@ -160,6 +160,9 @@ class LLMEnsembleDetector:
         "codellama:7b",  # Secondary - code specialist
         "llama3.1:8b",  # Tertiary - general reasoning
     ]
+    DEFAULT_TIMEOUT = 120
+    DEFAULT_TEMPERATURE = 0.1
+    MAX_TEMPERATURE = 2.0
 
     # Model weights based on code analysis expertise
     MODEL_WEIGHTS = {
@@ -244,8 +247,8 @@ Response (JSON array only):"""
         self.base_url = ollama_base_url
         self.voting_strategy = self._normalize_voting_strategy(voting_strategy)
         self.consensus_threshold = self._normalize_consensus_threshold(consensus_threshold)
-        self.timeout = timeout
-        self.temperature = temperature
+        self.timeout = self._normalize_timeout(timeout)
+        self.temperature = self._normalize_temperature(temperature)
 
         # Multi-provider support (v4.4.0)
         self.providers = self._normalize_providers(providers)
@@ -297,6 +300,44 @@ Response (JSON array only):"""
             return 2
 
         return max(1, threshold)
+
+    @classmethod
+    def _normalize_timeout(cls, timeout: Any) -> int:
+        """Return a positive finite request timeout in seconds."""
+        if isinstance(timeout, bool):
+            logger.warning("Ignoring malformed ensemble timeout; using default")
+            return cls.DEFAULT_TIMEOUT
+
+        try:
+            normalized_timeout = float(timeout)
+        except (TypeError, ValueError):
+            logger.warning("Ignoring malformed ensemble timeout; using default")
+            return cls.DEFAULT_TIMEOUT
+
+        if not math.isfinite(normalized_timeout):
+            logger.warning("Ignoring malformed ensemble timeout; using default")
+            return cls.DEFAULT_TIMEOUT
+
+        return max(1, int(normalized_timeout))
+
+    @classmethod
+    def _normalize_temperature(cls, temperature: Any) -> float:
+        """Return a finite LLM temperature bounded to provider-safe values."""
+        if isinstance(temperature, bool):
+            logger.warning("Ignoring malformed ensemble temperature; using default")
+            return cls.DEFAULT_TEMPERATURE
+
+        try:
+            normalized_temperature = float(temperature)
+        except (TypeError, ValueError):
+            logger.warning("Ignoring malformed ensemble temperature; using default")
+            return cls.DEFAULT_TEMPERATURE
+
+        if not math.isfinite(normalized_temperature):
+            logger.warning("Ignoring malformed ensemble temperature; using default")
+            return cls.DEFAULT_TEMPERATURE
+
+        return min(cls.MAX_TEMPERATURE, max(0.0, normalized_temperature))
 
     @staticmethod
     def _normalize_voting_strategy(voting_strategy: Any) -> VotingStrategy:

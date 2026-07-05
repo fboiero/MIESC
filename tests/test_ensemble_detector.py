@@ -413,10 +413,39 @@ class TestLLMEnsembleDetectorInit:
         detector = LLMEnsembleDetector(temperature=0.5)
         assert detector.temperature == 0.5
 
+    @pytest.mark.parametrize("temperature", [{"value": 0.5}, True, float("nan"), float("inf")])
+    def test_malformed_temperature_uses_default(self, temperature):
+        """Malformed temperature config should not cross into request payloads."""
+        detector = LLMEnsembleDetector(temperature=temperature)
+        assert detector.temperature == LLMEnsembleDetector.DEFAULT_TEMPERATURE
+
+    @pytest.mark.parametrize(
+        ("temperature", "expected"),
+        [
+            (-0.5, 0.0),
+            (3.0, LLMEnsembleDetector.MAX_TEMPERATURE),
+        ],
+    )
+    def test_temperature_is_bounded(self, temperature, expected):
+        """Out-of-range temperatures should be clamped to provider-safe bounds."""
+        detector = LLMEnsembleDetector(temperature=temperature)
+        assert detector.temperature == expected
+
     def test_timeout_setting(self):
         """Test timeout parameter."""
         detector = LLMEnsembleDetector(timeout=60)
         assert detector.timeout == 60
+
+    @pytest.mark.parametrize("timeout", [{"seconds": 60}, False, float("nan"), float("-inf")])
+    def test_malformed_timeout_uses_default(self, timeout):
+        """Malformed timeout config should not reach aiohttp ClientTimeout."""
+        detector = LLMEnsembleDetector(timeout=timeout)
+        assert detector.timeout == LLMEnsembleDetector.DEFAULT_TIMEOUT
+
+    def test_timeout_is_positive(self):
+        """A non-positive timeout should not disable or invert request deadlines."""
+        detector = LLMEnsembleDetector(timeout=0)
+        assert detector.timeout == 1
 
     def test_malformed_consensus_threshold_uses_default(self):
         """A non-numeric threshold should not break vote comparisons later."""
