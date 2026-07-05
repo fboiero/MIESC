@@ -222,6 +222,13 @@ def _normalized_model_identifier(value: Any) -> Optional[str]:
     return model
 
 
+def _is_safe_backend_name(value: Any) -> bool:
+    """Return whether a backend name is safe to expose in status outputs."""
+    if not isinstance(value, str):
+        return False
+    return _normalized_model_identifier(value) == value
+
+
 class LLMProvider(Enum):
     """Supported LLM providers."""
 
@@ -914,7 +921,7 @@ Provide a comprehensive security analysis in JSON format."""
         """Return backend entries with strict string keys for routing/status boundaries."""
         valid_backends = []
         for key, backend in self.backends.items():
-            if isinstance(key, str) and key:
+            if _is_safe_backend_name(key):
                 valid_backends.append((key, backend))
                 continue
             logger.warning(

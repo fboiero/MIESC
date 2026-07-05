@@ -32,6 +32,7 @@ logger = logging.getLogger(__name__)
 FOUNDRY_RUNTIME_ERRORS = (OSError, RuntimeError, subprocess.SubprocessError)
 FOUNDRY_PARSE_ERRORS = (AttributeError, TypeError, ValueError)
 MAX_RAW_OUTPUT_CHARS = 200_000
+MAX_JSON_OUTPUT_LINE_CHARS = 50_000
 
 
 def _safe_match_filter(value: Any) -> str:
@@ -454,6 +455,8 @@ class FoundryRunner:
             # Forge JSON output can be multiple JSON objects
             for line in stdout.split("\n"):
                 line = line.strip()
+                if len(line) > MAX_JSON_OUTPUT_LINE_CHARS:
+                    continue
                 if line.startswith("{"):
                     try:
                         data = json.loads(line)

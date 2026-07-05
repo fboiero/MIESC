@@ -642,10 +642,12 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
 
     def get_statistics(self) -> Dict[str, Any]:
         """Get validator statistics."""
+        validated_count = self._safe_counter(self._validated_count)
+        fp_detected_count = min(self._safe_counter(self._fp_detected_count), validated_count)
         return {
-            "validated_count": self._validated_count,
-            "fp_detected_count": self._fp_detected_count,
-            "fp_rate": (self._fp_detected_count / max(self._validated_count, 1)),
+            "validated_count": validated_count,
+            "fp_detected_count": fp_detected_count,
+            "fp_rate": (fp_detected_count / max(validated_count, 1)),
             "config": {
                 "model": self._parse_text(self.config.model, ValidatorConfig().model),
                 "min_severity": self._parse_text(
@@ -655,6 +657,13 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
                 "enabled": self.config.enabled is True,
             },
         }
+
+    @staticmethod
+    def _safe_counter(value: Any) -> int:
+        """Return non-negative integer counters for mutable statistics."""
+        if isinstance(value, bool) or not isinstance(value, int):
+            return 0
+        return max(value, 0)
 
 
 # Convenience function for synchronous usage

@@ -1468,6 +1468,14 @@ class TestParseForgeOutputEdgeCases:
         # Should fallback to text parsing
         assert isinstance(result, FoundryResult)
 
+    def test_parse_forge_output_skips_oversized_json_lines(self, runner):
+        """Test oversized JSON-looking lines are skipped before JSON parsing."""
+        stdout = "{" + ('"x":' + '"' + ("a" * 60_000) + '"') + "}\n[PASS] test_ok()"
+
+        result = runner._parse_forge_output(stdout, "", 0, 100.0)
+
+        assert [test.name for test in result.tests] == ["test_ok"]
+
     def test_parse_forge_output_mixed_json_text(self, runner):
         """Test parsing with mixed JSON and text output."""
         stdout = """Some text before

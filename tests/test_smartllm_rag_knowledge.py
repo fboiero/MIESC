@@ -933,6 +933,41 @@ class TestEmbeddingRAGSearchBoundaryShapes:
         assert math.isfinite(results[0].similarity_score)
         assert 0.0 <= results[0].similarity_score < 0.3
 
+    def test_search_bounds_optional_similarity_rows_when_distance_missing(self, tmp_path):
+        documents = {
+            doc_id: VulnerabilityDocument(
+                id=doc_id,
+                title=doc_id,
+                description="Custom vulnerability description",
+            )
+            for doc_id in (
+                "CUSTOM-SIMILARITY-VALID",
+                "CUSTOM-SIMILARITY-HIGH",
+                "CUSTOM-SIMILARITY-BAD",
+            )
+        }
+        collection = _MalformedSearchCollection(
+            {
+                "ids": [list(documents)],
+                "similarities": [[0.75, 3.0, _ExplodingFloatValue()]],
+            }
+        )
+        rag = EmbeddingRAG(persist_directory=str(tmp_path))
+        rag._initialized = True
+        rag._collection = collection
+        rag._doc_index = documents
+
+        results = rag.search("similarity row boundary", n_results=3)
+        scores_by_id = {result.document.id: result.similarity_score for result in results}
+
+        assert set(scores_by_id) == set(documents)
+        assert scores_by_id["CUSTOM-SIMILARITY-VALID"] > 0.7
+        assert scores_by_id["CUSTOM-SIMILARITY-HIGH"] > scores_by_id[
+            "CUSTOM-SIMILARITY-VALID"
+        ]
+        assert scores_by_id["CUSTOM-SIMILARITY-BAD"] < 0.3
+        assert all(math.isfinite(score) for score in scores_by_id.values())
+
     @pytest.mark.parametrize("score", [float("nan"), float("inf"), float("-inf"), -0.5])
     def test_rank_result_bounds_non_finite_and_negative_scores(self, tmp_path, score):
         vulnerability = VulnerabilityDocument(
@@ -1266,6 +1301,42 @@ class TestEmbeddingRAGSearchBoundaryShapes:
         ]
         assert math.isfinite(results[0][0].similarity_score)
         assert 0.0 <= results[0][0].similarity_score < 0.3
+
+    def test_batch_search_bounds_optional_similarity_rows_when_distance_missing(
+        self,
+        tmp_path,
+    ):
+        documents = {
+            doc_id: VulnerabilityDocument(
+                id=doc_id,
+                title=doc_id,
+                description="Custom vulnerability description",
+            )
+            for doc_id in (
+                "CUSTOM-BATCH-SIMILARITY-VALID",
+                "CUSTOM-BATCH-SIMILARITY-BAD",
+            )
+        }
+        collection = _MalformedSearchCollection(
+            {
+                "ids": [list(documents)],
+                "similarities": [[0.8, _ExplodingFloatValue()]],
+            }
+        )
+        rag = EmbeddingRAG(persist_directory=str(tmp_path), enable_cache=False)
+        rag._initialized = True
+        rag._collection = collection
+        rag._doc_index = documents
+
+        results = rag.batch_search(["batch similarity row boundary"], n_results=2)
+        scores_by_id = {
+            result.document.id: result.similarity_score for result in results[0]
+        }
+
+        assert set(scores_by_id) == set(documents)
+        assert scores_by_id["CUSTOM-BATCH-SIMILARITY-VALID"] > 0.75
+        assert scores_by_id["CUSTOM-BATCH-SIMILARITY-BAD"] < 0.3
+        assert all(math.isfinite(score) for score in scores_by_id.values())
 
     def test_batch_search_skips_present_malformed_document_metadata_rows(self, tmp_path):
         first = VulnerabilityDocument(

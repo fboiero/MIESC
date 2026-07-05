@@ -117,7 +117,11 @@ async def fetch_openai_compatible_model_ids(
                     logger.debug("%s model check failed with status %s", provider_label, status)
                     return set()
 
-                raw_payload = resp.json()
+                json_method = getattr(resp, "json", None)
+                if not callable(json_method):
+                    logger.debug("%s model check returned malformed JSON accessor", provider_label)
+                    return set()
+                raw_payload = json_method()
                 payload = await raw_payload if inspect.isawaitable(raw_payload) else raw_payload
                 if not isinstance(payload, dict):
                     logger.debug("%s model check returned malformed JSON body", provider_label)

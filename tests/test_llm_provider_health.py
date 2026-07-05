@@ -506,6 +506,30 @@ def test_fetch_openai_compatible_model_ids_malformed_response_status(caplog):
     assert "DeepSeek model check returned malformed response status" in caplog.text
 
 
+def test_fetch_openai_compatible_model_ids_malformed_json_accessor(caplog):
+    """Test malformed response JSON accessors are rejected before invocation."""
+
+    async def run_test():
+        response = MagicMock()
+        response.status = 200
+        response.json = {"data": [{"id": "deepseek-v4-flash"}]}
+        session = _aiohttp_session_with_response("get", response)
+
+        with patch("aiohttp.ClientSession", return_value=session):
+            models = await fetch_openai_compatible_model_ids(
+                "https://api.deepseek.example",
+                "test-key",
+                provider_name="DeepSeek",
+            )
+
+        assert models == set()
+
+    with caplog.at_level("DEBUG", logger="src.llm.provider_health"):
+        asyncio.run(run_test())
+
+    assert "DeepSeek model check returned malformed JSON accessor" in caplog.text
+
+
 def test_fetch_openai_compatible_model_ids_non_200():
     """Test non-200 model endpoint responses are treated as unavailable."""
 

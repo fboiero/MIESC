@@ -60,6 +60,24 @@ def test_is_available_matches_exact_ollama_model_name(monkeypatch):
     assert helper.is_available() is True
 
 
+def test_is_available_normalizes_configured_model_name(monkeypatch):
+    helper = OpenLLaMAHelper(LLMConfig(model="  qwen2.5-coder:14b  "))
+
+    monkeypatch.setattr(
+        "subprocess.run",
+        lambda *args, **kwargs: subprocess.CompletedProcess(
+            args[0],
+            0,
+            stdout=(
+                "NAME                 ID              SIZE      MODIFIED\n"
+                "qwen2.5-coder:14b    abc123          9.0 GB    2 days ago\n"
+            ),
+        ),
+    )
+
+    assert helper.is_available() is True
+
+
 def test_is_available_rejects_partial_ollama_model_name(monkeypatch):
     helper = OpenLLaMAHelper(LLMConfig(model="qwen"))
 
@@ -78,6 +96,21 @@ def test_is_available_rejects_partial_ollama_model_name(monkeypatch):
     assert helper.is_available() is False
 
 
+def test_is_available_rejects_malformed_configured_model_name(monkeypatch):
+    helper = OpenLLaMAHelper(LLMConfig(model="qwen2.5-coder:14b\nother-model"))
+
+    monkeypatch.setattr(
+        "subprocess.run",
+        lambda *args, **kwargs: subprocess.CompletedProcess(
+            args[0],
+            0,
+            stdout="qwen2.5-coder:14b    abc123\nother-model    def456\n",
+        ),
+    )
+
+    assert helper.is_available() is False
+
+
 def test_is_available_rejects_non_string_ollama_list_output(monkeypatch):
     helper = OpenLLaMAHelper(LLMConfig(model="test-model"))
 
@@ -87,6 +120,30 @@ def test_is_available_rejects_non_string_ollama_list_output(monkeypatch):
     )
 
     assert helper.is_available() is False
+
+
+def test_ollama_list_model_names_rejects_malformed_splitlines():
+    class MalformedModelList(str):
+        def splitlines(self, *args, **kwargs):
+            raise RuntimeError("bad model list")
+
+    assert OpenLLaMAHelper._ollama_list_model_names(MalformedModelList("test-model")) == ()
+
+
+def test_ollama_list_model_names_skips_malformed_rows():
+    class MalformedModelRow(str):
+        def split(self, *args, **kwargs):
+            raise RuntimeError("bad model row")
+
+    class ModelList(str):
+        def splitlines(self, *args, **kwargs):
+            return [
+                "NAME                 ID",
+                MalformedModelRow("valid-model abc123"),
+                "valid-model          def456",
+            ]
+
+    assert OpenLLaMAHelper._ollama_list_model_names(ModelList("")) == ("valid-model",)
 
 
 def test_is_available_returns_false_on_malformed_ollama_result(monkeypatch):

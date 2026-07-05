@@ -812,6 +812,38 @@ class TestLLMOrchestrator:
 
         assert orchestrator.get_available_providers() == ["ollama:healthy"]
 
+    def test_get_available_providers_ignores_unsafe_backend_name(self):
+        """Test unsafe backend names cannot cross provider status output."""
+        config = LLMConfig(provider=LLMProvider.OLLAMA, model="healthy")
+        orchestrator = LLMOrchestrator([config])
+        orchestrator.backends["ollama:healthy"].available = True
+
+        malformed_backend = MagicMock()
+        malformed_backend.available = True
+        orchestrator.backends["openai:gpt-4\nollama:shadow"] = malformed_backend
+        orchestrator.backends[" anthropic:claude "] = malformed_backend
+
+        assert orchestrator.get_available_providers() == ["ollama:healthy"]
+
+    def test_initialize_ignores_unsafe_backend_name_in_status_export(self):
+        """Test unsafe backend names cannot cross initialization status output."""
+
+        async def run_test():
+            config = LLMConfig(provider=LLMProvider.OLLAMA, model="healthy")
+            orchestrator = LLMOrchestrator([config])
+            orchestrator.backends["ollama:healthy"].health_check = AsyncMock(return_value=True)
+
+            malformed_backend = MagicMock()
+            malformed_backend.health_check = AsyncMock(return_value=True)
+            orchestrator.backends["deepseek:model\rshadow"] = malformed_backend
+
+            status = await orchestrator.initialize()
+
+            assert status == {"ollama:healthy": True}
+            malformed_backend.health_check.assert_not_awaited()
+
+        asyncio.run(run_test())
+
     def test_cache_key_generation(self):
         """Test cache key generation."""
         orchestrator = LLMOrchestrator([])

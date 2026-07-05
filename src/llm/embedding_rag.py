@@ -297,6 +297,13 @@ def _similarity_from_distance(distance: Any) -> float:
     return _bounded_similarity_score(1.0 - distance_value)
 
 
+def _similarity_from_query_result(distance: Any, similarity: Any = None) -> float:
+    """Return a bounded similarity from loose query result score fields."""
+    if distance is not None:
+        return _similarity_from_distance(distance)
+    return _bounded_similarity_score(similarity)
+
+
 def _bounded_similarity_score(score: Any) -> float:
     """Return a finite similarity score in the supported 0..1 range."""
     try:
@@ -5194,11 +5201,13 @@ class EmbeddingRAG:
         retrieval_results = []
         id_rows = _result_rows(results, "ids")
         distance_rows = _result_rows(results, "distances")
+        similarity_rows = _result_rows(results, "similarities")
         document_rows = _result_rows(results, "documents")
         metadata_rows = _result_rows(results, "metadatas")
 
         first_id_row = _result_row(id_rows, 0)
         first_distance_row = _result_row(distance_rows, 0)
+        first_similarity_row = _result_row(similarity_rows, 0)
         if first_id_row:
             for i, doc_id in enumerate(first_id_row):
                 if not _is_valid_result_id(doc_id):
@@ -5212,7 +5221,10 @@ class EmbeddingRAG:
 
                 if original_doc:
                     # ChromaDB returns distance, convert to similarity
-                    similarity = _similarity_from_distance(_result_value(first_distance_row, i))
+                    similarity = _similarity_from_query_result(
+                        _result_value(first_distance_row, i),
+                        _result_value(first_similarity_row, i),
+                    )
 
                     retrieval_results.append(
                         RetrievalResult(
@@ -5374,6 +5386,7 @@ class EmbeddingRAG:
             )
             id_rows = _result_rows(results, "ids")
             distance_rows = _result_rows(results, "distances")
+            similarity_rows = _result_rows(results, "similarities")
             document_rows = _result_rows(results, "documents")
             metadata_rows = _result_rows(results, "metadatas")
 
@@ -5383,6 +5396,7 @@ class EmbeddingRAG:
 
                 id_row = _result_row(id_rows, batch_idx)
                 distance_row = _result_row(distance_rows, batch_idx)
+                similarity_row = _result_row(similarity_rows, batch_idx)
                 if id_row:
                     for i, doc_id in enumerate(id_row):
                         if not _is_valid_result_id(doc_id):
@@ -5395,7 +5409,10 @@ class EmbeddingRAG:
                             continue
                         original_doc = self._doc_index.get(doc_id)
                         if original_doc:
-                            similarity = _similarity_from_distance(_result_value(distance_row, i))
+                            similarity = _similarity_from_query_result(
+                                _result_value(distance_row, i),
+                                _result_value(similarity_row, i),
+                            )
                             retrieval_results.append(
                                 self._rank_result(
                                     RetrievalResult(

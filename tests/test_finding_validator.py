@@ -815,6 +815,18 @@ def test_get_statistics_defaults_mutated_malformed_config_metadata():
     }
 
 
+def test_get_statistics_defaults_malformed_counter_state():
+    validator = LLMFindingValidator(ValidatorConfig())
+    validator._validated_count = ["10"]
+    validator._fp_detected_count = 3
+
+    stats = validator.get_statistics()
+
+    assert stats["validated_count"] == 0
+    assert stats["fp_detected_count"] == 0
+    assert stats["fp_rate"] == 0
+
+
 @pytest.mark.asyncio
 async def test_validate_finding_success_updates_counters(monkeypatch):
     validator = LLMFindingValidator(ValidatorConfig())

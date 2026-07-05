@@ -640,6 +640,17 @@ class TestPoCNameGeneration:
         assert ".sol" not in name
         assert "MyContract" in name
 
+    def test_generate_name_defaults_malformed_target_contract(self, generator):
+        """Malformed contract/function names should not leak reprs into PoC names."""
+        name = generator._generate_poc_name(
+            {"path": "Bank.sol"},
+            VulnerabilityType.REENTRANCY,
+            "../withdraw()",
+        )
+
+        assert name == "contract_withdraw()_reentrancy"
+        assert "{'path'" not in name
+
 
 # =============================================================================
 # Template Loading Tests

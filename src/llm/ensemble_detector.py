@@ -164,6 +164,7 @@ class LLMEnsembleDetector:
     DEFAULT_TEMPERATURE = 0.1
     MAX_TEMPERATURE = 2.0
     MAX_MODEL_LABEL_LENGTH = 200
+    MAX_VULNERABILITY_TYPE_LENGTH = 120
     VALID_SEVERITIES = frozenset({"critical", "high", "medium", "low", "info"})
 
     # Model weights based on code analysis expertise
@@ -1077,8 +1078,10 @@ Response (JSON array only):"""
                 # Normalize findings
                 normalized = []
                 for f in findings:
-                    if isinstance(f, dict) and self._safe_text(f.get("type"), "").strip():
+                    vuln_type = self._safe_vulnerability_type(f.get("type")) if isinstance(f, dict) else None
+                    if vuln_type:
                         # Add source model
+                        f["type"] = vuln_type
                         f["_source_model"] = model
                         normalized.append(f)
 
@@ -1088,7 +1091,13 @@ Response (JSON array only):"""
                 if content.strip().startswith("["):
                     findings = json.loads(repair_common_json_errors(content))
                     for f in findings:
-                        if isinstance(f, dict) and self._safe_text(f.get("type"), "").strip():
+                        vuln_type = (
+                            self._safe_vulnerability_type(f.get("type"))
+                            if isinstance(f, dict)
+                            else None
+                        )
+                        if vuln_type:
+                            f["type"] = vuln_type
                             f["_source_model"] = model
                     return [f for f in findings if isinstance(f, dict) and "_source_model" in f]
 
@@ -1211,11 +1220,12 @@ Response (JSON array only):"""
         ]
         return sum(normalized) / len(normalized)
 
-    @staticmethod
+    @classmethod
     def _normalize_model_findings(
+        cls,
         model_findings: Dict[str, Any],
     ) -> Dict[str, List[Dict[str, Any]]]:
-        """Keep only per-model finding lists and dict finding entries."""
+        """Keep only per-model finding lists with safe vulnerability type entries."""
         normalized: Dict[str, List[Dict[str, Any]]] = {}
 
         for model, findings in model_findings.items():
@@ -1226,9 +1236,21 @@ Response (JSON array only):"""
             if not isinstance(findings, list):
                 logger.warning("Ignoring malformed findings payload from model %s", model_id)
                 continue
-            normalized.setdefault(model_id, []).extend(
-                finding for finding in findings if isinstance(finding, dict)
-            )
+            safe_findings = []
+            for finding in findings:
+                if not isinstance(finding, dict):
+                    continue
+                vuln_type = cls._safe_vulnerability_type(finding.get("type"))
+                if vuln_type is None:
+                    logger.warning(
+                        "Ignoring finding with malformed vulnerability type from model %s",
+                        model_id,
+                    )
+                    continue
+                safe_finding = dict(finding)
+                safe_finding["type"] = vuln_type
+                safe_findings.append(safe_finding)
+            normalized.setdefault(model_id, []).extend(safe_findings)
 
         return normalized
 
@@ -1311,6 +1333,21 @@ Response (JSON array only):"""
         return default
 
     @classmethod
+    def _safe_vulnerability_type(cls, value: Any) -> Optional[str]:
+        """Return a safe vulnerability type/category label for consensus grouping."""
+        if not isinstance(value, str):
+            return None
+
+        vuln_type = value.strip()
+        if not vuln_type or len(vuln_type) > cls.MAX_VULNERABILITY_TYPE_LENGTH:
+            return None
+
+        if any(ord(char) < 32 or ord(char) == 127 for char in vuln_type):
+            return None
+
+        return vuln_type
+
+    @classmethod
     def _safe_model_label(cls, value: Any) -> Optional[str]:
         """Return a safe model/provider label for result metadata keys."""
         if not isinstance(value, str):
@@ -1367,7 +1404,7 @@ Response (JSON array only):"""
         Findings are considered similar if they have the same type
         and approximately the same location.
         """
-        vuln_type = self._safe_text(finding.get("type"), "").lower()
+        vuln_type = (self._safe_vulnerability_type(finding.get("type")) or "").lower()
         location = self._safe_location(finding.get("location"))
 
         # Extract location components
