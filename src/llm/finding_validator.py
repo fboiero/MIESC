@@ -619,9 +619,12 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
             "fp_detected_count": self._fp_detected_count,
             "fp_rate": (self._fp_detected_count / max(self._validated_count, 1)),
             "config": {
-                "model": self.config.model,
-                "min_severity": self.config.min_severity_to_validate,
-                "enabled": self.config.enabled,
+                "model": self._parse_text(self.config.model, ValidatorConfig().model),
+                "min_severity": self._parse_text(
+                    self.config.min_severity_to_validate,
+                    ValidatorConfig().min_severity_to_validate,
+                ),
+                "enabled": self.config.enabled is True,
             },
         }
 
