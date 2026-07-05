@@ -1055,6 +1055,19 @@ class TestGasReport:
 
         assert report["contracts"] == {"Vault": {"methods": {}}}
 
+    def test_get_gas_report_ignores_malformed_stdout_shape(self, runner):
+        """Malformed gas report stdout should normalize to an empty report."""
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = ["not text"]
+        mock_result.stderr = ""
+
+        with patch("subprocess.run", return_value=mock_result):
+            report = runner.get_gas_report()
+
+        assert report["contracts"] == {}
+        assert report["total_runtime_gas"] == 0
+
     def test_get_gas_report_ignores_malformed_json_line(self, runner):
         """Test malformed JSON lines do not abort gas report parsing."""
         mock_result = MagicMock()
