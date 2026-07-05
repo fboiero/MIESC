@@ -1223,6 +1223,52 @@ class TestLLMEnsembleDetectorVoting:
         assert results[0].votes == 2
         assert results[0].supporting_models == ["model1", "model2"]
 
+    def test_ensemble_vote_sanitizes_raw_response_payload_boundaries(self, detector):
+        """Malformed raw response keys should not leak into aggregate raw_responses."""
+        detector.consensus_threshold = 2
+
+        findings = {
+            ("bad", "model"): [
+                {
+                    "type": "reentrancy",
+                    "severity": "high",
+                    "title": "Ignored malformed model id",
+                    "description": "External call before update",
+                    "location": {"function": "withdraw", "line": 10},
+                    "confidence": 0.9,
+                }
+            ],
+            " model1 ": [
+                {
+                    ("tuple", "key"): "not-json-object-compatible",
+                    "type": "reentrancy",
+                    "severity": "high",
+                    "title": "Reentrancy",
+                    "description": "External call before update",
+                    "location": {"function": "withdraw", "line": 10},
+                    "confidence": 0.9,
+                }
+            ],
+            "model2": [
+                {
+                    "type": "reentrancy",
+                    "severity": "high",
+                    "title": "Reentrancy",
+                    "description": "External call before update",
+                    "location": {"function": "withdraw", "line": 11},
+                    "confidence": 0.8,
+                }
+            ],
+        }
+
+        results = detector._ensemble_vote(findings)
+
+        assert len(results) == 1
+        assert results[0].votes == 2
+        assert results[0].supporting_models == ["model1", "model2"]
+        assert list(results[0].raw_responses) == ["model1", "model2"]
+        assert ("tuple", "key") not in results[0].raw_responses["model1"]
+
     def test_finding_signature_defaults_nonfinite_line_scalar(self, detector):
         """Non-finite scalar line values should not crash signature grouping."""
         malformed = {

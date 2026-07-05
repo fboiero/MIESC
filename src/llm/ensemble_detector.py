@@ -1126,7 +1126,9 @@ Response (JSON array only):"""
 
                 finding_groups[signature]["votes"].append(self.MODEL_WEIGHTS.get(model, 1.0))
                 finding_groups[signature]["models"].append(model)
-                finding_groups[signature]["raw_responses"][model] = finding
+                finding_groups[signature]["raw_responses"][model] = (
+                    self._safe_raw_response_payload(finding)
+                )
 
         # Apply voting strategy
         validated = []
@@ -1197,12 +1199,25 @@ Response (JSON array only):"""
         normalized: Dict[str, List[Dict[str, Any]]] = {}
 
         for model, findings in model_findings.items():
-            if not isinstance(findings, list):
-                logger.warning("Ignoring malformed findings payload from model %s", model)
+            if not isinstance(model, str) or not model.strip():
+                logger.warning("Ignoring malformed ensemble model id in findings payload")
                 continue
-            normalized[model] = [finding for finding in findings if isinstance(finding, dict)]
+            model_id = model.strip()
+            if not isinstance(findings, list):
+                logger.warning("Ignoring malformed findings payload from model %s", model_id)
+                continue
+            normalized.setdefault(model_id, []).extend(
+                finding for finding in findings if isinstance(finding, dict)
+            )
 
         return normalized
+
+    @staticmethod
+    def _safe_raw_response_payload(finding: Any) -> Dict[str, Any]:
+        """Return a shallow raw response copy with JSON-object-compatible keys."""
+        if not isinstance(finding, dict):
+            return {}
+        return {key: value for key, value in finding.items() if isinstance(key, str)}
 
     @staticmethod
     def _safe_float(value: Any, default: float) -> float:
