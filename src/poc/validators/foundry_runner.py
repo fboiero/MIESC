@@ -31,6 +31,7 @@ logger = logging.getLogger(__name__)
 
 FOUNDRY_RUNTIME_ERRORS = (OSError, RuntimeError, subprocess.SubprocessError)
 FOUNDRY_PARSE_ERRORS = (AttributeError, TypeError, ValueError)
+MAX_RAW_OUTPUT_CHARS = 200_000
 
 
 class TestStatus(Enum):
@@ -475,7 +476,7 @@ class FoundryRunner:
             skipped=skipped,
             total_gas=total_gas,
             execution_time_ms=self._normalize_execution_time(execution_time),
-            raw_output=stdout + stderr,
+            raw_output=self._bounded_raw_output(stdout, stderr),
             forge_version=forge_version,
             error=stderr if normalized_returncode != 0 else None,
         )
@@ -488,6 +489,10 @@ class FoundryRunner:
         if isinstance(value, bytes):
             return value.decode("utf-8", errors="replace")
         return ""
+
+    def _bounded_raw_output(self, stdout: str, stderr: str) -> str:
+        """Return raw output capped to a bounded result size."""
+        return (stdout + stderr)[:MAX_RAW_OUTPUT_CHARS]
 
     def _extract_forge_version(self, *outputs: Any) -> Optional[str]:
         """Extract forge semantic version from normalized subprocess streams."""
