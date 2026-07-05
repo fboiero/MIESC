@@ -775,6 +775,8 @@ contract {{CONTRACT_NAME}}ExploitTest is Test {
 
     def _extract_traces(self, output: str) -> Optional[str]:
         """Extract execution traces from forge output."""
+        if not isinstance(output, str):
+            return None
         # Look for trace section
         trace_start = output.find("Traces:")
         if trace_start >= 0:
