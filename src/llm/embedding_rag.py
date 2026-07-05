@@ -61,7 +61,33 @@ def _coerce_text_list(value: Any) -> List[str]:
         values = value
     else:
         values = [value]
-    return [str(item) for item in values if item is not None]
+    text_values = []
+    for item in values:
+        if item is None:
+            continue
+        try:
+            text_values.append(
+                item.decode("utf-8", errors="replace")
+                if isinstance(item, bytes)
+                else str(item)
+            )
+        except Exception:
+            continue
+    return text_values
+
+
+def _coerce_document_text(value: Any) -> str:
+    """Return safe searchable document text for loose knowledge-base fields."""
+    if value is None:
+        return ""
+    if isinstance(value, bytes):
+        return value.decode("utf-8", errors="replace")
+    if isinstance(value, str):
+        return value
+    try:
+        return str(value)
+    except Exception:
+        return ""
 
 
 def _coerce_query_text(value: Any) -> str:
@@ -327,24 +353,29 @@ class VulnerabilityDocument:
         """Convert to searchable text representation."""
         references = _coerce_text_list(self.references)
         tags = _coerce_text_list(self.tags)
+        swc_id = _coerce_document_text(self.swc_id)
+        cwe_id = _coerce_document_text(self.cwe_id)
+        vulnerable_code = _coerce_document_text(self.vulnerable_code)
+        fixed_code = _coerce_document_text(self.fixed_code)
+        attack_scenario = _coerce_document_text(self.attack_scenario)
         parts = [
-            f"Title: {self.title}",
-            f"Category: {self.category}",
-            f"Severity: {self.severity}",
-            f"Source Tier: {self.source_tier}",
-            f"Source Type: {self.source_type}",
-            f"Description: {self.description}",
+            f"Title: {_coerce_document_text(self.title)}",
+            f"Category: {_coerce_document_text(self.category)}",
+            f"Severity: {_coerce_document_text(self.severity)}",
+            f"Source Tier: {_coerce_document_text(self.source_tier)}",
+            f"Source Type: {_coerce_document_text(self.source_type)}",
+            f"Description: {_coerce_document_text(self.description)}",
         ]
-        if self.swc_id:
-            parts.append(f"SWC: {self.swc_id}")
-        if self.cwe_id:
-            parts.append(f"CWE: {self.cwe_id}")
-        if self.vulnerable_code:
-            parts.append(f"Vulnerable Code Pattern:\n{self.vulnerable_code}")
-        if self.fixed_code:
-            parts.append(f"Fixed Code Pattern:\n{self.fixed_code}")
-        if self.attack_scenario:
-            parts.append(f"Attack Scenario: {self.attack_scenario}")
+        if swc_id:
+            parts.append(f"SWC: {swc_id}")
+        if cwe_id:
+            parts.append(f"CWE: {cwe_id}")
+        if vulnerable_code:
+            parts.append(f"Vulnerable Code Pattern:\n{vulnerable_code}")
+        if fixed_code:
+            parts.append(f"Fixed Code Pattern:\n{fixed_code}")
+        if attack_scenario:
+            parts.append(f"Attack Scenario: {attack_scenario}")
         if references:
             parts.append(f"References: {', '.join(references)}")
         if tags:

@@ -535,6 +535,28 @@ class TestEmbeddingRAGCustomVulnerabilityShapes:
         assert metadata["tags"] == "custom,123"
         assert metadata["references"] == "https://example.invalid/advisory"
 
+    def test_malformed_document_text_fields_do_not_abort_rendering(self):
+        vulnerability = VulnerabilityDocument(
+            id="CUSTOM-TEXT-BOUNDARY",
+            title=_ExplodingStringValue(),  # type: ignore[arg-type]
+            description=_ExplodingStringValue(),  # type: ignore[arg-type]
+            vulnerable_code=_ExplodingStringValue(),  # type: ignore[arg-type]
+            fixed_code=b"fixed bytes",
+            attack_scenario=_ExplodingStringValue(),  # type: ignore[arg-type]
+            tags=["custom", _ExplodingStringValue()],
+            references=[_ExplodingStringValue(), b"https://example.invalid/ref"],
+        )
+
+        text = vulnerability.to_text()
+
+        assert "Title: " in text
+        assert "Description: " in text
+        assert "Vulnerable Code Pattern" not in text
+        assert "Fixed Code Pattern:\nfixed bytes" in text
+        assert "Attack Scenario:" not in text
+        assert "Tags: custom" in text
+        assert "References: https://example.invalid/ref" in text
+
     def test_scalar_tags_and_malformed_references_do_not_break_context_or_ranking(
         self,
         tmp_path,
