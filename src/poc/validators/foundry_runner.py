@@ -167,7 +167,7 @@ class FoundryRunner:
     ) -> List[str]:
         """Build the forge command for a specific test file."""
         test_path_text = str(test_path).strip() if isinstance(test_path, (str, Path)) else ""
-        if not test_path_text:
+        if not test_path_text or any(ord(ch) < 32 for ch in test_path_text):
             raise ValueError("Malformed Foundry test path")
         cmd = ["forge", "test", "--match-path", test_path_text]
 
