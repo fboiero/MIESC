@@ -190,6 +190,23 @@ def test_fetch_openai_compatible_model_ids_rejects_non_http_base_url():
     asyncio.run(run_test())
 
 
+def test_fetch_openai_compatible_model_ids_rejects_credentials_in_base_url():
+    """Test URLs with embedded credentials are rejected before opening a session."""
+
+    async def run_test():
+        with patch("aiohttp.ClientSession") as session:
+            models = await fetch_openai_compatible_model_ids(
+                "https://user:password@api.deepseek.example",
+                "test-key",
+                provider_name="DeepSeek",
+            )
+
+        assert models == set()
+        session.assert_not_called()
+
+    asyncio.run(run_test())
+
+
 def test_fetch_openai_compatible_model_ids_rejects_empty_api_key():
     """Test empty API key text is rejected before opening a session."""
 

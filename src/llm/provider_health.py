@@ -8,6 +8,7 @@ import json
 import logging
 import math
 from typing import Any, Set
+from urllib.parse import urlsplit
 
 import aiohttp
 
@@ -82,7 +83,7 @@ async def fetch_openai_compatible_model_ids(
         logger.debug("%s model check received malformed endpoint credentials", provider_label)
         return set()
     base_url = base_url.strip()
-    if not base_url or not base_url.lower().startswith(("http://", "https://")):
+    if not _valid_model_base_url(base_url):
         logger.debug("%s model check received malformed endpoint credentials", provider_label)
         return set()
     api_key = api_key.strip()
@@ -126,3 +127,11 @@ async def fetch_openai_compatible_model_ids(
 def _authorization_headers(api_key: str) -> dict[str, str]:
     """Build auth headers without exposing credentials to logging paths."""
     return {"Authorization": f"Bearer {api_key}"}
+
+
+def _valid_model_base_url(base_url: str) -> bool:
+    """Accept only HTTP(S) provider URLs without embedded credentials."""
+    parsed = urlsplit(base_url)
+    return parsed.scheme in {"http", "https"} and bool(parsed.netloc) and not (
+        parsed.username or parsed.password
+    )
