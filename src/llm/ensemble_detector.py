@@ -444,6 +444,31 @@ Response (JSON array only):"""
 
         return {model_id.strip() for model_id in model_ids if isinstance(model_id, str) and model_id.strip()}
 
+    @classmethod
+    def _provider_status_map(cls, provider_status: Any) -> Dict[LLMProvider, List[str]]:
+        """Return a defensive provider-to-model availability map."""
+        if not isinstance(provider_status, dict):
+            logger.warning("Ignoring malformed ensemble provider status map")
+            return {}
+
+        normalized: Dict[LLMProvider, List[str]] = {}
+        for provider, models in provider_status.items():
+            if isinstance(provider, LLMProvider):
+                normalized_provider = provider
+            elif isinstance(provider, str):
+                try:
+                    normalized_provider = LLMProvider(provider.strip().lower())
+                except ValueError:
+                    logger.warning("Ignoring unknown ensemble provider status key: %r", provider)
+                    continue
+            else:
+                logger.warning("Ignoring malformed ensemble provider status key: %r", provider)
+                continue
+
+            normalized[normalized_provider] = cls._status_model_list(models)
+
+        return normalized
+
     async def initialize(self) -> Dict[str, bool]:
         """
         Initialize detector and check model availability across all providers.
@@ -580,12 +605,10 @@ Response (JSON array only):"""
             await self.initialize()
 
         last_error: Optional[BaseException] = None
+        available_providers = self._provider_status_map(self._available_providers)
 
         for provider in self.providers:
-            if provider not in self._available_providers:
-                continue
-
-            provider_models = self._available_providers.get(provider, [])
+            provider_models = available_providers.get(provider, [])
             if not provider_models:
                 continue
 
@@ -621,7 +644,8 @@ Response (JSON array only):"""
         Returns:
             List of findings from this provider
         """
-        models = self._status_model_list(self._available_providers.get(provider, []))[:3]
+        provider_status = self._provider_status_map(self._available_providers)
+        models = provider_status.get(provider, [])[:3]
 
         if not models:
             raise ProviderUnavailable(f"No models available for {provider.value}")
