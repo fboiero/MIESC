@@ -102,6 +102,19 @@ def _coerce_result_count(value: Any, fallback: Any) -> int:
     return EmbeddingRAG.DEFAULT_TOP_K
 
 
+def _coerce_cache_ttl_seconds(value: Any) -> int:
+    """Return a positive cache TTL so malformed class config cannot poison reads."""
+    if isinstance(value, bool):
+        return EmbeddingRAG.DEFAULT_CACHE_TTL_SECONDS
+    try:
+        ttl = int(value)
+    except (TypeError, ValueError):
+        return EmbeddingRAG.DEFAULT_CACHE_TTL_SECONDS
+    if ttl <= 0:
+        return EmbeddingRAG.DEFAULT_CACHE_TTL_SECONDS
+    return ttl
+
+
 def _similarity_from_distance(distance: Any) -> float:
     """Convert a loose Chroma distance value to a bounded similarity score."""
     try:
@@ -4546,6 +4559,7 @@ class EmbeddingRAG:
 
     # Cache settings
     CACHE_MAX_SIZE = 256
+    DEFAULT_CACHE_TTL_SECONDS = 300
     CACHE_TTL_SECONDS = 300  # 5 minutes
 
     def __init__(
@@ -4680,23 +4694,31 @@ class EmbeddingRAG:
         strategy: str = "semantic",
     ) -> str:
         """Generate cache key for a search query."""
+        query_text = _coerce_query_text(query)
+        category_filter = _coerce_filter_text(filter_category)
+        severity_filter = _coerce_filter_text(filter_severity)
+        n = _coerce_result_count(n_results, self.top_k)
+        strategy_text = _coerce_query_text(strategy).strip() or "semantic"
         return make_cache_key(
             knowledge_base_version=KNOWLEDGE_BASE_VERSION,
-            query=query,
-            filter_category=filter_category,
-            filter_severity=filter_severity,
-            n_results=n_results,
-            strategy=strategy,
+            query=query_text,
+            filter_category=category_filter,
+            filter_severity=severity_filter,
+            n_results=n,
+            strategy=strategy_text,
         )
 
     def _get_cached_result(self, cache_key: str) -> Optional[List["RetrievalResult"]]:
         """Get cached result if valid (not expired)."""
+        if not isinstance(cache_key, str):
+            return None
+
         try:
             results, hit, _expired = get_cached_result(
                 self._query_cache,
                 cache_key,
                 enabled=self.enable_cache,
-                ttl_seconds=self.CACHE_TTL_SECONDS,
+                ttl_seconds=_coerce_cache_ttl_seconds(self.CACHE_TTL_SECONDS),
             )
         except (TypeError, ValueError):
             self._query_cache.pop(cache_key, None)

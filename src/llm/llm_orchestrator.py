@@ -106,6 +106,62 @@ def _context_json(value: Dict) -> str:
     return json.dumps(_json_safe_context(value), indent=2, sort_keys=True)
 
 
+def _cache_key_context(value: Any, seen: Optional[set[int]] = None) -> Any:
+    """Return a JSON-safe context shape that preserves dict key type boundaries."""
+    if seen is None:
+        seen = set()
+
+    if value is None or isinstance(value, (str, bool, int)):
+        return value
+    if isinstance(value, float):
+        return value if math.isfinite(value) else None
+    if isinstance(value, bytes):
+        return {"__bytes_len__": len(value)}
+
+    value_id = id(value)
+    if value_id in seen:
+        return {"__circular__": type(value).__name__}
+
+    if isinstance(value, dict):
+        seen.add(value_id)
+        safe_items = [
+            [_cache_key_dict_key(key), _cache_key_context(item, seen)]
+            for key, item in value.items()
+        ]
+        seen.remove(value_id)
+        return sorted(safe_items, key=lambda item: json.dumps(item, sort_keys=True))
+
+    if isinstance(value, (list, tuple)):
+        seen.add(value_id)
+        safe_list = [_cache_key_context(item, seen) for item in value]
+        seen.remove(value_id)
+        return safe_list
+    if isinstance(value, set):
+        seen.add(value_id)
+        safe_list = [_cache_key_context(item, seen) for item in value]
+        seen.remove(value_id)
+        return sorted(safe_list, key=lambda item: json.dumps(item, sort_keys=True))
+
+    return {"__non_serializable__": type(value).__name__}
+
+
+def _cache_key_dict_key(key: Any) -> List[Any]:
+    """Encode dict keys without collapsing non-string keys into string keys."""
+    if isinstance(key, str):
+        return ["str", key]
+    if key is None:
+        return ["none", None]
+    if isinstance(key, bool):
+        return ["bool", key]
+    if isinstance(key, int):
+        return ["int", key]
+    if isinstance(key, float):
+        return ["float", key if math.isfinite(key) else None]
+    if isinstance(key, bytes):
+        return ["bytes", len(key)]
+    return ["non_serializable", type(key).__name__]
+
+
 class LLMProvider(Enum):
     """Supported LLM providers."""
 
@@ -705,7 +761,7 @@ Provide a comprehensive security analysis in JSON format."""
         import hashlib
 
         content = json.dumps(
-            {"context": _json_safe_context(context or {}), "prompt": prompt},
+            {"context": _cache_key_context(context or {}), "prompt": prompt},
             sort_keys=True,
             separators=(",", ":"),
         )

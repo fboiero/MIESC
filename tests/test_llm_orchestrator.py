@@ -669,6 +669,41 @@ class TestLLMOrchestrator:
         assert len(key1) == 16
         assert key1 == key2
 
+    def test_cache_key_generation_preserves_non_string_key_boundaries(self):
+        """Test non-string context keys cannot collide with same-looking strings."""
+        orchestrator = LLMOrchestrator([])
+
+        string_key = orchestrator._get_cache_key("prompt", {"1": "string key"})
+        int_key = orchestrator._get_cache_key("prompt", {1: "string key"})
+        true_key = orchestrator._get_cache_key("prompt", {True: "bool key"})
+        true_string_key = orchestrator._get_cache_key("prompt", {"True": "bool key"})
+        none_key = orchestrator._get_cache_key("prompt", {None: "none key"})
+        none_string_key = orchestrator._get_cache_key("prompt", {"None": "none key"})
+
+        assert string_key != int_key
+        assert true_key != true_string_key
+        assert none_key != none_string_key
+
+    def test_cache_key_generation_preserves_nested_key_boundaries(self):
+        """Test nested context key normalization remains stable without collisions."""
+        orchestrator = LLMOrchestrator([])
+
+        nested_string_key = orchestrator._get_cache_key(
+            "prompt",
+            {"nested": {"2": "value"}, "ordered": {"z": 1, "a": 2}},
+        )
+        nested_int_key = orchestrator._get_cache_key(
+            "prompt",
+            {"ordered": {"a": 2, "z": 1}, "nested": {2: "value"}},
+        )
+        nested_int_key_reordered = orchestrator._get_cache_key(
+            "prompt",
+            {"nested": {2: "value"}, "ordered": {"z": 1, "a": 2}},
+        )
+
+        assert nested_string_key != nested_int_key
+        assert nested_int_key == nested_int_key_reordered
+
     def test_parse_analysis_valid_json(self):
         """Test parsing valid JSON response."""
         orchestrator = LLMOrchestrator([])

@@ -2,6 +2,8 @@ import json
 import subprocess
 
 from src.llm.openllama_helper import (
+    MAX_PRIORITY_RESPONSE_CHARS,
+    MAX_REMEDIATION_RESPONSE_CHARS,
     LLMConfig,
     OpenLLaMAHelper,
     enhance_findings_with_llm,
@@ -387,6 +389,18 @@ def test_generate_remediation_advice_returns_llm_response(monkeypatch):
     assert advice == "patch the access check"
 
 
+def test_generate_remediation_advice_caps_oversized_llm_response(monkeypatch):
+    helper = OpenLLaMAHelper()
+    oversized = "x" * (MAX_REMEDIATION_RESPONSE_CHARS + 100)
+
+    monkeypatch.setattr(helper, "is_available", lambda: True)
+    monkeypatch.setattr(helper, "_call_llm", lambda prompt: oversized)
+
+    advice = helper.generate_remediation_advice({"title": "Missing auth"}, "contract C {}")
+
+    assert advice == "x" * MAX_REMEDIATION_RESPONSE_CHARS
+
+
 def test_generate_remediation_advice_falls_back_to_string_recommendation(monkeypatch):
     helper = OpenLLaMAHelper()
     monkeypatch.setattr(helper, "is_available", lambda: True)
@@ -660,6 +674,19 @@ def test_parse_priorities_returns_empty_on_unparseable_response():
     helper = OpenLLaMAHelper()
 
     assert helper._parse_priorities("not json") == {}
+
+
+def test_parse_priorities_rejects_non_string_response():
+    helper = OpenLLaMAHelper()
+
+    assert helper._parse_priorities({"priorities": []}) == {}
+
+
+def test_parse_priorities_rejects_oversized_response():
+    helper = OpenLLaMAHelper()
+    response = "x" * (MAX_PRIORITY_RESPONSE_CHARS + 1)
+
+    assert helper._parse_priorities(response) == {}
 
 
 def test_parse_priorities_rejects_non_object_json():

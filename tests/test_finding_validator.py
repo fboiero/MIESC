@@ -258,6 +258,16 @@ def test_parse_response_maps_simple_is_valid_payload():
     assert validation.reasoning == "Protected path."
 
 
+def test_parse_response_normalizes_result_enum_text():
+    validator = LLMFindingValidator(ValidatorConfig())
+    response = '{"result": " FALSE-POSITIVE ", "confidence": 0.73, "reasoning": "Guarded."}'
+
+    validation = validator._parse_response(response, "F-3a")
+
+    assert validation.result == ValidationResult.FALSE_POSITIVE
+    assert validation.confidence == 0.73
+
+
 def test_parse_response_ignores_non_bool_is_valid_payload():
     validator = LLMFindingValidator(ValidatorConfig())
     response = '{"is_valid": "false", "confidence": 0.73, "reasoning": "String flag."}'

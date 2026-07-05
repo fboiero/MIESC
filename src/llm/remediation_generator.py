@@ -227,7 +227,7 @@ class RemediationGenerator:
         result = self._dict_or_empty(await self._query_llm(prompt))
 
         # Parse result without trusting malformed LLM field shapes.
-        fixed_code = self._string_or_default(result.get("fixed_code"), vulnerable_code)
+        fixed_code = self._fixed_code_or_default(result.get("fixed_code"), vulnerable_code)
         explanation = self._string_or_default(result.get("explanation"), "")
         changes = self._string_list_or_empty(result.get("changes"))
         imports = self._string_list_or_empty(result.get("imports_needed"))
@@ -501,6 +501,13 @@ class RemediationGenerator:
     def _string_or_default(value: Any, default: str) -> str:
         """Return string values from LLM results, falling back on malformed shapes."""
         return value if isinstance(value, str) else default
+
+    @staticmethod
+    def _fixed_code_or_default(value: Any, default: str) -> str:
+        """Return non-empty fixed code from LLM results, falling back on malformed shapes."""
+        if isinstance(value, str) and value.strip():
+            return value
+        return default
 
     @staticmethod
     def _string_list_or_empty(value: Any) -> List[str]:

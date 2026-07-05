@@ -234,6 +234,18 @@ class TestFoundryRunnerInit:
         assert runner_with_fork.fork_block == 18500000
         assert runner_with_fork.verbosity == 4
 
+    def test_initialization_normalizes_fork_options(self, tmp_path):
+        """Fork options are normalized before command construction."""
+        with patch.object(FoundryRunner, "_check_foundry_installation"):
+            runner = FoundryRunner(
+                project_dir=tmp_path,
+                fork_url=" https://rpc.example ",
+                fork_block=True,
+            )
+
+        assert runner.fork_url == "https://rpc.example"
+        assert runner.fork_block is None
+
     def test_initialization_defaults_malformed_verbosity_and_gas_report(self, tmp_path):
         """Malformed runner options fall back to safe command defaults."""
         with patch.object(FoundryRunner, "_check_foundry_installation"):

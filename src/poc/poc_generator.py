@@ -347,6 +347,7 @@ class PoCGenerator:
         import time
 
         start_time = time.time()
+        verbose = verbose is True
         if not isinstance(project_dir, (str, Path)):
             return PoCResult(
                 success=False,

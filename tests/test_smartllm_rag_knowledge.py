@@ -9,6 +9,8 @@ individually; their output is exercised via get_relevant_knowledge.
 
 from __future__ import annotations
 
+import time
+
 import pytest
 
 from src.adapters.smartllm_rag_knowledge import (
@@ -594,3 +596,57 @@ class TestEmbeddingRAGSearchBoundaryShapes:
 
         assert rag._query_cache == {"stale": (0.0, [])}
         assert rag._cache_misses == 3
+
+    def test_cache_key_normalizes_malformed_direct_inputs(self, tmp_path):
+        rag = EmbeddingRAG(persist_directory=str(tmp_path), top_k=2)
+
+        cache_key = rag._get_cache_key(
+            {"query": "oracle"},  # type: ignore[arg-type]
+            ["bad-category"],  # type: ignore[arg-type]
+            b" high ",
+            {"bad": "count"},  # type: ignore[arg-type]
+            strategy=None,  # type: ignore[arg-type]
+        )
+        expected = rag._get_cache_key(
+            "{'query': 'oracle'}",
+            None,
+            "high",
+            2,
+            strategy="semantic",
+        )
+
+        assert cache_key == expected
+
+    def test_cached_result_ignores_malformed_cache_key_without_mutating_cache(self, tmp_path):
+        rag = EmbeddingRAG(persist_directory=str(tmp_path))
+        rag._query_cache = {"stale": (0.0, [])}
+        rag._cache_hits = 2
+
+        cached = rag._get_cached_result(["bad-key"])  # type: ignore[arg-type]
+
+        assert cached is None
+        assert rag._query_cache == {"stale": (0.0, [])}
+        assert rag._cache_hits == 2
+
+    def test_cached_result_uses_default_ttl_when_class_ttl_is_malformed(self, tmp_path):
+        vulnerability = VulnerabilityDocument(
+            id="CUSTOM-TTL",
+            title="TTL Boundary",
+            description="Custom vulnerability description",
+        )
+        result = RetrievalResult(
+            document=vulnerability,
+            similarity_score=0.5,
+            relevance_reason="test",
+        )
+        rag = EmbeddingRAG(persist_directory=str(tmp_path))
+        cache_key = rag._get_cache_key("ttl boundary", None, None, 1)
+        cached_at = time.time()
+        rag._query_cache = {cache_key: (cached_at, [result])}
+        rag.CACHE_TTL_SECONDS = {"bad": "ttl"}  # type: ignore[assignment]
+
+        cached = rag._get_cached_result(cache_key)
+
+        assert cached == [result]
+        assert rag._query_cache == {cache_key: (cached_at, [result])}
+        assert rag._cache_hits == 1
