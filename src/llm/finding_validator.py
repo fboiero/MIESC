@@ -445,7 +445,8 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
     @classmethod
     def _parse_optional_text(cls, value: Any) -> Optional[str]:
         """Return optional text only when the LLM field has a string shape."""
-        return cls._parse_text(value, "") or None
+        text = cls._parse_text(value, "").strip()
+        return text or None
 
     @staticmethod
     def _parse_location_line(value: Any) -> Any:

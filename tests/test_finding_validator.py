@@ -351,6 +351,19 @@ def test_parse_response_defaults_malformed_text_fields():
     assert validation.remediation_hint is None
 
 
+def test_parse_response_strips_blank_optional_text_fields():
+    validator = LLMFindingValidator(ValidatorConfig())
+    response = (
+        '{"result": "valid", "confidence": 0.8, "reasoning": "Confirmed.", '
+        '"suggested_severity": " HIGH ", "remediation_hint": "  "}'
+    )
+
+    validation = validator._parse_response(response, "F-5b")
+
+    assert validation.suggested_severity == "HIGH"
+    assert validation.remediation_hint is None
+
+
 def test_parse_response_accepts_single_object_array_payload():
     validator = LLMFindingValidator(ValidatorConfig())
 
