@@ -168,12 +168,19 @@ class RemediationResult:
     def to_dict(self) -> Dict[str, Any]:
         """Export generation results without trusting malformed field values."""
         remediations = self.remediations if isinstance(self.remediations, list) else []
+        exported_remediations = []
+        for remediation in remediations:
+            if not isinstance(remediation, Remediation):
+                continue
+            try:
+                exported = remediation.to_dict()
+            except (TypeError, ValueError, AttributeError):
+                continue
+            if isinstance(exported, dict):
+                exported_remediations.append(exported)
+
         return {
-            "remediations": [
-                remediation.to_dict()
-                for remediation in remediations
-                if isinstance(remediation, Remediation)
-            ],
+            "remediations": exported_remediations,
             "success_count": _export_non_negative_int(self.success_count),
             "failure_count": _export_non_negative_int(self.failure_count),
             "execution_time_ms": _export_non_negative_float(self.execution_time_ms),
