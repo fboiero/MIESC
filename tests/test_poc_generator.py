@@ -1151,6 +1151,24 @@ class TestPoCRunMethod:
         captured = capsys.readouterr()
         assert "Running:" in captured.out
 
+    def test_run_malformed_verbose_does_not_print(self, generator, sample_poc, tmp_path, capsys):
+        """Test malformed verbose values do not unexpectedly print command lines."""
+        from unittest.mock import MagicMock, patch
+
+        test_dir = tmp_path / "test" / "exploits"
+        test_dir.mkdir(parents=True)
+
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = "[PASS]"
+        mock_result.stderr = ""
+
+        with patch("subprocess.run", return_value=mock_result):
+            generator.run(sample_poc, tmp_path, verbose="yes")
+
+        captured = capsys.readouterr()
+        assert "Running:" not in captured.out
+
 
 class TestResolveVulnerabilityTypePartialMatch:
     """Tests for partial matching in _resolve_vulnerability_type (line 395)."""
