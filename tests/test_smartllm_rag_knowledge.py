@@ -1225,6 +1225,13 @@ class TestEmbeddingRAGSearchBoundaryShapes:
             == EmbeddingRAG.DEFAULT_MODEL
         )
 
+    def test_coerce_cache_ttl_seconds_rejects_control_chars(self):
+        assert embedding_rag_module._coerce_cache_ttl_seconds("3600") == 3600
+        assert (
+            embedding_rag_module._coerce_cache_ttl_seconds("3600\n")
+            == EmbeddingRAG.DEFAULT_CACHE_TTL_SECONDS
+        )
+
     def test_search_drops_malformed_metadata_filter_builder_output(
         self,
         tmp_path,

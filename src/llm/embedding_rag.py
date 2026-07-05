@@ -174,6 +174,8 @@ def _coerce_cache_ttl_seconds(value: Any) -> int:
     """Return a positive cache TTL so malformed class config cannot poison reads."""
     if isinstance(value, bool):
         return EmbeddingRAG.DEFAULT_CACHE_TTL_SECONDS
+    if isinstance(value, str) and any(ord(ch) < 32 or ord(ch) == 127 for ch in value):
+        return EmbeddingRAG.DEFAULT_CACHE_TTL_SECONDS
     try:
         ttl = int(value)
     except (TypeError, ValueError):

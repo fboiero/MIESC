@@ -1472,7 +1472,15 @@ Response (JSON array only):"""
             logger.warning("Ignoring malformed ensemble model status list")
             return []
 
-        return [model.strip() for model in models if isinstance(model, str) and model.strip()]
+        normalized = []
+        for model in models:
+            if not isinstance(model, str):
+                continue
+            cleaned = model.strip()
+            if not cleaned or any(ord(ch) < 32 or ord(ch) == 127 for ch in cleaned):
+                continue
+            normalized.append(cleaned)
+        return normalized
 
 
 # Convenience function for simple usage

@@ -377,7 +377,10 @@ REMEDIATION ADVICE:"""
             return ""
         if not isinstance(value, str):
             return ""
-        return value[:limit]
+        text = value[:limit]
+        if any(ord(char) < 32 or ord(char) == 127 for char in text):
+            return ""
+        return text
 
     def _call_llm(self, prompt: str) -> Optional[str]:
         """Call Ollama LLM via HTTP API (clean output, no ANSI escapes)."""

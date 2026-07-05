@@ -78,7 +78,7 @@ def _model_id_text(value: Any) -> str:
     model_id = value.strip() if isinstance(value, str) else ""
     if not model_id or len(model_id) > MAX_MODEL_ID_CHARS:
         return ""
-    if any(ord(ch) < 32 for ch in model_id):
+    if any(ord(ch) < 32 or ord(ch) == 127 for ch in model_id):
         return ""
     return model_id
 

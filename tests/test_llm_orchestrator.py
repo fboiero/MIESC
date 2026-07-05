@@ -23,6 +23,8 @@ from src.llm.llm_orchestrator import (
     OllamaBackend,
     OpenAIBackend,
     VulnerabilityAnalysis,
+    _cache_key_context,
+    _cache_key_dict_key,
     _normalized_model_identifier,
     analyze_solidity,
 )
@@ -969,6 +971,12 @@ class TestLLMOrchestrator:
         assert string_key != int_key
         assert true_key != true_string_key
         assert none_key != none_string_key
+
+    def test_cache_key_context_rejects_control_chars(self):
+        """Test cache key context helpers collapse control-char text safely."""
+        assert _cache_key_context("  safe value  ") == "safe value"
+        assert _cache_key_context("safe\nvalue") == {"__text__": "<malformed>"}
+        assert _cache_key_dict_key("safe\tkey") == ["str", "<malformed>"]
 
     def test_cache_key_generation_preserves_nested_key_boundaries(self):
         """Test nested context key normalization remains stable without collisions."""

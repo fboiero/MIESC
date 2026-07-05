@@ -125,7 +125,15 @@ def _export_string_list(value: Any) -> List[str]:
     """Return only non-empty string list items for export payloads."""
     if not isinstance(value, list):
         return []
-    return [item.strip() for item in value if isinstance(item, str) and item.strip()]
+    strings = []
+    for item in value:
+        if not isinstance(item, str):
+            continue
+        text = item.strip()
+        if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+            continue
+        strings.append(text)
+    return strings
 
 
 def _export_reference_url(value: str) -> Optional[str]:

@@ -34,6 +34,8 @@ _FILENAME_SAFE_CHARS = f"-_() {string.ascii_letters}{string.digits}"
 def _safe_filename_part(value: Any, default: str = "template") -> str:
     """Return a bounded filename segment without path separators."""
     text = value.strip() if isinstance(value, str) else ""
+    if text and any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+        return default
     safe = "".join(ch for ch in text if ch in _FILENAME_SAFE_CHARS).strip()
     if text and not safe:
         return default

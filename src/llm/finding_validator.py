@@ -450,7 +450,11 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
     @staticmethod
     def _parse_text(value: Any, default: str) -> str:
         """Return text only when the LLM field has a string shape."""
-        return value if isinstance(value, str) else default
+        if not isinstance(value, str):
+            return default
+        if any(ord(ch) < 32 or ord(ch) == 127 for ch in value):
+            return default
+        return value
 
     @classmethod
     def _parse_optional_text(cls, value: Any) -> Optional[str]:

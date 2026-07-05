@@ -6,6 +6,7 @@ from src.llm.remediation_generator import (
     RemediationGenerator,
     RemediationResult,
     _export_generated_test_name,
+    _export_string_list,
     generate_fix,
     get_quick_fix,
 )
@@ -1287,6 +1288,13 @@ async def test_generate_remediation_filters_control_char_string_lists(monkeypatc
 def test_export_generated_test_name_strips_and_rejects_control_chars():
     assert _export_generated_test_name("  test_exploit_reentrancy  ") == "test_exploit_reentrancy"
     assert _export_generated_test_name("test\nshadow") is None
+
+
+def test_export_string_list_strips_and_rejects_control_chars():
+    assert _export_string_list(["  added guard  ", "bad\nchange", 123, "added check"]) == [
+        "added guard",
+        "added check",
+    ]
 
 
 @pytest.mark.asyncio

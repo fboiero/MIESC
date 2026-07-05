@@ -157,6 +157,15 @@ def test_ollama_model_name_strips_and_rejects_control_chars():
     assert OpenLLaMAHelper._ollama_model_name("valid\nmodel") is None
 
 
+def test_subprocess_text_rejects_control_chars():
+    class Result:
+        stdout = "  valid output  "
+        stderr = "bad\noutput"
+
+    assert OpenLLaMAHelper._subprocess_text(Result(), "stdout") == "  valid output  "
+    assert OpenLLaMAHelper._subprocess_text(Result(), "stderr") == ""
+
+
 def test_is_available_returns_false_on_malformed_ollama_result(monkeypatch):
     helper = OpenLLaMAHelper(LLMConfig(model="test-model"))
 

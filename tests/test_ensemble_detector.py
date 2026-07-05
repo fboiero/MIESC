@@ -533,6 +533,12 @@ class TestLLMEnsembleDetectorInit:
             "model3": 1.0,
         }
 
+    def test_model_status_filters_control_char_model_names(self):
+        """Control chars should be dropped from public status model lists."""
+        assert LLMEnsembleDetector._status_model_list(
+            [" model1 ", "bad\nmodel", "mo\tdel2", "model3", None]
+        ) == ["model1", "model3"]
+
     def test_normalize_remote_model_ids_strips_and_rejects_control_chars(self):
         """Remote model ids should be normalized before fallback selection."""
         assert LLMEnsembleDetector._normalize_remote_model_ids(

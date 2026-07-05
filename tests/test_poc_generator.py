@@ -21,6 +21,7 @@ from src.poc.poc_generator import (
     PoCTemplate,
     VulnerabilityType,
     _safe_contract_text,
+    _safe_filename_part,
 )
 
 # =============================================================================
@@ -626,6 +627,10 @@ class TestFunctionExtraction:
     def test_safe_contract_text_strips_and_rejects_control_chars(self):
         assert _safe_contract_text("  contracts/Bank.sol  ") == "contracts/Bank.sol"
         assert _safe_contract_text("Bank\n.sol") == ""
+
+    def test_safe_filename_part_rejects_control_chars(self):
+        assert _safe_filename_part("  valid_name-1  ") == "valid_name-1"
+        assert _safe_filename_part("bad\nname") == "template"
 
 
 # =============================================================================

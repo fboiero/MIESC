@@ -144,7 +144,12 @@ def _cache_key_context(value: Any, seen: Optional[set[int]] = None) -> Any:
     if seen is None:
         seen = set()
 
-    if value is None or isinstance(value, (str, bool, int)):
+    if isinstance(value, str):
+        text = value.strip()
+        if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+            return {"__text__": "<malformed>"}
+        return text
+    if value is None or isinstance(value, (bool, int)):
         return value
     if isinstance(value, float):
         return value if math.isfinite(value) else None
@@ -181,7 +186,10 @@ def _cache_key_context(value: Any, seen: Optional[set[int]] = None) -> Any:
 def _cache_key_dict_key(key: Any) -> List[Any]:
     """Encode dict keys without collapsing non-string keys into string keys."""
     if isinstance(key, str):
-        return ["str", key]
+        text = key.strip()
+        if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+            return ["str", "<malformed>"]
+        return ["str", text]
     if key is None:
         return ["none", None]
     if isinstance(key, bool):

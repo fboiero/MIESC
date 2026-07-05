@@ -608,7 +608,15 @@ class FoundryRunner:
         """Normalize Forge JSON logs to string entries only."""
         if not isinstance(value, list):
             return []
-        return [log for log in value if isinstance(log, str)]
+        logs = []
+        for log in value:
+            if not isinstance(log, str):
+                continue
+            text = log.strip()
+            if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+                continue
+            logs.append(text)
+        return logs
 
     @staticmethod
     def _normalize_gas_value(value: Any) -> Optional[int]:
