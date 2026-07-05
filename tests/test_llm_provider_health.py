@@ -310,6 +310,28 @@ def test_fetch_openai_compatible_model_ids_defaults_malformed_provider_name(capl
     assert "{'name': 'DeepSeek'}" not in caplog.text
 
 
+def test_fetch_openai_compatible_model_ids_bounds_provider_label(caplog):
+    """Test oversized provider names are bounded in debug logging."""
+    provider_name = "x" * 120
+
+    async def run_test():
+        with patch("aiohttp.ClientSession") as session:
+            models = await fetch_openai_compatible_model_ids(
+                [],
+                "test-key",
+                provider_name=provider_name,
+            )
+
+        assert models == set()
+        session.assert_not_called()
+
+    with caplog.at_level("DEBUG", logger="src.llm.provider_health"):
+        asyncio.run(run_test())
+
+    assert "x" * 80 in caplog.text
+    assert "x" * 81 not in caplog.text
+
+
 def test_fetch_openai_compatible_model_ids_defaults_blank_provider_name(caplog):
     """Test blank provider labels fall back to the generic log prefix."""
 

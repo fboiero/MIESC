@@ -1467,6 +1467,10 @@ class TestGasAndTraceExtraction:
         gas = generator._extract_gas_from_output(output)
         assert gas == 1234567
 
+    def test_extract_gas_ignores_oversized_values(self, generator):
+        """Test unrealistic gas values are ignored at the output boundary."""
+        assert generator._extract_gas_from_output("gas: 999,999,999,999") is None
+
     def test_extract_gas_no_match(self, generator):
         """Test gas extraction returns None when no match."""
         output = "[PASS] test_exploit()"

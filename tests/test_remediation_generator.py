@@ -129,6 +129,57 @@ def test_remediation_to_dict_normalizes_malformed_export_metadata():
 
 
 @pytest.mark.parametrize(
+    ("explanation", "expected"),
+    [
+        ("  uses CEI before the external call  ", "uses CEI before the external call"),
+        (" \n\t ", ""),
+        (["uses CEI"], ""),
+        ({"why": "uses CEI"}, ""),
+        (None, ""),
+    ],
+)
+def test_remediation_to_dict_normalizes_explanation_export_boundary(
+    explanation,
+    expected,
+):
+    remediation = Remediation(
+        finding_id="F-1",
+        vulnerability_type="reentrancy",
+        severity="high",
+        vulnerable_code="function withdraw() public {}",
+        fixed_code="function withdraw() public nonReentrant {}",
+        explanation=explanation,
+        changes_summary=[],
+        test_suggestions=[],
+        references=[],
+        confidence=0.8,
+    )
+
+    assert remediation.to_dict()["explanation"] == expected
+
+
+def test_remediation_to_dict_defaults_malformed_explanation_string_export_boundary():
+    class MalformedString(str):
+        def strip(self, *_args, **_kwargs):
+            raise ValueError("malformed explanation")
+
+    remediation = Remediation(
+        finding_id="F-1",
+        vulnerability_type="reentrancy",
+        severity="high",
+        vulnerable_code="function withdraw() public {}",
+        fixed_code="function withdraw() public nonReentrant {}",
+        explanation=MalformedString("uses CEI"),
+        changes_summary=[],
+        test_suggestions=[],
+        references=[],
+        confidence=0.8,
+    )
+
+    assert remediation.to_dict()["explanation"] == ""
+
+
+@pytest.mark.parametrize(
     ("affected_lines", "expected"),
     [
         ([1, "2", " 3 ", 1], [1, 2, 3]),

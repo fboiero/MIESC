@@ -701,6 +701,57 @@ def test_generate_remediation_advice_sanitizes_malformed_location_dict(monkeypat
     assert "<object object at" not in captured["prompt"]
 
 
+def test_generate_remediation_advice_defaults_malformed_finding_accessor(monkeypatch):
+    helper = OpenLLaMAHelper()
+    captured = {}
+
+    class MalformedFinding(dict):
+        def get(self, key, default=None):
+            raise RuntimeError("bad finding access")
+
+    monkeypatch.setattr(helper, "is_available", lambda: True)
+
+    def fake_call_llm(prompt):
+        captured["prompt"] = prompt
+        return "review the vulnerable path"
+
+    monkeypatch.setattr(helper, "_call_llm", fake_call_llm)
+
+    advice = helper.generate_remediation_advice(
+        MalformedFinding(
+            {
+                "title": "Missing auth",
+                "description": "reachable owner bypass",
+            }
+        ),
+        "contract C {}",
+    )
+
+    assert advice == "review the vulnerable path"
+    assert "Title: Unknown" in captured["prompt"]
+    assert "Description: \n" in captured["prompt"]
+    assert "Missing auth" not in captured["prompt"]
+
+
+def test_generate_remediation_advice_fallback_defaults_malformed_finding_accessor(monkeypatch):
+    helper = OpenLLaMAHelper()
+
+    class MalformedFinding(dict):
+        def get(self, key, default=None):
+            raise RuntimeError("bad finding access")
+
+    monkeypatch.setattr(helper, "is_available", lambda: True)
+    monkeypatch.setattr(helper, "_call_llm", lambda prompt: "")
+
+    assert (
+        helper.generate_remediation_advice(
+            MalformedFinding({"recommendation": "Use onlyOwner"}),
+            "contract C {}",
+        )
+        == "Review and address the identified issue"
+    )
+
+
 def test_generate_remediation_advice_empty_llm_rejects_non_string_recommendation(monkeypatch):
     helper = OpenLLaMAHelper()
     monkeypatch.setattr(helper, "is_available", lambda: True)

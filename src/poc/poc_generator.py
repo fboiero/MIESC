@@ -771,7 +771,8 @@ contract {{CONTRACT_NAME}}ExploitTest is Test {
             return None
         match = re.search(r"gas:\s*([\d,]+)", output)
         if match:
-            return int(match.group(1).replace(",", ""))
+            gas = int(match.group(1).replace(",", ""))
+            return gas if gas <= 10_000_000_000 else None
         return None
 
     def _extract_traces(self, output: str) -> Optional[str]:
