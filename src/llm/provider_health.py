@@ -82,7 +82,7 @@ async def fetch_openai_compatible_model_ids(
         logger.debug("%s model check received malformed endpoint credentials", provider_label)
         return set()
     base_url = base_url.strip()
-    if not base_url:
+    if not base_url or not base_url.lower().startswith(("http://", "https://")):
         logger.debug("%s model check received malformed endpoint credentials", provider_label)
         return set()
     api_key = api_key.strip()
