@@ -487,6 +487,20 @@ def test_prioritize_findings_sanitizes_malformed_contract_prompt(monkeypatch):
     assert "{'source':" not in captured["prompt"]
 
 
+def test_prioritize_findings_returns_malformed_top_level_findings_without_prompt(monkeypatch):
+    helper = OpenLLaMAHelper()
+    findings = "not a finding list"
+
+    monkeypatch.setattr(helper, "is_available", lambda: True)
+
+    def fail_call_llm(*args, **kwargs):
+        raise AssertionError("malformed top-level findings should not reach the prompt")
+
+    monkeypatch.setattr(helper, "_call_llm", fail_call_llm)
+
+    assert helper.prioritize_findings(findings, "contract C {}") is findings
+
+
 def test_generate_remediation_advice_uses_recommendation_when_unavailable(monkeypatch):
     helper = OpenLLaMAHelper()
     monkeypatch.setattr(helper, "is_available", lambda: False)

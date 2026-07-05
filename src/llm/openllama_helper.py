@@ -192,6 +192,8 @@ OUTPUT (plain text):"""
         Returns:
             Findings with updated 'priority' field (1-10, 10=highest)
         """
+        if not isinstance(findings, list):
+            return findings
         if not self.is_available() or not findings:
             return findings
 
