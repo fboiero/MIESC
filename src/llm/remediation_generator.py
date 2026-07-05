@@ -33,6 +33,7 @@ from src.security.llm_output_validator import (
 
 _EXPORT_PATH_CONTROL_RE = re.compile(r"[\x00-\x1f\x7f]")
 _EXPORT_WINDOWS_DRIVE_RE = re.compile(r"^[A-Za-z]:")
+_EXPORT_DIFF_HUNK_RE = re.compile(r"^@@ -\d+(?:,\d+)? \+\d+(?:,\d+)? @@(?: .*)?$")
 
 
 def _export_string(value: Any, default: str) -> str:
@@ -42,6 +43,20 @@ def _export_string(value: Any, default: str) -> str:
         if normalized:
             return normalized
     return default
+
+
+def _export_code_or_patch_text(value: Any, default: str) -> str:
+    """Return code/patch text only when diff hunk headers are well formed."""
+    normalized = _export_string(value, default)
+    if normalized == default:
+        return default
+
+    for line in normalized.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("@@") and not _EXPORT_DIFF_HUNK_RE.fullmatch(stripped):
+            return default
+
+    return normalized
 
 
 def _export_optional_string(value: Any) -> Optional[str]:
@@ -235,8 +250,8 @@ class Remediation:
                 {"info", "informational", "low", "medium", "high", "critical"},
                 "medium",
             ),
-            "vulnerable_code": _export_string(self.vulnerable_code, ""),
-            "fixed_code": _export_string(self.fixed_code, ""),
+            "vulnerable_code": _export_code_or_patch_text(self.vulnerable_code, ""),
+            "fixed_code": _export_code_or_patch_text(self.fixed_code, ""),
             "explanation": _export_explanation(self.explanation),
             "changes_summary": _export_string_list(self.changes_summary),
             "test_suggestions": _export_unique_string_list(self.test_suggestions),

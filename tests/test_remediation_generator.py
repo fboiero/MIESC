@@ -180,6 +180,55 @@ def test_remediation_to_dict_defaults_malformed_explanation_string_export_bounda
 
 
 @pytest.mark.parametrize(
+    ("fixed_code", "expected"),
+    [
+        ("function withdraw() public nonReentrant {}", "function withdraw() public nonReentrant {}"),
+        (
+            "diff --git a/Vault.sol b/Vault.sol\n"
+            "@@ -10,7 +10,8 @@ contract Vault {\n"
+            "-    transfer(amount);\n"
+            "+    _withdraw(amount);\n",
+            "diff --git a/Vault.sol b/Vault.sol\n"
+            "@@ -10,7 +10,8 @@ contract Vault {\n"
+            "-    transfer(amount);\n"
+            "+    _withdraw(amount);",
+        ),
+        (
+            "diff --git a/Vault.sol b/Vault.sol\n"
+            "@@ malformed hunk header @@\n"
+            "-    transfer(amount);\n"
+            "+    _withdraw(amount);\n",
+            "",
+        ),
+        (
+            "@@ -not-a-number +10 @@\n"
+            "-    transfer(amount);\n"
+            "+    _withdraw(amount);\n",
+            "",
+        ),
+    ],
+)
+def test_remediation_to_dict_bounds_malformed_diff_hunk_export_boundary(
+    fixed_code,
+    expected,
+):
+    remediation = Remediation(
+        finding_id="F-1",
+        vulnerability_type="reentrancy",
+        severity="high",
+        vulnerable_code="function withdraw() public {}",
+        fixed_code=fixed_code,
+        explanation="uses guard",
+        changes_summary=[],
+        test_suggestions=[],
+        references=[],
+        confidence=0.8,
+    )
+
+    assert remediation.to_dict()["fixed_code"] == expected
+
+
+@pytest.mark.parametrize(
     ("affected_lines", "expected"),
     [
         ([1, "2", " 3 ", 1], [1, 2, 3]),
