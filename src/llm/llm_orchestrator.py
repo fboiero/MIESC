@@ -205,9 +205,28 @@ def _cache_key_dict_key(key: Any) -> List[Any]:
 
 def _bounded_confidence(value: Any, default: float = 0.5) -> float:
     """Return a finite confidence value in the expected 0..1 range."""
-    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+    if isinstance(value, bool):
         return default
-    return min(max(float(value), 0.0), 1.0)
+    if isinstance(value, str):
+        if any(ord(ch) < 32 or ord(ch) == 127 for ch in value):
+            return default
+        text = value.strip()
+        value = text
+    elif isinstance(value, bytes):
+        raw_value = value.decode("utf-8", errors="replace")
+        if any(ord(ch) < 32 or ord(ch) == 127 for ch in raw_value):
+            return default
+        text = raw_value.strip()
+        value = text
+    if not isinstance(value, (int, float)) and not isinstance(value, str):
+        return default
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError):
+        return default
+    if not math.isfinite(numeric):
+        return default
+    return min(max(numeric, 0.0), 1.0)
 
 
 def _non_negative_int_stat(value: Any, field_name: str, source: str) -> int:

@@ -243,12 +243,12 @@ def _coerce_persist_directory(value: Any) -> Path:
 
     if isinstance(value, bytes):
         path_text = value.decode("utf-8", errors="replace").strip()
-        if not path_text:
+        if not path_text or any(ord(ch) < 32 or ord(ch) == 127 for ch in path_text):
             return _default_persist_directory()
         path_value: Any = path_text
     elif isinstance(value, str):
         path_text = value.strip()
-        if not path_text or "\x00" in path_text:
+        if not path_text or any(ord(ch) < 32 or ord(ch) == 127 for ch in path_text):
             return _default_persist_directory()
         path_value = path_text
     elif isinstance(value, os.PathLike):
@@ -351,6 +351,15 @@ def _coerce_embedding_vector(value: Any) -> Optional[List[float]]:
     for item in value:
         if isinstance(item, bool):
             return None
+        if isinstance(item, bytes):
+            raw_item = item.decode("utf-8", errors="replace")
+            if any(ord(ch) < 32 or ord(ch) == 127 for ch in raw_item):
+                return None
+            item = raw_item.strip()
+        elif isinstance(item, str):
+            if any(ord(ch) < 32 or ord(ch) == 127 for ch in item):
+                return None
+            item = item.strip()
         try:
             number = float(item)
         except Exception:

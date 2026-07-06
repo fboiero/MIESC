@@ -8,13 +8,17 @@ from src.llm.remediation_generator import (
     _export_code_or_patch_text,
     _export_explanation,
     _export_generated_test_name,
+    _export_non_negative_float,
+    _export_non_negative_int,
     _export_optional_string,
     _export_patch_file_path,
     _export_patch_filename,
+    _export_positive_int_list,
     _export_reference,
     _export_reference_url,
     _export_string,
     _export_string_list,
+    _export_unique_string_list,
     generate_fix,
     get_quick_fix,
 )
@@ -1328,6 +1332,15 @@ def test_export_patch_helpers_strip_and_reject_control_chars():
     assert _export_patch_filename("bad/name.patch") is None
     assert _export_patch_file_path(" patches/fix.patch ") == "patches/fix.patch"
     assert _export_patch_file_path("patches/fi\nx.patch") is None
+
+
+def test_export_numeric_and_unique_list_helpers_reject_control_chars():
+    assert _export_unique_string_list([" a ", "a", "bad\nx", "b"]) == ["a", "b"]
+    assert _export_non_negative_float(" 1.25 ") == 1.25
+    assert _export_non_negative_float("1.25\x7f") == 0.0
+    assert _export_non_negative_int(" 12 ") == 12
+    assert _export_non_negative_int("12\n") == 0
+    assert _export_positive_int_list([1, "2", " 3 ", 1, "bad\nx"]) == [1, 2, 3]
 
 
 @pytest.mark.asyncio

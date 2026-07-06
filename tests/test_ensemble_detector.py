@@ -559,6 +559,12 @@ class TestLLMEnsembleDetectorInit:
         assert LLMEnsembleDetector._safe_severity(" LOW ") == "low"
         assert LLMEnsembleDetector._safe_severity("low\x7f") == "medium"
 
+    def test_nonnegative_metadata_scalar_helper_rejects_control_chars(self):
+        assert LLMEnsembleDetector._is_nonnegative_finite_scalar(" 1 ") is True
+        assert LLMEnsembleDetector._is_nonnegative_finite_scalar("1\n") is False
+        assert LLMEnsembleDetector._is_nonnegative_finite_scalar(b"1") is True
+        assert LLMEnsembleDetector._is_nonnegative_finite_scalar(b"1\x7f") is False
+
     def test_normalize_remote_model_ids_strips_and_rejects_control_chars(self):
         """Remote model ids should be normalized before fallback selection."""
         assert LLMEnsembleDetector._normalize_remote_model_ids(

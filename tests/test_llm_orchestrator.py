@@ -23,8 +23,10 @@ from src.llm.llm_orchestrator import (
     OllamaBackend,
     OpenAIBackend,
     VulnerabilityAnalysis,
+    _bounded_confidence,
     _cache_key_context,
     _cache_key_dict_key,
+    _non_negative_int_stat,
     _normalized_model_identifier,
     _safe_backend_error_text,
     analyze_solidity,
@@ -2075,6 +2077,17 @@ class TestIntegration:
 
         assert [vuln["confidence"] for vuln in analysis.vulnerabilities] == [0.5, 1.0, 0.0]
         assert abs(analysis.confidence_score - 0.5) < 0.001
+
+    def test_bounded_confidence_sanitizes_string_inputs(self):
+        assert _bounded_confidence(" 0.75 ") == 0.75
+        assert _bounded_confidence("0.75\x7f") == 0.5
+        assert _bounded_confidence(b"0.6") == 0.6
+        assert _bounded_confidence(b"0.6\n") == 0.5
+
+    def test_non_negative_int_stat_rejects_malformed_strings(self):
+        assert _non_negative_int_stat(3, "tokens", "ollama") == 3
+        with pytest.raises(ValueError):
+            _non_negative_int_stat("3", "tokens", "ollama")
 
     def test_recommendations_extraction(self):
         """Test recommendations extraction from vulnerabilities."""

@@ -7,6 +7,8 @@ from src.llm.embedding_rag import (
     _coerce_batch_queries,
     _coerce_batch_query_text,
     _coerce_collection_name,
+    _coerce_embedding_vector,
+    _coerce_persist_directory,
     _coerce_result_count,
 )
 
@@ -147,3 +149,10 @@ def test_result_count_and_collection_name_helpers_reject_control_chars():
     assert _coerce_result_count("7\x7f", 3) == 3
     assert _coerce_collection_name("  vuln_cache  ") == "vuln_cache"
     assert _coerce_collection_name("bad\nname") == "miesc_vulnerabilities"
+
+
+def test_persist_directory_and_embedding_vector_helpers_reject_control_chars():
+    assert _coerce_persist_directory("  ~/miesc-cache  ").parts[-1] == "miesc-cache"
+    assert _coerce_persist_directory("bad\npath") == _coerce_persist_directory(None)
+    assert _coerce_embedding_vector([1, " 2 ", 3.5]) == [1.0, 2.0, 3.5]
+    assert _coerce_embedding_vector(["1\n", 2]) is None

@@ -1353,6 +1353,17 @@ Response (JSON array only):"""
         if isinstance(value, bool) or isinstance(value, (dict, list, tuple, set)):
             return False
         try:
+            if isinstance(value, str):
+                if any(ord(ch) < 32 or ord(ch) == 127 for ch in value):
+                    return False
+                text = value.strip()
+                value = text
+            elif isinstance(value, bytes):
+                raw_value = value.decode("utf-8", errors="replace")
+                if any(ord(ch) < 32 or ord(ch) == 127 for ch in raw_value):
+                    return False
+                text = raw_value.strip()
+                value = text
             normalized = float(value)
         except (TypeError, ValueError):
             return False

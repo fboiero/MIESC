@@ -277,6 +277,11 @@ def _export_non_negative_float(value: Any, default: float = 0.0) -> float:
     """Return a finite non-negative float for export payloads."""
     if isinstance(value, bool):
         return default
+    if isinstance(value, str):
+        if any(ord(ch) < 32 or ord(ch) == 127 for ch in value):
+            return default
+        text = value.strip()
+        value = text
 
     try:
         normalized = float(value)
@@ -296,6 +301,11 @@ def _export_non_negative_int(value: Any) -> int:
     """Return a non-negative integer for export payloads."""
     if isinstance(value, bool):
         return 0
+    if isinstance(value, str):
+        if any(ord(ch) < 32 or ord(ch) == 127 for ch in value):
+            return 0
+        text = value.strip()
+        value = text
 
     try:
         normalized = int(value)
@@ -315,6 +325,11 @@ def _export_positive_int_list(value: Any) -> List[int]:
     for item in value:
         if isinstance(item, bool):
             continue
+        if isinstance(item, str):
+            if any(ord(ch) < 32 or ord(ch) == 127 for ch in item):
+                continue
+            text = item.strip()
+            item = text
         if isinstance(item, float) and not item.is_integer():
             continue
 
