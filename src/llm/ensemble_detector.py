@@ -1333,6 +1333,16 @@ Response (JSON array only):"""
         if isinstance(value, (dict, list, tuple, set)):
             return default
         try:
+            if isinstance(value, str):
+                text = value.strip()
+                if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+                    return default
+                value = text
+            elif isinstance(value, bytes):
+                text = value.decode("utf-8", errors="replace").strip()
+                if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+                    return default
+                value = text
             return float(value)
         except (TypeError, ValueError):
             return default
@@ -1411,6 +1421,16 @@ Response (JSON array only):"""
         if isinstance(value, bool) or isinstance(value, (dict, list, tuple, set)):
             return default
         try:
+            if isinstance(value, str):
+                text = value.strip()
+                if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+                    return default
+                value = text
+            elif isinstance(value, bytes):
+                text = value.decode("utf-8", errors="replace").strip()
+                if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+                    return default
+                value = text
             return int(value)
         except (OverflowError, TypeError, ValueError):
             return default

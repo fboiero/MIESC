@@ -96,12 +96,27 @@ def _safe_contract_text(value: Any) -> str:
 
 def _safe_isoformat(value: Any) -> str:
     """Return ISO timestamps only from datetime-like values."""
-    return value.isoformat() if isinstance(value, datetime) else ""
+    try:
+        text = value.isoformat() if hasattr(value, "isoformat") else ""
+    except (AttributeError, TypeError, ValueError):
+        return ""
+    if not isinstance(text, str):
+        text = str(text)
+    text = text.strip()
+    if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+        return ""
+    return text
 
 
 def _safe_vulnerability_type_value(value: Any) -> str:
     """Return vulnerability type values only from the expected enum shape."""
-    return value.value if isinstance(value, VulnerabilityType) else "unknown"
+    raw_value = getattr(value, "value", None)
+    if not isinstance(raw_value, str):
+        return "unknown"
+    text = raw_value.strip()
+    if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+        return "unknown"
+    return text
 
 
 class VulnerabilityType(Enum):

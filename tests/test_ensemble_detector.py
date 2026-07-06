@@ -549,6 +549,16 @@ class TestLLMEnsembleDetectorInit:
         assert LLMEnsembleDetector._safe_vulnerability_type(" reentrancy ") == "reentrancy"
         assert LLMEnsembleDetector._safe_vulnerability_type("reent\nancy") is None
 
+    def test_safe_scalar_helpers_strip_and_reject_control_chars(self):
+        assert LLMEnsembleDetector._safe_float(" 0.75 ", 0.0) == 0.75
+        assert LLMEnsembleDetector._safe_float("0.75\x7f", 0.0) == 0.0
+        assert LLMEnsembleDetector._safe_confidence(" 0.8 ", 0.7) == 0.8
+        assert LLMEnsembleDetector._safe_confidence("0.8\x7f", 0.7) == 0.7
+        assert LLMEnsembleDetector._safe_int(" 42 ", 0) == 42
+        assert LLMEnsembleDetector._safe_int("4\t2", 0) == 0
+        assert LLMEnsembleDetector._safe_severity(" LOW ") == "low"
+        assert LLMEnsembleDetector._safe_severity("low\x7f") == "medium"
+
     def test_normalize_remote_model_ids_strips_and_rejects_control_chars(self):
         """Remote model ids should be normalized before fallback selection."""
         assert LLMEnsembleDetector._normalize_remote_model_ids(

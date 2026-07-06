@@ -5,9 +5,14 @@ from src.llm.remediation_generator import (
     Remediation,
     RemediationGenerator,
     RemediationResult,
+    _export_code_or_patch_text,
     _export_explanation,
     _export_generated_test_name,
     _export_optional_string,
+    _export_patch_file_path,
+    _export_patch_filename,
+    _export_reference,
+    _export_reference_url,
     _export_string,
     _export_string_list,
     generate_fix,
@@ -1307,6 +1312,22 @@ def test_export_string_helpers_reject_control_chars():
     assert _export_optional_string("bad\tvalue") is None
     assert _export_explanation("  uses CEI  ") == "uses CEI"
     assert _export_explanation("uses\nCEI") == ""
+
+
+def test_export_reference_helpers_strip_and_reject_control_chars():
+    assert _export_reference_url("  https://example.com/docs  ") == "https://example.com/docs"
+    assert _export_reference_url("https://example.com/doc\ns") is None
+    assert _export_reference("[Docs](https://example.com/spec)") == "[Docs](https://example.com/spec)"
+    assert _export_reference("[Docs](https://example.com/spec\x7f)") is None
+
+
+def test_export_patch_helpers_strip_and_reject_control_chars():
+    assert _export_code_or_patch_text("  contract C {}  ", "") == "contract C {}"
+    assert _export_code_or_patch_text("@@ bad hunk @@\ncontract C {}", "") == ""
+    assert _export_patch_filename("  fix.patch  ") == "fix.patch"
+    assert _export_patch_filename("bad/name.patch") is None
+    assert _export_patch_file_path(" patches/fix.patch ") == "patches/fix.patch"
+    assert _export_patch_file_path("patches/fi\nx.patch") is None
 
 
 @pytest.mark.asyncio

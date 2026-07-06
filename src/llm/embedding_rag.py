@@ -129,16 +129,22 @@ def _coerce_batch_queries(value: Any) -> List[Any]:
 
 def _coerce_batch_query_text(value: Any) -> Tuple[bool, str]:
     """Return one safe batch query text, marking entries that cannot be coerced."""
+    def _is_safe_text(text: str) -> bool:
+        return bool(text) and not any(ord(ch) < 32 or ord(ch) == 127 for ch in text)
+
     if isinstance(value, str):
-        return True, value
+        text = value.strip()
+        return (_is_safe_text(text), text if _is_safe_text(text) else "")
     if isinstance(value, bytes):
-        return True, value.decode("utf-8", errors="replace")
+        text = value.decode("utf-8", errors="replace").strip()
+        return (_is_safe_text(text), text if _is_safe_text(text) else "")
     if value is None:
         return True, ""
     try:
-        return True, str(value)
+        text = str(value).strip()
     except Exception:
         return False, ""
+    return (_is_safe_text(text), text if _is_safe_text(text) else "")
 
 
 def _coerce_filter_text(value: Any) -> Optional[str]:
@@ -167,7 +173,7 @@ def _coerce_result_count(value: Any, fallback: Any) -> int:
     for candidate in candidates:
         if isinstance(candidate, bool):
             continue
-        if isinstance(candidate, str) and any(ord(ch) < 32 for ch in candidate):
+        if isinstance(candidate, str) and any(ord(ch) < 32 or ord(ch) == 127 for ch in candidate):
             continue
         try:
             count = int(candidate)
@@ -218,6 +224,8 @@ def _coerce_collection_name(value: Any) -> str:
         return DEFAULT_COLLECTION_NAME
 
     text = text.strip()
+    if any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+        return DEFAULT_COLLECTION_NAME
     if _SAFE_COLLECTION_NAME_RE.fullmatch(text):
         return text
     return DEFAULT_COLLECTION_NAME

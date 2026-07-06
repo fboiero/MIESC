@@ -873,6 +873,23 @@ def test_parse_confidence_strips_and_rejects_control_chars():
     assert LLMFindingValidator._parse_confidence("0.75\x7f") == 0.5
 
 
+def test_parse_suggested_severity_and_exception_reason_sanitize_text():
+    assert LLMFindingValidator._parse_suggested_severity("  HIGH  ") == "HIGH"
+    assert LLMFindingValidator._parse_suggested_severity("high\n") is None
+    assert LLMFindingValidator._exception_reason(RuntimeError("  bad failure  ")) == (
+        "Exception: bad failure"
+    )
+    assert LLMFindingValidator._exception_reason(RuntimeError("bad\nfailure")) == (
+        "Exception: RuntimeError"
+    )
+
+
+def test_parse_nonnegative_int_accepts_numeric_strings_and_rejects_control_chars():
+    assert LLMFindingValidator._parse_nonnegative_int(" 12 ") == 12
+    assert LLMFindingValidator._parse_nonnegative_int("12\x7f") == 0
+    assert LLMFindingValidator._parse_nonnegative_int("-3") == 0
+
+
 def test_get_statistics_defaults_malformed_config_container():
     validator = LLMFindingValidator(ValidatorConfig(model="test-model", enabled=True))
     validator.config = {

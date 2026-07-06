@@ -53,8 +53,14 @@ def _export_string(value: Any, default: str) -> str:
 
 def _export_code_or_patch_text(value: Any, default: str) -> str:
     """Return code/patch text only when diff hunk headers are well formed."""
-    normalized = _export_string(value, default)
-    if normalized == default:
+    if not isinstance(value, str):
+        return default
+
+    normalized = value.strip()
+    if not normalized:
+        return default
+
+    if any(ord(ch) < 32 and ch not in "\n\r\t" or ord(ch) == 127 for ch in normalized):
         return default
 
     for line in normalized.splitlines():
@@ -140,17 +146,26 @@ def _export_string_list(value: Any) -> List[str]:
 
 def _export_reference_url(value: str) -> Optional[str]:
     """Return a safe HTTP(S) reference URL."""
-    if _EXPORT_REFERENCE_CONTROL_RE.search(value) or any(char.isspace() for char in value):
+    try:
+        normalized = value.strip()
+    except (AttributeError, TypeError, ValueError):
         return None
 
-    parsed = urlparse(value)
+    if (
+        not normalized
+        or _EXPORT_REFERENCE_CONTROL_RE.search(normalized)
+        or any(char.isspace() for char in normalized)
+    ):
+        return None
+
+    parsed = urlparse(normalized)
     if parsed.scheme.lower() not in {"http", "https"} or not parsed.netloc:
         return None
 
     if parsed.username or parsed.password or not parsed.hostname:
         return None
 
-    return value
+    return normalized
 
 
 def _export_reference(value: Any) -> Optional[str]:

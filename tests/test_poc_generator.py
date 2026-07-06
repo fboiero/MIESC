@@ -23,8 +23,10 @@ from src.poc.poc_generator import (
     _safe_contract_text,
     _safe_filename_part,
     _safe_import_path,
+    _safe_isoformat,
     _safe_optional_text,
     _safe_text_list,
+    _safe_vulnerability_type_value,
 )
 
 # =============================================================================
@@ -643,6 +645,27 @@ class TestFunctionExtraction:
     def test_safe_import_path_rejects_control_chars(self):
         assert _safe_import_path("forge-std/console.sol") is True
         assert _safe_import_path("forge-std/conso\x7fle.sol") is False
+
+    def test_safe_isoformat_and_vulnerability_type_value_sanitize_text(self):
+        class FakeTimestamp:
+            def isoformat(self):
+                return " 2026-07-06T12:13:00 "
+
+        class BadTimestamp:
+            def isoformat(self):
+                return "2026-07-06\n12:13:00"
+
+        class FakeType:
+            value = "  custom_type  "
+
+        class BadType:
+            value = "custom\n_type"
+
+        assert _safe_isoformat(FakeTimestamp()) == "2026-07-06T12:13:00"
+        assert _safe_isoformat(BadTimestamp()) == ""
+        assert _safe_vulnerability_type_value(VulnerabilityType.REENTRANCY) == "reentrancy"
+        assert _safe_vulnerability_type_value(FakeType()) == "custom_type"
+        assert _safe_vulnerability_type_value(BadType()) == "unknown"
 
 
 # =============================================================================

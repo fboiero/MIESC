@@ -359,7 +359,7 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
     def _parse_response(self, response: str, finding_id: str) -> LLMValidation:
         """Parse LLM response into LLMValidation."""
         finding_id = self._parse_text(finding_id, "unknown")[:200] or "unknown"
-        response = self._parse_text(response, "")
+        response = response.strip() if isinstance(response, str) else ""
         try:
             stripped = response.strip()
             json_str = stripped if stripped.startswith("[") else extract_json_from_text(response)
@@ -487,6 +487,9 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
             detail = str(exc)
         except Exception:
             detail = exc.__class__.__name__
+        detail = detail.strip()
+        if not detail or any(ord(ch) < 32 or ord(ch) == 127 for ch in detail):
+            detail = exc.__class__.__name__
         return f"Exception: {detail}"[:200]
 
     @staticmethod
@@ -508,6 +511,14 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
         """Return non-negative integer metadata only for scalar numeric shapes."""
         if isinstance(value, bool):
             return default
+        if isinstance(value, str):
+            text = value.strip()
+            if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+                return default
+            try:
+                value = int(text)
+            except (TypeError, ValueError):
+                return default
         if isinstance(value, int):
             return value if value >= 0 else default
         if isinstance(value, float) and math.isfinite(value):
@@ -687,14 +698,14 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
     @staticmethod
     def _config_text(config: Any, key: str, default: str) -> str:
         """Read config text fields without trusting the container shape."""
-        value = LLMFindingValidator._parse_text(getattr(config, key, default), default)
+        value = getattr(config, key, default)
         if not isinstance(value, str):
             return default
         try:
             text = value.strip()
         except (AttributeError, TypeError, ValueError):
             return default
-        if not text or any(ord(ch) < 32 for ch in text):
+        if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
             return default
         return text
 

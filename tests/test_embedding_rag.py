@@ -1,7 +1,14 @@
 """Tests for embedding RAG convenience helpers."""
 
 from src.llm import embedding_rag
-from src.llm.embedding_rag import EmbeddingRAG, VulnerabilityDocument
+from src.llm.embedding_rag import (
+    EmbeddingRAG,
+    VulnerabilityDocument,
+    _coerce_batch_queries,
+    _coerce_batch_query_text,
+    _coerce_collection_name,
+    _coerce_result_count,
+)
 
 
 class FakeEmbeddingRAG:
@@ -124,3 +131,19 @@ def test_text_coercion_helpers_strip_and_reject_control_chars():
     assert embedding_rag._coerce_document_text("document\ntext") == ""
     assert embedding_rag._coerce_query_text(b" query ") == "query"
     assert embedding_rag._coerce_query_text("query\x7fvalue") == ""
+
+
+def test_batch_query_helpers_strip_and_reject_control_chars():
+    assert _coerce_batch_queries(("alpha", "beta")) == ["alpha", "beta"]
+    assert _coerce_batch_queries("not-a-sequence") == []
+    assert _coerce_batch_query_text("  alpha  ") == (True, "alpha")
+    assert _coerce_batch_query_text("alpha\nbeta") == (False, "")
+    assert _coerce_batch_query_text(b" beta ") == (True, "beta")
+    assert _coerce_batch_query_text(b"beta\x7f") == (False, "")
+
+
+def test_result_count_and_collection_name_helpers_reject_control_chars():
+    assert _coerce_result_count(" 7 ", 3) == 7
+    assert _coerce_result_count("7\x7f", 3) == 3
+    assert _coerce_collection_name("  vuln_cache  ") == "vuln_cache"
+    assert _coerce_collection_name("bad\nname") == "miesc_vulnerabilities"
