@@ -247,7 +247,7 @@ def _export_generated_test_name(value: Any) -> Optional[str]:
 
 def _export_generated_test_names(value: Any) -> List[str]:
     """Return unique safe generated test names for export payloads."""
-    if not isinstance(value, list):
+    if not isinstance(value, (list, tuple)):
         return []
 
     exported = []
@@ -268,8 +268,9 @@ def _export_level(value: Any, allowed: set[str], default: str) -> str:
             normalized = value.strip().lower()
         except (AttributeError, TypeError, ValueError):
             return default
-        if normalized in allowed:
-            return normalized
+        if normalized and not any(ord(ch) < 32 or ord(ch) == 127 for ch in normalized):
+            if normalized in allowed:
+                return normalized
     return default
 
 

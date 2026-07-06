@@ -259,7 +259,7 @@ def _is_safe_backend_name(value: Any) -> bool:
     """Return whether a backend name is safe to expose in status outputs."""
     if not isinstance(value, str):
         return False
-    return _normalized_model_identifier(value) == value
+    return len(value) <= 128 and _normalized_model_identifier(value) == value
 
 
 class LLMProvider(Enum):

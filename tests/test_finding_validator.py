@@ -849,6 +849,21 @@ def test_get_statistics_normalizes_control_char_config_text():
     }
 
 
+def test_safe_counter_and_config_text_helpers_handle_mutated_values():
+    validator = LLMFindingValidator(ValidatorConfig())
+
+    assert validator._safe_counter("7") == 7
+    assert validator._safe_counter(True) == 0
+    assert validator._safe_counter(-3) == 0
+
+    validator.config.model = b"  custom-model  "
+    assert validator._config_text(validator.config, "model", ValidatorConfig().model) == (
+        "custom-model"
+    )
+    validator.config.enabled = object()
+    assert validator._config_enabled(validator.config) is False
+
+
 def test_parse_optional_text_rejects_control_chars():
     validator = LLMFindingValidator(ValidatorConfig())
 

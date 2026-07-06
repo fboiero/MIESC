@@ -135,6 +135,20 @@ def test_text_coercion_helpers_strip_and_reject_control_chars():
     assert embedding_rag._coerce_query_text("query\x7fvalue") == ""
 
 
+def test_safe_metadata_filter_rejects_malformed_filter_shapes(monkeypatch):
+    monkeypatch.setattr(embedding_rag, "build_metadata_filter", lambda *_args: {"$and": []})
+    assert embedding_rag._safe_metadata_filter("reentrancy", "high") is None
+
+    monkeypatch.setattr(
+        embedding_rag,
+        "build_metadata_filter",
+        lambda *_args: {"$and": [{"category": "reentrancy"}, {"severity": "high"}]},
+    )
+    assert embedding_rag._safe_metadata_filter("reentrancy", "high") == {
+        "$and": [{"category": "reentrancy"}, {"severity": "high"}]
+    }
+
+
 def test_batch_query_helpers_strip_and_reject_control_chars():
     assert _coerce_batch_queries(("alpha", "beta")) == ["alpha", "beta"]
     assert _coerce_batch_queries("not-a-sequence") == []
@@ -149,6 +163,14 @@ def test_result_count_and_collection_name_helpers_reject_control_chars():
     assert _coerce_result_count("7\x7f", 3) == 3
     assert _coerce_collection_name("  vuln_cache  ") == "vuln_cache"
     assert _coerce_collection_name("bad\nname") == "miesc_vulnerabilities"
+    collection = type("Collection", (), {"metadata": {"version": "  v1.2.3  "}})()
+    assert embedding_rag._collection_metadata_text(collection, "version") == "v1.2.3"
+    collection.metadata["version"] = "v1\n2.3"
+    assert embedding_rag._collection_metadata_text(collection, "version") is None
+    assert embedding_rag._similarity_from_distance("0.25") == 0.75
+    assert embedding_rag._similarity_from_distance(True) == 0.0
+    assert embedding_rag._similarity_from_query_result(None, "0.8") == 0.8
+    assert embedding_rag._similarity_from_query_result(None, True) == 0.0
 
 
 def test_persist_directory_and_embedding_vector_helpers_reject_control_chars():

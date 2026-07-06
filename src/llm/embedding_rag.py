@@ -164,7 +164,37 @@ def _safe_metadata_filter(
         where_filter = build_metadata_filter(filter_category, filter_severity)
     except (TypeError, ValueError):
         return None
-    return where_filter if isinstance(where_filter, dict) else None
+
+    if not isinstance(where_filter, dict):
+        return None
+
+    if "$and" in where_filter:
+        conditions = where_filter.get("$and")
+        if not isinstance(conditions, list) or not conditions:
+            return None
+        for condition in conditions:
+            if not isinstance(condition, dict) or len(condition) != 1:
+                return None
+            key, value = next(iter(condition.items()))
+            if key not in {"category", "severity"}:
+                return None
+            if not isinstance(value, str):
+                return None
+            text = value.strip()
+            if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+                return None
+        return where_filter
+
+    if len(where_filter) != 1:
+        return None
+
+    key, value = next(iter(where_filter.items()))
+    if key not in {"category", "severity"} or not isinstance(value, str):
+        return None
+    text = value.strip()
+    if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+        return None
+    return where_filter
 
 
 def _coerce_result_count(value: Any, fallback: Any) -> int:
@@ -305,11 +335,17 @@ def _collection_metadata_text(collection: Any, key: str) -> Optional[str]:
         return None
 
     text = text.strip()
+    if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+        return None
     return text or None
 
 
 def _similarity_from_distance(distance: Any) -> float:
     """Convert a loose Chroma distance value to a bounded similarity score."""
+    if isinstance(distance, bool):
+        return 0.0
+    if isinstance(distance, str) and any(ord(ch) < 32 or ord(ch) == 127 for ch in distance):
+        return 0.0
     try:
         distance_value = float(distance)
     except Exception:
@@ -323,6 +359,10 @@ def _similarity_from_query_result(distance: Any, similarity: Any = None) -> floa
     """Return a bounded similarity from loose query result score fields."""
     if distance is not None:
         return _similarity_from_distance(distance)
+    if isinstance(similarity, bool):
+        return 0.0
+    if isinstance(similarity, str) and any(ord(ch) < 32 or ord(ch) == 127 for ch in similarity):
+        return 0.0
     return _bounded_similarity_score(similarity)
 
 

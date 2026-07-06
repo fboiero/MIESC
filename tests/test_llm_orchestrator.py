@@ -26,6 +26,7 @@ from src.llm.llm_orchestrator import (
     _bounded_confidence,
     _cache_key_context,
     _cache_key_dict_key,
+    _is_safe_backend_name,
     _non_negative_int_stat,
     _normalized_model_identifier,
     _safe_backend_error_text,
@@ -740,6 +741,11 @@ class TestLLMOrchestrator:
     def test_normalized_model_identifier_accepts_bytes_and_strips(self):
         """Test bytes model identifiers are decoded and normalized."""
         assert _normalized_model_identifier(b"  codellama  ") == "codellama"
+
+    def test_safe_backend_name_rejects_overlong_values(self):
+        """Test backend names are bounded before being exposed in status output."""
+        assert _is_safe_backend_name("codellama:13b") is True
+        assert _is_safe_backend_name("x" * 129) is False
 
     def test_add_backend_allows_colon_model_identity(self):
         """Test normal provider model identifiers with colons remain valid."""

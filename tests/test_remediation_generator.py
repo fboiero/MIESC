@@ -6,8 +6,11 @@ from src.llm.remediation_generator import (
     RemediationGenerator,
     RemediationResult,
     _export_code_or_patch_text,
+    _export_confidence,
     _export_explanation,
     _export_generated_test_name,
+    _export_generated_test_names,
+    _export_level,
     _export_non_negative_float,
     _export_non_negative_int,
     _export_optional_string,
@@ -1300,6 +1303,11 @@ async def test_generate_remediation_filters_control_char_string_lists(monkeypatc
 def test_export_generated_test_name_strips_and_rejects_control_chars():
     assert _export_generated_test_name("  test_exploit_reentrancy  ") == "test_exploit_reentrancy"
     assert _export_generated_test_name("test\nshadow") is None
+    assert _export_generated_test_names(("test_a", "test_a", "bad\nname")) == ["test_a"]
+    assert _export_level(" HIGH\t", {"high", "low"}, "low") == "high"
+    assert _export_level("high\nrisk", {"high", "low"}, "low") == "low"
+    assert _export_confidence("0.75") == 0.75
+    assert _export_confidence("1.25") == 0.0
 
 
 def test_export_string_list_strips_and_rejects_control_chars():

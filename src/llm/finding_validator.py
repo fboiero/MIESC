@@ -691,14 +691,23 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
     @staticmethod
     def _safe_counter(value: Any) -> int:
         """Return non-negative integer counters for mutable statistics."""
-        if isinstance(value, bool) or not isinstance(value, int):
+        if isinstance(value, bool):
             return 0
-        return max(value, 0)
+        try:
+            counter = int(value)
+        except (TypeError, ValueError, OverflowError):
+            return 0
+        return max(counter, 0)
 
     @staticmethod
     def _config_text(config: Any, key: str, default: str) -> str:
         """Read config text fields without trusting the container shape."""
         value = getattr(config, key, default)
+        if isinstance(value, bytes):
+            try:
+                value = value.decode("utf-8", errors="replace")
+            except Exception:
+                return default
         if not isinstance(value, str):
             return default
         try:
