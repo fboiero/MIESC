@@ -154,6 +154,7 @@ def test_ollama_list_model_names_accepts_bytes_payload():
 
 def test_ollama_model_name_strips_and_rejects_control_chars():
     assert OpenLLaMAHelper._ollama_model_name("  valid-model  ") == "valid-model"
+    assert OpenLLaMAHelper._ollama_model_name(b"  valid-bytes-model  ") == "valid-bytes-model"
     assert OpenLLaMAHelper._ollama_model_name("valid\nmodel") is None
 
 
@@ -170,7 +171,7 @@ def test_priority_item_text_strips_and_rejects_control_chars():
 def test_subprocess_text_rejects_control_chars():
     class Result:
         stdout = "  valid output  "
-        stderr = "bad\noutput"
+        stderr = "bad\x7foutput"
 
     assert OpenLLaMAHelper._subprocess_text(Result(), "stdout") == "  valid output  "
     assert OpenLLaMAHelper._subprocess_text(Result(), "stderr") == ""

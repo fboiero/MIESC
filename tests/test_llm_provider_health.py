@@ -77,6 +77,10 @@ def test_model_list_accepts_items_alias():
     payload = {"models": {"items": [{"id": "model-a"}]}}
 
     assert _model_list(payload) == [{"id": "model-a"}]
+    assert _model_list({"models": {"items": [{"id": "model-a"}, "bad"]}}) == [
+        {"id": "model-a"},
+        "bad",
+    ]
 
 
 def test_provider_label_and_base_url_reject_control_chars():
@@ -88,6 +92,7 @@ def test_provider_label_and_base_url_reject_control_chars():
 
 def test_model_id_text_rejects_del_characters():
     assert _model_id_text("  model-a  ") == "model-a"
+    assert _model_id_text(b"  model-b  ") == "model-b"
     assert _model_id_text("model\x7fshadow") == ""
 
 

@@ -75,6 +75,11 @@ def _model_list(payload: dict[str, Any]) -> Any:
 
 def _model_id_text(value: Any) -> str:
     """Return model identifiers only from scalar text fields."""
+    if isinstance(value, bytes):
+        try:
+            value = value.decode("utf-8", errors="replace")
+        except Exception:
+            return ""
     model_id = value.strip() if isinstance(value, str) else ""
     if not model_id or len(model_id) > MAX_MODEL_ID_CHARS:
         return ""

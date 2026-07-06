@@ -285,7 +285,14 @@ Response (JSON array only):"""
             logger.warning("Ignoring malformed ensemble model list; using defaults")
             return list(cls.DEFAULT_MODELS)
 
-        normalized = [model.strip() for model in models if isinstance(model, str) and model.strip()]
+        normalized = [
+            model.strip()
+            for model in models
+            if isinstance(model, str)
+            and model.strip()
+            and len(model.strip()) <= cls.MAX_MODEL_LABEL_LENGTH
+            and not any(ord(ch) < 32 or ord(ch) == 127 for ch in model.strip())
+        ]
         if not normalized:
             logger.warning("No valid ensemble model names configured; using defaults")
             return list(cls.DEFAULT_MODELS)
@@ -448,7 +455,11 @@ Response (JSON array only):"""
             if not isinstance(model_id, str):
                 continue
             cleaned = model_id.strip()
-            if not cleaned or any(ord(ch) < 32 or ord(ch) == 127 for ch in cleaned):
+            if (
+                not cleaned
+                or len(cleaned) > LLMEnsembleDetector.MAX_MODEL_LABEL_LENGTH
+                or any(ord(ch) < 32 or ord(ch) == 127 for ch in cleaned)
+            ):
                 continue
             normalized.add(cleaned)
         return normalized

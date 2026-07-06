@@ -1148,6 +1148,12 @@ class TestGasReport:
     def test_normalize_test_name_strips_and_rejects_control_chars(self):
         assert FoundryRunner._normalize_test_name("  testWithdraw()  ") == "testWithdraw()"
         assert FoundryRunner._normalize_test_name("testWithdraw\nshadow") is None
+        assert FoundryRunner._normalize_test_name("x" * 121) is None
+
+    def test_normalize_output_text_strips_and_rejects_control_chars(self, runner):
+        assert runner._normalize_output_text("  forge output  ") == "  forge output  "
+        assert runner._normalize_output_text("bad\x7foutput") == ""
+        assert runner._normalize_output_text(b"  forge bytes  ") == "  forge bytes  "
 
     def test_normalize_logs_strips_and_rejects_control_chars(self):
         assert FoundryRunner._normalize_logs([" log-one ", "bad\nlog", 123, "log-two"]) == [

@@ -39,8 +39,10 @@ def _safe_match_filter(value: Any) -> str:
     """Return forge match filters only when they are plain text."""
     if not isinstance(value, str):
         return ""
+    if any(ord(ch) < 32 or ord(ch) == 127 for ch in value):
+        return ""
     text = value.strip()
-    if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+    if not text:
         return ""
     return text
 
@@ -508,9 +510,14 @@ class FoundryRunner:
     def _normalize_output_text(value: Any) -> str:
         """Normalize subprocess output to text before parsing."""
         if isinstance(value, str):
+            if any(ord(ch) < 32 and ch not in "\n\r\t" or ord(ch) == 127 for ch in value):
+                return ""
             return value
         if isinstance(value, bytes):
-            return value.decode("utf-8", errors="replace")
+            text = value.decode("utf-8", errors="replace")
+            if any(ord(ch) < 32 and ch not in "\n\r\t" or ord(ch) == 127 for ch in text):
+                return ""
+            return text
         return ""
 
     def _bounded_raw_output(self, stdout: str, stderr: str) -> str:
@@ -582,7 +589,11 @@ class FoundryRunner:
         """Normalize Forge JSON test names without accepting malformed shapes."""
         if isinstance(value, str):
             name = value.strip()
-            if name and not any(ord(ch) < 32 or ord(ch) == 127 for ch in name):
+            if (
+                name
+                and len(name) <= 120
+                and not any(ord(ch) < 32 or ord(ch) == 127 for ch in value)
+            ):
                 return name
         return None
 

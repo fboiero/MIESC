@@ -553,7 +553,9 @@ class PoCGenerator:
         """Return string finding fields only; ignore malformed object/list shapes."""
         value = finding.get(key, default)
         if isinstance(value, str):
-            return value
+            text = value.strip()
+            if text and not any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+                return text
         return default
 
     def _option_text_field(self, options: GenerationOptions, key: str, default: str) -> str:
@@ -611,7 +613,7 @@ class PoCGenerator:
                 normalized = function_name.strip()
             except (AttributeError, TypeError, ValueError):
                 return None
-            if not normalized or any(ord(ch) < 32 for ch in normalized):
+            if not normalized or any(ord(ch) < 32 or ord(ch) == 127 for ch in normalized):
                 return None
             return normalized
         elif isinstance(location, str):

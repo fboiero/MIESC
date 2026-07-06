@@ -539,6 +539,19 @@ class TestLLMEnsembleDetectorInit:
             [" model1 ", "bad\nmodel", "mo\tdel2", "model3", None]
         ) == ["model1", "model3"]
 
+    def test_configured_models_and_remote_ids_reject_overlong_entries(self):
+        """Configured and remote model identifiers should stay bounded."""
+        assert LLMEnsembleDetector._normalize_configured_models(
+            [" model-a ", "bad\nmodel", "x" * 201]
+        ) == [
+            "model-a"
+        ]
+        assert LLMEnsembleDetector._normalize_remote_model_ids(
+            [" model-a ", "bad\nmodel", "x" * 201]
+        ) == {
+            "model-a"
+        }
+
     def test_safe_text_strips_and_rejects_control_chars(self):
         assert LLMEnsembleDetector._safe_text("  model-one  ", "") == "model-one"
         assert LLMEnsembleDetector._safe_text("bad\nmodel", "fallback") == "fallback"

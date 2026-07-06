@@ -642,6 +642,15 @@ class TestFunctionExtraction:
         assert _safe_optional_text("bad\nnotes") is None
         assert _safe_text_list([" a ", "bad\nx", "b"]) == ["a", "b"]
 
+    def test_finding_text_field_and_function_name_helpers_strip_and_reject_control_chars(
+        self, generator
+    ):
+        finding = {"title": "  Withdraw funds  ", "location": {"function": "  withdraw  "}}
+        assert generator._finding_text_field(finding, "title", default=None) == "Withdraw funds"
+        assert generator._finding_text_field({"title": "bad\ntext"}, "title", default=None) is None
+        assert generator._extract_function_name(finding) == "withdraw"
+        assert generator._extract_function_name({"location": {"function": "bad\nname"}}) is None
+
     def test_safe_import_path_rejects_control_chars(self):
         assert _safe_import_path("forge-std/console.sol") is True
         assert _safe_import_path("forge-std/conso\x7fle.sol") is False

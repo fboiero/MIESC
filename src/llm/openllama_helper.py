@@ -343,6 +343,11 @@ REMEDIATION ADVICE:"""
     @staticmethod
     def _ollama_model_name(value: Any) -> Optional[str]:
         """Normalize a single Ollama model identifier without accepting malformed text."""
+        if isinstance(value, bytes):
+            try:
+                value = value.decode("utf-8", errors="replace")
+            except Exception:
+                return None
         if not isinstance(value, str):
             return None
         model = value.strip()
@@ -377,10 +382,9 @@ REMEDIATION ADVICE:"""
             return ""
         if not isinstance(value, str):
             return ""
-        text = value[:limit]
-        if any(ord(char) < 32 or ord(char) == 127 for char in text):
+        if any(ord(char) < 32 and char not in "\n\r\t" or ord(char) == 127 for char in value):
             return ""
-        return text
+        return value[:limit]
 
     def _call_llm(self, prompt: str) -> Optional[str]:
         """Call Ollama LLM via HTTP API (clean output, no ANSI escapes)."""
