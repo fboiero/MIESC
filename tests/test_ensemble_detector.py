@@ -543,6 +543,12 @@ class TestLLMEnsembleDetectorInit:
         assert LLMEnsembleDetector._safe_text("  model-one  ", "") == "model-one"
         assert LLMEnsembleDetector._safe_text("bad\nmodel", "fallback") == "fallback"
 
+    def test_safe_model_label_and_vulnerability_type(self):
+        assert LLMEnsembleDetector._safe_model_label("  model-a  ") == "model-a"
+        assert LLMEnsembleDetector._safe_model_label("model\x7f-a") is None
+        assert LLMEnsembleDetector._safe_vulnerability_type(" reentrancy ") == "reentrancy"
+        assert LLMEnsembleDetector._safe_vulnerability_type("reent\nancy") is None
+
     def test_normalize_remote_model_ids_strips_and_rejects_control_chars(self):
         """Remote model ids should be normalized before fallback selection."""
         assert LLMEnsembleDetector._normalize_remote_model_ids(

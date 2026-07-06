@@ -22,6 +22,7 @@ from src.poc.poc_generator import (
     VulnerabilityType,
     _safe_contract_text,
     _safe_filename_part,
+    _safe_import_path,
     _safe_optional_text,
     _safe_text_list,
 )
@@ -638,6 +639,10 @@ class TestFunctionExtraction:
         assert _safe_optional_text("  notes  ") == "notes"
         assert _safe_optional_text("bad\nnotes") is None
         assert _safe_text_list([" a ", "bad\nx", "b"]) == ["a", "b"]
+
+    def test_safe_import_path_rejects_control_chars(self):
+        assert _safe_import_path("forge-std/console.sol") is True
+        assert _safe_import_path("forge-std/conso\x7fle.sol") is False
 
 
 # =============================================================================

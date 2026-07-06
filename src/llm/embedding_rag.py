@@ -87,11 +87,14 @@ def _coerce_document_text(value: Any) -> str:
     if value is None:
         return ""
     if isinstance(value, bytes):
-        return value.decode("utf-8", errors="replace")
+        text = value.decode("utf-8", errors="replace").strip()
+        return text if text and not any(ord(ch) < 32 or ord(ch) == 127 for ch in text) else ""
     if isinstance(value, str):
-        return value
+        text = value.strip()
+        return text if text and not any(ord(ch) < 32 or ord(ch) == 127 for ch in text) else ""
     try:
-        return str(value)
+        text = str(value).strip()
+        return text if text and not any(ord(ch) < 32 or ord(ch) == 127 for ch in text) else ""
     except Exception:
         return ""
 
@@ -99,12 +102,15 @@ def _coerce_document_text(value: Any) -> str:
 def _coerce_query_text(value: Any) -> str:
     """Return safe query text for cache keys, vector search, and ranking."""
     if isinstance(value, str):
-        return value
+        text = value.strip()
+        return text if text and not any(ord(ch) < 32 or ord(ch) == 127 for ch in text) else ""
     if isinstance(value, bytes):
-        return value.decode("utf-8", errors="replace")
+        text = value.decode("utf-8", errors="replace").strip()
+        return text if text and not any(ord(ch) < 32 or ord(ch) == 127 for ch in text) else ""
     if value is None:
         return ""
-    return str(value)
+    text = str(value).strip()
+    return text if text and not any(ord(ch) < 32 or ord(ch) == 127 for ch in text) else ""
 
 
 def _coerce_cache_query_text(value: Any) -> str:

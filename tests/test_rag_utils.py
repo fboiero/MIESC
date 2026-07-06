@@ -3,6 +3,7 @@
 import time
 
 from src.llm.rag_utils import (
+    _safe_text,
     build_metadata_filter,
     cache_stats,
     get_cached_result,
@@ -80,6 +81,11 @@ def test_make_cache_key_defaults_malformed_fields():
     )
 
     assert malformed == safe
+
+
+def test_safe_text_rejects_del_characters():
+    assert _safe_text("  query  ") == "query"
+    assert _safe_text("bad\x7fquery") == ""
 
 
 def test_build_metadata_filter_ignores_malformed_text_boundaries():

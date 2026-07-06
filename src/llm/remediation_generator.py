@@ -118,6 +118,8 @@ def _export_explanation(value: Any) -> str:
     except (AttributeError, TypeError, ValueError):
         return ""
 
+    if not normalized or any(ord(ch) < 32 or ord(ch) == 127 for ch in normalized):
+        return ""
     return normalized
 
 

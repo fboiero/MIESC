@@ -868,6 +868,11 @@ def test_parse_location_line_rejects_control_chars():
     assert LLMFindingValidator._parse_location_line("4\n2") == 0
 
 
+def test_parse_confidence_strips_and_rejects_control_chars():
+    assert LLMFindingValidator._parse_confidence(" 0.75 ") == 0.75
+    assert LLMFindingValidator._parse_confidence("0.75\x7f") == 0.5
+
+
 def test_get_statistics_defaults_malformed_config_container():
     validator = LLMFindingValidator(ValidatorConfig(model="test-model", enabled=True))
     validator.config = {

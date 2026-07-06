@@ -5,6 +5,7 @@ from src.llm.remediation_generator import (
     Remediation,
     RemediationGenerator,
     RemediationResult,
+    _export_explanation,
     _export_generated_test_name,
     _export_optional_string,
     _export_string,
@@ -1304,6 +1305,8 @@ def test_export_string_helpers_reject_control_chars():
     assert _export_string("bad\nvalue", "default") == "default"
     assert _export_optional_string("  valid value  ") == "valid value"
     assert _export_optional_string("bad\tvalue") is None
+    assert _export_explanation("  uses CEI  ") == "uses CEI"
+    assert _export_explanation("uses\nCEI") == ""
 
 
 @pytest.mark.asyncio

@@ -18,7 +18,7 @@ def _safe_text(value: Any) -> str:
     if not isinstance(value, str):
         return ""
     text = value.strip()
-    if not text or any(ord(ch) < 32 for ch in text):
+    if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
         return ""
     return text
 

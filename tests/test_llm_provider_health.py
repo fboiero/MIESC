@@ -323,6 +323,11 @@ def test_authorization_headers_reject_control_chars():
     assert _authorization_headers("sk-test\nsecret") == {"Authorization": "Bearer "}
 
 
+def test_provider_label_trims_and_rejects_control_chars():
+    assert _provider_label("  DeepSeek  ") == "DeepSeek"
+    assert _provider_label("DeepSeek\x7f") == "provider"
+
+
 def test_fetch_openai_compatible_model_ids_rejects_malformed_timeout():
     """Test malformed timeout shapes are rejected before opening a session."""
 

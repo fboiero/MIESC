@@ -162,6 +162,11 @@ def test_prompt_text_strips_and_rejects_control_chars():
     assert OpenLLaMAHelper._prompt_text("bad\nprompt", default="fallback") == "fallback"
 
 
+def test_priority_item_text_strips_and_rejects_control_chars():
+    assert OpenLLaMAHelper._priority_item_text("  important step  ") == "important step"
+    assert OpenLLaMAHelper._priority_item_text("bad\x7fstep") == ""
+
+
 def test_subprocess_text_rejects_control_chars():
     class Result:
         stdout = "  valid output  "

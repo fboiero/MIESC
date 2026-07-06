@@ -637,7 +637,10 @@ INSIGHTS:"""
         """Return bounded text for optional priority item string fields."""
         if not isinstance(value, str):
             return ""
-        return value[:MAX_PRIORITY_TEXT_CHARS]
+        text = value.strip()
+        if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+            return ""
+        return text[:MAX_PRIORITY_TEXT_CHARS]
 
     def _create_findings_summary(self, findings: List[Dict[str, Any]]) -> str:
         """Create concise summary of findings for LLM."""

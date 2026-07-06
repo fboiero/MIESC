@@ -117,3 +117,10 @@ def test_reindex_resets_local_index_and_cache(tmp_path, monkeypatch):
     assert rag._query_cache == {}
     assert rag._cache_hits == 0
     assert rag._cache_misses == 0
+
+
+def test_text_coercion_helpers_strip_and_reject_control_chars():
+    assert embedding_rag._coerce_document_text("  document text  ") == "document text"
+    assert embedding_rag._coerce_document_text("document\ntext") == ""
+    assert embedding_rag._coerce_query_text(b" query ") == "query"
+    assert embedding_rag._coerce_query_text("query\x7fvalue") == ""

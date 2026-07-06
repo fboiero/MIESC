@@ -440,6 +440,11 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
         if isinstance(value, bool):
             return default
         try:
+            if isinstance(value, str):
+                text = value.strip()
+                if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+                    return default
+                value = text
             confidence = float(value)
         except (TypeError, ValueError):
             return default

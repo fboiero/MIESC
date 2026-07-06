@@ -982,6 +982,11 @@ class TestLLMOrchestrator:
     def test_safe_backend_error_text_escapes_control_chars(self):
         assert _safe_backend_error_text(RuntimeError("bad\nerror\tmsg")) == "bad\\nerror\\tmsg"
 
+    def test_safe_backend_error_text_truncates_long_messages(self):
+        text = _safe_backend_error_text(RuntimeError("x" * 600))
+        assert text.endswith("...<truncated>")
+        assert len(text) > 500
+
     def test_cache_key_generation_preserves_nested_key_boundaries(self):
         """Test nested context key normalization remains stable without collisions."""
         orchestrator = LLMOrchestrator([])

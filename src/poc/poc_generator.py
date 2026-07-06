@@ -79,7 +79,7 @@ def _safe_import_path(value: Any) -> bool:
     if not isinstance(value, str):
         return False
     text = value.strip()
-    if not text or "\\" in text or ".." in text or any(ord(ch) < 32 for ch in text):
+    if not text or "\\" in text or ".." in text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
         return False
     return ":" not in text and not text.startswith("/")
 
