@@ -19,6 +19,7 @@ from src.poc.validators.foundry_runner import (
     FoundryRunner,
     TestResult,
     TestStatus,
+    _safe_match_filter,
 )
 
 # =============================================================================
@@ -1153,6 +1154,10 @@ class TestGasReport:
             "log-one",
             "log-two",
         ]
+
+    def test_safe_match_filter_strips_and_rejects_control_chars(self):
+        assert _safe_match_filter("  testWithdraw()  ") == "testWithdraw()"
+        assert _safe_match_filter("testWithdraw\x7fshadow") == ""
 
     def test_get_gas_report_ignores_malformed_stdout_shape(self, runner):
         """Malformed gas report stdout should normalize to an empty report."""

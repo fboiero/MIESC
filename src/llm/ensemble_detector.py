@@ -1362,7 +1362,9 @@ Response (JSON array only):"""
     def _safe_text(value: Any, default: str) -> str:
         """Return text fields only when the model supplied an actual string."""
         if isinstance(value, str):
-            return value
+            text = value.strip()
+            if text and not any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+                return text
         return default
 
     @classmethod

@@ -6,6 +6,8 @@ from src.llm.remediation_generator import (
     RemediationGenerator,
     RemediationResult,
     _export_generated_test_name,
+    _export_optional_string,
+    _export_string,
     _export_string_list,
     generate_fix,
     get_quick_fix,
@@ -1295,6 +1297,13 @@ def test_export_string_list_strips_and_rejects_control_chars():
         "added guard",
         "added check",
     ]
+
+
+def test_export_string_helpers_reject_control_chars():
+    assert _export_string("  valid value  ", "default") == "valid value"
+    assert _export_string("bad\nvalue", "default") == "default"
+    assert _export_optional_string("  valid value  ") == "valid value"
+    assert _export_optional_string("bad\tvalue") is None
 
 
 @pytest.mark.asyncio

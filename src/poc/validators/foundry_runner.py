@@ -37,10 +37,10 @@ MAX_JSON_OUTPUT_LINE_CHARS = 50_000
 
 def _safe_match_filter(value: Any) -> str:
     """Return forge match filters only when they are plain text."""
-    if not isinstance(value, str) or any(ord(ch) < 32 for ch in value):
+    if not isinstance(value, str):
         return ""
     text = value.strip()
-    if not text:
+    if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
         return ""
     return text
 

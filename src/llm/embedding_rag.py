@@ -138,6 +138,8 @@ def _coerce_batch_query_text(value: Any) -> Tuple[bool, str]:
 def _coerce_filter_text(value: Any) -> Optional[str]:
     """Return safe scalar metadata filter text, or no filter for malformed values."""
     text = _coerce_query_text(value).strip() if isinstance(value, (str, bytes)) else ""
+    if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+        return None
     return text or None
 
 

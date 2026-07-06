@@ -490,6 +490,11 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
         if isinstance(value, bool):
             return 0
         if isinstance(value, (int, str)):
+            if isinstance(value, str):
+                text = value.strip()
+                if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+                    return 0
+                return text
             return value
         return 0
 

@@ -674,8 +674,10 @@ INSIGHTS:"""
         """Return stable prompt text without serializing malformed field shapes."""
         if not isinstance(value, str):
             return default
-        text = value if limit is None else value[:limit]
-        return text if text else default
+        text = (value if limit is None else value[:limit]).strip()
+        if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+            return default
+        return text
 
     @classmethod
     def _prompt_location(cls, value: Any) -> str:

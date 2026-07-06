@@ -1232,6 +1232,10 @@ class TestEmbeddingRAGSearchBoundaryShapes:
             == EmbeddingRAG.DEFAULT_CACHE_TTL_SECONDS
         )
 
+    def test_coerce_filter_text_rejects_control_chars(self):
+        assert embedding_rag_module._coerce_filter_text("  filter text  ") == "filter text"
+        assert embedding_rag_module._coerce_filter_text("filter\ntext") is None
+
     def test_search_drops_malformed_metadata_filter_builder_output(
         self,
         tmp_path,

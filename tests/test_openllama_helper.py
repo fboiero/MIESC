@@ -157,6 +157,11 @@ def test_ollama_model_name_strips_and_rejects_control_chars():
     assert OpenLLaMAHelper._ollama_model_name("valid\nmodel") is None
 
 
+def test_prompt_text_strips_and_rejects_control_chars():
+    assert OpenLLaMAHelper._prompt_text("  valid prompt  ", default="fallback") == "valid prompt"
+    assert OpenLLaMAHelper._prompt_text("bad\nprompt", default="fallback") == "fallback"
+
+
 def test_subprocess_text_rejects_control_chars():
     class Result:
         stdout = "  valid output  "

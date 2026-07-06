@@ -539,6 +539,10 @@ class TestLLMEnsembleDetectorInit:
             [" model1 ", "bad\nmodel", "mo\tdel2", "model3", None]
         ) == ["model1", "model3"]
 
+    def test_safe_text_strips_and_rejects_control_chars(self):
+        assert LLMEnsembleDetector._safe_text("  model-one  ", "") == "model-one"
+        assert LLMEnsembleDetector._safe_text("bad\nmodel", "fallback") == "fallback"
+
     def test_normalize_remote_model_ids_strips_and_rejects_control_chars(self):
         """Remote model ids should be normalized before fallback selection."""
         assert LLMEnsembleDetector._normalize_remote_model_ids(

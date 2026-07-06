@@ -863,6 +863,11 @@ def test_parse_text_rejects_control_chars():
     assert validator._parse_text("remediation\nhint", "fallback") == "fallback"
 
 
+def test_parse_location_line_rejects_control_chars():
+    assert LLMFindingValidator._parse_location_line(" 42 ") == "42"
+    assert LLMFindingValidator._parse_location_line("4\n2") == 0
+
+
 def test_get_statistics_defaults_malformed_config_container():
     validator = LLMFindingValidator(ValidatorConfig(model="test-model", enabled=True))
     validator.config = {

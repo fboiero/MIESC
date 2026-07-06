@@ -53,14 +53,25 @@ def _normalize_output_text(value: Any) -> str:
 
 def _safe_optional_text(value: Any) -> Optional[str]:
     """Return optional text fields only when the template supplied text."""
-    return value if isinstance(value, str) else None
+    if not isinstance(value, str):
+        return None
+    text = value.strip()
+    if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+        return None
+    return text
 
 
 def _safe_text_list(value: Any) -> List[str]:
     """Return only string list entries from template metadata."""
     if not isinstance(value, list):
         return []
-    return [item.strip() for item in value if isinstance(item, str) and item.strip()]
+    return [
+        text
+        for item in value
+        if isinstance(item, str)
+        and (text := item.strip())
+        and not any(ord(ch) < 32 or ord(ch) == 127 for ch in text)
+    ]
 
 
 def _safe_import_path(value: Any) -> bool:

@@ -318,6 +318,11 @@ def test_authorization_headers_keep_api_key_out_of_debug_logs(caplog):
     assert secret not in caplog.text
 
 
+def test_authorization_headers_reject_control_chars():
+    assert _authorization_headers("  sk-test-secret  ") == {"Authorization": "Bearer sk-test-secret"}
+    assert _authorization_headers("sk-test\nsecret") == {"Authorization": "Bearer "}
+
+
 def test_fetch_openai_compatible_model_ids_rejects_malformed_timeout():
     """Test malformed timeout shapes are rejected before opening a session."""
 

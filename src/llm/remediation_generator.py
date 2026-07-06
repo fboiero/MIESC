@@ -46,7 +46,7 @@ def _export_string(value: Any, default: str) -> str:
     """Return a non-empty string for export payloads."""
     if isinstance(value, str):
         normalized = value.strip()
-        if normalized:
+        if normalized and not any(ord(ch) < 32 or ord(ch) == 127 for ch in normalized):
             return normalized
     return default
 
@@ -69,7 +69,7 @@ def _export_optional_string(value: Any) -> Optional[str]:
     """Return a non-empty optional string for export payloads."""
     if isinstance(value, str):
         normalized = value.strip()
-        if normalized:
+        if normalized and not any(ord(ch) < 32 or ord(ch) == 127 for ch in normalized):
             return normalized
     return None
 

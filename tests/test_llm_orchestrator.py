@@ -26,6 +26,7 @@ from src.llm.llm_orchestrator import (
     _cache_key_context,
     _cache_key_dict_key,
     _normalized_model_identifier,
+    _safe_backend_error_text,
     analyze_solidity,
 )
 
@@ -977,6 +978,9 @@ class TestLLMOrchestrator:
         assert _cache_key_context("  safe value  ") == "safe value"
         assert _cache_key_context("safe\nvalue") == {"__text__": "<malformed>"}
         assert _cache_key_dict_key("safe\tkey") == ["str", "<malformed>"]
+
+    def test_safe_backend_error_text_escapes_control_chars(self):
+        assert _safe_backend_error_text(RuntimeError("bad\nerror\tmsg")) == "bad\\nerror\\tmsg"
 
     def test_cache_key_generation_preserves_nested_key_boundaries(self):
         """Test nested context key normalization remains stable without collisions."""
