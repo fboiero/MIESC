@@ -54,6 +54,32 @@ MAX_LLM_TIMEOUT_SECONDS = 600.0
 MAX_LLM_RETRY_ATTEMPTS = 10
 
 
+def _safe_text(value: Any, *, limit: Optional[int] = None, allow_multiline: bool = False) -> Optional[str]:
+    """Return bounded text or None for malformed scalar inputs."""
+    if isinstance(value, bytes):
+        try:
+            value = value.decode("utf-8", errors="replace")
+        except Exception:
+            return None
+    if not isinstance(value, str):
+        return None
+    try:
+        text = value if allow_multiline else value.strip()
+    except (AttributeError, TypeError, ValueError, RuntimeError):
+        return None
+    if not text:
+        return None
+    if allow_multiline:
+        invalid = any(ord(ch) < 32 and ch not in "\n\r\t" or ord(ch) == 127 for ch in text)
+    else:
+        invalid = any(ord(ch) < 32 or ord(ch) == 127 for ch in text)
+    if invalid:
+        return None
+    if limit is not None and len(text) > limit:
+        text = text[:limit]
+    return text
+
+
 @dataclass
 class LLMConfig:
     """Configuration for LLM calls."""
@@ -344,15 +370,8 @@ REMEDIATION ADVICE:"""
     @staticmethod
     def _ollama_model_name(value: Any) -> Optional[str]:
         """Normalize a single Ollama model identifier without accepting malformed text."""
-        if isinstance(value, bytes):
-            try:
-                value = value.decode("utf-8", errors="replace")
-            except Exception:
-                return None
-        if not isinstance(value, str):
-            return None
-        model = value.strip()
-        if not model or len(model) > MAX_OLLAMA_MODEL_NAME_CHARS:
+        model = _safe_text(value, limit=MAX_OLLAMA_MODEL_NAME_CHARS)
+        if model is None:
             return None
         if any(char.isspace() for char in model) or any(ord(char) < 32 or ord(char) == 127 for char in model):
             return None
@@ -381,11 +400,10 @@ REMEDIATION ADVICE:"""
             value = getattr(result, attr)
         except (AttributeError, TypeError, ValueError, RuntimeError):
             return ""
-        if not isinstance(value, str):
+        text = _safe_text(value, limit=limit, allow_multiline=True)
+        if text is None:
             return ""
-        if any(ord(char) < 32 and char not in "\n\r\t" or ord(char) == 127 for char in value):
-            return ""
-        return value[:limit]
+        return text
 
     def _call_llm(self, prompt: str) -> Optional[str]:
         """Call Ollama LLM via HTTP API (clean output, no ANSI escapes)."""
@@ -477,12 +495,7 @@ REMEDIATION ADVICE:"""
             raw_response = data.get("response", "")
         except (AttributeError, TypeError, ValueError, RuntimeError):
             return None
-        if not isinstance(raw_response, str):
-            return None
-        try:
-            response = raw_response.strip()
-        except (AttributeError, TypeError, ValueError, RuntimeError):
-            return None
+        response = _safe_text(raw_response)
         return response or None
 
     @staticmethod
@@ -512,10 +525,7 @@ REMEDIATION ADVICE:"""
                 continue
             if not isinstance(raw_response, str):
                 continue
-            try:
-                has_text = bool(raw_response.strip())
-            except (AttributeError, TypeError, ValueError, RuntimeError):
-                continue
+            has_text = _safe_text(raw_response) is not None
             if has_text:
                 fragments.append(raw_response)
 
@@ -616,15 +626,8 @@ INSIGHTS:"""
     def _severity_score(self, severity: Any) -> int:
         """Convert severity string to numeric score."""
         severity_map = {"CRITICAL": 4, "HIGH": 3, "MEDIUM": 2, "LOW": 1, "INFO": 0}
-        if isinstance(severity, bytes):
-            try:
-                severity = severity.decode("utf-8", errors="replace")
-            except Exception:
-                return 0
-        if not isinstance(severity, str):
-            return 0
-        text = severity.strip()
-        if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+        text = _safe_text(severity)
+        if text is None:
             return 0
         return severity_map.get(text.upper(), 0)
 
@@ -633,32 +636,17 @@ INSIGHTS:"""
         if not isinstance(finding, dict):
             return "Review and address the identified issue"
         recommendation = self._mapping_get(finding, "recommendation")
-        if isinstance(recommendation, bytes):
-            try:
-                recommendation = recommendation.decode("utf-8", errors="replace")
-            except Exception:
-                recommendation = ""
-        if isinstance(recommendation, str):
-            recommendation = recommendation.strip()
-            if recommendation and not any(ord(ch) < 32 or ord(ch) == 127 for ch in recommendation):
-                return recommendation[:MAX_REMEDIATION_RESPONSE_CHARS]
+        recommendation = _safe_text(recommendation, limit=MAX_REMEDIATION_RESPONSE_CHARS)
+        if recommendation:
+            return recommendation
         return "Review and address the identified issue"
 
     @staticmethod
     def _llm_text_response(value: Any, limit: Optional[int] = None) -> Optional[str]:
         """Return stripped LLM text while rejecting malformed response shapes."""
-        if isinstance(value, bytes):
-            try:
-                value = value.decode("utf-8", errors="replace")
-            except Exception:
-                return None
-        if not isinstance(value, str):
+        response = _safe_text(value, limit=limit)
+        if response is None:
             return None
-        response = value.strip()
-        if not response or any(ord(ch) < 32 or ord(ch) == 127 for ch in response):
-            return None
-        if limit is not None and len(response) > limit:
-            response = response[:limit]
         return response or None
 
     @staticmethod
@@ -674,12 +662,8 @@ INSIGHTS:"""
     @staticmethod
     def _priority_item_text(value: Any) -> str:
         """Return bounded text for optional priority item string fields."""
-        if not isinstance(value, str):
-            return ""
-        text = value.strip()
-        if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
-            return ""
-        return text[:MAX_PRIORITY_TEXT_CHARS]
+        text = _safe_text(value, limit=MAX_PRIORITY_TEXT_CHARS)
+        return text or ""
 
     def _create_findings_summary(self, findings: List[Dict[str, Any]]) -> str:
         """Create concise summary of findings for LLM."""
@@ -699,45 +683,22 @@ INSIGHTS:"""
     @staticmethod
     def _truncate_text(value: Any, limit: int) -> str:
         """Return a bounded string only when the input is textual."""
-        if isinstance(value, bytes):
-            try:
-                value = value.decode("utf-8", errors="replace")
-            except Exception:
-                return ""
-        if not isinstance(value, str):
-            return ""
-        text = value.strip()
-        if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
-            return ""
-        return text[:limit]
+        text = _safe_text(value, limit=limit)
+        return text or ""
 
     @staticmethod
     def _summary_field_text(value: Any, default: str = "", limit: Optional[int] = None) -> str:
         """Return bounded single-line text for finding summaries."""
-        if isinstance(value, bytes):
-            try:
-                value = value.decode("utf-8", errors="replace")
-            except Exception:
-                return default
-        if not isinstance(value, str):
-            return default
-        text = value if limit is None else value[:limit]
-        if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+        text = _safe_text(value, limit=limit)
+        if text is None:
             return default
         return " ".join(text.split()) if text else default
 
     @staticmethod
     def _prompt_text(value: Any, default: str = "", limit: Optional[int] = None) -> str:
         """Return stable prompt text without serializing malformed field shapes."""
-        if isinstance(value, bytes):
-            try:
-                value = value.decode("utf-8", errors="replace")
-            except Exception:
-                return default
-        if not isinstance(value, str):
-            return default
-        text = (value if limit is None else value[:limit]).strip()
-        if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+        text = _safe_text(value, limit=limit)
+        if text is None:
             return default
         return text
 

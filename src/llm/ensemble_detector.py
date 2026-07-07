@@ -117,6 +117,25 @@ class EnsembleResult:
     filtered_findings: int
 
 
+def _safe_text(value: Any, *, limit: Optional[int] = None) -> Optional[str]:
+    """Return bounded scalar text or None for malformed inputs."""
+    if isinstance(value, bytes):
+        try:
+            value = value.decode("utf-8", errors="replace")
+        except Exception:
+            return None
+    if not isinstance(value, str):
+        return None
+    text = value.strip()
+    if not text:
+        return None
+    if any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+        return None
+    if limit is not None and len(text) > limit:
+        return None
+    return text
+
+
 class LLMEnsembleDetector:
     """
     Ensemble of LLMs for vulnerability detection.
@@ -188,9 +207,10 @@ class LLMEnsembleDetector:
         "claude-3-opus-20240229": 1.5,
         "claude-3-haiku-20240307": 1.1,
         # DeepSeek API models
-        "deepseek-v4-flash": 1.25,
-        "deepseek-v4-pro": 1.35,
+    "deepseek-v4-flash": 1.25,
+    "deepseek-v4-pro": 1.35,
     }
+
 
     # Vulnerability detection prompt
     DETECTION_PROMPT = """You are an expert Solidity smart contract security auditor.
@@ -286,12 +306,9 @@ Response (JSON array only):"""
             return list(cls.DEFAULT_MODELS)
 
         normalized = [
-            model.strip()
+            model_text
             for model in models
-            if isinstance(model, str)
-            and model.strip()
-            and len(model.strip()) <= cls.MAX_MODEL_LABEL_LENGTH
-            and not any(ord(ch) < 32 or ord(ch) == 127 for ch in model.strip())
+            if (model_text := _safe_text(model, limit=cls.MAX_MODEL_LABEL_LENGTH)) is not None
         ]
         if not normalized:
             logger.warning("No valid ensemble model names configured; using defaults")
@@ -384,43 +401,24 @@ Response (JSON array only):"""
     @staticmethod
     def _normalize_api_key(api_key: Any, env_name: str) -> Optional[str]:
         """Return a non-empty API key string from config or environment."""
-        if isinstance(api_key, bytes):
-            try:
-                api_key = api_key.decode("utf-8", errors="replace")
-            except Exception:
-                logger.warning("Ignoring malformed ensemble API key for %s", env_name)
-                api_key = None
-        if isinstance(api_key, str):
-            normalized = api_key.strip()
-            if normalized and not any(ord(ch) < 32 or ord(ch) == 127 for ch in normalized):
-                return normalized
-        elif api_key is not None:
+        normalized = _safe_text(api_key)
+        if normalized is not None:
+            return normalized
+        if api_key is not None:
             logger.warning("Ignoring malformed ensemble API key for %s", env_name)
 
         env_value = os.environ.get(env_name)
-        if not isinstance(env_value, str):
-            return None
-
-        normalized_env_value = env_value.strip()
-        if not normalized_env_value or any(ord(ch) < 32 or ord(ch) == 127 for ch in normalized_env_value):
-            return None
-        return normalized_env_value
+        return _safe_text(env_value)
 
     @staticmethod
     def _normalize_voting_strategy(voting_strategy: Any) -> VotingStrategy:
         """Return a supported voting strategy without trusting enum-like inputs."""
         if isinstance(voting_strategy, VotingStrategy):
             return voting_strategy
-        if isinstance(voting_strategy, bytes):
+        voting_text = _safe_text(voting_strategy)
+        if voting_text is not None:
             try:
-                voting_strategy = voting_strategy.decode("utf-8", errors="replace")
-            except Exception:
-                logger.warning("Ignoring malformed ensemble voting strategy; using threshold")
-                return VotingStrategy.THRESHOLD
-
-        if isinstance(voting_strategy, str):
-            try:
-                return VotingStrategy(voting_strategy.strip().lower())
+                return VotingStrategy(voting_text.lower())
             except ValueError:
                 pass
 
@@ -442,14 +440,12 @@ Response (JSON array only):"""
             if isinstance(provider, LLMProvider):
                 normalized_provider = provider
             elif isinstance(provider, str):
-                provider_text = provider.strip().lower()
-                if not provider_text or len(provider_text) > 40 or any(
-                    ord(ch) < 32 or ord(ch) == 127 for ch in provider_text
-                ):
+                provider_text = _safe_text(provider, limit=40)
+                if provider_text is None:
                     logger.warning("Ignoring malformed ensemble provider entry: %r", provider)
                     continue
                 try:
-                    normalized_provider = LLMProvider(provider_text)
+                    normalized_provider = LLMProvider(provider_text.lower())
                 except ValueError:
                     logger.warning("Ignoring unknown ensemble provider: %r", provider)
                     continue
@@ -484,19 +480,11 @@ Response (JSON array only):"""
                 logger.warning("Ignoring malformed provider model availability entry: %r", model)
                 continue
 
-            model_id = model.get(id_key)
-            if isinstance(model_id, str):
-                cleaned = model_id.strip()
-                if (
-                    cleaned
-                    and len(cleaned) <= LLMEnsembleDetector.MAX_MODEL_LABEL_LENGTH
-                    and not any(ord(ch) < 32 or ord(ch) == 127 for ch in cleaned)
-                ):
-                    model_ids.append(cleaned)
-                else:
-                    logger.warning("Ignoring malformed provider model id: %r", model_id)
-            else:
+            model_id = _safe_text(model.get(id_key), limit=LLMEnsembleDetector.MAX_MODEL_LABEL_LENGTH)
+            if model_id is None:
                 logger.warning("Ignoring malformed provider model id: %r", model_id)
+            else:
+                model_ids.append(model_id)
 
         return model_ids
 
@@ -509,16 +497,9 @@ Response (JSON array only):"""
 
         normalized = set()
         for model_id in model_ids:
-            if not isinstance(model_id, str):
-                continue
-            cleaned = model_id.strip()
-            if (
-                not cleaned
-                or len(cleaned) > LLMEnsembleDetector.MAX_MODEL_LABEL_LENGTH
-                or any(ord(ch) < 32 or ord(ch) == 127 for ch in cleaned)
-            ):
-                continue
-            normalized.add(cleaned)
+            cleaned = _safe_text(model_id, limit=LLMEnsembleDetector.MAX_MODEL_LABEL_LENGTH)
+            if cleaned is not None:
+                normalized.add(cleaned)
         return normalized
 
     @classmethod
@@ -533,14 +514,12 @@ Response (JSON array only):"""
             if isinstance(provider, LLMProvider):
                 normalized_provider = provider
             elif isinstance(provider, str):
-                provider_text = provider.strip().lower()
-                if not provider_text or len(provider_text) > 40 or any(
-                    ord(ch) < 32 or ord(ch) == 127 for ch in provider_text
-                ):
+                provider_text = _safe_text(provider, limit=40)
+                if provider_text is None:
                     logger.warning("Ignoring malformed ensemble provider status key: %r", provider)
                     continue
                 try:
-                    normalized_provider = LLMProvider(provider_text)
+                    normalized_provider = LLMProvider(provider_text.lower())
                 except ValueError:
                     logger.warning("Ignoring unknown ensemble provider status key: %r", provider)
                     continue

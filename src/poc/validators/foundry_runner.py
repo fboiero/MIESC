@@ -35,6 +35,32 @@ MAX_RAW_OUTPUT_CHARS = 200_000
 MAX_JSON_OUTPUT_LINE_CHARS = 50_000
 
 
+def _safe_text(value: Any, *, limit: Optional[int] = None, allow_multiline: bool = False) -> Optional[str]:
+    """Return bounded text or None for malformed inputs."""
+    if isinstance(value, bytes):
+        try:
+            value = value.decode("utf-8", errors="replace")
+        except Exception:
+            return None
+    if not isinstance(value, str):
+        return None
+    try:
+        text = value if allow_multiline else value.strip()
+    except (AttributeError, TypeError, ValueError, RuntimeError):
+        return None
+    if not text:
+        return None
+    if allow_multiline:
+        invalid = any(ord(ch) < 32 and ch not in "\n\r\t" or ord(ch) == 127 for ch in text)
+    else:
+        invalid = any(ord(ch) < 32 or ord(ch) == 127 for ch in text)
+    if invalid:
+        return None
+    if limit is not None and len(text) > limit:
+        return None
+    return text
+
+
 def _safe_match_filter(value: Any) -> str:
     """Return forge match filters only when they are plain text."""
     if not isinstance(value, str):
@@ -222,13 +248,13 @@ class FoundryRunner:
         """Return a positive finite subprocess timeout."""
         if isinstance(value, bool):
             return default
+        if isinstance(value, str) and any(ord(ch) < 32 or ord(ch) == 127 for ch in value):
+            return default
         if isinstance(value, bytes):
             try:
                 value = value.decode("utf-8", errors="replace")
             except Exception:
                 return default
-        if isinstance(value, str) and any(ord(ch) < 32 or ord(ch) == 127 for ch in value):
-            return default
         if isinstance(value, str):
             try:
                 normalized = float(value)
@@ -526,28 +552,14 @@ class FoundryRunner:
     @staticmethod
     def _normalize_output_text(value: Any) -> str:
         """Normalize subprocess output to text before parsing."""
-        if isinstance(value, str):
-            if any(ord(ch) < 32 and ch not in "\n\r\t" or ord(ch) == 127 for ch in value):
-                return ""
-            return value
-        if isinstance(value, bytes):
-            text = value.decode("utf-8", errors="replace")
-            if any(ord(ch) < 32 and ch not in "\n\r\t" or ord(ch) == 127 for ch in text):
-                return ""
-            return text
-        return ""
+        text = _safe_text(value, allow_multiline=True)
+        return text or ""
 
     def _bounded_raw_output(self, stdout: str, stderr: str) -> str:
         """Return raw output capped to a bounded result size."""
-        if isinstance(stdout, bytes):
-            stdout = stdout.decode("utf-8", errors="replace")
-        if isinstance(stderr, bytes):
-            stderr = stderr.decode("utf-8", errors="replace")
-        if not isinstance(stdout, str):
-            stdout = ""
-        if not isinstance(stderr, str):
-            stderr = ""
-        return (stdout + stderr)[:MAX_RAW_OUTPUT_CHARS]
+        stdout_text = _safe_text(stdout, allow_multiline=True) or ""
+        stderr_text = _safe_text(stderr, allow_multiline=True) or ""
+        return (stdout_text + stderr_text)[:MAX_RAW_OUTPUT_CHARS]
 
     def _extract_forge_version(self, *outputs: Any) -> Optional[str]:
         """Extract forge semantic version from normalized subprocess streams."""
@@ -616,15 +628,7 @@ class FoundryRunner:
     @staticmethod
     def _normalize_test_name(value: Any) -> Optional[str]:
         """Normalize Forge JSON test names without accepting malformed shapes."""
-        if isinstance(value, str):
-            name = value.strip()
-            if (
-                name
-                and len(name) <= 120
-                and not any(ord(ch) < 32 or ord(ch) == 127 for ch in value)
-            ):
-                return name
-        return None
+        return _safe_text(value, limit=120)
 
     @staticmethod
     def _normalize_success_status(value: Any) -> Optional[TestStatus]:
@@ -650,10 +654,8 @@ class FoundryRunner:
             return []
         logs = []
         for log in value:
-            if not isinstance(log, str):
-                continue
-            text = log.strip()
-            if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+            text = _safe_text(log)
+            if text is None:
                 continue
             logs.append(text)
         return logs
@@ -665,15 +667,10 @@ class FoundryRunner:
             return None
         if isinstance(value, int):
             return value
-        if isinstance(value, bytes):
-            value = value.decode("utf-8", errors="replace")
-        if isinstance(value, str):
-            normalized = value.replace(",", "").strip()
-            if (
-                normalized.isdigit()
-                and len(normalized) <= 12
-                and not any(ord(ch) < 32 or ord(ch) == 127 for ch in normalized)
-            ):
+        normalized = _safe_text(value, limit=12)
+        if normalized is not None:
+            normalized = normalized.replace(",", "")
+            if normalized.isdigit():
                 return int(normalized)
         return None
 
@@ -705,11 +702,8 @@ class FoundryRunner:
                     {
                         method: metrics
                         for method, metrics in methods.items()
-                        if isinstance(method, str)
+                        if _safe_text(method, limit=120) is not None
                         and isinstance(metrics, dict)
-                        and method.strip()
-                        and len(method.strip()) <= 120
-                        and not any(ord(ch) < 32 or ord(ch) == 127 for ch in method.strip())
                     }
                     if isinstance(methods, dict)
                     else {}

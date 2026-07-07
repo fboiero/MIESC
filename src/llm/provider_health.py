@@ -27,6 +27,25 @@ PROVIDER_HEALTH_ERRORS = (
 )
 
 
+def _safe_text(value: Any, *, limit: int = 200) -> str:
+    """Return bounded scalar text with control characters removed."""
+    if isinstance(value, bytes):
+        try:
+            value = value.decode("utf-8", errors="replace")
+        except Exception:
+            return ""
+    if not isinstance(value, str):
+        return ""
+    text = value.strip()
+    if not text:
+        return ""
+    if any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+        return ""
+    if len(text) > limit:
+        text = text[:limit]
+    return text
+
+
 def extract_openai_compatible_model_ids(payload: Any) -> Set[str]:
     """Extract model identifiers from OpenAI-compatible model list payloads."""
     if not isinstance(payload, dict):
@@ -75,17 +94,10 @@ def _model_list(payload: dict[str, Any]) -> Any:
 
 def _model_id_text(value: Any) -> str:
     """Return model identifiers only from scalar text fields."""
-    if isinstance(value, bytes):
-        try:
-            value = value.decode("utf-8", errors="replace")
-        except Exception:
-            return ""
-    model_id = value.strip() if isinstance(value, str) else ""
-    if not model_id or len(model_id) > MAX_MODEL_ID_CHARS:
+    text = _safe_text(value, limit=MAX_MODEL_ID_CHARS + 1)
+    if not text or len(text) > MAX_MODEL_ID_CHARS:
         return ""
-    if any(ord(ch) < 32 or ord(ch) == 127 for ch in model_id):
-        return ""
-    return model_id
+    return text
 
 
 async def fetch_openai_compatible_model_ids(
@@ -148,30 +160,16 @@ async def fetch_openai_compatible_model_ids(
 
 def _authorization_headers(api_key: str) -> dict[str, str]:
     """Build auth headers without exposing credentials to logging paths."""
-    if isinstance(api_key, bytes):
-        try:
-            api_key = api_key.decode("utf-8", errors="replace")
-        except Exception:
-            return {"Authorization": "Bearer "}
-    if not isinstance(api_key, str):
-        return {"Authorization": "Bearer "}
-    key = api_key.strip()
-    if not key or any(ord(ch) < 32 or ord(ch) == 127 for ch in key):
+    key = _safe_text(api_key, limit=MAX_MODEL_ID_CHARS)
+    if not key:
         return {"Authorization": "Bearer "}
     return {"Authorization": f"Bearer {key}"}
 
 
 def _provider_label(provider_name: Any) -> str:
     """Return a bounded provider label for logs."""
-    if isinstance(provider_name, bytes):
-        try:
-            provider_name = provider_name.decode("utf-8", errors="replace")
-        except Exception:
-            return "provider"
-    label = provider_name.strip() if isinstance(provider_name, str) else ""
-    if any(ord(ch) < 32 or ord(ch) == 127 for ch in label):
-        return "provider"
-    return (label or "provider")[:80]
+    label = _safe_text(provider_name, limit=80)
+    return label or "provider"
 
 
 def _valid_model_base_url(base_url: str) -> bool:
