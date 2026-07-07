@@ -713,11 +713,12 @@ class PoCGenerator:
             else "contract"
         )
         test_name = f"test_exploit_{vuln_type.value}"
+        function_name = _safe_filename_part(target_function, "") if target_function else ""
 
         replacements = {
             "{{CONTRACT_NAME}}": contract_name,
             "{{TARGET_CONTRACT}}": _safe_contract_text(target_contract),
-            "{{TARGET_FUNCTION}}": target_function or "vulnerable",
+            "{{TARGET_FUNCTION}}": function_name or "vulnerable",
             "{{TEST_NAME}}": test_name,
             "{{VULNERABILITY_TYPE}}": vuln_type.value,
             "{{ATTACKER_BALANCE}}": self._option_text_field(
@@ -820,6 +821,10 @@ contract {{CONTRACT_NAME}}ExploitTest is Test {
 
     def _get_prerequisites(self, vuln_type: VulnerabilityType) -> List[str]:
         """Get prerequisites for running PoC."""
+        if not isinstance(vuln_type, VulnerabilityType):
+            return _safe_text_list(
+                ["Foundry installed (forge, cast, anvil)", "Target contract deployed or source available"]
+            )
         prereqs = [
             "Foundry installed (forge, cast, anvil)",
             "Target contract deployed or source available",
@@ -846,6 +851,11 @@ contract {{CONTRACT_NAME}}ExploitTest is Test {
 
     def _get_expected_outcome(self, vuln_type: VulnerabilityType, severity: str) -> str:
         """Get expected outcome description."""
+        if isinstance(severity, bytes):
+            try:
+                severity = severity.decode("utf-8", errors="replace")
+            except Exception:
+                severity = "medium"
         severity = severity.strip().lower() if isinstance(severity, str) else "medium"
         outcomes = {
             VulnerabilityType.REENTRANCY: "Drain funds from contract through recursive calls",

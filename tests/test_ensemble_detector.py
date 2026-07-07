@@ -651,6 +651,32 @@ class TestLLMEnsembleDetectorInit:
         )
         assert normalized == {LLMProvider.OPENAI: ["model-a"], LLMProvider.ANTHROPIC: []}
 
+    def test_safe_payload_and_location_helpers_bound_inputs(self):
+        """Raw payload and location helpers should drop malformed keys and values."""
+        payload = LLMEnsembleDetector._safe_raw_response_payload(
+            {
+                "confidence_explanation": {"text": "bad"},
+                " title ": "  suspicious  ",
+                "bad\nkey": "drop",
+                1: "ignored",
+            }
+        )
+        location = LLMEnsembleDetector._safe_location(
+            {
+                "function": b"  withdraw  ",
+                "line": "12",
+                "bad\nkey": "drop",
+                "metadata": {"nested": True},
+            }
+        )
+
+        assert payload == {"title": "  suspicious  "}
+        assert location == {"function": "withdraw", "line": 12}
+
+    def test_status_model_list_rejects_overlong_entries(self):
+        """Public status lists should drop overlong model ids."""
+        assert LLMEnsembleDetector._status_model_list(["model-a", "x" * 201]) == ["model-a"]
+
 
 class TestLLMEnsembleDetectorConstants:
     """Tests for LLMEnsembleDetector class constants."""

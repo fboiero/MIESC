@@ -539,10 +539,20 @@ class FoundryRunner:
 
     def _bounded_raw_output(self, stdout: str, stderr: str) -> str:
         """Return raw output capped to a bounded result size."""
+        if isinstance(stdout, bytes):
+            stdout = stdout.decode("utf-8", errors="replace")
+        if isinstance(stderr, bytes):
+            stderr = stderr.decode("utf-8", errors="replace")
+        if not isinstance(stdout, str):
+            stdout = ""
+        if not isinstance(stderr, str):
+            stderr = ""
         return (stdout + stderr)[:MAX_RAW_OUTPUT_CHARS]
 
     def _extract_forge_version(self, *outputs: Any) -> Optional[str]:
         """Extract forge semantic version from normalized subprocess streams."""
+        if not outputs:
+            return None
         combined_output = "".join(self._normalize_output_text(output) for output in outputs)
         version_match = re.search(r"\bforge (\d+\.\d+\.\d+)\b", combined_output)
         return version_match.group(1) if version_match else None

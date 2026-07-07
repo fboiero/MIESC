@@ -1192,6 +1192,12 @@ class TestGasReport:
             "log-two",
         ]
 
+    def test_bounded_raw_output_and_version_extraction_handle_bytes(self, runner):
+        assert runner._bounded_raw_output(b"forge 1.2.3\n", b"stderr") == "forge 1.2.3\nstderr"
+        assert runner._bounded_raw_output(None, "stderr") == "stderr"
+        assert runner._extract_forge_version(b"forge 1.2.3\n", "other") == "1.2.3"
+        assert runner._extract_forge_version() is None
+
     def test_safe_match_filter_strips_and_rejects_control_chars(self):
         assert _safe_match_filter("  testWithdraw()  ") == "testWithdraw()"
         assert _safe_match_filter("testWithdraw\x7fshadow") == ""

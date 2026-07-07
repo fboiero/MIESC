@@ -1534,6 +1534,33 @@ class TestHelperInputNormalization:
         assert len(name) <= 120
         assert "accesscontrol" in name
 
+    def test_customize_template_and_outcome_helpers_bound_inputs(self, generator):
+        """Template helpers should sanitize malformed function and severity inputs."""
+        options = GenerationOptions(
+            attacker_balance=b" 25 ether ",
+            victim_balance="20 ether\x7f",
+        )
+        template = generator._get_default_template(VulnerabilityType.REENTRANCY)
+        customized = generator._customize_template(
+            template,
+            VulnerabilityType.REENTRANCY,
+            "contracts/Bank.sol",
+            "withdraw\nowner",
+            {"description": "test", "severity": "HIGH"},
+            options,
+        )
+
+        assert "withdraw\nowner" not in customized
+        assert "vulnerable" in customized
+        assert generator._get_prerequisites("bad") == [
+            "Foundry installed (forge, cast, anvil)",
+            "Target contract deployed or source available",
+        ]
+        assert (
+            generator._get_expected_outcome(VulnerabilityType.ACCESS_CONTROL, b" high ")
+            == "Execute privileged functions without authorization"
+        )
+
 
 class TestCustomizePoCTemplate:
     """Tests for template customization (lines 489-494)."""

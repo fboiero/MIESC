@@ -616,18 +616,31 @@ INSIGHTS:"""
     def _severity_score(self, severity: Any) -> int:
         """Convert severity string to numeric score."""
         severity_map = {"CRITICAL": 4, "HIGH": 3, "MEDIUM": 2, "LOW": 1, "INFO": 0}
+        if isinstance(severity, bytes):
+            try:
+                severity = severity.decode("utf-8", errors="replace")
+            except Exception:
+                return 0
         if not isinstance(severity, str):
             return 0
-        return severity_map.get(severity.upper(), 0)
+        text = severity.strip()
+        if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+            return 0
+        return severity_map.get(text.upper(), 0)
 
     def _recommendation_fallback(self, finding: Dict[str, Any]) -> str:
         """Return a string remediation fallback for malformed finding shapes."""
         if not isinstance(finding, dict):
             return "Review and address the identified issue"
         recommendation = self._mapping_get(finding, "recommendation")
+        if isinstance(recommendation, bytes):
+            try:
+                recommendation = recommendation.decode("utf-8", errors="replace")
+            except Exception:
+                recommendation = ""
         if isinstance(recommendation, str):
             recommendation = recommendation.strip()
-            if recommendation:
+            if recommendation and not any(ord(ch) < 32 or ord(ch) == 127 for ch in recommendation):
                 return recommendation[:MAX_REMEDIATION_RESPONSE_CHARS]
         return "Review and address the identified issue"
 
@@ -686,9 +699,17 @@ INSIGHTS:"""
     @staticmethod
     def _truncate_text(value: Any, limit: int) -> str:
         """Return a bounded string only when the input is textual."""
+        if isinstance(value, bytes):
+            try:
+                value = value.decode("utf-8", errors="replace")
+            except Exception:
+                return ""
         if not isinstance(value, str):
             return ""
-        return value[:limit]
+        text = value.strip()
+        if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+            return ""
+        return text[:limit]
 
     @staticmethod
     def _summary_field_text(value: Any, default: str = "", limit: Optional[int] = None) -> str:
@@ -708,6 +729,11 @@ INSIGHTS:"""
     @staticmethod
     def _prompt_text(value: Any, default: str = "", limit: Optional[int] = None) -> str:
         """Return stable prompt text without serializing malformed field shapes."""
+        if isinstance(value, bytes):
+            try:
+                value = value.decode("utf-8", errors="replace")
+            except Exception:
+                return default
         if not isinstance(value, str):
             return default
         text = (value if limit is None else value[:limit]).strip()
@@ -763,6 +789,8 @@ INSIGHTS:"""
     def _parse_priorities(self, llm_response: str) -> Dict[int, Dict[str, Any]]:
         """Parse priority assignments from LLM response."""
         try:
+            if isinstance(llm_response, bytes):
+                llm_response = llm_response.decode("utf-8", errors="replace")
             if not isinstance(llm_response, str):
                 return {}
             if len(llm_response) > MAX_PRIORITY_RESPONSE_CHARS:

@@ -1165,6 +1165,26 @@ def test_private_helpers_format_summary_and_severity():
     assert len(summary.split(" - ", 1)[1]) == 100
 
 
+def test_private_helpers_bound_prompt_and_priority_inputs():
+    helper = OpenLLaMAHelper()
+
+    assert helper._severity_score(b" LOW ") == 1
+    assert helper._severity_score("low\x7f") == 0
+    assert helper._recommendation_fallback({"recommendation": b"  use onlyOwner  "}) == (
+        "use onlyOwner"
+    )
+    assert helper._recommendation_fallback({"recommendation": "bad\x7frecommendation"}) == (
+        "Review and address the identified issue"
+    )
+    assert helper._truncate_text(b"  bounded text  ", 7) == "bounded"
+    assert helper._prompt_text(b"  prompt text  ", default="fallback") == "prompt text"
+    assert helper._prompt_text("bad\x7fprompt", default="fallback") == "fallback"
+    assert helper._parse_priorities(
+        b'{"priorities":[{"index":1,"priority":9,"reason":" ok "}]}'
+    ) == {1: {"priority": 9, "reason": "ok"}}
+    assert helper._parse_priorities(b"bad\x7fjson") == {}
+
+
 def test_create_findings_summary_ignores_non_string_description():
     helper = OpenLLaMAHelper()
 

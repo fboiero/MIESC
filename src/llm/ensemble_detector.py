@@ -1394,7 +1394,16 @@ Response (JSON array only):"""
         """Return a shallow raw response copy with JSON-object-compatible keys."""
         if not isinstance(finding, dict):
             return {}
-        payload = {key: value for key, value in finding.items() if isinstance(key, str)}
+        payload = {}
+        for key, value in finding.items():
+            if not isinstance(key, str):
+                continue
+            cleaned_key = key.strip()
+            if not cleaned_key or len(cleaned_key) > 120 or any(
+                ord(ch) < 32 or ord(ch) == 127 for ch in cleaned_key
+            ):
+                continue
+            payload[cleaned_key] = value
         if "confidence_explanation" in payload and not isinstance(
             payload["confidence_explanation"], str
         ):
@@ -1407,6 +1416,8 @@ Response (JSON array only):"""
         if isinstance(value, (dict, list, tuple, set)):
             return default
         try:
+            if isinstance(value, bytes):
+                value = value.decode("utf-8", errors="replace")
             if isinstance(value, str):
                 text = value.strip()
                 if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
@@ -1456,6 +1467,11 @@ Response (JSON array only):"""
     @staticmethod
     def _safe_text(value: Any, default: str) -> str:
         """Return text fields only when the model supplied an actual string."""
+        if isinstance(value, bytes):
+            try:
+                value = value.decode("utf-8", errors="replace")
+            except Exception:
+                return default
         if isinstance(value, str):
             text = value.strip()
             if text and not any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
@@ -1465,6 +1481,11 @@ Response (JSON array only):"""
     @classmethod
     def _safe_vulnerability_type(cls, value: Any) -> Optional[str]:
         """Return a safe vulnerability type/category label for consensus grouping."""
+        if isinstance(value, bytes):
+            try:
+                value = value.decode("utf-8", errors="replace")
+            except Exception:
+                return None
         if not isinstance(value, str):
             return None
 
@@ -1480,6 +1501,11 @@ Response (JSON array only):"""
     @classmethod
     def _safe_model_label(cls, value: Any) -> Optional[str]:
         """Return a safe model/provider label for result metadata keys."""
+        if isinstance(value, bytes):
+            try:
+                value = value.decode("utf-8", errors="replace")
+            except Exception:
+                return None
         if not isinstance(value, str):
             return None
 
@@ -1506,6 +1532,8 @@ Response (JSON array only):"""
         if isinstance(value, bool) or isinstance(value, (dict, list, tuple, set)):
             return default
         try:
+            if isinstance(value, bytes):
+                value = value.decode("utf-8", errors="replace")
             if isinstance(value, str):
                 text = value.strip()
                 if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
@@ -1543,6 +1571,11 @@ Response (JSON array only):"""
                 if not text:
                     continue
                 location[key] = text
+                continue
+            if isinstance(field_value, bytes):
+                text = cls._safe_text(field_value, "")
+                if text:
+                    location[key] = text
                 continue
             location[key] = field_value
         return location
@@ -1594,7 +1627,11 @@ Response (JSON array only):"""
             if not isinstance(model, str):
                 continue
             cleaned = model.strip()
-            if not cleaned or any(ord(ch) < 32 or ord(ch) == 127 for ch in cleaned):
+            if (
+                not cleaned
+                or len(cleaned) > LLMEnsembleDetector.MAX_MODEL_LABEL_LENGTH
+                or any(ord(ch) < 32 or ord(ch) == 127 for ch in cleaned)
+            ):
                 continue
             normalized.append(cleaned)
         return normalized
