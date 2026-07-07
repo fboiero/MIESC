@@ -30,6 +30,7 @@ Date: January 2026
 import hashlib
 import json
 import logging
+import os
 import re
 import subprocess
 import time
@@ -952,26 +953,34 @@ class IAuditAdapter(OllamaCallMixin, LLMCacheMixin, ToolAdapter):
         """
         Detect the best available Ollama model.
 
-        Queries the Ollama API for installed models and returns
-        the highest-priority one.
+        An explicit MIESC_LLM_MODEL override always wins (e.g. pinning a
+        benchmark to 14B for tractability / to avoid loading a huge model
+        that thrashes RAM). Otherwise queries the Ollama API for installed
+        models and returns the highest-priority *exact* match from
+        MODEL_PRIORITY. Matching is exact on the full "name:tag" so a loose
+        family keyword can never silently escalate to a much larger variant
+        (e.g. picking qwen2.5-coder:32b when only :14b was intended).
 
         Returns:
-            Model name string (e.g. "qwen2.5-coder:7b")
+            Model name string (e.g. "qwen2.5-coder:14b")
         """
+        env_model = os.environ.get("MIESC_LLM_MODEL")
+        if env_model:
+            logger.info(f"iAudit: Using MIESC_LLM_MODEL override '{env_model}'")
+            return env_model
+
         try:
             req = urllib.request.Request(self._api_tags, method="GET")
             with urllib.request.urlopen(req, timeout=5) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
 
             models = data.get("models", [])
-            model_names = [m.get("name", "").lower() for m in models]
+            model_names = {m.get("name", "").lower() for m in models}
 
             for priority_model in self.MODEL_PRIORITY:
-                keyword = priority_model.split(":")[0]
-                for name in model_names:
-                    if keyword in name:
-                        logger.info(f"iAudit: Selected model '{name}'")
-                        return cast(str, name)
+                if priority_model.lower() in model_names:
+                    logger.info(f"iAudit: Selected model '{priority_model}'")
+                    return priority_model
 
         except Exception as e:
             logger.debug(f"iAudit: Model detection via API failed: {e}")
@@ -987,8 +996,7 @@ class IAuditAdapter(OllamaCallMixin, LLMCacheMixin, ToolAdapter):
             if result.returncode == 0:
                 models_text = result.stdout.lower()
                 for priority_model in self.MODEL_PRIORITY:
-                    keyword = priority_model.split(":")[0]
-                    if keyword in models_text:
+                    if priority_model.lower() in models_text:
                         return priority_model
         except Exception:
             pass

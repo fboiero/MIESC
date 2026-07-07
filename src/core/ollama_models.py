@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import urllib.error
 import urllib.request
 from typing import Iterable, List, Optional, Union
@@ -34,7 +35,18 @@ def select_ollama_model(
     installed: Optional[Iterable[str]] = None,
     fallback: Optional[Union[str, Iterable[str]]] = None,
 ) -> str:
-    """Select the first installed model matching exact name or family prefix."""
+    """Select the first installed model matching exact name or family prefix.
+
+    An explicit ``MIESC_LLM_MODEL`` override always wins over the availability
+    heuristic (e.g. pinning a run to 14B to avoid loading a huge model that
+    thrashes RAM). This mirrors the override honoured by the gptscan/iaudit
+    adapters so the escape hatch works consistently across every Ollama path.
+    """
+    env_model = os.environ.get("MIESC_LLM_MODEL")
+    if env_model:
+        logger.info("Using MIESC_LLM_MODEL override '%s'", env_model)
+        return env_model
+
     models = list(installed) if installed is not None else list_ollama_models()
     by_lower = {model.lower(): model for model in models}
     fallback_candidates: List[str]
