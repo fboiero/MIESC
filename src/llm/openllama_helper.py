@@ -527,6 +527,13 @@ REMEDIATION ADVICE:"""
         """Return a finite numeric config value within a defensive range."""
         if isinstance(value, bool):
             return float(default)
+        if isinstance(value, bytes):
+            try:
+                value = value.decode("utf-8", errors="replace")
+            except Exception:
+                return float(default)
+        if isinstance(value, str) and any(ord(ch) < 32 or ord(ch) == 127 for ch in value):
+            return float(default)
         try:
             normalized = float(value)
         except (TypeError, ValueError):
@@ -537,8 +544,8 @@ REMEDIATION ADVICE:"""
 
     def _ollama_generate_payload(self, prompt: Any) -> bytes:
         """Build a JSON-safe Ollama generate request body."""
-        model = getattr(self.config, "model", LLMConfig.model)
-        if not isinstance(model, str) or not model.strip():
+        model = self._ollama_model_name(getattr(self.config, "model", LLMConfig.model))
+        if model is None:
             model = LLMConfig.model
 
         options = {
@@ -559,7 +566,7 @@ REMEDIATION ADVICE:"""
         }
         body = {
             "model": model,
-            "prompt": prompt if isinstance(prompt, str) else "",
+            "prompt": self._prompt_text(prompt, limit=MAX_PRIORITY_RESPONSE_CHARS),
             "stream": False,
             "options": options,
         }
@@ -627,9 +634,16 @@ INSIGHTS:"""
     @staticmethod
     def _llm_text_response(value: Any, limit: Optional[int] = None) -> Optional[str]:
         """Return stripped LLM text while rejecting malformed response shapes."""
+        if isinstance(value, bytes):
+            try:
+                value = value.decode("utf-8", errors="replace")
+            except Exception:
+                return None
         if not isinstance(value, str):
             return None
         response = value.strip()
+        if not response or any(ord(ch) < 32 or ord(ch) == 127 for ch in response):
+            return None
         if limit is not None and len(response) > limit:
             response = response[:limit]
         return response or None
@@ -679,9 +693,16 @@ INSIGHTS:"""
     @staticmethod
     def _summary_field_text(value: Any, default: str = "", limit: Optional[int] = None) -> str:
         """Return bounded single-line text for finding summaries."""
+        if isinstance(value, bytes):
+            try:
+                value = value.decode("utf-8", errors="replace")
+            except Exception:
+                return default
         if not isinstance(value, str):
             return default
         text = value if limit is None else value[:limit]
+        if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+            return default
         return " ".join(text.split()) if text else default
 
     @staticmethod
@@ -698,7 +719,7 @@ INSIGHTS:"""
     def _prompt_location(cls, value: Any) -> str:
         """Render supported location shapes without leaking Python reprs."""
         if isinstance(value, str):
-            return value
+            return cls._prompt_text(value, default="{}") or "{}"
         if isinstance(value, dict):
             normalized = {str(key): cls._prompt_json_value(item) for key, item in value.items()}
             return json.dumps(normalized, sort_keys=True)
@@ -721,7 +742,17 @@ INSIGHTS:"""
     @classmethod
     def _prompt_json_value(cls, value: Any) -> Any:
         """Keep JSON-safe scalar values and recursively default malformed shapes."""
+        if isinstance(value, bytes):
+            try:
+                value = value.decode("utf-8", errors="replace")
+            except Exception:
+                return ""
         if isinstance(value, (str, int, float, bool)) or value is None:
+            if isinstance(value, str):
+                text = value.strip()
+                if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+                    return ""
+                return text
             return value
         if isinstance(value, list):
             return [cls._prompt_json_value(item) for item in value]

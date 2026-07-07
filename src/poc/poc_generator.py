@@ -532,7 +532,16 @@ class PoCGenerator:
     def _resolve_vulnerability_type(self, finding: Dict[str, Any]) -> VulnerabilityType:
         """Resolve finding type to VulnerabilityType enum."""
         raw_finding_type = finding.get("type", "")
+        if isinstance(raw_finding_type, bytes):
+            try:
+                raw_finding_type = raw_finding_type.decode("utf-8", errors="replace")
+            except Exception:
+                raw_finding_type = ""
         finding_type = raw_finding_type.lower().strip() if isinstance(raw_finding_type, str) else ""
+        if not finding_type or len(finding_type) > 120 or any(
+            ord(ch) < 32 or ord(ch) == 127 for ch in finding_type
+        ):
+            finding_type = ""
 
         # Try direct alias lookup
         if finding_type in self.TYPE_ALIASES:
@@ -561,8 +570,15 @@ class PoCGenerator:
     def _option_text_field(self, options: GenerationOptions, key: str, default: str) -> str:
         """Return string option fields only; ignore malformed object/list shapes."""
         value = getattr(options, key, default)
+        if isinstance(value, bytes):
+            try:
+                value = value.decode("utf-8", errors="replace")
+            except Exception:
+                return default
         if isinstance(value, str):
-            return value
+            text = value.strip()
+            if text and not any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+                return text
         return default
 
     def _custom_import_lines(self, options: GenerationOptions) -> str:
@@ -650,9 +666,10 @@ class PoCGenerator:
         function_name = _safe_filename_part(target_function, "") if target_function else ""
 
         if function_name:
-            return f"{contract_name}_{function_name}_{type_name}"
+            generated_name = f"{contract_name[:40]}_{function_name[:40]}_{type_name}"
         else:
-            return f"{contract_name}_{type_name}"
+            generated_name = f"{contract_name[:40]}_{type_name}"
+        return generated_name[:120]
 
     def _load_template(self, vuln_type: VulnerabilityType) -> str:
         """Load template for vulnerability type."""

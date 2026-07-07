@@ -189,6 +189,34 @@ def test_ollama_generate_host_and_mapping_get_bound_inputs():
     assert OpenLLaMAHelper._mapping_get(MappingProxyType({"model": "x"}), "model") == "x"
 
 
+def test_openllama_private_helpers_bound_text_and_json_inputs():
+    helper = OpenLLaMAHelper(LLMConfig(model=b"  test-model  "))
+
+    assert OpenLLaMAHelper._ollama_model_available(
+        b"  test-model  ", b"NAME                 ID\n test-model          abc123\n"
+    )
+    assert not OpenLLaMAHelper._ollama_model_available(
+        "test-model\x7f", "NAME                 ID\n test-model          abc123\n"
+    )
+
+    payload = json.loads(helper._ollama_generate_payload("  bounded prompt  "))
+    assert payload["model"] == "test-model"
+    assert payload["prompt"] == "bounded prompt"
+
+    assert OpenLLaMAHelper._bounded_number(b"3", default=5.0, minimum=1.0, maximum=10.0) == 3.0
+    assert OpenLLaMAHelper._bounded_number("3\x7f", default=5.0, minimum=1.0, maximum=10.0) == 5.0
+    assert OpenLLaMAHelper._llm_text_response(b"  ok  ", limit=10) == "ok"
+    assert OpenLLaMAHelper._llm_text_response("bad\x7ftext", limit=10) is None
+    assert OpenLLaMAHelper._summary_field_text(b"  summary text  ", default="fallback") == (
+        "summary text"
+    )
+    assert OpenLLaMAHelper._summary_field_text("bad\x7ftext", default="fallback") == "fallback"
+    assert OpenLLaMAHelper._prompt_location("  https://example.com  ") == "https://example.com"
+    assert OpenLLaMAHelper._prompt_location("bad\x7flocation") == "{}"
+    assert OpenLLaMAHelper._prompt_json_value(b"  alpha  ") == "alpha"
+    assert OpenLLaMAHelper._prompt_json_value("bad\x7fvalue") == ""
+
+
 def test_is_available_returns_false_on_malformed_ollama_result(monkeypatch):
     helper = OpenLLaMAHelper(LLMConfig(model="test-model"))
 
@@ -1166,9 +1194,7 @@ def test_create_findings_summary_keeps_fields_on_one_line():
         ]
     )
 
-    assert summary == (
-        "0. [HIGH 1. [CRITICAL]] Unchecked call 2. forged finding - line one line two"
-    )
+    assert summary == "0. [UNKNOWN] Unknown - "
     assert summary.count("\n") == 0
 
 

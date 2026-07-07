@@ -19,6 +19,7 @@ from src.poc.validators.foundry_runner import (
     FoundryRunner,
     TestResult,
     TestStatus,
+    _is_gas_report_header_row,
     _safe_match_filter,
 )
 
@@ -981,6 +982,31 @@ class TestParseOutput:
         assert result.total_tests == 3
         assert result.passed == 2
         assert result.failed == 1
+
+
+# =============================================================================
+# Normalization Helper Tests
+# =============================================================================
+
+
+class TestNormalizationHelpers:
+    """Tests for normalization helpers with bounded text inputs."""
+
+    def test_gas_report_header_and_timeout_helpers_bound_inputs(self):
+        """Text helpers should reject malformed header cells and timeout strings."""
+        assert _is_gas_report_header_row(
+            ["Contract", "Method", "Min", "Max", "Avg", "Calls"]
+        )
+        assert not _is_gas_report_header_row(
+            ["Contract", "Method", "Min", "Max", "Avg", "Calls\x7f"]
+        )
+        assert not _is_gas_report_header_row(["Contract", 1, "Min", "Max", "Avg", "Calls"])
+        assert FoundryRunner._normalize_timeout_seconds(b"15", 30) == 15
+        assert FoundryRunner._normalize_timeout_seconds("15\x7f", 30) == 30
+
+    def test_parse_test_results_rejects_non_dict_payload(self, runner):
+        """Malformed top-level payloads should return an empty test list."""
+        assert runner._parse_test_results(None) == []
 
 
 # =============================================================================

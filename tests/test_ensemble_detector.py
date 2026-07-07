@@ -492,6 +492,33 @@ class TestLLMEnsembleDetectorInit:
         detector = LLMEnsembleDetector(consensus_threshold=0)
         assert detector.consensus_threshold == 1
 
+    def test_normalizers_accept_bytes_and_reject_control_chars(self, monkeypatch):
+        """Core config normalizers should keep text boundaries and safe defaults."""
+        monkeypatch.delenv("TEST_API_KEY", raising=False)
+
+        assert LLMEnsembleDetector._normalize_consensus_threshold(b"3") == 3
+        assert LLMEnsembleDetector._normalize_consensus_threshold("3\x7f") == 2
+        assert LLMEnsembleDetector._normalize_timeout(b"5") == 5
+        assert LLMEnsembleDetector._normalize_timeout("5\x7f") == LLMEnsembleDetector.DEFAULT_TIMEOUT
+        assert LLMEnsembleDetector._normalize_temperature(b"0.5") == 0.5
+        assert LLMEnsembleDetector._normalize_temperature("0.5\x7f") == (
+            LLMEnsembleDetector.DEFAULT_TEMPERATURE
+        )
+        assert LLMEnsembleDetector._normalize_api_key(b"  api-key  ", "TEST_API_KEY") == "api-key"
+        monkeypatch.setenv("TEST_API_KEY", "env-key\x7f")
+        assert LLMEnsembleDetector._normalize_api_key(None, "TEST_API_KEY") is None
+        assert (
+            LLMEnsembleDetector._normalize_voting_strategy(b"majority")
+            == VotingStrategy.MAJORITY
+        )
+        assert (
+            LLMEnsembleDetector._normalize_voting_strategy("majority\x7f")
+            == VotingStrategy.THRESHOLD
+        )
+        assert LLMEnsembleDetector._normalize_providers(
+            [LLMProvider.OLLAMA, "openai", "anthropic\x7f", "openai"]
+        ) == [LLMProvider.OLLAMA, LLMProvider.OPENAI]
+
     def test_model_status_returns_defensive_model_lists(self):
         """Public status callers should not mutate detector model state."""
         detector = LLMEnsembleDetector(models=["model1", "model2"])

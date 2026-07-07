@@ -51,7 +51,11 @@ def _is_gas_report_header_row(cells: List[str]) -> bool:
     """Return True only for normalized gas-report header rows."""
     if len(cells) != 6:
         return False
+    if not all(isinstance(cell, str) for cell in cells):
+        return False
     normalized = [cell.strip().lower() for cell in cells]
+    if any(any(ord(ch) < 32 or ord(ch) == 127 for ch in cell) for cell in normalized):
+        return False
     return normalized == ["contract", "method", "min", "max", "avg", "calls"]
 
 
@@ -218,6 +222,19 @@ class FoundryRunner:
         """Return a positive finite subprocess timeout."""
         if isinstance(value, bool):
             return default
+        if isinstance(value, bytes):
+            try:
+                value = value.decode("utf-8", errors="replace")
+            except Exception:
+                return default
+        if isinstance(value, str) and any(ord(ch) < 32 or ord(ch) == 127 for ch in value):
+            return default
+        if isinstance(value, str):
+            try:
+                normalized = float(value)
+            except ValueError:
+                return default
+            return int(normalized) if normalized > 0 and math.isfinite(normalized) else default
         if isinstance(value, int):
             return value if value > 0 else default
         if isinstance(value, float) and math.isfinite(value):
@@ -541,6 +558,8 @@ class FoundryRunner:
     def _parse_test_results(self, data: Dict[str, Any]) -> List[TestResult]:
         """Parse test results from JSON data."""
         tests = []
+        if not isinstance(data, dict):
+            return tests
 
         # Handle different JSON formats from forge
         test_results = data.get("test_results")

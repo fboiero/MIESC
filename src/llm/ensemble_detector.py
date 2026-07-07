@@ -305,6 +305,17 @@ Response (JSON array only):"""
         if isinstance(consensus_threshold, bool):
             logger.warning("Ignoring malformed ensemble consensus threshold; using default")
             return 2
+        if isinstance(consensus_threshold, bytes):
+            try:
+                consensus_threshold = consensus_threshold.decode("utf-8", errors="replace")
+            except Exception:
+                logger.warning("Ignoring malformed ensemble consensus threshold; using default")
+                return 2
+        if isinstance(consensus_threshold, str) and any(
+            ord(ch) < 32 or ord(ch) == 127 for ch in consensus_threshold
+        ):
+            logger.warning("Ignoring malformed ensemble consensus threshold; using default")
+            return 2
 
         try:
             threshold = int(consensus_threshold)
@@ -318,6 +329,15 @@ Response (JSON array only):"""
     def _normalize_timeout(cls, timeout: Any) -> int:
         """Return a positive finite request timeout in seconds."""
         if isinstance(timeout, bool):
+            logger.warning("Ignoring malformed ensemble timeout; using default")
+            return cls.DEFAULT_TIMEOUT
+        if isinstance(timeout, bytes):
+            try:
+                timeout = timeout.decode("utf-8", errors="replace")
+            except Exception:
+                logger.warning("Ignoring malformed ensemble timeout; using default")
+                return cls.DEFAULT_TIMEOUT
+        if isinstance(timeout, str) and any(ord(ch) < 32 or ord(ch) == 127 for ch in timeout):
             logger.warning("Ignoring malformed ensemble timeout; using default")
             return cls.DEFAULT_TIMEOUT
 
@@ -339,6 +359,15 @@ Response (JSON array only):"""
         if isinstance(temperature, bool):
             logger.warning("Ignoring malformed ensemble temperature; using default")
             return cls.DEFAULT_TEMPERATURE
+        if isinstance(temperature, bytes):
+            try:
+                temperature = temperature.decode("utf-8", errors="replace")
+            except Exception:
+                logger.warning("Ignoring malformed ensemble temperature; using default")
+                return cls.DEFAULT_TEMPERATURE
+        if isinstance(temperature, str) and any(ord(ch) < 32 or ord(ch) == 127 for ch in temperature):
+            logger.warning("Ignoring malformed ensemble temperature; using default")
+            return cls.DEFAULT_TEMPERATURE
 
         try:
             normalized_temperature = float(temperature)
@@ -355,9 +384,15 @@ Response (JSON array only):"""
     @staticmethod
     def _normalize_api_key(api_key: Any, env_name: str) -> Optional[str]:
         """Return a non-empty API key string from config or environment."""
+        if isinstance(api_key, bytes):
+            try:
+                api_key = api_key.decode("utf-8", errors="replace")
+            except Exception:
+                logger.warning("Ignoring malformed ensemble API key for %s", env_name)
+                api_key = None
         if isinstance(api_key, str):
             normalized = api_key.strip()
-            if normalized:
+            if normalized and not any(ord(ch) < 32 or ord(ch) == 127 for ch in normalized):
                 return normalized
         elif api_key is not None:
             logger.warning("Ignoring malformed ensemble API key for %s", env_name)
@@ -367,13 +402,21 @@ Response (JSON array only):"""
             return None
 
         normalized_env_value = env_value.strip()
-        return normalized_env_value or None
+        if not normalized_env_value or any(ord(ch) < 32 or ord(ch) == 127 for ch in normalized_env_value):
+            return None
+        return normalized_env_value
 
     @staticmethod
     def _normalize_voting_strategy(voting_strategy: Any) -> VotingStrategy:
         """Return a supported voting strategy without trusting enum-like inputs."""
         if isinstance(voting_strategy, VotingStrategy):
             return voting_strategy
+        if isinstance(voting_strategy, bytes):
+            try:
+                voting_strategy = voting_strategy.decode("utf-8", errors="replace")
+            except Exception:
+                logger.warning("Ignoring malformed ensemble voting strategy; using threshold")
+                return VotingStrategy.THRESHOLD
 
         if isinstance(voting_strategy, str):
             try:
@@ -399,8 +442,14 @@ Response (JSON array only):"""
             if isinstance(provider, LLMProvider):
                 normalized_provider = provider
             elif isinstance(provider, str):
+                provider_text = provider.strip().lower()
+                if not provider_text or len(provider_text) > 40 or any(
+                    ord(ch) < 32 or ord(ch) == 127 for ch in provider_text
+                ):
+                    logger.warning("Ignoring malformed ensemble provider entry: %r", provider)
+                    continue
                 try:
-                    normalized_provider = LLMProvider(provider.strip().lower())
+                    normalized_provider = LLMProvider(provider_text)
                 except ValueError:
                     logger.warning("Ignoring unknown ensemble provider: %r", provider)
                     continue

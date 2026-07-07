@@ -1496,6 +1496,45 @@ class TestResolveVulnerabilityTypePartialMatch:
         assert vuln_type == VulnerabilityType.REENTRANCY
 
 
+class TestHelperInputNormalization:
+    """Tests for PoC helper text normalization."""
+
+    @pytest.fixture
+    def generator(self):
+        """Create a default PoCGenerator."""
+        return PoCGenerator()
+
+    def test_resolve_vulnerability_type_and_option_text_handle_bytes_and_control_chars(
+        self, generator
+    ):
+        """Text helpers should keep bytes and reject control characters."""
+        assert (
+            generator._resolve_vulnerability_type({"type": b"  flash_loan  "})
+            == VulnerabilityType.FLASH_LOAN
+        )
+        assert generator._resolve_vulnerability_type({"type": "flash_loan\x7f"}) == (
+            VulnerabilityType.REENTRANCY
+        )
+
+        options = GenerationOptions(
+            attacker_balance=b" 25 ether ",
+            victim_balance="20 ether\x7f",
+        )
+        assert generator._option_text_field(options, "attacker_balance", "100 ether") == "25 ether"
+        assert generator._option_text_field(options, "victim_balance", "100 ether") == "100 ether"
+
+    def test_generate_poc_name_is_bounded(self, generator):
+        """Generated names should stay bounded even with long inputs."""
+        name = generator._generate_poc_name(
+            "contracts/" + ("A" * 200) + ".sol",
+            VulnerabilityType.ACCESS_CONTROL,
+            "withdraw" + ("B" * 200),
+        )
+
+        assert len(name) <= 120
+        assert "accesscontrol" in name
+
+
 class TestCustomizePoCTemplate:
     """Tests for template customization (lines 489-494)."""
 
