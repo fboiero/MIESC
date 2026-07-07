@@ -470,6 +470,35 @@ class TestOpenAIBackend:
 
         asyncio.run(run_test())
 
+    @pytest.mark.parametrize(
+        "response",
+        [
+            SimpleNamespace(choices=[]),
+            SimpleNamespace(choices=[SimpleNamespace()]),
+            SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content={"x": 1}))]),
+            SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content="bad\njson"))]),
+        ],
+    )
+    def test_analyze_rejects_malformed_chat_content(self, response):
+        """Test malformed OpenAI chat content cannot cross the response boundary."""
+
+        async def run_test():
+            class FakeAsyncOpenAI:
+                def __init__(self, **_kwargs):
+                    self.chat = SimpleNamespace(
+                        completions=SimpleNamespace(create=AsyncMock(return_value=response))
+                    )
+
+            fake_openai = SimpleNamespace(AsyncOpenAI=FakeAsyncOpenAI)
+            config = LLMConfig(provider=LLMProvider.OPENAI, model="gpt-4", api_key="key")
+            backend = OpenAIBackend(config)
+
+            with patch.dict(sys.modules, {"openai": fake_openai}):
+                with pytest.raises(ValueError, match="Malformed OpenAI response"):
+                    await backend.analyze("prompt")
+
+        asyncio.run(run_test())
+
 
 class TestAnthropicBackend:
     """Test AnthropicBackend implementation."""
@@ -530,6 +559,65 @@ class TestAnthropicBackend:
             with patch.dict(sys.modules, {"anthropic": fake_anthropic}):
                 with pytest.raises(ValueError, match="usage.output_tokens must be non-negative"):
                     await backend.analyze("prompt")
+
+        asyncio.run(run_test())
+
+    @pytest.mark.parametrize(
+        "response",
+        [
+            SimpleNamespace(content=[]),
+            SimpleNamespace(content=[SimpleNamespace(type="tool_use")]),
+            SimpleNamespace(content=[SimpleNamespace(text=["not", "text"])]),
+            SimpleNamespace(content=[SimpleNamespace(text="bad\x7ftext")]),
+        ],
+    )
+    def test_analyze_rejects_malformed_content_blocks(self, response):
+        """Test malformed Anthropic content blocks cannot cross the response boundary."""
+
+        async def run_test():
+            class FakeAsyncAnthropic:
+                def __init__(self, **_kwargs):
+                    self.messages = SimpleNamespace(create=AsyncMock(return_value=response))
+
+            fake_anthropic = SimpleNamespace(AsyncAnthropic=FakeAsyncAnthropic)
+            config = LLMConfig(
+                provider=LLMProvider.ANTHROPIC,
+                model="claude-3-opus",
+                api_key="key",
+            )
+            backend = AnthropicBackend(config)
+
+            with patch.dict(sys.modules, {"anthropic": fake_anthropic}):
+                with pytest.raises(ValueError, match="Malformed Anthropic response"):
+                    await backend.analyze("prompt")
+
+        asyncio.run(run_test())
+
+    def test_analyze_accepts_first_valid_text_block(self):
+        """Test Anthropic accepts a valid first text block and ignores later block shapes."""
+
+        async def run_test():
+            response = SimpleNamespace(
+                content=[SimpleNamespace(text="{}"), SimpleNamespace(type="tool_use")],
+                usage=SimpleNamespace(input_tokens=1, output_tokens=1),
+            )
+
+            class FakeAsyncAnthropic:
+                def __init__(self, **_kwargs):
+                    self.messages = SimpleNamespace(create=AsyncMock(return_value=response))
+
+            fake_anthropic = SimpleNamespace(AsyncAnthropic=FakeAsyncAnthropic)
+            config = LLMConfig(
+                provider=LLMProvider.ANTHROPIC,
+                model="claude-3-opus",
+                api_key="key",
+            )
+            backend = AnthropicBackend(config)
+
+            with patch.dict(sys.modules, {"anthropic": fake_anthropic}):
+                result = await backend.analyze("prompt")
+
+            assert result.content == "{}"
 
         asyncio.run(run_test())
 
@@ -652,6 +740,39 @@ class TestDeepSeekBackend:
 
             with patch.dict(sys.modules, {"openai": fake_openai}):
                 with pytest.raises(ValueError, match="usage.total_tokens must be int"):
+                    await backend.analyze("prompt")
+
+        asyncio.run(run_test())
+
+    @pytest.mark.parametrize(
+        "response",
+        [
+            SimpleNamespace(choices=[]),
+            SimpleNamespace(choices=[{"message": {"content": "{}"}}]),
+            SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content=["{}"]))]),
+            SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content="bad\tjson"))]),
+        ],
+    )
+    def test_analyze_rejects_malformed_chat_content(self, response):
+        """Test malformed DeepSeek chat content cannot cross the response boundary."""
+
+        async def run_test():
+            class FakeAsyncOpenAI:
+                def __init__(self, **_kwargs):
+                    self.chat = SimpleNamespace(
+                        completions=SimpleNamespace(create=AsyncMock(return_value=response))
+                    )
+
+            fake_openai = SimpleNamespace(AsyncOpenAI=FakeAsyncOpenAI)
+            config = LLMConfig(
+                provider=LLMProvider.DEEPSEEK,
+                model="deepseek-v4-flash",
+                api_key="key",
+            )
+            backend = DeepSeekBackend(config)
+
+            with patch.dict(sys.modules, {"openai": fake_openai}):
+                with pytest.raises(ValueError, match="Malformed DeepSeek response"):
                     await backend.analyze("prompt")
 
         asyncio.run(run_test())
@@ -1116,8 +1237,147 @@ class TestLLMOrchestrator:
 
         mixed_analysis = orchestrator._parse_analysis(mixed_response)
 
-        assert mixed_analysis.vulnerabilities == [{"severity": "high", "type": "reentrancy"}]
+        assert mixed_analysis.vulnerabilities == [
+            {
+                "type": "reentrancy",
+                "severity": "high",
+                "title": "",
+                "description": "",
+                "confidence": 0.5,
+                "swc_id": None,
+                "cwe_id": None,
+                "remediation": None,
+                "attack_scenario": None,
+            }
+        ]
         assert mixed_analysis.severity_assessment["high"] == 1
+
+    def test_parse_analysis_validated_lenient_dict_sanitizes_malformed_text_fields(
+        self, monkeypatch
+    ):
+        """Test validated lenient dict findings cannot leak malformed text fields."""
+
+        class ValidValidation:
+            is_valid = True
+            has_warnings = False
+            warnings = []
+            data = SimpleNamespace(
+                vulnerabilities=[
+                    {
+                        "type": ["not", "text"],
+                        "severity": "HIGH",
+                        "title": {"x": 1},
+                        "description": "desc",
+                        "confidence": "0.7",
+                        "remediation": {"patch": "bad"},
+                        "attack_scenario": "attack",
+                    }
+                ],
+                summary=["bad summary"],
+            )
+
+        monkeypatch.setattr(
+            "src.llm.llm_orchestrator.safe_parse_llm_json",
+            lambda *_args, **_kwargs: ValidValidation(),
+        )
+
+        orchestrator = LLMOrchestrator([])
+        response = LLMResponse(content="{}", provider="test", model="test")
+
+        analysis = orchestrator._parse_analysis(response)
+
+        assert analysis.vulnerabilities == [
+            {
+                "type": "unknown",
+                "severity": "high",
+                "title": "",
+                "description": "desc",
+                "confidence": 0.7,
+                "swc_id": None,
+                "cwe_id": None,
+                "remediation": None,
+                "attack_scenario": "attack",
+            }
+        ]
+        assert analysis.recommendations == []
+        assert analysis.analysis_summary == "Analysis completed"
+
+    def test_parse_analysis_validated_object_sanitizes_and_filters_items(self, monkeypatch):
+        """Test validated object findings are normalized and malformed items are filtered."""
+
+        class ValidValidation:
+            is_valid = True
+            has_warnings = False
+            warnings = []
+            data = SimpleNamespace(
+                vulnerabilities=[
+                    123,
+                    SimpleNamespace(
+                        type="access-control",
+                        severity="informational",
+                        title="title",
+                        description="desc",
+                        confidence=2,
+                        swc_id=b"SWC-105",
+                        cwe_id="CWE-284",
+                        remediation="fix it",
+                        attack_scenario=["bad"],
+                    ),
+                ],
+                summary="Summary",
+            )
+
+        monkeypatch.setattr(
+            "src.llm.llm_orchestrator.safe_parse_llm_json",
+            lambda *_args, **_kwargs: ValidValidation(),
+        )
+
+        orchestrator = LLMOrchestrator([])
+        response = LLMResponse(content="{}", provider="test", model="test")
+
+        analysis = orchestrator._parse_analysis(response)
+
+        assert len(analysis.vulnerabilities) == 1
+        assert analysis.vulnerabilities[0]["severity"] == "info"
+        assert analysis.vulnerabilities[0]["confidence"] == 1.0
+        assert analysis.vulnerabilities[0]["swc_id"] == "SWC-105"
+        assert analysis.vulnerabilities[0]["attack_scenario"] is None
+        assert analysis.recommendations == ["fix it"]
+        assert analysis.severity_assessment["info"] == 1
+
+    def test_parse_analysis_legacy_fallback_ignores_malformed_remediation_values(
+        self, monkeypatch
+    ):
+        """Test legacy fallback drops malformed remediation and summary values safely."""
+
+        class InvalidValidation:
+            is_valid = False
+            data = None
+            errors = ["forced invalid schema"]
+
+        monkeypatch.setattr(
+            "src.llm.llm_orchestrator.safe_parse_llm_json",
+            lambda *_args, **_kwargs: InvalidValidation(),
+        )
+
+        orchestrator = LLMOrchestrator([])
+        response = LLMResponse(
+            content=(
+                '{"vulnerabilities": ['
+                '{"type": "x", "severity": "informational", "remediation": {"fix": "bad"}},'
+                '{"type": "y", "severity": "LOW", "remediation": "patch"}'
+                '], "summary": {"bad": "summary"}}'
+            ),
+            provider="test",
+            model="test",
+        )
+
+        analysis = orchestrator._parse_analysis(response)
+
+        assert analysis.recommendations == ["patch"]
+        assert analysis.analysis_summary == "Analysis completed"
+        assert analysis.severity_assessment["info"] == 1
+        assert analysis.severity_assessment["low"] == 1
 
     def test_parse_analysis_invalid_json(self):
         """Test parsing invalid JSON response."""
@@ -1169,6 +1429,22 @@ class TestLLMOrchestrator:
 
         selected = orchestrator.select_model_for_task("unknown_task")
         assert selected == "ollama:test"
+
+    def test_select_model_for_task_no_backends_raises_runtime_error(self):
+        """Test empty backend registries fail with a controlled error."""
+        orchestrator = LLMOrchestrator([])
+        orchestrator.primary_provider = None
+
+        with pytest.raises(RuntimeError, match="No LLM backends available"):
+            orchestrator.select_model_for_task("unknown_task")
+
+    def test_select_model_for_task_rejects_stale_primary_provider(self):
+        """Test stale primary_provider is not returned when no backend exists."""
+        orchestrator = LLMOrchestrator([])
+        orchestrator.primary_provider = "ollama:missing"
+
+        with pytest.raises(RuntimeError, match="No LLM backends available"):
+            orchestrator.select_model_for_task("unknown_task")
 
     def test_select_model_fallback_skips_malformed_backend_status(self):
         """Test model selection fallback keeps malformed status out of metrics boundary."""
@@ -1323,6 +1599,17 @@ class TestLLMOrchestrator:
         assert len(orchestrator.cache) == 0
         assert orchestrator.cache_timestamps == {}
 
+    def test_clear_cache_recovers_malformed_timestamp_state(self):
+        """Test clear_cache resets malformed cache timestamp containers."""
+        orchestrator = LLMOrchestrator([])
+        orchestrator.cache["key1"] = "value1"
+        orchestrator.cache_timestamps = ["bad"]
+
+        orchestrator.clear_cache()
+
+        assert orchestrator.cache == {}
+        assert orchestrator.cache_timestamps == {}
+
     def test_query_no_backends(self):
         """Test query with no available backends."""
         orchestrator = LLMOrchestrator([])
@@ -1343,6 +1630,21 @@ class TestLLMOrchestrator:
         result = asyncio.run(orchestrator.query("test prompt"))
         assert result.content == "cached content"
         assert result.cached is True
+
+    def test_query_resets_malformed_cache_timestamps_state(self):
+        """Test cache reads recover from a malformed timestamp mapping."""
+        orchestrator = LLMOrchestrator([])
+
+        cached_response = LLMResponse(content="cached content", provider="cache", model="cache")
+        cache_key = orchestrator._get_cache_key("test prompt", None)
+        orchestrator.cache[cache_key] = cached_response
+        orchestrator.cache_timestamps = ["bad"]
+
+        result = asyncio.run(orchestrator.query("test prompt"))
+
+        assert result.content == "cached content"
+        assert result.cached is True
+        assert orchestrator.cache_timestamps == {}
 
     def test_query_ignores_malformed_cached_response(self):
         """Test query evicts malformed cache entries and uses an available backend."""
@@ -1497,6 +1799,32 @@ class TestLLMOrchestrator:
 
             assert result is fresh_response
             assert list(orchestrator.cache.values()) == [fresh_response]
+
+        asyncio.run(run_test())
+
+    def test_query_recovers_malformed_cache_timestamps_on_write(self):
+        """Test fresh response caching recreates malformed timestamp state."""
+
+        async def run_test():
+            config = LLMConfig(
+                provider=LLMProvider.OLLAMA,
+                model="fresh",
+                retry_attempts=1,
+                retry_delay=0,
+            )
+            orchestrator = LLMOrchestrator([config])
+            orchestrator.cache_timestamps = ["bad"]
+            orchestrator.backends["ollama:fresh"].available = True
+
+            fresh_response = LLMResponse(content="fresh content", provider="ollama", model="fresh")
+            orchestrator.backends["ollama:fresh"].analyze = AsyncMock(return_value=fresh_response)
+
+            result = await orchestrator.query("fresh prompt")
+            cache_key = orchestrator._get_cache_key("fresh prompt", None)
+
+            assert result is fresh_response
+            assert isinstance(orchestrator.cache_timestamps, dict)
+            assert cache_key in orchestrator.cache_timestamps
 
         asyncio.run(run_test())
 

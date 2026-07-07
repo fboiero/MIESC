@@ -258,6 +258,65 @@ def _non_negative_int_stat(value: Any, field_name: str, source: str) -> int:
     return value
 
 
+def _bounded_output_text(value: Any, *, default: str = "", limit: int = 2000) -> str:
+    """Return safe bounded output text for externally supplied analysis fields."""
+    text = _safe_text(value)
+    if not text:
+        return default
+    return text[:limit]
+
+
+def _optional_output_text(value: Any, *, limit: int = 2000) -> Optional[str]:
+    """Return safe bounded optional output text."""
+    text = _bounded_output_text(value, limit=limit)
+    return text or None
+
+
+def _normalized_severity(value: Any, default: str = "medium") -> str:
+    """Return a known severity label for analysis aggregation."""
+    severity = _safe_text(value).lower()
+    if severity == "informational":
+        return "info"
+    if severity in {"critical", "high", "medium", "low", "info"}:
+        return severity
+    return default
+
+
+def _response_sequence(value: Any, field_name: str, source: str) -> Sequence[Any]:
+    """Return a non-empty response sequence, rejecting string-like containers."""
+    if not isinstance(value, Sequence) or isinstance(value, (str, bytes, bytearray)):
+        raise ValueError(f"Malformed {source}: {field_name} must be non-empty sequence")
+    if not value:
+        raise ValueError(f"Malformed {source}: {field_name} must be non-empty sequence")
+    return value
+
+
+def _openai_compatible_chat_content(response: Any, source: str) -> str:
+    """Extract strict text content from an OpenAI-compatible chat response."""
+    choices = _response_sequence(getattr(response, "choices", None), "choices", source)
+    message = getattr(choices[0], "message", None)
+    if message is None:
+        raise ValueError(f"Malformed {source}: choices[0].message is required")
+    content = getattr(message, "content", None)
+    text = _safe_text(content)
+    if not text:
+        raise ValueError(f"Malformed {source}: choices[0].message.content must be safe text")
+    return text
+
+
+def _anthropic_response_text(response: Any) -> str:
+    """Extract strict text content from an Anthropic message response."""
+    content_blocks = _response_sequence(
+        getattr(response, "content", None),
+        "content",
+        "Anthropic response",
+    )
+    text = _safe_text(getattr(content_blocks[0], "text", None))
+    if not text:
+        raise ValueError("Malformed Anthropic response: content[0].text must be safe text")
+    return text
+
+
 def _normalized_model_identifier(value: Any) -> Optional[str]:
     """Return a safe model identifier, or None for malformed config values."""
     if isinstance(value, bytes):
@@ -529,7 +588,7 @@ class OpenAIBackend(LLMBackend):
         )
 
         return LLMResponse(
-            content=response.choices[0].message.content or "",
+            content=_openai_compatible_chat_content(response, "OpenAI response"),
             provider="openai",
             model=self.config.model,
             tokens_used=tokens,
@@ -597,7 +656,7 @@ class DeepSeekBackend(LLMBackend):
         )
 
         return LLMResponse(
-            content=response.choices[0].message.content or "",
+            content=_openai_compatible_chat_content(response, "DeepSeek response"),
             provider="deepseek",
             model=self.config.model,
             tokens_used=tokens,
@@ -638,7 +697,7 @@ class AnthropicBackend(LLMBackend):
             messages=[{"role": "user", "content": prompt}],
         )
 
-        content = getattr(response.content[0], "text", "") if response.content else ""
+        content = _anthropic_response_text(response)
         usage = getattr(response, "usage", None)
         tokens = 0
         if usage:
@@ -1073,9 +1132,20 @@ Provide a comprehensive security analysis in JSON format."""
         self.cache_timestamps = {}
         return self.cache
 
+    def _cache_timestamps_state(self) -> Dict[str, float]:
+        """Return a usable timestamp mapping, resetting malformed in-memory state."""
+        if isinstance(self.cache_timestamps, dict):
+            return self.cache_timestamps
+        logger.warning(
+            "Malformed LLM cache timestamp state %s; resetting timestamp cache",
+            type(self.cache_timestamps).__name__,
+        )
+        self.cache_timestamps = {}
+        return self.cache_timestamps
+
     def _cache_entry_is_fresh(self, cache_key: str) -> bool:
         """Return whether a cached response is still within the configured TTL."""
-        cached_at = self.cache_timestamps.get(cache_key)
+        cached_at = self._cache_timestamps_state().get(cache_key)
         if cached_at is None:
             return True
         if (
@@ -1093,15 +1163,16 @@ Provide a comprehensive security analysis in JSON format."""
     def _cache_response(self, cache_key: str, response: LLMResponse) -> None:
         """Store a response and evict oldest cache entries beyond the size limit."""
         cache = self._cache_state()
+        cache_timestamps = self._cache_timestamps_state()
         cache[cache_key] = response
-        self.cache_timestamps[cache_key] = time.time()
+        cache_timestamps[cache_key] = time.time()
         entry_limit = self._cache_entry_limit()
         while len(cache) > entry_limit:
             oldest_key = next(iter(cache), None)
             if oldest_key is None:
                 break
             cache.pop(oldest_key, None)
-            self.cache_timestamps.pop(oldest_key, None)
+            cache_timestamps.pop(oldest_key, None)
 
     def _get_cache_key(self, prompt: str, context: Optional[Dict]) -> str:
         """Generate cache key from prompt and context."""
@@ -1133,6 +1204,60 @@ Provide a comprehensive security analysis in JSON format."""
         )
         return hashlib.sha256(content.encode()).hexdigest()[:16]
 
+    def _analysis_vulnerability_dict(self, vulnerability: Any) -> Optional[Dict[str, Any]]:
+        """Normalize a validated or legacy vulnerability object into safe output fields."""
+        known_fields = {
+            "type",
+            "severity",
+            "title",
+            "description",
+            "confidence",
+            "swc_id",
+            "cwe_id",
+            "remediation",
+            "attack_scenario",
+        }
+        if isinstance(vulnerability, dict):
+            get_field = vulnerability.get
+            has_known_field = any(field in vulnerability for field in known_fields)
+        else:
+            def get_field(key: str, default: Any = None) -> Any:
+                return getattr(vulnerability, key, default)
+
+            has_known_field = any(hasattr(vulnerability, field) for field in known_fields)
+
+        vuln_type = _bounded_output_text(get_field("type", "unknown"), default="unknown", limit=200)
+        severity = _normalized_severity(get_field("severity", "medium"))
+        title = _bounded_output_text(get_field("title", ""), limit=500)
+        description = _bounded_output_text(get_field("description", ""), limit=5000)
+        remediation = _optional_output_text(get_field("remediation", None), limit=2000)
+        attack_scenario = _optional_output_text(get_field("attack_scenario", None), limit=2000)
+
+        if not has_known_field:
+            return None
+
+        return {
+            "type": vuln_type,
+            "severity": severity,
+            "title": title,
+            "description": description,
+            "confidence": _bounded_confidence(get_field("confidence", 0.5)),
+            "swc_id": _optional_output_text(get_field("swc_id", None), limit=100),
+            "cwe_id": _optional_output_text(get_field("cwe_id", None), limit=100),
+            "remediation": remediation,
+            "attack_scenario": attack_scenario,
+        }
+
+    def _severity_assessment(self, vulnerabilities: List[Dict[str, Any]]) -> Dict[str, int]:
+        """Aggregate normalized vulnerability severities."""
+        return {
+            "critical": sum(1 for v in vulnerabilities if v.get("severity") == "critical"),
+            "high": sum(1 for v in vulnerabilities if v.get("severity") == "high"),
+            "medium": sum(1 for v in vulnerabilities if v.get("severity") == "medium"),
+            "low": sum(1 for v in vulnerabilities if v.get("severity") == "low"),
+            "info": sum(1 for v in vulnerabilities if v.get("severity") == "info"),
+        }
+
     def _parse_analysis(self, response: LLMResponse) -> VulnerabilityAnalysis:
         """Parse LLM response into structured analysis with Pydantic validation (v5.1.2+)."""
         content = response.content
@@ -1152,53 +1277,23 @@ Provide a comprehensive security analysis in JSON format."""
             # Handle both Pydantic objects and raw dicts (from model_construct in lenient mode)
             vulnerabilities: List[Dict[str, Any]] = []
             for vuln in validated.vulnerabilities:
-                if isinstance(vuln, dict):
-                    # Already a dict (from lenient parsing)
-                    vuln_dict = {
-                        "type": vuln.get("type", "unknown"),
-                        "severity": vuln.get("severity", "medium"),
-                        "title": vuln.get("title", ""),
-                        "description": vuln.get("description", ""),
-                        "confidence": _bounded_confidence(vuln.get("confidence", 0.5)),
-                        "swc_id": vuln.get("swc_id"),
-                        "cwe_id": vuln.get("cwe_id"),
-                        "remediation": vuln.get("remediation"),
-                        "attack_scenario": vuln.get("attack_scenario"),
-                    }
-                else:
-                    # Pydantic object
-                    vuln_dict = {
-                        "type": vuln.type,
-                        "severity": vuln.severity,
-                        "title": vuln.title,
-                        "description": vuln.description,
-                        "confidence": _bounded_confidence(vuln.confidence),
-                        "swc_id": vuln.swc_id,
-                        "cwe_id": vuln.cwe_id,
-                        "remediation": vuln.remediation,
-                        "attack_scenario": vuln.attack_scenario,
-                    }
-                vulnerabilities.append(vuln_dict)
-
-            severity_assessment = {
-                "critical": sum(1 for v in vulnerabilities if v.get("severity") == "critical"),
-                "high": sum(1 for v in vulnerabilities if v.get("severity") == "high"),
-                "medium": sum(1 for v in vulnerabilities if v.get("severity") == "medium"),
-                "low": sum(1 for v in vulnerabilities if v.get("severity") == "low"),
-                "info": sum(
-                    1 for v in vulnerabilities if v.get("severity") in ("info", "informational")
-                ),
-            }
+                vuln_dict = self._analysis_vulnerability_dict(vuln)
+                if vuln_dict is not None:
+                    vulnerabilities.append(vuln_dict)
 
             return VulnerabilityAnalysis(
                 vulnerabilities=vulnerabilities,
-                severity_assessment=severity_assessment,
+                severity_assessment=self._severity_assessment(vulnerabilities),
                 recommendations=[
                     v.get("remediation", "") for v in vulnerabilities if v.get("remediation")
                 ],
                 confidence_score=sum(v.get("confidence", 0.5) for v in vulnerabilities)
                 / max(len(vulnerabilities), 1),
-                analysis_summary=validated.summary or "Analysis completed",
+                analysis_summary=_bounded_output_text(
+                    getattr(validated, "summary", None),
+                    default="Analysis completed",
+                    limit=2000,
+                ),
                 raw_response=content,
             )
 
@@ -1217,40 +1312,30 @@ Provide a comprehensive security analysis in JSON format."""
                 data = {}
 
             raw_vulnerabilities = data.get("vulnerabilities", [])
-            vulnerabilities = (
-                [vuln for vuln in raw_vulnerabilities if isinstance(vuln, dict)]
-                if isinstance(raw_vulnerabilities, list)
-                else []
-            )
-
-            # Truncate and sanitize unvalidated data
-            for vuln_dict in vulnerabilities:
-                for key in list(vuln_dict.keys()):
-                    val = vuln_dict[key]
-                    if isinstance(val, str) and len(val) > 5000:
-                        vuln_dict[key] = val[:5000] + "...[truncated]"
-                if "confidence" in vuln_dict:
-                    vuln_dict["confidence"] = _bounded_confidence(vuln_dict["confidence"])
-
-            severity_assessment = {
-                "critical": sum(1 for v in vulnerabilities if v.get("severity") == "critical"),
-                "high": sum(1 for v in vulnerabilities if v.get("severity") == "high"),
-                "medium": sum(1 for v in vulnerabilities if v.get("severity") == "medium"),
-                "low": sum(1 for v in vulnerabilities if v.get("severity") == "low"),
-                "info": sum(1 for v in vulnerabilities if v.get("severity") == "info"),
-            }
+            vulnerabilities = []
+            if isinstance(raw_vulnerabilities, list):
+                for vuln in raw_vulnerabilities:
+                    if not isinstance(vuln, dict):
+                        continue
+                    vuln_dict = self._analysis_vulnerability_dict(vuln)
+                    if vuln_dict is not None:
+                        vulnerabilities.append(vuln_dict)
 
             return VulnerabilityAnalysis(
                 vulnerabilities=vulnerabilities,
-                severity_assessment=severity_assessment,
+                severity_assessment=self._severity_assessment(vulnerabilities),
                 recommendations=[
-                    v.get("remediation", "")[:2000] for v in vulnerabilities if v.get("remediation")
+                    v.get("remediation", "") for v in vulnerabilities if v.get("remediation")
                 ],
                 confidence_score=sum(
                     _bounded_confidence(v.get("confidence", 0.5)) for v in vulnerabilities
                 )
                 / max(len(vulnerabilities), 1),
-                analysis_summary=str(data.get("summary", "Analysis completed"))[:2000],
+                analysis_summary=_bounded_output_text(
+                    data.get("summary"),
+                    default="Analysis completed",
+                    limit=2000,
+                ),
                 raw_response=content,
             )
 
@@ -1261,7 +1346,11 @@ Provide a comprehensive security analysis in JSON format."""
                 severity_assessment={"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0},
                 recommendations=[],
                 confidence_score=0.5,
-                analysis_summary=content[:500] if content else "Analysis failed",
+                analysis_summary=_bounded_output_text(
+                    content,
+                    default="Analysis failed",
+                    limit=500,
+                ),
                 raw_response=content,
             )
 
@@ -1298,9 +1387,13 @@ Provide a comprehensive security analysis in JSON format."""
             if self._backend_is_available(key, backend):
                 return key
 
-        if isinstance(self.primary_provider, str) and self.primary_provider:
+        if (
+            isinstance(self.primary_provider, str)
+            and self.primary_provider
+            and self.primary_provider in self.backends
+        ):
             return self.primary_provider
-        return self._backend_items()[0][0]
+        raise RuntimeError("No LLM backends available")
 
     def _preferred_models_for_task(self, preferred_models: Any) -> List[str]:
         """Return strict preferred model keys from a potentially malformed sequence."""
@@ -1332,7 +1425,7 @@ Provide a comprehensive security analysis in JSON format."""
     def clear_cache(self) -> None:
         """Clear the response cache."""
         self._cache_state().clear()
-        self.cache_timestamps.clear()
+        self._cache_timestamps_state().clear()
 
 
 # Convenience function for simple usage
