@@ -1138,12 +1138,17 @@ class TestGasReport:
                 "CleanVault": {
                     "methods": {
                         "deposit": {"avg": 3},
+                        "x" * 121: {"avg": 4},
                     }
                 },
             }
         )
 
         assert normalized == {"CleanVault": {"methods": {"deposit": {"avg": 3}}}}
+
+    def test_normalize_gas_value_accepts_bytes_and_rejects_control_chars(self, runner):
+        assert runner._normalize_gas_value(b"1,234") == 1234
+        assert runner._normalize_gas_value("12\x7f34") is None
 
     def test_normalize_test_name_strips_and_rejects_control_chars(self):
         assert FoundryRunner._normalize_test_name("  testWithdraw()  ") == "testWithdraw()"

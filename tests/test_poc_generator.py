@@ -822,6 +822,21 @@ class TestTemplateCustomization:
         assert "createSelectFork" in result
         assert "18500000" in result
 
+    def test_custom_import_lines_deduplicates_and_rejects_long_paths(self, generator):
+        """Custom imports should be normalized and deduplicated before emission."""
+        options = GenerationOptions(
+            custom_imports=[
+                " forge-std/console.sol ",
+                "forge-std/console.sol",
+                "forge-std/console2.sol",
+                "x" * 121,
+            ]
+        )
+
+        assert generator._custom_import_lines(options) == (
+            'import "forge-std/console.sol";\nimport "forge-std/console2.sol";'
+        )
+
     @pytest.mark.parametrize(
         "fork_url, fork_block",
         [
@@ -829,6 +844,8 @@ class TestTemplateCustomization:
             (["https://rpc.example"], 18500000),
             ("https://rpc.example", 0),
             ("https://rpc.example", True),
+            ("https://rpc.example/" + ("a" * 2050), 18500000),
+            ("https://rpc.example/\n", 18500000),
         ],
     )
     def test_customize_skips_malformed_fork_config(

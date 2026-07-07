@@ -326,11 +326,13 @@ def test_authorization_headers_keep_api_key_out_of_debug_logs(caplog):
 def test_authorization_headers_reject_control_chars():
     assert _authorization_headers("  sk-test-secret  ") == {"Authorization": "Bearer sk-test-secret"}
     assert _authorization_headers("sk-test\nsecret") == {"Authorization": "Bearer "}
+    assert _authorization_headers(b"  sk-test-bytes  ") == {"Authorization": "Bearer sk-test-bytes"}
 
 
 def test_provider_label_trims_and_rejects_control_chars():
     assert _provider_label("  DeepSeek  ") == "DeepSeek"
     assert _provider_label("DeepSeek\x7f") == "provider"
+    assert _provider_label(b"  DeepSeek  ") == "DeepSeek"
 
 
 def test_fetch_openai_compatible_model_ids_rejects_malformed_timeout():

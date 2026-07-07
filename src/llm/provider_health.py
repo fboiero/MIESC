@@ -148,6 +148,11 @@ async def fetch_openai_compatible_model_ids(
 
 def _authorization_headers(api_key: str) -> dict[str, str]:
     """Build auth headers without exposing credentials to logging paths."""
+    if isinstance(api_key, bytes):
+        try:
+            api_key = api_key.decode("utf-8", errors="replace")
+        except Exception:
+            return {"Authorization": "Bearer "}
     if not isinstance(api_key, str):
         return {"Authorization": "Bearer "}
     key = api_key.strip()
@@ -158,6 +163,11 @@ def _authorization_headers(api_key: str) -> dict[str, str]:
 
 def _provider_label(provider_name: Any) -> str:
     """Return a bounded provider label for logs."""
+    if isinstance(provider_name, bytes):
+        try:
+            provider_name = provider_name.decode("utf-8", errors="replace")
+        except Exception:
+            return "provider"
     label = provider_name.strip() if isinstance(provider_name, str) else ""
     if any(ord(ch) < 32 or ord(ch) == 127 for ch in label):
         return "provider"

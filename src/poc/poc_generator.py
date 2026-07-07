@@ -572,7 +572,16 @@ class PoCGenerator:
             logger.warning("Skipping malformed custom imports container in PoC options")
             return ""
 
-        import_paths = [imp.strip() for imp in imports if _safe_import_path(imp)]
+        import_paths = []
+        seen = set()
+        for imp in imports:
+            if not _safe_import_path(imp):
+                continue
+            normalized = imp.strip()
+            if len(normalized) > 120 or normalized in seen:
+                continue
+            seen.add(normalized)
+            import_paths.append(normalized)
         if len(import_paths) != len(imports):
             logger.warning("Skipping malformed custom import entry in PoC options")
 
@@ -589,6 +598,8 @@ class PoCGenerator:
         if (
             not isinstance(fork_url, str)
             or not fork_url.strip()
+            or len(fork_url.strip()) > 2048
+            or any(ord(ch) < 32 or ord(ch) == 127 for ch in fork_url)
             or not isinstance(fork_block, int)
             or isinstance(fork_block, bool)
             or fork_block <= 0

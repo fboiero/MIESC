@@ -600,6 +600,30 @@ class TestLLMEnsembleDetectorInit:
             LLMProvider.OPENAI: ["model-b"],
         }
 
+    def test_extract_availability_model_ids_and_provider_status_map_reject_overlong_entries(self):
+        """Availability extraction should bound malformed provider payloads."""
+        assert LLMEnsembleDetector._extract_availability_model_ids(
+            {
+                "models": [
+                    {"name": " model-a "},
+                    {"name": "x" * 201},
+                    {"name": "bad\nname"},
+                    {"name": 123},
+                ]
+            },
+            "models",
+            "name",
+        ) == ["model-a"]
+
+        normalized = LLMEnsembleDetector._provider_status_map(
+            {
+                "openai": ["model-a"],
+                "x" * 41: ["model-b"],
+                "anthropic": ["bad\nmodel"],
+            }
+        )
+        assert normalized == {LLMProvider.OPENAI: ["model-a"], LLMProvider.ANTHROPIC: []}
+
 
 class TestLLMEnsembleDetectorConstants:
     """Tests for LLMEnsembleDetector class constants."""

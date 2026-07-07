@@ -1,6 +1,8 @@
 import json
 import subprocess
+from types import MappingProxyType
 
+import src.llm.openllama_helper as openllama_helper_module
 from src.llm.openllama_helper import (
     MAX_ANALYZE_RESPONSE_CHARS,
     MAX_GENERATE_RESPONSE_BYTES,
@@ -175,6 +177,16 @@ def test_subprocess_text_rejects_control_chars():
 
     assert OpenLLaMAHelper._subprocess_text(Result(), "stdout") == "  valid output  "
     assert OpenLLaMAHelper._subprocess_text(Result(), "stderr") == ""
+
+
+def test_ollama_generate_host_and_mapping_get_bound_inputs():
+    assert OpenLLaMAHelper._ollama_generate_host(b"  http://localhost:11434  ") == (
+        "http://localhost:11434"
+    )
+    assert OpenLLaMAHelper._ollama_generate_host("http://localhost:11434\x7f") == (
+        openllama_helper_module.DEFAULT_OLLAMA_HOST
+    )
+    assert OpenLLaMAHelper._mapping_get(MappingProxyType({"model": "x"}), "model") == "x"
 
 
 def test_is_available_returns_false_on_malformed_ollama_result(monkeypatch):

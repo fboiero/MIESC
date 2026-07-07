@@ -23,6 +23,7 @@ import logging
 import os
 import subprocess
 import time
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
@@ -571,9 +572,16 @@ REMEDIATION ADVICE:"""
     @staticmethod
     def _ollama_generate_host(value: Any) -> str:
         """Return a stripped endpoint string or the default Ollama host."""
+        if isinstance(value, bytes):
+            try:
+                value = value.decode("utf-8", errors="replace")
+            except Exception:
+                return DEFAULT_OLLAMA_HOST
         if not isinstance(value, str):
             return DEFAULT_OLLAMA_HOST
         endpoint = value.strip()
+        if not endpoint or any(ord(ch) < 32 or ord(ch) == 127 for ch in endpoint):
+            return DEFAULT_OLLAMA_HOST
         return endpoint or DEFAULT_OLLAMA_HOST
 
     def _generate_insights(
@@ -629,7 +637,7 @@ INSIGHTS:"""
     @staticmethod
     def _mapping_get(mapping: Any, key: str, default: Any = None) -> Any:
         """Read optional mapping fields without trusting malformed dict subclasses."""
-        if not isinstance(mapping, dict):
+        if not isinstance(mapping, Mapping):
             return default
         try:
             return mapping.get(key, default)

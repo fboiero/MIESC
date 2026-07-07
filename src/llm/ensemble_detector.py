@@ -436,8 +436,16 @@ Response (JSON array only):"""
                 continue
 
             model_id = model.get(id_key)
-            if isinstance(model_id, str) and model_id.strip():
-                model_ids.append(model_id.strip())
+            if isinstance(model_id, str):
+                cleaned = model_id.strip()
+                if (
+                    cleaned
+                    and len(cleaned) <= LLMEnsembleDetector.MAX_MODEL_LABEL_LENGTH
+                    and not any(ord(ch) < 32 or ord(ch) == 127 for ch in cleaned)
+                ):
+                    model_ids.append(cleaned)
+                else:
+                    logger.warning("Ignoring malformed provider model id: %r", model_id)
             else:
                 logger.warning("Ignoring malformed provider model id: %r", model_id)
 
@@ -476,8 +484,14 @@ Response (JSON array only):"""
             if isinstance(provider, LLMProvider):
                 normalized_provider = provider
             elif isinstance(provider, str):
+                provider_text = provider.strip().lower()
+                if not provider_text or len(provider_text) > 40 or any(
+                    ord(ch) < 32 or ord(ch) == 127 for ch in provider_text
+                ):
+                    logger.warning("Ignoring malformed ensemble provider status key: %r", provider)
+                    continue
                 try:
-                    normalized_provider = LLMProvider(provider.strip().lower())
+                    normalized_provider = LLMProvider(provider_text)
                 except ValueError:
                     logger.warning("Ignoring unknown ensemble provider status key: %r", provider)
                     continue
@@ -1464,12 +1478,22 @@ Response (JSON array only):"""
             return {}
         location: Dict[str, Any] = {}
         for key, field_value in value.items():
-            if not isinstance(key, str) or isinstance(field_value, (dict, list, tuple, set)):
+            if not isinstance(key, str) or len(key) > 120 or any(
+                ord(ch) < 32 or ord(ch) == 127 for ch in key
+            ):
+                continue
+            if isinstance(field_value, (dict, list, tuple, set)):
                 continue
             if key == "line":
                 line = cls._safe_int(field_value, 0)
                 if cls._is_nonnegative_finite_scalar(field_value):
                     location[key] = line
+                continue
+            if isinstance(field_value, str):
+                text = cls._safe_text(field_value, "")
+                if not text:
+                    continue
+                location[key] = text
                 continue
             location[key] = field_value
         return location

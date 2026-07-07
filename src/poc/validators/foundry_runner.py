@@ -636,9 +636,15 @@ class FoundryRunner:
             return None
         if isinstance(value, int):
             return value
+        if isinstance(value, bytes):
+            value = value.decode("utf-8", errors="replace")
         if isinstance(value, str):
             normalized = value.replace(",", "").strip()
-            if normalized.isdigit() and len(normalized) <= 12:
+            if (
+                normalized.isdigit()
+                and len(normalized) <= 12
+                and not any(ord(ch) < 32 or ord(ch) == 127 for ch in normalized)
+            ):
                 return int(normalized)
         return None
 
@@ -656,7 +662,11 @@ class FoundryRunner:
                 contract_name = contract.strip()
             except (AttributeError, TypeError, ValueError):
                 continue
-            if not contract_name or any(ord(ch) < 32 for ch in contract_name):
+            if (
+                not contract_name
+                or len(contract_name) > 120
+                or any(ord(ch) < 32 or ord(ch) == 127 for ch in contract_name)
+            ):
                 continue
 
             contract_report = dict(report)
@@ -669,7 +679,8 @@ class FoundryRunner:
                         if isinstance(method, str)
                         and isinstance(metrics, dict)
                         and method.strip()
-                        and not any(ord(ch) < 32 for ch in method.strip())
+                        and len(method.strip()) <= 120
+                        and not any(ord(ch) < 32 or ord(ch) == 127 for ch in method.strip())
                     }
                     if isinstance(methods, dict)
                     else {}
