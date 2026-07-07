@@ -896,18 +896,31 @@ class RemediationGenerator:
             return "unknown"
 
         normalized = value.strip().lower()
+        if not normalized or any(ord(ch) < 32 or ord(ch) == 127 for ch in normalized):
+            return "unknown"
         return normalized if normalized else "unknown"
 
     @staticmethod
     def _string_or_default(value: Any, default: str) -> str:
         """Return string values from LLM results, falling back on malformed shapes."""
-        return value if isinstance(value, str) else default
+        if not isinstance(value, str):
+            return default
+        normalized = value.strip()
+        if not normalized or any(
+            ord(ch) < 32 and ch not in "\n\r\t" or ord(ch) == 127 for ch in normalized
+        ):
+            return default
+        return normalized
 
     @staticmethod
     def _fixed_code_or_default(value: Any, default: str) -> str:
         """Return non-empty fixed code from LLM results, falling back on malformed shapes."""
-        if isinstance(value, str) and value.strip():
-            return value
+        if isinstance(value, str):
+            normalized = value.strip()
+            if normalized and not any(
+                ord(ch) < 32 and ch not in "\n\r\t" or ord(ch) == 127 for ch in normalized
+            ):
+                return normalized
         return default
 
     @staticmethod

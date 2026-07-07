@@ -1254,6 +1254,49 @@ class TestLLMOrchestrator:
             == []
         )
 
+    def test_default_config_from_env_sanitizes_malformed_overrides(self, monkeypatch):
+        """Test env-derived defaults reject malformed provider/model/base_url values."""
+        monkeypatch.setenv("MIESC_LLM_PROVIDER", "deepseek\x7f")
+        monkeypatch.setenv("MIESC_LLM_MODEL", "  custom-model  ")
+        monkeypatch.setenv("OLLAMA_HOST", "http://local\nhost")
+        monkeypatch.setenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com\n")
+
+        orchestrator = LLMOrchestrator([])
+        config = orchestrator._default_config_from_env()
+
+        assert config.provider == LLMProvider.OLLAMA
+        assert config.model == "deepseek-coder:6.7b"
+        assert config.base_url == "http://localhost:11434"
+
+    def test_response_boundary_error_rejects_blank_strings(self):
+        """Test malformed response boundary strings are rejected."""
+        orchestrator = LLMOrchestrator([])
+
+        assert (
+            orchestrator._response_boundary_error(
+                LLMResponse(content=" ", provider="ollama", model="test"),
+                "cache",
+            )
+            is not None
+        )
+        assert (
+            orchestrator._response_boundary_error(
+                LLMResponse(content="ok", provider=" ", model="test"),
+                "cache",
+            )
+            is not None
+        )
+
+    def test_backend_is_available_resets_malformed_state(self):
+        """Test malformed backend availability is normalized in place."""
+        orchestrator = LLMOrchestrator([])
+        config = LLMConfig(provider=LLMProvider.OLLAMA, model="test")
+        backend = OllamaBackend(config)
+        backend.available = {"available": True}
+
+        assert orchestrator._backend_is_available("ollama:test", backend) is False
+        assert backend.available is False
+
     def test_get_available_providers(self):
         """Test getting available providers."""
         configs = [

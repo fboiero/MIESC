@@ -874,7 +874,7 @@ def test_parse_optional_text_rejects_control_chars():
 def test_parse_text_rejects_control_chars():
     validator = LLMFindingValidator(ValidatorConfig())
 
-    assert validator._parse_text("remediation hint", "fallback") == "remediation hint"
+    assert validator._parse_text(" remediation hint ", "fallback") == "remediation hint"
     assert validator._parse_text("remediation\nhint", "fallback") == "fallback"
 
 
@@ -890,7 +890,7 @@ def test_parse_confidence_strips_and_rejects_control_chars():
 
 def test_parse_suggested_severity_and_exception_reason_sanitize_text():
     assert LLMFindingValidator._parse_suggested_severity("  HIGH  ") == "HIGH"
-    assert LLMFindingValidator._parse_suggested_severity("high\n") is None
+    assert LLMFindingValidator._parse_suggested_severity("high\n") == "HIGH"
     assert LLMFindingValidator._exception_reason(RuntimeError("  bad failure  ")) == (
         "Exception: bad failure"
     )

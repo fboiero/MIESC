@@ -55,6 +55,11 @@ SOURCE_TIER_WEIGHTS = {
 }
 
 
+def _is_safe_text(text: str) -> bool:
+    """Return whether text is non-empty and free of control characters."""
+    return bool(text) and not any(ord(ch) < 32 or ord(ch) == 127 for ch in text)
+
+
 def _coerce_text_list(value: Any) -> List[str]:
     """Return a safe string list for loose metadata fields."""
     if value is None:
@@ -88,13 +93,13 @@ def _coerce_document_text(value: Any) -> str:
         return ""
     if isinstance(value, bytes):
         text = value.decode("utf-8", errors="replace").strip()
-        return text if text and not any(ord(ch) < 32 or ord(ch) == 127 for ch in text) else ""
+        return text if _is_safe_text(text) else ""
     if isinstance(value, str):
         text = value.strip()
-        return text if text and not any(ord(ch) < 32 or ord(ch) == 127 for ch in text) else ""
+        return text if _is_safe_text(text) else ""
     try:
         text = str(value).strip()
-        return text if text and not any(ord(ch) < 32 or ord(ch) == 127 for ch in text) else ""
+        return text if _is_safe_text(text) else ""
     except Exception:
         return ""
 
@@ -103,14 +108,14 @@ def _coerce_query_text(value: Any) -> str:
     """Return safe query text for cache keys, vector search, and ranking."""
     if isinstance(value, str):
         text = value.strip()
-        return text if text and not any(ord(ch) < 32 or ord(ch) == 127 for ch in text) else ""
+        return text if _is_safe_text(text) else ""
     if isinstance(value, bytes):
         text = value.decode("utf-8", errors="replace").strip()
-        return text if text and not any(ord(ch) < 32 or ord(ch) == 127 for ch in text) else ""
+        return text if _is_safe_text(text) else ""
     if value is None:
         return ""
     text = str(value).strip()
-    return text if text and not any(ord(ch) < 32 or ord(ch) == 127 for ch in text) else ""
+    return text if _is_safe_text(text) else ""
 
 
 def _coerce_cache_query_text(value: Any) -> str:
@@ -129,9 +134,6 @@ def _coerce_batch_queries(value: Any) -> List[Any]:
 
 def _coerce_batch_query_text(value: Any) -> Tuple[bool, str]:
     """Return one safe batch query text, marking entries that cannot be coerced."""
-    def _is_safe_text(text: str) -> bool:
-        return bool(text) and not any(ord(ch) < 32 or ord(ch) == 127 for ch in text)
-
     if isinstance(value, str):
         text = value.strip()
         return (_is_safe_text(text), text if _is_safe_text(text) else "")
@@ -150,7 +152,7 @@ def _coerce_batch_query_text(value: Any) -> Tuple[bool, str]:
 def _coerce_filter_text(value: Any) -> Optional[str]:
     """Return safe scalar metadata filter text, or no filter for malformed values."""
     text = _coerce_query_text(value).strip() if isinstance(value, (str, bytes)) else ""
-    if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+    if not _is_safe_text(text):
         return None
     return text or None
 
@@ -254,7 +256,7 @@ def _coerce_collection_name(value: Any) -> str:
         return DEFAULT_COLLECTION_NAME
 
     text = text.strip()
-    if any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+    if not _is_safe_text(text):
         return DEFAULT_COLLECTION_NAME
     if _SAFE_COLLECTION_NAME_RE.fullmatch(text):
         return text
@@ -5002,13 +5004,14 @@ class EmbeddingRAG:
 
     def _collection_metadata(self) -> Dict[str, Any]:
         """Metadata used to decide whether a persisted Chroma index is current."""
+        embedding_model = _coerce_embedding_model_name(self.embedding_model_name)
         return {
             "hnsw:space": "cosine",
             "hnsw:search_ef": 50,  # Better recall (default 10)
             "hnsw:M": 16,  # Default, good balance
             "knowledge_base_version": KNOWLEDGE_BASE_VERSION,
             "knowledge_base_count": len(VULNERABILITY_KNOWLEDGE_BASE),
-            "embedding_model": self.embedding_model_name,
+            "embedding_model": embedding_model,
         }
 
     def _build_doc_index(self) -> None:

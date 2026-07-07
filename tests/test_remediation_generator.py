@@ -1684,3 +1684,18 @@ def test_get_quick_fix_convenience_function_defaults_malformed_code():
 
     assert fixed == ""
     assert explanation == "No function code available for quick fix"
+
+
+def test_string_and_code_helpers_normalize_whitespace_and_control_chars():
+    assert RemediationGenerator._parse_vuln_type("  ReEntrancy  ") == "reentrancy"
+    assert RemediationGenerator._parse_vuln_type("bad\nvalue") == "unknown"
+    assert RemediationGenerator._string_or_default("  hello  ", "fallback") == "hello"
+    assert RemediationGenerator._string_or_default("hello\x7f", "fallback") == "fallback"
+    assert RemediationGenerator._fixed_code_or_default("  contract C {}  ", "fallback") == "contract C {}"
+    assert RemediationGenerator._fixed_code_or_default("contract\nC {}", "fallback") == "contract\nC {}"
+
+
+def test_unique_string_list_helper_deduplicates_clean_items():
+    assert RemediationGenerator._unique_string_list_or_empty(
+        ["  alpha  ", "alpha", "beta", "beta", None, {"x": 1}]
+    ) == ["alpha", "beta"]

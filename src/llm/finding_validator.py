@@ -457,9 +457,10 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
         """Return text only when the LLM field has a string shape."""
         if not isinstance(value, str):
             return default
-        if any(ord(ch) < 32 or ord(ch) == 127 for ch in value):
+        text = value.strip()
+        if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
             return default
-        return value
+        return text
 
     @classmethod
     def _parse_optional_text(cls, value: Any) -> Optional[str]:
