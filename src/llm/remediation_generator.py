@@ -40,6 +40,9 @@ _EXPORT_REFERENCE_URL_RE = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*://|^www\.", re.
 _EXPORT_REFERENCE_SCHEME_RE = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:")
 _EXPORT_MARKDOWN_LINK_RE = re.compile(r"^\[([^\]\x00-\x1f\x7f]+)\]\(([^()\s\x00-\x1f\x7f]+)\)$")
 _EXPORT_TEST_NAME_CONTROL_RE = re.compile(r"[\x00-\x1f\x7f]")
+_SOLIDITY_IMPORT_RE = re.compile(
+    r"""^import\s+(?:(?:"[^"\x00-\x1f\x7f]+"|'[^'\x00-\x1f\x7f]+')|(?:\{[^{}\x00-\x1f\x7f]+\}\s+from\s+(?:"[^"\x00-\x1f\x7f]+"|'[^'\x00-\x1f\x7f]+'))|(?:[A-Za-z_$][\w$]*\s+from\s+(?:"[^"\x00-\x1f\x7f]+"|'[^'\x00-\x1f\x7f]+')))\s*;$"""
+)
 
 
 def _safe_text(value: Any, *, allow_multiline: bool = False) -> str:
@@ -63,6 +66,12 @@ def _safe_text(value: Any, *, allow_multiline: bool = False) -> str:
     elif any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
         return ""
     return text
+
+
+def _safe_error_text(value: Any, default: str = "error", *, limit: int = 200) -> str:
+    """Return single-line diagnostic text without trusting exception/string shapes."""
+    text = _safe_text(value)
+    return (text or default)[:limit]
 
 
 def _export_string(value: Any, default: str) -> str:
@@ -587,9 +596,9 @@ class RemediationGenerator:
             model: Model to use for generation
             timeout: Request timeout
         """
-        self.base_url = ollama_base_url
-        self.model = model
-        self.timeout = timeout
+        self.base_url = self._normalized_base_url(ollama_base_url)
+        self.model = self._string_or_default(model, "deepseek-coder:6.7b")
+        self.timeout = self._positive_int(timeout, 120)
 
         logger.info(f"RemediationGenerator initialized with model={model}")
 
@@ -708,7 +717,7 @@ class RemediationGenerator:
 
         if parallel and len(findings) > 1:
             # Process in batches
-            semaphore = asyncio.Semaphore(max_concurrent)
+            semaphore = asyncio.Semaphore(self._positive_int(max_concurrent, 3))
 
             async def process_with_semaphore(finding: Dict[str, Any]) -> Any:
                 async with semaphore:
@@ -718,9 +727,16 @@ class RemediationGenerator:
             results = await asyncio.gather(*tasks, return_exceptions=True)
 
             for result in results:
-                if isinstance(result, BaseException):
-                    logger.warning(f"Remediation generation failed: {result}")
+                if isinstance(result, asyncio.CancelledError):
+                    raise result
+                if isinstance(result, REMEDIATION_RUNTIME_ERRORS):
+                    logger.warning(
+                        "Remediation generation failed: %s",
+                        _safe_error_text(result),
+                    )
                     failure_count += 1
+                elif isinstance(result, BaseException):
+                    raise result
                 else:
                     remediations.append(result)
                     success_count += 1
@@ -731,8 +747,10 @@ class RemediationGenerator:
                     remediation = await self.generate_remediation(finding, code)
                     remediations.append(remediation)
                     success_count += 1
+                except asyncio.CancelledError:
+                    raise
                 except REMEDIATION_RUNTIME_ERRORS as e:
-                    logger.warning(f"Remediation generation failed: {e}")
+                    logger.warning("Remediation generation failed: %s", _safe_error_text(e))
                     failure_count += 1
 
         execution_time = (time.time() - start_time) * 1000
@@ -774,19 +792,20 @@ class RemediationGenerator:
         # Apply pattern-specific fixes
         if vuln_type == "reentrancy":
             # Add nonReentrant modifier
-            if "nonReentrant" not in fixed:
-                # Find function declaration and add modifier
-                fixed = re.sub(
-                    r"(function\s+\w+\s*\([^)]*\)\s*(?:external|public))", r"\1 nonReentrant", fixed
-                )
+            updated = self._insert_function_modifier(fixed, "nonReentrant")
+            if updated != fixed:
+                fixed = updated
                 changes.append("Added nonReentrant modifier")
 
         elif vuln_type == "access-control":
             # Add onlyOwner modifier
-            if "onlyOwner" not in fixed and "onlyRole" not in fixed:
-                fixed = re.sub(
-                    r"(function\s+\w+\s*\([^)]*\)\s*(?:external|public))", r"\1 onlyOwner", fixed
-                )
+            updated = self._insert_function_modifier(
+                fixed,
+                "onlyOwner",
+                existing_modifiers={"onlyOwner", "onlyRole"},
+            )
+            if updated != fixed:
+                fixed = updated
                 changes.append("Added onlyOwner modifier")
 
         elif vuln_type == "unchecked-call":
@@ -816,8 +835,9 @@ class RemediationGenerator:
 
     async def _query_llm(self, prompt: str) -> Dict[str, Any]:
         """Query the LLM and parse JSON response."""
+        prompt_text = _safe_text(prompt, allow_multiline=True)
         payload = {
-            "model": self.model,
+            "model": self._string_or_default(self.model, "deepseek-coder:6.7b"),
             "messages": [
                 {
                     "role": "system",
@@ -827,7 +847,7 @@ class RemediationGenerator:
                         "Respond only with valid JSON."
                     ),
                 },
-                {"role": "user", "content": prompt},
+                {"role": "user", "content": prompt_text},
             ],
             "stream": False,
             "options": {
@@ -839,12 +859,12 @@ class RemediationGenerator:
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.post(
-                    f"{self.base_url}/api/chat",
+                    f"{self._normalized_base_url(self.base_url)}/api/chat",
                     json=payload,
-                    timeout=aiohttp.ClientTimeout(total=self.timeout),
+                    timeout=aiohttp.ClientTimeout(total=self._positive_int(self.timeout, 120)),
                 ) as resp:
                     if resp.status != 200:
-                        raise RuntimeError(f"LLM error: {await resp.text()}")
+                        raise RuntimeError(f"LLM error: {_safe_error_text(await resp.text())}")
 
                     data = await resp.json()
                     if not isinstance(data, dict):
@@ -857,7 +877,7 @@ class RemediationGenerator:
                     return self._parse_json_response(content)
 
         except REMEDIATION_RUNTIME_ERRORS as e:
-            logger.error(f"LLM query failed: {e}")
+            logger.error("LLM query failed: %s", _safe_error_text(e))
             return {}
 
     def _parse_json_response(self, content: str) -> Dict[str, Any]:
@@ -897,10 +917,9 @@ class RemediationGenerator:
         # Try to extract by function name
         func_name = _safe_text(location.get("function"))
         if func_name:
-            pattern = rf"function\s+{re.escape(func_name)}\s*\([^)]*\)[^{{]*\{{[^}}]*\}}"
-            match = re.search(pattern, full_code, re.DOTALL)
-            if match:
-                return match.group(0)
+            function_code = self._extract_function_by_name(full_code, func_name)
+            if function_code:
+                return function_code
 
         # Try to extract by line number
         line = location.get("line")
@@ -923,6 +942,28 @@ class RemediationGenerator:
 
         normalized = value.lower()
         return normalized if normalized else "unknown"
+
+    @staticmethod
+    def _positive_int(value: Any, default: int) -> int:
+        """Return a positive int, defaulting malformed/bool/non-positive values."""
+        if isinstance(value, bool):
+            return default
+        try:
+            normalized = int(value)
+        except (TypeError, ValueError, OverflowError):
+            return default
+        return normalized if normalized > 0 else default
+
+    @staticmethod
+    def _normalized_base_url(value: Any) -> str:
+        """Return a usable base URL without trailing slash."""
+        normalized = _safe_text(value)
+        if not normalized:
+            return "http://localhost:11434"
+        parsed = urlparse(normalized)
+        if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+            return "http://localhost:11434"
+        return normalized.rstrip("/")
 
     @staticmethod
     def _string_or_default(value: Any, default: str) -> str:
@@ -970,6 +1011,8 @@ class RemediationGenerator:
         imports = []
         seen = set()
         for import_line in cls._string_list_or_empty(value):
+            if not cls._is_import_statement(import_line):
+                continue
             if import_line in seen or import_line in existing_lines:
                 continue
             seen.add(import_line)
@@ -990,6 +1033,129 @@ class RemediationGenerator:
 
         normalized = value.lower()
         return normalized if normalized in allowed else default
+
+    @classmethod
+    def _is_import_statement(cls, value: Any) -> bool:
+        """Return true for a single Solidity import statement."""
+        line = _safe_text(value)
+        return bool(line and _SOLIDITY_IMPORT_RE.fullmatch(line))
+
+    @classmethod
+    def _insert_function_modifier(
+        cls,
+        function_code: str,
+        modifier: str,
+        *,
+        existing_modifiers: Optional[set[str]] = None,
+    ) -> str:
+        """Insert a modifier before returns/body while preserving Solidity modifier order."""
+        if not isinstance(function_code, str):
+            return function_code
+        existing = existing_modifiers or {modifier}
+        header_bounds = cls._function_header_bounds(function_code)
+        if not header_bounds:
+            return function_code
+        start, end, header = header_bounds
+        if any(re.search(rf"\b{re.escape(name)}(?:\s*\([^)]*\))?\b", header) for name in existing):
+            return function_code
+
+        insertion_point = header.find(" returns")
+        if insertion_point == -1:
+            insertion_point = len(header)
+        updated_header = f"{header[:insertion_point].rstrip()} {modifier}{header[insertion_point:]}"
+        return f"{function_code[:start]}{updated_header}{function_code[end:]}"
+
+    @staticmethod
+    def _function_header_bounds(function_code: str) -> Optional[Tuple[int, int, str]]:
+        """Match a Solidity function header through the opening brace."""
+        index = function_code.find("function")
+        if index == -1:
+            return None
+        depth = 0
+        for pos in range(index, len(function_code)):
+            char = function_code[pos]
+            if char == "(":
+                depth += 1
+            elif char == ")" and depth > 0:
+                depth -= 1
+            elif char == "{" and depth == 0:
+                return index, pos, function_code[index:pos].rstrip()
+        return None
+
+    @classmethod
+    def _extract_function_by_name(cls, full_code: str, func_name: str) -> str:
+        """Extract a named Solidity function using balanced braces."""
+        match = re.search(rf"\bfunction\s+{re.escape(func_name)}\b", full_code)
+        if not match:
+            return ""
+        brace_index = cls._find_next_code_char(full_code, "{", match.end())
+        if brace_index == -1:
+            return ""
+        end = cls._balanced_block_end(full_code, brace_index)
+        if end == -1:
+            return ""
+        return full_code[match.start():end]
+
+    @staticmethod
+    def _find_next_code_char(text: str, target: str, start: int) -> int:
+        for index in range(start, len(text)):
+            if text[index] == target:
+                return index
+        return -1
+
+    @staticmethod
+    def _balanced_block_end(text: str, start_brace: int) -> int:
+        depth = 0
+        quote: Optional[str] = None
+        escaped = False
+        line_comment = False
+        block_comment = False
+        index = start_brace
+        while index < len(text):
+            char = text[index]
+            next_char = text[index + 1] if index + 1 < len(text) else ""
+
+            if line_comment:
+                if char in "\n\r":
+                    line_comment = False
+                index += 1
+                continue
+            if block_comment:
+                if char == "*" and next_char == "/":
+                    block_comment = False
+                    index += 2
+                    continue
+                index += 1
+                continue
+            if quote:
+                if escaped:
+                    escaped = False
+                elif char == "\\":
+                    escaped = True
+                elif char == quote:
+                    quote = None
+                index += 1
+                continue
+            if char == "/" and next_char == "/":
+                line_comment = True
+                index += 2
+                continue
+            if char == "/" and next_char == "*":
+                block_comment = True
+                index += 2
+                continue
+            if char in {"'", '"'}:
+                quote = char
+                index += 1
+                continue
+            if char == "{":
+                depth += 1
+            elif char == "}":
+                depth -= 1
+                if depth == 0:
+                    return index + 1
+            index += 1
+        return -1
 
     @staticmethod
     def _normalize_batch_findings(value: Any) -> Tuple[List[Dict[str, Any]], int]:

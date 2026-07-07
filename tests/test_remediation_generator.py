@@ -1,3 +1,5 @@
+import asyncio
+
 import aiohttp
 import pytest
 
@@ -761,6 +763,112 @@ async def test_query_llm_returns_empty_dict_for_non_object_payload(monkeypatch, 
     assert await generator._query_llm("fix this") == {}
 
 
+@pytest.mark.asyncio
+async def test_query_llm_normalizes_base_url_trailing_slash(monkeypatch):
+    generator = RemediationGenerator(ollama_base_url="http://ollama.local:11434/")
+    captured = {}
+
+    class FakeResponse:
+        status = 200
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return False
+
+        async def json(self):
+            return {"message": {"content": '{"fixed_code": "contract Fixed {}"}'}}
+
+    class FakeSession:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return False
+
+        def post(self, url, **kwargs):
+            captured["url"] = url
+            captured["timeout"] = kwargs["timeout"].total
+            return FakeResponse()
+
+    monkeypatch.setattr(aiohttp, "ClientSession", lambda: FakeSession())
+
+    assert await generator._query_llm("fix this") == {"fixed_code": "contract Fixed {}"}
+    assert captured["url"] == "http://ollama.local:11434/api/chat"
+    assert captured["timeout"] == 120
+
+
+@pytest.mark.asyncio
+async def test_query_llm_defaults_malformed_model_prompt_and_timeout_payload(monkeypatch):
+    generator = RemediationGenerator(model={"bad": "model"}, timeout=-1)
+    generator.model = "bad\nmodel"
+    generator.timeout = "bad"
+    captured = {}
+
+    class FakeResponse:
+        status = 200
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return False
+
+        async def json(self):
+            return {"message": {"content": '{"fixed_code": "contract Fixed {}"}'}}
+
+    class FakeSession:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return False
+
+        def post(self, _url, **kwargs):
+            captured["payload"] = kwargs["json"]
+            captured["timeout"] = kwargs["timeout"].total
+            return FakeResponse()
+
+    monkeypatch.setattr(aiohttp, "ClientSession", lambda: FakeSession())
+
+    assert await generator._query_llm(["bad prompt"]) == {"fixed_code": "contract Fixed {}"}
+    assert captured["payload"]["model"] == "deepseek-coder:6.7b"
+    assert captured["payload"]["messages"][1]["content"] == ""
+    assert captured["timeout"] == 120
+
+
+@pytest.mark.asyncio
+async def test_query_llm_sanitizes_http_error_text(monkeypatch):
+    generator = RemediationGenerator()
+
+    class FakeResponse:
+        status = 500
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return False
+
+        async def text(self):
+            return "bad\n" + ("x" * 500)
+
+    class FakeSession:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return False
+
+        def post(self, *_args, **_kwargs):
+            return FakeResponse()
+
+    monkeypatch.setattr(aiohttp, "ClientSession", lambda: FakeSession())
+
+    assert await generator._query_llm("fix this") == {}
+
+
 def test_parse_json_response_repairs_common_llm_json_errors():
     generator = RemediationGenerator()
     response = """
@@ -887,6 +995,58 @@ def test_generate_quick_fix_defaults_malformed_function_code(function_code):
     assert explanation == "No function code available for quick fix"
 
 
+@pytest.mark.parametrize(
+    ("code", "expected"),
+    [
+        (
+            "function withdraw() external payable returns (bool) { return true; }",
+            "external payable nonReentrant returns",
+        ),
+        (
+            "function quote() public view returns (uint256) { return 1; }",
+            "public view nonReentrant returns",
+        ),
+        (
+            "function quote() public pure returns (uint256) { return 1; }",
+            "public pure nonReentrant returns",
+        ),
+        (
+            "function withdraw() external override returns (bool) { return true; }",
+            "external override nonReentrant returns",
+        ),
+    ],
+)
+def test_generate_quick_fix_preserves_solidity_modifier_order(code, expected):
+    generator = RemediationGenerator()
+
+    fixed, explanation = generator.generate_quick_fix("reentrancy", code)
+
+    assert expected in fixed
+    assert "Added nonReentrant modifier" in explanation
+
+
+def test_generate_quick_fix_preserves_returns_clause_for_access_control():
+    generator = RemediationGenerator()
+
+    fixed, explanation = generator.generate_quick_fix(
+        "access-control",
+        "function admin() public payable override returns (bool) { return true; }",
+    )
+
+    assert "public payable override onlyOwner returns" in fixed
+    assert "Added onlyOwner modifier" in explanation
+
+
+def test_generate_quick_fix_detects_existing_owner_modifier_with_arguments():
+    generator = RemediationGenerator()
+    code = "function admin() public onlyRole(DEFAULT_ADMIN_ROLE) returns (bool) { return true; }"
+
+    fixed, explanation = generator.generate_quick_fix("access-control", code)
+
+    assert fixed == code
+    assert "Changes made" not in explanation
+
+
 def test_get_pattern_template_and_info_for_known_and_unknown_types():
     generator = RemediationGenerator()
 
@@ -983,6 +1143,81 @@ contract Vault {
 
     assert extracted.startswith("function withdraw")
     assert "require(amount > 0);" in extracted
+
+
+def test_extract_vulnerable_code_by_function_name_balances_nested_braces():
+    generator = RemediationGenerator()
+    code = """
+contract Vault {
+    function withdraw(uint256 amount) external {
+        if (amount > 0) {
+            for (uint256 i = 0; i < 2; i++) {
+                balances[msg.sender] -= amount;
+            }
+        }
+        (bool ok,) = msg.sender.call("");
+        require(ok);
+    }
+    function deposit() public {}
+}
+"""
+
+    extracted = generator._extract_vulnerable_code(
+        {"location": {"function": "withdraw"}},
+        code,
+    )
+
+    assert extracted.startswith("function withdraw")
+    assert "function deposit" not in extracted
+    assert "require(ok);" in extracted
+    assert extracted.count("{") == extracted.count("}")
+
+
+def test_extract_vulnerable_code_by_function_name_ignores_comment_and_string_braces():
+    generator = RemediationGenerator()
+    code = '''
+contract Vault {
+    function withdraw() external {
+        string memory marker = "{not a block}";
+        // } comment brace should not close the function
+        /* { block comment brace } */
+        require(true);
+    }
+    function deposit() public {}
+}
+'''
+
+    extracted = generator._extract_vulnerable_code(
+        {"location": {"function": "withdraw"}},
+        code,
+    )
+
+    assert "require(true);" in extracted
+    assert "function deposit" not in extracted
+
+
+def test_extract_vulnerable_code_by_function_name_handles_function_type_parameters():
+    generator = RemediationGenerator()
+    code = """
+contract Vault {
+    function configure(function(uint256) external callback, uint256 amount)
+        public
+        returns (bool)
+    {
+        callback(amount);
+        return true;
+    }
+}
+"""
+
+    extracted = generator._extract_vulnerable_code(
+        {"location": {"function": "configure"}},
+        code,
+    )
+
+    assert extracted.startswith("function configure")
+    assert "callback(amount);" in extracted
+    assert "returns (bool)" in extracted
 
 
 def test_extract_vulnerable_code_by_line_window():
@@ -1566,6 +1801,56 @@ async def test_generate_remediation_deduplicates_imports_before_prepending(monke
 
 
 @pytest.mark.asyncio
+async def test_generate_remediation_ignores_non_import_imports_needed(monkeypatch):
+    generator = RemediationGenerator()
+    finding = {
+        "id": "F-2q",
+        "type": "reentrancy",
+        "severity": "HIGH",
+        "snippet": "function withdraw() public {}",
+    }
+    import_line = "import {ReentrancyGuard} from 'oz.sol';"
+
+    async def fake_query(_prompt):
+        return {
+            "fixed_code": "contract Fixed {}",
+            "imports_needed": [
+                import_line,
+                "pragma solidity ^0.8.20;",
+                "contract Evil {}",
+                "// or for role-based:",
+                "import 'bad.sol';\ncontract Evil {}",
+            ],
+        }
+
+    monkeypatch.setattr(generator, "_query_llm", fake_query)
+
+    remediation = await generator.generate_remediation(finding, "contract C {}")
+
+    assert remediation.fixed_code == f"{import_line}\n\ncontract Fixed {{}}"
+
+
+def test_imports_to_prepend_rejects_malformed_import_syntax():
+    imports = RemediationGenerator._imports_to_prepend(
+        "contract Fixed {}",
+        [
+            "import {Ownable} from '@openzeppelin/contracts/access/Ownable.sol';",
+            'import "./Safe.sol";',
+            "import * as Math from '@openzeppelin/contracts/utils/math/Math.sol';",
+            "import bad syntax",
+            "import {Bad} from 'bad.sol'\ncontract Evil {}",
+            "pragma solidity ^0.8.20;",
+            "contract Evil {}",
+        ],
+    )
+
+    assert imports == [
+        "import {Ownable} from '@openzeppelin/contracts/access/Ownable.sol';",
+        'import "./Safe.sol";',
+    ]
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize("fixed_code", ["", " \n\t "])
 async def test_generate_remediation_defaults_blank_fixed_code_payload(monkeypatch, fixed_code):
     generator = RemediationGenerator()
@@ -1646,6 +1931,143 @@ async def test_generate_remediations_parallel_counts_exceptions(monkeypatch):
     assert result.success_count == 2
     assert result.failure_count == 1
     assert [rem.finding_id for rem in result.remediations] == ["A", "C"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("max_concurrent", [0, -1, True, None, "bad"])
+async def test_generate_remediations_defaults_malformed_max_concurrent(
+    monkeypatch,
+    max_concurrent,
+):
+    generator = RemediationGenerator()
+    findings = [{"id": "A"}, {"id": "B"}]
+
+    async def fake_generate(finding, _code):
+        return Remediation(
+            finding_id=finding["id"],
+            vulnerability_type="unknown",
+            severity="medium",
+            vulnerable_code="",
+            fixed_code="",
+            explanation="",
+            changes_summary=[],
+            test_suggestions=[],
+            references=[],
+            confidence=0.8,
+        )
+
+    monkeypatch.setattr(generator, "generate_remediation", fake_generate)
+
+    result = await generator.generate_remediations(
+        findings,
+        "contract C {}",
+        parallel=True,
+        max_concurrent=max_concurrent,
+    )
+
+    assert result.success_count == 2
+    assert result.failure_count == 0
+
+
+@pytest.mark.asyncio
+async def test_generate_remediations_parallel_respects_max_concurrent_limit(monkeypatch):
+    generator = RemediationGenerator()
+    active = 0
+    peak = 0
+    findings = [{"id": str(index)} for index in range(5)]
+
+    async def fake_generate(finding, _code):
+        nonlocal active, peak
+        active += 1
+        peak = max(peak, active)
+        await asyncio.sleep(0)
+        active -= 1
+        return Remediation(
+            finding_id=finding["id"],
+            vulnerability_type="unknown",
+            severity="medium",
+            vulnerable_code="",
+            fixed_code="",
+            explanation="",
+            changes_summary=[],
+            test_suggestions=[],
+            references=[],
+            confidence=0.8,
+        )
+
+    monkeypatch.setattr(generator, "generate_remediation", fake_generate)
+
+    result = await generator.generate_remediations(
+        findings,
+        "contract C {}",
+        parallel=True,
+        max_concurrent=2,
+    )
+
+    assert result.success_count == 5
+    assert peak <= 2
+
+
+@pytest.mark.asyncio
+async def test_generate_remediations_parallel_propagates_cancelled_error(monkeypatch):
+    generator = RemediationGenerator()
+    findings = [{"id": "A"}, {"id": "B"}]
+
+    async def fake_generate(finding, _code):
+        if finding["id"] == "B":
+            raise asyncio.CancelledError()
+        return Remediation(
+            finding_id=finding["id"],
+            vulnerability_type="unknown",
+            severity="medium",
+            vulnerable_code="",
+            fixed_code="",
+            explanation="",
+            changes_summary=[],
+            test_suggestions=[],
+            references=[],
+            confidence=0.8,
+        )
+
+    monkeypatch.setattr(generator, "generate_remediation", fake_generate)
+
+    with pytest.raises(asyncio.CancelledError):
+        await generator.generate_remediations(findings, "contract C {}", parallel=True)
+
+
+@pytest.mark.asyncio
+async def test_generate_remediations_sequential_propagates_cancelled_error(monkeypatch):
+    generator = RemediationGenerator()
+
+    async def fake_generate(_finding, _code):
+        raise asyncio.CancelledError()
+
+    monkeypatch.setattr(generator, "generate_remediation", fake_generate)
+
+    with pytest.raises(asyncio.CancelledError):
+        await generator.generate_remediations([{"id": "A"}], "contract C {}", parallel=False)
+
+
+@pytest.mark.asyncio
+async def test_generate_remediations_parallel_propagates_non_runtime_base_exception(
+    monkeypatch,
+):
+    generator = RemediationGenerator()
+
+    class FatalBaseException(BaseException):
+        pass
+
+    async def fake_generate(_finding, _code):
+        raise FatalBaseException()
+
+    monkeypatch.setattr(generator, "generate_remediation", fake_generate)
+
+    with pytest.raises(FatalBaseException):
+        await generator.generate_remediations(
+            [{"id": "A"}, {"id": "B"}],
+            "contract C {}",
+            parallel=True,
+        )
 
 
 @pytest.mark.asyncio
