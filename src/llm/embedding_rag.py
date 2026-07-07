@@ -60,6 +60,22 @@ def _is_safe_text(text: str) -> bool:
     return bool(text) and not any(ord(ch) < 32 or ord(ch) == 127 for ch in text)
 
 
+def _safe_text(value: Any) -> str:
+    """Return stripped safe text, or an empty string for malformed values."""
+    if isinstance(value, bytes):
+        try:
+            value = value.decode("utf-8", errors="replace")
+        except Exception:
+            return ""
+    if not isinstance(value, str):
+        return ""
+    try:
+        text = value.strip()
+    except Exception:
+        return ""
+    return text if _is_safe_text(text) else ""
+
+
 def _coerce_text_list(value: Any) -> List[str]:
     """Return a safe string list for loose metadata fields."""
     if value is None:
@@ -76,46 +92,21 @@ def _coerce_text_list(value: Any) -> List[str]:
             continue
         if isinstance(item, (dict, list, tuple, set)):
             continue
-        try:
-            text_values.append(
-                item.decode("utf-8", errors="replace")
-                if isinstance(item, bytes)
-                else str(item)
-            )
-        except Exception:
+        text = _safe_text(item)
+        if not text:
             continue
+        text_values.append(text)
     return text_values
 
 
 def _coerce_document_text(value: Any) -> str:
     """Return safe searchable document text for loose knowledge-base fields."""
-    if value is None:
-        return ""
-    if isinstance(value, bytes):
-        text = value.decode("utf-8", errors="replace").strip()
-        return text if _is_safe_text(text) else ""
-    if isinstance(value, str):
-        text = value.strip()
-        return text if _is_safe_text(text) else ""
-    try:
-        text = str(value).strip()
-        return text if _is_safe_text(text) else ""
-    except Exception:
-        return ""
+    return _safe_text(value)
 
 
 def _coerce_query_text(value: Any) -> str:
     """Return safe query text for cache keys, vector search, and ranking."""
-    if isinstance(value, str):
-        text = value.strip()
-        return text if _is_safe_text(text) else ""
-    if isinstance(value, bytes):
-        text = value.decode("utf-8", errors="replace").strip()
-        return text if _is_safe_text(text) else ""
-    if value is None:
-        return ""
-    text = str(value).strip()
-    return text if _is_safe_text(text) else ""
+    return _safe_text(value)
 
 
 def _coerce_cache_query_text(value: Any) -> str:
@@ -134,27 +125,18 @@ def _coerce_batch_queries(value: Any) -> List[Any]:
 
 def _coerce_batch_query_text(value: Any) -> Tuple[bool, str]:
     """Return one safe batch query text, marking entries that cannot be coerced."""
-    if isinstance(value, str):
-        text = value.strip()
-        return (_is_safe_text(text), text if _is_safe_text(text) else "")
-    if isinstance(value, bytes):
-        text = value.decode("utf-8", errors="replace").strip()
-        return (_is_safe_text(text), text if _is_safe_text(text) else "")
     if value is None:
         return True, ""
-    try:
-        text = str(value).strip()
-    except Exception:
-        return False, ""
-    return (_is_safe_text(text), text if _is_safe_text(text) else "")
+    text = _safe_text(value)
+    return (bool(text), text)
 
 
 def _coerce_filter_text(value: Any) -> Optional[str]:
     """Return safe scalar metadata filter text, or no filter for malformed values."""
-    text = _coerce_query_text(value).strip() if isinstance(value, (str, bytes)) else ""
-    if not _is_safe_text(text):
+    text = _safe_text(value)
+    if not text:
         return None
-    return text or None
+    return text
 
 
 def _safe_metadata_filter(
@@ -205,8 +187,10 @@ def _coerce_result_count(value: Any, fallback: Any) -> int:
     for candidate in candidates:
         if isinstance(candidate, bool):
             continue
-        if isinstance(candidate, str) and any(ord(ch) < 32 or ord(ch) == 127 for ch in candidate):
-            continue
+        if isinstance(candidate, str):
+            candidate = _safe_text(candidate)
+            if not candidate:
+                continue
         try:
             count = int(candidate)
         except (TypeError, ValueError):
@@ -220,7 +204,15 @@ def _coerce_cache_ttl_seconds(value: Any) -> int:
     """Return a positive cache TTL so malformed class config cannot poison reads."""
     if isinstance(value, bool):
         return EmbeddingRAG.DEFAULT_CACHE_TTL_SECONDS
-    if isinstance(value, str) and any(ord(ch) < 32 or ord(ch) == 127 for ch in value):
+    if isinstance(value, str):
+        value = _safe_text(value)
+        if not value:
+            return EmbeddingRAG.DEFAULT_CACHE_TTL_SECONDS
+    if isinstance(value, bytes):
+        value = _safe_text(value)
+        if not value:
+            return EmbeddingRAG.DEFAULT_CACHE_TTL_SECONDS
+    if isinstance(value, str) and not value:
         return EmbeddingRAG.DEFAULT_CACHE_TTL_SECONDS
     try:
         ttl = int(value)
@@ -233,30 +225,16 @@ def _coerce_cache_ttl_seconds(value: Any) -> int:
 
 def _coerce_embedding_model_name(value: Any) -> str:
     """Return a non-empty sentence-transformers model name."""
-    if isinstance(value, bytes):
-        text = value.decode("utf-8", errors="replace")
-    elif isinstance(value, str):
-        text = value
-    else:
+    text = _safe_text(value)
+    if not text:
         return EmbeddingRAG.DEFAULT_MODEL
-
-    text = text.strip()
-    if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
-        return EmbeddingRAG.DEFAULT_MODEL
-    return text or EmbeddingRAG.DEFAULT_MODEL
+    return text
 
 
 def _coerce_collection_name(value: Any) -> str:
     """Return a Chroma-safe collection name, or the default namespace."""
-    if isinstance(value, bytes):
-        text = value.decode("utf-8", errors="replace")
-    elif isinstance(value, str):
-        text = value
-    else:
-        return DEFAULT_COLLECTION_NAME
-
-    text = text.strip()
-    if not _is_safe_text(text):
+    text = _safe_text(value)
+    if not text:
         return DEFAULT_COLLECTION_NAME
     if _SAFE_COLLECTION_NAME_RE.fullmatch(text):
         return text
@@ -273,16 +251,11 @@ def _coerce_persist_directory(value: Any) -> Path:
     if value is None:
         return _default_persist_directory()
 
-    if isinstance(value, bytes):
-        path_text = value.decode("utf-8", errors="replace").strip()
-        if not path_text or any(ord(ch) < 32 or ord(ch) == 127 for ch in path_text):
+    if isinstance(value, (bytes, str)):
+        path_text = _safe_text(value)
+        if not path_text:
             return _default_persist_directory()
         path_value: Any = path_text
-    elif isinstance(value, str):
-        path_text = value.strip()
-        if not path_text or any(ord(ch) < 32 or ord(ch) == 127 for ch in path_text):
-            return _default_persist_directory()
-        path_value = path_text
     elif isinstance(value, os.PathLike):
         path_value = value
     else:
@@ -329,25 +302,24 @@ def _collection_metadata_text(collection: Any, key: str) -> Optional[str]:
         return None
 
     value = metadata.get(key)
-    if isinstance(value, bytes):
-        text = value.decode("utf-8", errors="replace")
-    elif isinstance(value, str):
-        text = value
-    else:
+    text = _safe_text(value)
+    if not text:
         return None
-
-    text = text.strip()
-    if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
-        return None
-    return text or None
+    return text
 
 
 def _similarity_from_distance(distance: Any) -> float:
     """Convert a loose Chroma distance value to a bounded similarity score."""
     if isinstance(distance, bool):
         return 0.0
-    if isinstance(distance, str) and any(ord(ch) < 32 or ord(ch) == 127 for ch in distance):
-        return 0.0
+    if isinstance(distance, str):
+        distance = _safe_text(distance)
+        if not distance:
+            return 0.0
+    if isinstance(distance, bytes):
+        distance = _safe_text(distance)
+        if not distance:
+            return 0.0
     try:
         distance_value = float(distance)
     except Exception:
@@ -363,8 +335,10 @@ def _similarity_from_query_result(distance: Any, similarity: Any = None) -> floa
         return _similarity_from_distance(distance)
     if isinstance(similarity, bool):
         return 0.0
-    if isinstance(similarity, str) and any(ord(ch) < 32 or ord(ch) == 127 for ch in similarity):
-        return 0.0
+    if isinstance(similarity, (str, bytes)):
+        similarity = _safe_text(similarity)
+        if not similarity:
+            return 0.0
     return _bounded_similarity_score(similarity)
 
 
@@ -394,7 +368,10 @@ def _coerce_embedding_vector(value: Any) -> Optional[List[float]]:
         if isinstance(item, bool):
             return None
         if isinstance(item, bytes):
-            raw_item = item.decode("utf-8", errors="replace")
+            try:
+                raw_item = item.decode("utf-8", errors="replace")
+            except Exception:
+                return None
             if any(ord(ch) < 32 or ord(ch) == 127 for ch in raw_item):
                 return None
             item = raw_item.strip()
@@ -402,6 +379,13 @@ def _coerce_embedding_vector(value: Any) -> Optional[List[float]]:
             if any(ord(ch) < 32 or ord(ch) == 127 for ch in item):
                 return None
             item = item.strip()
+        elif isinstance(item, (int, float)):
+            if isinstance(item, bool):
+                return None
+        else:
+            item = _safe_text(item)
+            if not item:
+                return None
         try:
             number = float(item)
         except Exception:

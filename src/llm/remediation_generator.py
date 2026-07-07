@@ -42,6 +42,29 @@ _EXPORT_MARKDOWN_LINK_RE = re.compile(r"^\[([^\]\x00-\x1f\x7f]+)\]\(([^()\s\x00-
 _EXPORT_TEST_NAME_CONTROL_RE = re.compile(r"[\x00-\x1f\x7f]")
 
 
+def _safe_text(value: Any, *, allow_multiline: bool = False) -> str:
+    """Return stripped safe text, or an empty string for malformed values."""
+    if isinstance(value, bytes):
+        try:
+            value = value.decode("utf-8", errors="replace")
+        except Exception:
+            return ""
+    if not isinstance(value, str):
+        return ""
+    try:
+        text = value.strip()
+    except Exception:
+        return ""
+    if not text:
+        return ""
+    if allow_multiline:
+        if any(ord(ch) < 32 and ch not in "\n\r\t" or ord(ch) == 127 for ch in text):
+            return ""
+    elif any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+        return ""
+    return text
+
+
 def _export_string(value: Any, default: str) -> str:
     """Return a non-empty string for export payloads."""
     if isinstance(value, str):
@@ -840,7 +863,9 @@ class RemediationGenerator:
     def _parse_json_response(self, content: str) -> Dict[str, Any]:
         """Parse JSON from LLM response."""
         try:
-            stripped = content.strip()
+            stripped = _safe_text(content, allow_multiline=True)
+            if not stripped:
+                return {}
             json_str = stripped if stripped.startswith("[") else extract_json_from_text(content)
             if json_str is None:
                 json_str = stripped
@@ -860,18 +885,18 @@ class RemediationGenerator:
         full_code: str,
     ) -> str:
         """Extract the vulnerable code section from full contract."""
-        full_code = self._string_or_default(full_code, "")
+        full_code = _safe_text(full_code, allow_multiline=True)
         location_value = finding.get("location", {})
         location = location_value if isinstance(location_value, dict) else {}
 
         # If snippet is provided, use it
-        snippet = finding.get("snippet")
-        if isinstance(snippet, str) and snippet:
+        snippet = _safe_text(finding.get("snippet"), allow_multiline=True)
+        if snippet:
             return snippet
 
         # Try to extract by function name
-        func_name = location.get("function")
-        if isinstance(func_name, str) and func_name:
+        func_name = _safe_text(location.get("function"))
+        if func_name:
             pattern = rf"function\s+{re.escape(func_name)}\s*\([^)]*\)[^{{]*\{{[^}}]*\}}"
             match = re.search(pattern, full_code, re.DOTALL)
             if match:
@@ -892,36 +917,26 @@ class RemediationGenerator:
     @staticmethod
     def _parse_vuln_type(value: Any) -> str:
         """Normalize vulnerability type fields without trusting malformed shapes."""
-        if not isinstance(value, str):
+        value = _safe_text(value)
+        if not value:
             return "unknown"
 
-        normalized = value.strip().lower()
-        if not normalized or any(ord(ch) < 32 or ord(ch) == 127 for ch in normalized):
-            return "unknown"
+        normalized = value.lower()
         return normalized if normalized else "unknown"
 
     @staticmethod
     def _string_or_default(value: Any, default: str) -> str:
         """Return string values from LLM results, falling back on malformed shapes."""
-        if not isinstance(value, str):
+        value = _safe_text(value)
+        if not value:
             return default
-        normalized = value.strip()
-        if not normalized or any(
-            ord(ch) < 32 and ch not in "\n\r\t" or ord(ch) == 127 for ch in normalized
-        ):
-            return default
-        return normalized
+        return value
 
     @staticmethod
     def _fixed_code_or_default(value: Any, default: str) -> str:
         """Return non-empty fixed code from LLM results, falling back on malformed shapes."""
-        if isinstance(value, str):
-            normalized = value.strip()
-            if normalized and not any(
-                ord(ch) < 32 and ch not in "\n\r\t" or ord(ch) == 127 for ch in normalized
-            ):
-                return normalized
-        return default
+        normalized = _safe_text(value, allow_multiline=True)
+        return normalized or default
 
     @staticmethod
     def _string_list_or_empty(value: Any) -> List[str]:
@@ -930,13 +945,8 @@ class RemediationGenerator:
             return []
         items = []
         for item in value:
-            if not isinstance(item, str):
-                continue
-            try:
-                text = item.strip()
-            except (AttributeError, TypeError, ValueError):
-                continue
-            if not text or any(ord(ch) < 32 for ch in text):
+            text = _safe_text(item)
+            if not text:
                 continue
             items.append(text)
         return items
@@ -974,10 +984,11 @@ class RemediationGenerator:
     @staticmethod
     def _normalized_level(value: Any, allowed: set[str], default: str) -> str:
         """Return a bounded lowercase level from LLM result metadata."""
-        if not isinstance(value, str):
+        value = _safe_text(value)
+        if not value:
             return default
 
-        normalized = value.strip().lower()
+        normalized = value.lower()
         return normalized if normalized in allowed else default
 
     @staticmethod

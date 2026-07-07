@@ -60,6 +60,24 @@ LLM_RUNTIME_ERRORS = (
 _BACKEND_ERROR_TEXT_LIMIT = 500
 
 
+def _safe_text(value: Any) -> str:
+    """Return stripped safe text, or an empty string for malformed values."""
+    if isinstance(value, bytes):
+        try:
+            value = value.decode("utf-8", errors="replace")
+        except Exception:
+            return ""
+    if not isinstance(value, str):
+        return ""
+    try:
+        text = value.strip()
+    except Exception:
+        return ""
+    if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+        return ""
+    return text
+
+
 def _safe_backend_error_text(error: Any) -> str:
     """Return bounded printable backend error text without trusting __str__."""
     try:
@@ -673,31 +691,22 @@ class LLMOrchestrator:
 
     def _default_config_from_env(self) -> LLMConfig:
         """Build the default backend config from MIESC_LLM_* environment variables."""
-        provider_name_raw = os.getenv("MIESC_LLM_PROVIDER", LLMProvider.OLLAMA.value)
+        provider_name_raw = _safe_text(os.getenv("MIESC_LLM_PROVIDER", LLMProvider.OLLAMA.value))
         provider = LLMProvider.OLLAMA
         provider_from_env_is_valid = False
-        if isinstance(provider_name_raw, str):
-            provider_name = provider_name_raw.strip().lower()
-            if provider_name and not any(
-                ord(ch) < 32 or ord(ch) == 127 for ch in provider_name
-            ):
-                try:
-                    provider = LLMProvider(provider_name)
-                    provider_from_env_is_valid = True
-                except ValueError:
-                    logger.warning(
-                        "Unknown MIESC_LLM_PROVIDER=%s; falling back to Ollama",
-                        provider_name,
-                    )
-            else:
+        if provider_name_raw:
+            try:
+                provider = LLMProvider(provider_name_raw.lower())
+                provider_from_env_is_valid = True
+            except ValueError:
                 logger.warning(
-                    "Malformed MIESC_LLM_PROVIDER=%r; falling back to Ollama",
+                    "Unknown MIESC_LLM_PROVIDER=%s; falling back to Ollama",
                     provider_name_raw,
                 )
         else:
             logger.warning(
                 "Malformed MIESC_LLM_PROVIDER=%r; falling back to Ollama",
-                provider_name_raw,
+                os.getenv("MIESC_LLM_PROVIDER", LLMProvider.OLLAMA.value),
             )
 
         default_models = {
@@ -710,21 +719,13 @@ class LLMOrchestrator:
         model_from_env = _normalized_model_identifier(os.getenv("MIESC_LLM_MODEL"))
         model = (model_from_env if provider_from_env_is_valid else None) or default_models[provider]
 
-        base_url_env = os.getenv("MIESC_LLM_BASE_URL")
-        if isinstance(base_url_env, str):
-            base_url_env = base_url_env.strip()
-            if base_url_env and any(ord(ch) < 32 or ord(ch) == 127 for ch in base_url_env):
-                base_url_env = None
-        else:
+        base_url_env = _safe_text(os.getenv("MIESC_LLM_BASE_URL"))
+        if not base_url_env:
             base_url_env = None
 
         if provider == LLMProvider.OLLAMA:
-            ollama_host = os.getenv("OLLAMA_HOST", "http://localhost:11434")
-            if isinstance(ollama_host, str):
-                ollama_host = ollama_host.strip()
-                if not ollama_host or any(ord(ch) < 32 or ord(ch) == 127 for ch in ollama_host):
-                    ollama_host = "http://localhost:11434"
-            else:
+            ollama_host = _safe_text(os.getenv("OLLAMA_HOST", "http://localhost:11434"))
+            if not ollama_host:
                 ollama_host = "http://localhost:11434"
             return LLMConfig(
                 provider=provider,
@@ -732,14 +733,8 @@ class LLMOrchestrator:
                 base_url=base_url_env or ollama_host,
             )
         if provider == LLMProvider.DEEPSEEK:
-            deepseek_base_url = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
-            if isinstance(deepseek_base_url, str):
-                deepseek_base_url = deepseek_base_url.strip()
-                if not deepseek_base_url or any(
-                    ord(ch) < 32 or ord(ch) == 127 for ch in deepseek_base_url
-                ):
-                    deepseek_base_url = "https://api.deepseek.com"
-            else:
+            deepseek_base_url = _safe_text(os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com"))
+            if not deepseek_base_url:
                 deepseek_base_url = "https://api.deepseek.com"
             return LLMConfig(
                 provider=provider,
@@ -932,29 +927,20 @@ Provide a comprehensive security analysis in JSON format."""
                 f"Malformed LLM response from {source}: "
                 f"expected LLMResponse, got {type(response).__name__}"
             )
-        if (
-            not isinstance(response.content, str)
-            or not response.content.strip()
-            or any(ord(ch) < 32 or ord(ch) == 127 for ch in response.content.strip())
-        ):
+        content = _safe_text(response.content)
+        if not content:
             return (
                 f"Malformed LLM response from {source}: "
                 f"content must be str, got {type(response.content).__name__}"
             )
-        if (
-            not isinstance(response.provider, str)
-            or not response.provider.strip()
-            or any(ord(ch) < 32 or ord(ch) == 127 for ch in response.provider.strip())
-        ):
+        provider = _safe_text(response.provider)
+        if not provider:
             return (
                 f"Malformed LLM response from {source}: "
                 f"provider must be str, got {type(response.provider).__name__}"
             )
-        if (
-            not isinstance(response.model, str)
-            or not response.model.strip()
-            or any(ord(ch) < 32 or ord(ch) == 127 for ch in response.model.strip())
-        ):
+        model = _safe_text(response.model)
+        if not model:
             return (
                 f"Malformed LLM response from {source}: "
                 f"model must be str, got {type(response.model).__name__}"

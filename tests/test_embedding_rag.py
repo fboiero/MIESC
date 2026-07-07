@@ -6,11 +6,14 @@ from src.llm.embedding_rag import (
     VulnerabilityDocument,
     _coerce_batch_queries,
     _coerce_batch_query_text,
+    _coerce_cache_query_text,
     _coerce_collection_name,
     _coerce_embedding_vector,
     _coerce_persist_directory,
     _coerce_result_count,
+    _coerce_text_list,
     _is_safe_text,
+    _result_rows,
 )
 
 
@@ -130,6 +133,8 @@ def test_reindex_resets_local_index_and_cache(tmp_path, monkeypatch):
 
 
 def test_text_coercion_helpers_strip_and_reject_control_chars():
+    assert _coerce_text_list(["  alpha  ", b" beta ", "gamma\ndelta"]) == ["alpha", "beta"]
+    assert _coerce_cache_query_text({"query": "alpha"}) == ""
     assert embedding_rag._coerce_document_text("  document text  ") == "document text"
     assert embedding_rag._coerce_document_text("document\ntext") == ""
     assert embedding_rag._coerce_query_text(b" query ") == "query"
@@ -164,6 +169,8 @@ def test_result_count_and_collection_name_helpers_reject_control_chars():
     assert _coerce_result_count("7\x7f", 3) == 3
     assert _coerce_collection_name("  vuln_cache  ") == "vuln_cache"
     assert _coerce_collection_name("bad\nname") == "miesc_vulnerabilities"
+    assert _result_rows({"ids": [["a"], ["b"]]}, "ids") == [["a"], ["b"]]
+    assert _result_rows({"ids": "not-a-row-list"}, "ids") == []
     collection = type("Collection", (), {"metadata": {"version": "  v1.2.3  "}})()
     assert embedding_rag._collection_metadata_text(collection, "version") == "v1.2.3"
     collection.metadata["version"] = "v1\n2.3"
