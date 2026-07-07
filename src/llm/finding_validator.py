@@ -23,7 +23,7 @@ import json
 import logging
 import math
 import os
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, fields, replace
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -150,7 +150,7 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
             config: Validator configuration, uses defaults if not provided
         """
         default_config = ValidatorConfig()
-        self.config = replace(config or default_config)
+        self.config = self._normalize_config(config, default_config)
 
         # Environment values fill defaults, but an explicit caller config wins.
         if os.environ.get("OLLAMA_HOST") and self.config.ollama_host == default_config.ollama_host:
@@ -172,11 +172,28 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
         ):
             self.config.timeout_seconds = default_config.timeout_seconds
         if (
+            isinstance(self.config.temperature, bool)
+            or not isinstance(self.config.temperature, (int, float))
+            or not math.isfinite(float(self.config.temperature))
+            or not 0 <= float(self.config.temperature) <= 2
+        ):
+            self.config.temperature = default_config.temperature
+        else:
+            self.config.temperature = float(self.config.temperature)
+        if (
+            isinstance(self.config.max_tokens, bool)
+            or not isinstance(self.config.max_tokens, int)
+            or self.config.max_tokens <= 0
+        ):
+            self.config.max_tokens = default_config.max_tokens
+        if (
             isinstance(self.config.batch_size, bool)
             or not isinstance(self.config.batch_size, int)
             or self.config.batch_size <= 0
         ):
             self.config.batch_size = default_config.batch_size
+        if not isinstance(self.config.enabled, bool):
+            self.config.enabled = default_config.enabled
         if isinstance(self.config.min_severity_to_validate, str):
             min_severity = self.config.min_severity_to_validate.strip().lower()
         else:
@@ -224,13 +241,14 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
                     name.strip()
                     for model in models
                     if isinstance(model, dict) and isinstance(name := model.get("name"), str)
-                    and name.strip()
+                    and self._safe_model_name(name)
                 ]
-                # Check if our model is available
-                model_base = self.config.model.split(":")[0]
-                return any(model_base in name for name in model_names)
+                return any(
+                    self._model_name_matches_configured_model(self.config.model, name)
+                    for name in model_names
+                )
         except VALIDATOR_RUNTIME_ERRORS as e:
-            logger.debug(f"Ollama not available: {e}")
+            logger.debug("Ollama not available: %s", self._exception_reason(e))
             return False
 
     def should_validate(self, finding: Any) -> bool:
@@ -248,7 +266,8 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
 
         severity_value = finding.get("severity", "")
         severity = severity_value.lower() if isinstance(severity_value, str) else ""
-        min_severity = self.config.min_severity_to_validate.lower()
+        min_severity_value = self.config.min_severity_to_validate
+        min_severity = min_severity_value.lower() if isinstance(min_severity_value, str) else ""
 
         finding_level = self.SEVERITY_ORDER.get(severity, 0)
         min_level = self.SEVERITY_ORDER.get(min_severity, 0)
@@ -276,35 +295,50 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
 
         start_time = time.time()
 
-        finding_id = self._parse_text(finding.get("id"), "unknown")
-        location_value = finding.get("location", {})
-        location = location_value if isinstance(location_value, dict) else {}
-        message = self._parse_text(
-            finding.get("message"),
-            self._parse_text(finding.get("description"), "No message"),
-        )
+        if not isinstance(finding, dict):
+            return LLMValidation(
+                finding_id="unknown",
+                result=ValidationResult.UNCERTAIN,
+                confidence=0.5,
+                reasoning="Malformed finding container",
+                validation_time_ms=0,
+            )
 
-        # Build prompt
-        prompt = self.VALIDATION_PROMPT.format(
-            finding_type=self._parse_text(finding.get("type"), "unknown"),
-            severity=self._parse_text(finding.get("severity"), "unknown"),
-            tool=self._parse_text(finding.get("tool"), "unknown"),
-            file=self._parse_text(location.get("file"), "unknown"),
-            line=self._parse_location_line(location.get("line")),
-            message=message,
-            code_snippet=code_context[:1500] if code_context else "Not available",
-            contract_context=(
-                self._parse_text(contract_context, "")[:500] if contract_context else "Not available"
-            ),
-        )
+        safe_finding = finding if isinstance(finding, dict) else {}
+        finding_id = self._parse_text(safe_finding.get("id"), "unknown")
 
         try:
+            location_value = safe_finding.get("location", {})
+            location = location_value if isinstance(location_value, dict) else {}
+            message = self._parse_text(
+                safe_finding.get("message"),
+                self._parse_text(safe_finding.get("description"), "No message"),
+            )
+            code_snippet = self._prompt_text(code_context, limit=1500) or "Not available"
+            contract_snippet = (
+                self._prompt_text(contract_context, limit=500) or "Not available"
+            )
+
+            # Build prompt
+            prompt = self.VALIDATION_PROMPT.format(
+                finding_type=self._parse_text(safe_finding.get("type"), "unknown"),
+                severity=self._parse_text(safe_finding.get("severity"), "unknown"),
+                tool=self._parse_text(safe_finding.get("tool"), "unknown"),
+                file=self._parse_text(location.get("file"), "unknown"),
+                line=self._parse_location_line(location.get("line")),
+                message=message,
+                code_snippet=code_snippet,
+                contract_context=contract_snippet,
+            )
+
             # Call Ollama API
             response = await self._call_ollama(prompt)
 
             # Parse response
             validation = self._parse_response(response, finding_id)
-            validation.validation_time_ms = int((time.time() - start_time) * 1000)
+            validation.validation_time_ms = self._parse_nonnegative_int(
+                int((time.time() - start_time) * 1000)
+            )
 
             self._validated_count += 1
             if validation.result in [ValidationResult.LIKELY_FP, ValidationResult.FALSE_POSITIVE]:
@@ -318,13 +352,16 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
             return validation
 
         except VALIDATOR_RUNTIME_ERRORS as e:
-            logger.warning(f"LLM validation failed for {finding_id}: {e}")
+            reason = self._exception_reason(e)
+            logger.warning("LLM validation failed for %s: %s", finding_id, reason)
             return LLMValidation(
                 finding_id=finding_id,
                 result=ValidationResult.UNCERTAIN,
                 confidence=0.5,
-                reasoning=f"Validation failed: {str(e)}",
-                validation_time_ms=int((time.time() - start_time) * 1000),
+                reasoning=f"Validation failed: {reason}",
+                validation_time_ms=self._parse_nonnegative_int(
+                    int((time.time() - start_time) * 1000)
+                ),
             )
 
     async def _call_ollama(self, prompt: str) -> str:
@@ -347,7 +384,8 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
         ) as resp:
             if resp.status != 200:
                 error_text = await resp.text()
-                raise RuntimeError(f"Ollama API error {resp.status}: {error_text}")
+                safe_error = self._parse_text(error_text, "error")[:200]
+                raise RuntimeError(f"Ollama API error {resp.status}: {safe_error}")
 
             data = await resp.json()
             if not isinstance(data, dict):
@@ -482,6 +520,16 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
         return text.upper() if normalized in cls.SEVERITY_ORDER else None
 
     @staticmethod
+    def _prompt_text(value: Any, *, limit: int) -> str:
+        """Return prompt text for code/context while allowing normal multiline code."""
+        if not isinstance(value, str):
+            return ""
+        text = value.strip()
+        if not text or any(ord(ch) == 0 or ord(ch) == 127 for ch in text):
+            return ""
+        return text[:limit]
+
+    @staticmethod
     def _exception_reason(exc: BaseException) -> str:
         """Describe validation exceptions without trusting malformed __str__."""
         try:
@@ -498,14 +546,50 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
         """Return a prompt-safe line value for known scalar line shapes."""
         if isinstance(value, bool):
             return 0
-        if isinstance(value, (int, str)):
-            if isinstance(value, str):
-                text = value.strip()
-                if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
-                    return 0
-                return text
-            return value
+        if isinstance(value, int):
+            return value if 0 <= value <= 10_000_000 else 0
+        if isinstance(value, str):
+            text = value.strip()
+            if (
+                not text
+                or any(ord(ch) < 32 or ord(ch) == 127 for ch in text)
+                or not text.isdecimal()
+            ):
+                return 0
+            return text if int(text) <= 10_000_000 else 0
         return 0
+
+    @staticmethod
+    def _normalize_config(config: Any, default_config: ValidatorConfig) -> ValidatorConfig:
+        """Copy known config fields from dataclass-compatible or config-like objects."""
+        if config is None:
+            return replace(default_config)
+        if isinstance(config, ValidatorConfig):
+            return replace(config)
+        values = {
+            field.name: getattr(config, field.name, getattr(default_config, field.name))
+            for field in fields(ValidatorConfig)
+        }
+        try:
+            return ValidatorConfig(**values)
+        except (TypeError, ValueError):
+            return replace(default_config)
+
+    @classmethod
+    def _safe_model_name(cls, value: Any) -> str:
+        return cls._parse_text(value, "")
+
+    @classmethod
+    def _model_name_matches_configured_model(cls, configured: Any, available: Any) -> bool:
+        configured_text = cls._safe_model_name(configured).lower()
+        available_text = cls._safe_model_name(available).lower()
+        if not configured_text or not available_text:
+            return False
+        if configured_text == available_text:
+            return True
+        configured_base = configured_text.split(":", 1)[0]
+        available_base = available_text.split(":", 1)[0]
+        return bool(configured_base and configured_base == available_base)
 
     @staticmethod
     def _parse_nonnegative_int(value: Any, default: int = 0) -> int:

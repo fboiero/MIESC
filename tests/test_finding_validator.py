@@ -121,6 +121,90 @@ async def test_is_available_trims_model_names(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_is_available_rejects_substring_model_name_match(monkeypatch):
+    validator = LLMFindingValidator(ValidatorConfig(model="deepseek-coder:6.7b"))
+
+    class FakeResponse:
+        status = 200
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return None
+
+        async def json(self):
+            return {"models": [{"name": "not-deepseek-coder-plus:latest"}]}
+
+    class FakeSession:
+        def get(self, *_args, **_kwargs):
+            return FakeResponse()
+
+    async def fake_get_session():
+        return FakeSession()
+
+    monkeypatch.setattr(validator, "_get_session", fake_get_session)
+
+    assert await validator.is_available() is False
+
+
+@pytest.mark.asyncio
+async def test_is_available_accepts_same_model_with_different_tag(monkeypatch):
+    validator = LLMFindingValidator(ValidatorConfig(model="custom-coder:6.7b"))
+
+    class FakeResponse:
+        status = 200
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return None
+
+        async def json(self):
+            return {"models": [{"name": " Custom-Coder:latest "}]}
+
+    class FakeSession:
+        def get(self, *_args, **_kwargs):
+            return FakeResponse()
+
+    async def fake_get_session():
+        return FakeSession()
+
+    monkeypatch.setattr(validator, "_get_session", fake_get_session)
+
+    assert await validator.is_available() is True
+
+
+@pytest.mark.asyncio
+async def test_is_available_rejects_control_char_model_names(monkeypatch):
+    validator = LLMFindingValidator(ValidatorConfig(model="deepseek-coder:6.7b"))
+
+    class FakeResponse:
+        status = 200
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return None
+
+        async def json(self):
+            return {"models": [{"name": "deepseek-coder:6.7b\x7f"}]}
+
+    class FakeSession:
+        def get(self, *_args, **_kwargs):
+            return FakeResponse()
+
+    async def fake_get_session():
+        return FakeSession()
+
+    monkeypatch.setattr(validator, "_get_session", fake_get_session)
+
+    assert await validator.is_available() is False
+
+
+@pytest.mark.asyncio
 async def test_validate_finding_degrades_to_uncertain_on_runtime_error(monkeypatch):
     validator = LLMFindingValidator(ValidatorConfig())
     finding = {
@@ -142,6 +226,126 @@ async def test_validate_finding_degrades_to_uncertain_on_runtime_error(monkeypat
     assert validation.result == ValidationResult.UNCERTAIN
     assert validation.confidence == 0.5
     assert "Ollama API error" in validation.reasoning
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("finding", [None, ["not", "a", "finding"], "finding"])
+async def test_validate_finding_returns_uncertain_for_malformed_finding_container(
+    monkeypatch, finding
+):
+    validator = LLMFindingValidator(ValidatorConfig())
+
+    async def fail_call(_prompt):
+        raise AssertionError("malformed findings should not call Ollama")
+
+    monkeypatch.setattr(validator, "_call_ollama", fail_call)
+
+    validation = await validator.validate_finding(finding)  # type: ignore[arg-type]
+
+    assert validation.finding_id == "unknown"
+    assert validation.result == ValidationResult.UNCERTAIN
+    assert validation.reasoning == "Malformed finding container"
+
+
+@pytest.mark.asyncio
+async def test_validate_finding_defaults_malformed_code_context(monkeypatch):
+    validator = LLMFindingValidator(ValidatorConfig())
+    captured = {}
+
+    async def fake_call(prompt):
+        captured["prompt"] = prompt
+        return '{"result": "valid", "confidence": 0.8, "reasoning": "Confirmed."}'
+
+    monkeypatch.setattr(validator, "_call_ollama", fake_call)
+
+    await validator.validate_finding(
+        {"id": "F-code", "type": "reentrancy", "severity": "high"},
+        code_context={"bad": "context"},
+    )
+
+    assert "{'bad': 'context'}" not in captured["prompt"]
+    assert "```solidity\nNot available\n```" in captured["prompt"]
+
+
+@pytest.mark.asyncio
+async def test_validate_finding_bounds_code_context_and_allows_multiline(monkeypatch):
+    validator = LLMFindingValidator(ValidatorConfig())
+    captured = {}
+    code_context = "contract Vault {\n" + ("x" * 1600) + "\n}"
+
+    async def fake_call(prompt):
+        captured["prompt"] = prompt
+        return '{"result": "valid", "confidence": 0.8, "reasoning": "Confirmed."}'
+
+    monkeypatch.setattr(validator, "_call_ollama", fake_call)
+
+    await validator.validate_finding(
+        {"id": "F-code2", "type": "reentrancy", "severity": "high"},
+        code_context=code_context,
+    )
+
+    assert "contract Vault {\n" in captured["prompt"]
+    assert len(captured["prompt"].split("```solidity\n", 1)[1].split("\n```", 1)[0]) == 1500
+
+
+@pytest.mark.asyncio
+async def test_validate_finding_defaults_control_char_contexts(monkeypatch):
+    validator = LLMFindingValidator(ValidatorConfig())
+    captured = {}
+
+    async def fake_call(prompt):
+        captured["prompt"] = prompt
+        return '{"result": "valid", "confidence": 0.8, "reasoning": "Confirmed."}'
+
+    monkeypatch.setattr(validator, "_call_ollama", fake_call)
+
+    await validator.validate_finding(
+        {"id": "F-code3", "type": "reentrancy", "severity": "high"},
+        code_context="contract Vault {}\x00",
+        contract_context="mainnet\x7f",
+    )
+
+    assert "```solidity\nNot available\n```" in captured["prompt"]
+    assert "\n## Contract Context\nNot available\n" in captured["prompt"]
+
+
+@pytest.mark.asyncio
+async def test_validate_finding_handles_malformed_exception_text(monkeypatch):
+    validator = LLMFindingValidator(ValidatorConfig())
+
+    class BadException(RuntimeError):
+        def __str__(self):
+            raise RuntimeError("bad str")
+
+    async def fail_call(_prompt):
+        raise BadException()
+
+    monkeypatch.setattr(validator, "_call_ollama", fail_call)
+
+    validation = await validator.validate_finding(
+        {"id": "F-bad", "type": "reentrancy", "severity": "high"},
+        code_context="contract Vault {}",
+    )
+
+    assert validation.result == ValidationResult.UNCERTAIN
+    assert validation.reasoning == "Validation failed: Exception: BadException"
+
+
+@pytest.mark.asyncio
+async def test_validate_finding_sanitizes_exception_reason_control_chars(monkeypatch):
+    validator = LLMFindingValidator(ValidatorConfig())
+
+    async def fail_call(_prompt):
+        raise RuntimeError("bad\nfailure")
+
+    monkeypatch.setattr(validator, "_call_ollama", fail_call)
+
+    validation = await validator.validate_finding(
+        {"id": "F-bad2", "type": "reentrancy", "severity": "high"},
+        code_context="contract Vault {}",
+    )
+
+    assert validation.reasoning == "Validation failed: Exception: RuntimeError"
 
 
 @pytest.mark.asyncio
@@ -302,6 +506,71 @@ async def test_call_ollama_returns_empty_string_for_non_object_payload(monkeypat
     monkeypatch.setattr(validator, "_get_session", fake_get_session)
 
     assert await validator._call_ollama("prompt") == ""
+
+
+@pytest.mark.asyncio
+async def test_call_ollama_sanitizes_non_200_error_text(monkeypatch):
+    validator = LLMFindingValidator(ValidatorConfig())
+
+    class FakeResponse:
+        status = 500
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return None
+
+        async def text(self):
+            return "bad\n" + ("x" * 500)
+
+    class FakeSession:
+        def post(self, *_args, **_kwargs):
+            return FakeResponse()
+
+    async def fake_get_session():
+        return FakeSession()
+
+    monkeypatch.setattr(validator, "_get_session", fake_get_session)
+
+    with pytest.raises(RuntimeError) as excinfo:
+        await validator._call_ollama("prompt")
+
+    assert str(excinfo.value) == "Ollama API error 500: error"
+
+
+@pytest.mark.asyncio
+async def test_call_ollama_uses_normalized_payload_config(monkeypatch):
+    validator = LLMFindingValidator(
+        ValidatorConfig(model=" model ", temperature=0.5, max_tokens=256)
+    )
+    captured = {}
+
+    class FakeResponse:
+        status = 200
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return None
+
+        async def json(self):
+            return {"response": "ok"}
+
+    class FakeSession:
+        def post(self, *_args, **kwargs):
+            captured["payload"] = kwargs["json"]
+            return FakeResponse()
+
+    async def fake_get_session():
+        return FakeSession()
+
+    monkeypatch.setattr(validator, "_get_session", fake_get_session)
+
+    assert await validator._call_ollama("prompt") == "ok"
+    assert captured["payload"]["model"] == "model"
+    assert captured["payload"]["options"] == {"temperature": 0.5, "num_predict": 256}
 
 
 def test_parse_response_accepts_wrapped_json():
@@ -591,6 +860,53 @@ def test_init_normalizes_endpoint_model_and_batch_config():
     assert validator.config.batch_size == ValidatorConfig().batch_size
 
 
+def test_init_defaults_malformed_config_container(monkeypatch):
+    monkeypatch.delenv("MIESC_LLM_MODEL", raising=False)
+    monkeypatch.delenv("OLLAMA_HOST", raising=False)
+    validator = LLMFindingValidator({"model": "bad"})  # type: ignore[arg-type]
+
+    assert validator.config == ValidatorConfig()
+
+
+def test_init_defaults_partial_config_like_object():
+    class PartialConfig:
+        model = " partial-model "
+        enabled = False
+
+    validator = LLMFindingValidator(PartialConfig())  # type: ignore[arg-type]
+
+    assert validator.config.model == "partial-model"
+    assert validator.config.enabled is False
+    assert validator.config.ollama_host == ValidatorConfig().ollama_host
+
+
+@pytest.mark.parametrize("temperature", [True, -0.1, 2.1, float("inf"), ["0.1"]])
+def test_init_defaults_malformed_temperature_config(temperature):
+    validator = LLMFindingValidator(ValidatorConfig(temperature=temperature))
+
+    assert validator.config.temperature == ValidatorConfig().temperature
+
+
+@pytest.mark.parametrize("temperature", [0, 0.5, 2])
+def test_init_preserves_valid_temperature_config(temperature):
+    validator = LLMFindingValidator(ValidatorConfig(temperature=temperature))
+
+    assert validator.config.temperature == float(temperature)
+
+
+@pytest.mark.parametrize("max_tokens", [0, -1, True, 1.5, ["1024"]])
+def test_init_defaults_malformed_max_tokens_config(max_tokens):
+    validator = LLMFindingValidator(ValidatorConfig(max_tokens=max_tokens))
+
+    assert validator.config.max_tokens == ValidatorConfig().max_tokens
+
+
+def test_init_defaults_malformed_enabled_config():
+    validator = LLMFindingValidator(ValidatorConfig(enabled="yes"))  # type: ignore[arg-type]
+
+    assert validator.config.enabled is ValidatorConfig().enabled
+
+
 @pytest.mark.parametrize("timeout", [0, -1, True, ["60"]])
 def test_init_defaults_malformed_timeout_config(timeout):
     validator = LLMFindingValidator(ValidatorConfig(timeout_seconds=timeout))
@@ -611,6 +927,13 @@ def test_init_normalizes_min_severity_config():
 
     assert validator.config.min_severity_to_validate == "high"
     assert validator.should_validate({"severity": "medium"}) is False
+
+
+def test_should_validate_defaults_mutated_malformed_min_severity():
+    validator = LLMFindingValidator(ValidatorConfig())
+    validator.config.min_severity_to_validate = ["high"]
+
+    assert validator.should_validate({"severity": "medium"}) is True
 
 
 def test_should_validate_respects_enabled_flag_and_min_severity():
@@ -881,6 +1204,40 @@ def test_parse_text_rejects_control_chars():
 def test_parse_location_line_rejects_control_chars():
     assert LLMFindingValidator._parse_location_line(" 42 ") == "42"
     assert LLMFindingValidator._parse_location_line("4\n2") == 0
+
+
+@pytest.mark.parametrize("line", ["42:7", "line 42", "abc", "-1"])
+def test_parse_location_line_rejects_non_numeric_strings(line):
+    assert LLMFindingValidator._parse_location_line(line) == 0
+
+
+@pytest.mark.parametrize("line", [-1, 10_000_001, "10000001"])
+def test_parse_location_line_rejects_negative_or_oversized_values(line):
+    assert LLMFindingValidator._parse_location_line(line) == 0
+
+
+@pytest.mark.asyncio
+async def test_validate_finding_defaults_prompt_line_for_non_numeric_string(monkeypatch):
+    validator = LLMFindingValidator(ValidatorConfig())
+    captured = {}
+
+    async def fake_call(prompt):
+        captured["prompt"] = prompt
+        return '{"result": "valid", "confidence": 0.8, "reasoning": "Confirmed."}'
+
+    monkeypatch.setattr(validator, "_call_ollama", fake_call)
+
+    await validator.validate_finding(
+        {
+            "id": "F-line",
+            "type": "reentrancy",
+            "severity": "high",
+            "location": {"file": "Vault.sol", "line": "line 42"},
+        },
+        code_context="contract Vault {}",
+    )
+
+    assert "- **Location**: Vault.sol:0" in captured["prompt"]
 
 
 def test_parse_confidence_strips_and_rejects_control_chars():
