@@ -11,9 +11,11 @@ Date: January 2026
 
 import json
 from datetime import datetime
+from pathlib import Path
 
 import pytest
 
+import src.poc.poc_generator as poc_generator_module
 from src.poc.poc_generator import (
     GenerationOptions,
     PoCGenerator,
@@ -294,6 +296,35 @@ class TestPoCTemplate:
 
         assert saved_path.name == "PoC_reentrancy_template.t.sol"
 
+    def test_template_save_bounds_overlong_name_segment(self, tmp_path):
+        """Overlong template names should be bounded before file creation."""
+        template = PoCTemplate(
+            name="Exploit" + ("A" * 500),
+            vulnerability_type=VulnerabilityType.REENTRANCY,
+            solidity_code="// SPDX-License-Identifier: MIT\ncontract Test {}",
+            target_contract="Bank.sol",
+            target_function="withdraw",
+        )
+
+        saved_path = template.save(tmp_path)
+
+        assert saved_path.parent == tmp_path
+        assert len(saved_path.name) < 120
+        assert saved_path.name.endswith(".t.sol")
+
+    def test_template_save_rejects_output_dir_with_null_byte(self):
+        """Malformed path text is rejected before filesystem calls."""
+        template = PoCTemplate(
+            name="TestExploit",
+            vulnerability_type=VulnerabilityType.REENTRANCY,
+            solidity_code="// SPDX-License-Identifier: MIT\ncontract Test {}",
+            target_contract="Bank.sol",
+            target_function="withdraw",
+        )
+
+        with pytest.raises(ValueError, match="Malformed PoC output directory"):
+            template.save("bad\x00dir")
+
     def test_template_to_dict(self):
         """Test converting template to dictionary."""
         template = PoCTemplate(
@@ -339,6 +370,44 @@ class TestPoCTemplate:
         assert d["description"] == ""
         assert d["prerequisites"] == ["Foundry installed"]
         assert d["expected_outcome"] == ""
+
+    def test_template_to_dict_rejects_control_chars_in_description_and_expected_outcome(
+        self,
+    ):
+        """String metadata with control chars should not be exported."""
+        template = PoCTemplate(
+            name="TestExploit",
+            vulnerability_type=VulnerabilityType.REENTRANCY,
+            solidity_code="// Code",
+            target_contract="Bank.sol",
+            target_function=None,
+            description="bad\ndescription",
+            expected_outcome="bad\x7foutcome",
+        )
+
+        d = template.to_dict()
+
+        assert d["description"] == ""
+        assert d["expected_outcome"] == ""
+
+    def test_template_to_dict_bounds_large_description_fields(self):
+        """Huge metadata fields should not balloon serialized PoC output."""
+        template = PoCTemplate(
+            name="TestExploit",
+            vulnerability_type=VulnerabilityType.REENTRANCY,
+            solidity_code="// Code",
+            target_contract="Bank.sol",
+            target_function=None,
+            description="x" * (poc_generator_module._TEXT_FIELD_LIMIT + 1),
+            expected_outcome="y" * (poc_generator_module._TEXT_FIELD_LIMIT + 1),
+            prerequisites=[f"step-{i}" for i in range(poc_generator_module._LIST_FIELD_LIMIT + 25)],
+        )
+
+        d = template.to_dict()
+
+        assert d["description"] == ""
+        assert d["expected_outcome"] == ""
+        assert len(d["prerequisites"]) == poc_generator_module._LIST_FIELD_LIMIT
 
     def test_template_to_dict_strips_and_skips_blank_prerequisites(self):
         """Blank prerequisite entries should not be exported."""
@@ -588,6 +657,25 @@ class TestTypeResolution:
         vuln_type = generator._resolve_vulnerability_type(unknown_type_finding)
         assert vuln_type == VulnerabilityType.REENTRANCY
 
+    def test_resolve_resets_malformed_type_aliases_state(self, generator):
+        """Malformed alias state should not crash type resolution."""
+        generator.TYPE_ALIASES = ["reentrancy"]
+
+        assert generator._resolve_vulnerability_type({"type": "reentrancy"}) == (
+            VulnerabilityType.REENTRANCY
+        )
+
+    def test_resolve_ignores_hostile_finding_get_accessor(self, generator):
+        """Type resolution should not call custom dict.get implementations."""
+
+        class ExplodingGetDict(dict):
+            def get(self, *_args, **_kwargs):  # pragma: no cover - must not be called
+                raise AssertionError("get should not be called")
+
+        finding = ExplodingGetDict(type="flash-loan")
+
+        assert generator._resolve_vulnerability_type(finding) == VulnerabilityType.FLASH_LOAN
+
     def test_resolve_non_string_type_defaults_reentrancy(self, generator):
         """Test non-string finding type defaults to reentrancy."""
         for type_value in [None, ["reentrancy"], {"name": "reentrancy"}]:
@@ -639,6 +727,17 @@ class TestFunctionExtraction:
         func = generator._extract_function_name(finding)
         assert func == "transfer"
 
+    def test_extract_ignores_hostile_location_get_accessor(self, generator):
+        """Function extraction should not call custom location.get implementations."""
+
+        class ExplodingGetDict(dict):
+            def get(self, *_args, **_kwargs):  # pragma: no cover - must not be called
+                raise AssertionError("get should not be called")
+
+        finding = ExplodingGetDict(location=ExplodingGetDict(function="withdraw"))
+
+        assert generator._extract_function_name(finding) == "withdraw"
+
     def test_extract_ignores_non_string_function_name(self, generator):
         """Test extraction ignores non-string function values."""
         for location in [
@@ -677,7 +776,10 @@ class TestFunctionExtraction:
         """String locations with unsafe names or oversized text are ignored."""
         assert generator._extract_function_name({"location": "function 123bad()"}) is None
         assert generator._extract_function_name({"location": "function withdraw\n()"}) is None
-        assert generator._extract_function_name({"location": "function withdraw() " + ("x" * 2001)}) is None
+        assert (
+            generator._extract_function_name({"location": "function withdraw() " + ("x" * 2001)})
+            is None
+        )
 
     def test_safe_contract_text_strips_and_rejects_control_chars(self):
         assert _safe_contract_text("  contracts/Bank.sol  ") == "contracts/Bank.sol"
@@ -845,6 +947,25 @@ class TestTemplateLoading:
             generator.TEMPLATE_MAP[VulnerabilityType.REENTRANCY] = original
 
         assert "Ignoring malformed PoC template name" in caplog.text
+        assert "contract" in template
+
+    def test_load_template_ignores_cached_non_string_template_body(self, generator):
+        """Malformed cache entries should not bypass template loading fallback."""
+        generator._template_cache = {"reentrancy.t.sol": {"body": "bad"}}
+
+        template = generator._load_template(VulnerabilityType.REENTRANCY)
+
+        assert isinstance(template, str)
+        assert "{'body': 'bad'}" not in template
+        assert isinstance(generator._template_cache["reentrancy.t.sol"], str)
+
+    def test_load_template_resets_malformed_template_map_state(self, generator):
+        """Malformed template-map state should fall back to generic template names."""
+        generator.TEMPLATE_MAP = ["bad"]
+
+        template = generator._load_template(VulnerabilityType.REENTRANCY)
+
+        assert isinstance(template, str)
         assert "contract" in template
 
 
@@ -1031,6 +1152,70 @@ class TestTemplateCustomization:
 
         assert 'vm.createSelectFork("https://rpc.example", 18500000);' in result
 
+    def test_customize_rejects_target_function_path_like_name(self, generator, reentrancy_finding):
+        """Direct template customization should require Solidity identifiers."""
+        result = generator._customize_template(
+            "{{TARGET_FUNCTION}}",
+            vuln_type=VulnerabilityType.REENTRANCY,
+            target_contract="Bank.sol",
+            target_function="../withdraw()",
+            finding=reentrancy_finding,
+            options=GenerationOptions(),
+        )
+
+        assert result == "vulnerable"
+
+    def test_customize_rejects_custom_setup_with_control_chars(self, generator, reentrancy_finding):
+        """Unsafe setup payloads should not cross into generated Solidity."""
+        result = generator._customize_template(
+            "// {{CUSTOM_SETUP}}\nbody",
+            vuln_type=VulnerabilityType.REENTRANCY,
+            target_contract="Bank.sol",
+            target_function="withdraw",
+            finding=reentrancy_finding,
+            options=GenerationOptions(custom_setup_code="token = new Mock();\nunsafe();"),
+        )
+
+        assert "unsafe()" not in result
+        assert "{{CUSTOM_SETUP}}" not in result
+
+    def test_custom_import_lines_caps_valid_imports(self, generator):
+        """Custom imports should be capped after validation and deduplication."""
+        options = GenerationOptions(
+            custom_imports=[
+                f"contracts/interfaces/I{i}.sol"
+                for i in range(poc_generator_module._LIST_FIELD_LIMIT + 25)
+            ]
+        )
+
+        lines = generator._custom_import_lines(options).splitlines()
+
+        assert len(lines) == poc_generator_module._LIST_FIELD_LIMIT
+        assert lines[0] == 'import "contracts/interfaces/I0.sol";'
+
+    @pytest.mark.parametrize(
+        "fork_url, fork_block",
+        [
+            ('https://rpc.example/"bad', 18500000),
+            ("https://rpc.example\\bad", 18500000),
+            ("https://rpc.example", poc_generator_module._MAX_FORK_BLOCK + 1),
+        ],
+    )
+    def test_customize_skips_fork_quote_and_oversized_block_boundaries(
+        self, generator, reentrancy_finding, fork_url, fork_block
+    ):
+        """Fork config should reject quote/backslash injection and oversized blocks."""
+        result = generator._customize_template(
+            "// {{FORK_CONFIG}}\nbody",
+            vuln_type=VulnerabilityType.REENTRANCY,
+            target_contract="Bank.sol",
+            target_function="withdraw",
+            finding=reentrancy_finding,
+            options=GenerationOptions(fork_url=fork_url, fork_block=fork_block),
+        )
+
+        assert "createSelectFork" not in result
+
 
 # =============================================================================
 # Generate PoC Tests
@@ -1134,6 +1319,50 @@ class TestGeneratePoC:
         assert "100 ether" in poc.solidity_code
         assert "Ignoring malformed PoC generation options override" in caplog.text
 
+    def test_generate_strips_finding_id_from_rule_fallback(self, generator):
+        """The rule fallback should be normalized like direct finding IDs."""
+        finding = {
+            "type": "reentrancy",
+            "severity": "high",
+            "description": "Test",
+            "rule": "  reentrancy-rule  ",
+        }
+
+        poc = generator.generate(finding, "Bank.sol")
+
+        assert poc.finding_id == "reentrancy-rule"
+
+    def test_generate_rejects_control_chars_in_rule_fallback(self, generator):
+        """Malformed rule IDs should not leak into PoC metadata."""
+        finding = {
+            "type": "reentrancy",
+            "severity": "high",
+            "description": "Test",
+            "rule": "bad\nrule",
+        }
+
+        poc = generator.generate(finding, "Bank.sol")
+
+        assert poc.finding_id is None
+
+    def test_generate_uses_safe_target_contract_text_for_path_object(self, generator):
+        """Path target contracts should be accepted without leaking reprs."""
+        finding = {"type": "reentrancy", "severity": "high", "description": "Test"}
+
+        poc = generator.generate(finding, Path("contracts/Bank.sol"))
+
+        assert poc.target_contract == "contracts/Bank.sol"
+        assert "{'path':" not in poc.solidity_code
+
+    def test_generate_defaults_target_contract_with_control_chars(self, generator):
+        """Unsafe contract path text should not reach generated code or metadata."""
+        finding = {"type": "reentrancy", "severity": "high", "description": "Test"}
+
+        poc = generator.generate(finding, "Bank\n.sol")
+
+        assert poc.target_contract == ""
+        assert "Bank\n.sol" not in poc.solidity_code
+
 
 # =============================================================================
 # Batch Generation Tests
@@ -1211,6 +1440,17 @@ class TestBatchGeneration:
         """Test batch generation with empty list."""
         pocs = generator.generate_batch([], "Test.sol")
         assert pocs == []
+
+    def test_generate_batch_caps_successful_outputs(self, generator, reentrancy_finding):
+        """Batch generation should cap successful PoCs from oversized inputs."""
+        findings = [
+            {**reentrancy_finding, "id": f"VULN-{i}"}
+            for i in range(poc_generator_module._LIST_FIELD_LIMIT + 25)
+        ]
+
+        pocs = generator.generate_batch(findings, "Test.sol")
+
+        assert len(pocs) == poc_generator_module._LIST_FIELD_LIMIT
 
 
 # =============================================================================
@@ -1305,6 +1545,20 @@ class TestUtilityMethods:
 
         assert "bad\nkey" not in info["type_aliases"]
         assert info["type_aliases"]["bad-value"] == "unknown"
+
+    def test_get_template_info_handles_mutated_mapping_state(self, generator):
+        """Template info should not crash or leak reprs when state is malformed."""
+        generator.TEMPLATE_MAP = ["bad"]
+        generator.TYPE_ALIASES = ["bad"]
+        generator.templates_dir = {"path": "bad"}
+
+        info = generator.get_template_info()
+
+        assert info == {
+            "templates_dir": "",
+            "available_templates": [],
+            "type_aliases": {},
+        }
 
     def test_type_aliases_coverage(self, generator):
         """Test type aliases cover common variations."""
@@ -1548,6 +1802,74 @@ class TestPoCRunMethod:
         assert result.gas_used == 12345
         assert result.error == ""
         assert "{'error': 'bad'}" not in result.output
+
+    def test_run_result_bounds_large_stdout_stderr_output(self, generator, sample_poc, tmp_path):
+        """Run results should not return unbounded forge logs."""
+        from unittest.mock import MagicMock, patch
+
+        test_dir = tmp_path / "test" / "exploits"
+        test_dir.mkdir(parents=True)
+
+        mock_result = MagicMock()
+        mock_result.returncode = 1
+        mock_result.stdout = "o" * (poc_generator_module._RUN_OUTPUT_LIMIT + 100)
+        mock_result.stderr = "e" * (poc_generator_module._RUN_OUTPUT_LIMIT + 100)
+
+        with patch("subprocess.run", return_value=mock_result):
+            result = generator.run(sample_poc, tmp_path, verbose=False)
+
+        assert len(result.output) == poc_generator_module._RUN_OUTPUT_LIMIT * 2
+        assert len(result.error) == poc_generator_module._RUN_OUTPUT_LIMIT
+
+    def test_run_result_error_uses_normalized_stderr_only_for_failure(
+        self, generator, sample_poc, tmp_path
+    ):
+        """Non-string stderr should normalize to an empty failure error."""
+        from unittest.mock import MagicMock, patch
+
+        test_dir = tmp_path / "test" / "exploits"
+        test_dir.mkdir(parents=True)
+
+        mock_result = MagicMock()
+        mock_result.returncode = 1
+        mock_result.stdout = "[FAIL]"
+        mock_result.stderr = {"error": "bad"}
+
+        with patch("subprocess.run", return_value=mock_result):
+            result = generator.run(sample_poc, tmp_path, verbose=False)
+
+        assert result.success is False
+        assert result.output == "[FAIL]"
+        assert result.error == ""
+        assert "{'error': 'bad'}" not in result.output
+
+    def test_run_save_exception_is_sanitized(self, generator, sample_poc, tmp_path):
+        """PoC save failures should become bounded run errors."""
+        from unittest.mock import patch
+
+        with patch.object(sample_poc, "save", side_effect=ValueError("bad\npath")):
+            result = generator.run(sample_poc, tmp_path, verbose=False)
+
+        assert result.success is False
+        assert result.output == ""
+        assert "\\n" in result.error
+
+    def test_run_treats_bool_returncode_as_failure(self, generator, sample_poc, tmp_path):
+        """Bool returncodes should not be accepted as subprocess success integers."""
+        from unittest.mock import MagicMock, patch
+
+        test_dir = tmp_path / "test" / "exploits"
+        test_dir.mkdir(parents=True)
+
+        mock_result = MagicMock()
+        mock_result.returncode = False
+        mock_result.stdout = "[PASS]"
+        mock_result.stderr = ""
+
+        with patch("subprocess.run", return_value=mock_result):
+            result = generator.run(sample_poc, tmp_path, verbose=False)
+
+        assert result.success is False
 
     def test_run_rejects_malformed_poc_template(self, generator, tmp_path):
         """Test malformed PoC template objects are rejected before save()."""
@@ -1830,9 +2152,7 @@ class TestCustomizePoCTemplate:
         assert "forge-std/Vm.sol" not in poc.solidity_code
         assert "Skipping malformed custom imports container in PoC options" in caplog.text
 
-    def test_malformed_custom_import_entries_and_setup_code_are_ignored(
-        self, generator, caplog
-    ):
+    def test_malformed_custom_import_entries_and_setup_code_are_ignored(self, generator, caplog):
         """Test malformed custom option entries do not leak reprs into templates."""
         options = GenerationOptions(
             custom_imports=[
@@ -1915,6 +2235,10 @@ class TestGasAndTraceExtraction:
         """Test unrealistic gas values are ignored at the output boundary."""
         assert generator._extract_gas_from_output("gas: 999,999,999,999") is None
 
+    def test_extract_gas_ignores_bool_output_shape(self, generator):
+        """Bool output containers should not be parsed as gas telemetry."""
+        assert generator._extract_gas_from_output(True) is None
+
     def test_extract_gas_no_match(self, generator):
         """Test gas extraction returns None when no match."""
         output = "[PASS] test_exploit()"
@@ -1955,6 +2279,10 @@ Traces:
 
         assert traces.startswith("Traces:")
         assert len(traces) == 20_000
+
+    def test_extract_traces_rejects_control_chars(self, generator):
+        """Trace extraction should reject unsafe control-character payloads."""
+        assert generator._extract_traces("Traces:\n bad\x00trace") is None
 
     def test_extract_traces_not_found(self, generator):
         """Test trace extraction returns None when no traces (line 629)."""

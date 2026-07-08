@@ -20,6 +20,7 @@ import logging
 import re
 import string
 import subprocess
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
@@ -32,7 +33,21 @@ _FILENAME_SAFE_CHARS = f"-_() {string.ascii_letters}{string.digits}"
 _SOLIDITY_IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,127}$")
 _SOLIDITY_LITERAL_SAFE_RE = re.compile(r"^[A-Za-z0-9_ .()+\-*/]+$")
 _ERROR_TEXT_LIMIT = 500
+_TEXT_FIELD_LIMIT = 2_000
+_LIST_FIELD_LIMIT = 100
+_RUN_OUTPUT_LIMIT = 100_000
 _TRACE_TEXT_LIMIT = 20_000
+_MAX_FORK_BLOCK = 1_000_000_000
+
+
+def _safe_mapping_get(mapping: Any, key: str, default: Any = None) -> Any:
+    """Read mapping values without trusting custom get implementations."""
+    if not isinstance(mapping, Mapping):
+        return default
+    try:
+        return mapping[key] if key in mapping else default
+    except Exception:
+        return default
 
 
 def _safe_filename_part(value: Any, default: str = "template") -> str:
@@ -46,13 +61,15 @@ def _safe_filename_part(value: Any, default: str = "template") -> str:
     return safe[:80] or default
 
 
-def _normalize_output_text(value: Any) -> str:
+def _normalize_output_text(value: Any, max_chars: int = _RUN_OUTPUT_LIMIT) -> str:
     """Normalize subprocess output fields without leaking container reprs."""
     if isinstance(value, str):
-        return value
-    if isinstance(value, bytes):
-        return value.decode("utf-8", errors="replace")
-    return ""
+        text = value
+    elif isinstance(value, bytes):
+        text = value.decode("utf-8", errors="replace")
+    else:
+        return ""
+    return text[:max_chars] if len(text) > max_chars else text
 
 
 def _safe_error_text(value: Any) -> str:
@@ -87,7 +104,11 @@ def _safe_optional_text(value: Any) -> Optional[str]:
     if not isinstance(value, str):
         return None
     text = value.strip()
-    if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+    if (
+        not text
+        or len(text) > _TEXT_FIELD_LIMIT
+        or any(ord(ch) < 32 or ord(ch) == 127 for ch in text)
+    ):
         return None
     return text
 
@@ -96,13 +117,18 @@ def _safe_text_list(value: Any) -> List[str]:
     """Return only string list entries from template metadata."""
     if not isinstance(value, list):
         return []
-    return [
-        text
-        for item in value
-        if isinstance(item, str)
-        and (text := item.strip())
-        and not any(ord(ch) < 32 or ord(ch) == 127 for ch in text)
-    ]
+    texts = []
+    for item in value:
+        if (
+            isinstance(item, str)
+            and (text := item.strip())
+            and len(text) <= _TEXT_FIELD_LIMIT
+            and not any(ord(ch) < 32 or ord(ch) == 127 for ch in text)
+        ):
+            texts.append(text)
+            if len(texts) >= _LIST_FIELD_LIMIT:
+                break
+    return texts
 
 
 def _safe_import_path(value: Any) -> bool:
@@ -110,7 +136,12 @@ def _safe_import_path(value: Any) -> bool:
     if not isinstance(value, str):
         return False
     text = value.strip()
-    if not text or "\\" in text or ".." in text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+    if (
+        not text
+        or "\\" in text
+        or ".." in text
+        or any(ord(ch) < 32 or ord(ch) == 127 for ch in text)
+    ):
         return False
     return ":" not in text and not text.startswith("/")
 
@@ -119,7 +150,11 @@ def _safe_contract_text(value: Any) -> str:
     """Return a contract identifier only from plain text or path objects."""
     if isinstance(value, (str, Path)):
         text = str(value).strip()
-        if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+        if (
+            not text
+            or len(text) > _TEXT_FIELD_LIMIT
+            or any(ord(ch) < 32 or ord(ch) == 127 for ch in text)
+        ):
             return ""
         return text
     return ""
@@ -243,7 +278,9 @@ class PoCTemplate:
         """
         if not isinstance(output_dir, (str, Path)):
             raise ValueError("Malformed PoC output directory")
-        if isinstance(output_dir, str) and not output_dir.strip():
+        if isinstance(output_dir, str) and (
+            not output_dir.strip() or any(ord(ch) < 32 or ord(ch) == 127 for ch in output_dir)
+        ):
             raise ValueError("Malformed PoC output directory")
         output_path = Path(output_dir)
         output_path.mkdir(parents=True, exist_ok=True)
@@ -265,12 +302,14 @@ class PoCTemplate:
         return {
             "name": self.name if isinstance(self.name, str) else "template",
             "vulnerability_type": _safe_vulnerability_type_value(self.vulnerability_type),
-            "target_contract": self.target_contract if isinstance(self.target_contract, str) else "",
+            "target_contract": self.target_contract
+            if isinstance(self.target_contract, str)
+            else "",
             "target_function": _safe_optional_text(self.target_function),
             "finding_id": _safe_optional_text(self.finding_id),
-            "description": self.description if isinstance(self.description, str) else "",
+            "description": _safe_optional_text(self.description) or "",
             "prerequisites": _safe_text_list(self.prerequisites),
-            "expected_outcome": self.expected_outcome if isinstance(self.expected_outcome, str) else "",
+            "expected_outcome": _safe_optional_text(self.expected_outcome) or "",
             "created_at": _safe_isoformat(self.created_at),
         }
 
@@ -484,6 +523,8 @@ class PoCGenerator:
             try:
                 poc = self.generate(finding, target_contract, options)
                 pocs.append(poc)
+                if len(pocs) >= _LIST_FIELD_LIMIT:
+                    break
             except (AttributeError, KeyError, TypeError, ValueError) as e:
                 logger.warning("Failed to generate PoC for finding: %s", _safe_error_text(e))
 
@@ -533,11 +574,11 @@ class PoCGenerator:
                 error="Malformed PoC template",
             )
 
-        # Save PoC to project
-        test_dir = project_path / "test" / "exploits"
-        poc_path = poc.save(test_dir)
-
         try:
+            # Save PoC to project
+            test_dir = project_path / "test" / "exploits"
+            poc_path = poc.save(test_dir)
+
             # Run forge test
             cmd = [
                 "forge",
@@ -561,7 +602,11 @@ class PoCGenerator:
             execution_time = (time.time() - start_time) * 1000
 
             # Parse output
-            returncode = result.returncode if isinstance(result.returncode, int) else 1
+            returncode = (
+                result.returncode
+                if isinstance(result.returncode, int) and not isinstance(result.returncode, bool)
+                else 1
+            )
             success = returncode == 0
             stdout = _normalize_output_text(getattr(result, "stdout", ""))
             stderr = _normalize_output_text(getattr(result, "stderr", ""))
@@ -594,7 +639,7 @@ class PoCGenerator:
                 execution_time_ms=0,
                 error="Foundry (forge) not installed",
             )
-        except (OSError, RuntimeError, subprocess.SubprocessError) as e:
+        except (OSError, RuntimeError, subprocess.SubprocessError, ValueError) as e:
             execution_time = max((time.time() - start_time) * 1000, 0)
             return PoCResult(
                 success=False,
@@ -626,27 +671,37 @@ class PoCGenerator:
 
     def _resolve_vulnerability_type(self, finding: Dict[str, Any]) -> VulnerabilityType:
         """Resolve finding type to VulnerabilityType enum."""
-        if not isinstance(finding, dict):
+        if not isinstance(finding, Mapping):
             logger.warning("Malformed finding type container, defaulting to REENTRANCY")
             return VulnerabilityType.REENTRANCY
-        raw_finding_type = finding.get("type", "")
+        type_aliases = self.TYPE_ALIASES if isinstance(self.TYPE_ALIASES, Mapping) else {}
+        raw_finding_type = _safe_mapping_get(finding, "type", "")
         if isinstance(raw_finding_type, bytes):
             try:
                 raw_finding_type = raw_finding_type.decode("utf-8", errors="replace")
             except Exception:
                 raw_finding_type = ""
         finding_type = raw_finding_type.lower().strip() if isinstance(raw_finding_type, str) else ""
-        if not finding_type or len(finding_type) > 120 or any(
-            ord(ch) < 32 or ord(ch) == 127 for ch in finding_type
+        if (
+            not finding_type
+            or len(finding_type) > 120
+            or any(ord(ch) < 32 or ord(ch) == 127 for ch in finding_type)
         ):
             finding_type = ""
 
         # Try direct alias lookup
-        if finding_type in self.TYPE_ALIASES:
-            return self.TYPE_ALIASES[finding_type]
+        if finding_type in type_aliases:
+            resolved = _safe_mapping_get(type_aliases, finding_type)
+            return (
+                resolved
+                if isinstance(resolved, VulnerabilityType)
+                else VulnerabilityType.REENTRANCY
+            )
 
         # Try partial matching
-        for alias, vuln_type in self.TYPE_ALIASES.items():
+        for alias, vuln_type in type_aliases.items():
+            if not isinstance(alias, str) or not isinstance(vuln_type, VulnerabilityType):
+                continue
             if alias in finding_type or finding_type in alias:
                 return vuln_type
 
@@ -658,12 +713,16 @@ class PoCGenerator:
         self, finding: Dict[str, Any], key: str, default: Optional[str] = None
     ) -> Optional[str]:
         """Return string finding fields only; ignore malformed object/list shapes."""
-        if not isinstance(finding, dict) or not isinstance(key, str):
+        if not isinstance(finding, Mapping) or not isinstance(key, str):
             return default
-        value = finding.get(key, default)
+        value = _safe_mapping_get(finding, key, default)
         if isinstance(value, str):
             text = value.strip()
-            if text and not any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+            if (
+                text
+                and len(text) <= _TEXT_FIELD_LIMIT
+                and not any(ord(ch) < 32 or ord(ch) == 127 for ch in text)
+            ):
                 return text
         return default
 
@@ -693,6 +752,8 @@ class PoCGenerator:
                 continue
             seen.add(normalized)
             import_paths.append(normalized)
+            if len(import_paths) >= _LIST_FIELD_LIMIT:
+                break
         if len(import_paths) != len(imports):
             logger.warning("Skipping malformed custom import entry in PoC options")
 
@@ -710,10 +771,13 @@ class PoCGenerator:
             not isinstance(fork_url, str)
             or not fork_url.strip()
             or len(fork_url.strip()) > 2048
+            or '"' in fork_url
+            or "\\" in fork_url
             or any(ord(ch) < 32 or ord(ch) == 127 for ch in fork_url)
             or not isinstance(fork_block, int)
             or isinstance(fork_block, bool)
             or fork_block <= 0
+            or fork_block > _MAX_FORK_BLOCK
         ):
             logger.warning("Skipping malformed fork configuration in PoC options")
             return ""
@@ -725,12 +789,14 @@ class PoCGenerator:
 
     def _extract_function_name(self, finding: Dict[str, Any]) -> Optional[str]:
         """Extract target function name from finding."""
-        if not isinstance(finding, dict):
+        if not isinstance(finding, Mapping):
             return None
-        location = finding.get("location", {})
+        location = _safe_mapping_get(finding, "location", {})
 
-        if isinstance(location, dict):
-            function_name = location.get("function") or location.get("func")
+        if isinstance(location, Mapping):
+            function_name = _safe_mapping_get(location, "function") or _safe_mapping_get(
+                location, "func"
+            )
             return _safe_solidity_identifier(function_name)
         elif isinstance(location, str):
             if len(location) > 2000 or any(ord(ch) < 32 or ord(ch) == 127 for ch in location):
@@ -767,7 +833,8 @@ class PoCGenerator:
 
     def _load_template(self, vuln_type: VulnerabilityType) -> str:
         """Load template for vulnerability type."""
-        template_name = self.TEMPLATE_MAP.get(vuln_type)
+        template_map = self.TEMPLATE_MAP if isinstance(self.TEMPLATE_MAP, Mapping) else {}
+        template_name = _safe_mapping_get(template_map, vuln_type)
 
         if not template_name:
             # Use generic template
@@ -778,7 +845,7 @@ class PoCGenerator:
 
         # Check cache
         template_cache = self._template_cache_state()
-        cached_template = template_cache.get(template_name)
+        cached_template = _safe_mapping_get(template_cache, template_name)
         if isinstance(cached_template, str):
             return cached_template
 
@@ -820,7 +887,7 @@ class PoCGenerator:
         )
         vuln_type_value = _safe_vulnerability_type_value(vuln_type)
         test_name = f"test_exploit_{_safe_filename_part(vuln_type_value, 'unknown')}"
-        function_name = _safe_filename_part(target_function, "") if target_function else ""
+        function_name = _safe_solidity_identifier(target_function) or ""
 
         replacements = {
             "{{CONTRACT_NAME}}": contract_name,
@@ -930,7 +997,10 @@ contract {{CONTRACT_NAME}}ExploitTest is Test {
         """Get prerequisites for running PoC."""
         if not isinstance(vuln_type, VulnerabilityType):
             return _safe_text_list(
-                ["Foundry installed (forge, cast, anvil)", "Target contract deployed or source available"]
+                [
+                    "Foundry installed (forge, cast, anvil)",
+                    "Target contract deployed or source available",
+                ]
             )
         prereqs = [
             "Foundry installed (forge, cast, anvil)",
@@ -997,6 +1067,8 @@ contract {{CONTRACT_NAME}}ExploitTest is Test {
         """Extract execution traces from forge output."""
         if not isinstance(output, str):
             return None
+        if any(ord(ch) < 32 and ch not in "\n\r\t" or ord(ch) == 127 for ch in output):
+            return None
         # Look for trace section
         trace_start = output.find("Traces:")
         if trace_start >= 0:
@@ -1016,14 +1088,22 @@ contract {{CONTRACT_NAME}}ExploitTest is Test {
 
     def get_template_info(self) -> Dict[str, Any]:
         """Get information about available templates."""
+        template_map = self.TEMPLATE_MAP if isinstance(self.TEMPLATE_MAP, Mapping) else {}
+        type_aliases = self.TYPE_ALIASES if isinstance(self.TYPE_ALIASES, Mapping) else {}
+        templates_dir = (
+            str(self.templates_dir)
+            if isinstance(self.templates_dir, (str, Path))
+            and _safe_contract_text(self.templates_dir)
+            else ""
+        )
         return {
-            "templates_dir": str(self.templates_dir),
+            "templates_dir": templates_dir,
             "available_templates": [
-                _safe_vulnerability_type_value(vuln_type) for vuln_type in self.TEMPLATE_MAP
+                _safe_vulnerability_type_value(vuln_type) for vuln_type in template_map
             ],
             "type_aliases": {
                 key.strip(): _safe_vulnerability_type_value(value)
-                for key, value in self.TYPE_ALIASES.items()
+                for key, value in type_aliases.items()
                 if isinstance(key, str)
                 and key.strip()
                 and not any(ord(ch) < 32 or ord(ch) == 127 for ch in key)
