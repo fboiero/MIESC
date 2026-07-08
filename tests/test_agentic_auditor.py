@@ -1,0 +1,362 @@
+"""Offline unit tests for the AgenticAuditor orchestration loop (design §7).
+
+No network, no API. A SCRIPTED mock stands in for
+``FrontierLLMAdapter.converse_with_tools`` (returning canned ConversationResult
+objects) while a REAL ``RepoCallGraph`` is built over inline Solidity fixtures.
+
+The tests drive the full loop — enumerate -> verify -> confirm — and assert the
+design §7 stop conditions (n_target reached, convergence on an empty round),
+the drop-in finding shape, and that ruled-out hypotheses never reappear.
+
+GOTCHA: fixtures must live under a path WITHOUT "test" in it — RepoCallGraph's
+_SKIP_PATH skips '/test'. We use tempfile.mkdtemp(prefix="miesc_aa_").
+"""
+
+import json
+import shutil
+import tempfile
+from collections.abc import Iterator
+from pathlib import Path
+from typing import Any, Callable, Dict, List
+
+import pytest
+
+from src.adapters.frontier_llm_adapter import ConversationResult, ToolSpec
+from src.agents.agentic_auditor import (
+    AgenticAuditConfig,
+    AgenticAuditor,
+    AuditResult,
+    _extract_json_array,
+)
+from src.agents.hypothesis_ledger import Hypothesis
+from src.agents.repo_call_graph import RepoCallGraph
+
+# ---------------------------------------------------------------------------
+# Inline Solidity fixtures (cross-contract call: Bank.withdraw -> Token.transfer)
+# ---------------------------------------------------------------------------
+
+TOKEN_SOL = """// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+contract Token {
+    mapping(address => uint256) public balances;
+
+    function transfer(address to, uint256 amount) public returns (bool) {
+        balances[msg.sender] -= amount;
+        balances[to] += amount;
+        return true;
+    }
+
+    function mint(address to, uint256 amount) external {
+        balances[to] += amount;
+    }
+}
+"""
+
+BANK_SOL = """// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+contract Bank {
+    Token public token;
+    mapping(address => uint256) public deposits;
+
+    function withdraw(uint256 amount) external {
+        deposits[msg.sender] -= amount;
+        token.transfer(msg.sender, amount);
+    }
+}
+"""
+
+
+@pytest.fixture()
+def graph() -> Iterator[RepoCallGraph]:
+    # Neutral temp dir: mkdtemp(prefix="miesc_aa_") avoids the "/test" skip rule.
+    root = Path(tempfile.mkdtemp(prefix="miesc_aa_"))
+    try:
+        src = root / "src"
+        src.mkdir()
+        (src / "Token.sol").write_text(TOKEN_SOL)
+        (src / "Bank.sol").write_text(BANK_SOL)
+        yield RepoCallGraph.build(root)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+# ---------------------------------------------------------------------------
+# Scripted adapter — returns canned ConversationResult objects, in order.
+# ---------------------------------------------------------------------------
+
+class ScriptedAdapter:
+    """Mock adapter feeding pre-baked replies to converse_with_tools.
+
+    Each step is a dict: {"final_text": str, "tool_calls": [(name, args), ...],
+    "usage": {...}}. Any scripted tool_calls are actually dispatched through the
+    orchestrator's ``on_tool_call`` so the real RepoCallGraph tool backend is
+    exercised. When the script runs out, an empty "[]" reply is returned.
+    """
+
+    def __init__(self, steps: List[Dict[str, Any]]) -> None:
+        self.steps = list(steps)
+        self.calls: List[Dict[str, Any]] = []
+
+    def converse_with_tools(
+        self,
+        system: str,
+        messages: List[Dict[str, Any]],
+        tools: List[ToolSpec],
+        on_tool_call: Callable[[str, Dict[str, Any]], str],
+        model: Any = None,
+        max_iterations: int = 12,
+    ) -> ConversationResult:
+        step = self.steps.pop(0) if self.steps else {"final_text": "[]"}
+        trace: List[Dict[str, Any]] = []
+        for name, args in step.get("tool_calls", []):
+            result = on_tool_call(name, args)
+            trace.append({"name": name, "args": args, "result": result})
+        self.calls.append(
+            {
+                "user": messages[-1]["content"],
+                "tools": [t.name for t in tools],
+                "model": model,
+                "tool_results": trace,
+            }
+        )
+        return ConversationResult(
+            final_text=step.get("final_text", "[]"),
+            messages=list(messages),
+            tool_calls=trace,
+            usage=step.get("usage", {"input_tokens": 10, "output_tokens": 5}),
+        )
+
+
+def _enum(candidates: List[Dict[str, str]], **kw: Any) -> Dict[str, Any]:
+    return {"final_text": json.dumps(candidates), **kw}
+
+
+def _verify(verdicts: List[Dict[str, Any]], **kw: Any) -> Dict[str, Any]:
+    return {"final_text": json.dumps(verdicts), **kw}
+
+
+TRANSFER_CANDIDATE = {
+    "contract": "Token",
+    "function": "transfer",
+    "vuln_class": "arithmetic",
+    "claim": "transfer subtracts before checking balance, underflowing to drain",
+}
+WITHDRAW_CANDIDATE = {
+    "contract": "Bank",
+    "function": "withdraw",
+    "vuln_class": "reentrancy",
+    "claim": "withdraw calls token.transfer before zeroing deposits",
+}
+
+
+def _hid(candidate: Dict[str, str]) -> str:
+    return Hypothesis.make(
+        candidate["contract"], candidate["function"],
+        candidate["vuln_class"], candidate["claim"],
+    ).id
+
+
+# ---------------------------------------------------------------------------
+# JSON extraction
+# ---------------------------------------------------------------------------
+
+def test_extract_json_array_handles_prose_and_fences() -> None:
+    assert _extract_json_array('[{"a": 1}]') == [{"a": 1}]
+    assert _extract_json_array('Here you go:\n```json\n[{"a": 1}]\n```') == [{"a": 1}]
+    assert _extract_json_array("prose [ {\"a\": 1} ] trailing") == [{"a": 1}]
+    assert _extract_json_array('{"a": 1}') == [{"a": 1}]  # lone object -> wrapped
+    assert _extract_json_array("no json here") == []
+    assert _extract_json_array("") == []
+    # Unparseable JSON never crashes.
+    assert _extract_json_array("[not valid json,,]") == []
+
+
+# ---------------------------------------------------------------------------
+# Tool dispatch against the real RepoCallGraph
+# ---------------------------------------------------------------------------
+
+def test_on_tool_call_routes_to_real_graph(graph: RepoCallGraph) -> None:
+    auditor = AgenticAuditor(ScriptedAdapter([]), graph, AgenticAuditConfig())
+
+    body = auditor._on_tool_call("get_function_body",
+                                 {"contract": "Token", "function": "transfer"})
+    assert "function transfer" in body
+
+    # Cross-contract caller: Bank.withdraw calls Token.transfer.
+    callers = auditor._on_tool_call("list_callers",
+                                    {"contract": "Token", "function": "transfer"})
+    assert "Bank.withdraw" in callers
+
+    callees = auditor._on_tool_call("list_callees",
+                                    {"contract": "Bank", "function": "withdraw"})
+    assert "Token.transfer" in callees
+
+    # Missing contract/function -> graceful "not found", never an exception.
+    assert "not found" in auditor._on_tool_call(
+        "get_function_body", {"contract": "Nope", "function": "ghost"}
+    )
+    assert "not found" in auditor._on_tool_call("get_function_body", {})
+    assert "not found" in auditor._on_tool_call("bogus_tool",
+                                                {"contract": "Token", "function": "mint"})
+
+
+# ---------------------------------------------------------------------------
+# The loop: enumerate -> verify -> confirm, stop on n_target
+# ---------------------------------------------------------------------------
+
+def test_loop_enumerate_verify_confirm_stops_on_n_target(graph: RepoCallGraph) -> None:
+    adapter = ScriptedAdapter([
+        # Round 0 ENUMERATE — one candidate, with a real tool call exercised.
+        _enum([TRANSFER_CANDIDATE],
+              tool_calls=[("get_function_body", {"contract": "Token", "function": "transfer"})]),
+        # VERIFY — confirm it.
+        _verify([{"id": _hid(TRANSFER_CANDIDATE), "verdict": "confirmed",
+                  "reason": "underflow lets attacker mint balance and drain", "severity": "high"}]),
+    ])
+    config = AgenticAuditConfig(n_target=1, max_rounds=4)
+    auditor = AgenticAuditor(adapter, graph, config)
+
+    result = auditor.audit_repo(Path("/unused"), scope="")
+
+    assert isinstance(result, AuditResult)
+    # Enumerate then verify — exactly two adapter turns (n_target met, no completeness).
+    assert len(adapter.calls) == 2
+    # The enumerate turn actually dispatched a tool to the real graph.
+    assert adapter.calls[0]["tool_results"][0]["name"] == "get_function_body"
+    assert "function transfer" in adapter.calls[0]["tool_results"][0]["result"]
+    # One confirmed hypothesis -> one finding.
+    assert len(result.ledger.confirmed()) == 1
+    assert len(result.findings) == 1
+    assert result.trace["rounds"] == 1
+    assert result.trace["confirmed"] == 1
+
+
+def test_finding_shape_matches_audit_md_consumer(graph: RepoCallGraph) -> None:
+    adapter = ScriptedAdapter([
+        _enum([TRANSFER_CANDIDATE]),
+        _verify([{"id": _hid(TRANSFER_CANDIDATE), "verdict": "confirmed",
+                  "reason": "balance underflow", "severity": "high"}]),
+    ])
+    auditor = AgenticAuditor(adapter, graph, AgenticAuditConfig(n_target=1))
+    finding = auditor.audit_repo(Path("/unused")).findings[0]
+
+    # Keys findings_to_audit_md reads (benchmarks/evmbench_official_detect.py:202).
+    for key in ("title", "severity", "type", "function", "description",
+                "impact", "proof_of_concept", "recommendation"):
+        assert key in finding, f"finding missing '{key}': {finding}"
+    assert finding["severity"] == "high"
+    assert finding["type"] == "arithmetic"
+    assert finding["function"] == "transfer"
+    assert finding["description"] == "balance underflow"
+    # Drop-in: the real harness formatter must consume it without error.
+    from benchmarks.evmbench_official_detect import findings_to_audit_md
+    md = findings_to_audit_md([finding], "AgenticAuditorTest")
+    assert "transfer" in md
+    assert "severity: high" in md
+
+
+# ---------------------------------------------------------------------------
+# Convergence: an empty completeness round stops the loop
+# ---------------------------------------------------------------------------
+
+def test_loop_stops_on_convergence_empty_round(graph: RepoCallGraph) -> None:
+    adapter = ScriptedAdapter([
+        _enum([TRANSFER_CANDIDATE]),           # enumerate
+        _verify([{"id": _hid(TRANSFER_CANDIDATE), "verdict": "confirmed",
+                  "reason": "underflow", "severity": "high"}]),  # verify
+        _enum([]),                             # completeness round finds nothing new
+    ])
+    # n_target far above what will ever confirm -> would loop, but convergence stops it.
+    config = AgenticAuditConfig(n_target=5, max_rounds=4)
+    auditor = AgenticAuditor(adapter, graph, config)
+
+    result = auditor.audit_repo(Path("/unused"))
+
+    # enum + verify + one completeness turn (empty) = 3 adapter calls, then break.
+    assert len(adapter.calls) == 3
+    assert result.trace["rounds"] == 2  # enumerate(1) + completeness(1)
+    assert len(result.findings) == 1
+    # Did NOT exhaust max_rounds — stopped early on convergence.
+    assert result.trace["rounds"] < config.max_rounds
+
+
+# ---------------------------------------------------------------------------
+# Ruled-out hypotheses never reappear
+# ---------------------------------------------------------------------------
+
+def test_ruled_out_hypotheses_do_not_reappear(graph: RepoCallGraph) -> None:
+    adapter = ScriptedAdapter([
+        # Enumerate two candidates.
+        _enum([TRANSFER_CANDIDATE, WITHDRAW_CANDIDATE]),
+        # Verify: confirm transfer, rule out withdraw.
+        _verify([
+            {"id": _hid(TRANSFER_CANDIDATE), "verdict": "confirmed",
+             "reason": "underflow drains", "severity": "high"},
+            {"id": _hid(WITHDRAW_CANDIDATE), "verdict": "ruled_out",
+             "reason": "nonReentrant guard present upstream", "severity": None},
+        ]),
+        # Completeness re-raises the SAME ruled-out withdraw candidate.
+        _enum([WITHDRAW_CANDIDATE]),
+    ])
+    config = AgenticAuditConfig(n_target=5, max_rounds=4)
+    auditor = AgenticAuditor(adapter, graph, config)
+
+    result = auditor.audit_repo(Path("/unused"))
+
+    confirmed = result.ledger.confirmed()
+    ruled = result.ledger.ruled_out()
+    assert len(confirmed) == 1 and confirmed[0].function == "transfer"
+    assert len(ruled) == 1 and ruled[0].function == "withdraw"
+    # The re-raised ruled-out candidate was NOT re-opened.
+    assert result.ledger.open_ids() == []
+    # Only the confirmed hypothesis surfaces as a finding.
+    assert len(result.findings) == 1
+    assert result.findings[0]["function"] == "transfer"
+
+
+# ---------------------------------------------------------------------------
+# Token budget short-circuits the loop
+# ---------------------------------------------------------------------------
+
+def test_token_budget_halts_completeness_loop(graph: RepoCallGraph) -> None:
+    adapter = ScriptedAdapter([
+        _enum([TRANSFER_CANDIDATE], usage={"input_tokens": 100, "output_tokens": 100}),
+        _verify([{"id": _hid(TRANSFER_CANDIDATE), "verdict": "confirmed",
+                  "reason": "underflow", "severity": "high"}],
+                usage={"input_tokens": 100, "output_tokens": 100}),
+        # Would keep going, but budget (300) is already exceeded by now.
+        _enum([{"contract": "Token", "function": "mint", "vuln_class": "access_control",
+                "claim": "mint is unguarded"}]),
+    ])
+    config = AgenticAuditConfig(n_target=5, max_rounds=4, token_budget=300)
+    auditor = AgenticAuditor(adapter, graph, config)
+
+    result = auditor.audit_repo(Path("/unused"))
+
+    # enum(200) + verify(200) = 400 tokens >= 300 budget -> no completeness turn.
+    assert len(adapter.calls) == 2
+    assert result.trace["tokens"] >= config.token_budget
+
+
+def test_round0_verify_runs_even_when_enum_alone_exhausts_budget(graph: RepoCallGraph) -> None:
+    # Regression: on big repos, enumeration ALONE blows the token budget. The
+    # round-0 verify must still run (force=True) or the enumerated hypotheses are
+    # silently discarded (the bug that made large audits score 0/N).
+    adapter = ScriptedAdapter([
+        _enum([TRANSFER_CANDIDATE], usage={"input_tokens": 300, "output_tokens": 200}),
+        _verify([{"id": _hid(TRANSFER_CANDIDATE), "verdict": "confirmed",
+                  "reason": "underflow", "severity": "high"}],
+                usage={"input_tokens": 50, "output_tokens": 50}),
+    ])
+    config = AgenticAuditConfig(n_target=5, max_rounds=4, token_budget=300)
+    auditor = AgenticAuditor(adapter, graph, config)
+
+    result = auditor.audit_repo(Path("/unused"))
+
+    # enum alone (500) already >= budget (300), yet verify STILL ran -> 2 calls,
+    # and the enumerated hypothesis was confirmed rather than thrown away.
+    assert len(adapter.calls) == 2
+    assert result.trace["confirmed"] == 1
+    assert len(result.findings) == 1
