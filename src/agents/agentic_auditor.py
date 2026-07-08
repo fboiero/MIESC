@@ -179,6 +179,7 @@ class AgenticAuditor(BaseAgent):
             "tokens": 0,
             "enumerated": 0,
             "confirmed": 0,
+            "surviving": 0,
             "round_log": [],
         }
 
@@ -211,7 +212,7 @@ class AgenticAuditor(BaseAgent):
         # progress (design §7 stop conditions).
         n_target = self.config.n_target
         while (
-            len(ledger.confirmed()) < n_target
+            len(ledger.surviving()) < n_target
             and trace["rounds"] < self.config.max_rounds
             and not self._over_budget(trace)
         ):
@@ -238,11 +239,13 @@ class AgenticAuditor(BaseAgent):
                 break
 
         trace["confirmed"] = len(ledger.confirmed())
+        trace["surviving"] = len(ledger.surviving())
         findings = self._ledger_to_findings(ledger)
         logger.info(
-            "AgenticAuditor: %d finding(s) from %d confirmed hypothesis(es) in "
-            "%d round(s), %d tool call(s), %d tokens",
-            len(findings), trace["confirmed"], trace["rounds"],
+            "AgenticAuditor: %d finding(s) (surviving hypotheses: %d confirmed + "
+            "%d unruled-out open) in %d round(s), %d tool call(s), %d tokens",
+            len(findings), trace["confirmed"],
+            trace["surviving"] - trace["confirmed"], trace["rounds"],
             trace["tool_calls"], trace["tokens"],
         )
         return AuditResult(findings=findings, ledger=ledger, trace=trace)
@@ -436,23 +439,36 @@ class AgenticAuditor(BaseAgent):
         return h.claim
 
     def _ledger_to_findings(self, ledger: HypothesisLedger) -> List[Dict[str, Any]]:
-        """Convert confirmed hypotheses into findings_to_audit_md-shaped dicts."""
+        """Convert SURVIVING hypotheses into findings_to_audit_md-shaped dicts.
+
+        Surviving = confirmed OR still-open (everything the verifier did NOT rule
+        out). Enumeration reliably surfaces real candidates, so we surface every
+        hypothesis the verifier did not explicitly drop:
+          - confirmed  -> severity from the verdict (or "high"); detail = evidence.
+          - open       -> severity "medium"; detail = the enum's specific claim.
+        """
         findings: List[Dict[str, Any]] = []
-        for h in ledger.confirmed():
-            reason = self._confirmed_reason(h)
+        for h in ledger.surviving():
+            if h.status == "confirmed":
+                severity = h.severity or "high"
+                detail = self._confirmed_reason(h)
+            else:
+                # Unverified survivor: the enum's specific claim carries the detail.
+                severity = "medium"
+                detail = h.claim
             findings.append(
                 {
                     "title": h.claim,
-                    "severity": (h.severity or "high"),
+                    "severity": severity,
                     "type": h.vuln_class,
                     "check": h.vuln_class,
                     "contract": h.contract,
                     "function": h.function,
                     "file": h.contract,
                     "line": 0,
-                    "description": reason,
-                    "impact": reason,
-                    "proof_of_concept": reason,
+                    "description": detail,
+                    "impact": detail,
+                    "proof_of_concept": detail,
                     "recommendation": "",
                     "vuln_class": h.vuln_class,
                     "hypothesis_id": h.id,

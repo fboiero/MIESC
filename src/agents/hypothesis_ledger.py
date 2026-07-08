@@ -124,6 +124,12 @@ class HypothesisLedger:
         """All confirmed hypotheses (the audit's findings)."""
         return [h for h in self._by_id.values() if h.status == _STATUS_CONFIRMED]
 
+    def surviving(self) -> list[Hypothesis]:
+        """Confirmed OR still-open hypotheses — everything not ruled out. These are
+        the audit's findings: enumeration reliably surfaces real candidates, so
+        verification's job is to DROP clear false positives, not to gate."""
+        return [h for h in self._by_id.values() if h.status != _STATUS_RULED_OUT]
+
     def ruled_out(self) -> list[Hypothesis]:
         """All ruled-out hypotheses."""
         return [h for h in self._by_id.values() if h.status == _STATUS_RULED_OUT]

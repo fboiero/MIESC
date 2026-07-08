@@ -118,14 +118,19 @@ enough to name concrete candidates, emit the JSON immediately and stop.
 Output ONLY the JSON array. Return [] if you genuinely find no candidates."""
 
 
-_VERIFY_TEMPLATE = """Now VERIFY each OPEN hypothesis against the real code.
+_VERIFY_TEMPLATE = """Now VERIFY each OPEN hypothesis against the real code. Your \
+job here is to DROP clear false positives, NOT to gate on positive proof: these \
+candidates were surfaced by careful enumeration and are surfaced as findings \
+UNLESS you can concretely demonstrate they are false.
 
 {tools}
 
 For EACH open hypothesis below, you MUST pull the exact function body with \
 get_function_body (and trace callers/callees/paths as needed) and then decide:
 1. Trace the exact execution path in the pulled source.
-2. Decide if it is GENUINELY exploitable, or a false positive / generic note.
+2. Look for a CONCRETE reason the hypothesis is false or non-exploitable — e.g. a \
+guard/modifier exists, the state IS updated before the external call, the input is \
+bounded, or the path is unreachable from any entry point.
 3. If real, state the precise root cause and the exact loss-of-funds scenario.
 
 Open hypotheses to verify:
@@ -133,14 +138,20 @@ Open hypotheses to verify:
 {{ledger}}
 </ledger>
 
+DECISION RULE (bias toward KEEPING):
+- Use "ruled_out" ONLY when you can point at concrete evidence in the pulled code \
+that the bug cannot happen (a guard exists, the state is updated, the value is \
+bounded, the path is unreachable). Set "severity": null.
+- Otherwise use "confirmed". If the hypothesis is plausibly real OR you are simply \
+uncertain, mark it "confirmed" — do NOT rule out merely because you could not fully \
+prove exploitability. Set severity to high|medium|low.
+
 Return ONE verdict object per hypothesis in a single JSON array, EXACTLY:
 [{{{{"id": "<hypothesis id>",
    "verdict": "confirmed|ruled_out",
-   "reason": "<precise root cause + loss scenario if confirmed, or why it is not exploitable>",
+   "reason": "<precise root cause + loss scenario if confirmed, or the concrete code evidence that makes it false if ruled_out>",
    "severity": "high|medium|low"}}}}]
-Use "verdict": "confirmed" only for genuinely exploitable bugs and set severity \
-accordingly; use "ruled_out" otherwise and set "severity": null. Output ONLY the \
-JSON array."""
+Output ONLY the JSON array."""
 
 
 _COMPLETENESS_TEMPLATE = """Now RE-AUDIT as a skeptical senior reviewer: what did \

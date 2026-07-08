@@ -317,6 +317,70 @@ def test_ruled_out_hypotheses_do_not_reappear(graph: RepoCallGraph) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Surviving semantics: an OPEN (unverified) hypothesis IS a finding; a ruled-out
+# one is NOT. Verification only DROPS clear false positives, it does not gate.
+# ---------------------------------------------------------------------------
+
+def test_open_unverified_hypothesis_surfaces_as_medium_finding(graph: RepoCallGraph) -> None:
+    # ENUMERATE surfaces a candidate; VERIFY returns NO verdict for it, so it
+    # stays OPEN. Under the new semantics that survivor must still surface as a
+    # finding (severity "medium", detail = the enum's specific claim) — the
+    # verifier only removes hypotheses it explicitly rules out.
+    adapter = ScriptedAdapter([
+        _enum([TRANSFER_CANDIDATE]),
+        _verify([]),  # verifier gives no verdict -> hypothesis remains OPEN
+    ])
+    # n_target=0 -> no completeness loop; the single round-0 pass is all we run.
+    auditor = AgenticAuditor(adapter, graph, AgenticAuditConfig(n_target=0))
+
+    result = auditor.audit_repo(Path("/unused"))
+
+    # enum + forced verify = 2 turns.
+    assert len(adapter.calls) == 2
+    # Nothing confirmed, nothing ruled out -> exactly one still-open survivor.
+    assert result.ledger.confirmed() == []
+    assert result.ledger.ruled_out() == []
+    assert len(result.ledger.open_ids()) == 1
+    assert result.trace["confirmed"] == 0
+    assert result.trace["surviving"] == 1
+    # The open survivor becomes a finding: severity "medium", detail = the claim.
+    assert len(result.findings) == 1
+    finding = result.findings[0]
+    assert finding["function"] == "transfer"
+    assert finding["severity"] == "medium"
+    assert finding["description"] == TRANSFER_CANDIDATE["claim"]
+    assert finding["proof_of_concept"] == TRANSFER_CANDIDATE["claim"]
+
+
+def test_confirmed_and_open_survive_ruled_out_dropped(graph: RepoCallGraph) -> None:
+    # Mixed verdicts in one pass: confirm TRANSFER, rule out WITHDRAW, leave a
+    # third (mint) OPEN. Findings = confirmed + open (2), ruled-out dropped.
+    MINT_CANDIDATE = {
+        "contract": "Token", "function": "mint", "vuln_class": "access_control",
+        "claim": "mint is unguarded so anyone can inflate balances",
+    }
+    adapter = ScriptedAdapter([
+        _enum([TRANSFER_CANDIDATE, WITHDRAW_CANDIDATE, MINT_CANDIDATE]),
+        _verify([
+            {"id": _hid(TRANSFER_CANDIDATE), "verdict": "confirmed",
+             "reason": "underflow drains", "severity": "high"},
+            {"id": _hid(WITHDRAW_CANDIDATE), "verdict": "ruled_out",
+             "reason": "guard present", "severity": None},
+            # MINT gets no verdict -> stays OPEN.
+        ]),
+    ])
+    auditor = AgenticAuditor(adapter, graph, AgenticAuditConfig(n_target=0))
+
+    result = auditor.audit_repo(Path("/unused"))
+
+    assert result.trace["confirmed"] == 1
+    assert result.trace["surviving"] == 2  # confirmed transfer + open mint
+    funcs = {f["function"]: f["severity"] for f in result.findings}
+    assert funcs == {"transfer": "high", "mint": "medium"}
+    assert "withdraw" not in funcs  # ruled out -> dropped
+
+
+# ---------------------------------------------------------------------------
 # Token budget short-circuits the loop
 # ---------------------------------------------------------------------------
 

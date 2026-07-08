@@ -114,6 +114,35 @@ def test_confirm_moves_to_confirmed_with_severity_and_evidence():
 
 
 # ---------------------------------------------------------------------------
+# surviving() — confirmed OR open, but NOT ruled out
+# ---------------------------------------------------------------------------
+
+
+def test_surviving_includes_confirmed_and_open_excludes_ruled_out():
+    ledger = HypothesisLedger()
+    open_h = Hypothesis.make("Vault", "withdraw", "reentrancy", "Missing guard")
+    ruled_h = Hypothesis.make("Vault", "deposit", "arithmetic", "Overflow on amount")
+    confirmed_h = Hypothesis.make("Token", "mint", "access_control", "Anyone can mint")
+    ledger.add(open_h)
+    ledger.add(ruled_h)
+    ledger.add(confirmed_h)
+
+    ledger.rule_out(ruled_h.id, "checked-arithmetic in 0.8")
+    ledger.confirm(confirmed_h.id, "no modifier", "high")
+
+    surviving_ids = {h.id for h in ledger.surviving()}
+    # Confirmed and still-open survive; ruled-out does not.
+    assert open_h.id in surviving_ids
+    assert confirmed_h.id in surviving_ids
+    assert ruled_h.id not in surviving_ids
+    assert len(ledger.surviving()) == 2
+
+
+def test_surviving_empty_ledger():
+    assert HypothesisLedger().surviving() == []
+
+
+# ---------------------------------------------------------------------------
 # summary_for_prompt
 # ---------------------------------------------------------------------------
 
