@@ -21,6 +21,7 @@ import logging
 import math
 import os
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -54,10 +55,30 @@ SOURCE_TIER_WEIGHTS = {
     "curated": 0.70,
 }
 
+MAX_SAFE_TEXT_CHARS = 20_000
+MAX_METADATA_TEXT_CHARS = 2_000
+MAX_TEXT_LIST_ITEMS = 100
+MAX_BATCH_QUERIES = 100
+MAX_CONTEXT_LENGTH = 20_000
+
+
+def _safe_mapping_get(mapping: Any, key: str, default: Any = None) -> Any:
+    """Read mapping values without trusting custom get implementations."""
+    if not isinstance(mapping, Mapping):
+        return default
+    try:
+        return mapping[key] if key in mapping else default
+    except Exception:
+        return default
+
 
 def _is_safe_text(text: str) -> bool:
     """Return whether text is non-empty and free of control characters."""
-    return bool(text) and not any(ord(ch) < 32 or ord(ch) == 127 for ch in text)
+    return (
+        bool(text)
+        and len(text) <= MAX_SAFE_TEXT_CHARS
+        and not any(ord(ch) < 32 or ord(ch) == 127 for ch in text)
+    )
 
 
 def _safe_text(value: Any) -> str:
@@ -96,7 +117,17 @@ def _coerce_text_list(value: Any) -> List[str]:
         if not text:
             continue
         text_values.append(text)
+        if len(text_values) >= MAX_TEXT_LIST_ITEMS:
+            break
     return text_values
+
+
+def _coerce_metadata_text(value: Any) -> str:
+    """Return bounded metadata text suitable for Chroma scalar fields."""
+    text = _safe_text(value)
+    if len(text) > MAX_METADATA_TEXT_CHARS:
+        return ""
+    return text
 
 
 def _coerce_document_text(value: Any) -> str:
@@ -119,7 +150,7 @@ def _coerce_cache_query_text(value: Any) -> str:
 def _coerce_batch_queries(value: Any) -> List[Any]:
     """Return an ordered batch query container, or an empty batch when malformed."""
     if isinstance(value, (list, tuple)):
-        return list(value)
+        return list(value)[:MAX_BATCH_QUERIES]
     return []
 
 
@@ -298,10 +329,10 @@ def _is_indexable_document(value: Any) -> bool:
 def _collection_metadata_text(collection: Any, key: str) -> Optional[str]:
     """Return a string collection metadata value, or None when malformed."""
     metadata = getattr(collection, "metadata", None)
-    if not isinstance(metadata, dict):
+    if not isinstance(metadata, Mapping):
         return None
 
-    value = metadata.get(key)
+    value = _safe_mapping_get(metadata, key)
     text = _safe_text(value)
     if not text:
         return None
@@ -410,9 +441,9 @@ def _coerce_embedding_rows(value: Any) -> List[Any]:
 
 def _result_rows(results: Any, key: str) -> List[Any]:
     """Read Chroma result rows only when the payload shape is list-like."""
-    if not isinstance(results, dict):
+    if not isinstance(results, Mapping):
         return []
-    rows = results.get(key)
+    rows = _safe_mapping_get(results, key)
     if isinstance(rows, (list, tuple)):
         return list(rows)
     return []
@@ -558,22 +589,23 @@ class VulnerabilityDocument:
         tags = _coerce_text_list(self.tags)
         references = _coerce_text_list(self.references)
         return {
-            "swc_id": self.swc_id or "",
-            "cwe_id": self.cwe_id or "",
-            "title": self.title,
-            "severity": self.severity,
-            "category": self.category,
+            "swc_id": _coerce_metadata_text(self.swc_id),
+            "cwe_id": _coerce_metadata_text(self.cwe_id),
+            "title": _coerce_metadata_text(self.title),
+            "severity": _coerce_metadata_text(self.severity) or "medium",
+            "category": _coerce_metadata_text(self.category) or "general",
             "tags": ",".join(tags),
             "references": ",".join(references),
-            "source_tier": self.source_tier,
-            "source_type": self.source_type,
-            "has_exploit": bool(self.real_exploit),
-            "has_fix": bool(self.fixed_code),
+            "source_tier": _coerce_metadata_text(self.source_tier) or "curated",
+            "source_type": _coerce_metadata_text(self.source_type) or "pattern",
+            "has_exploit": bool(_coerce_metadata_text(self.real_exploit)),
+            "has_fix": bool(_coerce_metadata_text(self.fixed_code)),
         }
 
     def source_weight(self) -> float:
         """Return ranking weight for this document's source quality tier."""
-        return SOURCE_TIER_WEIGHTS.get(self.source_tier, SOURCE_TIER_WEIGHTS["curated"])
+        source_tier = _coerce_metadata_text(self.source_tier)
+        return SOURCE_TIER_WEIGHTS.get(source_tier, SOURCE_TIER_WEIGHTS["curated"])
 
 
 @dataclass
@@ -589,16 +621,23 @@ class RetrievalResult:
         """Convert to LLM context string."""
         steps = "; ".join(self.retrieval_steps) if self.retrieval_steps else "semantic search"
         references = ", ".join(_coerce_text_list(self.document.references)[:3]) or "N/A"
+        title = _coerce_metadata_text(self.document.title) or "Untitled"
+        category = _coerce_metadata_text(self.document.category) or "general"
+        severity = _coerce_metadata_text(self.document.severity) or "medium"
+        source_tier = _coerce_metadata_text(self.document.source_tier) or "curated"
+        source_type = _coerce_metadata_text(self.document.source_type) or "pattern"
+        description = _coerce_document_text(self.document.description)
+        real_exploit = _coerce_document_text(self.document.real_exploit) or "N/A"
         return (
-            f"**{self.document.title}** (Score: {self.similarity_score:.2f})\n"
-            f"- Category: {self.document.category}\n"
-            f"- Severity: {self.document.severity}\n"
-            f"- Source: {self.document.source_tier} / {self.document.source_type}\n"
-            f"- Description: {self.document.description[:300]}...\n"
+            f"**{title}** (Score: {_bounded_similarity_score(self.similarity_score):.2f})\n"
+            f"- Category: {category}\n"
+            f"- Severity: {severity}\n"
+            f"- Source: {source_tier} / {source_type}\n"
+            f"- Description: {description[:300]}...\n"
             f"- Relevance: {self.relevance_reason}\n"
             f"- Retrieval Steps: {steps}\n"
             f"- References: {references}\n"
-            f"- Real Exploit: {self.document.real_exploit or 'N/A'}"
+            f"- Real Exploit: {real_exploit}"
         )
 
 
@@ -4899,7 +4938,7 @@ class EmbeddingRAG:
         """
         self.top_k = _coerce_result_count(top_k, self.DEFAULT_TOP_K)
         self.embedding_model_name = _coerce_embedding_model_name(embedding_model)
-        self.enable_cache = enable_cache
+        self.enable_cache = enable_cache is True
 
         # Set up persistence directory
         self.persist_dir = _ensure_persist_directory(persist_directory)
@@ -4952,10 +4991,7 @@ class EmbeddingRAG:
             # Check if we need to populate the knowledge base
             expected_count = len(VULNERABILITY_KNOWLEDGE_BASE)
             current_count = self._collection.count()
-            current_version = _collection_metadata_text(
-                self._collection,
-                "knowledge_base_version"
-            )
+            current_version = _collection_metadata_text(self._collection, "knowledge_base_version")
             if current_count == 0:
                 logger.info("Indexing vulnerability knowledge base...")
                 self._index_knowledge_base()
@@ -5000,6 +5036,8 @@ class EmbeddingRAG:
 
     def _build_doc_index(self) -> None:
         """Build O(1) lookup index for vulnerability documents."""
+        if not isinstance(self._doc_index, dict):
+            self._doc_index = {}
         if self._doc_index:
             return  # Already built
 
@@ -5038,6 +5076,9 @@ class EmbeddingRAG:
         """Get cached result if valid (not expired)."""
         if not isinstance(cache_key, str):
             return None
+        if not isinstance(self._query_cache, dict):
+            self._query_cache = {}
+            return None
 
         cached_entry = self._query_cache.get(cache_key)
         if cached_entry is not None and not isinstance(cached_entry, tuple):
@@ -5067,6 +5108,8 @@ class EmbeddingRAG:
         """Cache search results."""
         if not isinstance(cache_key, str) or not isinstance(results, list):
             return
+        if not isinstance(self._query_cache, dict):
+            self._query_cache = {}
         if any(not isinstance(result, RetrievalResult) for result in results):
             return
 
@@ -5075,7 +5118,7 @@ class EmbeddingRAG:
             cache_key,
             results,
             enabled=self.enable_cache,
-            max_size=self.CACHE_MAX_SIZE,
+            max_size=_coerce_result_count(self.CACHE_MAX_SIZE, 256),
         )
         if stored:
             self._cache_misses += 1
@@ -5104,9 +5147,9 @@ class EmbeddingRAG:
         exact_cues = 0.0
 
         for cue in [
-            doc.category,
-            doc.swc_id or "",
-            doc.cwe_id or "",
+            _coerce_metadata_text(doc.category),
+            _coerce_metadata_text(doc.swc_id),
+            _coerce_metadata_text(doc.cwe_id),
             *_coerce_text_list(doc.tags)[:8],
         ]:
             cue_lower = cue.lower()
@@ -5117,7 +5160,11 @@ class EmbeddingRAG:
         weighted_score = (similarity_score * 0.78) + (self._source_quality(doc) * 0.22)
         weighted_score = min(weighted_score + min(exact_cues, 0.12), 1.0)
 
-        steps = [*result.retrieval_steps, step, f"source_tier={doc.source_tier}"]
+        steps = [
+            *_coerce_text_list(result.retrieval_steps),
+            _coerce_metadata_text(step) or "semantic",
+            f"source_tier={_coerce_metadata_text(doc.source_tier) or 'curated'}",
+        ]
         return RetrievalResult(
             document=doc,
             similarity_score=weighted_score,
@@ -5203,6 +5250,8 @@ class EmbeddingRAG:
 
     def get_cache_stats(self) -> Dict[str, Any]:
         """Get cache performance statistics."""
+        if not isinstance(self._query_cache, dict):
+            self._query_cache = {}
         return cache_stats(
             hits=self._cache_hits,
             misses=self._cache_misses,
@@ -5212,6 +5261,8 @@ class EmbeddingRAG:
 
     def clear_cache(self) -> None:
         """Clear the query cache."""
+        if not isinstance(self._query_cache, dict):
+            self._query_cache = {}
         self._query_cache.clear()
         self._cache_hits = 0
         self._cache_misses = 0
@@ -5516,9 +5567,7 @@ class EmbeddingRAG:
                             continue
                         if not _has_aligned_optional_result_value(document_rows, batch_idx, i):
                             continue
-                        if not _has_valid_optional_result_metadata(
-                            metadata_rows, batch_idx, i
-                        ):
+                        if not _has_valid_optional_result_metadata(metadata_rows, batch_idx, i):
                             continue
                         original_doc = self._doc_index.get(doc_id)
                         if original_doc:
@@ -5566,25 +5615,32 @@ class EmbeddingRAG:
         Returns:
             List of relevant vulnerabilities from knowledge base
         """
+        safe_finding = finding if isinstance(finding, Mapping) else {}
         # Build query from finding
         query_parts = []
 
-        if finding.get("type"):
-            query_parts.append(f"Vulnerability type: {finding['type']}")
-        if finding.get("title"):
-            query_parts.append(f"Issue: {finding['title']}")
-        if finding.get("description"):
-            query_parts.append(finding["description"][:500])
-        if finding.get("swc_id"):
-            query_parts.append(f"SWC ID: {finding['swc_id']}")
-        if code_context:
-            query_parts.append(f"Code: {code_context[:500]}")
+        vuln_type_text = _coerce_metadata_text(_safe_mapping_get(safe_finding, "type"))
+        title_text = _coerce_metadata_text(_safe_mapping_get(safe_finding, "title"))
+        description_text = _coerce_document_text(_safe_mapping_get(safe_finding, "description"))
+        swc_text = _coerce_metadata_text(_safe_mapping_get(safe_finding, "swc_id"))
+        code_text = _coerce_document_text(code_context)
+
+        if vuln_type_text:
+            query_parts.append(f"Vulnerability type: {vuln_type_text}")
+        if title_text:
+            query_parts.append(f"Issue: {title_text}")
+        if description_text:
+            query_parts.append(description_text[:500])
+        if swc_text:
+            query_parts.append(f"SWC ID: {swc_text}")
+        if code_text:
+            query_parts.append(f"Code: {code_text[:500]}")
 
         query = "\n".join(query_parts)
 
         # Determine category filter from finding
         category = None
-        vuln_type = finding.get("type", "").lower()
+        vuln_type = vuln_type_text.lower()
         if "reentrancy" in vuln_type:
             category = "reentrancy"
         elif "access" in vuln_type or "auth" in vuln_type:
@@ -5618,10 +5674,11 @@ class EmbeddingRAG:
 
         context_parts = ["## Similar Known Vulnerabilities\n"]
         current_length = len(context_parts[0])
+        max_len = min(_coerce_result_count(max_context_length, 2000), MAX_CONTEXT_LENGTH)
 
         for result in results:
             entry = result.to_context()
-            if current_length + len(entry) > max_context_length:
+            if current_length + len(entry) > max_len:
                 break
             context_parts.append(entry)
             context_parts.append("\n---\n")
@@ -5649,9 +5706,7 @@ class EmbeddingRAG:
         # Generate embedding
         vulnerability_text = vulnerability.to_text()
         embedding_rows = _coerce_embedding_rows(self._embedder.encode([vulnerability_text]))
-        embedding = (
-            _coerce_embedding_vector(embedding_rows[0]) if embedding_rows else None
-        )
+        embedding = _coerce_embedding_vector(embedding_rows[0]) if embedding_rows else None
         if embedding is None:
             raise ValueError("Custom vulnerability embedding must be a finite numeric vector")
 
@@ -5663,6 +5718,8 @@ class EmbeddingRAG:
             ids=[vulnerability.id],
         )
 
+        if not isinstance(self._doc_index, dict):
+            self._doc_index = {}
         self._doc_index[vulnerability.id] = vulnerability
         self.clear_cache()
 
@@ -5674,20 +5731,25 @@ class EmbeddingRAG:
 
         query_lower = _coerce_query_text(query).lower()
 
-        if doc.swc_id and doc.swc_id.lower() in query_lower:
-            reasons.append(f"Matches SWC ID: {doc.swc_id}")
+        swc_id = _coerce_metadata_text(doc.swc_id)
+        category = _coerce_metadata_text(doc.category)
+        title = _coerce_metadata_text(doc.title)
+        real_exploit = _coerce_metadata_text(doc.real_exploit)
 
-        if doc.category and doc.category.lower() in query_lower:
-            reasons.append(f"Matches category: {doc.category}")
+        if swc_id and swc_id.lower() in query_lower:
+            reasons.append(f"Matches SWC ID: {swc_id}")
+
+        if category and category.lower() in query_lower:
+            reasons.append(f"Matches category: {category}")
 
         # Check for keyword matches
         keywords = ["reentrancy", "overflow", "access", "oracle", "flash", "signature"]
         for kw in keywords:
-            if kw in query_lower and kw in doc.title.lower():
+            if kw in query_lower and kw in title.lower():
                 reasons.append(f"Keyword match: {kw}")
                 break
 
-        if doc.real_exploit:
+        if real_exploit:
             reasons.append("Real-world exploit documented")
 
         if not reasons:
@@ -5698,15 +5760,29 @@ class EmbeddingRAG:
     def get_stats(self) -> Dict[str, Any]:
         """Get statistics about the knowledge base."""
         self._ensure_initialized()
+        categories = sorted(
+            {
+                _coerce_metadata_text(getattr(d, "category", None))
+                for d in VULNERABILITY_KNOWLEDGE_BASE
+                if _coerce_metadata_text(getattr(d, "category", None))
+            }
+        )
+        source_tiers = sorted(
+            {
+                _coerce_metadata_text(getattr(d, "source_tier", None))
+                for d in VULNERABILITY_KNOWLEDGE_BASE
+                if _coerce_metadata_text(getattr(d, "source_tier", None))
+            }
+        )
 
         return {
-            "total_documents": self._collection.count(),
+            "total_documents": _coerce_result_count(self._collection.count(), 0),
             "embedding_model": self.embedding_model_name,
             "persist_directory": str(self.persist_dir),
-            "categories": list({d.category for d in VULNERABILITY_KNOWLEDGE_BASE}),
+            "categories": categories,
             "source_tiers": {
                 tier: sum(1 for d in VULNERABILITY_KNOWLEDGE_BASE if d.source_tier == tier)
-                for tier in sorted({d.source_tier for d in VULNERABILITY_KNOWLEDGE_BASE})
+                for tier in source_tiers
             },
             "knowledge_base_version": KNOWLEDGE_BASE_VERSION,
             "source_documents": len(VULNERABILITY_KNOWLEDGE_BASE),
@@ -5724,6 +5800,8 @@ class EmbeddingRAG:
         self._collection = self._client.create_collection(
             name=collection_name, metadata=self._collection_metadata()
         )
+        if not isinstance(self._doc_index, dict):
+            self._doc_index = {}
         self._doc_index.clear()
         self._build_doc_index()
 
@@ -5765,7 +5843,7 @@ class HybridRAG(EmbeddingRAG):
                              BM25 weight = 1 - embedding_weight
         """
         super().__init__(persist_directory, embedding_model, top_k)
-        self.embedding_weight = embedding_weight
+        self.embedding_weight = _bounded_similarity_score(embedding_weight)
         self._bm25: Any = None
         self._corpus: Any = None
 
@@ -5815,17 +5893,20 @@ class HybridRAG(EmbeddingRAG):
             return embedding_results[:n]
 
         # Get BM25 scores
-        query_tokens = query.lower().split()
+        query_text = _coerce_query_text(query)
+        query_tokens = query_text.lower().split()
         bm25_scores = self._bm25.get_scores(query_tokens)
+        if not isinstance(bm25_scores, (list, tuple)) or not bm25_scores:
+            bm25_scores = []
 
         # Normalize BM25 scores
-        max_bm25 = max(bm25_scores) if max(bm25_scores) > 0 else 1
-        bm25_scores = [s / max_bm25 for s in bm25_scores]
+        max_bm25 = max(bm25_scores) if bm25_scores and max(bm25_scores) > 0 else 1
+        bm25_scores = [_bounded_similarity_score(s / max_bm25) for s in bm25_scores]
 
         # Create ID to BM25 score mapping
         id_to_bm25 = {
             VULNERABILITY_KNOWLEDGE_BASE[i].id: bm25_scores[i]
-            for i in range(len(VULNERABILITY_KNOWLEDGE_BASE))
+            for i in range(min(len(VULNERABILITY_KNOWLEDGE_BASE), len(bm25_scores)))
         }
 
         # Combine scores
@@ -5868,10 +5949,11 @@ def get_rag(hybrid: bool = True) -> EmbeddingRAG:
     Returns:
         Configured RAG instance
     """
-    if hybrid not in _default_rags:
-        _default_rags[hybrid] = HybridRAG() if hybrid else EmbeddingRAG()
+    hybrid_key = hybrid is True
+    if hybrid_key not in _default_rags:
+        _default_rags[hybrid_key] = HybridRAG() if hybrid_key else EmbeddingRAG()
 
-    return _default_rags[hybrid]
+    return _default_rags[hybrid_key]
 
 
 def search_vulnerabilities(
@@ -5946,20 +6028,35 @@ def batch_get_context_for_findings(
         >>> # Only 2 unique queries: "reentrancy" and "oracle"
         >>> # Context cached for reuse
     """
-    if not findings:
+    finding_batch = [
+        finding for finding in _coerce_batch_queries(findings) if isinstance(finding, Mapping)
+    ]
+    if not finding_batch:
         return {}
 
     rag = get_rag(hybrid=hybrid)
+    code_text = _coerce_document_text(code)
 
     # Group findings by vulnerability type for efficient querying
     type_to_findings: Dict[str, List[Dict[str, Any]]] = {}
-    for finding in findings:
-        vuln_type = finding.get("type", finding.get("category", "general")).lower()
+    for finding in finding_batch:
+        vuln_type = (
+            _coerce_metadata_text(
+                _safe_mapping_get(
+                    finding,
+                    "type",
+                    _safe_mapping_get(finding, "category", "general"),
+                )
+            ).lower()
+            or "general"
+        )
         if vuln_type not in type_to_findings:
             type_to_findings[vuln_type] = []
         type_to_findings[vuln_type].append(finding)
 
-    logger.debug(f"Batch context: {len(findings)} findings -> {len(type_to_findings)} unique types")
+    logger.debug(
+        f"Batch context: {len(finding_batch)} findings -> {len(type_to_findings)} unique types"
+    )
 
     # Build queries for unique types
     queries = []
@@ -5968,12 +6065,16 @@ def batch_get_context_for_findings(
         # Use first finding of each type to build query
         representative = type_findings[0]
         query_parts = []
-        if representative.get("type"):
-            query_parts.append(f"Vulnerability type: {representative['type']}")
-        if representative.get("description"):
-            query_parts.append(representative["description"][:300])
-        if code:
-            query_parts.append(f"Code: {code[:300]}")
+        representative_type = _coerce_metadata_text(_safe_mapping_get(representative, "type"))
+        representative_description = _coerce_document_text(
+            _safe_mapping_get(representative, "description")
+        )
+        if representative_type:
+            query_parts.append(f"Vulnerability type: {representative_type}")
+        if representative_description:
+            query_parts.append(representative_description[:300])
+        if code_text:
+            query_parts.append(f"Code: {code_text[:300]}")
         queries.append("\n".join(query_parts) if query_parts else vuln_type)
         type_order.append(vuln_type)
 
@@ -5995,9 +6096,20 @@ def batch_get_context_for_findings(
 
     # Map back to individual findings
     result: Dict[str, str] = {}
-    for finding in findings:
-        vuln_type = finding.get("type", finding.get("category", "general")).lower()
-        finding_key = finding.get("title", finding.get("id", str(id(finding))))
+    for finding in finding_batch:
+        vuln_type = (
+            _coerce_metadata_text(
+                _safe_mapping_get(
+                    finding,
+                    "type",
+                    _safe_mapping_get(finding, "category", "general"),
+                )
+            ).lower()
+            or "general"
+        )
+        finding_key = _coerce_metadata_text(
+            _safe_mapping_get(finding, "title", _safe_mapping_get(finding, "id"))
+        ) or str(id(finding))
         result[finding_key] = type_to_context.get(vuln_type, "No context available.")
 
     return result

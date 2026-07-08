@@ -1,8 +1,12 @@
 """Tests for embedding RAG convenience helpers."""
 
+import pytest
+
 from src.llm import embedding_rag
 from src.llm.embedding_rag import (
     EmbeddingRAG,
+    HybridRAG,
+    RetrievalResult,
     VulnerabilityDocument,
     _coerce_batch_queries,
     _coerce_batch_query_text,
@@ -14,6 +18,7 @@ from src.llm.embedding_rag import (
     _coerce_text_list,
     _is_safe_text,
     _result_rows,
+    batch_get_context_for_findings,
 )
 
 
@@ -55,9 +60,19 @@ class FakeEmbedder:
 class FakeCollection:
     def __init__(self):
         self.added = None
+        self.query_payload = {"ids": [[]]}
+        self.query_calls = []
+        self.count_value = 1
 
     def add(self, **kwargs):
         self.added = kwargs
+
+    def query(self, **kwargs):
+        self.query_calls.append(kwargs)
+        return self.query_payload
+
+    def count(self):
+        return self.count_value
 
 
 class FakeClient:
@@ -105,6 +120,252 @@ def test_add_custom_vulnerability_updates_index_and_clears_cache(tmp_path):
     assert collection.added["ids"] == ["CUSTOM-001"]
 
 
+def initialized_rag(tmp_path, payload=None):
+    rag = EmbeddingRAG(persist_directory=str(tmp_path))
+    collection = FakeCollection()
+    if payload is not None:
+        collection.query_payload = payload
+    rag._initialized = True
+    rag._collection = collection
+    rag._doc_index = {
+        "SWC-107": VulnerabilityDocument(
+            id="SWC-107",
+            title="Reentrancy",
+            description="Reentrancy vulnerability",
+            category="reentrancy",
+            severity="high",
+            source_tier="standard",
+            tags=["reentrancy"],
+        )
+    }
+    return rag, collection
+
+
+def test_search_uses_empty_query_for_non_text_input_without_crashing(tmp_path):
+    payload = {"ids": [["SWC-107"]], "distances": [[0.25]], "metadatas": [[{}]]}
+    rag, collection = initialized_rag(tmp_path, payload)
+
+    results = rag.search({"query": "reentrancy"}, n_results=1)
+
+    assert len(results) == 1
+    assert collection.query_calls[0]["query_texts"] == [""]
+
+
+def test_search_skips_result_rows_with_non_mapping_metadata(tmp_path):
+    payload = {
+        "ids": [["SWC-107", "SWC-107"]],
+        "distances": [[0.1, 0.2]],
+        "metadatas": [[[], "bad"]],
+    }
+    rag, _collection = initialized_rag(tmp_path, payload)
+
+    assert rag.search("reentrancy", n_results=2) == []
+
+
+def test_search_skips_unknown_and_blank_result_ids(tmp_path):
+    payload = {
+        "ids": [["", {"bad": "id"}, "UNKNOWN"]],
+        "distances": [[0.1, 0.2, 0.3]],
+        "metadatas": [[{}, {}, {}]],
+    }
+    rag, _collection = initialized_rag(tmp_path, payload)
+
+    assert rag.search("reentrancy", n_results=3) == []
+
+
+def test_search_dedupes_duplicate_result_ids_and_keeps_best_score(tmp_path):
+    payload = {
+        "ids": [["SWC-107", "SWC-107"]],
+        "distances": [[0.7, 0.1]],
+        "metadatas": [[{}, {}]],
+    }
+    rag, _collection = initialized_rag(tmp_path, payload)
+
+    results = rag.search("reentrancy", n_results=2)
+
+    assert [result.document.id for result in results] == ["SWC-107"]
+    assert results[0].similarity_score > 0.8
+
+
+def test_batch_search_preserves_empty_slots_for_invalid_queries(tmp_path):
+    payload = {"ids": [["SWC-107"]], "distances": [[0.2]], "metadatas": [[{}]]}
+    rag, collection = initialized_rag(tmp_path, payload)
+
+    results = rag.batch_search(["reentrancy", {"bad": "query"}, "bad\nquery"], n_results=1)
+
+    assert len(results) == 3
+    assert results[0]
+    assert results[1] == []
+    assert results[2] == []
+    assert collection.query_calls[0]["query_texts"] == ["reentrancy"]
+
+
+def test_get_cached_result_evicts_tuple_with_malformed_results(tmp_path):
+    rag = EmbeddingRAG(persist_directory=str(tmp_path))
+    rag._query_cache = {"key": (0.0, ["bad"])}
+
+    assert rag._get_cached_result("key") is None
+    assert "key" not in rag._query_cache
+
+
+def test_cache_result_resets_malformed_cache_container(tmp_path):
+    rag = EmbeddingRAG(persist_directory=str(tmp_path))
+    rag._query_cache = ["bad"]
+    doc = VulnerabilityDocument(id="DOC-6")
+    result = RetrievalResult(document=doc, similarity_score=0.5, relevance_reason="ok")
+
+    rag._cache_result("key", [result])
+
+    assert isinstance(rag._query_cache, dict)
+
+
+def test_cache_result_does_not_increment_miss_for_disabled_cache(tmp_path):
+    rag = EmbeddingRAG(persist_directory=str(tmp_path), enable_cache=False)
+    doc = VulnerabilityDocument(id="DOC-7")
+    result = RetrievalResult(document=doc, similarity_score=0.5, relevance_reason="ok")
+
+    rag._cache_result("key", [result])
+
+    assert rag._cache_misses == 0
+    assert rag._query_cache == {}
+
+
+def test_add_custom_vulnerability_rejects_empty_embedding_rows(tmp_path):
+    class EmptyEmbedder:
+        def encode(self, _texts):
+            return []
+
+    rag = EmbeddingRAG(persist_directory=str(tmp_path))
+    rag._initialized = True
+    rag._embedder = EmptyEmbedder()
+    rag._collection = FakeCollection()
+
+    with pytest.raises(ValueError, match="finite numeric vector"):
+        rag.add_custom_vulnerability(VulnerabilityDocument(id="CUSTOM-EMPTY"))
+
+
+def test_search_by_finding_ignores_hostile_get_accessors(tmp_path):
+    rag, _collection = initialized_rag(tmp_path)
+    captured = {}
+
+    def fake_multi_step(query, filter_category=None):
+        captured["query"] = query
+        captured["filter_category"] = filter_category
+        return []
+
+    rag.multi_step_search = fake_multi_step
+    finding = ExplodingGetDict(
+        type="reentrancy",
+        title="Withdraw issue",
+        description="External call before state update",
+        swc_id="SWC-107",
+    )
+
+    assert rag.search_by_finding(finding, code_context=["bad"]) == []
+    assert "Vulnerability type: reentrancy" in captured["query"]
+    assert "Code:" not in captured["query"]
+    assert captured["filter_category"] == "reentrancy"
+
+
+def test_search_by_finding_tolerates_malformed_finding(tmp_path):
+    rag, _collection = initialized_rag(tmp_path)
+    captured = {}
+    rag.multi_step_search = lambda query, filter_category=None: (
+        captured.setdefault("args", (query, filter_category)) or []
+    )
+
+    rag.search_by_finding(["not", "mapping"], code_context="code")
+
+    assert captured["args"] == ("Code: code", None)
+
+
+def test_get_context_for_llm_coerces_malformed_max_length(tmp_path):
+    rag, _collection = initialized_rag(tmp_path)
+    doc = VulnerabilityDocument(
+        id="DOC-8",
+        title="Reentrancy",
+        description="x" * 500,
+        category="reentrancy",
+    )
+    rag.search_by_finding = lambda *_args, **_kwargs: [
+        RetrievalResult(document=doc, similarity_score=0.9, relevance_reason="ok")
+    ]
+
+    context = rag.get_context_for_llm({"type": "reentrancy"}, max_context_length="bad")
+
+    assert context.startswith("## Similar Known Vulnerabilities")
+    assert len(context) <= embedding_rag.MAX_CONTEXT_LENGTH
+
+
+def test_hybrid_search_coerces_query_and_embedding_weight(tmp_path, monkeypatch):
+    class FakeBM25:
+        def get_scores(self, tokens):
+            assert tokens == []
+            return [1.0]
+
+    rag = HybridRAG(persist_directory=str(tmp_path), embedding_weight=99)
+    rag._initialized = True
+    rag._bm25 = FakeBM25()
+    doc = VulnerabilityDocument(id="SWC-107")
+    monkeypatch.setattr(
+        EmbeddingRAG,
+        "search",
+        lambda *_args, **_kwargs: [RetrievalResult(doc, 0.5, "ok")],
+    )
+
+    assert rag.embedding_weight == 1.0
+    results = HybridRAG.search(rag, {"bad": "query"}, n_results=1)
+    assert len(results) == 1
+    assert 0.0 <= results[0].similarity_score <= 1.0
+
+
+def test_batch_get_context_for_findings_skips_non_mapping_findings(monkeypatch):
+    class FakeRAG:
+        def batch_search(self, queries):
+            assert queries == ["Vulnerability type: reentrancy\nsafe description\nCode: code"]
+            return [
+                [
+                    RetrievalResult(
+                        VulnerabilityDocument(
+                            id="DOC-9",
+                            title="Reentrancy",
+                            description="desc",
+                            category="reentrancy",
+                        ),
+                        0.8,
+                        "ok",
+                    )
+                ]
+            ]
+
+    monkeypatch.setattr(embedding_rag, "get_rag", lambda hybrid=True: FakeRAG())
+    findings = [
+        ExplodingGetDict(
+            type="reentrancy",
+            title="Finding title",
+            description="safe description",
+        ),
+        None,
+        ["bad"],
+        "bad",
+    ]
+
+    contexts = batch_get_context_for_findings(findings, code="code")
+
+    assert list(contexts) == ["Finding title"]
+    assert "Similar Known Vulnerabilities" in contexts["Finding title"]
+
+
+def test_get_rag_normalizes_hybrid_cache_key(monkeypatch):
+    monkeypatch.setattr(embedding_rag, "_default_rags", {})
+    monkeypatch.setattr(embedding_rag, "EmbeddingRAG", FakeEmbeddingRAG)
+    monkeypatch.setattr(embedding_rag, "HybridRAG", FakeHybridRAG)
+
+    assert isinstance(embedding_rag.get_rag(hybrid="yes"), FakeEmbeddingRAG)
+    assert isinstance(embedding_rag.get_rag(hybrid=True), FakeHybridRAG)
+    assert set(embedding_rag._default_rags) == {False, True}
+
+
 def test_reindex_resets_local_index_and_cache(tmp_path, monkeypatch):
     """Reindexing the base KB should discard stale custom index/cache state."""
     rag = EmbeddingRAG(persist_directory=str(tmp_path))
@@ -134,9 +395,11 @@ def test_reindex_resets_local_index_and_cache(tmp_path, monkeypatch):
 
 def test_text_coercion_helpers_strip_and_reject_control_chars():
     assert _coerce_text_list(["  alpha  ", b" beta ", "gamma\ndelta"]) == ["alpha", "beta"]
+    assert len(_coerce_text_list([f"tag-{i}" for i in range(125)])) == 100
     assert _coerce_cache_query_text({"query": "alpha"}) == ""
     assert embedding_rag._coerce_document_text("  document text  ") == "document text"
     assert embedding_rag._coerce_document_text("document\ntext") == ""
+    assert embedding_rag._coerce_document_text("x" * 20_001) == ""
     assert embedding_rag._coerce_query_text(b" query ") == "query"
     assert embedding_rag._coerce_query_text("query\x7fvalue") == ""
 
@@ -157,6 +420,7 @@ def test_safe_metadata_filter_rejects_malformed_filter_shapes(monkeypatch):
 
 def test_batch_query_helpers_strip_and_reject_control_chars():
     assert _coerce_batch_queries(("alpha", "beta")) == ["alpha", "beta"]
+    assert len(_coerce_batch_queries([str(i) for i in range(125)])) == 100
     assert _coerce_batch_queries("not-a-sequence") == []
     assert _coerce_batch_query_text("  alpha  ") == (True, "alpha")
     assert _coerce_batch_query_text("alpha\nbeta") == (False, "")
@@ -175,6 +439,7 @@ def test_result_count_and_collection_name_helpers_reject_control_chars():
     assert embedding_rag._collection_metadata_text(collection, "version") == "v1.2.3"
     collection.metadata["version"] = "v1\n2.3"
     assert embedding_rag._collection_metadata_text(collection, "version") is None
+    assert _result_rows(ExplodingGetDict(ids=[["a"]]), "ids") == [["a"]]
     assert embedding_rag._similarity_from_distance("0.25") == 0.75
     assert embedding_rag._similarity_from_distance(True) == 0.0
     assert embedding_rag._similarity_from_query_result(None, "0.8") == 0.8
@@ -198,3 +463,101 @@ def test_embedding_rag_boundaries_use_safe_text_and_collection_metadata(tmp_path
     metadata = rag._collection_metadata()
     assert metadata["embedding_model"] == "test-model"
     assert metadata["knowledge_base_count"] > 0
+
+
+class ExplodingGetDict(dict):
+    def get(self, *_args, **_kwargs):  # pragma: no cover - must not be called
+        raise AssertionError("get should not be called")
+
+
+def test_vulnerability_document_metadata_coerces_non_string_scalar_fields():
+    doc = VulnerabilityDocument(id="DOC-1")
+    doc.swc_id = ["SWC-107"]
+    doc.cwe_id = {"id": "CWE-841"}
+    doc.title = "bad\ntitle"
+    doc.severity = {"level": "high"}
+    doc.category = ["reentrancy"]
+    doc.source_tier = {"tier": "incident"}
+    doc.source_type = ["pattern"]
+    doc.real_exploit = ["hack"]
+    doc.fixed_code = {"code": "fix"}
+
+    metadata = doc.to_metadata()
+
+    assert metadata["swc_id"] == ""
+    assert metadata["cwe_id"] == ""
+    assert metadata["title"] == ""
+    assert metadata["severity"] == "medium"
+    assert metadata["category"] == "general"
+    assert metadata["source_tier"] == "curated"
+    assert metadata["source_type"] == "pattern"
+    assert metadata["has_exploit"] is False
+    assert metadata["has_fix"] is False
+
+
+def test_vulnerability_to_text_skips_nested_tag_and_reference_shapes():
+    doc = VulnerabilityDocument(
+        id="DOC-2",
+        title="Safe Title",
+        description="Description",
+        tags=[" reentrancy ", {"bad": "tag"}, ["nested"], "oracle"],
+        references=[" docs ", {"bad": "ref"}, ["nested"], "audit"],
+    )
+
+    text = doc.to_text()
+
+    assert "Tags: reentrancy, oracle" in text
+    assert "References: docs, audit" in text
+    assert "{'bad':" not in text
+    assert "['nested']" not in text
+
+
+def test_source_weight_falls_back_for_non_string_or_unknown_tier():
+    doc = VulnerabilityDocument(id="DOC-3", source_tier={"bad": "tier"})
+    assert doc.source_weight() == embedding_rag.SOURCE_TIER_WEIGHTS["curated"]
+
+    doc.source_tier = "unknown-tier"
+    assert doc.source_weight() == embedding_rag.SOURCE_TIER_WEIGHTS["curated"]
+
+
+def test_retrieval_context_sanitizes_malformed_document_fields():
+    doc = VulnerabilityDocument(id="DOC-4")
+    doc.title = ["bad"]
+    doc.category = {"bad": "category"}
+    doc.severity = "high\ncritical"
+    doc.source_tier = ["tier"]
+    doc.source_type = {"type": "pattern"}
+    doc.description = {"description": "bad"}
+    doc.real_exploit = ["exploit"]
+
+    result = RetrievalResult(document=doc, similarity_score=float("inf"), relevance_reason="ok")
+
+    context = result.to_context()
+
+    assert "**Untitled** (Score: 0.00)" in context
+    assert "- Category: general" in context
+    assert "- Severity: medium" in context
+    assert "- Real Exploit: N/A" in context
+    assert "['bad']" not in context
+
+
+def test_rank_result_tolerates_malformed_doc_cues(tmp_path):
+    rag = EmbeddingRAG(persist_directory=str(tmp_path))
+    doc = VulnerabilityDocument(id="DOC-5", title="Reentrancy")
+    doc.category = {"bad": "category"}
+    doc.swc_id = ["SWC-107"]
+    doc.cwe_id = {"id": "CWE-841"}
+    doc.tags = [" reentrancy ", {"bad": "tag"}]
+    doc.source_tier = {"bad": "tier"}
+    result = RetrievalResult(
+        document=doc,
+        similarity_score=0.5,
+        relevance_reason="semantic",
+        retrieval_steps=[" step ", {"bad": "step"}],
+    )
+
+    ranked = rag._rank_result(result, original_query="reentrancy", step={"bad": "step"})
+
+    assert 0.0 <= ranked.similarity_score <= 1.0
+    assert "source_tier=curated" in ranked.retrieval_steps
+    assert "{'bad':" not in ";".join(ranked.retrieval_steps)
