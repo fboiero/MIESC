@@ -36,6 +36,10 @@ from src.security.llm_output_validator import (
 
 logger = logging.getLogger(__name__)
 
+MAX_VALIDATION_RESPONSE_CHARS = 50_000
+MAX_BATCH_FINDINGS = 500
+MAX_AVAILABLE_MODELS = 200
+
 VALIDATOR_RUNTIME_ERRORS = (
     aiohttp.ClientError,
     asyncio.TimeoutError,
@@ -45,6 +49,26 @@ VALIDATOR_RUNTIME_ERRORS = (
     ValueError,
     json.JSONDecodeError,
 )
+
+
+def _is_unsafe_text_char(ch: str, *, allow_multiline: bool = False) -> bool:
+    codepoint = ord(ch)
+    if codepoint == 127:
+        return True
+    if allow_multiline and ch in {"\n", "\r", "\t"}:
+        return False
+    if codepoint < 32:
+        return True
+    return codepoint in {0x2028, 0x2029}
+
+
+def _safe_mapping_get(mapping: Any, key: str, default: Any = None) -> Any:
+    if not isinstance(mapping, dict):
+        return default
+    try:
+        return mapping.get(key, default)
+    except (AttributeError, TypeError, RuntimeError, ValueError):
+        return default
 
 
 class ValidationResult(Enum):
@@ -161,14 +185,19 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
             self.config.ollama_host = default_config.ollama_host
         else:
             self.config.ollama_host = self.config.ollama_host.strip()
+            if any(_is_unsafe_text_char(ch) for ch in self.config.ollama_host):
+                self.config.ollama_host = default_config.ollama_host
         if not isinstance(self.config.model, str) or not self.config.model.strip():
             self.config.model = default_config.model
         else:
             self.config.model = self.config.model.strip()
+            if any(_is_unsafe_text_char(ch) for ch in self.config.model):
+                self.config.model = default_config.model
         if (
             isinstance(self.config.timeout_seconds, bool)
             or not isinstance(self.config.timeout_seconds, (int, float))
             or self.config.timeout_seconds <= 0
+            or self.config.timeout_seconds > 600
         ):
             self.config.timeout_seconds = default_config.timeout_seconds
         if (
@@ -184,12 +213,14 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
             isinstance(self.config.max_tokens, bool)
             or not isinstance(self.config.max_tokens, int)
             or self.config.max_tokens <= 0
+            or self.config.max_tokens > 16_384
         ):
             self.config.max_tokens = default_config.max_tokens
         if (
             isinstance(self.config.batch_size, bool)
             or not isinstance(self.config.batch_size, int)
             or self.config.batch_size <= 0
+            or self.config.batch_size > 50
         ):
             self.config.batch_size = default_config.batch_size
         if not isinstance(self.config.enabled, bool):
@@ -235,12 +266,13 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
                 if not isinstance(data, dict):
                     return False
 
-                models_value = data.get("models", [])
+                models_value = _safe_mapping_get(data, "models", [])
                 models = models_value if isinstance(models_value, list) else []
                 model_names = [
                     name.strip()
-                    for model in models
-                    if isinstance(model, dict) and isinstance(name := model.get("name"), str)
+                    for model in models[:MAX_AVAILABLE_MODELS]
+                    if isinstance(model, dict)
+                    and isinstance(name := _safe_mapping_get(model, "name"), str)
                     and self._safe_model_name(name)
                 ]
                 return any(
@@ -264,7 +296,7 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
         if not self.config.enabled or not isinstance(finding, dict):
             return False
 
-        severity_value = finding.get("severity", "")
+        severity_value = _safe_mapping_get(finding, "severity", "")
         severity = severity_value.lower() if isinstance(severity_value, str) else ""
         min_severity_value = self.config.min_severity_to_validate
         min_severity = min_severity_value.lower() if isinstance(min_severity_value, str) else ""
@@ -305,27 +337,25 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
             )
 
         safe_finding = finding if isinstance(finding, dict) else {}
-        finding_id = self._parse_text(safe_finding.get("id"), "unknown")
+        finding_id = self._parse_text(_safe_mapping_get(safe_finding, "id"), "unknown")
 
         try:
-            location_value = safe_finding.get("location", {})
+            location_value = _safe_mapping_get(safe_finding, "location", {})
             location = location_value if isinstance(location_value, dict) else {}
             message = self._parse_text(
-                safe_finding.get("message"),
-                self._parse_text(safe_finding.get("description"), "No message"),
+                _safe_mapping_get(safe_finding, "message"),
+                self._parse_text(_safe_mapping_get(safe_finding, "description"), "No message"),
             )
             code_snippet = self._prompt_text(code_context, limit=1500) or "Not available"
-            contract_snippet = (
-                self._prompt_text(contract_context, limit=500) or "Not available"
-            )
+            contract_snippet = self._prompt_text(contract_context, limit=500) or "Not available"
 
             # Build prompt
             prompt = self.VALIDATION_PROMPT.format(
-                finding_type=self._parse_text(safe_finding.get("type"), "unknown"),
-                severity=self._parse_text(safe_finding.get("severity"), "unknown"),
-                tool=self._parse_text(safe_finding.get("tool"), "unknown"),
-                file=self._parse_text(location.get("file"), "unknown"),
-                line=self._parse_location_line(location.get("line")),
+                finding_type=self._parse_text(_safe_mapping_get(safe_finding, "type"), "unknown"),
+                severity=self._parse_text(_safe_mapping_get(safe_finding, "severity"), "unknown"),
+                tool=self._parse_text(_safe_mapping_get(safe_finding, "tool"), "unknown"),
+                file=self._parse_text(_safe_mapping_get(location, "file"), "unknown"),
+                line=self._parse_location_line(_safe_mapping_get(location, "line")),
                 message=message,
                 code_snippet=code_snippet,
                 contract_context=contract_snippet,
@@ -382,17 +412,23 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
             f"{self.config.ollama_host}/api/generate",
             json=payload,
         ) as resp:
-            if resp.status != 200:
-                error_text = await resp.text()
+            status = resp.status
+            if not isinstance(status, int) or isinstance(status, bool):
+                raise RuntimeError("Ollama API error unknown: malformed status")
+            if status != 200:
+                try:
+                    error_text = await resp.text()
+                except VALIDATOR_RUNTIME_ERRORS:
+                    error_text = "error"
                 safe_error = self._parse_text(error_text, "error")[:200]
-                raise RuntimeError(f"Ollama API error {resp.status}: {safe_error}")
+                raise RuntimeError(f"Ollama API error {status}: {safe_error}")
 
             data = await resp.json()
             if not isinstance(data, dict):
                 return ""
 
-            response = data.get("response", "")
-            return response if isinstance(response, str) else ""
+            response = _safe_mapping_get(data, "response", "")
+            return response[:MAX_VALIDATION_RESPONSE_CHARS] if isinstance(response, str) else ""
 
     def _parse_response(self, response: str, finding_id: str) -> LLMValidation:
         """Parse LLM response into LLMValidation."""
@@ -405,11 +441,7 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
                 raise ValueError("No JSON found in response")
 
             data = json.loads(repair_common_json_errors(json_str))
-            if (
-                isinstance(data, list)
-                and len(data) == 1
-                and isinstance(data[0], dict)
-            ):
+            if isinstance(data, list) and len(data) == 1 and isinstance(data[0], dict):
                 data = data[0]
             if not isinstance(data, dict):
                 return LLMValidation(
@@ -420,7 +452,7 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
                 )
 
             # Map result string to enum
-            result_value = data.get("result", "")
+            result_value = _safe_mapping_get(data, "result", "")
             result_str = (
                 result_value.strip().lower().replace("-", "_")
                 if isinstance(result_value, str)
@@ -436,19 +468,23 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
             result = result_map.get(result_str, ValidationResult.UNCERTAIN)
 
             # Handle is_valid field for simpler responses
-            is_valid = data.get("is_valid")
+            is_valid = _safe_mapping_get(data, "is_valid")
             if isinstance(is_valid, bool) and result_str not in result_map:
                 result = ValidationResult.VALID if is_valid else ValidationResult.LIKELY_FP
 
             return LLMValidation(
                 finding_id=finding_id,
                 result=result,
-                confidence=self._parse_confidence(data.get("confidence", 0.5)),
-                reasoning=self._parse_text(data.get("reasoning"), "No reasoning provided")[:2000],
+                confidence=self._parse_confidence(_safe_mapping_get(data, "confidence", 0.5)),
+                reasoning=self._parse_text(
+                    _safe_mapping_get(data, "reasoning"), "No reasoning provided"
+                )[:2000],
                 suggested_severity=self._parse_suggested_severity(
-                    data.get("suggested_severity")
+                    _safe_mapping_get(data, "suggested_severity")
                 ),
-                remediation_hint=self._parse_optional_text(data.get("remediation_hint")),
+                remediation_hint=self._parse_optional_text(
+                    _safe_mapping_get(data, "remediation_hint")
+                ),
             )
 
         except (json.JSONDecodeError, ValueError) as e:
@@ -480,7 +516,7 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
         try:
             if isinstance(value, str):
                 text = value.strip()
-                if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+                if not text or any(_is_unsafe_text_char(ch) for ch in text):
                     return default
                 value = text
             confidence = float(value)
@@ -496,7 +532,7 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
         if not isinstance(value, str):
             return default
         text = value.strip()
-        if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+        if not text or any(_is_unsafe_text_char(ch) for ch in text):
             return default
         return text
 
@@ -504,7 +540,7 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
     def _parse_optional_text(cls, value: Any) -> Optional[str]:
         """Return optional text only when the LLM field has a string shape."""
         text = cls._parse_text(value, "").strip()
-        if any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+        if any(_is_unsafe_text_char(ch) for ch in text):
             return None
         if len(text) > 500:
             text = text[:500]
@@ -525,7 +561,7 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
         if not isinstance(value, str):
             return ""
         text = value.strip()
-        if not text or any(ord(ch) == 0 or ord(ch) == 127 for ch in text):
+        if not text or any(_is_unsafe_text_char(ch, allow_multiline=True) for ch in text):
             return ""
         return text[:limit]
 
@@ -537,7 +573,7 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
         except Exception:
             detail = exc.__class__.__name__
         detail = detail.strip()
-        if not detail or any(ord(ch) < 32 or ord(ch) == 127 for ch in detail):
+        if not detail or any(_is_unsafe_text_char(ch) for ch in detail):
             detail = exc.__class__.__name__
         return f"Exception: {detail}"[:200]
 
@@ -550,24 +586,20 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
             return value if 0 <= value <= 10_000_000 else 0
         if isinstance(value, str):
             text = value.strip()
-            if (
-                not text
-                or any(ord(ch) < 32 or ord(ch) == 127 for ch in text)
-                or not text.isdecimal()
-            ):
+            if not text or any(_is_unsafe_text_char(ch) for ch in text) or not text.isdecimal():
                 return 0
             return text if int(text) <= 10_000_000 else 0
         return 0
 
-    @staticmethod
-    def _normalize_config(config: Any, default_config: ValidatorConfig) -> ValidatorConfig:
+    @classmethod
+    def _normalize_config(cls, config: Any, default_config: ValidatorConfig) -> ValidatorConfig:
         """Copy known config fields from dataclass-compatible or config-like objects."""
         if config is None:
             return replace(default_config)
         if isinstance(config, ValidatorConfig):
             return replace(config)
         values = {
-            field.name: getattr(config, field.name, getattr(default_config, field.name))
+            field.name: cls._safe_getattr(config, field.name, getattr(default_config, field.name))
             for field in fields(ValidatorConfig)
         }
         try:
@@ -598,7 +630,7 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
             return default
         if isinstance(value, str):
             text = value.strip()
-            if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+            if not text or any(_is_unsafe_text_char(ch) for ch in text):
                 return default
             try:
                 value = int(text)
@@ -609,6 +641,13 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
         if isinstance(value, float) and math.isfinite(value):
             return int(value) if value >= 0 else default
         return default
+
+    @staticmethod
+    def _safe_getattr(obj: Any, key: str, default: Any) -> Any:
+        try:
+            return getattr(obj, key, default)
+        except (AttributeError, TypeError, RuntimeError, ValueError):
+            return default
 
     async def validate_findings_batch(
         self,
@@ -630,14 +669,20 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
         if not isinstance(findings, list):
             logger.warning("Skipping malformed findings container for LLM validation")
             return [], []
+        safe_findings = findings[:MAX_BATCH_FINDINGS]
 
         # Check availability
-        if not await self.is_available():
+        try:
+            available = await self.is_available()
+        except VALIDATOR_RUNTIME_ERRORS as e:
+            logger.warning("LLM availability check failed: %s", self._exception_reason(e))
+            available = False
+        if not available:
             logger.warning("LLM not available, skipping validation")
             return findings, []
 
         # Filter to findings that need validation
-        to_validate = [f for f in findings if self.should_validate(f)]
+        to_validate = [f for f in safe_findings if self.should_validate(f)]
 
         if not to_validate:
             logger.info("No findings require LLM validation")
@@ -647,21 +692,24 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
 
         validations = []
         validated_findings = []
+        batch_size = self._safe_runtime_batch_size(self.config.batch_size)
 
         # Process in batches
-        for i in range(0, len(to_validate), self.config.batch_size):
-            batch = to_validate[i : i + self.config.batch_size]
+        for i in range(0, len(to_validate), batch_size):
+            batch = to_validate[i : i + batch_size]
 
             # Validate batch concurrently
             tasks = []
             for finding in batch:
-                location_value = finding.get("location", {})
+                location_value = _safe_mapping_get(finding, "location", {})
                 location = location_value if isinstance(location_value, dict) else {}
-                file_path = self._parse_text(location.get("file"), "")
-                snippet = self._parse_text(location.get("snippet"), "")
+                file_path = self._parse_text(_safe_mapping_get(location, "file"), "")
+                snippet = self._parse_text(_safe_mapping_get(location, "snippet"), "")
                 code_context = ""
                 if isinstance(code_contexts, dict) and file_path:
-                    code_context = self._parse_text(code_contexts.get(file_path), "")[:1500]
+                    code_context = self._parse_text(
+                        _safe_mapping_get(code_contexts, file_path), ""
+                    )[:1500]
                 elif snippet:
                     code_context = snippet[:1500]
 
@@ -674,7 +722,9 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
                     logger.warning("Validation exception: %s", self._exception_reason(validation))
                     validations.append(
                         LLMValidation(
-                            finding_id=self._parse_text(finding.get("id"), "unknown"),
+                            finding_id=self._parse_text(
+                                _safe_mapping_get(finding, "id"), "unknown"
+                            ),
                             result=ValidationResult.UNCERTAIN,
                             confidence=0.5,
                             reasoning=self._exception_reason(validation),
@@ -690,7 +740,7 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
                         validated_findings.append(updated_finding)
 
         # Add findings that didn't need validation
-        not_validated = [f for f in findings if not self.should_validate(f)]
+        not_validated = [f for f in safe_findings if not self.should_validate(f)]
         validated_findings.extend(not_validated)
 
         logger.info(
@@ -699,6 +749,18 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
         )
 
         return validated_findings, validations
+
+    @staticmethod
+    def _safe_runtime_batch_size(value: Any) -> int:
+        if isinstance(value, bool):
+            return ValidatorConfig().batch_size
+        try:
+            normalized = int(value)
+        except (TypeError, ValueError, OverflowError):
+            return ValidatorConfig().batch_size
+        if normalized <= 0:
+            return ValidatorConfig().batch_size
+        return min(normalized, 50)
 
     def _apply_validation(
         self,
@@ -710,43 +772,60 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
 
         Returns None if finding should be filtered out.
         """
+        result = getattr(validation, "result", ValidationResult.UNCERTAIN)
+        if not isinstance(result, ValidationResult):
+            result = ValidationResult.UNCERTAIN
+        confidence = self._parse_confidence(getattr(validation, "confidence", 0.5))
+        reasoning = self._parse_text(
+            getattr(validation, "reasoning", "No reasoning provided"),
+            "No reasoning provided",
+        )[:2000]
+        suggested_severity = self._parse_suggested_severity(
+            getattr(validation, "suggested_severity", None)
+        )
+        validation_time_ms = self._parse_nonnegative_int(
+            getattr(validation, "validation_time_ms", 0)
+        )
+
         # Filter out confirmed false positives
-        if validation.result == ValidationResult.FALSE_POSITIVE:
-            logger.debug(f"Filtering FP: {finding.get('id')}")
+        if result == ValidationResult.FALSE_POSITIVE:
+            logger.debug("Filtering FP: %s", _safe_mapping_get(finding, "id"))
             return None
 
         # Create updated finding
-        updated = finding.copy()
+        updated = finding.copy() if isinstance(finding, dict) else {}
 
         # Add validation metadata
         updated["_llm_validation"] = {
-            "result": validation.result.value,
-            "confidence": validation.confidence,
-            "reasoning": validation.reasoning,
-            "suggested_severity": validation.suggested_severity,
-            "validation_time_ms": self._parse_nonnegative_int(validation.validation_time_ms),
+            "result": result.value,
+            "confidence": confidence,
+            "reasoning": reasoning,
+            "suggested_severity": suggested_severity,
+            "validation_time_ms": validation_time_ms,
         }
 
         # Adjust confidence based on validation
-        original_confidence = self._parse_confidence(finding.get("confidence", 0.7), default=0.7)
+        original_confidence = self._parse_confidence(
+            _safe_mapping_get(finding, "confidence", 0.7), default=0.7
+        )
 
-        if validation.result == ValidationResult.VALID:
+        if result == ValidationResult.VALID:
             # Boost confidence for confirmed valid
             updated["confidence"] = min(original_confidence + 0.15, 0.99)
-        elif validation.result == ValidationResult.LIKELY_VALID:
+        elif result == ValidationResult.LIKELY_VALID:
             # Small boost
             updated["confidence"] = min(original_confidence + 0.05, 0.95)
-        elif validation.result == ValidationResult.LIKELY_FP:
+        elif result == ValidationResult.LIKELY_FP:
             # Reduce confidence significantly
             updated["confidence"] = original_confidence * 0.6
-        elif validation.result == ValidationResult.UNCERTAIN:
+        elif result == ValidationResult.UNCERTAIN:
             # Keep original confidence
             pass
 
         # Apply severity suggestion if provided and different
-        if validation.suggested_severity:
-            suggested = validation.suggested_severity.lower()
-            current = self._parse_text(finding.get("severity"), "").lower()
+        if suggested_severity:
+            suggested = suggested_severity.lower()
+            current = self._parse_text(_safe_mapping_get(finding, "severity"), "").lower()
             if suggested in self.SEVERITY_ORDER and suggested != current:
                 logger.debug(f"Severity adjustment suggested: {current} -> {suggested}")
                 updated["_llm_validation"]["severity_adjusted"] = True
@@ -787,7 +866,7 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
     @staticmethod
     def _config_text(config: Any, key: str, default: str) -> str:
         """Read config text fields without trusting the container shape."""
-        value = getattr(config, key, default)
+        value = LLMFindingValidator._safe_getattr(config, key, default)
         if isinstance(value, bytes):
             try:
                 value = value.decode("utf-8", errors="replace")
@@ -799,14 +878,14 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
             text = value.strip()
         except (AttributeError, TypeError, ValueError):
             return default
-        if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+        if not text or any(_is_unsafe_text_char(ch) for ch in text):
             return default
         return text
 
     @staticmethod
     def _config_enabled(config: Any) -> bool:
         """Read the enabled flag without trusting the container shape."""
-        return getattr(config, "enabled", False) is True
+        return LLMFindingValidator._safe_getattr(config, "enabled", False) is True
 
 
 # Convenience function for synchronous usage

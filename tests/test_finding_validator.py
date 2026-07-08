@@ -1497,9 +1497,7 @@ async def test_validate_findings_batch_handles_malformed_exception_text(monkeypa
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("findings", [None, {"id": "A"}, "high finding"])
-async def test_validate_findings_batch_rejects_malformed_top_level_container(
-    monkeypatch, findings
-):
+async def test_validate_findings_batch_rejects_malformed_top_level_container(monkeypatch, findings):
     validator = LLMFindingValidator(ValidatorConfig())
 
     async def available():
@@ -1617,3 +1615,347 @@ def test_validate_findings_sync_delegates_and_closes(monkeypatch):
         ("validate", [{"id": "F-1"}], {"Vault.sol": "code"}),
         ("close",),
     ]
+
+
+def test_init_defaults_config_like_object_when_attribute_access_raises(monkeypatch):
+    monkeypatch.delenv("MIESC_LLM_MODEL", raising=False)
+    monkeypatch.delenv("OLLAMA_HOST", raising=False)
+
+    class HostileConfig:
+        def __getattribute__(self, name):
+            if name in {"model", "ollama_host", "batch_size"}:
+                raise RuntimeError("boom")
+            return super().__getattribute__(name)
+
+    validator = LLMFindingValidator(HostileConfig())  # type: ignore[arg-type]
+
+    assert validator.config == ValidatorConfig()
+
+
+def test_init_rejects_environment_overrides_with_control_chars(monkeypatch):
+    monkeypatch.setenv("OLLAMA_HOST", "http://ollama.local\nbad")
+    monkeypatch.setenv("MIESC_LLM_MODEL", "model\u2028bad")
+
+    validator = LLMFindingValidator(ValidatorConfig())
+
+    assert validator.config.ollama_host == ValidatorConfig().ollama_host
+    assert validator.config.model == ValidatorConfig().model
+
+
+def test_init_caps_extreme_numeric_config_values():
+    validator = LLMFindingValidator(
+        ValidatorConfig(timeout_seconds=601, max_tokens=20_000, batch_size=500)
+    )
+
+    assert validator.config.timeout_seconds == ValidatorConfig().timeout_seconds
+    assert validator.config.max_tokens == ValidatorConfig().max_tokens
+    assert validator.config.batch_size == ValidatorConfig().batch_size
+
+
+@pytest.mark.asyncio
+async def test_is_available_caps_model_list(monkeypatch):
+    validator = LLMFindingValidator(ValidatorConfig(model="target:latest"))
+
+    class FakeResponse:
+        status = 200
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return None
+
+        async def json(self):
+            return {
+                "models": [{"name": f"noise-{i}"} for i in range(250)] + [{"name": "target:latest"}]
+            }
+
+    class FakeSession:
+        def get(self, *_args, **_kwargs):
+            return FakeResponse()
+
+    async def fake_get_session():
+        return FakeSession()
+
+    monkeypatch.setattr(validator, "_get_session", fake_get_session)
+
+    assert await validator.is_available() is False
+
+
+@pytest.mark.asyncio
+async def test_call_ollama_rejects_malformed_status_and_text_exception(monkeypatch):
+    validator = LLMFindingValidator(ValidatorConfig())
+
+    class FakeResponse:
+        status = True
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return None
+
+        async def text(self):
+            raise RuntimeError("bad text")
+
+    class FakeSession:
+        def post(self, *_args, **_kwargs):
+            return FakeResponse()
+
+    async def fake_get_session():
+        return FakeSession()
+
+    monkeypatch.setattr(validator, "_get_session", fake_get_session)
+
+    with pytest.raises(RuntimeError, match="malformed status"):
+        await validator._call_ollama("prompt")
+
+
+@pytest.mark.asyncio
+async def test_call_ollama_sanitizes_error_text_exception(monkeypatch):
+    validator = LLMFindingValidator(ValidatorConfig())
+
+    class FakeResponse:
+        status = 500
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return None
+
+        async def text(self):
+            raise RuntimeError("bad text")
+
+    class FakeSession:
+        def post(self, *_args, **_kwargs):
+            return FakeResponse()
+
+    async def fake_get_session():
+        return FakeSession()
+
+    monkeypatch.setattr(validator, "_get_session", fake_get_session)
+
+    with pytest.raises(RuntimeError) as excinfo:
+        await validator._call_ollama("prompt")
+
+    assert str(excinfo.value) == "Ollama API error 500: error"
+
+
+@pytest.mark.asyncio
+async def test_call_ollama_bounds_response_text(monkeypatch):
+    validator = LLMFindingValidator(ValidatorConfig())
+
+    class FakeResponse:
+        status = 200
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return None
+
+        async def json(self):
+            return {"response": "x" * 60_000}
+
+    class FakeSession:
+        def post(self, *_args, **_kwargs):
+            return FakeResponse()
+
+    async def fake_get_session():
+        return FakeSession()
+
+    monkeypatch.setattr(validator, "_get_session", fake_get_session)
+
+    assert await validator._call_ollama("prompt") == "x" * 50_000
+
+
+def test_parse_response_rejects_unicode_controls_in_text_fields():
+    validator = LLMFindingValidator(ValidatorConfig())
+    response = (
+        '{"result": "valid", "confidence": "0.\u20289", '
+        '"reasoning": "bad\u2029reason", "remediation_hint": "bad\u2028hint"}'
+    )
+
+    validation = validator._parse_response(response, "F-1")
+
+    assert validation.result == ValidationResult.VALID
+    assert validation.confidence == 0.5
+    assert validation.reasoning == "No reasoning provided"
+    assert validation.remediation_hint is None
+
+
+def test_parse_response_defaults_control_char_finding_id_and_conflicting_is_valid():
+    validator = LLMFindingValidator(ValidatorConfig())
+    response = '{"result": "valid", "is_valid": false, "confidence": 0.8}'
+
+    validation = validator._parse_response(response, "F-1\u2028bad")
+
+    assert validation.finding_id == "unknown"
+    assert validation.result == ValidationResult.VALID
+
+
+def test_parse_response_treats_singleton_non_dict_array_as_object_error():
+    validator = LLMFindingValidator(ValidatorConfig())
+
+    validation = validator._parse_response('["valid"]', "F-1")
+
+    assert validation.result == ValidationResult.UNCERTAIN
+    assert validation.reasoning == "LLM validation response must be a JSON object"
+
+
+@pytest.mark.asyncio
+async def test_validate_finding_handles_hostile_mapping_get_raising(monkeypatch):
+    validator = LLMFindingValidator(ValidatorConfig())
+
+    class HostileFinding(dict):
+        def get(self, *_args, **_kwargs):
+            raise RuntimeError("boom")
+
+    async def fake_call(prompt):
+        assert "- **Type**: unknown" in prompt
+        return '{"result": "valid", "confidence": 0.8, "reasoning": "ok"}'
+
+    monkeypatch.setattr(validator, "_call_ollama", fake_call)
+
+    validation = await validator.validate_finding(HostileFinding({"severity": "high"}))
+
+    assert validation.finding_id == "unknown"
+    assert validation.result == ValidationResult.VALID
+
+
+@pytest.mark.asyncio
+async def test_validate_findings_batch_handles_is_available_exception(monkeypatch):
+    validator = LLMFindingValidator(ValidatorConfig())
+    findings = [{"id": "F-1", "severity": "high"}]
+
+    async def unavailable():
+        raise RuntimeError("availability failed")
+
+    monkeypatch.setattr(validator, "is_available", unavailable)
+
+    validated, validations = await validator.validate_findings_batch(findings)
+
+    assert validated is findings
+    assert validations == []
+
+
+@pytest.mark.asyncio
+async def test_validate_findings_batch_handles_hostile_code_contexts_and_runtime_batch_size(
+    monkeypatch,
+):
+    validator = LLMFindingValidator(ValidatorConfig())
+    validator.config.batch_size = 0
+    finding = {"id": "F-1", "severity": "high", "location": {"file": "Vault.sol", "snippet": "s"}}
+    seen_contexts = []
+
+    class HostileContexts(dict):
+        def get(self, *_args, **_kwargs):
+            raise RuntimeError("boom")
+
+    async def available():
+        return True
+
+    async def fake_validate(_finding, code_context):
+        seen_contexts.append(code_context)
+        return LLMValidation("F-1", ValidationResult.VALID, 0.9, "ok")
+
+    monkeypatch.setattr(validator, "is_available", available)
+    monkeypatch.setattr(validator, "validate_finding", fake_validate)
+
+    validated, validations = await validator.validate_findings_batch(
+        [finding], code_contexts=HostileContexts({"Vault.sol": "contract Vault {}"})
+    )
+
+    assert seen_contexts == [""]
+    assert validations[0].result == ValidationResult.VALID
+    assert validated[0]["_llm_validation"]["result"] == "valid"
+
+
+@pytest.mark.asyncio
+async def test_validate_findings_batch_caps_findings(monkeypatch):
+    validator = LLMFindingValidator(ValidatorConfig(batch_size=50))
+    findings = [{"id": f"F-{i}", "severity": "high"} for i in range(505)]
+    seen = []
+
+    async def available():
+        return True
+
+    async def fake_validate(finding, _code_context):
+        seen.append(finding["id"])
+        return LLMValidation(finding["id"], ValidationResult.FALSE_POSITIVE, 0.9, "fp")
+
+    monkeypatch.setattr(validator, "is_available", available)
+    monkeypatch.setattr(validator, "validate_finding", fake_validate)
+
+    validated, validations = await validator.validate_findings_batch(findings)
+
+    assert validated == []
+    assert len(validations) == 500
+    assert seen[-1] == "F-499"
+
+
+def test_apply_validation_defaults_malformed_validation_object():
+    validator = LLMFindingValidator(ValidatorConfig())
+
+    class MalformedValidation:
+        result = "valid"
+        confidence = "bad"
+        reasoning = "bad\u2028reason"
+        suggested_severity = "HIGH"
+        validation_time_ms = "bad"
+
+    updated = validator._apply_validation(
+        {"id": "F-1", "severity": "low", "confidence": 0.7}, MalformedValidation()
+    )
+
+    assert updated is not None
+    assert updated["_llm_validation"] == {
+        "result": "uncertain",
+        "confidence": 0.5,
+        "reasoning": "No reasoning provided",
+        "suggested_severity": "HIGH",
+        "validation_time_ms": 0,
+        "severity_adjusted": True,
+    }
+    assert updated["confidence"] == 0.7
+
+
+def test_get_statistics_handles_config_getattr_exceptions():
+    validator = LLMFindingValidator(ValidatorConfig())
+
+    class HostileConfig:
+        def __getattribute__(self, name):
+            if name in {"model", "min_severity_to_validate", "enabled"}:
+                raise RuntimeError("boom")
+            return super().__getattribute__(name)
+
+    validator.config = HostileConfig()
+
+    assert validator.get_statistics()["config"] == {
+        "model": ValidatorConfig().model,
+        "min_severity": ValidatorConfig().min_severity_to_validate,
+        "enabled": False,
+    }
+
+
+def test_validate_findings_sync_closes_when_batch_raises(monkeypatch):
+    events = []
+
+    class FakeValidator:
+        def __init__(self, config):
+            events.append(("init", config))
+
+        async def validate_findings_batch(self, _findings, _code_contexts):
+            events.append(("validate",))
+            raise RuntimeError("batch failed")
+
+        async def close(self):
+            events.append(("close",))
+
+    monkeypatch.setattr("src.llm.finding_validator.LLMFindingValidator", FakeValidator)
+
+    with pytest.raises(RuntimeError, match="batch failed"):
+        validate_findings_sync([{"id": "F-1"}])
+
+    assert events == [("init", None), ("validate",), ("close",)]
