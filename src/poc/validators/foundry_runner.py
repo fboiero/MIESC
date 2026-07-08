@@ -33,6 +33,9 @@ FOUNDRY_RUNTIME_ERRORS = (OSError, RuntimeError, subprocess.SubprocessError)
 FOUNDRY_PARSE_ERRORS = (AttributeError, TypeError, ValueError)
 MAX_RAW_OUTPUT_CHARS = 200_000
 MAX_JSON_OUTPUT_LINE_CHARS = 50_000
+MAX_ERROR_CHARS = 500
+MAX_GAS_VALUE = 10_000_000_000
+MAX_TIMEOUT_SECONDS = 86_400
 
 
 def _safe_text(value: Any, *, limit: Optional[int] = None, allow_multiline: bool = False) -> Optional[str]:
@@ -68,9 +71,56 @@ def _safe_match_filter(value: Any) -> str:
     if any(ord(ch) < 32 or ord(ch) == 127 for ch in value):
         return ""
     text = value.strip()
-    if not text:
+    if not text or len(text) > 120:
         return ""
     return text
+
+
+def _safe_error_text(value: Any) -> str:
+    """Return bounded printable error text without trusting repr-heavy payloads."""
+    try:
+        text = str(value)
+    except Exception:
+        return f"<unprintable:{type(value).__name__}>"
+    if not text:
+        return f"<empty:{type(value).__name__}>"
+    safe_chars = []
+    for char in text[:MAX_ERROR_CHARS]:
+        ordinal = ord(char)
+        if char == "\n":
+            safe_chars.append("\\n")
+        elif char == "\r":
+            safe_chars.append("\\r")
+        elif char == "\t":
+            safe_chars.append("\\t")
+        elif ordinal < 32 or ordinal == 127:
+            safe_chars.append(f"\\x{ordinal:02x}")
+        else:
+            safe_chars.append(char)
+    safe_text = "".join(safe_chars)
+    if len(text) > MAX_ERROR_CHARS:
+        safe_text += "...<truncated>"
+    return safe_text
+
+
+def _safe_relative_path(value: Any, *, allow_empty: bool = False) -> Optional[str]:
+    """Return a project-relative path argument safe for forge match-path use."""
+    if not isinstance(value, (str, Path)):
+        return None
+    text = str(value).strip()
+    if not text:
+        return "" if allow_empty else None
+    if any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+        return None
+    path = Path(text)
+    if path.is_absolute() or ".." in path.parts:
+        return None
+    return text
+
+
+def _elapsed_ms_since(start_time: float) -> float:
+    """Return non-negative elapsed milliseconds."""
+    return max((time.time() - start_time) * 1000, 0.0)
 
 
 def _is_gas_report_header_row(cells: List[str]) -> bool:
@@ -156,7 +206,7 @@ class FoundryRunner:
         if isinstance(project_dir, str) and not project_dir.strip():
             raise ValueError("Malformed Foundry project directory")
         self.project_dir = Path(project_dir)
-        self.fork_url = fork_url.strip() if isinstance(fork_url, str) and fork_url.strip() else None
+        self.fork_url = _safe_text(fork_url, limit=2048)
         self.fork_block = (
             fork_block
             if not isinstance(fork_block, bool) and isinstance(fork_block, int) and fork_block > 0
@@ -180,8 +230,10 @@ class FoundryRunner:
                 text=True,
                 timeout=10,
             )
-            if result.returncode == 0:
-                logger.debug(f"Foundry version: {result.stdout.strip()}")
+            returncode = getattr(result, "returncode", 1)
+            if isinstance(returncode, int) and not isinstance(returncode, bool) and returncode == 0:
+                version_text = self._normalize_output_text(getattr(result, "stdout", ""))
+                logger.debug("Foundry version: %s", version_text.strip())
             else:
                 logger.warning("Foundry may not be properly installed")
         except FileNotFoundError as e:
@@ -217,8 +269,8 @@ class FoundryRunner:
         match_contract: Optional[str] = None,
     ) -> List[str]:
         """Build the forge command for a specific test file."""
-        test_path_text = str(test_path).strip() if isinstance(test_path, (str, Path)) else ""
-        if not test_path_text or any(ord(ch) < 32 for ch in test_path_text):
+        test_path_text = self._safe_match_path(test_path)
+        if not test_path_text:
             raise ValueError("Malformed Foundry test path")
         cmd = ["forge", "test", "--match-path", test_path_text]
 
@@ -238,10 +290,28 @@ class FoundryRunner:
         """Build the forge command for an all-tests run."""
         cmd = ["forge", "test"]
 
-        if test_dir:
-            cmd.extend(["--match-path", f"{test_dir}/*"])
+        if test_dir is not None:
+            test_dir_text = self._safe_match_path(test_dir)
+            if not test_dir_text:
+                raise ValueError("Malformed Foundry test directory")
+            cmd.extend(["--match-path", f"{test_dir_text}/*"])
 
         return self._apply_common_test_options(cmd)
+
+    def _safe_match_path(self, value: Any) -> Optional[str]:
+        """Return a safe project-relative match path, accepting in-project absolute paths."""
+        if not isinstance(value, (str, Path)):
+            return None
+        text = str(value).strip()
+        if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+            return None
+        path = Path(text)
+        if path.is_absolute():
+            try:
+                return str(path.resolve().relative_to(self.project_dir.resolve()))
+            except (OSError, RuntimeError, ValueError):
+                return None
+        return _safe_relative_path(text)
 
     @staticmethod
     def _normalize_timeout_seconds(value: Any, default: int) -> int:
@@ -260,11 +330,13 @@ class FoundryRunner:
                 normalized = float(value)
             except ValueError:
                 return default
-            return int(normalized) if normalized > 0 and math.isfinite(normalized) else default
+            if normalized > 0 and math.isfinite(normalized) and normalized <= MAX_TIMEOUT_SECONDS:
+                return int(normalized)
+            return default
         if isinstance(value, int):
-            return value if value > 0 else default
+            return value if 0 < value <= MAX_TIMEOUT_SECONDS else default
         if isinstance(value, float) and math.isfinite(value):
-            return int(value) if value > 0 else default
+            return int(value) if 0 < value <= MAX_TIMEOUT_SECONDS else default
         return default
 
     def run_test(
@@ -302,7 +374,7 @@ class FoundryRunner:
                 timeout=timeout,
             )
 
-            execution_time = (time.time() - start_time) * 1000
+            execution_time = _elapsed_ms_since(start_time)
 
             return self._parse_forge_output(
                 result.stdout,
@@ -320,7 +392,7 @@ class FoundryRunner:
                 failed=0,
                 skipped=0,
                 total_gas=0,
-                execution_time_ms=(time.time() - start_time) * 1000,
+                execution_time_ms=_elapsed_ms_since(start_time),
                 raw_output="",
                 error=f"Test execution timed out after {timeout}s",
             )
@@ -333,9 +405,9 @@ class FoundryRunner:
                 failed=0,
                 skipped=0,
                 total_gas=0,
-                execution_time_ms=(time.time() - start_time) * 1000,
+                execution_time_ms=_elapsed_ms_since(start_time),
                 raw_output="",
-                error=str(e),
+                error=_safe_error_text(e),
             )
 
     def run_all_tests(
@@ -371,7 +443,7 @@ class FoundryRunner:
                 result.stdout,
                 result.stderr,
                 result.returncode,
-                (time.time() - start_time) * 1000,
+                _elapsed_ms_since(start_time),
             )
 
         except subprocess.TimeoutExpired:
@@ -383,7 +455,7 @@ class FoundryRunner:
                 failed=0,
                 skipped=0,
                 total_gas=0,
-                execution_time_ms=(time.time() - start_time) * 1000,
+                execution_time_ms=_elapsed_ms_since(start_time),
                 raw_output="",
                 error=f"Tests timed out after {timeout}s",
             )
@@ -396,9 +468,9 @@ class FoundryRunner:
                 failed=0,
                 skipped=0,
                 total_gas=0,
-                execution_time_ms=(time.time() - start_time) * 1000,
+                execution_time_ms=_elapsed_ms_since(start_time),
                 raw_output="",
-                error=str(e),
+                error=_safe_error_text(e),
             )
 
     def compile(self) -> bool:
@@ -430,7 +502,7 @@ class FoundryRunner:
                 return False
 
         except FOUNDRY_RUNTIME_ERRORS as e:
-            logger.error(f"Compilation error: {e}")
+            logger.error("Compilation error: %s", _safe_error_text(e))
             return False
 
     def validate_poc(
@@ -453,12 +525,12 @@ class FoundryRunner:
         error = self._normalize_output_text(result.error)
 
         validation: Dict[str, Any] = {
-            "path": str(poc_path),
+            "path": _safe_relative_path(poc_path) or "",
             "valid": result.success,
-            "tests_passed": result.passed,
-            "tests_failed": result.failed,
-            "total_gas": result.total_gas,
-            "execution_time_ms": result.execution_time_ms,
+            "tests_passed": result.passed if isinstance(result.passed, int) else 0,
+            "tests_failed": result.failed if isinstance(result.failed, int) else 0,
+            "total_gas": result.total_gas if isinstance(result.total_gas, int) else 0,
+            "execution_time_ms": self._normalize_execution_time(result.execution_time_ms),
             "errors": [],
             "warnings": [],
         }
@@ -521,13 +593,21 @@ class FoundryRunner:
 
         # Fallback to regex parsing
         if not tests:
-            tests = self._parse_text_output(stdout + stderr)
+            try:
+                tests = self._parse_text_output(stdout + stderr)
+            except FOUNDRY_PARSE_ERRORS as e:
+                logger.debug("Text parsing failed: %s", _safe_error_text(e))
+                tests = []
 
         # Calculate totals
         passed = sum(1 for t in tests if t.status == TestStatus.PASSED)
         failed = sum(1 for t in tests if t.status == TestStatus.FAILED)
         skipped = sum(1 for t in tests if t.status == TestStatus.SKIPPED)
-        total_gas = sum(t.gas_used or 0 for t in tests)
+        total_gas = sum(
+            t.gas_used
+            for t in tests
+            if isinstance(t.gas_used, int) and not isinstance(t.gas_used, bool) and t.gas_used >= 0
+        )
 
         forge_version = self._extract_forge_version(stdout, stderr)
 
@@ -666,12 +746,13 @@ class FoundryRunner:
         if isinstance(value, bool):
             return None
         if isinstance(value, int):
-            return value
+            return value if 0 <= value <= MAX_GAS_VALUE else None
         normalized = _safe_text(value, limit=12)
         if normalized is not None:
-            normalized = normalized.replace(",", "")
-            if normalized.isdigit():
-                return int(normalized)
+            if not re.fullmatch(r"\d{1,3}(,\d{3})*|\d+", normalized):
+                return None
+            gas_value = int(normalized.replace(",", ""))
+            return gas_value if gas_value <= MAX_GAS_VALUE else None
         return None
 
     @staticmethod
@@ -698,16 +779,23 @@ class FoundryRunner:
             contract_report = dict(report)
             methods = contract_report.get("methods")
             if "methods" in contract_report:
-                contract_report["methods"] = (
-                    {
-                        method: metrics
-                        for method, metrics in methods.items()
-                        if _safe_text(method, limit=120) is not None
-                        and isinstance(metrics, dict)
-                    }
-                    if isinstance(methods, dict)
-                    else {}
-                )
+                normalized_methods = {}
+                if isinstance(methods, dict):
+                    for method, metrics in methods.items():
+                        method_name = _safe_text(method, limit=120)
+                        if method_name is None or not isinstance(metrics, dict):
+                            continue
+                        normalized_metrics = {
+                            key: FoundryRunner._normalize_gas_value(metrics.get(key))
+                            for key in ("min", "max", "avg", "calls")
+                            if key in metrics
+                        }
+                        normalized_methods[method_name] = {
+                            key: gas_value
+                            for key, gas_value in normalized_metrics.items()
+                            if gas_value is not None
+                        }
+                contract_report["methods"] = normalized_methods
             normalized[contract_name] = contract_report
 
         return normalized
@@ -726,6 +814,9 @@ class FoundryRunner:
 
         for match in re.finditer(pattern, output):
             status_str, name, gas = match.groups()
+            normalized_name = self._normalize_test_name(name)
+            if normalized_name is None:
+                continue
 
             if status_str == "PASS":
                 status = TestStatus.PASSED
@@ -736,9 +827,9 @@ class FoundryRunner:
 
             tests.append(
                 TestResult(
-                    name=name,
+                    name=normalized_name,
                     status=status,
-                    gas_used=int(gas.replace(",", "")) if gas else None,
+                    gas_used=self._normalize_gas_value(gas) if gas else None,
                 )
             )
 
@@ -791,14 +882,13 @@ class FoundryRunner:
                     contract, method, min_gas, max_gas, avg_gas, calls = cells
                     if not _safe_match_filter(contract) or not _safe_match_filter(method):
                         continue
-                    try:
-                        method_report: Dict[str, Any] = {
-                            "min": int(min_gas.replace(",", "")),
-                            "max": int(max_gas.replace(",", "")),
-                            "avg": int(avg_gas.replace(",", "")),
-                            "calls": int(calls.replace(",", "")),
-                        }
-                    except ValueError:
+                    method_report = {
+                        "min": self._normalize_gas_value(min_gas),
+                        "max": self._normalize_gas_value(max_gas),
+                        "avg": self._normalize_gas_value(avg_gas),
+                        "calls": self._normalize_gas_value(calls),
+                    }
+                    if any(value is None for value in method_report.values()):
                         continue
 
                     contract_report = report["contracts"].setdefault(contract, {"methods": {}})
@@ -808,8 +898,17 @@ class FoundryRunner:
             return report
 
         except FOUNDRY_RUNTIME_ERRORS as e:
-            logger.error(f"Gas report failed: {e}")
-            return {"error": str(e)}
+            error_text = _safe_error_text(e)
+            logger.error("Gas report failed: %s", error_text)
+            return {"error": error_text}
+
+    def __repr__(self) -> str:
+        """Return a runner representation without leaking fork credentials."""
+        return (
+            f"FoundryRunner(project_dir={self.project_dir!s}, "
+            f"fork_configured={self.fork_url is not None}, "
+            f"verbosity={self.verbosity}, gas_report={self.gas_report})"
+        )
 
 
 # Export

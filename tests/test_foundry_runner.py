@@ -248,6 +248,13 @@ class TestFoundryRunnerInit:
         assert runner.fork_url == "https://rpc.example"
         assert runner.fork_block is None
 
+    def test_initialization_rejects_control_char_fork_url(self, tmp_path):
+        """Fork URLs with control characters should be ignored."""
+        with patch.object(FoundryRunner, "_check_foundry_installation"):
+            runner = FoundryRunner(project_dir=tmp_path, fork_url="https://rpc.example\nsecret")
+
+        assert runner.fork_url is None
+
     def test_initialization_defaults_malformed_verbosity_and_gas_report(self, tmp_path):
         """Malformed runner options fall back to safe command defaults."""
         with patch.object(FoundryRunner, "_check_foundry_installation"):
@@ -322,6 +329,12 @@ class TestFoundryCommandBuilders:
         with pytest.raises(ValueError, match="Malformed Foundry test path"):
             runner._build_run_test_command(test_path)
 
+    @pytest.mark.parametrize("test_path", ["/tmp/Exploit.t.sol", "../Exploit.t.sol", "test\x7f.t.sol"])
+    def test_build_run_test_command_rejects_unsafe_test_path(self, runner, test_path):
+        """Test paths must remain printable and project-relative."""
+        with pytest.raises(ValueError, match="Malformed Foundry test path"):
+            runner._build_run_test_command(test_path)
+
     def test_build_run_test_command_ignores_malformed_match_options(self, runner):
         """Malformed match filters should not reach forge arguments."""
         cmd = runner._build_run_test_command(
@@ -369,6 +382,19 @@ class TestFoundryCommandBuilders:
             "--json",
         ]
 
+    @pytest.mark.parametrize(
+        "test_dir",
+        [{"path": "test"}, "  ", "test\nshadow", "/tmp/test", "../test"],
+    )
+    def test_build_run_all_tests_command_rejects_malformed_test_dir(self, runner, test_dir):
+        """All-test path filters should reject malformed or escaping directories."""
+        with pytest.raises(ValueError, match="Malformed Foundry test directory"):
+            runner._build_run_all_tests_command(test_dir)
+
+    def test_match_filter_rejects_overlong_values(self):
+        """Match filters should be bounded before becoming CLI arguments."""
+        assert _safe_match_filter("x" * 121) == ""
+
 
 # =============================================================================
 # Run Test Tests
@@ -412,9 +438,40 @@ class TestRunTest:
         assert result.success is False
         assert "timed out" in result.error.lower()
 
+    def test_run_test_timeout_execution_time_is_nonnegative(self, runner):
+        """Clock skew during timeout handling should not return negative duration."""
+        with patch("time.time", side_effect=[10.0, 9.0]):
+            with patch("subprocess.run", side_effect=subprocess.TimeoutExpired("forge", 300)):
+                result = runner.run_test("test/Bank.t.sol", timeout=300)
+
+        assert result.execution_time_ms == 0
+
+    def test_run_test_runtime_error_is_sanitized(self, runner):
+        """Runtime errors should be bounded and printable."""
+        with patch("subprocess.run", side_effect=OSError("bad\nerror\x01" + ("x" * 600))):
+            result = runner.run_test("test/Bank.t.sol")
+
+        assert result.success is False
+        assert "\\n" in result.error
+        assert "\\x01" in result.error
+        assert result.error.endswith("...<truncated>")
+
     @pytest.mark.parametrize("timeout", [True, 0, -1, float("inf"), ["300"]])
     def test_run_test_defaults_malformed_timeout(self, runner, sample_forge_output, timeout):
         """Malformed runtime timeouts fall back before subprocess execution."""
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = sample_forge_output
+        mock_result.stderr = ""
+
+        with patch("subprocess.run", return_value=mock_result) as mock_run:
+            runner.run_test("test/Bank.t.sol", timeout=timeout)
+
+        assert mock_run.call_args.kwargs["timeout"] == 300
+
+    @pytest.mark.parametrize("timeout", ["nan", "inf", "-inf", "1e309", "999999999"])
+    def test_run_test_defaults_nonfinite_or_huge_timeout(self, runner, sample_forge_output, timeout):
+        """Non-finite or huge timeout strings should use the bounded default."""
         mock_result = MagicMock()
         mock_result.returncode = 0
         mock_result.stdout = sample_forge_output
@@ -595,6 +652,17 @@ class TestCompile:
 
         assert success is False
 
+    def test_compile_exception_is_sanitized(self, runner, caplog):
+        """Compilation exception logs should be bounded and printable."""
+        with caplog.at_level("ERROR", logger="src.poc.validators.foundry_runner"):
+            with patch("subprocess.run", side_effect=OSError("bad\nerror\x01" + ("x" * 600))):
+                success = runner.compile()
+
+        assert success is False
+        assert "\\n" in caplog.text
+        assert "\\x01" in caplog.text
+        assert "...<truncated>" in caplog.text
+
 
 # =============================================================================
 # Validate PoC Tests
@@ -733,6 +801,30 @@ class TestValidatePoC:
         assert validation["exploit_demonstrated"] is True
         assert validation["errors"] == ["Assertion failed"]
 
+    def test_validate_poc_normalizes_malformed_path_and_result_state(self, runner):
+        """Validation reports should not serialize unsafe path or numeric state shapes."""
+        malformed_result = FoundryResult(
+            success=True,
+            tests=[],
+            total_tests=0,
+            passed=["1"],
+            failed={"n": 0},
+            skipped=0,
+            total_gas=["100"],
+            execution_time_ms=float("nan"),
+            raw_output="PROFIT",
+            error=None,
+        )
+
+        with patch.object(runner, "run_test", return_value=malformed_result):
+            validation = runner.validate_poc({"path": "test/exploit.t.sol"})
+
+        assert validation["path"] == ""
+        assert validation["tests_passed"] == 0
+        assert validation["tests_failed"] == 0
+        assert validation["total_gas"] == 0
+        assert validation["execution_time_ms"] == 0.0
+
 
 # =============================================================================
 # Parse Output Tests
@@ -778,6 +870,22 @@ class TestParseOutput:
         assert tests[0].gas_used is None
         assert tests[1].status == TestStatus.SKIPPED
         assert tests[2].gas_used == 1234567
+
+    def test_parse_text_output_ignores_malformed_gas_grouping(self, runner):
+        """Text gas values with malformed comma grouping should not be counted."""
+        output = "[PASS] test_badGas() (gas: 1,,234)\n[PASS] test_ok() (gas: 1,234)"
+
+        tests = runner._parse_text_output(output)
+
+        assert [test.gas_used for test in tests] == [None, 1234]
+
+    def test_parse_text_output_bounds_test_names(self, runner):
+        """Overlong text-output test names should be ignored."""
+        output = f"[PASS] {'t' * 130}() (gas: 123)\n[PASS] test_ok() (gas: 1)"
+
+        tests = runner._parse_text_output(output)
+
+        assert [test.name for test in tests] == ["test_ok"]
 
     def test_parse_json_output(self, runner, sample_forge_json_output):
         """Test parsing JSON output."""
@@ -843,6 +951,13 @@ class TestParseOutput:
         )
 
         assert [test.gas_used for test in tests] == [123, 1234, None, None]
+
+    def test_normalize_gas_value_rejects_negative_oversized_and_bad_commas(self, runner):
+        """Gas values should stay non-negative, bounded, and well grouped."""
+        assert runner._normalize_gas_value(-1) is None
+        assert runner._normalize_gas_value(10_000_000_001) is None
+        assert runner._normalize_gas_value("1,,234") is None
+        assert runner._normalize_gas_value("12,34") is None
 
     def test_parse_json_test_results_ignores_malformed_name_and_status(self, runner):
         """Test nested JSON results require string names and boolean success values."""
@@ -924,6 +1039,16 @@ class TestParseOutput:
 
         assert result.total_tests == 2
         assert result.total_gas == 1000
+
+    def test_parse_forge_output_ignores_negative_json_gas(self, runner):
+        """Negative JSON gas values should not corrupt aggregate gas totals."""
+        output = '{"test_name": "test_negative", "success": true, "gas": -1}\n'
+
+        result = runner._parse_forge_output(output, "", 0, 10)
+
+        assert result.total_tests == 1
+        assert result.tests[0].gas_used is None
+        assert result.total_gas == 0
 
     def test_parse_flat_json_test_result_normalizes_logs(self, runner):
         """Test flat JSON test result ignores non-list logs."""
@@ -1139,6 +1264,24 @@ class TestGasReport:
             "Vault": {"methods": {"deposit": {"avg": 100}}},
         }
 
+    def test_get_gas_report_normalizes_json_method_metrics(self, runner):
+        """JSON gas report metrics should be bounded non-negative gas values."""
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = (
+            '{"gas_report": {"Vault": {"methods": {'
+            '"deposit": {"avg": "1,000", "calls": 2, "min": -1, "max": "bad"}'
+            "}}}}\n"
+        )
+        mock_result.stderr = ""
+
+        with patch("subprocess.run", return_value=mock_result):
+            report = runner.get_gas_report()
+
+        assert report["contracts"] == {
+            "Vault": {"methods": {"deposit": {"avg": 1000, "calls": 2}}},
+        }
+
     def test_get_gas_report_ignores_malformed_json_methods_shape(self, runner):
         """Test JSON gas_report methods payloads must be object mappings."""
         mock_result = MagicMock()
@@ -1284,6 +1427,26 @@ method | 10 | 20 | 15 | 2 |
             "Vault": {"methods": {"withdraw": {"min": 10, "max": 20, "avg": 15, "calls": 2}}}
         }
 
+    def test_get_gas_report_ignores_malformed_table_gas_values(self, runner):
+        """Table gas values need valid grouping and non-negative bounded values."""
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = """| Contract | Method | Min | Max | Avg | # calls |
+|----------|--------|-----|-----|-----|---------|
+| Vault | badComma | 1,,000 | 20 | 15 | 2 |
+| Vault | tooLarge | 10 | 20 | 10,000,000,001 | 2 |
+| Vault | deposit | 10 | 20 | 15 | 2 |
+"""
+        mock_result.stderr = ""
+
+        with patch("subprocess.run", return_value=mock_result):
+            report = runner.get_gas_report()
+
+        assert report["contracts"] == {
+            "Vault": {"methods": {"deposit": {"min": 10, "max": 20, "avg": 15, "calls": 2}}}
+        }
+        assert report["total_runtime_gas"] == 30
+
     def test_get_gas_report_ignores_header_row_variants(self, runner):
         """Test mixed-case gas table headers are still treated as headers."""
         mock_result = MagicMock()
@@ -1323,6 +1486,15 @@ method | 10 | 20 | 15 | 2 |
             report = runner.get_gas_report()
 
         assert "error" in report
+
+    def test_get_gas_report_error_is_sanitized(self, runner):
+        """Gas report errors should be bounded and printable."""
+        with patch("subprocess.run", side_effect=OSError("bad\nerror\x01" + ("x" * 600))):
+            report = runner.get_gas_report()
+
+        assert "\\n" in report["error"]
+        assert "\\x01" in report["error"]
+        assert report["error"].endswith("...<truncated>")
 
 
 # =============================================================================
@@ -1478,6 +1650,31 @@ class TestFoundryInstallationCheck:
 
         assert any("Foundry version: forge 0.2.0" in r.message for r in caplog.records)
 
+    def test_foundry_version_log_handles_malformed_stdout(self, tmp_path, caplog):
+        """Malformed version stdout should not leak reprs or crash logging."""
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = {"version": "forge 0.2.0"}
+
+        with patch("subprocess.run", return_value=mock_result):
+            with caplog.at_level("DEBUG", logger="src.poc.validators.foundry_runner"):
+                FoundryRunner(project_dir=tmp_path)
+
+        assert "{'version': 'forge 0.2.0'}" not in caplog.text
+
+    @pytest.mark.parametrize("returncode", [True, "0", None])
+    def test_foundry_version_check_malformed_returncode_warns(self, tmp_path, caplog, returncode):
+        """Malformed forge version return codes should not be treated as success."""
+        mock_result = MagicMock()
+        mock_result.returncode = returncode
+        mock_result.stdout = "forge 0.2.0"
+
+        with patch("subprocess.run", return_value=mock_result):
+            with caplog.at_level("WARNING", logger="src.poc.validators.foundry_runner"):
+                FoundryRunner(project_dir=tmp_path)
+
+        assert "Foundry may not be properly installed" in caplog.text
+
     def test_foundry_version_check_timeout(self, tmp_path, caplog):
         """Test timeout during version check (lines 123-124)."""
         import logging
@@ -1626,6 +1823,16 @@ More text
 
         # Should handle gracefully
         assert isinstance(result, FoundryResult)
+
+    def test_parse_forge_output_handles_text_parse_exception(self, runner, caplog):
+        """Text fallback parser exceptions should not abort result construction."""
+        with caplog.at_level("DEBUG", logger="src.poc.validators.foundry_runner"):
+            with patch.object(runner, "_parse_text_output", side_effect=ValueError("bad\ntext")):
+                result = runner._parse_forge_output("[PASS] test_ok()", "", 0, 100.0)
+
+        assert isinstance(result, FoundryResult)
+        assert result.tests == []
+        assert "Text parsing failed" in caplog.text
 
     def test_parse_forge_output_bad_test_results_shape_falls_back_to_text(self, runner, caplog):
         """Test malformed test_results shape does not block text fallback."""
@@ -1791,6 +1998,24 @@ class TestRunAllTestsAdditional:
         assert result.success is False
         assert "timed out" in result.error.lower()
 
+    def test_run_all_tests_timeout_execution_time_is_nonnegative(self, runner):
+        """Clock skew during all-test timeout handling should not return negative duration."""
+        with patch("time.time", side_effect=[10.0, 9.0]):
+            with patch("subprocess.run", side_effect=subprocess.TimeoutExpired("forge", 600)):
+                result = runner.run_all_tests(timeout=600)
+
+        assert result.execution_time_ms == 0
+
+    def test_run_all_tests_runtime_error_is_sanitized(self, runner):
+        """All-test runtime errors should be bounded and printable."""
+        with patch("subprocess.run", side_effect=OSError("bad\nerror\x01" + ("x" * 600))):
+            result = runner.run_all_tests()
+
+        assert result.success is False
+        assert "\\n" in result.error
+        assert "\\x01" in result.error
+        assert result.error.endswith("...<truncated>")
+
 
 class TestFoundryRunnerRepr:
     """Tests for FoundryRunner __repr__."""
@@ -1804,3 +2029,5 @@ class TestFoundryRunnerRepr:
         """Test string representation with fork config."""
         r = repr(runner_with_fork)
         assert "FoundryRunner" in r
+        assert "alchemy.com" not in r
+        assert "fork_configured=True" in r
