@@ -1887,6 +1887,140 @@ class TestLLMEnsembleDetectorVoting:
 
         assert detector._ensemble_vote(findings) == []
 
+    def test_majority_counts_only_distinct_models_per_signature_once(self):
+        """Duplicate same-signature findings from one model should not inflate votes."""
+        detector = LLMEnsembleDetector(
+            voting_strategy=VotingStrategy.MAJORITY,
+            consensus_threshold=2,
+        )
+        findings = {
+            "model1": [
+                {
+                    "type": "reentrancy",
+                    "severity": "high",
+                    "title": "Reentrancy",
+                    "description": "External call before update",
+                    "location": {"function": "withdraw", "line": 10},
+                    "confidence": 0.9,
+                },
+                {
+                    "type": "reentrancy",
+                    "severity": "high",
+                    "title": "Duplicate reentrancy",
+                    "description": "Same issue again",
+                    "location": {"function": "withdraw", "line": 11},
+                    "confidence": 0.9,
+                },
+            ],
+            "model2": [],
+            "model3": [],
+        }
+
+        assert detector._ensemble_vote(findings) == []
+
+    def test_weighted_vote_counts_duplicate_model_signature_once(self, monkeypatch):
+        """Duplicate same-model findings should not overrun weighted thresholds."""
+        monkeypatch.setattr(
+            LLMEnsembleDetector,
+            "MODEL_WEIGHTS",
+            {"model1": 2.0, "model2": 2.0, "model3": 2.0},
+        )
+        detector = LLMEnsembleDetector(voting_strategy=VotingStrategy.WEIGHTED)
+        findings = {
+            "model1": [
+                {
+                    "type": "reentrancy",
+                    "severity": "high",
+                    "title": "Reentrancy",
+                    "description": "External call before update",
+                    "location": {"function": "withdraw", "line": 10},
+                    "confidence": 0.9,
+                },
+                {
+                    "type": "reentrancy",
+                    "severity": "high",
+                    "title": "Duplicate reentrancy",
+                    "description": "Same issue again",
+                    "location": {"function": "withdraw", "line": 11},
+                    "confidence": 0.9,
+                },
+            ],
+            "model2": [],
+            "model3": [],
+        }
+
+        assert detector._ensemble_vote(findings) == []
+
+    def test_unanimous_requires_all_normalized_models_after_empty_results(self):
+        """Empty model result lists should still count against unanimity."""
+        detector = LLMEnsembleDetector(voting_strategy=VotingStrategy.UNANIMOUS)
+        findings = {
+            "model1": [
+                {
+                    "type": "reentrancy",
+                    "severity": "high",
+                    "title": "Reentrancy",
+                    "description": "External call before update",
+                    "location": {"function": "withdraw", "line": 10},
+                    "confidence": 0.9,
+                }
+            ],
+            "model2": [],
+        }
+
+        assert detector._ensemble_vote(findings) == []
+
+    def test_severity_sort_defaults_unknown_without_reordering_valid_highs(self, detector):
+        """Unknown severities should default behind valid high severity findings."""
+        findings = {
+            "model1": [
+                {
+                    "type": "access-control",
+                    "severity": {"label": "critical"},
+                    "title": "Unknown severity",
+                    "description": "Malformed severity",
+                    "location": {"function": "owner", "line": 20},
+                    "confidence": 0.99,
+                },
+                {
+                    "type": "reentrancy",
+                    "severity": "high",
+                    "title": "High severity",
+                    "description": "External call before update",
+                    "location": {"function": "withdraw", "line": 10},
+                    "confidence": 0.7,
+                },
+            ],
+            "model2": [
+                {
+                    "type": "access-control",
+                    "severity": {"label": "critical"},
+                    "title": "Unknown severity",
+                    "description": "Malformed severity",
+                    "location": {"function": "owner", "line": 21},
+                    "confidence": 0.99,
+                },
+                {
+                    "type": "reentrancy",
+                    "severity": "high",
+                    "title": "High severity",
+                    "description": "External call before update",
+                    "location": {"function": "withdraw", "line": 11},
+                    "confidence": 0.7,
+                },
+            ],
+        }
+
+        results = detector._ensemble_vote(findings)
+
+        assert [finding.type for finding in results] == ["reentrancy", "access-control"]
+
+    def test_safe_location_rejects_boolean_line(self, detector):
+        """Boolean line metadata should not normalize to integer line numbers."""
+        assert detector._safe_location({"line": True, "function": "withdraw"}) == {
+            "function": "withdraw"
+        }
+
     def test_finding_signature_defaults_nonfinite_line_scalar(self, detector):
         """Non-finite scalar line values should not crash signature grouping."""
         malformed = {
@@ -2028,6 +2162,26 @@ class TestLLMEnsembleDetectorQueryMethods:
 
         asyncio.run(run_test())
 
+    def test_query_openai_http_error_redacts_response_body(self, multi_provider_detector):
+        """OpenAI HTTP error bodies should not leak into exceptions."""
+
+        async def run_test():
+            mock_response = MagicMock()
+            mock_response.status = 429
+            mock_response.text = AsyncMock(return_value="secret-key contract prompt")
+            mock_session = _aiohttp_session_with_response("post", mock_response)
+
+            with patch("aiohttp.ClientSession", return_value=mock_session):
+                with pytest.raises(ProviderUnavailable) as exc_info:
+                    await multi_provider_detector._query_openai("gpt-4", "contract code")
+
+            message = str(exc_info.value)
+            assert "status=429" in message
+            assert "secret-key" not in message
+            assert "contract prompt" not in message
+
+        asyncio.run(run_test())
+
     def test_query_anthropic_success(self, multi_provider_detector, llm_response_json):
         """Test successful Anthropic query."""
 
@@ -2102,6 +2256,28 @@ class TestLLMEnsembleDetectorQueryMethods:
 
         asyncio.run(run_test())
 
+    def test_query_anthropic_http_error_redacts_response_body(self, multi_provider_detector):
+        """Anthropic HTTP error bodies should not leak into exceptions."""
+
+        async def run_test():
+            mock_response = MagicMock()
+            mock_response.status = 400
+            mock_response.text = AsyncMock(return_value="anthropic-secret prompt")
+            mock_session = _aiohttp_session_with_response("post", mock_response)
+
+            with patch("aiohttp.ClientSession", return_value=mock_session):
+                with pytest.raises(ProviderUnavailable) as exc_info:
+                    await multi_provider_detector._query_anthropic(
+                        "claude-3-sonnet", "contract code"
+                    )
+
+            message = str(exc_info.value)
+            assert "status=400" in message
+            assert "anthropic-secret" not in message
+            assert "prompt" not in message
+
+        asyncio.run(run_test())
+
     def test_query_deepseek_success(self, llm_response_json):
         """Test successful DeepSeek query."""
 
@@ -2169,8 +2345,32 @@ class TestLLMEnsembleDetectorQueryMethods:
 
         asyncio.run(run_test())
 
+    def test_query_deepseek_http_error_redacts_response_body(self):
+        """DeepSeek HTTP error bodies should not leak into exceptions."""
+
+        async def run_test():
+            detector = LLMEnsembleDetector(
+                providers=[LLMProvider.DEEPSEEK],
+                deepseek_api_key="test-key",
+            )
+            mock_response = MagicMock()
+            mock_response.status = 503
+            mock_response.text = AsyncMock(return_value="deepseek-secret prompt")
+            mock_session = _aiohttp_session_with_response("post", mock_response)
+
+            with patch("aiohttp.ClientSession", return_value=mock_session):
+                with pytest.raises(ProviderUnavailable) as exc_info:
+                    await detector._query_deepseek("deepseek-v4-flash", "contract code")
+
+            message = str(exc_info.value)
+            assert "status=503" in message
+            assert "deepseek-secret" not in message
+            assert "prompt" not in message
+
+        asyncio.run(run_test())
+
     def test_query_model_http_error_raises_runtime_error(self, detector):
-        """Test Ollama HTTP failures raise a concrete runtime error."""
+        """Test Ollama HTTP failures raise a redacted concrete runtime error."""
 
         async def run_test():
             mock_response = MagicMock()
@@ -2180,8 +2380,9 @@ class TestLLMEnsembleDetectorQueryMethods:
             mock_session = _aiohttp_session_with_response("post", mock_response)
 
             with patch("aiohttp.ClientSession", return_value=mock_session):
-                with pytest.raises(RuntimeError, match="Ollama error"):
+                with pytest.raises(RuntimeError, match="Ollama HTTP error: status=500") as exc_info:
                     await detector._query_model("test-model", "contract code")
+            assert "server error" not in str(exc_info.value)
 
         asyncio.run(run_test())
 
@@ -2305,6 +2506,45 @@ That's my finding."""
         assert len(results) == 1
         assert results[0]["type"] == "unchecked-call"
         assert results[0]["_source_model"] == "test-model"
+
+    def test_parse_non_array_json_object_returns_empty(self, detector):
+        """Object payloads should not be treated as iterable finding lists."""
+        response = '{"type": "reentrancy", "severity": "high"}'
+
+        assert detector._parse_model_response(response, "test-model") == []
+
+    def test_parse_array_with_scalar_entries_only_returns_empty(self, detector):
+        """Scalar array entries should be ignored without crashing."""
+        response = '["reentrancy", 123, true, null]'
+
+        assert detector._parse_model_response(response, "test-model") == []
+
+    def test_parse_multiple_json_arrays_uses_single_valid_array_boundary(self, detector):
+        """The parser should not span unrelated JSON arrays in prose."""
+        response = (
+            'first [{"type": "reentrancy", "severity": "high"}] '
+            'second [{"type": "access-control", "severity": "low"}]'
+        )
+
+        results = detector._parse_model_response(response, "test-model")
+
+        assert len(results) == 1
+        assert results[0]["type"] == "reentrancy"
+
+    def test_parse_overlong_vulnerability_type_is_dropped(self, detector):
+        """Parser should mirror vulnerability type max-length validation."""
+        response = f'[{{"type": "{("x" * 121)}", "severity": "high"}}]'
+
+        assert detector._parse_model_response(response, "test-model") == []
+
+    def test_parse_control_char_model_label_not_added_as_source(self, detector):
+        """Malformed model labels should not be stored in parsed findings."""
+        response = '[{"type": "reentrancy", "severity": "high"}]'
+
+        results = detector._parse_model_response(response, "model\nsecret")
+
+        assert len(results) == 1
+        assert "_source_model" not in results[0]
 
 
 # =============================================================================
@@ -2478,6 +2718,58 @@ class TestLLMEnsembleDetectorIntegration:
 
         asyncio.run(run_test())
 
+    def test_detect_vulnerabilities_does_not_query_duplicate_available_models(
+        self, detector, vulnerable_code
+    ):
+        """Duplicate available model ids should not double-vote a backend."""
+
+        async def run_test():
+            detector._initialized = True
+            detector._available_models = ["model1", " model1 ", "model2", "model2"]
+            detector.consensus_threshold = 2
+            queried_models = []
+
+            async def mock_query(model, code, context=None):
+                queried_models.append(model)
+                return [
+                    {
+                        "type": "reentrancy",
+                        "severity": "high",
+                        "title": "Reentrancy",
+                        "description": "External call before state update",
+                        "location": {"function": "withdraw", "line": 10},
+                        "confidence": 0.9,
+                    }
+                ]
+
+            with patch.object(detector, "_query_model", side_effect=mock_query):
+                result = await detector.detect_vulnerabilities(vulnerable_code)
+
+            assert queried_models == ["model1", "model2"]
+            assert result.models_available == ["model1", "model2"]
+            assert result.models_used == ["model1", "model2"]
+            assert len(result.findings) == 1
+
+        asyncio.run(run_test())
+
+    def test_detect_vulnerabilities_failed_models_are_sanitized(self, detector, vulnerable_code):
+        """Failed model metadata should exclude malformed labels."""
+
+        async def run_test():
+            detector._initialized = True
+            detector._available_models = ["model1", "model\nsecret", {"id": "bad"}]
+
+            async def mock_query(model, code, context=None):
+                raise RuntimeError("secret prompt body")
+
+            with patch.object(detector, "_query_model", side_effect=mock_query):
+                result = await detector.detect_vulnerabilities(vulnerable_code)
+
+            assert result.models_available == ["model1"]
+            assert result.models_failed == ["model1"]
+
+        asyncio.run(run_test())
+
     def test_full_workflow_mocked(self, detector, vulnerable_code, sample_model_findings):
         """Test full detection workflow with mocked responses."""
 
@@ -2592,6 +2884,75 @@ class TestLLMEnsembleDetectorIntegration:
 
         asyncio.run(run_test())
 
+    def test_detect_with_provider_limits_to_three_models_per_provider(
+        self, detector, vulnerable_code
+    ):
+        """Provider queries should stay bounded to the first three distinct models."""
+
+        async def run_test():
+            detector._available_providers = {
+                LLMProvider.OLLAMA: ["model1", "model2", "model3", "model4", "model5"]
+            }
+            detector.consensus_threshold = 2
+            queried_models = []
+
+            async def mock_query(model, code, context=None):
+                queried_models.append(model)
+                return [
+                    {
+                        "type": "reentrancy",
+                        "severity": "high",
+                        "title": "Reentrancy",
+                        "description": "External call before state update",
+                        "location": {"function": "withdraw", "line": 10},
+                        "confidence": 0.9,
+                    }
+                ]
+
+            with patch.object(detector, "_query_model", side_effect=mock_query):
+                await detector._detect_with_provider(LLMProvider.OLLAMA, vulnerable_code)
+
+            assert queried_models == ["model1", "model2", "model3"]
+
+        asyncio.run(run_test())
+
+    def test_detect_with_provider_dedupes_provider_models_before_voting(
+        self, detector, vulnerable_code
+    ):
+        """Duplicate provider status entries should not inflate consensus."""
+
+        async def run_test():
+            detector._available_providers = {
+                LLMProvider.OLLAMA: ["model1", " model1 ", "model2"]
+            }
+            detector.consensus_threshold = 2
+            queried_models = []
+
+            async def mock_query(model, code, context=None):
+                queried_models.append(model)
+                return [
+                    {
+                        "type": "reentrancy",
+                        "severity": "high",
+                        "title": "Reentrancy",
+                        "description": "External call before state update",
+                        "location": {"function": "withdraw", "line": 10},
+                        "confidence": 0.9,
+                    }
+                ]
+
+            with patch.object(detector, "_query_model", side_effect=mock_query):
+                results = await detector._detect_with_provider(
+                    LLMProvider.OLLAMA,
+                    vulnerable_code,
+                )
+
+            assert queried_models == ["model1", "model2"]
+            assert results[0].votes == 2
+            assert results[0].supporting_models == ["model1", "model2"]
+
+        asyncio.run(run_test())
+
     def test_detect_with_provider_rejects_malformed_provider_status_map(
         self, detector, vulnerable_code
     ):
@@ -2638,6 +2999,31 @@ class TestLLMEnsembleDetectorIntegration:
             assert providers_tried[0] == LLMProvider.OLLAMA
             assert providers_tried[1] == LLMProvider.OPENAI
             assert providers_tried[2] == LLMProvider.ANTHROPIC
+
+        asyncio.run(run_test())
+
+    def test_detect_with_fallback_redacts_last_error(self, multi_provider_detector):
+        """Fallback errors should not aggregate leaked provider error text."""
+
+        async def run_test():
+            multi_provider_detector._initialized = True
+            multi_provider_detector._available_providers = {
+                LLMProvider.OLLAMA: ["model1"],
+                LLMProvider.OPENAI: ["gpt-4"],
+            }
+
+            async def mock_detect(provider, code, context):
+                raise ProviderUnavailable("secret prompt body")
+
+            with patch.object(
+                multi_provider_detector, "_detect_with_provider", side_effect=mock_detect
+            ):
+                with pytest.raises(AllProvidersUnavailable) as exc_info:
+                    await multi_provider_detector.detect_with_fallback("contract code")
+
+            message = str(exc_info.value)
+            assert "ProviderUnavailable" in message
+            assert "secret prompt body" not in message
 
         asyncio.run(run_test())
 

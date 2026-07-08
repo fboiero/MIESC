@@ -207,10 +207,9 @@ class LLMEnsembleDetector:
         "claude-3-opus-20240229": 1.5,
         "claude-3-haiku-20240307": 1.1,
         # DeepSeek API models
-    "deepseek-v4-flash": 1.25,
-    "deepseek-v4-pro": 1.35,
+        "deepseek-v4-flash": 1.25,
+        "deepseek-v4-pro": 1.35,
     }
-
 
     # Vulnerability detection prompt
     DETECTION_PROMPT = """You are an expert Solidity smart contract security auditor.
@@ -341,6 +340,19 @@ Response (JSON array only):"""
             return 2
 
         return max(1, threshold)
+
+    @staticmethod
+    def _provider_http_error(provider_name: str, status: Any) -> ProviderUnavailable:
+        """Build a provider error without embedding response bodies or prompts."""
+        status_code = status if isinstance(status, int) else "unknown"
+        return ProviderUnavailable(f"{provider_name} HTTP error: status={status_code}")
+
+    @staticmethod
+    def _safe_exception_summary(error: Any) -> str:
+        """Return an exception summary that excludes provider response bodies."""
+        if isinstance(error, BaseException):
+            return error.__class__.__name__
+        return "unknown"
 
     @classmethod
     def _normalize_timeout(cls, timeout: Any) -> int:
@@ -679,15 +691,25 @@ Response (JSON array only):"""
                 result = await self._detect_with_provider(provider, code, context)
                 return result
             except ProviderUnavailable as e:
-                logger.warning(f"Provider {provider.value} unavailable: {e}")
+                logger.warning(
+                    "Provider %s unavailable: %s",
+                    provider.value,
+                    self._safe_exception_summary(e),
+                )
                 last_error = e
                 continue
             except ENSEMBLE_RUNTIME_ERRORS as e:
-                logger.warning(f"Provider {provider.value} failed: {e}")
+                logger.warning(
+                    "Provider %s failed: %s",
+                    provider.value,
+                    self._safe_exception_summary(e),
+                )
                 last_error = e
                 continue
 
-        raise AllProvidersUnavailable(f"All providers failed. Last error: {last_error}")
+        raise AllProvidersUnavailable(
+            f"All providers failed. Last error: {self._safe_exception_summary(last_error)}"
+        )
 
     async def _detect_with_provider(
         self,
@@ -707,7 +729,7 @@ Response (JSON array only):"""
             List of findings from this provider
         """
         provider_status = self._provider_status_map(self._available_providers)
-        models = provider_status.get(provider, [])[:3]
+        models = self._status_model_list(provider_status.get(provider, []))[:3]
 
         if not models:
             raise ProviderUnavailable(f"No models available for {provider.value}")
@@ -730,7 +752,11 @@ Response (JSON array only):"""
 
         for model, result in zip(models, results, strict=False):
             if isinstance(result, BaseException):
-                logger.warning(f"Model {model} failed: {result}")
+                logger.warning(
+                    "Model %s failed: %s",
+                    model,
+                    self._safe_exception_summary(result),
+                )
             else:
                 model_findings[model] = result
 
@@ -792,8 +818,7 @@ Response (JSON array only):"""
                     timeout=aiohttp.ClientTimeout(total=self.timeout),
                 ) as resp:
                     if resp.status != 200:
-                        error_text = await resp.text()
-                        raise ProviderUnavailable(f"OpenAI error: {error_text}")
+                        raise self._provider_http_error("OpenAI", resp.status)
 
                     data = await resp.json()
                     self._validate_optional_response_metadata(data, "OpenAI")
@@ -802,7 +827,7 @@ Response (JSON array only):"""
                     return self._parse_model_response(content, model)
 
         except aiohttp.ClientError as e:
-            raise ProviderUnavailable(f"OpenAI connection error: {e}") from e
+            raise ProviderUnavailable("OpenAI connection error") from e
 
     async def _query_deepseek(
         self,
@@ -849,8 +874,7 @@ Response (JSON array only):"""
                     timeout=aiohttp.ClientTimeout(total=self.timeout),
                 ) as resp:
                     if resp.status != 200:
-                        error_text = await resp.text()
-                        raise ProviderUnavailable(f"DeepSeek error: {error_text}")
+                        raise self._provider_http_error("DeepSeek", resp.status)
 
                     data = await resp.json()
                     self._validate_optional_response_metadata(data, "DeepSeek")
@@ -859,7 +883,7 @@ Response (JSON array only):"""
                     return self._parse_model_response(content, model)
 
         except aiohttp.ClientError as e:
-            raise ProviderUnavailable(f"DeepSeek connection error: {e}") from e
+            raise ProviderUnavailable("DeepSeek connection error") from e
 
     @staticmethod
     def _extract_openai_compatible_content(data: Any, provider_name: str) -> str:
@@ -1001,8 +1025,7 @@ Response (JSON array only):"""
                     timeout=aiohttp.ClientTimeout(total=self.timeout),
                 ) as resp:
                     if resp.status != 200:
-                        error_text = await resp.text()
-                        raise ProviderUnavailable(f"Anthropic error: {error_text}")
+                        raise self._provider_http_error("Anthropic", resp.status)
 
                     data = await resp.json()
                     self._validate_optional_response_metadata(data, "Anthropic")
@@ -1011,7 +1034,7 @@ Response (JSON array only):"""
                     return self._parse_model_response(content, model)
 
         except aiohttp.ClientError as e:
-            raise ProviderUnavailable(f"Anthropic connection error: {e}") from e
+            raise ProviderUnavailable("Anthropic connection error") from e
 
     async def detect_vulnerabilities(
         self,
@@ -1061,7 +1084,11 @@ Response (JSON array only):"""
 
         for model, result in zip(available_models, results, strict=False):
             if isinstance(result, BaseException):
-                logger.warning(f"Model {model} failed: {result}")
+                logger.warning(
+                    "Model %s failed: %s",
+                    model,
+                    self._safe_exception_summary(result),
+                )
                 failed_models.append(model)
             else:
                 model_findings[model] = result
@@ -1138,7 +1165,7 @@ Response (JSON array only):"""
                     timeout=aiohttp.ClientTimeout(total=self.timeout),
                 ) as resp:
                     if resp.status != 200:
-                        raise RuntimeError(f"Ollama error: {await resp.text()}")
+                        raise RuntimeError(f"Ollama HTTP error: status={resp.status}")
 
                     data = await resp.json()
                     self._validate_optional_response_metadata(data, "Ollama")
@@ -1147,19 +1174,21 @@ Response (JSON array only):"""
                     return self._parse_model_response(content, model)
 
         except ENSEMBLE_RUNTIME_ERRORS as e:
-            logger.warning(f"Model {model} query failed: {e}")
+            logger.warning(
+                "Model %s query failed: %s",
+                self._safe_model_label(model) or "unknown",
+                self._safe_exception_summary(e),
+            )
             raise
 
     def _parse_model_response(self, content: str, model: str) -> List[Dict[str, Any]]:
         """Parse model response into findings list."""
+        source_model = self._safe_model_label(model)
         try:
-            # Extract JSON from response
-            json_start = content.find("[")
-            json_end = content.rfind("]") + 1
+            json_str = self._extract_first_json_array(content)
 
-            if json_start >= 0 and json_end > json_start:
-                json_str = content[json_start:json_end]
-                findings = json.loads(repair_common_json_errors(json_str))
+            if json_str is not None:
+                findings = json.loads(json_str)
 
                 # Normalize findings
                 normalized = []
@@ -1168,29 +1197,43 @@ Response (JSON array only):"""
                     if vuln_type:
                         # Add source model
                         f["type"] = vuln_type
-                        f["_source_model"] = model
+                        if source_model is not None:
+                            f["_source_model"] = source_model
                         normalized.append(f)
 
                 return normalized
-            else:
-                # Try parsing entire content
-                if content.strip().startswith("["):
-                    findings = json.loads(repair_common_json_errors(content))
-                    for f in findings:
-                        vuln_type = (
-                            self._safe_vulnerability_type(f.get("type"))
-                            if isinstance(f, dict)
-                            else None
-                        )
-                        if vuln_type:
-                            f["type"] = vuln_type
-                            f["_source_model"] = model
-                    return [f for f in findings if isinstance(f, dict) and "_source_model" in f]
 
         except json.JSONDecodeError as e:
-            logger.debug(f"JSON parse error for {model}: {e}")
+            logger.debug(
+                "JSON parse error for %s: %s",
+                self._safe_model_label(model) or "unknown",
+                e.__class__.__name__,
+            )
 
         return []
+
+    @staticmethod
+    def _extract_first_json_array(content: Any) -> Optional[str]:
+        """Return the first decodable JSON array from text, without spanning arrays."""
+        if not isinstance(content, str):
+            return None
+
+        decoder = json.JSONDecoder()
+        for start, char in enumerate(content):
+            if char != "[":
+                continue
+            for end in range(start + 1, len(content) + 1):
+                if content[end - 1] != "]":
+                    continue
+                candidate = repair_common_json_errors(content[start:end])
+                try:
+                    parsed, parsed_end = decoder.raw_decode(candidate)
+                except json.JSONDecodeError:
+                    continue
+                if isinstance(parsed, list) and candidate[parsed_end:].strip() == "":
+                    return candidate
+                break
+        return None
 
     def _ensemble_vote(
         self,
@@ -1222,7 +1265,12 @@ Response (JSON array only):"""
                         "confidences": [],
                         "models": [],
                         "raw_responses": {},
+                        "seen_models": set(),
                     }
+
+                if model in finding_groups[signature]["seen_models"]:
+                    continue
+                finding_groups[signature]["seen_models"].add(model)
 
                 finding_groups[signature]["votes"].append(self._model_weight(model))
                 finding_groups[signature]["confidences"].append(
@@ -1612,7 +1660,8 @@ Response (JSON array only):"""
                 or any(ord(ch) < 32 or ord(ch) == 127 for ch in cleaned)
             ):
                 continue
-            normalized.append(cleaned)
+            if cleaned not in normalized:
+                normalized.append(cleaned)
         return normalized
 
 
