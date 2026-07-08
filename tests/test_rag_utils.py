@@ -5,6 +5,7 @@ import time
 
 import pytest
 
+import src.llm.rag_utils as rag_utils_module
 from src.llm.rag_utils import (
     _safe_text,
     build_metadata_filter,
@@ -103,6 +104,14 @@ def test_safe_text_rejects_ascii_control_characters():
     assert _safe_text("  \n  ") == ""
 
 
+def test_safe_text_rejects_unicode_separators_and_malformed_limits():
+    assert _safe_text("bad\u2028query") == ""
+    assert _safe_text("bad\u2029query") == ""
+    assert _safe_text("abcdef", limit="bad") == ""
+    assert _safe_text("abcdef", limit=True) == ""
+    assert _safe_text("abcdef", limit=10_000) == "abcdef"
+
+
 def test_make_cache_key_normalizes_result_count():
     negative = make_cache_key(
         knowledge_base_version="v1",
@@ -175,6 +184,43 @@ def test_make_cache_key_defaults_blank_strategy():
     )
 
     assert blank_strategy == default_strategy
+
+
+def test_make_cache_key_rejects_unicode_controls_and_bounds_components():
+    malformed_strategy = make_cache_key(
+        knowledge_base_version="v1",
+        query="reentrancy",
+        filter_category="category\u2028bad",
+        filter_severity="severity\u2029bad",
+        n_results=True,
+        strategy="semantic\u2028bad",
+    )
+    default_strategy = make_cache_key(
+        knowledge_base_version="v1",
+        query="reentrancy",
+        filter_category="",
+        filter_severity="",
+        n_results=10,
+    )
+    bounded_version = make_cache_key(
+        knowledge_base_version="v" * 240,
+        query="reentrancy",
+        filter_category="c" * 140,
+        filter_severity="s" * 140,
+        n_results="5",  # type: ignore[arg-type]
+        strategy="semantic",
+    )
+    same_bounds = make_cache_key(
+        knowledge_base_version="v" * 200,
+        query="reentrancy",
+        filter_category="c" * 120,
+        filter_severity="s" * 120,
+        n_results=5,
+        strategy="semantic",
+    )
+
+    assert malformed_strategy == default_strategy
+    assert bounded_version == same_bounds
 
 
 def test_build_metadata_filter_ignores_malformed_text_boundaries():
@@ -255,6 +301,48 @@ def test_get_cached_result_evicts_malformed_results_container(results):
     assert "a" not in cache
 
 
+def test_get_cached_result_handles_hostile_dict_subclass_access():
+    class HostileCache(dict):
+        def __contains__(self, key):
+            raise RuntimeError("boom")
+
+    cache = HostileCache({"a": (time.time(), [1])})
+
+    result, hit, expired = get_cached_result(cache, "a", enabled=True, ttl_seconds=30)
+
+    assert result is None
+    assert hit is False
+    assert expired is False
+
+
+def test_get_cached_result_handles_delete_exceptions_on_bad_entry():
+    class HostileDeleteCache(dict):
+        def __delitem__(self, key):
+            raise RuntimeError("boom")
+
+    cache = HostileDeleteCache({"a": "bad"})
+
+    result, hit, expired = get_cached_result(cache, "a", enabled=True, ttl_seconds=30)
+
+    assert result is None
+    assert hit is False
+    assert expired is True
+    assert "a" in cache
+
+
+def test_get_cached_result_returns_defensive_copy_and_caps_items():
+    cached_results = list(range(1100))
+    cache = {"a": (time.time(), cached_results)}
+
+    result, hit, expired = get_cached_result(cache, "a", enabled=True, ttl_seconds=30)
+    assert hit is True
+    assert expired is False
+    assert result == list(range(1000))
+
+    result.append("mutated")
+    assert cache["a"][1] == cached_results
+
+
 @pytest.mark.parametrize("ttl_seconds", [0, -1, None, "bad", float("nan"), float("inf")])
 def test_get_cached_result_normalizes_malformed_ttl_to_expired(ttl_seconds):
     cache = {"a": (time.time() - 1, [1])}
@@ -278,6 +366,29 @@ def test_store_cached_result_evicts_oldest_entry():
     assert "old" not in cache
     assert "new" in cache
     assert "latest" in cache
+
+
+def test_store_cached_result_updates_existing_key_without_evicting_peer():
+    cache = {
+        "a": (1.0, ["old"]),
+        "b": (2.0, ["peer"]),
+    }
+
+    assert store_cached_result(cache, "a", ["new"], enabled=True, max_size=2) is True
+
+    assert "a" in cache
+    assert "b" in cache
+    assert cache["a"][1] == ["new"]
+
+
+def test_store_cached_result_copies_and_caps_results_boundary():
+    results = list(range(1100))
+    cache = {}
+
+    assert store_cached_result(cache, "a", results, enabled=True, max_size=10) is True
+
+    results.append("mutated")
+    assert cache["a"][1] == list(range(1000))
 
 
 @pytest.mark.parametrize("cache_key", [None, ["a"], "bad\nkey", ""])
@@ -318,6 +429,19 @@ def test_store_cached_result_evicts_malformed_entries_first():
     assert "latest" in cache
 
 
+def test_store_cached_result_handles_malformed_timestamp_entry():
+    cache = {
+        "malformed": ("bad", ["old"]),
+        "valid": (2.0, ["valid"]),
+    }
+
+    assert store_cached_result(cache, "latest", ["latest"], enabled=True, max_size=2) is True
+
+    assert "malformed" not in cache
+    assert "valid" in cache
+    assert "latest" in cache
+
+
 def test_cache_stats_formats_hit_rate():
     assert cache_stats(hits=1, misses=3, cache_size=2, max_size=10) == {
         "hits": 1,
@@ -348,6 +472,13 @@ def test_cache_stats_normalizes_numeric_strings_and_nan():
     }
 
 
+def test_cache_stats_handles_large_values_without_overflow():
+    stats = cache_stats(hits=10**300, misses=10**300, cache_size=10**50, max_size=10**51)
+
+    assert stats["hit_rate"] == "50.0%"
+    assert stats["cache_size"] == 10**50
+
+
 def test_build_metadata_filter():
     assert build_metadata_filter(None, None) is None
     assert build_metadata_filter("reentrancy", None) == {"category": "reentrancy"}
@@ -367,6 +498,13 @@ def test_build_metadata_filter_normalizes_whitespace_only_values():
     assert build_metadata_filter(" \t ", " \n ") is None
 
 
+def test_build_metadata_filter_rejects_unicode_controls_and_strips_values():
+    assert build_metadata_filter(" reentrancy ", " high ") == {
+        "$and": [{"category": "reentrancy"}, {"severity": "high"}]
+    }
+    assert build_metadata_filter("reentrancy\u2028bad", "high\u2029bad") is None
+
+
 def test_parse_repaired_json_object_extracts_and_repairs_object_candidate():
     content = """
     RAG analysis:
@@ -382,6 +520,11 @@ def test_parse_repaired_json_object_extracts_and_repairs_object_candidate():
         "category": "reentrancy",
         "severity": "high",
     }
+
+
+def test_parse_repaired_json_object_accepts_object_after_prose_and_rejects_array_before_object():
+    assert parse_repaired_json_object('analysis follows\n{"ok": true}') == {"ok": True}
+    assert parse_repaired_json_object('analysis follows\n[1]\n{"ok": true}') == {}
 
 
 def test_parse_repaired_json_object_rejects_non_object_json_boundaries():
@@ -411,3 +554,41 @@ def test_parse_repaired_json_object_rejects_list_candidate_after_prose():
     content = 'analysis follows:\n[{"category": "reentrancy"}]'
 
     assert parse_repaired_json_object(content) == {}
+
+
+def test_parse_repaired_json_object_sanitizes_key_and_value_caps():
+    long_key = "k" * 140
+    content = '{"' + long_key + '": "' + ("v" * 6000) + '"}'
+
+    parsed = parse_repaired_json_object(content)
+
+    assert "k" * 120 in parsed
+    assert parsed["k" * 120] == "v" * 5000
+
+
+def test_parse_repaired_json_object_rejects_oversized_collections():
+    oversized_list = '{"items": ' + str(list(range(101))) + "}"
+    oversized_object = "{" + ", ".join(f'"k{i}": {i}' for i in range(101)) + "}"
+
+    assert parse_repaired_json_object(oversized_list) == {}
+    assert parse_repaired_json_object(oversized_object) == {}
+
+
+def test_parse_repaired_json_object_rejects_nested_depth_and_unicode_separators():
+    deep = '{"a": {"b": {"c": {"d": {"e": {"f": {"g": {"h": {"i": 1}}}}}}}}}'
+
+    assert parse_repaired_json_object(deep) == {}
+    assert parse_repaired_json_object('{"ok": "bad\u2028value"}') == {}
+    assert parse_repaired_json_object('{"bad\u2029key": "value"}') == {}
+
+
+def test_parse_repaired_json_object_caps_max_chars_and_handles_extraction_errors(monkeypatch):
+    oversized = '{"description": "' + ("x" * 1_000_010) + '"}'
+    monkeypatch.setattr(
+        rag_utils_module,
+        "extract_json_from_text",
+        lambda _content: (_ for _ in ()).throw(RuntimeError("boom")),
+    )
+
+    assert parse_repaired_json_object(oversized, max_json_chars=10_000_000) == {}
+    assert parse_repaired_json_object('{"ok": true}') == {}

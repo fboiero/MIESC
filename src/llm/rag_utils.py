@@ -4,6 +4,7 @@ import hashlib
 import json
 import math
 import time
+import unicodedata
 from typing import Any, Dict, List, Optional, Tuple, TypeVar
 
 from src.security.llm_output_validator import (
@@ -16,18 +17,37 @@ T = TypeVar("T")
 
 MAX_CACHE_TEXT_CHARS = 200
 MAX_FILTER_TEXT_CHARS = 120
+MAX_CACHE_RESULT_ITEMS = 1_000
+MAX_JSON_OBJECT_KEYS = 100
+MAX_JSON_LIST_ITEMS = 100
+MAX_JSON_TEXT_CHARS = 5_000
+MAX_JSON_DEPTH = 8
 
 
 def _safe_text(value: Any, *, limit: int = MAX_CACHE_TEXT_CHARS) -> str:
     """Return plain text only, dropping malformed or control-character values."""
     if not isinstance(value, str):
         return ""
+    if isinstance(limit, bool):
+        return ""
+    try:
+        safe_limit = int(limit)
+    except (TypeError, ValueError, OverflowError):
+        return ""
+    if safe_limit <= 0:
+        return ""
+    safe_limit = min(safe_limit, MAX_CACHE_TEXT_CHARS)
     text = value.strip()
-    if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+    if not text or any(_is_unsafe_text_char(ch) for ch in text):
         return ""
-    if limit <= 0:
-        return ""
-    return text[:limit]
+    return text[:safe_limit]
+
+
+def _is_unsafe_text_char(ch: str) -> bool:
+    if ord(ch) < 32 or ord(ch) == 127:
+        return True
+    category = unicodedata.category(ch)
+    return category.startswith("C") or category in {"Zl", "Zp"}
 
 
 def _positive_int(value: Any, *, default: int, max_value: int) -> int:
@@ -60,6 +80,78 @@ def _non_negative_float(value: Any) -> float:
     except (TypeError, ValueError, OverflowError):
         return 0.0
     return normalized if math.isfinite(normalized) and normalized >= 0 else 0.0
+
+
+def _safe_cache_get(cache: Dict[str, Tuple[float, List[T]]], cache_key: str) -> Any:
+    try:
+        return cache[cache_key]
+    except (KeyError, TypeError, AttributeError, RuntimeError):
+        return None
+
+
+def _safe_cache_contains(cache: Dict[str, Tuple[float, List[T]]], cache_key: str) -> bool:
+    try:
+        return cache_key in cache
+    except (TypeError, AttributeError, RuntimeError):
+        return False
+
+
+def _safe_cache_delete(cache: Dict[str, Tuple[float, List[T]]], cache_key: str) -> None:
+    try:
+        del cache[cache_key]
+    except (KeyError, TypeError, AttributeError, RuntimeError):
+        return
+
+
+def _cache_entry_timestamp(cache: Dict[str, Tuple[float, List[T]]], cache_key: str) -> float:
+    entry = _safe_cache_get(cache, cache_key)
+    if isinstance(entry, (tuple, list)) and len(entry) == 2:
+        return _non_negative_float(entry[0])
+    return -1.0
+
+
+def _bounded_result_copy(results: List[T]) -> List[T]:
+    return list(results[:MAX_CACHE_RESULT_ITEMS])
+
+
+def _safe_json_scalar_text(value: str) -> Optional[str]:
+    if any(_is_unsafe_text_char(ch) for ch in value):
+        return None
+    return value[:MAX_JSON_TEXT_CHARS]
+
+
+def _sanitize_json_value(value: Any, *, depth: int = 0) -> Tuple[bool, Any]:
+    if depth > MAX_JSON_DEPTH:
+        return False, None
+    if value is None or isinstance(value, (bool, int, float)):
+        return True, value
+    if isinstance(value, str):
+        safe_value = _safe_json_scalar_text(value)
+        return (safe_value is not None), safe_value
+    if isinstance(value, list):
+        if len(value) > MAX_JSON_LIST_ITEMS:
+            return False, None
+        safe_items = []
+        for item in value:
+            ok, safe_item = _sanitize_json_value(item, depth=depth + 1)
+            if not ok:
+                return False, None
+            safe_items.append(safe_item)
+        return True, safe_items
+    if isinstance(value, dict):
+        if len(value) > MAX_JSON_OBJECT_KEYS:
+            return False, None
+        safe_obj = {}
+        for key, item in value.items():
+            safe_key = _safe_text(key, limit=MAX_FILTER_TEXT_CHARS)
+            if not safe_key:
+                return False, None
+            ok, safe_item = _sanitize_json_value(item, depth=depth + 1)
+            if not ok:
+                return False, None
+            safe_obj[safe_key] = safe_item
+        return True, safe_obj
+    return False, None
 
 
 def make_cache_key(
@@ -98,25 +190,30 @@ def get_cached_result(
     counters without coupling this helper to a concrete RAG class.
     """
     safe_key = _safe_text(cache_key)
-    if not enabled or not isinstance(cache, dict) or not safe_key or safe_key not in cache:
+    if (
+        not enabled
+        or not isinstance(cache, dict)
+        or not safe_key
+        or not _safe_cache_contains(cache, safe_key)
+    ):
         return None, False, False
 
-    entry = cache[safe_key]
+    entry = _safe_cache_get(cache, safe_key)
     if not isinstance(entry, (tuple, list)) or len(entry) != 2:
-        del cache[safe_key]
+        _safe_cache_delete(cache, safe_key)
         return None, False, True
 
     timestamp, results = entry
     timestamp_value = _non_negative_float(timestamp)
     ttl = _non_negative_float(ttl_seconds)
     if not isinstance(results, list):
-        del cache[safe_key]
+        _safe_cache_delete(cache, safe_key)
         return None, False, True
     if time.time() - timestamp_value > ttl:
-        del cache[safe_key]
+        _safe_cache_delete(cache, safe_key)
         return None, False, True
 
-    return results, True, False
+    return _bounded_result_copy(results), True, False
 
 
 def store_cached_result(
@@ -133,18 +230,14 @@ def store_cached_result(
         return False
 
     safe_max_size = _positive_int(max_size, default=1, max_value=10_000)
-    while len(cache) >= safe_max_size:
+    while len(cache) >= safe_max_size and not _safe_cache_contains(cache, safe_key):
         oldest_key = min(
             cache,
-            key=lambda k: (
-                _non_negative_float(cache[k][0])
-                if isinstance(cache.get(k), (tuple, list)) and len(cache[k]) == 2
-                else -1.0
-            ),
+            key=lambda k: _cache_entry_timestamp(cache, k),
         )
-        del cache[oldest_key]
+        _safe_cache_delete(cache, oldest_key)
 
-    cache[safe_key] = (time.time(), results)
+    cache[safe_key] = (time.time(), _bounded_result_copy(results))
     return True
 
 
@@ -198,7 +291,9 @@ def parse_repaired_json_object(content: Any, *, max_json_chars: int = 50_000) ->
         return {}
 
     stripped = content.strip()
-    if not stripped or any(ord(ch) == 0 or ord(ch) == 127 for ch in stripped):
+    if not stripped or any(
+        ord(ch) in {0, 127} or unicodedata.category(ch) in {"Zl", "Zp"} for ch in stripped
+    ):
         return {}
     if stripped.startswith("[") or stripped.lstrip().startswith("["):
         return {}
@@ -207,7 +302,10 @@ def parse_repaired_json_object(content: Any, *, max_json_chars: int = 50_000) ->
     if first_array != -1 and (first_object == -1 or first_array < first_object):
         return {}
 
-    json_str = extract_json_from_text(content)
+    try:
+        json_str = extract_json_from_text(content)
+    except (TypeError, ValueError, RuntimeError):
+        return {}
     if json_str is None:
         json_str = stripped if stripped.startswith("{") else None
 
@@ -215,10 +313,14 @@ def parse_repaired_json_object(content: Any, *, max_json_chars: int = 50_000) ->
         return {}
 
     try:
-        parsed = json.loads(repair_common_json_errors(json_str))
+        repaired = repair_common_json_errors(json_str)
+        parsed = json.loads(repaired)
     except json.JSONDecodeError:
+        return {}
+    except (TypeError, ValueError, RuntimeError):
         return {}
 
     if isinstance(parsed, dict):
-        return parsed
+        ok, safe_parsed = _sanitize_json_value(parsed)
+        return safe_parsed if ok and isinstance(safe_parsed, dict) else {}
     return {}
