@@ -29,6 +29,10 @@ from typing import Any, Dict, List, Optional, Union
 logger = logging.getLogger(__name__)
 
 _FILENAME_SAFE_CHARS = f"-_() {string.ascii_letters}{string.digits}"
+_SOLIDITY_IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,127}$")
+_SOLIDITY_LITERAL_SAFE_RE = re.compile(r"^[A-Za-z0-9_ .()+\-*/]+$")
+_ERROR_TEXT_LIMIT = 500
+_TRACE_TEXT_LIMIT = 20_000
 
 
 def _safe_filename_part(value: Any, default: str = "template") -> str:
@@ -49,6 +53,33 @@ def _normalize_output_text(value: Any) -> str:
     if isinstance(value, bytes):
         return value.decode("utf-8", errors="replace")
     return ""
+
+
+def _safe_error_text(value: Any) -> str:
+    """Return bounded printable error text without trusting object reprs."""
+    try:
+        text = str(value)
+    except Exception:
+        return f"<unprintable:{type(value).__name__}>"
+    if not text:
+        return f"<empty:{type(value).__name__}>"
+    safe_chars = []
+    for char in text[:_ERROR_TEXT_LIMIT]:
+        ordinal = ord(char)
+        if char == "\n":
+            safe_chars.append("\\n")
+        elif char == "\r":
+            safe_chars.append("\\r")
+        elif char == "\t":
+            safe_chars.append("\\t")
+        elif ordinal < 32 or ordinal == 127:
+            safe_chars.append(f"\\x{ordinal:02x}")
+        else:
+            safe_chars.append(char)
+    safe_text = "".join(safe_chars)
+    if len(text) > _ERROR_TEXT_LIMIT:
+        safe_text += "...<truncated>"
+    return safe_text
 
 
 def _safe_optional_text(value: Any) -> Optional[str]:
@@ -92,6 +123,36 @@ def _safe_contract_text(value: Any) -> str:
             return ""
         return text
     return ""
+
+
+def _safe_solidity_identifier(value: Any) -> Optional[str]:
+    """Return a Solidity identifier suitable for generated test names/functions."""
+    if not isinstance(value, str):
+        return None
+    text = value.strip()
+    if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+        return None
+    return text if _SOLIDITY_IDENTIFIER_RE.fullmatch(text) else None
+
+
+def _safe_solidity_literal(value: Any, default: str) -> str:
+    """Return a conservative Solidity literal/expression used in template slots."""
+    if isinstance(value, bytes):
+        try:
+            value = value.decode("utf-8", errors="replace")
+        except Exception:
+            return default
+    if not isinstance(value, str):
+        return default
+    text = value.strip()
+    if (
+        not text
+        or len(text) > 200
+        or any(ord(ch) < 32 or ord(ch) == 127 for ch in text)
+        or not _SOLIDITY_LITERAL_SAFE_RE.fullmatch(text)
+    ):
+        return default
+    return text
 
 
 def _safe_isoformat(value: Any) -> str:
@@ -314,8 +375,17 @@ class PoCGenerator:
             templates_dir: Custom templates directory
             options: Generation options
         """
-        self.templates_dir = templates_dir or self.TEMPLATES_DIR
-        self.options = options or GenerationOptions()
+        if templates_dir is None:
+            self.templates_dir = self.TEMPLATES_DIR
+        elif isinstance(templates_dir, (str, Path)) and str(templates_dir).strip():
+            self.templates_dir = Path(templates_dir)
+        else:
+            logger.warning("Ignoring malformed templates_dir for PoC generator")
+            self.templates_dir = self.TEMPLATES_DIR
+
+        self.options = options if isinstance(options, GenerationOptions) else GenerationOptions()
+        if options is not None and not isinstance(options, GenerationOptions):
+            logger.warning("Ignoring malformed PoC generation options")
         self._template_cache: Dict[str, str] = {}
 
         logger.debug(f"PoCGenerator initialized (templates_dir={self.templates_dir})")
@@ -337,7 +407,9 @@ class PoCGenerator:
         Returns:
             PoCTemplate with generated Solidity test code
         """
-        opts = options or self.options
+        if not isinstance(finding, dict):
+            raise ValueError("Malformed vulnerability finding")
+        opts = self._options_state(options)
 
         # Determine vulnerability type
         vuln_type = self._resolve_vulnerability_type(finding)
@@ -413,7 +485,7 @@ class PoCGenerator:
                 poc = self.generate(finding, target_contract, options)
                 pocs.append(poc)
             except (AttributeError, KeyError, TypeError, ValueError) as e:
-                logger.warning(f"Failed to generate PoC for finding: {e}")
+                logger.warning("Failed to generate PoC for finding: %s", _safe_error_text(e))
 
         return pocs
 
@@ -508,10 +580,11 @@ class PoCGenerator:
             )
 
         except subprocess.TimeoutExpired:
+            execution_time = max((time.time() - start_time) * 1000, 0)
             return PoCResult(
                 success=False,
                 output="",
-                execution_time_ms=(time.time() - start_time) * 1000,
+                execution_time_ms=execution_time,
                 error="PoC execution timed out",
             )
         except FileNotFoundError:
@@ -522,15 +595,40 @@ class PoCGenerator:
                 error="Foundry (forge) not installed",
             )
         except (OSError, RuntimeError, subprocess.SubprocessError) as e:
+            execution_time = max((time.time() - start_time) * 1000, 0)
             return PoCResult(
                 success=False,
                 output="",
-                execution_time_ms=(time.time() - start_time) * 1000,
-                error=str(e),
+                execution_time_ms=execution_time,
+                error=_safe_error_text(e),
             )
+
+    def _options_state(self, options: Optional[GenerationOptions] = None) -> GenerationOptions:
+        """Return valid generation options, resetting malformed in-memory state."""
+        if isinstance(options, GenerationOptions):
+            return options
+        if options is not None:
+            logger.warning("Ignoring malformed PoC generation options override")
+            return GenerationOptions()
+        if isinstance(self.options, GenerationOptions):
+            return self.options
+        logger.warning("Resetting malformed PoC generator options state")
+        self.options = GenerationOptions()
+        return self.options
+
+    def _template_cache_state(self) -> Dict[str, str]:
+        """Return usable template cache state."""
+        if isinstance(self._template_cache, dict):
+            return self._template_cache
+        logger.warning("Resetting malformed PoC template cache state")
+        self._template_cache = {}
+        return self._template_cache
 
     def _resolve_vulnerability_type(self, finding: Dict[str, Any]) -> VulnerabilityType:
         """Resolve finding type to VulnerabilityType enum."""
+        if not isinstance(finding, dict):
+            logger.warning("Malformed finding type container, defaulting to REENTRANCY")
+            return VulnerabilityType.REENTRANCY
         raw_finding_type = finding.get("type", "")
         if isinstance(raw_finding_type, bytes):
             try:
@@ -560,6 +658,8 @@ class PoCGenerator:
         self, finding: Dict[str, Any], key: str, default: Optional[str] = None
     ) -> Optional[str]:
         """Return string finding fields only; ignore malformed object/list shapes."""
+        if not isinstance(finding, dict) or not isinstance(key, str):
+            return default
         value = finding.get(key, default)
         if isinstance(value, str):
             text = value.strip()
@@ -569,17 +669,12 @@ class PoCGenerator:
 
     def _option_text_field(self, options: GenerationOptions, key: str, default: str) -> str:
         """Return string option fields only; ignore malformed object/list shapes."""
+        if not isinstance(key, str):
+            return default
         value = getattr(options, key, default)
-        if isinstance(value, bytes):
-            try:
-                value = value.decode("utf-8", errors="replace")
-            except Exception:
-                return default
-        if isinstance(value, str):
-            text = value.strip()
-            if text and not any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
-                return text
-        return default
+        if key in {"attacker_balance", "victim_balance"}:
+            return _safe_solidity_literal(value, default)
+        return _safe_optional_text(value) or default
 
     def _custom_import_lines(self, options: GenerationOptions) -> str:
         """Build custom import statements from a list of string paths."""
@@ -630,24 +725,20 @@ class PoCGenerator:
 
     def _extract_function_name(self, finding: Dict[str, Any]) -> Optional[str]:
         """Extract target function name from finding."""
+        if not isinstance(finding, dict):
+            return None
         location = finding.get("location", {})
 
         if isinstance(location, dict):
             function_name = location.get("function") or location.get("func")
-            if not isinstance(function_name, str):
-                return None
-            try:
-                normalized = function_name.strip()
-            except (AttributeError, TypeError, ValueError):
-                return None
-            if not normalized or any(ord(ch) < 32 or ord(ch) == 127 for ch in normalized):
-                return None
-            return normalized
+            return _safe_solidity_identifier(function_name)
         elif isinstance(location, str):
+            if len(location) > 2000 or any(ord(ch) < 32 or ord(ch) == 127 for ch in location):
+                return None
             # Try to parse function from string
             match = re.search(r"function\s+(\w+)", location)
             if match:
-                return match.group(1)
+                return _safe_solidity_identifier(match.group(1))
 
         return None
 
@@ -662,7 +753,10 @@ class PoCGenerator:
             Path(target_contract).stem if isinstance(target_contract, (str, Path)) else "",
             "contract",
         )
-        type_name = _safe_filename_part(vuln_type.value.replace("_", ""), "unknown")
+        type_name = _safe_filename_part(
+            _safe_vulnerability_type_value(vuln_type).replace("_", ""),
+            "unknown",
+        )
         function_name = _safe_filename_part(target_function, "") if target_function else ""
 
         if function_name:
@@ -678,12 +772,20 @@ class PoCGenerator:
         if not template_name:
             # Use generic template
             template_name = "generic.t.sol"
+        if not _safe_import_path(template_name) or not template_name.endswith(".sol"):
+            logger.warning("Ignoring malformed PoC template name")
+            template_name = "generic.t.sol"
 
         # Check cache
-        if template_name in self._template_cache:
-            return self._template_cache[template_name]
+        template_cache = self._template_cache_state()
+        cached_template = template_cache.get(template_name)
+        if isinstance(cached_template, str):
+            return cached_template
 
         # Load from file
+        if not isinstance(self.templates_dir, Path):
+            logger.warning("Resetting malformed PoC templates_dir state")
+            self.templates_dir = self.TEMPLATES_DIR
         template_path = self.templates_dir / template_name
 
         if template_path.exists():
@@ -693,7 +795,7 @@ class PoCGenerator:
             # Use embedded default template
             template = self._get_default_template(vuln_type)
 
-        self._template_cache[template_name] = template
+        template_cache[template_name] = template
         return template
 
     def _customize_template(
@@ -706,13 +808,18 @@ class PoCGenerator:
         options: GenerationOptions,
     ) -> str:
         """Customize template with finding-specific details."""
+        if not isinstance(template, str):
+            logger.warning("Using default template for malformed PoC template body")
+            template = self._get_default_template(vuln_type)
+        options = self._options_state(options)
         # Prepare replacements
         contract_name = (
             _safe_filename_part(Path(target_contract).stem, "contract")
             if isinstance(target_contract, (str, Path))
             else "contract"
         )
-        test_name = f"test_exploit_{vuln_type.value}"
+        vuln_type_value = _safe_vulnerability_type_value(vuln_type)
+        test_name = f"test_exploit_{_safe_filename_part(vuln_type_value, 'unknown')}"
         function_name = _safe_filename_part(target_function, "") if target_function else ""
 
         replacements = {
@@ -720,7 +827,7 @@ class PoCGenerator:
             "{{TARGET_CONTRACT}}": _safe_contract_text(target_contract),
             "{{TARGET_FUNCTION}}": function_name or "vulnerable",
             "{{TEST_NAME}}": test_name,
-            "{{VULNERABILITY_TYPE}}": vuln_type.value,
+            "{{VULNERABILITY_TYPE}}": vuln_type_value,
             "{{ATTACKER_BALANCE}}": self._option_text_field(
                 options, "attacker_balance", "100 ether"
             ),
@@ -870,7 +977,8 @@ contract {{CONTRACT_NAME}}ExploitTest is Test {
             VulnerabilityType.DELEGATECALL: "Execute arbitrary code in target context",
         }
 
-        return outcomes.get(vuln_type, f"Exploit {vuln_type.value} vulnerability")
+        vuln_type_value = _safe_vulnerability_type_value(vuln_type)
+        return outcomes.get(vuln_type, f"Exploit {vuln_type_value} vulnerability")
 
     def _extract_gas_from_output(self, output: str) -> Optional[int]:
         """Extract gas used from forge output."""
@@ -878,7 +986,10 @@ contract {{CONTRACT_NAME}}ExploitTest is Test {
             return None
         match = re.search(r"gas:\s*([\d,]+)", output)
         if match:
-            gas = int(match.group(1).replace(",", ""))
+            gas_text = match.group(1)
+            if not re.fullmatch(r"\d{1,3}(,\d{3})*|\d+", gas_text):
+                return None
+            gas = int(gas_text.replace(",", ""))
             return gas if gas <= 10_000_000_000 else None
         return None
 
@@ -889,7 +1000,7 @@ contract {{CONTRACT_NAME}}ExploitTest is Test {
         # Look for trace section
         trace_start = output.find("Traces:")
         if trace_start >= 0:
-            return output[trace_start:]
+            return output[trace_start : trace_start + _TRACE_TEXT_LIMIT]
         return None
 
     def get_supported_types(self) -> List[str]:
@@ -910,7 +1021,13 @@ contract {{CONTRACT_NAME}}ExploitTest is Test {
             "available_templates": [
                 _safe_vulnerability_type_value(vuln_type) for vuln_type in self.TEMPLATE_MAP
             ],
-            "type_aliases": {k: v.value for k, v in self.TYPE_ALIASES.items()},
+            "type_aliases": {
+                key.strip(): _safe_vulnerability_type_value(value)
+                for key, value in self.TYPE_ALIASES.items()
+                if isinstance(key, str)
+                and key.strip()
+                and not any(ord(ch) < 32 or ord(ch) == 127 for ch in key)
+            },
         }
 
 

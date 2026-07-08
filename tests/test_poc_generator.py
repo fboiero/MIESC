@@ -489,6 +489,26 @@ class TestPoCGeneratorInit:
         assert generator_with_options.options.attacker_balance == "50 ether"
         assert generator_with_options.options.victim_balance == "20 ether"
 
+    @pytest.mark.parametrize("templates_dir", [None, {"path": "bad"}, ["templates"], "  "])
+    def test_malformed_templates_dir_uses_default(self, templates_dir, caplog):
+        """Malformed templates_dir values should not become Path inputs."""
+        with caplog.at_level("WARNING"):
+            generator = PoCGenerator(templates_dir=templates_dir)
+
+        assert generator.templates_dir == PoCGenerator.TEMPLATES_DIR
+        if templates_dir is not None:
+            assert "Ignoring malformed templates_dir for PoC generator" in caplog.text
+
+    @pytest.mark.parametrize("options", [{"attacker_balance": "1 ether"}, ["bad"], object()])
+    def test_malformed_init_options_use_default(self, options, caplog):
+        """Malformed init options should be replaced with GenerationOptions."""
+        with caplog.at_level("WARNING"):
+            generator = PoCGenerator(options=options)
+
+        assert isinstance(generator.options, GenerationOptions)
+        assert generator.options.attacker_balance == "100 ether"
+        assert "Ignoring malformed PoC generation options" in caplog.text
+
 
 # =============================================================================
 # Type Resolution Tests
@@ -518,6 +538,17 @@ class TestTypeResolution:
             finding = {"type": type_str}
             vuln_type = generator._resolve_vulnerability_type(finding)
             assert vuln_type == VulnerabilityType.ACCESS_CONTROL
+
+    def test_resolve_rejects_overlong_alias_like_type(self, generator):
+        """Overlong finding types should not be partially matched."""
+        finding = {"type": "reentrancy" + ("x" * 121)}
+
+        assert generator._resolve_vulnerability_type(finding) == VulnerabilityType.REENTRANCY
+
+    @pytest.mark.parametrize("finding", [None, ["type", "reentrancy"], "reentrancy"])
+    def test_resolve_rejects_malformed_finding_container(self, generator, finding):
+        """Malformed type resolution input should default safely."""
+        assert generator._resolve_vulnerability_type(finding) == VulnerabilityType.REENTRANCY
 
     def test_resolve_oracle(self, generator):
         """Test resolving oracle manipulation type."""
@@ -629,6 +660,25 @@ class TestFunctionExtraction:
         assert clean == "withdraw"
         assert malformed is None
 
+    @pytest.mark.parametrize(
+        "function_name",
+        ["123bad", "withdraw-hack", "withdraw()", "with space"],
+    )
+    def test_extract_rejects_non_solidity_identifiers(self, generator, function_name):
+        """Function extraction should reject invalid Solidity identifiers."""
+        assert (
+            generator._extract_function_name(
+                {"type": "reentrancy", "location": {"function": function_name}}
+            )
+            is None
+        )
+
+    def test_extract_rejects_malformed_string_location_boundaries(self, generator):
+        """String locations with unsafe names or oversized text are ignored."""
+        assert generator._extract_function_name({"location": "function 123bad()"}) is None
+        assert generator._extract_function_name({"location": "function withdraw\n()"}) is None
+        assert generator._extract_function_name({"location": "function withdraw() " + ("x" * 2001)}) is None
+
     def test_safe_contract_text_strips_and_rejects_control_chars(self):
         assert _safe_contract_text("  contracts/Bank.sol  ") == "contracts/Bank.sol"
         assert _safe_contract_text("Bank\n.sol") == ""
@@ -717,6 +767,12 @@ class TestPoCNameGeneration:
         assert name == "contract_withdraw()_reentrancy"
         assert "{'path'" not in name
 
+    def test_generate_name_defaults_malformed_vulnerability_type(self, generator):
+        """Malformed vulnerability types should not crash PoC name generation."""
+        name = generator._generate_poc_name("Bank.sol", {"type": "reentrancy"}, "withdraw")
+
+        assert name == "Bank_withdraw_unknown"
+
 
 # =============================================================================
 # Template Loading Tests
@@ -757,6 +813,39 @@ class TestTemplateLoading:
         generator = PoCGenerator(templates_dir=template_dir)
 
         assert "café" in generator._load_template(VulnerabilityType.REENTRANCY)
+
+    def test_load_template_resets_malformed_cache_state(self, generator):
+        """Malformed template cache state should be recreated before lookup."""
+        generator._template_cache = ["bad"]
+
+        template = generator._load_template(VulnerabilityType.REENTRANCY)
+
+        assert isinstance(generator._template_cache, dict)
+        assert "contract" in template
+
+    def test_load_template_resets_malformed_templates_dir_state(self, generator, caplog):
+        """Mutated templates_dir state should fall back to the default template path."""
+        generator.templates_dir = {"path": "bad"}
+
+        with caplog.at_level("WARNING"):
+            template = generator._load_template(VulnerabilityType.REENTRANCY)
+
+        assert generator.templates_dir == PoCGenerator.TEMPLATES_DIR
+        assert "Resetting malformed PoC templates_dir state" in caplog.text
+        assert "contract" in template
+
+    def test_load_template_ignores_malformed_template_map_entry(self, generator, caplog):
+        """Malformed template map entries should fall back to generic templates."""
+        original = generator.TEMPLATE_MAP[VulnerabilityType.REENTRANCY]
+        generator.TEMPLATE_MAP[VulnerabilityType.REENTRANCY] = "../bad.t.sol"
+        try:
+            with caplog.at_level("WARNING"):
+                template = generator._load_template(VulnerabilityType.REENTRANCY)
+        finally:
+            generator.TEMPLATE_MAP[VulnerabilityType.REENTRANCY] = original
+
+        assert "Ignoring malformed PoC template name" in caplog.text
+        assert "contract" in template
 
 
 # =============================================================================
@@ -821,6 +910,65 @@ class TestTemplateCustomization:
 
         assert "createSelectFork" in result
         assert "18500000" in result
+
+    def test_customize_uses_default_for_malformed_template_body(
+        self, generator, reentrancy_finding, caplog
+    ):
+        """Malformed template bodies should use the embedded default template."""
+        with caplog.at_level("WARNING"):
+            result = generator._customize_template(
+                {"template": "{{CONTRACT_NAME}}"},
+                vuln_type=VulnerabilityType.REENTRANCY,
+                target_contract="Bank.sol",
+                target_function="withdraw",
+                finding=reentrancy_finding,
+                options=GenerationOptions(),
+            )
+
+        assert "Bank Exploit PoC" in result
+        assert "Using default template for malformed PoC template body" in caplog.text
+
+    def test_customize_defaults_malformed_vulnerability_type(self, generator, reentrancy_finding):
+        """Malformed vulnerability types should not leak reprs into test names."""
+        result = generator._customize_template(
+            "{{TEST_NAME}} {{VULNERABILITY_TYPE}}",
+            vuln_type={"type": "reentrancy"},
+            target_contract="Bank.sol",
+            target_function="withdraw",
+            finding=reentrancy_finding,
+            options=GenerationOptions(),
+        )
+
+        assert result == "test_exploit_unknown unknown"
+
+    def test_customize_resets_malformed_options_state(self, generator, reentrancy_finding, caplog):
+        """Mutated generator options state should be reset before template use."""
+        generator.options = {"attacker_balance": "1 ether"}
+
+        with caplog.at_level("WARNING"):
+            result = generator._customize_template(
+                "{{ATTACKER_BALANCE}}",
+                vuln_type=VulnerabilityType.REENTRANCY,
+                target_contract="Bank.sol",
+                target_function="withdraw",
+                finding=reentrancy_finding,
+                options=None,
+            )
+
+        assert result == "100 ether"
+        assert "Resetting malformed PoC generator options state" in caplog.text
+
+    def test_option_text_field_rejects_solidity_literal_injection(self, generator):
+        """Balance fields should reject quote/semicolon Solidity injection."""
+        options = GenerationOptions(attacker_balance='1 ether"); evil(); //')
+
+        assert generator._option_text_field(options, "attacker_balance", "100 ether") == (
+            "100 ether"
+        )
+
+    def test_finding_text_field_rejects_malformed_key(self, generator):
+        """Malformed lookup keys should not hit dict.get with unhashable values."""
+        assert generator._finding_text_field({"description": "ok"}, ["description"], "") == ""
 
     def test_custom_import_lines_deduplicates_and_rejects_long_paths(self, generator):
         """Custom imports should be normalized and deduplicated before emission."""
@@ -968,6 +1116,23 @@ class TestGeneratePoC:
         assert poc.target_contract == ""
         assert "{'path': 'contracts/Token.sol'}" not in poc.solidity_code
         assert "{'path': 'contracts/Token.sol'}" not in poc.name
+
+    @pytest.mark.parametrize("finding", [None, ["type", "reentrancy"], "reentrancy"])
+    def test_generate_rejects_malformed_finding_container(self, generator, finding):
+        """Direct generation should reject malformed finding containers cleanly."""
+        with pytest.raises(ValueError, match="Malformed vulnerability finding"):
+            generator.generate(finding, "Bank.sol")
+
+    @pytest.mark.parametrize("options", [{"attacker_balance": "1 ether"}, ["bad"], object()])
+    def test_generate_ignores_malformed_options_container(self, generator, options, caplog):
+        """Malformed options overrides should fall back to safe defaults."""
+        finding = {"type": "reentrancy", "severity": "high", "description": "Test"}
+
+        with caplog.at_level("WARNING"):
+            poc = generator.generate(finding, "Bank.sol", options)
+
+        assert "100 ether" in poc.solidity_code
+        assert "Ignoring malformed PoC generation options override" in caplog.text
 
 
 # =============================================================================
@@ -1124,6 +1289,22 @@ class TestUtilityMethods:
         assert len(info["type_aliases"]) > 10
         assert all(isinstance(template, str) for template in info["available_templates"])
         assert "reentrancy" in info["available_templates"]
+
+    def test_get_template_info_filters_malformed_alias_entries(self, generator):
+        """Malformed alias entries should not break template metadata export."""
+        original_aliases = generator.TYPE_ALIASES
+        generator.TYPE_ALIASES = {
+            **original_aliases,
+            "bad\nkey": VulnerabilityType.REENTRANCY,
+            "bad-value": {"type": "reentrancy"},
+        }
+        try:
+            info = generator.get_template_info()
+        finally:
+            generator.TYPE_ALIASES = original_aliases
+
+        assert "bad\nkey" not in info["type_aliases"]
+        assert info["type_aliases"]["bad-value"] == "unknown"
 
     def test_type_aliases_coverage(self, generator):
         """Test type aliases cover common variations."""
@@ -1432,6 +1613,36 @@ class TestPoCRunMethod:
         assert result.success is False
         assert "Unexpected error" in result.error
 
+    def test_run_sanitizes_generic_exception_text(self, generator, sample_poc, tmp_path):
+        """Generic subprocess errors should be bounded and printable."""
+        from unittest.mock import patch
+
+        test_dir = tmp_path / "test" / "exploits"
+        test_dir.mkdir(parents=True)
+
+        with patch("subprocess.run", side_effect=RuntimeError("bad\nerror\x01" + ("x" * 600))):
+            result = generator.run(sample_poc, tmp_path, verbose=False)
+
+        assert result.success is False
+        assert "\\n" in result.error
+        assert "\\x01" in result.error
+        assert result.error.endswith("...<truncated>")
+
+    def test_run_timeout_execution_time_is_nonnegative(self, generator, sample_poc, tmp_path):
+        """Clock skew during timeout handling should not return negative duration."""
+        import subprocess
+        from unittest.mock import patch
+
+        test_dir = tmp_path / "test" / "exploits"
+        test_dir.mkdir(parents=True)
+
+        with patch("time.time", side_effect=[10.0, 9.0]):
+            with patch("subprocess.run", side_effect=subprocess.TimeoutExpired("forge", 300)):
+                result = generator.run(sample_poc, tmp_path, verbose=False)
+
+        assert result.success is False
+        assert result.execution_time_ms == 0
+
     def test_run_verbose_output(self, generator, sample_poc, tmp_path, capsys):
         """Test verbose output during run (line 334)."""
         from unittest.mock import MagicMock, patch
@@ -1714,6 +1925,11 @@ class TestGasAndTraceExtraction:
         """Malformed gas output containers should not leak reprs into parsing."""
         assert generator._extract_gas_from_output(["gas: 123"]) is None
 
+    @pytest.mark.parametrize("output", ["gas: 1,,234", "gas: ,123", "gas: 12,34"])
+    def test_extract_gas_ignores_malformed_comma_grouping(self, generator, output):
+        """Malformed comma grouping should not be normalized into valid gas telemetry."""
+        assert generator._extract_gas_from_output(output) is None
+
     def test_extract_gas_multiple_values(self, generator):
         """Test gas extraction picks first match."""
         output = "gas: 100\ngas: 200\ngas: 300"
@@ -1732,6 +1948,13 @@ Traces:
         assert traces is not None
         assert "Traces:" in traces
         assert "Bank.withdraw" in traces
+
+    def test_extract_traces_bounds_large_output(self, generator):
+        """Trace extraction should bound very large forge outputs."""
+        traces = generator._extract_traces("prefix\nTraces:\n" + ("x" * 30_000))
+
+        assert traces.startswith("Traces:")
+        assert len(traces) == 20_000
 
     def test_extract_traces_not_found(self, generator):
         """Test trace extraction returns None when no traces (line 629)."""
