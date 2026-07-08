@@ -27,6 +27,7 @@ from src.agents.agentic_auditor import (
     AgenticAuditor,
     AuditResult,
     _extract_json_array,
+    audit_repo_multipersona,
 )
 from src.agents.hypothesis_ledger import Hypothesis
 from src.agents.repo_call_graph import RepoCallGraph
@@ -402,6 +403,92 @@ def test_token_budget_halts_completeness_loop(graph: RepoCallGraph) -> None:
     # enum(200) + verify(200) = 400 tokens >= 300 budget -> no completeness turn.
     assert len(adapter.calls) == 2
     assert result.trace["tokens"] >= config.token_budget
+
+
+# ---------------------------------------------------------------------------
+# Multi-persona: config.persona selects the persona enum prompt; the union of
+# several persona passes over the SAME graph combines and dedups findings.
+# ---------------------------------------------------------------------------
+
+def test_persona_config_selects_persona_enum_prompt(graph: RepoCallGraph) -> None:
+    # With persona set, the ENUMERATE user message must be the access-control
+    # persona prompt (focused text), NOT the general enum prompt.
+    adapter = ScriptedAdapter([_enum([]), _verify([])])
+    config = AgenticAuditConfig(n_target=0, persona="access_control")
+    AgenticAuditor(adapter, graph, config).audit_repo(Path("/unused"))
+
+    enum_user = adapter.calls[0]["user"]
+    # Persona-specific focus text the general AGENT_ENUM_PROMPT does not carry.
+    assert "EXCLUSIVELY on ACCESS CONTROL" in enum_user
+    assert "onlyOwner" in enum_user
+
+
+def test_persona_none_uses_general_enum_prompt(graph: RepoCallGraph) -> None:
+    # Backward compatible: persona=None keeps the general enum prompt.
+    adapter = ScriptedAdapter([_enum([]), _verify([])])
+    AgenticAuditor(adapter, graph, AgenticAuditConfig(n_target=0)).audit_repo(Path("/unused"))
+    enum_user = adapter.calls[0]["user"]
+    assert "EXCLUSIVELY on" not in enum_user
+
+
+def test_persona_general_falls_back_to_general_enum_prompt(graph: RepoCallGraph) -> None:
+    # "general" is not a PERSONA_ENUM_PROMPTS key -> falls back to the broad enum.
+    # The harness uses "general" as a union member for cross-cutting bugs.
+    adapter = ScriptedAdapter([_enum([]), _verify([])])
+    AgenticAuditor(adapter, graph, AgenticAuditConfig(n_target=0, persona="general")).audit_repo(Path("/unused"))
+    enum_user = adapter.calls[0]["user"]
+    assert "EXCLUSIVELY on" not in enum_user
+
+
+def test_multipersona_unions_findings_and_dedups_duplicates(graph: RepoCallGraph) -> None:
+    # Two personas over the SAME graph find DIFFERENT bugs; persona 2 also
+    # re-raises persona 1's exact candidate. The union must contain BOTH bugs
+    # and collapse the exact duplicate. n_target=0 -> each persona = enum+verify
+    # (2 scripted steps), so the shared adapter script is 4 steps in persona order.
+    adapter = ScriptedAdapter([
+        # persona 1 (access_control): finds TRANSFER only.
+        _enum([TRANSFER_CANDIDATE]), _verify([]),
+        # persona 2 (reentrancy): finds WITHDRAW + a duplicate TRANSFER.
+        _enum([WITHDRAW_CANDIDATE, TRANSFER_CANDIDATE]), _verify([]),
+    ])
+    base = AgenticAuditConfig(n_target=0)
+    result = audit_repo_multipersona(
+        adapter, graph, base, ["access_control", "reentrancy"], Path("/unused")
+    )
+
+    assert isinstance(result, AuditResult)
+    funcs = sorted(f["function"] for f in result.findings)
+    # Union of both personas, exact-duplicate transfer collapsed to one.
+    assert funcs == ["transfer", "withdraw"]
+    # Both personas contributed (findings from multiple personas present).
+    assert result.trace["personas"] == ["access_control", "reentrancy"]
+    per = {p["persona"]: p["unique_added"] for p in result.trace["per_persona"]}
+    assert per["access_control"] == 1  # contributed transfer
+    assert per["reentrancy"] == 1      # contributed withdraw (transfer deduped)
+    # Merged ledger carries every distinct hypothesis (transfer + withdraw).
+    assert len(result.ledger.all()) == 2
+
+
+def test_multipersona_skips_failing_persona_keeps_union(graph: RepoCallGraph) -> None:
+    # A persona that raises is skipped and recorded; the union survives.
+    class FlakyAdapter(ScriptedAdapter):
+        def converse_with_tools(self, *a: Any, **kw: Any) -> ConversationResult:
+            if self._boom:
+                self._boom = False
+                raise RuntimeError("provider exploded")
+            return super().converse_with_tools(*a, **kw)
+
+    adapter = FlakyAdapter([_enum([TRANSFER_CANDIDATE]), _verify([])])
+    adapter._boom = True  # first persona's first turn raises
+    base = AgenticAuditConfig(n_target=0)
+    result = audit_repo_multipersona(
+        adapter, graph, base, ["access_control", "reentrancy"], Path("/unused")
+    )
+
+    # First persona failed -> recorded; second persona still produced the finding.
+    assert len(result.trace["failed"]) == 1
+    assert result.trace["failed"][0]["persona"] == "access_control"
+    assert sorted(f["function"] for f in result.findings) == ["transfer"]
 
 
 def test_round0_verify_runs_even_when_enum_alone_exhausts_budget(graph: RepoCallGraph) -> None:

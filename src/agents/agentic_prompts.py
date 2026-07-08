@@ -194,6 +194,124 @@ AGENT_COMPLETENESS_PROMPT: str = _COMPLETENESS_TEMPLATE.format(
     tools=_TOOLS_TEXT, schema=_HYPOTHESIS_SCHEMA_TEXT
 )
 
+# ---------------------------------------------------------------------------
+# PERSONA enum prompts (multi-persona union — the recall lever).
+#
+# Different specialized personas find DIFFERENT bugs over the SAME call graph:
+# a general/accounting enum finds the honeypot but misses the access-control
+# gap; an access-control-focused enum finds the gap but misses the honeypot.
+# Their UNION doubles recall. Each persona hunts EXCLUSIVELY its own vuln class
+# but keeps AGENT_ENUM_PROMPT's contract verbatim: a {repo_map} placeholder, the
+# same four tools, and the same {"contract","function","vuln_class","claim"}
+# JSON array — so the orchestrator parses persona output identically.
+# ---------------------------------------------------------------------------
+
+_PERSONA_ENUM_TEMPLATE = """You are a top smart-contract auditor hunting \
+LOSS-OF-FUNDS vulnerabilities. Think like the winning Code4rena researcher.
+
+You are focusing EXCLUSIVELY on {focus_title} vulnerabilities. IGNORE every \
+other bug class on this pass — a separate specialized pass covers those. Your \
+whole job is to find the {focus_title} bugs the other personas will MISS.
+
+{tools}
+
+Enumerate EVERY {focus_title} candidate across the in-scope contracts. Be \
+exhaustive and specific. For each candidate, name the exact contract and \
+function and the precise mechanism (not a generic category), and WHY it leads \
+to loss or lock of user or protocol funds. Call get_function_body on any \
+function you suspect BEFORE claiming a bug in it.
+
+{focus_title} focus — hunt SPECIFICALLY for:
+{focus_bullets}
+
+Repo map (contracts, their public/external functions, and cross-contract edges):
+<repo_map>
+{{repo_map}}
+</repo_map>
+
+Emit each candidate as ONE object in a single JSON array, using EXACTLY these fields:
+{schema}
+- contract: the contract the suspect function lives in.
+- function: the suspect function name.
+- vuln_class: ALWAYS "{vuln_class}" on this persona pass.
+- claim: one sentence naming the precise {focus_title} mechanism and the loss/lock of funds.
+
+Use the tools to inspect the MOST suspicious functions first, but do NOT explore \
+indefinitely. After inspecting a handful of functions (aim for FEWER than ~10 tool \
+calls total), STOP calling tools and OUTPUT the JSON list of hypotheses. A \
+partial-but-concluded list is FAR better than never answering: once you have \
+enough to name concrete candidates, emit the JSON immediately and stop.
+Output ONLY the JSON array. Return [] if you genuinely find no {focus_title} candidates."""
+
+
+# Per-persona focus: (human title, canonical vuln_class, hunting bullets).
+_PERSONA_FOCUS: dict = {
+    "access_control": (
+        "ACCESS CONTROL",
+        "access_control",
+        "- unguarded state-changing / admin / setter functions (missing onlyOwner/onlyManager or equivalent)\n"
+        "- access-control modifiers that DO NOT actually revert (empty body, wrong comparison, `||` instead of `&&`)\n"
+        "- unprotected ownership / reference / upgrade pointers (setOwner, upgradeTo, setImplementation, init/initialize)\n"
+        "- privileged mint / burn / withdraw / pause / rescue paths callable by anyone\n"
+        "- missing or bypassable initializer guards (re-initialization, front-runnable init)",
+    ),
+    "arithmetic": (
+        "ARITHMETIC",
+        "arithmetic",
+        "- over/underflow (incl. unchecked blocks and pre-0.8 math)\n"
+        "- precision / rounding loss and rounding DIRECTION that favors the attacker\n"
+        "- decimals / scaling (PRECISION constant) mismatches between tokens\n"
+        "- division-before-multiplication that truncates value to zero\n"
+        "- truncating downcasts (uint256 -> uint128/uint96/uint64) that silently drop value",
+    ),
+    "reentrancy": (
+        "REENTRANCY",
+        "reentrancy",
+        "- external calls made BEFORE state updates (violated checks-effects-interactions)\n"
+        "- cross-function reentrancy (a second function reachable during the external call reads stale state)\n"
+        "- cross-contract reentrancy through a shared/mirrored state\n"
+        "- missing nonReentrant on funds-moving paths\n"
+        "- reentrancy via ERC777/ERC721/ERC1155 receiver hooks and native-token callbacks",
+    ),
+    "accounting": (
+        "ACCOUNTING",
+        "accounting",
+        "- fee / reward accounting that is skipped, double-counted, or applied to the wrong balance\n"
+        "- balance-change bookkeeping not updated on transfer (e.g. onBalanceChange / _afterTokenTransfer not called)\n"
+        "- share / supply accounting drift: totalSupply vs. sum of balances desync, inflation, or dilution\n"
+        "- funds locked or lost because an internal ledger diverges from the real token balance\n"
+        "- first-depositor / donation / exchange-rate manipulation of share<->asset conversions",
+    ),
+    "state_consistency": (
+        "STATE CONSISTENCY",
+        "state_consistency",
+        "- invariants broken ACROSS functions (one function assumes state another never maintains)\n"
+        "- stale or uninitialized state read as if valid (missing init, default-zero used as real value)\n"
+        "- unbounded arrays / loops causing gas-griefing or permanently locked funds\n"
+        "- mismatched mirrored state between two mappings/structs/contracts kept in sync by hand\n"
+        "- ordering / status-flag bugs where a transition leaves the contract in an impossible state",
+    ),
+}
+
+
+def _build_persona_enum_prompt(persona: str) -> str:
+    focus_title, vuln_class, focus_bullets = _PERSONA_FOCUS[persona]
+    return _PERSONA_ENUM_TEMPLATE.format(
+        tools=_TOOLS_TEXT,
+        schema=_HYPOTHESIS_SCHEMA_TEXT,
+        focus_title=focus_title,
+        vuln_class=vuln_class,
+        focus_bullets=focus_bullets,
+    )
+
+
+# Five specialized enum prompts keyed by vuln class. Run them all over the SAME
+# call graph and union the findings (see src.agents.agentic_auditor.audit_repo_multipersona).
+PERSONA_ENUM_PROMPTS: dict = {
+    persona: _build_persona_enum_prompt(persona) for persona in _PERSONA_FOCUS
+}
+
+
 # Retained verbatim from the harness. Its EXECUTION is Phase 2 (design §3 D6, §9).
 AGENT_EXPLOIT_PROMPT: str = """For each vulnerability you confirmed, write the CONCRETE exploit that proves \
 it: the exact sequence of calls, the specific values (amounts, addresses, order), and the precise state \
@@ -209,4 +327,5 @@ __all__ = [
     "AGENT_VERIFY_PROMPT",
     "AGENT_COMPLETENESS_PROMPT",
     "AGENT_EXPLOIT_PROMPT",
+    "PERSONA_ENUM_PROMPTS",
 ]

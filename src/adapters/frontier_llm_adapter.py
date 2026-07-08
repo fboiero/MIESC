@@ -973,6 +973,7 @@ Respond with a JSON array."""
         on_tool_call: Callable[[str, Dict[str, Any]], str],
         model: Optional[str] = None,
         max_iterations: int = 12,
+        temperature: float = 0.2,
     ) -> ConversationResult:
         """Run an Anthropic tool-use conversational loop.
 
@@ -1009,10 +1010,10 @@ Respond with a JSON array."""
         provider = self._resolve_conversation_provider(model)
         if provider == "openai":
             return self._converse_openai(
-                system, messages, tools, on_tool_call, model, max_iterations
+                system, messages, tools, on_tool_call, model, max_iterations, temperature
             )
         return self._converse_anthropic(
-            system, messages, tools, on_tool_call, model, max_iterations
+            system, messages, tools, on_tool_call, model, max_iterations, temperature
         )
 
     def _resolve_conversation_provider(self, model: Optional[str]) -> str:
@@ -1039,6 +1040,7 @@ Respond with a JSON array."""
         on_tool_call: Callable[[str, Dict[str, Any]], str],
         model: Optional[str] = None,
         max_iterations: int = 12,
+        temperature: float = 0.2,
     ) -> ConversationResult:
         """Anthropic ``tool_use`` branch of :meth:`converse_with_tools`."""
         import anthropic
@@ -1072,6 +1074,7 @@ Respond with a JSON array."""
             message = client.messages.create(
                 model=model,
                 max_tokens=8192,
+                temperature=temperature,
                 system=system,
                 messages=conversation,
                 tools=anthropic_tools,
@@ -1154,6 +1157,7 @@ Respond with a JSON array."""
             message = client.messages.create(
                 model=model,
                 max_tokens=8192,
+                temperature=temperature,
                 system=system,
                 messages=conversation,
             )
@@ -1191,6 +1195,7 @@ Respond with a JSON array."""
         on_tool_call: Callable[[str, Dict[str, Any]], str],
         model: Optional[str] = None,
         max_iterations: int = 12,
+        temperature: float = 0.2,
     ) -> ConversationResult:
         """OpenAI function-calling branch of :meth:`converse_with_tools`.
 
@@ -1236,6 +1241,8 @@ Respond with a JSON array."""
             extra["reasoning_effort"] = "low"
         else:
             token_param["max_tokens"] = 8192
+            # o-series/gpt-5 reject a custom temperature; only set it elsewhere.
+            extra["temperature"] = temperature
 
         logger.info(
             "FrontierLLM: Starting tool-use conversation with %s "
@@ -1402,6 +1409,8 @@ Respond with a JSON array."""
             extra["reasoning_effort"] = "low"
         else:
             token_param["max_tokens"] = 8192
+            # o-series/gpt-5 reject a custom temperature; only set it elsewhere.
+            extra["temperature"] = temperature
 
         response = client.chat.completions.create(
             model=model,

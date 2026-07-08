@@ -21,6 +21,15 @@ from src.agents.agentic_prompts import (
     AGENT_EXPLOIT_PROMPT,
     AGENT_VERIFY_PROMPT,
     HYPOTHESIS_JSON_SCHEMA,
+    PERSONA_ENUM_PROMPTS,
+)
+
+PERSONA_KEYS = (
+    "accounting",
+    "access_control",
+    "arithmetic",
+    "reentrancy",
+    "state_consistency",
 )
 
 TOOL_NAMES = (
@@ -114,6 +123,37 @@ def test_completeness_prompt_formats_with_ledger():
     rendered = AGENT_COMPLETENESS_PROMPT.format(ledger="RULED OUT: A.bar")
     assert "RULED OUT: A.bar" in rendered
     assert "{ledger}" not in rendered
+
+
+def test_persona_enum_prompts_have_the_five_keys():
+    assert set(PERSONA_ENUM_PROMPTS) == set(PERSONA_KEYS)
+
+
+def test_persona_enum_prompts_reference_all_tools():
+    for persona, prompt in PERSONA_ENUM_PROMPTS.items():
+        assert isinstance(prompt, str) and prompt.strip()
+        for tool in TOOL_NAMES:
+            assert tool in prompt, f"persona {persona} missing tool {tool}"
+
+
+def test_persona_enum_prompts_mention_hypothesis_fields():
+    for persona, prompt in PERSONA_ENUM_PROMPTS.items():
+        for field in HYPOTHESIS_FIELDS:
+            assert field in prompt, f"persona {persona} missing field {field}"
+
+
+def test_persona_enum_prompts_format_with_repo_map():
+    for persona, prompt in PERSONA_ENUM_PROMPTS.items():
+        rendered = prompt.format(repo_map="ContractX: foo(), bar()")
+        assert "ContractX: foo(), bar()" in rendered
+        assert '{"contract"' in rendered  # embedded JSON braces collapsed
+        assert "{repo_map}" not in rendered
+
+
+def test_persona_enum_prompts_pin_their_own_vuln_class():
+    # Each persona pass must emit its OWN class, so the class appears in the prompt.
+    for persona, prompt in PERSONA_ENUM_PROMPTS.items():
+        assert persona in prompt, f"persona {persona} does not pin its vuln_class"
 
 
 def test_exploit_prompt_is_standalone_phase2():

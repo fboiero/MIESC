@@ -50,6 +50,7 @@ from src.agents.agentic_prompts import (
     AGENT_COMPLETENESS_PROMPT,
     AGENT_ENUM_PROMPT,
     AGENT_VERIFY_PROMPT,
+    PERSONA_ENUM_PROMPTS,
 )
 from src.agents.base_agent import BaseAgent
 from src.agents.hypothesis_ledger import Hypothesis, HypothesisLedger
@@ -81,6 +82,9 @@ class AgenticAuditConfig:
     token_budget: int = 400_000
     n_target: int = 0  # known bug count (continuation hint); 0 = no hint
     model: str = "claude"  # frontier alias; "claude" defers to adapter default
+    persona: str | None = None  # None -> general AGENT_ENUM_PROMPT; else a
+    # PERSONA_ENUM_PROMPTS key (accounting/access_control/arithmetic/reentrancy/
+    # state_consistency) that focuses the ENUMERATE pass on ONE vuln class.
 
 
 @dataclass
@@ -184,7 +188,15 @@ class AgenticAuditor(BaseAgent):
         }
 
         # ---- Round 0: ENUMERATE ------------------------------------------
-        enum_user = AGENT_ENUM_PROMPT.format(repo_map=repo_map)
+        # A persona focuses this pass on ONE vuln class (multi-persona union);
+        # None -> the general enum prompt (backward-compatible default).
+        persona = self.config.persona
+        enum_prompt = (
+            PERSONA_ENUM_PROMPTS[persona]
+            if persona and persona in PERSONA_ENUM_PROMPTS
+            else AGENT_ENUM_PROMPT
+        )
+        enum_user = enum_prompt.format(repo_map=repo_map)
         result = self._converse(system, enum_user, tools)
         self._accumulate(trace, result)
         candidates = _extract_json_array(result.final_text)
@@ -477,4 +489,107 @@ class AgenticAuditor(BaseAgent):
         return findings
 
 
-__all__ = ["AgenticAuditConfig", "AuditResult", "AgenticAuditor"]
+# ---------------------------------------------------------------------------
+# Multi-persona union — the recall lever (design: multi-persona enumeration).
+# ---------------------------------------------------------------------------
+
+def audit_repo_multipersona(
+    adapter: FrontierLLMAdapter,
+    graph: RepoCallGraph,
+    base_config: AgenticAuditConfig,
+    personas: List[str],
+    repo_dir: Path | str,
+    scope: str = "",
+) -> AuditResult:
+    """Run one specialized-persona audit per persona over the SAME call graph and
+    UNION the findings.
+
+    Different specialized personas find DIFFERENT bugs: an accounting persona
+    surfaces the honeypot while an access-control persona surfaces the unguarded
+    admin path — neither alone finds both. Running each persona's ENUMERATE pass
+    over the shared ``graph`` and unioning the findings roughly doubles recall.
+
+    For each persona we clone ``base_config`` with ``.persona`` set (via
+    :func:`dataclasses.replace`), build an :class:`AgenticAuditor`, run
+    :meth:`AgenticAuditor.audit_repo`, and merge its findings into the union.
+
+    Dedup key: ``(contract, function, title[:60].lower())`` — the same suspected
+    bug from two personas collapses to one finding; different bugs survive.
+
+    Resilience: if a persona run raises, it is SKIPPED (the union stays alive)
+    and recorded under ``trace["failed"]``.
+
+    Returns an :class:`AuditResult` whose ``findings`` is the union, ``ledger`` is
+    a merged :class:`HypothesisLedger` (every persona's hypotheses, deduped by
+    stable id), and ``trace`` carries per-persona counts and summed tool_calls /
+    tokens.
+    """
+    from dataclasses import replace
+
+    merged_ledger = HypothesisLedger()
+    unioned: List[Dict[str, Any]] = []
+    seen: set = set()
+    per_persona: List[Dict[str, Any]] = []
+    failed: List[Dict[str, Any]] = []
+    total_tool_calls = 0
+    total_tokens = 0
+
+    for persona in personas:
+        try:
+            config = replace(base_config, persona=persona)
+            result = AgenticAuditor(adapter, graph, config).audit_repo(
+                repo_dir, scope=scope
+            )
+        except Exception as exc:  # keep the union alive if one persona dies
+            logger.warning("multipersona: persona %r failed: %s", persona, exc)
+            failed.append({"persona": persona, "error": str(exc)})
+            per_persona.append({"persona": persona, "findings": 0,
+                                "unique_added": 0, "error": str(exc)})
+            continue
+
+        unique_added = 0
+        for f in result.findings:
+            key = (
+                str(f.get("contract", "")),
+                str(f.get("function", "")),
+                str(f.get("title", ""))[:60].lower(),
+            )
+            if key in seen:
+                continue
+            seen.add(key)
+            unioned.append(f)
+            unique_added += 1
+
+        # Merge every hypothesis into the shared ledger (dedup by stable id).
+        for h in result.ledger.all():
+            merged_ledger.add(h)
+
+        total_tool_calls += int(result.trace.get("tool_calls", 0) or 0)
+        total_tokens += int(result.trace.get("tokens", 0) or 0)
+        per_persona.append({
+            "persona": persona,
+            "findings": len(result.findings),
+            "unique_added": unique_added,
+        })
+
+    trace: Dict[str, Any] = {
+        "personas": list(personas),
+        "per_persona": per_persona,
+        "failed": failed,
+        "tool_calls": total_tool_calls,
+        "tokens": total_tokens,
+    }
+    logger.info(
+        "multipersona: %d unioned finding(s) across %d persona(s) "
+        "(%d failed), %d tool call(s), %d tokens",
+        len(unioned), len(personas), len(failed), total_tool_calls, total_tokens,
+    )
+    return AuditResult(findings=unioned, ledger=merged_ledger, trace=trace)
+
+
+__all__ = [
+    "AgenticAuditConfig",
+    "AuditResult",
+    "AgenticAuditor",
+    "audit_repo_multipersona",
+]
