@@ -1,5 +1,6 @@
 import json
 import subprocess
+import urllib.error
 from types import MappingProxyType
 
 import src.llm.openllama_helper as openllama_helper_module
@@ -158,6 +159,17 @@ def test_ollama_model_name_strips_and_rejects_control_chars():
     assert OpenLLaMAHelper._ollama_model_name("  valid-model  ") == "valid-model"
     assert OpenLLaMAHelper._ollama_model_name(b"  valid-bytes-model  ") == "valid-bytes-model"
     assert OpenLLaMAHelper._ollama_model_name("valid\nmodel") is None
+    assert OpenLLaMAHelper._ollama_model_name("x" * 257) is None
+
+
+def test_ollama_model_available_rejects_truncated_collision():
+    long_model = "x" * 257
+    truncated_model = "x" * 256
+
+    assert not OpenLLaMAHelper._ollama_model_available(
+        long_model,
+        f"NAME                 ID\n{truncated_model}          abc123\n",
+    )
 
 
 def test_prompt_text_strips_and_rejects_control_chars():
@@ -449,6 +461,24 @@ def test_call_llm_ignores_non_string_generate_response(monkeypatch):
     assert helper._call_llm("prompt") is None
 
 
+def test_call_llm_rejects_generate_response_with_control_chars(monkeypatch):
+    helper = OpenLLaMAHelper(LLMConfig(retry_attempts=1))
+
+    class FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            return json.dumps({"response": "unsafe\x7ftext"}).encode()
+
+    monkeypatch.setattr("urllib.request.urlopen", lambda *args, **kwargs: FakeResponse())
+
+    assert helper._call_llm("prompt") is None
+
+
 def test_call_llm_ignores_generate_payload_with_bad_response_accessor(monkeypatch):
     helper = OpenLLaMAHelper(LLMConfig(retry_attempts=1))
     original_json_loads = json.loads
@@ -622,6 +652,37 @@ def test_call_llm_accepts_line_delimited_generate_fragments(monkeypatch):
     assert helper._call_llm("prompt") == "hello world"
 
 
+def test_call_llm_rejects_line_fragment_with_control_chars(monkeypatch):
+    helper = OpenLLaMAHelper(LLMConfig(retry_attempts=1))
+
+    class FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            return b'{"response": "bad\\u007fchunk"}\n{"response": "ok"}\n'
+
+    monkeypatch.setattr("urllib.request.urlopen", lambda *args, **kwargs: FakeResponse())
+
+    assert helper._call_llm("prompt") == "ok"
+
+
+def test_call_llm_redacts_urlopen_error_message(monkeypatch, caplog):
+    helper = OpenLLaMAHelper(LLMConfig(retry_attempts=1))
+
+    def fake_urlopen(*args, **kwargs):
+        raise urllib.error.URLError("secret prompt payload")
+
+    monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
+
+    assert helper._call_llm("prompt") is None
+    assert "URLError" in caplog.text
+    assert "secret prompt payload" not in caplog.text
+
+
 def test_call_llm_ignores_malformed_line_delimited_generate_fragments(monkeypatch):
     helper = OpenLLaMAHelper(LLMConfig(retry_attempts=1))
     original_json_loads = json.loads
@@ -723,10 +784,38 @@ def test_call_llm_sanitizes_malformed_generate_request_body_fields(monkeypatch):
             "stream": False,
             "options": {
                 "temperature": 0.1,
-                "num_predict": 500,
+                "num_predict": 4000,
             },
         }
     ]
+
+
+def test_ollama_generate_payload_honors_valid_generation_config():
+    helper = OpenLLaMAHelper(
+        LLMConfig(
+            model="test-model",
+            temperature=0.7,
+            max_tokens=1234,
+        )
+    )
+
+    payload = json.loads(helper._ollama_generate_payload("prompt"))
+
+    assert payload["model"] == "test-model"
+    assert payload["options"] == {"temperature": 0.7, "num_predict": 1234}
+
+
+def test_ollama_generate_payload_defaults_out_of_range_generation_config():
+    helper = OpenLLaMAHelper(
+        LLMConfig(
+            temperature=3.0,
+            max_tokens=0,
+        )
+    )
+
+    payload = json.loads(helper._ollama_generate_payload("prompt"))
+
+    assert payload["options"] == {"temperature": 0.1, "num_predict": 4000}
 
 
 def test_call_llm_defaults_malformed_ollama_host(monkeypatch):
@@ -1080,6 +1169,14 @@ def test_generate_remediation_advice_sanitizes_malformed_location_dict(monkeypat
     assert "<object object at" not in captured["prompt"]
 
 
+def test_prompt_location_handles_malformed_location_items_accessor():
+    class MalformedLocation(dict):
+        def items(self):
+            raise RuntimeError("secret location body")
+
+    assert OpenLLaMAHelper._prompt_location(MalformedLocation({"line": 12})) == "{}"
+
+
 def test_generate_remediation_advice_defaults_malformed_finding_accessor(monkeypatch):
     helper = OpenLLaMAHelper()
     captured = {}
@@ -1301,6 +1398,24 @@ def test_generate_insights_defaults_cyclic_finding_metadata(monkeypatch):
     assert "FINDING:\n{}" in captured["prompt"]
     assert "'self':" not in captured["prompt"]
     assert "<RecursionError" not in captured["prompt"]
+
+
+def test_prompt_json_value_bounds_recursive_collection_output():
+    assert OpenLLaMAHelper._prompt_json_value(list(range(60))) == list(range(50))
+    assert len(OpenLLaMAHelper._prompt_json_value({str(i): i for i in range(120)})) == 100
+
+
+def test_prompt_json_value_handles_malformed_collection_accessors():
+    class MalformedList(list):
+        def __iter__(self):
+            raise RuntimeError("bad list")
+
+    class MalformedDict(dict):
+        def items(self):
+            raise RuntimeError("bad mapping")
+
+    assert OpenLLaMAHelper._prompt_json_value(MalformedList([1])) == []
+    assert OpenLLaMAHelper._prompt_json_value(MalformedDict({"a": 1})) == {}
 
 
 def test_generate_insights_rejects_malformed_llm_response(monkeypatch):

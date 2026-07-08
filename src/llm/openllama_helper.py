@@ -52,6 +52,8 @@ DEFAULT_OLLAMA_HOST = "http://localhost:11434"
 MIN_LLM_TIMEOUT_SECONDS = 1.0
 MAX_LLM_TIMEOUT_SECONDS = 600.0
 MAX_LLM_RETRY_ATTEMPTS = 10
+MAX_PROMPT_JSON_LIST_ITEMS = 50
+MAX_PROMPT_JSON_MAPPING_ITEMS = 100
 
 
 def _safe_text(value: Any, *, limit: Optional[int] = None, allow_multiline: bool = False) -> Optional[str]:
@@ -106,6 +108,13 @@ class OpenLLaMAHelper:
         self.config = config or LLMConfig()
         self._available: Optional[bool] = None
 
+    @staticmethod
+    def _safe_exception_summary(error: Any) -> str:
+        """Return only exception type to avoid leaking prompts or provider bodies."""
+        if isinstance(error, BaseException):
+            return error.__class__.__name__
+        return "unknown"
+
     def is_available(self) -> bool:
         """Check if Ollama is available with the configured model."""
         if self._available is not None:
@@ -130,7 +139,7 @@ class OpenLLaMAHelper:
 
         except OLLAMA_RUNTIME_ERRORS as e:
             self._available = False
-            logger.debug(f"OpenLLaMA not available: {e}")
+            logger.debug("OpenLLaMA not available: %s", self._safe_exception_summary(e))
 
         return self._available
 
@@ -178,7 +187,7 @@ class OpenLLaMAHelper:
             return findings
 
         except LLM_PROCESSING_ERRORS as e:
-            logger.error(f"Error enhancing findings: {e}")
+            logger.error("Error enhancing findings: %s", self._safe_exception_summary(e))
             return findings
 
     def explain_technical_output(self, technical_output: str, adapter_name: str) -> str:
@@ -281,7 +290,7 @@ OUTPUT (JSON only):
             return findings
 
         except LLM_PROCESSING_ERRORS as e:
-            logger.error(f"Error prioritizing findings: {e}")
+            logger.error("Error prioritizing findings: %s", self._safe_exception_summary(e))
             return findings
 
     def generate_remediation_advice(self, finding: Dict[str, Any], contract_code: str) -> str:
@@ -370,7 +379,16 @@ REMEDIATION ADVICE:"""
     @staticmethod
     def _ollama_model_name(value: Any) -> Optional[str]:
         """Normalize a single Ollama model identifier without accepting malformed text."""
-        model = _safe_text(value, limit=MAX_OLLAMA_MODEL_NAME_CHARS)
+        if isinstance(value, bytes):
+            try:
+                value = value.decode("utf-8", errors="replace")
+            except Exception:
+                return None
+        if not isinstance(value, str):
+            return None
+        if len(value.strip()) > MAX_OLLAMA_MODEL_NAME_CHARS:
+            return None
+        model = _safe_text(value)
         if model is None:
             return None
         if any(char.isspace() for char in model) or any(ord(char) < 32 or ord(char) == 127 for char in model):
@@ -466,7 +484,11 @@ REMEDIATION ADVICE:"""
                         return response
 
             except (urllib.error.URLError, urllib.error.HTTPError) as e:
-                logger.warning(f"LLM HTTP attempt {attempt} failed: {e}")
+                logger.warning(
+                    "LLM HTTP attempt %s failed: %s",
+                    attempt,
+                    self._safe_exception_summary(e),
+                )
             except (
                 json.JSONDecodeError,
                 OSError,
@@ -475,7 +497,11 @@ REMEDIATION ADVICE:"""
                 TypeError,
                 ValueError,
             ) as e:
-                logger.error(f"LLM call attempt {attempt} error: {e}")
+                logger.error(
+                    "LLM call attempt %s error: %s",
+                    attempt,
+                    self._safe_exception_summary(e),
+                )
 
             if attempt < retry_attempts:
                 time.sleep(retry_delay)
@@ -560,15 +586,15 @@ REMEDIATION ADVICE:"""
 
         options = {
             "temperature": self._bounded_number(
-                LLMConfig.temperature,
+                getattr(self.config, "temperature", LLMConfig.temperature),
                 default=LLMConfig.temperature,
                 minimum=0.0,
                 maximum=2.0,
             ),
             "num_predict": int(
                 self._bounded_number(
-                    500,
-                    default=500,
+                    getattr(self.config, "max_tokens", LLMConfig.max_tokens),
+                    default=LLMConfig.max_tokens,
                     minimum=1,
                     maximum=128_000,
                 )
@@ -708,7 +734,13 @@ INSIGHTS:"""
         if isinstance(value, str):
             return cls._prompt_text(value, default="{}") or "{}"
         if isinstance(value, dict):
-            normalized = {str(key): cls._prompt_json_value(item) for key, item in value.items()}
+            try:
+                normalized = {
+                    str(key): cls._prompt_json_value(item)
+                    for key, item in value.items()
+                }
+            except (AttributeError, TypeError, ValueError, RuntimeError, RecursionError):
+                return "{}"
             return json.dumps(normalized, sort_keys=True)
         return "{}"
 
@@ -718,6 +750,8 @@ INSIGHTS:"""
         try:
             if not isinstance(finding, dict):
                 normalized: Dict[str, Any] = {}
+            elif cls._has_recursive_container(finding):
+                normalized = {}
             else:
                 normalized = {
                     str(key): cls._prompt_json_value(value) for key, value in finding.items()
@@ -725,6 +759,25 @@ INSIGHTS:"""
         except (AttributeError, TypeError, ValueError, RuntimeError, RecursionError):
             normalized = {}
         return json.dumps(normalized, indent=2, sort_keys=True)
+
+    @classmethod
+    def _has_recursive_container(cls, value: Any, seen: Optional[set[int]] = None) -> bool:
+        """Return true when a list/dict graph contains a recursive reference."""
+        if not isinstance(value, (dict, list)):
+            return False
+        if seen is None:
+            seen = set()
+        value_id = id(value)
+        if value_id in seen:
+            return True
+        seen.add(value_id)
+        try:
+            children = value.values() if isinstance(value, dict) else value
+            return any(cls._has_recursive_container(child, seen) for child in children)
+        except (AttributeError, TypeError, ValueError, RuntimeError, RecursionError):
+            return True
+        finally:
+            seen.discard(value_id)
 
     @classmethod
     def _prompt_json_value(cls, value: Any) -> Any:
@@ -742,9 +795,23 @@ INSIGHTS:"""
                 return text
             return value
         if isinstance(value, list):
-            return [cls._prompt_json_value(item) for item in value]
+            try:
+                return [
+                    cls._prompt_json_value(item)
+                    for index, item in enumerate(value)
+                    if index < MAX_PROMPT_JSON_LIST_ITEMS
+                ]
+            except (AttributeError, TypeError, ValueError, RuntimeError, RecursionError):
+                return []
         if isinstance(value, dict):
-            return {str(key): cls._prompt_json_value(item) for key, item in value.items()}
+            try:
+                return {
+                    str(key): cls._prompt_json_value(item)
+                    for index, (key, item) in enumerate(value.items())
+                    if index < MAX_PROMPT_JSON_MAPPING_ITEMS
+                }
+            except (AttributeError, TypeError, ValueError, RuntimeError, RecursionError):
+                return {}
         return ""
 
     def _parse_priorities(self, llm_response: str) -> Dict[int, Dict[str, Any]]:
@@ -794,7 +861,7 @@ INSIGHTS:"""
             return priorities
 
         except (AttributeError, TypeError, ValueError, json.JSONDecodeError) as e:
-            logger.error(f"Error parsing priorities: {e}")
+            logger.error("Error parsing priorities: %s", self._safe_exception_summary(e))
             return {}
 
 
