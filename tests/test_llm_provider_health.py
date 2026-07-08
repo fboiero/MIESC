@@ -94,6 +94,15 @@ def test_model_id_text_rejects_del_characters():
     assert _model_id_text("  model-a  ") == "model-a"
     assert _model_id_text(b"  model-b  ") == "model-b"
     assert _model_id_text("model\x7fshadow") == ""
+    assert _model_id_text("model\u2028shadow") == ""
+
+
+def test_model_id_text_handles_strip_accessor_failure():
+    class MalformedText(str):
+        def strip(self):
+            raise RuntimeError("secret model id")
+
+    assert _model_id_text(MalformedText("model-a")) == ""
 
 
 def test_extract_openai_compatible_model_ids_malformed_shapes():
@@ -112,6 +121,31 @@ def test_extract_openai_compatible_model_ids_malformed_shapes():
     assert extract_openai_compatible_model_ids(payload) == {"model-a"}
     assert extract_openai_compatible_model_ids(["not-a-payload-object"]) == set()
     assert extract_openai_compatible_model_ids({"data": None, "models": None}) == set()
+
+
+def test_extract_openai_compatible_model_ids_handles_mapping_accessor_failures():
+    """Hostile mapping subclasses should not leak reprs or crash extraction."""
+
+    class MalformedPayload(dict):
+        def get(self, key, default=None):
+            raise RuntimeError("secret payload body")
+
+    class MalformedModel(dict):
+        def get(self, key, default=None):
+            raise RuntimeError("secret model body")
+
+    assert extract_openai_compatible_model_ids(MalformedPayload({"data": []})) == set()
+    assert extract_openai_compatible_model_ids({"data": [MalformedModel({"id": "model-a"})]}) == set()
+
+
+def test_model_list_handles_nested_mapping_accessor_failures():
+    """Nested provider payload aliases should tolerate broken mapping accessors."""
+
+    class MalformedModels(dict):
+        def get(self, key, default=None):
+            raise RuntimeError("secret nested body")
+
+    assert _model_list({"models": MalformedModels({"data": [{"id": "model-a"}]})}) is None
 
 
 def test_extract_openai_compatible_model_ids_falls_back_from_malformed_id_to_name():
@@ -326,12 +360,17 @@ def test_authorization_headers_keep_api_key_out_of_debug_logs(caplog):
 def test_authorization_headers_reject_control_chars():
     assert _authorization_headers("  sk-test-secret  ") == {"Authorization": "Bearer sk-test-secret"}
     assert _authorization_headers("sk-test\nsecret") == {"Authorization": "Bearer "}
+    assert _authorization_headers("sk-test\rsecret") == {"Authorization": "Bearer "}
+    assert _authorization_headers("sk-test\u2028secret") == {"Authorization": "Bearer "}
+    assert _authorization_headers("x" * 201) == {"Authorization": "Bearer "}
+    assert _authorization_headers(123) == {"Authorization": "Bearer "}
     assert _authorization_headers(b"  sk-test-bytes  ") == {"Authorization": "Bearer sk-test-bytes"}
 
 
 def test_provider_label_trims_and_rejects_control_chars():
     assert _provider_label("  DeepSeek  ") == "DeepSeek"
     assert _provider_label("DeepSeek\x7f") == "provider"
+    assert _provider_label("DeepSeek\u2029") == "provider"
     assert _provider_label(b"  DeepSeek  ") == "DeepSeek"
 
 
@@ -349,6 +388,44 @@ def test_fetch_openai_compatible_model_ids_rejects_malformed_timeout():
 
         assert models == set()
         session.assert_not_called()
+
+    asyncio.run(run_test())
+
+
+def test_fetch_openai_compatible_model_ids_rejects_bool_timeout():
+    async def run_test():
+        with patch("aiohttp.ClientSession") as session:
+            models = await fetch_openai_compatible_model_ids(
+                "https://api.deepseek.example",
+                "test-key",
+                timeout=True,
+                provider_name="DeepSeek",
+            )
+
+        assert models == set()
+        session.assert_not_called()
+
+    asyncio.run(run_test())
+
+
+def test_fetch_openai_compatible_model_ids_accepts_float_timeout():
+    async def run_test():
+        response = MagicMock()
+        response.status = 200
+        response.json = AsyncMock(return_value={"data": [{"id": "model-a"}]})
+        session = _aiohttp_session_with_response("get", response)
+
+        with patch("aiohttp.ClientSession", return_value=session):
+            models = await fetch_openai_compatible_model_ids(
+                "https://api.deepseek.example",
+                "test-key",
+                timeout=1.5,
+                provider_name="DeepSeek",
+            )
+
+        assert models == {"model-a"}
+        timeout = session.__aenter__.return_value.get.call_args.kwargs["timeout"]
+        assert timeout.total == 1.5
 
     asyncio.run(run_test())
 
@@ -384,6 +461,25 @@ def test_fetch_openai_compatible_model_ids_rejects_non_finite_timeout():
             )
 
         assert models == set()
+        session.assert_not_called()
+
+    asyncio.run(run_test())
+
+
+def test_fetch_openai_compatible_model_ids_rejects_string_and_bytes_timeout():
+    async def run_test():
+        with patch("aiohttp.ClientSession") as session:
+            assert await fetch_openai_compatible_model_ids(
+                "https://api.deepseek.example",
+                "test-key",
+                timeout="10",
+            ) == set()
+            assert await fetch_openai_compatible_model_ids(
+                "https://api.deepseek.example",
+                "test-key",
+                timeout=b"10",
+            ) == set()
+
         session.assert_not_called()
 
     asyncio.run(run_test())
@@ -512,6 +608,30 @@ def test_fetch_openai_compatible_model_ids_json_decode_error():
     asyncio.run(run_test())
 
 
+def test_fetch_openai_compatible_model_ids_redacts_json_exception_text(caplog):
+    async def run_test():
+        response = MagicMock()
+        response.status = 200
+        response.json = AsyncMock(side_effect=ValueError("Bearer sk-secret prompt body"))
+        session = _aiohttp_session_with_response("get", response)
+
+        with patch("aiohttp.ClientSession", return_value=session):
+            models = await fetch_openai_compatible_model_ids(
+                "https://api.deepseek.example",
+                "test-key",
+                provider_name="DeepSeek",
+            )
+
+        assert models == set()
+
+    with caplog.at_level("DEBUG", logger="src.llm.provider_health"):
+        asyncio.run(run_test())
+
+    assert "ValueError" in caplog.text
+    assert "Bearer sk-secret" not in caplog.text
+    assert "prompt body" not in caplog.text
+
+
 def test_fetch_openai_compatible_model_ids_logs_non_object_payload(caplog):
     """Test non-object JSON payloads are rejected at fetch boundary."""
 
@@ -543,6 +663,29 @@ def test_fetch_openai_compatible_model_ids_malformed_response_status(caplog):
         response = MagicMock()
         response.status = "200"
         response.json = AsyncMock(return_value={"data": [{"id": "deepseek-v4-flash"}]})
+        session = _aiohttp_session_with_response("get", response)
+
+        with patch("aiohttp.ClientSession", return_value=session):
+            models = await fetch_openai_compatible_model_ids(
+                "https://api.deepseek.example",
+                "test-key",
+                provider_name="DeepSeek",
+            )
+
+        assert models == set()
+        response.json.assert_not_awaited()
+
+    with caplog.at_level("DEBUG", logger="src.llm.provider_health"):
+        asyncio.run(run_test())
+
+    assert "DeepSeek model check returned malformed response status" in caplog.text
+
+
+def test_fetch_openai_compatible_model_ids_rejects_bool_response_status(caplog):
+    async def run_test():
+        response = MagicMock()
+        response.status = True
+        response.json = AsyncMock(return_value={"data": [{"id": "model-a"}]})
         session = _aiohttp_session_with_response("get", response)
 
         with patch("aiohttp.ClientSession", return_value=session):
@@ -623,5 +766,56 @@ def test_fetch_openai_compatible_model_ids_connection_error():
             )
 
         assert models == set()
+
+    asyncio.run(run_test())
+
+
+def test_fetch_openai_compatible_model_ids_redacts_client_error_text(caplog):
+    async def run_test():
+        session_instance = MagicMock()
+        session_instance.get.side_effect = aiohttp.ClientError("Bearer sk-secret response body")
+
+        session = MagicMock()
+        session.__aenter__ = AsyncMock(return_value=session_instance)
+        session.__aexit__ = AsyncMock(return_value=None)
+
+        with patch("aiohttp.ClientSession", return_value=session):
+            models = await fetch_openai_compatible_model_ids(
+                "https://api.deepseek.example",
+                "test-key",
+                provider_name="DeepSeek",
+            )
+
+        assert models == set()
+
+    with caplog.at_level("DEBUG", logger="src.llm.provider_health"):
+        asyncio.run(run_test())
+
+    assert "ClientError" in caplog.text
+    assert "Bearer sk-secret" not in caplog.text
+    assert "response body" not in caplog.text
+
+
+def test_fetch_openai_compatible_model_ids_handles_strip_accessor_failures():
+    class MalformedUrl(str):
+        def strip(self):
+            raise RuntimeError("secret url")
+
+    class MalformedKey(str):
+        def strip(self):
+            raise RuntimeError("secret key")
+
+    async def run_test():
+        with patch("aiohttp.ClientSession") as session:
+            assert await fetch_openai_compatible_model_ids(
+                MalformedUrl("https://api.deepseek.example"),
+                "test-key",
+            ) == set()
+            assert await fetch_openai_compatible_model_ids(
+                "https://api.deepseek.example",
+                MalformedKey("test-key"),
+            ) == set()
+
+        session.assert_not_called()
 
     asyncio.run(run_test())

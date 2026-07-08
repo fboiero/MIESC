@@ -7,6 +7,7 @@ import inspect
 import json
 import logging
 import math
+from collections.abc import Mapping
 from typing import Any, Set
 from urllib.parse import urlsplit
 
@@ -36,14 +37,34 @@ def _safe_text(value: Any, *, limit: int = 200) -> str:
             return ""
     if not isinstance(value, str):
         return ""
-    text = value.strip()
-    if not text:
+    if any(ord(ch) < 32 or ord(ch) == 127 or ch in "\u2028\u2029" for ch in value):
         return ""
-    if any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+    try:
+        text = value.strip()
+    except (AttributeError, TypeError, ValueError, RuntimeError):
+        return ""
+    if not text:
         return ""
     if len(text) > limit:
         text = text[:limit]
     return text
+
+
+def _mapping_get(mapping: Any, key: str, default: Any = None) -> Any:
+    """Read mapping keys without trusting hostile mapping subclasses."""
+    if not isinstance(mapping, Mapping):
+        return default
+    try:
+        return mapping.get(key, default)
+    except (AttributeError, TypeError, ValueError, RuntimeError, RecursionError):
+        return default
+
+
+def _safe_exception_summary(error: Any) -> str:
+    """Return only exception class names for logs, never response bodies."""
+    if isinstance(error, BaseException):
+        return error.__class__.__name__
+    return "unknown"
 
 
 def extract_openai_compatible_model_ids(payload: Any) -> Set[str]:
@@ -59,7 +80,9 @@ def extract_openai_compatible_model_ids(payload: Any) -> Set[str]:
     for model in models:
         if not isinstance(model, dict):
             continue
-        model_id = _model_id_text(model.get("id")) or _model_id_text(model.get("name"))
+        model_id = _model_id_text(_mapping_get(model, "id")) or _model_id_text(
+            _mapping_get(model, "name")
+        )
         if not model_id or model_id in model_ids:
             continue
         model_ids.add(model_id)
@@ -70,23 +93,23 @@ def extract_openai_compatible_model_ids(payload: Any) -> Set[str]:
 
 def _model_list(payload: dict[str, Any]) -> Any:
     """Return supported OpenAI-compatible model list aliases."""
-    models = payload.get("data")
+    models = _mapping_get(payload, "data")
     if isinstance(models, list):
         return models
-    models = payload.get("models")
+    models = _mapping_get(payload, "models")
     if isinstance(models, list):
         return models
-    if isinstance(models, dict):
-        nested_data = models.get("data")
+    if isinstance(models, Mapping):
+        nested_data = _mapping_get(models, "data")
         if isinstance(nested_data, list):
             return nested_data
-        nested_models = models.get("models")
+        nested_models = _mapping_get(models, "models")
         if isinstance(nested_models, list):
             return nested_models
-        nested_items = models.get("items")
+        nested_items = _mapping_get(models, "items")
         if isinstance(nested_items, list):
             return nested_items
-        nested_model = models.get("model")
+        nested_model = _mapping_get(models, "model")
         if isinstance(nested_model, list):
             return nested_model
     return None
@@ -112,11 +135,11 @@ async def fetch_openai_compatible_model_ids(
     if not isinstance(base_url, str) or not isinstance(api_key, str):
         logger.debug("%s model check received malformed endpoint credentials", provider_label)
         return set()
-    base_url = base_url.strip()
+    base_url = _safe_text(base_url, limit=2048)
     if not _valid_model_base_url(base_url):
         logger.debug("%s model check received malformed endpoint credentials", provider_label)
         return set()
-    api_key = api_key.strip()
+    api_key = _safe_api_key(api_key)
     if not api_key:
         logger.debug("%s model check received malformed endpoint credentials", provider_label)
         return set()
@@ -136,7 +159,7 @@ async def fetch_openai_compatible_model_ids(
                 timeout=aiohttp.ClientTimeout(total=timeout),
             ) as resp:
                 status = getattr(resp, "status", None)
-                if not isinstance(status, int):
+                if not isinstance(status, int) or isinstance(status, bool):
                     logger.debug("%s model check returned malformed response status", provider_label)
                     return set()
                 if status != 200:
@@ -154,16 +177,36 @@ async def fetch_openai_compatible_model_ids(
                     return set()
                 return extract_openai_compatible_model_ids(payload)
     except PROVIDER_HEALTH_ERRORS as e:
-        logger.debug("%s model check failed: %s", provider_label, e)
+        logger.debug("%s model check failed: %s", provider_label, _safe_exception_summary(e))
         return set()
 
 
 def _authorization_headers(api_key: str) -> dict[str, str]:
     """Build auth headers without exposing credentials to logging paths."""
-    key = _safe_text(api_key, limit=MAX_MODEL_ID_CHARS)
+    key = _safe_api_key(api_key)
     if not key:
         return {"Authorization": "Bearer "}
     return {"Authorization": f"Bearer {key}"}
+
+
+def _safe_api_key(api_key: Any) -> str:
+    """Return a header-safe API key without truncating oversized credentials."""
+    if isinstance(api_key, bytes):
+        try:
+            api_key = api_key.decode("utf-8", errors="replace")
+        except Exception:
+            return ""
+    if not isinstance(api_key, str):
+        return ""
+    if any(ord(ch) < 32 or ord(ch) == 127 or ch in "\u2028\u2029" for ch in api_key):
+        return ""
+    try:
+        stripped = api_key.strip()
+    except (AttributeError, TypeError, ValueError, RuntimeError):
+        return ""
+    if len(stripped) > MAX_MODEL_ID_CHARS:
+        return ""
+    return _safe_text(stripped, limit=MAX_MODEL_ID_CHARS)
 
 
 def _provider_label(provider_name: Any) -> str:
@@ -174,7 +217,10 @@ def _provider_label(provider_name: Any) -> str:
 
 def _valid_model_base_url(base_url: str) -> bool:
     """Accept only HTTP(S) provider URLs without embedded credentials."""
-    parsed = urlsplit(base_url)
+    try:
+        parsed = urlsplit(base_url)
+    except (AttributeError, TypeError, ValueError, RuntimeError):
+        return False
     return (
         parsed.scheme in {"http", "https"}
         and bool(parsed.netloc)
