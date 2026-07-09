@@ -21,6 +21,7 @@ import logging
 import math
 import os
 import re
+import unicodedata
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -60,6 +61,13 @@ MAX_METADATA_TEXT_CHARS = 2_000
 MAX_TEXT_LIST_ITEMS = 100
 MAX_BATCH_QUERIES = 100
 MAX_CONTEXT_LENGTH = 20_000
+MAX_EMBEDDING_VECTOR_ITEMS = 4096
+MAX_EMBEDDING_ROWS = 512
+MAX_RESULT_ROWS = 512
+MAX_RESULT_ROW_ITEMS = 512
+MAX_EXPANDED_QUERIES = 16
+MAX_QUERY_RESULTS = 100
+MAX_EMBEDDING_ABS_VALUE = 1_000_000.0
 
 
 def _safe_mapping_get(mapping: Any, key: str, default: Any = None) -> Any:
@@ -67,9 +75,27 @@ def _safe_mapping_get(mapping: Any, key: str, default: Any = None) -> Any:
     if not isinstance(mapping, Mapping):
         return default
     try:
-        return mapping[key] if key in mapping else default
+        return mapping[key]
+    except KeyError:
+        return default
     except Exception:
         return default
+
+
+def _has_unsafe_text_char(ch: str) -> bool:
+    """Return whether a character is unsafe for scalar RAG text fields."""
+    codepoint = ord(ch)
+    if codepoint < 32 or codepoint == 127:
+        return True
+    category = unicodedata.category(ch)
+    return category.startswith("C") or category in {"Zl", "Zp"}
+
+
+def _has_unsafe_multiline_text_char(ch: str) -> bool:
+    """Return whether a character is unsafe for bounded multiline context text."""
+    if ch in {"\n", "\r", "\t"}:
+        return False
+    return _has_unsafe_text_char(ch)
 
 
 def _is_safe_text(text: str) -> bool:
@@ -77,7 +103,16 @@ def _is_safe_text(text: str) -> bool:
     return (
         bool(text)
         and len(text) <= MAX_SAFE_TEXT_CHARS
-        and not any(ord(ch) < 32 or ord(ch) == 127 for ch in text)
+        and not any(_has_unsafe_text_char(ch) for ch in text)
+    )
+
+
+def _is_safe_multiline_text(text: str) -> bool:
+    """Return whether text is safe for already-formatted context output."""
+    return (
+        bool(text)
+        and len(text) <= MAX_CONTEXT_LENGTH
+        and not any(_has_unsafe_multiline_text_char(ch) for ch in text)
     )
 
 
@@ -108,18 +143,86 @@ def _coerce_text_list(value: Any) -> List[str]:
     else:
         values = [value]
     text_values = []
-    for item in values:
-        if item is None:
-            continue
-        if isinstance(item, (dict, list, tuple, set)):
-            continue
-        text = _safe_text(item)
-        if not text:
-            continue
-        text_values.append(text)
-        if len(text_values) >= MAX_TEXT_LIST_ITEMS:
-            break
+    try:
+        iterator = iter(values)
+    except Exception:
+        iterator = iter([value])
+    try:
+        for item in iterator:
+            if item is None:
+                continue
+            if isinstance(item, (dict, list, tuple, set)):
+                continue
+            text = _safe_text(item)
+            if not text:
+                continue
+            text_values.append(text)
+            if len(text_values) >= MAX_TEXT_LIST_ITEMS:
+                break
+    except Exception:
+        return text_values
     return text_values
+
+
+def _bounded_sequence(value: Any, *, max_items: int) -> List[Any]:
+    """Return a bounded list from list-like values without trusting full materialization."""
+    if hasattr(value, "tolist"):
+        try:
+            value = value.tolist()
+        except Exception:
+            return []
+    if not isinstance(value, (list, tuple)):
+        return []
+    items = []
+    try:
+        iterator = iter(value)
+        for item in iterator:
+            items.append(item)
+            if len(items) >= max_items:
+                break
+    except Exception:
+        return items
+    return items
+
+
+def _safe_cache_get(cache: Any, cache_key: str) -> Any:
+    """Read a cache entry without trusting dict subclass helpers."""
+    try:
+        return cache[cache_key]
+    except Exception:
+        return None
+
+
+def _safe_cache_pop(cache: Any, cache_key: str) -> None:
+    """Remove a cache entry when possible without leaking cache subclass exceptions."""
+    try:
+        del cache[cache_key]
+    except Exception:
+        return
+
+
+def _safe_len(value: Any) -> int:
+    """Return a sequence length, or zero when a hostile object rejects len()."""
+    try:
+        return len(value)
+    except Exception:
+        return 0
+
+
+def _safe_index(value: Any, index: int) -> Any:
+    """Return an indexed value, or None when a hostile object rejects indexing."""
+    try:
+        return value[index]
+    except Exception:
+        return None
+
+
+def _safe_getattr(obj: Any, name: str, default: Any = None) -> Any:
+    """Read an attribute without trusting user-defined accessors."""
+    try:
+        return getattr(obj, name, default)
+    except Exception:
+        return default
 
 
 def _coerce_metadata_text(value: Any) -> str:
@@ -150,7 +253,7 @@ def _coerce_cache_query_text(value: Any) -> str:
 def _coerce_batch_queries(value: Any) -> List[Any]:
     """Return an ordered batch query container, or an empty batch when malformed."""
     if isinstance(value, (list, tuple)):
-        return list(value)[:MAX_BATCH_QUERIES]
+        return _bounded_sequence(value, max_items=MAX_BATCH_QUERIES)
     return []
 
 
@@ -167,6 +270,14 @@ def _coerce_filter_text(value: Any) -> Optional[str]:
     text = _safe_text(value)
     if not text:
         return None
+    return text
+
+
+def _coerce_document_id(value: Any) -> str:
+    """Return a safe Chroma/document id, or an empty string when malformed."""
+    text = _coerce_metadata_text(value)
+    if not text:
+        return ""
     return text
 
 
@@ -196,7 +307,7 @@ def _safe_metadata_filter(
             if not isinstance(value, str):
                 return None
             text = value.strip()
-            if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+            if not text or any(_has_unsafe_text_char(ch) for ch in text):
                 return None
         return where_filter
 
@@ -207,7 +318,7 @@ def _safe_metadata_filter(
     if key not in {"category", "severity"} or not isinstance(value, str):
         return None
     text = value.strip()
-    if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+    if not text or any(_has_unsafe_text_char(ch) for ch in text):
         return None
     return where_filter
 
@@ -227,7 +338,7 @@ def _coerce_result_count(value: Any, fallback: Any) -> int:
         except (TypeError, ValueError):
             continue
         if count > 0:
-            return count
+            return min(count, MAX_QUERY_RESULTS)
     return EmbeddingRAG.DEFAULT_TOP_K
 
 
@@ -252,6 +363,25 @@ def _coerce_cache_ttl_seconds(value: Any) -> int:
     if ttl <= 0:
         return EmbeddingRAG.DEFAULT_CACHE_TTL_SECONDS
     return ttl
+
+
+def _coerce_context_length(value: Any, fallback: int) -> int:
+    """Return a bounded context length without applying query-result caps."""
+    candidates = (value, fallback, 2000)
+    for candidate in candidates:
+        if isinstance(candidate, bool):
+            continue
+        if isinstance(candidate, (str, bytes)):
+            candidate = _safe_text(candidate)
+            if not candidate:
+                continue
+        try:
+            length = int(candidate)
+        except (TypeError, ValueError, OverflowError):
+            continue
+        if length > 0:
+            return min(length, MAX_CONTEXT_LENGTH)
+    return 2000
 
 
 def _coerce_embedding_model_name(value: Any) -> str:
@@ -294,10 +424,14 @@ def _coerce_persist_directory(value: Any) -> Path:
 
     try:
         persist_dir = Path(path_value).expanduser()
-    except (TypeError, ValueError, OSError):
+    except (TypeError, ValueError, OSError, RuntimeError):
         return _default_persist_directory()
 
-    if "\x00" in str(persist_dir):
+    try:
+        path_string = _safe_text(os.fspath(persist_dir))
+    except (TypeError, ValueError, OSError, RuntimeError):
+        return _default_persist_directory()
+    if not path_string or "\x00" in path_string:
         return _default_persist_directory()
     return persist_dir
 
@@ -319,16 +453,12 @@ def _ensure_persist_directory(value: Any) -> Path:
 
 def _is_indexable_document(value: Any) -> bool:
     """Return whether a knowledge-base entry is safe for document index payloads."""
-    return (
-        isinstance(value, VulnerabilityDocument)
-        and isinstance(value.id, str)
-        and bool(value.id.strip())
-    )
+    return isinstance(value, VulnerabilityDocument) and bool(_coerce_document_id(value.id))
 
 
 def _collection_metadata_text(collection: Any, key: str) -> Optional[str]:
     """Return a string collection metadata value, or None when malformed."""
-    metadata = getattr(collection, "metadata", None)
+    metadata = _safe_getattr(collection, "metadata")
     if not isinstance(metadata, Mapping):
         return None
 
@@ -395,7 +525,9 @@ def _coerce_embedding_vector(value: Any) -> Optional[List[float]]:
         return None
 
     vector = []
-    for item in value:
+    for item in _bounded_sequence(value, max_items=MAX_EMBEDDING_VECTOR_ITEMS + 1):
+        if len(vector) >= MAX_EMBEDDING_VECTOR_ITEMS:
+            return None
         if isinstance(item, bool):
             return None
         if isinstance(item, bytes):
@@ -403,11 +535,11 @@ def _coerce_embedding_vector(value: Any) -> Optional[List[float]]:
                 raw_item = item.decode("utf-8", errors="replace")
             except Exception:
                 return None
-            if any(ord(ch) < 32 or ord(ch) == 127 for ch in raw_item):
+            if any(_has_unsafe_text_char(ch) for ch in raw_item):
                 return None
             item = raw_item.strip()
         elif isinstance(item, str):
-            if any(ord(ch) < 32 or ord(ch) == 127 for ch in item):
+            if any(_has_unsafe_text_char(ch) for ch in item):
                 return None
             item = item.strip()
         elif isinstance(item, (int, float)):
@@ -423,20 +555,15 @@ def _coerce_embedding_vector(value: Any) -> Optional[List[float]]:
             return None
         if not math.isfinite(number):
             return None
+        if abs(number) > MAX_EMBEDDING_ABS_VALUE:
+            return None
         vector.append(number)
     return vector or None
 
 
 def _coerce_embedding_rows(value: Any) -> List[Any]:
     """Return list-like embedding rows from loose model output."""
-    if hasattr(value, "tolist"):
-        try:
-            value = value.tolist()
-        except Exception:
-            return []
-    if isinstance(value, (list, tuple)):
-        return list(value)
-    return []
+    return _bounded_sequence(value, max_items=MAX_EMBEDDING_ROWS)
 
 
 def _result_rows(results: Any, key: str) -> List[Any]:
@@ -444,31 +571,27 @@ def _result_rows(results: Any, key: str) -> List[Any]:
     if not isinstance(results, Mapping):
         return []
     rows = _safe_mapping_get(results, key)
-    if isinstance(rows, (list, tuple)):
-        return list(rows)
-    return []
+    return _bounded_sequence(rows, max_items=MAX_RESULT_ROWS)
 
 
 def _result_row(rows: List[Any], index: int) -> List[Any]:
     """Read one list-like row from a Chroma result payload."""
-    if index >= len(rows):
+    if index < 0 or index >= _safe_len(rows):
         return []
-    row = rows[index]
-    if isinstance(row, (list, tuple)):
-        return list(row)
-    return []
+    row = _safe_index(rows, index)
+    return _bounded_sequence(row, max_items=MAX_RESULT_ROW_ITEMS)
 
 
 def _result_value(row: List[Any], index: int) -> Any:
     """Read an aligned value from a Chroma result row."""
-    if index >= len(row):
+    if index < 0 or index >= _safe_len(row):
         return None
-    return row[index]
+    return _safe_index(row, index)
 
 
 def _is_valid_result_id(value: Any) -> bool:
     """Return whether a Chroma result id is usable for document lookup."""
-    return isinstance(value, str) and bool(value.strip())
+    return bool(_coerce_document_id(value))
 
 
 def _has_aligned_optional_result_value(
@@ -477,10 +600,14 @@ def _has_aligned_optional_result_value(
     value_index: int,
 ) -> bool:
     """Return whether a present optional Chroma row has an aligned value."""
-    if not rows:
+    try:
+        rows_len = len(rows)
+    except Exception:
+        return False
+    if rows_len == 0:
         return True
     row = _result_row(rows, row_index)
-    return value_index < len(row)
+    return value_index < _safe_len(row)
 
 
 def _has_valid_optional_result_metadata(
@@ -489,10 +616,14 @@ def _has_valid_optional_result_metadata(
     value_index: int,
 ) -> bool:
     """Return whether a present Chroma metadata result is aligned and mapping-shaped."""
-    if not rows:
+    try:
+        rows_len = len(rows)
+    except Exception:
+        return False
+    if rows_len == 0:
         return True
     row = _result_row(rows, row_index)
-    return value_index < len(row) and isinstance(row[value_index], dict)
+    return value_index < _safe_len(row) and isinstance(_safe_index(row, value_index), dict)
 
 
 def _get_chromadb() -> Any:
@@ -619,7 +750,7 @@ class RetrievalResult:
 
     def to_context(self) -> str:
         """Convert to LLM context string."""
-        steps = "; ".join(self.retrieval_steps) if self.retrieval_steps else "semantic search"
+        steps = "; ".join(_coerce_text_list(self.retrieval_steps)) or "semantic search"
         references = ", ".join(_coerce_text_list(self.document.references)[:3]) or "N/A"
         title = _coerce_metadata_text(self.document.title) or "Untitled"
         category = _coerce_metadata_text(self.document.category) or "general"
@@ -634,7 +765,7 @@ class RetrievalResult:
             f"- Severity: {severity}\n"
             f"- Source: {source_tier} / {source_type}\n"
             f"- Description: {description[:300]}...\n"
-            f"- Relevance: {self.relevance_reason}\n"
+            f"- Relevance: {_coerce_document_text(self.relevance_reason) or 'semantic similarity'}\n"
             f"- Retrieval Steps: {steps}\n"
             f"- References: {references}\n"
             f"- Real Exploit: {real_exploit}"
@@ -5045,7 +5176,7 @@ class EmbeddingRAG:
             if not _is_indexable_document(doc):
                 logger.warning("Skipping malformed vulnerability document in lookup index")
                 continue
-            self._doc_index[doc.id] = doc
+            self._doc_index[_coerce_document_id(doc.id)] = doc
 
         logger.debug(f"Built document index with {len(self._doc_index)} entries")
 
@@ -5080,9 +5211,9 @@ class EmbeddingRAG:
             self._query_cache = {}
             return None
 
-        cached_entry = self._query_cache.get(cache_key)
+        cached_entry = _safe_cache_get(self._query_cache, cache_key)
         if cached_entry is not None and not isinstance(cached_entry, tuple):
-            self._query_cache.pop(cache_key, None)
+            _safe_cache_pop(self._query_cache, cache_key)
             return None
 
         try:
@@ -5092,14 +5223,14 @@ class EmbeddingRAG:
                 enabled=self.enable_cache,
                 ttl_seconds=_coerce_cache_ttl_seconds(self.CACHE_TTL_SECONDS),
             )
-        except (TypeError, ValueError):
-            self._query_cache.pop(cache_key, None)
+        except (TypeError, ValueError, RuntimeError):
+            _safe_cache_pop(self._query_cache, cache_key)
             return None
         if hit:
             if not isinstance(results, list) or any(
                 not isinstance(result, RetrievalResult) for result in results
             ):
-                self._query_cache.pop(cache_key, None)
+                _safe_cache_pop(self._query_cache, cache_key)
                 return None
             self._cache_hits += 1
         return results
@@ -5113,13 +5244,16 @@ class EmbeddingRAG:
         if any(not isinstance(result, RetrievalResult) for result in results):
             return
 
-        stored = store_cached_result(
-            self._query_cache,
-            cache_key,
-            results,
-            enabled=self.enable_cache,
-            max_size=_coerce_result_count(self.CACHE_MAX_SIZE, 256),
-        )
+        try:
+            stored = store_cached_result(
+                self._query_cache,
+                cache_key,
+                results,
+                enabled=self.enable_cache,
+                max_size=_coerce_result_count(self.CACHE_MAX_SIZE, 256),
+            )
+        except (TypeError, ValueError, RuntimeError):
+            stored = False
         if stored:
             self._cache_misses += 1
 
@@ -5193,8 +5327,9 @@ class EmbeddingRAG:
 
     def _expand_query(self, query: str) -> List[str]:
         """Generate reviewer-style retrieval probes from a finding query."""
-        query_lower = query.lower()
-        expansions = [query]
+        query_text = _coerce_query_text(query)
+        query_lower = query_text.lower()
+        expansions = [query_text] if query_text else []
 
         expansion_rules = [
             (
@@ -5234,6 +5369,8 @@ class EmbeddingRAG:
         for triggers, expansion in expansion_rules:
             if any(trigger in query_lower for trigger in triggers):
                 expansions.append(expansion)
+                if len(expansions) >= MAX_EXPANDED_QUERIES:
+                    break
 
         expansions.append(
             "EEA EthTrust OWASP SCSVS Solidity security considerations exploit pattern mitigation"
@@ -5246,6 +5383,8 @@ class EmbeddingRAG:
             if normalized not in seen:
                 seen.add(normalized)
                 unique_expansions.append(expansion)
+                if len(unique_expansions) >= MAX_EXPANDED_QUERIES:
+                    break
         return unique_expansions
 
     def get_cache_stats(self) -> Dict[str, Any]:
@@ -5280,7 +5419,7 @@ class EmbeddingRAG:
                 continue
             documents.append(vuln.to_text())
             metadatas.append(vuln.to_metadata())
-            ids.append(vuln.id)
+            ids.append(_coerce_document_id(vuln.id))
 
         # Generate embeddings
         embeddings = self._embedder.encode(documents, show_progress_bar=True)
@@ -5373,7 +5512,7 @@ class EmbeddingRAG:
         first_distance_row = _result_row(distance_rows, 0)
         first_similarity_row = _result_row(similarity_rows, 0)
         if first_id_row:
-            for i, doc_id in enumerate(first_id_row):
+            for i, doc_id in enumerate(first_id_row[:n]):
                 if not _is_valid_result_id(doc_id):
                     continue
                 if not _has_aligned_optional_result_value(document_rows, 0, i):
@@ -5381,7 +5520,7 @@ class EmbeddingRAG:
                 if not _has_valid_optional_result_metadata(metadata_rows, 0, i):
                     continue
                 # O(1) lookup instead of O(n) linear search
-                original_doc = self._doc_index.get(doc_id)
+                original_doc = self._doc_index.get(_coerce_document_id(doc_id))
 
                 if original_doc:
                     # ChromaDB returns distance, convert to similarity
@@ -5562,14 +5701,14 @@ class EmbeddingRAG:
                 distance_row = _result_row(distance_rows, batch_idx)
                 similarity_row = _result_row(similarity_rows, batch_idx)
                 if id_row:
-                    for i, doc_id in enumerate(id_row):
+                    for i, doc_id in enumerate(id_row[:n]):
                         if not _is_valid_result_id(doc_id):
                             continue
                         if not _has_aligned_optional_result_value(document_rows, batch_idx, i):
                             continue
                         if not _has_valid_optional_result_metadata(metadata_rows, batch_idx, i):
                             continue
-                        original_doc = self._doc_index.get(doc_id)
+                        original_doc = self._doc_index.get(_coerce_document_id(doc_id))
                         if original_doc:
                             similarity = _similarity_from_query_result(
                                 _result_value(distance_row, i),
@@ -5588,6 +5727,12 @@ class EmbeddingRAG:
                                     step="batch_semantic",
                                 )
                             )
+                retrieval_results = self._dedupe_and_rank(
+                    retrieval_results,
+                    original_query=query,
+                    step="batch_semantic",
+                    n_results=n,
+                )
 
                 # Cache this result
                 cache_key = self._get_cache_key(query, category_filter, severity_filter, n)
@@ -5674,10 +5819,15 @@ class EmbeddingRAG:
 
         context_parts = ["## Similar Known Vulnerabilities\n"]
         current_length = len(context_parts[0])
-        max_len = min(_coerce_result_count(max_context_length, 2000), MAX_CONTEXT_LENGTH)
+        max_len = _coerce_context_length(max_context_length, 2000)
 
         for result in results:
-            entry = result.to_context()
+            try:
+                entry = result.to_context()
+            except Exception:
+                continue
+            if not isinstance(entry, str) or not _is_safe_multiline_text(entry):
+                continue
             if current_length + len(entry) > max_len:
                 break
             context_parts.append(entry)
@@ -5698,7 +5848,8 @@ class EmbeddingRAG:
         """
         if not isinstance(vulnerability, VulnerabilityDocument):
             raise TypeError("Custom vulnerability must be a VulnerabilityDocument")
-        if not isinstance(vulnerability.id, str) or not vulnerability.id.strip():
+        vulnerability_id = _coerce_document_id(vulnerability.id)
+        if not vulnerability_id:
             raise ValueError("Custom vulnerability id must be a non-empty string")
 
         self._ensure_initialized()
@@ -5715,15 +5866,15 @@ class EmbeddingRAG:
             documents=[vulnerability_text],
             embeddings=[embedding],
             metadatas=[vulnerability.to_metadata()],
-            ids=[vulnerability.id],
+            ids=[vulnerability_id],
         )
 
         if not isinstance(self._doc_index, dict):
             self._doc_index = {}
-        self._doc_index[vulnerability.id] = vulnerability
+        self._doc_index[vulnerability_id] = vulnerability
         self.clear_cache()
 
-        logger.info(f"Added custom vulnerability: {vulnerability.id}")
+        logger.info(f"Added custom vulnerability: {vulnerability_id}")
 
     def _explain_relevance(self, query: str, doc: VulnerabilityDocument) -> str:
         """Generate explanation for why a document is relevant."""

@@ -402,6 +402,16 @@ def test_text_coercion_helpers_strip_and_reject_control_chars():
     assert embedding_rag._coerce_document_text("x" * 20_001) == ""
     assert embedding_rag._coerce_query_text(b" query ") == "query"
     assert embedding_rag._coerce_query_text("query\x7fvalue") == ""
+    assert embedding_rag._coerce_query_text("query\u2028value") == ""
+    assert embedding_rag._coerce_query_text("query\u200bvalue") == ""
+
+
+def test_text_list_handles_hostile_collection_iteration():
+    class HostileList(list):
+        def __iter__(self):
+            raise RuntimeError("boom")
+
+    assert _coerce_text_list(HostileList(["alpha"])) == []
 
 
 def test_safe_metadata_filter_rejects_malformed_filter_shapes(monkeypatch):
@@ -417,6 +427,13 @@ def test_safe_metadata_filter_rejects_malformed_filter_shapes(monkeypatch):
         "$and": [{"category": "reentrancy"}, {"severity": "high"}]
     }
 
+    monkeypatch.setattr(
+        embedding_rag,
+        "build_metadata_filter",
+        lambda *_args: {"category": "reentrancy\u2028bad"},
+    )
+    assert embedding_rag._safe_metadata_filter("reentrancy", None) is None
+
 
 def test_batch_query_helpers_strip_and_reject_control_chars():
     assert _coerce_batch_queries(("alpha", "beta")) == ["alpha", "beta"]
@@ -428,11 +445,21 @@ def test_batch_query_helpers_strip_and_reject_control_chars():
     assert _coerce_batch_query_text(b"beta\x7f") == (False, "")
 
 
+def test_batch_query_helpers_handle_hostile_tuple_subclass():
+    class HostileTuple(tuple):
+        def __iter__(self):
+            raise RuntimeError("boom")
+
+    assert _coerce_batch_queries(HostileTuple(("alpha",))) == []
+
+
 def test_result_count_and_collection_name_helpers_reject_control_chars():
     assert _coerce_result_count(" 7 ", 3) == 7
     assert _coerce_result_count("7\x7f", 3) == 3
+    assert _coerce_result_count(10_000, 3) == embedding_rag.MAX_QUERY_RESULTS
     assert _coerce_collection_name("  vuln_cache  ") == "vuln_cache"
     assert _coerce_collection_name("bad\nname") == "miesc_vulnerabilities"
+    assert _coerce_collection_name("bad\u2028name") == "miesc_vulnerabilities"
     assert _result_rows({"ids": [["a"], ["b"]]}, "ids") == [["a"], ["b"]]
     assert _result_rows({"ids": "not-a-row-list"}, "ids") == []
     collection = type("Collection", (), {"metadata": {"version": "  v1.2.3  "}})()
@@ -446,11 +473,50 @@ def test_result_count_and_collection_name_helpers_reject_control_chars():
     assert embedding_rag._similarity_from_query_result(None, True) == 0.0
 
 
+def test_result_row_helpers_cap_and_handle_hostile_shapes():
+    rows = [[str(i) for i in range(embedding_rag.MAX_RESULT_ROW_ITEMS + 20)]]
+    assert len(embedding_rag._result_row(rows, 0)) == embedding_rag.MAX_RESULT_ROW_ITEMS
+    assert embedding_rag._result_rows(
+        {"ids": [[str(i)] for i in range(embedding_rag.MAX_RESULT_ROWS + 20)]}, "ids"
+    )[-1] == [str(embedding_rag.MAX_RESULT_ROWS - 1)]
+
+    class HostileLen(list):
+        def __len__(self):
+            raise RuntimeError("boom")
+
+    assert embedding_rag._result_row(HostileLen([["a"]]), 0) == []
+    assert embedding_rag._result_value(HostileLen(["a"]), 0) is None
+    assert not embedding_rag._has_aligned_optional_result_value(HostileLen([["a"]]), 0, 0)
+
+
 def test_persist_directory_and_embedding_vector_helpers_reject_control_chars():
     assert _coerce_persist_directory("  ~/miesc-cache  ").parts[-1] == "miesc-cache"
     assert _coerce_persist_directory("bad\npath") == _coerce_persist_directory(None)
+    assert _coerce_persist_directory("bad\u2028path") == _coerce_persist_directory(None)
     assert _coerce_embedding_vector([1, " 2 ", 3.5]) == [1.0, 2.0, 3.5]
     assert _coerce_embedding_vector(["1\n", 2]) is None
+    assert _coerce_embedding_vector(["1\u2028", 2]) is None
+    assert _coerce_embedding_vector([0.0] * (embedding_rag.MAX_EMBEDDING_VECTOR_ITEMS + 1)) is None
+    assert _coerce_embedding_vector([embedding_rag.MAX_EMBEDDING_ABS_VALUE + 1]) is None
+    assert (
+        len(embedding_rag._coerce_embedding_rows([[0]] * 600)) == embedding_rag.MAX_EMBEDDING_ROWS
+    )
+
+
+def test_persist_directory_handles_hostile_pathlike():
+    class HostilePath:
+        def __fspath__(self):
+            raise RuntimeError("boom")
+
+    assert _coerce_persist_directory(HostilePath()) == _coerce_persist_directory(None)
+
+
+def test_embedding_rows_handles_hostile_tolist():
+    class HostileRows:
+        def tolist(self):
+            raise RuntimeError("boom")
+
+    assert embedding_rag._coerce_embedding_rows(HostileRows()) == []
 
 
 def test_embedding_rag_boundaries_use_safe_text_and_collection_metadata(tmp_path, monkeypatch):
@@ -541,6 +607,21 @@ def test_retrieval_context_sanitizes_malformed_document_fields():
     assert "['bad']" not in context
 
 
+def test_retrieval_context_sanitizes_steps_and_relevance_reason():
+    doc = VulnerabilityDocument(id="DOC-CTX", title="Safe", description="Description")
+    result = RetrievalResult(
+        document=doc,
+        similarity_score=0.8,
+        relevance_reason="bad\u2028reason",
+        retrieval_steps=[" step ", {"bad": "step"}, "ok"],
+    )
+
+    context = result.to_context()
+
+    assert "- Relevance: semantic similarity" in context
+    assert "- Retrieval Steps: step; ok" in context
+
+
 def test_rank_result_tolerates_malformed_doc_cues(tmp_path):
     rag = EmbeddingRAG(persist_directory=str(tmp_path))
     doc = VulnerabilityDocument(id="DOC-5", title="Reentrancy")
@@ -561,3 +642,93 @@ def test_rank_result_tolerates_malformed_doc_cues(tmp_path):
     assert 0.0 <= ranked.similarity_score <= 1.0
     assert "source_tier=curated" in ranked.retrieval_steps
     assert "{'bad':" not in ";".join(ranked.retrieval_steps)
+
+
+def test_safe_mapping_get_handles_hostile_mapping_accessors():
+    class HostileMapping(dict):
+        def __contains__(self, key):
+            raise RuntimeError("contains")
+
+        def __getitem__(self, key):
+            raise RuntimeError("getitem")
+
+    assert embedding_rag._safe_mapping_get(HostileMapping(type="reentrancy"), "type") is None
+
+
+def test_document_id_helpers_reject_unicode_controls_and_normalize_index(monkeypatch, tmp_path):
+    safe_doc = VulnerabilityDocument(id=" DOC-OK ", title="Safe")
+    bad_doc = VulnerabilityDocument(id="bad\u2028id", title="Bad")
+    monkeypatch.setattr(embedding_rag, "VULNERABILITY_KNOWLEDGE_BASE", [safe_doc, bad_doc])
+    rag = EmbeddingRAG(persist_directory=str(tmp_path))
+
+    rag._build_doc_index()
+
+    assert rag._doc_index == {"DOC-OK": safe_doc}
+    assert embedding_rag._is_valid_result_id("bad\u2028id") is False
+
+
+def test_search_caps_returned_rows_and_skips_unsafe_ids(tmp_path):
+    doc = VulnerabilityDocument(id="SWC-107")
+    safe_ids = ["SWC-107"] * 150
+    payload = {
+        "ids": [["bad\u2028id", *safe_ids]],
+        "distances": [[0.1] * 151],
+        "metadatas": [[{}] * 151],
+    }
+    rag, collection = initialized_rag(tmp_path, payload)
+    rag._doc_index = {"SWC-107": doc}
+
+    results = rag.search("reentrancy", n_results=10_000)
+
+    assert [result.document.id for result in results] == ["SWC-107"]
+    assert collection.query_calls[0]["n_results"] == embedding_rag.MAX_QUERY_RESULTS
+
+
+def test_batch_search_caps_returned_rows_and_skips_unsafe_ids(tmp_path):
+    doc = VulnerabilityDocument(id="SWC-107")
+    payload = {
+        "ids": [["bad\u2028id", *["SWC-107"] * 150]],
+        "distances": [[0.1] * 151],
+        "metadatas": [[{}] * 151],
+    }
+    rag, collection = initialized_rag(tmp_path, payload)
+    rag._doc_index = {"SWC-107": doc}
+
+    results = rag.batch_search(["reentrancy"], n_results=10_000)
+
+    assert [result.document.id for result in results[0]] == ["SWC-107"]
+    assert collection.query_calls[0]["n_results"] == embedding_rag.MAX_QUERY_RESULTS
+
+
+def test_embedding_rag_cache_helpers_handle_hostile_cache_access(tmp_path):
+    class HostileCache(dict):
+        def __getitem__(self, key):
+            raise RuntimeError("boom")
+
+        def __setitem__(self, key, value):
+            raise RuntimeError("boom")
+
+    rag = EmbeddingRAG(persist_directory=str(tmp_path))
+    rag._query_cache = HostileCache({"key": (0.0, [])})
+    doc = VulnerabilityDocument(id="DOC-CACHE")
+    result = RetrievalResult(document=doc, similarity_score=0.5, relevance_reason="ok")
+
+    assert rag._get_cached_result("key") is None
+    rag._cache_result("key", [result])
+
+
+def test_get_context_for_llm_skips_raising_context_results(tmp_path):
+    class RaisingResult:
+        def to_context(self):
+            raise RuntimeError("boom")
+
+    rag, _collection = initialized_rag(tmp_path)
+    doc = VulnerabilityDocument(id="DOC-CTX", title="Safe", description="Description")
+    rag.search_by_finding = lambda *_args, **_kwargs: [
+        RaisingResult(),
+        RetrievalResult(document=doc, similarity_score=0.9, relevance_reason="ok"),
+    ]
+
+    context = rag.get_context_for_llm({"type": "reentrancy"})
+
+    assert "Safe" in context
