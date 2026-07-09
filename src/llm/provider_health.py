@@ -4,6 +4,7 @@ Shared provider health helpers for OpenAI-compatible LLM APIs.
 
 import asyncio
 import inspect
+import ipaddress
 import json
 import logging
 import math
@@ -221,12 +222,35 @@ def _valid_model_base_url(base_url: str) -> bool:
         parsed = urlsplit(base_url)
     except (AttributeError, TypeError, ValueError, RuntimeError):
         return False
+    host = parsed.hostname
     return (
         parsed.scheme in {"http", "https"}
         and bool(parsed.netloc)
+        and _valid_provider_host(host)
         and parsed.path in {"", "/"}
         and not parsed.query
         and not parsed.fragment
         and not (parsed.username or parsed.password)
-        and not any(ord(ch) < 32 or ord(ch) == 127 for ch in base_url)
+        and not any(ord(ch) < 32 or ord(ch) == 127 or ch in "\u2028\u2029" for ch in base_url)
+    )
+
+
+def _valid_provider_host(host: Any) -> bool:
+    """Reject local/private model provider hosts without DNS lookups."""
+    host_text = _safe_text(host, limit=253).rstrip(".").lower()
+    if not host_text:
+        return False
+    if host_text == "localhost" or host_text.endswith(".localhost"):
+        return False
+    try:
+        address = ipaddress.ip_address(host_text)
+    except ValueError:
+        return True
+    return not (
+        address.is_loopback
+        or address.is_private
+        or address.is_link_local
+        or address.is_multicast
+        or address.is_unspecified
+        or address.is_reserved
     )

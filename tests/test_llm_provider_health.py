@@ -86,8 +86,30 @@ def test_model_list_accepts_items_alias():
 def test_provider_label_and_base_url_reject_control_chars():
     assert _provider_label("Deep\nSeek") == "provider"
     assert _valid_model_base_url("https://api.deepseek.example") is True
+    assert _valid_model_base_url("http://8.8.8.8") is True
     assert _valid_model_base_url("https://api.deepseek.example/v1") is False
     assert _valid_model_base_url("https://api.deepseek.example/\n") is False
+    assert _valid_model_base_url("https://api.deepseek.example\u2028") is False
+    assert _valid_model_base_url("https://api.deepseek.example\u2029") is False
+
+
+@pytest.mark.parametrize(
+    "base_url",
+    [
+        "http://localhost:11434",
+        "http://miesc.localhost:11434",
+        "http://127.0.0.1:11434",
+        "http://[::1]:11434",
+        "http://10.0.0.7",
+        "http://172.16.0.7",
+        "http://192.168.1.7",
+        "http://169.254.1.7",
+        "http://0.0.0.0",
+        "http://224.0.0.1",
+    ],
+)
+def test_model_base_url_rejects_local_private_and_non_routable_hosts(base_url):
+    assert _valid_model_base_url(base_url) is False
 
 
 def test_model_id_text_rejects_del_characters():
@@ -294,6 +316,33 @@ def test_fetch_openai_compatible_model_ids_rejects_credentials_in_base_url():
         with patch("aiohttp.ClientSession") as session:
             models = await fetch_openai_compatible_model_ids(
                 "https://user:password@api.deepseek.example",
+                "test-key",
+                provider_name="DeepSeek",
+            )
+
+        assert models == set()
+        session.assert_not_called()
+
+    asyncio.run(run_test())
+
+
+@pytest.mark.parametrize(
+    "base_url",
+    [
+        "http://localhost:11434",
+        "http://127.0.0.1:11434",
+        "http://[::1]:11434",
+        "http://10.0.0.7",
+        "http://169.254.1.7",
+    ],
+)
+def test_fetch_openai_compatible_model_ids_rejects_private_hosts_before_network(base_url):
+    """Provider health checks should not open sessions to local/private hosts."""
+
+    async def run_test():
+        with patch("aiohttp.ClientSession") as session:
+            models = await fetch_openai_compatible_model_ids(
+                base_url,
                 "test-key",
                 provider_name="DeepSeek",
             )
