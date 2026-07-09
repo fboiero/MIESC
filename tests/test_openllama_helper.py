@@ -7,8 +7,10 @@ import src.llm.openllama_helper as openllama_helper_module
 from src.llm.openllama_helper import (
     MAX_ANALYZE_RESPONSE_CHARS,
     MAX_GENERATE_RESPONSE_BYTES,
+    MAX_GENERATE_RESPONSE_TEXT_CHARS,
     MAX_PRIORITY_RESPONSE_CHARS,
     MAX_PRIORITY_TEXT_CHARS,
+    MAX_PROMPT_JSON_MAPPING_ITEMS,
     MAX_REMEDIATION_RESPONSE_CHARS,
     LLMConfig,
     OpenLLaMAHelper,
@@ -159,6 +161,7 @@ def test_ollama_model_name_strips_and_rejects_control_chars():
     assert OpenLLaMAHelper._ollama_model_name("  valid-model  ") == "valid-model"
     assert OpenLLaMAHelper._ollama_model_name(b"  valid-bytes-model  ") == "valid-bytes-model"
     assert OpenLLaMAHelper._ollama_model_name("valid\nmodel") is None
+    assert OpenLLaMAHelper._ollama_model_name("valid\u2028model") is None
     assert OpenLLaMAHelper._ollama_model_name("x" * 257) is None
 
 
@@ -175,6 +178,7 @@ def test_ollama_model_available_rejects_truncated_collision():
 def test_prompt_text_strips_and_rejects_control_chars():
     assert OpenLLaMAHelper._prompt_text("  valid prompt  ", default="fallback") == "valid prompt"
     assert OpenLLaMAHelper._prompt_text("bad\nprompt", default="fallback") == "fallback"
+    assert OpenLLaMAHelper._prompt_text("bad\u2029prompt", default="fallback") == "fallback"
 
 
 def test_priority_item_text_strips_and_rejects_control_chars():
@@ -191,11 +195,26 @@ def test_subprocess_text_rejects_control_chars():
     assert OpenLLaMAHelper._subprocess_text(Result(), "stderr") == ""
 
 
+def test_subprocess_text_rejects_unicode_separators_and_bad_limits():
+    class Result:
+        stdout = "bad\u2028output"
+        stderr = "bounded"
+
+    assert OpenLLaMAHelper._subprocess_text(Result(), "stdout") == ""
+    assert OpenLLaMAHelper._subprocess_text(Result(), "stderr", limit=["bad"]) == "bounded"
+
+
 def test_ollama_generate_host_and_mapping_get_bound_inputs():
     assert OpenLLaMAHelper._ollama_generate_host(b"  http://localhost:11434  ") == (
         "http://localhost:11434"
     )
     assert OpenLLaMAHelper._ollama_generate_host("http://localhost:11434\x7f") == (
+        openllama_helper_module.DEFAULT_OLLAMA_HOST
+    )
+    assert OpenLLaMAHelper._ollama_generate_host("http://user:pass@localhost:11434") == (
+        openllama_helper_module.DEFAULT_OLLAMA_HOST
+    )
+    assert OpenLLaMAHelper._ollama_generate_host("http://localhost:11434\u2028") == (
         openllama_helper_module.DEFAULT_OLLAMA_HOST
     )
     assert OpenLLaMAHelper._mapping_get(MappingProxyType({"model": "x"}), "model") == "x"
@@ -217,6 +236,10 @@ def test_openllama_private_helpers_bound_text_and_json_inputs():
 
     assert OpenLLaMAHelper._bounded_number(b"3", default=5.0, minimum=1.0, maximum=10.0) == 3.0
     assert OpenLLaMAHelper._bounded_number("3\x7f", default=5.0, minimum=1.0, maximum=10.0) == 5.0
+    assert OpenLLaMAHelper._bounded_number("3\u2028", default=5.0, minimum=1.0, maximum=10.0) == 5.0
+    assert (
+        OpenLLaMAHelper._bounded_number(float("inf"), default=5.0, minimum=1.0, maximum=10.0) == 5.0
+    )
     assert OpenLLaMAHelper._llm_text_response(b"  ok  ", limit=10) == "ok"
     assert OpenLLaMAHelper._llm_text_response("bad\x7ftext", limit=10) is None
     assert OpenLLaMAHelper._summary_field_text(b"  summary text  ", default="fallback") == (
@@ -376,7 +399,13 @@ def test_enhance_findings_skips_non_dict_items_and_defaults_prompt_inputs(monkey
     result = helper.enhance_findings(findings, {"source": "contract C {}"}, ["slither"])
 
     assert result is findings
-    assert calls == [({"severity": "HIGH", "title": "valid", "llm_insights": "insight", "llm_enhanced": True}, "", "adapter")]
+    assert calls == [
+        (
+            {"severity": "HIGH", "title": "valid", "llm_insights": "insight", "llm_enhanced": True},
+            "",
+            "adapter",
+        )
+    ]
     assert findings[1]["llm_enhanced"] is True
 
 
@@ -500,9 +529,11 @@ def test_call_llm_ignores_generate_payload_with_bad_response_accessor(monkeypatc
     monkeypatch.setattr("urllib.request.urlopen", lambda *args, **kwargs: FakeResponse())
     monkeypatch.setattr(
         "json.loads",
-        lambda raw, *args, **kwargs: MalformedPayload()
-        if raw == b'{"response": "ignored"}'
-        else original_json_loads(raw, *args, **kwargs),
+        lambda raw, *args, **kwargs: (
+            MalformedPayload()
+            if raw == b'{"response": "ignored"}'
+            else original_json_loads(raw, *args, **kwargs)
+        ),
     )
 
     assert helper._call_llm("prompt") is None
@@ -529,9 +560,11 @@ def test_call_llm_ignores_generate_payload_with_bad_response_strip(monkeypatch):
     monkeypatch.setattr("urllib.request.urlopen", lambda *args, **kwargs: FakeResponse())
     monkeypatch.setattr(
         "json.loads",
-        lambda raw, *args, **kwargs: {"response": MalformedText("bad")}
-        if raw == b'{"response": "ignored"}'
-        else original_json_loads(raw, *args, **kwargs),
+        lambda raw, *args, **kwargs: (
+            {"response": MalformedText("bad")}
+            if raw == b'{"response": "ignored"}'
+            else original_json_loads(raw, *args, **kwargs)
+        ),
     )
 
     assert helper._call_llm("prompt") is None
@@ -670,6 +703,29 @@ def test_call_llm_rejects_line_fragment_with_control_chars(monkeypatch):
     assert helper._call_llm("prompt") == "ok"
 
 
+def test_call_llm_caps_line_fragment_count_and_total_text(monkeypatch):
+    helper = OpenLLaMAHelper(LLMConfig(retry_attempts=1))
+    oversized = "x" * (MAX_GENERATE_RESPONSE_TEXT_CHARS + 100)
+
+    class FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            return (
+                json.dumps({"response": oversized}).encode()
+                + b"\n"
+                + b'{"response": "ignored after cap"}\n'
+            )
+
+    monkeypatch.setattr("urllib.request.urlopen", lambda *args, **kwargs: FakeResponse())
+
+    assert helper._call_llm("prompt") == "x" * MAX_GENERATE_RESPONSE_TEXT_CHARS
+
+
 def test_call_llm_redacts_urlopen_error_message(monkeypatch, caplog):
     helper = OpenLLaMAHelper(LLMConfig(retry_attempts=1))
 
@@ -726,7 +782,9 @@ def test_call_llm_ignores_malformed_line_delimited_generate_fragments(monkeypatc
 
 
 def test_call_llm_defaults_malformed_timeout_and_retry_config(monkeypatch):
-    helper = OpenLLaMAHelper(LLMConfig(timeout=["slow"], retry_attempts=["many"], retry_delay=False))
+    helper = OpenLLaMAHelper(
+        LLMConfig(timeout=["slow"], retry_attempts=["many"], retry_delay=False)
+    )
     calls = []
 
     class FakeResponse:
@@ -837,6 +895,31 @@ def test_call_llm_defaults_malformed_ollama_host(monkeypatch):
         return FakeResponse()
 
     monkeypatch.setenv("OLLAMA_HOST", "https://")
+    monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
+
+    assert helper._call_llm("prompt") == "bounded text"
+    assert calls == ["http://localhost:11434/api/generate"]
+
+
+def test_call_llm_defaults_ollama_host_with_credentials(monkeypatch):
+    helper = OpenLLaMAHelper(LLMConfig(retry_attempts=1))
+    calls = []
+
+    class FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            return json.dumps({"response": "bounded text"}).encode()
+
+    def fake_urlopen(req, timeout):
+        calls.append(req.full_url)
+        return FakeResponse()
+
+    monkeypatch.setenv("OLLAMA_HOST", "http://user:pass@localhost:11434")
     monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
 
     assert helper._call_llm("prompt") == "bounded text"
@@ -1262,6 +1345,37 @@ def test_private_helpers_format_summary_and_severity():
     assert len(summary.split(" - ", 1)[1]) == 100
 
 
+def test_create_findings_summary_uses_safe_mapping_accessors():
+    helper = OpenLLaMAHelper()
+
+    class MalformedFinding(dict):
+        def get(self, key, default=None):
+            raise RuntimeError("bad finding accessor")
+
+    summary = helper._create_findings_summary([MalformedFinding({"severity": "HIGH"})])
+
+    assert summary == "0. [UNKNOWN] Unknown - "
+
+
+def test_enhance_findings_sorts_with_safe_mapping_accessors(monkeypatch):
+    helper = OpenLLaMAHelper()
+
+    class MalformedFinding(dict):
+        def get(self, key, default=None):
+            raise RuntimeError("bad severity accessor")
+
+    findings = [MalformedFinding({"severity": "HIGH", "title": "bad"}), {"severity": "LOW"}]
+    calls = []
+
+    monkeypatch.setattr(helper, "is_available", lambda: True)
+    monkeypatch.setattr(
+        helper, "_generate_insights", lambda finding, *_args: calls.append(finding) or "ok"
+    )
+
+    assert helper.enhance_findings(findings, "contract C {}", "adapter") is findings
+    assert len(calls) == 2
+
+
 def test_private_helpers_bound_prompt_and_priority_inputs():
     helper = OpenLLaMAHelper()
 
@@ -1403,6 +1517,26 @@ def test_generate_insights_defaults_cyclic_finding_metadata(monkeypatch):
 def test_prompt_json_value_bounds_recursive_collection_output():
     assert OpenLLaMAHelper._prompt_json_value(list(range(60))) == list(range(50))
     assert len(OpenLLaMAHelper._prompt_json_value({str(i): i for i in range(120)})) == 100
+
+
+def test_prompt_location_and_finding_json_cap_mapping_items_and_keys():
+    location = {f"k{i}": i for i in range(MAX_PROMPT_JSON_MAPPING_ITEMS + 10)}
+    rendered_location = json.loads(OpenLLaMAHelper._prompt_location(location))
+
+    assert len(rendered_location) == MAX_PROMPT_JSON_MAPPING_ITEMS
+    assert OpenLLaMAHelper._prompt_json_key("bad\u2028key") == ""
+    rendered_finding = json.loads(
+        OpenLLaMAHelper._prompt_finding_json(
+            {f"k{i}": i for i in range(MAX_PROMPT_JSON_MAPPING_ITEMS + 10)}
+        )
+    )
+    assert len(rendered_finding) == MAX_PROMPT_JSON_MAPPING_ITEMS
+
+
+def test_prompt_json_value_rejects_nonfinite_floats():
+    assert OpenLLaMAHelper._prompt_json_value(float("nan")) == ""
+    assert OpenLLaMAHelper._prompt_json_value(float("inf")) == ""
+    assert OpenLLaMAHelper._prompt_json_value(1.5) == 1.5
 
 
 def test_prompt_json_value_handles_malformed_collection_accessors():
@@ -1596,6 +1730,64 @@ def test_parse_priorities_skips_non_integer_indexes():
     )
 
     assert priorities == {2: {"priority": 8, "reason": "valid index"}}
+
+
+def test_parse_priorities_skips_negative_and_oversized_indexes():
+    helper = OpenLLaMAHelper()
+
+    priorities = helper._parse_priorities(
+        """
+        {
+            "priorities": [
+                {"index": -1, "priority": 9, "reason": "negative"},
+                {"index": 10001, "priority": 9, "reason": "too high"},
+                {"index": 2, "priority": 8, "reason": "valid index"}
+            ]
+        }
+        """
+    )
+
+    assert priorities == {2: {"priority": 8, "reason": "valid index"}}
+
+
+def test_parse_priorities_caps_priority_items():
+    helper = OpenLLaMAHelper()
+    payload = {
+        "priorities": [
+            {"index": index, "priority": 8, "reason": f"item {index}"} for index in range(120)
+        ]
+    }
+
+    priorities = helper._parse_priorities(json.dumps(payload))
+
+    assert len(priorities) == 100
+    assert 99 in priorities
+    assert 100 not in priorities
+
+
+def test_parse_priorities_skips_hostile_item_get_accessors(monkeypatch):
+    helper = OpenLLaMAHelper()
+    original_loads = json.loads
+
+    class MalformedPriority(dict):
+        def get(self, key, default=None):
+            raise RuntimeError("bad priority accessor")
+
+    monkeypatch.setattr(
+        "json.loads",
+        lambda raw, *args, **kwargs: (
+            {
+                "priorities": [
+                    MalformedPriority({"index": 0, "priority": 9, "reason": "hidden"}),
+                    {"index": 1, "priority": 7, "reason": "valid"},
+                ]
+            }
+            if raw == '{"priorities": []}'
+            else original_loads(raw, *args, **kwargs)
+        ),
+    )
+
+    assert helper._parse_priorities('{"priorities": []}') == {1: {"priority": 7, "reason": "valid"}}
 
 
 def test_parse_priorities_defaults_malformed_priority_payload_fields():

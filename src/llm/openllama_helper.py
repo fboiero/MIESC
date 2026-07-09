@@ -20,9 +20,12 @@ Version: 1.0.0
 
 import json
 import logging
+import math
 import os
 import subprocess
 import time
+import unicodedata
+import urllib.parse
 from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
@@ -54,9 +57,25 @@ MAX_LLM_TIMEOUT_SECONDS = 600.0
 MAX_LLM_RETRY_ATTEMPTS = 10
 MAX_PROMPT_JSON_LIST_ITEMS = 50
 MAX_PROMPT_JSON_MAPPING_ITEMS = 100
+MAX_PRIORITY_ITEMS = 100
+MAX_PRIORITY_INDEX = 10_000
+MAX_GENERATE_LINE_FRAGMENTS = 1_000
+MAX_GENERATE_RESPONSE_TEXT_CHARS = 20_000
 
 
-def _safe_text(value: Any, *, limit: Optional[int] = None, allow_multiline: bool = False) -> Optional[str]:
+def _is_unsafe_text_char(char: str, *, allow_multiline: bool = False) -> bool:
+    """Return true for control or separator characters that can corrupt prompts/logs."""
+    codepoint = ord(char)
+    if codepoint == 127:
+        return True
+    if codepoint < 32:
+        return not allow_multiline or char not in "\n\r\t"
+    return unicodedata.category(char) in {"Zl", "Zp"}
+
+
+def _safe_text(
+    value: Any, *, limit: Optional[int] = None, allow_multiline: bool = False
+) -> Optional[str]:
     """Return bounded text or None for malformed scalar inputs."""
     if isinstance(value, bytes):
         try:
@@ -71,14 +90,14 @@ def _safe_text(value: Any, *, limit: Optional[int] = None, allow_multiline: bool
         return None
     if not text:
         return None
-    if allow_multiline:
-        invalid = any(ord(ch) < 32 and ch not in "\n\r\t" or ord(ch) == 127 for ch in text)
-    else:
-        invalid = any(ord(ch) < 32 or ord(ch) == 127 for ch in text)
+    invalid = any(_is_unsafe_text_char(ch, allow_multiline=allow_multiline) for ch in text)
     if invalid:
         return None
-    if limit is not None and len(text) > limit:
-        text = text[:limit]
+    if limit is not None:
+        if isinstance(limit, bool) or not isinstance(limit, int) or limit < 1:
+            limit = len(text)
+        if len(text) > limit:
+            text = text[:limit]
     return text
 
 
@@ -172,11 +191,9 @@ class OpenLLaMAHelper:
             # Select top findings to process (avoid overwhelming LLM)
             top_findings = sorted(
                 valid_findings,
-                key=lambda f: self._severity_score(f.get("severity", "LOW")),
+                key=lambda f: self._severity_score(self._mapping_get(f, "severity", "LOW")),
                 reverse=True,
-            )[
-                :5
-            ]  # Top 5 most severe
+            )[:5]  # Top 5 most severe
 
             for finding in top_findings:
                 insights = self._generate_insights(finding, prompt_context, prompt_adapter_name)
@@ -205,7 +222,7 @@ class OpenLLaMAHelper:
         if not self.is_available():
             return fallback_output
 
-        prompt = f"""You are a security expert. Explain this technical output from {self._prompt_text(adapter_name, default='adapter')} in clear, accessible language.
+        prompt = f"""You are a security expert. Explain this technical output from {self._prompt_text(adapter_name, default="adapter")} in clear, accessible language.
 
 TECHNICAL OUTPUT:
 {self._prompt_text(technical_output, limit=2000)}  # Truncate to fit context
@@ -311,10 +328,10 @@ OUTPUT (JSON only):
         prompt = f"""Generate specific remediation advice for this vulnerability.
 
 VULNERABILITY:
-Title: {self._prompt_text(self._mapping_get(normalized_finding, 'title'), default='Unknown')}
-Severity: {self._prompt_text(self._mapping_get(normalized_finding, 'severity'), default='UNKNOWN')}
-Description: {self._prompt_text(self._mapping_get(normalized_finding, 'description'))}
-Location: {self._prompt_location(self._mapping_get(normalized_finding, 'location'))}
+Title: {self._prompt_text(self._mapping_get(normalized_finding, "title"), default="Unknown")}
+Severity: {self._prompt_text(self._mapping_get(normalized_finding, "severity"), default="UNKNOWN")}
+Description: {self._prompt_text(self._mapping_get(normalized_finding, "description"))}
+Location: {self._prompt_location(self._mapping_get(normalized_finding, "location"))}
 
 CONTRACT CODE (excerpt):
 {self._prompt_text(contract_code, limit=1500)}
@@ -391,7 +408,9 @@ REMEDIATION ADVICE:"""
         model = _safe_text(value)
         if model is None:
             return None
-        if any(char.isspace() for char in model) or any(ord(char) < 32 or ord(char) == 127 for char in model):
+        if any(char.isspace() for char in model) or any(
+            _is_unsafe_text_char(char) for char in model
+        ):
             return None
         return model
 
@@ -536,7 +555,8 @@ REMEDIATION ADVICE:"""
             return None
 
         fragments = []
-        for line in lines:
+        total_chars = 0
+        for line in lines[:MAX_GENERATE_LINE_FRAGMENTS]:
             if not line:
                 continue
             try:
@@ -553,7 +573,12 @@ REMEDIATION ADVICE:"""
                 continue
             has_text = _safe_text(raw_response) is not None
             if has_text:
-                fragments.append(raw_response)
+                remaining = MAX_GENERATE_RESPONSE_TEXT_CHARS - total_chars
+                if remaining <= 0:
+                    break
+                fragment = raw_response[:remaining]
+                fragments.append(fragment)
+                total_chars += len(fragment)
 
         response_text = "".join(fragments).strip()
         return response_text or None
@@ -568,11 +593,13 @@ REMEDIATION ADVICE:"""
                 value = value.decode("utf-8", errors="replace")
             except Exception:
                 return float(default)
-        if isinstance(value, str) and any(ord(ch) < 32 or ord(ch) == 127 for ch in value):
+        if isinstance(value, str) and any(_is_unsafe_text_char(ch) for ch in value):
             return float(default)
         try:
             normalized = float(value)
         except (TypeError, ValueError):
+            return float(default)
+        if not math.isfinite(normalized):
             return float(default)
         if not minimum <= normalized <= maximum:
             return float(default)
@@ -623,7 +650,13 @@ REMEDIATION ADVICE:"""
         if not isinstance(value, str):
             return DEFAULT_OLLAMA_HOST
         endpoint = value.strip()
-        if not endpoint or any(ord(ch) < 32 or ord(ch) == 127 for ch in endpoint):
+        if not endpoint or any(_is_unsafe_text_char(ch) for ch in endpoint):
+            return DEFAULT_OLLAMA_HOST
+        try:
+            parsed = urllib.parse.urlparse(endpoint if "://" in endpoint else f"http://{endpoint}")
+        except (AttributeError, TypeError, ValueError, RuntimeError):
+            return DEFAULT_OLLAMA_HOST
+        if parsed.username or parsed.password:
             return DEFAULT_OLLAMA_HOST
         return endpoint or DEFAULT_OLLAMA_HOST
 
@@ -632,7 +665,7 @@ REMEDIATION ADVICE:"""
     ) -> Optional[str]:
         """Generate insights for a single finding."""
         finding_json = self._prompt_finding_json(finding)
-        prompt = f"""Analyze this security finding from {self._prompt_text(adapter_name, default='adapter')} and provide expert insights.
+        prompt = f"""Analyze this security finding from {self._prompt_text(adapter_name, default="adapter")} and provide expert insights.
 
 FINDING:
 {finding_json}
@@ -694,14 +727,18 @@ INSIGHTS:"""
     def _create_findings_summary(self, findings: List[Dict[str, Any]]) -> str:
         """Create concise summary of findings for LLM."""
         summary_lines = []
-        for idx, finding in enumerate(findings):
+        for idx, finding in enumerate(findings[:10]):
             if not isinstance(finding, dict):
                 finding = {}
             severity = self._summary_field_text(
-                finding.get("severity"), default="UNKNOWN", limit=40
+                self._mapping_get(finding, "severity"), default="UNKNOWN", limit=40
             )
-            title = self._summary_field_text(finding.get("title"), default="Unknown", limit=200)
-            description = self._summary_field_text(finding.get("description"), limit=100)
+            title = self._summary_field_text(
+                self._mapping_get(finding, "title"), default="Unknown", limit=200
+            )
+            description = self._summary_field_text(
+                self._mapping_get(finding, "description"), limit=100
+            )
             line = f"{idx}. [{severity}] {title} - {description}"
             summary_lines.append(line)
         return "\n".join(summary_lines)
@@ -736,8 +773,9 @@ INSIGHTS:"""
         if isinstance(value, dict):
             try:
                 normalized = {
-                    str(key): cls._prompt_json_value(item)
-                    for key, item in value.items()
+                    cls._prompt_json_key(key): cls._prompt_json_value(item)
+                    for index, (key, item) in enumerate(value.items())
+                    if index < MAX_PROMPT_JSON_MAPPING_ITEMS
                 }
             except (AttributeError, TypeError, ValueError, RuntimeError, RecursionError):
                 return "{}"
@@ -754,7 +792,9 @@ INSIGHTS:"""
                 normalized = {}
             else:
                 normalized = {
-                    str(key): cls._prompt_json_value(value) for key, value in finding.items()
+                    cls._prompt_json_key(key): cls._prompt_json_value(value)
+                    for index, (key, value) in enumerate(finding.items())
+                    if index < MAX_PROMPT_JSON_MAPPING_ITEMS
                 }
         except (AttributeError, TypeError, ValueError, RuntimeError, RecursionError):
             normalized = {}
@@ -790,9 +830,11 @@ INSIGHTS:"""
         if isinstance(value, (str, int, float, bool)) or value is None:
             if isinstance(value, str):
                 text = value.strip()
-                if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+                if not text or any(_is_unsafe_text_char(ch) for ch in text):
                     return ""
                 return text
+            if isinstance(value, float) and not math.isfinite(value):
+                return ""
             return value
         if isinstance(value, list):
             try:
@@ -806,13 +848,19 @@ INSIGHTS:"""
         if isinstance(value, dict):
             try:
                 return {
-                    str(key): cls._prompt_json_value(item)
+                    cls._prompt_json_key(key): cls._prompt_json_value(item)
                     for index, (key, item) in enumerate(value.items())
                     if index < MAX_PROMPT_JSON_MAPPING_ITEMS
                 }
             except (AttributeError, TypeError, ValueError, RuntimeError, RecursionError):
                 return {}
         return ""
+
+    @staticmethod
+    def _prompt_json_key(value: Any) -> str:
+        """Return a bounded JSON object key without unsafe control/separator text."""
+        text = _safe_text(value, limit=MAX_PRIORITY_TEXT_CHARS)
+        return text or ""
 
     def _parse_priorities(self, llm_response: str) -> Dict[int, Dict[str, Any]]:
         """Parse priority assignments from LLM response."""
@@ -826,7 +874,9 @@ INSIGHTS:"""
                 return {}
 
             stripped = llm_response.strip()
-            json_str = stripped if stripped.startswith("[") else extract_json_from_text(llm_response)
+            json_str = (
+                stripped if stripped.startswith("[") else extract_json_from_text(llm_response)
+            )
             if json_str is None:
                 json_str = stripped
 
@@ -842,13 +892,17 @@ INSIGHTS:"""
                 return {}
 
             priorities = {}
-            for item in priority_items:
+            for item in priority_items[:MAX_PRIORITY_ITEMS]:
                 if not isinstance(item, dict):
                     continue
-                idx = item.get("index")
-                if isinstance(idx, int) and not isinstance(idx, bool):
-                    priority = item.get("priority", 5)
-                    reason = self._priority_item_text(item.get("reason", ""))
+                idx = self._mapping_get(item, "index")
+                if (
+                    isinstance(idx, int)
+                    and not isinstance(idx, bool)
+                    and 0 <= idx <= MAX_PRIORITY_INDEX
+                ):
+                    priority = self._mapping_get(item, "priority", 5)
+                    reason = self._priority_item_text(self._mapping_get(item, "reason", ""))
                     priorities[idx] = {
                         "priority": priority
                         if isinstance(priority, int)
