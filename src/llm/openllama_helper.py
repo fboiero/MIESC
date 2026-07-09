@@ -61,6 +61,10 @@ MAX_PRIORITY_ITEMS = 100
 MAX_PRIORITY_INDEX = 10_000
 MAX_GENERATE_LINE_FRAGMENTS = 1_000
 MAX_GENERATE_RESPONSE_TEXT_CHARS = 20_000
+MAX_OLLAMA_LIST_OUTPUT_CHARS = 20_000
+MAX_OLLAMA_LIST_MODEL_ROWS = 500
+MAX_PROMPT_JSON_RECURSION_DEPTH = 32
+MAX_PROMPT_JSON_RECURSION_NODES = 1_000
 
 
 def _is_unsafe_text_char(char: str, *, allow_multiline: bool = False) -> bool:
@@ -145,16 +149,17 @@ class OpenLLaMAHelper:
             returncode = self._subprocess_returncode(result)
             model_list = self._subprocess_text(result, "stdout")
 
+            model_label = self._ollama_model_log_label(self.config.model)
             if self._successful_returncode(returncode) and self._ollama_model_available(
                 self.config.model, model_list
             ):
                 self._available = True
-                logger.info(f"OpenLLaMA: {self.config.model} available")
+                logger.info("OpenLLaMA: %s available", model_label)
             else:
                 self._available = False
                 stderr = self._subprocess_text(result, "stderr", limit=500)
                 detail = f": {stderr}" if stderr else ""
-                logger.warning(f"OpenLLaMA: {self.config.model} not found{detail}")
+                logger.warning("OpenLLaMA: %s not found%s", model_label, detail)
 
         except OLLAMA_RUNTIME_ERRORS as e:
             self._available = False
@@ -366,11 +371,15 @@ REMEDIATION ADVICE:"""
     def _ollama_list_model_names(model_list: Any) -> tuple[str, ...]:
         """Extract bounded model names from Ollama list output."""
         if isinstance(model_list, (bytes, bytearray)):
+            if len(model_list) > MAX_OLLAMA_LIST_OUTPUT_CHARS:
+                return ()
             try:
                 model_list = bytes(model_list).decode("utf-8", errors="replace")
             except (AttributeError, TypeError, ValueError, RuntimeError):
                 return ()
         if not isinstance(model_list, str):
+            return ()
+        if len(model_list) > MAX_OLLAMA_LIST_OUTPUT_CHARS:
             return ()
 
         try:
@@ -379,7 +388,7 @@ REMEDIATION ADVICE:"""
             return ()
 
         names = []
-        for line in lines:
+        for line in lines[:MAX_OLLAMA_LIST_MODEL_ROWS]:
             if not isinstance(line, str):
                 continue
             try:
@@ -413,6 +422,11 @@ REMEDIATION ADVICE:"""
         ):
             return None
         return model
+
+    @staticmethod
+    def _ollama_model_log_label(value: Any) -> str:
+        """Return a safe model label for logs."""
+        return OpenLLaMAHelper._ollama_model_name(value) or "<invalid-model>"
 
     @staticmethod
     def _subprocess_returncode(result: Any) -> Optional[int]:
@@ -641,7 +655,7 @@ REMEDIATION ADVICE:"""
 
     @staticmethod
     def _ollama_generate_host(value: Any) -> str:
-        """Return a stripped endpoint string or the default Ollama host."""
+        """Return an origin-only endpoint string or the default Ollama host."""
         if isinstance(value, bytes):
             try:
                 value = value.decode("utf-8", errors="replace")
@@ -650,13 +664,19 @@ REMEDIATION ADVICE:"""
         if not isinstance(value, str):
             return DEFAULT_OLLAMA_HOST
         endpoint = value.strip()
-        if not endpoint or any(_is_unsafe_text_char(ch) for ch in endpoint):
+        if (
+            not endpoint
+            or len(endpoint) > 2_000
+            or any(_is_unsafe_text_char(ch) for ch in endpoint)
+        ):
             return DEFAULT_OLLAMA_HOST
         try:
             parsed = urllib.parse.urlparse(endpoint if "://" in endpoint else f"http://{endpoint}")
         except (AttributeError, TypeError, ValueError, RuntimeError):
             return DEFAULT_OLLAMA_HOST
-        if parsed.username or parsed.password:
+        if parsed.username or parsed.password or not parsed.hostname or not parsed.netloc:
+            return DEFAULT_OLLAMA_HOST
+        if parsed.path not in {"", "/"} or parsed.params or parsed.query or parsed.fragment:
             return DEFAULT_OLLAMA_HOST
         return endpoint or DEFAULT_OLLAMA_HOST
 
@@ -801,19 +821,43 @@ INSIGHTS:"""
         return json.dumps(normalized, indent=2, sort_keys=True)
 
     @classmethod
-    def _has_recursive_container(cls, value: Any, seen: Optional[set[int]] = None) -> bool:
+    def _has_recursive_container(
+        cls,
+        value: Any,
+        seen: Optional[set[int]] = None,
+        *,
+        depth: int = 0,
+        budget: Optional[List[int]] = None,
+    ) -> bool:
         """Return true when a list/dict graph contains a recursive reference."""
         if not isinstance(value, (dict, list)):
             return False
+        if depth > MAX_PROMPT_JSON_RECURSION_DEPTH:
+            return True
         if seen is None:
             seen = set()
+        if budget is None:
+            budget = [MAX_PROMPT_JSON_RECURSION_NODES]
+        budget[0] -= 1
+        if budget[0] < 0:
+            return True
         value_id = id(value)
         if value_id in seen:
             return True
         seen.add(value_id)
         try:
             children = value.values() if isinstance(value, dict) else value
-            return any(cls._has_recursive_container(child, seen) for child in children)
+            for index, child in enumerate(children):
+                if index >= MAX_PROMPT_JSON_MAPPING_ITEMS:
+                    break
+                if cls._has_recursive_container(
+                    child,
+                    seen,
+                    depth=depth + 1,
+                    budget=budget,
+                ):
+                    return True
+            return False
         except (AttributeError, TypeError, ValueError, RuntimeError, RecursionError):
             return True
         finally:

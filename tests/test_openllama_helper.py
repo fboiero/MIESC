@@ -8,9 +8,12 @@ from src.llm.openllama_helper import (
     MAX_ANALYZE_RESPONSE_CHARS,
     MAX_GENERATE_RESPONSE_BYTES,
     MAX_GENERATE_RESPONSE_TEXT_CHARS,
+    MAX_OLLAMA_LIST_MODEL_ROWS,
+    MAX_OLLAMA_LIST_OUTPUT_CHARS,
     MAX_PRIORITY_RESPONSE_CHARS,
     MAX_PRIORITY_TEXT_CHARS,
     MAX_PROMPT_JSON_MAPPING_ITEMS,
+    MAX_PROMPT_JSON_RECURSION_DEPTH,
     MAX_REMEDIATION_RESPONSE_CHARS,
     LLMConfig,
     OpenLLaMAHelper,
@@ -116,6 +119,19 @@ def test_is_available_rejects_malformed_configured_model_name(monkeypatch):
     assert helper.is_available() is False
 
 
+def test_is_available_logs_sanitized_model_name(monkeypatch, caplog):
+    helper = OpenLLaMAHelper(LLMConfig(model="qwen2.5-coder:14b\nWARNING forged"))
+
+    monkeypatch.setattr(
+        "subprocess.run",
+        lambda *args, **kwargs: subprocess.CompletedProcess(args[0], 0, stdout="other-model"),
+    )
+
+    assert helper.is_available() is False
+    assert "<invalid-model>" in caplog.text
+    assert "WARNING forged" not in caplog.text
+
+
 def test_is_available_rejects_non_string_ollama_list_output(monkeypatch):
     helper = OpenLLaMAHelper(LLMConfig(model="test-model"))
 
@@ -155,6 +171,25 @@ def test_ollama_list_model_names_accepts_bytes_payload():
     payload = b"NAME                 ID\nvalid-model          abc123\n"
 
     assert OpenLLaMAHelper._ollama_list_model_names(payload) == ("valid-model",)
+
+
+def test_ollama_list_model_names_rejects_oversized_output():
+    payload = "x" * (MAX_OLLAMA_LIST_OUTPUT_CHARS + 1)
+
+    assert OpenLLaMAHelper._ollama_list_model_names(payload) == ()
+    assert OpenLLaMAHelper._ollama_list_model_names(payload.encode()) == ()
+
+
+def test_ollama_list_model_names_caps_model_rows():
+    payload = "\n".join(
+        ["NAME                 ID"]
+        + [f"noise-{idx} abc" for idx in range(MAX_OLLAMA_LIST_MODEL_ROWS + 5)]
+    )
+
+    names = OpenLLaMAHelper._ollama_list_model_names(payload)
+
+    assert len(names) == MAX_OLLAMA_LIST_MODEL_ROWS - 1
+    assert f"noise-{MAX_OLLAMA_LIST_MODEL_ROWS}" not in names
 
 
 def test_ollama_model_name_strips_and_rejects_control_chars():
@@ -215,6 +250,15 @@ def test_ollama_generate_host_and_mapping_get_bound_inputs():
         openllama_helper_module.DEFAULT_OLLAMA_HOST
     )
     assert OpenLLaMAHelper._ollama_generate_host("http://localhost:11434\u2028") == (
+        openllama_helper_module.DEFAULT_OLLAMA_HOST
+    )
+    assert OpenLLaMAHelper._ollama_generate_host("http://localhost:11434/proxy") == (
+        openllama_helper_module.DEFAULT_OLLAMA_HOST
+    )
+    assert OpenLLaMAHelper._ollama_generate_host("http://localhost:11434?x=1") == (
+        openllama_helper_module.DEFAULT_OLLAMA_HOST
+    )
+    assert OpenLLaMAHelper._ollama_generate_host("http://localhost:11434/#frag") == (
         openllama_helper_module.DEFAULT_OLLAMA_HOST
     )
     assert OpenLLaMAHelper._mapping_get(MappingProxyType({"model": "x"}), "model") == "x"
@@ -926,6 +970,31 @@ def test_call_llm_defaults_ollama_host_with_credentials(monkeypatch):
     assert calls == ["http://localhost:11434/api/generate"]
 
 
+def test_call_llm_defaults_ollama_host_with_path_query_or_fragment(monkeypatch):
+    helper = OpenLLaMAHelper(LLMConfig(retry_attempts=1))
+    calls = []
+
+    class FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            return json.dumps({"response": "bounded text"}).encode()
+
+    def fake_urlopen(req, timeout):
+        calls.append(req.full_url)
+        return FakeResponse()
+
+    monkeypatch.setenv("OLLAMA_HOST", "http://localhost:11434/proxy?x=1#frag")
+    monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
+
+    assert helper._call_llm("prompt") == "bounded text"
+    assert calls == ["http://localhost:11434/api/generate"]
+
+
 def test_prioritize_findings_applies_valid_indices_only(monkeypatch):
     helper = OpenLLaMAHelper()
     findings = [{"title": "A", "severity": "LOW"}, {"title": "B", "severity": "HIGH"}]
@@ -1512,6 +1581,26 @@ def test_generate_insights_defaults_cyclic_finding_metadata(monkeypatch):
     assert "FINDING:\n{}" in captured["prompt"]
     assert "'self':" not in captured["prompt"]
     assert "<RecursionError" not in captured["prompt"]
+
+
+def test_has_recursive_container_caps_total_nodes():
+    large = {
+        f"group{i}": {f"k{j}": {"value": j} for j in range(60)}
+        for i in range(20)
+    }
+
+    assert OpenLLaMAHelper._has_recursive_container(large) is True
+
+
+def test_prompt_finding_json_defaults_over_deep_container():
+    current = {}
+    root = current
+    for _ in range(MAX_PROMPT_JSON_RECURSION_DEPTH + 2):
+        child = {}
+        current["child"] = child
+        current = child
+
+    assert OpenLLaMAHelper._prompt_finding_json(root) == "{}"
 
 
 def test_prompt_json_value_bounds_recursive_collection_output():
