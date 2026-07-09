@@ -295,6 +295,258 @@ def _safe_solidity_literal(value: Any, default: str) -> str:
     return text
 
 
+def _safe_bool_option(value: Any, default: bool) -> bool:
+    """Return boolean options only from real bool values."""
+    return value if isinstance(value, bool) else default
+
+
+def _find_outside_solidity_comments_and_strings(text: str, token: str, start: int = 0) -> int:
+    """Find token only in Solidity code, ignoring comments and strings."""
+    quote = ""
+    block_comment = False
+    line_comment = False
+    index = max(start, 0)
+    while index < len(text):
+        if line_comment:
+            if text[index] == "\n":
+                line_comment = False
+            index += 1
+            continue
+        if block_comment:
+            if text.startswith("*/", index):
+                block_comment = False
+                index += 2
+            else:
+                index += 1
+            continue
+        if quote:
+            if text[index] == "\\":
+                index += 2
+                continue
+            if text[index] == quote:
+                quote = ""
+            index += 1
+            continue
+        if text.startswith("//", index):
+            line_comment = True
+            index += 2
+            continue
+        if text.startswith("/*", index):
+            block_comment = True
+            index += 2
+            continue
+        if text[index] in {'"', "'"}:
+            quote = text[index]
+            index += 1
+            continue
+        if text.startswith(token, index):
+            return index
+        index += 1
+    return -1
+
+
+def _find_solidity_statement_end(text: str, start: int) -> int:
+    """Find the next statement semicolon outside Solidity comments and strings."""
+    quote = ""
+    block_comment = False
+    line_comment = False
+    index = max(start, 0)
+    while index < len(text):
+        if line_comment:
+            if text[index] == "\n":
+                line_comment = False
+            index += 1
+            continue
+        if block_comment:
+            if text.startswith("*/", index):
+                block_comment = False
+                index += 2
+            else:
+                index += 1
+            continue
+        if quote:
+            if text[index] == "\\":
+                index += 2
+                continue
+            if text[index] == quote:
+                quote = ""
+            index += 1
+            continue
+        if text.startswith("//", index):
+            line_comment = True
+            index += 2
+            continue
+        if text.startswith("/*", index):
+            block_comment = True
+            index += 2
+            continue
+        if text[index] in {'"', "'"}:
+            quote = text[index]
+            index += 1
+            continue
+        if text[index] == ";":
+            return index
+        index += 1
+    return -1
+
+
+def _find_matching_solidity_brace(text: str, open_brace: int) -> int:
+    """Find a matching brace while ignoring Solidity comments and strings."""
+    quote = ""
+    block_comment = False
+    line_comment = False
+    depth = 0
+    index = open_brace
+    while index < len(text):
+        if line_comment:
+            if text[index] == "\n":
+                line_comment = False
+            index += 1
+            continue
+        if block_comment:
+            if text.startswith("*/", index):
+                block_comment = False
+                index += 2
+            else:
+                index += 1
+            continue
+        if quote:
+            if text[index] == "\\":
+                index += 2
+                continue
+            if text[index] == quote:
+                quote = ""
+            index += 1
+            continue
+        if text.startswith("//", index):
+            line_comment = True
+            index += 2
+            continue
+        if text.startswith("/*", index):
+            block_comment = True
+            index += 2
+            continue
+        if text[index] in {'"', "'"}:
+            quote = text[index]
+            index += 1
+            continue
+        if text[index] == "{":
+            depth += 1
+        elif text[index] == "}":
+            depth -= 1
+            if depth == 0:
+                return index
+        index += 1
+    return -1
+
+
+def _replace_setup_with_empty(solidity_code: str) -> str:
+    """Replace a setUp function body with an empty body."""
+    setup_index = _find_outside_solidity_comments_and_strings(solidity_code, "function setUp")
+    if setup_index < 0:
+        return solidity_code
+    open_brace = _find_outside_solidity_comments_and_strings(solidity_code, "{", setup_index)
+    if open_brace < 0:
+        return solidity_code
+    close_brace = _find_matching_solidity_brace(solidity_code, open_brace)
+    if close_brace < 0:
+        return solidity_code
+    return f"{solidity_code[:open_brace]}{{}}{solidity_code[close_brace + 1:]}"
+
+
+def _remove_console_logging(solidity_code: str) -> str:
+    """Remove console log statements and unused console imports."""
+    result = solidity_code
+    for token in ("console.log", "console2.log"):
+        token_index = _find_outside_solidity_comments_and_strings(result, token)
+        while token_index >= 0:
+            line_start = result.rfind("\n", 0, token_index) + 1
+            statement_end = _find_solidity_statement_end(result, token_index)
+            if statement_end < 0:
+                line_end = result.find("\n", token_index)
+                statement_end = len(result) - 1 if line_end < 0 else line_end
+            remove_end = statement_end + 1
+            if remove_end < len(result) and result[remove_end] == "\n":
+                remove_end += 1
+            result = f"{result[:line_start]}{result[remove_end:]}"
+            token_index = _find_outside_solidity_comments_and_strings(result, token)
+
+    if (
+        _find_outside_solidity_comments_and_strings(result, "console.") < 0
+        and _find_outside_solidity_comments_and_strings(result, "console2.") < 0
+    ):
+        result = re.sub(
+            r'^\s*import\s+"forge-std/console2?\.sol";\s*\n?',
+            "",
+            result,
+            flags=re.MULTILINE,
+        )
+    return result
+
+
+def _strip_template_comments(solidity_code: str) -> str:
+    """Strip Solidity comments while preserving SPDX license identifiers."""
+    output = []
+    quote = ""
+    block_comment = False
+    line_comment = False
+    index = 0
+    line_comment_preserved = False
+    while index < len(solidity_code):
+        char = solidity_code[index]
+        if line_comment:
+            if line_comment_preserved:
+                output.append(char)
+            if char == "\n":
+                line_comment = False
+                line_comment_preserved = False
+            index += 1
+            continue
+        if block_comment:
+            if solidity_code.startswith("*/", index):
+                block_comment = False
+                index += 2
+            else:
+                if char == "\n":
+                    output.append("\n")
+                index += 1
+            continue
+        if quote:
+            output.append(char)
+            if char == "\\":
+                if index + 1 < len(solidity_code):
+                    output.append(solidity_code[index + 1])
+                index += 2
+                continue
+            if char == quote:
+                quote = ""
+            index += 1
+            continue
+        if solidity_code.startswith("//", index):
+            line_end = solidity_code.find("\n", index)
+            line_end = len(solidity_code) if line_end < 0 else line_end
+            comment_text = solidity_code[index:line_end]
+            line_comment_preserved = comment_text.lstrip().startswith(
+                "// SPDX-License-Identifier:"
+            )
+            if line_comment_preserved:
+                output.append(comment_text)
+                index = line_end
+            else:
+                line_comment = True
+                index += 2
+            continue
+        if solidity_code.startswith("/*", index):
+            block_comment = True
+            index += 2
+            continue
+        if char in {'"', "'"}:
+            quote = char
+        output.append(char)
+        index += 1
+    return "".join(output)
+
+
 def _safe_isoformat(value: Any) -> str:
     """Return ISO timestamps only from datetime-like values."""
     try:
@@ -875,6 +1127,12 @@ class PoCGenerator:
             return _safe_setup_code(value) or default
         return _safe_optional_text(value) or default
 
+    def _option_bool_field(self, options: GenerationOptions, key: str, default: bool) -> bool:
+        """Return bool option fields only; ignore truthy malformed values."""
+        if not isinstance(key, str):
+            return default
+        return _safe_bool_option(_safe_getattr(options, key, default), default)
+
     def _custom_import_lines(self, options: GenerationOptions) -> str:
         """Build custom import statements from a list of string paths."""
         imports = _safe_getattr(options, "custom_imports", [])
@@ -1072,18 +1330,27 @@ class PoCGenerator:
         if import_lines:
             result = result.replace("// {{CUSTOM_IMPORTS}}", import_lines)
 
-        # Add custom setup
-        setup_code = self._option_text_field(options, "custom_setup_code", "")
-        if setup_code:
-            result = result.replace("// {{CUSTOM_SETUP}}", setup_code)
+        include_setup = self._option_bool_field(options, "include_setup", True)
+        if include_setup:
+            # Add custom setup
+            setup_code = self._option_text_field(options, "custom_setup_code", "")
+            if setup_code:
+                result = result.replace("// {{CUSTOM_SETUP}}", setup_code)
 
-        # Add fork configuration
-        fork_config = self._fork_config(options)
-        if fork_config:
-            result = result.replace("// {{FORK_CONFIG}}", fork_config)
+            # Add fork configuration
+            fork_config = self._fork_config(options)
+            if fork_config:
+                result = result.replace("// {{FORK_CONFIG}}", fork_config)
+        else:
+            result = _replace_setup_with_empty(result)
 
         # Remove unused placeholders
         result = re.sub(r"// \{\{[A-Z_]+\}\}", "", result)
+
+        if not self._option_bool_field(options, "include_console_logs", True):
+            result = _remove_console_logging(result)
+        if not self._option_bool_field(options, "include_comments", True):
+            result = _strip_template_comments(result)
 
         return result
 

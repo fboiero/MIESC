@@ -1477,6 +1477,137 @@ class TestTemplateCustomization:
 
         assert "createSelectFork" not in result
 
+    def test_customize_respects_include_console_logs_false(
+        self, generator, reentrancy_finding
+    ):
+        """Console imports and log statements should be removable on request."""
+        template = """// SPDX-License-Identifier: MIT
+import "forge-std/Test.sol";
+import "forge-std/console.sol";
+
+contract {{CONTRACT_NAME}}Test is Test {
+    function {{TEST_NAME}}() public {
+        string memory url = "https://rpc.example//keep";
+        console.log(
+            "target",
+            url
+        );
+        assertTrue(bytes(url).length > 0);
+    }
+}
+"""
+
+        result = generator._customize_template(
+            template,
+            vuln_type=VulnerabilityType.REENTRANCY,
+            target_contract="Bank.sol",
+            target_function="withdraw",
+            finding=reentrancy_finding,
+            options=GenerationOptions(include_console_logs=False),
+        )
+
+        assert "console.log" not in result
+        assert "forge-std/console.sol" not in result
+        assert "https://rpc.example//keep" in result
+        assert "assertTrue" in result
+
+    def test_customize_respects_include_comments_false_preserves_spdx(
+        self, generator, reentrancy_finding
+    ):
+        """Comment removal should keep SPDX and avoid corrupting string literals."""
+        template = """// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+/**
+ * block comment
+ */
+contract {{CONTRACT_NAME}}Test {
+    string public url = "https://rpc.example//not-a-comment";
+    // line comment
+    function {{TEST_NAME}}() public {
+        string memory marker = "/* not a block comment */";
+    }
+}
+"""
+
+        result = generator._customize_template(
+            template,
+            vuln_type=VulnerabilityType.REENTRANCY,
+            target_contract="Bank.sol",
+            target_function="withdraw",
+            finding=reentrancy_finding,
+            options=GenerationOptions(include_comments=False),
+        )
+
+        assert "// SPDX-License-Identifier: MIT" in result
+        assert "* block comment" not in result
+        assert "line comment" not in result
+        assert "https://rpc.example//not-a-comment" in result
+        assert '"/* not a block comment */"' in result
+
+    def test_customize_respects_include_setup_false(self, generator, reentrancy_finding):
+        """Setup removal should skip fork/custom setup insertion and preserve functions."""
+        template = """// SPDX-License-Identifier: MIT
+contract {{CONTRACT_NAME}}Test {
+    function setUp() public {
+        if (true) {
+            string memory marker = "{not a brace}";
+        }
+        // {{FORK_CONFIG}}
+        // {{CUSTOM_SETUP}}
+    }
+
+    function {{TEST_NAME}}() public {
+        assertTrue(true);
+    }
+}
+"""
+        options = GenerationOptions(
+            include_setup=False,
+            fork_url="https://eth-mainnet.g.alchemy.com/v2/xxx",
+            fork_block=18500000,
+            custom_setup_code="target = address(1);",
+        )
+
+        result = generator._customize_template(
+            template,
+            vuln_type=VulnerabilityType.REENTRANCY,
+            target_contract="Bank.sol",
+            target_function="withdraw",
+            finding=reentrancy_finding,
+            options=options,
+        )
+
+        assert "function setUp() public {}" in result
+        assert "createSelectFork" not in result
+        assert "target = address(1);" not in result
+        assert "assertTrue(true)" in result
+        assert "{{" not in result
+
+    def test_customize_malformed_bool_options_default_safely(
+        self, generator, reentrancy_finding
+    ):
+        """Only real bool option values should alter generated output."""
+        template = generator._get_default_template(VulnerabilityType.REENTRANCY)
+        options = GenerationOptions()
+        options.include_setup = "false"
+        options.include_comments = "false"
+        options.include_console_logs = "false"
+
+        result = generator._customize_template(
+            template,
+            vuln_type=VulnerabilityType.REENTRANCY,
+            target_contract="Bank.sol",
+            target_function="withdraw",
+            finding=reentrancy_finding,
+            options=options,
+        )
+
+        assert "function setUp() public {" in result
+        assert "Target contract" in result
+        assert "console.log" in result
+        assert 'import "forge-std/console.sol";' in result
+
 
 # =============================================================================
 # Generate PoC Tests
@@ -1543,6 +1674,24 @@ class TestGeneratePoC:
         poc = generator.generate(reentrancy_finding, "Bank.sol", options=options)
 
         assert "1000 ether" in poc.solidity_code
+
+    def test_generate_with_output_options_removes_logs_comments_and_setup(
+        self, generator, reentrancy_finding
+    ):
+        """Combined output options should apply to disk-backed templates."""
+        options = GenerationOptions(
+            include_setup=False,
+            include_comments=False,
+            include_console_logs=False,
+        )
+
+        poc = generator.generate(reentrancy_finding, "Bank.sol", options=options)
+
+        assert "// SPDX-License-Identifier: MIT" in poc.solidity_code
+        assert "console.log" not in poc.solidity_code
+        assert "forge-std/console.sol" not in poc.solidity_code
+        assert "Generated by MIESC PoC Generator" not in poc.solidity_code
+        assert "function setUp() public {}" in poc.solidity_code
 
     def test_generate_includes_description(self, generator, reentrancy_finding):
         """Test generated PoC includes finding description."""
