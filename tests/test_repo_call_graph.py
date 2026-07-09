@@ -147,6 +147,38 @@ def test_contract_file_returns_existing_sol_path(repo: RepoCallGraph) -> None:
     assert repo.contract_file("NoSuchContract") is None
 
 
+def test_grep_repo_finds_known_token(repo: RepoCallGraph) -> None:
+    # A known function name appears as a 'Contract:line:' match.
+    out = repo.grep_repo("withdraw")
+    assert "Bank:" in out
+    assert "withdraw" in out
+    # Format is 'Contract:line: <text>'.
+    first = out.splitlines()[0]
+    assert first.startswith("Bank:")
+    assert ": " in first
+
+    # Case-insensitive substring.
+    assert repo.grep_repo("WITHDRAW")
+    assert "no matches" not in repo.grep_repo("WITHDRAW")
+
+
+def test_grep_repo_nonsense_pattern_returns_no_match(repo: RepoCallGraph) -> None:
+    out = repo.grep_repo("zzz_no_such_token_anywhere_zzz")
+    assert "no matches" in out
+    # Skipped test file must never leak in.
+    assert "BankTest" not in repo.grep_repo("noop")
+
+
+def test_grep_repo_regex_and_never_raises(repo: RepoCallGraph) -> None:
+    # A regex metachar pattern is honored as regex.
+    out = repo.grep_repo(r"function\s+\w+\(")
+    assert "function" in out
+    # An invalid regex falls back to substring and never raises.
+    assert isinstance(repo.grep_repo("("), str)
+    # Empty pattern is handled gracefully.
+    assert "no matches" in repo.grep_repo("")
+
+
 def test_repo_dir_is_built_root() -> None:
     root = Path(tempfile.mkdtemp(prefix="miesc_rcg_"))
     try:

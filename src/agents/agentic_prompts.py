@@ -75,6 +75,10 @@ instead of guessing from the repo map:
   - list_callers(contract, function)      -> every function that calls it.
   - list_callees(contract, function)      -> every function it calls.
   - get_paths_to(contract, function)      -> call paths that reach that sink.
+  - read_contract_source(contract)        -> the FULL source of a contract
+    (state vars, modifiers, every function) so you see the whole file at once.
+  - grep_repo(pattern)                     -> search ALL contracts for a string or
+    regex (like grep -rn) and get 'Contract:line: <text>' hits across the repo.
 Prefer pulling the real body with get_function_body over reasoning from memory."""
 
 

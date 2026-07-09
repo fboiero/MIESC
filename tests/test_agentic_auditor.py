@@ -204,6 +204,38 @@ def test_on_tool_call_routes_to_real_graph(graph: RepoCallGraph) -> None:
                                                 {"contract": "Token", "function": "mint"})
 
 
+def test_on_tool_call_whole_repo_tools(graph: RepoCallGraph) -> None:
+    auditor = AgenticAuditor(ScriptedAdapter([]), graph, AgenticAuditConfig())
+
+    # read_contract_source returns the FULL contract: header + body.
+    bank = auditor._on_tool_call("read_contract_source", {"contract": "Bank"})
+    assert "contract Bank" in bank
+    assert "function withdraw" in bank
+    assert "deposits" in bank  # state var visible, not just a function body
+
+    # A contract with more than one function returns them ALL.
+    token = auditor._on_tool_call("read_contract_source", {"contract": "Token"})
+    assert "function transfer" in token
+    assert "function mint" in token
+
+    # grep_repo finds a known token across the repo.
+    hits = auditor._on_tool_call("grep_repo", {"pattern": "withdraw"})
+    assert "Bank:" in hits
+    assert "withdraw" in hits
+
+    # Unknown contract -> graceful "not found", never an exception.
+    assert "not found" in auditor._on_tool_call(
+        "read_contract_source", {"contract": "NoSuchContract"}
+    )
+    # Missing args -> graceful, no exception.
+    assert "not found" in auditor._on_tool_call("read_contract_source", {})
+    assert "not found" in auditor._on_tool_call("grep_repo", {})
+    # Nonsense grep pattern -> no-match string, never raises.
+    assert "no matches" in auditor._on_tool_call(
+        "grep_repo", {"pattern": "zzz_never_here_zzz"}
+    )
+
+
 # ---------------------------------------------------------------------------
 # The loop: enumerate -> verify -> confirm, stop on n_target
 # ---------------------------------------------------------------------------

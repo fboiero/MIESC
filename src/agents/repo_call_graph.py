@@ -225,6 +225,60 @@ class RepoCallGraph:
         """Repository root passed to :meth:`build`."""
         return self._repo_dir
 
+    def grep_repo(self, pattern: str, max_matches: int = 40) -> str:
+        """Search every in-scope ``.sol`` source for ``pattern`` like ``grep -rn``.
+
+        Plain substring match, case-insensitive; if ``pattern`` looks like a
+        regex, try regex first and fall back to substring on error. Returns up to
+        ``max_matches`` lines formatted ``"Contract:line: <text>"`` (line numbers
+        are relative to each contract's own source block) so the agent can locate
+        code across the whole repo. Output is capped at ~4000 chars. Never raises.
+        """
+        try:
+            needle = (pattern or "").strip()
+            if not needle:
+                return "no matches: empty pattern"
+
+            matcher = None
+            # Only bother with regex if it carries regex metacharacters — a plain
+            # identifier is cheaper and safer as a substring search.
+            if any(ch in needle for ch in r".^$*+?()[]{}|\\"):
+                try:
+                    matcher = re.compile(needle, re.IGNORECASE)
+                except re.error:
+                    matcher = None
+            needle_lower = needle.lower()
+
+            out: List[str] = []
+            total = 0
+            for name in sorted(self._contracts):
+                if total >= max_matches:
+                    break
+                source = self._contracts[name].source
+                for lineno, text in enumerate(source.splitlines(), start=1):
+                    hit = (
+                        matcher.search(text)
+                        if matcher is not None
+                        else needle_lower in text.lower()
+                    )
+                    if not hit:
+                        continue
+                    out.append(f"{name}:{lineno}: {text.strip()}")
+                    total += 1
+                    if total >= max_matches:
+                        break
+
+            if not out:
+                return f"no matches for {pattern!r}"
+
+            result = "\n".join(out)
+            if len(result) > 4000:
+                result = result[:4000] + "\n...[truncated]"
+            return result
+        except Exception as exc:  # pragma: no cover - defensive, never raises
+            logger.warning("RepoCallGraph.grep_repo failed for %r: %s", pattern, exc)
+            return f"no matches: grep error for {pattern!r}"
+
     def callers_of(self, contract: str, fn: str) -> List[str]:
         """Qualified names of functions that call ``contract.fn``."""
         return list(self._merged.get_callers(self._q(contract, fn)))

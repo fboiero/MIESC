@@ -42,6 +42,8 @@ TOOL_NAMES = (
     "list_callers",
     "list_callees",
     "get_paths_to",
+    "read_contract_source",
+    "grep_repo",
 )
 
 HYPOTHESIS_FIELDS = ("contract", "function", "vuln_class", "claim")
@@ -106,6 +108,21 @@ def test_hypothesis_json_schema_matches_ledger_fields():
     for field in HYPOTHESIS_FIELDS:
         assert field in props, f"schema missing field {field}"
     assert HYPOTHESIS_JSON_SCHEMA["items"]["required"] == list(HYPOTHESIS_FIELDS)
+
+
+def test_prompts_mention_whole_repo_tools():
+    # The two whole-repo visibility tools must reach the model via every prompt
+    # that lists the tool set, and still .format cleanly.
+    for name, prompt, kwargs in (
+        ("ENUM", AGENT_ENUM_PROMPT, {"repo_map": "C: f()"}),
+        ("VERIFY", AGENT_VERIFY_PROMPT, {"ledger": "OPEN: A.foo"}),
+        ("COMPLETENESS", AGENT_COMPLETENESS_PROMPT, {"ledger": "RULED OUT: A.bar"}),
+    ):
+        for tool in ("read_contract_source", "grep_repo"):
+            assert tool in prompt, f"{name} missing {tool}"
+        rendered = prompt.format(**kwargs)  # must not raise
+        assert "read_contract_source" in rendered
+        assert "grep_repo" in rendered
 
 
 def test_enum_prompt_formats_with_repo_map():

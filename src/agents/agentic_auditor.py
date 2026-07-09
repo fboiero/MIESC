@@ -79,6 +79,31 @@ _TOOL_INPUT_SCHEMA: Dict[str, Any] = {
     "required": ["contract", "function"],
 }
 
+# Whole-repo visibility tools take their OWN schemas (design: "feed the agent").
+# read_contract_source needs only a contract; grep_repo needs only a pattern.
+_CONTRACT_INPUT_SCHEMA: Dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        "contract": {"type": "string", "description": "contract name"},
+    },
+    "required": ["contract"],
+}
+
+_PATTERN_INPUT_SCHEMA: Dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        "pattern": {
+            "type": "string",
+            "description": "substring or regex to search across all contracts",
+        },
+    },
+    "required": ["pattern"],
+}
+
+# Full contract source can be huge; cap it so a single tool result can't blow the
+# model's context window.
+_MAX_CONTRACT_SOURCE_CHARS = 12000
+
 
 @dataclass
 class AgenticAuditConfig:
@@ -359,7 +384,12 @@ class AgenticAuditor(BaseAgent):
     # ------------------------------------------------------------- helpers
 
     def _build_tools(self) -> List[ToolSpec]:
-        """The four call-graph-backed tools exposed to the model (design §6)."""
+        """The call-graph tools plus whole-repo visibility tools (design §6).
+
+        The four call-graph tools return isolated function bodies / edges; the two
+        added tools give the agent the same whole-repo reach the SOTA EVMBench
+        agents get from a shell: read a full contract, or grep across every source.
+        """
         return [
             ToolSpec(
                 name="get_function_body",
@@ -385,6 +415,20 @@ class AgenticAuditor(BaseAgent):
                 "contract.function (a potential sink).",
                 input_schema=_TOOL_INPUT_SCHEMA,
             ),
+            ToolSpec(
+                name="read_contract_source",
+                description="Return the FULL Solidity source of a contract "
+                "(state variables, modifiers, and every function) so you can see "
+                "the whole file, not one function at a time.",
+                input_schema=_CONTRACT_INPUT_SCHEMA,
+            ),
+            ToolSpec(
+                name="grep_repo",
+                description="Search every in-scope contract source for a "
+                "substring or regex (like `grep -rn`) and return matching "
+                "'Contract:line: <text>' locations across the whole repo.",
+                input_schema=_PATTERN_INPUT_SCHEMA,
+            ),
         ]
 
     def _on_tool_call(self, name: str, args: Dict[str, Any]) -> str:
@@ -392,6 +436,24 @@ class AgenticAuditor(BaseAgent):
         args = args or {}
         contract = str(args.get("contract", "") or "").strip()
         fn = str(args.get("function", "") or "").strip()
+
+        # Whole-repo tools have their OWN single-arg schemas; handle them before
+        # the {contract, function} requirement the four call-graph tools share.
+        if name == "read_contract_source":
+            if not contract:
+                return "not found: 'contract' argument is required"
+            source = self.graph.contract_source(contract)
+            if not source:
+                return f"not found: no contract named {contract!r}"
+            if len(source) > _MAX_CONTRACT_SOURCE_CHARS:
+                source = source[:_MAX_CONTRACT_SOURCE_CHARS] + "\n...[truncated]"
+            return source
+        if name == "grep_repo":
+            pattern = str(args.get("pattern", "") or "").strip()
+            if not pattern:
+                return "not found: 'pattern' argument is required"
+            return self.graph.grep_repo(pattern)
+
         if not contract or not fn:
             return "not found: both 'contract' and 'function' arguments are required"
 
