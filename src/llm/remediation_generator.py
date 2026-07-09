@@ -43,6 +43,33 @@ _EXPORT_TEST_NAME_CONTROL_RE = re.compile(r"[\x00-\x1f\x7f]")
 _SOLIDITY_IMPORT_RE = re.compile(
     r"""^import\s+(?:(?:"[^"\x00-\x1f\x7f]+"|'[^'\x00-\x1f\x7f]+')|(?:\{[^{}\x00-\x1f\x7f]+\}\s+from\s+(?:"[^"\x00-\x1f\x7f]+"|'[^'\x00-\x1f\x7f]+'))|(?:[A-Za-z_$][\w$]*\s+from\s+(?:"[^"\x00-\x1f\x7f]+"|'[^'\x00-\x1f\x7f]+')))\s*;$"""
 )
+MAX_LLM_RESPONSE_CHARS = 50_000
+MAX_JSON_RESPONSE_CHARS = 100_000
+MAX_JSON_RESPONSE_KEYS = 100
+MAX_BATCH_FINDINGS = 500
+MAX_CONCURRENT_REMEDIATIONS = 20
+MAX_REMEDIATION_EXPORTS = 500
+MAX_TIMEOUT_SECONDS = 600
+
+
+def _is_unsafe_text_char(ch: str, *, allow_multiline: bool = False) -> bool:
+    codepoint = ord(ch)
+    if codepoint == 127:
+        return True
+    if allow_multiline and ch in "\n\r\t":
+        return False
+    if codepoint < 32:
+        return True
+    return codepoint in {0x2028, 0x2029}
+
+
+def _safe_mapping_get(mapping: Any, key: str, default: Any = None) -> Any:
+    if not isinstance(mapping, dict):
+        return default
+    try:
+        return mapping.get(key, default)
+    except (AttributeError, TypeError, RuntimeError, ValueError):
+        return default
 
 
 def _safe_text(value: Any, *, allow_multiline: bool = False) -> str:
@@ -61,9 +88,9 @@ def _safe_text(value: Any, *, allow_multiline: bool = False) -> str:
     if not text:
         return ""
     if allow_multiline:
-        if any(ord(ch) < 32 and ch not in "\n\r\t" or ord(ch) == 127 for ch in text):
+        if any(_is_unsafe_text_char(ch, allow_multiline=True) for ch in text):
             return ""
-    elif any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+    elif any(_is_unsafe_text_char(ch) for ch in text):
         return ""
     return text
 
@@ -78,7 +105,7 @@ def _export_string(value: Any, default: str) -> str:
     """Return a non-empty string for export payloads."""
     if isinstance(value, str):
         normalized = value.strip()
-        if normalized and not any(ord(ch) < 32 or ord(ch) == 127 for ch in normalized):
+        if normalized and not any(_is_unsafe_text_char(ch) for ch in normalized):
             return normalized
     return default
 
@@ -92,7 +119,7 @@ def _export_code_or_patch_text(value: Any, default: str) -> str:
     if not normalized:
         return default
 
-    if any(ord(ch) < 32 and ch not in "\n\r\t" or ord(ch) == 127 for ch in normalized):
+    if any(_is_unsafe_text_char(ch, allow_multiline=True) for ch in normalized):
         return default
 
     for line in normalized.splitlines():
@@ -107,7 +134,7 @@ def _export_optional_string(value: Any) -> Optional[str]:
     """Return a non-empty optional string for export payloads."""
     if isinstance(value, str):
         normalized = value.strip()
-        if normalized and not any(ord(ch) < 32 or ord(ch) == 127 for ch in normalized):
+        if normalized and not any(_is_unsafe_text_char(ch) for ch in normalized):
             return normalized
     return None
 
@@ -156,7 +183,7 @@ def _export_explanation(value: Any) -> str:
     except (AttributeError, TypeError, ValueError):
         return ""
 
-    if not normalized or any(ord(ch) < 32 or ord(ch) == 127 for ch in normalized):
+    if not normalized or any(_is_unsafe_text_char(ch) for ch in normalized):
         return ""
     return normalized
 
@@ -170,7 +197,7 @@ def _export_string_list(value: Any) -> List[str]:
         if not isinstance(item, str):
             continue
         text = item.strip()
-        if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+        if not text or any(_is_unsafe_text_char(ch) for ch in text):
             continue
         strings.append(text)
     return strings
@@ -300,7 +327,7 @@ def _export_level(value: Any, allowed: set[str], default: str) -> str:
             normalized = value.strip().lower()
         except (AttributeError, TypeError, ValueError):
             return default
-        if normalized and not any(ord(ch) < 32 or ord(ch) == 127 for ch in normalized):
+        if normalized and not any(_is_unsafe_text_char(ch) for ch in normalized):
             if normalized in allowed:
                 return normalized
     return default
@@ -311,7 +338,7 @@ def _export_non_negative_float(value: Any, default: float = 0.0) -> float:
     if isinstance(value, bool):
         return default
     if isinstance(value, str):
-        if any(ord(ch) < 32 or ord(ch) == 127 for ch in value):
+        if any(_is_unsafe_text_char(ch) for ch in value):
             return default
         text = value.strip()
         value = text
@@ -335,7 +362,7 @@ def _export_non_negative_int(value: Any) -> int:
     if isinstance(value, bool):
         return 0
     if isinstance(value, str):
-        if any(ord(ch) < 32 or ord(ch) == 127 for ch in value):
+        if any(_is_unsafe_text_char(ch) for ch in value):
             return 0
         text = value.strip()
         value = text
@@ -359,7 +386,7 @@ def _export_positive_int_list(value: Any) -> List[int]:
         if isinstance(item, bool):
             continue
         if isinstance(item, str):
-            if any(ord(ch) < 32 or ord(ch) == 127 for ch in item):
+            if any(_is_unsafe_text_char(ch) for ch in item):
                 continue
             text = item.strip()
             item = text
@@ -473,7 +500,7 @@ class RemediationResult:
         """Export generation results without trusting malformed field values."""
         remediations = self.remediations if isinstance(self.remediations, list) else []
         exported_remediations = []
-        for remediation in remediations:
+        for remediation in remediations[:MAX_REMEDIATION_EXPORTS]:
             if not isinstance(remediation, Remediation):
                 continue
             try:
@@ -598,7 +625,7 @@ class RemediationGenerator:
         """
         self.base_url = self._normalized_base_url(ollama_base_url)
         self.model = self._string_or_default(model, "deepseek-coder:6.7b")
-        self.timeout = self._positive_int(timeout, 120)
+        self.timeout = self._positive_int(timeout, 120, max_value=MAX_TIMEOUT_SECONDS)
 
         logger.info(f"RemediationGenerator initialized with model={model}")
 
@@ -620,13 +647,13 @@ class RemediationGenerator:
             Remediation object with fixed code
         """
         finding = self._dict_or_empty(finding)
-        vuln_type = self._parse_vuln_type(finding.get("type", "unknown"))
-        severity = self._string_or_default(finding.get("severity"), "medium")
+        vuln_type = self._parse_vuln_type(_safe_mapping_get(finding, "type", "unknown"))
+        severity = self._string_or_default(_safe_mapping_get(finding, "severity"), "medium")
         title = self._string_or_default(
-            finding.get("title"),
+            _safe_mapping_get(finding, "title"),
             vuln_type if vuln_type != "unknown" else "Unknown",
         )
-        description = self._string_or_default(finding.get("description"), "")
+        description = self._string_or_default(_safe_mapping_get(finding, "description"), "")
 
         # Extract vulnerable code section
         vulnerable_code = self._extract_vulnerable_code(finding, code)
@@ -648,19 +675,25 @@ class RemediationGenerator:
         result = self._dict_or_empty(await self._query_llm(prompt))
 
         # Parse result without trusting malformed LLM field shapes.
-        fixed_code = self._fixed_code_or_default(result.get("fixed_code"), vulnerable_code)
-        explanation = self._string_or_default(result.get("explanation"), "")
-        changes = self._string_list_or_empty(result.get("changes"))
-        imports = self._imports_to_prepend(fixed_code, result.get("imports_needed"))
-        tests = _export_generated_test_names(result.get("test_suggestions"))
-        references = self._unique_string_list_or_empty(result.get("references"))
+        fixed_code = self._fixed_code_or_default(
+            _safe_mapping_get(result, "fixed_code"), vulnerable_code
+        )
+        explanation = self._string_or_default(_safe_mapping_get(result, "explanation"), "")
+        changes = self._string_list_or_empty(_safe_mapping_get(result, "changes"))
+        imports = self._imports_to_prepend(fixed_code, _safe_mapping_get(result, "imports_needed"))
+        tests = _export_generated_test_names(_safe_mapping_get(result, "test_suggestions"))
+        references = self._unique_string_list_or_empty(_safe_mapping_get(result, "references"))
         implementation_complexity = self._normalized_level(
-            result.get("implementation_complexity", result.get("complexity")),
+            _safe_mapping_get(
+                result,
+                "implementation_complexity",
+                _safe_mapping_get(result, "complexity"),
+            ),
             {"low", "medium", "high"},
             "medium",
         )
         deployment_risk = self._normalized_level(
-            result.get("deployment_risk", result.get("risk_level")),
+            _safe_mapping_get(result, "deployment_risk", _safe_mapping_get(result, "risk_level")),
             {"low", "medium", "high", "critical"},
             "medium",
         )
@@ -672,7 +705,7 @@ class RemediationGenerator:
                 fixed_code = f"{imports_str}\n\n{fixed_code}"
 
         return Remediation(
-            finding_id=self._string_or_default(finding.get("id"), "unknown"),
+            finding_id=self._string_or_default(_safe_mapping_get(finding, "id"), "unknown"),
             vulnerability_type=vuln_type,
             severity=severity,
             vulnerable_code=vulnerable_code,
@@ -682,7 +715,7 @@ class RemediationGenerator:
             test_suggestions=tests,
             references=references,
             confidence=0.8,
-            pattern_used=REMEDIATION_PATTERNS.get(vuln_type, {}).get("pattern_name"),
+            pattern_used=_safe_mapping_get(REMEDIATION_PATTERNS.get(vuln_type, {}), "pattern_name"),
             implementation_complexity=implementation_complexity,
             deployment_risk=deployment_risk,
         )
@@ -717,7 +750,13 @@ class RemediationGenerator:
 
         if parallel and len(findings) > 1:
             # Process in batches
-            semaphore = asyncio.Semaphore(self._positive_int(max_concurrent, 3))
+            semaphore = asyncio.Semaphore(
+                self._positive_int(
+                    max_concurrent,
+                    3,
+                    max_value=MAX_CONCURRENT_REMEDIATIONS,
+                )
+            )
 
             async def process_with_semaphore(finding: Dict[str, Any]) -> Any:
                 async with semaphore:
@@ -861,18 +900,36 @@ class RemediationGenerator:
                 async with session.post(
                     f"{self._normalized_base_url(self.base_url)}/api/chat",
                     json=payload,
-                    timeout=aiohttp.ClientTimeout(total=self._positive_int(self.timeout, 120)),
+                    timeout=aiohttp.ClientTimeout(
+                        total=self._positive_int(
+                            self.timeout,
+                            120,
+                            max_value=MAX_TIMEOUT_SECONDS,
+                        )
+                    ),
                 ) as resp:
-                    if resp.status != 200:
-                        raise RuntimeError(f"LLM error: {_safe_error_text(await resp.text())}")
+                    status = resp.status
+                    if not isinstance(status, int) or isinstance(status, bool):
+                        raise RuntimeError("LLM error: malformed status")
+                    if status != 200:
+                        try:
+                            error_text = await resp.text()
+                        except REMEDIATION_RUNTIME_ERRORS:
+                            error_text = "error"
+                        raise RuntimeError(f"LLM error: {_safe_error_text(error_text)}")
 
                     data = await resp.json()
                     if not isinstance(data, dict):
                         return {}
 
-                    message = data.get("message", {})
-                    content = message.get("content", "") if isinstance(message, dict) else ""
+                    message = _safe_mapping_get(data, "message", {})
+                    content = (
+                        _safe_mapping_get(message, "content", "")
+                        if isinstance(message, dict)
+                        else ""
+                    )
                     content = self._string_or_default(content, "")
+                    content = content[:MAX_LLM_RESPONSE_CHARS]
 
                     return self._parse_json_response(content)
 
@@ -884,17 +941,21 @@ class RemediationGenerator:
         """Parse JSON from LLM response."""
         try:
             stripped = _safe_text(content, allow_multiline=True)
-            if not stripped:
+            if not stripped or len(stripped) > MAX_JSON_RESPONSE_CHARS:
                 return {}
-            json_str = stripped if stripped.startswith("[") else extract_json_from_text(content)
+            json_str = (
+                stripped if stripped.startswith(("[", "{")) else extract_json_from_text(content)
+            )
             if json_str is None:
                 json_str = stripped
 
             if json_str:
+                if len(json_str) > MAX_JSON_RESPONSE_CHARS:
+                    return {}
                 parsed = json.loads(repair_common_json_errors(json_str))
-                if isinstance(parsed, dict):
+                if isinstance(parsed, dict) and len(parsed) <= MAX_JSON_RESPONSE_KEYS:
                     return parsed
-        except json.JSONDecodeError as e:
+        except (json.JSONDecodeError, RecursionError, RuntimeError, TypeError, ValueError) as e:
             logger.debug(f"JSON parse error: {e}")
 
         return {}
@@ -906,23 +967,23 @@ class RemediationGenerator:
     ) -> str:
         """Extract the vulnerable code section from full contract."""
         full_code = _safe_text(full_code, allow_multiline=True)
-        location_value = finding.get("location", {})
+        location_value = _safe_mapping_get(finding, "location", {})
         location = location_value if isinstance(location_value, dict) else {}
 
         # If snippet is provided, use it
-        snippet = _safe_text(finding.get("snippet"), allow_multiline=True)
+        snippet = _safe_text(_safe_mapping_get(finding, "snippet"), allow_multiline=True)
         if snippet:
             return snippet
 
         # Try to extract by function name
-        func_name = _safe_text(location.get("function"))
+        func_name = _safe_text(_safe_mapping_get(location, "function"))
         if func_name:
             function_code = self._extract_function_by_name(full_code, func_name)
             if function_code:
                 return function_code
 
         # Try to extract by line number
-        line = location.get("line")
+        line = _safe_mapping_get(location, "line")
         if isinstance(line, int) and not isinstance(line, bool) and line > 0:
             lines = full_code.split("\n")
             start = max(0, line - 5)
@@ -944,7 +1005,9 @@ class RemediationGenerator:
         return normalized if normalized else "unknown"
 
     @staticmethod
-    def _positive_int(value: Any, default: int) -> int:
+    def _positive_int(
+        value: Any, default: int, *, max_value: int = MAX_CONCURRENT_REMEDIATIONS
+    ) -> int:
         """Return a positive int, defaulting malformed/bool/non-positive values."""
         if isinstance(value, bool):
             return default
@@ -952,7 +1015,9 @@ class RemediationGenerator:
             normalized = int(value)
         except (TypeError, ValueError, OverflowError):
             return default
-        return normalized if normalized > 0 else default
+        if normalized <= 0:
+            return default
+        return min(normalized, max_value)
 
     @staticmethod
     def _normalized_base_url(value: Any) -> str:
@@ -962,6 +1027,8 @@ class RemediationGenerator:
             return "http://localhost:11434"
         parsed = urlparse(normalized)
         if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+            return "http://localhost:11434"
+        if parsed.username or parsed.password or not parsed.hostname:
             return "http://localhost:11434"
         return normalized.rstrip("/")
 
@@ -1094,7 +1161,7 @@ class RemediationGenerator:
         end = cls._balanced_block_end(full_code, brace_index)
         if end == -1:
             return ""
-        return full_code[match.start():end]
+        return full_code[match.start() : end]
 
     @staticmethod
     def _find_next_code_char(text: str, target: str, start: int) -> int:
@@ -1163,7 +1230,8 @@ class RemediationGenerator:
         if not isinstance(value, list):
             return [], 1
 
-        findings = [item for item in value if isinstance(item, dict)]
+        bounded = value[:MAX_BATCH_FINDINGS]
+        findings = [item for item in bounded if isinstance(item, dict)]
         return findings, len(value) - len(findings)
 
     def _get_pattern_info(self, vuln_type: str) -> str:
