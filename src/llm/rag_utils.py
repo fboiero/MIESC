@@ -22,6 +22,8 @@ MAX_JSON_OBJECT_KEYS = 100
 MAX_JSON_LIST_ITEMS = 100
 MAX_JSON_TEXT_CHARS = 5_000
 MAX_JSON_DEPTH = 8
+MAX_CACHE_EVICTION_ATTEMPTS = 10_000
+MAX_PARSE_CONTENT_CHARS = 1_000_000
 
 
 def _safe_text(value: Any, *, limit: int = MAX_CACHE_TEXT_CHARS) -> str:
@@ -38,9 +40,12 @@ def _safe_text(value: Any, *, limit: int = MAX_CACHE_TEXT_CHARS) -> str:
         return ""
     safe_limit = min(safe_limit, MAX_CACHE_TEXT_CHARS)
     text = value.strip()
-    if not text or any(_is_unsafe_text_char(ch) for ch in text):
+    if not text:
         return ""
-    return text[:safe_limit]
+    bounded_text = text[:safe_limit]
+    if any(_is_unsafe_text_char(ch) for ch in bounded_text):
+        return ""
+    return bounded_text
 
 
 def _is_unsafe_text_char(ch: str) -> bool:
@@ -82,6 +87,48 @@ def _non_negative_float(value: Any) -> float:
     return normalized if math.isfinite(normalized) and normalized >= 0 else 0.0
 
 
+def _safe_len(value: Any) -> Optional[int]:
+    try:
+        return len(value)
+    except (TypeError, AttributeError, RuntimeError):
+        return None
+
+
+def _bounded_iterable_copy(value: Any, *, max_items: int) -> Optional[List[Any]]:
+    items = []
+    try:
+        iterator = iter(value)
+        for item in iterator:
+            items.append(item)
+            if len(items) >= max_items:
+                break
+    except (TypeError, AttributeError, RuntimeError):
+        return None
+    return items
+
+
+def _safe_cache_len(cache: Dict[str, Tuple[float, List[T]]]) -> Optional[int]:
+    try:
+        return len(cache)
+    except (TypeError, AttributeError, RuntimeError):
+        return None
+
+
+def _safe_cache_keys(cache: Dict[str, Tuple[float, List[T]]]) -> Optional[List[str]]:
+    try:
+        return list(cache.keys())
+    except (TypeError, AttributeError, RuntimeError):
+        return None
+
+
+def _safe_now() -> Optional[float]:
+    try:
+        now = float(time.time())
+    except (TypeError, ValueError, OverflowError, RuntimeError):
+        return None
+    return now if math.isfinite(now) else None
+
+
 def _safe_cache_get(cache: Dict[str, Tuple[float, List[T]]], cache_key: str) -> Any:
     try:
         return cache[cache_key]
@@ -105,44 +152,60 @@ def _safe_cache_delete(cache: Dict[str, Tuple[float, List[T]]], cache_key: str) 
 
 def _cache_entry_timestamp(cache: Dict[str, Tuple[float, List[T]]], cache_key: str) -> float:
     entry = _safe_cache_get(cache, cache_key)
-    if isinstance(entry, (tuple, list)) and len(entry) == 2:
+    if isinstance(entry, (tuple, list)) and _safe_len(entry) == 2:
         return _non_negative_float(entry[0])
     return -1.0
 
 
-def _bounded_result_copy(results: List[T]) -> List[T]:
-    return list(results[:MAX_CACHE_RESULT_ITEMS])
+def _bounded_result_copy(results: List[T]) -> Optional[List[T]]:
+    return _bounded_iterable_copy(results, max_items=MAX_CACHE_RESULT_ITEMS)
 
 
 def _safe_json_scalar_text(value: str) -> Optional[str]:
-    if any(_is_unsafe_text_char(ch) for ch in value):
+    bounded_value = value[:MAX_JSON_TEXT_CHARS]
+    if any(_is_unsafe_text_char(ch) for ch in bounded_value):
         return None
-    return value[:MAX_JSON_TEXT_CHARS]
+    return bounded_value
 
 
 def _sanitize_json_value(value: Any, *, depth: int = 0) -> Tuple[bool, Any]:
     if depth > MAX_JSON_DEPTH:
         return False, None
-    if value is None or isinstance(value, (bool, int, float)):
+    if value is None or isinstance(value, bool):
         return True, value
+    if isinstance(value, int):
+        return True, value
+    if isinstance(value, float):
+        return (math.isfinite(value), value if math.isfinite(value) else None)
     if isinstance(value, str):
         safe_value = _safe_json_scalar_text(value)
         return (safe_value is not None), safe_value
     if isinstance(value, list):
-        if len(value) > MAX_JSON_LIST_ITEMS:
+        value_len = _safe_len(value)
+        if value_len is None or value_len > MAX_JSON_LIST_ITEMS:
             return False, None
         safe_items = []
-        for item in value:
+        copied_items = _bounded_iterable_copy(value, max_items=MAX_JSON_LIST_ITEMS + 1)
+        if copied_items is None or len(copied_items) > MAX_JSON_LIST_ITEMS:
+            return False, None
+        for item in copied_items:
             ok, safe_item = _sanitize_json_value(item, depth=depth + 1)
             if not ok:
                 return False, None
             safe_items.append(safe_item)
         return True, safe_items
     if isinstance(value, dict):
-        if len(value) > MAX_JSON_OBJECT_KEYS:
+        value_len = _safe_len(value)
+        if value_len is None or value_len > MAX_JSON_OBJECT_KEYS:
+            return False, None
+        try:
+            items = list(value.items())
+        except (TypeError, AttributeError, RuntimeError):
+            return False, None
+        if len(items) > MAX_JSON_OBJECT_KEYS:
             return False, None
         safe_obj = {}
-        for key, item in value.items():
+        for key, item in items:
             safe_key = _safe_text(key, limit=MAX_FILTER_TEXT_CHARS)
             if not safe_key:
                 return False, None
@@ -199,21 +262,28 @@ def get_cached_result(
         return None, False, False
 
     entry = _safe_cache_get(cache, safe_key)
-    if not isinstance(entry, (tuple, list)) or len(entry) != 2:
+    if not isinstance(entry, (tuple, list)) or _safe_len(entry) != 2:
         _safe_cache_delete(cache, safe_key)
         return None, False, True
 
     timestamp, results = entry
     timestamp_value = _non_negative_float(timestamp)
     ttl = _non_negative_float(ttl_seconds)
+    now = _safe_now()
+    if now is None:
+        return None, False, False
     if not isinstance(results, list):
         _safe_cache_delete(cache, safe_key)
         return None, False, True
-    if time.time() - timestamp_value > ttl:
+    if timestamp_value > now or now - timestamp_value > ttl:
         _safe_cache_delete(cache, safe_key)
         return None, False, True
 
-    return _bounded_result_copy(results), True, False
+    copied_results = _bounded_result_copy(results)
+    if copied_results is None:
+        _safe_cache_delete(cache, safe_key)
+        return None, False, True
+    return copied_results, True, False
 
 
 def store_cached_result(
@@ -230,14 +300,36 @@ def store_cached_result(
         return False
 
     safe_max_size = _positive_int(max_size, default=1, max_value=10_000)
-    while len(cache) >= safe_max_size and not _safe_cache_contains(cache, safe_key):
-        oldest_key = min(
-            cache,
-            key=lambda k: _cache_entry_timestamp(cache, k),
-        )
+    attempts = 0
+    while True:
+        cache_len = _safe_cache_len(cache)
+        if cache_len is None:
+            return False
+        if cache_len < safe_max_size or _safe_cache_contains(cache, safe_key):
+            break
+        if attempts >= MAX_CACHE_EVICTION_ATTEMPTS:
+            return False
+        keys = _safe_cache_keys(cache)
+        if not keys:
+            return False
+        oldest_key = min(keys, key=lambda k: _cache_entry_timestamp(cache, k))
+        before_len = cache_len
         _safe_cache_delete(cache, oldest_key)
+        after_len = _safe_cache_len(cache)
+        if after_len is None or after_len >= before_len:
+            return False
+        attempts += 1
 
-    cache[safe_key] = (time.time(), _bounded_result_copy(results))
+    copied_results = _bounded_result_copy(results)
+    if copied_results is None:
+        return False
+    now = _safe_now()
+    if now is None:
+        return False
+    try:
+        cache[safe_key] = (now, copied_results)
+    except (TypeError, AttributeError, RuntimeError):
+        return False
     return True
 
 
@@ -254,7 +346,10 @@ def cache_stats(
     safe_cache_size = _non_negative_int(cache_size)
     safe_max_size = _non_negative_int(max_size)
     total = safe_hits + safe_misses
-    hit_rate = (safe_hits / total * 100) if total > 0 else 0
+    try:
+        hit_rate = (safe_hits / total * 100) if total > 0 else 0
+    except OverflowError:
+        hit_rate = 0 if safe_hits == 0 else 100 / (1 + safe_misses / safe_hits)
     return {
         "hits": safe_hits,
         "misses": safe_misses,
@@ -289,6 +384,8 @@ def parse_repaired_json_object(content: Any, *, max_json_chars: int = 50_000) ->
     max_chars = _positive_int(max_json_chars, default=50_000, max_value=1_000_000)
     if not isinstance(content, str):
         return {}
+    if len(content) > MAX_PARSE_CONTENT_CHARS:
+        return {}
 
     stripped = content.strip()
     if not stripped or any(
@@ -314,10 +411,12 @@ def parse_repaired_json_object(content: Any, *, max_json_chars: int = 50_000) ->
 
     try:
         repaired = repair_common_json_errors(json_str)
+        if not isinstance(repaired, str) or len(repaired) > max_chars:
+            return {}
         parsed = json.loads(repaired)
     except json.JSONDecodeError:
         return {}
-    except (TypeError, ValueError, RuntimeError):
+    except (TypeError, ValueError, RuntimeError, RecursionError):
         return {}
 
     if isinstance(parsed, dict):
