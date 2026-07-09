@@ -320,6 +320,23 @@ def _safe_vulnerability_type_value(value: Any) -> str:
     return text
 
 
+def _normalize_type_label(value: Any) -> str:
+    """Normalize detector/agent vulnerability labels for deterministic alias lookup."""
+    if isinstance(value, bytes):
+        try:
+            value = value.decode("utf-8", errors="replace")
+        except Exception:
+            return ""
+    if not isinstance(value, str):
+        return ""
+    text = value.strip()
+    if not text or len(text) > 120 or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+        return ""
+    text = re.sub(r"(?<=[a-z0-9])(?=[A-Z])", "-", text)
+    text = re.sub(r"[^A-Za-z0-9]+", "-", text).strip("-").lower()
+    return text[:120]
+
+
 class VulnerabilityType(Enum):
     """Supported vulnerability types for PoC generation."""
 
@@ -502,6 +519,27 @@ class PoCGenerator:
         "tx_origin_used_for_auth": VulnerabilityType.TX_ORIGIN,
         "unsafe-erc20-functions": VulnerabilityType.UNCHECKED_CALL,
         "unsafe_erc20_functions": VulnerabilityType.UNCHECKED_CALL,
+        # Agentic invariant/counterexample labels
+        "agentic-invariant-access-control": VulnerabilityType.ACCESS_CONTROL,
+        "invariant-access-control": VulnerabilityType.ACCESS_CONTROL,
+        "privileged-access-control": VulnerabilityType.ACCESS_CONTROL,
+        "missing-authorization-invariant": VulnerabilityType.ACCESS_CONTROL,
+        "agentic-invariant-accounting": VulnerabilityType.ERC4626_INFLATION,
+        "accounting-invariant": VulnerabilityType.ERC4626_INFLATION,
+        "asset-accounting-conservation": VulnerabilityType.ERC4626_INFLATION,
+        "cap-boundary-invariant": VulnerabilityType.INTEGER_OVERFLOW,
+        "counterexample-validation": VulnerabilityType.REENTRANCY,
+        "counterexample-found": VulnerabilityType.REENTRANCY,
+        # SWC labels commonly emitted by scanner adapters
+        "swc-101": VulnerabilityType.INTEGER_OVERFLOW,
+        "swc-104": VulnerabilityType.UNCHECKED_CALL,
+        "swc-105": VulnerabilityType.ACCESS_CONTROL,
+        "swc-106": VulnerabilityType.SELFDESTRUCT,
+        "swc-107": VulnerabilityType.REENTRANCY,
+        "swc-112": VulnerabilityType.DELEGATECALL,
+        "swc-114": VulnerabilityType.FRONT_RUNNING,
+        "swc-115": VulnerabilityType.TX_ORIGIN,
+        "swc-116": VulnerabilityType.TIMESTAMP_DEPENDENCE,
     }
 
     def __init__(
@@ -778,19 +816,7 @@ class PoCGenerator:
             logger.warning("Malformed finding type container, defaulting to REENTRANCY")
             return VulnerabilityType.REENTRANCY
         type_aliases = self.TYPE_ALIASES if isinstance(self.TYPE_ALIASES, Mapping) else {}
-        raw_finding_type = _safe_mapping_get(finding, "type", "")
-        if isinstance(raw_finding_type, bytes):
-            try:
-                raw_finding_type = raw_finding_type.decode("utf-8", errors="replace")
-            except Exception:
-                raw_finding_type = ""
-        finding_type = raw_finding_type.lower().strip() if isinstance(raw_finding_type, str) else ""
-        if (
-            not finding_type
-            or len(finding_type) > 120
-            or any(ord(ch) < 32 or ord(ch) == 127 for ch in finding_type)
-        ):
-            finding_type = ""
+        finding_type = _normalize_type_label(_safe_mapping_get(finding, "type", ""))
 
         # Try direct alias lookup
         if finding_type in type_aliases:
@@ -805,7 +831,10 @@ class PoCGenerator:
         for alias, vuln_type in type_aliases.items():
             if not isinstance(alias, str) or not isinstance(vuln_type, VulnerabilityType):
                 continue
-            if alias in finding_type or finding_type in alias:
+            normalized_alias = _normalize_type_label(alias)
+            if normalized_alias and (
+                normalized_alias in finding_type or finding_type in normalized_alias
+            ):
                 return vuln_type
 
         # Default to reentrancy as most common

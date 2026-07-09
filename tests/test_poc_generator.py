@@ -22,6 +22,7 @@ from src.poc.poc_generator import (
     PoCResult,
     PoCTemplate,
     VulnerabilityType,
+    _normalize_type_label,
     _safe_contract_text,
     _safe_filename_part,
     _safe_import_path,
@@ -712,6 +713,42 @@ class TestTypeResolution:
             finding = {"type": type_str}
             vuln_type = generator._resolve_vulnerability_type(finding)
             assert vuln_type == VulnerabilityType.REENTRANCY
+
+    @pytest.mark.parametrize(
+        ("type_str", "expected"),
+        [
+            ("Agentic Invariant Access Control", VulnerabilityType.ACCESS_CONTROL),
+            ("agentic_invariant_access_control", VulnerabilityType.ACCESS_CONTROL),
+            ("privilegedAccessControl", VulnerabilityType.ACCESS_CONTROL),
+            ("Accounting Invariant", VulnerabilityType.ERC4626_INFLATION),
+            ("assetAccountingConservation", VulnerabilityType.ERC4626_INFLATION),
+            ("capBoundaryInvariant", VulnerabilityType.INTEGER_OVERFLOW),
+            ("counterexampleValidation", VulnerabilityType.REENTRANCY),
+            ("Counterexample Found", VulnerabilityType.REENTRANCY),
+            ("SWC-101", VulnerabilityType.INTEGER_OVERFLOW),
+            ("swc 104", VulnerabilityType.UNCHECKED_CALL),
+            ("SWC_105", VulnerabilityType.ACCESS_CONTROL),
+            ("SWC-107", VulnerabilityType.REENTRANCY),
+            ("swc 115", VulnerabilityType.TX_ORIGIN),
+        ],
+    )
+    def test_resolve_agentic_and_swc_aliases(self, generator, type_str, expected):
+        """Agentic and SWC labels should map deterministically to PoC types."""
+        assert generator._resolve_vulnerability_type({"type": type_str}) == expected
+
+    @pytest.mark.parametrize(
+        ("value", "expected"),
+        [
+            ("flash_loan", "flash-loan"),
+            ("Agentic Invariant Access Control", "agentic-invariant-access-control"),
+            ("privilegedAccessControl", "privileged-access-control"),
+            ("SWC_107", "swc-107"),
+            ("bad\nlabel", ""),
+        ],
+    )
+    def test_normalize_type_label(self, value, expected):
+        """Type label normalization should be deterministic and bounded."""
+        assert _normalize_type_label(value) == expected
 
 
 # =============================================================================
@@ -1441,6 +1478,22 @@ class TestGeneratePoC:
 
         assert poc.vulnerability_type == VulnerabilityType.ORACLE_MANIPULATION
 
+    def test_generate_agentic_invariant_access_control_poc(self, generator):
+        """Agentic invariant findings should generate the corresponding PoC family."""
+        finding = {
+            "type": "Agentic Invariant Access Control",
+            "severity": "high",
+            "description": "Privileged state changes should require authorized callers",
+            "location": {"function": "setOwner"},
+            "id": "agentic-invariant-001",
+        }
+
+        poc = generator.generate(finding, "GovernanceVault.sol")
+
+        assert poc.vulnerability_type == VulnerabilityType.ACCESS_CONTROL
+        assert poc.target_function == "setOwner"
+        assert poc.finding_id == "agentic-invariant-001"
+
     def test_generate_with_custom_options(self, generator, reentrancy_finding):
         """Test generating with custom options."""
         options = GenerationOptions(
@@ -1566,6 +1619,23 @@ class TestBatchGeneration:
         assert len(pocs) == 2
         assert pocs[0].vulnerability_type == VulnerabilityType.REENTRANCY
         assert pocs[1].vulnerability_type == VulnerabilityType.FLASH_LOAN
+
+    def test_generate_batch_preserves_agentic_and_swc_alias_order(self, generator):
+        """Batch generation should preserve order after normalized alias resolution."""
+        findings = [
+            {"type": "Accounting Invariant", "location": {"function": "deposit"}},
+            {"type": "SWC-104", "location": {"function": "transfer"}},
+            {"type": "counterexampleValidation", "location": {"function": "withdraw"}},
+        ]
+
+        pocs = generator.generate_batch(findings, "Vault.sol")
+
+        assert [poc.vulnerability_type for poc in pocs] == [
+            VulnerabilityType.ERC4626_INFLATION,
+            VulnerabilityType.UNCHECKED_CALL,
+            VulnerabilityType.REENTRANCY,
+        ]
+        assert [poc.target_function for poc in pocs] == ["deposit", "transfer", "withdraw"]
 
     def test_generate_batch_handles_errors(self, generator):
         """Test batch generation handles errors gracefully."""
