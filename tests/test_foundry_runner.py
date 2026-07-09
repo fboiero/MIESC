@@ -28,8 +28,11 @@ from src.poc.validators.foundry_runner import (
     FoundryRunner,
     TestResult,
     TestStatus,
+    _bounded_mapping_items,
     _is_gas_report_header_row,
     _safe_match_filter,
+    _safe_relative_path,
+    _safe_text,
 )
 
 # =============================================================================
@@ -357,6 +360,17 @@ class TestFoundryCommandBuilders:
         assert "--match-test" not in cmd
         assert "--match-contract" not in cmd
 
+    def test_build_run_test_command_ignores_unicode_separator_match_options(self, runner):
+        """Unicode separators in match filters should not reach forge arguments."""
+        cmd = runner._build_run_test_command(
+            "test/Bank.t.sol",
+            match_test="testExploit\u2028shadow",
+            match_contract="BankTest\u2029shadow",
+        )
+
+        assert "--match-test" not in cmd
+        assert "--match-contract" not in cmd
+
     def test_build_run_test_command_ignores_malformed_fork_options(self, tmp_path):
         """Malformed fork options are ignored before command construction."""
         with patch.object(FoundryRunner, "_check_foundry_installation"):
@@ -402,9 +416,15 @@ class TestFoundryCommandBuilders:
         with pytest.raises(ValueError, match="Malformed Foundry test directory"):
             runner._build_run_all_tests_command(test_dir)
 
+    def test_build_run_all_tests_command_rejects_unicode_separator_dir(self, runner):
+        """Unicode separators should not become forge match-path values."""
+        with pytest.raises(ValueError, match="Malformed Foundry test directory"):
+            runner._build_run_all_tests_command("test\u2028exploits")
+
     def test_match_filter_rejects_overlong_values(self):
         """Match filters should be bounded before becoming CLI arguments."""
         assert _safe_match_filter("x" * 121) == ""
+        assert _safe_match_filter("test\u2028shadow") == ""
 
 
 # =============================================================================
@@ -466,6 +486,22 @@ class TestRunTest:
         assert "\\n" in result.error
         assert "\\x01" in result.error
         assert result.error.endswith("...<truncated>")
+
+    def test_run_test_handles_hostile_subprocess_result_accessors(self, runner):
+        """Hostile subprocess result properties should parse with defaults."""
+
+        class HostileResult:
+            def __getattribute__(self, name):
+                if name in {"stdout", "stderr", "returncode"}:
+                    raise ValueError("no attr")
+                return super().__getattribute__(name)
+
+        with patch("subprocess.run", return_value=HostileResult()):
+            result = runner.run_test("test/Bank.t.sol")
+
+        assert result.success is False
+        assert result.tests == []
+        assert result.raw_output == ""
 
     @pytest.mark.parametrize("timeout", [True, 0, -1, float("inf"), ["300"]])
     def test_run_test_defaults_malformed_timeout(self, runner, sample_forge_output, timeout):
@@ -593,7 +629,23 @@ class TestRunAllTestsBasic:
         assert result.total_gas == 0
         assert result.raw_output == ""
         assert result.execution_time_ms >= 0
-        assert result.error == "forge unavailable"
+
+    def test_run_all_tests_handles_hostile_subprocess_result_accessors(self, runner):
+        """Hostile subprocess result properties should parse with defaults."""
+
+        class HostileResult:
+            def __getattribute__(self, name):
+                if name in {"stdout", "stderr", "returncode"}:
+                    raise ValueError("no attr")
+                return super().__getattribute__(name)
+
+        with patch("subprocess.run", return_value=HostileResult()):
+            result = runner.run_all_tests()
+
+        assert result.success is False
+        assert result.tests == []
+        assert result.raw_output == ""
+        assert result.error == ""
 
 
 # =============================================================================
@@ -1210,6 +1262,46 @@ class TestNormalizationHelpers:
         assert not _is_gas_report_header_row(["Contract", 1, "Min", "Max", "Avg", "Calls"])
         assert FoundryRunner._normalize_timeout_seconds(b"15", 30) == 15
         assert FoundryRunner._normalize_timeout_seconds("15\x7f", 30) == 30
+        assert FoundryRunner._normalize_timeout_seconds("15\u2028", 30) == 30
+
+    def test_safe_text_rejects_unicode_separators(self):
+        """Text normalization should reject unicode separators in all modes."""
+        assert _safe_text("ok") == "ok"
+        assert _safe_text("bad\u2028value") is None
+        assert _safe_text("bad\u2029value", allow_multiline=True) is None
+
+    def test_safe_relative_path_rejects_unicode_separators(self):
+        """Relative path helper should reject unicode separators."""
+        assert _safe_relative_path("test/Bank.t.sol") == "test/Bank.t.sol"
+        assert _safe_relative_path("test\u2028/Bank.t.sol") is None
+
+    def test_bounded_mapping_items_does_not_materialize_past_cap(self):
+        """Bounded mapping iteration should stop at the requested item count."""
+
+        class CountingMapping(dict):
+            def __init__(self):
+                super().__init__((f"k{i}", i) for i in range(MAX_GAS_REPORT_CONTRACTS + 25))
+                self.yielded = 0
+
+            def items(self):
+                for item in super().items():
+                    self.yielded += 1
+                    yield item
+
+        mapping = CountingMapping()
+        items = _bounded_mapping_items(mapping, 5)
+
+        assert len(items) == 5
+        assert mapping.yielded == 5
+
+    def test_bounded_mapping_items_handles_hostile_iterator(self):
+        """Hostile mapping iterators should return an empty bounded list."""
+
+        class HostileMapping(dict):
+            def items(self):
+                raise RuntimeError("no items")
+
+        assert _bounded_mapping_items(HostileMapping({"a": 1}), 5) == []
 
     def test_parse_test_results_rejects_non_dict_payload(self, runner):
         """Malformed top-level payloads should return an empty test list."""
@@ -1493,6 +1585,56 @@ class TestGasReport:
             report = runner.get_gas_report()
 
         assert report["total_runtime_gas"] == MAX_TOTAL_RUNTIME_GAS
+
+    def test_get_gas_report_text_caps_contracts_and_methods(self, runner):
+        """Text gas report parsing should apply contract and method caps."""
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        lines = ["| Contract | Method | Min | Max | Avg | Calls |"]
+        for contract in range(MAX_GAS_REPORT_CONTRACTS + 5):
+            method_count = MAX_GAS_REPORT_METHODS + 5 if contract == 0 else 1
+            for method in range(method_count):
+                lines.append(f"| Vault{contract} | method{method} | 1 | 1 | 1 | 1 |")
+        mock_result.stdout = "\n".join(lines)
+        mock_result.stderr = ""
+
+        with patch("subprocess.run", return_value=mock_result):
+            report = runner.get_gas_report()
+
+        assert len(report["contracts"]) == MAX_GAS_REPORT_CONTRACTS
+        assert len(report["contracts"]["Vault0"]["methods"]) == MAX_GAS_REPORT_METHODS
+        assert "Vault100" not in report["contracts"]
+
+    def test_get_gas_report_text_rejects_unicode_separator_names(self, runner):
+        """Text gas report names with unicode separators should be ignored."""
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = (
+            "| Contract | Method | Min | Max | Avg | Calls |\n"
+            "| Vault\u2028Shadow | deposit | 1 | 1 | 1 | 1 |\n"
+            "| Vault | dep\u2029osit | 1 | 1 | 1 | 1 |\n"
+            "| CleanVault | deposit | 1 | 1 | 1 | 1 |\n"
+        )
+        mock_result.stderr = ""
+
+        with patch("subprocess.run", return_value=mock_result):
+            report = runner.get_gas_report()
+
+        assert report["contracts"] == {}
+
+    def test_get_gas_report_handles_hostile_result_stdout_accessor(self, runner):
+        """Hostile subprocess stdout accessors should produce an empty report."""
+
+        class HostileResult:
+            def __getattribute__(self, name):
+                if name == "stdout":
+                    raise RuntimeError("no stdout")
+                return super().__getattribute__(name)
+
+        with patch("subprocess.run", return_value=HostileResult()):
+            report = runner.get_gas_report()
+
+        assert report["contracts"] == {}
 
     def test_safe_match_filter_strips_and_rejects_control_chars(self):
         assert _safe_match_filter("  testWithdraw()  ") == "testWithdraw()"

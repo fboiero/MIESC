@@ -48,6 +48,15 @@ MAX_GAS_REPORT_METHODS = 200
 MAX_TOTAL_RUNTIME_GAS = 10_000_000_000_000
 
 
+def _has_unsafe_text_chars(text: str, *, allow_multiline: bool = False) -> bool:
+    """Return True for control or unicode separator characters."""
+    if any(ch in {"\u2028", "\u2029"} for ch in text):
+        return True
+    if allow_multiline:
+        return any((ord(ch) < 32 and ch not in "\n\r\t") or ord(ch) == 127 for ch in text)
+    return any(ord(ch) < 32 or ord(ch) == 127 for ch in text)
+
+
 def _safe_text(
     value: Any, *, limit: Optional[int] = None, allow_multiline: bool = False
 ) -> Optional[str]:
@@ -65,11 +74,7 @@ def _safe_text(
         return None
     if not text:
         return None
-    if allow_multiline:
-        invalid = any(ord(ch) < 32 and ch not in "\n\r\t" or ord(ch) == 127 for ch in text)
-    else:
-        invalid = any(ord(ch) < 32 or ord(ch) == 127 for ch in text)
-    if invalid:
+    if _has_unsafe_text_chars(text, allow_multiline=allow_multiline):
         return None
     if limit is not None and len(text) > limit:
         return None
@@ -86,12 +91,25 @@ def _safe_mapping_get(mapping: Any, key: str, default: Any = None) -> Any:
         return default
 
 
+def _safe_getattr(obj: Any, name: str, default: Any = None) -> Any:
+    """Read object attributes without trusting custom result objects."""
+    try:
+        return getattr(obj, name, default)
+    except Exception:
+        return default
+
+
 def _bounded_mapping_items(mapping: Any, max_items: int) -> List[tuple[Any, Any]]:
     """Return bounded mapping items without trusting hostile accessors."""
     if not isinstance(mapping, Mapping):
         return []
     try:
-        return list(mapping.items())[:max_items]
+        items = []
+        for key, value in mapping.items():
+            items.append((key, value))
+            if len(items) >= max_items:
+                break
+        return items
     except Exception:
         return []
 
@@ -100,7 +118,7 @@ def _safe_match_filter(value: Any) -> str:
     """Return forge match filters only when they are plain text."""
     if not isinstance(value, str):
         return ""
-    if any(ord(ch) < 32 or ord(ch) == 127 for ch in value):
+    if _has_unsafe_text_chars(value):
         return ""
     text = value.strip()
     if not text or len(text) > 120:
@@ -142,7 +160,7 @@ def _safe_relative_path(value: Any, *, allow_empty: bool = False) -> Optional[st
     text = str(value).strip()
     if not text:
         return "" if allow_empty else None
-    if any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+    if _has_unsafe_text_chars(text):
         return None
     path = Path(text)
     if path.is_absolute() or ".." in path.parts:
@@ -337,7 +355,7 @@ class FoundryRunner:
         if not isinstance(value, (str, Path)):
             return None
         text = str(value).strip()
-        if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+        if not text or _has_unsafe_text_chars(text):
             return None
         path = Path(text)
         if path.is_absolute():
@@ -352,7 +370,7 @@ class FoundryRunner:
         """Return a positive finite subprocess timeout."""
         if isinstance(value, bool):
             return default
-        if isinstance(value, str) and any(ord(ch) < 32 or ord(ch) == 127 for ch in value):
+        if isinstance(value, str) and _has_unsafe_text_chars(value):
             return default
         if isinstance(value, bytes):
             try:
@@ -411,9 +429,9 @@ class FoundryRunner:
             execution_time = _elapsed_ms_since(start_time)
 
             return self._parse_forge_output(
-                result.stdout,
-                result.stderr,
-                result.returncode,
+                _safe_getattr(result, "stdout", ""),
+                _safe_getattr(result, "stderr", ""),
+                _safe_getattr(result, "returncode", 1),
                 execution_time,
             )
 
@@ -474,9 +492,9 @@ class FoundryRunner:
             )
 
             return self._parse_forge_output(
-                result.stdout,
-                result.stderr,
-                result.returncode,
+                _safe_getattr(result, "stdout", ""),
+                _safe_getattr(result, "stderr", ""),
+                _safe_getattr(result, "returncode", 1),
                 _elapsed_ms_since(start_time),
             )
 
@@ -915,7 +933,7 @@ class FoundryRunner:
             }
 
             # Extract gas data from output
-            stdout = self._normalize_output_text(getattr(result, "stdout", ""))[
+            stdout = self._normalize_output_text(_safe_getattr(result, "stdout", ""))[
                 :MAX_RAW_OUTPUT_CHARS
             ]
             json_candidates = 0
@@ -954,8 +972,14 @@ class FoundryRunner:
                     if any(value is None for value in method_report.values()):
                         continue
 
-                    contract_report = report["contracts"].setdefault(contract, {"methods": {}})
-                    contract_report["methods"][method] = method_report
+                    contracts = report["contracts"]
+                    if contract not in contracts and len(contracts) >= MAX_GAS_REPORT_CONTRACTS:
+                        continue
+                    contract_report = contracts.setdefault(contract, {"methods": {}})
+                    methods = contract_report["methods"]
+                    if method not in methods and len(methods) >= MAX_GAS_REPORT_METHODS:
+                        continue
+                    methods[method] = method_report
                     report["total_runtime_gas"] = min(
                         MAX_TOTAL_RUNTIME_GAS,
                         report["total_runtime_gas"] + method_report["avg"] * method_report["calls"],
