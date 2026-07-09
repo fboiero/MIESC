@@ -87,7 +87,7 @@ and the clean-HIGH aggregate, but it does not make the residual set trivial.
 ## Frozen File Targets
 
 If Fernando authorizes promotion, these frozen files need edits. Line numbers
-refer to the current `lane/codex` tree after rebasing on `main` commit
+refer to the current working tree after rebasing on `main` commit
 `0c6e083`.
 
 ### `paper/paper2-remediation.tex`
