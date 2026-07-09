@@ -1399,6 +1399,7 @@ Respond with a JSON array."""
         client: Any = openai.OpenAI()
         rag_context = kwargs.pop("rag_context", "")
         model = kwargs.get("model", "gpt-4o")
+        temperature = kwargs.get("temperature", 0.2)
         self._model = model
 
         user_prompt = self._build_user_prompt(source_code, rag_context)
