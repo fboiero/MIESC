@@ -196,8 +196,10 @@ def run_miesc_scan(sol_files, output_path, llm_enhance=False, repo_dir=None, fro
                         and "/interface" not in f.lower()]
         if source_files:
             import tempfile as _tf
-            # Budget: ~100KB max concat (fits in Claude's context with room for prompt)
-            MAX_CONCAT_BYTES = 100_000
+            # Budget: ~100KB max concat by default (fits gpt-4o / low-TPM tiers).
+            # Override with MIESC_CONCAT_MAX_BYTES to send full contracts to a
+            # large-context model (e.g. Claude 200k) for an untruncated evaluation.
+            MAX_CONCAT_BYTES = int(os.environ.get("MIESC_CONCAT_MAX_BYTES", "100000"))
             # Sort by size descending, take the most important files first
             source_files_sized = sorted(source_files, key=lambda f: os.path.getsize(f), reverse=True)
             # Skip pure interface files (I*.sol) and keep implementation files
@@ -209,12 +211,17 @@ def run_miesc_scan(sol_files, output_path, llm_enhance=False, repo_dir=None, fro
             total_written = 0
             files_included = 0
             for sf in impl_files:
-                file_size = os.path.getsize(sf)
-                if total_written + file_size > MAX_CONCAT_BYTES and files_included > 0:
+                if total_written >= MAX_CONCAT_BYTES:
                     break
                 concat.write(f"// ===== FILE: {Path(sf).name} =====\n")
                 try:
                     content = open(sf).read()
+                    # Hard cap: truncate any file (even a single huge one) to the
+                    # remaining budget so the concat never overflows the model's
+                    # context / rate-limit window.
+                    remaining = MAX_CONCAT_BYTES - total_written
+                    if len(content) > remaining:
+                        content = content[:remaining] + "\n// ...(truncated to fit context budget)\n"
                     concat.write(content)
                     total_written += len(content)
                     files_included += 1
@@ -615,6 +622,16 @@ def main():
 
     global _USE_LLM_JUDGE
     _USE_LLM_JUDGE = args.judge
+    # A provider comparison must fail loudly, never silently fall back to another
+    # provider (a failed gpt run must NOT return Claude findings).
+    if args.model:
+        os.environ["MIESC_FRONTIER_NO_FALLBACK"] = "1"
+        # Per-run token/cost ledger: the frontier adapter appends one JSON line
+        # per API call (across the per-audit subprocesses) so we can report cost.
+        RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+        ledger = RESULTS_DIR / f".usage_{args.model}.jsonl"
+        ledger.write_text("")  # truncate for this run
+        os.environ["MIESC_FRONTIER_USAGE_LOG"] = str(ledger)
     audits = load_audits(max_audits=args.max_audits, single_audit=args.audit)
     mode = f"static+{args.model}" if args.model else ("static+LLM" if args.llm else "static")
     print(f"Evaluating MIESC on {len(audits)} EVMBench audits [{mode}]")
@@ -674,6 +691,25 @@ def main():
             "results": results,
         }, f, indent=2)
     print(f"\nResults saved to {output_file}")
+
+    # Token/cost report from the usage ledger (frontier runs only)
+    ledger_path = os.environ.get("MIESC_FRONTIER_USAGE_LOG")
+    if ledger_path and Path(ledger_path).exists():
+        calls = [json.loads(ln) for ln in Path(ledger_path).read_text().splitlines() if ln.strip()]
+        if calls:
+            tin = sum(c["input_tokens"] for c in calls)
+            tout = sum(c["output_tokens"] for c in calls)
+            treason = sum(c.get("reasoning_tokens", 0) for c in calls)
+            tcost = sum(c["cost_usd"] for c in calls)
+            per_audit = tcost / ok_count if ok_count else 0
+            print(f"\n{'='*60}")
+            print("Token / cost report (exact tokens, $ at table prices)")
+            print(f"{'='*60}")
+            print(f"  API calls:     {len(calls)}")
+            print(f"  input tokens:  {tin:,}")
+            print(f"  output tokens: {tout:,}" + (f"  (reasoning: {treason:,})" if treason else ""))
+            print(f"  est. cost:     ${tcost:.2f}   ~${per_audit:.3f}/audit "
+                  f"over {ok_count} audits ({args.runs} runs each)")
 
 
 if __name__ == "__main__":

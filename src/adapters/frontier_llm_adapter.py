@@ -26,8 +26,9 @@ import json
 import logging
 import os
 import time
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, Callable, Dict, List, Optional, cast
 
 from src.core.tool_protocol import (
     ToolAdapter,
@@ -38,6 +39,38 @@ from src.core.tool_protocol import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Tool-use conversational surface (additive) — provider-neutral spec + result
+#
+# These support the agentic auditor loop: instead of reasoning over a single
+# truncated blob, the model pulls exact code on demand via tools. See
+# docs/design/agentic_auditor_phase1_20260707.md §6.
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class ToolSpec:
+    """Provider-neutral tool definition.
+
+    The adapter translates this to the provider's native tool format
+    (Anthropic ``tools=`` or OpenAI ``tools`` function-calling).
+    """
+
+    name: str
+    description: str
+    input_schema: Dict[str, Any]  # JSON schema for the tool's args
+
+
+@dataclass
+class ConversationResult:
+    """Outcome of a multi-turn tool-use conversation."""
+
+    final_text: str
+    messages: List[Any]  # full conversation history (role/content dicts)
+    tool_calls: List[Dict[str, Any]]  # trace: [{"name":..., "args":..., "result":...}]
+    usage: Dict[str, int]  # accumulated token usage totals
 
 # ---------------------------------------------------------------------------
 # Security audit prompt — Chain-of-Thought with structured output
@@ -366,6 +399,13 @@ class FrontierLLMAdapter(ToolAdapter):
             else:
                 return self._error_result(start_time, f"Unknown provider: {provider}")
         except Exception as e:
+            # A provider-comparison benchmark must NOT silently substitute a
+            # different provider on failure — that corrupts the comparison (a
+            # failed gpt run would return Claude findings). Opt out of the
+            # resilience fallback with MIESC_FRONTIER_NO_FALLBACK.
+            if os.environ.get("MIESC_FRONTIER_NO_FALLBACK"):
+                logger.error(f"FrontierLLM: {provider} failed, fallback disabled: {e}")
+                return self._error_result(start_time, f"{provider} failed (no fallback): {e}")
             # Auto-fallback: if primary provider fails, try the other one
             fallback = "openai" if provider == "anthropic" else "anthropic"
             fallback_key = "OPENAI_API_KEY" if fallback == "openai" else "ANTHROPIC_API_KEY"
@@ -866,6 +906,39 @@ Respond with a JSON array."""
             prompt = rag_section + "\n" + prompt
         return prompt
 
+    # Approx USD per 1M tokens (input, output). Token COUNTS logged are EXACT
+    # (from the API usage object); only the $ estimate uses this table — update
+    # it when provider prices change.
+    _PRICING = {
+        "gpt-4o": (2.50, 10.00),
+        "gpt-5": (1.25, 10.00),
+        "claude-sonnet-4-6": (3.00, 15.00),
+        "claude-opus": (15.00, 75.00),
+    }
+
+    def _record_usage(self, model: str, in_tok: int, out_tok: int, reasoning_tok: int = 0) -> None:
+        """Log exact token usage + estimated cost; append to a ledger if set.
+
+        Set MIESC_FRONTIER_USAGE_LOG=<path> to accumulate one JSON line per call
+        across subprocesses (the benchmark reads it to report per-audit cost).
+        """
+        pin, pout = next((p for k, p in self._PRICING.items() if model.startswith(k)), (0.0, 0.0))
+        cost = (in_tok * pin + out_tok * pout) / 1_000_000
+        logger.info(
+            "FrontierLLM usage [%s]: in=%d out=%d%s ~$%.4f",
+            model, in_tok, out_tok, f" reasoning={reasoning_tok}" if reasoning_tok else "", cost,
+        )
+        ledger = os.environ.get("MIESC_FRONTIER_USAGE_LOG")
+        if ledger:
+            try:
+                with open(ledger, "a", encoding="utf-8") as f:
+                    f.write(json.dumps({
+                        "model": model, "input_tokens": in_tok, "output_tokens": out_tok,
+                        "reasoning_tokens": reasoning_tok, "cost_usd": round(cost, 6),
+                    }) + "\n")
+            except Exception:  # noqa: BLE001 - ledger is best-effort
+                pass
+
     def _analyze_anthropic(self, source_code: str, **kwargs: Any) -> List[Dict]:
         """Call Anthropic Claude API."""
         import anthropic
@@ -881,12 +954,435 @@ Respond with a JSON array."""
 
         message = client.messages.create(
             model=model,
-            max_tokens=4096,
+            max_tokens=8192,  # complex contracts produce long reports; 4096 truncated → 0 findings
             system=AUDIT_SYSTEM_PROMPT,
             messages=[{"role": "user", "content": user_prompt}],
         )
 
+        u = getattr(message, "usage", None)
+        if u:
+            self._record_usage(model, getattr(u, "input_tokens", 0) or 0,
+                               getattr(u, "output_tokens", 0) or 0)
         return self._parse_response(getattr(message.content[0], "text", ""))
+
+    def converse_with_tools(
+        self,
+        system: str,
+        messages: List[Dict[str, Any]],
+        tools: List[ToolSpec],
+        on_tool_call: Callable[[str, Dict[str, Any]], str],
+        model: Optional[str] = None,
+        max_iterations: int = 12,
+        temperature: float = 0.2,
+    ) -> ConversationResult:
+        """Run an Anthropic tool-use conversational loop.
+
+        The model may emit tool calls; each is executed via
+        ``on_tool_call(name, args) -> str`` and fed back to the model,
+        repeating until it returns final text or ``max_iterations`` tool
+        rounds are exhausted.
+
+        Provider parity: the same method works for both providers behind the
+        same ``ToolSpec`` / ``ConversationResult`` contract. The provider is
+        resolved from the model id (``claude``/``anthropic`` → Anthropic
+        ``tool_use``; ``gpt``/``openai``/o-series → OpenAI function-calling),
+        falling back to the adapter's configured/detected provider. Both
+        branches call the identical ``on_tool_call`` callback and return an
+        identical ``ConversationResult``.
+
+        This is additive and independent of ``analyze()`` — nothing changes
+        unless a caller invokes it.
+
+        Args:
+            system: System prompt (auditor role + repo map).
+            messages: Initial conversation history (role/content dicts).
+            tools: Provider-neutral ``ToolSpec`` list, translated to the
+                provider's native tool format.
+            on_tool_call: Executes one tool, returning its result string.
+            model: Frontier model id; defaults per provider (Anthropic
+                ``claude-sonnet-4-6``; OpenAI ``gpt-4o``).
+            max_iterations: Hard cap on tool rounds regardless of stop reason.
+
+        Returns:
+            ConversationResult with the final text, full message history,
+            the tool-call trace, and accumulated token usage.
+        """
+        provider = self._resolve_conversation_provider(model)
+        if provider == "openai":
+            return self._converse_openai(
+                system, messages, tools, on_tool_call, model, max_iterations, temperature
+            )
+        return self._converse_anthropic(
+            system, messages, tools, on_tool_call, model, max_iterations, temperature
+        )
+
+    def _resolve_conversation_provider(self, model: Optional[str]) -> str:
+        """Pick the tool-use branch. An explicit model id wins (``claude``/
+        ``anthropic`` → anthropic; ``gpt``/``openai``/o-series → openai);
+        otherwise fall back to the adapter's configured/detected provider,
+        defaulting to anthropic."""
+        if model:
+            m = model.lower()
+            if m.startswith(("claude", "anthropic")):
+                return "anthropic"
+            if m.startswith(("gpt", "openai", "o1", "o3", "o4")):
+                return "openai"
+        provider = self._get_provider()
+        if provider in ("anthropic", "openai"):
+            return provider
+        return "anthropic"
+
+    def _converse_anthropic(
+        self,
+        system: str,
+        messages: List[Dict[str, Any]],
+        tools: List[ToolSpec],
+        on_tool_call: Callable[[str, Dict[str, Any]], str],
+        model: Optional[str] = None,
+        max_iterations: int = 12,
+        temperature: float = 0.2,
+    ) -> ConversationResult:
+        """Anthropic ``tool_use`` branch of :meth:`converse_with_tools`."""
+        import anthropic
+
+        client: Any = anthropic.Anthropic()
+        model = model or "claude-sonnet-4-6"
+        self._model = model
+
+        # Translate provider-neutral specs to Anthropic's tool format.
+        anthropic_tools = [
+            {
+                "name": t.name,
+                "description": t.description,
+                "input_schema": t.input_schema,
+            }
+            for t in tools
+        ]
+
+        conversation: List[Any] = list(messages)
+        tool_calls: List[Dict[str, Any]] = []
+        usage: Dict[str, int] = {"input_tokens": 0, "output_tokens": 0}
+        final_text = ""
+
+        logger.info(
+            "FrontierLLM: Starting tool-use conversation with %s "
+            "(%d tools, max_iterations=%d)",
+            model, len(anthropic_tools), max_iterations,
+        )
+
+        for round_idx in range(max_iterations):
+            message = client.messages.create(
+                model=model,
+                max_tokens=8192,
+                temperature=temperature,
+                system=system,
+                messages=conversation,
+                tools=anthropic_tools,
+            )
+
+            # Accumulate exact token usage across every call in the loop.
+            u = getattr(message, "usage", None)
+            if u:
+                in_tok = getattr(u, "input_tokens", 0) or 0
+                out_tok = getattr(u, "output_tokens", 0) or 0
+                usage["input_tokens"] += in_tok
+                usage["output_tokens"] += out_tok
+                self._record_usage(model, in_tok, out_tok)
+
+            content = list(getattr(message, "content", []) or [])
+            # Preserve the assistant turn verbatim (tool_use blocks included).
+            conversation.append({"role": "assistant", "content": content})
+
+            tool_use_blocks = [
+                b for b in content if getattr(b, "type", None) == "tool_use"
+            ]
+
+            # Final text: model stopped naturally or emitted no tool calls.
+            if getattr(message, "stop_reason", None) == "end_turn" or not tool_use_blocks:
+                final_text = "".join(
+                    getattr(b, "text", "") or ""
+                    for b in content
+                    if getattr(b, "type", None) == "text"
+                )
+                logger.info(
+                    "FrontierLLM: Conversation finished after %d tool round(s)",
+                    round_idx,
+                )
+                return ConversationResult(
+                    final_text=final_text,
+                    messages=conversation,
+                    tool_calls=tool_calls,
+                    usage=usage,
+                )
+
+            # Execute each requested tool and feed results back as one user turn.
+            tool_results: List[Dict[str, Any]] = []
+            for block in tool_use_blocks:
+                name = getattr(block, "name", "")
+                args = getattr(block, "input", {}) or {}
+                try:
+                    result = on_tool_call(name, args)
+                except Exception as e:  # noqa: BLE001 - surface tool errors to the model
+                    result = f"ERROR: tool '{name}' failed: {e}"
+                tool_calls.append({"name": name, "args": args, "result": result})
+                tool_results.append(
+                    {
+                        "type": "tool_result",
+                        "tool_use_id": getattr(block, "id", ""),
+                        "content": result,
+                    }
+                )
+            conversation.append({"role": "user", "content": tool_results})
+
+        # max_iterations exhausted with tool calls still pending. Rather than
+        # returning empty final_text (which parses to zero hypotheses), force ONE
+        # final call with tools DISABLED so the model must answer from what it has
+        # already inspected.
+        logger.warning(
+            "FrontierLLM: Tool-use conversation hit max_iterations=%d; forcing a "
+            "final answer with tools disabled",
+            max_iterations,
+        )
+        conversation.append(
+            {
+                "role": "user",
+                "content": (
+                    "You have gathered enough context. Do NOT request any more "
+                    "tools. Based on what you have already inspected, output your "
+                    "final answer now in the exact format requested."
+                ),
+            }
+        )
+        try:
+            message = client.messages.create(
+                model=model,
+                max_tokens=8192,
+                temperature=temperature,
+                system=system,
+                messages=conversation,
+            )
+            u = getattr(message, "usage", None)
+            if u:
+                in_tok = getattr(u, "input_tokens", 0) or 0
+                out_tok = getattr(u, "output_tokens", 0) or 0
+                usage["input_tokens"] += in_tok
+                usage["output_tokens"] += out_tok
+                self._record_usage(model, in_tok, out_tok)
+            content = list(getattr(message, "content", []) or [])
+            conversation.append({"role": "assistant", "content": content})
+            final_text = "".join(
+                getattr(b, "text", "") or ""
+                for b in content
+                if getattr(b, "type", None) == "text"
+            )
+        except Exception as e:  # noqa: BLE001 - keep empty final_text on failure
+            logger.warning(
+                "FrontierLLM: forced final answer call failed: %s", e
+            )
+            final_text = ""
+        return ConversationResult(
+            final_text=final_text,
+            messages=conversation,
+            tool_calls=tool_calls,
+            usage=usage,
+        )
+
+    def _converse_openai(
+        self,
+        system: str,
+        messages: List[Dict[str, Any]],
+        tools: List[ToolSpec],
+        on_tool_call: Callable[[str, Dict[str, Any]], str],
+        model: Optional[str] = None,
+        max_iterations: int = 12,
+        temperature: float = 0.2,
+    ) -> ConversationResult:
+        """OpenAI function-calling branch of :meth:`converse_with_tools`.
+
+        Mirrors the Anthropic branch behind the same ``ToolSpec`` /
+        ``on_tool_call`` / ``ConversationResult`` contract. Each ``ToolSpec``
+        becomes an OpenAI ``{"type":"function","function":{...}}`` tool; a
+        response carrying ``tool_calls`` is executed and each result is fed
+        back as a ``role:"tool"`` message until the model returns plain content
+        or ``max_iterations`` rounds are exhausted.
+        """
+        import openai
+
+        client: Any = openai.OpenAI()
+        model = model or "gpt-4o"
+        self._model = model
+
+        # Translate provider-neutral specs to OpenAI's function-tool format.
+        openai_tools = [
+            {
+                "type": "function",
+                "function": {
+                    "name": t.name,
+                    "description": t.description,
+                    "parameters": t.input_schema,
+                },
+            }
+            for t in tools
+        ]
+
+        # OpenAI carries the system prompt as the first message, not a kwarg.
+        conversation: List[Any] = [{"role": "system", "content": system}]
+        conversation.extend(messages)
+        tool_calls: List[Dict[str, Any]] = []
+        usage: Dict[str, int] = {"input_tokens": 0, "output_tokens": 0}
+        final_text = ""
+
+        # GPT-5 / o-series use max_completion_tokens (+ hidden reasoning budget);
+        # everything else uses max_tokens. Mirrors ``_analyze_openai``.
+        token_param: Dict[str, Any] = {}
+        extra: Dict[str, Any] = {}
+        if model.startswith(("gpt-5", "o1", "o3", "o4")):
+            token_param["max_completion_tokens"] = 32768
+            extra["reasoning_effort"] = "low"
+        else:
+            token_param["max_tokens"] = 8192
+            # o-series/gpt-5 reject a custom temperature; only set it elsewhere.
+            extra["temperature"] = temperature
+
+        logger.info(
+            "FrontierLLM: Starting tool-use conversation with %s "
+            "(%d tools, max_iterations=%d)",
+            model, len(openai_tools), max_iterations,
+        )
+
+        for round_idx in range(max_iterations):
+            response = client.chat.completions.create(
+                model=model,
+                messages=conversation,
+                tools=openai_tools,
+                **token_param,
+                **extra,
+            )
+
+            # Accumulate exact token usage across every call in the loop.
+            u = getattr(response, "usage", None)
+            if u:
+                in_tok = getattr(u, "prompt_tokens", 0) or 0
+                out_tok = getattr(u, "completion_tokens", 0) or 0
+                usage["input_tokens"] += in_tok
+                usage["output_tokens"] += out_tok
+                reasoning = 0
+                details = getattr(u, "completion_tokens_details", None)
+                if details:
+                    reasoning = getattr(details, "reasoning_tokens", 0) or 0
+                self._record_usage(model, in_tok, out_tok, reasoning)
+
+            msg = response.choices[0].message
+            requested = list(getattr(msg, "tool_calls", None) or [])
+
+            # Preserve the assistant turn verbatim (tool_calls included) so the
+            # subsequent role:"tool" messages resolve against the right ids.
+            assistant_turn: Dict[str, Any] = {
+                "role": "assistant",
+                "content": getattr(msg, "content", None) or "",
+            }
+            if requested:
+                assistant_turn["tool_calls"] = [
+                    {
+                        "id": getattr(tc, "id", ""),
+                        "type": "function",
+                        "function": {
+                            "name": getattr(tc.function, "name", ""),
+                            "arguments": getattr(tc.function, "arguments", "") or "",
+                        },
+                    }
+                    for tc in requested
+                ]
+            conversation.append(assistant_turn)
+
+            # Final content: model stopped requesting tools.
+            if not requested:
+                final_text = getattr(msg, "content", "") or ""
+                logger.info(
+                    "FrontierLLM: Conversation finished after %d tool round(s)",
+                    round_idx,
+                )
+                return ConversationResult(
+                    final_text=final_text,
+                    messages=conversation,
+                    tool_calls=tool_calls,
+                    usage=usage,
+                )
+
+            # Execute each requested tool; each result is its own tool message.
+            for tc in requested:
+                name = getattr(tc.function, "name", "")
+                raw_args = getattr(tc.function, "arguments", "") or "{}"
+                try:
+                    args = json.loads(raw_args) if raw_args else {}
+                except (ValueError, TypeError):
+                    args = {}
+                try:
+                    result = on_tool_call(name, args)
+                except Exception as e:  # noqa: BLE001 - surface tool errors to the model
+                    result = f"ERROR: tool '{name}' failed: {e}"
+                tool_calls.append({"name": name, "args": args, "result": result})
+                conversation.append(
+                    {
+                        "role": "tool",
+                        "tool_call_id": getattr(tc, "id", ""),
+                        "content": result,
+                    }
+                )
+
+        # max_iterations exhausted with tool calls still pending. Rather than
+        # returning empty final_text (which parses to zero hypotheses), force ONE
+        # final call with tools DISABLED so the model must answer from what it has
+        # already inspected.
+        logger.warning(
+            "FrontierLLM: Tool-use conversation hit max_iterations=%d; forcing a "
+            "final answer with tools disabled",
+            max_iterations,
+        )
+        conversation.append(
+            {
+                "role": "user",
+                "content": (
+                    "You have gathered enough context. Do NOT request any more "
+                    "tools. Based on what you have already inspected, output your "
+                    "final answer now in the exact format requested."
+                ),
+            }
+        )
+        try:
+            response = client.chat.completions.create(
+                model=model,
+                messages=conversation,
+                **token_param,
+                **extra,
+            )
+            u = getattr(response, "usage", None)
+            if u:
+                in_tok = getattr(u, "prompt_tokens", 0) or 0
+                out_tok = getattr(u, "completion_tokens", 0) or 0
+                usage["input_tokens"] += in_tok
+                usage["output_tokens"] += out_tok
+                reasoning = 0
+                details = getattr(u, "completion_tokens_details", None)
+                if details:
+                    reasoning = getattr(details, "reasoning_tokens", 0) or 0
+                self._record_usage(model, in_tok, out_tok, reasoning)
+            msg = response.choices[0].message
+            final_text = getattr(msg, "content", "") or ""
+            conversation.append(
+                {"role": "assistant", "content": final_text}
+            )
+        except Exception as e:  # noqa: BLE001 - keep empty final_text on failure
+            logger.warning(
+                "FrontierLLM: forced final answer call failed: %s", e
+            )
+            final_text = ""
+        return ConversationResult(
+            final_text=final_text,
+            messages=conversation,
+            tool_calls=tool_calls,
+            usage=usage,
+        )
 
     def _analyze_openai(self, source_code: str, **kwargs: Any) -> List[Dict]:
         """Call OpenAI API (supports GPT-4o, GPT-4.1, GPT-5, o-series)."""
@@ -901,12 +1397,20 @@ Respond with a JSON array."""
         rag_note = f" +RAG({len(rag_context)})" if rag_context else ""
         logger.info(f"FrontierLLM: Calling {model} ({len(source_code)} chars{rag_note})")
 
-        # GPT-5 and o-series use max_completion_tokens instead of max_tokens
-        token_param = {}
+        # GPT-5 and o-series use max_completion_tokens instead of max_tokens.
+        # Reasoning models spend part of that budget on hidden reasoning BEFORE
+        # emitting output; at 16384 the reasoning consumed the whole allowance and
+        # the visible content came back empty (0 chars). Give a much larger budget
+        # and cap reasoning effort so tokens are left for the actual answer.
+        token_param: Dict[str, Any] = {}
+        extra: Dict[str, Any] = {}
         if model.startswith(("gpt-5", "o1", "o3", "o4")):
-            token_param["max_completion_tokens"] = 16384
+            token_param["max_completion_tokens"] = 32768
+            extra["reasoning_effort"] = "low"
         else:
-            token_param["max_tokens"] = 4096
+            token_param["max_tokens"] = 8192
+            # o-series/gpt-5 reject a custom temperature; only set it elsewhere.
+            extra["temperature"] = temperature
 
         response = client.chat.completions.create(
             model=model,
@@ -915,8 +1419,17 @@ Respond with a JSON array."""
                 {"role": "user", "content": user_prompt},
             ],
             **token_param,
+            **extra,
         )
 
+        u = getattr(response, "usage", None)
+        if u:
+            reasoning = 0
+            details = getattr(u, "completion_tokens_details", None)
+            if details:
+                reasoning = getattr(details, "reasoning_tokens", 0) or 0
+            self._record_usage(model, getattr(u, "prompt_tokens", 0) or 0,
+                               getattr(u, "completion_tokens", 0) or 0, reasoning)
         return self._parse_response(response.choices[0].message.content)
 
     def _ensure_ollama_model(self, model: str) -> bool:

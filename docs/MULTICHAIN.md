@@ -191,7 +191,7 @@ miesc scan validator.ak --chain cardano   # Aiken
 ## Recommendations
 
 ### For Production Audits
-Use **EVM analysis** for comprehensive security assessment:
+Use **EVM analysis** for a full security assessment:
 - Full 9-layer defense coverage
 - 50 integrated tools / 35 analysis modules
 - Backed detection numbers (SmartBugs full corpus: 95.8% recall; see the README benchmarks)

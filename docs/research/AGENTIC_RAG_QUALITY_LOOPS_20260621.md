@@ -60,7 +60,7 @@ A finding passes only if it clears grounding checks (all already partly in
 - **Cross-model grounding**: a second independent model must agree.
 Fail ≥2 → flag `hallucinated`, drop or route to manual review.
 
-### Loop C — Compile self-repair (→ P2 compile 64%↑) [remediation lane / Codex]
+### Loop C — Compile self-repair (→ P2 compile 64%↑)
 generate patch → compile → on failure, feed the **compiler error + RAG fix-template**
 back to the model → regenerate (bounded retries). The current patcher is single-shot;
 a 2–3 step repair loop should close most of the 42 undefined-symbol failures.
@@ -146,7 +146,7 @@ every category), NOT a precision-lift claim — the lift must be measured per-fi
    when a deliberate re-baseline is opened (changing the RAG KB bumps the version the
    Paper-1 profile pins).
 4. **Compile self-repair (Loop C)** + **exploit-test oracle (Loop D)** → remediation
-   lane (Codex), after fix_eval finalizes.
+   lane, after fix_eval finalizes.
 
 > Reproducibility guardrail: the canonical KB version
 > (`...source-review-v4`) and the frozen Paper 1/2 numbers MUST NOT change silently.

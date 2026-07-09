@@ -512,7 +512,7 @@ The design choice is to keep each stage inspectable. Detection informs patching,
 
 \textbf{Future work.} Three directions are planned: (1)~\emph{AST-level patching} via Slither's intermediate representation, enabling CEI reordering and cross-contract fixes; (2)~\emph{dependency-aware compilation} with automatic import resolution from npm/forge registries, which would eliminate the dominant compilation failure mode; and (3)~\emph{CI/CD integration} as a GitHub Action providing continuous security feedback on pull requests. We also plan to extend the evaluation to production DeFi protocols with complex inheritance and cross-contract interactions.
 
-MIESC is available under AGPL-3.0 at \url{https://github.com/fboiero/MIESC}.
+Taken together, these results extend MIESC beyond detection into the remediation half of the security loop: it moves automatically from a finding to inspectable patches, exploit tests, specifications, and compliance evidence, while reporting each residual failure (57\% external clean-HIGH) rather than hiding it behind a headline success rate. Closing this find$\rightarrow$fix$\rightarrow$prove loop, which remains manual in single-purpose tools, is what positions MIESC as a security framework rather than a detector or a patch generator. MIESC is available under AGPL-3.0 at \url{https://github.com/fboiero/MIESC}.
 
 % ===========================================================================
 \section*{Acknowledgment}

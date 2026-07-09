@@ -73,6 +73,19 @@ def test_gptscan_inherits_cache_mixin():
     assert issubclass(GPTScanAdapter, LLMCacheMixin)
 
 
+def test_gptscan_init_sets_rag_attributes():
+    """Regression: _use_rag/_embedding_rag were dead code after a return in
+    _get_cache_key, so __init__ never set them and _run_ollama_analysis crashed
+    with AttributeError on every scan. The existing tests missed it because they
+    mock _run_ollama_analysis (the very method that read the attribute).
+    """
+    adapter = GPTScanAdapter()
+    assert hasattr(adapter, "_use_rag")
+    assert hasattr(adapter, "_embedding_rag")
+    # the exact access that used to raise AttributeError must be safe now
+    _ = adapter._use_rag and adapter._embedding_rag
+
+
 def test_gptscan_second_scan_hits_cache(tmp_path):
     adapter = GPTScanAdapter()
     adapter._cache_dir = tmp_path
@@ -96,6 +109,39 @@ def test_gptscan_second_scan_hits_cache(tmp_path):
     assert r1["from_cache"] is False
     assert r2["from_cache"] is True
     assert calls["n"] == 1  # LLM ran only once; second scan served from cache
+
+
+def test_cache_disabled_env_parsing():
+    from src.adapters._cache_mixin import _cache_disabled
+
+    for val in ("1", "true", "TRUE", "yes", " Yes "):
+        with patch.dict(os.environ, {"MIESC_DISABLE_LLM_CACHE": val}):
+            assert _cache_disabled() is True
+    for val in ("", "0", "false", "no", "off"):
+        with patch.dict(os.environ, {"MIESC_DISABLE_LLM_CACHE": val}):
+            assert _cache_disabled() is False
+    with patch.dict(os.environ, {}, clear=True):
+        assert _cache_disabled() is False
+
+
+def test_bypass_skips_read_even_when_entry_exists(tmp_path):
+    """With the bypass on, a fresh cached entry must NOT be served (variance runs)."""
+    h = _harness(tmp_path, ttl=1000)
+    h._cache_result("k", {"status": "success"})
+    assert h._get_cached_result("k") == {"status": "success"}  # baseline: cache hits
+    with patch.dict(os.environ, {"MIESC_DISABLE_LLM_CACHE": "1"}):
+        assert h._get_cached_result("k") is None  # bypass forces a miss
+
+
+def test_bypass_skips_write(tmp_path):
+    """With the bypass on, results must not be written to disk."""
+    h = _harness(tmp_path, ttl=1000)
+    with patch.dict(os.environ, {"MIESC_DISABLE_LLM_CACHE": "1"}):
+        h._cache_result("k", {"status": "success"})
+    assert not list(Path(tmp_path).glob("*.json"))  # nothing persisted
+    # and once the bypass is off, caching resumes normally
+    h._cache_result("k", {"status": "success"})
+    assert (tmp_path / "k.json").exists()
 
 
 def test_gptscan_timeout_not_cached(tmp_path):

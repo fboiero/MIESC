@@ -174,10 +174,6 @@ Respond ONLY with valid JSON. Report ONLY vulnerabilities you are CONFIDENT abou
             self._ollama_model = "qwen2.5-coder:14b"
         self._ollama_url = get_ollama_host()
 
-    def _get_cache_key(self, contract_code: str, model: str) -> str:
-        """SHA-256 over contract + model so a model change invalidates the cache."""
-        return hashlib.sha256(f"gptscan:{model}:{contract_code}".encode("utf-8")).hexdigest()
-
         # Initialize EmbeddingRAG if available
         self._embedding_rag: Any = None
         self._use_rag: bool = False
@@ -188,6 +184,10 @@ Respond ONLY with valid JSON. Report ONLY vulnerabilities you are CONFIDENT abou
                 logger.debug("GPTScan: EmbeddingRAG (ChromaDB) enabled")
             except Exception as e:
                 logger.debug(f"GPTScan: EmbeddingRAG unavailable: {e}")
+
+    def _get_cache_key(self, contract_code: str, model: str) -> str:
+        """SHA-256 over contract + model so a model change invalidates the cache."""
+        return hashlib.sha256(f"gptscan:{model}:{contract_code}".encode("utf-8")).hexdigest()
 
     def get_metadata(self) -> ToolMetadata:
         return ToolMetadata(
@@ -389,8 +389,15 @@ Respond ONLY with valid JSON. Report ONLY vulnerabilities you are CONFIDENT abou
 
     def _detect_best_model(self) -> str:
         """Detect the best available Ollama model for security analysis via HTTP API."""
+        import os
         import urllib.error
         import urllib.request
+
+        # An explicit MIESC_LLM_MODEL override wins over the availability heuristic
+        # (e.g. pinning a benchmark to 14B for tractability / to avoid model thrash).
+        env_model = os.environ.get("MIESC_LLM_MODEL")
+        if env_model:
+            return env_model
 
         try:
             ollama_host = get_ollama_host()

@@ -2,7 +2,7 @@
 
 **MIESC v5.4.3** | Professional Auditor Guide
 
-This guide provides a structured workflow for conducting professional smart contract security audits using MIESC.
+This guide walks you through a structured workflow for professional smart contract security audits with MIESC.
 
 ---
 
@@ -23,7 +23,7 @@ This guide provides a structured workflow for conducting professional smart cont
 
 ## Overview
 
-MIESC integrates a **configured adapter stack** across **9 defense layers** to provide comprehensive smart contract analysis:
+MIESC runs a **configured adapter stack** across **9 defense layers**. Each layer catches a different class of problem:
 
 | Layer | Focus | Key Tools |
 |-------|-------|-----------|

@@ -69,7 +69,7 @@ All other category aggregates stay unchanged for the promoted metrics.
 ## Frozen File Targets
 
 If Fernando authorizes promotion, these frozen files need edits. Line numbers
-refer to the current `lane/codex` tree after rebasing on `main` commit
+refer to the current working tree after rebasing on `main` commit
 `4a2d427`.
 
 ### `paper/paper2-remediation.tex`
