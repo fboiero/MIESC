@@ -153,6 +153,11 @@ def _coerce_text_list(value: Any) -> List[str]:
                 continue
             if isinstance(item, (dict, list, tuple, set)):
                 continue
+            if not isinstance(item, (str, bytes)):
+                try:
+                    item = str(item)
+                except Exception:
+                    continue
             text = _safe_text(item)
             if not text:
                 continue
@@ -347,6 +352,8 @@ def _coerce_cache_ttl_seconds(value: Any) -> int:
     if isinstance(value, bool):
         return EmbeddingRAG.DEFAULT_CACHE_TTL_SECONDS
     if isinstance(value, str):
+        if any(_has_unsafe_text_char(ch) for ch in value):
+            return EmbeddingRAG.DEFAULT_CACHE_TTL_SECONDS
         value = _safe_text(value)
         if not value:
             return EmbeddingRAG.DEFAULT_CACHE_TTL_SECONDS

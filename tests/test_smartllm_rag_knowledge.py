@@ -934,7 +934,7 @@ class TestEmbeddingRAGCustomVulnerabilityShapes:
 
 
 class TestEmbeddingRAGSearchBoundaryShapes:
-    def test_search_coerces_query_and_bounds_malformed_similarity_metadata(self, tmp_path):
+    def test_search_empties_malformed_query_and_bounds_malformed_similarity_metadata(self, tmp_path):
         vulnerability = VulnerabilityDocument(
             id="CUSTOM-003",
             title="Malformed Similarity Boundary",
@@ -954,10 +954,13 @@ class TestEmbeddingRAGSearchBoundaryShapes:
 
         results = rag.search(["custom"], n_results=3)  # type: ignore[arg-type]
 
-        assert collection.query_texts == ["['custom']"]
+        # Hardened contract: a malformed (non-str) query is emptied, not stringified,
+        # so no attacker-controlled structure reaches the vector search.
+        assert collection.query_texts == [""]
         assert [result.document.id for result in results] == ["CUSTOM-003"]
         assert 0.0 <= results[0].similarity_score < 0.3
-        assert results[0].relevance_reason == "Matches category: custom"
+        # Emptied query cannot category-match, so ranking falls back to semantic similarity.
+        assert results[0].relevance_reason == "Semantic similarity match"
 
     def test_search_bounds_non_finite_and_negative_distances(self, tmp_path):
         documents = {
@@ -1366,7 +1369,8 @@ class TestEmbeddingRAGSearchBoundaryShapes:
 
         results = rag.batch_search([b"batch", {"q": "bad"}], n_results=2)  # type: ignore[list-item]
 
-        assert collection.query_texts == ["batch", "{'q': 'bad'}"]
+        # Hardened contract: bytes decode to text, but a dict query value is dropped.
+        assert collection.query_texts == ["batch"]
         assert [[result.document.id for result in row] for row in results] == [
             ["CUSTOM-004"],
             [],
