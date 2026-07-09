@@ -23,9 +23,11 @@ import json
 import logging
 import math
 import os
+import re
 from dataclasses import dataclass, fields, replace
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
+from urllib.parse import urlparse
 
 import aiohttp
 
@@ -37,8 +39,13 @@ from src.security.llm_output_validator import (
 logger = logging.getLogger(__name__)
 
 MAX_VALIDATION_RESPONSE_CHARS = 50_000
+MAX_VALIDATION_JSON_KEYS = 100
+MAX_VALIDATOR_TEXT_CHARS = 100_000
 MAX_BATCH_FINDINGS = 500
 MAX_AVAILABLE_MODELS = 200
+MAX_VALIDATOR_MODEL_NAME_CHARS = 128
+DEFAULT_OLLAMA_HOST = "http://localhost:11434"
+_OLLAMA_MODEL_RE = re.compile(r"^[A-Za-z0-9_.:-]{1,128}$")
 
 VALIDATOR_RUNTIME_ERRORS = (
     aiohttp.ClientError,
@@ -69,6 +76,57 @@ def _safe_mapping_get(mapping: Any, key: str, default: Any = None) -> Any:
         return mapping.get(key, default)
     except (AttributeError, TypeError, RuntimeError, ValueError):
         return default
+
+
+def _safe_text(value: Any, *, allow_multiline: bool = False, limit: int = MAX_VALIDATOR_TEXT_CHARS) -> str:
+    """Return bounded safe text, preserving normal surrounding whitespace trimming."""
+    if isinstance(value, bytes):
+        try:
+            value = value.decode("utf-8", errors="replace")
+        except Exception:
+            return ""
+    if not isinstance(value, str):
+        return ""
+    if any(
+        ord(ch) == 127 or ord(ch) in {0x2028, 0x2029} or (ord(ch) < 32 and ch not in "\n\r\t ")
+        for ch in value
+    ):
+        return ""
+    try:
+        text = value.strip()
+    except (AttributeError, TypeError, ValueError, RuntimeError):
+        return ""
+    if not text:
+        return ""
+    if allow_multiline:
+        if any(_is_unsafe_text_char(ch, allow_multiline=True) for ch in text):
+            return ""
+    elif any(_is_unsafe_text_char(ch) for ch in text):
+        return ""
+    if isinstance(limit, bool) or not isinstance(limit, int) or limit < 1:
+        limit = MAX_VALIDATOR_TEXT_CHARS
+    return text[:limit]
+
+
+def _bounded_list(value: Any, *, limit: int) -> List[Any]:
+    """Return a bounded list copy without trusting list subclass slicing/len."""
+    if not isinstance(value, list):
+        return []
+    if isinstance(limit, bool) or not isinstance(limit, int) or limit < 1:
+        limit = MAX_BATCH_FINDINGS
+    copied = []
+    try:
+        iterator = iter(value)
+    except (TypeError, RuntimeError, ValueError):
+        return []
+    try:
+        for item in iterator:
+            if len(copied) >= limit:
+                break
+            copied.append(item)
+    except (TypeError, RuntimeError, ValueError):
+        return copied
+    return copied
 
 
 class ValidationResult(Enum):
@@ -181,18 +239,11 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
             self.config.ollama_host = os.environ["OLLAMA_HOST"]
         if os.environ.get("MIESC_LLM_MODEL") and self.config.model == default_config.model:
             self.config.model = os.environ["MIESC_LLM_MODEL"]
-        if not isinstance(self.config.ollama_host, str) or not self.config.ollama_host.strip():
-            self.config.ollama_host = default_config.ollama_host
-        else:
-            self.config.ollama_host = self.config.ollama_host.strip()
-            if any(_is_unsafe_text_char(ch) for ch in self.config.ollama_host):
-                self.config.ollama_host = default_config.ollama_host
-        if not isinstance(self.config.model, str) or not self.config.model.strip():
-            self.config.model = default_config.model
-        else:
-            self.config.model = self.config.model.strip()
-            if any(_is_unsafe_text_char(ch) for ch in self.config.model):
-                self.config.model = default_config.model
+        self.config.ollama_host = self._normalize_ollama_host(
+            self.config.ollama_host,
+            default_config.ollama_host,
+        )
+        self.config.model = self._normalize_model_name(self.config.model, default_config.model)
         if (
             isinstance(self.config.timeout_seconds, bool)
             or not isinstance(self.config.timeout_seconds, (int, float))
@@ -245,7 +296,9 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
     async def _get_session(self) -> aiohttp.ClientSession:
         """Get or create aiohttp session."""
         if self._session is None or self._session.closed:
-            timeout = aiohttp.ClientTimeout(total=self.config.timeout_seconds)
+            timeout = aiohttp.ClientTimeout(
+                total=self._safe_timeout_seconds(self.config.timeout_seconds)
+            )
             self._session = aiohttp.ClientSession(timeout=timeout)
         return self._session
 
@@ -258,7 +311,7 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
         """Check if Ollama is available and the model is loaded."""
         try:
             session = await self._get_session()
-            async with session.get(f"{self.config.ollama_host}/api/tags") as resp:
+            async with session.get(f"{self._safe_ollama_host()}/api/tags") as resp:
                 status = resp.status
                 if not isinstance(status, int) or isinstance(status, bool) or status != 200:
                     return False
@@ -266,17 +319,19 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
                 if not isinstance(data, dict):
                     return False
 
-                models_value = _safe_mapping_get(data, "models", [])
-                models = models_value if isinstance(models_value, list) else []
+                models = _bounded_list(
+                    _safe_mapping_get(data, "models", []),
+                    limit=MAX_AVAILABLE_MODELS,
+                )
                 model_names = [
                     name.strip()
-                    for model in models[:MAX_AVAILABLE_MODELS]
+                    for model in models
                     if isinstance(model, dict)
                     and isinstance(name := _safe_mapping_get(model, "name"), str)
                     and self._safe_model_name(name)
                 ]
                 return any(
-                    self._model_name_matches_configured_model(self.config.model, name)
+                    self._model_name_matches_configured_model(self._safe_model_name(self.config.model), name)
                     for name in model_names
                 )
         except VALIDATOR_RUNTIME_ERRORS as e:
@@ -399,17 +454,17 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
         session = await self._get_session()
 
         payload = {
-            "model": self.config.model,
-            "prompt": prompt,
+            "model": self._safe_model_name(self.config.model) or ValidatorConfig().model,
+            "prompt": self._prompt_text(prompt, limit=MAX_VALIDATION_RESPONSE_CHARS),
             "stream": False,
             "options": {
-                "temperature": self.config.temperature,
-                "num_predict": self.config.max_tokens,
+                "temperature": self._safe_temperature(self.config.temperature),
+                "num_predict": self._safe_max_tokens(self.config.max_tokens),
             },
         }
 
         async with session.post(
-            f"{self.config.ollama_host}/api/generate",
+            f"{self._safe_ollama_host()}/api/generate",
             json=payload,
         ) as resp:
             status = resp.status
@@ -428,17 +483,35 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
                 return ""
 
             response = _safe_mapping_get(data, "response", "")
-            return response[:MAX_VALIDATION_RESPONSE_CHARS] if isinstance(response, str) else ""
+            return _safe_text(
+                response,
+                allow_multiline=True,
+                limit=MAX_VALIDATION_RESPONSE_CHARS,
+            )
 
     def _parse_response(self, response: str, finding_id: str) -> LLMValidation:
         """Parse LLM response into LLMValidation."""
         finding_id = self._parse_text(finding_id, "unknown")[:200] or "unknown"
-        response = response.strip() if isinstance(response, str) else ""
+        if not isinstance(response, str):
+            response = ""
+        elif len(response) > MAX_VALIDATION_RESPONSE_CHARS:
+            response = ""
+        else:
+            try:
+                response = response.strip()
+            except (AttributeError, TypeError, ValueError, RuntimeError):
+                response = ""
         try:
-            stripped = response.strip()
-            json_str = stripped if stripped.startswith("[") else extract_json_from_text(response)
+            stripped = response
+            if not stripped:
+                raise ValueError("No response")
+            json_str = (
+                stripped if stripped.startswith(("[", "{")) else extract_json_from_text(response)
+            )
             if not json_str:
                 raise ValueError("No JSON found in response")
+            if not isinstance(json_str, str) or len(json_str) > MAX_VALIDATION_RESPONSE_CHARS:
+                raise ValueError("Validation response JSON is too large")
 
             data = json.loads(repair_common_json_errors(json_str))
             if isinstance(data, list) and len(data) == 1 and isinstance(data[0], dict):
@@ -450,6 +523,8 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
                     confidence=0.5,
                     reasoning="LLM validation response must be a JSON object",
                 )
+            if len(data) > MAX_VALIDATION_JSON_KEYS:
+                raise ValueError("Validation response has too many keys")
 
             # Map result string to enum
             result_value = _safe_mapping_get(data, "result", "")
@@ -487,7 +562,7 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
                 ),
             )
 
-        except (json.JSONDecodeError, ValueError) as e:
+        except (json.JSONDecodeError, RecursionError, RuntimeError, TypeError, ValueError) as e:
             logger.warning(f"Failed to parse LLM response: {e}")
             # Fallback: try to infer from text
             response_lower = response.lower()
@@ -591,6 +666,74 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
             return text if int(text) <= 10_000_000 else 0
         return 0
 
+    @staticmethod
+    def _normalize_ollama_host(value: Any, default: str = DEFAULT_OLLAMA_HOST) -> str:
+        """Return an origin-only HTTP(S) Ollama host."""
+        text = _safe_text(value, limit=2_000)
+        if not text:
+            return default
+        parsed = urlparse(text)
+        if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+            return default
+        if parsed.username or parsed.password or not parsed.hostname:
+            return default
+        if any(char.isspace() for char in parsed.netloc):
+            return default
+        if parsed.path not in {"", "/"} or parsed.params or parsed.query or parsed.fragment:
+            return default
+        return text.rstrip("/")
+
+    @staticmethod
+    def _normalize_model_name(value: Any, default: str = "deepseek-coder:6.7b") -> str:
+        """Return a bounded Ollama model id without path or whitespace syntax."""
+        text = _safe_text(value)
+        if not text or len(text) > MAX_VALIDATOR_MODEL_NAME_CHARS:
+            return default
+        if not _OLLAMA_MODEL_RE.fullmatch(text):
+            return default
+        return text
+
+    def _safe_ollama_host(self) -> str:
+        return self._normalize_ollama_host(
+            self._safe_getattr(self.config, "ollama_host", DEFAULT_OLLAMA_HOST)
+        )
+
+    @staticmethod
+    def _safe_temperature(value: Any) -> float:
+        if isinstance(value, bool):
+            return ValidatorConfig().temperature
+        try:
+            normalized = float(value)
+        except (TypeError, ValueError, OverflowError):
+            return ValidatorConfig().temperature
+        if not math.isfinite(normalized) or not 0 <= normalized <= 2:
+            return ValidatorConfig().temperature
+        return normalized
+
+    @staticmethod
+    def _safe_max_tokens(value: Any) -> int:
+        if isinstance(value, bool):
+            return ValidatorConfig().max_tokens
+        try:
+            normalized = int(value)
+        except (TypeError, ValueError, OverflowError):
+            return ValidatorConfig().max_tokens
+        if normalized <= 0 or normalized > 16_384:
+            return ValidatorConfig().max_tokens
+        return normalized
+
+    @staticmethod
+    def _safe_timeout_seconds(value: Any) -> float:
+        if isinstance(value, bool):
+            return ValidatorConfig().timeout_seconds
+        try:
+            normalized = float(value)
+        except (TypeError, ValueError, OverflowError):
+            return ValidatorConfig().timeout_seconds
+        if not math.isfinite(normalized) or normalized <= 0 or normalized > 600:
+            return ValidatorConfig().timeout_seconds
+        return normalized
+
     @classmethod
     def _normalize_config(cls, config: Any, default_config: ValidatorConfig) -> ValidatorConfig:
         """Copy known config fields from dataclass-compatible or config-like objects."""
@@ -609,7 +752,8 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
 
     @classmethod
     def _safe_model_name(cls, value: Any) -> str:
-        return cls._parse_text(value, "")
+        normalized = cls._normalize_model_name(value, "")
+        return normalized if normalized != "" else ""
 
     @classmethod
     def _model_name_matches_configured_model(cls, configured: Any, available: Any) -> bool:
@@ -664,12 +808,14 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
         Returns:
             Tuple of (validated_findings, validations)
         """
-        if not self.config.enabled:
+        if not self._config_enabled(self.config):
             return findings, []
         if not isinstance(findings, list):
             logger.warning("Skipping malformed findings container for LLM validation")
             return [], []
-        safe_findings = findings[:MAX_BATCH_FINDINGS]
+        safe_findings = _bounded_list(findings, limit=MAX_BATCH_FINDINGS)
+        if not safe_findings:
+            return [], []
 
         # Check availability
         try:
@@ -692,7 +838,9 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
 
         validations = []
         validated_findings = []
-        batch_size = self._safe_runtime_batch_size(self.config.batch_size)
+        batch_size = self._safe_runtime_batch_size(
+            self._safe_getattr(self.config, "batch_size", ValidatorConfig().batch_size)
+        )
 
         # Process in batches
         for i in range(0, len(to_validate), batch_size):
@@ -772,19 +920,19 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
 
         Returns None if finding should be filtered out.
         """
-        result = getattr(validation, "result", ValidationResult.UNCERTAIN)
+        result = self._safe_getattr(validation, "result", ValidationResult.UNCERTAIN)
         if not isinstance(result, ValidationResult):
             result = ValidationResult.UNCERTAIN
-        confidence = self._parse_confidence(getattr(validation, "confidence", 0.5))
+        confidence = self._parse_confidence(self._safe_getattr(validation, "confidence", 0.5))
         reasoning = self._parse_text(
-            getattr(validation, "reasoning", "No reasoning provided"),
+            self._safe_getattr(validation, "reasoning", "No reasoning provided"),
             "No reasoning provided",
         )[:2000]
         suggested_severity = self._parse_suggested_severity(
-            getattr(validation, "suggested_severity", None)
+            self._safe_getattr(validation, "suggested_severity", None)
         )
         validation_time_ms = self._parse_nonnegative_int(
-            getattr(validation, "validation_time_ms", 0)
+            self._safe_getattr(validation, "validation_time_ms", 0)
         )
 
         # Filter out confirmed false positives
@@ -793,7 +941,10 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
             return None
 
         # Create updated finding
-        updated = finding.copy() if isinstance(finding, dict) else {}
+        try:
+            updated = finding.copy() if isinstance(finding, dict) else {}
+        except (AttributeError, TypeError, RuntimeError, ValueError):
+            updated = {}
 
         # Add validation metadata
         updated["_llm_validation"] = {

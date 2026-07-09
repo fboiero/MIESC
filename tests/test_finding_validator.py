@@ -2,6 +2,8 @@ import aiohttp
 import pytest
 
 from src.llm.finding_validator import (
+    MAX_VALIDATION_JSON_KEYS,
+    MAX_VALIDATION_RESPONSE_CHARS,
     LLMFindingValidator,
     LLMValidation,
     ValidationResult,
@@ -1959,3 +1961,282 @@ def test_validate_findings_sync_closes_when_batch_raises(monkeypatch):
         validate_findings_sync([{"id": "F-1"}])
 
     assert events == [("init", None), ("validate",), ("close",)]
+
+
+def test_init_rejects_malformed_host_and_model_boundaries(monkeypatch):
+    monkeypatch.delenv("MIESC_LLM_MODEL", raising=False)
+    monkeypatch.delenv("OLLAMA_HOST", raising=False)
+
+    for host in [
+        "ftp://ollama.local:11434",
+        "http://user:pass@ollama.local:11434",
+        "http://ollama.local:11434/proxy?x=1",
+        "http://ollama.local:11434/#frag",
+        "http://ollama.local:11434\u2028",
+    ]:
+        validator = LLMFindingValidator(ValidatorConfig(ollama_host=host))
+        assert validator.config.ollama_host == ValidatorConfig().ollama_host
+
+    for model in ["bad model", "owner/model", "bad\\model", "x" * 129, "bad\nmodel"]:
+        validator = LLMFindingValidator(ValidatorConfig(model=model))
+        assert validator.config.model == ValidatorConfig().model
+
+
+def test_init_rejects_malformed_environment_host_and_model(monkeypatch):
+    monkeypatch.setenv("OLLAMA_HOST", "http://ollama.local:11434/proxy?x=1")
+    monkeypatch.setenv("MIESC_LLM_MODEL", "owner/model")
+
+    validator = LLMFindingValidator(ValidatorConfig())
+
+    assert validator.config.ollama_host == ValidatorConfig().ollama_host
+    assert validator.config.model == ValidatorConfig().model
+
+
+@pytest.mark.asyncio
+async def test_is_available_returns_false_for_hostile_models_iteration(monkeypatch):
+    validator = LLMFindingValidator(ValidatorConfig(model="target:latest"))
+
+    class HostileModels(list):
+        def __iter__(self):
+            raise RuntimeError("hostile models")
+
+    class FakeResponse:
+        status = 200
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return None
+
+        async def json(self):
+            return {"models": HostileModels([{"name": "target:latest"}])}
+
+    class FakeSession:
+        def get(self, *_args, **_kwargs):
+            return FakeResponse()
+
+    async def fake_get_session():
+        return FakeSession()
+
+    monkeypatch.setattr(validator, "_get_session", fake_get_session)
+
+    assert await validator.is_available() is False
+
+
+@pytest.mark.asyncio
+async def test_is_available_uses_normalized_host_after_config_mutation(monkeypatch):
+    validator = LLMFindingValidator(ValidatorConfig(model="target:latest"))
+    validator.config.ollama_host = "http://ollama.local:11434/proxy?x=1"
+    captured = {}
+
+    class FakeResponse:
+        status = 200
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return None
+
+        async def json(self):
+            return {"models": [{"name": "target:latest"}]}
+
+    class FakeSession:
+        def get(self, url, *_args, **_kwargs):
+            captured["url"] = url
+            return FakeResponse()
+
+    async def fake_get_session():
+        return FakeSession()
+
+    monkeypatch.setattr(validator, "_get_session", fake_get_session)
+
+    assert await validator.is_available() is True
+    assert captured["url"] == f"{ValidatorConfig().ollama_host}/api/tags"
+
+
+@pytest.mark.asyncio
+async def test_call_ollama_uses_safe_payload_after_config_mutation(monkeypatch):
+    validator = LLMFindingValidator(ValidatorConfig(model="target:latest"))
+    validator.config.model = "bad/model"
+    validator.config.temperature = float("inf")
+    validator.config.max_tokens = 20_000
+    validator.config.ollama_host = "http://ollama.local:11434/proxy?x=1"
+    captured = {}
+
+    class FakeResponse:
+        status = 200
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return None
+
+        async def json(self):
+            return {"response": "ok"}
+
+    class FakeSession:
+        def post(self, url, **kwargs):
+            captured["url"] = url
+            captured["json"] = kwargs["json"]
+            return FakeResponse()
+
+    async def fake_get_session():
+        return FakeSession()
+
+    monkeypatch.setattr(validator, "_get_session", fake_get_session)
+
+    assert await validator._call_ollama("prompt") == "ok"
+    assert captured["url"] == f"{ValidatorConfig().ollama_host}/api/generate"
+    assert captured["json"]["model"] == ValidatorConfig().model
+    assert captured["json"]["options"] == {
+        "temperature": ValidatorConfig().temperature,
+        "num_predict": ValidatorConfig().max_tokens,
+    }
+
+
+@pytest.mark.asyncio
+async def test_call_ollama_rejects_unsafe_response_text(monkeypatch):
+    validator = LLMFindingValidator(ValidatorConfig())
+
+    class FakeResponse:
+        status = 200
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return None
+
+        async def json(self):
+            return {"response": "bad\u2028response"}
+
+    class FakeSession:
+        def post(self, *_args, **_kwargs):
+            return FakeResponse()
+
+    async def fake_get_session():
+        return FakeSession()
+
+    monkeypatch.setattr(validator, "_get_session", fake_get_session)
+
+    assert await validator._call_ollama("prompt") == ""
+
+
+def test_parse_response_rejects_oversized_and_too_many_keys(monkeypatch):
+    validator = LLMFindingValidator(ValidatorConfig())
+
+    monkeypatch.setattr(
+        "src.llm.finding_validator.extract_json_from_text",
+        lambda _response: pytest.fail("oversized response should not be extracted"),
+    )
+    validation = validator._parse_response("x" * (MAX_VALIDATION_RESPONSE_CHARS + 1), "F-1")
+    assert validation.result == ValidationResult.UNCERTAIN
+
+    many_keys = "{" + ",".join(f'"k{i}": {i}' for i in range(MAX_VALIDATION_JSON_KEYS + 1)) + "}"
+    validation = validator._parse_response(many_keys, "F-1")
+    assert validation.result == ValidationResult.UNCERTAIN
+
+
+def test_parse_response_handles_repair_runtime_error(monkeypatch):
+    validator = LLMFindingValidator(ValidatorConfig())
+
+    monkeypatch.setattr(
+        "src.llm.finding_validator.repair_common_json_errors",
+        lambda _response: (_ for _ in ()).throw(RuntimeError("repair failed")),
+    )
+
+    validation = validator._parse_response('{"result": "valid"}', "F-1")
+
+    assert validation.result == ValidationResult.LIKELY_VALID
+
+
+@pytest.mark.asyncio
+async def test_validate_findings_batch_rejects_hostile_findings_iteration(monkeypatch):
+    validator = LLMFindingValidator(ValidatorConfig())
+
+    class HostileFindings(list):
+        def __iter__(self):
+            raise RuntimeError("hostile findings")
+
+    async def available():
+        raise AssertionError("hostile findings should short-circuit before availability")
+
+    monkeypatch.setattr(validator, "is_available", available)
+
+    validated, validations = await validator.validate_findings_batch(
+        HostileFindings([{"id": "F-1", "severity": "high"}])
+    )
+
+    assert validated == []
+    assert validations == []
+
+
+@pytest.mark.asyncio
+async def test_validate_findings_batch_defaults_hostile_config_enabled(monkeypatch):
+    validator = LLMFindingValidator(ValidatorConfig())
+
+    class HostileConfig:
+        def __getattribute__(self, name):
+            if name == "enabled":
+                raise RuntimeError("hostile enabled")
+            return super().__getattribute__(name)
+
+    validator.config = HostileConfig()
+
+    validated, validations = await validator.validate_findings_batch(
+        [{"id": "F-1", "severity": "high"}]
+    )
+
+    assert validated == [{"id": "F-1", "severity": "high"}]
+    assert validations == []
+
+
+def test_apply_validation_defaults_validation_getattr_exceptions():
+    validator = LLMFindingValidator(ValidatorConfig())
+
+    class HostileValidation:
+        def __getattribute__(self, name):
+            if name in {
+                "result",
+                "confidence",
+                "reasoning",
+                "suggested_severity",
+                "validation_time_ms",
+            }:
+                raise RuntimeError("hostile validation")
+            return super().__getattribute__(name)
+
+    updated = validator._apply_validation(
+        {"id": "F-1", "severity": "high", "confidence": 0.7},
+        HostileValidation(),
+    )
+
+    assert updated is not None
+    assert updated["_llm_validation"] == {
+        "result": "uncertain",
+        "confidence": 0.5,
+        "reasoning": "No reasoning provided",
+        "suggested_severity": None,
+        "validation_time_ms": 0,
+    }
+    assert updated["confidence"] == 0.7
+
+
+def test_apply_validation_handles_finding_copy_failure():
+    validator = LLMFindingValidator(ValidatorConfig())
+
+    class HostileFinding(dict):
+        def copy(self):
+            raise RuntimeError("hostile copy")
+
+    updated = validator._apply_validation(
+        HostileFinding({"id": "F-1", "severity": "high", "confidence": 0.7}),
+        LLMValidation("F-1", ValidationResult.VALID, 0.9, "confirmed"),
+    )
+
+    assert updated is not None
+    assert updated["_llm_validation"]["result"] == "valid"
+    assert updated["confidence"] == 0.85
