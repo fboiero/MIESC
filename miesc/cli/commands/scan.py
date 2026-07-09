@@ -8,6 +8,7 @@ License: AGPL-3.0
 """
 
 import json
+import os
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -90,6 +91,8 @@ if RICH_AVAILABLE:
             "gpt-4o",
             "gpt-4.1",
             "gpt-5",
+            "deepseek-v4-pro",
+            "deepseek-v4-flash",
             "ollama",
             "qwen32b",
             "qwen14b",
@@ -395,12 +398,26 @@ def scan(
                     "gpt-4o": ("openai", "gpt-4o"),
                     "gpt-4.1": ("openai", "gpt-4.1"),
                     "gpt-5": ("openai", "gpt-5"),
+                    # DeepSeek V4 is OpenAI-compatible; routed via the OpenAI
+                    # client pointed at the DeepSeek endpoint (see env setup below).
+                    "deepseek-v4-pro": ("openai", "deepseek-v4-pro"),
+                    "deepseek-v4-flash": ("openai", "deepseek-v4-flash"),
                     "ollama": ("ollama", "qwen2.5-coder:32b"),
                     "qwen32b": ("ollama", "qwen2.5-coder:32b"),
                     "qwen14b": ("ollama", "qwen2.5-coder:14b"),
                     "codellama": ("ollama", "codellama:13b"),
                 }
                 provider, model_id = provider_map.get(frontier_model.lower(), ("auto", None))
+                # DeepSeek exposes an OpenAI-compatible API. Point the OpenAI
+                # client at the DeepSeek endpoint using DEEPSEEK_API_KEY so the
+                # existing openai code path sends the deepseek-v4 model name.
+                if frontier_model.lower().startswith("deepseek") and os.environ.get(
+                    "DEEPSEEK_API_KEY"
+                ):
+                    os.environ["OPENAI_API_KEY"] = os.environ["DEEPSEEK_API_KEY"]
+                    os.environ["OPENAI_BASE_URL"] = os.environ.get(
+                        "DEEPSEEK_BASE_URL", "https://api.deepseek.com"
+                    )
                 adapter = FrontierLLMAdapter(provider=provider)
 
                 if adapter.is_available() == ToolStatus.AVAILABLE:
@@ -617,12 +634,23 @@ def scan(
                 "gpt-4o": ("openai", "gpt-4o"),
                 "gpt-4.1": ("openai", "gpt-4.1"),
                 "gpt-5": ("openai", "gpt-5"),
+                "deepseek-v4-pro": ("openai", "deepseek-v4-pro"),
+                "deepseek-v4-flash": ("openai", "deepseek-v4-flash"),
                 "ollama": ("ollama", "qwen2.5-coder:32b"),
                 "qwen32b": ("ollama", "qwen2.5-coder:32b"),
                 "qwen14b": ("ollama", "qwen2.5-coder:14b"),
                 "codellama": ("ollama", "codellama:13b"),
             }
             provider, model_id = provider_map.get(frontier_model.lower(), ("auto", None))
+            # DeepSeek V4 is OpenAI-compatible: point the OpenAI client at the
+            # DeepSeek endpoint using DEEPSEEK_API_KEY.
+            if frontier_model.lower().startswith("deepseek") and os.environ.get(
+                "DEEPSEEK_API_KEY"
+            ):
+                os.environ["OPENAI_API_KEY"] = os.environ["DEEPSEEK_API_KEY"]
+                os.environ["OPENAI_BASE_URL"] = os.environ.get(
+                    "DEEPSEEK_BASE_URL", "https://api.deepseek.com"
+                )
             adapter = FrontierLLMAdapter(provider=provider)
 
             if (
