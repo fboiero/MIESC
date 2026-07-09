@@ -15,11 +15,14 @@ contract, one of these assertions fails — that is the point.
 
 from __future__ import annotations
 
+import src.agents.agentic_prompts as agentic_prompts
 from src.agents.agentic_prompts import (
     AGENT_COMPLETENESS_PROMPT,
     AGENT_ENUM_PROMPT,
     AGENT_ENUM_PROMPT_SYSTEMATIC,
+    AGENT_EXPLOIT_DRAFT_PROMPT,
     AGENT_EXPLOIT_PROMPT,
+    AGENT_EXPLOIT_REPAIR_PROMPT,
     AGENT_VERIFY_PROMPT,
     HYPOTHESIS_JSON_SCHEMA,
     PERSONA_ENUM_PROMPTS,
@@ -221,3 +224,58 @@ def test_exploit_prompt_is_standalone_phase2():
     # No format placeholders — retained verbatim; execution is Phase 2.
     assert "{" not in AGENT_EXPLOIT_PROMPT
     assert "exploit" in AGENT_EXPLOIT_PROMPT.lower()
+
+
+# ---------------------------------------------------------------------------
+# Exploit-validation prompts (E3): draft a compilable Foundry .t.sol, then repair
+# it against forge compile errors. Both are consumed via str.format, so literal
+# Solidity braces must be doubled — these tests pin that they format cleanly.
+# ---------------------------------------------------------------------------
+
+
+def test_exploit_validation_prompts_exist_and_are_nonempty():
+    for prompt in (AGENT_EXPLOIT_DRAFT_PROMPT, AGENT_EXPLOIT_REPAIR_PROMPT):
+        assert isinstance(prompt, str)
+        assert prompt.strip(), "exploit-validation prompt must not be empty"
+
+
+def test_exploit_validation_prompts_are_exported():
+    assert "AGENT_EXPLOIT_DRAFT_PROMPT" in agentic_prompts.__all__
+    assert "AGENT_EXPLOIT_REPAIR_PROMPT" in agentic_prompts.__all__
+    # The original prose exploit prompt must NOT be removed.
+    assert "AGENT_EXPLOIT_PROMPT" in agentic_prompts.__all__
+
+
+def test_exploit_draft_prompt_formats_with_all_placeholders():
+    # Every literal Solidity brace must be doubled so this .format does not raise.
+    rendered = AGENT_EXPLOIT_DRAFT_PROMPT.format(
+        contract="C",
+        function="f",
+        claim="x",
+        function_body="function f() external { ... }",
+        context="callers: A.g",
+        contract_path="src/C.sol",
+    )
+    # Placeholders were substituted.
+    for token in ("C", "src/C.sol", "callers: A.g"):
+        assert token in rendered
+    for ph in ("{contract}", "{function}", "{claim}", "{function_body}", "{context}", "{contract_path}"):
+        assert ph not in rendered
+    # It demands a real, compilable Foundry test file.
+    assert "forge-std/Test.sol" in rendered
+    assert "setUp" in rendered
+    assert "test_exploit" in rendered
+    assert "SHARPENED" in rendered
+    # Literal Solidity braces collapsed back to single braces.
+    assert "is Test {" in rendered
+
+
+def test_exploit_repair_prompt_formats_and_references_errors():
+    rendered = AGENT_EXPLOIT_REPAIR_PROMPT.format(
+        previous_draft="contract ExploitTest is Test {}",
+        forge_errors="Error (7576): Undeclared identifier 'foo'.",
+    )
+    assert "Undeclared identifier 'foo'" in rendered
+    assert "contract ExploitTest is Test" in rendered
+    assert "{previous_draft}" not in rendered
+    assert "{forge_errors}" not in rendered

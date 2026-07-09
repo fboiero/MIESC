@@ -122,3 +122,38 @@ def test_paths_to_reaches_sink_from_entry_point(repo: RepoCallGraph) -> None:
     assert all(p[-1] == "Token.transfer" for p in paths)
     # The cross-contract path Bank.withdraw -> Token.transfer must appear.
     assert ["Bank.withdraw", "Token.transfer"] in paths
+
+
+def test_contract_source_returns_full_block(repo: RepoCallGraph) -> None:
+    source = repo.contract_source("Bank")
+    assert source is not None
+    assert "contract Bank" in source
+    # The full body is present, not just the header.
+    assert "token.transfer(msg.sender, amount);" in source
+    assert source in BANK_SOL
+
+    # Unknown contract → None.
+    assert repo.contract_source("NoSuchContract") is None
+
+
+def test_contract_file_returns_existing_sol_path(repo: RepoCallGraph) -> None:
+    path = repo.contract_file("Token")
+    assert path is not None
+    assert path.exists()
+    assert path.suffix == ".sol"
+    assert path.name == "Token.sol"
+
+    # Unknown contract → None.
+    assert repo.contract_file("NoSuchContract") is None
+
+
+def test_repo_dir_is_built_root() -> None:
+    root = Path(tempfile.mkdtemp(prefix="miesc_rcg_"))
+    try:
+        src = root / "src"
+        src.mkdir()
+        (src / "Token.sol").write_text(TOKEN_SOL)
+        graph = RepoCallGraph.build(root)
+        assert graph.repo_dir() == root
+    finally:
+        shutil.rmtree(root, ignore_errors=True)

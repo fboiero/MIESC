@@ -383,6 +383,93 @@ DROP it — it was a false positive. Re-output the surviving vulnerabilities as 
 and code location. Return [] if none survive."""
 
 
+# ---------------------------------------------------------------------------
+# EXPLOIT-VALIDATION prompts (design exploit_validation_20260709.md §4.2, §5).
+#
+# These drive the compile→repair→run loop of ExploitValidator. Unlike the prose
+# AGENT_EXPLOIT_PROMPT above, they demand a COMPILABLE Foundry `.t.sol` file so we
+# can actually run it against the real contract.
+#
+# BRACE SAFETY (this module has broken twice on this): both constants are consumed
+# by the caller via ``str.format(...)``. Every LITERAL Solidity brace in the example
+# below is therefore DOUBLED (`{{` / `}}`) so it survives .format and collapses back
+# to a single brace at render time. Only the REAL placeholders — {contract},
+# {function}, {claim}, {function_body}, {context}, {contract_path} (draft) and
+# {previous_draft}, {forge_errors} (repair) — stay single-braced.
+# ---------------------------------------------------------------------------
+
+AGENT_EXPLOIT_DRAFT_PROMPT: str = """You are a smart-contract exploit engineer. \
+Write a Foundry test that PROVES the following vulnerability by exploiting it on the \
+REAL contract.
+
+TARGET
+  contract: {contract}
+  function: {function}
+  claim:    {claim}
+
+TARGET FUNCTION BODY:
+{function_body}
+
+CALL CONTEXT (callers / reachable paths):
+{context}
+
+IMPORT PATH of the target contract (use it verbatim in your import):
+{contract_path}
+
+Output ONE complete, compilable Foundry test file (`.t.sol`) and NOTHING else. It MUST contain:
+  1. `// SPDX-License-Identifier: MIT` and a `pragma solidity` line.
+  2. `import "forge-std/Test.sol";` and an import of the target contract from {contract_path}.
+  3. `contract ExploitTest is Test {{` with a REAL `setUp()` that DEPLOYS {contract} with
+     plausible constructor arguments (invent concrete addresses/amounts if needed — do NOT
+     leave the constructor unpopulated).
+  4. `function test_exploit() public` whose assertion PASSES **iff** an attacker actually
+     GAINS or LOCKS funds through the `{function}` bug. Make the success condition CONCRETE
+     — e.g. assert the attacker's balance strictly grew, or the victim's funds are now
+     unrecoverable. Do NOT write an assertion that trivially passes.
+  5. Exactly ONE `// SHARPENED: <one sentence>` comment naming the EXACT vulnerable
+     mechanism, the `{function}` function, and the concrete fix. This line is harvested for
+     the finding description EVEN IF the file never compiles, so make it precise.
+
+Shape (illustrative — adapt to the real contract, keep the literal braces):
+  // SPDX-License-Identifier: MIT
+  pragma solidity ^0.8.19;
+  import "forge-std/Test.sol";
+  import {{Target}} from "src/Target.sol";
+  contract ExploitTest is Test {{
+      Target internal target;
+      address internal attacker = address(0xBEEF);
+      function setUp() public {{
+          target = new Target(/* plausible ctor args */);
+      }}
+      function test_exploit() public {{
+          uint256 before = attacker.balance;
+          // ... perform the exploit sequence ...
+          assertGt(attacker.balance, before, "attacker gained funds");
+      }}
+      // SHARPENED: <mechanism> in <function> lets an attacker <impact>; fix by <fix>.
+  }}
+
+Output ONLY the Solidity source. No prose, no explanation, no ``` markdown fences."""
+
+
+AGENT_EXPLOIT_REPAIR_PROMPT: str = """The Foundry test you wrote does NOT compile. Fix \
+the compile errors and return the corrected file.
+
+PREVIOUS DRAFT:
+{previous_draft}
+
+FORGE COMPILE ERRORS:
+{forge_errors}
+
+Correct EVERY error above (wrong imports, missing/extra constructor args, undeclared
+identifiers, type mismatches, wrong pragma/remapping). Keep the `contract ExploitTest is
+Test`, the real `setUp()` deploy, the `test_exploit()` assertion that passes iff funds are
+gained or locked, and the single `// SHARPENED:` comment.
+
+Output ONLY the complete corrected Solidity `.t.sol` file. No prose, no explanation, no
+``` markdown fences."""
+
+
 __all__ = [
     "HYPOTHESIS_JSON_SCHEMA",
     "AGENT_ENUM_PROMPT",
@@ -390,6 +477,8 @@ __all__ = [
     "AGENT_VERIFY_PROMPT",
     "AGENT_COMPLETENESS_PROMPT",
     "AGENT_EXPLOIT_PROMPT",
+    "AGENT_EXPLOIT_DRAFT_PROMPT",
+    "AGENT_EXPLOIT_REPAIR_PROMPT",
     "PERSONA_ENUM_PROMPTS",
     "PERSONA_ENUM_PROMPTS_SYSTEMATIC",
 ]

@@ -55,6 +55,11 @@ from src.agents.agentic_prompts import (
     PERSONA_ENUM_PROMPTS_SYSTEMATIC,
 )
 from src.agents.base_agent import BaseAgent
+from src.agents.exploit_validator import (
+    ExploitValidationConfig,
+    ExploitValidator,
+    ValidationResult,
+)
 from src.agents.hypothesis_ledger import Hypothesis, HypothesisLedger
 from src.agents.repo_call_graph import RepoCallGraph
 
@@ -90,6 +95,12 @@ class AgenticAuditConfig:
     systematic: bool = False  # False -> SAMPLING enum (cheap, ~10 tool calls, the
     # default: same aggregate recall across the persona union). True -> SYSTEMATIC
     # enum (inspect EVERY in-scope function, ~3x cost) with a 40-call enum budget.
+    exploit_validate: bool = False  # False (default) -> no exploit phase, behavior
+    # unchanged. True -> opt-in EXPLOIT phase (mirrors ``systematic``): after
+    # verify/completeness, draft+compile+run a Foundry exploit for each SURVIVING
+    # hypothesis to PROVE it (precision lever). NEVER drops a hypothesis (recall-
+    # safe): a proven bug is promoted to high + PoC; a failed/unproven one keeps
+    # its status, only sharpening the claim text. Expensive (LLM + forge).
 
 
 @dataclass
@@ -162,6 +173,10 @@ class AgenticAuditor(BaseAgent):
         self.adapter = adapter
         self.graph = graph
         self.config = config
+        # Per-audit map: hypothesis id -> ValidationResult, populated by the opt-in
+        # EXPLOIT phase and read back by ``_ledger_to_findings`` so a proven
+        # exploit reaches the finding (PoC + high severity). Reset each audit_repo.
+        self._exploit_results: Dict[str, ValidationResult] = {}
 
     # ---------------------------------------------------- BaseAgent contract
 
@@ -179,6 +194,7 @@ class AgenticAuditor(BaseAgent):
     def audit_repo(self, repo_dir: Path | str, scope: str = "") -> AuditResult:
         """Run the whole-repo agentic audit and return findings + ledger + trace."""
         ledger = HypothesisLedger()
+        self._exploit_results = {}  # fresh per audit (auditor may be reused)
         tools = self._build_tools()
         repo_map = self.graph.repo_map()
         system = self._system_prompt()
@@ -273,6 +289,13 @@ class AgenticAuditor(BaseAgent):
 
         trace["confirmed"] = len(ledger.confirmed())
         trace["surviving"] = len(ledger.surviving())
+
+        # ---- optional EXPLOIT phase (opt-in, mirrors `systematic`) -------
+        # Draft+compile+run a Foundry exploit per SURVIVING hypothesis to PROVE
+        # it. Recall-safe: annotates severity/claim, NEVER drops a hypothesis.
+        if self.config.exploit_validate:
+            self._run_exploit_phase(ledger, Path(repo_dir), trace)
+
         findings = self._ledger_to_findings(ledger)
         logger.info(
             "AgenticAuditor: %d finding(s) (surviving hypotheses: %d confirmed + "
@@ -483,6 +506,75 @@ class AgenticAuditor(BaseAgent):
                 return ev[len("confirmed:") :].strip()
         return h.claim
 
+    def _run_exploit_phase(
+        self, ledger: HypothesisLedger, repo_dir: Path, trace: Dict[str, Any]
+    ) -> None:
+        """Opt-in EXPLOIT phase: prove each SURVIVING hypothesis with a Foundry PoC.
+
+        Recall-safety contract (the load-bearing rule of the design): this NEVER
+        removes or rules out a hypothesis. A validation outcome only ANNOTATES the
+        surviving hypothesis in place:
+          - ``passed``            -> h.severity = "high" + ``exploit_passed:`` evidence
+                                     (PROVEN finding; the exploit reaches the PoC).
+          - ``compiled_failed`` / ``no_compile`` -> unchanged status; if a sharper
+                                     claim was harvested, append ``sharpened:`` so the
+                                     finding uses the tighter text.
+          - ``skipped``           -> no change.
+
+        The :class:`ValidationResult` for each hypothesis is stashed on
+        ``self._exploit_results`` (keyed by id) so ``_ledger_to_findings`` can pull
+        the exploit code / PROVEN marker into the finding. Never aborts the audit:
+        the validator returns ``skipped`` on error and we still guard defensively.
+        """
+        validator = ExploitValidator(
+            self.adapter,
+            self.graph,
+            repo_dir,
+            ExploitValidationConfig(model=self.config.model),
+        )
+        counts: Dict[str, int] = {
+            "validated": 0,
+            "passed": 0,
+            "compiled_failed": 0,
+            "no_compile": 0,
+            "skipped": 0,
+        }
+        for h in ledger.surviving():
+            counts["validated"] += 1
+            try:
+                vr = validator.validate(h)
+            except Exception as exc:  # noqa: BLE001 - one failure never aborts
+                logger.warning(
+                    "AgenticAuditor: exploit validation of %s.%s raised (%s); "
+                    "treating as skipped",
+                    h.contract, h.function, exc,
+                )
+                counts["skipped"] += 1
+                continue
+
+            self._exploit_results[h.id] = vr
+            counts[vr.status] = counts.get(vr.status, 0) + 1
+
+            if vr.status == "passed":
+                # PROVEN loss-of-funds: promote to high; NEVER dropped.
+                h.severity = "high"
+                h.evidence.append(
+                    f"exploit_passed: {vr.sharpened_claim or h.claim}"
+                )
+            elif vr.status in ("compiled_failed", "no_compile"):
+                # Unproven but not disproven — keep the hypothesis; only sharpen.
+                if vr.sharpened_claim:
+                    h.evidence.append(f"sharpened: {vr.sharpened_claim}")
+            # "skipped" -> leave the hypothesis untouched.
+
+        trace["exploit"] = counts
+        logger.info(
+            "AgenticAuditor: exploit phase validated %d hypothesis(es): "
+            "%d passed, %d compiled_failed, %d no_compile, %d skipped",
+            counts["validated"], counts["passed"], counts["compiled_failed"],
+            counts["no_compile"], counts["skipped"],
+        )
+
     def _ledger_to_findings(self, ledger: HypothesisLedger) -> List[Dict[str, Any]]:
         """Convert SURVIVING hypotheses into findings_to_audit_md-shaped dicts.
 
@@ -491,6 +583,15 @@ class AgenticAuditor(BaseAgent):
         hypothesis the verifier did not explicitly drop:
           - confirmed  -> severity from the verdict (or "high"); detail = evidence.
           - open       -> severity "medium"; detail = the enum's specific claim.
+
+        When the opt-in EXPLOIT phase produced a result for a hypothesis (looked up
+        by id in ``self._exploit_results``), it takes precedence WITHOUT changing
+        the dict shape and WITHOUT dropping the finding:
+          - ``passed``  -> severity forced to "high", description/impact use the
+                           sharpened mechanism, and proof_of_concept carries the
+                           exploit code (or a clear PROVEN marker).
+          - ``compiled_failed`` / ``no_compile`` with a sharpened claim -> the
+                           tighter text replaces description/impact/proof_of_concept.
         """
         findings: List[Dict[str, Any]] = []
         for h in ledger.surviving():
@@ -501,6 +602,24 @@ class AgenticAuditor(BaseAgent):
                 # Unverified survivor: the enum's specific claim carries the detail.
                 severity = "medium"
                 detail = h.claim
+
+            # Default: description, impact and PoC all share the prose detail.
+            proof = detail
+            vr = self._exploit_results.get(h.id)
+            if vr is not None:
+                if vr.status == "passed":
+                    severity = "high"  # PROVEN loss-of-funds
+                    sharp = vr.sharpened_claim or detail
+                    detail = sharp
+                    proof = f"PROVEN via Foundry exploit — {sharp}"
+                    if vr.exploit_code:
+                        proof = f"{proof}\n\n{vr.exploit_code}"
+                elif vr.status in ("compiled_failed", "no_compile") and vr.sharpened_claim:
+                    # Not proven, but the draft sharpened the mechanism — use it.
+                    detail = vr.sharpened_claim
+                    proof = vr.sharpened_claim
+                # "skipped" (or no sharpened text) -> keep the prose detail as-is.
+
             findings.append(
                 {
                     "title": h.claim,
@@ -513,7 +632,7 @@ class AgenticAuditor(BaseAgent):
                     "line": 0,
                     "description": detail,
                     "impact": detail,
-                    "proof_of_concept": detail,
+                    "proof_of_concept": proof,
                     "recommendation": "",
                     "vuln_class": h.vuln_class,
                     "hypothesis_id": h.id,

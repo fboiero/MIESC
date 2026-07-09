@@ -29,6 +29,7 @@ from src.agents.agentic_auditor import (
     _extract_json_array,
     audit_repo_multipersona,
 )
+from src.agents.exploit_validator import ValidationResult
 from src.agents.hypothesis_ledger import Hypothesis
 from src.agents.repo_call_graph import RepoCallGraph
 
@@ -571,3 +572,180 @@ def test_round0_verify_runs_even_when_enum_alone_exhausts_budget(graph: RepoCall
     assert len(adapter.calls) == 2
     assert result.trace["confirmed"] == 1
     assert len(result.findings) == 1
+
+
+# ---------------------------------------------------------------------------
+# Opt-in EXPLOIT phase (E5): validate each surviving hypothesis with a Foundry
+# PoC. Recall-safe — a validation outcome only ANNOTATES a hypothesis, never
+# drops it. Fully offline: the real ExploitValidator is swapped for a fake that
+# returns scripted ValidationResults (no forge, no API).
+# ---------------------------------------------------------------------------
+
+def _fake_validator_class(results_by_function, box=None):
+    """Build a drop-in replacement for ExploitValidator whose ``validate`` returns
+    a scripted ValidationResult per hypothesis function name (default: skipped)."""
+
+    class _FakeValidator:
+        def __init__(self, adapter, graph, repo_dir, config):
+            if box is not None:
+                box["constructed"] = box.get("constructed", 0) + 1
+                box["repo_dir"] = repo_dir
+                box["config"] = config
+
+        def validate(self, h):
+            return results_by_function.get(
+                h.function,
+                ValidationResult("skipped", None, None, None, 0),
+            )
+
+    return _FakeValidator
+
+
+def test_exploit_validate_passed_promotes_and_never_drops(
+    graph: RepoCallGraph, monkeypatch
+) -> None:
+    # Two survivors: TRANSFER is PROVEN by a passing exploit, WITHDRAW is skipped.
+    # The proven one is promoted to high with the exploit in the PoC; NEITHER is
+    # dropped (recall-safe) — the finding count equals the surviving count.
+    adapter = ScriptedAdapter([
+        _enum([TRANSFER_CANDIDATE, WITHDRAW_CANDIDATE]),
+        _verify([]),  # both stay OPEN survivors
+    ])
+    exploit_src = "contract Exploit is Test { function test_exploit() public {} }"
+    results = {
+        "transfer": ValidationResult(
+            status="passed",
+            exploit_code=exploit_src,
+            forge_output="[PASS] test_exploit()",
+            sharpened_claim="attacker underflows balances to drain the pool",
+            repairs_used=1,
+        ),
+        # withdraw -> not in map -> fake returns "skipped".
+    }
+    monkeypatch.setattr(
+        "src.agents.agentic_auditor.ExploitValidator",
+        _fake_validator_class(results),
+    )
+
+    config = AgenticAuditConfig(n_target=0, exploit_validate=True)
+    result = AgenticAuditor(adapter, graph, config).audit_repo(Path("/unused"))
+
+    # Never-drop: both survivors remain findings.
+    assert result.trace["surviving"] == 2
+    assert len(result.findings) == 2
+    by_fn = {f["function"]: f for f in result.findings}
+    assert set(by_fn) == {"transfer", "withdraw"}
+
+    # PROVEN transfer: high severity + exploit/PROVEN marker in the PoC.
+    proven = by_fn["transfer"]
+    assert proven["severity"] == "high"
+    assert "PROVEN" in proven["proof_of_concept"]
+    assert exploit_src in proven["proof_of_concept"]
+    assert proven["description"] == "attacker underflows balances to drain the pool"
+
+    # Skipped withdraw: unchanged (still an open medium survivor).
+    assert by_fn["withdraw"]["severity"] == "medium"
+
+    # trace["exploit"] counts populated.
+    ex = result.trace["exploit"]
+    assert ex["validated"] == 2
+    assert ex["passed"] == 1
+    assert ex["skipped"] == 1
+    assert ex["compiled_failed"] == 0 and ex["no_compile"] == 0
+
+
+def test_exploit_validate_no_compile_sharpens_description(
+    graph: RepoCallGraph, monkeypatch
+) -> None:
+    # An exploit that never compiled but harvested a SHARPENED claim: the
+    # hypothesis is kept (never dropped, severity unchanged) and the finding text
+    # uses the tighter sharpened mechanism.
+    adapter = ScriptedAdapter([_enum([TRANSFER_CANDIDATE]), _verify([])])
+    sharpened = "unchecked subtraction underflows when amount > deposits[msg.sender]"
+    results = {
+        "transfer": ValidationResult(
+            status="no_compile",
+            exploit_code="// partial draft",
+            forge_output="Error: compile failed",
+            sharpened_claim=sharpened,
+            repairs_used=2,
+        ),
+    }
+    monkeypatch.setattr(
+        "src.agents.agentic_auditor.ExploitValidator",
+        _fake_validator_class(results),
+    )
+
+    config = AgenticAuditConfig(n_target=0, exploit_validate=True)
+    result = AgenticAuditor(adapter, graph, config).audit_repo(Path("/unused"))
+
+    # Finding kept (not dropped); open survivor keeps "medium".
+    assert len(result.findings) == 1
+    finding = result.findings[0]
+    assert finding["function"] == "transfer"
+    assert finding["severity"] == "medium"
+    # Sharpened text is preferred for description / impact / PoC.
+    assert finding["description"] == sharpened
+    assert finding["impact"] == sharpened
+    assert finding["proof_of_concept"] == sharpened
+    assert result.trace["exploit"]["no_compile"] == 1
+
+
+def test_exploit_validate_off_by_default_path_untouched(
+    graph: RepoCallGraph, monkeypatch
+) -> None:
+    # Default config: exploit_validate=False. The ExploitValidator must NEVER be
+    # constructed and the audit behaves EXACTLY as today (no "exploit" in trace).
+    assert AgenticAuditConfig().exploit_validate is False
+
+    class _ExplodingValidator:
+        def __init__(self, *a, **kw):  # pragma: no cover - must never run
+            raise AssertionError("ExploitValidator constructed while OFF")
+
+    monkeypatch.setattr(
+        "src.agents.agentic_auditor.ExploitValidator", _ExplodingValidator
+    )
+
+    adapter = ScriptedAdapter([
+        _enum([TRANSFER_CANDIDATE]),
+        _verify([{"id": _hid(TRANSFER_CANDIDATE), "verdict": "confirmed",
+                  "reason": "balance underflow", "severity": "high"}]),
+    ])
+    config = AgenticAuditConfig(n_target=1)  # exploit_validate defaults False
+    result = AgenticAuditor(adapter, graph, config).audit_repo(Path("/unused"))
+
+    # Unchanged behavior: one confirmed high finding, PoC = the confirmed detail.
+    assert len(result.findings) == 1
+    finding = result.findings[0]
+    assert finding["severity"] == "high"
+    assert finding["description"] == "balance underflow"
+    assert finding["proof_of_concept"] == "balance underflow"
+    # No exploit phase ran.
+    assert "exploit" not in result.trace
+
+
+def test_exploit_validate_one_failure_never_aborts_audit(
+    graph: RepoCallGraph, monkeypatch
+) -> None:
+    # Defensive budget/robustness: even if validate() itself raises, the audit
+    # completes and the hypothesis survives (counted as skipped).
+    class _BoomValidator:
+        def __init__(self, adapter, graph, repo_dir, config):
+            pass
+
+        def validate(self, h):
+            raise RuntimeError("validator exploded")
+
+    monkeypatch.setattr(
+        "src.agents.agentic_auditor.ExploitValidator", _BoomValidator
+    )
+
+    adapter = ScriptedAdapter([_enum([TRANSFER_CANDIDATE]), _verify([])])
+    config = AgenticAuditConfig(n_target=0, exploit_validate=True)
+    result = AgenticAuditor(adapter, graph, config).audit_repo(Path("/unused"))
+
+    # Audit still produced the finding; the raise was absorbed as skipped.
+    assert len(result.findings) == 1
+    assert result.findings[0]["function"] == "transfer"
+    assert result.trace["exploit"]["validated"] == 1
+    assert result.trace["exploit"]["skipped"] == 1

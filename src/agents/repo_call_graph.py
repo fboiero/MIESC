@@ -113,8 +113,11 @@ class RepoCallGraph:
     can disambiguate cross-contract targets.
     """
 
-    def __init__(self, contracts: Dict[str, _ContractInfo]) -> None:
+    def __init__(
+        self, contracts: Dict[str, _ContractInfo], repo_dir: Path | None = None
+    ) -> None:
         self._contracts = contracts
+        self._repo_dir = Path(repo_dir) if repo_dir is not None else Path(".")
         self._merged = CallGraph("repo")
         self._build_merged_graph()
 
@@ -164,7 +167,7 @@ class RepoCallGraph:
             len(contracts),
             len(files),
         )
-        return cls(contracts)
+        return cls(contracts, repo_dir=root)
 
     # -------------------------------------------------------------- accessors
 
@@ -203,6 +206,24 @@ class RepoCallGraph:
         if info is None:
             return None
         return info.bodies.get(fn)
+
+    def contract_source(self, contract: str) -> str | None:
+        """Full ``.sol`` source block of ``contract`` (header + body), or None."""
+        info = self._contracts.get(contract)
+        if info is None:
+            return None
+        return info.source
+
+    def contract_file(self, contract: str) -> Path | None:
+        """Real filesystem path to the ``.sol`` defining ``contract``, or None."""
+        info = self._contracts.get(contract)
+        if info is None:
+            return None
+        return info.file
+
+    def repo_dir(self) -> Path:
+        """Repository root passed to :meth:`build`."""
+        return self._repo_dir
 
     def callers_of(self, contract: str, fn: str) -> List[str]:
         """Qualified names of functions that call ``contract.fn``."""
