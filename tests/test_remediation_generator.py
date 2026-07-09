@@ -6,6 +6,7 @@ import pytest
 from src.llm.remediation_generator import (
     MAX_BATCH_FINDINGS,
     MAX_CONCURRENT_REMEDIATIONS,
+    MAX_METADATA_LIST_ITEMS,
     MAX_REMEDIATION_EXPORTS,
     Remediation,
     RemediationGenerator,
@@ -557,6 +558,60 @@ def test_remediation_to_dict_deduplicates_validation_notes_export_boundary(
     assert remediation.to_dict()["validation_notes"] == expected
 
 
+def test_remediation_to_dict_caps_nested_export_lists():
+    remediation = Remediation(
+        finding_id="F-1",
+        vulnerability_type="reentrancy",
+        severity="high",
+        vulnerable_code="function withdraw() public {}",
+        fixed_code="function withdraw() public nonReentrant {}",
+        explanation="uses guard",
+        changes_summary=[f"change {idx}" for idx in range(MAX_METADATA_LIST_ITEMS + 5)],
+        test_suggestions=[f"test_{idx}" for idx in range(MAX_METADATA_LIST_ITEMS + 5)],
+        references=[f"Reference {idx}" for idx in range(MAX_METADATA_LIST_ITEMS + 5)],
+        confidence=0.8,
+        affected_lines=list(range(1, MAX_METADATA_LIST_ITEMS + 6)),
+        validation_notes=[f"note {idx}" for idx in range(MAX_METADATA_LIST_ITEMS + 5)],
+    )
+
+    exported = remediation.to_dict()
+
+    assert len(exported["changes_summary"]) == MAX_METADATA_LIST_ITEMS
+    assert len(exported["test_suggestions"]) == MAX_METADATA_LIST_ITEMS
+    assert len(exported["references"]) == MAX_METADATA_LIST_ITEMS
+    assert len(exported["affected_lines"]) == MAX_METADATA_LIST_ITEMS
+    assert len(exported["validation_notes"]) == MAX_METADATA_LIST_ITEMS
+
+
+def test_remediation_to_dict_handles_hostile_nested_export_lists():
+    class HostileList(list):
+        def __iter__(self):
+            raise RuntimeError("hostile iterator")
+
+    remediation = Remediation(
+        finding_id="F-1",
+        vulnerability_type="reentrancy",
+        severity="high",
+        vulnerable_code="function withdraw() public {}",
+        fixed_code="function withdraw() public nonReentrant {}",
+        explanation="uses guard",
+        changes_summary=HostileList(["change"]),
+        test_suggestions=HostileList(["test_reentrancy"]),
+        references=HostileList(["OpenZeppelin"]),
+        confidence=0.8,
+        affected_lines=HostileList([1]),
+        validation_notes=HostileList(["validated"]),
+    )
+
+    exported = remediation.to_dict()
+
+    assert exported["changes_summary"] == []
+    assert exported["test_suggestions"] == []
+    assert exported["references"] == []
+    assert exported["affected_lines"] == []
+    assert exported["validation_notes"] == []
+
+
 def test_remediation_to_dict_exports_safe_patch_filename_and_file_path():
     remediation = Remediation(
         finding_id="F-1",
@@ -609,6 +664,28 @@ def test_remediation_to_dict_omits_malformed_patch_filename_and_file_path(
         confidence=0.8,
         patch_filename=patch_filename,
         patch_file_path=patch_file_path,
+    )
+
+    exported = remediation.to_dict()
+
+    assert "patch_filename" not in exported
+    assert "patch_file_path" not in exported
+
+
+def test_remediation_to_dict_omits_overlong_patch_paths():
+    remediation = Remediation(
+        finding_id="F-1",
+        vulnerability_type="reentrancy",
+        severity="high",
+        vulnerable_code="function withdraw() public {}",
+        fixed_code="function withdraw() public nonReentrant {}",
+        explanation="uses guard",
+        changes_summary=[],
+        test_suggestions=[],
+        references=[],
+        confidence=0.8,
+        patch_filename="a" * 241,
+        patch_file_path="patches/" + ("a" * 241),
     )
 
     exported = remediation.to_dict()
@@ -946,6 +1023,21 @@ def test_generate_quick_fix_applies_known_patterns(
 
     assert expected_fragment in fixed
     assert expected_explanation in explanation
+
+
+def test_generate_quick_fix_replaces_transfer_from_even_when_safe_transfer_exists():
+    generator = RemediationGenerator()
+    code = (
+        "function pay(IERC20 token) public { "
+        "token.safeTransfer(msg.sender, 1); token.transferFrom(msg.sender, address(this), 2); "
+        "}"
+    )
+
+    fixed, explanation = generator.generate_quick_fix("unchecked-call", code)
+
+    assert ".safeTransferFrom(" in fixed
+    assert ".transferFrom(" not in fixed
+    assert "Replaced transfer with safeTransfer" in explanation
 
 
 def test_generate_quick_fix_returns_original_for_unknown_pattern():
@@ -1783,6 +1875,31 @@ async def test_generate_remediation_skips_duplicate_fixed_code_imports(monkeypat
 
 
 @pytest.mark.asyncio
+async def test_generate_remediation_prepends_imports_before_spdx_license(monkeypatch):
+    generator = RemediationGenerator()
+    finding = {
+        "id": "F-2m-spdx",
+        "type": "reentrancy",
+        "severity": "HIGH",
+        "snippet": "function withdraw() public {}",
+    }
+    import_line = "import {ReentrancyGuard} from 'oz.sol';"
+
+    async def fake_query(_prompt):
+        return {
+            "fixed_code": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.20;\ncontract Fixed {}",
+            "imports_needed": [import_line],
+        }
+
+    monkeypatch.setattr(generator, "_query_llm", fake_query)
+
+    remediation = await generator.generate_remediation(finding, "contract C {}")
+
+    assert remediation.fixed_code.startswith(import_line)
+    assert "// SPDX-License-Identifier: MIT" in remediation.fixed_code
+
+
+@pytest.mark.asyncio
 async def test_generate_remediation_deduplicates_imports_before_prepending(monkeypatch):
     generator = RemediationGenerator()
     finding = {
@@ -2155,6 +2272,38 @@ def test_init_caps_timeout_and_rejects_credentialed_base_url():
     assert generator.timeout == 600
 
 
+@pytest.mark.parametrize(
+    "base_url",
+    [
+        "http://exa mple.com",
+        "http://ollama.local:11434/base?x=1",
+        "http://ollama.local:11434/#frag",
+        "http://ollama.local:11434/" + ("a" * 2500),
+        "http://ollama.local:11434\u2028",
+    ],
+)
+def test_init_rejects_malformed_base_url_boundaries(base_url):
+    generator = RemediationGenerator(ollama_base_url=base_url)
+
+    assert generator.base_url == "http://localhost:11434"
+
+
+@pytest.mark.parametrize(
+    "model",
+    [
+        "bad model",
+        "owner/model",
+        "bad\\model",
+        "x" * 129,
+        "bad\nmodel",
+    ],
+)
+def test_init_defaults_malformed_model_ids(model):
+    generator = RemediationGenerator(model=model)
+
+    assert generator.model == "deepseek-coder:6.7b"
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize("status", ["200", True, None])
 async def test_query_llm_fails_closed_for_malformed_response_status(monkeypatch, status):
@@ -2455,6 +2604,68 @@ async def test_generate_remediations_enforces_batch_size_cap(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_generate_remediations_handles_hostile_batch_iteration(monkeypatch):
+    generator = RemediationGenerator()
+
+    class HostileFindings(list):
+        def __iter__(self):
+            raise RuntimeError("hostile iterator")
+
+    async def fake_generate(_finding, _code):
+        raise AssertionError("hostile batch should not dispatch work")
+
+    monkeypatch.setattr(generator, "generate_remediation", fake_generate)
+
+    result = await generator.generate_remediations(
+        HostileFindings([{"id": "A"}]),
+        "contract C {}",
+        parallel=False,
+    )
+
+    assert result.success_count == 0
+    assert result.failure_count == 1
+    assert result.remediations == []
+
+
+@pytest.mark.asyncio
+async def test_generate_remediations_handles_hostile_batch_len(monkeypatch):
+    generator = RemediationGenerator()
+
+    class HostileLenFindings(list):
+        def __len__(self):
+            raise RuntimeError("hostile len")
+
+    processed = []
+
+    async def fake_generate(finding, _code):
+        processed.append(finding["id"])
+        return Remediation(
+            finding_id=finding["id"],
+            vulnerability_type="unknown",
+            severity="medium",
+            vulnerable_code="",
+            fixed_code="",
+            explanation="",
+            changes_summary=[],
+            test_suggestions=[],
+            references=[],
+            confidence=0.8,
+        )
+
+    monkeypatch.setattr(generator, "generate_remediation", fake_generate)
+
+    result = await generator.generate_remediations(
+        HostileLenFindings([{"id": "A"}, {"id": "B"}]),
+        "contract C {}",
+        parallel=False,
+    )
+
+    assert result.success_count == 2
+    assert result.failure_count == 0
+    assert processed == ["A", "B"]
+
+
+@pytest.mark.asyncio
 async def test_generate_remediations_parallel_caps_extreme_concurrency(monkeypatch):
     generator = RemediationGenerator()
     active = 0
@@ -2555,3 +2766,20 @@ def test_remediation_result_to_dict_caps_exported_remediation_list():
     exported = result.to_dict()
 
     assert len(exported["remediations"]) == MAX_REMEDIATION_EXPORTS
+
+
+def test_remediation_result_to_dict_handles_hostile_remediation_list():
+    class HostileRemediations(list):
+        def __iter__(self):
+            raise RuntimeError("hostile iterator")
+
+    result = RemediationResult(
+        remediations=HostileRemediations([]),
+        success_count=1,
+        failure_count=0,
+        execution_time_ms=1.0,
+    )
+
+    exported = result.to_dict()
+
+    assert exported["remediations"] == []

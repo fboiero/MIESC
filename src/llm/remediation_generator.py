@@ -40,6 +40,7 @@ _EXPORT_REFERENCE_URL_RE = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*://|^www\.", re.
 _EXPORT_REFERENCE_SCHEME_RE = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:")
 _EXPORT_MARKDOWN_LINK_RE = re.compile(r"^\[([^\]\x00-\x1f\x7f]+)\]\(([^()\s\x00-\x1f\x7f]+)\)$")
 _EXPORT_TEST_NAME_CONTROL_RE = re.compile(r"[\x00-\x1f\x7f]")
+_OLLAMA_MODEL_RE = re.compile(r"^[A-Za-z0-9_.:-]{1,128}$")
 _SOLIDITY_IMPORT_RE = re.compile(
     r"""^import\s+(?:(?:"[^"\x00-\x1f\x7f]+"|'[^'\x00-\x1f\x7f]+')|(?:\{[^{}\x00-\x1f\x7f]+\}\s+from\s+(?:"[^"\x00-\x1f\x7f]+"|'[^'\x00-\x1f\x7f]+'))|(?:[A-Za-z_$][\w$]*\s+from\s+(?:"[^"\x00-\x1f\x7f]+"|'[^'\x00-\x1f\x7f]+')))\s*;$"""
 )
@@ -50,6 +51,12 @@ MAX_BATCH_FINDINGS = 500
 MAX_CONCURRENT_REMEDIATIONS = 20
 MAX_REMEDIATION_EXPORTS = 500
 MAX_TIMEOUT_SECONDS = 600
+MAX_SAFE_TEXT_CHARS = 100_000
+MAX_PROMPT_FIELD_CHARS = 8_000
+MAX_METADATA_LIST_ITEMS = 100
+MAX_PATH_FIELD_CHARS = 240
+MAX_REFERENCE_LABEL_CHARS = 200
+MAX_REFERENCE_URL_CHARS = 2_000
 
 
 def _is_unsafe_text_char(ch: str, *, allow_multiline: bool = False) -> bool:
@@ -81,11 +88,21 @@ def _safe_text(value: Any, *, allow_multiline: bool = False) -> str:
             return ""
     if not isinstance(value, str):
         return ""
+    if any(
+        ord(ch) == 127 or ord(ch) in {0x2028, 0x2029} or (ord(ch) < 32 and ch not in "\n\r\t ")
+        for ch in value
+    ):
+        return ""
     try:
         text = value.strip()
     except Exception:
         return ""
     if not text:
+        return ""
+    try:
+        if len(text) > MAX_SAFE_TEXT_CHARS:
+            return ""
+    except Exception:
         return ""
     if allow_multiline:
         if any(_is_unsafe_text_char(ch, allow_multiline=True) for ch in text):
@@ -93,6 +110,54 @@ def _safe_text(value: Any, *, allow_multiline: bool = False) -> str:
     elif any(_is_unsafe_text_char(ch) for ch in text):
         return ""
     return text
+
+
+def _safe_text_limited(
+    value: Any,
+    *,
+    allow_multiline: bool = False,
+    limit: int = MAX_PROMPT_FIELD_CHARS,
+) -> str:
+    """Return safe text truncated to a caller-specific boundary."""
+    text = _safe_text(value, allow_multiline=allow_multiline)
+    if not text:
+        return ""
+    if isinstance(limit, bool):
+        limit = MAX_PROMPT_FIELD_CHARS
+    try:
+        normalized_limit = int(limit)
+    except (TypeError, ValueError, OverflowError):
+        normalized_limit = MAX_PROMPT_FIELD_CHARS
+    if normalized_limit <= 0:
+        normalized_limit = MAX_PROMPT_FIELD_CHARS
+    return text[:normalized_limit]
+
+
+def _bounded_list(value: Any, *, limit: int = MAX_METADATA_LIST_ITEMS) -> List[Any]:
+    """Return a bounded list copy without trusting list subclass helpers."""
+    if not isinstance(value, list):
+        return []
+    if isinstance(limit, bool):
+        limit = MAX_METADATA_LIST_ITEMS
+    try:
+        normalized_limit = int(limit)
+    except (TypeError, ValueError, OverflowError):
+        normalized_limit = MAX_METADATA_LIST_ITEMS
+    if normalized_limit <= 0:
+        normalized_limit = MAX_METADATA_LIST_ITEMS
+    copied = []
+    try:
+        iterator = iter(value)
+    except (TypeError, RuntimeError, ValueError):
+        return []
+    try:
+        for item in iterator:
+            if len(copied) >= normalized_limit:
+                break
+            copied.append(item)
+    except (TypeError, RuntimeError, ValueError):
+        return copied
+    return copied
 
 
 def _safe_error_text(value: Any, default: str = "error", *, limit: int = 200) -> str:
@@ -144,6 +209,7 @@ def _export_patch_filename(value: Any) -> Optional[str]:
     normalized = _export_optional_string(value)
     if (
         normalized is None
+        or len(normalized) > MAX_PATH_FIELD_CHARS
         or normalized in {".", ".."}
         or "/" in normalized
         or "\\" in normalized
@@ -159,6 +225,7 @@ def _export_patch_file_path(value: Any) -> Optional[str]:
     normalized = _export_optional_string(value)
     if (
         normalized is None
+        or len(normalized) > MAX_PATH_FIELD_CHARS
         or normalized.startswith("/")
         or "\\" in normalized
         or _EXPORT_WINDOWS_DRIVE_RE.match(normalized)
@@ -190,10 +257,8 @@ def _export_explanation(value: Any) -> str:
 
 def _export_string_list(value: Any) -> List[str]:
     """Return only non-empty string list items for export payloads."""
-    if not isinstance(value, list):
-        return []
     strings = []
-    for item in value:
+    for item in _bounded_list(value):
         if not isinstance(item, str):
             continue
         text = item.strip()
@@ -212,6 +277,7 @@ def _export_reference_url(value: str) -> Optional[str]:
 
     if (
         not normalized
+        or len(normalized) > MAX_REFERENCE_URL_CHARS
         or _EXPORT_REFERENCE_CONTROL_RE.search(normalized)
         or any(char.isspace() for char in normalized)
     ):
@@ -244,7 +310,7 @@ def _export_reference(value: Any) -> Optional[str]:
         except (AttributeError, TypeError, ValueError):
             return None
         url = _export_reference_url(markdown_link.group(2))
-        if label and url is not None:
+        if label and len(label) <= MAX_REFERENCE_LABEL_CHARS and url is not None:
             return f"[{label}]({url})"
         return None
 
@@ -262,12 +328,9 @@ def _export_reference(value: Any) -> Optional[str]:
 
 def _export_reference_list(value: Any) -> List[str]:
     """Return safe remediation references without malformed links or URLs."""
-    if not isinstance(value, list):
-        return []
-
     exported = []
     seen = set()
-    for item in value:
+    for item in _bounded_list(value):
         reference = _export_reference(item)
         if reference is None or reference in seen:
             continue
@@ -311,7 +374,14 @@ def _export_generated_test_names(value: Any) -> List[str]:
 
     exported = []
     seen = set()
-    for item in value:
+    if isinstance(value, list):
+        items = _bounded_list(value)
+    else:
+        try:
+            items = list(value[:MAX_METADATA_LIST_ITEMS])
+        except (TypeError, RuntimeError, ValueError):
+            return []
+    for item in items:
         test_name = _export_generated_test_name(item)
         if test_name is None or test_name in seen:
             continue
@@ -377,12 +447,9 @@ def _export_non_negative_int(value: Any) -> int:
 
 def _export_positive_int_list(value: Any) -> List[int]:
     """Return unique positive integer list items for export payloads."""
-    if not isinstance(value, list):
-        return []
-
     exported = []
     seen = set()
-    for item in value:
+    for item in _bounded_list(value):
         if isinstance(item, bool):
             continue
         if isinstance(item, str):
@@ -498,9 +565,9 @@ class RemediationResult:
 
     def to_dict(self) -> Dict[str, Any]:
         """Export generation results without trusting malformed field values."""
-        remediations = self.remediations if isinstance(self.remediations, list) else []
+        remediations = _bounded_list(self.remediations, limit=MAX_REMEDIATION_EXPORTS)
         exported_remediations = []
-        for remediation in remediations[:MAX_REMEDIATION_EXPORTS]:
+        for remediation in remediations:
             if not isinstance(remediation, Remediation):
                 continue
             try:
@@ -624,7 +691,7 @@ class RemediationGenerator:
             timeout: Request timeout
         """
         self.base_url = self._normalized_base_url(ollama_base_url)
-        self.model = self._string_or_default(model, "deepseek-coder:6.7b")
+        self.model = self._model_or_default(model)
         self.timeout = self._positive_int(timeout, 120, max_value=MAX_TIMEOUT_SECONDS)
 
         logger.info(f"RemediationGenerator initialized with model={model}")
@@ -701,7 +768,7 @@ class RemediationGenerator:
         # Add imports to fixed code if not present
         if imports:
             imports_str = "\n".join(imports)
-            if not fixed_code.startswith("//"):
+            if not fixed_code.startswith("//") or fixed_code.startswith("// SPDX-License-Identifier:"):
                 fixed_code = f"{imports_str}\n\n{fixed_code}"
 
         return Remediation(
@@ -849,9 +916,10 @@ class RemediationGenerator:
 
         elif vuln_type == "unchecked-call":
             # Replace transfer with safeTransfer
-            if "safeTransfer" not in fixed:
-                fixed = re.sub(r"\.transfer\s*\(", ".safeTransfer(", fixed)
-                fixed = re.sub(r"\.transferFrom\s*\(", ".safeTransferFrom(", fixed)
+            updated = re.sub(r"(?<!safe)\.transfer\s*\(", ".safeTransfer(", fixed)
+            updated = re.sub(r"(?<!safe)\.transferFrom\s*\(", ".safeTransferFrom(", updated)
+            if updated != fixed:
+                fixed = updated
                 changes.append("Replaced transfer with safeTransfer")
 
         explanation = pattern.get("description", "")
@@ -870,13 +938,17 @@ class RemediationGenerator:
         Returns:
             Pattern template with imports, modifiers, etc.
         """
-        return REMEDIATION_PATTERNS.get(self._parse_vuln_type(vuln_type), {})
+        pattern = REMEDIATION_PATTERNS.get(self._parse_vuln_type(vuln_type), {})
+        copied = {}
+        for key, value in pattern.items():
+            copied[key] = list(value) if isinstance(value, list) else value
+        return copied
 
     async def _query_llm(self, prompt: str) -> Dict[str, Any]:
         """Query the LLM and parse JSON response."""
         prompt_text = _safe_text(prompt, allow_multiline=True)
         payload = {
-            "model": self._string_or_default(self.model, "deepseek-coder:6.7b"),
+            "model": self._model_or_default(self.model),
             "messages": [
                 {
                     "role": "system",
@@ -1023,37 +1095,51 @@ class RemediationGenerator:
     def _normalized_base_url(value: Any) -> str:
         """Return a usable base URL without trailing slash."""
         normalized = _safe_text(value)
-        if not normalized:
+        if not normalized or len(normalized) > MAX_REFERENCE_URL_CHARS:
             return "http://localhost:11434"
         parsed = urlparse(normalized)
         if parsed.scheme not in {"http", "https"} or not parsed.netloc:
             return "http://localhost:11434"
         if parsed.username or parsed.password or not parsed.hostname:
             return "http://localhost:11434"
+        if any(char.isspace() for char in parsed.netloc):
+            return "http://localhost:11434"
+        if parsed.path not in {"", "/"} or parsed.params or parsed.query or parsed.fragment:
+            return "http://localhost:11434"
         return normalized.rstrip("/")
 
     @staticmethod
     def _string_or_default(value: Any, default: str) -> str:
         """Return string values from LLM results, falling back on malformed shapes."""
-        value = _safe_text(value)
+        value = _safe_text_limited(value)
         if not value:
+            return default
+        return value
+
+    @staticmethod
+    def _model_or_default(value: Any, default: str = "deepseek-coder:6.7b") -> str:
+        """Return a bounded local model id without path or whitespace syntax."""
+        value = _safe_text(value)
+        if not value or len(value) > 128 or not _OLLAMA_MODEL_RE.fullmatch(value):
             return default
         return value
 
     @staticmethod
     def _fixed_code_or_default(value: Any, default: str) -> str:
         """Return non-empty fixed code from LLM results, falling back on malformed shapes."""
-        normalized = _safe_text(value, allow_multiline=True)
+        normalized = _safe_text_limited(
+            value,
+            allow_multiline=True,
+            limit=MAX_LLM_RESPONSE_CHARS,
+        )
         return normalized or default
 
     @staticmethod
     def _string_list_or_empty(value: Any) -> List[str]:
         """Return only non-empty string list items from LLM results."""
-        if not isinstance(value, list):
-            return []
         items = []
-        for item in value:
-            text = _safe_text(item)
+        for item in _bounded_list(value):
+            text = _safe_text_limited(item)
             if not text:
                 continue
             items.append(text)
@@ -1074,7 +1160,12 @@ class RemediationGenerator:
     @classmethod
     def _imports_to_prepend(cls, fixed_code: str, value: Any) -> List[str]:
         """Return unique imports that are not already present in fixed code."""
-        existing_lines = {line.strip() for line in fixed_code.splitlines()}
+        fixed_code_text = _safe_text_limited(
+            fixed_code,
+            allow_multiline=True,
+            limit=MAX_LLM_RESPONSE_CHARS,
+        )
+        existing_lines = {line.strip() for line in fixed_code_text.splitlines()}
         imports = []
         seen = set()
         for import_line in cls._string_list_or_empty(value):
@@ -1089,7 +1180,13 @@ class RemediationGenerator:
     @staticmethod
     def _dict_or_empty(value: Any) -> Dict[str, Any]:
         """Return mapping-shaped vulnerability findings only."""
-        return value if isinstance(value, dict) else {}
+        if not isinstance(value, dict):
+            return {}
+        try:
+            value.get("__miesc_probe__")
+        except (AttributeError, TypeError, RuntimeError, ValueError):
+            return {}
+        return value
 
     @staticmethod
     def _normalized_level(value: Any, allowed: set[str], default: str) -> str:
@@ -1230,9 +1327,14 @@ class RemediationGenerator:
         if not isinstance(value, list):
             return [], 1
 
-        bounded = value[:MAX_BATCH_FINDINGS]
+        bounded = _bounded_list(value, limit=MAX_BATCH_FINDINGS)
         findings = [item for item in bounded if isinstance(item, dict)]
-        return findings, len(value) - len(findings)
+        try:
+            total = len(value)
+        except (TypeError, RuntimeError, ValueError):
+            total = len(bounded)
+        malformed = max(0, total - len(findings))
+        return findings, malformed
 
     def _get_pattern_info(self, vuln_type: str) -> str:
         """Get pattern information for the vulnerability type."""
@@ -1241,16 +1343,26 @@ class RemediationGenerator:
         if not pattern:
             return "No specific pattern known. Use security best practices."
 
+        pattern_name = _safe_text_limited(pattern.get("pattern_name"), limit=120) or "Unknown"
+        description = _safe_text_limited(pattern.get("description"), limit=MAX_PROMPT_FIELD_CHARS)
         info_parts = [
-            f"**Pattern**: {pattern.get('pattern_name', 'Unknown')}",
-            f"**Description**: {pattern.get('description', '')}",
+            f"**Pattern**: {pattern_name}",
+            f"**Description**: {description}",
         ]
 
         if "imports" in pattern:
-            info_parts.append(f"**Imports**: {', '.join(pattern['imports'][:2])}")
+            imports = [
+                item
+                for item in _bounded_list(pattern.get("imports"), limit=2)
+                if self._is_import_statement(item)
+            ]
+            if imports:
+                info_parts.append(f"**Imports**: {', '.join(imports)}")
 
         if "modifier" in pattern:
-            info_parts.append(f"**Modifier**: {pattern['modifier']}")
+            modifier = _safe_text_limited(pattern.get("modifier"), limit=120)
+            if modifier:
+                info_parts.append(f"**Modifier**: {modifier}")
 
         return "\n".join(info_parts)
 
