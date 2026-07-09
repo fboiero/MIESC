@@ -2,7 +2,7 @@
 
 Date: 2026-07-09
 Owner lane: Codex
-Status: implemented and wired into the SmartBugs detector adapter
+Status: implemented, wired into the SmartBugs detector adapter, and registered as a generic built-in detector
 
 ## 1. Signal
 
@@ -79,6 +79,9 @@ This is deliberately additive:
 - The SmartBugs adapter now runs this detector as a complementary generic
   detector and normalizes both `SmartBugsFinding` and detector API `Finding`
   objects into the existing MIESC finding schema.
+- The generic `DetectorRegistry` discovers `TransientStorageDetector` lazily
+  during registry plugin loading. This avoids import-time side effects while
+  making `get_registry().run_all(...)` cover the EIP-1153 heuristic.
 
 ## 4. Validation
 
@@ -115,6 +118,8 @@ Implemented integration:
    and generic detector API findings.
 4. Focused adapter tests prove the finding survives file/source conversion and
    summary generation.
+5. Generic registry tests prove `transient-storage-detector` is loaded lazily
+   and dispatched by `DetectorRegistry.run_all(...)`.
 
 Next bounded SDD step:
 

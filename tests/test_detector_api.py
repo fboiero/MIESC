@@ -519,6 +519,61 @@ class TestDetectorRegistry:
         findings = registry.run_all("some test source code")
         assert any(f.detector == "run-all-test" for f in findings)
 
+    def test_loads_builtin_transient_storage_detector_lazily(self):
+        """Test built-in transient detector loads at registry discovery time."""
+        from src.detectors.transient_storage_detector import TransientStorageDetector
+
+        registry = get_registry()
+        original_detectors = dict(registry._detectors)
+        original_loaded = registry._loaded_plugins
+        try:
+            registry._detectors.clear()
+            registry._loaded_plugins = False
+
+            detector = registry.get("transient-storage-detector")
+
+            assert isinstance(detector, TransientStorageDetector)
+            assert detector.name == "transient-storage-detector"
+        finally:
+            registry._detectors.clear()
+            registry._detectors.update(original_detectors)
+            registry._loaded_plugins = original_loaded
+
+    def test_run_all_includes_builtin_transient_storage_detector(self):
+        """Test registry run_all dispatches the transient storage detector."""
+        registry = get_registry()
+        original_detectors = dict(registry._detectors)
+        original_loaded = registry._loaded_plugins
+        source = """
+        pragma solidity ^0.8.28;
+        contract Vault {
+            function withdraw(address payable to) external {
+                assembly { tstore(0x00, 1) }
+                to.transfer(1 ether);
+            }
+        }
+        """
+        try:
+            registry._detectors.clear()
+            registry._loaded_plugins = False
+
+            findings = registry.run_all(source)
+
+            transient_findings = [
+                finding
+                for finding in findings
+                if finding.detector == "transient-storage-detector"
+            ]
+            assert len(transient_findings) == 1
+            assert transient_findings[0].metadata["pattern"] == "transient-low-gas-reentrancy"
+            summary = registry.get_summary(transient_findings)
+            assert summary["by_category"]["reentrancy"] == 1
+            assert summary["by_detector"]["transient-storage-detector"] == 1
+        finally:
+            registry._detectors.clear()
+            registry._detectors.update(original_detectors)
+            registry._loaded_plugins = original_loaded
+
     def test_get_summary(self):
         """Test getting findings summary."""
         registry = get_registry()

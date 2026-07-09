@@ -27,7 +27,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import cast, Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 
 class Severity(Enum):
@@ -428,6 +428,14 @@ class DetectorRegistry:
     def _load_plugins(self) -> None:
         """Load detectors from entry points."""
         self._loaded_plugins = True
+
+        try:
+            from .transient_storage_detector import TransientStorageDetector
+
+            if TransientStorageDetector.name not in self._detectors:
+                self.register_class(TransientStorageDetector)
+        except Exception as e:
+            print(f"Warning: Failed to load built-in detector transient-storage-detector: {e}")  # noqa: T201
 
         try:
             # Python 3.10+ style
