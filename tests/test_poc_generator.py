@@ -975,6 +975,45 @@ class TestTemplateLoading:
         assert "{{CONTRACT_NAME}}" in template
         assert "{{VULNERABILITY_TYPE}}" in template
 
+    def test_mapped_template_files_exist(self, generator):
+        """Every mapped template should exist on disk."""
+        for template_name in set(generator.TEMPLATE_MAP.values()):
+            assert (generator.templates_dir / template_name).is_file(), template_name
+
+    @pytest.mark.parametrize(
+        ("vuln_type", "template_name"),
+        sorted(PoCGenerator.TEMPLATE_MAP.items(), key=lambda item: item[0].value),
+    )
+    def test_mapped_types_load_disk_templates(self, generator, vuln_type, template_name):
+        """Mapped vulnerability types should not silently use embedded fallback content."""
+        template = generator._load_template(vuln_type)
+
+        assert template == (generator.templates_dir / template_name).read_text(encoding="utf-8")
+
+    @pytest.mark.parametrize(
+        "vuln_type",
+        [
+            VulnerabilityType.FRONT_RUNNING,
+            VulnerabilityType.DENIAL_OF_SERVICE,
+            VulnerabilityType.TIMESTAMP_DEPENDENCE,
+            VulnerabilityType.SIGNATURE_REPLAY,
+            VulnerabilityType.ERC4626_INFLATION,
+        ],
+    )
+    def test_generic_mapped_types_are_explicit(self, generator, vuln_type):
+        """Generic PoC coverage should be explicit in TEMPLATE_MAP, not accidental fallback."""
+        assert generator.TEMPLATE_MAP[vuln_type] == "generic.t.sol"
+        assert generator._load_template(vuln_type) == (
+            generator.templates_dir / "generic.t.sol"
+        ).read_text(encoding="utf-8")
+
+    def test_price_manipulation_reuses_oracle_template(self, generator):
+        """Price manipulation should use the oracle-specific template family."""
+        assert generator.TEMPLATE_MAP[VulnerabilityType.PRICE_MANIPULATION] == (
+            "oracle_manipulation.t.sol"
+        )
+        assert "Oracle" in generator._load_template(VulnerabilityType.PRICE_MANIPULATION)
+
     def test_template_cache(self, generator):
         """Test template caching."""
         # Load twice, should use cache

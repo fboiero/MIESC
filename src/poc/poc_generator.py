@@ -467,6 +467,12 @@ class PoCGenerator:
         VulnerabilityType.TX_ORIGIN: "tx_origin.t.sol",
         VulnerabilityType.SELFDESTRUCT: "selfdestruct.t.sol",
         VulnerabilityType.DELEGATECALL: "delegatecall.t.sol",
+        VulnerabilityType.FRONT_RUNNING: "generic.t.sol",
+        VulnerabilityType.DENIAL_OF_SERVICE: "generic.t.sol",
+        VulnerabilityType.TIMESTAMP_DEPENDENCE: "generic.t.sol",
+        VulnerabilityType.SIGNATURE_REPLAY: "generic.t.sol",
+        VulnerabilityType.ERC4626_INFLATION: "generic.t.sol",
+        VulnerabilityType.PRICE_MANIPULATION: "oracle_manipulation.t.sol",
     }
 
     # Type aliases for finding type strings
