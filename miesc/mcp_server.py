@@ -43,23 +43,36 @@ if str(_project_root) not in sys.path:
 try:
     from mcp.server.fastmcp import FastMCP
 except ImportError:
-    print(
-        "Error: MCP SDK not installed. Install with: pip install 'mcp[cli]>=1.0.0'",
-        file=sys.stderr,
-    )
-    sys.exit(1)
+    FastMCP = None  # type: ignore[assignment,misc]
 
 from miesc import __version__  # noqa: E402
 
 logger = logging.getLogger("miesc.mcp_server")
 
-# Initialize FastMCP server
-mcp = FastMCP(
-    "miesc",
-    instructions=(
-        f"MIESC v{__version__} - Multi-layer Intelligent Evaluation for Smart Contracts. "
-        "9 defense layers, configured adapter stack, AI-powered correlation."
-    ),
+class _MissingMCP:
+    """Import-time stub used when the optional MCP SDK is unavailable."""
+
+    def tool(self) -> Any:
+        def decorator(func: Any) -> Any:
+            return func
+
+        return decorator
+
+    def run(self, *_args: Any, **_kwargs: Any) -> None:
+        raise RuntimeError("MCP SDK not installed. Install with: pip install 'mcp[cli]>=1.0.0'")
+
+
+# Initialize FastMCP server when available; otherwise keep helpers importable.
+mcp = (
+    FastMCP(
+        "miesc",
+        instructions=(
+            f"MIESC v{__version__} - Multi-layer Intelligent Evaluation for Smart Contracts. "
+            "9 defense layers, configured adapter stack, AI-powered correlation."
+        ),
+    )
+    if FastMCP is not None
+    else _MissingMCP()
 )
 
 
@@ -80,6 +93,21 @@ def _get_layers() -> Dict[int, Dict[str, Any]]:
     from miesc.cli.constants import LAYERS
 
     return cast(Dict[int, Dict[str, Any]], LAYERS)
+
+
+def _resolve_profile_layers(profile_name: str) -> tuple[Optional[Dict[str, Any]], List[str]]:
+    """Resolve an MCP profile through the shared CLI profile config."""
+    from miesc.cli.utils import get_profile, load_profiles
+
+    legacy_aliases = {
+        "quick": "fast",
+        "formal": "security",
+    }
+    resolved_name = legacy_aliases.get(profile_name, profile_name)
+    profiles = load_profiles()
+    available = list(profiles.keys()) + sorted(legacy_aliases)
+    profile = get_profile(resolved_name)
+    return profile, available
 
 
 def _get_adapter_map() -> Dict[str, str]:
@@ -336,30 +364,24 @@ async def miesc_profile_scan(
 ) -> str:
     """
     Run analysis with a predefined profile.
-    Profiles: quick (L1 only), balanced (L1+L3+L5), thorough (all layers),
-    defi (DeFi-focused), formal (L1+L3+L4).
+    Profiles are loaded from MIESC's shared profiles.yaml, including paper
+    performance profiles. Legacy aliases: quick -> fast, formal -> security.
     """
     contract_path = _validate_contract_path(contract_path)
     LAYERS = _get_layers()
+    profile_config, available_profiles = _resolve_profile_layers(profile)
 
-    profiles = {
-        "quick": [1],
-        "balanced": [1, 3, 5],
-        "thorough": list(range(1, 10)),
-        "defi": [1, 7],
-        "formal": [1, 3, 4],
-    }
-
-    if profile not in profiles:
+    if profile_config is None:
         return json.dumps(
             {
                 "error": f"Unknown profile: {profile}",
-                "available_profiles": list(profiles.keys()),
+                "available_profiles": available_profiles,
             }
         )
 
+    layers = profile_config.get("layers", [1])
     all_results = []
-    for layer_num in profiles[profile]:
+    for layer_num in layers:
         if layer_num in LAYERS:
             layer_results = _run_layer_internal(layer_num, contract_path, timeout)
             all_results.extend(layer_results)
@@ -370,7 +392,8 @@ async def miesc_profile_scan(
         {
             "scan_type": "profile",
             "profile": profile,
-            "layers_scanned": profiles[profile],
+            "description": profile_config.get("description", ""),
+            "layers_scanned": layers,
             "contract": contract_path,
             "summary": summary,
             "results": all_results,

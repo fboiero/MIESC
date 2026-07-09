@@ -48,6 +48,32 @@ if RICH_AVAILABLE:
 logger = logging.getLogger(__name__)
 
 
+def _apply_deep_profile_config(config: Any, profile_name: str | None) -> tuple[Any, Dict[str, Any]]:
+    """Apply profile settings that are safe for agentic deep audit."""
+    if not profile_name:
+        return config, {}
+
+    profile = get_profile(profile_name)
+    if not profile:
+        raise click.ClickException(f"Profile '{profile_name}' not found")
+
+    if "timeout" in profile:
+        config.timeout_seconds = int(profile["timeout"])
+    if "max_iterations" in profile:
+        config.max_iterations = int(profile["max_iterations"])
+    if "enable_agentic_invariants" in profile:
+        config.enable_agentic_invariants = bool(profile["enable_agentic_invariants"])
+
+    ensemble = profile.get("agentic_ensemble", {})
+    if isinstance(ensemble, dict):
+        if "allow_remote" in ensemble:
+            config.agentic_invariants_allow_remote = bool(ensemble["allow_remote"])
+        if "local_first" in ensemble:
+            config.llm_provider = "auto" if ensemble["local_first"] else config.llm_provider
+
+    return config, profile
+
+
 # =============================================================================
 # Output Format Converters
 # =============================================================================
@@ -1888,6 +1914,7 @@ def audit_batch(
 @click.option("--format", "-f", "fmt", type=click.Choice(["json", "markdown"]), default="json")
 @click.option("--timeout", "-t", type=int, default=600, help="Max total audit time in seconds")
 @click.option("--max-iterations", type=int, default=5, help="Max agentic loop iterations")
+@click.option("--profile", type=str, help="Apply a configured deep audit profile")
 @click.option("--no-llm", is_flag=True, help="Disable LLM synthesis entirely")
 @click.option("--no-rag", is_flag=True, help="Disable RAG enrichment")
 @click.option(
@@ -1903,6 +1930,7 @@ def audit_deep(
     fmt: str,
     timeout: int,
     max_iterations: int,
+    profile: str | None,
     no_llm: bool,
     no_rag: bool,
     llm_provider: str,
@@ -1938,14 +1966,19 @@ def audit_deep(
         llm_provider=llm_provider,
         enable_rag=not no_rag,
     )
+    profile_config: Dict[str, Any]
+    config, profile_config = _apply_deep_profile_config(config, profile)
 
     agent = DeepAuditAgent(config=config)
 
     info(f"Starting agentic deep audit on {contract}")
-    llm_status = f"{llm_provider}" if not no_llm else "disabled"
+    llm_status = f"{config.llm_provider}" if config.enable_llm else "disabled"
     info(
-        f"Timeout: {timeout}s | Max iterations: {max_iterations} | LLM: {llm_status} | RAG: {not no_rag}"
+        f"Timeout: {config.timeout_seconds}s | Max iterations: {config.max_iterations} | "
+        f"LLM: {llm_status} | RAG: {config.enable_rag}"
     )
+    if profile:
+        info(f"Profile: {profile} | {profile_config.get('description', '')}")
 
     if RICH_AVAILABLE:
         from rich.progress import Progress, SpinnerColumn, TextColumn
