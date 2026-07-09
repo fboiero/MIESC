@@ -198,6 +198,83 @@ profiles:
       - "Optimized for token contracts"
       - "Includes ERC compliance checking"
 
+  # Paper 1 SmartBugs reproducibility profile
+  paper1-smartbugs:
+    description: "Paper 1 SmartBugs-aligned recall profile using deterministic configured tools"
+    layers: [1, 3, 6]
+    tools:
+      - slither
+      - smartbugs_detector
+      - mythril
+      - dagnn
+    timeout: 900
+    parallel: true
+    skip_ml: false
+    skip_correlation: false
+    benchmark_mode: true
+    target_metric:
+      corpus: smartbugs
+      optimize_for: recall
+    recommendations:
+      - "Use for non-canonical SmartBugs validation runs"
+      - "Do not overwrite frozen paper artifacts from this profile"
+
+  # Paper 1 EVMBench semantic ensemble profile
+  paper1-evmbench-ensemble:
+    description: "EVMBench-aligned semantic ensemble profile with replaceable agents"
+    layers: [1, 3, 4, 9]
+    tools:
+      - slither
+      - aderyn
+      - mythril
+      - halmos
+      - smtchecker
+    timeout: 1200
+    parallel: true
+    skip_ml: false
+    skip_correlation: false
+    enable_agentic_invariants: true
+    agentic_ensemble:
+      provider_contract: reasoning_provider
+      local_first: true
+      allow_remote: false
+      quorum: 2
+      capabilities:
+        - finding_judgment
+        - invariant_extraction
+        - property_synthesis
+        - counterexample_validation
+    target_metric:
+      corpus: evmbench
+      optimize_for: high_critical_recall
+    recommendations:
+      - "Use replaceable local or approved remote reasoning providers"
+      - "Keep provider/model selection outside the profile contract"
+
+  # Paper 2 remediation evidence profile
+  paper2-remediation-evidence:
+    description: "Paper 2 remediation evidence profile with compile and no-regression checks"
+    layers: [1, 4, 9]
+    tools:
+      - slither
+      - smtchecker
+      - remediation_validator
+    timeout: 1200
+    parallel: true
+    skip_ml: false
+    skip_correlation: false
+    enable_remediation: true
+    formal_verification:
+      enabled: true
+      generate_properties: true
+    remediation_evidence:
+      require_compile: true
+      require_original_finding_eliminated: true
+      require_no_regression: true
+    recommendations:
+      - "Write evidence to dated non-canonical result files"
+      - "Use bounded probes before full remediation runs"
+
 # Profile aliases for convenience
 aliases:
   q: fast
@@ -208,6 +285,9 @@ aliases:
   full: thorough
   quick: fast
   comprehensive: thorough
+  paper1: paper1-smartbugs
+  evmbench-paper: paper1-evmbench-ensemble
+  paper2: paper2-remediation-evidence
 
 # Default profile if none specified
 default: balanced

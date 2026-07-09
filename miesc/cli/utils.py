@@ -12,6 +12,7 @@ import importlib
 import logging
 import os
 import sys
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, cast
@@ -474,23 +475,58 @@ def run_layer(layer: int, contract: str, timeout: int = 300) -> List[Dict[str, A
     if layer not in LAYERS:
         return []
 
-    results: List[Dict[str, Any]] = []
     layer_info = LAYERS[layer]
+    tools = list(layer_info["tools"])
+    max_workers = min(max(get_max_workers(default=4), 1), len(tools) or 1)
 
-    for tool in layer_info["tools"]:
+    if max_workers == 1 or len(tools) <= 1:
+        results: List[Dict[str, Any]] = []
+        for tool in tools:
+            info(f"Running {tool}...")
+            result = run_tool(tool, contract, timeout)
+            results.append(result)
+            _print_tool_result(tool, result)
+        return results
+
+    for tool in tools:
         info(f"Running {tool}...")
-        result = run_tool(tool, contract, timeout)
-        results.append(result)
 
-        if result["status"] == "success":
-            findings_count = len(result.get("findings", []))
-            success(f"{tool}: {findings_count} findings in {result.get('execution_time', 0):.1f}s")
-        elif result["status"] == "not_available":
-            warning(f"{tool}: not installed")
-        else:
-            warning(f"{tool}: {result.get('error', 'Unknown error')}")
+    results_by_index: Dict[int, Dict[str, Any]] = {}
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = {
+            executor.submit(run_tool, tool, contract, timeout): (index, tool)
+            for index, tool in enumerate(tools)
+        }
+        for future in as_completed(futures):
+            index, tool = futures[future]
+            try:
+                results_by_index[index] = future.result()
+            except Exception as e:
+                results_by_index[index] = {
+                    "tool": tool,
+                    "contract": contract,
+                    "status": "error",
+                    "findings": [],
+                    "execution_time": 0,
+                    "timestamp": datetime.now().isoformat(),
+                    "error": str(e),
+                }
+
+    results = [results_by_index[index] for index in range(len(tools))]
+    for tool, result in zip(tools, results, strict=True):
+        _print_tool_result(tool, result)
 
     return results
+
+
+def _print_tool_result(tool: str, result: Dict[str, Any]) -> None:
+    if result["status"] == "success":
+        findings_count = len(result.get("findings", []))
+        success(f"{tool}: {findings_count} findings in {result.get('execution_time', 0):.1f}s")
+    elif result["status"] == "not_available":
+        warning(f"{tool}: not installed")
+    else:
+        warning(f"{tool}: {result.get('error', 'Unknown error')}")
 
 
 def run_plugins(contract: str, timeout: int = 300) -> List[Dict[str, Any]]:

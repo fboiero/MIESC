@@ -54,6 +54,8 @@ class DeepAuditConfig:
     enable_taint: bool = True
     enable_call_graph: bool = True
     enable_exploit_chains: bool = True
+    enable_agentic_invariants: bool = False
+    agentic_invariants_allow_remote: bool = False
     fp_threshold: float = 0.5
     max_workers: int = 4
 
@@ -270,6 +272,15 @@ class DeepAuditAgent(BaseAgent):
             report["exploit_chains"] = investigation.get("exploit_chains", [])
             report["metadata"]["timed_out_in"] = "deep_investigation"
             return report
+
+        if self.config.enable_agentic_invariants and not self._timeout_exceeded():
+            invariant_phase = self._extract_agentic_invariants(
+                source_code,
+                contract_path,
+                investigation.get("findings", scan.filtered_findings),
+            )
+            report["phases"]["agentic_invariants"] = invariant_phase
+            report["metadata"]["agentic_invariants_count"] = invariant_phase.get("count", 0)
 
         # Phase 4: Synthesis
         self._current_phase = AuditPhase.SYNTHESIS
@@ -859,6 +870,50 @@ class DeepAuditAgent(BaseAgent):
             "properties_generated": property_count,
             "defi_confirmed_count": defi_confirmed,
         }
+
+    def _extract_agentic_invariants(
+        self,
+        source_code: str,
+        contract_path: str,
+        findings: List[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        """Extract provider-neutral invariant candidates for report metadata."""
+        try:
+            from src.llm import (
+                DPGAgentConfig,
+                InvariantExtractionAgent,
+                auto_reasoning_provider,
+            )
+
+            policy = DPGAgentConfig(
+                local_first=True,
+                allow_remote=self.config.agentic_invariants_allow_remote,
+            )
+            provider = auto_reasoning_provider(prefer_local_fallback=True)
+            agent = InvariantExtractionAgent(provider, policy=policy)
+            candidates = agent.extract(
+                source_code,
+                contract_path=contract_path,
+                findings=findings,
+            )
+            return {
+                "enabled": True,
+                "count": len(candidates),
+                "policy": policy.to_dict(),
+                "candidates": [candidate.to_dict() for candidate in candidates],
+            }
+        except Exception as e:
+            logger.debug(f"Agentic invariant extraction skipped: {e}")
+            return {
+                "enabled": True,
+                "count": 0,
+                "policy": {
+                    "local_first": True,
+                    "allow_remote": self.config.agentic_invariants_allow_remote,
+                },
+                "candidates": [],
+                "error": str(e),
+            }
 
     def _enrich_with_rag(self, finding: Dict) -> Dict[str, Any]:
         """Enrich a finding with RAG vulnerability knowledge."""
