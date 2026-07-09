@@ -23,6 +23,8 @@ import json
 import logging
 import math
 import os
+import unicodedata
+import urllib.parse
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from enum import Enum
@@ -51,6 +53,36 @@ ENSEMBLE_RUNTIME_ERRORS = (
     ValueError,
     json.JSONDecodeError,
 )
+MAX_PROMPT_CONTEXT_CHARS = 8_000
+MAX_PROMPT_CONTEXT_ITEMS = 100
+MAX_PROMPT_CONTEXT_LIST_ITEMS = 50
+MAX_PROMPT_CONTEXT_DEPTH = 4
+MAX_PROMPT_CODE_CHARS = 200_000
+MAX_MODEL_RESPONSE_CHARS = 128_000
+MAX_JSON_ARRAY_SCAN_CHARS = 128_000
+MAX_JSON_ARRAY_CANDIDATES = 1_000
+MAX_PARSED_FINDINGS = 200
+MAX_RAW_RESPONSE_STRING_CHARS = 4_000
+MAX_RAW_RESPONSE_ITEMS = 100
+MAX_RAW_RESPONSE_DEPTH = 3
+MAX_OPTIONAL_FIELD_CHARS = 4_000
+DEFAULT_DEEPSEEK_BASE_URL = "https://api.deepseek.com"
+
+
+def _is_unsafe_text_char(char: str) -> bool:
+    """Return true for control or unicode separator characters in scalar text."""
+    codepoint = ord(char)
+    return codepoint < 32 or codepoint == 127 or unicodedata.category(char) in {"Zl", "Zp"}
+
+
+def _is_unsafe_multiline_char(char: str) -> bool:
+    """Return true for prompt text controls while allowing normal source line breaks."""
+    codepoint = ord(char)
+    if codepoint == 127:
+        return True
+    if codepoint < 32:
+        return char not in "\n\r\t"
+    return unicodedata.category(char) in {"Zl", "Zp"}
 
 
 class LLMProvider(Enum):
@@ -126,10 +158,12 @@ def _safe_text(value: Any, *, limit: Optional[int] = None) -> Optional[str]:
             return None
     if not isinstance(value, str):
         return None
+    if any(unicodedata.category(ch) in {"Zl", "Zp"} or ord(ch) == 127 for ch in value):
+        return None
     text = value.strip()
     if not text:
         return None
-    if any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+    if any(ord(ch) < 32 for ch in text):
         return None
     if limit is not None and len(text) > limit:
         return None
@@ -276,12 +310,10 @@ Response (JSON array only):"""
         # Multi-provider support (v4.4.0)
         self.providers = self._normalize_providers(providers)
         self.openai_api_key = self._normalize_api_key(openai_api_key, "OPENAI_API_KEY")
-        self.anthropic_api_key = self._normalize_api_key(
-            anthropic_api_key, "ANTHROPIC_API_KEY"
-        )
+        self.anthropic_api_key = self._normalize_api_key(anthropic_api_key, "ANTHROPIC_API_KEY")
         self.deepseek_api_key = self._normalize_api_key(deepseek_api_key, "DEEPSEEK_API_KEY")
-        self.deepseek_base_url = (
-            deepseek_base_url or os.environ.get("DEEPSEEK_BASE_URL") or "https://api.deepseek.com"
+        self.deepseek_base_url = self._normalize_deepseek_base_url(
+            deepseek_base_url or os.environ.get("DEEPSEEK_BASE_URL") or DEFAULT_DEEPSEEK_BASE_URL
         )
 
         self._available_models: List[str] = []
@@ -328,7 +360,7 @@ Response (JSON array only):"""
                 logger.warning("Ignoring malformed ensemble consensus threshold; using default")
                 return 2
         if isinstance(consensus_threshold, str) and any(
-            ord(ch) < 32 or ord(ch) == 127 for ch in consensus_threshold
+            _is_unsafe_text_char(ch) for ch in consensus_threshold
         ):
             logger.warning("Ignoring malformed ensemble consensus threshold; using default")
             return 2
@@ -366,7 +398,7 @@ Response (JSON array only):"""
             except Exception:
                 logger.warning("Ignoring malformed ensemble timeout; using default")
                 return cls.DEFAULT_TIMEOUT
-        if isinstance(timeout, str) and any(ord(ch) < 32 or ord(ch) == 127 for ch in timeout):
+        if isinstance(timeout, str) and any(_is_unsafe_text_char(ch) for ch in timeout):
             logger.warning("Ignoring malformed ensemble timeout; using default")
             return cls.DEFAULT_TIMEOUT
 
@@ -394,7 +426,7 @@ Response (JSON array only):"""
             except Exception:
                 logger.warning("Ignoring malformed ensemble temperature; using default")
                 return cls.DEFAULT_TEMPERATURE
-        if isinstance(temperature, str) and any(ord(ch) < 32 or ord(ch) == 127 for ch in temperature):
+        if isinstance(temperature, str) and any(_is_unsafe_text_char(ch) for ch in temperature):
             logger.warning("Ignoring malformed ensemble temperature; using default")
             return cls.DEFAULT_TEMPERATURE
 
@@ -421,6 +453,137 @@ Response (JSON array only):"""
 
         env_value = os.environ.get(env_name)
         return _safe_text(env_value)
+
+    @staticmethod
+    def _normalize_deepseek_base_url(value: Any) -> str:
+        """Return a safe DeepSeek API base URL without credentials or duplicate v1 suffix."""
+        text = _safe_text(value, limit=2_000)
+        if text is None:
+            return DEFAULT_DEEPSEEK_BASE_URL
+        try:
+            parsed = urllib.parse.urlparse(text)
+        except (AttributeError, TypeError, ValueError, RuntimeError):
+            return DEFAULT_DEEPSEEK_BASE_URL
+        if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+            return DEFAULT_DEEPSEEK_BASE_URL
+        if parsed.username or parsed.password:
+            return DEFAULT_DEEPSEEK_BASE_URL
+        path = parsed.path.rstrip("/")
+        if path.endswith("/v1"):
+            path = path[: -len("/v1")]
+        normalized = parsed._replace(path=path, params="", query="", fragment="")
+        return urllib.parse.urlunparse(normalized).rstrip("/") or DEFAULT_DEEPSEEK_BASE_URL
+
+    @classmethod
+    def _build_detection_prompt(cls, code: Any, context: Any = None) -> str:
+        """Build a bounded detection prompt with JSON-safe optional context."""
+        prompt = cls.DETECTION_PROMPT.format(code=cls._prompt_code_text(code))
+        context_text = cls._prompt_context_text(context)
+        if context_text:
+            prompt += f"\n\nAdditional context:\n{context_text}"
+        return prompt
+
+    @staticmethod
+    def _prompt_code_text(code: Any) -> str:
+        """Return source code prompt text without unsafe controls or unbounded size."""
+        if isinstance(code, bytes):
+            try:
+                code = code.decode("utf-8", errors="replace")
+            except Exception:
+                return ""
+        if not isinstance(code, str):
+            return ""
+        text = "".join(" " if _is_unsafe_multiline_char(ch) else ch for ch in code)
+        return text[:MAX_PROMPT_CODE_CHARS]
+
+    @classmethod
+    def _prompt_context_text(cls, context: Any) -> str:
+        """Return a compact JSON context string or empty text when context is malformed."""
+        if not context:
+            return ""
+        normalized = cls._json_safe_context(context)
+        if normalized in ({}, [], "", None):
+            return ""
+        try:
+            encoded = json.dumps(normalized, indent=2, sort_keys=True, allow_nan=False)
+        except (TypeError, ValueError, RuntimeError, RecursionError):
+            return ""
+        return encoded[:MAX_PROMPT_CONTEXT_CHARS]
+
+    @classmethod
+    def _json_safe_context(
+        cls,
+        value: Any,
+        *,
+        depth: int = 0,
+        seen: Optional[set[int]] = None,
+    ) -> Any:
+        """Return JSON-safe bounded context values without trusting hostile containers."""
+        if depth > MAX_PROMPT_CONTEXT_DEPTH:
+            return ""
+        if seen is None:
+            seen = set()
+        if isinstance(value, (Mapping, list, tuple, set)):
+            value_id = id(value)
+            if value_id in seen:
+                return ""
+            seen.add(value_id)
+            try:
+                if isinstance(value, Mapping):
+                    items = []
+                    try:
+                        iterator = value.items()
+                    except (AttributeError, TypeError, ValueError, RuntimeError, RecursionError):
+                        return {}
+                    for index, (key, item) in enumerate(iterator):
+                        if index >= MAX_PROMPT_CONTEXT_ITEMS:
+                            break
+                        key_text = cls._safe_key_text(key, limit=120)
+                        if key_text is None:
+                            continue
+                        items.append(
+                            (
+                                key_text,
+                                cls._json_safe_context(item, depth=depth + 1, seen=seen),
+                            )
+                        )
+                    return dict(items)
+                result = []
+                for index, item in enumerate(value):
+                    if index >= MAX_PROMPT_CONTEXT_LIST_ITEMS:
+                        break
+                    result.append(cls._json_safe_context(item, depth=depth + 1, seen=seen))
+                return result
+            except (AttributeError, TypeError, ValueError, RuntimeError, RecursionError):
+                return {} if isinstance(value, Mapping) else []
+            finally:
+                seen.discard(id(value))
+        return cls._json_safe_scalar(value)
+
+    @staticmethod
+    def _json_safe_scalar(value: Any) -> Any:
+        """Return JSON-safe scalar prompt context values."""
+        if isinstance(value, bytes):
+            try:
+                value = value.decode("utf-8", errors="replace")
+            except Exception:
+                return ""
+        if isinstance(value, str):
+            text = "".join(" " if _is_unsafe_multiline_char(ch) else ch for ch in value.strip())
+            return text[:MAX_PROMPT_CONTEXT_CHARS]
+        if isinstance(value, bool) or value is None:
+            return value
+        if isinstance(value, int):
+            return value
+        if isinstance(value, float):
+            return value if math.isfinite(value) else ""
+        return ""
+
+    @staticmethod
+    def _safe_key_text(value: Any, *, limit: int) -> Optional[str]:
+        """Return bounded one-line JSON key text."""
+        text = _safe_text(value, limit=limit)
+        return text
 
     @staticmethod
     def _normalize_voting_strategy(voting_strategy: Any) -> VotingStrategy:
@@ -492,7 +655,9 @@ Response (JSON array only):"""
                 logger.warning("Ignoring malformed provider model availability entry: %r", model)
                 continue
 
-            model_id = _safe_text(model.get(id_key), limit=LLMEnsembleDetector.MAX_MODEL_LABEL_LENGTH)
+            model_id = _safe_text(
+                model.get(id_key), limit=LLMEnsembleDetector.MAX_MODEL_LABEL_LENGTH
+            )
             if model_id is None:
                 logger.warning("Ignoring malformed provider model id: %r", model_id)
             else:
@@ -616,9 +781,7 @@ Response (JSON array only):"""
                     ) as resp:
                         if resp.status == 200:
                             data = await resp.json()
-                            available = self._extract_availability_model_ids(
-                                data, "models", "name"
-                            )
+                            available = self._extract_availability_model_ids(data, "models", "name")
             except ENSEMBLE_RUNTIME_ERRORS as e:
                 logger.debug(f"Ollama not available: {e}")
 
@@ -787,9 +950,7 @@ Response (JSON array only):"""
         if not self.openai_api_key:
             raise ProviderUnavailable("OpenAI API key not configured")
 
-        prompt = self.DETECTION_PROMPT.format(code=code)
-        if context:
-            prompt += f"\n\nAdditional context:\n{json.dumps(context, indent=2, sort_keys=True)}"
+        prompt = self._build_detection_prompt(code, context)
 
         headers = {
             "Authorization": f"Bearer {self.openai_api_key}",
@@ -843,9 +1004,7 @@ Response (JSON array only):"""
         if not self.deepseek_api_key:
             raise ProviderUnavailable("DeepSeek API key not configured")
 
-        prompt = self.DETECTION_PROMPT.format(code=code)
-        if context:
-            prompt += f"\n\nAdditional context:\n{json.dumps(context, indent=2, sort_keys=True)}"
+        prompt = self._build_detection_prompt(code, context)
 
         headers = {
             "Authorization": f"Bearer {self.deepseek_api_key}",
@@ -868,7 +1027,7 @@ Response (JSON array only):"""
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.post(
-                    f"{self.deepseek_base_url.rstrip('/')}/v1/chat/completions",
+                    f"{self.deepseek_base_url}/v1/chat/completions",
                     json=payload,
                     headers=headers,
                     timeout=aiohttp.ClientTimeout(total=self.timeout),
@@ -927,7 +1086,9 @@ Response (JSON array only):"""
                 "output_tokens",
             ):
                 if key in usage and not cls._is_nonnegative_finite_scalar(usage[key]):
-                    raise ProviderUnavailable(f"{provider_name} response token metadata is malformed")
+                    raise ProviderUnavailable(
+                        f"{provider_name} response token metadata is malformed"
+                    )
 
         for key in (
             "total_duration",
@@ -999,9 +1160,7 @@ Response (JSON array only):"""
         if not self.anthropic_api_key:
             raise ProviderUnavailable("Anthropic API key not configured")
 
-        prompt = self.DETECTION_PROMPT.format(code=code)
-        if context:
-            prompt += f"\n\nAdditional context:\n{json.dumps(context, indent=2, sort_keys=True)}"
+        prompt = self._build_detection_prompt(code, context)
 
         headers = {
             "x-api-key": self.anthropic_api_key,
@@ -1066,7 +1225,7 @@ Response (JSON array only):"""
                 findings=[],
                 models_used=[],
                 models_available=[],
-                models_failed=self.models,
+                models_failed=self._status_model_list(self.models),
                 execution_time_ms=0,
                 consensus_threshold=self.consensus_threshold,
                 total_raw_findings=0,
@@ -1136,10 +1295,7 @@ Response (JSON array only):"""
         Returns:
             List of findings from this model
         """
-        prompt = self.DETECTION_PROMPT.format(code=code)
-
-        if context:
-            prompt += f"\n\nAdditional context:\n{json.dumps(context, indent=2, sort_keys=True)}"
+        prompt = self._build_detection_prompt(code, context)
 
         payload = {
             "model": model,
@@ -1184,16 +1340,24 @@ Response (JSON array only):"""
     def _parse_model_response(self, content: str, model: str) -> List[Dict[str, Any]]:
         """Parse model response into findings list."""
         source_model = self._safe_model_label(model)
+        if not isinstance(content, str) or len(content) > MAX_MODEL_RESPONSE_CHARS:
+            return []
         try:
             json_str = self._extract_first_json_array(content)
 
             if json_str is not None:
                 findings = json.loads(json_str)
+                if not isinstance(findings, list):
+                    return []
 
                 # Normalize findings
                 normalized = []
-                for f in findings:
-                    vuln_type = self._safe_vulnerability_type(f.get("type")) if isinstance(f, dict) else None
+                for f in findings[:MAX_PARSED_FINDINGS]:
+                    vuln_type = (
+                        self._safe_vulnerability_type(f.get("type"))
+                        if isinstance(f, dict)
+                        else None
+                    )
                     if vuln_type:
                         # Add source model
                         f["type"] = vuln_type
@@ -1217,23 +1381,109 @@ Response (JSON array only):"""
         """Return the first decodable JSON array from text, without spanning arrays."""
         if not isinstance(content, str):
             return None
+        if len(content) > MAX_JSON_ARRAY_SCAN_CHARS:
+            return None
 
         decoder = json.JSONDecoder()
+        candidates = 0
         for start, char in enumerate(content):
             if char != "[":
                 continue
-            for end in range(start + 1, len(content) + 1):
-                if content[end - 1] != "]":
-                    continue
-                candidate = repair_common_json_errors(content[start:end])
+            candidates += 1
+            if candidates > MAX_JSON_ARRAY_CANDIDATES:
+                return None
+            candidate_text = content[start:]
+            if len(candidate_text) > MAX_JSON_ARRAY_SCAN_CHARS:
+                return None
+            candidate = repair_common_json_errors(candidate_text)
+            try:
+                parsed, parsed_end = decoder.raw_decode(candidate)
+            except json.JSONDecodeError:
+                continue
+            if isinstance(parsed, list) and candidate[parsed_end:].strip() == "":
+                return candidate
+            if isinstance(parsed, list):
                 try:
-                    parsed, parsed_end = decoder.raw_decode(candidate)
-                except json.JSONDecodeError:
-                    continue
-                if isinstance(parsed, list) and candidate[parsed_end:].strip() == "":
-                    return candidate
-                break
+                    encoded = json.dumps(parsed, allow_nan=False)
+                except (TypeError, ValueError):
+                    return None
+                return encoded
         return None
+
+    @classmethod
+    def _safe_optional_text(
+        cls, value: Any, *, limit: int = MAX_OPTIONAL_FIELD_CHARS
+    ) -> Optional[str]:
+        """Return optional scalar result metadata as bounded clean text."""
+        text = cls._safe_text(value, "")
+        if not text:
+            return None
+        if len(text) > limit:
+            return text[:limit]
+        return text
+
+    @classmethod
+    def _json_safe_raw_value(
+        cls,
+        value: Any,
+        *,
+        depth: int = 0,
+        seen: Optional[set[int]] = None,
+    ) -> Any:
+        """Return bounded JSON-safe raw response metadata."""
+        if depth > MAX_RAW_RESPONSE_DEPTH:
+            return ""
+        if seen is None:
+            seen = set()
+        if isinstance(value, bytes):
+            try:
+                value = value.decode("utf-8", errors="replace")
+            except Exception:
+                return ""
+        if isinstance(value, str):
+            text = cls._safe_text(value, "")
+            return text[:MAX_RAW_RESPONSE_STRING_CHARS] if text else ""
+        if isinstance(value, bool) or value is None:
+            return value
+        if isinstance(value, int):
+            return value
+        if isinstance(value, float):
+            return value if math.isfinite(value) else ""
+        if isinstance(value, Mapping):
+            value_id = id(value)
+            if value_id in seen:
+                return {}
+            seen.add(value_id)
+            try:
+                result = {}
+                try:
+                    iterator = value.items()
+                except (AttributeError, TypeError, ValueError, RuntimeError, RecursionError):
+                    return {}
+                for index, (key, item) in enumerate(iterator):
+                    if index >= MAX_RAW_RESPONSE_ITEMS:
+                        break
+                    key_text = cls._safe_key_text(key, limit=120)
+                    if key_text is None:
+                        continue
+                    result[key_text] = cls._json_safe_raw_value(item, depth=depth + 1, seen=seen)
+                return result
+            finally:
+                seen.discard(value_id)
+        if isinstance(value, (list, tuple, set)):
+            value_id = id(value)
+            if value_id in seen:
+                return []
+            seen.add(value_id)
+            try:
+                return [
+                    cls._json_safe_raw_value(item, depth=depth + 1, seen=seen)
+                    for index, item in enumerate(value)
+                    if index < MAX_RAW_RESPONSE_ITEMS
+                ]
+            finally:
+                seen.discard(value_id)
+        return ""
 
     def _ensemble_vote(
         self,
@@ -1277,8 +1527,8 @@ Response (JSON array only):"""
                     self._safe_confidence(finding.get("confidence"), 0.7)
                 )
                 finding_groups[signature]["models"].append(model)
-                finding_groups[signature]["raw_responses"][model] = (
-                    self._safe_raw_response_payload(finding)
+                finding_groups[signature]["raw_responses"][model] = self._safe_raw_response_payload(
+                    finding
                 )
 
         # Apply voting strategy
@@ -1303,9 +1553,7 @@ Response (JSON array only):"""
 
             elif self.voting_strategy == VotingStrategy.WEIGHTED:
                 # Weighted threshold based on available model weights
-                max_possible_weight = sum(
-                    self._model_weight(m) for m in model_findings.keys()
-                )
+                max_possible_weight = sum(self._model_weight(m) for m in model_findings.keys())
                 passes = weighted_votes >= max_possible_weight * 0.5
 
             if passes:
@@ -1328,10 +1576,14 @@ Response (JSON array only):"""
                         votes=votes,
                         total_models=total_models,
                         supporting_models=group["models"],
-                        attack_vector=finding.get("attack_vector"),
-                        remediation=finding.get("remediation"),
-                        swc_id=finding.get("swc_id") or finding.get("swc"),
-                        cwe_id=finding.get("cwe_id") or finding.get("cwe"),
+                        attack_vector=self._safe_optional_text(finding.get("attack_vector")),
+                        remediation=self._safe_optional_text(finding.get("remediation")),
+                        swc_id=self._safe_optional_text(
+                            finding.get("swc_id") or finding.get("swc")
+                        ),
+                        cwe_id=self._safe_optional_text(
+                            finding.get("cwe_id") or finding.get("cwe")
+                        ),
                         raw_responses=group["raw_responses"],
                     )
                 )
@@ -1349,8 +1601,7 @@ Response (JSON array only):"""
             return 0.7
 
         normalized = [
-            LLMEnsembleDetector._safe_confidence(confidence, 0.7)
-            for confidence in confidences
+            LLMEnsembleDetector._safe_confidence(confidence, 0.7) for confidence in confidences
         ]
         return sum(normalized) / len(normalized)
 
@@ -1360,9 +1611,19 @@ Response (JSON array only):"""
         model_findings: Dict[str, Any],
     ) -> Dict[str, List[Dict[str, Any]]]:
         """Keep only per-model finding lists with safe vulnerability type entries."""
+        if not isinstance(model_findings, Mapping):
+            logger.warning("Ignoring malformed ensemble model findings payload")
+            return {}
+
         normalized: Dict[str, List[Dict[str, Any]]] = {}
 
-        for model, findings in model_findings.items():
+        try:
+            items = model_findings.items()
+        except (AttributeError, TypeError, ValueError, RuntimeError, RecursionError):
+            logger.warning("Ignoring malformed ensemble model findings payload")
+            return {}
+
+        for model, findings in items:
             model_id = LLMEnsembleDetector._safe_model_label(model)
             if model_id is None:
                 logger.warning("Ignoring malformed ensemble model id in findings payload")
@@ -1371,7 +1632,7 @@ Response (JSON array only):"""
                 logger.warning("Ignoring malformed findings payload from model %s", model_id)
                 continue
             safe_findings = []
-            for finding in findings:
+            for finding in findings[:MAX_PARSED_FINDINGS]:
                 if not isinstance(finding, dict):
                     continue
                 vuln_type = cls._safe_vulnerability_type(finding.get("type"))
@@ -1422,15 +1683,23 @@ Response (JSON array only):"""
         if not isinstance(finding, dict):
             return {}
         payload = {}
-        for key, value in finding.items():
+        try:
+            items = finding.items()
+        except (AttributeError, TypeError, ValueError, RuntimeError, RecursionError):
+            return {}
+        for index, (key, value) in enumerate(items):
+            if index >= MAX_RAW_RESPONSE_ITEMS:
+                break
             if not isinstance(key, str):
                 continue
             cleaned_key = key.strip()
-            if not cleaned_key or len(cleaned_key) > 120 or any(
-                ord(ch) < 32 or ord(ch) == 127 for ch in cleaned_key
+            if (
+                not cleaned_key
+                or len(cleaned_key) > 120
+                or any(_is_unsafe_text_char(ch) for ch in cleaned_key)
             ):
                 continue
-            payload[cleaned_key] = value
+            payload[cleaned_key] = LLMEnsembleDetector._json_safe_raw_value(value)
         if "confidence_explanation" in payload and not isinstance(
             payload["confidence_explanation"], str
         ):
@@ -1447,12 +1716,12 @@ Response (JSON array only):"""
                 value = value.decode("utf-8", errors="replace")
             if isinstance(value, str):
                 text = value.strip()
-                if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+                if not text or any(_is_unsafe_text_char(ch) for ch in text):
                     return default
                 value = text
             elif isinstance(value, bytes):
                 text = value.decode("utf-8", errors="replace").strip()
-                if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+                if not text or any(_is_unsafe_text_char(ch) for ch in text):
                     return default
                 value = text
             return float(value)
@@ -1466,13 +1735,13 @@ Response (JSON array only):"""
             return False
         try:
             if isinstance(value, str):
-                if any(ord(ch) < 32 or ord(ch) == 127 for ch in value):
+                if any(_is_unsafe_text_char(ch) for ch in value):
                     return False
                 text = value.strip()
                 value = text
             elif isinstance(value, bytes):
                 raw_value = value.decode("utf-8", errors="replace")
-                if any(ord(ch) < 32 or ord(ch) == 127 for ch in raw_value):
+                if any(_is_unsafe_text_char(ch) for ch in raw_value):
                     return False
                 text = raw_value.strip()
                 value = text
@@ -1501,7 +1770,7 @@ Response (JSON array only):"""
                 return default
         if isinstance(value, str):
             text = value.strip()
-            if text and not any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+            if text and not any(_is_unsafe_text_char(ch) for ch in text):
                 return text
         return default
 
@@ -1520,7 +1789,7 @@ Response (JSON array only):"""
         if not vuln_type or len(vuln_type) > cls.MAX_VULNERABILITY_TYPE_LENGTH:
             return None
 
-        if any(ord(char) < 32 or ord(char) == 127 for char in vuln_type):
+        if any(_is_unsafe_text_char(char) for char in vuln_type):
             return None
 
         return vuln_type
@@ -1540,7 +1809,7 @@ Response (JSON array only):"""
         if not label or len(label) > cls.MAX_MODEL_LABEL_LENGTH:
             return None
 
-        if any(ord(char) < 32 or ord(char) == 127 for char in label):
+        if any(_is_unsafe_text_char(char) for char in label):
             return None
 
         return label
@@ -1563,12 +1832,12 @@ Response (JSON array only):"""
                 value = value.decode("utf-8", errors="replace")
             if isinstance(value, str):
                 text = value.strip()
-                if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+                if not text or any(_is_unsafe_text_char(ch) for ch in text):
                     return default
                 value = text
             elif isinstance(value, bytes):
                 text = value.decode("utf-8", errors="replace").strip()
-                if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+                if not text or any(_is_unsafe_text_char(ch) for ch in text):
                     return default
                 value = text
             return int(value)
@@ -1582,8 +1851,10 @@ Response (JSON array only):"""
             return {}
         location: Dict[str, Any] = {}
         for key, field_value in value.items():
-            if not isinstance(key, str) or len(key) > 120 or any(
-                ord(ch) < 32 or ord(ch) == 127 for ch in key
+            if (
+                not isinstance(key, str)
+                or len(key) > 120
+                or any(_is_unsafe_text_char(ch) for ch in key)
             ):
                 continue
             if isinstance(field_value, (dict, list, tuple, set)):
@@ -1657,7 +1928,7 @@ Response (JSON array only):"""
             if (
                 not cleaned
                 or len(cleaned) > LLMEnsembleDetector.MAX_MODEL_LABEL_LENGTH
-                or any(ord(ch) < 32 or ord(ch) == 127 for ch in cleaned)
+                or any(_is_unsafe_text_char(ch) for ch in cleaned)
             ):
                 continue
             if cleaned not in normalized:

@@ -16,6 +16,7 @@ Date: January 2026
 """
 
 import asyncio
+import json
 from types import MappingProxyType
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -426,6 +427,29 @@ class TestLLMEnsembleDetectorInit:
         assert detector.deepseek_api_key == "test-deepseek-key"
         assert detector.deepseek_base_url == "https://custom.deepseek.example"
 
+    def test_deepseek_base_url_normalizes_v1_and_rejects_credentials(self):
+        assert (
+            LLMEnsembleDetector(
+                providers=[LLMProvider.DEEPSEEK],
+                deepseek_base_url=" https://api.deepseek.example/v1 ",
+            ).deepseek_base_url
+            == "https://api.deepseek.example"
+        )
+        assert (
+            LLMEnsembleDetector(
+                providers=[LLMProvider.DEEPSEEK],
+                deepseek_base_url="https://user:pass@api.deepseek.example",
+            ).deepseek_base_url
+            == "https://api.deepseek.com"
+        )
+        assert (
+            LLMEnsembleDetector(
+                providers=[LLMProvider.DEEPSEEK],
+                deepseek_base_url="https://api.deepseek.example\u2028",
+            ).deepseek_base_url
+            == "https://api.deepseek.com"
+        )
+
     def test_env_api_keys(self):
         """Test API keys from environment variables."""
         with patch.dict(
@@ -499,7 +523,9 @@ class TestLLMEnsembleDetectorInit:
         assert LLMEnsembleDetector._normalize_consensus_threshold(b"3") == 3
         assert LLMEnsembleDetector._normalize_consensus_threshold("3\x7f") == 2
         assert LLMEnsembleDetector._normalize_timeout(b"5") == 5
-        assert LLMEnsembleDetector._normalize_timeout("5\x7f") == LLMEnsembleDetector.DEFAULT_TIMEOUT
+        assert (
+            LLMEnsembleDetector._normalize_timeout("5\x7f") == LLMEnsembleDetector.DEFAULT_TIMEOUT
+        )
         assert LLMEnsembleDetector._normalize_temperature(b"0.5") == 0.5
         assert LLMEnsembleDetector._normalize_temperature("0.5\x7f") == (
             LLMEnsembleDetector.DEFAULT_TEMPERATURE
@@ -508,8 +534,7 @@ class TestLLMEnsembleDetectorInit:
         monkeypatch.setenv("TEST_API_KEY", "env-key\x7f")
         assert LLMEnsembleDetector._normalize_api_key(None, "TEST_API_KEY") is None
         assert (
-            LLMEnsembleDetector._normalize_voting_strategy(b"majority")
-            == VotingStrategy.MAJORITY
+            LLMEnsembleDetector._normalize_voting_strategy(b"majority") == VotingStrategy.MAJORITY
         )
         assert (
             LLMEnsembleDetector._normalize_voting_strategy("majority\x7f")
@@ -518,6 +543,18 @@ class TestLLMEnsembleDetectorInit:
         assert LLMEnsembleDetector._normalize_providers(
             [LLMProvider.OLLAMA, "openai", "anthropic\x7f", "openai"]
         ) == [LLMProvider.OLLAMA, LLMProvider.OPENAI]
+
+    def test_normalizers_reject_unicode_separator_boundaries(self, monkeypatch):
+        monkeypatch.delenv("TEST_API_KEY", raising=False)
+
+        assert LLMEnsembleDetector._normalize_consensus_threshold("3\u2028") == 2
+        assert LLMEnsembleDetector._normalize_timeout("5\u2028") == (
+            LLMEnsembleDetector.DEFAULT_TIMEOUT
+        )
+        assert LLMEnsembleDetector._normalize_temperature("0.5\u2029") == (
+            LLMEnsembleDetector.DEFAULT_TEMPERATURE
+        )
+        assert LLMEnsembleDetector._normalize_api_key("key\u2028", "TEST_API_KEY") is None
 
     def test_model_status_returns_defensive_model_lists(self):
         """Public status callers should not mutate detector model state."""
@@ -570,18 +607,15 @@ class TestLLMEnsembleDetectorInit:
         """Configured and remote model identifiers should stay bounded."""
         assert LLMEnsembleDetector._normalize_configured_models(
             [" model-a ", "bad\nmodel", "x" * 201]
-        ) == [
-            "model-a"
-        ]
+        ) == ["model-a"]
         assert LLMEnsembleDetector._normalize_remote_model_ids(
             [" model-a ", "bad\nmodel", "x" * 201]
-        ) == {
-            "model-a"
-        }
+        ) == {"model-a"}
 
     def test_safe_text_strips_and_rejects_control_chars(self):
         assert LLMEnsembleDetector._safe_text("  model-one  ", "") == "model-one"
         assert LLMEnsembleDetector._safe_text("bad\nmodel", "fallback") == "fallback"
+        assert LLMEnsembleDetector._safe_text("bad\u2028model", "fallback") == "fallback"
 
     def test_safe_model_label_and_vulnerability_type(self):
         assert LLMEnsembleDetector._safe_model_label("  model-a  ") == "model-a"
@@ -670,8 +704,46 @@ class TestLLMEnsembleDetectorInit:
             }
         )
 
-        assert payload == {"title": "  suspicious  "}
+        assert payload == {"title": "suspicious"}
         assert location == {"function": "withdraw", "line": 12}
+
+    def test_prompt_context_serialization_bounds_hostile_values(self):
+        class BadMapping(dict):
+            def items(self):
+                raise RuntimeError("secret mapping")
+
+        recursive = {"name": "root"}
+        recursive["self"] = recursive
+        context = {
+            "bad\u2028key": "hidden",
+            "object": object(),
+            "nan": float("nan"),
+            "set": {"a", "b"},
+            "list": list(range(100)),
+            "recursive": recursive,
+            "bad_mapping": BadMapping({"secret": "value"}),
+        }
+
+        text = LLMEnsembleDetector._prompt_context_text(context)
+        parsed = json.loads(text)
+
+        assert "bad\u2028key" not in parsed
+        assert parsed["object"] == ""
+        assert parsed["nan"] == ""
+        assert len(parsed["list"]) == 50
+        assert parsed["recursive"]["self"] == ""
+        assert parsed["bad_mapping"] == {}
+
+    def test_build_detection_prompt_sanitizes_context_and_code(self):
+        prompt = LLMEnsembleDetector._build_detection_prompt(
+            "contract C {}\x00\u2028".encode(),
+            {"note": "line\u2028separator", "obj": object()},
+        )
+
+        assert "\x00" not in prompt
+        assert "\u2028" not in prompt
+        assert '"obj": ""' in prompt
+        assert "Additional context:" in prompt
 
     def test_status_model_list_rejects_overlong_entries(self):
         """Public status lists should drop overlong model ids."""
@@ -1460,9 +1532,7 @@ class TestLLMEnsembleDetectorVoting:
 
         assert results == []
 
-    def test_ensemble_vote_drops_control_character_vulnerability_type_boundary(
-        self, detector
-    ):
+    def test_ensemble_vote_drops_control_character_vulnerability_type_boundary(self, detector):
         """Control characters in consensus type/category labels should be rejected."""
         detector.consensus_threshold = 1
 
@@ -1716,6 +1786,28 @@ class TestLLMEnsembleDetectorVoting:
         assert list(results[0].raw_responses) == ["model1", "model2"]
         assert ("tuple", "key") not in results[0].raw_responses["model1"]
 
+    def test_safe_raw_response_payload_sanitizes_nested_and_oversized_values(self, detector):
+        payload = detector._safe_raw_response_payload(
+            {
+                "type": "reentrancy",
+                "huge": "x" * 5000,
+                "bad_text": "secret\u2028line",
+                "bytes": b"  ok  ",
+                "nan": float("nan"),
+                "nested": {"safe": " value ", "bad\u2028key": "drop"},
+                "items": [" a ", object(), float("inf")],
+                "object": object(),
+            }
+        )
+
+        assert payload["huge"] == "x" * 4000
+        assert payload["bad_text"] == ""
+        assert payload["bytes"] == "ok"
+        assert payload["nan"] == ""
+        assert payload["nested"] == {"safe": "value"}
+        assert payload["items"] == ["a", "", ""]
+        assert payload["object"] == ""
+
     def test_ensemble_vote_ignores_malformed_model_label_boundaries(self, detector):
         """Malformed model/provider labels should not leak into result metadata."""
         detector.consensus_threshold = 2
@@ -1813,6 +1905,46 @@ class TestLLMEnsembleDetectorVoting:
             results[0].raw_responses["model2"]["confidence_explanation"]
             == "Confirmed by external call before update."
         )
+
+    def test_ensemble_vote_sanitizes_optional_result_metadata(self, detector):
+        detector.consensus_threshold = 2
+        findings = {
+            "model1": [
+                {
+                    "type": "reentrancy",
+                    "severity": "high",
+                    "title": "Reentrancy",
+                    "description": "External call before update",
+                    "location": {"function": "withdraw", "line": 10},
+                    "confidence": 0.9,
+                    "attack_vector": {"text": "container"},
+                    "remediation": "x" * 5000,
+                    "swc_id": "SWC-107\u2028hidden",
+                    "cwe_id": ["CWE-841"],
+                }
+            ],
+            "model2": [
+                {
+                    "type": "reentrancy",
+                    "severity": "high",
+                    "title": "Reentrancy",
+                    "description": "External call before update",
+                    "location": {"function": "withdraw", "line": 11},
+                    "confidence": 0.8,
+                    "attack_vector": " deploy attacker ",
+                    "remediation": " use CEI ",
+                    "swc": " SWC-107 ",
+                    "cwe": " CWE-841 ",
+                }
+            ],
+        }
+
+        result = detector._ensemble_vote(findings)[0]
+
+        assert result.attack_vector is None
+        assert result.remediation == "x" * 4000
+        assert result.swc_id is None
+        assert result.cwe_id is None
 
     def test_weighted_vote_defaults_malformed_model_weights(self, monkeypatch):
         """Bad weight entries should not crash weighted voting."""
@@ -2312,6 +2444,80 @@ class TestLLMEnsembleDetectorQueryMethods:
 
         asyncio.run(run_test())
 
+    def test_query_deepseek_normalizes_v1_base_url_without_duplication(self, llm_response_json):
+        async def run_test():
+            detector = LLMEnsembleDetector(
+                providers=[LLMProvider.DEEPSEEK],
+                deepseek_api_key="test-key",
+                deepseek_base_url="https://api.deepseek.example/v1",
+            )
+            mock_response = MagicMock()
+            mock_response.status = 200
+            mock_response.json = AsyncMock(
+                return_value={"choices": [{"message": {"content": llm_response_json}}]}
+            )
+            mock_session = _aiohttp_session_with_response("post", mock_response)
+
+            with patch("aiohttp.ClientSession", return_value=mock_session):
+                await detector._query_deepseek("deepseek-v4-flash", "contract code")
+
+            post = mock_session.__aenter__.return_value.post
+            assert post.call_args.args[0] == "https://api.deepseek.example/v1/chat/completions"
+
+        asyncio.run(run_test())
+
+    def test_query_methods_use_safe_context_prompt_builder(self, llm_response_json):
+        async def run_test():
+            detector = LLMEnsembleDetector(
+                providers=[LLMProvider.OPENAI, LLMProvider.ANTHROPIC, LLMProvider.DEEPSEEK],
+                openai_api_key="openai-key",
+                anthropic_api_key="anthropic-key",
+                deepseek_api_key="deepseek-key",
+            )
+            context = {"obj": object(), "bad\u2028key": "hidden", "values": list(range(100))}
+
+            response_payloads = {
+                "openai": {"choices": [{"message": {"content": llm_response_json}}]},
+                "deepseek": {"choices": [{"message": {"content": llm_response_json}}]},
+                "anthropic": {"content": [{"type": "text", "text": llm_response_json}]},
+                "ollama": {"message": {"content": llm_response_json}},
+            }
+
+            for provider_name, method_call in [
+                ("openai", detector._query_openai("gpt-4o", "contract C {}", context)),
+                (
+                    "deepseek",
+                    detector._query_deepseek("deepseek-v4-flash", "contract C {}", context),
+                ),
+                (
+                    "anthropic",
+                    detector._query_anthropic("claude-3-haiku", "contract C {}", context),
+                ),
+                ("ollama", detector._query_model("model1", "contract C {}", context)),
+            ]:
+                mock_response = MagicMock()
+                mock_response.status = 200
+                mock_response.json = AsyncMock(return_value=response_payloads[provider_name])
+                mock_session = _aiohttp_session_with_response("post", mock_response)
+
+                with patch("aiohttp.ClientSession", return_value=mock_session):
+                    await method_call
+
+                payload = mock_session.__aenter__.return_value.post.call_args.kwargs["json"]
+                if provider_name == "ollama":
+                    prompt = payload["messages"][1]["content"]
+                elif provider_name == "anthropic":
+                    prompt = payload["messages"][0]["content"]
+                else:
+                    prompt = payload["messages"][1]["content"]
+
+                assert "Additional context:" in prompt
+                assert '"obj": ""' in prompt
+                assert "bad\u2028key" not in prompt
+                assert len(json.loads(prompt.split("Additional context:\n", 1)[1])["values"]) == 50
+
+        asyncio.run(run_test())
+
     def test_query_deepseek_no_key(self, detector):
         """Test DeepSeek query without API key."""
 
@@ -2546,6 +2752,23 @@ That's my finding."""
         assert len(results) == 1
         assert "_source_model" not in results[0]
 
+    def test_parse_model_response_caps_oversized_response_and_array_entries(self, detector):
+        oversized = " " + ("x" * 128_001) + "[]"
+        assert detector._parse_model_response(oversized, "test-model") == []
+
+        payload = [
+            {"type": "reentrancy", "severity": "high", "title": str(index)} for index in range(250)
+        ]
+        results = detector._parse_model_response(json.dumps(payload), "test-model")
+
+        assert len(results) == 200
+        assert results[-1]["title"] == "199"
+
+    def test_extract_first_json_array_caps_bracket_scan(self, detector):
+        content = "[" * 1001
+
+        assert detector._extract_first_json_array(content) is None
+
 
 # =============================================================================
 # Integration Tests
@@ -2555,9 +2778,7 @@ That's my finding."""
 class TestLLMEnsembleDetectorIntegration:
     """Integration tests for LLMEnsembleDetector."""
 
-    def test_detect_vulnerabilities_ignores_malformed_model_result(
-        self, detector, vulnerable_code
-    ):
+    def test_detect_vulnerabilities_ignores_malformed_model_result(self, detector, vulnerable_code):
         """Malformed query results should be excluded before stats and voting."""
 
         async def run_test():
@@ -2770,6 +2991,22 @@ class TestLLMEnsembleDetectorIntegration:
 
         asyncio.run(run_test())
 
+    def test_detect_vulnerabilities_no_models_sanitizes_failed_model_metadata(
+        self, detector, vulnerable_code
+    ):
+        async def run_test():
+            detector._initialized = True
+            detector._available_models = []
+            detector.models = [" model1 ", "bad\u2028model", {"id": "bad"}, "model2"]
+
+            result = await detector.detect_vulnerabilities(vulnerable_code)
+
+            assert result.models_failed == ["model1", "model2"]
+            assert result.models_available == []
+            assert result.models_used == []
+
+        asyncio.run(run_test())
+
     def test_full_workflow_mocked(self, detector, vulnerable_code, sample_model_findings):
         """Test full detection workflow with mocked responses."""
 
@@ -2922,9 +3159,7 @@ class TestLLMEnsembleDetectorIntegration:
         """Duplicate provider status entries should not inflate consensus."""
 
         async def run_test():
-            detector._available_providers = {
-                LLMProvider.OLLAMA: ["model1", " model1 ", "model2"]
-            }
+            detector._available_providers = {LLMProvider.OLLAMA: ["model1", " model1 ", "model2"]}
             detector.consensus_threshold = 2
             queried_models = []
 
