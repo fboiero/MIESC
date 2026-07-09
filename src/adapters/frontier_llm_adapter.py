@@ -652,9 +652,12 @@ Respond with a JSON array."""
                 import openai
 
                 client = openai.OpenAI()
+                _dp_model = kwargs.get("model", "gpt-4o")
                 resp = client.chat.completions.create(
-                    model=kwargs.get("model", "gpt-4o"),
-                    max_tokens=4096,
+                    model=_dp_model,
+                    # Reasoning models (DeepSeek V4) need a large budget: reasoning
+                    # runs before visible output, so 4096 yields empty content.
+                    max_tokens=32768 if _dp_model.startswith("deepseek") else 4096,
                     messages=[
                         {"role": "system", "content": AUDIT_SYSTEM_PROMPT},
                         {"role": "user", "content": deep_prompt},
@@ -1239,6 +1242,11 @@ Respond with a JSON array."""
         if model.startswith(("gpt-5", "o1", "o3", "o4")):
             token_param["max_completion_tokens"] = 32768
             extra["reasoning_effort"] = "low"
+        elif model.startswith("deepseek"):
+            # DeepSeek V4 is a reasoning model: hidden reasoning consumes part of
+            # the budget before any visible output, so 8192 left content empty
+            # (0 chars). Give a large budget so reasoning + the JSON both fit.
+            token_param["max_tokens"] = 32768
         else:
             token_param["max_tokens"] = 8192
             # o-series/gpt-5 reject a custom temperature; only set it elsewhere.
@@ -1407,6 +1415,11 @@ Respond with a JSON array."""
         if model.startswith(("gpt-5", "o1", "o3", "o4")):
             token_param["max_completion_tokens"] = 32768
             extra["reasoning_effort"] = "low"
+        elif model.startswith("deepseek"):
+            # DeepSeek V4 is a reasoning model: hidden reasoning consumes part of
+            # the budget before any visible output, so 8192 left content empty
+            # (0 chars). Give a large budget so reasoning + the JSON both fit.
+            token_param["max_tokens"] = 32768
         else:
             token_param["max_tokens"] = 8192
             # o-series/gpt-5 reject a custom temperature; only set it elsewhere.
