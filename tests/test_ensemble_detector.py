@@ -24,6 +24,14 @@ import aiohttp
 import pytest
 
 from src.llm.ensemble_detector import (
+    MAX_AVAILABILITY_MODEL_ENTRIES,
+    MAX_CONFIDENCE_VALUES,
+    MAX_ENSEMBLE_GROUPS,
+    MAX_ENSEMBLE_RESULTS,
+    MAX_PROVIDER_METADATA_KEYS,
+    MAX_PROVIDER_STATUS_ENTRIES,
+    MAX_RAW_RESPONSE_ITEMS,
+    MAX_STATUS_MODEL_ENTRIES,
     AllProvidersUnavailable,
     EnsembleFinding,
     EnsembleResult,
@@ -661,6 +669,24 @@ class TestLLMEnsembleDetectorInit:
             LLMProvider.OPENAI: ["model-b"],
         }
 
+    def test_provider_status_map_merges_duplicate_normalized_provider_keys(self):
+        normalized = LLMEnsembleDetector._provider_status_map(
+            {
+                LLMProvider.OPENAI: [" gpt-4 "],
+                "openai": ["gpt-4o", "gpt-4"],
+            }
+        )
+
+        assert normalized == {LLMProvider.OPENAI: ["gpt-4", "gpt-4o"]}
+
+    def test_provider_status_map_caps_provider_entries(self):
+        payload = {
+            f"unknown-{index}": ["model"] for index in range(MAX_PROVIDER_STATUS_ENTRIES + 10)
+        }
+        payload["openai"] = ["gpt-4"]
+
+        assert LLMEnsembleDetector._provider_status_map(payload) == {}
+
     def test_extract_availability_model_ids_and_provider_status_map_reject_overlong_entries(self):
         """Availability extraction should bound malformed provider payloads."""
         assert LLMEnsembleDetector._extract_availability_model_ids(
@@ -684,6 +710,22 @@ class TestLLMEnsembleDetectorInit:
             }
         )
         assert normalized == {LLMProvider.OPENAI: ["model-a"], LLMProvider.ANTHROPIC: []}
+
+    def test_extract_availability_model_ids_caps_and_handles_hostile_mappings(self):
+        class HostileModel(dict):
+            def get(self, *args, **kwargs):
+                raise RuntimeError("bad accessor")
+
+        models = [{"name": f"model-{index}"} for index in range(MAX_AVAILABILITY_MODEL_ENTRIES + 5)]
+        models.insert(0, HostileModel({"name": "hidden"}))
+
+        result = LLMEnsembleDetector._extract_availability_model_ids(
+            {"models": models}, "models", "name"
+        )
+
+        assert len(result) == MAX_AVAILABILITY_MODEL_ENTRIES - 1
+        assert "hidden" not in result
+        assert result[0] == "model-0"
 
     def test_safe_payload_and_location_helpers_bound_inputs(self):
         """Raw payload and location helpers should drop malformed keys and values."""
@@ -748,6 +790,55 @@ class TestLLMEnsembleDetectorInit:
     def test_status_model_list_rejects_overlong_entries(self):
         """Public status lists should drop overlong model ids."""
         assert LLMEnsembleDetector._status_model_list(["model-a", "x" * 201]) == ["model-a"]
+
+    def test_status_model_list_caps_mapping_and_sequence_entries(self):
+        sequence = [f"model-{index}" for index in range(MAX_STATUS_MODEL_ENTRIES + 20)]
+        mapping = {f"model-{index}": True for index in range(MAX_STATUS_MODEL_ENTRIES + 20)}
+
+        assert len(LLMEnsembleDetector._status_model_list(sequence)) == MAX_STATUS_MODEL_ENTRIES
+        assert len(LLMEnsembleDetector._status_model_list(mapping)) == MAX_STATUS_MODEL_ENTRIES
+
+    def test_validate_optional_response_metadata_caps_and_handles_hostile_usage(self):
+        with pytest.raises(ProviderUnavailable, match="metadata"):
+            LLMEnsembleDetector._validate_optional_response_metadata(
+                {f"k{index}": 1 for index in range(MAX_PROVIDER_METADATA_KEYS + 1)},
+                "Provider",
+            )
+
+        with pytest.raises(ProviderUnavailable, match="usage"):
+            LLMEnsembleDetector._validate_optional_response_metadata(
+                {"usage": {f"k{index}": 1 for index in range(MAX_PROVIDER_METADATA_KEYS + 1)}},
+                "Provider",
+            )
+
+        class HostileUsage(dict):
+            def get(self, *args, **kwargs):
+                raise RuntimeError("bad usage")
+
+        with pytest.raises(ProviderUnavailable, match="token metadata"):
+            LLMEnsembleDetector._validate_optional_response_metadata(
+                {"usage": HostileUsage({"total_tokens": "hidden"})},
+                "Provider",
+            )
+
+    def test_content_extractors_handle_hostile_mapping_accessors(self):
+        class HostileMapping(dict):
+            def get(self, *args, **kwargs):
+                raise RuntimeError("bad get")
+
+        with pytest.raises(ProviderUnavailable, match="choices"):
+            LLMEnsembleDetector._extract_openai_compatible_content(
+                HostileMapping({"choices": [{"message": {"content": "[]"}}]}),
+                "OpenAI",
+            )
+        with pytest.raises(ProviderUnavailable, match="content"):
+            LLMEnsembleDetector._extract_anthropic_content(
+                HostileMapping({"content": [{"text": "[]"}]})
+            )
+        with pytest.raises(ProviderUnavailable, match="message"):
+            LLMEnsembleDetector._extract_ollama_content(
+                HostileMapping({"message": {"content": "[]"}})
+            )
 
 
 class TestLLMEnsembleDetectorConstants:
@@ -1680,6 +1771,11 @@ class TestLLMEnsembleDetectorVoting:
             [True, {"score": 0.9}, float("inf")]
         ) == pytest.approx(0.7)
 
+    def test_aggregate_vote_confidence_caps_confidence_values(self):
+        confidences = [1.0] * MAX_CONFIDENCE_VALUES + [0.0] * MAX_CONFIDENCE_VALUES
+
+        assert LLMEnsembleDetector._aggregate_vote_confidence(confidences) == 1.0
+
     def test_ensemble_vote_ignores_malformed_model_finding_payloads(self, detector):
         """Malformed per-model finding containers should not enter voting."""
         detector.consensus_threshold = 1
@@ -1705,6 +1801,24 @@ class TestLLMEnsembleDetectorVoting:
         assert results[0].votes == 1
         assert results[0].total_models == 1
         assert results[0].supporting_models == ["model2"]
+
+    def test_normalize_model_findings_handles_hostile_accessors_and_caps_models(self, detector):
+        class HostileFinding(dict):
+            def get(self, *args, **kwargs):
+                raise RuntimeError("bad finding get")
+
+        model_findings = {
+            f"model-{index}": [
+                {"type": "reentrancy", "severity": "high"},
+                HostileFinding({"type": "hidden"}),
+            ]
+            for index in range(MAX_STATUS_MODEL_ENTRIES + 10)
+        }
+
+        normalized = detector._normalize_model_findings(model_findings)
+
+        assert len(normalized) == MAX_STATUS_MODEL_ENTRIES
+        assert all(len(findings) == 1 for findings in normalized.values())
 
     def test_ensemble_vote_defaults_malformed_location_boundaries(self, detector):
         """Malformed location fields should not crash grouping or leak reprs."""
@@ -1807,6 +1921,46 @@ class TestLLMEnsembleDetectorVoting:
         assert payload["nested"] == {"safe": "value"}
         assert payload["items"] == ["a", "", ""]
         assert payload["object"] == ""
+
+    def test_ensemble_vote_caps_group_and_result_count(self, detector):
+        detector.consensus_threshold = 1
+        findings = {}
+        for model_index in range(3):
+            findings[f"model-{model_index}"] = [
+                {
+                    "type": f"type-{model_index}-{finding_index}",
+                    "severity": "high",
+                    "title": f"Finding {model_index}-{finding_index}",
+                    "description": "desc",
+                    "location": {
+                        "function": f"fn{model_index}_{finding_index}",
+                        "line": finding_index * 5,
+                    },
+                    "confidence": 0.9,
+                }
+                for finding_index in range(200)
+            ]
+
+        results = detector._ensemble_vote(findings)
+
+        assert MAX_ENSEMBLE_GROUPS > MAX_ENSEMBLE_RESULTS
+        assert len(results) == MAX_ENSEMBLE_RESULTS
+
+    def test_safe_location_handles_hostile_items_and_caps_fields(self, detector):
+        class HostileLocation(dict):
+            def items(self):
+                raise RuntimeError("bad location")
+
+        assert detector._safe_location(HostileLocation({"function": "withdraw"})) == {}
+
+        location = {f"k{index}": "value" for index in range(MAX_RAW_RESPONSE_ITEMS + 10)}
+        assert len(detector._safe_location(location)) == MAX_RAW_RESPONSE_ITEMS
+
+    def test_create_finding_signature_handles_malformed_top_level_finding(self, detector):
+        signature = detector._create_finding_signature(["not", "a", "mapping"])
+
+        assert isinstance(signature, str)
+        assert len(signature) == 16
 
     def test_ensemble_vote_ignores_malformed_model_label_boundaries(self, detector):
         """Malformed model/provider labels should not leak into result metadata."""

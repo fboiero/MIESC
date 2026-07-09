@@ -58,10 +58,17 @@ MAX_PROMPT_CONTEXT_ITEMS = 100
 MAX_PROMPT_CONTEXT_LIST_ITEMS = 50
 MAX_PROMPT_CONTEXT_DEPTH = 4
 MAX_PROMPT_CODE_CHARS = 200_000
+MAX_PROVIDER_METADATA_KEYS = 100
+MAX_PROVIDER_STATUS_ENTRIES = 20
+MAX_AVAILABILITY_MODEL_ENTRIES = 200
+MAX_STATUS_MODEL_ENTRIES = 200
 MAX_MODEL_RESPONSE_CHARS = 128_000
 MAX_JSON_ARRAY_SCAN_CHARS = 128_000
 MAX_JSON_ARRAY_CANDIDATES = 1_000
 MAX_PARSED_FINDINGS = 200
+MAX_ENSEMBLE_GROUPS = 500
+MAX_ENSEMBLE_RESULTS = 200
+MAX_CONFIDENCE_VALUES = 500
 MAX_RAW_RESPONSE_STRING_CHARS = 4_000
 MAX_RAW_RESPONSE_ITEMS = 100
 MAX_RAW_RESPONSE_DEPTH = 3
@@ -586,6 +593,26 @@ Response (JSON array only):"""
         return text
 
     @staticmethod
+    def _mapping_get(mapping: Any, key: str, default: Any = None) -> Any:
+        """Read mapping fields without trusting hostile mapping implementations."""
+        if not isinstance(mapping, Mapping):
+            return default
+        try:
+            return mapping.get(key, default)
+        except (AttributeError, TypeError, ValueError, RuntimeError, RecursionError):
+            return default
+
+    @staticmethod
+    def _mapping_items(mapping: Any) -> tuple[tuple[Any, Any], ...]:
+        """Return bounded mapping items without leaking hostile accessor exceptions."""
+        if not isinstance(mapping, Mapping):
+            return ()
+        try:
+            return tuple(mapping.items())
+        except (AttributeError, TypeError, ValueError, RuntimeError, RecursionError):
+            return ()
+
+    @staticmethod
     def _normalize_voting_strategy(voting_strategy: Any) -> VotingStrategy:
         """Return a supported voting strategy without trusting enum-like inputs."""
         if isinstance(voting_strategy, VotingStrategy):
@@ -640,23 +667,24 @@ Response (JSON array only):"""
     @staticmethod
     def _extract_availability_model_ids(data: Any, list_key: str, id_key: str) -> List[str]:
         """Return string model ids from provider availability payloads."""
-        if not isinstance(data, dict):
+        if not isinstance(data, Mapping):
             logger.warning("Ignoring malformed provider model availability payload")
             return []
 
-        models = data.get(list_key, [])
+        models = LLMEnsembleDetector._mapping_get(data, list_key, [])
         if not isinstance(models, list):
             logger.warning("Ignoring malformed provider model availability list")
             return []
 
         model_ids = []
-        for model in models:
-            if not isinstance(model, dict):
+        for model in models[:MAX_AVAILABILITY_MODEL_ENTRIES]:
+            if not isinstance(model, Mapping):
                 logger.warning("Ignoring malformed provider model availability entry: %r", model)
                 continue
 
             model_id = _safe_text(
-                model.get(id_key), limit=LLMEnsembleDetector.MAX_MODEL_LABEL_LENGTH
+                LLMEnsembleDetector._mapping_get(model, id_key),
+                limit=LLMEnsembleDetector.MAX_MODEL_LABEL_LENGTH,
             )
             if model_id is None:
                 logger.warning("Ignoring malformed provider model id: %r", model_id)
@@ -687,7 +715,12 @@ Response (JSON array only):"""
             return {}
 
         normalized: Dict[LLMProvider, List[str]] = {}
-        for provider, models in provider_status.items():
+        items = cls._mapping_items(provider_status)
+        if not items:
+            logger.warning("Ignoring malformed ensemble provider status map")
+            return {}
+
+        for provider, models in items[:MAX_PROVIDER_STATUS_ENTRIES]:
             if isinstance(provider, LLMProvider):
                 normalized_provider = provider
             elif isinstance(provider, str):
@@ -704,7 +737,10 @@ Response (JSON array only):"""
                 logger.warning("Ignoring malformed ensemble provider status key: %r", provider)
                 continue
 
-            normalized[normalized_provider] = cls._status_model_list(models)
+            existing = normalized.setdefault(normalized_provider, [])
+            for model in cls._status_model_list(models):
+                if model not in existing and len(existing) < MAX_STATUS_MODEL_ENTRIES:
+                    existing.append(model)
 
         return normalized
 
@@ -788,7 +824,7 @@ Response (JSON array only):"""
         elif provider == LLMProvider.OPENAI:
             if self.openai_api_key:
                 # OpenAI models are available if API key is set
-                available = self.PROVIDER_MODELS[LLMProvider.OPENAI]
+                available = self._status_model_list(self.PROVIDER_MODELS[LLMProvider.OPENAI])
                 logger.debug(f"OpenAI available with {len(available)} models")
             else:
                 logger.debug("OpenAI not available: no API key")
@@ -796,7 +832,7 @@ Response (JSON array only):"""
         elif provider == LLMProvider.ANTHROPIC:
             if self.anthropic_api_key:
                 # Anthropic models are available if API key is set
-                available = self.PROVIDER_MODELS[LLMProvider.ANTHROPIC]
+                available = self._status_model_list(self.PROVIDER_MODELS[LLMProvider.ANTHROPIC])
                 logger.debug(f"Anthropic available with {len(available)} models")
             else:
                 logger.debug("Anthropic not available: no API key")
@@ -845,6 +881,9 @@ Response (JSON array only):"""
         available_providers = self._provider_status_map(self._available_providers)
 
         for provider in self.providers:
+            if not isinstance(provider, LLMProvider):
+                logger.warning("Ignoring malformed ensemble provider entry during fallback")
+                continue
             provider_models = available_providers.get(provider, [])
             if not provider_models:
                 continue
@@ -891,6 +930,8 @@ Response (JSON array only):"""
         Returns:
             List of findings from this provider
         """
+        if not isinstance(provider, LLMProvider):
+            raise ProviderUnavailable("Provider is malformed")
         provider_status = self._provider_status_map(self._available_providers)
         models = self._status_model_list(provider_status.get(provider, []))[:3]
 
@@ -1047,22 +1088,22 @@ Response (JSON array only):"""
     @staticmethod
     def _extract_openai_compatible_content(data: Any, provider_name: str) -> str:
         """Extract chat content from OpenAI-compatible response payloads."""
-        if not isinstance(data, dict):
+        if not isinstance(data, Mapping):
             raise ProviderUnavailable(f"{provider_name} response payload is malformed")
 
-        choices = data.get("choices")
+        choices = LLMEnsembleDetector._mapping_get(data, "choices")
         if not isinstance(choices, list) or not choices:
             raise ProviderUnavailable(f"{provider_name} response choices are malformed")
 
         first_choice = choices[0]
-        if not isinstance(first_choice, dict):
+        if not isinstance(first_choice, Mapping):
             raise ProviderUnavailable(f"{provider_name} response choice is malformed")
 
-        message = first_choice.get("message")
-        if not isinstance(message, dict):
+        message = LLMEnsembleDetector._mapping_get(first_choice, "message")
+        if not isinstance(message, Mapping):
             raise ProviderUnavailable(f"{provider_name} response message is malformed")
 
-        content = message.get("content")
+        content = LLMEnsembleDetector._mapping_get(message, "content")
         if not isinstance(content, str):
             raise ProviderUnavailable(f"{provider_name} response content is malformed")
 
@@ -1071,12 +1112,16 @@ Response (JSON array only):"""
     @classmethod
     def _validate_optional_response_metadata(cls, data: Any, provider_name: str) -> None:
         """Reject malformed optional latency/token metadata on provider responses."""
-        if not isinstance(data, dict):
+        if not isinstance(data, Mapping):
             raise ProviderUnavailable(f"{provider_name} response payload is malformed")
+        if len(cls._mapping_items(data)) > MAX_PROVIDER_METADATA_KEYS:
+            raise ProviderUnavailable(f"{provider_name} response metadata is malformed")
 
-        usage = data.get("usage")
+        usage = cls._mapping_get(data, "usage")
         if usage is not None:
-            if not isinstance(usage, dict):
+            if not isinstance(usage, Mapping):
+                raise ProviderUnavailable(f"{provider_name} response usage is malformed")
+            if len(cls._mapping_items(usage)) > MAX_PROVIDER_METADATA_KEYS:
                 raise ProviderUnavailable(f"{provider_name} response usage is malformed")
             for key in (
                 "prompt_tokens",
@@ -1085,7 +1130,9 @@ Response (JSON array only):"""
                 "input_tokens",
                 "output_tokens",
             ):
-                if key in usage and not cls._is_nonnegative_finite_scalar(usage[key]):
+                if key in usage and not cls._is_nonnegative_finite_scalar(
+                    cls._mapping_get(usage, key)
+                ):
                     raise ProviderUnavailable(
                         f"{provider_name} response token metadata is malformed"
                     )
@@ -1096,29 +1143,29 @@ Response (JSON array only):"""
             "prompt_eval_duration",
             "eval_duration",
         ):
-            if key in data and not cls._is_nonnegative_finite_scalar(data[key]):
+            if key in data and not cls._is_nonnegative_finite_scalar(cls._mapping_get(data, key)):
                 raise ProviderUnavailable(f"{provider_name} response latency metadata is malformed")
 
         for key in ("prompt_eval_count", "eval_count"):
-            if key in data and not cls._is_nonnegative_finite_scalar(data[key]):
+            if key in data and not cls._is_nonnegative_finite_scalar(cls._mapping_get(data, key)):
                 raise ProviderUnavailable(f"{provider_name} response token metadata is malformed")
 
     @staticmethod
     def _extract_anthropic_content(data: Any) -> str:
         """Extract the first text block from an Anthropic messages response."""
-        if not isinstance(data, dict):
+        if not isinstance(data, Mapping):
             raise ProviderUnavailable("Anthropic response payload is malformed")
 
-        content_blocks = data.get("content")
+        content_blocks = LLMEnsembleDetector._mapping_get(data, "content")
         if not isinstance(content_blocks, list) or not content_blocks:
             raise ProviderUnavailable("Anthropic response content is malformed")
 
         for block in content_blocks:
-            if not isinstance(block, dict):
+            if not isinstance(block, Mapping):
                 continue
-            if block.get("type", "text") != "text":
+            if LLMEnsembleDetector._mapping_get(block, "type", "text") != "text":
                 continue
-            text = block.get("text")
+            text = LLMEnsembleDetector._mapping_get(block, "text")
             if isinstance(text, str):
                 return text
 
@@ -1127,14 +1174,14 @@ Response (JSON array only):"""
     @staticmethod
     def _extract_ollama_content(data: Any) -> str:
         """Extract chat content from an Ollama response payload."""
-        if not isinstance(data, dict):
+        if not isinstance(data, Mapping):
             raise ProviderUnavailable("Ollama response payload is malformed")
 
-        message = data.get("message")
-        if not isinstance(message, dict):
+        message = LLMEnsembleDetector._mapping_get(data, "message")
+        if not isinstance(message, Mapping):
             raise ProviderUnavailable("Ollama response message is malformed")
 
-        content = message.get("content")
+        content = LLMEnsembleDetector._mapping_get(message, "content")
         if not isinstance(content, str):
             raise ProviderUnavailable("Ollama response content is malformed")
 
@@ -1509,6 +1556,8 @@ Response (JSON array only):"""
                 signature = self._create_finding_signature(finding)
 
                 if signature not in finding_groups:
+                    if len(finding_groups) >= MAX_ENSEMBLE_GROUPS:
+                        continue
                     finding_groups[signature] = {
                         "finding": finding,
                         "votes": [],
@@ -1557,32 +1606,40 @@ Response (JSON array only):"""
                 passes = weighted_votes >= max_possible_weight * 0.5
 
             if passes:
+                if len(validated) >= MAX_ENSEMBLE_RESULTS:
+                    break
                 finding = group["finding"]
 
                 # Calculate aggregated confidence
                 base_confidence = self._aggregate_vote_confidence(group["confidences"])
                 vote_bonus = min(0.2, votes * 0.05)  # Up to +0.2 for votes
                 aggregated_confidence = min(0.99, base_confidence + vote_bonus)
-                vuln_type = self._safe_text(finding.get("type"), "unknown")
+                vuln_type = self._safe_text(self._mapping_get(finding, "type"), "unknown")
 
                 validated.append(
                     EnsembleFinding(
                         type=vuln_type,
-                        severity=self._safe_severity(finding.get("severity")),
-                        title=self._safe_text(finding.get("title"), vuln_type),
-                        description=self._safe_text(finding.get("description"), ""),
-                        location=self._safe_location(finding.get("location")),
+                        severity=self._safe_severity(self._mapping_get(finding, "severity")),
+                        title=self._safe_text(self._mapping_get(finding, "title"), vuln_type),
+                        description=self._safe_text(self._mapping_get(finding, "description"), ""),
+                        location=self._safe_location(self._mapping_get(finding, "location")),
                         confidence=aggregated_confidence,
                         votes=votes,
                         total_models=total_models,
                         supporting_models=group["models"],
-                        attack_vector=self._safe_optional_text(finding.get("attack_vector")),
-                        remediation=self._safe_optional_text(finding.get("remediation")),
+                        attack_vector=self._safe_optional_text(
+                            self._mapping_get(finding, "attack_vector")
+                        ),
+                        remediation=self._safe_optional_text(
+                            self._mapping_get(finding, "remediation")
+                        ),
                         swc_id=self._safe_optional_text(
-                            finding.get("swc_id") or finding.get("swc")
+                            self._mapping_get(finding, "swc_id")
+                            or self._mapping_get(finding, "swc")
                         ),
                         cwe_id=self._safe_optional_text(
-                            finding.get("cwe_id") or finding.get("cwe")
+                            self._mapping_get(finding, "cwe_id")
+                            or self._mapping_get(finding, "cwe")
                         ),
                         raw_responses=group["raw_responses"],
                     )
@@ -1602,7 +1659,7 @@ Response (JSON array only):"""
 
         normalized = [
             LLMEnsembleDetector._safe_confidence(confidence, 0.7) for confidence in confidences
-        ]
+        ][:MAX_CONFIDENCE_VALUES]
         return sum(normalized) / len(normalized)
 
     @classmethod
@@ -1617,13 +1674,9 @@ Response (JSON array only):"""
 
         normalized: Dict[str, List[Dict[str, Any]]] = {}
 
-        try:
-            items = model_findings.items()
-        except (AttributeError, TypeError, ValueError, RuntimeError, RecursionError):
-            logger.warning("Ignoring malformed ensemble model findings payload")
-            return {}
+        items = cls._mapping_items(model_findings)
 
-        for model, findings in items:
+        for model, findings in items[:MAX_STATUS_MODEL_ENTRIES]:
             model_id = LLMEnsembleDetector._safe_model_label(model)
             if model_id is None:
                 logger.warning("Ignoring malformed ensemble model id in findings payload")
@@ -1633,16 +1686,16 @@ Response (JSON array only):"""
                 continue
             safe_findings = []
             for finding in findings[:MAX_PARSED_FINDINGS]:
-                if not isinstance(finding, dict):
+                if not isinstance(finding, Mapping):
                     continue
-                vuln_type = cls._safe_vulnerability_type(finding.get("type"))
+                vuln_type = cls._safe_vulnerability_type(cls._mapping_get(finding, "type"))
                 if vuln_type is None:
                     logger.warning(
                         "Ignoring finding with malformed vulnerability type from model %s",
                         model_id,
                     )
                     continue
-                safe_finding = dict(finding)
+                safe_finding = dict(cls._mapping_items(finding))
                 safe_finding["type"] = vuln_type
                 safe_findings.append(safe_finding)
             normalized.setdefault(model_id, []).extend(safe_findings)
@@ -1656,11 +1709,11 @@ Response (JSON array only):"""
             return 1.0
 
         weights = cls.MODEL_WEIGHTS
-        if not isinstance(weights, dict):
+        if not isinstance(weights, Mapping):
             logger.warning("Ignoring malformed ensemble model weights; using default")
             return 1.0
 
-        weight = weights.get(model.strip(), 1.0)
+        weight = cls._mapping_get(weights, model.strip(), 1.0)
         if isinstance(weight, bool) or isinstance(weight, (dict, list, tuple, set)):
             logger.warning("Ignoring malformed ensemble model weight for %s", model.strip())
             return 1.0
@@ -1680,13 +1733,10 @@ Response (JSON array only):"""
     @staticmethod
     def _safe_raw_response_payload(finding: Any) -> Dict[str, Any]:
         """Return a shallow raw response copy with JSON-object-compatible keys."""
-        if not isinstance(finding, dict):
+        if not isinstance(finding, Mapping):
             return {}
         payload = {}
-        try:
-            items = finding.items()
-        except (AttributeError, TypeError, ValueError, RuntimeError, RecursionError):
-            return {}
+        items = LLMEnsembleDetector._mapping_items(finding)
         for index, (key, value) in enumerate(items):
             if index >= MAX_RAW_RESPONSE_ITEMS:
                 break
@@ -1847,10 +1897,12 @@ Response (JSON array only):"""
     @classmethod
     def _safe_location(cls, value: Any) -> Dict[str, Any]:
         """Return scalar location fields only when the model supplied an object."""
-        if not isinstance(value, dict):
+        if not isinstance(value, Mapping):
             return {}
         location: Dict[str, Any] = {}
-        for key, field_value in value.items():
+        for index, (key, field_value) in enumerate(cls._mapping_items(value)):
+            if index >= MAX_RAW_RESPONSE_ITEMS:
+                break
             if (
                 not isinstance(key, str)
                 or len(key) > 120
@@ -1885,8 +1937,12 @@ Response (JSON array only):"""
         Findings are considered similar if they have the same type
         and approximately the same location.
         """
-        vuln_type = (self._safe_vulnerability_type(finding.get("type")) or "").lower()
-        location = self._safe_location(finding.get("location"))
+        if not isinstance(finding, Mapping):
+            finding = {}
+        vuln_type = (
+            self._safe_vulnerability_type(self._mapping_get(finding, "type")) or ""
+        ).lower()
+        location = self._safe_location(self._mapping_get(finding, "location"))
 
         # Extract location components
         func = self._safe_text(location.get("function"), "")
@@ -1921,7 +1977,10 @@ Response (JSON array only):"""
             return []
 
         normalized = []
-        for model in models:
+        iterable = models.keys() if isinstance(models, Mapping) else models
+        for model in list(iterable)[:MAX_STATUS_MODEL_ENTRIES]:
+            if len(normalized) >= MAX_STATUS_MODEL_ENTRIES:
+                break
             if not isinstance(model, str):
                 continue
             cleaned = model.strip()
