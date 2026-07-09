@@ -49,8 +49,10 @@ from src.adapters.frontier_llm_adapter import (
 from src.agents.agentic_prompts import (
     AGENT_COMPLETENESS_PROMPT,
     AGENT_ENUM_PROMPT,
+    AGENT_ENUM_PROMPT_SYSTEMATIC,
     AGENT_VERIFY_PROMPT,
     PERSONA_ENUM_PROMPTS,
+    PERSONA_ENUM_PROMPTS_SYSTEMATIC,
 )
 from src.agents.base_agent import BaseAgent
 from src.agents.hypothesis_ledger import Hypothesis, HypothesisLedger
@@ -78,13 +80,16 @@ class AgenticAuditConfig:
     """Bounds and continuation hints for one agentic audit."""
 
     max_rounds: int = 4
-    max_tool_calls_per_round: int = 20
+    max_tool_calls_per_round: int = 20  # SAMPLING default; systematic bumps to 40
     token_budget: int = 400_000
     n_target: int = 0  # known bug count (continuation hint); 0 = no hint
     model: str = "claude"  # frontier alias; "claude" defers to adapter default
     persona: str | None = None  # None -> general AGENT_ENUM_PROMPT; else a
     # PERSONA_ENUM_PROMPTS key (accounting/access_control/arithmetic/reentrancy/
     # state_consistency) that focuses the ENUMERATE pass on ONE vuln class.
+    systematic: bool = False  # False -> SAMPLING enum (cheap, ~10 tool calls, the
+    # default: same aggregate recall across the persona union). True -> SYSTEMATIC
+    # enum (inspect EVERY in-scope function, ~3x cost) with a 40-call enum budget.
 
 
 @dataclass
@@ -190,14 +195,30 @@ class AgenticAuditor(BaseAgent):
         # ---- Round 0: ENUMERATE ------------------------------------------
         # A persona focuses this pass on ONE vuln class (multi-persona union);
         # None -> the general enum prompt (backward-compatible default).
+        # config.systematic picks the SYSTEMATIC (opt-in, exhaustive) enum
+        # variant; the default SAMPLING variant stops after a handful of tools.
         persona = self.config.persona
-        enum_prompt = (
-            PERSONA_ENUM_PROMPTS[persona]
-            if persona and persona in PERSONA_ENUM_PROMPTS
-            else AGENT_ENUM_PROMPT
-        )
+        if self.config.systematic:
+            enum_prompt = (
+                PERSONA_ENUM_PROMPTS_SYSTEMATIC[persona]
+                if persona and persona in PERSONA_ENUM_PROMPTS_SYSTEMATIC
+                else AGENT_ENUM_PROMPT_SYSTEMATIC
+            )
+        else:
+            enum_prompt = (
+                PERSONA_ENUM_PROMPTS[persona]
+                if persona and persona in PERSONA_ENUM_PROMPTS
+                else AGENT_ENUM_PROMPT
+            )
         enum_user = enum_prompt.format(repo_map=repo_map)
-        result = self._converse(system, enum_user, tools)
+        # SYSTEMATIC per-function coverage needs headroom: bump the enum-pass tool
+        # budget to at least 40. SAMPLING keeps the cheap default.
+        enum_max_calls = (
+            max(self.config.max_tool_calls_per_round, 40)
+            if self.config.systematic
+            else self.config.max_tool_calls_per_round
+        )
+        result = self._converse(system, enum_user, tools, max_iterations=enum_max_calls)
         self._accumulate(trace, result)
         candidates = _extract_json_array(result.final_text)
         if os.environ.get("MIESC_AGENT_DEBUG") == "1":
@@ -369,9 +390,17 @@ class AgenticAuditor(BaseAgent):
         return f"not found: unknown tool '{name}'"
 
     def _converse(
-        self, system: str, user: str, tools: List[ToolSpec]
+        self,
+        system: str,
+        user: str,
+        tools: List[ToolSpec],
+        max_iterations: int | None = None,
     ) -> ConversationResult:
-        """One tool-augmented turn against the frontier adapter."""
+        """One tool-augmented turn against the frontier adapter.
+
+        ``max_iterations`` defaults to the config's per-round tool budget; the
+        ENUMERATE pass passes a larger value when systematic coverage is on.
+        """
         messages = [{"role": "user", "content": user}]
         return self.adapter.converse_with_tools(
             system=system,
@@ -379,7 +408,11 @@ class AgenticAuditor(BaseAgent):
             tools=tools,
             on_tool_call=self._on_tool_call,
             model=self._resolved_model(),
-            max_iterations=self.config.max_tool_calls_per_round,
+            max_iterations=(
+                max_iterations
+                if max_iterations is not None
+                else self.config.max_tool_calls_per_round
+            ),
         )
 
     def _resolved_model(self) -> str | None:

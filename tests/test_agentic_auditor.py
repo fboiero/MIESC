@@ -440,6 +440,66 @@ def test_persona_general_falls_back_to_general_enum_prompt(graph: RepoCallGraph)
     assert "EXCLUSIVELY on" not in enum_user
 
 
+# ---------------------------------------------------------------------------
+# Systematic coverage flag: opt-in. Default (False) => SAMPLING enum text;
+# True => SYSTEMATIC enum text + a bumped enum-pass tool budget.
+# ---------------------------------------------------------------------------
+
+def test_default_config_enum_uses_sampling_coverage(graph: RepoCallGraph) -> None:
+    adapter = ScriptedAdapter([_enum([]), _verify([])])
+    # Default AgenticAuditConfig => systematic is False.
+    config = AgenticAuditConfig(n_target=0)
+    assert config.systematic is False
+    AgenticAuditor(adapter, graph, config).audit_repo(Path("/unused"))
+    enum_user = adapter.calls[0]["user"]
+    assert "aim for FEWER than ~10 tool calls" in enum_user
+    assert "SYSTEMATIC COVERAGE" not in enum_user
+
+
+def test_systematic_config_enum_uses_systematic_coverage(graph: RepoCallGraph) -> None:
+    adapter = ScriptedAdapter([_enum([]), _verify([])])
+    config = AgenticAuditConfig(n_target=0, systematic=True)
+    AgenticAuditor(adapter, graph, config).audit_repo(Path("/unused"))
+    enum_user = adapter.calls[0]["user"]
+    assert "SYSTEMATIC COVERAGE" in enum_user
+    assert "EVERY external" in enum_user
+    assert "aim for FEWER than ~10 tool calls" not in enum_user
+
+
+def test_systematic_persona_config_uses_systematic_persona_prompt(graph: RepoCallGraph) -> None:
+    adapter = ScriptedAdapter([_enum([]), _verify([])])
+    config = AgenticAuditConfig(n_target=0, persona="access_control", systematic=True)
+    AgenticAuditor(adapter, graph, config).audit_repo(Path("/unused"))
+    enum_user = adapter.calls[0]["user"]
+    assert "EXCLUSIVELY on ACCESS CONTROL" in enum_user  # persona focus kept
+    assert "SYSTEMATIC COVERAGE" in enum_user             # systematic coverage on
+
+
+def test_default_max_tool_calls_is_cheap() -> None:
+    # Reverted to the cheap SAMPLING default; systematic callers bump per-pass.
+    assert AgenticAuditConfig().max_tool_calls_per_round == 20
+
+
+def test_systematic_bumps_enum_tool_budget_to_40(graph: RepoCallGraph) -> None:
+    # When systematic, the ENUM converse call must request at least 40 iterations,
+    # even though the default per-round budget is the cheaper 20.
+    captured = {}
+
+    class BudgetAdapter(ScriptedAdapter):
+        def converse_with_tools(self, *a: Any, **kw: Any) -> ConversationResult:
+            captured.setdefault("max_iterations", []).append(kw.get("max_iterations"))
+            return super().converse_with_tools(*a, **kw)
+
+    # A candidate keeps the verify pass alive so we can assert its (default) budget.
+    adapter = BudgetAdapter([_enum([TRANSFER_CANDIDATE]), _verify([])])
+    config = AgenticAuditConfig(n_target=0, systematic=True)
+    AgenticAuditor(adapter, graph, config).audit_repo(Path("/unused"))
+    # First converse is the ENUM pass -> bumped to 40.
+    assert captured["max_iterations"][0] == 40
+    # A later (verify) pass uses the cheap default.
+    assert captured["max_iterations"][1] == config.max_tool_calls_per_round
+
+
 def test_multipersona_unions_findings_and_dedups_duplicates(graph: RepoCallGraph) -> None:
     # Two personas over the SAME graph find DIFFERENT bugs; persona 2 also
     # re-raises persona 1's exact candidate. The union must contain BOTH bugs

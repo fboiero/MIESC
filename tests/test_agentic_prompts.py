@@ -18,10 +18,12 @@ from __future__ import annotations
 from src.agents.agentic_prompts import (
     AGENT_COMPLETENESS_PROMPT,
     AGENT_ENUM_PROMPT,
+    AGENT_ENUM_PROMPT_SYSTEMATIC,
     AGENT_EXPLOIT_PROMPT,
     AGENT_VERIFY_PROMPT,
     HYPOTHESIS_JSON_SCHEMA,
     PERSONA_ENUM_PROMPTS,
+    PERSONA_ENUM_PROMPTS_SYSTEMATIC,
 )
 
 PERSONA_KEYS = (
@@ -154,6 +156,65 @@ def test_persona_enum_prompts_pin_their_own_vuln_class():
     # Each persona pass must emit its OWN class, so the class appears in the prompt.
     for persona, prompt in PERSONA_ENUM_PROMPTS.items():
         assert persona in prompt, f"persona {persona} does not pin its vuln_class"
+
+
+# ---------------------------------------------------------------------------
+# Coverage modes: SAMPLING is the default; SYSTEMATIC is the opt-in variant.
+# ---------------------------------------------------------------------------
+
+SAMPLING_PHRASE = "aim for FEWER than ~10 tool calls"
+SYSTEMATIC_PHRASE = "SYSTEMATIC COVERAGE"
+SYSTEMATIC_EVERY = "EVERY external"
+
+
+def test_default_enum_prompt_uses_sampling_coverage():
+    # The DEFAULT general enum must be the cheap SAMPLING variant.
+    assert SAMPLING_PHRASE in AGENT_ENUM_PROMPT
+    assert SYSTEMATIC_PHRASE not in AGENT_ENUM_PROMPT
+
+
+def test_systematic_enum_prompt_uses_systematic_coverage():
+    assert SYSTEMATIC_PHRASE in AGENT_ENUM_PROMPT_SYSTEMATIC
+    assert SYSTEMATIC_EVERY in AGENT_ENUM_PROMPT_SYSTEMATIC
+    assert SAMPLING_PHRASE not in AGENT_ENUM_PROMPT_SYSTEMATIC
+
+
+def test_default_persona_prompts_use_sampling_coverage():
+    for persona, prompt in PERSONA_ENUM_PROMPTS.items():
+        assert SAMPLING_PHRASE in prompt, f"persona {persona} not SAMPLING"
+        assert SYSTEMATIC_PHRASE not in prompt, f"persona {persona} leaked SYSTEMATIC"
+
+
+def test_systematic_persona_prompts_use_systematic_coverage():
+    assert set(PERSONA_ENUM_PROMPTS_SYSTEMATIC) == set(PERSONA_KEYS)
+    for persona, prompt in PERSONA_ENUM_PROMPTS_SYSTEMATIC.items():
+        assert SYSTEMATIC_PHRASE in prompt, f"persona {persona} not SYSTEMATIC"
+        assert SYSTEMATIC_EVERY in prompt, f"persona {persona} missing EVERY external"
+        assert SAMPLING_PHRASE not in prompt, f"persona {persona} leaked SAMPLING"
+
+
+def test_systematic_enum_prompt_formats_and_keeps_contract():
+    # The opt-in variant must survive .format and keep the tools + JSON contract.
+    rendered = AGENT_ENUM_PROMPT_SYSTEMATIC.format(repo_map="ContractA: foo()")
+    assert "ContractA: foo()" in rendered
+    assert '{"contract"' in rendered
+    assert "{repo_map}" not in rendered
+    for tool in TOOL_NAMES:
+        assert tool in rendered
+    for field in HYPOTHESIS_FIELDS:
+        assert field in rendered
+
+
+def test_systematic_persona_prompts_format_and_keep_contract():
+    for persona, prompt in PERSONA_ENUM_PROMPTS_SYSTEMATIC.items():
+        rendered = prompt.format(repo_map="ContractX: foo()")
+        assert "ContractX: foo()" in rendered
+        assert '{"contract"' in rendered
+        assert "{repo_map}" not in rendered
+        for tool in TOOL_NAMES:
+            assert tool in rendered, f"persona {persona} missing tool {tool}"
+        for field in HYPOTHESIS_FIELDS:
+            assert field in rendered, f"persona {persona} missing field {field}"
 
 
 def test_exploit_prompt_is_standalone_phase2():

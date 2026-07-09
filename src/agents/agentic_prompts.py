@@ -78,6 +78,59 @@ instead of guessing from the repo map:
 Prefer pulling the real body with get_function_body over reasoning from memory."""
 
 
+# ---------------------------------------------------------------------------
+# COVERAGE MODES — the cost/recall lever, parameterized into every enum prompt.
+#
+# SAMPLING (default): inspect the most suspicious functions and STOP early. Cheap
+#   (~10 tool calls); aggregate recall across the persona union is unchanged.
+# SYSTEMATIC (opt-in): inspect EVERY in-scope function before concluding. ~3x the
+#   tool budget for the same aggregate recall, so it must be explicitly enabled.
+#
+# Each enum template carries a {coverage} placeholder filled at import time. The
+# persona variants interpolate {focus_title}, so they are pre-formatted per
+# persona before being baked into the template (see _build_persona_enum_prompt).
+# ---------------------------------------------------------------------------
+
+_COVERAGE_SAMPLING = (
+    "Use the tools to inspect the MOST suspicious functions first, but do NOT "
+    "explore indefinitely. After inspecting a handful of functions (aim for FEWER "
+    "than ~10 tool calls total), STOP calling tools and OUTPUT the JSON list of "
+    "hypotheses. A partial-but-concluded list is FAR better than never answering: "
+    "once you have enough to name concrete candidates, emit the JSON immediately "
+    "and stop."
+)
+
+_COVERAGE_SYSTEMATIC = (
+    "SYSTEMATIC COVERAGE (critical): do NOT sample or guess which functions to "
+    "look at. The repository map lists EVERY in-scope function. Call "
+    "get_function_body on EVERY external / public / state-changing function and "
+    "inspect it before concluding — do NOT skip any. Being exhaustive across ALL "
+    "functions matters more than depth on any one; a function you never inspect is "
+    "a bug you will miss. When you have inspected the in-scope functions, OUTPUT "
+    "the JSON list."
+)
+
+# Persona variants carry a {focus_title} placeholder (pre-formatted per persona).
+_COVERAGE_SAMPLING_PERSONA = (
+    "Use the tools to inspect the MOST suspicious functions for the {focus_title} "
+    "flaw first, but do NOT explore indefinitely. After inspecting a handful of "
+    "functions (aim for FEWER than ~10 tool calls total), STOP calling tools and "
+    "OUTPUT the JSON list of hypotheses. A partial-but-concluded list is FAR "
+    "better than never answering: once you have enough to name concrete "
+    "candidates, emit the JSON immediately and stop."
+)
+
+_COVERAGE_SYSTEMATIC_PERSONA = (
+    "SYSTEMATIC COVERAGE (critical): do NOT sample or guess which functions to "
+    "look at. The repository map lists EVERY in-scope function. Call "
+    "get_function_body on EVERY external / public / state-changing function and "
+    "inspect it for the {focus_title} flaw before concluding — do NOT skip any. "
+    "Being exhaustive across ALL functions matters more than depth on any one; a "
+    "function you never inspect is a bug you will miss. When you have inspected "
+    "the in-scope functions, OUTPUT the JSON list."
+)
+
+
 _ENUM_TEMPLATE = """You are a top smart-contract auditor hunting LOSS-OF-FUNDS \
 vulnerabilities. Think like the winning Code4rena researcher.
 
@@ -110,11 +163,7 @@ Emit each candidate as ONE object in a single JSON array, using EXACTLY these fi
 - vuln_class: one of arithmetic, access_control, reentrancy, accounting, state_consistency, other.
 - claim: one sentence naming the precise mechanism and the loss/lock of funds.
 
-Use the tools to inspect the MOST suspicious functions first, but do NOT explore \
-indefinitely. After inspecting a handful of functions (aim for FEWER than ~10 tool \
-calls total), STOP calling tools and OUTPUT the JSON list of hypotheses. A \
-partial-but-concluded list is FAR better than never answering: once you have \
-enough to name concrete candidates, emit the JSON immediately and stop.
+{coverage}
 Output ONLY the JSON array. Return [] if you genuinely find no candidates."""
 
 
@@ -181,12 +230,18 @@ schema (do NOT include anything already in the ledger):
 Output ONLY the JSON array. Return [] if you find no new candidates."""
 
 
-# Bake the static tool block and schema into each constant at import time. The
-# remaining {repo_map} / {ledger} placeholders (and {{...}} JSON braces) are left
-# for the orchestrator's per-round str.format call.
-AGENT_ENUM_PROMPT: str = _ENUM_TEMPLATE.format(
-    tools=_TOOLS_TEXT, schema=_HYPOTHESIS_SCHEMA_TEXT
-)
+# Bake the static tool block, schema, and coverage mode into each constant at
+# import time. The remaining {repo_map} / {ledger} placeholders (and {{...}} JSON
+# braces) are left for the orchestrator's per-round str.format call.
+def _build_enum_prompt(coverage: str) -> str:
+    return _ENUM_TEMPLATE.format(
+        tools=_TOOLS_TEXT, schema=_HYPOTHESIS_SCHEMA_TEXT, coverage=coverage
+    )
+
+
+# SAMPLING is the default (cheap); SYSTEMATIC is opt-in (~3x tool budget).
+AGENT_ENUM_PROMPT: str = _build_enum_prompt(_COVERAGE_SAMPLING)
+AGENT_ENUM_PROMPT_SYSTEMATIC: str = _build_enum_prompt(_COVERAGE_SYSTEMATIC)
 
 AGENT_VERIFY_PROMPT: str = _VERIFY_TEMPLATE.format(tools=_TOOLS_TEXT)
 
@@ -236,11 +291,7 @@ Emit each candidate as ONE object in a single JSON array, using EXACTLY these fi
 - vuln_class: ALWAYS "{vuln_class}" on this persona pass.
 - claim: one sentence naming the precise {focus_title} mechanism and the loss/lock of funds.
 
-Use the tools to inspect the MOST suspicious functions first, but do NOT explore \
-indefinitely. After inspecting a handful of functions (aim for FEWER than ~10 tool \
-calls total), STOP calling tools and OUTPUT the JSON list of hypotheses. A \
-partial-but-concluded list is FAR better than never answering: once you have \
-enough to name concrete candidates, emit the JSON immediately and stop.
+{coverage}
 Output ONLY the JSON array. Return [] if you genuinely find no {focus_title} candidates."""
 
 
@@ -294,21 +345,32 @@ _PERSONA_FOCUS: dict = {
 }
 
 
-def _build_persona_enum_prompt(persona: str) -> str:
+def _build_persona_enum_prompt(persona: str, coverage_tmpl: str) -> str:
     focus_title, vuln_class, focus_bullets = _PERSONA_FOCUS[persona]
+    # Pre-format the coverage text's {focus_title} BEFORE baking it into the
+    # template (str.format does a single pass and would not recurse otherwise).
+    coverage = coverage_tmpl.format(focus_title=focus_title)
     return _PERSONA_ENUM_TEMPLATE.format(
         tools=_TOOLS_TEXT,
         schema=_HYPOTHESIS_SCHEMA_TEXT,
         focus_title=focus_title,
         vuln_class=vuln_class,
         focus_bullets=focus_bullets,
+        coverage=coverage,
     )
 
 
 # Five specialized enum prompts keyed by vuln class. Run them all over the SAME
 # call graph and union the findings (see src.agents.agentic_auditor.audit_repo_multipersona).
+# SAMPLING is the default (cheap); SYSTEMATIC is the opt-in exhaustive variant.
 PERSONA_ENUM_PROMPTS: dict = {
-    persona: _build_persona_enum_prompt(persona) for persona in _PERSONA_FOCUS
+    persona: _build_persona_enum_prompt(persona, _COVERAGE_SAMPLING_PERSONA)
+    for persona in _PERSONA_FOCUS
+}
+
+PERSONA_ENUM_PROMPTS_SYSTEMATIC: dict = {
+    persona: _build_persona_enum_prompt(persona, _COVERAGE_SYSTEMATIC_PERSONA)
+    for persona in _PERSONA_FOCUS
 }
 
 
@@ -324,8 +386,10 @@ and code location. Return [] if none survive."""
 __all__ = [
     "HYPOTHESIS_JSON_SCHEMA",
     "AGENT_ENUM_PROMPT",
+    "AGENT_ENUM_PROMPT_SYSTEMATIC",
     "AGENT_VERIFY_PROMPT",
     "AGENT_COMPLETENESS_PROMPT",
     "AGENT_EXPLOIT_PROMPT",
     "PERSONA_ENUM_PROMPTS",
+    "PERSONA_ENUM_PROMPTS_SYSTEMATIC",
 ]
