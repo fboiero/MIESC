@@ -1,6 +1,6 @@
 # Custom Detector API
 
-MIESC provides a powerful API for creating custom vulnerability detectors. Security researchers can write their own detection rules and integrate them seamlessly with MIESC.
+MIESC exposes an API for writing your own vulnerability detectors. If you research a class of bug the built-in tools miss, you can codify your own detection rules and plug them into the same pipeline.
 
 ## Quick Start
 

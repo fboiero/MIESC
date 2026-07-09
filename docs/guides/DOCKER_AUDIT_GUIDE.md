@@ -1,6 +1,6 @@
 # Complete Guide: Audit with Docker + LLM
 
-Step-by-step guide to run a comprehensive smart contract security audit using Docker and generate a professional PDF report with AI-powered interpretation.
+Step-by-step guide to run a full smart contract security audit with Docker and generate a professional PDF report with AI-powered interpretation.
 
 **Estimated setup time**: first run ~15 min (image and model downloads). Subsequent runs: only steps 3-5.
 
