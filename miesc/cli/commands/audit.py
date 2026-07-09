@@ -74,6 +74,71 @@ def _apply_deep_profile_config(config: Any, profile_name: str | None) -> tuple[A
     return config, profile
 
 
+def _profile_uses_agentic_path(profile: Dict[str, Any]) -> bool:
+    """Return True for profiles that require agentic audit semantics."""
+    return bool(profile.get("agentic_ensemble") or profile.get("enable_agentic_invariants"))
+
+
+def _run_agentic_audit_profile(
+    profile_name: str,
+    profile: Dict[str, Any],
+    contract: str,
+    output: str | None,
+    fmt: str,
+    ci: bool,
+) -> None:
+    """Run an agentic profile through DeepAuditAgent instead of raw tool loops."""
+    from src.agents.deep_audit_agent import DeepAuditAgent, DeepAuditConfig
+
+    config = DeepAuditConfig(
+        timeout_seconds=int(profile.get("timeout", 600)),
+        max_iterations=int(profile.get("max_iterations", 5)),
+        enable_llm=bool(profile.get("enable_ai_triage", False)),
+        enable_rag=not bool(profile.get("skip_rag", False)),
+    )
+    config, _profile_config = _apply_deep_profile_config(config, profile_name)
+    agent = DeepAuditAgent(config=config)
+
+    info("Running agentic profile path")
+    result = agent.analyze(contract)
+    findings = result.get("findings", [])
+    all_results = [
+        {
+            "tool": "miesc-agentic-profile",
+            "status": "success",
+            "findings": findings,
+            "metadata": result.get("metadata", {}),
+        }
+    ]
+    summary = summarize_findings(all_results)
+
+    if output:
+        if fmt == "sarif":
+            data: Any = _to_sarif(all_results)
+        elif fmt == "markdown":
+            data = _to_markdown(all_results, contract)
+        else:
+            data = {
+                "profile": profile_name,
+                "agentic": True,
+                "result": result,
+                "results": all_results,
+                "summary": summary,
+                "version": VERSION,
+            }
+        mode = "w"
+        with open(output, mode, encoding="utf-8") as f:
+            if fmt == "markdown":
+                f.write(str(data))
+            else:
+                json.dump(data, f, indent=2, default=str)
+        success(f"Report saved to {output}")
+
+    if ci and (summary.get("CRITICAL", 0) > 0 or summary.get("HIGH", 0) > 0):
+        error(f"Found {summary.get('CRITICAL', 0)} critical and {summary.get('HIGH', 0)} high issues")
+        sys.exit(1)
+
+
 # =============================================================================
 # Output Format Converters
 # =============================================================================
@@ -1319,7 +1384,7 @@ def audit_smart(
 
 
 @audit.command("profile")
-@click.argument("profile_name", type=click.Choice(AVAILABLE_PROFILES + ["list"]))
+@click.argument("profile_name", type=str)
 @click.argument("contract", type=click.Path(exists=True), required=False)
 @click.option("--output", "-o", type=click.Path(), help="Output file path")
 @click.option(
@@ -1375,6 +1440,10 @@ def audit_profile(
 
     info(f"Running profile: {profile_name}")
     info(f"Description: {profile.get('description', 'N/A')}")
+
+    if _profile_uses_agentic_path(profile):
+        _run_agentic_audit_profile(profile_name, profile, contract, output, fmt, ci)
+        return
 
     # Extract profile settings
     layers = profile.get("layers", [1])
