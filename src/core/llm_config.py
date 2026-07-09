@@ -20,9 +20,26 @@ License: AGPL-3.0
 Version: 4.2.3
 """
 
+import copy
+import math
 import os
+from collections.abc import Mapping
 from functools import lru_cache
-from typing import cast, Any, Dict, Optional
+from typing import Any, Dict, Iterable, Optional, cast
+
+MAX_CONFIG_MERGE_DEPTH = 8
+MAX_CONFIG_MERGE_ITEMS = 200
+MAX_FALLBACK_MODELS = 20
+MAX_TEXT_CHARS = 512
+MAX_ROLE_OPTIONS = 50
+MAX_RETRY_ATTEMPTS = 10
+MAX_RETRY_DELAY_SECONDS = 300
+MAX_CACHE_TTL_SECONDS = 86_400
+MAX_CACHE_ENTRIES = 100_000
+MIN_CONTEXT_TOKENS = 256
+MAX_CONTEXT_TOKENS = 200_000
+MIN_PREDICT_TOKENS = 1
+MAX_PREDICT_TOKENS = 100_000
 
 # Default configuration (used if YAML not available)
 DEFAULT_CONFIG = {
@@ -71,28 +88,82 @@ def _load_config() -> Dict[str, Any]:
 
         config = get_config()
         llm_config = config.get_llm_config()
-        if llm_config:
+        if isinstance(llm_config, Mapping) and llm_config:
             # Merge with defaults to ensure all keys exist
-            merged = DEFAULT_CONFIG.copy()
+            merged = copy.deepcopy(DEFAULT_CONFIG)
             _deep_merge(merged, llm_config)
             return merged
     except Exception:
         pass
-    return DEFAULT_CONFIG
+    return copy.deepcopy(DEFAULT_CONFIG)
 
 
-def _deep_merge(base: Dict, override: Dict) -> None:
+def _mapping_items(value: Mapping[Any, Any]) -> Iterable[tuple[Any, Any]]:
+    """Return bounded mapping items without trusting custom accessors."""
+    try:
+        return list(value.items())[:MAX_CONFIG_MERGE_ITEMS]
+    except Exception:
+        return []
+
+
+def _has_unsafe_chars(text: str, *, multiline: bool = False) -> bool:
+    if any(ch in {"\u2028", "\u2029"} for ch in text):
+        return True
+    allowed = {"\n", "\r", "\t"} if multiline else set()
+    return any((ord(ch) < 32 and ch not in allowed) or ord(ch) == 127 for ch in text)
+
+
+def _safe_text(
+    value: Any, default: str = "", *, max_chars: int = MAX_TEXT_CHARS, multiline: bool = False
+) -> str:
+    if not isinstance(value, str):
+        return default
+    text = value.strip()
+    if not text or len(text) > max_chars or _has_unsafe_chars(text, multiline=multiline):
+        return default
+    return text
+
+
+def _bounded_int(value: Any, default: int, *, minimum: int, maximum: int) -> int:
+    if isinstance(value, bool):
+        return default
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return default
+    if not math.isfinite(number):
+        return default
+    return max(minimum, min(maximum, int(number)))
+
+
+def _bounded_float(value: Any, default: float, *, minimum: float, maximum: float) -> float:
+    if isinstance(value, bool):
+        return default
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return default
+    if not math.isfinite(number):
+        return default
+    return max(minimum, min(maximum, number))
+
+
+def _deep_merge(base: Dict, override: Mapping, *, _depth: int = 0) -> None:
     """Deep merge override into base dict."""
-    for key, value in override.items():
-        if key in base and isinstance(base[key], dict) and isinstance(value, dict):
-            _deep_merge(base[key], value)
+    if _depth >= MAX_CONFIG_MERGE_DEPTH:
+        return
+    if not isinstance(override, Mapping):
+        return
+    for key, value in _mapping_items(override):
+        if key in base and isinstance(base[key], dict) and isinstance(value, Mapping):
+            _deep_merge(base[key], value, _depth=_depth + 1)
         else:
             base[key] = value
 
 
 def get_llm_config() -> Dict[str, Any]:
     """Get the complete LLM configuration."""
-    return _load_config()
+    return copy.deepcopy(_load_config())
 
 
 def get_ollama_host() -> str:
@@ -102,10 +173,10 @@ def get_ollama_host() -> str:
         str: Ollama host URL (e.g., 'http://localhost:11434')
     """
     # Environment variable takes precedence
-    env_host = os.environ.get("OLLAMA_HOST")
+    env_host = _safe_text(os.environ.get("OLLAMA_HOST"), max_chars=MAX_TEXT_CHARS)
     if env_host:
         return env_host
-    return cast(str, _load_config().get("host", DEFAULT_CONFIG["host"]))
+    return _safe_text(_load_config().get("host"), cast(str, DEFAULT_CONFIG["host"]))
 
 
 def get_default_model() -> str:
@@ -115,10 +186,13 @@ def get_default_model() -> str:
         str: Default model name (e.g., 'deepseek-coder:6.7b')
     """
     # Environment variable takes precedence
-    env_model = os.environ.get("MIESC_LLM_MODEL")
+    env_model = _safe_text(os.environ.get("MIESC_LLM_MODEL"), max_chars=MAX_TEXT_CHARS)
     if env_model:
         return env_model
-    return cast(str, _load_config().get("default_model", DEFAULT_CONFIG["default_model"]))
+    return _safe_text(
+        _load_config().get("default_model"),
+        cast(str, DEFAULT_CONFIG["default_model"]),
+    )
 
 
 def get_model(use_case: str) -> str:
@@ -133,7 +207,12 @@ def get_model(use_case: str) -> str:
     """
     config = _load_config()
     models = config.get("models", {})
-    return cast(str, models.get(use_case, get_default_model()))
+    if not isinstance(models, Mapping):
+        return get_default_model()
+    safe_use_case = _safe_text(use_case)
+    if not safe_use_case:
+        return get_default_model()
+    return _safe_text(models.get(safe_use_case), get_default_model())
 
 
 def get_fallback_models() -> list:
@@ -142,7 +221,51 @@ def get_fallback_models() -> list:
     Returns:
         list: List of fallback model names in order of preference
     """
-    return cast(list, _load_config().get("fallback_models", DEFAULT_CONFIG["fallback_models"]))
+    models = _load_config().get("fallback_models", DEFAULT_CONFIG["fallback_models"])
+    if not isinstance(models, list):
+        return list(DEFAULT_CONFIG["fallback_models"])
+    safe_models = [
+        safe_model
+        for model in models[:MAX_FALLBACK_MODELS]
+        if (safe_model := _safe_text(model, max_chars=MAX_TEXT_CHARS))
+    ]
+    return safe_models or list(DEFAULT_CONFIG["fallback_models"])
+
+
+def _sanitize_generation_options(options: Any) -> Dict[str, Any]:
+    defaults = cast(Dict[str, Any], DEFAULT_CONFIG["options"])
+    if not isinstance(options, Mapping):
+        options = defaults
+
+    sanitized: Dict[str, Any] = {}
+    for key, value in _mapping_items(options):
+        safe_key = _safe_text(key)
+        if not safe_key or len(sanitized) >= MAX_ROLE_OPTIONS:
+            continue
+        if safe_key in {"temperature", "top_p"}:
+            sanitized[safe_key] = _bounded_float(
+                value,
+                float(defaults.get(safe_key, 0.1)),
+                minimum=0.0,
+                maximum=1.0,
+            )
+        elif safe_key == "num_ctx":
+            sanitized[safe_key] = _bounded_int(
+                value,
+                int(defaults["num_ctx"]),
+                minimum=MIN_CONTEXT_TOKENS,
+                maximum=MAX_CONTEXT_TOKENS,
+            )
+        elif safe_key == "num_predict":
+            sanitized[safe_key] = _bounded_int(
+                value,
+                int(defaults["num_predict"]),
+                minimum=MIN_PREDICT_TOKENS,
+                maximum=MAX_PREDICT_TOKENS,
+            )
+        elif isinstance(value, (str, int, float)) and not isinstance(value, bool):
+            sanitized[safe_key] = value
+    return sanitized or copy.deepcopy(defaults)
 
 
 def get_generation_options(role: Optional[str] = None) -> Dict[str, Any]:
@@ -155,15 +278,18 @@ def get_generation_options(role: Optional[str] = None) -> Dict[str, Any]:
         dict: Generation options (temperature, top_p, etc.)
     """
     config = _load_config()
-    base_options = config.get("options", DEFAULT_CONFIG["options"]).copy()
+    base_options = _sanitize_generation_options(config.get("options", DEFAULT_CONFIG["options"]))
 
     if role:
         roles = config.get("roles", {})
-        role_config = roles.get(role, {})
-        # Override base options with role-specific ones
-        for key, value in role_config.items():
-            if key != "system_prompt":
-                base_options[key] = value
+        safe_role = _safe_text(role)
+        if isinstance(roles, Mapping) and safe_role:
+            role_config = roles.get(safe_role, {})
+            # Override base options with role-specific ones
+            role_items = _mapping_items(role_config) if isinstance(role_config, Mapping) else []
+            for key, value in role_items:
+                if _safe_text(key) != "system_prompt":
+                    base_options.update(_sanitize_generation_options({key: value}))
 
     return cast(Dict[str, Any], base_options)
 
@@ -179,8 +305,13 @@ def get_role_system_prompt(role: str) -> str:
     """
     config = _load_config()
     roles = config.get("roles", DEFAULT_CONFIG["roles"])
-    role_config = roles.get(role, {})
-    return cast(str, role_config.get("system_prompt", ""))
+    safe_role = _safe_text(role)
+    if not isinstance(roles, Mapping) or not safe_role:
+        return ""
+    role_config = roles.get(safe_role, {})
+    if not isinstance(role_config, Mapping):
+        return ""
+    return _safe_text(role_config.get("system_prompt"), multiline=True)
 
 
 def get_retry_config() -> Dict[str, int]:
@@ -191,8 +322,18 @@ def get_retry_config() -> Dict[str, int]:
     """
     config = _load_config()
     return {
-        "attempts": config.get("retry_attempts", DEFAULT_CONFIG["retry_attempts"]),
-        "delay": config.get("retry_delay", DEFAULT_CONFIG["retry_delay"]),
+        "attempts": _bounded_int(
+            config.get("retry_attempts"),
+            cast(int, DEFAULT_CONFIG["retry_attempts"]),
+            minimum=1,
+            maximum=MAX_RETRY_ATTEMPTS,
+        ),
+        "delay": _bounded_int(
+            config.get("retry_delay"),
+            cast(int, DEFAULT_CONFIG["retry_delay"]),
+            minimum=0,
+            maximum=MAX_RETRY_DELAY_SECONDS,
+        ),
     }
 
 
@@ -203,7 +344,27 @@ def get_cache_config() -> Dict[str, Any]:
         dict: {'enabled': bool, 'ttl_seconds': int, 'max_entries': int}
     """
     config = _load_config()
-    return cast(Dict[str, Any], config.get("cache", DEFAULT_CONFIG["cache"]))
+    cache = config.get("cache", DEFAULT_CONFIG["cache"])
+    if not isinstance(cache, Mapping):
+        cache = DEFAULT_CONFIG["cache"]
+    default_cache = cast(Dict[str, Any], DEFAULT_CONFIG["cache"])
+    return {
+        "enabled": cache.get("enabled")
+        if isinstance(cache.get("enabled"), bool)
+        else default_cache["enabled"],
+        "ttl_seconds": _bounded_int(
+            cache.get("ttl_seconds"),
+            int(default_cache["ttl_seconds"]),
+            minimum=1,
+            maximum=MAX_CACHE_TTL_SECONDS,
+        ),
+        "max_entries": _bounded_int(
+            cache.get("max_entries"),
+            int(default_cache["max_entries"]),
+            minimum=1,
+            maximum=MAX_CACHE_ENTRIES,
+        ),
+    }
 
 
 def clear_config_cache() -> None:

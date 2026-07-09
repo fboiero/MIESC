@@ -7,8 +7,16 @@ Tests the centralized LLM configuration helper.
 import os
 from unittest.mock import patch
 
+import src.core.llm_config as llm_config_module
 from src.core.llm_config import (
     DEFAULT_CONFIG,
+    MAX_CACHE_ENTRIES,
+    MAX_CACHE_TTL_SECONDS,
+    MAX_CONFIG_MERGE_DEPTH,
+    MAX_CONFIG_MERGE_ITEMS,
+    MAX_CONTEXT_TOKENS,
+    MAX_FALLBACK_MODELS,
+    MAX_RETRY_ATTEMPTS,
     ROLE_GENERATOR,
     ROLE_VERIFICATOR,
     USE_CASE_CODE_ANALYSIS,
@@ -135,6 +143,42 @@ class TestDeepMerge:
         assert base["a"]["b"]["c"] == 2
         assert base["a"]["b"]["d"] == 3
 
+    def test_deep_merge_ignores_hostile_items_accessor(self):
+        """Test hostile mappings are ignored instead of breaking load."""
+
+        class HostileMapping(dict):
+            def items(self):
+                raise RuntimeError("no items")
+
+        base = {"a": 1}
+        _deep_merge(base, HostileMapping({"a": 2}))
+        assert base == {"a": 1}
+
+    def test_deep_merge_caps_item_count(self):
+        """Test deep merge ignores excessive mapping items."""
+        base = {}
+        override = {f"k{i}": i for i in range(MAX_CONFIG_MERGE_ITEMS + 25)}
+        _deep_merge(base, override)
+        assert len(base) == MAX_CONFIG_MERGE_ITEMS
+
+    def test_deep_merge_caps_nested_depth(self):
+        """Test deeply nested overrides stop at the configured depth."""
+        base = current_base = {}
+        override = current_override = {}
+        for index in range(MAX_CONFIG_MERGE_DEPTH + 3):
+            current_base["child"] = {}
+            current_override["child"] = {"value": index}
+            current_base = current_base["child"]
+            current_override = current_override["child"]
+
+        _deep_merge(base, override)
+
+        node = base
+        for _ in range(MAX_CONFIG_MERGE_DEPTH):
+            assert "child" in node
+            node = node["child"]
+        assert "value" not in node
+
 
 class TestGetOllamaHost:
     """Test Ollama host retrieval."""
@@ -162,6 +206,16 @@ class TestGetOllamaHost:
             host = get_ollama_host()
             assert host == "http://env-host:5678"
 
+    def test_get_ollama_host_rejects_control_chars_and_oversize_env(self):
+        """Test malformed env hosts fall back to config."""
+        clear_config_cache()
+        with patch.dict(os.environ, {"OLLAMA_HOST": "http://bad\u2028host"}):
+            assert get_ollama_host() == DEFAULT_CONFIG["host"]
+
+        clear_config_cache()
+        with patch.dict(os.environ, {"OLLAMA_HOST": "x" * 600}):
+            assert get_ollama_host() == DEFAULT_CONFIG["host"]
+
 
 class TestGetDefaultModel:
     """Test default model retrieval."""
@@ -181,6 +235,16 @@ class TestGetDefaultModel:
         with patch.dict(os.environ, {"MIESC_LLM_MODEL": "custom-model:latest"}):
             model = get_default_model()
             assert model == "custom-model:latest"
+
+    def test_get_default_model_rejects_control_chars_and_oversize_env(self):
+        """Test malformed env model falls back to config."""
+        clear_config_cache()
+        with patch.dict(os.environ, {"MIESC_LLM_MODEL": "bad\nmodel"}):
+            assert get_default_model() == DEFAULT_CONFIG["default_model"]
+
+        clear_config_cache()
+        with patch.dict(os.environ, {"MIESC_LLM_MODEL": "x" * 600}):
+            assert get_default_model() == DEFAULT_CONFIG["default_model"]
 
 
 class TestGetModel:
@@ -223,6 +287,30 @@ class TestGetModel:
         default = get_default_model()
         assert model == default
 
+    def test_get_model_falls_back_for_malformed_models_mapping(self, monkeypatch):
+        """Test malformed model maps use the default model."""
+        monkeypatch.setattr(
+            llm_config_module,
+            "_load_config",
+            lambda: {**DEFAULT_CONFIG, "models": ["bad"]},
+        )
+        with patch.dict(os.environ, {}, clear=True):
+            assert get_model(USE_CASE_CODE_ANALYSIS) == DEFAULT_CONFIG["default_model"]
+
+    def test_get_model_falls_back_for_bad_use_case_or_value(self, monkeypatch):
+        """Test malformed use cases and model values use defaults."""
+        monkeypatch.setattr(
+            llm_config_module,
+            "_load_config",
+            lambda: {
+                **DEFAULT_CONFIG,
+                "models": {USE_CASE_CODE_ANALYSIS: 123, "bad\ncase": "unsafe"},
+            },
+        )
+        with patch.dict(os.environ, {}, clear=True):
+            assert get_model(USE_CASE_CODE_ANALYSIS) == DEFAULT_CONFIG["default_model"]
+            assert get_model("bad\ncase") == DEFAULT_CONFIG["default_model"]
+
 
 class TestGetFallbackModels:
     """Test fallback models retrieval."""
@@ -240,6 +328,22 @@ class TestGetFallbackModels:
         models = get_fallback_models()
         for model in models:
             assert isinstance(model, str)
+
+    def test_fallback_models_are_sanitized_capped_and_defensive_copy(self, monkeypatch):
+        """Test fallback models are filtered, capped, and copied."""
+        raw_models = ["safe-model"] + [f"m{i}" for i in range(MAX_FALLBACK_MODELS + 5)]
+        raw_models.extend([123, "bad\u2028model"])
+        config = {**DEFAULT_CONFIG, "fallback_models": raw_models}
+        monkeypatch.setattr(llm_config_module, "_load_config", lambda: config)
+
+        first = get_fallback_models()
+        first.append("mutated")
+        second = get_fallback_models()
+
+        assert len(second) == MAX_FALLBACK_MODELS
+        assert "safe-model" in second
+        assert "mutated" not in second
+        assert all(isinstance(model, str) for model in second)
 
 
 class TestGetGenerationOptions:
@@ -276,6 +380,56 @@ class TestGetGenerationOptions:
         options = get_generation_options("unknown_role")
         assert "temperature" in options
 
+    def test_generation_options_fall_back_for_malformed_options_roles(self, monkeypatch):
+        """Test malformed options and roles do not break option loading."""
+        monkeypatch.setattr(
+            llm_config_module,
+            "_load_config",
+            lambda: {**DEFAULT_CONFIG, "options": ["bad"], "roles": ["bad"]},
+        )
+        options = get_generation_options(ROLE_GENERATOR)
+        assert options["temperature"] == DEFAULT_CONFIG["options"]["temperature"]
+
+    def test_generation_options_handles_hostile_role_items(self, monkeypatch):
+        """Test hostile role mappings are ignored safely."""
+
+        class HostileRole(dict):
+            def items(self):
+                raise RuntimeError("no items")
+
+        monkeypatch.setattr(
+            llm_config_module,
+            "_load_config",
+            lambda: {
+                **DEFAULT_CONFIG,
+                "roles": {ROLE_GENERATOR: HostileRole({"temperature": 0.9})},
+            },
+        )
+        options = get_generation_options(ROLE_GENERATOR)
+        assert options["temperature"] == DEFAULT_CONFIG["options"]["temperature"]
+
+    def test_generation_options_clamp_numeric_bounds(self, monkeypatch):
+        """Test known generation options are bounded."""
+        monkeypatch.setattr(
+            llm_config_module,
+            "_load_config",
+            lambda: {
+                **DEFAULT_CONFIG,
+                "options": {
+                    "temperature": 3,
+                    "top_p": -1,
+                    "num_ctx": 999_999_999,
+                    "num_predict": -5,
+                },
+                "roles": {ROLE_GENERATOR: {"temperature": float("nan")}},
+            },
+        )
+        options = get_generation_options(ROLE_GENERATOR)
+        assert options["temperature"] == DEFAULT_CONFIG["options"]["temperature"]
+        assert options["top_p"] == 0.0
+        assert options["num_ctx"] == MAX_CONTEXT_TOKENS
+        assert options["num_predict"] == 1
+
 
 class TestGetRoleSystemPrompt:
     """Test role system prompt retrieval."""
@@ -297,6 +451,23 @@ class TestGetRoleSystemPrompt:
         clear_config_cache()
         prompt = get_role_system_prompt("unknown")
         assert prompt == ""
+
+    def test_role_prompt_handles_malformed_roles_and_sanitizes_prompt(self, monkeypatch):
+        """Test malformed prompt config returns an empty prompt."""
+        monkeypatch.setattr(
+            llm_config_module, "_load_config", lambda: {**DEFAULT_CONFIG, "roles": ["bad"]}
+        )
+        assert get_role_system_prompt(ROLE_GENERATOR) == ""
+
+        monkeypatch.setattr(
+            llm_config_module,
+            "_load_config",
+            lambda: {
+                **DEFAULT_CONFIG,
+                "roles": {ROLE_GENERATOR: {"system_prompt": "bad\u2028prompt"}},
+            },
+        )
+        assert get_role_system_prompt(ROLE_GENERATOR) == ""
 
 
 class TestGetRetryConfig:
@@ -320,6 +491,26 @@ class TestGetRetryConfig:
         clear_config_cache()
         config = get_retry_config()
         assert config["delay"] > 0
+
+    def test_retry_config_bounds_malformed_values(self, monkeypatch):
+        """Test retry numbers are bounded and non-numeric values fall back."""
+        monkeypatch.setattr(
+            llm_config_module,
+            "_load_config",
+            lambda: {**DEFAULT_CONFIG, "retry_attempts": 999, "retry_delay": float("inf")},
+        )
+        config = get_retry_config()
+        assert config["attempts"] == MAX_RETRY_ATTEMPTS
+        assert config["delay"] == DEFAULT_CONFIG["retry_delay"]
+
+        monkeypatch.setattr(
+            llm_config_module,
+            "_load_config",
+            lambda: {**DEFAULT_CONFIG, "retry_attempts": 0, "retry_delay": -5},
+        )
+        config = get_retry_config()
+        assert config["attempts"] == 1
+        assert config["delay"] == 0
 
 
 class TestGetCacheConfig:
@@ -345,6 +536,26 @@ class TestGetCacheConfig:
         config = get_cache_config()
         assert config["ttl_seconds"] > 0
 
+    def test_cache_config_handles_malformed_mapping_and_bounds_values(self, monkeypatch):
+        """Test malformed cache config falls back and numeric values are bounded."""
+        monkeypatch.setattr(
+            llm_config_module, "_load_config", lambda: {**DEFAULT_CONFIG, "cache": ["bad"]}
+        )
+        assert get_cache_config() == DEFAULT_CONFIG["cache"]
+
+        monkeypatch.setattr(
+            llm_config_module,
+            "_load_config",
+            lambda: {
+                **DEFAULT_CONFIG,
+                "cache": {"enabled": "yes", "ttl_seconds": 999_999_999, "max_entries": 999_999_999},
+            },
+        )
+        config = get_cache_config()
+        assert config["enabled"] is DEFAULT_CONFIG["cache"]["enabled"]
+        assert config["ttl_seconds"] == MAX_CACHE_TTL_SECONDS
+        assert config["max_entries"] == MAX_CACHE_ENTRIES
+
 
 class TestGetLLMConfig:
     """Test full LLM config retrieval."""
@@ -362,6 +573,14 @@ class TestGetLLMConfig:
         assert "provider" in config
         assert "host" in config
         assert "default_model" in config
+
+    def test_get_llm_config_returns_defensive_copy(self):
+        """Test callers cannot mutate cached config state."""
+        clear_config_cache()
+        config = get_llm_config()
+        original_model = config["models"]["code_analysis"]
+        config["models"]["code_analysis"] = "mutated"
+        assert get_llm_config()["models"]["code_analysis"] == original_model
 
 
 class TestClearConfigCache:
@@ -422,3 +641,40 @@ class TestLoadConfigWithMock:
         assert "default_model" in config
         assert "models" in config
         assert "options" in config
+
+    def test_load_config_does_not_mutate_default_config_nested_models(self, monkeypatch):
+        """Test config merges use deep copies of default config."""
+
+        class FakeConfig:
+            def get_llm_config(self):
+                return {"models": {"code_analysis": "custom-model"}}
+
+        import src.core.config_loader as config_loader_module
+
+        clear_config_cache()
+        monkeypatch.setattr(config_loader_module, "get_config", lambda: FakeConfig())
+        config = llm_config_module._load_config()
+
+        assert config["models"]["code_analysis"] == "custom-model"
+        assert DEFAULT_CONFIG["models"]["code_analysis"] != "custom-model"
+
+    def test_load_config_falls_back_for_non_mapping_and_exceptions(self, monkeypatch):
+        """Test invalid config_loader outputs fall back to defaults."""
+
+        class NonMappingConfig:
+            def get_llm_config(self):
+                return ["bad"]
+
+        class RaisingConfig:
+            def get_llm_config(self):
+                raise RuntimeError("boom")
+
+        import src.core.config_loader as config_loader_module
+
+        clear_config_cache()
+        monkeypatch.setattr(config_loader_module, "get_config", lambda: NonMappingConfig())
+        assert llm_config_module._load_config()["provider"] == DEFAULT_CONFIG["provider"]
+
+        clear_config_cache()
+        monkeypatch.setattr(config_loader_module, "get_config", lambda: RaisingConfig())
+        assert llm_config_module._load_config()["provider"] == DEFAULT_CONFIG["provider"]
