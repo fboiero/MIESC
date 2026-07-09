@@ -13,6 +13,9 @@ import aiohttp
 import pytest
 
 from src.llm.llm_orchestrator import (
+    _MAX_ANALYSIS_VULNERABILITIES,
+    _MAX_CONTEXT_SEQUENCE_ITEMS,
+    _MAX_RECOMMENDATIONS,
     AnthropicBackend,
     DeepSeekBackend,
     LLMBackend,
@@ -24,12 +27,16 @@ from src.llm.llm_orchestrator import (
     OpenAIBackend,
     VulnerabilityAnalysis,
     _bounded_confidence,
+    _bounded_positive_int,
+    _bounded_temperature,
     _cache_key_context,
     _cache_key_dict_key,
+    _context_json,
     _is_safe_backend_name,
     _non_negative_int_stat,
     _normalized_model_identifier,
     _safe_backend_error_text,
+    _safe_text,
     analyze_solidity,
 )
 
@@ -476,7 +483,9 @@ class TestOpenAIBackend:
             SimpleNamespace(choices=[]),
             SimpleNamespace(choices=[SimpleNamespace()]),
             SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content={"x": 1}))]),
-            SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content="bad\njson"))]),
+            SimpleNamespace(
+                choices=[SimpleNamespace(message=SimpleNamespace(content="bad\njson"))]
+            ),
         ],
     )
     def test_analyze_rejects_malformed_chat_content(self, response):
@@ -750,7 +759,9 @@ class TestDeepSeekBackend:
             SimpleNamespace(choices=[]),
             SimpleNamespace(choices=[{"message": {"content": "{}"}}]),
             SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content=["{}"]))]),
-            SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content="bad\tjson"))]),
+            SimpleNamespace(
+                choices=[SimpleNamespace(message=SimpleNamespace(content="bad\tjson"))]
+            ),
         ],
     )
     def test_analyze_rejects_malformed_chat_content(self, response):
@@ -1345,9 +1356,7 @@ class TestLLMOrchestrator:
         assert analysis.recommendations == ["fix it"]
         assert analysis.severity_assessment["info"] == 1
 
-    def test_parse_analysis_legacy_fallback_ignores_malformed_remediation_values(
-        self, monkeypatch
-    ):
+    def test_parse_analysis_legacy_fallback_ignores_malformed_remediation_values(self, monkeypatch):
         """Test legacy fallback drops malformed remediation and summary values safely."""
 
         class InvalidValidation:
@@ -1526,8 +1535,7 @@ class TestLLMOrchestrator:
         orchestrator = LLMOrchestrator([])
 
         assert (
-            orchestrator._preferred_models_for_task(MalformedPreferredModels(["ollama:test"]))
-            == []
+            orchestrator._preferred_models_for_task(MalformedPreferredModels(["ollama:test"])) == []
         )
 
     def test_default_config_from_env_sanitizes_malformed_overrides(self, monkeypatch):
@@ -2480,3 +2488,245 @@ class TestIntegration:
         assert "Fix A" in analysis.recommendations
         assert "Fix B" in analysis.recommendations
         assert len(analysis.recommendations) == 2  # Empty remediation excluded
+
+
+def test_safe_text_and_model_identifier_reject_unicode_separators():
+    assert _safe_text("bad\u2028model") == ""
+    assert _safe_text("bad\u2029model") == ""
+    assert _normalized_model_identifier("deepseek\u2028coder") is None
+    assert _is_safe_backend_name("ollama:deepseek\u2029coder") is False
+    assert _bounded_confidence("0.\u20289") == 0.5
+
+
+def test_safe_backend_error_text_escapes_unicode_separators():
+    assert _safe_backend_error_text(RuntimeError("bad\u2028error\u2029msg")) == (
+        "bad\\u2028error\\u2029msg"
+    )
+
+
+def test_context_json_handles_hostile_dict_items_and_caps_collections():
+    class HostileDict(dict):
+        def items(self):
+            raise RuntimeError("boom")
+
+    serialized = _context_json(
+        {
+            "hostile": HostileDict({"secret": "value"}),
+            "large": list(range(_MAX_CONTEXT_SEQUENCE_ITEMS + 5)),
+            "bad\u2028key": "value",
+        }
+    )
+
+    assert '"hostile": {}' in serialized
+    assert f"{_MAX_CONTEXT_SEQUENCE_ITEMS + 4}" not in serialized
+    assert '"<malformed>": "value"' in serialized
+
+
+def test_cache_key_context_handles_hostile_items_and_caps_collections():
+    class HostileDict(dict):
+        def items(self):
+            raise RuntimeError("boom")
+
+    safe = _cache_key_context({"large": list(range(_MAX_CONTEXT_SEQUENCE_ITEMS + 5))})
+
+    assert _cache_key_context(HostileDict({"a": 1})) == []
+    assert len(safe[0][1]) == _MAX_CONTEXT_SEQUENCE_ITEMS
+    assert _cache_key_dict_key("bad\u2029key") == ["str", "<malformed>"]
+
+
+def test_bounded_output_numeric_helpers_cap_values():
+    assert _bounded_positive_int(10_000, 3, 5) == 5
+    assert _bounded_positive_int("2", 3, 5) == 2
+    assert _bounded_temperature(99) == 2.0
+    assert _bounded_temperature(-1) == 0.0
+
+
+def test_response_sequence_caps_items():
+    from src.llm.llm_orchestrator import _response_sequence
+
+    sequence = _response_sequence(list(range(150)), "choices", "test")
+
+    assert len(sequence) == 100
+
+
+def test_ollama_health_rejects_non_object_and_malformed_model_entries():
+    async def run_test(payload):
+        config = LLMConfig(provider=LLMProvider.OLLAMA, model="codellama")
+        backend = OllamaBackend(config)
+
+        mock_response = MagicMock()
+        mock_response.status = 200
+        mock_response.json = AsyncMock(return_value=payload)
+        mock_session = _aiohttp_session_with_response("get", mock_response)
+
+        with patch("aiohttp.ClientSession", return_value=mock_session):
+            return await backend.health_check()
+
+    assert asyncio.run(run_test(["not object"])) is False
+    assert (
+        asyncio.run(
+            run_test({"models": ["bad", {"name": ["codellama"]}, {"name": "bad\u2028model"}]})
+        )
+        is False
+    )
+
+
+def test_ollama_health_rejects_bool_status():
+    async def run_test():
+        config = LLMConfig(provider=LLMProvider.OLLAMA, model="codellama")
+        backend = OllamaBackend(config)
+
+        mock_response = MagicMock()
+        mock_response.status = True
+        mock_response.json = AsyncMock(return_value={"models": [{"name": "codellama"}]})
+        mock_session = _aiohttp_session_with_response("get", mock_response)
+
+        with patch("aiohttp.ClientSession", return_value=mock_session):
+            return await backend.health_check()
+
+    assert asyncio.run(run_test()) is False
+
+
+def test_ollama_analyze_rejects_malformed_status_and_error_text_failure():
+    async def run_test():
+        config = LLMConfig(provider=LLMProvider.OLLAMA, model="codellama")
+        backend = OllamaBackend(config)
+
+        mock_response = MagicMock()
+        mock_response.status = True
+        mock_response.text = AsyncMock(side_effect=RuntimeError("bad text"))
+        mock_session = _aiohttp_session_with_response("post", mock_response)
+
+        with patch("aiohttp.ClientSession", return_value=mock_session):
+            with pytest.raises(RuntimeError, match="malformed status"):
+                await backend.analyze("prompt")
+
+    asyncio.run(run_test())
+
+
+def test_ollama_analyze_rejects_missing_or_unsafe_content():
+    async def run_test(payload):
+        config = LLMConfig(provider=LLMProvider.OLLAMA, model="codellama")
+        backend = OllamaBackend(config)
+
+        mock_response = MagicMock()
+        mock_response.status = 200
+        mock_response.json = AsyncMock(return_value=payload)
+        mock_session = _aiohttp_session_with_response("post", mock_response)
+
+        with patch("aiohttp.ClientSession", return_value=mock_session):
+            with pytest.raises(ValueError, match="content must be str"):
+                await backend.analyze("prompt")
+
+    asyncio.run(run_test({"message": {}, "eval_count": 1, "prompt_eval_count": 1}))
+    asyncio.run(
+        run_test({"message": {"content": "bad\u2028json"}, "eval_count": 1, "prompt_eval_count": 1})
+    )
+
+
+def test_ollama_analyze_handles_hostile_response_get_accessors():
+    async def run_test():
+        class HostileDict(dict):
+            def get(self, *_args, **_kwargs):
+                raise RuntimeError("boom")
+
+        config = LLMConfig(provider=LLMProvider.OLLAMA, model="codellama")
+        backend = OllamaBackend(config)
+
+        mock_response = MagicMock()
+        mock_response.status = 200
+        mock_response.json = AsyncMock(
+            return_value=HostileDict(
+                {"message": {"content": "{}"}, "eval_count": 1, "prompt_eval_count": 1}
+            )
+        )
+        mock_session = _aiohttp_session_with_response("post", mock_response)
+
+        with patch("aiohttp.ClientSession", return_value=mock_session):
+            with pytest.raises(ValueError, match="content must be str"):
+                await backend.analyze("prompt")
+
+    asyncio.run(run_test())
+
+
+def test_query_caps_excessive_retry_attempts_and_delay(monkeypatch):
+    async def run_test():
+        config = LLMConfig(provider=LLMProvider.OLLAMA, model="fail")
+        config.retry_attempts = 100
+        config.retry_delay = 100
+        orchestrator = LLMOrchestrator([config])
+        backend = orchestrator.backends["ollama:fail"]
+        backend.available = True
+        attempts = 0
+
+        async def fail_analyze(_prompt, _context=None):
+            nonlocal attempts
+            attempts += 1
+            raise RuntimeError("failed")
+
+        backend.analyze = fail_analyze
+        sleep_mock = AsyncMock()
+        monkeypatch.setattr(asyncio, "sleep", sleep_mock)
+
+        with pytest.raises(RuntimeError):
+            await orchestrator.query("prompt")
+
+        assert attempts == 5
+        assert sleep_mock.await_args.args == (10.0,)
+
+    asyncio.run(run_test())
+
+
+def test_parse_analysis_handles_hostile_vulnerability_mapping(monkeypatch):
+    class HostileVulnerability(dict):
+        def __contains__(self, _key):
+            raise RuntimeError("boom")
+
+        def get(self, *_args, **_kwargs):
+            raise RuntimeError("boom")
+
+    monkeypatch.setattr(
+        "src.llm.llm_orchestrator.safe_parse_llm_json",
+        lambda *_args, **_kwargs: MagicMock(is_valid=False, data=None, errors=["forced"]),
+    )
+    monkeypatch.setattr(
+        "json.loads",
+        lambda *_args, **_kwargs: {"vulnerabilities": [HostileVulnerability({"severity": "high"})]},
+    )
+
+    analysis = LLMOrchestrator([])._parse_analysis(
+        LLMResponse(content='{"vulnerabilities": []}', provider="test", model="test")
+    )
+
+    assert analysis.vulnerabilities == []
+
+
+def test_parse_analysis_caps_vulnerabilities_and_recommendations(monkeypatch):
+    class ValidValidation:
+        is_valid = True
+        has_warnings = False
+        warnings = []
+        data = SimpleNamespace(
+            vulnerabilities=[
+                {
+                    "type": "x",
+                    "severity": "low",
+                    "confidence": 0.5,
+                    "remediation": f"fix {idx}",
+                }
+                for idx in range(_MAX_ANALYSIS_VULNERABILITIES + 10)
+            ],
+            summary="summary",
+        )
+
+    monkeypatch.setattr(
+        "src.llm.llm_orchestrator.safe_parse_llm_json",
+        lambda *_args, **_kwargs: ValidValidation(),
+    )
+
+    analysis = LLMOrchestrator([])._parse_analysis(
+        LLMResponse(content="{}", provider="test", model="test")
+    )
+
+    assert len(analysis.vulnerabilities) == _MAX_ANALYSIS_VULNERABILITIES
+    assert len(analysis.recommendations) == _MAX_RECOMMENDATIONS

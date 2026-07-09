@@ -58,6 +58,36 @@ LLM_RUNTIME_ERRORS = (
 )
 
 _BACKEND_ERROR_TEXT_LIMIT = 500
+_MAX_CONTEXT_ITEMS = 100
+_MAX_CONTEXT_SEQUENCE_ITEMS = 100
+_MAX_ANALYSIS_VULNERABILITIES = 200
+_MAX_RECOMMENDATIONS = 200
+_MAX_RESPONSE_SEQUENCE_ITEMS = 100
+_MAX_TIMEOUT_SECONDS = 600
+_MAX_TOKEN_LIMIT = 32_768
+
+
+def _is_unsafe_text_char(ch: str) -> bool:
+    ordinal = ord(ch)
+    return ordinal < 32 or ordinal == 127 or ordinal in {0x2028, 0x2029}
+
+
+def _safe_mapping_get(mapping: Any, key: str, default: Any = None) -> Any:
+    if not isinstance(mapping, dict):
+        return default
+    try:
+        return mapping.get(key, default)
+    except (AttributeError, TypeError, RuntimeError, ValueError):
+        return default
+
+
+def _safe_mapping_items(mapping: Any) -> List[Tuple[Any, Any]]:
+    if not isinstance(mapping, dict):
+        return []
+    try:
+        return list(mapping.items())[:_MAX_CONTEXT_ITEMS]
+    except (AttributeError, TypeError, RuntimeError, ValueError):
+        return []
 
 
 def _safe_text(value: Any) -> str:
@@ -73,7 +103,7 @@ def _safe_text(value: Any) -> str:
         text = value.strip()
     except Exception:
         return ""
-    if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+    if not text or any(_is_unsafe_text_char(ch) for ch in text):
         return ""
     return text
 
@@ -97,6 +127,10 @@ def _safe_backend_error_text(error: Any) -> str:
             safe_chars.append("\\r")
         elif char == "\t":
             safe_chars.append("\\t")
+        elif ordinal == 0x2028:
+            safe_chars.append("\\u2028")
+        elif ordinal == 0x2029:
+            safe_chars.append("\\u2029")
         elif ordinal < 32 or ordinal == 127:
             safe_chars.append(f"\\x{ordinal:02x}")
         else:
@@ -127,9 +161,9 @@ def _json_safe_context(value: Any, seen: Optional[set[int]] = None) -> Any:
     if isinstance(value, dict):
         seen.add(value_id)
         safe_dict = {}
-        for key, item in value.items():
+        for key, item in _safe_mapping_items(value):
             if isinstance(key, str):
-                safe_key = key
+                safe_key = key if not any(_is_unsafe_text_char(ch) for ch in key) else "<malformed>"
             elif key is None or isinstance(key, (bool, int, float)):
                 safe_key = str(key)
             else:
@@ -140,12 +174,14 @@ def _json_safe_context(value: Any, seen: Optional[set[int]] = None) -> Any:
 
     if isinstance(value, (list, tuple)):
         seen.add(value_id)
-        safe_list = [_json_safe_context(item, seen) for item in value]
+        safe_list = [_json_safe_context(item, seen) for item in value[:_MAX_CONTEXT_SEQUENCE_ITEMS]]
         seen.remove(value_id)
         return safe_list
     if isinstance(value, set):
         seen.add(value_id)
-        safe_list = [_json_safe_context(item, seen) for item in value]
+        safe_list = [
+            _json_safe_context(item, seen) for item in list(value)[:_MAX_CONTEXT_SEQUENCE_ITEMS]
+        ]
         seen.remove(value_id)
         return sorted(safe_list, key=lambda item: json.dumps(item, sort_keys=True))
 
@@ -164,7 +200,7 @@ def _cache_key_context(value: Any, seen: Optional[set[int]] = None) -> Any:
 
     if isinstance(value, str):
         text = value.strip()
-        if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+        if not text or any(_is_unsafe_text_char(ch) for ch in text):
             return {"__text__": "<malformed>"}
         return text
     if value is None or isinstance(value, (bool, int)):
@@ -182,19 +218,21 @@ def _cache_key_context(value: Any, seen: Optional[set[int]] = None) -> Any:
         seen.add(value_id)
         safe_items = [
             [_cache_key_dict_key(key), _cache_key_context(item, seen)]
-            for key, item in value.items()
+            for key, item in _safe_mapping_items(value)
         ]
         seen.remove(value_id)
         return sorted(safe_items, key=lambda item: json.dumps(item, sort_keys=True))
 
     if isinstance(value, (list, tuple)):
         seen.add(value_id)
-        safe_list = [_cache_key_context(item, seen) for item in value]
+        safe_list = [_cache_key_context(item, seen) for item in value[:_MAX_CONTEXT_SEQUENCE_ITEMS]]
         seen.remove(value_id)
         return safe_list
     if isinstance(value, set):
         seen.add(value_id)
-        safe_list = [_cache_key_context(item, seen) for item in value]
+        safe_list = [
+            _cache_key_context(item, seen) for item in list(value)[:_MAX_CONTEXT_SEQUENCE_ITEMS]
+        ]
         seen.remove(value_id)
         return sorted(safe_list, key=lambda item: json.dumps(item, sort_keys=True))
 
@@ -205,7 +243,7 @@ def _cache_key_dict_key(key: Any) -> List[Any]:
     """Encode dict keys without collapsing non-string keys into string keys."""
     if isinstance(key, str):
         text = key.strip()
-        if not text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+        if not text or any(_is_unsafe_text_char(ch) for ch in text):
             return ["str", "<malformed>"]
         return ["str", text]
     if key is None:
@@ -226,13 +264,13 @@ def _bounded_confidence(value: Any, default: float = 0.5) -> float:
     if isinstance(value, bool):
         return default
     if isinstance(value, str):
-        if any(ord(ch) < 32 or ord(ch) == 127 for ch in value):
+        if any(_is_unsafe_text_char(ch) for ch in value):
             return default
         text = value.strip()
         value = text
     elif isinstance(value, bytes):
         raw_value = value.decode("utf-8", errors="replace")
-        if any(ord(ch) < 32 or ord(ch) == 127 for ch in raw_value):
+        if any(_is_unsafe_text_char(ch) for ch in raw_value):
             return default
         text = raw_value.strip()
         value = text
@@ -288,7 +326,31 @@ def _response_sequence(value: Any, field_name: str, source: str) -> Sequence[Any
         raise ValueError(f"Malformed {source}: {field_name} must be non-empty sequence")
     if not value:
         raise ValueError(f"Malformed {source}: {field_name} must be non-empty sequence")
-    return value
+    return value[:_MAX_RESPONSE_SEQUENCE_ITEMS]
+
+
+def _bounded_positive_int(value: Any, default: int, max_value: int) -> int:
+    if isinstance(value, bool):
+        return default
+    try:
+        normalized = int(value)
+    except (TypeError, ValueError, OverflowError):
+        return default
+    if normalized < 1:
+        return default
+    return min(normalized, max_value)
+
+
+def _bounded_temperature(value: Any, default: float = 0.2) -> float:
+    if isinstance(value, bool):
+        return default
+    try:
+        normalized = float(value)
+    except (TypeError, ValueError, OverflowError):
+        return default
+    if not math.isfinite(normalized):
+        return default
+    return min(max(normalized, 0.0), 2.0)
 
 
 def _openai_compatible_chat_content(response: Any, source: str) -> str:
@@ -327,7 +389,7 @@ def _normalized_model_identifier(value: Any) -> Optional[str]:
     if not isinstance(value, str):
         return None
     model = value.strip()
-    if not model or any(ord(char) < 32 or ord(char) == 127 for char in model):
+    if not model or any(_is_unsafe_text_char(char) for char in model):
         return None
     return model
 
@@ -456,10 +518,26 @@ class OllamaBackend(LLMBackend):
             import aiohttp
 
             async with aiohttp.ClientSession() as session:
-                async with session.get(f"{self.base_url}/api/tags", timeout=aiohttp.ClientTimeout(total=5)) as resp:
-                    if resp.status == 200:
+                async with session.get(
+                    f"{self.base_url}/api/tags", timeout=aiohttp.ClientTimeout(total=5)
+                ) as resp:
+                    if resp.status == 200 and not isinstance(resp.status, bool):
                         data = await resp.json()
-                        models = [m["name"] for m in data.get("models", [])]
+                        if not isinstance(data, dict):
+                            self.available = False
+                            return self.available
+                        models_value = _safe_mapping_get(data, "models", [])
+                        models = []
+                        if isinstance(models_value, list):
+                            for model_entry in models_value[:_MAX_CONTEXT_SEQUENCE_ITEMS]:
+                                name = (
+                                    _safe_mapping_get(model_entry, "name")
+                                    if isinstance(model_entry, dict)
+                                    else None
+                                )
+                                safe_name = _safe_text(name)
+                                if safe_name:
+                                    models.append(safe_name)
                         self.available = self.config.model in models or any(
                             self.config.model in m for m in models
                         )
@@ -497,8 +575,14 @@ class OllamaBackend(LLMBackend):
                 json=payload,
                 timeout=aiohttp.ClientTimeout(total=self.config.timeout),
             ) as resp:
-                if resp.status != 200:
-                    error_text = _safe_backend_error_text(await resp.text())
+                status = resp.status
+                if not isinstance(status, int) or isinstance(status, bool):
+                    raise RuntimeError("Ollama error: malformed status")
+                if status != 200:
+                    try:
+                        error_text = _safe_backend_error_text(await resp.text())
+                    except LLM_RUNTIME_ERRORS:
+                        error_text = "error"
                     raise RuntimeError(f"Ollama error: {error_text}")
 
                 data = await resp.json()
@@ -506,20 +590,20 @@ class OllamaBackend(LLMBackend):
                     raise ValueError(
                         f"Malformed Ollama response: expected object, got {type(data).__name__}"
                     )
-                message = data.get("message", {})
+                message = _safe_mapping_get(data, "message", {})
                 if not isinstance(message, dict):
                     raise ValueError(
                         "Malformed Ollama response: message must be object, "
                         f"got {type(message).__name__}"
                     )
-                content = message.get("content", "")
-                if not isinstance(content, str):
+                content = _safe_mapping_get(message, "content", "")
+                if not isinstance(content, str) or not _safe_text(content):
                     raise ValueError(
                         "Malformed Ollama response: content must be str, "
                         f"got {type(content).__name__}"
                     )
-                eval_count = data.get("eval_count", 0)
-                prompt_eval_count = data.get("prompt_eval_count", 0)
+                eval_count = _safe_mapping_get(data, "eval_count", 0)
+                prompt_eval_count = _safe_mapping_get(data, "prompt_eval_count", 0)
                 if (
                     isinstance(eval_count, bool)
                     or isinstance(prompt_eval_count, bool)
@@ -572,8 +656,8 @@ class OpenAIBackend(LLMBackend):
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": prompt},
             ],
-            temperature=self.config.temperature,
-            max_tokens=self.config.max_tokens,
+            temperature=_bounded_temperature(self.config.temperature),
+            max_tokens=_bounded_positive_int(self.config.max_tokens, 4096, _MAX_TOKEN_LIMIT),
         )
 
         usage = getattr(response, "usage", None)
@@ -641,7 +725,7 @@ class DeepSeekBackend(LLMBackend):
                 {"role": "user", "content": prompt},
             ],
             temperature=self.config.temperature,
-            max_tokens=self.config.max_tokens,
+            max_tokens=_bounded_positive_int(self.config.max_tokens, 4096, _MAX_TOKEN_LIMIT),
         )
 
         usage = getattr(response, "usage", None)
@@ -692,7 +776,7 @@ class AnthropicBackend(LLMBackend):
 
         response = await client.messages.create(
             model=self.config.model,
-            max_tokens=self.config.max_tokens,
+            max_tokens=_bounded_positive_int(self.config.max_tokens, 4096, _MAX_TOKEN_LIMIT),
             system=system_prompt,
             messages=[{"role": "user", "content": prompt}],
         )
@@ -792,7 +876,9 @@ class LLMOrchestrator:
                 base_url=base_url_env or ollama_host,
             )
         if provider == LLMProvider.DEEPSEEK:
-            deepseek_base_url = _safe_text(os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com"))
+            deepseek_base_url = _safe_text(
+                os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
+            )
             if not deepseek_base_url:
                 deepseek_base_url = "https://api.deepseek.com"
             return LLMConfig(
@@ -971,9 +1057,7 @@ Provide a comprehensive security analysis in JSON format."""
                     self._cache_response(cache_key, response)
                     return response
                 except LLM_RUNTIME_ERRORS as e:
-                    errors.append(
-                        f"{key} attempt {attempt + 1}: {_safe_backend_error_text(e)}"
-                    )
+                    errors.append(f"{key} attempt {attempt + 1}: {_safe_backend_error_text(e)}")
                     if attempt < retry_attempts - 1:
                         await asyncio.sleep(retry_delay)
 
@@ -1079,7 +1163,7 @@ Provide a comprehensive security analysis in JSON format."""
                 raw_attempts,
             )
             return 1
-        return raw_attempts
+        return min(raw_attempts, 5)
 
     def _retry_delay_seconds(self, backend: LLMBackend) -> float:
         """Return a conservative retry delay for malformed backend config."""
@@ -1097,7 +1181,7 @@ Provide a comprehensive security analysis in JSON format."""
                 raw_delay,
             )
             return 0.0
-        return float(raw_delay)
+        return min(float(raw_delay), 10.0)
 
     def _cache_entry_limit(self) -> int:
         """Return a conservative cache size limit for malformed orchestrator state."""
@@ -1218,13 +1302,23 @@ Provide a comprehensive security analysis in JSON format."""
             "attack_scenario",
         }
         if isinstance(vulnerability, dict):
-            get_field = vulnerability.get
-            has_known_field = any(field in vulnerability for field in known_fields)
-        else:
-            def get_field(key: str, default: Any = None) -> Any:
-                return getattr(vulnerability, key, default)
 
-            has_known_field = any(hasattr(vulnerability, field) for field in known_fields)
+            def get_field(key: str, default: Any = None) -> Any:
+                return _safe_mapping_get(vulnerability, key, default)
+
+            try:
+                has_known_field = any(field in vulnerability for field in known_fields)
+            except (AttributeError, TypeError, RuntimeError, ValueError):
+                has_known_field = False
+        else:
+
+            def get_field(key: str, default: Any = None) -> Any:
+                try:
+                    return getattr(vulnerability, key, default)
+                except (AttributeError, TypeError, RuntimeError, ValueError):
+                    return default
+
+            has_known_field = any(get_field(field, None) is not None for field in known_fields)
 
         vuln_type = _bounded_output_text(get_field("type", "unknown"), default="unknown", limit=200)
         severity = _normalized_severity(get_field("severity", "medium"))
@@ -1276,7 +1370,10 @@ Provide a comprehensive security analysis in JSON format."""
             # Convert validated findings to dict format
             # Handle both Pydantic objects and raw dicts (from model_construct in lenient mode)
             vulnerabilities: List[Dict[str, Any]] = []
-            for vuln in validated.vulnerabilities:
+            vulnerabilities_source = (
+                validated.vulnerabilities if isinstance(validated.vulnerabilities, list) else []
+            )
+            for vuln in vulnerabilities_source[:_MAX_ANALYSIS_VULNERABILITIES]:
                 vuln_dict = self._analysis_vulnerability_dict(vuln)
                 if vuln_dict is not None:
                     vulnerabilities.append(vuln_dict)
@@ -1285,7 +1382,9 @@ Provide a comprehensive security analysis in JSON format."""
                 vulnerabilities=vulnerabilities,
                 severity_assessment=self._severity_assessment(vulnerabilities),
                 recommendations=[
-                    v.get("remediation", "") for v in vulnerabilities if v.get("remediation")
+                    v.get("remediation", "")
+                    for v in vulnerabilities[:_MAX_RECOMMENDATIONS]
+                    if v.get("remediation")
                 ],
                 confidence_score=sum(v.get("confidence", 0.5) for v in vulnerabilities)
                 / max(len(vulnerabilities), 1),
@@ -1311,10 +1410,10 @@ Provide a comprehensive security analysis in JSON format."""
             else:
                 data = {}
 
-            raw_vulnerabilities = data.get("vulnerabilities", [])
+            raw_vulnerabilities = _safe_mapping_get(data, "vulnerabilities", [])
             vulnerabilities = []
             if isinstance(raw_vulnerabilities, list):
-                for vuln in raw_vulnerabilities:
+                for vuln in raw_vulnerabilities[:_MAX_ANALYSIS_VULNERABILITIES]:
                     if not isinstance(vuln, dict):
                         continue
                     vuln_dict = self._analysis_vulnerability_dict(vuln)
@@ -1325,14 +1424,16 @@ Provide a comprehensive security analysis in JSON format."""
                 vulnerabilities=vulnerabilities,
                 severity_assessment=self._severity_assessment(vulnerabilities),
                 recommendations=[
-                    v.get("remediation", "") for v in vulnerabilities if v.get("remediation")
+                    v.get("remediation", "")
+                    for v in vulnerabilities[:_MAX_RECOMMENDATIONS]
+                    if v.get("remediation")
                 ],
                 confidence_score=sum(
                     _bounded_confidence(v.get("confidence", 0.5)) for v in vulnerabilities
                 )
                 / max(len(vulnerabilities), 1),
                 analysis_summary=_bounded_output_text(
-                    data.get("summary"),
+                    _safe_mapping_get(data, "summary"),
                     default="Analysis completed",
                     limit=2000,
                 ),
