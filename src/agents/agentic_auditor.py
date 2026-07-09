@@ -682,6 +682,7 @@ def audit_repo_multipersona(
     unioned: List[Dict[str, Any]] = []
     seen: set = set()
     per_persona: List[Dict[str, Any]] = []
+    exploit_totals: Dict[str, int] = {}
     failed: List[Dict[str, Any]] = []
     total_tool_calls = 0
     total_tokens = 0
@@ -718,6 +719,12 @@ def audit_repo_multipersona(
 
         total_tool_calls += int(result.trace.get("tool_calls", 0) or 0)
         total_tokens += int(result.trace.get("tokens", 0) or 0)
+        # Aggregate the per-persona exploit-validation counts so they survive the
+        # union (otherwise the multipersona trace hides whether exploits compiled).
+        ex = result.trace.get("exploit")
+        if isinstance(ex, dict):
+            for k, v in ex.items():
+                exploit_totals[k] = exploit_totals.get(k, 0) + int(v or 0)
         per_persona.append({
             "persona": persona,
             "findings": len(result.findings),
@@ -731,6 +738,8 @@ def audit_repo_multipersona(
         "tool_calls": total_tool_calls,
         "tokens": total_tokens,
     }
+    if exploit_totals:
+        trace["exploit"] = exploit_totals
     logger.info(
         "multipersona: %d unioned finding(s) across %d persona(s) "
         "(%d failed), %d tool call(s), %d tokens",
