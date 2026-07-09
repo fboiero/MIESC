@@ -22,6 +22,7 @@ from miesc.cli.utils import (
     console,
     error,
     get_max_workers,
+    get_profile,
     info,
     print_banner,
     run_tool,
@@ -45,6 +46,7 @@ if RICH_AVAILABLE:
 @click.command()
 @click.argument("contract", type=click.Path(exists=True))
 @click.option("--output", "-o", type=click.Path(), help="Output file for JSON report")
+@click.option("--profile", type=str, help="Apply a configured scan/audit profile")
 @click.option("--ci", is_flag=True, help="CI mode: exit 1 if critical/high issues found")
 @click.option("--quiet", "-q", is_flag=True, help="Minimal output, only show summary")
 @click.option(
@@ -135,6 +137,7 @@ if RICH_AVAILABLE:
 def scan(
     contract: str,
     output: str | None,
+    profile: str | None,
     ci: bool,
     quiet: bool,
     fp_strictness: str,
@@ -176,6 +179,9 @@ def scan(
         0 - Success (no critical/high issues, or CI mode disabled)
         1 - Critical or high severity issues found (CI mode only)
     """
+    profile_config = _get_scan_profile(profile)
+    profile_tools = _profile_tools(profile_config)
+
     # -------------------------------------------------------------------------
     # --diff mode: restrict scan to .sol files changed since diff_ref
     # -------------------------------------------------------------------------
@@ -231,7 +237,13 @@ def scan(
         for sol_file in sol_files:
             if not quiet:
                 info(f"  → {sol_file}")
-            _scan_single_file(str(sol_file), diff_results, quiet=quiet, llm_enhance=llm_enhance)
+            _scan_single_file(
+                str(sol_file),
+                diff_results,
+                quiet=quiet,
+                llm_enhance=llm_enhance,
+                tools=profile_tools,
+            )
 
         for result in diff_results:
             for finding in result.get("findings", []):
@@ -252,6 +264,24 @@ def scan(
 
     contract_path = Path(contract)
 
+    if profile_config and _profile_uses_agentic_path(profile_config):
+        if contract_path.is_dir():
+            error("Agentic scan profiles currently require a single Solidity file")
+            sys.exit(1)
+        _run_agentic_scan_profile(
+            profile or "",
+            profile_config,
+            contract,
+            output=output,
+            quiet=quiet,
+            verbose=verbose,
+            ci=ci,
+            verify_fp=verify_fp,
+            verify_model=verify_model,
+            rank=rank,
+        )
+        return
+
     # -------------------------------------------------------------------------
     # Directory mode: collect all .sol files and aggregate results
     # -------------------------------------------------------------------------
@@ -267,7 +297,7 @@ def scan(
             print_banner()
             info(f"Scanning directory: {contract}")
             info(f"Found {len(sol_files)} Solidity file(s)")
-            info(f"Tools: {', '.join(QUICK_TOOLS)}")
+            info(f"Tools: {', '.join(profile_tools)}")
 
         all_results: list[dict[str, Any]] = []
         for sol_file in sol_files:
@@ -278,6 +308,7 @@ def scan(
                 all_results,
                 quiet=quiet,
                 llm_enhance=llm_enhance,
+                tools=profile_tools,
             )
 
         # Tag each finding with its source file
@@ -427,7 +458,7 @@ def scan(
     if not quiet:
         print_banner()
         info(f"Scanning {contract}")
-        info(f"Tools: {', '.join(QUICK_TOOLS)}")
+        info(f"Tools: {', '.join(profile_tools)}")
 
     # Pre-flight: warn if the contract has obvious syntax errors
     _preflight_syntax_check(contract, quiet)
@@ -442,16 +473,16 @@ def scan(
             TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
         ) as progress:
             task = progress.add_task(
-                f"Running {len(QUICK_TOOLS)} tools in parallel...",
-                total=len(QUICK_TOOLS),
+                f"Running {len(profile_tools)} tools in parallel...",
+                total=len(profile_tools),
             )
 
             from concurrent.futures import ThreadPoolExecutor, as_completed
 
-            with ThreadPoolExecutor(max_workers=get_max_workers(default=len(QUICK_TOOLS))) as pool:
+            with ThreadPoolExecutor(max_workers=get_max_workers(default=len(profile_tools))) as pool:
                 futures = {
                     pool.submit(run_tool, tool, contract, 300, llm_enhance=llm_enhance): tool
-                    for tool in QUICK_TOOLS
+                    for tool in profile_tools
                 }
                 for future in as_completed(futures):
                     tool = futures[future]
@@ -468,9 +499,9 @@ def scan(
         from concurrent.futures import ThreadPoolExecutor, as_completed
 
         if not quiet:
-            info(f"Running {len(QUICK_TOOLS)} tools in parallel...")
-        with ThreadPoolExecutor(max_workers=get_max_workers(default=len(QUICK_TOOLS))) as pool:
-            futures = {pool.submit(run_tool, tool, contract, 300): tool for tool in QUICK_TOOLS}
+            info(f"Running {len(profile_tools)} tools in parallel...")
+        with ThreadPoolExecutor(max_workers=get_max_workers(default=len(profile_tools))) as pool:
+            futures = {pool.submit(run_tool, tool, contract, 300): tool for tool in profile_tools}
             for future in as_completed(futures):
                 try:
                     all_results.append(future.result())
@@ -761,12 +792,87 @@ def _preflight_syntax_check(contract: str, quiet: bool) -> None:
 # =============================================================================
 
 
+def _get_scan_profile(profile_name: str | None) -> dict[str, Any] | None:
+    if not profile_name:
+        return None
+    profile = get_profile(profile_name)
+    if not profile:
+        raise click.ClickException(f"Profile '{profile_name}' not found")
+    return profile
+
+
+def _profile_uses_agentic_path(profile: dict[str, Any]) -> bool:
+    return bool(profile.get("agentic_ensemble") or profile.get("enable_agentic_invariants"))
+
+
+def _profile_tools(profile: dict[str, Any] | None) -> list[str]:
+    if not profile:
+        return list(QUICK_TOOLS)
+    tools = profile.get("tools", QUICK_TOOLS)
+    if isinstance(tools, list) and tools:
+        return [str(tool) for tool in tools]
+    return list(QUICK_TOOLS)
+
+
+def _run_agentic_scan_profile(
+    profile_name: str,
+    profile: dict[str, Any],
+    contract: str,
+    *,
+    output: str | None,
+    quiet: bool,
+    verbose: bool,
+    ci: bool,
+    verify_fp: bool,
+    verify_model: str | None,
+    rank: bool,
+) -> None:
+    from miesc.cli.commands.audit import _apply_deep_profile_config
+    from src.agents.deep_audit_agent import DeepAuditAgent, DeepAuditConfig
+
+    if not quiet:
+        print_banner()
+        info(f"Scanning {contract}")
+        info(f"Profile: {profile_name} | {profile.get('description', '')}")
+        info("Route: agentic scan profile")
+
+    config = DeepAuditConfig(
+        timeout_seconds=int(profile.get("timeout", 600)),
+        max_iterations=int(profile.get("max_iterations", 5)),
+        enable_llm=bool(profile.get("enable_ai_triage", False)),
+        enable_rag=not bool(profile.get("skip_rag", False)),
+    )
+    config, _profile = _apply_deep_profile_config(config, profile_name)
+    result = DeepAuditAgent(config=config).analyze(contract)
+    all_results = [
+        {
+            "tool": "miesc-agentic-scan-profile",
+            "status": "success",
+            "contract": contract,
+            "findings": result.get("findings", []),
+            "metadata": result.get("metadata", {}),
+        }
+    ]
+    _display_and_save(
+        all_results,
+        contract=contract,
+        output=output,
+        quiet=quiet,
+        verbose=verbose,
+        ci=ci,
+        verify_fp=verify_fp,
+        verify_model=verify_model,
+        rank=rank,
+    )
+
+
 def _scan_single_file(
     contract: str,
     all_results: list[dict[str, Any]],
     *,
     quiet: bool,
     llm_enhance: bool,
+    tools: list[str] | None = None,
 ) -> None:
     """Run QUICK_TOOLS against a single .sol file and append results to all_results.
 
@@ -775,10 +881,11 @@ def _scan_single_file(
     """
     from concurrent.futures import ThreadPoolExecutor, as_completed
 
-    with ThreadPoolExecutor(max_workers=get_max_workers(default=len(QUICK_TOOLS))) as pool:
+    scan_tools = tools or list(QUICK_TOOLS)
+    with ThreadPoolExecutor(max_workers=get_max_workers(default=len(scan_tools))) as pool:
         futures = {
             pool.submit(run_tool, tool, contract, 300, llm_enhance=llm_enhance): tool
-            for tool in QUICK_TOOLS
+            for tool in scan_tools
         }
         for future in as_completed(futures):
             tool = futures[future]
