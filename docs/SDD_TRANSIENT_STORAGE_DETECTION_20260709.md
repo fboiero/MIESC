@@ -2,7 +2,7 @@
 
 Date: 2026-07-09
 Owner lane: Codex
-Status: implemented as standalone detector; pending ensemble/adapter wiring
+Status: implemented and wired into the SmartBugs detector adapter
 
 ## 1. Signal
 
@@ -76,8 +76,9 @@ This is deliberately additive:
 
 - No changes to frozen paper artifacts.
 - No changes to canonical benchmark outputs.
-- No changes to `src/adapters/**` or `src/core/**` while other lanes may be
-  active.
+- The SmartBugs adapter now runs this detector as a complementary generic
+  detector and normalizes both `SmartBugsFinding` and detector API `Finding`
+  objects into the existing MIESC finding schema.
 
 ## 4. Validation
 
@@ -103,17 +104,24 @@ ruff check src/detectors/transient_storage_detector.py tests/test_transient_stor
 
 ## 5. Integration Plan
 
-Next bounded SDD step should wire this into one of the existing detector
-engines after coordination:
+Implemented integration:
 
-1. Register `TransientStorageDetector` in the detector registry or the relevant
-   ensemble path.
-2. Add an adapter-level smoke test that proves the finding survives JSON/report
-   conversion.
-3. Add one fixture contract with EIP-1153 inline assembly and one Solidity
-   0.8.28 `transient` example.
-4. Run a small non-canonical benchmark slice and record results under a dated,
+1. `SmartBugsDetectorAdapter.analyze()` now adds transient storage findings for
+   file scans.
+2. `SmartBugsDetectorAdapter.analyze_source()` now adds transient storage
+   findings for source-string scans.
+3. The adapter conversion path normalizes category, severity, location,
+   references, recommendation, and metadata for both legacy SmartBugs findings
+   and generic detector API findings.
+4. Focused adapter tests prove the finding survives file/source conversion and
+   summary generation.
+
+Next bounded SDD step:
+
+1. Run a small non-canonical benchmark slice and record results under a dated,
    Codex-specific filename only.
+2. Add a fixture contract with Solidity 0.8.28 `transient` state-variable syntax
+   if the benchmark corpus needs fixture-driven evidence.
 
 ## 6. References
 

@@ -24,6 +24,17 @@ BAD_RANDOM = (
     "}\n"
 )
 
+TRANSIENT_LOW_GAS = """
+pragma solidity ^0.8.28;
+contract Vault {
+    function withdraw(address payable to) external {
+        assembly { tstore(0x00, 1) }
+        to.transfer(1 ether);
+        assembly { tstore(0x00, 0) }
+    }
+}
+"""
+
 
 def _a():
     return SmartBugsDetectorAdapter()
@@ -44,8 +55,11 @@ def test_is_available_not_installed(monkeypatch):
 def test_metadata_and_detector_info():
     a = _a()
     assert a.get_metadata().name == a.name
+    detection_types = a.get_metadata().capabilities[0].detection_types
+    assert "transient_storage_reentrancy" in detection_types
     info = a.get_detector_info()
     assert info["layer"] == 6
+    assert "reentrancy" in info["categories"]
 
 
 # --------------------------------------------------------------------------- #
@@ -70,6 +84,26 @@ def test_analyze_triggers_findings(tmp_path):
     assert f["location"]["file"] == str(sol)
 
 
+def test_analyze_converts_transient_storage_file_finding(tmp_path):
+    a = _a()
+    sol = tmp_path / "Vault.sol"
+    sol.write_text(TRANSIENT_LOW_GAS)
+
+    out = a.analyze(str(sol))
+
+    assert out["success"] is True
+    finding = next(f for f in out["findings"] if f["category"] == "reentrancy")
+    assert finding["id"].startswith("SB-REENTRANCY-")
+    assert finding["severity"] == "High"
+    assert finding["location"]["file"] == str(sol)
+    assert finding["location"]["line"] == 4
+    assert "transfer" in finding["location"]["snippet"]
+    assert finding["metadata"]["pattern"] == "transient-low-gas-reentrancy"
+    assert finding["references"]
+    assert out["summary"]["by_category"]["reentrancy"] == 1
+    assert out["summary"]["by_detector"]["transient-storage-detector"] == 1
+
+
 def test_analyze_handles_engine_exception(tmp_path, monkeypatch):
     a = _a()
     sol = tmp_path / "C.sol"
@@ -89,6 +123,18 @@ def test_analyze_source_triggers_findings():
     assert out["success"] is True
     assert out["findings"]
     assert out["findings"][0]["category"] == "bad_randomness"
+
+
+def test_analyze_source_converts_transient_storage_finding():
+    out = _a().analyze_source(TRANSIENT_LOW_GAS)
+
+    assert out["success"] is True
+    finding = next(f for f in out["findings"] if f["category"] == "reentrancy")
+    assert finding["severity"] == "High"
+    assert finding["location"]["file"] is None
+    assert finding["location"]["line"] == 4
+    assert finding["metadata"]["function"] == "withdraw"
+    assert out["summary"]["by_category"]["reentrancy"] == 1
 
 
 def test_analyze_source_handles_exception(monkeypatch):

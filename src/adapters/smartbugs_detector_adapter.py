@@ -17,13 +17,14 @@ Institution: UNDEF - IUA
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 # Add project root to path
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
-from detectors.smartbugs_detectors import SmartBugsDetectorEngine, SmartBugsFinding  # noqa: E402
+from detectors.smartbugs_detectors import SmartBugsDetectorEngine  # noqa: E402
+from detectors.transient_storage_detector import TransientStorageDetector  # noqa: E402
 from src.core.tool_protocol import (  # noqa: E402
     ToolCapability,
     ToolCategory,
@@ -58,6 +59,7 @@ class SmartBugsDetectorAdapter:
 
     def __init__(self) -> None:
         self.engine = SmartBugsDetectorEngine()
+        self.transient_detector = TransientStorageDetector()
 
     def is_available(self) -> ToolStatus:
         """Check if SmartBugs detector engine is available."""
@@ -90,6 +92,7 @@ class SmartBugsDetectorAdapter:
                         "bad_randomness",
                         "denial_of_service",
                         "front_running",
+                        "transient_storage_reentrancy",
                     ],
                 )
             ],
@@ -105,6 +108,8 @@ class SmartBugsDetectorAdapter:
 
         try:
             findings = self.engine.analyze_file(path)
+            source_code = path.read_text(encoding="utf-8")
+            findings.extend(self.transient_detector.analyze(source_code, path))
             miesc_findings = self._convert_findings(findings, path)
 
             return {
@@ -114,35 +119,48 @@ class SmartBugsDetectorAdapter:
                 "file": str(path),
                 "timestamp": datetime.now().isoformat(),
                 "findings": miesc_findings,
-                "summary": self.engine.get_summary(findings),
+                "summary": self._build_summary(findings),
             }
 
         except Exception as e:
             return {"success": False, "error": str(e), "findings": []}
 
     def _convert_findings(
-        self, findings: List[SmartBugsFinding], file_path: Path
+        self, findings: List[Any], file_path: Optional[Path] = None
     ) -> List[Dict[str, Any]]:
         """Convert SmartBugs findings to MIESC standard format."""
         miesc_findings: List[Dict[str, Any]] = []
 
         for finding in findings:
+            category = self._finding_category(finding)
+            line = self._finding_line(finding)
+            snippet = self._finding_snippet(finding)
             miesc_finding = {
-                "id": f"SB-{finding.category.upper()}-{len(miesc_findings)+1}",
+                "id": f"SB-{category.upper()}-{len(miesc_findings)+1}",
                 "title": finding.title,
                 "description": finding.description,
-                "severity": self.SEVERITY_MAP.get(finding.severity.value, "Medium"),
+                "severity": self.SEVERITY_MAP.get(self._finding_severity(finding), "Medium"),
                 "confidence": finding.confidence,
-                "category": finding.category,
-                "swc_id": finding.swc_id,
+                "category": category,
+                "swc_id": getattr(finding, "swc_id", None) or "",
                 "location": {
-                    "file": str(file_path),
-                    "line": finding.line,
-                    "snippet": finding.code_snippet,
+                    "file": str(file_path) if file_path else None,
+                    "line": line,
+                    "snippet": snippet,
                 },
                 "tool": self.name,
                 "layer": self.layer,
             }
+
+            recommendation = getattr(finding, "recommendation", "")
+            references = getattr(finding, "references", [])
+            metadata = getattr(finding, "metadata", {})
+            if recommendation:
+                miesc_finding["recommendation"] = recommendation
+            if references:
+                miesc_finding["references"] = references
+            if metadata:
+                miesc_finding["metadata"] = metadata
 
             miesc_findings.append(miesc_finding)
 
@@ -152,23 +170,8 @@ class SmartBugsDetectorAdapter:
         """Analyze source code directly."""
         try:
             findings = self.engine.analyze(source_code)
-            miesc_findings: List[Dict[str, Any]] = []
-
-            for finding in findings:
-                miesc_finding = {
-                    "id": f"SB-{finding.category.upper()}-{len(miesc_findings)+1}",
-                    "title": finding.title,
-                    "description": finding.description,
-                    "severity": self.SEVERITY_MAP.get(finding.severity.value, "Medium"),
-                    "confidence": finding.confidence,
-                    "category": finding.category,
-                    "swc_id": finding.swc_id,
-                    "location": {"line": finding.line, "snippet": finding.code_snippet},
-                    "tool": self.name,
-                    "layer": self.layer,
-                }
-
-                miesc_findings.append(miesc_finding)
+            findings.extend(self.transient_detector.analyze(source_code))
+            miesc_findings = self._convert_findings(findings)
 
             return {
                 "success": True,
@@ -176,11 +179,51 @@ class SmartBugsDetectorAdapter:
                 "layer": self.layer,
                 "timestamp": datetime.now().isoformat(),
                 "findings": miesc_findings,
-                "summary": self.engine.get_summary(findings),
+                "summary": self._build_summary(findings),
             }
 
         except Exception as e:
             return {"success": False, "error": str(e), "findings": []}
+
+    def _build_summary(self, findings: List[Any]) -> Dict[str, Any]:
+        """Generate a summary for legacy SmartBugs and generic detector findings."""
+        summary: Dict[str, Any] = {
+            "total": len(findings),
+            "by_severity": {},
+            "by_category": {},
+            "by_detector": {},
+        }
+        for finding in findings:
+            severity = self._finding_severity(finding)
+            category = self._finding_category(finding)
+            detector = getattr(finding, "detector", self.name)
+            summary["by_severity"][severity] = summary["by_severity"].get(severity, 0) + 1
+            summary["by_category"][category] = summary["by_category"].get(category, 0) + 1
+            summary["by_detector"][detector] = summary["by_detector"].get(detector, 0) + 1
+        return summary
+
+    @staticmethod
+    def _finding_category(finding: Any) -> str:
+        category = getattr(finding, "category", "unknown")
+        value = getattr(category, "value", category)
+        return str(value)
+
+    @staticmethod
+    def _finding_severity(finding: Any) -> str:
+        severity = getattr(finding, "severity", "medium")
+        value = getattr(severity, "value", severity)
+        return str(value).lower()
+
+    @staticmethod
+    def _finding_line(finding: Any) -> Optional[int]:
+        if hasattr(finding, "line"):
+            return finding.line
+        location = getattr(finding, "location", None)
+        return getattr(location, "line_start", None)
+
+    @staticmethod
+    def _finding_snippet(finding: Any) -> Optional[str]:
+        return getattr(finding, "code_snippet", None)
 
     @staticmethod
     def get_detector_info() -> Dict[str, Any]:
@@ -195,6 +238,7 @@ class SmartBugsDetectorAdapter:
                 "Denial of Service (SWC-113/128)",
                 "Front Running (SWC-114)",
                 "Short Address Attack (SWC-129)",
+                "EIP-1153 Transient Storage Reentrancy",
             ],
             "categories": [
                 "arithmetic",
@@ -202,6 +246,7 @@ class SmartBugsDetectorAdapter:
                 "denial_of_service",
                 "front_running",
                 "short_addresses",
+                "reentrancy",
             ],
         }
 
