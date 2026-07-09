@@ -11,6 +11,18 @@ Version: 2.0.0
 """
 
 # v4.3.0+ New LLM Components (2025-2026 Improvements)
+from .agentic_contracts import (
+    AgentCapability,
+    CounterexampleEvidence,
+    DPGAgentConfig,
+    InvariantCandidate,
+    InvariantCategory,
+    InvariantExtractionAgent,
+    ReasoningProvider,
+    ReasoningResult,
+    ReasoningTask,
+    parse_invariant_candidates,
+)
 from .ensemble_detector import (
     EnsembleFinding,
     EnsembleResult,
@@ -89,6 +101,17 @@ except ImportError:
     get_context_for_finding = None  # type: ignore[assignment,misc]
 
 __all__ = [
+    # Provider-agnostic agent contracts
+    "AgentCapability",
+    "CounterexampleEvidence",
+    "DPGAgentConfig",
+    "InvariantCandidate",
+    "InvariantCategory",
+    "InvariantExtractionAgent",
+    "ReasoningProvider",
+    "ReasoningResult",
+    "ReasoningTask",
+    "parse_invariant_candidates",
     # Legacy OpenLLaMA helpers
     "OpenLLaMAHelper",
     "enhance_findings_with_llm",
