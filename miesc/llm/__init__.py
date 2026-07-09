@@ -17,18 +17,22 @@ try:
         LLMBackend,
         LLMConfig,
         LLMOrchestrator,
+        LLMOrchestratorReasoningProvider,
         # New LLM Orchestrator
         LLMProvider,
         LLMResponse,
+        LocalHeuristicReasoningProvider,
         OllamaBackend,
         OpenAIBackend,
         # Legacy helpers
         OpenLLaMAHelper,
         ReasoningProvider,
+        ReasoningProviderRoute,
         ReasoningResult,
         ReasoningTask,
         VulnerabilityAnalysis,
         analyze_solidity,
+        auto_reasoning_provider,
         enhance_findings_with_llm,
         explain_technical_output,
         generate_remediation_advice,
@@ -42,10 +46,14 @@ except ImportError:
     InvariantCandidate = None
     InvariantCategory = None
     InvariantExtractionAgent = None
+    LLMOrchestratorReasoningProvider = None
+    LocalHeuristicReasoningProvider = None
     OpenLLaMAHelper = None
     ReasoningProvider = None
+    ReasoningProviderRoute = None
     ReasoningResult = None
     ReasoningTask = None
+    auto_reasoning_provider = None
     enhance_findings_with_llm = None
     explain_technical_output = None
     prioritize_findings = None
@@ -69,10 +77,14 @@ __all__ = [
     "InvariantCandidate",
     "InvariantCategory",
     "InvariantExtractionAgent",
+    "LLMOrchestratorReasoningProvider",
+    "LocalHeuristicReasoningProvider",
     "OpenLLaMAHelper",
     "ReasoningProvider",
+    "ReasoningProviderRoute",
     "ReasoningResult",
     "ReasoningTask",
+    "auto_reasoning_provider",
     "enhance_findings_with_llm",
     "explain_technical_output",
     "prioritize_findings",

@@ -57,6 +57,12 @@ from .openllama_helper import (
     generate_remediation_advice,
     prioritize_findings,
 )
+from .reasoning_provider_adapter import (
+    LLMOrchestratorReasoningProvider,
+    LocalHeuristicReasoningProvider,
+    ReasoningProviderRoute,
+    auto_reasoning_provider,
+)
 from .remediation_generator import (
     REMEDIATION_PATTERNS,
     Remediation,
@@ -112,6 +118,10 @@ __all__ = [
     "ReasoningResult",
     "ReasoningTask",
     "parse_invariant_candidates",
+    "LLMOrchestratorReasoningProvider",
+    "LocalHeuristicReasoningProvider",
+    "ReasoningProviderRoute",
+    "auto_reasoning_provider",
     # Legacy OpenLLaMA helpers
     "OpenLLaMAHelper",
     "enhance_findings_with_llm",

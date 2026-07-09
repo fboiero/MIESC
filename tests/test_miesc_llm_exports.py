@@ -14,9 +14,13 @@ AGENTIC_EXPORTS = [
     "InvariantCandidate",
     "InvariantCategory",
     "InvariantExtractionAgent",
+    "LLMOrchestratorReasoningProvider",
+    "LocalHeuristicReasoningProvider",
     "ReasoningProvider",
+    "ReasoningProviderRoute",
     "ReasoningResult",
     "ReasoningTask",
+    "auto_reasoning_provider",
     "parse_invariant_candidates",
 ]
 
