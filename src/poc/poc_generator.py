@@ -26,6 +26,7 @@ from datetime import datetime
 from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
+from urllib.parse import urlsplit
 
 logger = logging.getLogger(__name__)
 
@@ -140,10 +141,50 @@ def _safe_import_path(value: Any) -> bool:
         not text
         or "\\" in text
         or ".." in text
+        or '"' in text
+        or ";" in text
+        or any(ch in {"\u2028", "\u2029"} for ch in text)
         or any(ord(ch) < 32 or ord(ch) == 127 for ch in text)
     ):
         return False
     return ":" not in text and not text.startswith("/")
+
+
+def _safe_templates_dir(value: Any) -> Optional[Path]:
+    """Return a usable templates directory path without control characters."""
+    if not isinstance(value, (str, Path)):
+        return None
+    text = str(value).strip()
+    if (
+        not text
+        or "\x00" in text
+        or any(ch in {"\u2028", "\u2029"} for ch in text)
+        or any(ord(ch) < 32 or ord(ch) == 127 for ch in text)
+    ):
+        return None
+    return Path(text)
+
+
+def _safe_fork_url(value: Any) -> Optional[str]:
+    """Return an HTTP(S) fork URL without Solidity or credential injection."""
+    if not isinstance(value, str):
+        return None
+    if any(ch in {"\u2028", "\u2029"} for ch in value) or any(
+        ord(ch) < 32 or ord(ch) == 127 for ch in value
+    ):
+        return None
+    text = value.strip()
+    if not text or len(text) > 2048 or '"' in text or "\\" in text:
+        return None
+    try:
+        parsed = urlsplit(text)
+    except ValueError:
+        return None
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        return None
+    if parsed.username or parsed.password:
+        return None
+    return text
 
 
 def _safe_contract_text(value: Any) -> str:
@@ -416,8 +457,8 @@ class PoCGenerator:
         """
         if templates_dir is None:
             self.templates_dir = self.TEMPLATES_DIR
-        elif isinstance(templates_dir, (str, Path)) and str(templates_dir).strip():
-            self.templates_dir = Path(templates_dir)
+        elif safe_templates_dir := _safe_templates_dir(templates_dir):
+            self.templates_dir = safe_templates_dir
         else:
             logger.warning("Ignoring malformed templates_dir for PoC generator")
             self.templates_dir = self.TEMPLATES_DIR
@@ -761,19 +802,16 @@ class PoCGenerator:
 
     def _fork_config(self, options: GenerationOptions) -> str:
         """Build fork setup only from well-formed option fields."""
-        fork_url = getattr(options, "fork_url", None)
+        raw_fork_url = getattr(options, "fork_url", None)
+        fork_url = _safe_fork_url(raw_fork_url)
         fork_block = getattr(options, "fork_block", None)
 
-        if fork_url is None or fork_block is None:
+        if raw_fork_url is None and fork_block is None:
             return ""
 
         if (
-            not isinstance(fork_url, str)
-            or not fork_url.strip()
-            or len(fork_url.strip()) > 2048
-            or '"' in fork_url
-            or "\\" in fork_url
-            or any(ord(ch) < 32 or ord(ch) == 127 for ch in fork_url)
+            fork_url is None
+            or fork_block is None
             or not isinstance(fork_block, int)
             or isinstance(fork_block, bool)
             or fork_block <= 0
@@ -784,7 +822,7 @@ class PoCGenerator:
 
         return f"""
         // Fork mainnet
-        vm.createSelectFork("{fork_url.strip()}", {fork_block});
+        vm.createSelectFork("{fork_url}", {fork_block});
 """
 
     def _extract_function_name(self, finding: Dict[str, Any]) -> Optional[str]:

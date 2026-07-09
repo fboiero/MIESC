@@ -15,6 +15,15 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from src.poc.validators.foundry_runner import (
+    MAX_GAS_REPORT_CONTRACTS,
+    MAX_GAS_REPORT_METHODS,
+    MAX_JSON_CANDIDATE_LINES,
+    MAX_JSON_CONTRACT_RESULTS,
+    MAX_JSON_METHOD_RESULTS,
+    MAX_LOG_ENTRIES,
+    MAX_LOG_ENTRY_CHARS,
+    MAX_PARSED_TESTS,
+    MAX_TOTAL_RUNTIME_GAS,
     FoundryResult,
     FoundryRunner,
     TestResult,
@@ -329,7 +338,9 @@ class TestFoundryCommandBuilders:
         with pytest.raises(ValueError, match="Malformed Foundry test path"):
             runner._build_run_test_command(test_path)
 
-    @pytest.mark.parametrize("test_path", ["/tmp/Exploit.t.sol", "../Exploit.t.sol", "test\x7f.t.sol"])
+    @pytest.mark.parametrize(
+        "test_path", ["/tmp/Exploit.t.sol", "../Exploit.t.sol", "test\x7f.t.sol"]
+    )
     def test_build_run_test_command_rejects_unsafe_test_path(self, runner, test_path):
         """Test paths must remain printable and project-relative."""
         with pytest.raises(ValueError, match="Malformed Foundry test path"):
@@ -470,7 +481,9 @@ class TestRunTest:
         assert mock_run.call_args.kwargs["timeout"] == 300
 
     @pytest.mark.parametrize("timeout", ["nan", "inf", "-inf", "1e309", "999999999"])
-    def test_run_test_defaults_nonfinite_or_huge_timeout(self, runner, sample_forge_output, timeout):
+    def test_run_test_defaults_nonfinite_or_huge_timeout(
+        self, runner, sample_forge_output, timeout
+    ):
         """Non-finite or huge timeout strings should use the bounded default."""
         mock_result = MagicMock()
         mock_result.returncode = 0
@@ -1026,6 +1039,34 @@ class TestParseOutput:
             TestStatus.SKIPPED,
         ]
 
+    def test_parse_test_results_handles_hostile_top_level_dict_accessors(self, runner):
+        """Hostile dict subclasses should be ignored safely."""
+
+        class HostileDict(dict):
+            def __contains__(self, key):
+                raise RuntimeError("no contains")
+
+            def items(self):
+                raise RuntimeError("no items")
+
+        assert runner._parse_test_results(HostileDict({"test_results": {}})) == []
+
+    def test_parse_test_results_caps_contract_and_test_entries(self, runner):
+        """Nested JSON result parsing should cap contracts and tests."""
+        tests = runner._parse_test_results(
+            {
+                "test_results": {
+                    f"test/C{contract}.t.sol:C{contract}": {
+                        f"test_{method}": {"success": True}
+                        for method in range(MAX_JSON_METHOD_RESULTS + 5)
+                    }
+                    for contract in range(MAX_JSON_CONTRACT_RESULTS + 5)
+                }
+            }
+        )
+
+        assert len(tests) == MAX_PARSED_TESTS
+
     def test_parse_forge_output_ignores_malformed_json_gas(self, runner):
         """Test malformed JSON gas values do not break total gas aggregation."""
         output = (
@@ -1049,6 +1090,39 @@ class TestParseOutput:
         assert result.total_tests == 1
         assert result.tests[0].gas_used is None
         assert result.total_gas == 0
+
+    def test_parse_forge_output_caps_json_candidate_lines(self, runner):
+        """JSON parsing should stop after a bounded number of candidate lines."""
+        output = "\n".join(
+            f'{{"test_name": "test_{index}", "success": true}}'
+            for index in range(MAX_JSON_CANDIDATE_LINES + 25)
+        )
+
+        result = runner._parse_forge_output(output, "", 0, 10)
+
+        assert result.total_tests == MAX_JSON_CANDIDATE_LINES
+
+    def test_parse_forge_output_caps_total_parsed_tests(self, runner):
+        """Parsed tests should be capped across JSON lines."""
+        import json
+
+        output = "\n".join(
+            json.dumps(
+                {
+                    "test_results": {
+                        f"test/Mass{line}.t.sol:Mass{line}Test": {
+                            f"test_{index}": {"success": True}
+                            for index in range(MAX_JSON_METHOD_RESULTS)
+                        }
+                    }
+                }
+            )
+            for line in range((MAX_PARSED_TESTS // MAX_JSON_METHOD_RESULTS) + 2)
+        )
+
+        result = runner._parse_forge_output(output, "", 0, 10)
+
+        assert result.total_tests == MAX_PARSED_TESTS
 
     def test_parse_flat_json_test_result_normalizes_logs(self, runner):
         """Test flat JSON test result ignores non-list logs."""
@@ -1094,6 +1168,16 @@ class TestParseOutput:
         assert len(tests) == 1
         assert tests[0].logs == ["ok"]
 
+    def test_normalize_logs_caps_entry_count_and_entry_length(self):
+        """Logs should be capped by count and per-entry text length."""
+        logs = [f"log-{index}" for index in range(MAX_LOG_ENTRIES + 5)]
+        logs.insert(1, "x" * (MAX_LOG_ENTRY_CHARS + 1))
+
+        normalized = FoundryRunner._normalize_logs(logs)
+
+        assert len(normalized) == MAX_LOG_ENTRIES
+        assert "x" * (MAX_LOG_ENTRY_CHARS + 1) not in normalized
+
     def test_parse_empty_output(self, runner):
         """Test parsing empty output."""
         tests = runner._parse_text_output("")
@@ -1119,9 +1203,7 @@ class TestNormalizationHelpers:
 
     def test_gas_report_header_and_timeout_helpers_bound_inputs(self):
         """Text helpers should reject malformed header cells and timeout strings."""
-        assert _is_gas_report_header_row(
-            ["Contract", "Method", "Min", "Max", "Avg", "Calls"]
-        )
+        assert _is_gas_report_header_row(["Contract", "Method", "Min", "Max", "Avg", "Calls"])
         assert not _is_gas_report_header_row(
             ["Contract", "Method", "Min", "Max", "Avg", "Calls\x7f"]
         )
@@ -1315,6 +1397,48 @@ class TestGasReport:
 
         assert normalized == {"CleanVault": {"methods": {"deposit": {"avg": 3}}}}
 
+    def test_normalize_gas_report_handles_hostile_mapping_accessors(self, runner):
+        """Gas report normalization should not trust mapping accessors."""
+
+        class HostileDict(dict):
+            def items(self):
+                raise RuntimeError("no items")
+
+        class HostileMetrics(dict):
+            def __contains__(self, key):
+                raise RuntimeError("no contains")
+
+        assert runner._normalize_gas_report(HostileDict({"Vault": {"methods": {}}})) == {}
+        assert runner._normalize_gas_report(
+            {"Vault": {"methods": {"deposit": HostileMetrics({"avg": 1})}}}
+        ) == {"Vault": {"methods": {"deposit": {}}}}
+
+    def test_normalize_gas_report_caps_contracts_and_methods(self, runner):
+        """Gas report normalization should cap contract and method entries."""
+        normalized = runner._normalize_gas_report(
+            {
+                f"Vault{contract}": {
+                    "methods": {
+                        f"method{method}": {"avg": method}
+                        for method in range(MAX_GAS_REPORT_METHODS + 5)
+                    }
+                }
+                for contract in range(MAX_GAS_REPORT_CONTRACTS + 5)
+            }
+        )
+
+        assert len(normalized) == MAX_GAS_REPORT_CONTRACTS
+        first_contract = normalized["Vault0"]
+        assert len(first_contract["methods"]) == MAX_GAS_REPORT_METHODS
+
+    def test_normalize_gas_report_drops_unknown_contract_fields(self, runner):
+        """Gas report normalization should not copy arbitrary contract payload fields."""
+        normalized = runner._normalize_gas_report(
+            {"Vault": {"methods": {"deposit": {"avg": 1}}, "extra": "drop me"}}
+        )
+
+        assert normalized == {"Vault": {"methods": {"deposit": {"avg": 1}}}}
+
     def test_normalize_gas_value_accepts_bytes_and_rejects_control_chars(self, runner):
         assert runner._normalize_gas_value(b"1,234") == 1234
         assert runner._normalize_gas_value("12\x7f34") is None
@@ -1340,6 +1464,35 @@ class TestGasReport:
         assert runner._bounded_raw_output(None, "stderr") == "stderr"
         assert runner._extract_forge_version(b"forge 1.2.3\n", "other") == "1.2.3"
         assert runner._extract_forge_version() is None
+
+    def test_get_gas_report_skips_oversized_json_lines(self, runner):
+        """Oversized JSON lines should not be parsed as gas reports."""
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = '{"gas_report": {"Vault": {"methods": {}}}, "pad": "%s"}\n' % (
+            "x" * 60_000
+        )
+        mock_result.stderr = ""
+
+        with patch("subprocess.run", return_value=mock_result):
+            report = runner.get_gas_report()
+
+        assert report["contracts"] == {}
+
+    def test_get_gas_report_caps_total_runtime_gas(self, runner):
+        """Text gas report aggregate totals should be bounded."""
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = (
+            "| Contract | Method | Min | Max | Avg | Calls |\n"
+            "| Vault | deposit | 1 | 1 | 10000000000 | 10000000000 |\n"
+        )
+        mock_result.stderr = ""
+
+        with patch("subprocess.run", return_value=mock_result):
+            report = runner.get_gas_report()
+
+        assert report["total_runtime_gas"] == MAX_TOTAL_RUNTIME_GAS
 
     def test_safe_match_filter_strips_and_rejects_control_chars(self):
         assert _safe_match_filter("  testWithdraw()  ") == "testWithdraw()"

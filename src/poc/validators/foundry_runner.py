@@ -22,6 +22,7 @@ import math
 import re
 import subprocess
 import time
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
@@ -36,9 +37,20 @@ MAX_JSON_OUTPUT_LINE_CHARS = 50_000
 MAX_ERROR_CHARS = 500
 MAX_GAS_VALUE = 10_000_000_000
 MAX_TIMEOUT_SECONDS = 86_400
+MAX_JSON_CANDIDATE_LINES = 200
+MAX_PARSED_TESTS = 500
+MAX_JSON_CONTRACT_RESULTS = 100
+MAX_JSON_METHOD_RESULTS = 200
+MAX_LOG_ENTRIES = 50
+MAX_LOG_ENTRY_CHARS = 1_000
+MAX_GAS_REPORT_CONTRACTS = 100
+MAX_GAS_REPORT_METHODS = 200
+MAX_TOTAL_RUNTIME_GAS = 10_000_000_000_000
 
 
-def _safe_text(value: Any, *, limit: Optional[int] = None, allow_multiline: bool = False) -> Optional[str]:
+def _safe_text(
+    value: Any, *, limit: Optional[int] = None, allow_multiline: bool = False
+) -> Optional[str]:
     """Return bounded text or None for malformed inputs."""
     if isinstance(value, bytes):
         try:
@@ -62,6 +74,26 @@ def _safe_text(value: Any, *, limit: Optional[int] = None, allow_multiline: bool
     if limit is not None and len(text) > limit:
         return None
     return text
+
+
+def _safe_mapping_get(mapping: Any, key: str, default: Any = None) -> Any:
+    """Read mapping values without trusting custom get implementations."""
+    if not isinstance(mapping, Mapping):
+        return default
+    try:
+        return mapping[key] if key in mapping else default
+    except Exception:
+        return default
+
+
+def _bounded_mapping_items(mapping: Any, max_items: int) -> List[tuple[Any, Any]]:
+    """Return bounded mapping items without trusting hostile accessors."""
+    if not isinstance(mapping, Mapping):
+        return []
+    try:
+        return list(mapping.items())[:max_items]
+    except Exception:
+        return []
 
 
 def _safe_match_filter(value: Any) -> str:
@@ -214,7 +246,9 @@ class FoundryRunner:
         )
         self.verbosity = (
             verbosity
-            if not isinstance(verbosity, bool) and isinstance(verbosity, int) and 1 <= verbosity <= 5
+            if not isinstance(verbosity, bool)
+            and isinstance(verbosity, int)
+            and 1 <= verbosity <= 5
             else 3
         )
         self.gas_report = gas_report if isinstance(gas_report, bool) else True
@@ -578,14 +612,21 @@ class FoundryRunner:
         # Try to parse JSON output
         try:
             # Forge JSON output can be multiple JSON objects
+            json_candidates = 0
             for line in stdout.split("\n"):
                 line = line.strip()
                 if len(line) > MAX_JSON_OUTPUT_LINE_CHARS:
                     continue
                 if line.startswith("{"):
+                    json_candidates += 1
+                    if json_candidates > MAX_JSON_CANDIDATE_LINES:
+                        break
                     try:
                         data = json.loads(line)
                         tests.extend(self._parse_test_results(data))
+                        if len(tests) >= MAX_PARSED_TESTS:
+                            tests = tests[:MAX_PARSED_TESTS]
+                            break
                     except json.JSONDecodeError:
                         continue
         except FOUNDRY_PARSE_ERRORS as e:
@@ -664,41 +705,52 @@ class FoundryRunner:
             return tests
 
         # Handle different JSON formats from forge
-        test_results = data.get("test_results")
-        if isinstance(test_results, dict):
-            for contract, results in test_results.items():
+        test_results = _safe_mapping_get(data, "test_results")
+        if isinstance(test_results, Mapping):
+            for contract, results in _bounded_mapping_items(
+                test_results, MAX_JSON_CONTRACT_RESULTS
+            ):
                 contract_name = self._normalize_test_name(contract)
                 if contract_name is None:
                     continue
-                if not isinstance(results, dict):
+                if not isinstance(results, Mapping):
                     continue
-                for test_name, result in results.items():
-                    if not isinstance(result, dict):
+                for test_name, result in _bounded_mapping_items(results, MAX_JSON_METHOD_RESULTS):
+                    if len(tests) >= MAX_PARSED_TESTS:
+                        return tests
+                    if not isinstance(result, Mapping):
                         continue
                     test_name = self._normalize_test_name(test_name)
-                    status = self._normalize_success_status(result.get("success"))
+                    status = self._normalize_success_status(_safe_mapping_get(result, "success"))
                     if test_name is None or status is None:
                         continue
-                    logs = self._normalize_logs(result.get("logs"))
+                    logs = self._normalize_logs(_safe_mapping_get(result, "logs"))
                     tests.append(
                         TestResult(
                             name=f"{contract_name}::{test_name}",
                             status=status,
-                            gas_used=self._normalize_gas_value(result.get("gas")),
+                            gas_used=self._normalize_gas_value(_safe_mapping_get(result, "gas")),
                             logs=logs,
                         )
                     )
-        elif "success" in data and (data.get("test_name") or data.get("name")):
-            name = self._normalize_test_name(data.get("test_name") or data.get("name"))
-            status = self._normalize_success_status(data.get("success"))
+        else:
+            success = _safe_mapping_get(data, "success")
+            if success is None or not (
+                _safe_mapping_get(data, "test_name") or _safe_mapping_get(data, "name")
+            ):
+                return tests
+            name = self._normalize_test_name(
+                _safe_mapping_get(data, "test_name") or _safe_mapping_get(data, "name")
+            )
+            status = self._normalize_success_status(success)
             if name is None or status is None:
                 return tests
-            logs = self._normalize_logs(data.get("logs"))
+            logs = self._normalize_logs(_safe_mapping_get(data, "logs"))
             tests.append(
                 TestResult(
                     name=name,
                     status=status,
-                    gas_used=self._normalize_gas_value(data.get("gas")),
+                    gas_used=self._normalize_gas_value(_safe_mapping_get(data, "gas")),
                     logs=logs,
                 )
             )
@@ -734,10 +786,12 @@ class FoundryRunner:
             return []
         logs = []
         for log in value:
-            text = _safe_text(log)
+            text = _safe_text(log, limit=MAX_LOG_ENTRY_CHARS)
             if text is None:
                 continue
             logs.append(text)
+            if len(logs) >= MAX_LOG_ENTRIES:
+                break
         return logs
 
     @staticmethod
@@ -758,12 +812,12 @@ class FoundryRunner:
     @staticmethod
     def _normalize_gas_report(value: Any) -> Dict[str, Any]:
         """Normalize Forge JSON gas_report payloads to contract mappings only."""
-        if not isinstance(value, dict):
+        if not isinstance(value, Mapping):
             return {}
 
         normalized = {}
-        for contract, report in value.items():
-            if not isinstance(contract, str) or not isinstance(report, dict):
+        for contract, report in _bounded_mapping_items(value, MAX_GAS_REPORT_CONTRACTS):
+            if not isinstance(contract, str) or not isinstance(report, Mapping):
                 continue
             try:
                 contract_name = contract.strip()
@@ -776,19 +830,19 @@ class FoundryRunner:
             ):
                 continue
 
-            contract_report = dict(report)
-            methods = contract_report.get("methods")
-            if "methods" in contract_report:
+            contract_report = {}
+            methods = _safe_mapping_get(report, "methods")
+            if methods is not None:
                 normalized_methods = {}
-                if isinstance(methods, dict):
-                    for method, metrics in methods.items():
+                if isinstance(methods, Mapping):
+                    for method, metrics in _bounded_mapping_items(methods, MAX_GAS_REPORT_METHODS):
                         method_name = _safe_text(method, limit=120)
-                        if method_name is None or not isinstance(metrics, dict):
+                        if method_name is None or not isinstance(metrics, Mapping):
                             continue
                         normalized_metrics = {
-                            key: FoundryRunner._normalize_gas_value(metrics.get(key))
+                            key: FoundryRunner._normalize_gas_value(_safe_mapping_get(metrics, key))
                             for key in ("min", "max", "avg", "calls")
-                            if key in metrics
+                            if _safe_mapping_get(metrics, key) is not None
                         }
                         normalized_methods[method_name] = {
                             key: gas_value
@@ -813,6 +867,8 @@ class FoundryRunner:
         )
 
         for match in re.finditer(pattern, output):
+            if len(tests) >= MAX_PARSED_TESTS:
+                break
             status_str, name, gas = match.groups()
             normalized_name = self._normalize_test_name(name)
             if normalized_name is None:
@@ -862,20 +918,27 @@ class FoundryRunner:
             stdout = self._normalize_output_text(getattr(result, "stdout", ""))[
                 :MAX_RAW_OUTPUT_CHARS
             ]
+            json_candidates = 0
             for line in stdout.split("\n"):
-                if line.strip().startswith("{"):
+                stripped_line = line.strip()
+                if stripped_line.startswith("{"):
+                    if len(stripped_line) > MAX_JSON_OUTPUT_LINE_CHARS:
+                        continue
+                    json_candidates += 1
+                    if json_candidates > MAX_JSON_CANDIDATE_LINES:
+                        break
                     try:
-                        data = json.loads(line)
-                        if not isinstance(data, dict):
+                        data = json.loads(stripped_line)
+                        if not isinstance(data, Mapping):
                             continue
-                        gas_report = data.get("gas_report")
+                        gas_report = _safe_mapping_get(data, "gas_report")
                         normalized_report = self._normalize_gas_report(gas_report)
                         if normalized_report:
                             report["contracts"] = normalized_report
                     except json.JSONDecodeError:
                         continue
-                elif line.strip().startswith("|") and "----" not in line:
-                    cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+                elif stripped_line.startswith("|") and "----" not in line:
+                    cells = [cell.strip() for cell in stripped_line.strip("|").split("|")]
                     if len(cells) != 6 or _is_gas_report_header_row(cells):
                         continue
 
@@ -893,7 +956,10 @@ class FoundryRunner:
 
                     contract_report = report["contracts"].setdefault(contract, {"methods": {}})
                     contract_report["methods"][method] = method_report
-                    report["total_runtime_gas"] += method_report["avg"] * method_report["calls"]
+                    report["total_runtime_gas"] = min(
+                        MAX_TOTAL_RUNTIME_GAS,
+                        report["total_runtime_gas"] + method_report["avg"] * method_report["calls"],
+                    )
 
             return report
 

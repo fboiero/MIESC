@@ -568,6 +568,17 @@ class TestPoCGeneratorInit:
         if templates_dir is not None:
             assert "Ignoring malformed templates_dir for PoC generator" in caplog.text
 
+    @pytest.mark.parametrize("templates_dir", ["bad\x00path", "bad\u2028path", "bad\npath"])
+    def test_malformed_templates_dir_rejects_control_chars_and_null_bytes(
+        self, templates_dir, caplog
+    ):
+        """Template directory text should reject null/control/unicode separators."""
+        with caplog.at_level("WARNING"):
+            generator = PoCGenerator(templates_dir=templates_dir)
+
+        assert generator.templates_dir == PoCGenerator.TEMPLATES_DIR
+        assert "Ignoring malformed templates_dir for PoC generator" in caplog.text
+
     @pytest.mark.parametrize("options", [{"attacker_balance": "1 ether"}, ["bad"], object()])
     def test_malformed_init_options_use_default(self, options, caplog):
         """Malformed init options should be replaced with GenerationOptions."""
@@ -1107,6 +1118,20 @@ class TestTemplateCustomization:
         )
 
     @pytest.mark.parametrize(
+        "custom_import",
+        [
+            'forge-std/Test.sol"; import "evil.sol',
+            "forge-std/Test.sol; import evil",
+            "forge-std/Test.sol\u2028evil",
+        ],
+    )
+    def test_custom_import_lines_rejects_solidity_import_injection(self, generator, custom_import):
+        """Import paths should not be able to break out of generated import strings."""
+        options = GenerationOptions(custom_imports=["forge-std/Test.sol", custom_import])
+
+        assert generator._custom_import_lines(options) == 'import "forge-std/Test.sol";'
+
+    @pytest.mark.parametrize(
         "fork_url, fork_block",
         [
             ("  ", 18500000),
@@ -1115,6 +1140,9 @@ class TestTemplateCustomization:
             ("https://rpc.example", True),
             ("https://rpc.example/" + ("a" * 2050), 18500000),
             ("https://rpc.example/\n", 18500000),
+            ("https://user:pass@rpc.example", 18500000),
+            ("ftp://rpc.example", 18500000),
+            ("https://rpc.example/\u2028bad", 18500000),
         ],
     )
     def test_customize_skips_malformed_fork_config(
