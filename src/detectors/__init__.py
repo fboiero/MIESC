@@ -24,6 +24,10 @@ from .detector_api import (
     get_registry,
     register_detector,
 )
+from .transient_storage_detector import (
+    TransientStorageDetector,
+    detect_transient_storage_risks,
+)
 
 __all__ = [
     # Base API
@@ -44,4 +48,6 @@ __all__ = [
     "TokenSecurityDetector",
     "ProxyUpgradeDetector",
     "CentralizationDetector",
+    "TransientStorageDetector",
+    "detect_transient_storage_risks",
 ]
