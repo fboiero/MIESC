@@ -56,11 +56,12 @@ class DPGAgentConfig:
     max_source_chars: int = MAX_AGENT_SOURCE_CHARS
 
     def to_dict(self) -> Dict[str, Any]:
+        max_source_chars = _bounded_positive_int(self.max_source_chars, MAX_AGENT_SOURCE_CHARS)
         return {
             "local_first": self.local_first,
             "allow_remote": self.allow_remote,
             "require_replaceable_provider": self.require_replaceable_provider,
-            "max_source_chars": self.max_source_chars,
+            "max_source_chars": max_source_chars,
         }
 
 
@@ -78,8 +79,8 @@ class ReasoningTask:
     def to_dict(self) -> Dict[str, Any]:
         return {
             "capability": self.capability.value,
-            "objective": self.objective,
-            "prompt": self.prompt,
+            "objective": _safe_text(self.objective, MAX_AGENT_TEXT_CHARS) or "",
+            "prompt": _safe_text(self.prompt, MAX_AGENT_PROMPT_CHARS, allow_multiline=True) or "",
             "inputs": _json_safe_mapping(self.inputs),
             "output_schema": _json_safe_mapping(self.output_schema),
             "policy": self.policy.to_dict(),
@@ -128,14 +129,14 @@ class InvariantCandidate:
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            "id": self.id,
-            "statement": self.statement,
+            "id": _safe_label(self.id) or _derive_invariant_id(self.statement),
+            "statement": _safe_text(self.statement, MAX_AGENT_TEXT_CHARS, allow_multiline=True) or "",
             "category": self.category.value,
-            "affected_functions": list(self.affected_functions),
-            "state_variables": list(self.state_variables),
-            "assertion_hint": self.assertion_hint,
-            "confidence": self.confidence,
-            "evidence": list(self.evidence),
+            "affected_functions": _safe_text_list(self.affected_functions),
+            "state_variables": _safe_text_list(self.state_variables),
+            "assertion_hint": _safe_text(self.assertion_hint, MAX_AGENT_TEXT_CHARS) or "",
+            "confidence": _bounded_confidence(self.confidence),
+            "evidence": _safe_text_list(self.evidence),
         }
 
 
@@ -154,13 +155,13 @@ class CounterexampleEvidence:
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            "invariant_id": self.invariant_id,
-            "status": self.status,
-            "tool": self.tool,
+            "invariant_id": _safe_label(self.invariant_id) or "unknown",
+            "status": _safe_label(self.status) or "unknown",
+            "tool": _safe_label(self.tool) or "unknown",
             "compiled": self.compiled,
             "counterexample_found": self.counterexample_found,
-            "test_name": self.test_name,
-            "artifact_path": self.artifact_path,
+            "test_name": _safe_text(self.test_name, MAX_AGENT_TEXT_CHARS) or "",
+            "artifact_path": _safe_text(self.artifact_path, MAX_AGENT_TEXT_CHARS) or "",
             "details": _json_safe_mapping(self.details),
         }
 
@@ -316,7 +317,7 @@ def _bounded_source(source_code: Any, max_chars: int) -> str:
 
 
 def _safe_label(value: Any) -> Optional[str]:
-    text = _safe_text(value, MAX_AGENT_LABEL_CHARS)
+    text = _safe_text(value, MAX_AGENT_LABEL_CHARS, allow_multiline=True)
     if not text:
         return None
     normalized = re.sub(r"[^A-Za-z0-9_.:-]+", "_", text).strip("_")
@@ -355,8 +356,8 @@ def _json_safe_mapping(value: Any) -> Dict[str, Any]:
     if not isinstance(value, Mapping):
         return {}
     safe: Dict[str, Any] = {}
-    for idx, (key, item) in enumerate(value.items()):
-        if idx >= MAX_AGENT_METADATA_KEYS:
+    for key, item in value.items():
+        if len(safe) >= MAX_AGENT_METADATA_KEYS:
             break
         safe_key = _safe_label(key)
         if safe_key:
@@ -398,6 +399,14 @@ def _bounded_confidence(value: Any) -> float:
             return 0.0
         return max(0.0, min(parsed, 1.0))
     return 0.0
+
+
+def _bounded_positive_int(value: Any, default: int) -> int:
+    if isinstance(value, bool):
+        return default
+    if isinstance(value, int):
+        return max(0, min(value, default))
+    return default
 
 
 def _category_from_text(value: Any) -> InvariantCategory:
