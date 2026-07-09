@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import json
+from types import SimpleNamespace
 
 from click.testing import CliRunner
 
+import miesc.cli.commands.remediate as remediate_module
 from miesc.cli.commands.remediate import remediate
 from miesc.cli.main import cli
 
@@ -80,6 +82,60 @@ def test_remediate_command_handles_no_fixable_findings(tmp_path):
     assert result.exit_code == 0
     assert not (tmp_path / "out" / "Victim.fixed.sol").exists()
     assert (tmp_path / "out" / "Victim.fixed.evidence.json").exists()
+
+
+def test_remediate_paper2_profile_requires_compile_and_rescan(tmp_path, monkeypatch):
+    contract = tmp_path / "Victim.sol"
+    contract.write_text(SIMPLE_CONTRACT)
+    results = tmp_path / "results.json"
+    results.write_text(json.dumps({"findings": []}))
+    captured = {}
+
+    class FakeEvidence:
+        status = "rescan_checked"
+        fixes_applied = 1
+        compile = SimpleNamespace(checked=True, compiles=True)
+        rescan = SimpleNamespace(checked=True, eliminated=True, no_regression=True)
+
+        def to_dict(self):
+            return {
+                "status": self.status,
+                "fixes_applied": self.fixes_applied,
+                "compile": {"checked": True},
+                "rescan": {"checked": True},
+            }
+
+    def fake_remediate_contract(**kwargs):
+        captured.update(kwargs)
+        return FakeEvidence()
+
+    monkeypatch.setattr(remediate_module, "remediate_contract", fake_remediate_contract)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        remediate,
+        [str(results), "-c", str(contract), "--profile", "paper2", "--quiet"],
+    )
+
+    assert result.exit_code == 0
+    assert captured["compile_check"] is True
+    assert captured["rescan_check"] is True
+
+
+def test_remediate_unknown_profile_exits_nonzero(tmp_path):
+    contract = tmp_path / "Victim.sol"
+    contract.write_text(SIMPLE_CONTRACT)
+    results = tmp_path / "results.json"
+    results.write_text(json.dumps({"findings": []}))
+
+    runner = CliRunner()
+    result = runner.invoke(
+        remediate,
+        [str(results), "-c", str(contract), "--profile", "missing-profile"],
+    )
+
+    assert result.exit_code != 0
+    assert "Unknown profile: missing-profile" in result.output
 
 
 def test_remediate_is_registered_in_main_cli():

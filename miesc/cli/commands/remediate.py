@@ -5,10 +5,11 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
+from typing import Any
 
 import click
 
-from miesc.cli.utils import error, info, success, warning
+from miesc.cli.utils import error, get_profile, info, success, warning
 from src.security.remediation_pipeline import remediate_contract
 
 
@@ -21,6 +22,32 @@ def _resolve_output_path(contract_path: Path, output: str | None) -> Path:
     if output_path.suffix == ".sol":
         return output_path
     return output_path / f"{contract_path.stem}.fixed.sol"
+
+
+def _apply_remediation_profile_config(
+    *,
+    profile_name: str | None,
+    compile_check: bool,
+    rescan_check: bool,
+) -> tuple[dict[str, Any] | None, bool, bool]:
+    """Apply remediation evidence requirements from a named profile."""
+    if not profile_name:
+        return None, compile_check, rescan_check
+
+    profile = get_profile(profile_name)
+    if profile is None:
+        raise click.ClickException(f"Unknown profile: {profile_name}")
+
+    evidence_config = profile.get("remediation_evidence", {})
+    if evidence_config.get("require_compile"):
+        compile_check = True
+    if (
+        evidence_config.get("require_original_finding_eliminated")
+        or evidence_config.get("require_no_regression")
+    ):
+        rescan_check = True
+
+    return profile, compile_check, rescan_check
 
 
 @click.command()
@@ -47,6 +74,12 @@ def _resolve_output_path(contract_path: Path, output: str | None) -> Path:
     help="Evidence JSON path. Defaults to <patched>.evidence.json.",
 )
 @click.option(
+    "--profile",
+    "profile_name",
+    default=None,
+    help="Named profile to apply remediation evidence requirements, e.g. paper2.",
+)
+@click.option(
     "--compile",
     "compile_check",
     is_flag=True,
@@ -71,6 +104,7 @@ def remediate(
     contract_path: str,
     output: str | None,
     evidence_output: str | None,
+    profile_name: str | None,
     compile_check: bool,
     rescan_check: bool,
     no_regression_bound: int,
@@ -87,12 +121,18 @@ def remediate(
     Examples:
       miesc remediate results.json -c Contract.sol
       miesc remediate results.json -c Contract.sol -o out/ --compile --rescan
+      miesc remediate results.json -c Contract.sol --profile paper2
       miesc remediate results.json -c Contract.sol -o Contract.fixed.sol --evidence-output evidence.json
     """
     contract = Path(contract_path)
     patched_path = _resolve_output_path(contract, output)
     evidence_path = (
         Path(evidence_output) if evidence_output else patched_path.with_suffix(".evidence.json")
+    )
+    profile, compile_check, rescan_check = _apply_remediation_profile_config(
+        profile_name=profile_name,
+        compile_check=compile_check,
+        rescan_check=rescan_check,
     )
 
     try:
@@ -104,6 +144,9 @@ def remediate(
     if not quiet:
         info(f"Remediating {contract}")
         info(f"Patched artifact: {patched_path}")
+        if profile_name:
+            description = profile.get("description", profile_name) if profile else profile_name
+            info(f"Profile: {profile_name} ({description})")
 
     try:
         evidence = remediate_contract(
