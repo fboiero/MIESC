@@ -325,6 +325,19 @@ class TestPoCTemplate:
         with pytest.raises(ValueError, match="Malformed PoC output directory"):
             template.save("bad\x00dir")
 
+    def test_template_save_rejects_path_object_with_control_chars(self):
+        """Path objects with control chars should be rejected before filesystem calls."""
+        template = PoCTemplate(
+            name="TestExploit",
+            vulnerability_type=VulnerabilityType.REENTRANCY,
+            solidity_code="// SPDX-License-Identifier: MIT\ncontract Test {}",
+            target_contract="Bank.sol",
+            target_function="withdraw",
+        )
+
+        with pytest.raises(ValueError, match="Malformed PoC output directory"):
+            template.save(Path("bad\ndir"))
+
     def test_template_to_dict(self):
         """Test converting template to dictionary."""
         template = PoCTemplate(
@@ -818,6 +831,22 @@ class TestFunctionExtraction:
         assert _safe_import_path("forge-std/console.sol") is True
         assert _safe_import_path("forge-std/conso\x7fle.sol") is False
 
+    @pytest.mark.parametrize(
+        "path",
+        [
+            "README.md",
+            "package.json",
+            "contracts/I.sol.txt",
+            "bad path.sol",
+            "bad{path}.sol",
+            "bad?x.sol",
+            "bad#x.sol",
+            "bad`x.sol",
+        ],
+    )
+    def test_safe_import_path_rejects_non_solidity_and_non_allowlisted_chars(self, path):
+        assert _safe_import_path(path) is False
+
     def test_safe_isoformat_and_vulnerability_type_value_sanitize_text(self):
         class FakeTimestamp:
             def isoformat(self):
@@ -947,10 +976,44 @@ class TestTemplateLoading:
         assert "Resetting malformed PoC templates_dir state" in caplog.text
         assert "contract" in template
 
+    def test_templates_dir_file_path_falls_back_to_default(self, tmp_path, caplog):
+        """A file path should not be treated as a templates directory."""
+        template_file = tmp_path / "not-a-dir"
+        template_file.write_text("bad", encoding="utf-8")
+
+        with caplog.at_level("WARNING"):
+            generator = PoCGenerator(templates_dir=template_file)
+
+        assert generator.templates_dir == PoCGenerator.TEMPLATES_DIR
+        assert "Ignoring malformed templates_dir for PoC generator" in caplog.text
+
+    def test_templates_dir_missing_path_falls_back_to_default(self, tmp_path, caplog):
+        """A missing custom templates directory should not become active state."""
+        missing_dir = tmp_path / "missing"
+
+        with caplog.at_level("WARNING"):
+            generator = PoCGenerator(templates_dir=missing_dir)
+
+        assert generator.templates_dir == PoCGenerator.TEMPLATES_DIR
+        assert "Ignoring malformed templates_dir for PoC generator" in caplog.text
+
     def test_load_template_ignores_malformed_template_map_entry(self, generator, caplog):
         """Malformed template map entries should fall back to generic templates."""
         original = generator.TEMPLATE_MAP[VulnerabilityType.REENTRANCY]
         generator.TEMPLATE_MAP[VulnerabilityType.REENTRANCY] = "../bad.t.sol"
+        try:
+            with caplog.at_level("WARNING"):
+                template = generator._load_template(VulnerabilityType.REENTRANCY)
+        finally:
+            generator.TEMPLATE_MAP[VulnerabilityType.REENTRANCY] = original
+
+        assert "Ignoring malformed PoC template name" in caplog.text
+        assert "contract" in template
+
+    def test_load_template_ignores_non_solidity_template_map_entry(self, generator, caplog):
+        """Template map entries must remain Solidity template paths."""
+        original = generator.TEMPLATE_MAP[VulnerabilityType.REENTRANCY]
+        generator.TEMPLATE_MAP[VulnerabilityType.REENTRANCY] = "README.md"
         try:
             with caplog.at_level("WARNING"):
                 template = generator._load_template(VulnerabilityType.REENTRANCY)
@@ -969,6 +1032,46 @@ class TestTemplateLoading:
         assert isinstance(template, str)
         assert "{'body': 'bad'}" not in template
         assert isinstance(generator._template_cache["reentrancy.t.sol"], str)
+
+    def test_load_template_rejects_oversized_cached_template_body(self, generator):
+        """Oversized cached template bodies should not bypass size limits."""
+        generator._template_cache = {
+            "reentrancy.t.sol": "x" * (poc_generator_module._TEMPLATE_BODY_LIMIT + 1)
+        }
+
+        template = generator._load_template(VulnerabilityType.REENTRANCY)
+
+        assert isinstance(template, str)
+        assert len(template) <= poc_generator_module._TEMPLATE_BODY_LIMIT
+
+    def test_load_template_rejects_oversized_template_file(self, tmp_path, caplog):
+        """Oversized template files should fall back to embedded defaults."""
+        template_dir = tmp_path / "templates"
+        template_dir.mkdir()
+        (template_dir / "reentrancy.t.sol").write_text(
+            "x" * (poc_generator_module._TEMPLATE_BODY_LIMIT + 1),
+            encoding="utf-8",
+        )
+        generator = PoCGenerator(templates_dir=template_dir)
+
+        with caplog.at_level("WARNING"):
+            template = generator._load_template(VulnerabilityType.REENTRANCY)
+
+        assert "{{CONTRACT_NAME}}" in template
+        assert "Falling back from unreadable PoC template" in caplog.text
+
+    def test_load_template_falls_back_on_unicode_decode_error(self, tmp_path, caplog):
+        """Unreadable UTF-8 templates should fall back to embedded defaults."""
+        template_dir = tmp_path / "templates"
+        template_dir.mkdir()
+        (template_dir / "reentrancy.t.sol").write_bytes(b"\xff\xfe\xfd")
+        generator = PoCGenerator(templates_dir=template_dir)
+
+        with caplog.at_level("WARNING"):
+            template = generator._load_template(VulnerabilityType.REENTRANCY)
+
+        assert "{{CONTRACT_NAME}}" in template
+        assert "Falling back from unreadable PoC template" in caplog.text
 
     def test_load_template_resets_malformed_template_map_state(self, generator):
         """Malformed template-map state should fall back to generic template names."""
@@ -1131,6 +1234,17 @@ class TestTemplateCustomization:
 
         assert generator._custom_import_lines(options) == 'import "forge-std/Test.sol";'
 
+    def test_custom_import_lines_handles_hostile_options_accessor(self, generator):
+        """Hostile custom_imports accessors should not break import generation."""
+
+        class HostileOptions(GenerationOptions):
+            def __getattribute__(self, name):
+                if name == "custom_imports":
+                    raise RuntimeError("no imports")
+                return super().__getattribute__(name)
+
+        assert generator._custom_import_lines(HostileOptions()) == ""
+
     @pytest.mark.parametrize(
         "fork_url, fork_block",
         [
@@ -1143,6 +1257,13 @@ class TestTemplateCustomization:
             ("https://user:pass@rpc.example", 18500000),
             ("ftp://rpc.example", 18500000),
             ("https://rpc.example/\u2028bad", 18500000),
+            ("http://localhost:8545", 18500000),
+            ("http://127.0.0.1:8545", 18500000),
+            ("http://[::1]:8545", 18500000),
+            ("http://10.0.0.1", 18500000),
+            ("http://172.16.0.1", 18500000),
+            ("http://192.168.1.1", 18500000),
+            ("http://169.254.1.1", 18500000),
         ],
     )
     def test_customize_skips_malformed_fork_config(
@@ -1163,6 +1284,17 @@ class TestTemplateCustomization:
 
         assert "createSelectFork" not in result
         assert "{{FORK_CONFIG}}" not in result
+
+    def test_fork_config_handles_hostile_options_accessors(self, generator):
+        """Hostile fork option accessors should skip config instead of raising."""
+
+        class HostileOptions(GenerationOptions):
+            def __getattribute__(self, name):
+                if name in {"fork_url", "fork_block"}:
+                    raise RuntimeError("no fork")
+                return super().__getattribute__(name)
+
+        assert generator._fork_config(HostileOptions()) == ""
 
     def test_customize_strips_fork_url(self, generator, reentrancy_finding):
         """Fork URL text is normalized before it is inserted into the template."""
@@ -1205,6 +1337,31 @@ class TestTemplateCustomization:
         )
 
         assert "unsafe()" not in result
+        assert "{{CUSTOM_SETUP}}" not in result
+
+    @pytest.mark.parametrize(
+        "custom_setup_code",
+        [
+            "} function pwn() public {} //",
+            "function pwn() public {}",
+            "contract Evil {}",
+        ],
+    )
+    def test_customize_rejects_custom_setup_block_escape(
+        self, generator, reentrancy_finding, custom_setup_code
+    ):
+        """Custom setup code should not be able to inject declarations or escape blocks."""
+        result = generator._customize_template(
+            "// {{CUSTOM_SETUP}}\nbody",
+            vuln_type=VulnerabilityType.REENTRANCY,
+            target_contract="Bank.sol",
+            target_function="withdraw",
+            finding=reentrancy_finding,
+            options=GenerationOptions(custom_setup_code=custom_setup_code),
+        )
+
+        assert "pwn" not in result
+        assert "Evil" not in result
         assert "{{CUSTOM_SETUP}}" not in result
 
     def test_custom_import_lines_caps_valid_imports(self, generator):
@@ -1922,6 +2079,21 @@ class TestPoCRunMethod:
         assert result.success is False
         assert result.output == ""
         assert result.error == "Malformed project directory"
+
+    def test_run_rejects_path_object_project_dir_with_control_chars_before_save(
+        self, generator, sample_poc
+    ):
+        """Path objects with control chars should be rejected before save/subprocess."""
+        from unittest.mock import patch
+
+        with patch.object(sample_poc, "save") as save_mock, patch("subprocess.run") as run_mock:
+            result = generator.run(sample_poc, Path("bad\ndir"), verbose=False)
+
+        assert result.success is False
+        assert result.output == ""
+        assert result.error == "Malformed project directory"
+        save_mock.assert_not_called()
+        run_mock.assert_not_called()
 
     def test_run_timeout(self, generator, sample_poc, tmp_path):
         """Test PoC run timeout (lines 362-368)."""

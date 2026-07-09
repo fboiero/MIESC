@@ -16,6 +16,7 @@ Date: January 2026
 Version: 1.0.0
 """
 
+import ipaddress
 import logging
 import re
 import string
@@ -38,7 +39,12 @@ _TEXT_FIELD_LIMIT = 2_000
 _LIST_FIELD_LIMIT = 100
 _RUN_OUTPUT_LIMIT = 100_000
 _TRACE_TEXT_LIMIT = 20_000
+_TEMPLATE_BODY_LIMIT = 100_000
 _MAX_FORK_BLOCK = 1_000_000_000
+_IMPORT_PATH_RE = re.compile(r"^[A-Za-z0-9_@./-]+\.sol$")
+_SETUP_CODE_FORBIDDEN_RE = re.compile(
+    r"\b(contract|function|import|pragma|library|interface)\b|[{}]"
+)
 
 
 def _safe_mapping_get(mapping: Any, key: str, default: Any = None) -> Any:
@@ -49,6 +55,32 @@ def _safe_mapping_get(mapping: Any, key: str, default: Any = None) -> Any:
         return mapping[key] if key in mapping else default
     except Exception:
         return default
+
+
+def _safe_getattr(obj: Any, name: str, default: Any = None) -> Any:
+    """Read attributes without trusting hostile option subclasses."""
+    try:
+        return getattr(obj, name, default)
+    except Exception:
+        return default
+
+
+def _safe_path_text(value: Any) -> Optional[str]:
+    """Return bounded path text for str/Path values without control characters."""
+    if not isinstance(value, (str, Path)):
+        return None
+    try:
+        text = str(value).strip()
+    except Exception:
+        return None
+    if (
+        not text
+        or "\x00" in text
+        or any(ch in {"\u2028", "\u2029"} for ch in text)
+        or any(ord(ch) < 32 or ord(ch) == 127 for ch in text)
+    ):
+        return None
+    return text
 
 
 def _safe_filename_part(value: Any, default: str = "template") -> str:
@@ -147,22 +179,18 @@ def _safe_import_path(value: Any) -> bool:
         or any(ord(ch) < 32 or ord(ch) == 127 for ch in text)
     ):
         return False
-    return ":" not in text and not text.startswith("/")
+    return ":" not in text and not text.startswith("/") and bool(_IMPORT_PATH_RE.fullmatch(text))
 
 
 def _safe_templates_dir(value: Any) -> Optional[Path]:
     """Return a usable templates directory path without control characters."""
-    if not isinstance(value, (str, Path)):
+    text = _safe_path_text(value)
+    if text is None:
         return None
-    text = str(value).strip()
-    if (
-        not text
-        or "\x00" in text
-        or any(ch in {"\u2028", "\u2029"} for ch in text)
-        or any(ord(ch) < 32 or ord(ch) == 127 for ch in text)
-    ):
+    path = Path(text)
+    if not path.exists() or not path.is_dir():
         return None
-    return Path(text)
+    return path
 
 
 def _safe_fork_url(value: Any) -> Optional[str]:
@@ -182,7 +210,43 @@ def _safe_fork_url(value: Any) -> Optional[str]:
         return None
     if parsed.scheme not in {"http", "https"} or not parsed.netloc:
         return None
+    host = parsed.hostname
+    if not host:
+        return None
     if parsed.username or parsed.password:
+        return None
+    try:
+        address = ipaddress.ip_address(host)
+    except ValueError:
+        if host.lower() in {"localhost"} or host.lower().endswith(".localhost"):
+            return None
+    else:
+        if (
+            address.is_loopback
+            or address.is_private
+            or address.is_link_local
+            or address.is_multicast
+            or address.is_unspecified
+        ):
+            return None
+    return text
+
+
+def _safe_template_body(value: Any) -> Optional[str]:
+    """Return template body text only when it is bounded and printable enough."""
+    if not isinstance(value, str):
+        return None
+    if not value or len(value) > _TEMPLATE_BODY_LIMIT:
+        return None
+    if "\x00" in value:
+        return None
+    return value
+
+
+def _safe_setup_code(value: Any) -> Optional[str]:
+    """Return a single safe setup statement line for template insertion."""
+    text = _safe_optional_text(value)
+    if text is None or _SETUP_CODE_FORBIDDEN_RE.search(text):
         return None
     return text
 
@@ -317,13 +381,10 @@ class PoCTemplate:
         Returns:
             Path to saved file
         """
-        if not isinstance(output_dir, (str, Path)):
+        output_text = _safe_path_text(output_dir)
+        if output_text is None:
             raise ValueError("Malformed PoC output directory")
-        if isinstance(output_dir, str) and (
-            not output_dir.strip() or any(ord(ch) < 32 or ord(ch) == 127 for ch in output_dir)
-        ):
-            raise ValueError("Malformed PoC output directory")
-        output_path = Path(output_dir)
+        output_path = Path(output_text)
         output_path.mkdir(parents=True, exist_ok=True)
 
         filename = (
@@ -599,14 +660,15 @@ class PoCGenerator:
                 execution_time_ms=0,
                 error="Malformed project directory",
             )
-        if isinstance(project_dir, str) and not project_dir.strip():
+        project_text = _safe_path_text(project_dir)
+        if project_text is None:
             return PoCResult(
                 success=False,
                 output="",
                 execution_time_ms=0,
                 error="Malformed project directory",
             )
-        project_path = Path(project_dir)
+        project_path = Path(project_text)
         if not isinstance(poc, PoCTemplate):
             return PoCResult(
                 success=False,
@@ -771,22 +833,31 @@ class PoCGenerator:
         """Return string option fields only; ignore malformed object/list shapes."""
         if not isinstance(key, str):
             return default
-        value = getattr(options, key, default)
+        value = _safe_getattr(options, key, default)
         if key in {"attacker_balance", "victim_balance"}:
             return _safe_solidity_literal(value, default)
+        if key == "custom_setup_code":
+            return _safe_setup_code(value) or default
         return _safe_optional_text(value) or default
 
     def _custom_import_lines(self, options: GenerationOptions) -> str:
         """Build custom import statements from a list of string paths."""
-        imports = getattr(options, "custom_imports", [])
+        imports = _safe_getattr(options, "custom_imports", [])
         if not isinstance(imports, list):
             logger.warning("Skipping malformed custom imports container in PoC options")
             return ""
 
         import_paths = []
         seen = set()
-        for imp in imports:
+        malformed_count = False
+        try:
+            iterator = iter(imports)
+        except Exception:
+            logger.warning("Skipping malformed custom imports container in PoC options")
+            return ""
+        for imp in iterator:
             if not _safe_import_path(imp):
+                malformed_count = True
                 continue
             normalized = imp.strip()
             if len(normalized) > 120 or normalized in seen:
@@ -795,16 +866,20 @@ class PoCGenerator:
             import_paths.append(normalized)
             if len(import_paths) >= _LIST_FIELD_LIMIT:
                 break
-        if len(import_paths) != len(imports):
+        try:
+            source_len = len(imports)
+        except Exception:
+            source_len = len(import_paths) if not malformed_count else len(import_paths) + 1
+        if malformed_count or len(import_paths) != source_len:
             logger.warning("Skipping malformed custom import entry in PoC options")
 
         return "\n".join(f'import "{imp}";' for imp in import_paths)
 
     def _fork_config(self, options: GenerationOptions) -> str:
         """Build fork setup only from well-formed option fields."""
-        raw_fork_url = getattr(options, "fork_url", None)
+        raw_fork_url = _safe_getattr(options, "fork_url", None)
         fork_url = _safe_fork_url(raw_fork_url)
-        fork_block = getattr(options, "fork_block", None)
+        fork_block = _safe_getattr(options, "fork_block", None)
 
         if raw_fork_url is None and fork_block is None:
             return ""
@@ -884,18 +959,28 @@ class PoCGenerator:
         # Check cache
         template_cache = self._template_cache_state()
         cached_template = _safe_mapping_get(template_cache, template_name)
-        if isinstance(cached_template, str):
-            return cached_template
+        if safe_cached_template := _safe_template_body(cached_template):
+            return safe_cached_template
 
         # Load from file
         if not isinstance(self.templates_dir, Path):
             logger.warning("Resetting malformed PoC templates_dir state")
             self.templates_dir = self.TEMPLATES_DIR
+        elif self.templates_dir.exists() and not self.templates_dir.is_dir():
+            logger.warning("Resetting non-directory PoC templates_dir state")
+            self.templates_dir = self.TEMPLATES_DIR
         template_path = self.templates_dir / template_name
 
         if template_path.exists():
-            with open(template_path, "r", encoding="utf-8") as f:
-                template = f.read()
+            try:
+                if template_path.stat().st_size > _TEMPLATE_BODY_LIMIT:
+                    raise ValueError("template too large")
+                with open(template_path, "r", encoding="utf-8") as f:
+                    template = f.read(_TEMPLATE_BODY_LIMIT + 1)
+                template = _safe_template_body(template) or self._get_default_template(vuln_type)
+            except (OSError, UnicodeError, ValueError) as e:
+                logger.warning("Falling back from unreadable PoC template: %s", _safe_error_text(e))
+                template = self._get_default_template(vuln_type)
         else:
             # Use embedded default template
             template = self._get_default_template(vuln_type)
