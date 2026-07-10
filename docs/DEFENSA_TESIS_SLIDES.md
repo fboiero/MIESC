@@ -486,16 +486,16 @@ Normalizacion a taxonomias SWC/CWE/OWASP con **97.1% precision**
 
 ---
 
-# Metricas Cientificas v4.0
+# Evidencia de Benchmarks Reproducibles
 
-| Metrica | v3.5 | v4.0 | Mejora |
-|---------|------|------|--------|
-| Precision | 89.47% | 94.5% | +5.03pp |
-| Recall | 86.2% | 92.8% | +6.6pp |
-| F1-Score | 0.878 | 0.936 | +6.6% |
-| FP Rate | 10.53% | 5.5% | -48% |
-| Adapters | 22 | 25 | +13.6% |
-| Cohen's Kappa | 0.82 | 0.847 | +3.3% |
+| Benchmark | Resultado |
+|-----------|-----------|
+| SmartBugs-curated (recall) | 95.8% (137/143) |
+| Exploits DeFi reales (recall) | 81.8% (9/11), IC Wilson 95% [52%, 95%] |
+| EVMBench ensemble (recall) | 92.5% (111/120) |
+| Adapters | 25 |
+
+Cada cifra se traza a un artefacto en `benchmarks/results/paper1_claims_matrix.json`.
 
 ---
 

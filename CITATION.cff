@@ -66,10 +66,11 @@ preferred-citation:
     (2) Empirical validation on 5,127 real-world contracts demonstrating 34%
     improvement over single-tool analysis, (3) Automated compliance mapping to 12
     international standards, (4) Open-source implementation enabling reproducible
-    security research. The framework achieved 89.47% precision, 86.2% recall, and
-    Cohen's Kappa of 0.847, representing strong agreement with expert auditors.
-    Scientific validation followed rigorous experimental methodology with controlled
-    datasets and statistical analysis.
+    security research. On SmartBugs-curated (143 contracts), the static and
+    intelligence profile reports 95.8% recall, and on 11 real-world DeFi exploits
+    MIESC detects 9 of 11 cases (81.8% recall, 95% Wilson confidence interval
+    [52%, 95%]). Every quantitative claim is traced to a released per-claim matrix
+    and its source artifacts for independent reproduction.
 references:
   - type: article
     title: "Empirical Review of Automated Analysis Tools on 47,587 Ethereum Smart Contracts"

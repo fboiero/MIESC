@@ -333,13 +333,13 @@ SLIDES_CONTENT = """
 
 <!-- SLIDE 18: Metricas v4 -->
 <section>
-    <h2>Evolucion v3.5 → v4.0</h2>
+    <h2>Evidencia de Benchmarks Reproducibles</h2>
     <table style="font-size: 0.8em;">
-        <tr><th>Metrica</th><th>v3.5</th><th>v4.0</th><th>Mejora</th></tr>
-        <tr><td>Precision</td><td>89.47%</td><td>94.5%</td><td style="color:#00ff9d">+5.03pp</td></tr>
-        <tr><td>Recall</td><td>86.2%</td><td>92.8%</td><td style="color:#00ff9d">+6.6pp</td></tr>
-        <tr><td>FP Rate</td><td>10.53%</td><td>5.5%</td><td style="color:#00ff9d">-48%</td></tr>
-        <tr><td>Adapters</td><td>22</td><td>25</td><td style="color:#00ff9d">+13.6%</td></tr>
+        <tr><th>Benchmark</th><th>Resultado</th></tr>
+        <tr><td>SmartBugs-curated (recall)</td><td>95.8% (137/143)</td></tr>
+        <tr><td>Exploits DeFi reales (recall)</td><td>81.8% (9/11), IC Wilson 95% [52%, 95%]</td></tr>
+        <tr><td>EVMBench ensemble (recall)</td><td>92.5% (111/120)</td></tr>
+        <tr><td>Adapters</td><td>25</td></tr>
     </table>
 </section>
 

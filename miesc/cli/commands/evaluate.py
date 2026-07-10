@@ -263,17 +263,6 @@ def _compute_metrics(tp: int, fp: int, fn: int) -> Dict[str, float]:
     }
 
 
-def _compute_cohens_kappa(agreements: int, total: int, p_yes: float, p_no: float) -> float:
-    """Compute Cohen's kappa for inter-rater reliability."""
-    if total == 0:
-        return 0.0
-    p_observed = agreements / total
-    p_expected = p_yes * p_yes + p_no * p_no
-    if p_expected >= 1.0:
-        return 1.0
-    return (p_observed - p_expected) / (1.0 - p_expected)
-
-
 # =============================================================================
 # Evaluation Engine
 # =============================================================================

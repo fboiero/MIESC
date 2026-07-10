@@ -421,11 +421,10 @@ Components Used:
 - CodeEmbedder: Pattern matching via embeddings
 - FeedbackLoop: Learns from auditor feedback
 
-Validation Metrics:
-- Precision: 89.47%
-- Recall: 86.20%
-- F1-Score: 87.81%
-- Cohen's Kappa: 0.847
+Note: The Input/Output figures above are the actual measured results of this
+pipeline run. Reproducible benchmark evidence (SmartBugs recall, EVMBench, and
+real-world exploit detection with Wilson confidence intervals) is tracked in
+benchmarks/results/paper1_claims_matrix.json.
 """
         save_text_evidence(summary, "04_ml_summary.txt", "ml")
         ml_evidence.append(("ML Summary", True))
@@ -734,17 +733,18 @@ This document contains evidence of MIESC tool functionality for thesis documenta
                 report += "\n"
 
     report += """
-## Validation Metrics
+## Reproducible Benchmark Evidence
 
-| Metric | Value |
-|--------|-------|
-| Precision | 89.47% |
-| Recall | 86.20% |
-| F1-Score | 87.81% |
-| Cohen's Kappa | 0.847 |
-| FP Reduction | 43% |
+| Benchmark | Result |
+|-----------|--------|
+| SmartBugs-curated recall | 95.8% (137/143) |
+| Real-world DeFi exploits | 81.8% recall (9/11, 95% Wilson CI [52%, 95%]) |
+| EVMBench ensemble recall | 92.5% (111/120) |
 | Test Coverage | 87.5% |
 | Tests Passing | 204 |
+
+Every quantitative claim is traced to a source artifact in
+`benchmarks/results/paper1_claims_matrix.json`.
 
 ---
 *Evidence generated automatically by MIESC capture script*

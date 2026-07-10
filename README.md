@@ -142,7 +142,7 @@ separately as an end-to-end integration smoke run, not as a corpus-wide claim.
 | Reentrancy | 3 | 3 | **100%** | Euler $197M, Rari $80M, Platypus $8.5M |
 | Access Control | 3 | 3 | **100%** | Parity $280M, Ronin $624M |
 | Flash Loan | 2 | 2 | **100%** | bZx $8.1M, Compound $80M |
-| Overall | 11 | 9 | **81.8%** | Cohen's Kappa: 0.77 |
+| Overall | 11 | 9 | **81.8%** | 95% Wilson CI: [52%, 95%] |
 
 > **81.8% recall on real-world exploits** — MIESC would have flagged 9 of 11 multi-million dollar exploits before deployment. [Paper 1 reproducibility](./paper/PAPER1_REPRODUCIBILITY.md) | [Exploit evaluation](./benchmarks/evaluate_exploits.py)
 

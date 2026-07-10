@@ -84,17 +84,18 @@ This document contains evidence of MIESC tool functionality for thesis documenta
 - 03_dashboard_scrolled.png
 
 
-## Validation Metrics
+## Reproducible Benchmark Evidence
 
-| Metric | Value |
-|--------|-------|
-| Precision | 89.47% |
-| Recall | 86.20% |
-| F1-Score | 87.81% |
-| Cohen's Kappa | 0.847 |
-| FP Reduction | 43% |
+| Benchmark | Result |
+|-----------|--------|
+| SmartBugs-curated recall | 95.8% (137/143) |
+| Real-world DeFi exploits | 81.8% recall (9/11, 95% Wilson CI [52%, 95%]) |
+| EVMBench ensemble recall | 92.5% (111/120) |
 | Test Coverage | 87.5% |
 | Tests Passing | 204 |
+
+Every quantitative claim is traced to a source artifact in
+`benchmarks/results/paper1_claims_matrix.json`.
 
 ---
 *Evidence generated automatically by MIESC capture script*

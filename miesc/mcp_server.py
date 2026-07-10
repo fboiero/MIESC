@@ -762,20 +762,12 @@ async def miesc_get_metrics() -> str:
             "version": __version__,
             "layers": 9,
             "tools": 50,
-            "validation": {
-                "contracts_analyzed": 5127,
-                "dataset": "SmartBugs Curated + Real-world DeFi",
-                "metrics": {
-                    "precision": 0.89,
-                    "recall": 0.84,
-                    "f1_score": 0.86,
-                    "cohens_kappa": 0.72,
-                    "false_positive_rate": 0.11,
-                },
-                "cross_validation_improvement": {
-                    "precision_delta": "+12%",
-                    "fp_reduction": "-45%",
-                },
+            "reproducible_benchmarks": {
+                "smartbugs_curated_recall": 0.958,
+                "real_world_exploit_recall": 0.818,
+                "real_world_exploit_wilson_ci_95": [0.52, 0.95],
+                "evmbench_ensemble_recall": 0.925,
+                "source": "benchmarks/results/paper1_claims_matrix.json",
             },
             "thesis": {
                 "title": "Multi-layer Intelligent Evaluation for Smart Contracts",

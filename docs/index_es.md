@@ -287,7 +287,7 @@ SmartBugs-curated (143 contratos, 207 vulnerabilidades ground-truth):
 >
 > EVMBench: el ensemble de cuatro proveedores alcanza 92.5% de recall (111/120) en extracción local de alta severidad (no es un resultado oficial de leaderboard).
 >
-> Exploits del mundo real: 81.8% de recall (9 de 11), Cohen's Kappa = 0.77, sobre $1.59B en pérdidas evaluadas.
+> Exploits del mundo real: 81.8% de recall (9 de 11), 95% Wilson CI [52%, 95%], sobre $1.59B en pérdidas evaluadas.
 
 ### Suite de Tests
 

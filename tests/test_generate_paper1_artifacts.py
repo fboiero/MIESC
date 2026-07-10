@@ -68,7 +68,7 @@ def test_generate_paper1_claims_preserves_smartbugs_958_claim(monkeypatch, tmp_p
                 "total_evaluated": 11,
                 "detected": 9,
                 "recall": 0.8182,
-                "cohens_kappa": 0.773,
+                "wilson_ci_95": [0.52, 0.95],
                 "evaluated_losses_usd": 1591700000,
             }
         },
@@ -121,3 +121,7 @@ def test_generate_paper1_claims_preserves_smartbugs_958_claim(monkeypatch, tmp_p
     assert exploits["value"]["detected"] == 9
     assert exploits["value"]["total_evaluated"] == 11
     assert exploits["status"] == "supported_with_note"
+    # The invalid Cohen's kappa was withdrawn in favour of a Wilson CI.
+    assert "Wilson" in exploits["paper_claim"]
+    assert "kappa" not in exploits["paper_claim"].lower()
+    assert exploits["value"]["wilson_ci_95"] == [0.52, 0.95]

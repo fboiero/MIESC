@@ -121,17 +121,16 @@ Layer 7: LLM Integration     → OpenLLaMA (sovereign AI)
 
 ---
 
-## 6. Scientific Validation
+## 6. Reproducible Benchmark Evidence
 
-From thesis experiments on SmartBugs benchmark (5,127 contracts):
+| Benchmark | Result |
+|-----------|--------|
+| SmartBugs-curated recall | 95.8% (137/143) |
+| Real-world DeFi exploits | 81.8% recall (9/11, 95% Wilson CI [52%, 95%]) |
+| EVMBench ensemble recall | 92.5% (111/120) |
 
-| Metric | Value |
-|--------|-------|
-| Precision | 89.47% |
-| Recall | 100% (vs SmartBugs) |
-| F1-Score | 87.81% |
-| Cohen's Kappa | 0.847 |
-| False Positive Reduction | 43% |
+Every quantitative claim is traced to a source artifact in
+`benchmarks/results/paper1_claims_matrix.json`.
 
 ---
 

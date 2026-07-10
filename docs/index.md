@@ -288,7 +288,7 @@ SmartBugs-curated (143 contracts, 207 ground-truth vulnerabilities):
 >
 > EVMBench: the four-provider ensemble reaches 92.5% recall (111/120) on local high-severity extraction (not an official leaderboard result).
 >
-> Real-world exploits: 81.8% recall (9 of 11), Cohen's Kappa = 0.77, across $1.59B in evaluated losses.
+> Real-world exploits: 81.8% recall (9 of 11), 95% Wilson CI [52%, 95%], across $1.59B in evaluated losses.
 
 ### Test Suite
 

@@ -1121,10 +1121,6 @@ Workflow:
 
 ### Changed
 - Increased tool count from 22 to 25 adapters (+13.6%)
-- Precision: 89.47% → 94.5% (+5.03pp)
-- Recall: 86.2% → 92.8% (+6.6pp)
-- False Positive Rate: 10.53% → 5.5% (-48%)
-- Detection Coverage: 85% → 96% (+11pp)
 - Restructured repository to UNIX/OSS conventions
 - Updated README with comprehensive "What's New in v4.0" section
 - Improved scientific rigor in documentation
