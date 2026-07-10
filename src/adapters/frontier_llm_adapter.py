@@ -350,6 +350,16 @@ class FrontierLLMAdapter(ToolAdapter):
                 logger.info("FrontierLLM: openai SDK not installed. pip install openai")
                 return ToolStatus.NOT_INSTALLED
 
+        if provider == "deepseek":
+            try:
+                import openai  # noqa: F401 -- DeepSeek uses the OpenAI-compatible SDK
+
+                if not os.environ.get("DEEPSEEK_API_KEY"):
+                    return ToolStatus.CONFIGURATION_ERROR
+                return ToolStatus.AVAILABLE
+            except ImportError:
+                return ToolStatus.NOT_INSTALLED
+
         return ToolStatus.NOT_INSTALLED
 
     def analyze(self, contract_path: str, **kwargs: Any) -> Dict[str, Any]:
@@ -392,7 +402,7 @@ class FrontierLLMAdapter(ToolAdapter):
         try:
             if provider == "anthropic":
                 findings = self._analyze_anthropic(source_code, rag_context=rag_context, **kwargs)
-            elif provider == "openai":
+            elif provider in ("openai", "deepseek"):
                 findings = self._analyze_openai(source_code, rag_context=rag_context, **kwargs)
             elif provider == "ollama":
                 findings = self._analyze_ollama(source_code, rag_context=rag_context, **kwargs)
@@ -1385,13 +1395,21 @@ Respond with a JSON array."""
         )
 
     def _analyze_openai(self, source_code: str, **kwargs: Any) -> List[Dict]:
-        """Call OpenAI API (supports GPT-4o, GPT-4.1, GPT-5, o-series)."""
+        """Call OpenAI API (GPT-4o, GPT-5, o-series) or DeepSeek (OpenAI-compatible)."""
         import openai
 
-        client: Any = openai.OpenAI()
         rag_context = kwargs.pop("rag_context", "")
         model = kwargs.get("model", "gpt-4o")
         self._model = model
+        # DeepSeek exposes an OpenAI-compatible endpoint; route by provider/model.
+        if os.environ.get("DEEPSEEK_API_KEY") and (
+            self._get_provider() == "deepseek" or model.startswith("deepseek")
+        ):
+            client: Any = openai.OpenAI(
+                base_url="https://api.deepseek.com",
+                api_key=os.environ["DEEPSEEK_API_KEY"], timeout=300)
+        else:
+            client = openai.OpenAI()
 
         user_prompt = self._build_user_prompt(source_code, rag_context)
         rag_note = f" +RAG({len(rag_context)})" if rag_context else ""
@@ -1407,6 +1425,10 @@ Respond with a JSON array."""
         if model.startswith(("gpt-5", "o1", "o3", "o4")):
             token_param["max_completion_tokens"] = 32768
             extra["reasoning_effort"] = "low"
+        elif "deepseek-reasoner" in model:
+            # DeepSeek reasoning model: hidden reasoning consumes the budget, so
+            # give a large ceiling; it uses max_tokens and rejects reasoning_effort.
+            token_param["max_tokens"] = 32768
         else:
             token_param["max_tokens"] = 8192
             # o-series/gpt-5 reject a custom temperature; only set it elsewhere.
