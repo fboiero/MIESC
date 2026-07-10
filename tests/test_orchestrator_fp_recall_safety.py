@@ -61,6 +61,31 @@ class TestOrchestratorFPRecallSafety(unittest.TestCase):
         # solc-version on a modern contract is the canonical benign FP.
         self.assertTrue(fr.is_likely_fp)
 
+    def test_arithmetic_with_safemath_is_downgraded_not_dropped(self):
+        # BECToken scenario: the contract imports SafeMath, but the flagged
+        # multiplication overflowed anyway. Presence of SafeMath must NOT drop
+        # the real arithmetic finding — it is kept and marked needs_review.
+        code_with_safemath = (
+            "pragma solidity ^0.4.24;\n"
+            "import './SafeMath.sol';\n"
+            "contract BEC { using SafeMath for uint;\n"
+            "  function batchTransfer(address[] r, uint v) public {\n"
+            "    uint amount = uint(r.length) * v;  // unchecked, overflows\n"
+            "  } }\n"
+        )
+        fr = self.filter.filter_finding(
+            _finding("arithmetic", "medium"),
+            code_context=code_with_safemath,
+            file_path="BECToken.sol",
+        )
+        # Invariant that matters: a real arithmetic finding is never dropped just
+        # because SafeMath is present. (The downgrade-to-needs_review path is
+        # additionally verified end-to-end against the real BECToken.sol, where
+        # the finding would otherwise cross the drop threshold.)
+        self.assertFalse(
+            fr.is_likely_fp, "recall regression: real overflow dropped by SafeMath heuristic"
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

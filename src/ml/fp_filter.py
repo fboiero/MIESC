@@ -60,6 +60,7 @@ class FilterResult:
     adjusted_confidence: float = 0.0
     should_report: bool = True
     filter_reason: Optional[str] = None
+    needs_review: bool = False
 
 
 class FalsePositiveFilter:
@@ -731,6 +732,29 @@ class FalsePositiveFilter:
             is_likely_fp = True
             fp_probability = max(fp_probability, 0.6)
 
+        # Recall-safety guard (issue #69 follow-up). A vulnerability-specific
+        # "safe pattern" match (e.g. the contract imports SafeMath / uses a
+        # nonReentrant modifier somewhere) is NOT proof that THIS operation is
+        # protected: BECToken's batchOverflow used SafeMath yet overflowed. So
+        # such a heuristic must never DROP a real-severity finding — it only
+        # downgrades it to needs-review. Deterministic-benign signals
+        # (style/optimization noise, known-safe library) are unaffected and
+        # still filter normally.
+        needs_review = False
+        if is_likely_fp and severity not in ("info", "informational", "optimization"):
+            top_match = max(matches, key=lambda m: m.confidence) if matches else None
+            has_deterministic_benign = any(
+                m.category in (FPCategory.CONTEXT_SAFE, FPCategory.LIBRARY_SAFE) for m in matches
+            )
+            if (
+                top_match is not None
+                and top_match.category == FPCategory.PATTERN_SAFE
+                and top_match.reason.startswith("Has protection")
+                and not has_deterministic_benign
+            ):
+                is_likely_fp = False
+                needs_review = True
+
         # Calculate adjusted confidence
         adjusted_confidence = original_confidence * (1 - fp_probability)
 
@@ -745,6 +769,8 @@ class FalsePositiveFilter:
                 filter_reason = f"{top_match.category.value}: {top_match.reason}"
             else:
                 filter_reason = "Low confidence score"
+        elif needs_review:
+            filter_reason = "needs-review: safe-pattern present but not proven for this operation"
 
         return FilterResult(
             is_likely_fp=is_likely_fp,
@@ -754,6 +780,7 @@ class FalsePositiveFilter:
             adjusted_confidence=adjusted_confidence,
             should_report=should_report,
             filter_reason=filter_reason,
+            needs_review=needs_review,
         )
 
     def _detect_solidity_version(self, code: str) -> Optional[tuple]:
