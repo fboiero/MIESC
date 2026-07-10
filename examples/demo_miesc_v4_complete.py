@@ -403,9 +403,9 @@ class MIESCCompleteDemo:
         print(f"  Total Security Adapters: {self.results['statistics']['total_adapters']}")
         print("  Defense Layers: 7")
         print("  CRITICAL Enhancements: 4")
-        print("  Precision: 94.5%")
-        print("  Recall: 92.8%")
-        print("  False Positive Rate: 5.5%")
+        print("  Recall: 95.8% (137/143, SmartBugs-curated)")
+        print("  Precision: 22.1% (recall-first profile)")
+        print("  F1-Score: 0.36")
 
         # Success indicators
         critical_found = sum(

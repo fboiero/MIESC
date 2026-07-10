@@ -448,12 +448,16 @@ class ToolAdapter(ABC):
 
 | Herramienta | Precision | Recall | F1-Score |
 |-------------|-----------|--------|----------|
-| Slither (individual) | 74% | 66% | 0.70 |
-| Mythril (individual) | 68% | 59% | 0.63 |
-| Echidna (individual) | 71% | 62% | 0.66 |
-| **MIESC (7 capas)** | **94.5%** | **92.8%** | **0.936** |
+| Slither (individual) | 8.3% | 43.2% | 0.139 |
+| Mythril (individual) | 6.1% | 27.4% | 0.100 |
+| Securify (individual) | 9.7% | 36.8% | 0.154 |
+| **MIESC (static + intelligence)** | **22.1%** | **95.8%** | **0.359** |
 
-## Mejora: **+40.8%** vs mejor individual
+## Recall: **+52.6pp** vs mejor herramienta individual (Slither 43.2%)
+
+La mejora de recall proviene de la capa de razonamiento LLM/ensemble, no de
+combinar herramientas estaticas. Baselines de herramientas individuales tomados
+de Durieux et al. (ICSE 2020).
 
 ---
 

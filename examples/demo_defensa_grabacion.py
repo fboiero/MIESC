@@ -544,12 +544,12 @@ def mostrar_metricas():
     pause(1.5)
 
     print(f"  │   {C.BCYAN}████████████████████████████████████████ {C.RESET}  PRECISION   │")
-    print(f"  │   {C.BCYAN}94.5%{C.RESET} - Alta precision, pocos falsos positivos     │")
+    print(f"  │   {C.BCYAN}95.8%{C.RESET} recall - perfil recall-first (precision 22.1%) │")
     print("  │                                                            │")
     pause(1.5)
 
     print(f"  │   {C.BYELLOW}███████████████████████████████████████  {C.RESET}  F1-SCORE    │")
-    print(f"  │   {C.BYELLOW}0.936{C.RESET} - Balance optimo precision/recall          │")
+    print(f"  │   {C.BYELLOW}0.359{C.RESET} - F1 (recall-first: alta cobertura)         │")
     print("  │                                                            │")
     pause(1.5)
 
@@ -573,7 +573,7 @@ def mostrar_metricas():
     pause(0.5)
 
     # Mostrar MIESC primero (destacado)
-    print(f"  {C.BGREEN}MIESC (7 capas)      94.5%       100%      0.936{C.RESET}")
+    print(f"  {C.BGREEN}MIESC (static+intel) 22.1%      95.8%     0.359{C.RESET}")
     pause(1.5)
 
     # Luego las herramientas individuales
@@ -1058,9 +1058,9 @@ def mostrar_cierre():
     pause(0.5)
 
     # Mostrar metricas una por una
-    print(f"  • Recall: {C.BGREEN}100%{C.RESET}")
+    print(f"  • Recall: {C.BGREEN}95.8%{C.RESET}")
     pause(0.8)
-    print(f"  • Precision: {C.BCYAN}94.5%{C.RESET}")
+    print(f"  • Precision: {C.BCYAN}22.1%{C.RESET}")
     pause(0.8)
     print(f"  • Mejora vs individual: {C.BMAGENTA}+40.8%{C.RESET}")
     pause(0.8)

@@ -48,7 +48,7 @@ lang: es
 
 Esta tesis presenta **MIESC (Multi-layer Intelligent Evaluation for Smart Contracts)**, un framework de seguridad de nivel productivo que implementa una **arquitectura de Defensa en Profundidad de 7 capas** para la deteccion integral de vulnerabilidades en contratos inteligentes.
 
-El framework integra **25 herramientas de seguridad especializadas** con **correlacion potenciada por IA** usando LLMs soberanos (Ollama) y **deteccion basada en ML** (Redes Neuronales de Grafos DA-GNN), logrando **94.5% de precision**, **92.8% de recall** y un **F1-score de 0.93**.
+El framework integra **25 herramientas de seguridad especializadas** con **correlacion potenciada por IA** usando LLMs soberanos (Ollama) y **deteccion basada en ML** (Redes Neuronales de Grafos DA-GNN), logrando **95.8% de recall** (137/143) en SmartBugs-curated con una precision deliberadamente recall-first de **~22%** (F1 **0.36**), y **92.5% de recall del ensemble** en una extraccion de alta severidad de EVMBench.
 
 Innovaciones clave incluyen:
 - Sistema de triple normalizacion (SWC/CWE/OWASP) con 97.1% de precision
@@ -96,9 +96,10 @@ Innovaciones clave incluyen:
 
 | Metrica | Valor |
 |---------|-------|
-| **Precision** | 94.5% |
-| **Recall** | 92.8% |
-| **F1-Score** | 0.93 |
+| **Recall** (SmartBugs-curated) | 95.8% (137/143) |
+| **Precision** | 22.1% (perfil recall-first) |
+| **F1-Score** | 0.36 |
+| **Recall ensemble (EVMBench)** | 92.5% (111/120) |
 | **Tasa de Falsos Positivos** | 5.5% |
 | **Cobertura de Deteccion** | 96% |
 | **Herramientas Integradas** | 25 |
