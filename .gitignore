@@ -137,6 +137,9 @@ benchmarks/results/evmbench/*
 !benchmarks/results/evmbench/evmbench_static_40.json
 data/benchmark_history/
 analysis/results/*.json
+
+# Slither call-graph artifacts written into the dataset tree by benchmark runs
+benchmarks/datasets/**/*.dot
 analysis/results/*.html
 analysis/results/*.txt
 analysis/policy/*.json
