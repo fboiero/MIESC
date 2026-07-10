@@ -49,13 +49,19 @@ frontera de la detección automatizada.
   (pérdida-de-fondos). Todas de lógica de negocio: manipulación de oráculo/precio,
   inflación de shares/first-depositor, flash-loans, governance, contabilidad
   cross-contract — exactamente lo que los scanners de patrones no ven.
-- **Ground-truth (por qué es el mejor)**: cada vulnerabilidad viene con
-  **(a)** el writeup de auditoría real (`findings/H-XX.md` con enlaces al código),
-  **(b)** un **exploit PoC ejecutable** (test de Foundry que la explota),
-  **(c)** un **patch** que la corrige, y **(d)** el `config.yaml` con el commit
-  base y el scope. La vulnerabilidad es **exploit-verified**: existe demostrablemente
-  en el código porque hay un test que la explota. Esto elimina el riesgo de
-  etiqueta-fantasma que sí encontramos en corpus transcritos a mano.
+- **Ground-truth (verificado en este trabajo)**: **las 118 vulnerabilidades
+  (100%)** son **hallazgos de auditoría profesional reales** (`findings/H-XX.md`
+  con el writeup del auditor y enlaces al código), atribuidos a auditores
+  nombrados sobre protocolos de producción — la máxima calidad de etiqueta que se
+  puede obtener sin curación propia. Un **subconjunto está además exploit-verified**
+  con PoC de Foundry ejecutable + patch + test: medido sobre el corpus clonado,
+  **36/118 (31%)** tienen los cuatro artefactos completos (finding+test+exploit+patch),
+  45/118 (38%) tienen un test nombrado, y todas tienen el hallazgo de auditoría.
+  Es decir: el label del *detect task* (lo que usamos) es un hallazgo de auditoría
+  real en el 100% de los casos; la verificación-por-exploit es un refuerzo presente
+  en ~1/3. (Este número se **midió**, no se asumió — un spot-check inicial sobre un
+  audit completo casi induce a sobre-afirmar "100% exploit-verified"; la medición
+  sobre el corpus lo corrigió, lo que es parte de la disciplina pericial.)
 - **Grading (oficial)**: la evaluación oficial usa un **juez LLM** que decide si el
   reporte del modelo describe la MISMA vulnerabilidad que la del ground-truth
   (coincidencia semántica, no de keyword/línea) — más riguroso y menos frágil que
@@ -75,13 +81,14 @@ frontera de la detección automatizada.
 |---|---|---|---|---|
 | SmartBugs-curated | patrón clásico | 143 | directorio (clase) | robustez estadística |
 | Exploits reales | DeFi on-chain | 11 | incidente confirmado | validez externa |
-| **EVMBench** | **lógica DeFi** | **118** | **exploit-verified (PoC+patch+test)** | **frontera de capacidad** |
+| **EVMBench** | **lógica DeFi** | **118** | **auditoría profesional real (100%); 31% exploit-verified** | **frontera de capacidad** |
 
 Los tres son complementarios: SmartBugs da n grande en lo clásico; los exploits
-dan validez externa; **EVMBench da la frontera de lógica de negocio con el
-ground-truth más defendible que existe** (verificado por exploit, de una fuente
-reputada — OpenAI/Paradigm). Reportar los tres, con su grading y sus límites, es
-lo que hace la evaluación periciable.
+dan validez externa; **EVMBench da la frontera de lógica de negocio con
+ground-truth de auditoría profesional real** (100% hallazgos reales, ~1/3
+exploit-verified, de una fuente reputada — OpenAI/Paradigm). Reportar los tres,
+con su grading y sus límites medidos (no asumidos), es lo que hace la evaluación
+periciable.
 
 ---
 
