@@ -259,6 +259,7 @@ class MLOrchestrator:
         layers: Optional[List[str]] = None,
         timeout: int = 120,
         progress_callback: Optional[Callable[[str, str, float], None]] = None,
+        fp_strictness: str = "off",
     ) -> MLAnalysisResult:
         """
         Ejecuta análisis completo con mejoras ML.
@@ -360,6 +361,36 @@ class MLOrchestrator:
             remediation_plan = []
             pattern_matches = []
             severity_adjustments = 0
+
+        # Recall-safe benign-context FP filter (opt-in via fp_strictness).
+        # The trained ML classifier above is dormant without a labelled corpus,
+        # so it removes nothing (issue #69). This wires the effective
+        # FalsePositiveFilter into the orchestrator itself, so every consumer
+        # (audit, evaluation, API) gets the same precision gain instead of only
+        # the scan CLI. The filter drops ONLY type-deterministic benign findings,
+        # so recall on real vulnerabilities is preserved.
+        if fp_strictness and fp_strictness.lower() != "off":
+            try:
+                from src.ml.fp_filter import FalsePositiveFilter
+
+                fp_filter = FalsePositiveFilter(strictness=fp_strictness.lower(), use_rag=False)
+                kept: List[Dict[str, Any]] = []
+                dropped: List[Dict[str, Any]] = []
+                for finding in ml_filtered_findings:
+                    fr = fp_filter.filter_finding(
+                        finding, code_context=contract_source, file_path=contract_path
+                    )
+                    (dropped if fr.is_likely_fp else kept).append(finding)
+                ml_filtered_findings = kept
+                ml_filtered_out = list(ml_filtered_out) + dropped
+                if dropped:
+                    logger.info(
+                        "FP filter (%s) removed %d likely false positives",
+                        fp_strictness,
+                        len(dropped),
+                    )
+            except Exception as e:  # pragma: no cover - defensive
+                logger.warning("FP filter (%s) skipped: %s", fp_strictness, e)
 
         ml_processing_time = (time.time() - ml_start) * 1000
 
