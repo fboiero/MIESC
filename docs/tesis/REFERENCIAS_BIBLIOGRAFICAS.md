@@ -34,8 +34,6 @@ Chainalysis. (2024). *The 2024 crypto crime report*. Chainalysis Inc. https://ww
 
 Chen, T., Li, X., Luo, X., & Zhang, X. (2020). Under-optimized smart contracts devour your money. *Proceedings of the 24th IEEE International Conference on Software Analysis, Evolution and Reengineering (SANER)*, 442-453. https://doi.org/10.1109/SANER.2020.9045642
 
-Chen, Y., Zhang, L., & Liu, X. (2024). Security defense for smart contracts: A comprehensive survey. *arXiv preprint arXiv:2401.00000*. https://arxiv.org/abs/2401.00000
-
 Claessen, K., & Hughes, J. (2000). QuickCheck: A lightweight tool for random testing of Haskell programs. *ACM SIGPLAN Notices, 35*(9), 268-279. https://doi.org/10.1145/351240.351266
 
 Clarke, E. M., Henzinger, T. A., Veith, H., & Bloem, R. (Eds.). (2018). *Handbook of model checking*. Springer. https://doi.org/10.1007/978-3-319-10575-8
@@ -44,7 +42,7 @@ Clarke, E. M., Henzinger, T. A., Veith, H., & Bloem, R. (Eds.). (2018). *Handboo
 
 ## D
 
-David, Y., Kroening, D., & Schrammel, P. (2023). Combining static analysis and LLMs for smart contract vulnerability detection. *Proceedings of the 45th International Conference on Software Engineering (ICSE)*, 1234-1245. https://doi.org/10.1109/ICSE48619.2023.00108
+De Baets, C., Suleiman, B., Chitizadeh, A., & Razzak, I. (2024). Vulnerability detection in smart contracts: A comprehensive survey. *arXiv preprint arXiv:2407.07922*. https://arxiv.org/abs/2407.07922
 
 de Moura, L., & Bjorner, N. (2008). Z3: An efficient SMT solver. En C. R. Ramakrishnan & J. Rehof (Eds.), *Lecture Notes in Computer Science: Vol. 4963. Tools and Algorithms for the Construction and Analysis of Systems* (pp. 337-340). Springer. https://doi.org/10.1007/978-3-540-78800-3_24
 
@@ -110,6 +108,12 @@ Hou, X., Zhao, Y., Liu, Y., Yang, Z., Wang, K., Li, L., Luo, X., Lo, D., Grundy,
 
 ---
 
+## I
+
+Ivanov, N., Li, C., Yan, Q., Sun, Z., Cao, Z., & Luo, X. (2023). Security defense for smart contracts: A comprehensive survey. *arXiv preprint arXiv:2302.07347*. https://arxiv.org/abs/2302.07347
+
+---
+
 ## J
 
 Joint Chiefs of Staff. (2018). *Cyberspace Operations (JP 3-12)*. U.S. Department of Defense. https://www.jcs.mil/Portals/36/Documents/Doctrine/pubs/jp3_12.pdf
@@ -133,8 +137,6 @@ Lewis, P., Perez, E., Piktus, A., Petroni, F., Karpukhin, V., Goyal, N., Kuttler
 Libicki, M. C. (2009). *Cyberdeterrence and cyberwar*. RAND Corporation. https://www.rand.org/pubs/monographs/MG877.html
 
 Linux Foundation. (2024). *SPDX License List* (Version 3.22). Software Package Data Exchange. https://spdx.org/licenses/
-
-Luo, Y., Chen, Z., Fan, L., & Liu, C. (2023). Multi-layer security defense for smart contracts: A defense-in-depth approach. *IEEE Transactions on Software Engineering*. https://doi.org/10.1109/TSE.2023.3289145
 
 Luu, L., Chu, D. H., Olickel, H., Saxena, P., & Hobor, A. (2016). Making smart contracts smarter. *Proceedings of the 2016 ACM SIGSAC Conference on Computer and Communications Security (CCS)*, 254-269. https://doi.org/10.1145/2976749.2978309
 
@@ -335,7 +337,7 @@ Las referencias siguen el formato de la American Psychological Association (APA)
 ### Patrones y Arquitectura
 - Gamma et al. (1994) - Design Patterns
 - Martin (2000, 2017) - SOLID Principles
-- Luo et al. (2023) - Defense-in-Depth for Smart Contracts
+- Durieux et al. (2020) - Empirical tool complementarity (defense-in-depth basis)
 
 ---
 

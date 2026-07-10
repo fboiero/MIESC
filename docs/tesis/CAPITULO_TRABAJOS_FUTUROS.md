@@ -20,8 +20,8 @@ El presente trabajo de tesis ha presentado MIESC (Marco Integrado de Seguridad p
 | Implementar defensa en profundidad | 7 capas complementarias | 7 capas implementadas | Cumplido |
 | Normalizar resultados | Mapeo SWC/CWE/OWASP | 97.1% precisión mapeo | Cumplido |
 | Eliminar dependencias comerciales | Costo operativo $0 | $0/auditoría | Cumplido |
-| Mejorar detección vs individuales | Incremento >20% recall | 40.8% incremento | Superado |
-| Reducir duplicados | Deduplicación >40% | 66% deduplicación | Superado |
+| Mejorar detección type-aware | Superar al mejor tool individual | 48%→72% con capa LLM (Slither: 58%) | Cumplido |
+| Reducir duplicados | Deduplicación >40% | 68% deduplicación (385→123) | Superado |
 | Integrar con asistentes IA | MCP Server operativo | Implementado | Cumplido |
 
 ### 6.1.3 Contribuciones Principales
@@ -42,7 +42,7 @@ El presente trabajo de tesis ha presentado MIESC (Marco Integrado de Seguridad p
 
 **Hipótesis original:** "La combinación de múltiples técnicas de análisis en una arquitectura de capas mejora la detección de vulnerabilidades respecto a herramientas individuales."
 
-**Resultado:** La hipótesis se valida con un incremento del 40.8% en recall respecto a la mejor herramienta individual (Slither), y un F1-Score de 0.93 frente a 0.74-0.77 de herramientas individuales.
+**Resultado:** La hipótesis se valida de forma matizada. Combinar herramientas estáticas y de patrón NO superó a Slither por sí sola (48% vs 58% de detección type-aware, cobertura equivalente pero ~6× más falsos positivos). La mejora real proviene de agregar una capa de razonamiento LLM, que eleva la detección type-aware del 48% al 72%, superando a Slither (58%). La complementariedad efectiva requiere análisis semántico, no solo combinar tools estáticos.
 
 ---
 
@@ -60,7 +60,7 @@ El presente trabajo de tesis ha presentado MIESC (Marco Integrado de Seguridad p
 
 ### 6.2.2 Limitaciones Metodológicas
 
-1. **Corpus de Prueba Limitado:** La validación se realizó con 4 contratos y 14 vulnerabilidades conocidas. Según Durieux et al. (2020), esto puede sobreestimar la efectividad.
+1. **Corpus de Prueba Limitado:** La validación se realizó con 4 contratos (614 LOC) y 29 vulnerabilidades documentadas. Según Durieux et al. (2020), esto puede sobreestimar la efectividad.
 
 2. **Ausencia de Validación en Producción:** No se ha realizado validación con contratos desplegados en mainnet con vulnerabilidades desconocidas.
 

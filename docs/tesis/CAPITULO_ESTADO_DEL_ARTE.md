@@ -168,7 +168,7 @@ Los autores concluyen que "ninguna herramienta individual alcanza una cobertura 
 
 Recientemente, la aplicación de modelos de lenguaje de gran escala (LLMs) al análisis de seguridad ha emergido como un área de investigación prometedora. Sun et al. (2024) presentaron GPTScan en ICSE 2024, demostrando que GPT-4 puede detectar vulnerabilidades de lógica que escapan a herramientas tradicionales.
 
-David et al. (2023) proponen un enfoque híbrido donde los LLMs complementan herramientas de análisis estático, reduciendo los falsos positivos mediante razonamiento semántico. Sin embargo, Chen et al. (2023) advierten sobre las limitaciones de los LLMs, incluyendo:
+Sun et al. (2024) proponen un enfoque híbrido donde los LLMs complementan herramientas de análisis estático, reduciendo los falsos positivos mediante razonamiento semántico. Sin embargo, De Baets et al. (2024) advierten sobre las limitaciones de los LLMs, incluyendo:
 
 - Alucinaciones (generación de vulnerabilidades inexistentes)
 - Dependencia del contexto y prompt engineering
@@ -273,11 +273,11 @@ Chainalysis. (2024). *The 2024 Crypto Crime Report*. https://www.chainalysis.com
 
 Chen, T., Li, X., Luo, X., & Zhang, X. (2020). Under-optimized smart contracts devour your money. *Proceedings of the 24th IEEE International Conference on Software Analysis, Evolution and Reengineering*, 442-453. https://doi.org/10.1109/SANER.2020.9045642
 
-Chen, Y., Ding, S., Liu, Y., & Yang, X. (2023). Large language models for smart contract vulnerability detection: A comprehensive survey. *arXiv preprint arXiv:2312.01234*.
+De Baets, C., Suleiman, B., Chitizadeh, A., & Razzak, I. (2024). Vulnerability detection in smart contracts: A comprehensive survey. *arXiv preprint arXiv:2407.07922*. https://arxiv.org/abs/2407.07922
 
 Clarke, E. M., Henzinger, T. A., Veith, H., & Bloem, R. (Eds.). (2018). *Handbook of model checking*. Springer. https://doi.org/10.1007/978-3-319-10575-8
 
-David, Y., Kroening, D., & Schrammel, P. (2023). Combining static analysis and LLMs for smart contract vulnerability detection. *Proceedings of the 45th International Conference on Software Engineering*, 1234-1245.
+Sun, Y., Wu, D., Xue, Y., Liu, H., Wang, H., Xu, Z., Xie, X., & Liu, Y. (2024). GPTScan: Detecting logic vulnerabilities in smart contracts by combining GPT with program analysis. *Proceedings of the 46th International Conference on Software Engineering (ICSE)*, Article 166. https://doi.org/10.1145/3597503.3623318
 
 Destefanis, G., Marchesi, M., Ortu, M., Tonelli, R., Bracciali, A., & Hierons, R. (2018). Smart contracts vulnerabilities: A call for blockchain software engineering? *Proceedings of the International Workshop on Blockchain Oriented Software Engineering*, 19-25. https://doi.org/10.1109/IWBOSE.2018.8327567
 
@@ -344,8 +344,6 @@ Ross, R., McEvilley, M., & Oren, J. C. (2016). *Systems security engineering: Co
 Schneier, B. (2000). *Secrets and lies: Digital security in a networked world*. John Wiley & Sons.
 
 SCSVS. (2023). *Smart Contract Security Verification Standard*. https://github.com/securing/SCSVS
-
-Sun, Y., Wu, D., Xue, Y., Liu, H., Wang, H., Xu, Z., ... & Liu, Y. (2024). GPTScan: Detecting logic vulnerabilities in smart contracts by combining GPT with program analysis. *Proceedings of the 46th International Conference on Software Engineering*, 1-12. https://doi.org/10.1145/3597503.3623318
 
 Tsankov, P., Dan, A., Drachsler-Cohen, D., Gervais, A., Bünzli, F., & Vechev, M. (2018). Securify: Practical security analysis of smart contracts. *Proceedings of the 2018 ACM SIGSAC Conference on Computer and Communications Security*, 67-82. https://doi.org/10.1145/3243734.3243780
 

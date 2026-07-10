@@ -97,7 +97,7 @@
 - Sistema de normalizacion SWC/CWE/OWASP
 - LLM Soberano con Ollama
 - MCP Server
-- Resultados: 100% recall, +40.8% mejora, $0 costo
+- Resultados: 100% cobertura / 48% type-aware (72% con capa LLM), dedup 68%, $0 costo
 
 ### NO Incluido (Trabajo Posterior v4.1.0+)
 - Capas 8-9 (DeFi/Dependencies)

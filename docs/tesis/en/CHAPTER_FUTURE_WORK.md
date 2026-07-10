@@ -20,8 +20,8 @@ This thesis has presented MIESC (Multi-layer Integration for Ethereum Smart Cont
 | Implement defense in depth | 7 complementary layers | 7 layers implemented | Achieved |
 | Normalize results | SWC/CWE/OWASP mapping | 97.1% mapping accuracy | Achieved |
 | Eliminate commercial dependencies | Operating cost $0 | $0/audit | Achieved |
-| Improve detection vs individuals | Recall increase >20% | 40.8% increase | Exceeded |
-| Reduce duplicates | Deduplication >40% | 66% deduplication | Exceeded |
+| Improve type-aware detection | Surpass best individual tool | 48%→72% with LLM layer (Slither: 58%) | Achieved |
+| Reduce duplicates | Deduplication >40% | 68% deduplication (385→123) | Exceeded |
 | Integrate with AI assistants | MCP Server operational | Implemented | Achieved |
 
 ### 6.1.3 Main Contributions
@@ -42,7 +42,7 @@ This thesis has presented MIESC (Multi-layer Integration for Ethereum Smart Cont
 
 **Original hypothesis:** "The combination of multiple analysis techniques in a layered architecture improves vulnerability detection compared to individual tools."
 
-**Result:** The hypothesis is validated with a 40.8% increase in recall compared to the best individual tool (Slither), and an F1-Score of 0.93 versus 0.74-0.77 for individual tools.
+**Result:** The hypothesis is validated with a qualification. Combining static and pattern tools did NOT surpass Slither alone (48% vs 58% type-aware detection, equivalent coverage but ~6× more false positives). The real improvement comes from adding an LLM reasoning layer, which raises type-aware detection from 48% to 72%, surpassing Slither (58%). Effective complementarity requires semantic analysis, not merely combining static tools.
 
 ---
 
@@ -60,7 +60,7 @@ This thesis has presented MIESC (Multi-layer Integration for Ethereum Smart Cont
 
 ### 6.2.2 Methodological Limitations
 
-1. **Limited Test Corpus:** Validation was performed with 4 contracts and 14 known vulnerabilities. According to Durieux et al. (2020), this may overestimate effectiveness.
+1. **Limited Test Corpus:** Validation was performed with 4 contracts (614 LOC) and 29 documented vulnerabilities. According to Durieux et al. (2020), this may overestimate effectiveness.
 
 2. **Absence of Production Validation:** No validation was performed with mainnet-deployed contracts with unknown vulnerabilities.
 

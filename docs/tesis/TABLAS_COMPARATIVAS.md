@@ -137,18 +137,16 @@
 
 ---
 
-## Tabla 6: Precisión de Detección
+## Tabla 6: Detección sobre el corpus real (29 vulnerabilidades documentadas)
 
-| Métrica | MIESC | Slither | Mythril | GPTScan Original |
-|---------|-------|---------|---------|------------------|
-| True Positives (TP) | 92% | 75% | 80% | 70% |
-| False Positives (FP) | 8% | 25% | 15% | 20% |
-| False Negatives (FN) | 5% | 20% | 25% | 30% |
-| Precision | 0.92 | 0.75 | 0.84 | 0.78 |
-| Recall | 0.95 | 0.80 | 0.75 | 0.70 |
-| F1-Score | 0.93 | 0.77 | 0.79 | 0.74 |
+| Métrica | Slither (sola) | MIESC estático+patrón (capas 1/6/7) | MIESC + capa LLM (`--deep`) |
+|---------|----------------|-------------------------------------|------------------------------|
+| Cobertura de recall | 28/29 (96%) | 29/29 (100%) | 27/29 (93%) |
+| Recall type-aware (tipo/SWC correcto) | 17/29 (58%) | 14/29 (48%) | 21/29 (72%) |
+| Hallazgos totales | 62 | 385 | ~110 |
+| Precisión aprox. | ~27% | ~7.5% | ~27% |
 
-**Nota:** Métricas estimadas basadas en contratos de prueba conocidos.
+**Nota:** Medición controlada sobre `data/audit/` (4 contratos, 614 LOC). Combinar herramientas estáticas y de patrón NO superó a Slither por sí sola en detección type-aware (48% vs 58%); la mejora real proviene de agregar la capa de razonamiento LLM (48%→72%). Mythril y Echidna no se re-midieron de forma aislada (sin binarios arm64 en el entorno de reproducción). Artefactos: `docs/evidence/corpus_revalidation_20260709/`.
 
 ---
 
@@ -203,7 +201,7 @@
 | Protocolo ToolAdapter | Interfaz unificada para herramientas | No vendor lock-in |
 | Normalización triple | SWC + CWE + OWASP | Clasificación estándar |
 | Backend Ollama | LLM local sin API key | Costo $0, privacidad |
-| Deduplicación inteligente | Consolidación de hallazgos duplicados | 48% reducción ruido |
+| Deduplicación inteligente | Consolidación de hallazgos duplicados | 68% reducción (385→123) |
 | Parche Python 3.11 | Compatibilidad Manticore | Herramienta rescatada |
 | MCP Server | Integración con asistentes IA | Uso con Claude/ChatGPT |
 | Pipeline CI/CD | GitHub Actions ready | Auditoría continua |

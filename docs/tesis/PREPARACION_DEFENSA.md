@@ -76,11 +76,11 @@
 ### Resultados Clave (MEMORIZAR)
 | Metrica | Valor |
 |---------|-------|
-| Recall | 100% |
-| Mejora vs mejor individual | +40.8% |
-| Precision | 94.5% |
-| F1-Score | 0.936 |
-| Deduplicacion | 66% |
+| Cobertura de recall | 29/29 (100%) |
+| Recall type-aware (estatico+patron) | 14/29 (48%) |
+| Recall type-aware (+capa LLM `--deep`) | 21/29 (72%) |
+| Precision | ~7.5% (perfil recall-first; ~32% con filtrado FP) |
+| Deduplicacion | 68% (385&rarr;123) |
 | Costo operativo | $0 |
 | Herramientas integradas | 25/25 (100%) |
 
@@ -121,10 +121,10 @@
 ### Sobre los Resultados
 
 **P: El corpus de 4 contratos no es muy pequeno?**
-> Si, es una limitacion reconocida. Sin embargo, los 4 contratos cubren 7 categorias SWC y 14 vulnerabilidades conocidas. El enfoque fue validar la arquitectura, no hacer benchmark exhaustivo. Trabajo futuro incluye validacion con SmartBugs (143 contratos).
+> Si, es una limitacion reconocida. Sin embargo, los 4 contratos (614 LOC) cubren 9 o mas categorias SWC y 29 vulnerabilidades documentadas. El enfoque fue validar la arquitectura, no hacer benchmark exhaustivo. Trabajo futuro incluye validacion con SmartBugs (143 contratos).
 
-**P: Como midieron el recall de 100%?**
-> Contra vulnerabilidades conocidas y documentadas en el corpus de prueba. MIESC detecto las 14/14 vulnerabilidades conocidas. En escenarios reales con vulnerabilidades desconocidas, el recall sera menor.
+**P: Que significa la cobertura de 100%?**
+> Es cobertura de linea: MIESC produce algun hallazgo cerca de las 29/29 vulnerabilidades documentadas (perfil recall-first). El criterio significativo es la detección type-aware —que el hallazgo sea del tipo/SWC correcto—: 48% con capas estatico+patron, y 72% al agregar la capa LLM frontier. En escenarios reales con vulnerabilidades desconocidas, ambos numeros seran menores.
 
 **P: Que pasa con vulnerabilidades de logica de negocio?**
 > Es una limitacion. Vulnerabilidades como flash loan attacks o MEV exploitation requieren conocimiento del contexto de negocio que las herramientas automaticas no capturan completamente. SmartLLM ayuda pero no es perfecto.
@@ -135,7 +135,7 @@
 > MIESC es complementario, no competidor. Integra Certora Prover como una de las 25 herramientas. La diferencia es que MIESC orquesta multiples herramientas con IA soberana, mientras que soluciones comerciales son single-tool o requieren APIs cloud.
 
 **P: Por que no usar simplemente Slither que es la mas popular?**
-> Slither solo detecta ~66% de vulnerabilidades conocidas. La combinacion de herramientas en MIESC alcanza 100% recall. Ademas, Slither no detecta vulnerabilidades que requieren ejecucion simbolica o fuzzing.
+> Slither por si sola ya es muy fuerte (96% de cobertura, 58% type-aware en nuestro corpus). Ser honestos: combinar tools estaticos NO la supera. El valor de MIESC aparece al agregar la capa de razonamiento LLM, que sube la detección type-aware del 48% al 72%. Ademas, MIESC integra ejecucion simbolica y fuzzing que Slither no cubre.
 
 ### Sobre Aplicabilidad
 
@@ -216,7 +216,7 @@ Si la demo falla, tener video de 2-3 min mostrando:
 > "En ciberdefensa, enviar codigo fuente a servidores externos es inaceptable. MIESC garantiza que el codigo NUNCA sale de tu maquina."
 
 ### Sobre Resultados
-> "MIESC logro 100% recall y mejora del 40.8% sobre la mejor herramienta individual, con costo operativo cero."
+> "MIESC cubre el 100% de las vulnerabilidades documentadas del corpus y eleva la detección type-aware del 48% al 72% al incorporar la capa de razonamiento LLM, con costo operativo cero."
 
 ### Cierre
 > "MIESC demuestra que la defensa en profundidad, aplicada correctamente con IA soberana, puede transformar la seguridad de smart contracts de fragmentada a integral."

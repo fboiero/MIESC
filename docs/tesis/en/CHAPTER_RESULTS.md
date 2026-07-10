@@ -74,11 +74,11 @@ The selection of test contracts follows the recommendations of Ghaleb and Pattab
 
 | Contract | LOC | Vulnerabilities | SWC IDs | Source |
 |----------|-----|-----------------|---------|--------|
-| VulnerableBank.sol | 87 | 5 | 107, 104, 105 | Custom design |
-| UnsafeToken.sol | 124 | 4 | 101, 111, 131 | Custom design |
-| ReentrancyDAO.sol | 156 | 3 | 107 | Adapted from Atzei et al. (2017) |
-| WeakRandom.sol | 45 | 2 | 120 | Adapted from SWC Registry |
-| **Total** | **412** | **14** | **7 categories** | |
+| VulnerableBank.sol | 99 | 2 | 107 | Custom design |
+| UnsafeToken.sol | 142 | 10 | 101, 104, 114, 116, 120, 128 | Custom design |
+| AccessControlFlawed.sol | 121 | 7 | 105, 106, 115 | Custom design |
+| FlashLoanVault.sol | 252 | 10 | 107, 104, 114 (DeFi logic) | Custom design |
+| **Total** | **614** | **29** | **9+ categories** | |
 
 **Methodological limitations:** According to Durieux et al. (2020), benchmarks with designed contracts may overestimate tool effectiveness. This limitation is acknowledged and additional validation with production contracts is recommended for future work.
 
@@ -315,7 +315,7 @@ Total execution time: 52.4s (parallel)
 Status: COMPLETED
 ```
 
-**Observation:** The complete 7-layer pipeline execution generates 47 raw findings that are reduced to 16 unique after deduplication, demonstrating the effectiveness of the normalization process.
+**Observation:** The complete pipeline execution over the corpus generates 385 raw findings that are reduced to 123 unique after root-cause clustering, demonstrating the effectiveness of the normalization process.
 
 ---
 
@@ -418,76 +418,86 @@ $ curl -X POST http://localhost:8000/api/v1/analyze \
 
 ### 5.3.1 Test Corpus Analysis
 
-MIESC was executed on the corpus of 4 contracts with 14 known vulnerabilities. Table 5.5 presents the aggregated results.
+MIESC was executed on a test corpus of 4 custom-designed contracts (614 LOC in total) with **29 documented vulnerabilities** annotated via `// VULNERABILITY N:` markers in the source code, which constitute the *ground truth*.
 
-**Table 5.5.** Detection results in test corpus
+**Table 5.5.** Test corpus (`data/audit/`)
 
-| Contract | Known Vulns | Detected | TP | FP | FN | Precision | Recall |
-|----------|-------------|----------|----|----|----|-----------|----|
-| VulnerableBank.sol | 5 | 6 | 5 | 1 | 0 | 0.83 | 1.00 |
-| UnsafeToken.sol | 4 | 5 | 4 | 1 | 0 | 0.80 | 1.00 |
-| ReentrancyDAO.sol | 3 | 3 | 3 | 0 | 0 | 1.00 | 1.00 |
-| WeakRandom.sol | 2 | 2 | 2 | 0 | 0 | 1.00 | 1.00 |
-| **Total** | **14** | **16** | **14** | **2** | **0** | **0.875** | **1.00** |
+| Contract | LOC | Documented Vulns | Main Categories |
+|----------|-----|------------------|-----------------|
+| VulnerableBank.sol | 99 | 2 | Reentrancy (SWC-107) |
+| UnsafeToken.sol | 142 | 10 | Multiple (SWC-101/104/114/116/120/128) |
+| AccessControlFlawed.sol | 121 | 7 | Access control (SWC-105/106/115) |
+| FlashLoanVault.sol | 252 | 10 | DeFi logic (oracle, first-depositor, reentrancy) |
+| **Total** | **614** | **29** | **9+ SWC categories** |
+
+**Methodological note.** A *recall-first* tool such as MIESC produces many findings per contract, so two "detection" criteria are distinguished:
+- **Line coverage:** is there any finding within ±5 lines of the vulnerability marker? A lax criterion, satisfied almost trivially when there are many findings.
+- **Type-aware detection:** does the nearby finding identify the vulnerability of the **correct type/SWC**? The meaningful criterion.
+
+All results in this section are reproducible; the raw artifacts and the vulnerability-by-vulnerability verification are in the dossier `docs/evidence/corpus_revalidation_20260709/`.
+
+### 5.3.2 MIESC Detection Results
+
+**Table 5.6.** MIESC detection (static + pattern configuration, layers 1/6/7)
+
+| Contract | Coverage | Type-correct | Findings |
+|----------|----------|--------------|----------|
+| VulnerableBank.sol | 2/2 | 2/2 | 47 |
+| UnsafeToken.sol | 10/10 | 5/10 | 103 |
+| AccessControlFlawed.sol | 7/7 | 3/7 | 82 |
+| FlashLoanVault.sol | 10/10 | 4/10 | 153 |
+| **Total** | **29/29 (100%)** | **14/29 (48%)** | **385** |
 
 **Aggregated metrics:**
-- **Precision:** 14 / (14 + 2) = 0.875 (87.5%)
-- **Recall:** 14 / (14 + 0) = 1.00 (100%)
-- **F1-Score:** 2 × (0.875 × 1.00) / (0.875 + 1.00) = **0.93**
+- **Coverage recall:** 29/29 = **100%**
+- **Type-aware recall:** 14/29 = **48%**
+- **Precision:** ≈ 29/385 ≈ **7.5%** (rises to ~32% with aggressive FP filtering)
 
-### 5.3.2 Severity Distribution
+MIESC exhibits a clearly *recall-first* profile: it covers the entirety of the documented vulnerabilities, but with low precision as a result of the finding flood (385 over 614 LOC). Under the meaningful type-correct criterion, it identifies 48%.
 
-**Table 5.6.** Finding distribution by severity
+### 5.3.3 Comparison with Slither (RQ2)
 
-| Severity | Quantity | Percentage | Definition (approx. CVSS) |
-|----------|----------|------------|---------------------------|
-| Critical | 2 | 12.5% | CVSS >= 9.0 |
-| High | 5 | 31.3% | 7.0 <= CVSS < 9.0 |
-| Medium | 6 | 37.5% | 4.0 <= CVSS < 7.0 |
-| Low | 3 | 18.7% | CVSS < 4.0 |
-| **Total** | **16** | **100%** | |
+To answer RQ2 —whether the multi-layer approach improves detection compared to individual tools— **Slither was measured in isolation** on the same corpus, using an identical correlation criterion.
 
-**Figure 19.** Finding distribution by severity in the test corpus
+**Table 5.7.** MIESC vs Slither on the real corpus (29 vulnerabilities)
 
-### 5.3.3 Detection by Layer
+| Configuration | Coverage | Type-correct | Findings | Approx. Precision |
+|---------------|----------|--------------|----------|-------------------|
+| Slither (alone) | 28/29 (96%) | **17/29 (58%)** | 62 | ~27% |
+| MIESC static+pattern (layers 1/6/7) | 29/29 (100%) | 14/29 (48%) | 385 | ~7.5% |
+| MIESC + frontier LLM layer (`--deep`) | 27/29 (93%) | **21/29 (72%)** | ~110 | ~27% |
 
-Table 5.7 shows the contribution of each layer to total detection, evidencing the complementarity of techniques.
+**RQ2 Result (honest).** Combining static and pattern tools (MIESC layers 1/6/7) **did NOT improve detection over Slither alone**: it reached equivalent coverage (100% vs 96%, one vulnerability of difference) but **lower type precision** (48% vs 58%) and **~6× more false positives** (385 vs 62). The hypothesis that combining static tools surpasses the best individual tool **does not hold on this corpus**.
 
-**Table 5.7.** Findings detected by layer
+The real improvement comes from **adding an LLM reasoning layer**: with a frontier model in `--deep` mode, type-aware recall rises from 48% to **72%**, surpassing Slither (58%). The differential value of the multi-layer approach therefore resides in the **semantic LLM analysis layer**, not in the combination of static tools.
 
-| Layer | Technique | Raw Findings | Unique | % Unique Contribution |
-|-------|-----------|--------------|--------|----------------------|
-| 1 | Static Analysis | 12 | 8 | 50.0% |
-| 2 | Fuzzing | 5 | 2 | 12.5% |
-| 3 | Symbolic Execution | 8 | 3 | 18.8% |
-| 4 | Invariant Testing | 3 | 1 | 6.2% |
-| 5 | Formal Verification | 6 | 1 | 6.2% |
-| 6 | Property Testing | 4 | 0 | 0.0% |
-| 7 | AI Analysis | 9 | 1 | 6.2% |
-| **Total** | | **47** | **16** | **100%** |
+**Persistent limit.** Deep DeFi logic vulnerabilities (oracle manipulation, first-depositor, rounding in `FlashLoanVault`) remain hard even for frontier models (4–6 of 10 depending on the model), constituting the open frontier of automated smart contract analysis.
 
-**Key observation:** No individual layer detected all vulnerabilities. The combination of layers 1, 2, and 3 was necessary to achieve complete coverage, validating the complementarity hypothesis of Ghaleb and Pattabiraman (2020).
+This result qualifies the complementarity thesis of Durieux et al. (2020): while no individual tool detects all classes, **combining static tools did not surpass the best individual tool** on this corpus; the gain came from semantic reasoning.
 
-### 5.3.4 Comparison with Individual Tools
+> **Scope note.** Mythril and Echidna were not re-measured in isolation on this corpus (Mythril unavailable in the arm64 reproduction environment; Echidna without arm64 binaries). The RQ2 comparison is limited to Slither, the reference static tool.
 
-**Table 5.8.** Performance comparison MIESC vs individual tools
+### 5.3.4 Multi-model ensemble: complementarity at the reasoner level
 
-| Tool | TP | FP | FN | Precision | Recall | F1 |
-|------|----|----|----|-----------|----|------|
-| MIESC (7 layers) | 14 | 2 | 0 | 0.875 | **1.00** | **0.93** |
-| Slither (alone) | 10 | 3 | 4 | 0.77 | 0.71 | 0.74 |
-| Mythril (alone) | 8 | 1 | 6 | 0.89 | 0.57 | 0.70 |
-| Echidna (alone) | 5 | 0 | 9 | 1.00 | 0.36 | 0.53 |
+If combining static tools does not improve detection (§5.3.3), what does? Each frontier LLM detects a **different** subset of the 29 vulnerabilities; the **union** of their type-aware detections exceeds any single one.
 
-**MIESC recall improvement vs best individual (Slither):**
+**Table 5.8.** Type-aware detection per model and ensemble (union)
 
-$$\Delta_{recall} = \frac{1.00 - 0.71}{0.71} \times 100 = 40.8\%$$
+| Configuration | Type-aware |
+|---------------|-----------|
+| qwen-14b (local) | 13/29 (44%) |
+| GPT-5 | 15/29 (51%) |
+| DeepSeek-V4-flash | 16/29 (55%) |
+| Slither (static baseline) | 17/29 (58%) |
+| DeepSeek-V4-pro | 18/29 (62%) |
+| Claude Sonnet / GPT-4o / Claude Opus | 21/29 (72%) |
+| **Ensemble (union of models)** | **25/29 (86%)** |
 
-**RQ2 Result:** MIESC improves recall by **40.8%** compared to the best individual tool, confirming the hypothesis that combining techniques surpasses individual analyses.
+**Result.** The multi-model ensemble reaches **86%**, well above the best individual model (72%). This **reformulates** the complementarity hypothesis of Ghaleb and Pattabiraman (2020): effective complementarity comes not from stacking static tools (§5.3.3) but from **combining diverse LLM reasoners**, each with different strengths.
 
-This result is consistent with the findings of Ghaleb and Pattabiraman (2020), who report a 34% increase when combining static and symbolic analysis.
+Only **4 vulnerabilities are detected by no model**: an unchecked return value in `transferFrom` and three DeFi-logic issues in `FlashLoanVault` (oracle manipulation, rounding in share calculation, and an arithmetic one that reverts automatically in Solidity 0.8.x). These constitute the open frontier of automated smart-contract analysis.
 
-**Figure 20.** Performance comparison MIESC (7 layers) vs individual tools (Slither, Mythril, Echidna)
+**Recall/precision trade-off.** The ensemble maximizes recall (86%) but unions the false positives of all models, degrading precision; it is a maximum-coverage triage configuration, not a high-precision reporting one. MIESC exposes this via the `--ensemble` option. Per-vulnerability evidence in `docs/evidence/corpus_revalidation_20260709/` (§16).
 
 ---
 
@@ -495,9 +505,9 @@ This result is consistent with the findings of Ghaleb and Pattabiraman (2020), w
 
 ### 5.4.1 Deduplication Effectiveness
 
-The 7 layers generated a total of 47 raw findings. The deduplication algorithm reduced this number to 16 unique findings.
+The layers generated a total of 385 raw findings on the corpus. The root-cause clustering algorithm reduced this number to 123 unique findings.
 
-**Deduplication rate:** (47 - 16) / 47 × 100 = **66.0%**
+**Deduplication rate:** (385 - 123) / 385 × 100 = **68.1%**
 
 **Table 5.9.** Duplicate finding analysis
 
@@ -626,12 +636,12 @@ These results validate the design decision to use the Adapter pattern (Gamma et 
 
 ### 5.7.2 Answer to RQ2
 
-The 40.8% recall improvement confirms the hypothesis of technique complementarity. This result is consistent with:
+The controlled measurement against Slither (§5.3.3) **qualifies** the complementarity hypothesis. Combining static and pattern tools (layers 1/6/7) **did not improve** type-aware detection over the best individual tool: 48% vs Slither's 58%, with equivalent coverage (100% vs 96%) but ~6× more false positives. The real gain came from **adding LLM reasoning**, which raised type-aware recall from 48% to **72%**, surpassing Slither; and from **combining diverse LLM models in an ensemble** (§5.3.4), which raised it further to **86%** (union of detections), at the cost of precision. This is consistent with:
 
-- Ghaleb and Pattabiraman (2020): 34% improvement with 2 techniques
-- Rameder et al. (2022): "No individual tool is sufficient"
+- Rameder et al. (2022): "No individual tool is sufficient" — but, per our measurement, effective complementarity requires **semantic analysis**, not merely combining static tools.
+- Durieux et al. (2020): no individual tool covers all vulnerability classes.
 
-The 7-layer architecture represents an original contribution that extends previous work.
+The contribution of the multi-layer approach therefore resides in integrating an LLM reasoning layer on top of static analysis — not in the mere combination of static tools.
 
 ### 5.7.3 Answer to RQ3
 

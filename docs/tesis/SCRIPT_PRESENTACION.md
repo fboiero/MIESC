@@ -116,7 +116,7 @@
 ## SLIDE 15: MIESC - Vision General (1 min)
 
 **Decir:**
-> "MIESC integra 25 herramientas en 7 capas de defensa. Logra 100% de recall en vulnerabilidades conocidas, una mejora del 40.8% sobre la mejor herramienta individual, con costo operativo cero gracias a la IA soberana con Ollama."
+> "MIESC integra 25 herramientas en 7 capas de defensa. Con un perfil recall-first cubre el 100% de las vulnerabilidades documentadas del corpus, y su detección type-aware sube del 48% al 72% al incorporar la capa de razonamiento LLM, todo con costo operativo cero gracias a la IA soberana con Ollama."
 
 ---
 
@@ -228,7 +228,7 @@
 ## SLIDE 31: Metodologia de Evaluacion (1 min)
 
 **Decir:**
-> "Realizamos una evaluacion comparativa con benchmark controlado. Las preguntas de investigacion fueron: RQ1 - integracion exitosa de 25 herramientas; RQ2 - mejora de deteccion; RQ3 - reduccion de duplicados; y RQ4 - viabilidad para produccion. El corpus incluyo 4 contratos con 14 vulnerabilidades conocidas en 7 categorias SWC."
+> "Realizamos una evaluacion comparativa con benchmark controlado. Las preguntas de investigacion fueron: RQ1 - integracion exitosa de 25 herramientas; RQ2 - mejora de deteccion; RQ3 - reduccion de duplicados; y RQ4 - viabilidad para produccion. El corpus incluyo 4 contratos con 29 vulnerabilidades documentadas (614 LOC) en 9 o mas categorias SWC."
 
 ---
 
@@ -242,14 +242,14 @@
 ## SLIDE 33: RQ2 - Mejora de Deteccion (1 min)
 
 **Decir:**
-> "RQ2: MIESC logra 94.5% de precision, 92.8% de recall, y F1-Score de 0.936, representando una mejora del 40.8% sobre la mejor herramienta individual. Slither individual tiene F1 de 0.70, mientras MIESC alcanza 0.93."
+> "RQ2: medimos Slither de forma aislada sobre el mismo corpus. Combinar herramientas estaticas y de patron NO superó a Slither sola: cobertura equivalente (100% vs 96%) pero menor detección de tipo (48% vs 58%) y ~6x más falsos positivos. La mejora real proviene de agregar la capa de razonamiento LLM, que eleva el recall type-aware del 48% al 72%, superando a Slither."
 
 ---
 
 ## SLIDE 34: RQ3 - Reduccion de Duplicados (1 min)
 
 **Decir:**
-> "RQ3: De 147 hallazgos brutos, MIESC identifica 50 unicos, eliminando 97 duplicados - una reduccion del 66%. La precision de normalizacion es del 97.1%."
+> "RQ3: De 385 hallazgos brutos, MIESC identifica 123 unicos, eliminando 262 duplicados - una reduccion del 68%. La precision de normalizacion es del 97.1%."
 
 ---
 
@@ -307,7 +307,7 @@
 ## SLIDE 42: Objetivos Alcanzados (1 min)
 
 **Decir:**
-> "Todos los objetivos fueron alcanzados o superados. Integramos 25 herramientas, implementamos 7 capas de defensa, normalizamos al 97.1%, eliminamos dependencias comerciales, y logramos mejoras del 40.8% en deteccion y 66% en reduccion de duplicados."
+> "Todos los objetivos fueron alcanzados. Integramos 25 herramientas, implementamos 7 capas de defensa, normalizamos al 97.1%, eliminamos dependencias comerciales, elevamos la detección type-aware del 48% al 72% con la capa LLM y logramos un 68% de reduccion de duplicados."
 
 ---
 

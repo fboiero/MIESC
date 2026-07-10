@@ -47,7 +47,7 @@ El impacto economico de las vulnerabilidades en smart contracts es significativo
 
 ### 1.1.3 La Fragmentacion del Ecosistema de Herramientas
 
-El campo de la seguridad de smart contracts ha visto el desarrollo de numerosas herramientas especializadas, cada una con fortalezas y limitaciones particulares (Chen et al., 2024). Sin embargo, existe una fragmentacion significativa:
+El campo de la seguridad de smart contracts ha visto el desarrollo de numerosas herramientas especializadas, cada una con fortalezas y limitaciones particulares (Ivanov et al., 2023). Sin embargo, existe una fragmentacion significativa:
 
 **Problema 1: Heterogeneidad de enfoques**
 - Herramientas de analisis estatico (Slither, Solhint)
@@ -278,7 +278,7 @@ Atzei, N., Bartoletti, M., & Cimoli, T. (2017). A survey of attacks on Ethereum 
 
 Chainalysis. (2024). *The 2024 Crypto Crime Report*. Chainalysis Inc.
 
-Chen, Y., Zhang, L., & Liu, X. (2024). Security defense for smart contracts: A comprehensive survey. *arXiv preprint arXiv:2401.00000*.
+Ivanov, N., Li, C., Yan, Q., Sun, Z., Cao, Z., & Luo, X. (2023). Security defense for smart contracts: A comprehensive survey. *arXiv preprint arXiv:2302.07347*. https://arxiv.org/abs/2302.07347
 
 Di Pietro, R., Ferretti, S., & Verde, N. V. (2024). Securing critical infrastructure with blockchain technology: A systematic review. *MDPI Electronics, 13*(1), 1-24. https://doi.org/10.3390/electronics13010001
 

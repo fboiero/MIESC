@@ -141,13 +141,13 @@
   <!-- Metrics boxes -->
   <g transform="translate(80, 600)">
     <rect width="140" height="50" rx="8" fill="#11998e" opacity="0.8"/>
-    <text x="70" y="25" text-anchor="middle" style="font: bold 11px Arial; fill: #fff;">Recall</text>
-    <text x="70" y="42" text-anchor="middle" style="font: bold 14px Arial; fill: #fff;">87.5%</text>
+    <text x="70" y="25" text-anchor="middle" style="font: bold 11px Arial; fill: #fff;">Cobertura</text>
+    <text x="70" y="42" text-anchor="middle" style="font: bold 14px Arial; fill: #fff;">100%</text>
   </g>
   <g transform="translate(240, 600)">
     <rect width="140" height="50" rx="8" fill="#38ef7d" opacity="0.8"/>
-    <text x="70" y="25" text-anchor="middle" style="font: bold 11px Arial; fill: #1a1a2e;">Precision</text>
-    <text x="70" y="42" text-anchor="middle" style="font: bold 14px Arial; fill: #1a1a2e;">89.47%</text>
+    <text x="70" y="25" text-anchor="middle" style="font: bold 11px Arial; fill: #1a1a2e;">Type-aware</text>
+    <text x="70" y="42" text-anchor="middle" style="font: bold 14px Arial; fill: #1a1a2e;">48&#8594;72%</text>
   </g>
   <g transform="translate(400, 600)">
     <rect width="140" height="50" rx="8" fill="#fc4a1a" opacity="0.8"/>

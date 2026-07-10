@@ -122,6 +122,6 @@
   <!-- Observation box -->
   <rect x="40" y="825" width="770" height="45" fill="#e8f8f5" rx="5" stroke="#1abc9c" stroke-width="1"/>
   <text x="55" y="845" font-size="11" fill="#0e6655" font-weight="bold">Observación:</text>
-  <text x="140" y="845" font-size="11" fill="#0e6655">La ejecución completa del pipeline de 7 capas genera 47 hallazgos brutos</text>
-  <text x="55" y="862" font-size="11" fill="#0e6655">que se reducen a 16 únicos tras la deduplicación (66% de reducción).</text>
+  <text x="140" y="845" font-size="11" fill="#0e6655">La ejecución del pipeline sobre el corpus genera 385 hallazgos brutos</text>
+  <text x="55" y="862" font-size="11" fill="#0e6655">que se reducen a 123 únicos tras el agrupamiento por causa-raíz (68% de reducción).</text>
 </svg>

@@ -1100,7 +1100,7 @@ Claessen, K., & Hughes, J. (2000). QuickCheck: A lightweight tool for random tes
 
 ConsenSys. (2023). *Smart contract best practices*. https://consensys.github.io/smart-contract-best-practices/
 
-David, Y., Kroening, D., & Schrammel, P. (2023). Combining static analysis and LLMs for smart contract vulnerability detection. *ICSE 2023*, 1234-1245.
+Sun, Y., Wu, D., Xue, Y., Liu, H., Wang, H., Xu, Z., Xie, X., & Liu, Y. (2024). GPTScan: Detecting logic vulnerabilities in smart contracts by combining GPT with program analysis. *Proceedings of the 46th International Conference on Software Engineering (ICSE)*, Article 166. https://doi.org/10.1145/3597503.3623318
 
 de Moura, L., & Bjørner, N. (2008). Z3: An efficient SMT solver. *TACAS 2008*, 337-340.
 
