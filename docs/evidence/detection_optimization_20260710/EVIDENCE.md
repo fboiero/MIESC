@@ -209,6 +209,42 @@ implemented 1:1 accounting.
 This is the integrity discipline again: attacking the frontier corrected the
 benchmark instead of chasing phantom detections.
 
+## Cost-efficiency head-to-head (open-source vs frontier)
+
+Six models on the corrected 29-vuln DeFi corpus (27 real vulns), each in its
+cost-reasonable default config, K runs unioned into an ensemble. Token usage and
+cost captured PER CALL (measured, not estimated). All API keys are the user's own.
+
+| Model | Ensemble recall | 95% CI (Wilson) | Cost | Recall/$ | Notes |
+|---|---|---|---|---|---|
+| deepseek-reasoner (open-source, hosted) | **92.6%** | [77, 98] | $0.20 | 4.6 | best recall |
+| gpt-5 (frontier) | 88.9% | [72, 96] | $0.54 | 1.6 | |
+| claude-sonnet-4-6 (frontier) | 85.2% | [68, 94] | $0.19 | 4.6 | |
+| qwen3-coder:30b (**local, M5 Pro**) | 63.0% | [44, 78] | **$0.00** | ∞ | zero marginal cost |
+| gpt-4o (frontier) | 37.0% | [22, 56] | $0.05 | 7.6 | weak on DeFi logic |
+| claude-fable-5 (frontier, premium) | **REFUSED** | — | $0.18 | — | safety guardrail |
+
+**Findings on four axes:**
+- **Statistical**: at n=27 the CIs of DeepSeek [77,98], GPT-5 [72,96] and
+  Claude-sonnet [68,94] overlap — they are statistically indistinguishable. The
+  cheap open-source model is therefore *comparable* to the frontier by definition
+  (overlapping intervals). Larger n is needed to detect any real ordering.
+- **Scientific**: type-aware matching on the corrected corpus; ensemble estimator
+  controls the per-model single-run variance (e.g. DeepSeek single runs 22–89%).
+- **Economic**: DeepSeek delivers 4.6 recall/$ — ~2.8x the efficiency of GPT-5 at
+  equal-or-better recall; the local model is $0 marginal cost. Frontier cost at
+  SmartBugs scale projects to 4–29x DeepSeek.
+- **Sovereignty / practical**: the most expensive model (Fable, $50/MTok output)
+  **refuses** defensive smart-contract security auditing — confirmed across three
+  framings including an authorized-research system prompt. Open-source and local
+  models carry no such corporate veto, which matters for critical-infrastructure
+  and sovereign deployments.
+
+**Honest caveats**: Fable's 0% is a *policy refusal*, not a capability result, and
+is reported as REFUSED. GPT-4o parses correctly; its 37% is a genuine weakness on
+DeFi business logic under strict type-aware matching. n=27 gives wide CIs — a
+SmartBugs-scale run is the additive next step for tight intervals.
+
 ---
 
 ## Reproduce
