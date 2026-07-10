@@ -168,6 +168,44 @@ future Stage 5.
   across the unique runs (baseline 14/14, lever 19/18), so the lever gain is
   signal, not noise — but a genuine larger self-ensemble is still pending.
 
+## Stage 5 — Attacking the frontier revealed a ground-truth defect
+
+The final 3 vulns undetected by static ∪ self-ensemble were `FlashLoanVault` L112
+(first-depositor), L125 (share-rounding), and `UnsafeToken` L53 (unchecked return).
+Before building structural detectors for them, we verified they are *detectable* —
+i.e. that the described vulnerability is actually present in the code. Two are not.
+
+`FlashLoanVault` uses **pure 1:1 deposit accounting** (`deposits[msg.sender] +=
+amount` / `-= amount`, `totalDeposits`), with **no shares, no virtual shares, no
+share price** anywhere in the contract. The only occurrences of "share"/"virtual"
+are in the comments. The labelled vulnerabilities describe **share-vault** attacks
+(ERC4626-style first-depositor inflation and share-rounding) that **cannot exist in
+a shareless 1:1 vault** — the author copied comments from a share-vault template but
+implemented 1:1 accounting.
+
+| Ground-truth label | Code at that line | Verdict |
+|---|---|---|
+| L112 first-depositor / share manipulation | `deposits[x] += amount` (1:1) | mislabelled — no shares |
+| L125 share-rounding without protection | `deposits[x] -= amount` (1:1) | mislabelled — no share math |
+| L53 unchecked return on `transferFrom` | real subtle semantic issue | genuine miss |
+
+**Consequences:**
+- No detector can find a vulnerability that is not in the code, so 2 of the 3
+  "undetectable" cases are a **corpus defect, not a capability gap**.
+- Excluding the two mislabelled entries, the real detection ceiling is **26/27 =
+  96.3%** (static ∪ ensemble), with `UnsafeToken` L53 the only genuine remaining miss.
+- The "DeFi frontier is uncrackable" reading is **overstated**: the ensemble does
+  detect the *real* DeFi-economic vulns in this corpus — oracle manipulation (L52),
+  price manipulation (L85), slippage (L92). Only the mislabelled pair was missed.
+- **Impact on reported numbers**: every type-aware recall computed against this
+  29-vuln corpus (48% / 72% / 86% in the thesis and this dossier) uses a denominator
+  inflated by ~2 undetectable-because-absent vulns, deflating recall by ≈7pp. The
+  corpus ground truth should be corrected (drop or re-implement L112/L125) before the
+  numbers are cited as capability ceilings.
+
+This is the integrity discipline again: attacking the frontier corrected the
+benchmark instead of chasing phantom detections.
+
 ---
 
 ## Reproduce
