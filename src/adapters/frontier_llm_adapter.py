@@ -1247,10 +1247,14 @@ Respond with a JSON array."""
             # the budget before any visible output, so 8192 left content empty
             # (0 chars). Give a large budget so reasoning + the JSON both fit.
             token_param["max_tokens"] = 32768
+            # Determinism: temperature 0 + fixed seed so repeated runs match.
+            extra["temperature"] = 0.0
+            extra["seed"] = int(os.environ.get("MIESC_LLM_SEED", "42"))
         else:
             token_param["max_tokens"] = 8192
-            # o-series/gpt-5 reject a custom temperature; only set it elsewhere.
-            extra["temperature"] = temperature
+            # Determinism: temperature 0 + fixed seed so repeated runs match.
+            extra["temperature"] = 0.0
+            extra["seed"] = int(os.environ.get("MIESC_LLM_SEED", "42"))
 
         logger.info(
             "FrontierLLM: Starting tool-use conversation with %s "
@@ -1420,10 +1424,14 @@ Respond with a JSON array."""
             # the budget before any visible output, so 8192 left content empty
             # (0 chars). Give a large budget so reasoning + the JSON both fit.
             token_param["max_tokens"] = 32768
+            # Determinism: temperature 0 + fixed seed so repeated runs match.
+            extra["temperature"] = 0.0
+            extra["seed"] = int(os.environ.get("MIESC_LLM_SEED", "42"))
         else:
             token_param["max_tokens"] = 8192
-            # o-series/gpt-5 reject a custom temperature; only set it elsewhere.
-            extra["temperature"] = temperature
+            # Determinism: temperature 0 + fixed seed so repeated runs match.
+            extra["temperature"] = 0.0
+            extra["seed"] = int(os.environ.get("MIESC_LLM_SEED", "42"))
 
         response = client.chat.completions.create(
             model=model,
@@ -1544,7 +1552,11 @@ Respond with a JSON array."""
                     {"role": "user", "content": user_prompt},
                 ],
                 "stream": False,
-                "options": {"temperature": 0.1, "num_predict": 4096},
+                "options": {
+                    "temperature": 0,
+                    "seed": int(os.environ.get("MIESC_LLM_SEED", "42")),
+                    "num_predict": 4096,
+                },
             }
         ).encode()
 
