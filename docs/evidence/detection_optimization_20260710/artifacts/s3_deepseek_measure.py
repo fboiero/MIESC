@@ -91,6 +91,7 @@ def matched(gt_line, kws, findings):
 
 def main():
     variant = sys.argv[1] if len(sys.argv) > 1 else "baseline"
+    run_id = sys.argv[2] if len(sys.argv) > 2 else ""  # unique suffix, no clobber
     prompt_tmpl = LEVER_PROMPT if variant == "lever" else BASELINE_PROMPT
     client = openai.OpenAI(base_url="https://api.deepseek.com",
                            api_key=os.environ["DEEPSEEK_API_KEY"])
@@ -112,9 +113,10 @@ def main():
     recall = round(total_hit / total, 4)
     out = {"variant": variant, "model": MODEL, "type_aware_recall": recall,
            "detected": total_hit, "total": total, "per_contract": per_contract, "raw": raw}
-    Path(f"benchmarks/results/detection_optimization_20260710/s3_ds_{variant}.json").write_text(
+    suffix = f"_{run_id}" if run_id else ""
+    Path(f"benchmarks/results/detection_optimization_20260710/s3_ds_{variant}{suffix}.json").write_text(
         json.dumps(out, indent=2))
-    print(f"\n=== {variant.upper()} DeepSeek {MODEL}: type-aware recall = "
+    print(f"\n=== {variant.upper()}{suffix} DeepSeek {MODEL}: type-aware recall = "
           f"{total_hit}/{total} = {recall:.1%} ===")
 
 
