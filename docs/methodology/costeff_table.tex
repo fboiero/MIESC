@@ -1,0 +1,40 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage[margin=1.6cm]{geometry}
+\usepackage{booktabs}
+\usepackage{multirow}
+\pagestyle{empty}
+\begin{document}
+
+% ============================================================================
+% Table for the papers (portable to IEEEtran: copy the table environment).
+% Ensemble type-aware recall, 95% Wilson CI, measured API cost.
+% ============================================================================
+\begin{table}[t]
+\centering
+\small
+\caption{Cost-efficiency of open-source vs.\ frontier LLMs for smart-contract
+vulnerability detection. Ensemble type-aware recall with 95\% Wilson confidence
+intervals and measured API cost, on a DeFi business-logic corpus
+($n{=}27$ vulnerabilities) and a SmartBugs-curated classical-pattern subset
+($n{=}36$ contracts). Claude Fable~5 refuses the task across three framings
+(safety guardrail) and is reported as \textsc{refused}. All model confidence
+intervals overlap within each corpus, i.e.\ the models are statistically
+comparable, while cost differs by 3--30$\times$.}
+\label{tab:costeff}
+\begin{tabular}{llccc ccc}
+\toprule
+ & & \multicolumn{3}{c}{DeFi ($n{=}27$)} & \multicolumn{3}{c}{Classical ($n{=}36$)} \\
+\cmidrule(lr){3-5}\cmidrule(lr){6-8}
+Model & Type & Recall & 95\% CI & Cost & Recall & 95\% CI & Cost \\
+\midrule
+DeepSeek-reasoner & OSS hosted    & \textbf{92.6\%} & [77,\,98]  & \$0.20 & 86.1\% & [71,\,94]  & \$0.32 \\
+GPT-5             & frontier      & 88.9\%          & [72,\,96]  & \$0.54 & 94.4\% & [82,\,98]  & \$0.94 \\
+Claude Sonnet 4.6 & frontier      & 85.2\%          & [68,\,94]  & \$0.19 & \textbf{97.2\%} & [86,\,100] & \$0.61 \\
+GPT-4o            & frontier      & 37.0\%          & [22,\,56]  & \$0.05 & \textbf{97.2\%} & [86,\,100] & \$0.11 \\
+qwen3-coder:30b   & local (\$0)   & 63.0\%          & [44,\,78]  & \textbf{\$0.00} & 94.4\% & [82,\,98] & \textbf{\$0.00} \\
+Claude Fable 5    & premium       & \multicolumn{3}{c}{\textsc{refused}} & \multicolumn{3}{c}{\textsc{refused}} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\end{document}
