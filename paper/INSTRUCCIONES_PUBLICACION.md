@@ -98,7 +98,7 @@ License:             CC BY 4.0
 
 Si arXiv pide endorsement en todas las categorías, hay que contactar autores que puedan endorsar.
 
-**Código de endorsement de Fernando:** `AORK7R`
+**Código de endorsement de Fernando:** `[REDACTED-ENDORSEMENT-CODE]`
 
 **Cómo verificar quién puede endorsar:** En cada paper de arXiv, abajo del abstract hay un link "Which of the authors of this article can endorse?" — click ahí para confirmar.
 
@@ -140,7 +140,7 @@ evaluation methodology, and we cite both papers.
 
 The framework is publicly available at: https://github.com/fboiero/MIESC
 
-My arXiv endorsement code is: AORK7R
+My arXiv endorsement code is: [REDACTED-ENDORSEMENT-CODE]
 
 I attach the paper PDF for your review. I would be very grateful for
 your endorsement.
@@ -181,7 +181,7 @@ Your work on Slither is central to our framework and evaluation, and
 we cite it prominently.
 
 Tool: https://github.com/fboiero/MIESC
-My arXiv endorsement code: AORK7R
+My arXiv endorsement code: [REDACTED-ENDORSEMENT-CODE]
 
 I attach the paper for your review.
 
@@ -218,7 +218,7 @@ We cite GPTScan (ICSE 2024) as a foundational reference for
 AI-enhanced security analysis.
 
 Tool: https://github.com/fboiero/MIESC
-My arXiv endorsement code: AORK7R
+My arXiv endorsement code: [REDACTED-ENDORSEMENT-CODE]
 
 I attach the paper for your review.
 
@@ -256,7 +256,7 @@ Your work on Echidna (ISSTA 2020) is cited in our paper as a key
 dynamic testing technique.
 
 Tool: https://github.com/fboiero/MIESC
-My arXiv endorsement code: AORK7R
+My arXiv endorsement code: [REDACTED-ENDORSEMENT-CODE]
 
 I attach the paper for your review.
 

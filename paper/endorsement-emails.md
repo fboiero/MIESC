@@ -1,6 +1,6 @@
 # arXiv Endorsement Request Emails — MIESC Paper
 
-**Tu código de endorsement:** `AORK7R`
+**Tu código de endorsement:** `[REDACTED-ENDORSEMENT-CODE]`
 **Categoría objetivo:** cs.SE (Software Engineering), cross-list cs.CR
 **PDF a adjuntar:** `miesc-paper.pdf`
 
@@ -33,7 +33,7 @@ your curated benchmark as our primary dataset and cite your paper
 extensively.
 
 Tool: https://github.com/fboiero/MIESC
-My endorsement code: AORK7R
+My endorsement code: [REDACTED-ENDORSEMENT-CODE]
 
 I attach the paper for your review.
 
@@ -71,7 +71,7 @@ and we use it as the baseline for comparison (43.2% recall alone vs.
 54.6% with MIESC's Layer 1, and 80% with all 9 layers).
 
 Tool: https://github.com/fboiero/MIESC
-My endorsement code: AORK7R
+My endorsement code: [REDACTED-ENDORSEMENT-CODE]
 
 I attach the paper for your review.
 
@@ -109,7 +109,7 @@ Echidna is integrated as a core tool in MIESC's dynamic testing layer
 Argentine researcher, I would be honored to have your endorsement.
 
 Tool: https://github.com/fboiero/MIESC
-My endorsement code: AORK7R
+My endorsement code: [REDACTED-ENDORSEMENT-CODE]
 
 I attach the paper for your review.
 
@@ -149,7 +149,7 @@ integrates similar LLM-based semantic analysis as one of its 9
 defense layers.
 
 Tool: https://github.com/fboiero/MIESC
-My endorsement code: AORK7R
+My endorsement code: [REDACTED-ENDORSEMENT-CODE]
 
 I attach the paper for your review.
 
@@ -171,4 +171,4 @@ fboiero@frvm.utn.edu.ar
 **Nota:** Solo necesitás UN endorsement. Si Durieux responde, no necesitás contactar a los demás.
 
 **Página de endorsement para el endorser:** https://arxiv.org/auth/endorse?archive=cs&subject_class=SE
-El endorser solo necesita ir ahí, ingresar tu código `AORK7R`, y confirmar.
+El endorser solo necesita ir ahí, ingresar tu código `[REDACTED-ENDORSEMENT-CODE]`, y confirmar.
