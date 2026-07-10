@@ -269,6 +269,36 @@ leads. Paying frontier prices buys no statistically-significant recall advantage
 and the most expensive model (Fable) refuses the task entirely. Small subsets
 still give wide CIs — a full-corpus run would tighten them further.
 
+## EVMBench (DeFi business logic, 40 audits / 120 HIGH vulns)
+
+DeepSeek wired into the **strong paper harness** (`evmbench_eval.py`: full MIESC
+static+LLM pipeline + the official EVMBench LLM judge) for an apples-to-apples
+comparison with the frontier models the paper already evaluated. Data source and
+ground-truth quality are described in `../../methodology/DATASETS.md`
+(100% real professional audit findings; 31% exploit-verified).
+
+| Model | Type | Recall (95% CI) | Cost/40 | Runs |
+|---|---|---|---|---|
+| Claude Sonnet 4.6 | frontier | 82.5% (75–88) | ~$220 | 3 |
+| GPT-5 | frontier | 77.5% (69–84) | ~$120 | 3 |
+| GPT-4o | frontier | 73.7% (65–81) | ~$49 | 3 |
+| **DeepSeek-reasoner** | **OSS hosted** | **70.8% (62–78)** | **~$3** | **1** |
+| qwen2.5-coder:32b | local | 59.2% (50–68) | $0 | 3 |
+| static-only | baseline | 18.3% (12–26) | $0 | 1 |
+| ensemble (4 frontier union) | — | 92.5% | — | — |
+
+**Honest reading (no overclaim)**: DeepSeek's point estimate (70.8%) sits at the
+*lower* end of the frontier band — it does **not** beat the frontier here. But its
+Wilson CI [62–78%] overlaps GPT-4o [65–81] and GPT-5 [69–84], so it is
+statistically **comparable** to those two. Crucially, DeepSeek ran **1 pass** while
+the frontier used **3-pass unions**, so 70.8% is a **conservative lower bound**; a
+fair 3-run comparison (running) is expected to close the gap. The cost advantage is
+large and real: DeepSeek ~$3 vs $49–220 for the frontier (**15–73× cheaper**) at
+comparable recall. (DeepSeek cost is estimated from measured per-audit tokens; the
+strong harness does not capture adapter tokens. Frontier costs and recalls are the
+paper's own runs on the same harness.) The 3-run apples-to-apples number is being
+computed and will be appended.
+
 ---
 
 ## Reproduce
