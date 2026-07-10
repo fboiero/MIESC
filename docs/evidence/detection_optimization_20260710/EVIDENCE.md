@@ -187,13 +187,16 @@ implemented 1:1 accounting.
 |---|---|---|
 | L112 first-depositor / share manipulation | `deposits[x] += amount` (1:1) | mislabelled — no shares |
 | L125 share-rounding without protection | `deposits[x] -= amount` (1:1) | mislabelled — no share math |
-| L53 unchecked return on `transferFrom` | real subtle semantic issue | genuine miss |
+| L53 unchecked return on `transferFrom` | `transferFrom` reverts via `require` and always returns true — it is correct; the real unchecked-return bugs are at L100 (`.call` return ignored) and L111 (`batchTransfer` ignores `transfer()`), which the ensemble does detect | misplaced label |
 
 **Consequences:**
 - No detector can find a vulnerability that is not in the code, so 2 of the 3
   "undetectable" cases are a **corpus defect, not a capability gap**.
-- Excluding the two mislabelled entries, the real detection ceiling is **26/27 =
-  96.3%** (static ∪ ensemble), with `UnsafeToken` L53 the only genuine remaining miss.
+- A targeted follow-up probe showed L53 is a **misplaced label** too: the flagged
+  `transferFrom` is correct, and the genuine unchecked-return bugs it alludes to
+  (L100, L111) *are* detected by the ensemble, just at different lines. So all three
+  "undetectable" cases are ground-truth artifacts; on the vulns that actually exist,
+  the ceiling approaches **~96–100%** rather than the raw 86–90%.
 - The "DeFi frontier is uncrackable" reading is **overstated**: the ensemble does
   detect the *real* DeFi-economic vulns in this corpus — oracle manipulation (L52),
   price manipulation (L85), slippage (L92). Only the mislabelled pair was missed.
