@@ -242,8 +242,32 @@ cost captured PER CALL (measured, not estimated). All API keys are the user's ow
 
 **Honest caveats**: Fable's 0% is a *policy refusal*, not a capability result, and
 is reported as REFUSED. GPT-4o parses correctly; its 37% is a genuine weakness on
-DeFi business logic under strict type-aware matching. n=27 gives wide CIs — a
-SmartBugs-scale run is the additive next step for tight intervals.
+DeFi business logic under strict type-aware matching. n=27 gives wide CIs.
+
+### SmartBugs (classical patterns, n=36 stratified subset)
+
+Same models on a stratified SmartBugs-curated subset (per-contract category
+matching), run with a hardened harness (retrying `robust_call`, a concurrent
+`ThreadPoolExecutor` queue — 1 worker for the local GPU, 4 for APIs — and cached
+per-provider clients). Fable excluded (refuses).
+
+| Model | Ensemble recall | 95% CI (Wilson) | Cost | Notes |
+|---|---|---|---|---|
+| claude-sonnet-4-6 | 97.2% | [86, 100] | $0.61 | |
+| gpt-4o | 97.2% | [86, 100] | $0.11 | (strong on classical, weak on DeFi) |
+| qwen3-coder:30b (**local**) | 94.4% | [82, 98] | **$0.00** | ties the frontier |
+| gpt-5 | 94.4% | [82, 98] | $0.94 | |
+| deepseek-reasoner | 86.1% | [71, 94] | $0.32 | (leads on DeFi, trails on classical) |
+
+**Cross-corpus conclusion (the defensible thesis)**: no model dominates
+universally — performance is corpus-dependent (GPT-4o: excellent classical, poor
+DeFi; DeepSeek: the reverse). But on **both** corpora the models' Wilson CIs
+overlap, so they are statistically *comparable*, while cost differs by 3–30x. On
+classical patterns the **free local model (94.4%) is indistinguishable from the
+frontier (97.2%)**; on DeFi logic the cheap open-source hosted model (DeepSeek)
+leads. Paying frontier prices buys no statistically-significant recall advantage,
+and the most expensive model (Fable) refuses the task entirely. Small subsets
+still give wide CIs — a full-corpus run would tighten them further.
 
 ---
 

@@ -34,6 +34,25 @@ MODELS = [
 ]
 
 
+_CLIENTS = {}  # cache clients per provider (creating one per call exhausts sockets)
+
+
+def _client(provider):
+    if provider not in _CLIENTS:
+        if provider == "deepseek":
+            import openai
+            _CLIENTS[provider] = openai.OpenAI(
+                base_url="https://api.deepseek.com",
+                api_key=os.environ["DEEPSEEK_API_KEY"], timeout=120)
+        elif provider == "openai":
+            import openai
+            _CLIENTS[provider] = openai.OpenAI(api_key=os.environ["OPENAI_API_KEY"], timeout=120)
+        elif provider == "anthropic":
+            import anthropic
+            _CLIENTS[provider] = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"], timeout=120)
+    return _CLIENTS[provider]
+
+
 def call_model(provider, model, prompt):
     """Return (text, in_tokens, out_tokens)."""
     if provider == "ollama":
@@ -49,15 +68,12 @@ def call_model(provider, model, prompt):
         d = r.json()
         return d["message"]["content"], d.get("prompt_eval_count", 0), d.get("eval_count", 0)
     if provider == "deepseek":
-        import openai
-        c = openai.OpenAI(base_url="https://api.deepseek.com",
-                          api_key=os.environ["DEEPSEEK_API_KEY"], timeout=300)
+        c = _client("deepseek")
         r = c.chat.completions.create(model=model, max_tokens=32768,
                                       messages=[{"role": "user", "content": prompt}])
         return r.choices[0].message.content, r.usage.prompt_tokens, r.usage.completion_tokens
     if provider == "openai":
-        import openai
-        c = openai.OpenAI(api_key=os.environ["OPENAI_API_KEY"], timeout=300)
+        c = _client("openai")
         if model.startswith("gpt-5"):
             r = c.chat.completions.create(model=model, max_completion_tokens=32768,
                                           reasoning_effort="low",
@@ -67,13 +83,28 @@ def call_model(provider, model, prompt):
                                           messages=[{"role": "user", "content": prompt}])
         return r.choices[0].message.content, r.usage.prompt_tokens, r.usage.completion_tokens
     if provider == "anthropic":
-        import anthropic
-        c = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"], timeout=300)
+        c = _client("anthropic")
         r = c.messages.create(model=model, max_tokens=8192,
                               messages=[{"role": "user", "content": prompt}])
         text = "".join(b.text for b in r.content if getattr(b, "type", "") == "text")
         return text, r.usage.input_tokens, r.usage.output_tokens
     raise ValueError(provider)
+
+
+def robust_call(provider, model, prompt, retries=3):
+    """call_model with retries + exponential backoff. Returns (text, in, out);
+    text is None if all attempts fail (caller treats as a miss, not a crash)."""
+    import time as _t
+    last = ""
+    for attempt in range(retries):
+        try:
+            return call_model(provider, model, prompt)
+        except Exception as e:
+            last = str(e)[:80]
+            if attempt < retries - 1:
+                _t.sleep(2 ** attempt)  # 1s, 2s, 4s
+    print(f"    [{model}] gave up after {retries} retries: {last}", flush=True)
+    return None, 0, 0
 
 
 def extract(text):
