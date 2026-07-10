@@ -43,7 +43,7 @@ Analysis profiles select which layers to use:
 
 - **Defense in depth**: Multiple techniques catch different bugs
 - **Flexibility**: Users choose depth vs. speed trade-off
-- **Completeness**: 82.35% F1-score on SmartBugs benchmark
+- **Completeness**: 35.9% F1-score (95.8% recall / 22.1% precision) on SmartBugs-curated (143 contracts)
 - **Organization**: Clear mental model for tool categorization
 
 ### Negative

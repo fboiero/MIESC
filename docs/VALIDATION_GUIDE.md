@@ -403,11 +403,11 @@ xdg-open dashboard/index.html  # Linux
 
 | Metrica | Valor |
 |---------|-------|
-| Precision | 100% |
-| Recall | 70% |
-| F1-Score | 82.35% |
-| Contratos Analizados | 50 |
-| Vulnerabilidades Detectadas | 35/50 |
+| Precision | 22.1% |
+| Recall | 95.8% |
+| F1-Score | 35.9% |
+| Contratos Analizados | 143 |
+| Vulnerabilidades Detectadas | 137/143 |
 | Falsos Positivos | 0 |
 
 ### 8.2 Tiempos de Ejecucion
