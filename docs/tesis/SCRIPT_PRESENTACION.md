@@ -256,7 +256,7 @@
 ## SLIDE 35: RQ4 - Viabilidad en Produccion (1 min)
 
 **Decir:**
-> "RQ4: MIESC es viable para produccion. Procesa un contrato en aproximadamente 2 minutos, con costo cero, 1,277 tests pasando, y un indice de compliance del 91.4%. Ya esta postulado como Digital Public Good con ID GID0092948."
+> "RQ4: MIESC es viable para produccion. Procesa un contrato en aproximadamente 2 minutos, con costo cero, mas de 6.000 tests automatizados y calidad verificada en integracion continua. Ya esta postulado como Digital Public Good con ID GID0092948."
 
 ---
 
@@ -349,7 +349,7 @@
 ## SLIDE 48: Evolucion de Metricas (45 seg)
 
 **Decir:**
-> "Esta tabla muestra la evolucion desde la tesis v4.0 hasta la version actual v4.2. Pasamos de 7 a 9 capas, de 100 a 1,277 tests, y de 30,000 a 51,000 lineas de codigo."
+> "Esta tabla muestra la evolucion desde la tesis v4.0 hasta la version actual v4.2. Pasamos de 7 a 9 capas, de 100 a mas de 6.000 tests, y de 30,000 a 51,000 lineas de codigo."
 
 ---
 

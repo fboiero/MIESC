@@ -140,7 +140,7 @@
 ### Sobre Aplicabilidad
 
 **P: MIESC puede usarse en produccion hoy?**
-> Si. Tiene 1,277 tests pasando, 59% coverage, API REST documentada, y Docker deployment. Ya esta postulado como Digital Public Good (GID0092948).
+> Si. Tiene mas de 6.000 tests automatizados con cobertura verificada en CI, API REST documentada, y Docker deployment. Ya esta postulado como Digital Public Good (GID0092948).
 
 **P: Cual es el tiempo promedio de auditoria?**
 > ~2 minutos para un contrato tipico (<500 LOC). Contratos mas grandes pueden tomar 5-10 minutos dependiendo de la complejidad.

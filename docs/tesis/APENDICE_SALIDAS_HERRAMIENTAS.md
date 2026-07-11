@@ -656,8 +656,7 @@ The model detected unusual state transitions:
 
 This indicates potential reentrancy exploitation.
 
-Confidence: 94.2%
-Similar patterns in training data: 847/1000 known exploits
+Confidence: HIGH (heuristic sequence analysis)
 
 ================================================================================
 ```
@@ -2119,15 +2118,22 @@ Recommended Priority: Fix reentrancy BEFORE deployment
 
 ## Capa 7: Deteccion basada en ML
 
+> **Nota:** los adaptadores de esta capa (SmartBugs-ML, DAGNN) implementan
+> clasificacion heuristica basada en reglas y features (rule-based, "ML-style"),
+> no modelos estadisticos entrenados. Los valores numericos de probabilidad y
+> confianza en las salidas de ejemplo son **ilustrativos del formato**, no
+> metricas de desempeno medidas.
+
 ### A.21 SmartBugs-ML
 
-**Descripcion:** Modelo de ML entrenado en el dataset SmartBugs para clasificacion de vulnerabilidades.
+**Descripcion:** Clasificador heuristico basado en reglas y features para
+clasificacion de vulnerabilidades (emula un pipeline de ML sin modelo entrenado).
 
 **Caracteristicas:**
-- Modelo pre-entrenado en 143 contratos vulnerables
-- Clasificacion multi-clase
+- Reglas heuristicas sobre features extraidos del contrato
+- Clasificacion multi-clase por categoria de vulnerabilidad
 - Features basados en AST
-- Explicabilidad con SHAP
+- Salida normalizada compatible con el pipeline MIESC
 
 **Salida de Ejemplo:**
 
@@ -2172,11 +2178,9 @@ Vulnerability: Integer Overflow (SWC-101)
 
   Note: Solidity 0.8.x has built-in overflow protection
 
-=== MODEL METRICS ===
-  Model: RandomForest (n_estimators=100)
-  Training accuracy: 89.3%
-  Validation accuracy: 84.7%
-  Features used: 47
+=== CLASSIFIER INFO ===
+  Method: rule-based heuristic (feature-driven; no trained model)
+  Features extracted: 47
 ```
 
 **Salida Normalizada MIESC:**
@@ -2188,9 +2192,8 @@ Vulnerability: Integer Overflow (SWC-101)
   "status": "completed",
   "execution_time_ms": 1234,
   "model_info": {
-    "type": "RandomForest",
-    "training_accuracy": 0.893,
-    "validation_accuracy": 0.847
+    "type": "rule-based-heuristic",
+    "method": "feature-driven classification (no trained model)"
   },
   "feature_extraction": {
     "contract_nodes": 47,
@@ -2318,13 +2321,15 @@ Review and remediate before deployment!
 
 ### A.23 DAGNN
 
-**Descripcion:** Red neuronal basada en grafos para analisis de vulnerabilidades.
+**Descripcion:** Adaptador de deteccion basado en representacion de grafo del
+contrato con analisis de atencion sobre patrones (emula un pipeline GNN sin
+pesos entrenados).
 
 **Caracteristicas:**
 - Representacion de contrato como grafo
-- GNN para deteccion de patrones
+- Analisis de patrones con mecanismo de atencion heuristico
 - Analisis de flujo de datos
-- Alta precision en patrones complejos
+- Orientado a patrones complejos multi-funcion
 
 **Salida de Ejemplo:**
 

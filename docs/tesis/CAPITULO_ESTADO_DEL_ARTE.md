@@ -194,7 +194,7 @@ A partir de la revisión sistemática realizada, se identifican las siguientes b
 
 **Observación:** Las herramientas existentes implementan una única técnica de análisis, limitando su cobertura de vulnerabilidades.
 
-**Evidencia empírica:** La Tabla 3.3 muestra que ninguna herramienta individual supera el 75% de recall. Ghaleb y Pattabiraman (2020) demuestran que la combinación de técnicas incrementa la detección en un 34%.
+**Evidencia empírica:** La Tabla 3.3 muestra que ninguna herramienta individual supera el 75% de recall. Ghaleb y Pattabiraman (2020) muestran que ninguna herramienta estática única cubre todas las clases de vulnerabilidades y que la combinación de técnicas amplía materialmente la cobertura de detección.
 
 **Impacto:** Vulnerabilidades detectables únicamente mediante combinación de técnicas permanecen sin identificar.
 

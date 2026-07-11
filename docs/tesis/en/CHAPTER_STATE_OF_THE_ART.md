@@ -194,7 +194,7 @@ Based on the systematic review conducted, the following gaps are identified that
 
 **Observation:** Existing tools implement a single analysis technique, limiting their vulnerability coverage.
 
-**Empirical evidence:** Table 3.3 shows that no individual tool exceeds 75% recall. Ghaleb and Pattabiraman (2020) demonstrate that combining techniques increases detection by 34%.
+**Empirical evidence:** Table 3.3 shows that no individual tool exceeds 75% recall. Ghaleb and Pattabiraman (2020) show that no single static tool covers all vulnerability classes and that combining techniques materially broadens detection coverage.
 
 **Impact:** Vulnerabilities detectable only through technique combination remain unidentified.
 
