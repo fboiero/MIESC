@@ -56,7 +56,7 @@ miesc audit quick MiContrato.sol
 miesc audit quick MiContrato.sol -o reporte.json
 ```
 
-### Auditoria Completa - 9 Capas, 31 Herramientas
+### Auditoria Completa - 9 Capas, 50 Herramientas
 
 ```bash
 # Auditoria de seguridad completa con las 9 capas de defensa

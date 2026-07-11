@@ -4,7 +4,7 @@ This document describes the design patterns and architectural decisions used in 
 
 ## Overview
 
-MIESC follows a **layered architecture** with **31 tool adapters** organized across **9 defense layers**, implementing several well-known design patterns to achieve:
+MIESC follows a **layered architecture** with **50 tools across 35 analysis modules** organized across **9 defense layers**, implementing several well-known design patterns to achieve:
 
 - **Extensibility**: New tools can be added without modifying core code
 - **Loose Coupling**: No vendor lock-in (DPGA compliance)

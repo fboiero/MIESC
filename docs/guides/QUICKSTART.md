@@ -52,7 +52,7 @@ miesc audit quick MyContract.sol
 miesc audit quick MyContract.sol -o report.json
 ```
 
-### Full Audit - 9 Layers, 31 Tools
+### Full Audit - 9 Layers, 50 Tools
 
 ```bash
 # Complete security audit with all 9 defense layers

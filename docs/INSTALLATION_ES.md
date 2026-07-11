@@ -117,7 +117,7 @@ slither --version
 
 ## Instalación de Herramientas por Capa
 
-MIESC integra 50 adaptadores de herramientas organizados en 9 capas. Instala las herramientas según tus necesidades.
+MIESC integra 50 herramientas distribuidas en 35 módulos de análisis, organizadas en 9 capas de defensa. Instala las herramientas según tus necesidades.
 
 ### Capa 1: Análisis Estático (3 herramientas)
 

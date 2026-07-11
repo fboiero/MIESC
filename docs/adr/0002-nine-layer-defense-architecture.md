@@ -48,7 +48,7 @@ Analysis profiles select which layers to use:
 
 ### Negative
 
-- **Complexity**: 9 layers with 31 tools is a lot to manage
+- **Complexity**: 9 layers with 50 tools is a lot to manage
 - **Resource usage**: Full scans can be slow and resource-intensive
 - **Overlap**: Some findings may be duplicated across layers
 

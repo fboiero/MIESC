@@ -1,6 +1,6 @@
 # MIESC Tool Reference
 
-Complete list of security tools integrated across 9 defense layers. MIESC includes 50 tool adapters; the 26 core tools listed below are the primary analysis engines.
+Complete list of security tools integrated across 9 defense layers. MIESC provides 50 tools across 35 analysis modules; the core tools listed below are the primary analysis engines.
 
 ## Layer 1: Static Analysis
 

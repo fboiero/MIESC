@@ -23,7 +23,7 @@ After copying the configuration, you can use these tasks (Ctrl+Shift+B or Cmd+Sh
 | Task | Description |
 |------|-------------|
 | MIESC: Quick Audit | Run quick analysis on current file |
-| MIESC: Full Audit | Complete 7-layer audit with SARIF output |
+| MIESC: Full Audit | Complete 9-layer audit with SARIF output |
 | MIESC: Batch Audit | Analyze all .sol files in workspace |
 | MIESC: Watch Mode | Continuous monitoring for changes |
 | MIESC: CI Check | Fail on critical/high severity findings |

@@ -228,7 +228,7 @@ MIESC uses a multi-layered LLM architecture with optional RAG enrichment for vul
 │              │                                                         │
 │              ▼                                                         │
 │  ┌─────────────────┐                                                   │
-│  │ Final Findings  │  100% F1 on DeFi benchmark (VulnerableLending)    │
+│  │ Final Findings  │  100% F1 on a single 6-vulnerability micro-benchmark │
 │  └─────────────────┘                                                   │
 │                                                                        │
 └────────────────────────────────────────────────────────────────────────┘
@@ -672,7 +672,7 @@ hallucination_reduction = (hallucinations_baseline - hallucinations_rag) / hallu
 │                                  │                                         │
 │                                  ▼                                         │
 │  ┌────────────────────────────────────────────────────────────────────┐    │
-│  │ RESULTS DASHBOARD                                                  │    │
+│  │ RESULTS DASHBOARD (illustrative / example targets)                 │    │
 │  │                                                                    │    │
 │  │  ┌─────────────────────────────────────────────────────────────┐  │    │
 │  │  │ Metric          │ Without RAG │ With RAG  │ Improvement    │  │    │

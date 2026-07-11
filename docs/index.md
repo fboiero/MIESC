@@ -46,7 +46,7 @@ title: Smart Contract Security Framework
 - Defense-in-Depth analysis across 9 security layers
 - 50 integrated tools (Slither, Mythril, Echidna, Certora, etc.)
 - Model Context Protocol (MCP) integration with MCP client
-- 95.8% Recall, 22.2% Precision, F1-Score 36.0% (SmartBugs-curated, 137/143 contracts)
+- 95.8% Recall, 22.1% Precision, F1-Score 35.9% (SmartBugs-curated, 137/143 contracts)
 - Sovereign AI with Ollama (code never leaves your machine)
 
 ---
@@ -79,7 +79,7 @@ title: Smart Contract Security Framework
 ### Key Achievements (v5.4.3)
 
 - **50 Integrated Tools** across 9 defense layers
-- **95.8% Recall**, **22.2% Precision**, **F1-Score 36.0%** (SmartBugs-curated, 137/143 contracts)
+- **95.8% Recall**, **22.1% Precision**, **F1-Score 35.9%** (SmartBugs-curated, 137/143 contracts)
 - **Compliance mapping** across 12 international standards (ISO 27001, NIST CSF, OWASP, …)
 - **Sovereign AI** with Ollama - code never leaves your machine
 - **$0 Operational Cost** - fully local execution
@@ -105,14 +105,13 @@ package.
 ### 1. PropertyGPT (Layer 4 - Formal Verification)
 
 - Automated CVL property generation for formal verification
-- 80% recall on ground-truth Certora properties
-- Increases formal verification adoption from 5% to 40% (+700%)
+- PropertyGPT (Liu et al., NDSS 2025) reports 80% recall on ground-truth Certora properties
 - Based on NDSS 2025 paper (arXiv:2405.02580)
 
 ### 2. DA-GNN (Layer 6 - ML Detection)
 
 - Graph Neural Network-based vulnerability detection
-- 95.7% accuracy with 4.3% false positive rate
+- The source technique reports 95.7% accuracy with 4.3% false positive rate (Computer Networks, 2024)
 - Represents contracts as control-flow + data-flow graphs
 - Based on Computer Networks (ScienceDirect, Feb 2024)
 
@@ -120,14 +119,14 @@ package.
 
 - Retrieval-Augmented Generation with ERC-20/721/1155 knowledge base
 - Verificator role for fact-checking (Generator → Verificator → Consensus)
-- Precision improved from 75% to 88% (+17%), FP rate reduced by 52%
+- The source technique reports precision improved from 75% to 88% (+17%) and FP rate reduced by 52% (arXiv:2502.13167, 2025)
 - Based on arXiv:2502.13167 (Feb 2025)
 
 ### 4. DogeFuzz (Layer 2 - Dynamic Testing)
 
 - AFL-style coverage-guided fuzzing with power scheduling
 - Hybrid fuzzing + symbolic execution
-- 85% code coverage, 3x faster than Echidna
+- The source technique reports 85% code coverage and 3x faster than Echidna (arXiv:2409.01788, 2024)
 - Based on arXiv:2409.01788 (Sep 2024)
 
 ---
@@ -279,8 +278,8 @@ SmartBugs-curated (143 contracts, 207 ground-truth vulnerabilities):
 | Metric | Value | Notes |
 |--------|-------|-------|
 | **Recall** | 95.8% | 137/143 contracts, full SmartBugs-curated corpus |
-| **Precision** | 22.2% | Full SmartBugs-curated corpus |
-| **F1-Score** | 36.0% | Full SmartBugs-curated corpus |
+| **Precision** | 22.1% | Full SmartBugs-curated corpus |
+| **F1-Score** | 35.9% | Full SmartBugs-curated corpus |
 | **Slither baseline (recall)** | 43.2% | Static-only comparison |
 | **Layered Tools** | 50 | Core tools grouped across 9 defense layers |
 
@@ -311,7 +310,7 @@ SmartBugs-curated (143 contracts, 207 ground-truth vulnerabilities):
 
 **Advisor**: M.Sc. Eduardo Casanovas
 
-**Expected Defense**: Q4 2025
+**Defense**: Held 2025-12-18
 
 ### Research Contributions
 

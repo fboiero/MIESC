@@ -47,7 +47,7 @@ lang: es
 - Análisis Defense-in-Depth a través de 9 capas de seguridad
 - 50 herramientas integradas (Slither, Mythril, Echidna, Certora, etc.)
 - Integración del Model Context Protocol (MCP) con Claude Desktop
-- 95.8% Recall, 22.2% Precisión, F1-Score 36.0% (SmartBugs-curated, 137/143 contratos)
+- 95.8% Recall, 22.1% Precisión, F1-Score 35.9% (SmartBugs-curated, 137/143 contratos)
 - IA Soberana con Ollama (el código nunca sale de tu máquina)
 
 ---
@@ -80,7 +80,7 @@ lang: es
 ### Logros Principales (v5.4.3)
 
 - **50 Herramientas Integradas** en 9 capas de defensa
-- **95.8% Recall**, **22.2% Precisión**, **F1-Score 36.0%** (SmartBugs-curated, 137/143 contratos)
+- **95.8% Recall**, **22.1% Precisión**, **F1-Score 35.9%** (SmartBugs-curated, 137/143 contratos)
 - **Mapeo de cumplimiento** en 12 estándares internacionales (ISO 27001, NIST CSF, OWASP, …)
 - **IA Soberana** con Ollama - el código nunca sale de tu máquina
 - **$0 Costo Operativo** - ejecución completamente local
@@ -106,14 +106,13 @@ del paquete público.
 ### 1. PropertyGPT (Capa 4 - Verificación Formal)
 
 - Generación automatizada de propiedades CVL para verificación formal
-- 80% recall en propiedades Certora de ground-truth
-- Aumenta la adopción de verificación formal del 5% al 40% (+700%)
+- PropertyGPT (Liu et al., NDSS 2025) reporta 80% recall en propiedades Certora de ground-truth
 - Basado en paper NDSS 2025 (arXiv:2405.02580)
 
 ### 2. DA-GNN (Capa 6 - Detección ML)
 
 - Detección de vulnerabilidades basada en Redes Neuronales de Grafos
-- 95.7% de precisión con 4.3% de tasa de falsos positivos
+- La técnica de origen reporta 95.7% de precisión con 4.3% de tasa de falsos positivos (Computer Networks, 2024)
 - Representa contratos como grafos de flujo de control + flujo de datos
 - Basado en Computer Networks (ScienceDirect, Feb 2024)
 
@@ -121,14 +120,14 @@ del paquete público.
 
 - Generación Aumentada por Recuperación con base de conocimiento ERC-20/721/1155
 - Rol de Verificador para comprobación de hechos (Generador → Verificador → Consenso)
-- Precisión mejorada del 75% al 88% (+17%), tasa FP reducida en 52%
+- La técnica de origen reporta precisión mejorada del 75% al 88% (+17%) y tasa FP reducida en 52% (arXiv:2502.13167, 2025)
 - Basado en arXiv:2502.13167 (Feb 2025)
 
 ### 4. DogeFuzz (Capa 2 - Testing Dinámico)
 
 - Fuzzing guiado por cobertura estilo AFL con programación de potencia
 - Fuzzing híbrido + ejecución simbólica
-- 85% cobertura de código, 3x más rápido que Echidna
+- La técnica de origen reporta 85% cobertura de código y 3x más rápido que Echidna (arXiv:2409.01788, 2024)
 - Basado en arXiv:2409.01788 (Sep 2024)
 
 ---
@@ -278,8 +277,8 @@ SmartBugs-curated (143 contratos, 207 vulnerabilidades ground-truth):
 | Métrica | Valor | Notas |
 |---------|-------|-------|
 | **Recall** | 95.8% | 137/143 contratos, corpus completo SmartBugs-curated |
-| **Precisión** | 22.2% | Corpus completo SmartBugs-curated |
-| **F1-Score** | 36.0% | Corpus completo SmartBugs-curated |
+| **Precisión** | 22.1% | Corpus completo SmartBugs-curated |
+| **F1-Score** | 35.9% | Corpus completo SmartBugs-curated |
 | **Baseline Slither (recall)** | 43.2% | Comparación solo estático |
 | **Herramientas por capa** | 50 | Herramientas core agrupadas en 9 capas de defensa |
 
@@ -310,7 +309,7 @@ SmartBugs-curated (143 contratos, 207 vulnerabilidades ground-truth):
 
 **Director**: M.Sc. Eduardo Casanovas
 
-**Defensa Esperada**: Q4 2025
+**Defensa**: Realizada el 2025-12-18
 
 ### Contribuciones de Investigación
 
