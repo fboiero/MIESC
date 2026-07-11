@@ -73,13 +73,18 @@ Security · Advanced AI Ensemble.
 **Done:** README "9 Defense Layers" block and `mcp_server.py` docstring aligned to
 `constants.py`.
 
-**Remaining (scoped refactor, not a doc edit):** `miesc/data/config/miesc.yaml`
-still encodes the divergent legacy scheme (Pattern Detection / DeFi Security /
-Exploit Validation / Consensus & Reporting) read only by the compatibility
-orchestrator in `src/core`. Its layer *keys* (`ai_analysis`, `pattern_detection`,
-`exploit_validation`, …) are referenced by name in ~19 Python files, so migrating
-it must update those references and their tests together — it is a code refactor
-with test coverage, deliberately not done as a blind config edit. The doc layer
+**miesc.yaml migration — DONE.** Investigation showed the feared "~19 references"
+were false positives (tool-category enums, capability strings, and the
+exploit-validation *feature*, not the config keys): no production code reads the
+L5–L9 layer keys of `miesc.yaml`, and the config-loader tests only look up
+`static_analysis` (L1) or synthetic layers. Both copies
+(`miesc/data/config/miesc.yaml` and root `config/miesc.yaml`) were therefore safely
+rewritten to mirror `constants.py` exactly — keys `ml_detection`,
+`specialized_analysis`, `crosschain_zk_security`, `advanced_ensemble` with the
+canonical tool groupings — and 546 tests across config/core/mcp/registry/audit/
+multichain/rest stay green. A header note pins `constants.py` as authoritative.
+(New minor debt: the two miesc.yaml copies must be kept in sync; a single packaged
+source would remove that duplication.) The doc layer
 tables (`docs/index*.md`, `docs/ARCHITECTURE*.md`, `docs/TOOLS.md`, INSTALLATION,
 QUICKSTART, report templates) are now aligned to the canonical scheme; the one
 exception is `docs/architecture/layers.rst`, a Sphinx reference page on a distinct
