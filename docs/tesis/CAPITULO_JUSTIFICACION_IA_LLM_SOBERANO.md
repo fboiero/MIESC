@@ -753,10 +753,17 @@ el inverso y es de fondo: **el control sobre la herramienta es un requisito de
 primer orden del análisis de seguridad, y —a la luz de la evidencia empírica de
 este trabajo— ya no exige sacrificar capacidad.** Lo que se controla es
 epistemológicamente superior a lo que no se controla, por seis razones
-convergentes.
+convergentes. Esta distinción no es nueva: Illich (1973) diferenció las
+herramientas *conviviales* —aquellas que la persona domina, inspecciona y adapta—
+de las que la dominan y la vuelven dependiente; una herramienta de seguridad opaca,
+que no puede examinarse ni modificarse, pertenece por construcción a la segunda
+clase.
 
 **1. Doctrina de ciberdefensa.** La ciberdefensa se define por el control y la
-soberanía sobre los propios medios. Edificar una herramienta *defensiva* sobre una
+soberanía sobre los propios medios. Floridi (2020) caracteriza la soberanía digital
+como el control efectivo sobre los datos, el software y los procesos de los que
+depende una organización; delegar el razonamiento de seguridad en un servicio
+externo cede precisamente ese control. Edificar una herramienta *defensiva* sobre una
 caja negra propietaria y de jurisdicción extranjera es doctrinalmente
 autocontradictorio: introduce, en el núcleo de la postura defensiva, una
 dependencia y una superficie de ataque que el defensor no controla ni puede
@@ -775,10 +782,15 @@ controla; la soberanía sobre el modelo es, por tanto, una condición de la
 cientificidad del método, no un lujo.
 
 **3. Autoría y rendición de cuentas.** Cuando el auditor humano firma un informe,
-asume la autoría y la responsabilidad de sus afirmaciones. Con pesos abiertos puede
-inspeccionar, atribuir y responder por el análisis; con una caja negra, la autoría
-del hallazgo se diluye en un servicio inescrutable que no puede examinar ni citar
-con precisión. La rendición de cuentas exige poder explicar *por qué* la herramienta
+asume la autoría y la responsabilidad de sus afirmaciones. La *libertad de estudiar
+cómo funciona el programa* —la libertad 1 de la definición de software libre de
+Stallman (2002)— es la condición técnica que hace posible esa rendición de cuentas:
+con pesos abiertos el auditor puede inspeccionar, atribuir y responder por el
+análisis; con una caja negra, la autoría del hallazgo se diluye en un servicio
+inescrutable que no puede examinar ni citar con precisión. Como observa Winner
+(1980), los artefactos no son neutrales: incorporan relaciones de poder, y un modelo
+cerrado inscribe en el análisis la autoridad del proveedor por encima de la del
+perito. La rendición de cuentas exige poder explicar *por qué* la herramienta
 concluyó lo que concluyó; un modelo cerrado convierte esa cadena de autoría en un
 acto de fe.
 
@@ -802,6 +814,24 @@ obtiene la **mejor precisión (88.5%) y F1 (78.7%)** de toda la comparación —
 encima de los proveedores frontier— a un costo de **~$0.08 por auditoría (15–69×
 menor)**. La elección soberana dejó de ser un sacrificio y pasó a ser, en las
 métricas que importan para el triage, una elección dominante.
+
+La Tabla 6.6 sintetiza el argumento en un scorecard: el nivel local gana en todas
+las dimensiones de soberanía, el open-weight hosteado es el punto de equilibrio
+(soberanía casi total, mejor precisión/F1 y costo mínimo), y el frontier solo
+conserva ventaja en el recall de una sola pasada.
+
+**Tabla 6.6.** Scorecard de soberanía por nivel de acceso (✓ pleno · ◑ parcial · ✗ ausente)
+
+| Dimensión | Frontier hosteado | Open-weight hosteado | Open-weight local |
+|-----------|:-----------------:|:--------------------:|:-----------------:|
+| Control e inspección de pesos | ✗ (cerrado) | ✓ (MIT) | ✓ (MIT/Apache) |
+| Reproducibilidad pericial | ✗ (blanco móvil) | ◑ (pesos fijables; ejecución en el proveedor) | ✓ (congelable extremo a extremo) |
+| Autoría y rendición de cuentas | ✗ (caja negra) | ✓ (inspeccionable) | ✓ (inspeccionable) |
+| Longevidad (no-deprecación) | ✗ (deprecable) | ✓ (irrevocable) | ✓ (irrevocable) |
+| Ejecución sin salida de datos | ✗ | ✗ (API hosteada) | ✓ (100% local) |
+| Costo por auditoría | $1.20–5.50 | ~$0.08 | $0 |
+| Recall (una sola pasada) | 73.7–82.5% | 70.8% | 59.2% |
+| Precisión / F1 (medidos en EVMBench) | 20–43% / 32–55% | **88.5% / 78.7%** | 30% / 40% |
 
 **Límites honestos.** El argumento no es un absoluto sino un espectro, y su fuerza
 depende de reconocerlo. El mejor resultado de pesos abiertos (DeepSeek-R1, ~671B
@@ -859,6 +889,10 @@ Digital Public Goods Alliance. (2023). *Digital Public Goods Standard*. https://
 
 European Parliament. (2016). General Data Protection Regulation (GDPR). *Regulation (EU) 2016/679*.
 
+Floridi, L. (2020). The fight for digital sovereignty: What it is, and why it matters, especially for the EU. *Philosophy & Technology, 33*(3), 369-378. https://doi.org/10.1007/s13347-020-00423-6
+
+Illich, I. (1973). *Tools for conviviality*. Harper & Row.
+
 Meta AI. (2024). Llama 3 Model Card. https://ai.meta.com/llama/
 
 Ollama. (2024). Ollama Documentation. https://ollama.ai/
@@ -869,7 +903,11 @@ Presidencia de la República. (2010). Ley Federal de Protección de Datos Person
 
 República Federativa do Brasil. (2018). Lei Geral de Proteção de Dados (LGPD). *Lei nº 13.709*.
 
-Sun, Y., et al. (2024). GPTScan: Detecting logic vulnerabilities in smart contracts by combining GPT with program analysis. *ICSE 2024*, 1-12.
+Stallman, R. M. (2002). *Free software, free society: Selected essays of Richard M. Stallman*. GNU Press.
+
+Sun, Y., Wu, D., Xue, Y., Liu, H., Wang, H., Xu, Z., Xie, X., & Liu, Y. (2024). GPTScan: Detecting logic vulnerabilities in smart contracts by combining GPT with program analysis. *Proceedings of the 46th International Conference on Software Engineering (ICSE)*, Article 166. https://doi.org/10.1145/3597503.3623318
+
+Winner, L. (1980). Do artifacts have politics? *Daedalus, 109*(1), 121-136.
 
 Touvron, H., et al. (2023). LLaMA: Open and efficient foundation language models. *arXiv:2302.13971*.
 

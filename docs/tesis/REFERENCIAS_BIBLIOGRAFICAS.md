@@ -76,6 +76,8 @@ Fellegi, I. P., & Sunter, A. B. (1969). A theory for record linkage. *Journal of
 
 Ferreira, J. F., Cruz, P., Durieux, T., & Abreu, R. (2020). SmartBugs: A framework to analyze Solidity smart contracts. *Proceedings of the 35th IEEE/ACM International Conference on Automated Software Engineering (ASE)*, 1349-1352. https://doi.org/10.1145/3324884.3415298
 
+Floridi, L. (2020). The fight for digital sovereignty: What it is, and why it matters, especially for the EU. *Philosophy & Technology, 33*(3), 369-378. https://doi.org/10.1007/s13347-020-00423-6
+
 ---
 
 ## G
@@ -121,6 +123,8 @@ Joint Chiefs of Staff. (2018). *Cyberspace Operations (JP 3-12)*. U.S. Departmen
 ---
 
 ## K
+
+Illich, I. (1973). *Tools for conviviality*. Harper & Row.
 
 King, J. C. (1976). Symbolic execution and program testing. *Communications of the ACM, 19*(7), 385-394. https://doi.org/10.1145/360248.360252
 
@@ -234,6 +238,8 @@ Smart Contract Weakness Classification. (2020). *SWC Registry*. https://swcregis
 
 Sommerville, I. (2016). *Software engineering* (10th ed.). Pearson.
 
+Stallman, R. M. (2002). *Free software, free society: Selected essays of Richard M. Stallman*. GNU Press.
+
 Sun, Y., Wu, D., Xue, Y., Liu, H., Wang, H., Xu, Z., Xie, X., & Liu, Y. (2024). GPTScan: Detecting logic vulnerabilities in smart contracts by combining GPT with program analysis. *Proceedings of the 46th International Conference on Software Engineering (ICSE)*, Article 166. https://doi.org/10.1145/3597503.3623318
 
 Sutton, M., Greene, A., & Amini, P. (2007). *Fuzzing: Brute force vulnerability discovery*. Addison-Wesley.
@@ -272,6 +278,8 @@ Vidal, F. R., Ivaki, N., & Laranjeiro, N. (2024). OpenSCV: An open hierarchical 
 
 Werner, S. M., Perez, D., Gudgeon, L., Klages-Mundt, A., Harz, D., & Knottenbelt, W. J. (2024). SoK: Decentralized finance (DeFi) attacks. *Proceedings of the 45th IEEE Symposium on Security and Privacy (S&P)*, 1-18. https://doi.org/10.1109/SP54263.2024.00123
 
+Winner, L. (1980). Do artifacts have politics? *Daedalus, 109*(1), 121-136.
+
 Wohlin, C., Runeson, P., Host, M., Ohlsson, M. C., Regnell, B., & Wesslen, A. (2012). *Experimentation in software engineering*. Springer. https://doi.org/10.1007/978-3-642-29044-2
 
 Wood, G. (2014). Ethereum: A secure decentralised generalised transaction ledger. *Ethereum Yellow Paper, 151*, 1-32. https://ethereum.github.io/yellowpaper/paper.pdf
@@ -298,13 +306,13 @@ Las referencias siguen el formato de la American Psychological Association (APA)
 4. **Software/herramientas:** Se cita como software con URL del repositorio
 5. **Documentos gubernamentales:** Se incluye organizacion y numero de publicacion
 
-**Total de referencias:** 94
+**Total de referencias:** 98
 
 **Distribucion por tipo:**
-- Articulos de conferencia: 29 (31%)
-- Libros: 13 (14%)
-- Articulos de revista: 22 (24%)
-- Documentacion tecnica/estandares: 21 (22%)
+- Articulos de conferencia: 29 (30%)
+- Libros: 15 (15%)
+- Articulos de revista: 24 (24%)
+- Documentacion tecnica/estandares: 21 (21%)
 - Preprints: 4 (4%)
 - Documentos gubernamentales: 5 (5%)
 

@@ -750,10 +750,15 @@ exchange for security and savings. The stronger argument is the inverse and it i
 foundational: **control over the tool is a first-order requirement of security
 analysis, and — in light of this work's empirical evidence — it no longer demands
 sacrificing capability.** What is controlled is epistemically superior to what is
-not, for six convergent reasons.
+not, for six convergent reasons. The distinction is not new: Illich (1973)
+separated *convivial* tools — those a person masters, inspects, and adapts — from
+those that dominate the user and create dependency; an opaque security tool that
+cannot be examined or modified belongs by construction to the second class.
 
 **1. Cyberdefense doctrine.** Cyberdefense is defined by control and sovereignty
-over one's own means. Building a *defensive* tool on a proprietary, foreign-
+over one's own means. Floridi (2020) characterizes digital sovereignty as effective
+control over the data, software, and processes an organization depends on;
+delegating security reasoning to an external service cedes exactly that control. Building a *defensive* tool on a proprietary, foreign-
 jurisdiction black box is doctrinally self-contradictory: it inserts, at the core
 of the defensive posture, a dependency and an attack surface the defender neither
 controls nor can inspect. A sovereign cyberdefense capability requires, by
@@ -770,10 +775,14 @@ does not control; sovereignty over the model is therefore a condition of the
 method's scientific validity, not a luxury.
 
 **3. Authorship and accountability.** When the human auditor signs a report, they
-assume authorship and responsibility for its claims. With open weights they can
+assume authorship and responsibility for its claims. The *freedom to study how the
+program works* — freedom 1 of Stallman's (2002) free-software definition — is the
+technical precondition of that accountability: with open weights the auditor can
 inspect, attribute, and answer for the analysis; with a black box, the authorship
 of a finding dissolves into an inscrutable service they can neither examine nor
-cite precisely. Accountability requires being able to explain *why* the tool
+cite precisely. As Winner (1980) observes, artifacts are not neutral: they embody
+power relations, and a closed model inscribes the provider's authority over that of
+the human expert in the analysis itself. Accountability requires being able to explain *why* the tool
 concluded what it did; a closed model turns that authorship chain into an act of
 faith.
 
@@ -796,6 +805,24 @@ capability. This work's evidence shows it does not: on the EVMBench evaluation
 (88.5%) and F1 (78.7%)** in the whole comparison — above the frontier providers —
 at **~$0.08 per audit (15–69× less)**. The sovereign choice stopped being a
 sacrifice and became, on the metrics that matter for triage, a dominant one.
+
+Table 6.6 synthesizes the argument in a scorecard: the local tier wins on every
+sovereignty dimension, the hosted open-weight tier is the balance point (near-full
+sovereignty, best precision/F1, and minimal cost), and the frontier tier retains an
+advantage only in single-run recall.
+
+**Table 6.6.** Sovereignty scorecard by access tier (✓ full · ◑ partial · ✗ absent)
+
+| Dimension | Hosted frontier | Hosted open-weight | Local open-weight |
+|-----------|:---------------:|:------------------:|:-----------------:|
+| Weight control and inspection | ✗ (closed) | ✓ (MIT) | ✓ (MIT/Apache) |
+| Forensic reproducibility | ✗ (moving target) | ◑ (weights freezable; execution at provider) | ✓ (freezable end-to-end) |
+| Authorship and accountability | ✗ (black box) | ✓ (inspectable) | ✓ (inspectable) |
+| Longevity (non-deprecation) | ✗ (deprecable) | ✓ (irrevocable) | ✓ (irrevocable) |
+| Execution with no data egress | ✗ | ✗ (hosted API) | ✓ (100% local) |
+| Cost per audit | $1.20–5.50 | ~$0.08 | $0 |
+| Recall (single pass) | 73.7–82.5% | 70.8% | 59.2% |
+| Precision / F1 (measured on EVMBench) | 20–43% / 32–55% | **88.5% / 78.7%** | 30% / 40% |
 
 **Honest limits.** The argument is a spectrum, not an absolute, and its strength
 depends on acknowledging that. The best open-weight result (DeepSeek-R1, ~671B
@@ -852,6 +879,10 @@ Digital Public Goods Alliance. (2023). *Digital Public Goods Standard*. https://
 
 European Parliament. (2016). General Data Protection Regulation (GDPR). *Regulation (EU) 2016/679*.
 
+Floridi, L. (2020). The fight for digital sovereignty: What it is, and why it matters, especially for the EU. *Philosophy & Technology, 33*(3), 369-378. https://doi.org/10.1007/s13347-020-00423-6
+
+Illich, I. (1973). *Tools for conviviality*. Harper & Row.
+
 Meta AI. (2024). Llama 3 Model Card. https://ai.meta.com/llama/
 
 Ollama. (2024). Ollama Documentation. https://ollama.ai/
@@ -862,7 +893,11 @@ Presidencia de la Republica. (2010). Ley Federal de Proteccion de Datos Personal
 
 Republica Federativa do Brasil. (2018). Lei Geral de Protecao de Dados (LGPD). *Lei n. 13.709*.
 
-Sun, Y., et al. (2024). GPTScan: Detecting logic vulnerabilities in smart contracts by combining GPT with program analysis. *ICSE 2024*, 1-12.
+Stallman, R. M. (2002). *Free software, free society: Selected essays of Richard M. Stallman*. GNU Press.
+
+Sun, Y., Wu, D., Xue, Y., Liu, H., Wang, H., Xu, Z., Xie, X., & Liu, Y. (2024). GPTScan: Detecting logic vulnerabilities in smart contracts by combining GPT with program analysis. *Proceedings of the 46th International Conference on Software Engineering (ICSE)*, Article 166. https://doi.org/10.1145/3597503.3623318
+
+Winner, L. (1980). Do artifacts have politics? *Daedalus, 109*(1), 121-136.
 
 Touvron, H., et al. (2023). LLaMA: Open and efficient foundation language models. *arXiv:2302.13971*.
 

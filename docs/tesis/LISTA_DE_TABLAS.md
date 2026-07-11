@@ -1,7 +1,7 @@
 # Lista de Tablas
 
 > Este índice refleja las tablas efectivamente presentes en el cuerpo de la tesis
-> (38 tablas). Los números de página son estimados sobre el documento fuente y se
+> (39 tablas). Los números de página son estimados sobre el documento fuente y se
 > regeneran automáticamente en la compilación final a PDF.
 
 ---
@@ -81,6 +81,7 @@
 | 6.3 | Modelos soportados por MIESC | Modelos locales y open-weight con parámetros, VRAM y licencia | 224 |
 | 6.4 | Comparativa de capacidades para análisis de código | Capacidades frontier vs local por dimensión | 232 |
 | 6.5 | Herramientas LLM en MIESC | SmartLLM, ThreatModel, GPTScan: modelo base, backend, capacidades | 236 |
+| 6.6 | Scorecard de soberanía por nivel de acceso | Frontier / open-weight hosteado / local en 8 dimensiones (control, reproducibilidad, autoría, longevidad, costo, recall, precisión/F1) | 240 |
 
 ---
 
@@ -100,4 +101,4 @@
 
 ---
 
-**Total de tablas:** 38
+**Total de tablas:** 39
