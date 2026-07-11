@@ -1231,7 +1231,7 @@ class TestAPILimiterFinalCoverage:
         """Test that expired calls are cleaned up."""
         import time
 
-        from src.security.api_limiter import RateLimiter
+        from miesc.security.api_limiter import RateLimiter
 
         # Create limiter with very short period
         limiter = RateLimiter(max_calls=10, period=0.1)  # 100ms period

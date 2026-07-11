@@ -14,7 +14,7 @@ Tests cover:
 
 import pytest
 
-from src.security.hallucination_detector import (
+from miesc.security.hallucination_detector import (
     CODE_PATTERNS,
     VULN_TYPE_ALIASES,
     HallucinationDetector,

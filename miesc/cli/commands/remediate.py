@@ -10,7 +10,7 @@ from typing import Any
 import click
 
 from miesc.cli.utils import error, get_profile, info, success, warning
-from src.security.remediation_pipeline import remediate_contract
+from miesc.security.remediation_pipeline import remediate_contract
 
 
 def _resolve_output_path(contract_path: Path, output: str | None) -> Path:

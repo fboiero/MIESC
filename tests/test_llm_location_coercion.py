@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import pytest
 
-from src.security.llm_output_validator import CodeLocation, VulnerabilityFinding
+from miesc.security.llm_output_validator import CodeLocation, VulnerabilityFinding
 
 BASE = {"type": "reentrancy-eth", "severity": "High", "title": "Reentrancy in withdraw"}
 

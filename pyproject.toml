@@ -211,7 +211,7 @@ packages = [
     "src.poc",
     "src.poc.validators",
     "src.reports",
-    "src.security",
+    "miesc.security",
     "src.utils",
 ]
 

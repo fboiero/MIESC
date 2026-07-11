@@ -748,7 +748,7 @@ if DRF_AVAILABLE:
 
     def _remediate_request(request: Request, *, default_validate: bool = False) -> Response:
         """Shared remediation endpoint implementation."""
-        from src.security.remediation_pipeline import remediate_contract
+        from miesc.security.remediation_pipeline import remediate_contract
 
         results = request.data.get("results")
         results_json = request.data.get("results_json")

@@ -8,7 +8,7 @@ Provides utilities for reproducible AI analysis:
 4. Environment fingerprinting
 
 Usage:
-    from src.security.reproducibility import (
+    from miesc.security.reproducibility import (
         set_global_seeds,
         get_model_version,
         ExperimentLogger,
@@ -55,7 +55,7 @@ def set_global_seeds(seed: int = 42) -> None:
         seed: Random seed value (default: 42)
 
     Example:
-        >>> from src.security.reproducibility import set_global_seeds
+        >>> from miesc.security.reproducibility import set_global_seeds
         >>> set_global_seeds(42)  # Call at program start
     """
     global _GLOBAL_SEED

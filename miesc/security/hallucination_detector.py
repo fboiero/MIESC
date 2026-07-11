@@ -11,7 +11,7 @@ Strategies:
 4. Anomaly detection: Flag suspicious or unlikely findings
 
 Usage:
-    from src.security.hallucination_detector import (
+    from miesc.security.hallucination_detector import (
         HallucinationDetector,
         validate_llm_findings,
         cross_validate_finding,

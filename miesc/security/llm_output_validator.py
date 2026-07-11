@@ -10,7 +10,7 @@ Provides strict validation of LLM responses using Pydantic schemas to:
 CRITICAL: All LLM JSON outputs MUST be validated before use.
 
 Usage:
-    from src.security.llm_output_validator import (
+    from miesc.security.llm_output_validator import (
         validate_vulnerability_finding,
         validate_analysis_response,
         safe_parse_llm_json,

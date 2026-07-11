@@ -29,14 +29,14 @@ from src.adapters.smartllm_rag_knowledge import (
     get_relevant_knowledge,
     get_vulnerability_context,
 )
-from src.security.llm_output_validator import (
+from miesc.security.llm_output_validator import (
     AnalysisResponse,
     safe_parse_llm_json,
     validate_vulnerability_finding,
 )
 
 # LLM Security imports (v5.1.2+)
-from src.security.prompt_sanitizer import (
+from miesc.security.prompt_sanitizer import (
     InjectionRiskLevel,
     detect_prompt_injection,
     sanitize_code_for_prompt,

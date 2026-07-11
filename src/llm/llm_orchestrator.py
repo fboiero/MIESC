@@ -23,14 +23,14 @@ from typing import Any, Dict, List, Optional, Tuple
 import aiohttp
 
 from src.llm.provider_health import fetch_openai_compatible_model_ids
-from src.security.llm_output_validator import (
+from miesc.security.llm_output_validator import (
     AnalysisResponse,
     repair_common_json_errors,
     safe_parse_llm_json,
 )
 
 # LLM Security imports (v5.1.2+)
-from src.security.prompt_sanitizer import (
+from miesc.security.prompt_sanitizer import (
     InjectionRiskLevel,
     detect_prompt_injection,
     sanitize_code_for_prompt,

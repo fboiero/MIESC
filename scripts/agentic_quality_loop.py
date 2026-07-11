@@ -36,7 +36,7 @@ if ROOT not in sys.path:
 
 # Optional: real grounding via the existing detector (pure-python, no ML deps).
 try:
-    from src.security.hallucination_detector import validate_llm_findings  # type: ignore
+    from miesc.security.hallucination_detector import validate_llm_findings  # type: ignore
 
     _HAS_DETECTOR = True
 except Exception:  # noqa: BLE001 - graceful offline fallback

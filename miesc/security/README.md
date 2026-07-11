@@ -20,7 +20,7 @@ Validates and sanitizes all user inputs to prevent:
 
 **Key Functions:**
 ```python
-from src.security import validate_contract_path, validate_solc_version
+from miesc.security import validate_contract_path, validate_solc_version
 
 # Validate contract path (prevents path traversal)
 safe_path = validate_contract_path("examples/contract.sol")
@@ -46,7 +46,7 @@ Manages API rate limits and quotas to prevent:
 
 **Key Classes:**
 ```python
-from src.security import RateLimiter, APIQuotaManager
+from miesc.security import RateLimiter, APIQuotaManager
 
 # Rate limiting decorator
 @RateLimiter(max_calls=60, period=60)
@@ -76,7 +76,7 @@ Automatic redaction of sensitive information from logs:
 
 **Setup:**
 ```python
-from src.security import setup_secure_logging
+from miesc.security import setup_secure_logging
 
 logger = setup_secure_logging('miesc', level=logging.INFO)
 
@@ -91,7 +91,7 @@ logger.info("Using key: sk-1234567890abcdef")
 
 ```python
 from src.agents.base_agent import BaseAgent
-from src.security import (
+from miesc.security import (
     validate_contract_path,
     validate_solc_version,
     RateLimiter,
@@ -125,7 +125,7 @@ class SecureStaticAgent(BaseAgent):
 ### Secure API Calls
 
 ```python
-from src.security import rate_limited_openai_call, openai_quota
+from miesc.security import rate_limited_openai_call, openai_quota
 
 @rate_limited_openai_call
 def analyze_with_gpt(contract_code: str):
@@ -174,7 +174,7 @@ By default, contract paths are restricted to:
 
 To customize:
 ```python
-from src.security import validate_contract_path
+from miesc.security import validate_contract_path
 
 allowed_dirs = [
     "/app/production_contracts",
@@ -226,7 +226,7 @@ logger = logging.getLogger(__name__)
 logger.info(f"Using API key: {api_key}")
 
 # ✅ SECURE - Automatic redaction
-from src.security import setup_secure_logging
+from miesc.security import setup_secure_logging
 logger = setup_secure_logging(__name__)
 logger.info(f"Using API key: {api_key}")  # Automatically redacted
 ```
@@ -240,7 +240,7 @@ python -m pytest tests/security/ -v
 
 Test input validation:
 ```bash
-python -c "from src.security import validate_contract_path; \
+python -c "from miesc.security import validate_contract_path; \
            print(validate_contract_path('examples/reentrancy.sol'))"
 ```
 

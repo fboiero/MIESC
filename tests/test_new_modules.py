@@ -563,14 +563,14 @@ class TestComplianceMapper:
 
     def test_mapper_initialization(self):
         """Test compliance mapper initializes."""
-        from src.security.compliance_mapper import ComplianceMapper
+        from miesc.security.compliance_mapper import ComplianceMapper
 
         mapper = ComplianceMapper()
         assert mapper is not None
 
     def test_map_reentrancy_finding(self):
         """Test mapping reentrancy vulnerability."""
-        from src.security.compliance_mapper import get_compliance_mapper
+        from miesc.security.compliance_mapper import get_compliance_mapper
 
         mapper = get_compliance_mapper()
         finding = {"type": "reentrancy", "severity": "high"}
@@ -586,7 +586,7 @@ class TestComplianceMapper:
 
     def test_map_integer_overflow(self):
         """Test mapping integer overflow."""
-        from src.security.compliance_mapper import get_compliance_mapper
+        from miesc.security.compliance_mapper import get_compliance_mapper
 
         mapper = get_compliance_mapper()
         finding = {"type": "integer-overflow"}
@@ -598,7 +598,7 @@ class TestComplianceMapper:
 
     def test_map_tx_origin(self):
         """Test mapping tx.origin vulnerability."""
-        from src.security.compliance_mapper import get_compliance_mapper
+        from miesc.security.compliance_mapper import get_compliance_mapper
 
         mapper = get_compliance_mapper()
         finding = {"type": "tx-origin"}
@@ -610,7 +610,7 @@ class TestComplianceMapper:
 
     def test_generate_report(self):
         """Test generating compliance report."""
-        from src.security.compliance_mapper import get_compliance_mapper
+        from miesc.security.compliance_mapper import get_compliance_mapper
 
         mapper = get_compliance_mapper()
         findings = [
@@ -629,7 +629,7 @@ class TestComplianceMapper:
 
     def test_iso27001_gaps(self):
         """Test identifying ISO 27001 gaps."""
-        from src.security.compliance_mapper import get_compliance_mapper
+        from miesc.security.compliance_mapper import get_compliance_mapper
 
         mapper = get_compliance_mapper()
         findings = [{"type": "reentrancy"}]
@@ -641,7 +641,7 @@ class TestComplianceMapper:
 
     def test_enrich_finding(self):
         """Test enriching a finding with compliance data."""
-        from src.security.compliance_mapper import get_compliance_mapper
+        from miesc.security.compliance_mapper import get_compliance_mapper
 
         mapper = get_compliance_mapper()
         finding = {"type": "reentrancy", "severity": "high", "title": "Test"}
@@ -654,7 +654,7 @@ class TestComplianceMapper:
 
     def test_unknown_vulnerability_type(self):
         """Test handling unknown vulnerability type."""
-        from src.security.compliance_mapper import get_compliance_mapper
+        from miesc.security.compliance_mapper import get_compliance_mapper
 
         mapper = get_compliance_mapper()
         finding = {"type": "unknown-vulnerability"}
@@ -667,7 +667,7 @@ class TestComplianceMapper:
 
     def test_existing_swc_preserved(self):
         """Test that existing SWC ID is preserved."""
-        from src.security.compliance_mapper import get_compliance_mapper
+        from miesc.security.compliance_mapper import get_compliance_mapper
 
         mapper = get_compliance_mapper()
         finding = {"type": "unknown", "swc_id": "SWC-107"}
@@ -678,7 +678,7 @@ class TestComplianceMapper:
 
     def test_vuln_type_normalization(self):
         """Test vulnerability type normalization."""
-        from src.security.compliance_mapper import get_compliance_mapper
+        from miesc.security.compliance_mapper import get_compliance_mapper
 
         mapper = get_compliance_mapper()
 
@@ -718,7 +718,7 @@ class TestIntegration:
     def test_compliance_with_persistence(self):
         """Test compliance mapper with persistence."""
         from src.core.persistence import MIESCDatabase
-        from src.security.compliance_mapper import get_compliance_mapper
+        from miesc.security.compliance_mapper import get_compliance_mapper
 
         mapper = get_compliance_mapper()
 

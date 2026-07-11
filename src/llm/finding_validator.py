@@ -31,7 +31,7 @@ from urllib.parse import urlparse
 
 import aiohttp
 
-from src.security.llm_output_validator import (
+from miesc.security.llm_output_validator import (
     extract_json_from_text,
     repair_common_json_errors,
 )

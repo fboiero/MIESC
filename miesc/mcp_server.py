@@ -629,7 +629,7 @@ async def miesc_map_compliance(findings_json: str, frameworks: Optional[str] = N
         return json.dumps({"error": "Invalid JSON input"})
 
     try:
-        from src.security.compliance_mapper import ComplianceMapper
+        from miesc.security.compliance_mapper import ComplianceMapper
 
         mapper = ComplianceMapper()
         framework_list = frameworks.split(",") if frameworks else None
@@ -652,7 +652,7 @@ async def miesc_remediate(findings_json: str, contract_name: str = "") -> str:
         return json.dumps({"error": "Invalid JSON input"})
 
     try:
-        from src.security.remediation_engine import RemediationEngine
+        from miesc.security.remediation_engine import RemediationEngine
 
         engine = RemediationEngine()
         remediated = engine.enrich_findings(findings, contract_name=contract_name)
@@ -693,7 +693,7 @@ async def miesc_apply_fix(
         return json.dumps({"error": "Invalid results_json"})
 
     try:
-        from src.security.remediation_pipeline import remediate_contract
+        from miesc.security.remediation_pipeline import remediate_contract
 
         contract = Path(_validate_contract_path(contract_path))
         patched = (
@@ -732,7 +732,7 @@ async def miesc_validate_remediation(
         return json.dumps({"error": "Invalid results_json"})
 
     try:
-        from src.security.remediation_pipeline import remediate_contract
+        from miesc.security.remediation_pipeline import remediate_contract
 
         contract = Path(_validate_contract_path(contract_path))
         patched = (

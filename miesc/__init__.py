@@ -28,11 +28,11 @@ _lazy_imports = {
     "VulnerabilityClusterer": ("src.ml", "VulnerabilityClusterer"),
     "CodeEmbeddings": ("src.ml", "CodeEmbeddings"),
     # Security
-    "InputValidator": ("src.security", "validate_contract_path"),
-    "APIRateLimiter": ("src.security", "RateLimiter"),
-    "SecureLogger": ("src.security", "SecureFormatter"),
-    "ComplianceMapper": ("src.security.compliance_mapper", "ComplianceMapper"),
-    "RemediationEngine": ("src.security", "RemediationEngine"),
+    "InputValidator": ("miesc.security", "validate_contract_path"),
+    "APIRateLimiter": ("miesc.security", "RateLimiter"),
+    "SecureLogger": ("miesc.security", "SecureFormatter"),
+    "ComplianceMapper": ("miesc.security.compliance_mapper", "ComplianceMapper"),
+    "RemediationEngine": ("miesc.security", "RemediationEngine"),
 }
 
 _loaded_modules: dict[str, Any] = {}

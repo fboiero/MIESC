@@ -19,7 +19,7 @@ import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from src.security.reproducibility import (
+from miesc.security.reproducibility import (
     EnvironmentFingerprint,
     ExperimentLogger,
     ExperimentRecord,
@@ -70,7 +70,7 @@ class TestGetGlobalSeed:
     def test_returns_none_initially(self):
         """Test returns None before any seed is set."""
         # Reset global seed
-        import src.security.reproducibility as repro
+        import miesc.security.reproducibility as repro
 
         repro._GLOBAL_SEED = None
         assert get_global_seed() is None
@@ -200,7 +200,7 @@ class TestGetModelVersion:
 
     def test_ollama_provider(self):
         """Test with ollama provider."""
-        with patch("src.security.reproducibility.get_ollama_model_version") as mock:
+        with patch("miesc.security.reproducibility.get_ollama_model_version") as mock:
             mock.return_value = ModelVersion(name="test", provider="ollama")
             result = get_model_version("test", "ollama")
             assert result.provider == "ollama"
@@ -456,7 +456,7 @@ class TestEnsureReproducibility:
     def test_sets_seed_and_returns_logger(self):
         """Test that it sets seed and returns logger."""
         with tempfile.TemporaryDirectory():
-            with patch("src.security.reproducibility.ExperimentLogger") as MockLogger:
+            with patch("miesc.security.reproducibility.ExperimentLogger") as MockLogger:
                 MockLogger.return_value = MagicMock()
                 ensure_reproducibility(123)
                 assert get_global_seed() == 123
@@ -484,7 +484,7 @@ class TestSetGlobalSeedsWithMockedImports:
         # Mock numpy not being available
         with patch.dict(sys.modules, {"numpy": None}):
             # This should not raise an error
-            from src.security.reproducibility import set_global_seeds
+            from miesc.security.reproducibility import set_global_seeds
 
             set_global_seeds(42)
             assert get_global_seed() == 42
@@ -498,7 +498,7 @@ class TestSetGlobalSeedsWithMockedImports:
         mock_torch.backends.cudnn = MagicMock()
 
         with patch.dict("sys.modules", {"torch": mock_torch}):
-            from src.security.reproducibility import set_global_seeds
+            from miesc.security.reproducibility import set_global_seeds
 
             set_global_seeds(123)
 
@@ -514,7 +514,7 @@ class TestSetGlobalSeedsWithMockedImports:
 
         # Mock tensorflow not being available
         with patch.dict(sys.modules, {"tensorflow": None}):
-            from src.security.reproducibility import set_global_seeds
+            from miesc.security.reproducibility import set_global_seeds
 
             set_global_seeds(99)
             assert get_global_seed() == 99
@@ -525,7 +525,7 @@ class TestModelVersioningFunctions:
 
     def test_get_model_version_ollama(self):
         """Test getting model version for Ollama."""
-        from src.security.reproducibility import get_model_version
+        from miesc.security.reproducibility import get_model_version
 
         version = get_model_version("mistral:latest", "ollama")
         assert version.name == "mistral:latest"
@@ -533,7 +533,7 @@ class TestModelVersioningFunctions:
 
     def test_get_model_version_openai(self):
         """Test getting model version for OpenAI."""
-        from src.security.reproducibility import get_model_version
+        from miesc.security.reproducibility import get_model_version
 
         version = get_model_version("gpt-4", "openai")
         assert version.name == "gpt-4"
@@ -541,7 +541,7 @@ class TestModelVersioningFunctions:
 
     def test_get_model_version_anthropic(self):
         """Test getting model version for Anthropic."""
-        from src.security.reproducibility import get_model_version
+        from miesc.security.reproducibility import get_model_version
 
         version = get_model_version("claude-3", "anthropic")
         assert version.name == "claude-3"
@@ -556,7 +556,7 @@ class TestExperimentLoggerMethods:
         import tempfile
         from pathlib import Path
 
-        from src.security.reproducibility import ExperimentLogger
+        from miesc.security.reproducibility import ExperimentLogger
 
         with tempfile.TemporaryDirectory() as tmpdir:
             logger = ExperimentLogger(
@@ -573,7 +573,7 @@ class TestExperimentLoggerMethods:
         import tempfile
         from pathlib import Path
 
-        from src.security.reproducibility import ExperimentLogger
+        from miesc.security.reproducibility import ExperimentLogger
 
         with tempfile.TemporaryDirectory() as tmpdir:
             logger = ExperimentLogger(output_dir=Path(tmpdir))
@@ -585,7 +585,7 @@ class TestExperimentLoggerMethods:
         import tempfile
         from pathlib import Path
 
-        from src.security.reproducibility import ExperimentLogger
+        from miesc.security.reproducibility import ExperimentLogger
 
         with tempfile.TemporaryDirectory() as tmpdir:
             logger = ExperimentLogger(output_dir=Path(tmpdir))
@@ -596,7 +596,7 @@ class TestExperimentLoggerMethods:
 
     def test_experiment_logger_log_input_file(self, tmp_path):
         """Test logging an input file."""
-        from src.security.reproducibility import ExperimentLogger
+        from miesc.security.reproducibility import ExperimentLogger
 
         # Create a test file
         test_file = tmp_path / "contract.sol"
@@ -615,7 +615,7 @@ class TestExperimentLoggerMethods:
         import tempfile
         from pathlib import Path
 
-        from src.security.reproducibility import ExperimentLogger
+        from miesc.security.reproducibility import ExperimentLogger
 
         with tempfile.TemporaryDirectory() as tmpdir:
             logger = ExperimentLogger(output_dir=Path(tmpdir))
@@ -627,7 +627,7 @@ class TestExperimentLoggerMethods:
 
     def test_experiment_logger_save(self, tmp_path):
         """Test saving experiment record."""
-        from src.security.reproducibility import ExperimentLogger
+        from miesc.security.reproducibility import ExperimentLogger
 
         logger = ExperimentLogger(
             experiment_id="save-test",
@@ -646,7 +646,7 @@ class TestCreateReproducibilityReport:
 
     def test_create_report_basic(self, tmp_path):
         """Test creating a reproducibility report."""
-        from src.security.reproducibility import (
+        from miesc.security.reproducibility import (
             ExperimentLogger,
             create_reproducibility_report,
         )
@@ -666,7 +666,7 @@ class TestCreateReproducibilityReport:
 
     def test_create_report_with_inputs(self, tmp_path):
         """Test creating report with input files."""
-        from src.security.reproducibility import (
+        from miesc.security.reproducibility import (
             ExperimentLogger,
             create_reproducibility_report,
         )

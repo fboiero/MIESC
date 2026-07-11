@@ -20,7 +20,7 @@ Valida y sanitiza todas las entradas de usuario para prevenir:
 
 **Funciones Principales:**
 ```python
-from src.security import validate_contract_path, validate_solc_version
+from miesc.security import validate_contract_path, validate_solc_version
 
 # Validar ruta de contrato (previene path traversal)
 safe_path = validate_contract_path("examples/contract.sol")
@@ -46,7 +46,7 @@ Gestiona límites de tasa de API y cuotas para prevenir:
 
 **Clases Principales:**
 ```python
-from src.security import RateLimiter, APIQuotaManager
+from miesc.security import RateLimiter, APIQuotaManager
 
 # Decorador de limitación de tasa
 @RateLimiter(max_calls=60, period=60)
@@ -76,7 +76,7 @@ Redacción automática de información sensible de los logs:
 
 **Configuración:**
 ```python
-from src.security import setup_secure_logging
+from miesc.security import setup_secure_logging
 
 logger = setup_secure_logging('miesc', level=logging.INFO)
 
@@ -91,7 +91,7 @@ logger.info("Using key: sk-1234567890abcdef")
 
 ```python
 from src.agents.base_agent import BaseAgent
-from src.security import (
+from miesc.security import (
     validate_contract_path,
     validate_solc_version,
     RateLimiter,
@@ -125,7 +125,7 @@ class SecureStaticAgent(BaseAgent):
 ### Llamadas API Seguras
 
 ```python
-from src.security import rate_limited_openai_call, openai_quota
+from miesc.security import rate_limited_openai_call, openai_quota
 
 @rate_limited_openai_call
 def analyze_with_gpt(contract_code: str):
@@ -174,7 +174,7 @@ Por defecto, las rutas de contratos están restringidas a:
 
 Para personalizar:
 ```python
-from src.security import validate_contract_path
+from miesc.security import validate_contract_path
 
 allowed_dirs = [
     "/app/production_contracts",
@@ -226,7 +226,7 @@ logger = logging.getLogger(__name__)
 logger.info(f"Using API key: {api_key}")
 
 # SEGURO - Redacción automática
-from src.security import setup_secure_logging
+from miesc.security import setup_secure_logging
 logger = setup_secure_logging(__name__)
 logger.info(f"Using API key: {api_key}")  # Redactado automáticamente
 ```
@@ -240,7 +240,7 @@ python -m pytest tests/security/ -v
 
 Probar validación de entradas:
 ```bash
-python -c "from src.security import validate_contract_path; \
+python -c "from miesc.security import validate_contract_path; \
            print(validate_contract_path('examples/reentrancy.sol'))"
 ```
 

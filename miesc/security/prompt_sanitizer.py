@@ -11,7 +11,7 @@ CRITICAL: All user-provided content (contract code, findings, context)
 MUST be sanitized before embedding in LLM prompts.
 
 Usage:
-    from src.security.prompt_sanitizer import (
+    from miesc.security.prompt_sanitizer import (
         sanitize_code_for_prompt,
         sanitize_context,
         detect_prompt_injection,

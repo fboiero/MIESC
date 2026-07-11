@@ -30,7 +30,7 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 # Try to import remediations database
 try:
-    from security.remediations import (
+    from miesc.security.remediations import (
         get_remediation_by_swc,
         get_remediation_by_type,
         get_security_checklist,

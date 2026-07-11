@@ -2,16 +2,16 @@
 MIESC Policy Mapper - Compatibility shim for legacy imports.
 
 .. deprecated:: 5.1.1
-    Use ``from src.security.compliance_mapper import ComplianceMapper`` instead.
+    Use ``from miesc.security.compliance_mapper import ComplianceMapper`` instead.
     This module will be removed in v6.0.0.
 """
 
 import warnings
 
-from src.security.compliance_mapper import ComplianceMapper
+from miesc.security.compliance_mapper import ComplianceMapper
 
 warnings.warn(
-    "src.miesc_policy_mapper is deprecated. Use src.security.compliance_mapper instead. "
+    "src.miesc_policy_mapper is deprecated. Use miesc.security.compliance_mapper instead. "
     "This module will be removed in v6.0.0.",
     DeprecationWarning,
     stacklevel=2,

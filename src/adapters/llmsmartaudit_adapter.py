@@ -29,7 +29,7 @@ from src.core.tool_protocol import (
     ToolMetadata,
     ToolStatus,
 )
-from src.security.llm_output_validator import (
+from miesc.security.llm_output_validator import (
     extract_json_from_text,
     repair_common_json_errors,
 )

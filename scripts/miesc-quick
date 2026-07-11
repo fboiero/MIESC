@@ -104,7 +104,7 @@ class Spinner:
 
 # Try to import remediations from the new database
 try:
-    from security.remediations import get_remediation_by_type, get_security_checklist, REMEDIATIONS as FULL_REMEDIATIONS
+    from miesc.security.remediations import get_remediation_by_type, get_security_checklist, REMEDIATIONS as FULL_REMEDIATIONS
     USE_FULL_REMEDIATIONS = True
 except ImportError:
     USE_FULL_REMEDIATIONS = False
