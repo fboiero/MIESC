@@ -743,13 +743,87 @@ Todo el stack es open source y auditable:
 - Ollama: Código abierto (MIT)
 - Modelos Llama: Pesos públicos y documentación de entrenamiento
 
+### 6.6.3 Soberanía como requisito, no preferencia
+
+Las secciones anteriores justifican los modelos de pesos abiertos y la ejecución
+local por sus **riesgos evitados** (confidencialidad, jurisdicción) y su **costo**.
+Esa es una defensa correcta pero incompleta: presenta la soberanía como una
+concesión que se acepta a cambio de seguridad y ahorro. El argumento más fuerte es
+el inverso y es de fondo: **el control sobre la herramienta es un requisito de
+primer orden del análisis de seguridad, y —a la luz de la evidencia empírica de
+este trabajo— ya no exige sacrificar capacidad.** Lo que se controla es
+epistemológicamente superior a lo que no se controla, por seis razones
+convergentes.
+
+**1. Doctrina de ciberdefensa.** La ciberdefensa se define por el control y la
+soberanía sobre los propios medios. Edificar una herramienta *defensiva* sobre una
+caja negra propietaria y de jurisdicción extranjera es doctrinalmente
+autocontradictorio: introduce, en el núcleo de la postura defensiva, una
+dependencia y una superficie de ataque que el defensor no controla ni puede
+inspeccionar. Una capacidad de ciberdefensa soberana requiere, por definición,
+tooling soberano; delegar el razonamiento de seguridad a un tercero opaco equivale
+a subordinar la decisión defensiva a un actor externo.
+
+**2. Reproducibilidad y periciabilidad.** Una auditoría con valor forense debe ser
+reproducible: otro perito, con el mismo insumo, debe poder obtener el mismo
+resultado. Un modelo de pesos abiertos y versionado, ejecutado localmente, es un
+artefacto **congelable y verificable**. Una API comercial es un blanco móvil: el
+proveedor puede actualizar el modelo en silencio, cambiar su comportamiento o
+deprecarlo (como ocurrió con generaciones previas de modelos frontier). No es
+posible construir una evidencia pericial reproducible sobre un artefacto que no se
+controla; la soberanía sobre el modelo es, por tanto, una condición de la
+cientificidad del método, no un lujo.
+
+**3. Autoría y rendición de cuentas.** Cuando el auditor humano firma un informe,
+asume la autoría y la responsabilidad de sus afirmaciones. Con pesos abiertos puede
+inspeccionar, atribuir y responder por el análisis; con una caja negra, la autoría
+del hallazgo se diluye en un servicio inescrutable que no puede examinar ni citar
+con precisión. La rendición de cuentas exige poder explicar *por qué* la herramienta
+concluyó lo que concluyó; un modelo cerrado convierte esa cadena de autoría en un
+acto de fe.
+
+**4. Longevidad y no-abandono.** Las licencias MIT y Apache 2.0 son irrevocables:
+los pesos, una vez publicados, no pueden ser retirados. Un modelo propietario, en
+cambio, puede ser deprecado o discontinuado por decisión unilateral del proveedor.
+Un baseline reproducible —el fundamento de esta tesis y de sus papers asociados— no
+puede depender de un recurso que un tercero puede eliminar.
+
+**5. Bien Público Digital.** MIESC se postula como Bien Público Digital ante la
+Digital Public Goods Alliance. Un bien público cuyo componente central requiere una
+API paga tiene, de hecho, un guardián con peaje: no es plenamente público. La
+apertura de pesos y la ejecución local son coherentes con la misión de acceso
+universal —incluidos investigadores, instituciones educativas y desarrolladores en
+economías con moneda débil— que un servicio comercial excluye por costo.
+
+**6. Paridad empírica.** El argumento anterior sería idealista si la soberanía
+costara capacidad. La evidencia de este trabajo demuestra que no la cuesta: en la
+evaluación de EVMBench (§6.2.4, Tabla 6.2b), el modelo de pesos abiertos DeepSeek-R1
+obtiene la **mejor precisión (88.5%) y F1 (78.7%)** de toda la comparación —por
+encima de los proveedores frontier— a un costo de **~$0.08 por auditoría (15–69×
+menor)**. La elección soberana dejó de ser un sacrificio y pasó a ser, en las
+métricas que importan para el triage, una elección dominante.
+
+**Límites honestos.** El argumento no es un absoluto sino un espectro, y su fuerza
+depende de reconocerlo. El mejor resultado de pesos abiertos (DeepSeek-R1, ~671B
+parámetros) se obtuvo mediante una **API hosteada**, no en ejecución 100% local: sus
+pesos son abiertos y auto-hospedables en principio, pero el hardware de prueba no
+alcanza para ejecutarlo localmente. La soberanía *total* —el modelo local de 32B,
+sin ninguna llamada externa— tiene un costo de recall cuantificado (59.2% frente al
+70.8–82.5% de los modelos mayores), recuperable en parte mediante auto-ensemble de
+bajo costo. Asimismo, los modelos frontier conservan una ventaja en recall de una
+sola pasada. La conclusión defendible no es "lo abierto siempre gana", sino que
+**el control sobre la herramienta se obtiene sin renunciar a una capacidad
+competitiva**, y que cada punto del espectro (frontier hosteado, pesos abiertos
+hosteados, pesos abiertos locales) ofrece un compromiso medido —no asumido— entre
+soberanía, costo y recall.
+
 ---
 
 ## 6.7 Conclusiones
 
 ### 6.7.1 Síntesis de la Justificación
 
-La decisión de implementar LLMs soberanos en MIESC responde a un análisis riguroso de riesgos y trade-offs. La justificación se fundamenta en:
+La decisión de implementar LLMs soberanos en MIESC responde a un análisis riguroso de riesgos y trade-offs. Su premisa de fondo (§6.6.3) es que **el control sobre la herramienta es un requisito de primer orden del análisis de seguridad, no una preferencia**: lo que se controla —pesos abiertos, ejecución auditable— es doctrinal, científica y epistemológicamente superior a lo que no se controla, y la evidencia de este trabajo demuestra que esa soberanía ya no exige sacrificar capacidad. La justificación se fundamenta en:
 
 1. **El código de smart contracts pre-auditoría tiene valor económico directo y significativo.** La filtración de este código puede resultar en pérdidas de decenas o cientos de millones de dólares.
 
@@ -760,6 +834,8 @@ La decisión de implementar LLMs soberanos en MIESC responde a un análisis rigu
 4. **El costo total de propiedad de LLMs soberanos es inferior** al de APIs comerciales para organizaciones que realizan auditorías regularmente. Medido en EVMBench, el nivel open-weight cuesta **~$0.08 por auditoría (15–69× menos que los frontier)** y el nivel local $0, sin sacrificar precisión de detección.
 
 5. **La ejecución local garantiza cumplimiento regulatorio automático** con GDPR, LGPD, LFPDPPP y regulaciones sectoriales.
+
+6. **El control es reproducibilidad, autoría y longevidad.** Solo un modelo de pesos abiertos y versionado permite una evidencia pericial reproducible, una cadena de autoría en la que el auditor puede responder por sus afirmaciones, y un baseline que ningún proveedor puede deprecar unilateralmente. Estas tres propiedades —ausentes por construcción en una API cerrada— son condiciones del método científico y forense, no beneficios accesorios. La contrapartida honesta es que la soberanía plena es un espectro: el nivel 100% local tiene un costo de recall medido, y el mejor resultado de pesos abiertos se obtuvo por API hosteada; el control sobre la herramienta se preserva en todo el espectro, con compromisos cuantificados entre soberanía, costo y recall.
 
 ### 6.7.2 Recomendación
 
