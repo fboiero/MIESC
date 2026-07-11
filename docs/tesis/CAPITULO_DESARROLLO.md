@@ -18,7 +18,7 @@ El origen de MIESC se encuentra en una experiencia práctica de auditoría reali
 
 **Tercer problema: La interpretación de resultados.** Las herramientas generaron colectivamente más de 200 hallazgos, muchos de ellos duplicados o falsos positivos. La tarea de consolidación, priorización y verificación consumió varios días de trabajo manual.
 
-Estos problemas no son únicos de la experiencia del autor. Durieux et al. (2020), en su evaluación empírica de 47,587 contratos, documentaron que "ninguna herramienta individual detecta más del 75% de las vulnerabilidades conocidas, y la combinación manual de herramientas es impráctica a escala" (p. 535). Rameder et al. (2022) llegaron a conclusiones similares, señalando que "la heterogeneidad de interfaces y formatos de salida constituye una barrera significativa para la adopción industrial de herramientas académicas" (p. 12).
+Estos problemas no son únicos de la experiencia del autor. Durieux et al. (2020), en su evaluación empírica de 47,587 contratos, documentaron que ninguna herramienta individual supera el 43.2% de recall (Slither, la mejor) y que solo alrededor del 42% de las vulnerabilidades son detectadas por el conjunto de herramientas, siendo la combinación manual impráctica a escala. Rameder et al. (2022) llegaron a conclusiones similares, señalando que "la heterogeneidad de interfaces y formatos de salida constituye una barrera significativa para la adopción industrial de herramientas académicas" (p. 12).
 
 ### 4.1.2 Objetivos del Desarrollo
 
@@ -54,6 +54,15 @@ La Tabla 4.1 presenta las métricas del proyecto en su versión 4.0.0, medidas m
 
 El índice de mantenibilidad de 72.3 supera el umbral de 65 propuesto por Oman y Hagemeister (1992) para código "altamente mantenible", lo cual valida las decisiones de diseño orientadas a la extensibilidad.
 
+> **Nota sobre versiones.** Esta tesis documenta la arquitectura de MIESC en su
+> versión **v4.0.0** (7 capas de defensa, 25 herramientas integradas). Las
+> versiones posteriores de la línea **v5.x** —usadas para la validación cruzada en
+> EVMBench (§5.3.5) y descritas en los papers asociados— ampliaron el pipeline a
+> **9 capas y 35 módulos** (13 externos + 22 internos), incorporando capas de
+> razonamiento con LLM y filtrado de falsos positivos. Los resultados de detección
+> de esta tesis corresponden a la arquitectura documentada, salvo la sección de
+> validación EVMBench, que se indica explícitamente como corrida en la línea v5.x.
+
 ---
 
 ## 4.2 Arquitectura del Sistema
@@ -64,7 +73,7 @@ La arquitectura de MIESC se fundamenta en el principio de defensa en profundidad
 
 La aplicación de este principio al análisis de contratos inteligentes es una contribución original de este trabajo. La justificación teórica se fundamenta en la observación empírica de que diferentes técnicas de análisis tienen fortalezas y debilidades complementarias:
 
-**Análisis estático:** Examina el código sin ejecutarlo, detectando patrones conocidos de vulnerabilidad con alta velocidad pero sin capacidad de razonar sobre comportamiento en tiempo de ejecución. Feist et al. (2019) reportan que Slither alcanza 82% de precisión pero solo 75% de recall, indicando que aproximadamente una de cada cuatro vulnerabilidades escapa a su detección.
+**Análisis estático:** Examina el código sin ejecutarlo, detectando patrones conocidos de vulnerabilidad con alta velocidad pero sin capacidad de razonar sobre comportamiento en tiempo de ejecución. Los autores de Slither (Feist et al., 2019) reportan alta precisión en su propio benchmark, pero la evaluación independiente a gran escala de Durieux et al. (2020) midió apenas 43.2% de recall sobre SmartBugs-curated, indicando que más de la mitad de las vulnerabilidades escapa a la detección estática a escala de corpus.
 
 **Ejecución simbólica:** Explora caminos de ejecución mediante representación simbólica de variables, capaz de descubrir vulnerabilidades dependientes de valores específicos de entrada. Baldoni et al. (2018) documentan su efectividad pero también su principal limitación: la explosión combinatoria de caminos en código complejo.
 
@@ -125,7 +134,7 @@ La selección de las 25 herramientas que componen MIESC siguió un proceso de ev
 
 5. **Instalabilidad:** Capacidad de instalación automatizada sin intervención manual compleja.
 
-**Capa 1 - Análisis Estático:** Slither fue seleccionada como herramienta principal por su equilibrio entre precisión (82%) y velocidad (1.2s promedio), según los benchmarks de Durieux et al. (2020). Solhint complementa con verificación de estilo y mejores prácticas. Securify2 aporta análisis de patrones de seguridad específicos de Ethereum. Semgrep permite definir reglas personalizadas para patrones específicos de cada organización.
+**Capa 1 - Análisis Estático:** Slither fue seleccionada como herramienta principal por su cobertura de detectores y velocidad (1.2s promedio); en la evaluación independiente de Durieux et al. (2020) es la mejor herramienta individual, con 43.2% de recall. Solhint complementa con verificación de estilo y mejores prácticas. Securify2 aporta análisis de patrones de seguridad específicos de Ethereum. Semgrep permite definir reglas personalizadas para patrones específicos de cada organización.
 
 **Capa 2 - Fuzzing:** Echidna, desarrollada por Trail of Bits, fue seleccionada por su capacidad de property-based testing específico para contratos. Foundry Fuzz aporta integración con el ecosistema Foundry, ampliamente adoptado en la industria. Medusa proporciona fuzzing basado en cobertura con soporte para invariantes complejas. Vertigo implementa mutation testing, una técnica complementaria que evalúa la calidad de las pruebas existentes.
 

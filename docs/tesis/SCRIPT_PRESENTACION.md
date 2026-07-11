@@ -349,7 +349,7 @@
 ## SLIDE 48: Evolucion de Metricas (45 seg)
 
 **Decir:**
-> "Esta tabla muestra la evolucion desde la tesis v4.0 hasta la version actual v4.2. Pasamos de 7 a 9 capas, de 100 a mas de 6.000 tests, y de 30,000 a 51,000 lineas de codigo."
+> "Esta tabla muestra la evolucion desde la version documentada en la tesis (v4.0, 7 capas) hasta la linea v5.x posterior. Pasamos de 7 a 9 capas, de 100 a mas de 6.000 tests, y de 30,000 a 51,000 lineas de codigo."
 
 ---
 

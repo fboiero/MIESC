@@ -63,7 +63,7 @@ The field of smart contract security has seen the development of numerous specia
 
 **Problem 3: Incomplete coverage**
 - No individual tool detects all vulnerabilities
-- Empirical studies show that the best individual tool achieves ~70% recall (Durieux et al., 2020)
+- Empirical studies show that the best individual tool achieves only 43.2% recall (Slither, Durieux et al., 2020)
 
 ### 1.1.4 The Need for Data Sovereignty
 

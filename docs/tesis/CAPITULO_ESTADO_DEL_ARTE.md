@@ -79,7 +79,7 @@ El análisis estático examina el código fuente o bytecode sin ejecutarlo, iden
 
 **Herramientas representativas:**
 
-*Slither* (Feist et al., 2019): Framework desarrollado por Trail of Bits que implementa más de 80 detectores de vulnerabilidades. Utiliza un modelo intermedio (SlithIR) que facilita el análisis de flujo de datos. Según sus autores, alcanza una precisión del 82% en benchmarks estándar.
+*Slither* (Feist et al., 2019): Framework desarrollado por Trail of Bits que implementa más de 80 detectores de vulnerabilidades. Utiliza un modelo intermedio (SlithIR) que facilita el análisis de flujo de datos. Según sus autores, alcanza una precisión del 82% en su propio benchmark; la evaluación independiente de Durieux et al. (2020) reporta cifras menores a escala de corpus (véase Tabla 3.3).
 
 *Securify2* (Tsankov et al., 2018): Desarrollado por ETH Zurich, emplea análisis basado en Datalog para verificar propiedades de seguridad. Su enfoque declarativo permite definir propiedades de forma composicional.
 
@@ -149,20 +149,18 @@ La verificación formal proporciona garantías matemáticas sobre el comportamie
 
 ## 3.4 Análisis Comparativo de Herramientas Existentes
 
-Durieux et al. (2020) realizaron el estudio empírico más comprehensivo hasta la fecha, evaluando 9 herramientas sobre un benchmark de 47,518 contratos. La Tabla 3.3 sintetiza sus hallazgos principales.
+Durieux et al. (2020) realizaron el estudio empírico más comprehensivo hasta la fecha, evaluando 9 herramientas sobre un benchmark de 47,587 contratos. La Tabla 3.3 sintetiza sus hallazgos sobre el subconjunto etiquetado (SmartBugs-curated), donde es posible calcular precisión y recall.
 
-**Tabla 3.3.** Comparativa de herramientas según Durieux et al. (2020)
+**Tabla 3.3.** Comparativa de herramientas según Durieux et al. (2020), sobre el subconjunto etiquetado SmartBugs-curated
 
-| Herramienta | Técnica | Precisión | Recall | Tiempo Prom. |
-|-------------|---------|-----------|--------|--------------|
-| Slither | Estático | 82% | 75% | 1.2s |
-| Mythril | Simbólico | 78% | 68% | 45s |
-| Securify | Estático | 71% | 63% | 12s |
-| SmartCheck | Estático | 65% | 58% | 0.8s |
-| Oyente | Simbólico | 61% | 52% | 35s |
-| Manticore | Simbólico | 74% | 59% | 180s |
+| Herramienta | Técnica | Precisión | Recall | F1 |
+|-------------|---------|-----------|--------|-----|
+| Slither | Estático | 8.3% | 43.2% | 13.9% |
+| Securify | Estático | 9.7% | 36.8% | 15.4% |
+| Mythril | Simbólico | 6.1% | 27.4% | 10.0% |
+| SmartCheck | Estático | 4.2% | 18.9% | 6.9% |
 
-Los autores concluyen que "ninguna herramienta individual alcanza una cobertura satisfactoria de todos los tipos de vulnerabilidades" (Durieux et al., 2020, p. 12), lo que sugiere la necesidad de enfoques combinados.
+Las precisiones son bajas porque, a escala de corpus, cada herramienta genera numerosos falsos positivos. Ninguna herramienta individual supera el **43.2% de recall** (Slither, la mejor); los autores concluyen que "ninguna herramienta individual alcanza una cobertura satisfactoria de todos los tipos de vulnerabilidades" (Durieux et al., 2020), lo que motiva los enfoques combinados como el de MIESC. Este 43.2% es la referencia frente a la cual el ensemble de MIESC (86–92.5% según el corpus) representa aproximadamente el doble de recall.
 
 ### 3.4.1 Análisis con Inteligencia Artificial
 
@@ -194,7 +192,7 @@ A partir de la revisión sistemática realizada, se identifican las siguientes b
 
 **Observación:** Las herramientas existentes implementan una única técnica de análisis, limitando su cobertura de vulnerabilidades.
 
-**Evidencia empírica:** La Tabla 3.3 muestra que ninguna herramienta individual supera el 75% de recall. Ghaleb y Pattabiraman (2020) muestran que ninguna herramienta estática única cubre todas las clases de vulnerabilidades y que la combinación de técnicas amplía materialmente la cobertura de detección.
+**Evidencia empírica:** La Tabla 3.3 muestra que ninguna herramienta individual supera el 43.2% de recall. Ghaleb y Pattabiraman (2020) muestran que ninguna herramienta estática única cubre todas las clases de vulnerabilidades y que la combinación de técnicas amplía materialmente la cobertura de detección.
 
 **Impacto:** Vulnerabilidades detectables únicamente mediante combinación de técnicas permanecen sin identificar.
 

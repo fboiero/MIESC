@@ -79,7 +79,7 @@ Static analysis examines source code or bytecode without executing it, identifyi
 
 **Representative tools:**
 
-*Slither* (Feist et al., 2019): Framework developed by Trail of Bits implementing more than 80 vulnerability detectors. Uses an intermediate model (SlithIR) that facilitates data flow analysis. According to its authors, it achieves 82% precision on standard benchmarks.
+*Slither* (Feist et al., 2019): Framework developed by Trail of Bits implementing more than 80 vulnerability detectors. Uses an intermediate model (SlithIR) that facilitates data flow analysis. According to its authors, it achieves 82% precision on their own benchmark; the independent evaluation of Durieux et al. (2020) reports lower figures at corpus scale (see Table 3.3).
 
 *Securify2* (Tsankov et al., 2018): Developed by ETH Zurich, employs Datalog-based analysis to verify security properties. Its declarative approach allows compositional property definition.
 
@@ -149,20 +149,18 @@ Formal verification provides mathematical guarantees about program behavior thro
 
 ## 3.4 Comparative Analysis of Existing Tools
 
-Durieux et al. (2020) conducted the most comprehensive empirical study to date, evaluating 9 tools on a benchmark of 47,518 contracts. Table 3.3 synthesizes their main findings.
+Durieux et al. (2020) conducted the most comprehensive empirical study to date, evaluating 9 tools on a benchmark of 47,587 contracts. Table 3.3 synthesizes their findings on the labeled subset (SmartBugs-curated), where precision and recall can be computed.
 
-**Table 3.3.** Tool comparison according to Durieux et al. (2020)
+**Table 3.3.** Tool comparison according to Durieux et al. (2020), on the labeled SmartBugs-curated subset
 
-| Tool | Technique | Precision | Recall | Avg. Time |
-|------|-----------|-----------|--------|-----------|
-| Slither | Static | 82% | 75% | 1.2s |
-| Mythril | Symbolic | 78% | 68% | 45s |
-| Securify | Static | 71% | 63% | 12s |
-| SmartCheck | Static | 65% | 58% | 0.8s |
-| Oyente | Symbolic | 61% | 52% | 35s |
-| Manticore | Symbolic | 74% | 59% | 180s |
+| Tool | Technique | Precision | Recall | F1 |
+|------|-----------|-----------|--------|-----|
+| Slither | Static | 8.3% | 43.2% | 13.9% |
+| Securify | Static | 9.7% | 36.8% | 15.4% |
+| Mythril | Symbolic | 6.1% | 27.4% | 10.0% |
+| SmartCheck | Static | 4.2% | 18.9% | 6.9% |
 
-The authors conclude that "no individual tool achieves satisfactory coverage of all vulnerability types" (Durieux et al., 2020, p. 12), suggesting the need for combined approaches.
+Precisions are low because, at corpus scale, each tool produces many false positives. No individual tool exceeds **43.2% recall** (Slither, the best); the authors conclude that "no individual tool achieves satisfactory coverage of all vulnerability types" (Durieux et al., 2020), which motivates combined approaches like MIESC's. This 43.2% is the baseline against which MIESC's ensemble (86–92.5% depending on the corpus) represents roughly double the recall.
 
 ### 3.4.1 Artificial Intelligence Analysis
 
@@ -194,7 +192,7 @@ Based on the systematic review conducted, the following gaps are identified that
 
 **Observation:** Existing tools implement a single analysis technique, limiting their vulnerability coverage.
 
-**Empirical evidence:** Table 3.3 shows that no individual tool exceeds 75% recall. Ghaleb and Pattabiraman (2020) show that no single static tool covers all vulnerability classes and that combining techniques materially broadens detection coverage.
+**Empirical evidence:** Table 3.3 shows that no individual tool exceeds 43.2% recall. Ghaleb and Pattabiraman (2020) show that no single static tool covers all vulnerability classes and that combining techniques materially broadens detection coverage.
 
 **Impact:** Vulnerabilities detectable only through technique combination remain unidentified.
 
