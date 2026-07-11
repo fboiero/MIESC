@@ -25,11 +25,13 @@ Organize tools into **9 defense layers**, each targeting different vulnerability
 | 2 | Dynamic Testing | Echidna, Medusa, Foundry, DogeFuzz | Fuzzing, runtime |
 | 3 | Symbolic Execution | Mythril, Manticore, Halmos | Path exploration |
 | 4 | Formal Verification | Certora, SMTChecker, Wake | Proofs |
-| 5 | Property Testing | PropertyGPT, Vertigo | Invariants |
-| 6 | AI/LLM Analysis | SmartLLM, GPTScan, LLMSmartAudit | NLP detection |
-| 7 | ML Pattern Recognition | DAGNN, SmartGuard, SmartBugsML | ML models |
-| 8 | DeFi Security | DeFiAnalyzer, MEVDetector, GasAnalyzer | Protocol risks |
-| 9 | Advanced Detection | AdvancedDetector, ThreatModel, ZKCircuit | Specialized |
+| 5 | AI Analysis | SmartLLM, GPTScan, LLMSmartAudit, GPTLens, LlamaAudit, iAudit | LLM detection |
+| 6 | ML Detection | DA-GNN, SmartBugs-ML, SmartBugs-Detector, SmartGuard, Peculiar | ML models |
+| 7 | Specialized Analysis | Threat Model, Gas Analyzer, MEV Detector, Clone Detector, DeFi, Advanced Detector, Upgradability Checker | Domain-specific |
+| 8 | Cross-Chain & ZK Security | Cross-Chain, ZK Circuit, Bridge Monitor, L2 Validator, Circom Analyzer | Bridge & ZK circuits |
+| 9 | Advanced AI Ensemble | LLMBugScanner, Audit Consensus, Exploit Synthesizer, Vuln Verifier, Remediation Validator | Multi-LLM consensus |
+
+Layers 8–9 (Cross-Chain & ZK Security, Advanced AI Ensemble) are experimental modules on the multi-chain roadmap; the EVM core is Layers 1–7.
 
 Analysis profiles select which layers to use:
 - **quick**: Layer 1 only

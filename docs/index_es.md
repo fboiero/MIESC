@@ -142,11 +142,13 @@ del paquete público.
 | **2** | Testing Dinámico | Echidna, Medusa, Foundry, DogeFuzz | Fuzzing basado en propiedades |
 | **3** | Ejecución Simbólica | Mythril, Manticore, Halmos | Exploración profunda de estados |
 | **4** | Verificación Formal | Certora, SMTChecker | Pruebas matemáticas |
-| **5** | Testing de Propiedades | PropertyGPT, Wake, Vertigo | Generación de invariantes |
-| **6** | Análisis IA/LLM | SmartLLM, GPTScan, LLM-SmartAudit | Análisis semántico |
-| **7** | Reconocimiento de Patrones | DA-GNN, SmartGuard, Clone Detector | Detección basada en ML |
-| **8** | Seguridad DeFi | DeFi Analyzer, MEV Detector, Gas Analyzer | Específico de protocolos |
-| **9** | Detección Avanzada | Advanced Detector, Threat Model | Correlación entre capas |
+| **5** | Análisis con IA | SmartLLM, GPTScan, LLMSmartAudit, GPTLens, LlamaAudit, iAudit | Análisis semántico con LLM |
+| **6** | Detección ML | DA-GNN, SmartBugs-ML, SmartBugs-Detector, SmartGuard, Peculiar | Clasificación basada en ML |
+| **7** | Análisis Especializado | Threat Model, Gas Analyzer, MEV Detector, Clone Detector, DeFi, Advanced Detector, Upgradability Checker | Chequeos específicos de dominio |
+| **8** | Seguridad Cross-Chain y ZK | Cross-Chain, ZK Circuit, Bridge Monitor, L2 Validator, Circom Analyzer | Análisis de bridges y circuitos ZK |
+| **9** | Ensemble Avanzado de IA | LLMBugScanner, Audit Consensus, Exploit Synthesizer, Vuln Verifier, Remediation Validator | Consenso multi-LLM |
+
+> Las Capas 8–9 (Seguridad Cross-Chain y ZK, Ensemble Avanzado de IA) son módulos experimentales del roadmap multi-chain; el core EVM son las Capas 1–7.
 
 ### Inteligencia Potenciada por IA
 
@@ -241,15 +243,15 @@ Static Dynamic Symbolic Formal
    │     │      │         │
    └──┬──┴──────┴─────────┘
       │
-   Capa5 (Testing de Propiedades)
+   Capa5 (Análisis con IA)
       │
-   Capa6 (Análisis IA/LLM)
+   Capa6 (Detección ML)
       │
-   Capa7 (Reconocimiento de Patrones ML)
+   Capa7 (Análisis Especializado)
       │
-   Capa8 (Seguridad DeFi)
+   Capa8 (Seguridad Cross-Chain y ZK)
       │
-   Capa9 (Detección Avanzada + Correlación)
+   Capa9 (Ensemble Avanzado de IA)
       │
    Reporte (JSON/HTML/PDF/SARIF)
 ```
@@ -259,11 +261,11 @@ Static Dynamic Symbolic Formal
 | Capa | Agente | Propósito | Salida |
 |------|--------|-----------|--------|
 | **L1-4** | Agentes de Análisis | Escaneo multi-herramienta | Hallazgos de vulnerabilidades crudos |
-| **L5** | Agente de Propiedades | Generación de invariantes | Propiedades CVL/tests de propiedad |
-| **L6** | Agente IA | Análisis semántico | Hallazgos correlacionados + causa raíz |
-| **L7** | Agente ML | Detección basada en grafos | Patrones de vulnerabilidad |
-| **L8** | Agente DeFi | Análisis específico de protocolos | Riesgos DeFi/MEV |
-| **L9** | Agente Avanzado | Correlación entre capas | Reporte final de auditoría |
+| **L5** | Agente de IA | Análisis semántico con LLM | Hallazgos correlacionados + causa raíz |
+| **L6** | Agente ML | Clasificación basada en ML | Patrones de vulnerabilidad |
+| **L7** | Agente Especializado | Análisis específico de dominio (gas, MEV, DeFi, upgradability) | Riesgos especializados |
+| **L8** | Agente Cross-Chain y ZK | Análisis de bridges y circuitos ZK | Riesgos cross-chain/ZK |
+| **L9** | Agente de Ensemble Avanzado | Consenso multi-LLM | Reporte final de auditoría |
 
 [Detalles de Arquitectura](thesis_es.md)
 ---

@@ -141,11 +141,13 @@ package.
 | **2** | Dynamic Testing | Echidna, Medusa, Foundry, DogeFuzz | Property-based fuzzing |
 | **3** | Symbolic Execution | Mythril, Manticore, Halmos | Deep state exploration |
 | **4** | Formal Verification | Certora, SMTChecker | Mathematical proofs |
-| **5** | Property Testing | PropertyGPT, Wake, Vertigo | Invariant generation |
-| **6** | AI/LLM Analysis | SmartLLM, GPTScan, LLM-SmartAudit | Semantic analysis |
-| **7** | Pattern Recognition | DA-GNN, SmartGuard, Clone Detector | ML-based detection |
-| **8** | DeFi Security | DeFi Analyzer, MEV Detector, Gas Analyzer | Protocol-specific |
-| **9** | Advanced Detection | Advanced Detector, Threat Model | Cross-layer correlation |
+| **5** | AI Analysis | SmartLLM, GPTScan, LLMSmartAudit, GPTLens, LlamaAudit, iAudit | LLM-powered semantic analysis |
+| **6** | ML Detection | DA-GNN, SmartBugs-ML, SmartBugs-Detector, SmartGuard, Peculiar | ML-based classification |
+| **7** | Specialized Analysis | Threat Model, Gas Analyzer, MEV Detector, Clone Detector, DeFi, Advanced Detector, Upgradability Checker | Domain-specific checks |
+| **8** | Cross-Chain & ZK Security | Cross-Chain, ZK Circuit, Bridge Monitor, L2 Validator, Circom Analyzer | Bridge & ZK circuit analysis |
+| **9** | Advanced AI Ensemble | LLMBugScanner, Audit Consensus, Exploit Synthesizer, Vuln Verifier, Remediation Validator | Multi-LLM consensus |
+
+> Layers 8–9 (Cross-Chain & ZK Security, Advanced AI Ensemble) are experimental modules on the multi-chain roadmap; the EVM core is Layers 1–7.
 
 ### AI-Powered Intelligence
 
@@ -241,15 +243,15 @@ Static Dynamic Symbolic Formal
    │     │      │         │
    └──┬──┴──────┴─────────┘
       │
-   Layer5 (Property Testing)
+   Layer5 (AI Analysis)
       │
-   Layer6 (AI/LLM Analysis)
+   Layer6 (ML Detection)
       │
-   Layer7 (ML Pattern Recognition)
+   Layer7 (Specialized Analysis)
       │
-   Layer8 (DeFi Security)
+   Layer8 (Cross-Chain & ZK Security)
       │
-   Layer9 (Advanced Detection + Correlation)
+   Layer9 (Advanced AI Ensemble)
       │
    Report (JSON/HTML/PDF/SARIF)
 ```
@@ -259,11 +261,11 @@ Static Dynamic Symbolic Formal
 | Layer | Agent | Purpose | Output |
 |-------|-------|---------|--------|
 | **L1-4** | Analysis Agents | Multi-tool scanning | Raw vulnerability findings |
-| **L5** | Property Agent | Invariant generation | CVL properties/property tests |
-| **L6** | AI Agent | Semantic analysis | Correlated findings + root cause |
-| **L7** | ML Agent | Graph-based detection | Vulnerability patterns |
-| **L8** | DeFi Agent | Protocol-specific analysis | DeFi/MEV risks |
-| **L9** | Advanced Agent | Cross-layer correlation | Final audit report |
+| **L5** | AI Agent | LLM-powered semantic analysis | Correlated findings + root cause |
+| **L6** | ML Agent | ML-based classification | Vulnerability patterns |
+| **L7** | Specialized Agent | Domain-specific analysis (gas, MEV, DeFi, upgradability) | Specialized risks |
+| **L8** | Cross-Chain & ZK Agent | Bridge & ZK circuit analysis | Cross-chain/ZK risks |
+| **L9** | Advanced Ensemble Agent | Multi-LLM consensus | Final audit report |
 
 [Architecture Details](thesis.md)
 

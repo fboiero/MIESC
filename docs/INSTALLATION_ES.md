@@ -191,21 +191,16 @@ pip install halmos
 pip install eth-wake
 ```
 
-### Capa 5: Pruebas de Propiedades (2 herramientas)
-
-| Herramienta | Instalación | Notas |
-|-------------|-------------|-------|
-| PropertyGPT | Incluido | Generación de CVL |
-| Vertigo | `pip install vertigo-rs` | Pruebas de mutación |
-
-### Capa 6: Análisis IA/LLM (4 herramientas)
+### Capa 5: Análisis con IA (6 herramientas)
 
 | Herramienta | Instalación | Notas |
 |-------------|-------------|-------|
 | SmartLLM | Incluido + Ollama | Análisis LLM local |
 | GPTScan | Incluido | Requiere clave API de OpenAI |
 | LLMSmartAudit | Incluido | LLM multi-agente |
-| LLMBugScanner | Incluido + Ollama | Modelo deepseek-coder |
+| GPTLens | Incluido | Auditor/crítico LLM |
+| LlamaAudit | Incluido + Ollama | Análisis basado en Llama |
+| iAudit | Incluido | Auditor LLM afinado |
 
 ```bash
 # Instalar Ollama
@@ -216,42 +211,59 @@ ollama pull deepseek-coder:6.7b
 ollama pull codellama
 ```
 
-### Capa 7: Reconocimiento de Patrones / ML (4 herramientas)
+### Capa 6: Detección ML (5 herramientas)
 
 | Herramienta | Instalación | Notas |
 |-------------|-------------|-------|
 | DA-GNN | Incluido | Red neuronal de grafos |
-| SmartGuard | Incluido | Coincidencia de patrones |
 | SmartBugs-ML | Incluido | Clasificador ML |
-| ContractCloneDetector | Incluido | Detección de clones |
+| SmartBugs-Detector | Incluido | Detección de categorías SWC |
+| SmartGuard | Incluido | Coincidencia de patrones |
+| Peculiar | Incluido | ML sobre flujo de datos crucial |
 
 Todas incluidas, sin instalación externa requerida.
 
-### Capa 8: Seguridad DeFi (4 herramientas)
+### Capa 7: Análisis Especializado (7 herramientas)
 
 | Herramienta | Instalación | Notas |
 |-------------|-------------|-------|
-| DeFi Analyzer | Incluido | Flash loan, oracle |
-| MEV Detector | Incluido | Exposición a MEV |
-| Gas Analyzer | Incluido | Optimización de gas |
-| CrossChain | Incluido | Riesgos cross-chain |
-
-Todas incluidas, sin instalación externa requerida.
-
-### Capa 9: Detección Avanzada (4 herramientas)
-
-| Herramienta | Instalación | Notas |
-|-------------|-------------|-------|
-| Advanced Detector | Incluido | Rug pull, honeypot |
-| SmartBugs Detector | Incluido | Categorías SWC |
 | Threat Model | Incluido | Modelado de amenazas |
-| ZK Circuit | `cargo install circomspect` | Análisis ZK |
+| Gas Analyzer | Incluido | Optimización de gas |
+| MEV Detector | Incluido | Exposición a MEV |
+| Clone Detector | Incluido | Detección de clones |
+| DeFi | Incluido | Flash loan, oracle |
+| Advanced Detector | Incluido | Rug pull, honeypot |
+| Upgradability Checker | Incluido | Riesgos de proxy/upgradability |
+
+Todas incluidas, sin instalación externa requerida.
+
+> Las Capas 8–9 (Seguridad Cross-Chain y ZK, Ensemble Avanzado de IA) son módulos experimentales del roadmap multi-chain; el core EVM son las Capas 1–7.
+
+### Capa 8: Seguridad Cross-Chain y ZK (5 herramientas)
+
+| Herramienta | Instalación | Notas |
+|-------------|-------------|-------|
+| Cross-Chain | Incluido | Riesgos cross-chain |
+| ZK Circuit | `cargo install circomspect` | Análisis de circuitos ZK |
+| Bridge Monitor | Incluido | Seguridad de bridges |
+| L2 Validator | Incluido | Chequeos específicos de L2 |
+| Circom Analyzer | `npm install -g circom snarkjs` | Análisis Circom/Noir |
 
 ```bash
 # Para análisis de circuitos ZK
 cargo install circomspect
 npm install -g circom snarkjs
 ```
+
+### Capa 9: Ensemble Avanzado de IA (5 herramientas)
+
+| Herramienta | Instalación | Notas |
+|-------------|-------------|-------|
+| LLMBugScanner | Incluido + Ollama | Modelo deepseek-coder |
+| Audit Consensus | Incluido | Consenso multi-LLM |
+| Exploit Synthesizer | Incluido | Síntesis de PoC de exploit |
+| Vuln Verifier | Incluido | Verificación de hallazgos |
+| Remediation Validator | Incluido | Validación de correcciones |
 
 ---
 

@@ -51,13 +51,19 @@ Complete list of security tools integrated across 9 defense layers. MIESC provid
 | DA-GNN | - | Research | Graph Neural Networks |
 | SmartBugs ML | - | Research | ML classifiers |
 
-## Layer 7: Threat Modeling
+## Layer 7: Specialized Analysis
 
 | Tool | Version | License | Focus |
 |------|---------|---------|-------|
-| ThreatModelAdapter | - | AGPL-3.0 | Attack surface analysis |
-| MEV Detector | - | AGPL-3.0 | MEV vulnerability detection |
+| Threat Model | - | AGPL-3.0 | Attack surface analysis |
 | Gas Analyzer | - | AGPL-3.0 | Gas optimization issues |
+| MEV Detector | - | AGPL-3.0 | MEV vulnerability detection |
+| Clone Detector | - | AGPL-3.0 | Contract clone detection |
+| DeFi | - | AGPL-3.0 | Protocol-specific checks |
+| Advanced Detector | - | AGPL-3.0 | Cross-cutting heuristics |
+| Upgradability Checker | - | AGPL-3.0 | Proxy/upgradability risks |
+
+> Layers 8–9 (Cross-Chain & ZK Security, Advanced AI Ensemble) are experimental modules on the multi-chain roadmap; the EVM core is Layers 1–7.
 
 ## Layer 8: Cross-Chain & ZK Security
 

@@ -191,21 +191,16 @@ pip install halmos
 pip install eth-wake
 ```
 
-### Layer 5: Property Testing (2 tools)
-
-| Tool | Installation | Notes |
-|------|--------------|-------|
-| PropertyGPT | Built-in | CVL generation |
-| Vertigo | `pip install vertigo-rs` | Mutation testing |
-
-### Layer 6: AI/LLM Analysis (4 tools)
+### Layer 5: AI Analysis (6 tools)
 
 | Tool | Installation | Notes |
 |------|--------------|-------|
 | SmartLLM | Built-in + Ollama | Local LLM analysis |
 | GPTScan | Built-in | Requires OpenAI API key |
 | LLMSmartAudit | Built-in | Multi-agent LLM |
-| LLMBugScanner | Built-in + Ollama | deepseek-coder model |
+| GPTLens | Built-in | LLM auditor/critic |
+| LlamaAudit | Built-in + Ollama | Llama-based analysis |
+| iAudit | Built-in | Fine-tuned LLM auditor |
 
 ```bash
 # Install Ollama
@@ -216,42 +211,59 @@ ollama pull deepseek-coder:6.7b
 ollama pull codellama
 ```
 
-### Layer 7: Pattern Recognition / ML (4 tools)
+### Layer 6: ML Detection (5 tools)
 
 | Tool | Installation | Notes |
 |------|--------------|-------|
 | DA-GNN | Built-in | Graph neural network |
-| SmartGuard | Built-in | Pattern matching |
 | SmartBugs-ML | Built-in | ML classifier |
-| ContractCloneDetector | Built-in | Clone detection |
+| SmartBugs-Detector | Built-in | SWC-category detection |
+| SmartGuard | Built-in | Pattern matching |
+| Peculiar | Built-in | Crucial data-flow ML |
 
 All built-in, no external installation required.
 
-### Layer 8: DeFi Security (4 tools)
+### Layer 7: Specialized Analysis (7 tools)
 
 | Tool | Installation | Notes |
 |------|--------------|-------|
-| DeFi Analyzer | Built-in | Flash loan, oracle |
-| MEV Detector | Built-in | MEV exposure |
-| Gas Analyzer | Built-in | Gas optimization |
-| CrossChain | Built-in | Cross-chain risks |
-
-All built-in, no external installation required.
-
-### Layer 9: Advanced Detection (4 tools)
-
-| Tool | Installation | Notes |
-|------|--------------|-------|
-| Advanced Detector | Built-in | Rug pull, honeypot |
-| SmartBugs Detector | Built-in | SWC categories |
 | Threat Model | Built-in | Threat modeling |
-| ZK Circuit | `cargo install circomspect` | ZK analysis |
+| Gas Analyzer | Built-in | Gas optimization |
+| MEV Detector | Built-in | MEV exposure |
+| Clone Detector | Built-in | Contract clone detection |
+| DeFi | Built-in | Flash loan, oracle |
+| Advanced Detector | Built-in | Rug pull, honeypot |
+| Upgradability Checker | Built-in | Proxy/upgradability risks |
+
+All built-in, no external installation required.
+
+> Layers 8–9 (Cross-Chain & ZK Security, Advanced AI Ensemble) are experimental modules on the multi-chain roadmap; the EVM core is Layers 1–7.
+
+### Layer 8: Cross-Chain & ZK Security (5 tools)
+
+| Tool | Installation | Notes |
+|------|--------------|-------|
+| Cross-Chain | Built-in | Cross-chain risks |
+| ZK Circuit | `cargo install circomspect` | ZK circuit analysis |
+| Bridge Monitor | Built-in | Bridge security |
+| L2 Validator | Built-in | L2-specific checks |
+| Circom Analyzer | `npm install -g circom snarkjs` | Circom/Noir analysis |
 
 ```bash
 # For ZK circuit analysis
 cargo install circomspect
 npm install -g circom snarkjs
 ```
+
+### Layer 9: Advanced AI Ensemble (5 tools)
+
+| Tool | Installation | Notes |
+|------|--------------|-------|
+| LLMBugScanner | Built-in + Ollama | deepseek-coder model |
+| Audit Consensus | Built-in | Multi-LLM consensus |
+| Exploit Synthesizer | Built-in | PoC exploit synthesis |
+| Vuln Verifier | Built-in | Finding verification |
+| Remediation Validator | Built-in | Fix validation |
 
 ---
 

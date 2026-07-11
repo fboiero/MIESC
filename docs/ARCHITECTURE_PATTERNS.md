@@ -229,20 +229,20 @@ MIESC implements a **9-layer defense-in-depth** architecture:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ Layer 9: Advanced Detection                                  │
-│   AdvancedDetector, SmartBugsDetector, ThreatModel, ZKCircuit│
+│ Layer 9: Advanced AI Ensemble                                │
+│   LLMBugScanner, AuditConsensus, ExploitSynthesizer          │
 ├─────────────────────────────────────────────────────────────┤
-│ Layer 8: DeFi Security                                       │
-│   DeFiAnalyzer, MEVDetector, GasAnalyzer, CrossChain        │
+│ Layer 8: Cross-Chain & ZK Security                           │
+│   CrossChain, ZKCircuit, BridgeMonitor, L2Validator          │
 ├─────────────────────────────────────────────────────────────┤
-│ Layer 7: Pattern Recognition / ML                           │
-│   DAGNN, SmartGuard, SmartBugsML, ContractCloneDetector     │
+│ Layer 7: Specialized Analysis                                │
+│   ThreatModel, GasAnalyzer, MEVDetector, CloneDetector       │
 ├─────────────────────────────────────────────────────────────┤
-│ Layer 6: AI/LLM Analysis                                    │
-│   SmartLLM, GPTScan, LLMSmartAudit, LLMBugScanner          │
+│ Layer 6: ML Detection                                        │
+│   DAGNN, SmartBugsML, SmartBugsDetector, SmartGuard, Peculiar│
 ├─────────────────────────────────────────────────────────────┤
-│ Layer 5: Property Testing                                   │
-│   PropertyGPT, Vertigo                                      │
+│ Layer 5: AI Analysis                                         │
+│   SmartLLM, GPTScan, LLMSmartAudit, GPTLens, LlamaAudit      │
 ├─────────────────────────────────────────────────────────────┤
 │ Layer 4: Formal Verification                                │
 │   Certora, SMTChecker, Wake                                 │
@@ -266,11 +266,13 @@ Each layer provides different analysis capabilities:
 | 2 | Dynamic | 4 | Fuzzing, runtime behavior |
 | 3 | Symbolic | 3 | Path exploration, constraints |
 | 4 | Formal | 3 | Mathematical proofs |
-| 5 | Property | 2 | Invariant testing |
-| 6 | AI/LLM | 4 | NLP-based detection |
-| 7 | ML | 4 | Pattern recognition |
-| 8 | DeFi | 4 | Protocol-specific risks |
-| 9 | Advanced | 4 | Zero-knowledge, threat modeling |
+| 5 | AI Analysis | 6 | LLM-powered detection |
+| 6 | ML Detection | 5 | ML-based classification |
+| 7 | Specialized Analysis | 7 | Domain-specific risks (gas, MEV, DeFi, upgradability) |
+| 8 | Cross-Chain & ZK Security | 5 | Bridge & zero-knowledge circuit analysis |
+| 9 | Advanced AI Ensemble | 5 | Multi-LLM consensus |
+
+> Layers 8–9 (Cross-Chain & ZK Security, Advanced AI Ensemble) are experimental modules on the multi-chain roadmap; the EVM core is Layers 1–7.
 
 ---
 
