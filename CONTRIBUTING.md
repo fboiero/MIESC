@@ -1,6 +1,6 @@
 # Contributing to MIESC
 
-**[Versión en Español](CONTRIBUTING_ES.md)**
+**[Versión en Español](.github/CONTRIBUTING_ES.md)**
 
 Thank you for your interest in contributing to MIESC! This document provides guidelines and instructions for contributing.
 
@@ -73,7 +73,7 @@ pytest tests/
 
 - Look for issues labeled [`good first issue`](https://github.com/fboiero/MIESC/labels/good%20first%20issue)
 - Check [`help wanted`](https://github.com/fboiero/MIESC/labels/help%20wanted) for priority items
-- Review the [project roadmap](./ROADMAP.md)
+- Review the [project roadmap](docs/ROADMAP.md)
 
 ### Proposing Changes
 
@@ -473,7 +473,7 @@ We have two main channels for community interaction:
 ### Recognition
 
 Contributors are recognized in:
-- [CONTRIBUTORS.md](./CONTRIBUTORS.md)
+- [CONTRIBUTORS.md](docs/CONTRIBUTORS.md)
 - Release notes
 - Project documentation
 

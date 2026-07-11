@@ -8,18 +8,18 @@ Need help with MIESC? Here's how to get support.
 
 ### Documentation
 
-- [Quick Start Guide](docs/guides/QUICKSTART.md) - Get started in 5 minutes
+- [Quick Start Guide](../docs/guides/QUICKSTART.md) - Get started in 5 minutes
 - [Full Documentation](https://fboiero.github.io/MIESC) - Complete user guide
 - [API Reference](docs/api/) - Developer documentation
-- [Tool Reference](docs/TOOLS.md) - All 35 Analysis Modules
+- [Tool Reference](../docs/TOOLS.md) - All 35 Analysis Modules
 
 ### Community
 
 - [GitHub Discussions](https://github.com/fboiero/MIESC/discussions) - Questions, ideas, community
 - [Issue Tracker](https://github.com/fboiero/MIESC/issues) - Bug reports and feature requests
-- [Community Guide](docs/COMMUNITY.md) - Full community resources and guidelines
+- [Community Guide](../docs/COMMUNITY.md) - Full community resources and guidelines
 
-**Real-time chat (Discord/Matrix) coming soon!** See [Community Guide](docs/COMMUNITY.md) for updates.
+**Real-time chat (Discord/Matrix) coming soon!** See [Community Guide](../docs/COMMUNITY.md) for updates.
 
 ---
 
@@ -123,7 +123,7 @@ Use the [feature request template](https://github.com/fboiero/MIESC/issues/new?t
 
 **Do NOT report security vulnerabilities in public issues.**
 
-See [SECURITY.md](docs/policies/SECURITY.md) for responsible disclosure instructions.
+See [SECURITY.md](../docs/policies/SECURITY.md) for responsible disclosure instructions.
 
 ---
 

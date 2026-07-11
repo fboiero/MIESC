@@ -73,7 +73,7 @@ pytest tests/
 
 - Look for issues labeled [`good first issue`](https://github.com/fboiero/MIESC/labels/good%20first%20issue)
 - Check [`help wanted`](https://github.com/fboiero/MIESC/labels/help%20wanted) for priority items
-- Review the [project roadmap](./ROADMAP.md)
+- Review the [project roadmap](../docs/ROADMAP.md)
 
 ### Proposing Changes
 
@@ -221,7 +221,7 @@ class MyAdapter(BaseAdapter):
 
 ## Testing
 
-For comprehensive testing documentation, see [Testing Guide](./docs/guides/TESTING.md).
+For comprehensive testing documentation, see [Testing Guide](../docs/guides/TESTING.md).
 
 ### Quick Reference
 
@@ -303,7 +303,7 @@ make mutate
 make mutate-results
 ```
 
-For detailed instructions, see [Mutation Testing Guide](docs/guides/MUTATION_TESTING.md).
+For detailed instructions, see [Mutation Testing Guide](../docs/guides/MUTATION_TESTING.md).
 
 ---
 
@@ -383,7 +383,7 @@ Signed commits show as "Verified" on GitHub and provide:
 - **Integrity**: Confirms the commit hasn't been modified
 - **Trust**: Shows verification badge on GitHub
 
-For detailed setup instructions, see [Signed Commits Guide](docs/guides/SIGNED_COMMITS.md).
+For detailed setup instructions, see [Signed Commits Guide](../docs/guides/SIGNED_COMMITS.md).
 
 ### Submitting the PR
 

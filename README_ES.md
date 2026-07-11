@@ -662,8 +662,8 @@ El proyecto cumple plenamente con los 9 indicadores de la DPGA: licencia abierta
 |----------|-------------|
 | [Cumplimiento DPG](./docs/policies/DPG-COMPLIANCE.md) | Declaración de cumplimiento de los 9 indicadores |
 | [Relevancia ODS](./docs/policies/SDG_RELEVANCE.md) | Mapeo de Objetivos de Desarrollo Sostenible |
-| [Política de Privacidad](./PRIVACY.md) | Declaración de manejo de datos y privacidad |
-| [Uso Responsable](./RESPONSIBLE_USE.md) | Directrices de uso ético |
+| [Política de Privacidad](docs/policies/PRIVACY.md) | Declaración de manejo de datos y privacidad |
+| [Uso Responsable](docs/policies/RESPONSIBLE_USE.md) | Directrices de uso ético |
 | [No Hacer Daño](./docs/policies/DO_NO_HARM.md) | Evaluación de riesgos y mitigaciones |
 
 ---

@@ -16,6 +16,7 @@ __pycache__/
 *.egg-info/
 dist/
 build/
+miesc-[0-9]*/
 .eggs/
 uv.lock
 

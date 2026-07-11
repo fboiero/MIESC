@@ -8,18 +8,18 @@
 
 ### Documentación
 
-- [Guía de Inicio Rápido](docs/guides/QUICKSTART.md) - Comienza en 5 minutos
+- [Guía de Inicio Rápido](../docs/guides/QUICKSTART.md) - Comienza en 5 minutos
 - [Documentación Completa](https://fboiero.github.io/MIESC) - Guía de usuario completa
 - [Referencia API](docs/api/) - Documentación para desarrolladores
-- [Referencia de Herramientas](docs/TOOLS.md) - Las 50 herramientas de seguridad
+- [Referencia de Herramientas](../docs/TOOLS.md) - Las 50 herramientas de seguridad
 
 ### Comunidad
 
 - [GitHub Discussions](https://github.com/fboiero/MIESC/discussions) - Preguntas, ideas, comunidad
 - [Issue Tracker](https://github.com/fboiero/MIESC/issues) - Reportes de bugs y solicitudes
-- [Guía de Comunidad](docs/COMMUNITY.md) - Recursos completos y guías de la comunidad
+- [Guía de Comunidad](../docs/COMMUNITY.md) - Recursos completos y guías de la comunidad
 
-**Chat en tiempo real (Discord/Matrix) próximamente!** Ver [Guía de Comunidad](docs/COMMUNITY.md) para actualizaciones.
+**Chat en tiempo real (Discord/Matrix) próximamente!** Ver [Guía de Comunidad](../docs/COMMUNITY.md) para actualizaciones.
 
 ---
 
@@ -123,7 +123,7 @@ Usa la [plantilla de feature](https://github.com/fboiero/MIESC/issues/new?templa
 
 **NO reportes vulnerabilidades de seguridad en issues públicos.**
 
-Consulta [SECURITY.md](docs/policies/SECURITY.md) para instrucciones de divulgación responsable.
+Consulta [SECURITY.md](../docs/policies/SECURITY.md) para instrucciones de divulgación responsable.
 
 ---
 
