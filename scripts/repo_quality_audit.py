@@ -92,8 +92,12 @@ def audit_structure() -> list[dict]:
     output_dirs = [d for d in ["reports", "results", "evaluation_results", "validation_results", "analysis", "out", "output"] if (ROOT / d).is_dir()]
     if len(output_dirs) > 2:
         findings.append({"severity": "medium", "item": ", ".join(output_dirs), "why": f"{len(output_dirs)} separate output/results dirs — consolidate"})
-    if (ROOT / "data" / "benchmarks").is_dir() and (ROOT / "benchmarks" / "datasets").is_dir():
-        findings.append({"severity": "medium", "item": "data/benchmarks + benchmarks/datasets", "why": "dataset lives in two locations"})
+    # Only a real problem if BOTH locations carry substantial tracked content;
+    # a near-empty stub dir (README/.gitignore pointer) is not duplication.
+    def _tracked_count(rel: str) -> int:
+        return len([x for x in _sh("ls-files", rel).splitlines() if x])
+    if _tracked_count("data/benchmarks") > 5 and _tracked_count("benchmarks/datasets") > 5:
+        findings.append({"severity": "medium", "item": "data/benchmarks + benchmarks/datasets", "why": "dataset carries substantial content in two locations"})
     return findings
 
 

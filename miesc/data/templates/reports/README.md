@@ -229,5 +229,3 @@ jobs:
 ## See Also
 
 - [Custom Detectors](../../../../docs/CUSTOM_DETECTORS.md)
-- [CLI Reference](../CLI.md)
-- [API Reference](../API_SETUP.md)
