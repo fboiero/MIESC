@@ -271,55 +271,49 @@ still give wide CIs — a full-corpus run would tighten them further.
 
 ## EVMBench (DeFi business logic, 40 audits / 120 HIGH vulns)
 
-DeepSeek wired into the **strong paper harness** (`evmbench_eval.py`: full MIESC
-static+LLM pipeline + the official EVMBench LLM judge) for an apples-to-apples
-comparison with the frontier models the paper already evaluated. Data source and
-ground-truth quality are described in `../../methodology/DATASETS.md`
-(100% real professional audit findings; 31% exploit-verified).
+DeepSeek wired into the **same paper harness** (`evmbench_eval.py`, version 5.3.1:
+full MIESC static+LLM pipeline) as the frontier providers the paper already
+evaluated. The DeepSeek single-run artifact has the **identical schema and version**
+as `evmbench_gpt4o_40.json` / `evmbench_gpt5_40.json` /
+`evmbench_claude46_40_FINAL.json`, so it is **directly comparable** (same protocol,
+one stored run each). Data source and ground-truth quality are in
+`../../methodology/DATASETS.md` (100% real professional audit findings; 31%
+exploit-verified). Metrics below are computed with the identical formula used by
+`generate_paper1_artifacts.py` (precision = detected/total_findings).
 
-| Model | Type | Recall (95% CI) | Cost/40 | Runs |
-|---|---|---|---|---|
-| Claude Sonnet 4.6 | frontier | 82.5% (75–88) | ~$220 | 3 |
-| GPT-5 | frontier | 77.5% (69–84) | ~$120 | 3 |
-| GPT-4o | frontier | 73.7% (65–81) | ~$49 | 3 |
-| **DeepSeek-reasoner** | **OSS hosted** | **70.8% (62–78)** | **~$3** | **1** |
-| qwen2.5-coder:32b | local | 59.2% (50–68) | $0 | 3 |
-| static-only | baseline | 18.3% (12–26) | $0 | 1 |
-| ensemble (4 frontier union) | — | 92.5% | — | — |
+### Like-for-like, run-count-matched (single stored run each)
 
-**Honest reading (no overclaim)**: DeepSeek's point estimate (70.8%) sits at the
-*lower* end of the frontier band — it does **not** beat the frontier here. But its
-Wilson CI [62–78%] overlaps GPT-4o [65–81] and GPT-5 [69–84], so it is
-statistically **comparable** to those two. Crucially, DeepSeek ran **1 pass** while
-the frontier used **3-pass unions**, so 70.8% is a **conservative lower bound**; a
-fair 3-run comparison (running) is expected to close the gap. The cost advantage is
-large and real: DeepSeek ~$3 vs $49–220 for the frontier (**15–73× cheaper**) at
-comparable recall. (DeepSeek cost is estimated from measured per-audit tokens; the
-strong harness does not capture adapter tokens. Frontier costs and recalls are the
-paper's own runs on the same harness.)
+| Model | Type | Recall (95% CI) | Prec. | F1 | Cost/audit |
+|---|---|---|---|---|---|
+| Claude Sonnet 4.6 | frontier | 82.5% (75–88) | 34.0% | 48.2% | ~$5.50 |
+| GPT-5 | frontier | 77.5% (69–84) | 42.7% | 55.0% | ~$3 |
+| GPT-4o | frontier | 73.7% (65–81) | 20.0% | 31.5% | ~$1.20 |
+| **DeepSeek-reasoner** | **OSS (MIT)** | **70.8% (62–78)** | **88.5%** | **78.7%** | **~$0.08\*** |
+| qwen2.5-coder:32b | local | 59.2% (50–68) | 30.1% | 39.9% | $0 |
+| static-only | baseline | 18.3% (12–26) | 14.5% | 16.2% | $0 |
+| ensemble (4-frontier union) | — | 92.5% | — | — | ~$7 |
 
-### Apples-to-apples (all 3-run unions, 40 audits, same harness + judge)
+\* DeepSeek cost is **estimated** from its $0.55/$2.19 per-MTok pricing; the harness
+does not capture per-call adapter tokens. All frontier costs are the paper's own
+approximate observed API spend.
 
-Running DeepSeek with the same **3-pass union** the frontier used gives the fair
-comparison:
+**Honest reading (no overclaim)**: at **matched run count (1 each)**, DeepSeek's
+recall (70.8%) sits *below* the three frontier providers — it does **not** beat or
+tie them on recall. What it does win is **precision (88.5%) and F1 (78.7%)** — the
+best in the table — because it is parsimonious (96 findings vs 218–434), and it does
+so at **15–69× lower per-audit cost**. A **3-run DeepSeek self-ensemble** (union of
+three independent single runs, ≈$0.24/audit) reaches **81.7% (98/120)**, which lands
+inside the frontier *single-run* range (73.7–82.5%) — reported as a **cost-controlled
+variance-reduction option, NOT a run-count-matched claim** against the frontier
+single runs. The defensible takeaway: paying frontier prices buys higher raw
+single-run recall, but an open-weight model gives the best precision/F1 at a fraction
+of the cost and closes the recall gap when its low cost is spent on extra runs.
 
-| Model | Type | Recall (95% CI) | Cost/40 |
-|---|---|---|---|
-| Claude Sonnet 4.6 | frontier | 82.5% (75–88) | ~$220 |
-| **DeepSeek-reasoner** | **OSS hosted** | **81.7% (74–88)** | **~$3** |
-| GPT-5 | frontier | 77.5% (69–84) | ~$120 |
-| GPT-4o | frontier | 73.7% (65–81) | ~$49 |
-| qwen2.5-coder:32b | local | 59.2% (50–68) | $0 |
-| static-only | baseline | 18.3% (12–26) | $0 |
-| ensemble (4-frontier union) | — | 92.5% | — |
-
-**Result**: under identical conditions (3-pass unions, all 40 audits, the full
-MIESC pipeline, the official EVMBench judge), the open-source **DeepSeek reaches
-81.7%** — statistically **tied with the best frontier model** (Claude 82.5%, a
-one-vulnerability, 98-vs-99 gap; near-identical CIs) and **outright above GPT-5
-(77.5%) and GPT-4o (73.7%)** — at **~$3 vs $49–220 (15–73× cheaper)**. On the
-highest-quality DeFi corpus available, paying frontier prices buys no
-statistically-significant recall advantage over a cheap open-source model.
+**Correction note (2026-07-10):** an earlier draft of this file presented DeepSeek's
+3-run union (81.7%) against frontier *single* runs as "apples-to-apples" and claimed
+a tie. That mixed run counts and was withdrawn. The comparison above is run-count
+matched; the 3-run number is clearly labeled as a self-ensemble variance-reduction
+option.
 
 ---
 

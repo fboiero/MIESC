@@ -43,28 +43,33 @@ Claude Fable 5    & premium       & \multicolumn{3}{c}{\textsc{refused}} & \mult
 \begin{table}[t]
 \centering
 \small
-\caption{Open-source vs.\ frontier LLMs on \textbf{EVMBench} (40 real DeFi-audit
+\caption{Open-weight vs.\ frontier LLMs on \textbf{EVMBench} (40 real DeFi-audit
 codebases, 120 HIGH-severity vulnerabilities; ground truth = professional audit
-findings). All models evaluated under \emph{identical} conditions: the full MIESC
-static+LLM pipeline, 3-pass unions, and the official EVMBench LLM judge. Ensemble
-type-aware recall with 95\% Wilson intervals and API cost. The open-source
-DeepSeek is statistically tied with the best frontier model (one-vulnerability,
-98-vs-99 gap) and above GPT-5 and GPT-4o, at 15--73$\times$ less cost.}
+findings), each a \emph{single} stored run through the same MIESC harness
+(\texttt{evmbench\_eval.py} v5.3.1), so the rows are run-count matched. Recall
+with 95\% Wilson intervals, precision, F1, and per-audit cost. At matched run
+count the open-weight DeepSeek trails the frontier on recall but leads on
+precision and F1 at 15--69$\times$ lower cost; a 3-run DeepSeek self-ensemble
+($\approx$\$0.24/audit) reaches 81.7\%, within the frontier single-run range.}
 \label{tab:evmbench}
-\begin{tabular}{llccc}
+\begin{tabular}{llccccc}
 \toprule
-Model & Type & Recall & 95\% CI & Cost \\
+Model & Type & Recall & 95\% CI & Prec. & F1 & \$/audit \\
 \midrule
-Claude Sonnet 4.6   & frontier   & \textbf{82.5\%} & [75,\,88] & \$220 \\
-DeepSeek-reasoner   & OSS hosted & 81.7\%          & [74,\,88] & \textbf{\$3} \\
-GPT-5               & frontier   & 77.5\%          & [69,\,84] & \$120 \\
-GPT-4o              & frontier   & 73.7\%          & [65,\,81] & \$49 \\
-qwen2.5-coder:32b   & local      & 59.2\%          & [50,\,68] & \$0 \\
-static-only         & baseline   & 18.3\%          & [12,\,26] & \$0 \\
+Claude Sonnet 4.6   & frontier    & \textbf{82.5\%} & [75,\,88] & 34.0\% & 48.2\% & 5.50 \\
+GPT-5               & frontier    & 77.5\%          & [69,\,84] & 42.7\% & 55.0\% & 3.00 \\
+GPT-4o              & frontier    & 73.7\%          & [65,\,81] & 20.0\% & 31.5\% & 1.20 \\
+DeepSeek-reasoner   & OSS (MIT)   & 70.8\%          & [62,\,78] & \textbf{88.5\%} & \textbf{78.7\%} & \textbf{0.08}\textsuperscript{*} \\
+qwen2.5-coder:32b   & local       & 59.2\%          & [50,\,68] & 30.1\% & 39.9\% & 0.00 \\
+static-only         & baseline    & 18.3\%          & [12,\,26] & 14.5\% & 16.2\% & 0.00 \\
 \midrule
-\multicolumn{2}{l}{4-frontier ensemble (union)} & \multicolumn{3}{c}{92.5\%} \\
+\multicolumn{2}{l}{4-frontier ensemble (union)} & 92.5\% & --- & --- & --- & 7.00 \\
 \bottomrule
 \end{tabular}
+
+\vspace{2pt}
+{\footnotesize\textsuperscript{*}DeepSeek cost estimated from \$0.55/\$2.19 per-MTok
+pricing; the harness does not capture per-call adapter tokens.}
 \end{table}
 
 \end{document}

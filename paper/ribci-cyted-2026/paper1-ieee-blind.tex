@@ -2,7 +2,7 @@
 
 \usepackage{cite}
 \usepackage{amsmath,amssymb,amsfonts}
-\usepackage{algorithmic}
+% removed unused algorithmic
 \usepackage{graphicx}
 \usepackage{textcomp}
 \usepackage{xcolor}
@@ -38,18 +38,14 @@
 \title{MIESC: A Multi-layer Framework for Automated Smart Contract Security Evaluation}
 
 \author{
-\IEEEauthorblockN{Fernando Boiero, Sebastian Norberto Mussetta, and Norberto Gaspar Cena}
-\IEEEauthorblockA{
-\textit{Universidad Tecnol\'ogica Nacional (UTN)}\\
-\textit{Facultad Regional Villa Mar\'ia}\\
-Villa Mar\'ia, C\'ordoba, Argentina\\
-\{fboiero, smussetta, ngcena\}@frvm.utn.edu.ar}
+\IEEEauthorblockN{Anonymous Author(s)}
+\IEEEauthorblockA{\textit{Affiliation withheld for double-blind review}}
 }
 
 \maketitle
 
 \begin{abstract}
-Automated smart contract security tools tend to specialize: static analyzers cover known code patterns, fuzzers exercise reachable states, and LLM-based auditors can reason about higher-level intent but vary across runs. This paper studies whether a reproducible orchestration of these techniques improves coverage for smart-contract triage. MIESC combines 35 analysis modules across 9 layers, normalizes their outputs, applies RAG-backed false-positive filtering, and records the artifacts needed to reproduce each reported claim. On SmartBugs-curated (143 contracts), the primary static+intelligence profile reports 95.8\% recall (137/143); a secondary local 32B follow-up over the remaining misses raises this to 97.9\% (140/143). On 11 real DeFi exploits (\$1.59B in evaluated losses), MIESC detects 9/11 cases (81.8\%; 95\% CI [52\%, 95\%] by the Wilson method on this small sample). On an EVMBench local high-severity extraction (40 audits, 120 findings), a four-provider union ensemble detects \textbf{111/120 vulnerabilities} (\textbf{92.5\%} recall), compared with 82.5\% for the best single provider and 59.2\% for a local 32B model. An MIT-licensed open-weight model (DeepSeek-reasoner) attains the best precision and F1 in this comparison at 15--69$\times$ lower per-audit cost, at lower single-run recall than the frontier providers. We report the EVMBench result as a local extraction rather than an official leaderboard score, and we publish the claim matrix and source artifacts. MIESC is available under AGPL-3.0.
+Automated smart contract security tools tend to specialize: static analyzers cover known code patterns, fuzzers exercise reachable states, and LLM-based auditors can reason about higher-level intent but vary across runs. This paper studies whether a reproducible orchestration of these techniques improves coverage for smart-contract triage. MIESC combines 35 analysis modules across 9 layers, normalizes their outputs, applies RAG-backed false-positive filtering, and records the artifacts needed to reproduce each reported claim. On SmartBugs-curated (143 contracts), the primary static+intelligence profile reports 95.8\% recall (137/143); a secondary local 32B follow-up over the remaining misses raises this to 97.9\% (140/143). On 11 real DeFi exploits (\$1.59B in evaluated losses), MIESC flags the responsible vulnerability class in 9/11 cases (81.8\%; 95\% CI [52\%, 95\%] by the Wilson method on this small sample). On an EVMBench local high-severity extraction (40 audits, 120 findings), a four-provider union ensemble detects 111/120 findings (92.5\% recall) versus 82.5\% for the best single provider and 59.2\% for a local 32B model; this is reported as a local extraction rather than an official-leaderboard score and is treated as secondary evidence. An MIT-licensed open-weight model (DeepSeek-reasoner) attains the best precision and F1 in this comparison at 15--69$\times$ lower per-audit cost, at lower single-run recall than the frontier providers. Precision is low because informational findings dominate, so MIESC is positioned as a reproducible pre-audit triage aid rather than a replacement for expert review. All datasets, scripts, and a per-claim matrix are released for independent reproduction; MIESC is available under AGPL-3.0.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -76,7 +72,7 @@ We address this gap with MIESC, a framework that:
     \item Extends coverage to the \textbf{Starknet / Cairo ecosystem} with 13 vulnerability classes informed by 2024--2026 real-world exploits (zkLend stale-price, Braavos account re-initialization, Cairo~1.0 unchecked \texttt{u256} arithmetic, dropped syscall results, account-abstraction signature replay).
 \end{enumerate}
 
-MIESC is designed as a \emph{pre-audit triage tool}, not a replacement for manual expert review. By automating the multi-tool orchestration and normalization workflow, it reduces audit preparation time and enables continuous security monitoring in CI/CD pipelines.
+Contributions~6--8 are implemented and described for completeness but are not separately benchmarked in this paper; the evaluation focuses on contributions~1--5. Unlike prior single-technique analyzers and benchmarking frameworks, MIESC unifies multi-tool static orchestration, RAG-backed false-positive filtering, and a multi-provider LLM ensemble under one normalized finding schema with reproducible per-claim evidence. MIESC is designed as a \emph{pre-audit triage tool}, not a replacement for manual expert review. By automating the multi-tool orchestration and normalization workflow, it reduces audit preparation time and enables continuous security monitoring in CI/CD pipelines; because the local-first profile keeps source code off third-party providers, it lowers the barrier to industrial adoption in regulated settings.
 
 % ===========================================================================
 \section{Related Work}
@@ -272,7 +268,7 @@ SmartCheck\textsuperscript{*} & 4.2\% & 18.9\% & 6.9\% \\
 \footnotesize{\textsuperscript{*}Baseline from Durieux et al.~\cite{durieux2020empirical}}
 \end{table}
 
-Table~\ref{tab:smartbugs} shows the latest full-corpus reproducible SmartBugs profile stored in the repository as \texttt{paper1\_smartbugs\_eval\_layers\_1\_6\_7.json}. MIESC reaches 95.8\% recall and 35.9\% F1, substantially above the single-tool baselines reported by Durieux et al.~\cite{durieux2020empirical}. This benchmark is useful for classical vulnerability patterns, but it is not the central evidence for business-logic vulnerabilities; that role is played by EVMBench (Section~\ref{sec:evmbench}).
+Table~\ref{tab:smartbugs} shows the latest full-corpus reproducible SmartBugs profile stored in the repository. MIESC reaches 95.8\% recall and 35.9\% F1, substantially above the single-tool baselines reported by Durieux et al.~\cite{durieux2020empirical}. This benchmark is useful for classical vulnerability patterns, but it is not the central evidence for business-logic vulnerabilities; that role is played by EVMBench (Section~\ref{sec:evmbench}).
 
 The lower precision (9--23\%) reflects informational findings (pragma version, naming conventions) that inflate the false positive count. For pre-audit triage, recall is the priority: missed vulnerabilities become production exploits costing millions, while false positives are filtered during manual review at negligible cost.
 
@@ -329,7 +325,7 @@ Governance Attack & 1 & 0 & 0\% \\
 \end{tabular}
 \end{table}
 
-MIESC achieved 81.8\% recall (9/11) on this corpus, with a 95\% confidence interval of [52\%, 95\%] by the Wilson method (n=11). Given the small sample size, we report this as indicative rather than definitive. Notable detections include the Euler Finance reentrancy (\$197M), Ronin Bridge access control (\$624M), and Parity wallet freeze (\$280M).
+MIESC flagged the responsible vulnerability class in 9 of 11 incidents (81.8\%; 95\% CI [52\%, 95\%] by the Wilson method). Given the small sample size, we report this as indicative rather than definitive. Notable detections include the Euler Finance reentrancy (\$197M), Ronin Bridge access control (\$624M), and Parity wallet freeze (\$280M).
 
 \subsubsection{Execution Performance}
 
@@ -390,7 +386,7 @@ Static only & 18.3\% & 14.5\% & 16.2\% & \$0 & 40 \\
 \footnotesize{\textsuperscript{a}GPT-4o artifact contains one clone-failed audit entry; recall is 87/118. Costs are approximate API spend observed for these single stored runs; static and local Ollama require no API calls. Ensemble result is generated by \texttt{benchmarks/generate\_paper1\_artifacts.py} as the union over \texttt{audit:vulnerability} keys. \textsuperscript{b}DeepSeek-reasoner (MIT open-weight) is a single stored run through the same \texttt{evmbench\_eval.py} harness and version (5.3.1) as the other providers, and is therefore directly comparable; its cost is estimated from DeepSeek's \$0.55/\$2.19 per-MTok pricing because the harness does not capture per-call adapter tokens.}
 \end{table}
 
-Table~\ref{tab:evmbench} separates three observations. First, static-only MIESC reaches 18.3\% recall on EVMBench, which is useful as a baseline but insufficient for business-logic flaws. Second, a local 32B model (qwen2.5-coder:32b via Ollama) reaches 59.2\% recall without API calls, showing that local models are a viable low-cost triage option but not a replacement for stronger reviewers. Third, the best single provider (Claude Sonnet 4.6, 82.5\% recall at \$5.50/audit) and the four-provider union (\textbf{111/120}, \textbf{92.5\%}) show complementary coverage. The union is numerically above the 87.7\% recall publicly reported by Cecuro, but our local extraction and matcher differ from the official EVMBench judge; we therefore treat this as contextual evidence, not a formal leaderboard result.
+Table~\ref{tab:evmbench} separates three observations. First, static-only MIESC reaches 18.3\% recall on EVMBench, which is useful as a baseline but insufficient for business-logic flaws. Second, a local 32B model (qwen2.5-coder:32b via Ollama) reaches 59.2\% recall without API calls, showing that local models are a viable low-cost triage option but not a replacement for stronger reviewers. Third, the best single provider (Claude Sonnet 4.6, 82.5\% recall at \$5.50/audit) and the four-provider union (\textbf{111/120}, \textbf{92.5\%}) show complementary coverage. Because our local extraction and matcher differ from the official EVMBench judge, we treat this as contextual evidence rather than a formal leaderboard result and do not benchmark it against vendor-reported numbers.
 
 The union improves recall because providers do not fail on the same findings. Of the 111 detected vulnerabilities, 13 are found by exactly one provider, 16 by two providers, 23 by three providers, and 59 by all four. The 9 vulnerabilities missed by all providers require multi-file reasoning across contract hierarchies that single-prompt analysis does not reliably perform. At approximately \$7/audit for the full ensemble (vs.\ \$20K--60K for manual audit engagements), this result is best interpreted as pre-audit triage evidence rather than as a substitute for manual review.
 
@@ -454,7 +450,7 @@ This generates \texttt{evmbench\_ensemble\_40.json} and \texttt{paper1\_claims\_
 \section{Conclusion}
 % ===========================================================================
 
-This work reports a staged evaluation of MIESC rather than a single headline score. On pattern-based vulnerabilities (SmartBugs), the static+intelligence profile reaches 95.8\% recall (137/143) without any LLM; the local-model follow-up raises the secondary result to \textbf{97.9\%} (140/143). On business-logic vulnerabilities (EVMBench local high-severity extraction), static-only MIESC detects 22/120 findings (18.3\%), a local 32B model reaches 59.2\%, and the four-provider union reaches \textbf{111/120 detections} (\textbf{92.5\%} recall). The EVMBench comparison to Cecuro is informative but not official-leaderboard equivalent because the local extraction and matcher differ. The provider-diversity artifact explains why the union improves recall: 13 vulnerabilities are detected by exactly one provider, 16 by two, 23 by three, and 59 by all four. The differentiation from prior work is quantitative and corpus-consistent: on the same SmartBugs dataset, the best \emph{single} automated tool in the 9-tool study of Durieux et al.~\cite{durieux2020empirical} reaches only 43.2\% recall, whereas MIESC reaches 95.8\%, more than double the strongest individual tool. This gain comes from orchestration (cross-tool normalization, Bayesian false-positive filtering, and LLM layers that reach the business-logic classes static analysis structurally misses) rather than from any single technique.
+This work reports a staged evaluation of MIESC rather than a single headline score. On pattern-based vulnerabilities (SmartBugs), the static+intelligence profile reaches 95.8\% recall (137/143) without any LLM; the local-model follow-up raises the secondary result to \textbf{97.9\%} (140/143). On business-logic vulnerabilities (EVMBench local high-severity extraction), static-only MIESC detects 22/120 findings (18.3\%), a local 32B model reaches 59.2\%, and the four-provider union reaches \textbf{111/120 detections} (\textbf{92.5\%} recall). The EVMBench comparison to Cecuro is informative but not official-leaderboard equivalent because the local extraction and matcher differ. The provider-diversity artifact explains why the union improves recall: 13 vulnerabilities are detected by exactly one provider, 16 by two, 23 by three, and 59 by all four.
 
 The practical contribution is the workflow boundary. \texttt{miesc scan contract.sol -{}-model ollama} runs Slither, Aderyn, an intelligence engine with Bayesian cross-tool confidence, protocol-specific RAG enrichment, and a local LLM audit without sending code to a cloud provider. Teams can then decide whether the remaining findings justify a frontier provider or manual review. A single frontier provider (\texttt{-{}-model claude}, \$5.50/audit in the stored run) reaches 82.5\% recall; the full ensemble (\$7/audit) reaches 92.5\%.
 
@@ -462,17 +458,17 @@ The agentic and formal-verification components follow the same principle: an iso
 
 Three directions for future work emerge from these results. First, precision needs improvement---the current 2--3 actionable findings per contract after filtering is usable, but the trainable FP classifier included in MIESC is waiting on a labeled auditor corpus to reduce this further. Second, the 11-exploit evaluation should expand to 100+ contracts (including a Starknet/Cairo exploit corpus) to strengthen statistical claims. Third, MIESC v5.3.0 introduced \texttt{miesc fix} for automated text-level remediation---inserting \texttt{nonReentrant} modifiers, access-control guards, and \texttt{SafeERC20} wrapping; detailed remediation metrics (apply, compile, and vulnerability-elimination rates) are reported separately in the companion remediation study, alongside \texttt{miesc compliance} for mapping findings to 12 international standards. Generating Foundry test harnesses from exploit scenarios to formally verify that each fix discharges the original CVL rule remains future work.
 
-Taken together, these results position MIESC not as one more detector but as an orchestration framework: a reproducible pipeline that recovers real-world vulnerabilities at roughly twice the recall of the strongest single tool, manages the false positives that make raw LLM output unusable, and closes the loop to remediation. MIESC is available under AGPL-3.0 (see \emph{Data Availability}).
+MIESC is available under AGPL-3.0 (see \emph{Data Availability}).
 
 % ===========================================================================
 \section*{Acknowledgment}
 % ===========================================================================
 
-This work originated from Fernando Boiero's Master's thesis in Cyberdefense at Universidad de la Defensa Nacional (UNDEF) -- IUA C\'ordoba, Argentina, and continues as a research project at Universidad Tecnol\'ogica Nacional, Facultad Regional Villa Mar\'ia (UTN-FRVM). The authors thank the Ethereum security community and the developers of Slither, Mythril, Echidna, Foundry, Aderyn, and Halmos for their foundational contributions.
+Acknowledgments are omitted in this anonymized version for double-blind review. The authors thank the Ethereum security community and the developers of Slither, Mythril, Echidna, Foundry, Aderyn, and Halmos for their foundational contributions.
 
 \subsection*{Data Availability}
 
-MIESC source code, benchmark scripts, ground truth datasets, and evaluation results are publicly available at \url{https://github.com/fboiero/MIESC} under AGPL-3.0. The SmartBugs-curated dataset is from Durieux et al.~\cite{durieux2020empirical}. The real-world exploit dataset was curated from DeFiHackLabs (\url{https://github.com/SunWeb3Sec/DeFiHackLabs}). Paper-specific reproducibility artifacts are documented in \texttt{PAPER1\_REPRODUCIBILITY.md}, with generated outputs \texttt{paper1\_claims\_matrix.json}, \texttt{evmbench\_static\_40.json}, \texttt{evmbench\_ensemble\_40.json}, and \texttt{paper1\_smartbugs\_local\_ollama\_followup\_20260623.json}.
+MIESC source code, benchmark scripts, ground truth datasets, and evaluation results are publicly available at the project repository (URL withheld for double-blind review) under AGPL-3.0. The SmartBugs-curated dataset is from Durieux et al.~\cite{durieux2020empirical}. The real-world exploit dataset was curated from DeFiHackLabs (\url{https://github.com/SunWeb3Sec/DeFiHackLabs}). Paper-specific reproducibility artifacts are documented in \texttt{PAPER1\_REPRODUCIBILITY.md}, with generated outputs \texttt{paper1\_claims\_matrix.json}, \texttt{evmbench\_static\_40.json}, \texttt{evmbench\_ensemble\_40.json}, and \texttt{paper1\_smartbugs\_local\_ollama\_followup\_20260623.json}.
 
 % \balance
 \bibliographystyle{IEEEtran}
