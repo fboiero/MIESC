@@ -499,6 +499,35 @@ Only **4 vulnerabilities are detected by no model**: an unchecked return value i
 
 **Recall/precision trade-off.** The ensemble maximizes recall (86%) but unions the false positives of all models, degrading precision; it is a maximum-coverage triage configuration, not a high-precision reporting one. MIESC exposes this via the `--ensemble` option. Per-vulnerability evidence in `docs/evidence/corpus_revalidation_20260709/` (§16).
 
+### 5.3.5 Cross-validation on EVMBench (40 audits)
+
+To corroborate the complementarity thesis on a different and larger corpus, MIESC
+was evaluated against a local extraction of EVMBench (40 real DeFi audits, 120
+HIGH-severity vulnerabilities). Each model was run once through the same pipeline
+and matcher; the numbers are reported as a **local extraction, not an official
+leaderboard score** (the same methodological caution as Paper 1).
+
+**Table 5.8b.** EVMBench recall by configuration (40 audits, single run)
+
+| Configuration | Recall | Precision | F1 | Cost/audit |
+|---------------|--------|-----------|-----|-----------|
+| Static only | 18.3% | 14.5% | 16.2% | $0 |
+| qwen2.5-coder:32b (local) | 59.2% | 30.1% | 39.9% | $0 |
+| **DeepSeek-R1 (open-weight)** | **70.8%** | **88.5%** | **78.7%** | **~$0.08** |
+| GPT-4o (frontier) | 73.7% | 20.0% | 31.5% | ~$1.20 |
+| GPT-5 (frontier) | 77.5% | 42.7% | 55.0% | ~$3 |
+| Claude Sonnet 4.6 (frontier) | 82.5% | 34.0% | 48.2% | ~$5.50 |
+| **Ensemble (4-frontier union)** | **92.5%** | — | — | ~$7 |
+
+**Result.** EVMBench reproduces the pattern of the 29-vulnerability corpus: the
+union of frontier reasoners (92.5%) far exceeds any individual one, confirming
+reasoner-level complementarity on a 4× larger corpus. It also adds the
+**economic** axis: the open-weight model (DeepSeek-R1, MIT) obtains the **best
+precision (88.5%) and F1 (78.7%)** in the whole comparison — above the frontier
+providers — at **~$0.08 per audit (15–69× cheaper)**; its lower single-pass recall
+(70.8%) is recovered with a low-cost self-ensemble. The three-tier openness
+taxonomy and the full economic analysis are in Chapter 6 (Table 6.2b).
+
 ---
 
 ## 5.4 Results: Normalization and Deduplication (RQ3)
@@ -577,13 +606,17 @@ The only mapping error in GPTScan corresponded to an ambiguous classification by
 
 | Solution | Cost per Audit | Monthly Cost (100 audits) | Annual Cost |
 |----------|----------------|---------------------------|-------------|
-| MIESC (local) | $0.00 | $0.00 | **$0.00** |
+| MIESC (local, open-weight) | $0.00 | $0.00 | **$0.00** |
+| MIESC (open-weight hosted, DeepSeek-R1) | ~$0.08 | ~$8.00 | ~$96.00 |
 | GPTScan + GPT-4 API | $0.15 | $15.00 | $180.00 |
 | MythX Cloud (Pro) | $0.50 | $50.00 | $600.00 |
 | Certora Cloud | ~$100 | ~$10,000 | ~$120,000 |
 | Manual audit | $5,000-50,000 | N/A | N/A |
 
-*Note: Estimated costs based on public prices from November 2024*
+*Note: Estimated costs based on public prices from November 2024. The
+open-weight-hosted tier (MIT weights accessed via API, ~$0.08/audit) is 15–69×
+cheaper than the frontier APIs and obtains the best measured precision/F1 on
+EVMBench (see §5.3.5 and Chapter 6, Table 6.2b).*
 
 **RQ4 Result:** MIESC is viable for production with:
 - **Time:** ~1 minute for complete audit (parallel execution)

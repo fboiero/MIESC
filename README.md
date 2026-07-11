@@ -148,6 +148,8 @@ separately as an end-to-end integration smoke run, not as a corpus-wide claim.
 
 **Why recall matters more than precision for pre-audit triage**: High recall means fewer missed vulnerabilities. False positives are filtered in the triage step — missed vulnerabilities become exploits in production.
 
+**Cost efficiency (EVMBench, 40 audits)**: detection does not require frontier prices. An open-weight model (DeepSeek-R1, MIT weights) reaches the best precision (88.5%) and F1 (78.7%) in the comparison at an estimated ~$0.08/audit — 15–69× cheaper than frontier APIs — while a fully-local 32B model reaches 59.2% recall at $0. Paying frontier prices buys higher single-run recall, not better precision/F1. See Paper 1 for the run-count-matched detail.
+
 ### Research Papers and Reproducible Claims
 
 MIESC has two linked research tracks. Paper 1 evaluates detection and multi-layer security assessment. Paper 2 extends that evidence into automatic remediation artifacts and independent verification steps. Paper 2 does not replace or invalidate Paper 1; it starts from the same detection pipeline and measures what happens after a finding is converted into a patch candidate.
