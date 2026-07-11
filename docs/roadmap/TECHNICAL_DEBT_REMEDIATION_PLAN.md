@@ -79,8 +79,11 @@ Exploit Validation / Consensus & Reporting) read only by the compatibility
 orchestrator in `src/core`. Its layer *keys* (`ai_analysis`, `pattern_detection`,
 `exploit_validation`, …) are referenced by name in ~19 Python files, so migrating
 it must update those references and their tests together — it is a code refactor
-with test coverage, deliberately not done as a blind config edit. Also pending:
-the layer tables in `docs/index*.md`, `docs/ARCHITECTURE*.md`, and `docs/TOOLS.md`.
+with test coverage, deliberately not done as a blind config edit. The doc layer
+tables (`docs/index*.md`, `docs/ARCHITECTURE*.md`, `docs/TOOLS.md`, INSTALLATION,
+QUICKSTART, report templates) are now aligned to the canonical scheme; the one
+exception is `docs/architecture/layers.rst`, a Sphinx reference page on a distinct
+legacy ordering that carries a canonical-source note and is pending a full rewrite.
 
 **Validation path:** after the refactor, `constants.py`, `miesc.yaml`, the REST API
 `/layers` response, and the README "9 Defense Layers" block must all print the same

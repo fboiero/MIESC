@@ -25,7 +25,7 @@ Supported networks: Ethereum, Polygon, BSC, Arbitrum, Optimism, Avalanche, and a
 - Full symbolic execution (Mythril, Manticore, Halmos)
 - Formal verification (Certora, SMTChecker)
 - Fuzzing (Echidna, Medusa, Foundry)
-- AI/ML analysis (SmartLLM, GPTScan, Pattern Recognition)
+- AI/ML analysis (SmartLLM, GPTScan, DA-GNN)
 - DeFi-specific patterns (20+ attack categories)
 - RAG-enhanced analysis with 32+ SWC entries
 

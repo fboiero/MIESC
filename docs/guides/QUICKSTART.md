@@ -85,11 +85,11 @@ MIESC analyzes contracts through **9 specialized defense layers**:
 | 2 | Dynamic Testing | Echidna, Medusa, Foundry, DogeFuzz | Fuzzing, property testing |
 | 3 | Symbolic Execution | Mythril, Manticore, Halmos | Path exploration, SMT solving |
 | 4 | Formal Verification | Certora, SMTChecker | Mathematical proofs |
-| 5 | Property Testing | PropertyGPT, Wake, Vertigo | Invariant generation |
-| 6 | AI/LLM Analysis | SmartLLM, GPTScan, LLMSmartAudit | AI-powered detection |
-| 7 | Pattern Recognition | DA-GNN, SmartGuard, Clone Detector | ML-based patterns |
-| 8 | DeFi Security | DeFi Analyzer, MEV Detector, Gas Analyzer | Protocol-specific |
-| 9 | Advanced Detection | Advanced Detector, Threat Model | Cross-layer correlation |
+| 5 | AI Analysis | SmartLLM, GPTScan, LLMSmartAudit, GPTLens | LLM-powered detection |
+| 6 | ML Detection | DA-GNN, SmartBugs-ML, SmartGuard, Peculiar | ML classifiers |
+| 7 | Specialized Analysis | Threat Model, Gas Analyzer, MEV Detector, DeFi | Domain-specific checks |
+| 8 | Cross-Chain & ZK Security | Cross-Chain, ZK Circuit, Bridge Monitor, Circom | Bridge/ZK (experimental) |
+| 9 | Advanced AI Ensemble | LLMBugScanner, Audit Consensus, Exploit Synthesizer | Multi-LLM consensus |
 
 ### Run Specific Layers
 

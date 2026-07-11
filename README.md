@@ -126,8 +126,8 @@ Report saved to results.json
 | Metric | Slither alone | Mythril alone | MIESC Paper 1 reproducible profile | Evidence scope |
 |--------|:------------:|:-------------:|:---------------------------------:|:--------------|
 | Recall | 43.2% | 27.4% | **95.8%** | Full SmartBugs-curated corpus |
-| Precision | 8.3% | 6.1% | **22.2%** | Full SmartBugs-curated corpus |
-| F1-Score | 13.9% | 10.0% | **36.0%** | Full SmartBugs-curated corpus |
+| Precision | 8.3% | 6.1% | **22.1%** | Full SmartBugs-curated corpus |
+| F1-Score | 13.9% | 10.0% | **35.9%** | Full SmartBugs-curated corpus |
 
 The full-corpus SmartBugs result is the reproducible Paper 1 profile. A local
 Ollama follow-up on the remaining misses is reported in Paper 1 as 140/143
