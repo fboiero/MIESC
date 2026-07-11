@@ -37,4 +37,34 @@ Claude Fable 5    & premium       & \multicolumn{3}{c}{\textsc{refused}} & \mult
 \end{tabular}
 \end{table}
 
+% ============================================================================
+% EVMBench apples-to-apples table (the strongest result).
+% ============================================================================
+\begin{table}[t]
+\centering
+\small
+\caption{Open-source vs.\ frontier LLMs on \textbf{EVMBench} (40 real DeFi-audit
+codebases, 120 HIGH-severity vulnerabilities; ground truth = professional audit
+findings). All models evaluated under \emph{identical} conditions: the full MIESC
+static+LLM pipeline, 3-pass unions, and the official EVMBench LLM judge. Ensemble
+type-aware recall with 95\% Wilson intervals and API cost. The open-source
+DeepSeek is statistically tied with the best frontier model (one-vulnerability,
+98-vs-99 gap) and above GPT-5 and GPT-4o, at 15--73$\times$ less cost.}
+\label{tab:evmbench}
+\begin{tabular}{llccc}
+\toprule
+Model & Type & Recall & 95\% CI & Cost \\
+\midrule
+Claude Sonnet 4.6   & frontier   & \textbf{82.5\%} & [75,\,88] & \$220 \\
+DeepSeek-reasoner   & OSS hosted & 81.7\%          & [74,\,88] & \textbf{\$3} \\
+GPT-5               & frontier   & 77.5\%          & [69,\,84] & \$120 \\
+GPT-4o              & frontier   & 73.7\%          & [65,\,81] & \$49 \\
+qwen2.5-coder:32b   & local      & 59.2\%          & [50,\,68] & \$0 \\
+static-only         & baseline   & 18.3\%          & [12,\,26] & \$0 \\
+\midrule
+\multicolumn{2}{l}{4-frontier ensemble (union)} & \multicolumn{3}{c}{92.5\%} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 \end{document}
