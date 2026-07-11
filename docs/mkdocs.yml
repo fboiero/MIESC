@@ -5,7 +5,7 @@
 # ============================================================================
 
 site_name: MIESC
-site_description: Multi-layer Intelligent Evaluation for Smart Contracts — 50 security tools, 9 defense layers, pre-audit triage for Ethereum (EVM)
+site_description: Multi-layer Intelligent Evaluation for Smart Contracts — 50 security tools across 35 analysis modules, 9 defense layers, pre-audit triage for Ethereum (EVM)
 site_author: Fernando Boiero - UNDEF
 site_url: https://fboiero.github.io/MIESC
 

@@ -10,7 +10,7 @@ Hi HN, I'm Fernando from Argentina. I built MIESC, an open-source framework that
 Key results:
 - 95.8% recall on SmartBugs-curated (143 contracts) - vs Slither alone at 43%
 - Local Ollama follow-up over residual SmartBugs misses reported at 97.9% recall
-- 92.5% recall on EVMBench (120 business-logic vulnerabilities) - #1, beating Cecuro (87.7%)
+- 92.5% recall on EVMBench (120 business-logic vulnerabilities) (local high-severity extraction; above the 87.7% Cecuro publicly reports, but not an official-leaderboard comparison)
 - Works with local models (Ollama, $0) or frontier APIs (Claude/GPT, ~$7/audit)
 - Full pipeline: detect → fix → test-gen → verify → compliance report
 
@@ -28,7 +28,7 @@ Paper: [SSRN DOI here]
 
 ## r/ethereum + r/ethdev
 
-**Title:** Open-source tool achieves 95.8% vulnerability detection on SmartBugs and 92.5% on EVMBench (beats Cecuro's 87.7%)
+**Title:** Open-source tool achieves 95.8% vulnerability detection on SmartBugs and 92.5% on EVMBench (above Cecuro's publicly reported 87.7%; not an official leaderboard)
 
 **Body:**
 I've been building MIESC - a multi-layer smart contract security framework. Just published two academic papers on it and wanted to share with the community.
@@ -64,7 +64,7 @@ AGPL-3.0 | GitHub: https://github.com/fboiero/MIESC | Paper: [DOI]
 
 ## Twitter/X Thread
 
-1/ Releasing MIESC v5.4.2 - open-source smart contract security that achieves 95.8% recall on SmartBugs and 92.5% on EVMBench (#1, beating Cecuro's 87.7%).
+1/ Releasing MIESC v5.4.2 - open-source smart contract security that achieves 95.8% recall on SmartBugs and 92.5% on EVMBench (above Cecuro's 87.7%; local extraction, not a leaderboard).
 
 35 analysis modules. 9 defense layers. Works with local models ($0) or frontier APIs.
 
@@ -108,7 +108,7 @@ PyPI: pip install miesc
 
 MIESC v5.4.2 - open-source smart contract security framework
 
-95.8% recall on SmartBugs, 92.5% on EVMBench (#1)
+95.8% recall on SmartBugs, 92.5% on a local EVMBench extraction
 35 modules, 9 layers, works with local models
 
 detect → fix → test-gen → verify → report

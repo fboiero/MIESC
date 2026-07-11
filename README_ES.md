@@ -282,7 +282,7 @@ miesc analyze Token.sol           # EVM (Solidity/Vyper) — producción
 # existe código de adapter experimental pero todavía no está validado para producción.
 ```
 
-**77 tipos de vulnerabilidades** en 4 ecosistemas, basados en exploits reales de 2024-2026 (zkLend $9.6M, Braavos, Wormhole $326M, Ronin $624M).
+**77 tipos de vulnerabilidades** en 4 ecosistemas, basados en exploits reales de 2024-2026 (zkLend $9.6M, Braavos, Wormhole $320M, Ronin $624M).
 
 Detección de vulnerabilidades en bridges:
 ```bash
