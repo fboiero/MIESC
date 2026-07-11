@@ -90,6 +90,35 @@ exploit-verified, de una fuente reputada — OpenAI/Paradigm). Reportar los tres
 con su grading y sus límites medidos (no asumidos), es lo que hace la evaluación
 periciable.
 
+## Taxonomía de apertura de modelos (evitar "open-weight" ≠ "gratis")
+
+Al comparar modelos **no basta con decir "open source vs frontier"**: hay que
+separar la **licencia de pesos** del **método de acceso**, porque el costo se
+origina en el segundo, no en el primero. Distinguimos tres capas:
+
+| Capa | Ejemplo | Licencia de pesos | Acceso | Costo/40 audits | Recall EVMBench |
+|---|---|---|---|---|---|
+| **1. Frontier propietario** | GPT-5, GPT-4o, Claude Sonnet 4.6 | cerrada | API del vendor (obligatoria) | \$49–220 | 73.7–82.5% |
+| **2. Open-weight, API hosteada** | DeepSeek-reasoner (R1) | **MIT** | API hosteada por tamaño (~671B) | ~\$3 | **81.7%** |
+| **3. Open-weight, 100% local** | qwen2.5-coder:32b (32B) | **Apache 2.0** | self-host en GPU propia | **\$0** (marginal) | 59.2% |
+
+Puntos que la evaluación debe dejar explícitos para ser defendible:
+
+- **DeepSeek-R1 tiene pesos MIT** ([HuggingFace](https://huggingface.co/deepseek-ai/DeepSeek-R1),
+  [release](https://api-docs.deepseek.com/news/news250120/)): es open-weight
+  legítimo. El ~\$3 medido es **costo de hosting de conveniencia**, no un peaje
+  de licencia ni un moat de capacidad: cualquiera con GPU suficiente lo corre a
+  \$0 marginal. Se accede por API solo por el tamaño del modelo (~671B), que no
+  entra en el hardware de prueba.
+- **qwen2.5-coder:32b (Apache 2.0)** es el caso de **soberanía total**: corre
+  local en el GPU de la máquina, \$0 marginal, reproducible offline, sin
+  depender de ningún vendor — a costa de un recall menor, cuantificado.
+- Conclusión que esto blinda: **pagar precio frontier (capa 1) no compra ventaja
+  de recall estadísticamente significativa sobre pesos abiertos (capa 2)**; y si
+  se prioriza soberanía absoluta (capa 3), está disponible a \$0 con una caída de
+  recall medida, no asumida. Cada capa está medida bajo condiciones idénticas
+  (mismas 3 pasadas de unión, mismo pipeline, mismo judge oficial).
+
 ---
 
 *Procedencia técnica y comandos de reproducción en
