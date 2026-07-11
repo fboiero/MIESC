@@ -177,7 +177,7 @@ The adopted solution combines the Adapter pattern, documented by Gamma et al. (1
 
 ### 4.3.3 Base Interface Implementation
 
-The `ToolAdapter` interface is implemented using Python's `abc` (Abstract Base Classes) module, following recommendations from van Rossum et al. (2001):
+The `ToolAdapter` interface is implemented using Python's `abc` (Abstract Base Classes) module, following recommendations from van Rossum and Warsaw (2001b):
 
 ```python
 from abc import ABC, abstractmethod

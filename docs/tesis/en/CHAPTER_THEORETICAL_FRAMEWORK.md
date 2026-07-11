@@ -137,7 +137,7 @@ OWASP (2023) maintains a classification of the 10 most critical vulnerabilities,
 5. **Denial of Service:** Fund blocking
 6. **Access Control Issues:** $80M (Parity Wallet, 2017)
 7. **Unprotected Functions:** Multiple incidents
-8. **Flash Loan Attacks:** $180M (Wormhole, 2022)
+8. **Cross-Chain Bridge Exploits:** ~$320M (Wormhole bridge incident, February 2022)
 9. **Signature Malleability:** Fund theft
 10. **Short Address Attack:** Transfer manipulation
 
@@ -242,7 +242,7 @@ MIESC implements the SOLID principles (Martin, 2000):
 
 ### 2.5.3 Defense in Depth
 
-Defense in Depth is a security strategy that employs multiple layers of controls (Ross et al., 2016; NIST, 2024). According to NIST SP 800-53:
+Defense in Depth is a security strategy that employs multiple layers of controls (Ross et al., 2016a; NIST, 2024). According to NIST SP 800-53:
 
 > "Defense in depth is an information security strategy that integrates people, technology, and operations capabilities to establish variable barriers across multiple layers and missions of the organization."
 
@@ -409,7 +409,7 @@ Sayeed, S., Marco-Gisbert, H., & Caira, T. (2020). Smart contract: Attacks and p
 
 Smart Contract Weakness Classification. (2020). SWC Registry. https://swcregistry.io/
 
-Sun, Y., Wu, D., Xue, Y., Liu, H., Wang, H., Xu, Z., ... & Chen, Y. (2024). GPTScan: Detecting logic vulnerabilities in smart contracts by combining GPT with program analysis. In *Proceedings of the 46th International Conference on Software Engineering* (pp. 1-12). ACM.
+Sun, Y., Wu, D., Xue, Y., Liu, H., Wang, H., Xu, Z., Xie, X., & Liu, Y. (2024). GPTScan: Detecting logic vulnerabilities in smart contracts by combining GPT with program analysis. *Proceedings of the 46th International Conference on Software Engineering (ICSE)*, Article 166. https://doi.org/10.1145/3597503.3623318
 
 Sutton, M., Greene, A., & Amini, P. (2007). *Fuzzing: Brute Force Vulnerability Discovery*. Addison-Wesley.
 

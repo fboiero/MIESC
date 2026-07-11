@@ -198,7 +198,7 @@ A partir de la revisión sistemática realizada, se identifican las siguientes b
 
 **Impacto:** Vulnerabilidades detectables únicamente mediante combinación de técnicas permanecen sin identificar.
 
-**Fundamentación de la solución:** El modelo de defensa en profundidad (*Defense-in-Depth*), originado en doctrina militar y adaptado a seguridad informática por el NIST (Ross et al., 2016), propone múltiples capas de controles independientes. Schneier (2000) argumenta que "la seguridad es un proceso, no un producto" (p. 12), fundamentando la necesidad de enfoques multi-capa.
+**Fundamentación de la solución:** El modelo de defensa en profundidad (*Defense-in-Depth*), originado en doctrina militar y adaptado a seguridad informática por el NIST (Ross et al., 2016a), propone múltiples capas de controles independientes. Schneier (2000) argumenta que "la seguridad es un proceso, no un producto" (p. 12), fundamentando la necesidad de enfoques multi-capa.
 
 ### 3.5.3 Brecha 3: Falta de Normalización
 
@@ -251,7 +251,7 @@ La Tabla 3.4 sintetiza las brechas identificadas y las soluciones propuestas por
 | # | Brecha | Solución MIESC | Fundamentación |
 |---|--------|----------------|----------------|
 | 1 | Fragmentación | Protocolo ToolAdapter | Gamma et al. (1994) |
-| 2 | Mono-técnica | Arquitectura 7 capas | Ross et al. (2016) |
+| 2 | Mono-técnica | Arquitectura 7 capas | Ross et al. (2016a) |
 | 3 | Sin normalización | Mapeo SWC/CWE/OWASP | SCSVS (2023) |
 | 4 | Costo APIs | Backend Ollama local | DPGA (2023) |
 | 5 | Obsolescencia | Docker + parches | Parnas (1972), Merkel (2014) |
@@ -339,7 +339,7 @@ Qin, K., Zhou, L., Livshits, B., & Gervais, A. (2021). Attacking the DeFi ecosys
 
 Rameder, H., Di Angelo, M., & Salzer, G. (2022). Review of automated vulnerability analysis of smart contracts on Ethereum. *Frontiers in Blockchain, 5*, 814977. https://doi.org/10.3389/fbloc.2022.814977
 
-Ross, R., McEvilley, M., & Oren, J. C. (2016). *Systems security engineering: Considerations for a multidisciplinary approach in the engineering of trustworthy secure systems* (NIST Special Publication 800-160). National Institute of Standards and Technology. https://doi.org/10.6028/NIST.SP.800-160
+Ross, R., McEvilley, M., & Oren, J. C. (2016a). *Systems security engineering: Considerations for a multidisciplinary approach in the engineering of trustworthy secure systems* (NIST Special Publication 800-160, Vol. 1). National Institute of Standards and Technology. https://doi.org/10.6028/NIST.SP.800-160v1
 
 Schneier, B. (2000). *Secrets and lies: Digital security in a networked world*. John Wiley & Sons.
 

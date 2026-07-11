@@ -177,7 +177,7 @@ La solución adoptada combina el patrón Adapter, documentado por Gamma et al. (
 
 ### 4.3.3 Implementación de la Interfaz Base
 
-La interfaz `ToolAdapter` se implementa utilizando el módulo `abc` (Abstract Base Classes) de Python, siguiendo las recomendaciones de van Rossum et al. (2001):
+La interfaz `ToolAdapter` se implementa utilizando el módulo `abc` (Abstract Base Classes) de Python, siguiendo las recomendaciones de van Rossum y Warsaw (2001b):
 
 ```python
 from abc import ABC, abstractmethod
@@ -1186,7 +1186,7 @@ Touvron, H., et al. (2023). LLaMA: Open and efficient foundation language models
 
 Trail of Bits. (2024). *Slither documentation*. https://github.com/crytic/slither
 
-van Rossum, G., et al. (2001). PEP 3119 – Introducing abstract base classes. *Python Enhancement Proposals*.
+van Rossum, G., & Warsaw, B. (2001b). PEP 3119 – Introducing abstract base classes. *Python Enhancement Proposals*.
 
 van Rossum, G., et al. (2019). PEP 585 – Type hinting generics in standard collections. *Python Enhancement Proposals*.
 

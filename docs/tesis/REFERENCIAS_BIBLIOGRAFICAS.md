@@ -210,9 +210,9 @@ Qin, K., Zhou, L., Livshits, B., & Gervais, A. (2021). Attacking the DeFi ecosys
 
 Rameder, H., Di Angelo, M., & Salzer, G. (2022). Review of automated vulnerability analysis of smart contracts on Ethereum. *Frontiers in Blockchain, 5*, Article 814977. https://doi.org/10.3389/fbloc.2022.814977
 
-Ross, R., McEvilley, M., & Oren, J. C. (2016). *Systems security engineering: Considerations for a multidisciplinary approach in the engineering of trustworthy secure systems* (NIST Special Publication 800-160, Vol. 1). National Institute of Standards and Technology. https://doi.org/10.6028/NIST.SP.800-160v1
+Ross, R., McEvilley, M., & Oren, J. C. (2016a). *Systems security engineering: Considerations for a multidisciplinary approach in the engineering of trustworthy secure systems* (NIST Special Publication 800-160, Vol. 1). National Institute of Standards and Technology. https://doi.org/10.6028/NIST.SP.800-160v1
 
-Ross, R., Pillitteri, V., Dempsey, K., Riddle, M., & Guissanie, G. (2016). *Protecting controlled unclassified information in nonfederal systems and organizations* (NIST Special Publication 800-171). National Institute of Standards and Technology. https://doi.org/10.6028/NIST.SP.800-171
+Ross, R., Pillitteri, V., Dempsey, K., Riddle, M., & Guissanie, G. (2016b). *Protecting controlled unclassified information in nonfederal systems and organizations* (NIST Special Publication 800-171). National Institute of Standards and Technology. https://doi.org/10.6028/NIST.SP.800-171
 
 Runeson, P., Host, M., Rainer, A., & Regnell, B. (2012). *Case study research in software engineering: Guidelines and examples*. Wiley.
 
@@ -256,7 +256,9 @@ Tsankov, P., Dan, A., Drachsler-Cohen, D., Gervais, A., Bunzli, F., & Vechev, M.
 
 ## V
 
-van Rossum, G., Warsaw, B., & Coghlan, N. (2001). *PEP 8 - Style guide for Python code*. Python Enhancement Proposals. https://peps.python.org/pep-0008/
+van Rossum, G., Warsaw, B., & Coghlan, N. (2001a). *PEP 8 - Style guide for Python code*. Python Enhancement Proposals. https://peps.python.org/pep-0008/
+
+van Rossum, G., & Warsaw, B. (2001b). *PEP 3119 - Introducing abstract base classes*. Python Enhancement Proposals. https://peps.python.org/pep-3119/
 
 van Rossum, G., et al. (2019). *PEP 585 - Type hinting generics in standard collections*. Python Enhancement Proposals. https://peps.python.org/pep-0585/
 
@@ -296,15 +298,15 @@ Las referencias siguen el formato de la American Psychological Association (APA)
 4. **Software/herramientas:** Se cita como software con URL del repositorio
 5. **Documentos gubernamentales:** Se incluye organizacion y numero de publicacion
 
-**Total de referencias:** 85
+**Total de referencias:** 94
 
 **Distribucion por tipo:**
-- Articulos de conferencia: 32 (38%)
-- Libros: 14 (16%)
-- Articulos de revista: 15 (18%)
-- Documentacion tecnica/estandares: 14 (16%)
-- Preprints: 6 (7%)
-- Documentos gubernamentales: 4 (5%)
+- Articulos de conferencia: 29 (31%)
+- Libros: 13 (14%)
+- Articulos de revista: 22 (24%)
+- Documentacion tecnica/estandares: 21 (22%)
+- Preprints: 4 (4%)
+- Documentos gubernamentales: 5 (5%)
 
 **Referencias clave por area:**
 
@@ -312,7 +314,7 @@ Las referencias siguen el formato de la American Psychological Association (APA)
 - Joint Chiefs of Staff (2018) - Cyberspace Operations
 - Libicki (2009) - Cyberdeterrence and Cyberwar
 - NIST (2024) - Cybersecurity Framework 2.0
-- Ross et al. (2016) - Systems Security Engineering
+- Ross et al. (2016a) - Systems Security Engineering
 - Di Pietro et al. (2024) - Critical Infrastructure Protection
 
 ### Smart Contracts y Blockchain

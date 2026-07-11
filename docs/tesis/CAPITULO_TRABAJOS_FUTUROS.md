@@ -12,7 +12,7 @@ El presente trabajo de tesis ha presentado MIESC (Marco Integrado de Seguridad p
 
 ### 6.1.2 Objetivos Alcanzados
 
-**Tabla 6.1.** Evaluación del cumplimiento de objetivos
+**Tabla 8.1.** Evaluación del cumplimiento de objetivos
 
 | Objetivo | Indicador de Éxito | Resultado | Estado |
 |----------|-------------------|-----------|--------|
