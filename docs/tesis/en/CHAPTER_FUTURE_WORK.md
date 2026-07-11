@@ -38,6 +38,8 @@ This thesis has presented MIESC (Multi-layer Integration for Ethereum Smart Cont
 
 6. **Legacy Tool Rescue:** Documented patches for Manticore (Python 3.11) and Oyente (Docker image), preserving analysis capabilities.
 
+7. **Sovereignty as a requirement, empirically validated:** The thesis that control over the tool — open weights, auditable execution — is a first-order requirement of security analysis, not a preference; grounded doctrinally, scientifically, epistemically, and philosophically (§6.6.3), and empirically validated: an open-weight model obtains the best precision (88.5%) and F1 (78.7%) in the EVMBench comparison at ~$0.08 per audit (15–69× less than the frontier providers), showing that the sovereign choice no longer requires sacrificing capability.
+
 ### 6.1.4 Hypothesis Validation
 
 **Original hypothesis:** "The combination of multiple analysis techniques in a layered architecture improves vulnerability detection compared to individual tools."

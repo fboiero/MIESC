@@ -246,6 +246,8 @@ The main contributions of this work are:
 
 **C6:** Empirical evaluation on a corpus of known vulnerabilities
 
+**C7:** The thesis that **control over the tool — open weights, auditable execution — is a first-order requirement of security analysis, not a preference**: grounded doctrinally (cyberdefense), scientifically (forensic reproducibility), epistemically (authorship and accountability), and philosophically (Illich, Floridi, Stallman, Winner), and empirically validated — an open-weight model obtains the best precision/F1 at 15–69× lower cost than the frontier providers (Chapter 6, section 6.6.3)
+
 ---
 
 ## 1.10 Document Structure

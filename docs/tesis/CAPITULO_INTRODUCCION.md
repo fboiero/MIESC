@@ -246,6 +246,8 @@ Las principales contribuciones del presente trabajo son:
 
 **C6:** Evaluacion empirica sobre corpus de vulnerabilidades conocidas
 
+**C7:** La tesis de que el **control sobre la herramienta —pesos abiertos, ejecucion auditable— es un requisito de primer orden del analisis de seguridad, no una preferencia**: fundamentada doctrinal (ciberdefensa), cientifica (reproducibilidad pericial), epistemologica (autoria y rendicion de cuentas) y filosoficamente (Illich, Floridi, Stallman, Winner), y validada empiricamente —un modelo de pesos abiertos obtiene la mejor precision/F1 a 15-69x menos costo que los proveedores frontier (Capitulo 6, seccion 6.6.3)
+
 ---
 
 ## 1.10 Estructura del Documento
