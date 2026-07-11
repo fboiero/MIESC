@@ -919,7 +919,7 @@ result = subprocess.run(
 )
 ```
 
-**Fundamentación:** Touvron et al. (2023) demuestran que modelos open-weight de 7B parámetros alcanzan rendimiento competitivo para tareas de análisis de código. El trade-off de menor capacidad respecto a GPT-4 se compensa con la garantía de soberanía de datos y costo cero.
+**Fundamentación:** Touvron et al. (2023) demuestran que modelos open-weight de 7B parámetros alcanzan rendimiento competitivo para tareas de análisis de código. El trade-off frente a los modelos frontier es más acotado de lo que suele asumirse: en la evaluación de EVMBench, un modelo de pesos abiertos (DeepSeek-R1) supera a los proveedores frontier en precisión y F1, y la única desventaja medida —menor recall en una sola pasada— se recupera con un auto-ensemble de bajo costo. La contrapartida es soberanía de datos y un costo entre nulo (local) y ~$0.08/auditoría (open-weight hosteado).
 
 ---
 

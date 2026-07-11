@@ -103,7 +103,7 @@ This thesis has presented MIESC (Multi-layer Integration for Ethereum Smart Cont
 |------|-------------|------------|--------|
 | FW-2.1 | CodeLlama fine-tuning for Solidity | High | Very High |
 | FW-2.2 | Annotated vulnerabilities dataset | Medium | High |
-| FW-2.3 | LLM benchmark for auditing | Medium | High |
+| FW-2.3 | LLM benchmark for auditing (partially achieved: EVMBench, 40 audits, frontier vs open-weight vs local; remaining scope is official-leaderboard submission) | Medium | High |
 | FW-2.4 | False positive reduction with RAG | Medium | High |
 | FW-2.5 | AI decision explainability | High | Medium |
 

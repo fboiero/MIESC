@@ -164,6 +164,38 @@ Aunque estos costos parecen modestos, representan una barrera significativa para
 - Organizaciones educativas
 - Investigadores académicos
 
+### 6.2.4 Tres niveles de apertura: el costo no es binario
+
+La contraposición "API comercial cara vs. modelo local gratuito" oculta un tercer
+nivel intermedio que es clave para el argumento económico. Separando la **licencia
+de los pesos** del **método de acceso**, el espacio de modelos se ordena en tres
+niveles:
+
+**Tabla 6.2b.** Niveles de apertura de modelos y su desempeño medido en EVMBench
+(40 auditorías DeFi reales, 120 vulnerabilidades HIGH; corrida única por modelo,
+mismo pipeline y matcher).
+
+| Nivel | Ejemplo | Licencia de pesos | Acceso | Costo/aud. | Recall | Precisión | F1 |
+|-------|---------|-------------------|--------|-----------|--------|-----------|-----|
+| Frontier propietario | GPT-4o / GPT-5 / Claude | cerrada | API del proveedor | $1.20–5.50 | 73.7–82.5% | 20–43% | 32–55% |
+| **Open-weight hosteado** | **DeepSeek-R1 (MIT)** | **abierta (MIT)** | **API hosteada** | **~$0.08** | **70.8%** | **88.5%** | **78.7%** |
+| Open-weight local | qwen2.5-coder:32b | abierta (Apache 2.0) | self-host (GPU propia) | $0 | 59.2% | 30.1% | 39.9% |
+
+El hallazgo central para este capítulo: el modelo **open-weight** (DeepSeek-R1, con
+pesos MIT) obtiene la **mejor precisión (88.5%) y el mejor F1 (78.7%)** de toda la
+comparación, a un costo estimado de **~$0.08 por auditoría — entre 15 y 69 veces más
+barato** que los proveedores frontier. Su recall en una sola pasada (70.8%) queda por
+debajo de los frontier, pero un auto-ensemble de tres pasadas (≈$0.24/auditoría) lo
+eleva a 81.7%, dentro del rango de los frontier de una sola pasada. El ~$0.08 es
+**costo de hosting de conveniencia, no un peaje de licencia**: cualquiera con GPU
+suficiente puede correr los mismos pesos a costo marginal cero.
+
+La conclusión económica no es "gratis o carísimo", sino un **espectro**: pagar precio
+frontier no compra una ventaja de precisión/F1 sobre un modelo de pesos abiertos, y la
+soberanía total (nivel local, $0) está disponible con una caída de recall cuantificada,
+no asumida. El detalle metodológico y las fuentes reproducibles de estos números están
+en `docs/methodology/DATASETS.md` y en el Paper 1.
+
 ---
 
 ## 6.3 Solución: LLMs Soberanos con Ollama
@@ -212,8 +244,15 @@ Ollama soporta modelos cuyos pesos son públicos y auditables:
 | CodeLlama:7b | 7B | 8 GB | Meta Llama 2 | Muy buena (código) |
 | CodeLlama:13b | 13B | 16 GB | Meta Llama 2 | Excelente (código) |
 | Qwen2.5-Coder:7b | 7B | 8 GB | Apache 2.0 | Excelente (código) |
+| Qwen2.5-Coder:32b | 32B | 24 GB | Apache 2.0 | Excelente (local, $0) |
 | Mistral:7b | 7B | 8 GB | Apache 2.0 | Muy buena |
 | DeepSeek-Coder:6.7b | 6.7B | 8 GB | MIT | Excelente (código) |
+| DeepSeek-R1 (reasoner) | ~671B | API hosteada | MIT | Mejor precisión/F1 medida (§6.2.4) |
+
+El último renglón corresponde al nivel **open-weight hosteado**: pesos abiertos (MIT)
+demasiado grandes para el hardware de prueba, accedidos por API hosteada a costo muy
+bajo (~$0.08/auditoría). Es el modelo de pesos abiertos con mejor precisión y F1 en la
+comparación de EVMBench (Tabla 6.2b).
 
 **3. Sin telemetría**
 
@@ -716,9 +755,9 @@ La decisión de implementar LLMs soberanos en MIESC responde a un análisis rigu
 
 2. **Las APIs comerciales de LLM introducen vectores de riesgo inaceptables** para código de alto valor: transmisión a jurisdicciones extranjeras, retención por períodos extendidos, posible memorización en modelos.
 
-3. **Los modelos locales de 7-13B parámetros proporcionan capacidad suficiente** para el caso de uso de análisis de seguridad, especialmente cuando operan dentro de una arquitectura de múltiples capas.
+3. **Los modelos de pesos abiertos proporcionan capacidad suficiente** para el caso de uso de análisis de seguridad, especialmente dentro de una arquitectura de múltiples capas. Esto ya no es solo una expectativa: en la evaluación de EVMBench (§6.2.4), el modelo open-weight DeepSeek-R1 obtiene la **mejor precisión (88.5%) y F1 (78.7%)** de toda la comparación, por encima de los proveedores frontier; y un modelo local de 32B alcanza 59.2% de recall sin ninguna llamada externa.
 
-4. **El costo total de propiedad de LLMs soberanos es inferior** al de APIs comerciales para organizaciones que realizan auditorías regularmente.
+4. **El costo total de propiedad de LLMs soberanos es inferior** al de APIs comerciales para organizaciones que realizan auditorías regularmente. Medido en EVMBench, el nivel open-weight cuesta **~$0.08 por auditoría (15–69× menos que los frontier)** y el nivel local $0, sin sacrificar precisión de detección.
 
 5. **La ejecución local garantiza cumplimiento regulatorio automático** con GDPR, LGPD, LFPDPPP y regulaciones sectoriales.
 

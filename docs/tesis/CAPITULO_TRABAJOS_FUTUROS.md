@@ -103,7 +103,7 @@ El presente trabajo de tesis ha presentado MIESC (Marco Integrado de Seguridad p
 |-------|-------------|-------------|---------|
 | TF-2.1 | Fine-tuning de CodeLlama para Solidity | Alta | Muy Alto |
 | TF-2.2 | Dataset de vulnerabilidades anotadas | Media | Alto |
-| TF-2.3 | Benchmark de modelos LLM para auditoría | Media | Alto |
+| TF-2.3 | Benchmark de modelos LLM para auditoría (parcialmente logrado: EVMBench, 40 auditorías, frontier vs open-weight vs local; resta la postulación al leaderboard oficial) | Media | Alto |
 | TF-2.4 | Reducción de falsos positivos con RAG | Media | Alto |
 | TF-2.5 | Explicabilidad de decisiones de IA | Alta | Medio |
 
