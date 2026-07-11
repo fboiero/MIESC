@@ -40,5 +40,33 @@ platform with the current Paper 1 and Paper 2 evidence.
 
 ## Remaining Debt
 
-No active debt remains in this plan. New debt should be added here only when it
-has a concrete owner, scope, and validation path.
+### Layer-taxonomy split between the CLI and the config (open)
+
+The 9-layer defense stack is defined **twice, incompatibly**, in active code:
+
+- `miesc/cli/constants.py` (drives `miesc audit --layer N` and the CLI output)
+  groups layers 5–9 as: **L5 AI Analysis · L6 ML Detection · L7 Specialized
+  Analysis · L8 Cross-Chain & ZK Security · L9 Advanced AI Ensemble**, with real
+  adapters per layer (e.g. L8 = `crosschain, zk_circuit, bridge_monitor,
+  l2_validator, circom_analyzer`).
+- `miesc/data/config/miesc.yaml` (and the README/public docs) groups layers 5–9
+  as: **L5 AI/LLM Analysis · L6 Pattern Detection · L7 DeFi Security · L8 Exploit
+  Validation · L9 Consensus & Reporting**.
+
+These are not a wording difference; they are two different *tool groupings* of
+real adapters. The CLI has a Cross-Chain/ZK layer the README scheme does not
+mention; the README scheme has an Exploit-Validation layer the CLI grouping does
+not surface as a layer.
+
+**Impact:** public docs cannot be made consistent without either lying about what
+the CLI does or misrepresenting the config. Documentation of the layer names was
+therefore intentionally left untouched pending this decision.
+
+**Owner decision required:** pick the single canonical 5–9 taxonomy in code
+(reconcile `constants.py` and `miesc.yaml` to one another), then align the README,
+`mcp_server.py` docstring, `docs/index*.md`, `docs/ARCHITECTURE*.md`, and
+`docs/TOOLS.md` to that single source of truth.
+
+**Validation path:** after reconciliation, `miesc audit --list-layers` (or the
+equivalent), `constants.py`, `miesc.yaml`, and the README "9 Defense Layers" block
+must all print the same L1–L9 names.
