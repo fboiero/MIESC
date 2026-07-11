@@ -261,8 +261,10 @@ async def miesc_run_tool(tool_name: str, contract_path: str, timeout: int = 300)
 async def miesc_run_layer(layer: int, contract_path: str, timeout: int = 300) -> str:
     """
     Run all tools in a specific defense layer (1-9).
-    Layers: 1=Static, 2=Dynamic/Fuzzing, 3=Symbolic, 4=Formal Verification,
-    5=AI Analysis, 6=ML Detection, 7=Specialized, 8=Cross-Chain/ZK, 9=Advanced Ensemble.
+    Layers (canonical, per miesc.cli.constants.LAYERS): 1=Static Analysis,
+    2=Dynamic Testing, 3=Symbolic Execution, 4=Formal Verification, 5=AI Analysis,
+    6=ML Detection, 7=Specialized Analysis, 8=Cross-Chain & ZK Security,
+    9=Advanced AI Ensemble.
     """
     contract_path = _validate_contract_path(contract_path)
     LAYERS = _get_layers()

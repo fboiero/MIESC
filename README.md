@@ -166,16 +166,20 @@ Current technical-debt cleanup and remaining platform work are tracked in the [t
 ### The 9 Defense Layers
 
 ```
-Layer 1  Static Analysis        Slither, Aderyn, Solhint, Semgrep
-Layer 2  Dynamic Testing        Echidna, Foundry, Medusa
-Layer 3  Symbolic Execution     Mythril, Halmos, Manticore
-Layer 4  Formal Verification    SMTChecker, Scribble, Certora*
-Layer 5  AI/LLM Analysis        SmartLLM, GPTScan, LLMSmartAudit (Ollama)
-Layer 6  Pattern Detection      Gas Analyzer, Clone Detector, Threat Model
-Layer 7  DeFi Security          MEV Detector, Flash Loan Analyzer, Oracle Checker
-Layer 8  Exploit Validation     PoC Synthesizer (Foundry), Vulnerability Verifier
-Layer 9  Consensus & Reporting  Bayesian Consensus, RAG Enrichment, PDF Reports
+Layer 1  Static Analysis            Slither, Aderyn, Solhint, Semgrep
+Layer 2  Dynamic Testing            Echidna, Foundry, Medusa
+Layer 3  Symbolic Execution         Mythril, Halmos, Manticore
+Layer 4  Formal Verification        SMTChecker, Scribble, Certora*
+Layer 5  AI Analysis                SmartLLM, GPTScan, LLMSmartAudit, GPTLens (Ollama)
+Layer 6  ML Detection               DA-GNN, SmartBugs-ML, SmartGuard, Peculiar
+Layer 7  Specialized Analysis       Threat Model, Gas Analyzer, MEV Detector, Clone Detector, DeFi
+Layer 8  Cross-Chain & ZK Security  Cross-Chain, ZK Circuit, Bridge Monitor, L2 Validator, Circom
+Layer 9  Advanced AI Ensemble       LLMBugScanner, Audit Consensus, Exploit Synthesizer, Vuln Verifier
 ```
+
+Layers 8–9 include experimental multi-chain/ZK and ensemble-consensus modules; the
+EVM analysis path (Layers 1–7) is the production-ready core (multi-chain is on the
+roadmap). The canonical layer definition lives in `miesc/cli/constants.py`.
 
 *Certora requires API key. All other tools are fully open-source.
 

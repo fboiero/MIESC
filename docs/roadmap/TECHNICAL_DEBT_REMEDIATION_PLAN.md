@@ -62,11 +62,26 @@ not surface as a layer.
 the CLI does or misrepresenting the config. Documentation of the layer names was
 therefore intentionally left untouched pending this decision.
 
-**Owner decision required:** pick the single canonical 5–9 taxonomy in code
-(reconcile `constants.py` and `miesc.yaml` to one another), then align the README,
-`mcp_server.py` docstring, `docs/index*.md`, `docs/ARCHITECTURE*.md`, and
-`docs/TOOLS.md` to that single source of truth.
+**Decision (resolved):** the canonical taxonomy is **`miesc/cli/constants.py`** —
+it is what the shipping CLI entry point (`miesc.cli.main:cli`) and the REST API
+execute, every one of its per-layer adapters exists, and `tests/test_rest_api.py`
+already asserts its names ("ML Detection", "Specialized Analysis"). The canonical
+L1–L9 are: Static Analysis · Dynamic Testing · Symbolic Execution · Formal
+Verification · AI Analysis · ML Detection · Specialized Analysis · Cross-Chain & ZK
+Security · Advanced AI Ensemble.
 
-**Validation path:** after reconciliation, `miesc audit --list-layers` (or the
-equivalent), `constants.py`, `miesc.yaml`, and the README "9 Defense Layers" block
-must all print the same L1–L9 names.
+**Done:** README "9 Defense Layers" block and `mcp_server.py` docstring aligned to
+`constants.py`.
+
+**Remaining (scoped refactor, not a doc edit):** `miesc/data/config/miesc.yaml`
+still encodes the divergent legacy scheme (Pattern Detection / DeFi Security /
+Exploit Validation / Consensus & Reporting) read only by the compatibility
+orchestrator in `src/core`. Its layer *keys* (`ai_analysis`, `pattern_detection`,
+`exploit_validation`, …) are referenced by name in ~19 Python files, so migrating
+it must update those references and their tests together — it is a code refactor
+with test coverage, deliberately not done as a blind config edit. Also pending:
+the layer tables in `docs/index*.md`, `docs/ARCHITECTURE*.md`, and `docs/TOOLS.md`.
+
+**Validation path:** after the refactor, `constants.py`, `miesc.yaml`, the REST API
+`/layers` response, and the README "9 Defense Layers" block must all print the same
+L1–L9 names, and the full test suite must stay green.
