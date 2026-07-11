@@ -148,6 +148,12 @@ analysis/policy/*.md
 !analysis/policy/README.md
 !analysis/results/README.md
 
+# -----------------------------------------------------------------------------
+# Trained ML model artifacts (binary + large, regenerable from training —
+# not source-controlled; document how to produce them instead of committing)
+# -----------------------------------------------------------------------------
+models/
+
 # Data analysis outputs
 data/analysis/*.json
 data/analysis/*.csv
