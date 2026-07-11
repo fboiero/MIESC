@@ -63,9 +63,10 @@ preferred-citation:
     false positives in automated security analysis through multi-tool integration
     and AI-powered correlation. Key contributions include:
     (1) Novel MCP-based multi-agent architecture for collaborative cyberdefense,
-    (2) Empirical validation on 5,127 real-world contracts demonstrating 34%
-    improvement over single-tool analysis, (3) Automated compliance mapping to 12
-    international standards, (4) Open-source implementation enabling reproducible
+    (2) Empirical validation on curated and real-world corpora, with ensemble
+    recall approximately double the best single-tool baseline (43.2% recall,
+    Durieux et al. 2020), (3) Automated compliance mapping to international
+    standards, (4) Open-source implementation enabling reproducible
     security research. On SmartBugs-curated (143 contracts), the static and
     intelligence profile reports 95.8% recall, and on 11 real-world DeFi exploits
     MIESC detects 9 of 11 cases (81.8% recall, 95% Wilson confidence interval

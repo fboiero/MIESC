@@ -752,9 +752,10 @@ async def miesc_remediation_evidence_bundle(
 @mcp.tool()
 async def miesc_get_metrics() -> str:
     """
-    Retrieve MIESC's scientific validation metrics.
-    Returns precision, recall, F1-score from thesis experiments
-    (analysis of 5,127 smart contracts).
+    Retrieve MIESC's reproducible benchmark metrics.
+    Returns recall on SmartBugs-curated (143 contracts), real-world DeFi
+    exploits (with 95% Wilson CI), and the EVMBench ensemble, each sourced
+    from the released per-claim matrix (benchmarks/results/paper1_claims_matrix.json).
     """
     return json.dumps(
         {
