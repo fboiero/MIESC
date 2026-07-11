@@ -2634,50 +2634,53 @@ than MEV for this contract.
 
 ### Tabla A.1: Comparativa de las 25 Herramientas de MIESC
 
-| # | Herramienta | Capa | Tecnica | Lenguaje | Tiempo* | Precision | Recall | Fortaleza Principal |
-|---|-------------|------|---------|----------|---------|-----------|--------|---------------------|
-| 1 | Slither | 1 | Estatico | Python | 2.3s | 87% | 89% | Cobertura amplia, 80+ detectores |
-| 2 | Solhint | 1 | Linter | JavaScript | 0.8s | 95% | 60% | Mejores practicas, estilo |
-| 3 | Aderyn | 1 | Estatico | Rust | 0.3s | 85% | 82% | Velocidad extrema |
-| 4 | Echidna | 2 | Fuzzing | Haskell | 18s | 92% | 78% | Property testing robusto |
-| 5 | Foundry Fuzz | 2 | Fuzzing | Rust | 2.3s | 90% | 75% | Integracion desarrollo |
-| 6 | Medusa | 2 | Fuzzing | Go | 32s | 88% | 80% | Coverage-guided |
-| 7 | DogeFuzz | 2 | ML+Fuzz | Python | 45s | 82% | 72% | ML-guided generation |
-| 8 | Vertigo | 2 | Mutation | Python | 23s | N/A | N/A | Calidad de tests |
-| 9 | Mythril | 3 | Simbolico | Python | 28s | 89% | 85% | Deteccion profunda |
-| 10 | Manticore | 3 | Simbolico | Python | 127s | 91% | 88% | Analisis exhaustivo |
-| 11 | Oyente | 3 | Simbolico | Python | 3.2s | 78% | 70% | Rapidez legacy |
-| 12 | Halmos | 4 | Bounded MC | Python | 14s | 94% | 82% | Verificacion Foundry |
-| 13 | Wake | 4 | Property | Python | 8.9s | 90% | 78% | Python-native |
-| 14 | SMTChecker | 5 | Formal | C++ | 9.8s | 96% | 75% | Integrado en solc |
-| 15 | Certora | 5 | Formal | - | 45s | 98% | 90% | Verificacion profesional |
-| 16 | PropertyGPT | 5 | LLM+Formal | Python | 21s | 85% | 65% | Generacion automatica |
-| 17 | GPTScan | 6 | LLM | Python | 3.7s | 88% | 82% | Analisis semantico |
-| 18 | SmartLLM | 6 | RAG+LLM | Python | 8.2s | 90% | 85% | Conocimiento SWC |
-| 19 | LLMSmartAudit | 6 | LLM | Python | 12s | 86% | 80% | Reportes profesionales |
-| 20 | ThreatModel | 6 | LLM+STRIDE | Python | 5.4s | 82% | 75% | Modelo de amenazas |
-| 21 | SmartBugs-ML | 7 | ML | Python | 1.2s | 85% | 78% | Clasificacion rapida |
-| 22 | CloneDetector | 7 | Similarity | Python | 2.3s | 92% | 68% | Deteccion de exploits |
-| 23 | DAGNN | 7 | GNN | Python | 3.2s | 88% | 82% | Patrones complejos |
-| 24 | GasAnalyzer | Esp. | Estatico | Python | 1.5s | 95% | 90% | Optimizacion gas |
-| 25 | MEVDetector | Esp. | Heuristico | Python | 1.0s | 80% | 70% | Vulnerabilidades MEV |
+| # | Herramienta | Capa | Tecnica | Lenguaje | Tiempo* | Fortaleza Principal |
+|---|-------------|------|---------|----------|---------|---------------------|
+| 1 | Slither | 1 | Estatico | Python | 2.3s | Cobertura amplia, 80+ detectores |
+| 2 | Solhint | 1 | Linter | JavaScript | 0.8s | Mejores practicas, estilo |
+| 3 | Aderyn | 1 | Estatico | Rust | 0.3s | Velocidad extrema |
+| 4 | Echidna | 2 | Fuzzing | Haskell | 18s | Property testing robusto |
+| 5 | Foundry Fuzz | 2 | Fuzzing | Rust | 2.3s | Integracion desarrollo |
+| 6 | Medusa | 2 | Fuzzing | Go | 32s | Coverage-guided |
+| 7 | DogeFuzz | 2 | ML+Fuzz | Python | 45s | ML-guided generation |
+| 8 | Vertigo | 2 | Mutation | Python | 23s | Calidad de tests |
+| 9 | Mythril | 3 | Simbolico | Python | 28s | Deteccion profunda |
+| 10 | Manticore | 3 | Simbolico | Python | 127s | Analisis exhaustivo |
+| 11 | Oyente | 3 | Simbolico | Python | 3.2s | Rapidez legacy |
+| 12 | Halmos | 4 | Bounded MC | Python | 14s | Verificacion Foundry |
+| 13 | Wake | 4 | Property | Python | 8.9s | Python-native |
+| 14 | SMTChecker | 5 | Formal | C++ | 9.8s | Integrado en solc |
+| 15 | Certora | 5 | Formal | - | 45s | Verificacion profesional |
+| 16 | PropertyGPT | 5 | LLM+Formal | Python | 21s | Generacion automatica |
+| 17 | GPTScan | 6 | LLM | Python | 3.7s | Analisis semantico |
+| 18 | SmartLLM | 6 | RAG+LLM | Python | 8.2s | Conocimiento SWC |
+| 19 | LLMSmartAudit | 6 | LLM | Python | 12s | Reportes profesionales |
+| 20 | ThreatModel | 6 | LLM+STRIDE | Python | 5.4s | Modelo de amenazas |
+| 21 | SmartBugs-ML | 7 | Heuristico | Python | 1.2s | Clasificacion rapida |
+| 22 | CloneDetector | 7 | Similarity | Python | 2.3s | Deteccion de exploits |
+| 23 | DAGNN | 7 | Heuristico | Python | 3.2s | Patrones complejos |
+| 24 | GasAnalyzer | Esp. | Estatico | Python | 1.5s | Optimizacion gas |
+| 25 | MEVDetector | Esp. | Heuristico | Python | 1.0s | Vulnerabilidades MEV |
 
-*Tiempos medidos en contrato VulnerableBank.sol (87 SLOC)
+*Tiempos aproximados de ejecucion sobre el contrato VulnerableBank.sol (87 SLOC).
+No se tabula precision/recall por herramienta porque no existe un benchmark comun
+que las mida de forma comparable entre las 25; la Tabla 3.3 reporta las cifras del
+subconjunto que Durieux et al. (2020) evaluo de forma independiente.
 
 ### Tabla A.2: Capacidades de Deteccion por Categoria SWC
 
-| SWC ID | Vulnerabilidad | Herramientas que Detectan | Mejor Herramienta |
-|--------|---------------|--------------------------|-------------------|
-| SWC-107 | Reentrancy | Slither, Mythril, Manticore, Echidna, GPTScan, SmartLLM, DAGNN | Manticore (91%) |
-| SWC-105 | Unprotected Ether | Slither, Mythril, Aderyn, GPTScan | Mythril (89%) |
-| SWC-104 | Unchecked Call | Slither, Solhint, Oyente | Slither (92%) |
-| SWC-101 | Integer Overflow | Mythril, Manticore, SMTChecker | SMTChecker (96%) |
-| SWC-106 | Unprotected SELFDESTRUCT | Slither, Mythril, Aderyn | Slither (94%) |
-| SWC-120 | Weak Randomness | Slither, GPTScan, SmartLLM | GPTScan (88%) |
-| SWC-111 | Deprecated Functions | Solhint, Slither | Solhint (95%) |
-| SWC-116 | Block Timestamp | Slither, Mythril, Aderyn | Slither (87%) |
-| SWC-115 | Authorization through tx.origin | Slither, Solhint, Aderyn | Slither (98%) |
-| SWC-131 | Unused Variables | Solhint, Slither | Solhint (99%) |
+| SWC ID | Vulnerabilidad | Herramientas que Detectan | Herramienta de Referencia |
+|--------|---------------|--------------------------|---------------------------|
+| SWC-107 | Reentrancy | Slither, Mythril, Manticore, Echidna, GPTScan, SmartLLM, DAGNN | Manticore |
+| SWC-105 | Unprotected Ether | Slither, Mythril, Aderyn, GPTScan | Mythril |
+| SWC-104 | Unchecked Call | Slither, Solhint, Oyente | Slither |
+| SWC-101 | Integer Overflow | Mythril, Manticore, SMTChecker | SMTChecker |
+| SWC-106 | Unprotected SELFDESTRUCT | Slither, Mythril, Aderyn | Slither |
+| SWC-120 | Weak Randomness | Slither, GPTScan, SmartLLM | GPTScan |
+| SWC-111 | Deprecated Functions | Solhint, Slither | Solhint |
+| SWC-116 | Block Timestamp | Slither, Mythril, Aderyn | Slither |
+| SWC-115 | Authorization through tx.origin | Slither, Solhint, Aderyn | Slither |
+| SWC-131 | Unused Variables | Solhint, Slither | Solhint |
 
 ### Tabla A.3: Justificacion de Inclusion de Cada Herramienta
 
@@ -2703,7 +2706,7 @@ than MEV for this contract.
 | SmartLLM | RAG con base SWC | Explicaciones educativas |
 | LLMSmartAudit | Simula auditor humano | Reportes ejecutivos |
 | ThreatModel | Metodologia STRIDE adaptada | Vision holistica de amenazas |
-| SmartBugs-ML | Clasificacion entrenada | Rapida triaging inicial |
+| SmartBugs-ML | Clasificacion heuristica basada en features | Rapida triaging inicial |
 | CloneDetector | Compara con exploits conocidos | Deteccion de patrones historicos |
 | DAGNN | Representacion de grafo avanzada | Patrones estructurales |
 | GasAnalyzer | Foco en eficiencia | Optimizacion economica |
