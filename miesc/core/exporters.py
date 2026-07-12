@@ -448,6 +448,198 @@ class JSONExporter:
         return counts
 
 
+class GitHubAnnotationsExporter:
+    """
+    Emits GitHub Actions workflow-command annotations for inline PR review.
+
+    Each finding becomes a ``::error`` / ``::warning`` / ``::notice`` line of the
+    form::
+
+        ::error file=<path>,line=<n>,title=<rule>::<message>
+
+    When GitHub Actions reads these lines from a step's stdout it renders them
+    inline on the pull-request diff (and in the Checks tab), giving per-finding
+    feedback that the summary comment alone cannot.
+
+    Two properties make this production-safe:
+
+    * **Severity ordering + a hard cap.** GitHub only surfaces a limited number
+      of annotations inline (10 per level, per step, is the practical visible
+      limit), so findings are sorted most-severe-first and capped. When the cap
+      truncates, the count is logged *and* an extra ``::notice`` line is emitted
+      so the suppression is never silent.
+    * **Correct escaping.** Message data and property values are escaped exactly
+      as GitHub's ``@actions/core`` toolkit does (``escapeData`` /
+      ``escapeProperty``), so commas, colons, percent signs and newlines in a
+      finding message can never break out of the command or corrupt a property.
+    """
+
+    #: Default number of annotations emitted inline before the cap kicks in.
+    #: GitHub renders at most ~10 annotations of a given level per step.
+    DEFAULT_MAX_ANNOTATIONS = 10
+
+    #: MIESC severity -> GitHub Actions annotation level.
+    LEVEL_BY_SEVERITY = {
+        "critical": "error",
+        "high": "error",
+        "medium": "warning",
+        "low": "warning",
+        "info": "notice",
+    }
+
+    #: Most-severe-first ordering used when applying the cap.
+    _SEVERITY_RANK = {
+        "critical": 0,
+        "high": 1,
+        "medium": 2,
+        "low": 3,
+        "info": 4,
+    }
+
+    def __init__(self, max_annotations: int = DEFAULT_MAX_ANNOTATIONS) -> None:
+        self.max_annotations = max_annotations
+
+    # -- public API --------------------------------------------------------
+
+    def to_github_annotations(
+        self, findings: List[Any], max_annotations: Optional[int] = None
+    ) -> List[str]:
+        """Render ``findings`` as GitHub Actions annotation command lines.
+
+        Args:
+            findings: Findings as MIESC ``Finding`` dataclasses or plain dicts
+                (flat ``file``/``line`` or nested ``location={file,line}``).
+            max_annotations: Override the instance cap for this call.
+
+        Returns:
+            A list of ``::level ...::message`` strings. When more findings are
+            supplied than the cap allows, only the most severe are rendered and
+            a trailing ``::notice`` line reports how many were suppressed.
+        """
+        import logging
+
+        cap = self.max_annotations if max_annotations is None else max_annotations
+
+        # Sort most-severe-first; stable so same-severity input order is kept.
+        ordered = sorted(findings, key=self._severity_rank)
+
+        shown = ordered if cap is None or cap < 0 else ordered[:cap]
+        suppressed = len(ordered) - len(shown)
+
+        lines = [self._finding_to_annotation(f) for f in shown]
+
+        if suppressed > 0:
+            logging.getLogger(__name__).warning(
+                "GitHub annotations capped at %d: %d additional finding(s) "
+                "suppressed from inline view (see the full report / Security tab).",
+                len(shown),
+                suppressed,
+            )
+            lines.append(
+                "::notice::MIESC: "
+                f"{suppressed} additional finding(s) not shown inline "
+                f"(annotation cap {len(shown)}); see the full SARIF report "
+                "in the Security tab."
+            )
+
+        return lines
+
+    def export(
+        self,
+        findings: List[Any],
+        output_path: Optional[str] = None,
+        max_annotations: Optional[int] = None,
+    ) -> str:
+        """Return the annotation lines joined by newlines (dispatcher-compatible)."""
+        lines = self.to_github_annotations(findings, max_annotations=max_annotations)
+        text = "\n".join(lines) + ("\n" if lines else "")
+        if output_path:
+            Path(output_path).write_text(text)
+        return text
+
+    # -- helpers -----------------------------------------------------------
+
+    def _finding_to_annotation(self, finding: Any) -> str:
+        """Render a single finding to a ``::level file=,line=,title=::msg`` line."""
+        from miesc.core import baseline as _baseline
+
+        norm = _baseline.normalize_finding(finding)
+        severity = norm.get("severity", "") or "info"
+        level = self.LEVEL_BY_SEVERITY.get(severity.lower(), "warning")
+
+        file_path = norm.get("file", "")
+        title = norm.get("rule_id", "") or "finding"
+        message = norm.get("message", "") or title
+        line = self._extract_line(finding)
+
+        props = []
+        if file_path:
+            props.append(f"file={self._escape_property(file_path)}")
+        if line is not None:
+            props.append(f"line={line}")
+        props.append(f"title={self._escape_property(title)}")
+
+        prop_str = ",".join(props)
+        return f"::{level} {prop_str}::{self._escape_data(message)}"
+
+    @staticmethod
+    def _extract_line(finding: Any) -> Optional[int]:
+        """Resolve a 1-based source line across the known finding shapes."""
+        candidates: List[Any] = []
+        if isinstance(finding, dict):
+            loc = finding.get("location")
+            if isinstance(loc, dict):
+                candidates += [loc.get("line"), loc.get("line_start"), loc.get("start_line")]
+            candidates += [
+                finding.get("line"),
+                finding.get("line_start"),
+                finding.get("start_line"),
+            ]
+        else:
+            candidates += [
+                getattr(finding, "line_start", None),
+                getattr(finding, "line", None),
+            ]
+        for value in candidates:
+            if value in (None, ""):
+                continue
+            try:
+                parsed = int(value)
+            except (TypeError, ValueError):
+                continue
+            if parsed > 0:
+                return parsed
+        return None
+
+    @staticmethod
+    def _escape_data(value: str) -> str:
+        """Escape a workflow-command message body (GitHub ``escapeData``)."""
+        return (
+            str(value)
+            .replace("%", "%25")
+            .replace("\r", "%0D")
+            .replace("\n", "%0A")
+        )
+
+    @staticmethod
+    def _escape_property(value: str) -> str:
+        """Escape a workflow-command property value (GitHub ``escapeProperty``)."""
+        return (
+            str(value)
+            .replace("%", "%25")
+            .replace("\r", "%0D")
+            .replace("\n", "%0A")
+            .replace(":", "%3A")
+            .replace(",", "%2C")
+        )
+
+    def _severity_rank(self, finding: Any) -> int:
+        from miesc.core import baseline as _baseline
+
+        severity = _baseline.normalize_finding(finding).get("severity", "")
+        return self._SEVERITY_RANK.get(severity.lower(), 99)
+
+
 class ReportExporter:
     """
     Unified report exporter supporting multiple formats.
@@ -466,6 +658,7 @@ class ReportExporter:
             "checkmarx": CheckmarxExporter(),
             "markdown": MarkdownExporter(),
             "json": JSONExporter(),
+            "github": GitHubAnnotationsExporter(),
         }
 
     def export(

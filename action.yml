@@ -63,6 +63,14 @@ inputs:
     description: 'Post findings summary as PR comment'
     required: false
     default: 'true'
+  annotate-pr:
+    description: 'Emit per-finding inline annotations on the PR diff (::error/::warning ...)'
+    required: false
+    default: 'true'
+  baseline-file:
+    description: 'Path to a .miesc-baseline.json; when set, only findings NOT in the baseline are annotated inline'
+    required: false
+    default: ''
 
 outputs:
   report-path:
@@ -256,6 +264,28 @@ runs:
         else
           echo "> No findings detected." >> $GITHUB_STEP_SUMMARY
         fi
+
+    - name: Annotate PR inline
+      if: inputs.annotate-pr == 'true' && github.event_name == 'pull_request'
+      shell: bash
+      run: |
+        RESULTS_JSON="${{ inputs.output-file }}.json"
+        if [ ! -f "$RESULTS_JSON" ]; then
+          echo "No results JSON ($RESULTS_JSON) to annotate; skipping."
+          exit 0
+        fi
+
+        # Compose with the baseline engine: annotate ONLY new findings when a
+        # baseline file is provided and present.
+        BASE_FLAG=""
+        if [ -n "${{ inputs.baseline-file }}" ] && [ -f "${{ inputs.baseline-file }}" ]; then
+          BASE_FLAG="--baseline ${{ inputs.baseline-file }}"
+          echo "Annotating findings not present in ${{ inputs.baseline-file }}"
+        fi
+
+        # Printed workflow commands are rendered by GitHub as inline annotations
+        # on the pull-request diff. Never fail the build on annotation emission.
+        miesc export "$RESULTS_JSON" -f github $BASE_FLAG || true
 
     - name: Upload SARIF to GitHub Security
       if: inputs.upload-sarif == 'true' && inputs.output-format == 'sarif' && hashFiles(format('{0}.sarif', inputs.output-file)) != ''
