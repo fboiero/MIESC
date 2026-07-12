@@ -18,6 +18,36 @@ import pytest
 from miesc.adapters.gptlens_adapter import GPTLensAdapter
 
 # ---------------------------------------------------------------------------
+# Determinism guard
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(autouse=True)
+def _no_live_ollama_model_leak(monkeypatch):
+    """Make GPTLens model detection independent of the host Ollama state.
+
+    ``GPTLensAdapter.is_available()`` calls ``list_ollama_models()`` +
+    ``select_ollama_model()``; when a real Ollama server is running,
+    ``select_ollama_model`` falls back to ``models[0]`` (see
+    ``miesc/core/ollama_models.py``) and OVERWRITES the configured
+    ``auditor_model``/``critic_model`` with whatever big model the machine
+    happens to have installed (e.g. ``qwen2.5-coder:32b``). That leaks host
+    state into the tests and breaks the ``model == "test-auditor"`` branches
+    used by the mocked-Ollama analyze tests.
+
+    Force discovery to report *no* installed models so ``select_ollama_model``
+    keeps the adapter's configured (test) models, and drop any inherited
+    ``MIESC_LLM_MODEL`` override. These tests then pass identically whether or
+    not a live Ollama server is running.
+    """
+    monkeypatch.delenv("MIESC_LLM_MODEL", raising=False)
+    monkeypatch.setattr(
+        "miesc.adapters.gptlens_adapter.list_ollama_models",
+        lambda *args, **kwargs: [],
+    )
+
+
+# ---------------------------------------------------------------------------
 # Helpers / fixtures
 # ---------------------------------------------------------------------------
 
@@ -515,3 +545,29 @@ class TestAnalyzeWithMockedOllama:
             result = adapter.analyze("/nonexistent/path/Contract.sol")
 
         assert result["status"] == "error"
+
+
+class TestModelDetectionIsHermetic:
+    """Regression: is_available() must never leak host Ollama models."""
+
+    def test_is_available_keeps_configured_models(self, adapter):
+        """Even when the (mocked) server reports big machine models, the
+        adapter must keep its configured ``test-auditor``/``test-critic`` and
+        not swap in a host model. The autouse guard neutralises discovery so
+        this holds whether or not a live Ollama server is running.
+        """
+
+        def fake_urlopen(req, timeout=None):
+            # Simulate a live server that only has unrelated machine models.
+            if req.get_full_url().endswith("/api/tags"):
+                return _make_ollama_resp("")  # body has no "models" key
+            return _make_health_resp()
+
+        assert adapter._auditor_model == "test-auditor"
+        with patch("urllib.request.urlopen", side_effect=fake_urlopen):
+            status = adapter.is_available()
+
+        assert status.value == "available"
+        # The configured (test) models survived is_available().
+        assert adapter._auditor_model == "test-auditor"
+        assert adapter._critic_model == "test-critic"

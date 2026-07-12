@@ -10,7 +10,19 @@ import json
 import urllib.error
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from miesc.core.ollama_models import list_ollama_models, select_ollama_model
+
+
+@pytest.fixture(autouse=True)
+def _drop_llm_model_env(monkeypatch):
+    """``select_ollama_model`` honours ``MIESC_LLM_MODEL`` before anything else.
+
+    Drop any inherited value so these tests exercise the real selection
+    heuristic and never depend on the host's environment / Ollama state.
+    """
+    monkeypatch.delenv("MIESC_LLM_MODEL", raising=False)
 
 
 def _tags_response(names, status=200):

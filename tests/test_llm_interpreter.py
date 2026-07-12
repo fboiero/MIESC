@@ -20,6 +20,15 @@ from miesc.reports.llm_interpreter import (
     generate_premium_report_insights,
 )
 
+
+@pytest.fixture(autouse=True)
+def _drop_llm_model_env(monkeypatch):
+    """LLMReportInterpreter reads ``MIESC_LLM_MODEL`` in ``__init__``; drop any
+    inherited value so the default-model tests don't depend on host env state.
+    Tests that assert the override behaviour set it explicitly via patch.dict.
+    """
+    monkeypatch.delenv("MIESC_LLM_MODEL", raising=False)
+
 # =============================================================================
 # LLMInterpreterConfig Tests
 # =============================================================================
