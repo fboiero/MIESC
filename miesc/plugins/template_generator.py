@@ -272,7 +272,7 @@ import logging
 import re
 from typing import Any, Dict, List, Optional
 
-from src.plugins import DetectorPlugin, PluginContext, PluginMetadata
+from miesc.plugins import DetectorPlugin, PluginContext, PluginMetadata
 
 logger = logging.getLogger(__name__)
 
@@ -388,7 +388,7 @@ import subprocess
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
-from src.plugins import AdapterPlugin, PluginContext, PluginMetadata
+from miesc.plugins import AdapterPlugin, PluginContext, PluginMetadata
 
 logger = logging.getLogger(__name__)
 
@@ -526,7 +526,7 @@ import logging
 from pathlib import Path
 from typing import Any, Dict, List, Union
 
-from src.plugins import ReporterPlugin, PluginContext, PluginMetadata
+from miesc.plugins import ReporterPlugin, PluginContext, PluginMetadata
 
 logger = logging.getLogger(__name__)
 
@@ -659,7 +659,7 @@ import logging
 import re
 from typing import Any, Dict, Optional
 
-from src.plugins import TransformerPlugin, PluginContext, PluginMetadata
+from miesc.plugins import TransformerPlugin, PluginContext, PluginMetadata
 
 logger = logging.getLogger(__name__)
 
@@ -758,7 +758,7 @@ Version: {template.version}
 import logging
 from typing import Any, Dict, Optional
 
-from src.plugins import MIESCPlugin, PluginContext, PluginType, PluginResult
+from miesc.plugins import MIESCPlugin, PluginContext, PluginType, PluginResult
 
 logger = logging.getLogger(__name__)
 
@@ -832,7 +832,7 @@ import pytest
 from pathlib import Path
 
 from {module_name} import {plugin_class}
-from src.plugins import PluginContext, PluginType
+from miesc.plugins import PluginContext, PluginType
 
 
 @pytest.fixture

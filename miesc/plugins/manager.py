@@ -1036,7 +1036,7 @@ class PluginManager:
         Returns:
             MarketplaceClient instance for remote plugin index operations.
         """
-        from src.plugins.marketplace import MarketplaceClient
+        from miesc.plugins.marketplace import MarketplaceClient
 
         return MarketplaceClient()
 

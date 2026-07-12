@@ -14,7 +14,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.plugins.marketplace import (
+from miesc.plugins.marketplace import (
     DEFAULT_CACHE_TTL_SECONDS,
     MarketplaceClient,
     MarketplaceIndex,
@@ -503,7 +503,7 @@ class TestMarketplaceFetch:
         index = client_with_index.fetch_index()
         assert len(index.plugins) == 3
 
-    @patch("src.plugins.marketplace.urllib.request.urlopen")
+    @patch("miesc.plugins.marketplace.urllib.request.urlopen")
     def test_fetch_remote_success(self, mock_urlopen, client):
         response_data = json.dumps(SAMPLE_INDEX_DICT).encode()
         mock_response = MagicMock()
@@ -517,7 +517,7 @@ class TestMarketplaceFetch:
         assert len(index.plugins) == 3
         mock_urlopen.assert_called_once()
 
-    @patch("src.plugins.marketplace.urllib.request.urlopen")
+    @patch("miesc.plugins.marketplace.urllib.request.urlopen")
     def test_fetch_remote_failure_with_cache_fallback(self, mock_urlopen, client, sample_index):
         # Save cache first
         client._save_cache(sample_index)
@@ -527,19 +527,19 @@ class TestMarketplaceFetch:
         index = client.fetch_index(force_refresh=True)
         assert len(index.plugins) == 3  # Falls back to cache
 
-    @patch("src.plugins.marketplace.urllib.request.urlopen")
+    @patch("miesc.plugins.marketplace.urllib.request.urlopen")
     def test_fetch_remote_failure_no_cache(self, mock_urlopen, client):
         mock_urlopen.side_effect = urllib.error.URLError("Network error")
         with pytest.raises(MarketplaceUnavailableError):
             client.fetch_index(force_refresh=True)
 
-    @patch("src.plugins.marketplace.urllib.request.urlopen")
+    @patch("miesc.plugins.marketplace.urllib.request.urlopen")
     def test_fetch_remote_timeout(self, mock_urlopen, client):
         mock_urlopen.side_effect = TimeoutError("Timeout")
         with pytest.raises(MarketplaceUnavailableError):
             client.fetch_index(force_refresh=True)
 
-    @patch("src.plugins.marketplace.urllib.request.urlopen")
+    @patch("miesc.plugins.marketplace.urllib.request.urlopen")
     def test_fetch_remote_bad_json(self, mock_urlopen, client):
         mock_response = MagicMock()
         mock_response.status = 200
@@ -664,7 +664,7 @@ class TestMarketplaceSubmission:
 
 
 class TestMarketplaceIntegration:
-    @patch("src.plugins.marketplace.urllib.request.urlopen")
+    @patch("miesc.plugins.marketplace.urllib.request.urlopen")
     def test_full_search_workflow(self, mock_urlopen, cache_path):
         """Test complete workflow: fetch -> search -> get details."""
         response_data = json.dumps(SAMPLE_INDEX_DICT).encode()

@@ -18,7 +18,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from src.plugins import (
+from miesc.plugins import (
     AdapterPlugin,
     DetectorPlugin,
     DiscoveryResult,
@@ -527,7 +527,7 @@ class TestPluginLoader:
         """Should load plugin from file."""
         # Create a plugin file
         plugin_code = """
-from src.plugins import DetectorPlugin, PluginContext
+from miesc.plugins import DetectorPlugin, PluginContext
 from typing import Any, Dict, List, Optional
 
 class TestFileDetector(DetectorPlugin):
@@ -949,7 +949,7 @@ class TestPluginSystemIntegration:
         """Test complete plugin lifecycle."""
         # 1. Create plugin file
         plugin_code = """
-from src.plugins import DetectorPlugin, PluginContext, PluginResult
+from miesc.plugins import DetectorPlugin, PluginContext, PluginResult
 from typing import Any, Dict, List, Optional
 
 class IntegrationTestDetector(DetectorPlugin):
@@ -1048,7 +1048,7 @@ class TestPluginTemplateGenerator:
 
     def test_create_detector_plugin(self, tmp_path):
         """Should create a detector plugin scaffold."""
-        from src.plugins import PluginTemplateGenerator, PluginType
+        from miesc.plugins import PluginTemplateGenerator, PluginType
 
         generator = PluginTemplateGenerator()
         plugin_path = generator.create_plugin(
@@ -1069,7 +1069,7 @@ class TestPluginTemplateGenerator:
 
     def test_create_adapter_plugin(self, tmp_path):
         """Should create an adapter plugin scaffold."""
-        from src.plugins import PluginTemplateGenerator, PluginType
+        from miesc.plugins import PluginTemplateGenerator, PluginType
 
         generator = PluginTemplateGenerator()
         plugin_path = generator.create_plugin(
@@ -1088,7 +1088,7 @@ class TestPluginTemplateGenerator:
 
     def test_create_reporter_plugin(self, tmp_path):
         """Should create a reporter plugin scaffold."""
-        from src.plugins import PluginTemplateGenerator, PluginType
+        from miesc.plugins import PluginTemplateGenerator, PluginType
 
         generator = PluginTemplateGenerator()
         plugin_path = generator.create_plugin(
@@ -1105,7 +1105,7 @@ class TestPluginTemplateGenerator:
 
     def test_create_transformer_plugin(self, tmp_path):
         """Should create a transformer plugin scaffold."""
-        from src.plugins import PluginTemplateGenerator, PluginType
+        from miesc.plugins import PluginTemplateGenerator, PluginType
 
         generator = PluginTemplateGenerator()
         plugin_path = generator.create_plugin(
@@ -1121,7 +1121,7 @@ class TestPluginTemplateGenerator:
 
     def test_normalize_name(self):
         """Should normalize plugin names correctly."""
-        from src.plugins import PluginTemplateGenerator
+        from miesc.plugins import PluginTemplateGenerator
 
         generator = PluginTemplateGenerator()
 
@@ -1132,7 +1132,7 @@ class TestPluginTemplateGenerator:
 
     def test_to_class_name(self):
         """Should convert to PascalCase class name."""
-        from src.plugins import PluginTemplateGenerator
+        from miesc.plugins import PluginTemplateGenerator
 
         generator = PluginTemplateGenerator()
 
@@ -1142,7 +1142,7 @@ class TestPluginTemplateGenerator:
 
     def test_pyproject_toml_content(self, tmp_path):
         """Should create valid pyproject.toml."""
-        from src.plugins import PluginTemplateGenerator, PluginType
+        from miesc.plugins import PluginTemplateGenerator, PluginType
 
         generator = PluginTemplateGenerator()
         plugin_path = generator.create_plugin(
@@ -1163,7 +1163,7 @@ class TestPluginTemplateGenerator:
 
     def test_readme_content(self, tmp_path):
         """Should create README with plugin info."""
-        from src.plugins import PluginTemplateGenerator, PluginType
+        from miesc.plugins import PluginTemplateGenerator, PluginType
 
         generator = PluginTemplateGenerator()
         plugin_path = generator.create_plugin(
@@ -1183,7 +1183,7 @@ class TestPluginTemplateGenerator:
 
     def test_test_file_content(self, tmp_path):
         """Should create test file with plugin tests."""
-        from src.plugins import PluginTemplateGenerator, PluginType
+        from miesc.plugins import PluginTemplateGenerator, PluginType
 
         generator = PluginTemplateGenerator()
         plugin_path = generator.create_plugin(
@@ -1202,7 +1202,7 @@ class TestPluginTemplateGenerator:
 
     def test_plugin_with_tags(self, tmp_path):
         """Should include tags in metadata."""
-        from src.plugins import PluginTemplateGenerator, PluginType
+        from miesc.plugins import PluginTemplateGenerator, PluginType
 
         generator = PluginTemplateGenerator()
         plugin_path = generator.create_plugin(
@@ -1220,7 +1220,7 @@ class TestPluginTemplateGenerator:
 
     def test_generated_plugin_imports(self, tmp_path):
         """Generated plugin should have correct imports."""
-        from src.plugins import PluginTemplateGenerator, PluginType
+        from miesc.plugins import PluginTemplateGenerator, PluginType
 
         generator = PluginTemplateGenerator()
         plugin_path = generator.create_plugin(
@@ -1235,4 +1235,4 @@ class TestPluginTemplateGenerator:
         # Imports are combined in one line
         assert "DetectorPlugin" in content
         assert "PluginContext" in content
-        assert "from src.plugins import" in content
+        assert "from miesc.plugins import" in content

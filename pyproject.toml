@@ -207,7 +207,7 @@ packages = [
     "src.mcp_core",
     "miesc.ml",
     "miesc.ml.fine_tuning",
-    "src.plugins",
+    "miesc.plugins",
     "src.poc",
     "src.poc.validators",
     "src.reports",

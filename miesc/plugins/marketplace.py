@@ -10,7 +10,7 @@ The marketplace is a curated JSON index. Plugins are distributed
 via PyPI. Submissions happen via Pull Requests.
 
 Usage:
-    from src.plugins.marketplace import MarketplaceClient
+    from miesc.plugins.marketplace import MarketplaceClient
 
     client = MarketplaceClient()
     results = client.search("flash loan")

@@ -22,12 +22,12 @@ from typing import Any, Dict, List, Optional
 # Use the installed package when available; fall back to a relative import
 # when running directly from the examples directory.
 try:
-    from src.plugins.protocol import DetectorPlugin, PluginContext, PluginMetadata, PluginType
+    from miesc.plugins.protocol import DetectorPlugin, PluginContext, PluginMetadata, PluginType
 except ImportError:
     import sys
 
     sys.path.insert(0, str(Path(__file__).resolve().parents[4]))
-    from src.plugins.protocol import DetectorPlugin, PluginContext, PluginMetadata, PluginType
+    from miesc.plugins.protocol import DetectorPlugin, PluginContext, PluginMetadata, PluginType
 
 
 # ---------------------------------------------------------------------------

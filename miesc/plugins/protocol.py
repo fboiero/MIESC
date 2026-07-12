@@ -11,7 +11,7 @@ Plugin Types:
 - TRANSFORMER: Code transformers and fixers
 
 Usage:
-    from src.plugins.protocol import MIESCPlugin, PluginType
+    from miesc.plugins.protocol import MIESCPlugin, PluginType
 
     class MyDetector(MIESCPlugin):
         @property

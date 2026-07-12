@@ -17,12 +17,12 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
 try:
-    from src.plugins.protocol import PluginContext, PluginMetadata, PluginType, ReporterPlugin
+    from miesc.plugins.protocol import PluginContext, PluginMetadata, PluginType, ReporterPlugin
 except ImportError:
     import sys
 
     sys.path.insert(0, str(Path(__file__).resolve().parents[4]))
-    from src.plugins.protocol import PluginContext, PluginMetadata, PluginType, ReporterPlugin
+    from miesc.plugins.protocol import PluginContext, PluginMetadata, PluginType, ReporterPlugin
 
 
 # Columns written to the CSV — order matters for readability in spreadsheets.
