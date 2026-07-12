@@ -18,12 +18,24 @@ from miesc.formal.spec_runner import (
     VerificationResult,
     run_all_available,
 )
+from miesc.formal.unified_report import (
+    UNAVAILABLE,
+    Counterexample,
+    ProverVerdict,
+    UnifiedVerificationReport,
+    normalize_status,
+)
 
 __all__ = [
+    "Counterexample",
     "GeneratedSpec",
+    "ProverVerdict",
     "SpecFormat",
     "SpecGenerator",
     "SpecRunner",
+    "UNAVAILABLE",
+    "UnifiedVerificationReport",
     "VerificationResult",
+    "normalize_status",
     "run_all_available",
 ]

@@ -5,7 +5,6 @@ Closes the loop: `miesc specs` generates CVL/Scribble/SMTChecker specs,
 `miesc verify` actually invokes the installed provers and reports pass/fail.
 """
 
-import json
 import sys
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -58,7 +57,13 @@ def _find_foundry_root(start: Path) -> Optional[Path]:
     "-o",
     type=click.Path(),
     default=None,
-    help="Write results to JSON (default: stdout summary only).",
+    help="Write the unified verification report to JSON (default: stdout summary only).",
+)
+@click.option(
+    "--sarif",
+    type=click.Path(),
+    default=None,
+    help="Write the unified verification report as SARIF 2.1.0 (GitHub code scanning).",
 )
 @click.option("--quiet", "-q", is_flag=True, help="Minimal output")
 def verify(
@@ -68,6 +73,7 @@ def verify(
     contract_name: str,
     timeout: int,
     output: str | None,
+    sarif: str | None,
     quiet: bool,
 ) -> None:
     """Run formal-verification provers against a contract.
@@ -173,11 +179,34 @@ def verify(
             if r.counterexamples:
                 console.print(f"    counterexamples: {len(r.counterexamples)}")
 
-    # Write JSON
+    # Aggregate all per-prover results into one first-class report.
+    from miesc.formal.unified_report import UnifiedVerificationReport
+
+    report = UnifiedVerificationReport.from_runner_results(
+        contract_path, results, availability=availability
+    )
+
+    if not quiet:
+        verdict_color = {
+            "verified": "green",
+            "violated": "red",
+            "inconclusive": "yellow",
+            "no_provers": "dim",
+        }.get(report.overall_verdict, "white")
+        console.print(
+            f"\n[bold]Overall verdict:[/bold] "
+            f"[{verdict_color}]{report.overall_verdict}[/{verdict_color}]"
+        )
+
+    # Write unified JSON report
     if output:
-        payload = {name: r.to_dict() for name, r in results.items()}
-        Path(output).write_text(json.dumps(payload, indent=2), encoding="utf-8")
-        success(f"Results written to {output}")
+        report.to_json(output)
+        success(f"Unified report written to {output}")
+
+    # Write unified SARIF report
+    if sarif:
+        report.to_sarif(sarif)
+        success(f"SARIF report written to {sarif}")
 
     # Exit code: 1 if any prover reported failures
     any_failed = any(r.status == "failed" for r in results.values())
