@@ -133,6 +133,9 @@ class TestVerifyCommand:
         runner = CliRunner()
         out = tmp_path / "out.json"
         fake_result = MagicMock()
+        fake_result.tool = "smtchecker"
+        fake_result.spec_file = contract
+        fake_result.stderr = ""
         fake_result.status = "passed"
         fake_result.rules_passed = 0
         fake_result.rules_failed = 0
@@ -164,7 +167,48 @@ class TestVerifyCommand:
             assert result.exit_code == 0
             assert out.exists()
             data = json.loads(out.read_text())
-            assert "smtchecker" in data
+            # Unified report: provers are nested under "provers", with an
+            # overall verdict and aggregate summary at the top level.
+            assert "provers" in data
+            assert "smtchecker" in data["provers"]
+            assert "overall_verdict" in data
+            assert "summary" in data
+
+    def test_sarif_output_written_when_requested(self, contract, tmp_path):
+        """--sarif must emit a valid SARIF 2.1.0 document from the unified report."""
+        runner = CliRunner()
+        out = tmp_path / "out.sarif"
+        fake_result = MagicMock()
+        fake_result.tool = "smtchecker"
+        fake_result.spec_file = contract
+        fake_result.stderr = ""
+        fake_result.status = "failed"
+        fake_result.rules_passed = 0
+        fake_result.rules_failed = 1
+        fake_result.rules_total = 1
+        fake_result.counterexamples = ["CHC: Overflow at line 3"]
+        fake_result.elapsed_seconds = 0.02
+        with patch("miesc.formal.SpecRunner") as SR:
+            instance = SR.return_value
+            instance.availability_report.return_value = {
+                "certora": False,
+                "halmos": False,
+                "smtchecker": True,
+            }
+            instance.run_smtchecker.return_value = fake_result
+            result = runner.invoke(
+                verify,
+                [contract, "--tool", "smtchecker", "--quiet", "--sarif", str(out)],
+            )
+            assert result.exit_code == 1  # violated -> a prover failed
+            assert out.exists()
+            sarif = json.loads(out.read_text())
+            assert sarif["version"] == "2.1.0"
+            run = sarif["runs"][0]
+            assert run["tool"]["driver"]["name"] == "MIESC-Formal"
+            assert len(run["results"]) == 1
+            region = run["results"][0]["locations"][0]["physicalLocation"]["region"]
+            assert region["startLine"] == 3
 
 
 # ---------------------------------------------------------------------------
@@ -182,6 +226,9 @@ class TestExitCodeContract:
     def test_exit_zero_on_all_passed(self, contract):
         runner = CliRunner()
         fake_result = MagicMock()
+        fake_result.tool = "smtchecker"
+        fake_result.spec_file = contract
+        fake_result.stderr = ""
         fake_result.status = "passed"
         fake_result.rules_passed = 0
         fake_result.rules_failed = 0
@@ -203,6 +250,9 @@ class TestExitCodeContract:
     def test_exit_one_on_failed(self, contract):
         runner = CliRunner()
         fake_result = MagicMock()
+        fake_result.tool = "smtchecker"
+        fake_result.spec_file = contract
+        fake_result.stderr = ""
         fake_result.status = "failed"
         fake_result.rules_passed = 0
         fake_result.rules_failed = 1
@@ -220,3 +270,28 @@ class TestExitCodeContract:
             instance.run_smtchecker.return_value = fake_result
             result = runner.invoke(verify, [contract, "--tool", "smtchecker", "--quiet"])
             assert result.exit_code == 1
+
+    def test_exit_zero_on_no_tests(self, contract):
+        (Path(contract).parent / "foundry.toml").write_text("[profile.default]\n")
+        runner = CliRunner()
+        fake_result = MagicMock()
+        fake_result.tool = "halmos"
+        fake_result.spec_file = contract
+        fake_result.stderr = ""
+        fake_result.status = "no_tests"
+        fake_result.rules_passed = 0
+        fake_result.rules_failed = 0
+        fake_result.rules_total = 0
+        fake_result.counterexamples = []
+        fake_result.elapsed_seconds = 0.01
+        fake_result.to_dict.return_value = {"status": "no_tests"}
+        with patch("miesc.formal.SpecRunner") as SR:
+            instance = SR.return_value
+            instance.availability_report.return_value = {
+                "certora": False,
+                "halmos": True,
+                "smtchecker": False,
+            }
+            instance.run_halmos.return_value = fake_result
+            result = runner.invoke(verify, [contract, "--tool", "halmos", "--quiet"])
+            assert result.exit_code == 0
