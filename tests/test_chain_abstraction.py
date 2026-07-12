@@ -474,11 +474,15 @@ class TestChainRegistry:
     @pytest.fixture
     def reset_registry(self):
         """Reset registry singleton."""
+        import miesc.core.chain_abstraction as chain_mod
+
         ChainRegistry._instance = None
         ChainRegistry._analyzers = {}
+        chain_mod._chain_registry = None
         yield
         ChainRegistry._instance = None
         ChainRegistry._analyzers = {}
+        chain_mod._chain_registry = None
 
     def test_singleton(self, reset_registry):
         """Test singleton pattern."""
@@ -506,11 +510,15 @@ class TestChainRegistryFunctions:
     @pytest.fixture
     def reset_registry(self):
         """Reset registry."""
+        import miesc.core.chain_abstraction as chain_mod
+
         ChainRegistry._instance = None
         ChainRegistry._analyzers = {}
+        chain_mod._chain_registry = None
         yield
         ChainRegistry._instance = None
         ChainRegistry._analyzers = {}
+        chain_mod._chain_registry = None
 
     def test_get_chain_registry(self, reset_registry):
         """Test getting registry."""
