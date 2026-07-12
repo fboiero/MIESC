@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from src.adapters.stellar_adapter import StellarPatternDetector as D
+from miesc.adapters.stellar_adapter import StellarPatternDetector as D
 
 
 class TestDetectors:

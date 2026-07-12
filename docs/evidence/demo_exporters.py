@@ -18,7 +18,7 @@ import sys
 
 sys.path.insert(0, "/Users/fboiero/Documents/GitHub/MIESC")
 
-from src.core.exporters import (
+from miesc.core.exporters import (
     CheckmarxExporter,
     Finding,
     JSONExporter,

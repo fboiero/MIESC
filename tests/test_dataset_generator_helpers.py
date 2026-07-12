@@ -5,7 +5,7 @@ Pure builders + full-dataset export to a temp dir; no external services.
 
 from __future__ import annotations
 
-from src.ml.fine_tuning.dataset_generator import SoliditySecurityDatasetGenerator
+from miesc.ml.fine_tuning.dataset_generator import SoliditySecurityDatasetGenerator
 
 
 def _gen(tmp_path):

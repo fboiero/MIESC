@@ -15,7 +15,7 @@ import pytest
 # ---------------------------------------------------------------------------
 # code_embeddings.py coverage
 # ---------------------------------------------------------------------------
-from src.ml.code_embeddings import (
+from miesc.ml.code_embeddings import (
     CodeEmbedding,
     SolidityTokenizer,
     VulnerabilityPatternDB,
@@ -164,7 +164,7 @@ class TestCodeEmbeddingSimilarityNormal:
 # tool_discovery.py coverage
 # ---------------------------------------------------------------------------
 
-from src.core.tool_discovery import ToolDiscovery
+from miesc.core.tool_discovery import ToolDiscovery
 
 
 class TestToolDiscoveryFindAdaptersPathNotFound:
@@ -237,7 +237,7 @@ class TestToolDiscoveryLoadAdapterInfoBranches:
         disc = ToolDiscovery(adapters_path=str(tmp_path))
 
         # Build a real module object with a class that raises on instantiation
-        fake_module = types.ModuleType("src.adapters.badctor_adapter")
+        fake_module = types.ModuleType("miesc.adapters.badctor_adapter")
 
         class BadctorAdapter:
             def __init__(self):
@@ -261,7 +261,7 @@ class TestToolDiscoveryLoadAdapterInfoBranches:
 
         disc = ToolDiscovery(adapters_path=str(tmp_path))
 
-        fake_module = types.ModuleType("src.adapters.metafail_adapter")
+        fake_module = types.ModuleType("miesc.adapters.metafail_adapter")
 
         class MetafailAdapter:
             def is_available(self):
@@ -333,7 +333,7 @@ class TestToolDiscoveryAutoDiscover:
 # detector_api.py coverage
 # ---------------------------------------------------------------------------
 
-from src.detectors.detector_api import (
+from miesc.detectors.detector_api import (
     BaseDetector,
     DetectorRegistry,
     Finding,

@@ -8,9 +8,9 @@ with a triggering contract and exercise the file/source/exception paths.
 
 import sys
 
-import src.adapters.advanced_detector_adapter as mod
-from src.adapters.advanced_detector_adapter import AdvancedDetectorAdapter
-from src.core.tool_protocol import ToolStatus
+import miesc.adapters.advanced_detector_adapter as mod
+from miesc.adapters.advanced_detector_adapter import AdvancedDetectorAdapter
+from miesc.core.tool_protocol import ToolStatus
 
 # Triggers the rug-pull detector: withdraw-style function gated by onlyOwner.
 RUG = (
@@ -37,7 +37,7 @@ def test_is_available():
 
 
 def test_is_available_not_installed(monkeypatch):
-    monkeypatch.setitem(sys.modules, "detectors.advanced_detectors", None)
+    monkeypatch.setitem(sys.modules, "miesc.detectors.advanced_detectors", None)
     assert _a().is_available() == ToolStatus.NOT_INSTALLED
 
 

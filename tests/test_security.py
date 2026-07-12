@@ -20,14 +20,14 @@ class TestInputValidator:
 
     def test_import_module(self):
         """Test that security module can be imported."""
-        from src.security.input_validator import SecurityError, validate_contract_path
+        from miesc.security.input_validator import SecurityError, validate_contract_path
 
         assert callable(validate_contract_path)
         assert issubclass(SecurityError, Exception)
 
     def test_validate_existing_sol_file(self):
         """Test validation of existing .sol file."""
-        from src.security.input_validator import validate_contract_path
+        from miesc.security.input_validator import validate_contract_path
 
         # Create a temporary .sol file
         with tempfile.NamedTemporaryFile(suffix=".sol", delete=False) as f:
@@ -45,7 +45,7 @@ class TestInputValidator:
 
     def test_validate_nonexistent_file(self):
         """Test validation fails for non-existent file."""
-        from src.security.input_validator import SecurityError, validate_contract_path
+        from miesc.security.input_validator import SecurityError, validate_contract_path
 
         # Non-existent file outside allowed dirs raises SecurityError
         with pytest.raises((FileNotFoundError, SecurityError)):
@@ -53,7 +53,7 @@ class TestInputValidator:
 
     def test_validate_wrong_extension(self):
         """Test validation fails for wrong file extension."""
-        from src.security.input_validator import SecurityError, validate_contract_path
+        from miesc.security.input_validator import SecurityError, validate_contract_path
 
         with tempfile.NamedTemporaryFile(suffix=".txt", delete=False) as f:
             f.write(b"not a solidity file")
@@ -71,7 +71,7 @@ class TestInputValidator:
 
     def test_path_traversal_detection(self):
         """Test that path traversal attempts are blocked."""
-        from src.security.input_validator import SecurityError, validate_contract_path
+        from miesc.security.input_validator import SecurityError, validate_contract_path
 
         # Attempt path traversal
         with pytest.raises((SecurityError, FileNotFoundError)):
@@ -79,7 +79,7 @@ class TestInputValidator:
 
     def test_custom_allowed_extensions(self):
         """Test validation with custom allowed extensions."""
-        from src.security.input_validator import validate_contract_path
+        from miesc.security.input_validator import validate_contract_path
 
         with tempfile.NamedTemporaryFile(suffix=".vy", delete=False) as f:
             f.write(b"# Vyper contract")
@@ -106,14 +106,14 @@ class TestRateLimiter:
 
     def test_import_module(self):
         """Test that rate limiter module can be imported."""
-        from src.security.api_limiter import RateLimiter, RateLimitExceeded
+        from miesc.security.api_limiter import RateLimiter, RateLimitExceeded
 
         assert callable(RateLimiter)
         assert issubclass(RateLimitExceeded, Exception)
 
     def test_rate_limiter_initialization(self):
         """Test rate limiter can be initialized."""
-        from src.security.api_limiter import RateLimiter
+        from miesc.security.api_limiter import RateLimiter
 
         limiter = RateLimiter(max_calls=10, period=60)
         assert limiter.max_calls == 10
@@ -121,7 +121,7 @@ class TestRateLimiter:
 
     def test_rate_limiter_allows_calls_under_limit(self):
         """Test that calls under limit are allowed."""
-        from src.security.api_limiter import RateLimiter
+        from miesc.security.api_limiter import RateLimiter
 
         limiter = RateLimiter(max_calls=5, period=60)
 
@@ -136,7 +136,7 @@ class TestRateLimiter:
 
     def test_rate_limiter_blocks_excess_calls(self):
         """Test that calls over limit are blocked."""
-        from src.security.api_limiter import RateLimiter, RateLimitExceeded
+        from miesc.security.api_limiter import RateLimiter, RateLimitExceeded
 
         limiter = RateLimiter(max_calls=3, period=60)
 
@@ -154,7 +154,7 @@ class TestRateLimiter:
 
     def test_rate_limiter_with_burst(self):
         """Test rate limiter with burst allowance."""
-        from src.security.api_limiter import RateLimiter
+        from miesc.security.api_limiter import RateLimiter
 
         limiter = RateLimiter(max_calls=5, period=60, burst_size=10)
         assert limiter.burst_size == 10
@@ -170,20 +170,20 @@ class TestSecureLogging:
 
     def test_import_module(self):
         """Test that secure logging module can be imported."""
-        from src.security.secure_logging import SecureFormatter
+        from miesc.security.secure_logging import SecureFormatter
 
         assert issubclass(SecureFormatter, logging.Formatter)
 
     def test_secure_formatter_initialization(self):
         """Test SecureFormatter can be initialized."""
-        from src.security.secure_logging import SecureFormatter
+        from miesc.security.secure_logging import SecureFormatter
 
         formatter = SecureFormatter()
         assert formatter is not None
 
     def test_redacts_openai_api_key(self):
         """Test that OpenAI API keys are redacted."""
-        from src.security.secure_logging import SecureFormatter
+        from miesc.security.secure_logging import SecureFormatter
 
         formatter = SecureFormatter()
 
@@ -204,7 +204,7 @@ class TestSecureLogging:
 
     def test_redacts_password(self):
         """Test that passwords are redacted."""
-        from src.security.secure_logging import SecureFormatter
+        from miesc.security.secure_logging import SecureFormatter
 
         formatter = SecureFormatter()
 
@@ -224,7 +224,7 @@ class TestSecureLogging:
 
     def test_redacts_jwt_token(self):
         """Test that JWT tokens are redacted."""
-        from src.security.secure_logging import SecureFormatter
+        from miesc.security.secure_logging import SecureFormatter
 
         formatter = SecureFormatter()
 
@@ -246,7 +246,7 @@ class TestSecureLogging:
 
     def test_safe_message_unchanged(self):
         """Test that safe messages are not modified."""
-        from src.security.secure_logging import SecureFormatter
+        from miesc.security.secure_logging import SecureFormatter
 
         formatter = SecureFormatter()
 
@@ -275,7 +275,7 @@ class TestSecurityError:
 
     def test_security_error_is_exception(self):
         """Test SecurityError is proper exception."""
-        from src.security.input_validator import SecurityError
+        from miesc.security.input_validator import SecurityError
 
         error = SecurityError("test message")
         assert isinstance(error, Exception)
@@ -283,7 +283,7 @@ class TestSecurityError:
 
     def test_security_error_can_be_raised(self):
         """Test SecurityError can be raised and caught."""
-        from src.security.input_validator import SecurityError
+        from miesc.security.input_validator import SecurityError
 
         with pytest.raises(SecurityError) as exc_info:
             raise SecurityError("Path traversal detected")
@@ -301,7 +301,7 @@ class TestSecurityIntegration:
 
     def test_all_security_modules_importable(self):
         """Test all security modules can be imported."""
-        from src.security import api_limiter, input_validator, secure_logging
+        from miesc.security import api_limiter, input_validator, secure_logging
 
         assert input_validator is not None
         assert api_limiter is not None
@@ -309,7 +309,7 @@ class TestSecurityIntegration:
 
     def test_validate_real_contract_path(self):
         """Test validation with real contract in repo."""
-        from src.security.input_validator import validate_contract_path
+        from miesc.security.input_validator import validate_contract_path
 
         # Test with actual contract file if it exists
         contract_path = Path("contracts/audit/VulnerableBank.sol")
@@ -329,7 +329,7 @@ class TestInputValidatorExtended:
 
     def test_validate_solc_version_valid(self):
         """Test validation of valid Solidity versions."""
-        from src.security.input_validator import validate_solc_version
+        from miesc.security.input_validator import validate_solc_version
 
         valid_versions = ["0.4.0", "0.5.16", "0.6.12", "0.7.6", "0.8.0", "0.8.20"]
         for version in valid_versions:
@@ -338,7 +338,7 @@ class TestInputValidatorExtended:
 
     def test_validate_solc_version_with_commit(self):
         """Test validation of Solidity version with commit hash."""
-        from src.security.input_validator import validate_solc_version
+        from miesc.security.input_validator import validate_solc_version
 
         version = "0.8.20+commit.a1b2c3d4"
         result = validate_solc_version(version)
@@ -346,7 +346,7 @@ class TestInputValidatorExtended:
 
     def test_validate_solc_version_invalid(self):
         """Test rejection of invalid Solidity versions."""
-        from src.security.input_validator import SecurityError, validate_solc_version
+        from miesc.security.input_validator import SecurityError, validate_solc_version
 
         invalid_versions = [
             "1.0.0",  # Major version too high
@@ -361,7 +361,7 @@ class TestInputValidatorExtended:
 
     def test_validate_function_name_valid(self):
         """Test validation of valid Solidity function names."""
-        from src.security.input_validator import validate_function_name
+        from miesc.security.input_validator import validate_function_name
 
         valid_names = ["transfer", "_internal", "doSomething123", "CONSTANT"]
         for name in valid_names:
@@ -370,7 +370,7 @@ class TestInputValidatorExtended:
 
     def test_validate_function_name_invalid(self):
         """Test rejection of invalid function names."""
-        from src.security.input_validator import SecurityError, validate_function_name
+        from miesc.security.input_validator import SecurityError, validate_function_name
 
         invalid_names = [
             "123start",  # Starts with number
@@ -384,7 +384,7 @@ class TestInputValidatorExtended:
 
     def test_validate_function_name_too_long(self):
         """Test rejection of overly long function names."""
-        from src.security.input_validator import SecurityError, validate_function_name
+        from miesc.security.input_validator import SecurityError, validate_function_name
 
         long_name = "a" * 101  # 101 characters, over limit of 100
         with pytest.raises(SecurityError):
@@ -392,7 +392,7 @@ class TestInputValidatorExtended:
 
     def test_validate_timeout_valid(self):
         """Test validation of valid timeout values."""
-        from src.security.input_validator import validate_timeout
+        from miesc.security.input_validator import validate_timeout
 
         valid_timeouts = [1, 60, 300, 3600]
         for timeout in valid_timeouts:
@@ -401,7 +401,7 @@ class TestInputValidatorExtended:
 
     def test_validate_timeout_out_of_bounds(self):
         """Test rejection of out-of-bounds timeout values."""
-        from src.security.input_validator import SecurityError, validate_timeout
+        from miesc.security.input_validator import SecurityError, validate_timeout
 
         # Too low
         with pytest.raises(SecurityError):
@@ -413,7 +413,7 @@ class TestInputValidatorExtended:
 
     def test_validate_timeout_custom_bounds(self):
         """Test validation with custom min/max bounds."""
-        from src.security.input_validator import SecurityError, validate_timeout
+        from miesc.security.input_validator import SecurityError, validate_timeout
 
         # Valid within custom bounds
         result = validate_timeout(10, min_value=5, max_value=20)
@@ -425,7 +425,7 @@ class TestInputValidatorExtended:
 
     def test_validate_timeout_invalid_type(self):
         """Test rejection of non-integer timeout."""
-        from src.security.input_validator import SecurityError, validate_timeout
+        from miesc.security.input_validator import SecurityError, validate_timeout
 
         with pytest.raises(SecurityError):
             validate_timeout("not a number")
@@ -435,7 +435,7 @@ class TestInputValidatorExtended:
 
     def test_sanitize_command_args_safe(self):
         """Test sanitization of safe command arguments."""
-        from src.security.input_validator import sanitize_command_args
+        from miesc.security.input_validator import sanitize_command_args
 
         safe_args = ["--output", "report.json", "--verbose"]
         result = sanitize_command_args(safe_args)
@@ -443,7 +443,7 @@ class TestInputValidatorExtended:
 
     def test_sanitize_command_args_dangerous(self):
         """Test rejection of dangerous command arguments."""
-        from src.security.input_validator import SecurityError, sanitize_command_args
+        from miesc.security.input_validator import SecurityError, sanitize_command_args
 
         dangerous_args_list = [
             ["--file", "test.sol; rm -rf /"],  # Shell command
@@ -456,7 +456,7 @@ class TestInputValidatorExtended:
 
     def test_sanitize_command_args_with_whitelist(self):
         """Test sanitization with whitelist."""
-        from src.security.input_validator import sanitize_command_args
+        from miesc.security.input_validator import sanitize_command_args
 
         args = ["--output", "report.json", "--unknown-flag"]
         allowed = ["--output", "--verbose"]
@@ -466,7 +466,7 @@ class TestInputValidatorExtended:
 
     def test_validate_analysis_inputs_full(self):
         """Test validate_analysis_inputs with all parameters."""
-        from src.security.input_validator import (
+        from miesc.security.input_validator import (
             validate_contract_path,
             validate_function_name,
             validate_solc_version,
@@ -497,7 +497,7 @@ class TestInputValidatorExtended:
 
     def test_validate_directory_path_rejected(self):
         """Test that directory paths are rejected."""
-        from src.security.input_validator import SecurityError, validate_contract_path
+        from miesc.security.input_validator import SecurityError, validate_contract_path
 
         with tempfile.TemporaryDirectory() as temp_dir:
             # Create a file with .sol extension that's actually a directory
@@ -518,7 +518,7 @@ class TestRateLimiterExtended:
 
     def test_rate_limiter_get_stats(self):
         """Test get_stats method."""
-        from src.security.api_limiter import RateLimiter
+        from miesc.security.api_limiter import RateLimiter
 
         limiter = RateLimiter(max_calls=10, period=60)
 
@@ -530,7 +530,7 @@ class TestRateLimiterExtended:
 
     def test_rate_limiter_get_stats_after_calls(self):
         """Test get_stats after making calls."""
-        from src.security.api_limiter import RateLimiter
+        from miesc.security.api_limiter import RateLimiter
 
         limiter = RateLimiter(max_calls=10, period=60)
 
@@ -548,7 +548,7 @@ class TestRateLimiterExtended:
 
     def test_rate_limiter_reset(self):
         """Test reset method."""
-        from src.security.api_limiter import RateLimiter
+        from miesc.security.api_limiter import RateLimiter
 
         limiter = RateLimiter(max_calls=3, period=60)
 
@@ -573,7 +573,7 @@ class TestAPIQuotaManager:
 
     def test_quota_manager_initialization(self):
         """Test APIQuotaManager initialization."""
-        from src.security.api_limiter import APIQuotaManager
+        from miesc.security.api_limiter import APIQuotaManager
 
         manager = APIQuotaManager(
             daily_limit=100,
@@ -586,7 +586,7 @@ class TestAPIQuotaManager:
 
     def test_quota_manager_check_quota_success(self):
         """Test quota check when under limit."""
-        from src.security.api_limiter import APIQuotaManager
+        from miesc.security.api_limiter import APIQuotaManager
 
         manager = APIQuotaManager(daily_limit=100)
         # Should not raise
@@ -595,7 +595,7 @@ class TestAPIQuotaManager:
 
     def test_quota_manager_daily_limit_exceeded(self):
         """Test quota check when daily limit exceeded."""
-        from src.security.api_limiter import APIQuotaManager, RateLimitExceeded
+        from miesc.security.api_limiter import APIQuotaManager, RateLimitExceeded
 
         manager = APIQuotaManager(daily_limit=2)
 
@@ -609,7 +609,7 @@ class TestAPIQuotaManager:
 
     def test_quota_manager_monthly_limit_exceeded(self):
         """Test quota check when monthly limit exceeded."""
-        from src.security.api_limiter import APIQuotaManager, RateLimitExceeded
+        from miesc.security.api_limiter import APIQuotaManager, RateLimitExceeded
 
         manager = APIQuotaManager(monthly_limit=2)
 
@@ -621,7 +621,7 @@ class TestAPIQuotaManager:
 
     def test_quota_manager_cost_limit_exceeded(self):
         """Test quota check when cost limit exceeded."""
-        from src.security.api_limiter import APIQuotaManager, RateLimitExceeded
+        from miesc.security.api_limiter import APIQuotaManager, RateLimitExceeded
 
         manager = APIQuotaManager(cost_per_call={"gpt-4": 5.0}, daily_cost_limit=10.0)
 
@@ -637,7 +637,7 @@ class TestAPIQuotaManager:
 
     def test_quota_manager_record_call_with_cost(self):
         """Test recording call with explicit cost."""
-        from src.security.api_limiter import APIQuotaManager
+        from miesc.security.api_limiter import APIQuotaManager
 
         manager = APIQuotaManager()
         manager.record_call("gpt-4", tokens=1000, cost=0.05)
@@ -647,7 +647,7 @@ class TestAPIQuotaManager:
 
     def test_quota_manager_get_usage_stats(self):
         """Test get_usage_stats method."""
-        from src.security.api_limiter import APIQuotaManager
+        from miesc.security.api_limiter import APIQuotaManager
 
         manager = APIQuotaManager(daily_limit=100, daily_cost_limit=10.0)
         manager.record_call("gpt-4", cost=0.03)
@@ -660,7 +660,7 @@ class TestAPIQuotaManager:
 
     def test_quota_manager_reset_daily(self):
         """Test reset_daily method."""
-        from src.security.api_limiter import APIQuotaManager
+        from miesc.security.api_limiter import APIQuotaManager
 
         manager = APIQuotaManager(daily_limit=100)
         manager.record_call("gpt-4")
@@ -673,7 +673,7 @@ class TestAPIQuotaManager:
 
     def test_rate_limited_openai_decorator(self):
         """Test rate_limited_openai_call decorator."""
-        from src.security.api_limiter import rate_limited_openai_call
+        from miesc.security.api_limiter import rate_limited_openai_call
 
         call_count = 0
 
@@ -703,7 +703,7 @@ class TestSecureLoggingExtended:
 
     def test_redact_string_static_method(self):
         """Test static redact_string method."""
-        from src.security.secure_logging import SecureFormatter
+        from miesc.security.secure_logging import SecureFormatter
 
         text = "API key is sk-1234567890abcdefghijklmnopqrstuvwxyz1234567890ab"
         redacted = SecureFormatter.redact_string(text)
@@ -712,7 +712,7 @@ class TestSecureLoggingExtended:
 
     def test_redact_database_connection_string(self):
         """Test redaction of database connection strings."""
-        from src.security.secure_logging import SecureFormatter
+        from miesc.security.secure_logging import SecureFormatter
 
         pg_string = "postgresql://user:secretpassword@localhost:5432/db"
         redacted = SecureFormatter.redact_string(pg_string)
@@ -721,7 +721,7 @@ class TestSecureLoggingExtended:
 
     def test_redact_aws_credentials(self):
         """Test redaction of AWS credentials."""
-        from src.security.secure_logging import SecureFormatter
+        from miesc.security.secure_logging import SecureFormatter
 
         aws_key = "AKIA1234567890ABCDEF"
         redacted = SecureFormatter.redact_string(f"AWS key: {aws_key}")
@@ -729,7 +729,7 @@ class TestSecureLoggingExtended:
 
     def test_redact_github_token(self):
         """Test redaction of GitHub tokens."""
-        from src.security.secure_logging import SecureFormatter
+        from miesc.security.secure_logging import SecureFormatter
 
         gh_token = "ghp_1234567890abcdefghijklmnopqrstuvwxyz"
         redacted = SecureFormatter.redact_string(f"Token: {gh_token}")
@@ -737,7 +737,7 @@ class TestSecureLoggingExtended:
 
     def test_redact_credit_card(self):
         """Test redaction of credit card numbers."""
-        from src.security.secure_logging import SecureFormatter
+        from miesc.security.secure_logging import SecureFormatter
 
         cc = "4532-1234-5678-9010"
         redacted = SecureFormatter.redact_string(f"Card: {cc}")
@@ -745,7 +745,7 @@ class TestSecureLoggingExtended:
 
     def test_secure_formatter_with_email_redaction(self):
         """Test SecureFormatter with email redaction enabled."""
-        from src.security.secure_logging import SecureFormatter
+        from miesc.security.secure_logging import SecureFormatter
 
         formatter = SecureFormatter(redact_emails=True)
         record = logging.LogRecord(
@@ -762,7 +762,7 @@ class TestSecureLoggingExtended:
 
     def test_secure_formatter_with_ip_redaction(self):
         """Test SecureFormatter with IP redaction enabled."""
-        from src.security.secure_logging import SecureFormatter
+        from miesc.security.secure_logging import SecureFormatter
 
         formatter = SecureFormatter(redact_ips=True)
         record = logging.LogRecord(
@@ -779,7 +779,7 @@ class TestSecureLoggingExtended:
 
     def test_secure_formatter_with_custom_patterns(self):
         """Test SecureFormatter with custom patterns."""
-        from src.security.secure_logging import SecureFormatter
+        from miesc.security.secure_logging import SecureFormatter
 
         custom_patterns = [(r"internal-code-[0-9]+", "***INTERNAL-CODE***")]
         formatter = SecureFormatter(custom_patterns=custom_patterns)
@@ -799,7 +799,7 @@ class TestSecureLoggingExtended:
 
     def test_setup_secure_logging(self):
         """Test setup_secure_logging convenience function."""
-        from src.security.secure_logging import setup_secure_logging
+        from miesc.security.secure_logging import setup_secure_logging
 
         logger = setup_secure_logging(name="test_secure", level=logging.DEBUG)
         assert logger is not None
@@ -807,7 +807,7 @@ class TestSecureLoggingExtended:
 
     def test_setup_secure_logging_with_file(self):
         """Test setup_secure_logging with file handler."""
-        from src.security.secure_logging import setup_secure_logging
+        from miesc.security.secure_logging import setup_secure_logging
 
         with tempfile.NamedTemporaryFile(suffix=".log", delete=False) as f:
             log_file = f.name
@@ -830,7 +830,7 @@ class TestSecureLoggingExtended:
 
     def test_setup_secure_logging_custom_format(self):
         """Test setup_secure_logging with custom format."""
-        from src.security.secure_logging import setup_secure_logging
+        from miesc.security.secure_logging import setup_secure_logging
 
         custom_format = "%(levelname)s - %(message)s"
         logger = setup_secure_logging(name="test_format", format_string=custom_format)
@@ -838,7 +838,7 @@ class TestSecureLoggingExtended:
 
     def test_redact_bearer_token(self):
         """Test redaction of Bearer tokens."""
-        from src.security.secure_logging import SecureFormatter
+        from miesc.security.secure_logging import SecureFormatter
 
         text = "Authorization: Bearer abc123.def456.ghi789"
         redacted = SecureFormatter.redact_string(text)
@@ -846,7 +846,7 @@ class TestSecureLoggingExtended:
 
     def test_redact_anthropic_api_key(self):
         """Test redaction of Anthropic API keys."""
-        from src.security.secure_logging import SecureFormatter
+        from miesc.security.secure_logging import SecureFormatter
 
         text = "Anthropic key: sk-ant-api03-testapikey123456789012345"
         redacted = SecureFormatter.redact_string(text)
@@ -854,7 +854,7 @@ class TestSecureLoggingExtended:
 
     def test_redact_huggingface_token(self):
         """Test redaction of HuggingFace tokens."""
-        from src.security.secure_logging import SecureFormatter
+        from miesc.security.secure_logging import SecureFormatter
 
         text = "HF token: hf_abcdefghijklmnopqrstuvwxyz"
         redacted = SecureFormatter.redact_string(text)
@@ -873,7 +873,7 @@ class TestThreadSafety:
         """Test RateLimiter is thread-safe."""
         import threading
 
-        from src.security.api_limiter import RateLimiter, RateLimitExceeded
+        from miesc.security.api_limiter import RateLimiter, RateLimitExceeded
 
         limiter = RateLimiter(max_calls=50, period=60)
         success_count = 0
@@ -913,7 +913,7 @@ class TestFinalCoverage:
         """Test get_usage_stats removes expired calls (line 129)."""
         import time
 
-        from src.security.api_limiter import RateLimiter
+        from miesc.security.api_limiter import RateLimiter
 
         # Create a limiter with very short period
         limiter = RateLimiter(max_calls=10, period=0.1)
@@ -935,7 +935,7 @@ class TestFinalCoverage:
 
     def test_get_security_checklist(self):
         """Test get_security_checklist function (line 700)."""
-        from src.security.remediations import get_security_checklist
+        from miesc.security.remediations import get_security_checklist
 
         checklist = get_security_checklist()
 
@@ -963,7 +963,7 @@ class TestSecureLoggingCoverage:
 
         with redirect_stdout(captured_out), redirect_stderr(captured_err):
             try:
-                runpy.run_module("src.security.secure_logging", run_name="__main__")
+                runpy.run_module("miesc.security.secure_logging", run_name="__main__")
             except SystemExit:
                 pass  # Ignore if module calls sys.exit()
 
@@ -981,7 +981,7 @@ class TestSecureLoggingCoverage:
         """Test SecureFormatter with email and IP redaction enabled."""
         import logging
 
-        from src.security.secure_logging import SecureFormatter
+        from miesc.security.secure_logging import SecureFormatter
 
         formatter = SecureFormatter(redact_emails=True, redact_ips=True)
 
@@ -1008,7 +1008,7 @@ class TestSecureLoggingCoverage:
         """Test SecureFormatter with custom patterns."""
         import logging
 
-        from src.security.secure_logging import SecureFormatter
+        from miesc.security.secure_logging import SecureFormatter
 
         custom_patterns = [(r"CUSTOM_SECRET_\w+", r"CUSTOM_SECRET_***")]
 
@@ -1034,7 +1034,7 @@ class TestInputValidatorCoverage:
 
     def test_validate_contract_path_file_not_found(self, tmp_path):
         """Test FileNotFoundError for non-existent file (line 108)."""
-        from src.security.input_validator import validate_contract_path
+        from miesc.security.input_validator import validate_contract_path
 
         # Create a path that would be valid but doesn't exist
         nonexistent = tmp_path / "nonexistent.sol"
@@ -1048,7 +1048,7 @@ class TestInputValidatorCoverage:
         """Test SecurityError for unreadable file (line 116)."""
         import stat
 
-        from src.security.input_validator import SecurityError, validate_contract_path
+        from miesc.security.input_validator import SecurityError, validate_contract_path
 
         # Create a file and make it unreadable
         unreadable = tmp_path / "unreadable.sol"
@@ -1070,7 +1070,7 @@ class TestInputValidatorCoverage:
         """Test SecurityError for unexpected exceptions (lines 123-127)."""
         from unittest.mock import patch
 
-        from src.security.input_validator import SecurityError, validate_contract_path
+        from miesc.security.input_validator import SecurityError, validate_contract_path
 
         # Create a valid file
         valid_file = tmp_path / "test.sol"
@@ -1088,7 +1088,7 @@ class TestInputValidatorCoverage:
         import os
         import tempfile
 
-        from src.security.input_validator import validate_analysis_inputs
+        from miesc.security.input_validator import validate_analysis_inputs
 
         # Create a temp file in CWD which is allowed by default
         with tempfile.NamedTemporaryFile(suffix=".sol", delete=False, dir=os.getcwd()) as f:
@@ -1106,7 +1106,7 @@ class TestInputValidatorCoverage:
         import os
         import tempfile
 
-        from src.security.input_validator import validate_analysis_inputs
+        from miesc.security.input_validator import validate_analysis_inputs
 
         with tempfile.NamedTemporaryFile(suffix=".sol", delete=False, dir=os.getcwd()) as f:
             f.write(b"pragma solidity ^0.8.0;")
@@ -1124,7 +1124,7 @@ class TestInputValidatorCoverage:
         import os
         import tempfile
 
-        from src.security.input_validator import validate_analysis_inputs
+        from miesc.security.input_validator import validate_analysis_inputs
 
         with tempfile.NamedTemporaryFile(suffix=".sol", delete=False, dir=os.getcwd()) as f:
             f.write(b"pragma solidity ^0.8.0;")
@@ -1142,7 +1142,7 @@ class TestInputValidatorCoverage:
         import os
         import tempfile
 
-        from src.security.input_validator import validate_analysis_inputs
+        from miesc.security.input_validator import validate_analysis_inputs
 
         with tempfile.NamedTemporaryFile(suffix=".sol", delete=False, dir=os.getcwd()) as f:
             f.write(b"pragma solidity ^0.8.0;")

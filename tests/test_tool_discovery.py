@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.core.tool_discovery import (
+from miesc.core.tool_discovery import (
     ToolDiscovery,
     ToolInfo,
     get_tool_discovery,
@@ -24,7 +24,7 @@ class TestToolInfo:
         info = ToolInfo(
             name="slither",
             adapter_class="SlitherAdapter",
-            module_path="src.adapters.slither_adapter",
+            module_path="miesc.adapters.slither_adapter",
             layer="static_analysis",
             category="Static Analysis",
             available=True,
@@ -41,7 +41,7 @@ class TestToolInfo:
         info = ToolInfo(
             name="test",
             adapter_class="TestAdapter",
-            module_path="src.adapters.test",
+            module_path="miesc.adapters.test",
             layer="test",
             category="Test",
             available=False,
@@ -57,7 +57,7 @@ class TestToolInfo:
         info = ToolInfo(
             name="mythril",
             adapter_class="MythrilAdapter",
-            module_path="src.adapters.mythril_adapter",
+            module_path="miesc.adapters.mythril_adapter",
             layer="symbolic_execution",
             category="Symbolic Execution",
             available=True,
@@ -137,7 +137,7 @@ class TestToolDiscoveryGetTools:
             "slither": ToolInfo(
                 name="slither",
                 adapter_class="SlitherAdapter",
-                module_path="src.adapters.slither_adapter",
+                module_path="miesc.adapters.slither_adapter",
                 layer="static_analysis",
                 category="Static Analysis",
                 available=True,
@@ -145,7 +145,7 @@ class TestToolDiscoveryGetTools:
             "mythril": ToolInfo(
                 name="mythril",
                 adapter_class="MythrilAdapter",
-                module_path="src.adapters.mythril_adapter",
+                module_path="miesc.adapters.mythril_adapter",
                 layer="symbolic_execution",
                 category="Symbolic Execution",
                 available=False,
@@ -195,7 +195,7 @@ class TestToolDiscoveryLoadAdapter:
             "slither": ToolInfo(
                 name="slither",
                 adapter_class="SlitherAdapter",
-                module_path="src.adapters.slither_adapter",
+                module_path="miesc.adapters.slither_adapter",
                 layer="static_analysis",
                 category="Static Analysis",
                 available=True,
@@ -219,7 +219,7 @@ class TestToolDiscoveryLoadAdapter:
 
         discovery.load_adapter("slither")
 
-        mock_import.assert_called_once_with("src.adapters.slither_adapter")
+        mock_import.assert_called_once_with("miesc.adapters.slither_adapter")
         mock_adapter.assert_called_once()
 
 
@@ -234,7 +234,7 @@ class TestToolDiscoveryToDict:
             "slither": ToolInfo(
                 name="slither",
                 adapter_class="SlitherAdapter",
-                module_path="src.adapters.slither_adapter",
+                module_path="miesc.adapters.slither_adapter",
                 layer="static_analysis",
                 category="Static Analysis",
                 available=True,
@@ -259,7 +259,7 @@ class TestGetToolDiscovery:
     def test_get_tool_discovery(self):
         """Test getting singleton instance."""
         # Reset the global
-        import src.core.tool_discovery as module
+        import miesc.core.tool_discovery as module
 
         module._discovery = None
 

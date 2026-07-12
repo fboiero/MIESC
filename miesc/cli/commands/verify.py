@@ -88,7 +88,7 @@ def verify(
         print_banner()
 
     try:
-        from src.formal import SpecRunner
+        from miesc.formal import SpecRunner
     except ImportError as e:
         error(f"Cannot import SpecRunner: {e}")
         sys.exit(1)

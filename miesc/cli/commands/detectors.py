@@ -265,7 +265,7 @@ def detectors_info(detector_name: str) -> None:
     print_banner()
 
     try:
-        from src.detectors.detector_api import get_registry
+        from miesc.detectors.detector_api import get_registry
     except ImportError:
         error("Detector API not available")
         return

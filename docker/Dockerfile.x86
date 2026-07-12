@@ -117,7 +117,7 @@ ENV PYTHONUNBUFFERED=1
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "from src.core import get_ml_orchestrator; print('MIESC v5.4.3 x86 OK')" || exit 1
+    CMD python -c "from miesc.core import get_ml_orchestrator; print('MIESC v5.4.3 x86 OK')" || exit 1
 
 # Expose API port
 EXPOSE 8000

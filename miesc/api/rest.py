@@ -253,13 +253,13 @@ class AdapterLoader:
 
     @classmethod
     def load_all(cls) -> Dict[str, Any]:
-        """Load all available adapters from src/adapters/."""
+        """Load all available adapters from miesc/adapters/."""
         if cls._loaded:
             return cls._adapters
 
         for tool_name, class_name in ADAPTER_MAP.items():
             try:
-                module_name = f"src.adapters.{tool_name}_adapter"
+                module_name = f"miesc.adapters.{tool_name}_adapter"
                 module = importlib.import_module(module_name)
                 adapter_class = getattr(module, class_name, None)
 
@@ -297,7 +297,7 @@ class AdapterLoader:
             return {"status": "no_adapter", "available": False}
 
         try:
-            from src.core.tool_protocol import ToolStatus
+            from miesc.core.tool_protocol import ToolStatus
 
             tool_status = adapter.is_available()
             return {
@@ -342,7 +342,7 @@ def run_tool(tool: str, contract_path: str, timeout: int = 300, **kwargs: Any) -
         }
 
     try:
-        from src.core.tool_protocol import ToolStatus
+        from miesc.core.tool_protocol import ToolStatus
 
         tool_status = adapter.is_available()
 
@@ -748,7 +748,7 @@ if DRF_AVAILABLE:
 
     def _remediate_request(request: Request, *, default_validate: bool = False) -> Response:
         """Shared remediation endpoint implementation."""
-        from src.security.remediation_pipeline import remediate_contract
+        from miesc.security.remediation_pipeline import remediate_contract
 
         results = request.data.get("results")
         results_json = request.data.get("results_json")

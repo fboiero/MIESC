@@ -15,7 +15,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.adapters.gptlens_adapter import GPTLensAdapter
+from miesc.adapters.gptlens_adapter import GPTLensAdapter
 
 # ---------------------------------------------------------------------------
 # Helpers / fixtures

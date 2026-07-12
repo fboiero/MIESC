@@ -9,14 +9,14 @@ import tempfile
 import pytest
 
 # Import ML components
-from src.ml import (
+from miesc.ml import (
     FalsePositiveFilter,
     FeedbackType,
     MLPipeline,
     SeverityPredictor,
     VulnerabilityClusterer,
 )
-from src.ml.false_positive_filter import FindingFeatures
+from miesc.ml.false_positive_filter import FindingFeatures
 
 
 class TestFindingFeatures:
@@ -426,7 +426,7 @@ class TestFalsePositiveFilter:
 
     def test_finding_features_to_vector(self):
         """Test FindingFeatures.to_vector() method (line 43)."""
-        from src.ml.false_positive_filter import FindingFeatures
+        from miesc.ml.false_positive_filter import FindingFeatures
 
         features = FindingFeatures(
             tool="slither",
@@ -456,7 +456,7 @@ class TestFalsePositiveFilter:
 
     def test_finding_features_encode_severity(self):
         """Test FindingFeatures._encode_severity() method (lines 61-69)."""
-        from src.ml.false_positive_filter import FindingFeatures
+        from miesc.ml.false_positive_filter import FindingFeatures
 
         features = FindingFeatures(
             tool="slither",
@@ -533,7 +533,7 @@ class TestFindingFeaturesEncodingCoverage:
 
     def _create_features(self):
         """Helper to create FindingFeatures instance."""
-        from src.ml.false_positive_filter import FindingFeatures
+        from miesc.ml.false_positive_filter import FindingFeatures
 
         return FindingFeatures(
             tool="slither",
@@ -1097,8 +1097,8 @@ class TestMLPipelineCoverageCompletion:
     def test_get_ml_pipeline_singleton(self):
         """Test get_ml_pipeline returns singleton."""
         # Reset singleton for testing
-        import src.ml as ml_module
-        from src.ml import get_ml_pipeline
+        import miesc.ml as ml_module
+        from miesc.ml import get_ml_pipeline
 
         ml_module._ml_pipeline = None
 
@@ -1134,7 +1134,7 @@ class TestSeverityPredictorFinalCoverage:
     def test_score_to_severity_informational(self):
         """Test _score_to_severity returns INFORMATIONAL for very low scores."""
         # Access the private method directly
-        from src.ml.severity_predictor import SeverityLevel
+        from miesc.ml.severity_predictor import SeverityLevel
 
         result = self.predictor._score_to_severity(0.1)
         assert result == SeverityLevel.INFORMATIONAL
@@ -1160,7 +1160,7 @@ class TestVulnerabilityClustererFinalCoverage:
 
     def test_estimate_effort_high(self):
         """Test _estimate_effort returns High for medium clusters."""
-        from src.ml.vulnerability_clusterer import VulnerabilityCluster
+        from miesc.ml.vulnerability_clusterer import VulnerabilityCluster
 
         cluster = VulnerabilityCluster(
             id="test-cluster",
@@ -1179,7 +1179,7 @@ class TestVulnerabilityClustererFinalCoverage:
 
     def test_estimate_effort_very_high(self):
         """Test _estimate_effort returns Very High for large clusters."""
-        from src.ml.vulnerability_clusterer import VulnerabilityCluster
+        from miesc.ml.vulnerability_clusterer import VulnerabilityCluster
 
         cluster = VulnerabilityCluster(
             id="test-cluster",
@@ -1231,7 +1231,7 @@ class TestAPILimiterFinalCoverage:
         """Test that expired calls are cleaned up."""
         import time
 
-        from src.security.api_limiter import RateLimiter
+        from miesc.security.api_limiter import RateLimiter
 
         # Create limiter with very short period
         limiter = RateLimiter(max_calls=10, period=0.1)  # 100ms period
@@ -1260,7 +1260,7 @@ class TestCodeEmbeddingsCoverage:
 
     def test_embedding_similarity_different_dimensions(self):
         """Test similarity with different dimensions (line 50)."""
-        from src.ml.code_embeddings import CodeEmbedding
+        from miesc.ml.code_embeddings import CodeEmbedding
 
         embed1 = CodeEmbedding(
             source_hash="hash1",
@@ -1282,7 +1282,7 @@ class TestCodeEmbeddingsCoverage:
 
     def test_embedding_similarity_zero_norm(self):
         """Test similarity with zero norm vectors (line 57)."""
-        from src.ml.code_embeddings import CodeEmbedding
+        from miesc.ml.code_embeddings import CodeEmbedding
 
         embed1 = CodeEmbedding(
             source_hash="hash1",
@@ -1304,7 +1304,7 @@ class TestCodeEmbeddingsCoverage:
 
     def test_tokenizer_modifier_type(self):
         """Test tokenizer recognizes modifiers (line 143)."""
-        from src.ml.code_embeddings import SolidityTokenizer
+        from miesc.ml.code_embeddings import SolidityTokenizer
 
         tokenizer = SolidityTokenizer()
 
@@ -1315,7 +1315,7 @@ class TestCodeEmbeddingsCoverage:
 
     def test_embedder_embed_function(self):
         """Test embed_function method (lines 358-379)."""
-        from src.ml.code_embeddings import CodeEmbedder
+        from miesc.ml.code_embeddings import CodeEmbedder
 
         embedder = CodeEmbedder()
 
@@ -1345,7 +1345,7 @@ class TestCodeEmbeddingsCoverage:
 
     def test_embedder_find_similar(self):
         """Test find_similar method (lines 388-400)."""
-        from src.ml.code_embeddings import CodeEmbedder, CodeEmbedding
+        from miesc.ml.code_embeddings import CodeEmbedder, CodeEmbedding
 
         embedder = CodeEmbedder()
 
@@ -1388,7 +1388,7 @@ class TestCodeEmbeddingsCoverage:
 
     def test_pattern_db_add_pattern(self):
         """Test VulnerabilityPatternDB.add_pattern (lines 497-500)."""
-        from src.ml.code_embeddings import VulnerabilityPatternDB
+        from miesc.ml.code_embeddings import VulnerabilityPatternDB
 
         pattern_db = VulnerabilityPatternDB()
 
@@ -1430,7 +1430,7 @@ class TestFeedbackLoopCoverageCompletion:
 
     def test_tool_performance_metrics_zero_total(self):
         """Test ToolPerformanceMetrics with zero total findings (lines 83, 89)."""
-        from src.ml.feedback_loop import ToolPerformanceMetrics
+        from miesc.ml.feedback_loop import ToolPerformanceMetrics
 
         metrics = ToolPerformanceMetrics(tool_name="test_tool")
         # Don't add any TPs or FPs
@@ -1443,7 +1443,7 @@ class TestFeedbackLoopCoverageCompletion:
         """Test Retrainer time check for retraining (lines 224-229)."""
         from datetime import datetime
 
-        from src.ml.feedback_loop import FeedbackType, ModelRetrainer, UserFeedback
+        from miesc.ml.feedback_loop import FeedbackType, ModelRetrainer, UserFeedback
 
         retrainer = ModelRetrainer(min_samples=2)
 
@@ -1476,7 +1476,7 @@ class TestFeedbackLoopCoverageCompletion:
         """Test Retrainer.get_training_data (lines 233-240)."""
         from datetime import datetime
 
-        from src.ml.feedback_loop import FeedbackType, ModelRetrainer, UserFeedback
+        from miesc.ml.feedback_loop import FeedbackType, ModelRetrainer, UserFeedback
 
         retrainer = ModelRetrainer(min_samples=1)
 
@@ -1496,7 +1496,7 @@ class TestFeedbackLoopCoverageCompletion:
         """Test Retrainer.mark_retrained (lines 244-245)."""
         from datetime import datetime
 
-        from src.ml.feedback_loop import FeedbackType, ModelRetrainer, UserFeedback
+        from miesc.ml.feedback_loop import FeedbackType, ModelRetrainer, UserFeedback
 
         retrainer = ModelRetrainer(min_samples=1)
 
@@ -1515,7 +1515,7 @@ class TestFeedbackLoopCoverageCompletion:
 
     def test_feedback_callback_error_handling(self):
         """Test feedback callback error handling (lines 331-334)."""
-        from src.ml.feedback_loop import FeedbackLoop, FeedbackType
+        from miesc.ml.feedback_loop import FeedbackLoop, FeedbackType
 
         loop = FeedbackLoop()
 
@@ -1533,7 +1533,7 @@ class TestFeedbackLoopCoverageCompletion:
 
     def test_feedback_severity_correct(self):
         """Test SEVERITY_CORRECT feedback type (lines 375-381)."""
-        from src.ml.feedback_loop import FeedbackLoop, FeedbackType
+        from miesc.ml.feedback_loop import FeedbackLoop, FeedbackType
 
         loop = FeedbackLoop()
 
@@ -1549,7 +1549,7 @@ class TestFeedbackLoopCoverageCompletion:
 
     def test_feedback_severity_too_high(self):
         """Test SEVERITY_TOO_HIGH feedback type (lines 382-388)."""
-        from src.ml.feedback_loop import FeedbackLoop, FeedbackType
+        from miesc.ml.feedback_loop import FeedbackLoop, FeedbackType
 
         loop = FeedbackLoop()
 
@@ -1565,7 +1565,7 @@ class TestFeedbackLoopCoverageCompletion:
 
     def test_feedback_severity_too_low(self):
         """Test SEVERITY_TOO_LOW feedback type (lines 382-388)."""
-        from src.ml.feedback_loop import FeedbackLoop, FeedbackType
+        from miesc.ml.feedback_loop import FeedbackLoop, FeedbackType
 
         loop = FeedbackLoop()
 
@@ -1592,7 +1592,7 @@ class TestFeedbackLoopFinalCoverage:
         """Test load_tool_metrics returns empty dict when file doesn't exist (line 162)."""
         import tempfile
 
-        from src.ml.feedback_loop import FeedbackStore
+        from miesc.ml.feedback_loop import FeedbackStore
 
         with tempfile.TemporaryDirectory() as temp_dir:
             store = FeedbackStore(storage_path=temp_dir)
@@ -1607,7 +1607,7 @@ class TestFeedbackLoopFinalCoverage:
         """Test _load_feedback_history returns empty list when file doesn't exist (line 183)."""
         import tempfile
 
-        from src.ml.feedback_loop import FeedbackStore
+        from miesc.ml.feedback_loop import FeedbackStore
 
         with tempfile.TemporaryDirectory() as temp_dir:
             store = FeedbackStore(storage_path=temp_dir)
@@ -1620,7 +1620,7 @@ class TestFeedbackLoopFinalCoverage:
 
     def test_feedbackloop_new_tool_metrics(self):
         """Test _update_metrics creates new ToolPerformanceMetrics (line 366)."""
-        from src.ml.feedback_loop import FeedbackLoop, FeedbackType
+        from miesc.ml.feedback_loop import FeedbackLoop, FeedbackType
 
         loop = FeedbackLoop()
 
@@ -1634,7 +1634,7 @@ class TestFeedbackLoopFinalCoverage:
 
     def test_feedbackloop_get_tool_performance(self):
         """Test get_tool_performance returns None for unknown tool (line 457)."""
-        from src.ml.feedback_loop import FeedbackLoop
+        from miesc.ml.feedback_loop import FeedbackLoop
 
         loop = FeedbackLoop()
         result = loop.get_tool_performance("nonexistent_tool_123")
@@ -1642,7 +1642,7 @@ class TestFeedbackLoopFinalCoverage:
 
     def test_feedbackloop_get_vulnerability_insights_disputed(self):
         """Test get_vulnerability_insights with disputed vulnerabilities (lines 484-488)."""
-        from src.ml.feedback_loop import FeedbackLoop, VulnerabilityTypeStats
+        from miesc.ml.feedback_loop import FeedbackLoop, VulnerabilityTypeStats
 
         loop = FeedbackLoop()
 
@@ -1663,7 +1663,7 @@ class TestFeedbackLoopFinalCoverage:
 
     def test_feedbackloop_get_vulnerability_insights_tool_specializations(self):
         """Test get_vulnerability_insights tool_specializations (lines 498-502)."""
-        from src.ml.feedback_loop import FeedbackLoop, VulnerabilityTypeStats
+        from miesc.ml.feedback_loop import FeedbackLoop, VulnerabilityTypeStats
 
         loop = FeedbackLoop()
 
@@ -1684,7 +1684,7 @@ class TestFeedbackLoopFinalCoverage:
 
     def test_feedbackloop_recommendations_low_precision_tool(self):
         """Test get_recommendations for low precision tool (lines 512-513)."""
-        from src.ml.feedback_loop import FeedbackLoop, ToolPerformanceMetrics
+        from miesc.ml.feedback_loop import FeedbackLoop, ToolPerformanceMetrics
 
         loop = FeedbackLoop()
 
@@ -1708,7 +1708,7 @@ class TestFeedbackLoopFinalCoverage:
         """Test get_recommendations for retraining (lines 522-523)."""
         from datetime import datetime
 
-        from src.ml.feedback_loop import FeedbackLoop, FeedbackType, UserFeedback
+        from miesc.ml.feedback_loop import FeedbackLoop, FeedbackType, UserFeedback
 
         loop = FeedbackLoop()
 
@@ -1732,7 +1732,7 @@ class TestFeedbackLoopFinalCoverage:
 
     def test_feedbackloop_recommendations_problematic_vuln_type(self):
         """Test get_recommendations for problematic vuln types (lines 532-536)."""
-        from src.ml.feedback_loop import FeedbackLoop, VulnerabilityTypeStats
+        from miesc.ml.feedback_loop import FeedbackLoop, VulnerabilityTypeStats
 
         loop = FeedbackLoop()
 
@@ -1757,7 +1757,7 @@ class TestFeedbackLoopFinalCoverage:
         import tempfile
         from datetime import datetime
 
-        from src.ml.feedback_loop import FeedbackLoop, FeedbackType, UserFeedback
+        from miesc.ml.feedback_loop import FeedbackLoop, FeedbackType, UserFeedback
 
         loop = FeedbackLoop()
 
@@ -1797,7 +1797,7 @@ class TestFalsePositiveFilterVersionDetection:
 
     def test_detect_solidity_version_08(self, tmp_path):
         """Test detecting Solidity 0.8.x version."""
-        from src.ml.false_positive_filter import FalsePositiveFilter
+        from miesc.ml.false_positive_filter import FalsePositiveFilter
 
         contract = tmp_path / "Test08.sol"
         contract.write_text("pragma solidity ^0.8.20;\ncontract Test {}")
@@ -1810,7 +1810,7 @@ class TestFalsePositiveFilterVersionDetection:
 
     def test_detect_solidity_version_07(self, tmp_path):
         """Test detecting Solidity 0.7.x version."""
-        from src.ml.false_positive_filter import FalsePositiveFilter
+        from miesc.ml.false_positive_filter import FalsePositiveFilter
 
         contract = tmp_path / "Test07.sol"
         contract.write_text("pragma solidity ^0.7.6;\ncontract Test {}")
@@ -1823,7 +1823,7 @@ class TestFalsePositiveFilterVersionDetection:
 
     def test_detect_solidity_version_cached(self, tmp_path):
         """Test that version detection uses cache."""
-        from src.ml.false_positive_filter import FalsePositiveFilter
+        from miesc.ml.false_positive_filter import FalsePositiveFilter
 
         contract = tmp_path / "TestCached.sol"
         contract.write_text("pragma solidity >=0.8.0;\ncontract Test {}")
@@ -1841,7 +1841,7 @@ class TestFalsePositiveFilterVersionDetection:
 
     def test_is_solidity_08_plus_various_versions(self):
         """Test _is_solidity_08_plus with various versions."""
-        from src.ml.false_positive_filter import FalsePositiveFilter
+        from miesc.ml.false_positive_filter import FalsePositiveFilter
 
         filter_obj = FalsePositiveFilter()
 
@@ -1865,7 +1865,7 @@ class TestFalsePositiveFilterSafeguards:
 
     def test_detect_safeguards_safemath(self):
         """Test detecting SafeMath usage."""
-        from src.ml.false_positive_filter import FalsePositiveFilter
+        from miesc.ml.false_positive_filter import FalsePositiveFilter
 
         filter_obj = FalsePositiveFilter()
 
@@ -1876,7 +1876,7 @@ class TestFalsePositiveFilterSafeguards:
 
     def test_detect_safeguards_reentrancy_guard(self):
         """Test detecting ReentrancyGuard usage."""
-        from src.ml.false_positive_filter import FalsePositiveFilter
+        from miesc.ml.false_positive_filter import FalsePositiveFilter
 
         filter_obj = FalsePositiveFilter()
 
@@ -1887,7 +1887,7 @@ class TestFalsePositiveFilterSafeguards:
 
     def test_detect_safeguards_access_control(self):
         """Test detecting access control patterns."""
-        from src.ml.false_positive_filter import FalsePositiveFilter
+        from miesc.ml.false_positive_filter import FalsePositiveFilter
 
         filter_obj = FalsePositiveFilter()
 
@@ -1898,7 +1898,7 @@ class TestFalsePositiveFilterSafeguards:
 
     def test_detect_safeguards_no_safeguards(self):
         """Test code without safeguards."""
-        from src.ml.false_positive_filter import FalsePositiveFilter
+        from miesc.ml.false_positive_filter import FalsePositiveFilter
 
         filter_obj = FalsePositiveFilter()
 

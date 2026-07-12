@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 
-from src.security.remediation_pipeline import (
+from miesc.security.remediation_pipeline import (
     apply_patch_candidates,
     classify_compile_failure,
     count_high_findings,
@@ -52,7 +52,7 @@ def test_select_solc_uses_exact_version_for_locked_pragma(tmp_path, monkeypatch)
     contract = tmp_path / "Exact.sol"
     contract.write_text("pragma solidity 0.4.25;\ncontract C {}\n")
 
-    monkeypatch.setattr("src.security.remediation_pipeline.SOLC_DIR", artifacts)
+    monkeypatch.setattr("miesc.security.remediation_pipeline.SOLC_DIR", artifacts)
     monkeypatch.setattr("shutil.which", lambda _name: None)
 
     assert select_solc(contract) == str(solc_path)
@@ -69,7 +69,7 @@ def test_select_solc_uses_highest_compatible_patch_for_caret_pragma(tmp_path, mo
     contract = tmp_path / "Caret.sol"
     contract.write_text("pragma solidity ^0.4.0;\ncontract C {}\n")
 
-    monkeypatch.setattr("src.security.remediation_pipeline.SOLC_DIR", artifacts)
+    monkeypatch.setattr("miesc.security.remediation_pipeline.SOLC_DIR", artifacts)
     monkeypatch.setattr("shutil.which", lambda _name: None)
 
     assert select_solc(contract) == str(new_solc)
@@ -202,7 +202,7 @@ def test_remediate_contract_records_rescan_deltas_and_high_type_diff(tmp_path, m
             ]
         }
 
-    monkeypatch.setattr("src.security.remediation_pipeline.run_scan", fake_run_scan)
+    monkeypatch.setattr("miesc.security.remediation_pipeline.run_scan", fake_run_scan)
 
     evidence = remediate_contract(
         contract_path=contract,
@@ -231,8 +231,8 @@ def test_remediate_contract_records_rescan_deltas_and_high_type_diff(tmp_path, m
 # =========================================================================== #
 # Extra coverage: classify branches, select_solc fallback, mocked subprocess.
 # =========================================================================== #
-import src.security.remediation_pipeline as rp  # noqa: E402
-from src.security.remediation_pipeline import (  # noqa: E402
+import miesc.security.remediation_pipeline as rp  # noqa: E402
+from miesc.security.remediation_pipeline import (  # noqa: E402
     CompileEvidence,
     RescanEvidence,
     compile_contract,
@@ -324,7 +324,7 @@ def test_evidence_to_dict():
 
 
 def test_apply_patch_candidates_counts_skips():
-    from src.security.remediation_pipeline import apply_patch_candidates
+    from miesc.security.remediation_pipeline import apply_patch_candidates
     # an unknown finding type yields no change -> skipped counter increments
     src = "contract C { function f() public {} }"
     patched, applied, skipped = apply_patch_candidates(src, [{"type": "no-such-fix"}])
@@ -339,12 +339,12 @@ def test_run_scan_returns_none_when_no_output(tmp_path, monkeypatch):
 
 
 def test_remediate_contract_compile_checked_status(tmp_path, monkeypatch):
-    from src.security.remediation_pipeline import CompileEvidence, remediate_contract
+    from miesc.security.remediation_pipeline import CompileEvidence, remediate_contract
 
     contract = tmp_path / "Victim.sol"
     contract.write_text(SIMPLE_CONTRACT)
     # compile_check=True, rescan_check=False -> status becomes "compile_checked"
-    monkeypatch.setattr("src.security.remediation_pipeline.compile_contract",
+    monkeypatch.setattr("miesc.security.remediation_pipeline.compile_contract",
                         lambda *a, **k: CompileEvidence(checked=True, compiles=True, solc="solc"))
     evidence = remediate_contract(
         contract_path=contract,

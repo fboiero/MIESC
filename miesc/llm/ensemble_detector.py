@@ -1,0 +1,2033 @@
+"""
+LLM Ensemble Detector for MIESC
+================================
+
+Ensemble voting with multiple LLMs for vulnerability detection.
+Based on LLMBugScanner paper (2024): 60% top-5 detection rate.
+
+Features:
+- Multi-model ensemble voting
+- Parallel model execution
+- Confidence aggregation
+- Vulnerability type consensus
+- Multi-provider support (Ollama, OpenAI, Anthropic) (v4.4.0)
+
+Author: Fernando Boiero <fboiero@frvm.utn.edu.ar>
+Institution: UNDEF - IUA
+Date: January 2026
+"""
+
+import asyncio
+import hashlib
+import json
+import logging
+import math
+import os
+import unicodedata
+import urllib.parse
+from collections.abc import Mapping
+from dataclasses import dataclass, field
+from enum import Enum
+from typing import Any, Dict, List, Optional
+
+import aiohttp
+
+from miesc.llm.provider_health import fetch_openai_compatible_model_ids
+from miesc.security.llm_output_validator import repair_common_json_errors
+
+logger = logging.getLogger(__name__)
+
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv()
+except ImportError:
+    pass
+
+ENSEMBLE_RUNTIME_ERRORS = (
+    aiohttp.ClientError,
+    asyncio.TimeoutError,
+    TimeoutError,
+    OSError,
+    RuntimeError,
+    ValueError,
+    json.JSONDecodeError,
+)
+MAX_PROMPT_CONTEXT_CHARS = 8_000
+MAX_PROMPT_CONTEXT_ITEMS = 100
+MAX_PROMPT_CONTEXT_LIST_ITEMS = 50
+MAX_PROMPT_CONTEXT_DEPTH = 4
+MAX_PROMPT_CODE_CHARS = 200_000
+MAX_PROVIDER_METADATA_KEYS = 100
+MAX_PROVIDER_STATUS_ENTRIES = 20
+MAX_AVAILABILITY_MODEL_ENTRIES = 200
+MAX_STATUS_MODEL_ENTRIES = 200
+MAX_MODEL_RESPONSE_CHARS = 128_000
+MAX_JSON_ARRAY_SCAN_CHARS = 128_000
+MAX_JSON_ARRAY_CANDIDATES = 1_000
+MAX_PARSED_FINDINGS = 200
+MAX_ENSEMBLE_GROUPS = 500
+MAX_ENSEMBLE_RESULTS = 200
+MAX_CONFIDENCE_VALUES = 500
+MAX_RAW_RESPONSE_STRING_CHARS = 4_000
+MAX_RAW_RESPONSE_ITEMS = 100
+MAX_RAW_RESPONSE_DEPTH = 3
+MAX_OPTIONAL_FIELD_CHARS = 4_000
+DEFAULT_DEEPSEEK_BASE_URL = "https://api.deepseek.com"
+
+
+def _is_unsafe_text_char(char: str) -> bool:
+    """Return true for control or unicode separator characters in scalar text."""
+    codepoint = ord(char)
+    return codepoint < 32 or codepoint == 127 or unicodedata.category(char) in {"Zl", "Zp"}
+
+
+def _is_unsafe_multiline_char(char: str) -> bool:
+    """Return true for prompt text controls while allowing normal source line breaks."""
+    codepoint = ord(char)
+    if codepoint == 127:
+        return True
+    if codepoint < 32:
+        return char not in "\n\r\t"
+    return unicodedata.category(char) in {"Zl", "Zp"}
+
+
+class LLMProvider(Enum):
+    """Supported LLM providers."""
+
+    OLLAMA = "ollama"
+    OPENAI = "openai"
+    ANTHROPIC = "anthropic"
+    DEEPSEEK = "deepseek"
+
+
+class ProviderUnavailable(Exception):
+    """Exception raised when a provider is unavailable."""
+
+    pass
+
+
+class AllProvidersUnavailable(Exception):
+    """Exception raised when all providers are unavailable."""
+
+    pass
+
+
+class VotingStrategy(Enum):
+    """Voting strategies for ensemble."""
+
+    MAJORITY = "majority"  # Finding valid if >= 50% models agree
+    UNANIMOUS = "unanimous"  # All models must agree
+    WEIGHTED = "weighted"  # Weighted by model expertise
+    THRESHOLD = "threshold"  # At least N models must agree
+
+
+@dataclass
+class EnsembleFinding:
+    """A finding validated by ensemble voting."""
+
+    type: str
+    severity: str
+    title: str
+    description: str
+    location: Dict[str, Any]
+    confidence: float
+    votes: int
+    total_models: int
+    supporting_models: List[str]
+    attack_vector: Optional[str] = None
+    remediation: Optional[str] = None
+    swc_id: Optional[str] = None
+    cwe_id: Optional[str] = None
+    raw_responses: Dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class EnsembleResult:
+    """Result from ensemble detection."""
+
+    findings: List[EnsembleFinding]
+    models_used: List[str]
+    models_available: List[str]
+    models_failed: List[str]
+    execution_time_ms: float
+    consensus_threshold: int
+    total_raw_findings: int
+    filtered_findings: int
+
+
+def _safe_text(value: Any, *, limit: Optional[int] = None) -> Optional[str]:
+    """Return bounded scalar text or None for malformed inputs."""
+    if isinstance(value, bytes):
+        try:
+            value = value.decode("utf-8", errors="replace")
+        except Exception:
+            return None
+    if not isinstance(value, str):
+        return None
+    if any(unicodedata.category(ch) in {"Zl", "Zp"} or ord(ch) == 127 for ch in value):
+        return None
+    text = value.strip()
+    if not text:
+        return None
+    if any(ord(ch) < 32 for ch in text):
+        return None
+    if limit is not None and len(text) > limit:
+        return None
+    return text
+
+
+class LLMEnsembleDetector:
+    """
+    Ensemble of LLMs for vulnerability detection.
+
+    Uses multiple models with voting to improve detection accuracy
+    and reduce false positives through consensus.
+
+    Supported providers (v4.4.0):
+    - Ollama: deepseek-coder:6.7b, codellama:7b, llama3.1:8b
+    - OpenAI: gpt-4-turbo, gpt-4o, gpt-3.5-turbo
+    - Anthropic: claude-3-5-sonnet-20241022, claude-3-haiku-20240307
+    - DeepSeek: deepseek-v4-flash, deepseek-v4-pro
+
+    Voting: A finding is valid if >= 2 models independently identify it.
+    """
+
+    # Provider-specific model configurations (v4.4.0)
+    PROVIDER_MODELS = {
+        LLMProvider.OLLAMA: [
+            "deepseek-coder:6.7b",  # Primary - best for code
+            "codellama:7b",  # Secondary - code specialist
+            "llama3.1:8b",  # Tertiary - general reasoning
+        ],
+        LLMProvider.OPENAI: [
+            "gpt-4-turbo",  # Best for complex analysis
+            "gpt-4o",  # Fast and capable
+            "gpt-3.5-turbo",  # Fallback
+        ],
+        LLMProvider.ANTHROPIC: [
+            "claude-3-5-sonnet-20241022",  # Best for code analysis
+            "claude-3-haiku-20240307",  # Fast and efficient
+        ],
+        LLMProvider.DEEPSEEK: [
+            "deepseek-v4-flash",  # Fast/cost-efficient code reasoning
+            "deepseek-v4-pro",  # Higher capability fallback
+        ],
+    }
+
+    # Default models for ensemble (ordered by priority)
+    DEFAULT_MODELS = [
+        "deepseek-coder:6.7b",  # Primary - best for code
+        "codellama:7b",  # Secondary - code specialist
+        "llama3.1:8b",  # Tertiary - general reasoning
+    ]
+    DEFAULT_TIMEOUT = 120
+    DEFAULT_TEMPERATURE = 0.1
+    MAX_TEMPERATURE = 2.0
+    MAX_MODEL_LABEL_LENGTH = 200
+    MAX_VULNERABILITY_TYPE_LENGTH = 120
+    VALID_SEVERITIES = frozenset({"critical", "high", "medium", "low", "info"})
+
+    # Model weights based on code analysis expertise
+    MODEL_WEIGHTS = {
+        # Ollama models
+        "deepseek-coder:6.7b": 1.3,
+        "deepseek-coder:1.3b": 1.0,
+        "codellama:7b": 1.2,
+        "codellama:13b": 1.3,
+        "llama3.1:8b": 1.0,
+        "llama3:8b": 0.9,
+        "mistral:7b": 0.8,
+        # OpenAI models (v4.4.0)
+        "gpt-4-turbo": 1.4,
+        "gpt-4o": 1.35,
+        "gpt-4": 1.3,
+        "gpt-3.5-turbo": 1.0,
+        # Anthropic models (v4.4.0)
+        "claude-3-5-sonnet-20241022": 1.4,
+        "claude-3-opus-20240229": 1.5,
+        "claude-3-haiku-20240307": 1.1,
+        # DeepSeek API models
+        "deepseek-v4-flash": 1.25,
+        "deepseek-v4-pro": 1.35,
+    }
+
+    # Vulnerability detection prompt
+    DETECTION_PROMPT = """You are an expert Solidity smart contract security auditor.
+Analyze the following smart contract code for security vulnerabilities.
+
+IMPORTANT: Only report vulnerabilities you are CONFIDENT about. Do not guess.
+
+For each vulnerability found, provide:
+1. Type (reentrancy, access-control, arithmetic, unchecked-call, etc.)
+2. Severity (critical, high, medium, low, info)
+3. Title (brief description)
+4. Description (detailed explanation)
+5. Location (function name, approximate line)
+6. Attack vector (how it can be exploited)
+7. Remediation (how to fix it)
+8. Confidence (0.0-1.0)
+
+Respond with a JSON array of findings. If no vulnerabilities found, return [].
+
+Code to analyze:
+```solidity
+{code}
+```
+
+Response (JSON array only):"""
+
+    def __init__(
+        self,
+        models: Optional[List[str]] = None,
+        ollama_base_url: str = "http://localhost:11434",
+        voting_strategy: VotingStrategy = VotingStrategy.THRESHOLD,
+        consensus_threshold: int = 2,
+        timeout: int = 120,
+        temperature: float = 0.1,
+        providers: Optional[List[LLMProvider]] = None,
+        openai_api_key: Optional[str] = None,
+        anthropic_api_key: Optional[str] = None,
+        deepseek_api_key: Optional[str] = None,
+        deepseek_base_url: Optional[str] = None,
+    ):
+        """
+        Initialize the ensemble detector.
+
+        Args:
+            models: List of model names to use (default: DEFAULT_MODELS)
+            ollama_base_url: Ollama API base URL
+            voting_strategy: How to aggregate model votes
+            consensus_threshold: Minimum votes for THRESHOLD strategy
+            timeout: Request timeout in seconds
+            temperature: LLM temperature (lower = more deterministic)
+            providers: List of providers to use (default: [OLLAMA])
+            openai_api_key: OpenAI API key (or from OPENAI_API_KEY env)
+            anthropic_api_key: Anthropic API key (or from ANTHROPIC_API_KEY env)
+            deepseek_api_key: DeepSeek API key (or from DEEPSEEK_API_KEY env)
+            deepseek_base_url: DeepSeek API base URL
+        """
+        self.models = self._normalize_configured_models(models)
+        self.base_url = ollama_base_url
+        self.voting_strategy = self._normalize_voting_strategy(voting_strategy)
+        self.consensus_threshold = self._normalize_consensus_threshold(consensus_threshold)
+        self.timeout = self._normalize_timeout(timeout)
+        self.temperature = self._normalize_temperature(temperature)
+
+        # Multi-provider support (v4.4.0)
+        self.providers = self._normalize_providers(providers)
+        self.openai_api_key = self._normalize_api_key(openai_api_key, "OPENAI_API_KEY")
+        self.anthropic_api_key = self._normalize_api_key(anthropic_api_key, "ANTHROPIC_API_KEY")
+        self.deepseek_api_key = self._normalize_api_key(deepseek_api_key, "DEEPSEEK_API_KEY")
+        self.deepseek_base_url = self._normalize_deepseek_base_url(
+            deepseek_base_url or os.environ.get("DEEPSEEK_BASE_URL") or DEFAULT_DEEPSEEK_BASE_URL
+        )
+
+        self._available_models: List[str] = []
+        self._available_providers: Dict[LLMProvider, List[str]] = {}
+        self._initialized = False
+
+        logger.info(
+            f"LLMEnsembleDetector initialized with {len(self.models)} models, "
+            f"providers={[p.value for p in self.providers]}, "
+            f"strategy={self.voting_strategy.value}, threshold={self.consensus_threshold}"
+        )
+
+    @classmethod
+    def _normalize_configured_models(cls, models: Any) -> List[str]:
+        """Return configured model ids without treating malformed containers as models."""
+        if models is None:
+            return list(cls.DEFAULT_MODELS)
+
+        if not isinstance(models, (list, tuple, set)):
+            logger.warning("Ignoring malformed ensemble model list; using defaults")
+            return list(cls.DEFAULT_MODELS)
+
+        normalized = [
+            model_text
+            for model in models
+            if (model_text := _safe_text(model, limit=cls.MAX_MODEL_LABEL_LENGTH)) is not None
+        ]
+        if not normalized:
+            logger.warning("No valid ensemble model names configured; using defaults")
+            return list(cls.DEFAULT_MODELS)
+
+        return normalized
+
+    @staticmethod
+    def _normalize_consensus_threshold(consensus_threshold: Any) -> int:
+        """Return a positive integer threshold for vote comparisons."""
+        if isinstance(consensus_threshold, bool):
+            logger.warning("Ignoring malformed ensemble consensus threshold; using default")
+            return 2
+        if isinstance(consensus_threshold, bytes):
+            try:
+                consensus_threshold = consensus_threshold.decode("utf-8", errors="replace")
+            except Exception:
+                logger.warning("Ignoring malformed ensemble consensus threshold; using default")
+                return 2
+        if isinstance(consensus_threshold, str) and any(
+            _is_unsafe_text_char(ch) for ch in consensus_threshold
+        ):
+            logger.warning("Ignoring malformed ensemble consensus threshold; using default")
+            return 2
+
+        try:
+            threshold = int(consensus_threshold)
+        except (TypeError, ValueError):
+            logger.warning("Ignoring malformed ensemble consensus threshold; using default")
+            return 2
+
+        return max(1, threshold)
+
+    @staticmethod
+    def _provider_http_error(provider_name: str, status: Any) -> ProviderUnavailable:
+        """Build a provider error without embedding response bodies or prompts."""
+        status_code = status if isinstance(status, int) else "unknown"
+        return ProviderUnavailable(f"{provider_name} HTTP error: status={status_code}")
+
+    @staticmethod
+    def _safe_exception_summary(error: Any) -> str:
+        """Return an exception summary that excludes provider response bodies."""
+        if isinstance(error, BaseException):
+            return error.__class__.__name__
+        return "unknown"
+
+    @classmethod
+    def _normalize_timeout(cls, timeout: Any) -> int:
+        """Return a positive finite request timeout in seconds."""
+        if isinstance(timeout, bool):
+            logger.warning("Ignoring malformed ensemble timeout; using default")
+            return cls.DEFAULT_TIMEOUT
+        if isinstance(timeout, bytes):
+            try:
+                timeout = timeout.decode("utf-8", errors="replace")
+            except Exception:
+                logger.warning("Ignoring malformed ensemble timeout; using default")
+                return cls.DEFAULT_TIMEOUT
+        if isinstance(timeout, str) and any(_is_unsafe_text_char(ch) for ch in timeout):
+            logger.warning("Ignoring malformed ensemble timeout; using default")
+            return cls.DEFAULT_TIMEOUT
+
+        try:
+            normalized_timeout = float(timeout)
+        except (TypeError, ValueError):
+            logger.warning("Ignoring malformed ensemble timeout; using default")
+            return cls.DEFAULT_TIMEOUT
+
+        if not math.isfinite(normalized_timeout):
+            logger.warning("Ignoring malformed ensemble timeout; using default")
+            return cls.DEFAULT_TIMEOUT
+
+        return max(1, int(normalized_timeout))
+
+    @classmethod
+    def _normalize_temperature(cls, temperature: Any) -> float:
+        """Return a finite LLM temperature bounded to provider-safe values."""
+        if isinstance(temperature, bool):
+            logger.warning("Ignoring malformed ensemble temperature; using default")
+            return cls.DEFAULT_TEMPERATURE
+        if isinstance(temperature, bytes):
+            try:
+                temperature = temperature.decode("utf-8", errors="replace")
+            except Exception:
+                logger.warning("Ignoring malformed ensemble temperature; using default")
+                return cls.DEFAULT_TEMPERATURE
+        if isinstance(temperature, str) and any(_is_unsafe_text_char(ch) for ch in temperature):
+            logger.warning("Ignoring malformed ensemble temperature; using default")
+            return cls.DEFAULT_TEMPERATURE
+
+        try:
+            normalized_temperature = float(temperature)
+        except (TypeError, ValueError):
+            logger.warning("Ignoring malformed ensemble temperature; using default")
+            return cls.DEFAULT_TEMPERATURE
+
+        if not math.isfinite(normalized_temperature):
+            logger.warning("Ignoring malformed ensemble temperature; using default")
+            return cls.DEFAULT_TEMPERATURE
+
+        return min(cls.MAX_TEMPERATURE, max(0.0, normalized_temperature))
+
+    @staticmethod
+    def _normalize_api_key(api_key: Any, env_name: str) -> Optional[str]:
+        """Return a non-empty API key string from config or environment."""
+        normalized = _safe_text(api_key)
+        if normalized is not None:
+            return normalized
+        if api_key is not None:
+            logger.warning("Ignoring malformed ensemble API key for %s", env_name)
+
+        env_value = os.environ.get(env_name)
+        return _safe_text(env_value)
+
+    @staticmethod
+    def _normalize_deepseek_base_url(value: Any) -> str:
+        """Return a safe DeepSeek API base URL without credentials or duplicate v1 suffix."""
+        text = _safe_text(value, limit=2_000)
+        if text is None:
+            return DEFAULT_DEEPSEEK_BASE_URL
+        try:
+            parsed = urllib.parse.urlparse(text)
+        except (AttributeError, TypeError, ValueError, RuntimeError):
+            return DEFAULT_DEEPSEEK_BASE_URL
+        if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+            return DEFAULT_DEEPSEEK_BASE_URL
+        if parsed.username or parsed.password:
+            return DEFAULT_DEEPSEEK_BASE_URL
+        path = parsed.path.rstrip("/")
+        if path.endswith("/v1"):
+            path = path[: -len("/v1")]
+        normalized = parsed._replace(path=path, params="", query="", fragment="")
+        return urllib.parse.urlunparse(normalized).rstrip("/") or DEFAULT_DEEPSEEK_BASE_URL
+
+    @classmethod
+    def _build_detection_prompt(cls, code: Any, context: Any = None) -> str:
+        """Build a bounded detection prompt with JSON-safe optional context."""
+        prompt = cls.DETECTION_PROMPT.format(code=cls._prompt_code_text(code))
+        context_text = cls._prompt_context_text(context)
+        if context_text:
+            prompt += f"\n\nAdditional context:\n{context_text}"
+        return prompt
+
+    @staticmethod
+    def _prompt_code_text(code: Any) -> str:
+        """Return source code prompt text without unsafe controls or unbounded size."""
+        if isinstance(code, bytes):
+            try:
+                code = code.decode("utf-8", errors="replace")
+            except Exception:
+                return ""
+        if not isinstance(code, str):
+            return ""
+        text = "".join(" " if _is_unsafe_multiline_char(ch) else ch for ch in code)
+        return text[:MAX_PROMPT_CODE_CHARS]
+
+    @classmethod
+    def _prompt_context_text(cls, context: Any) -> str:
+        """Return a compact JSON context string or empty text when context is malformed."""
+        if not context:
+            return ""
+        normalized = cls._json_safe_context(context)
+        if normalized in ({}, [], "", None):
+            return ""
+        try:
+            encoded = json.dumps(normalized, indent=2, sort_keys=True, allow_nan=False)
+        except (TypeError, ValueError, RuntimeError, RecursionError):
+            return ""
+        return encoded[:MAX_PROMPT_CONTEXT_CHARS]
+
+    @classmethod
+    def _json_safe_context(
+        cls,
+        value: Any,
+        *,
+        depth: int = 0,
+        seen: Optional[set[int]] = None,
+    ) -> Any:
+        """Return JSON-safe bounded context values without trusting hostile containers."""
+        if depth > MAX_PROMPT_CONTEXT_DEPTH:
+            return ""
+        if seen is None:
+            seen = set()
+        if isinstance(value, (Mapping, list, tuple, set)):
+            value_id = id(value)
+            if value_id in seen:
+                return ""
+            seen.add(value_id)
+            try:
+                if isinstance(value, Mapping):
+                    items = []
+                    try:
+                        iterator = value.items()
+                    except (AttributeError, TypeError, ValueError, RuntimeError, RecursionError):
+                        return {}
+                    for index, (key, item) in enumerate(iterator):
+                        if index >= MAX_PROMPT_CONTEXT_ITEMS:
+                            break
+                        key_text = cls._safe_key_text(key, limit=120)
+                        if key_text is None:
+                            continue
+                        items.append(
+                            (
+                                key_text,
+                                cls._json_safe_context(item, depth=depth + 1, seen=seen),
+                            )
+                        )
+                    return dict(items)
+                result = []
+                for index, item in enumerate(value):
+                    if index >= MAX_PROMPT_CONTEXT_LIST_ITEMS:
+                        break
+                    result.append(cls._json_safe_context(item, depth=depth + 1, seen=seen))
+                return result
+            except (AttributeError, TypeError, ValueError, RuntimeError, RecursionError):
+                return {} if isinstance(value, Mapping) else []
+            finally:
+                seen.discard(id(value))
+        return cls._json_safe_scalar(value)
+
+    @staticmethod
+    def _json_safe_scalar(value: Any) -> Any:
+        """Return JSON-safe scalar prompt context values."""
+        if isinstance(value, bytes):
+            try:
+                value = value.decode("utf-8", errors="replace")
+            except Exception:
+                return ""
+        if isinstance(value, str):
+            text = "".join(" " if _is_unsafe_multiline_char(ch) else ch for ch in value.strip())
+            return text[:MAX_PROMPT_CONTEXT_CHARS]
+        if isinstance(value, bool) or value is None:
+            return value
+        if isinstance(value, int):
+            return value
+        if isinstance(value, float):
+            return value if math.isfinite(value) else ""
+        return ""
+
+    @staticmethod
+    def _safe_key_text(value: Any, *, limit: int) -> Optional[str]:
+        """Return bounded one-line JSON key text."""
+        text = _safe_text(value, limit=limit)
+        return text
+
+    @staticmethod
+    def _mapping_get(mapping: Any, key: str, default: Any = None) -> Any:
+        """Read mapping fields without trusting hostile mapping implementations."""
+        if not isinstance(mapping, Mapping):
+            return default
+        try:
+            return mapping.get(key, default)
+        except (AttributeError, TypeError, ValueError, RuntimeError, RecursionError):
+            return default
+
+    @staticmethod
+    def _mapping_items(mapping: Any) -> tuple[tuple[Any, Any], ...]:
+        """Return bounded mapping items without leaking hostile accessor exceptions."""
+        if not isinstance(mapping, Mapping):
+            return ()
+        try:
+            return tuple(mapping.items())
+        except (AttributeError, TypeError, ValueError, RuntimeError, RecursionError):
+            return ()
+
+    @staticmethod
+    def _normalize_voting_strategy(voting_strategy: Any) -> VotingStrategy:
+        """Return a supported voting strategy without trusting enum-like inputs."""
+        if isinstance(voting_strategy, VotingStrategy):
+            return voting_strategy
+        voting_text = _safe_text(voting_strategy)
+        if voting_text is not None:
+            try:
+                return VotingStrategy(voting_text.lower())
+            except ValueError:
+                pass
+
+        logger.warning("Ignoring malformed ensemble voting strategy; using threshold")
+        return VotingStrategy.THRESHOLD
+
+    @staticmethod
+    def _normalize_providers(providers: Any) -> List[LLMProvider]:
+        """Return configured providers while filtering malformed provider entries."""
+        if providers is None:
+            return [LLMProvider.OLLAMA]
+
+        if not isinstance(providers, (list, tuple, set)):
+            logger.warning("Ignoring malformed ensemble provider list; using Ollama")
+            return [LLMProvider.OLLAMA]
+
+        normalized: List[LLMProvider] = []
+        for provider in providers:
+            if isinstance(provider, LLMProvider):
+                normalized_provider = provider
+            elif isinstance(provider, str):
+                provider_text = _safe_text(provider, limit=40)
+                if provider_text is None:
+                    logger.warning("Ignoring malformed ensemble provider entry: %r", provider)
+                    continue
+                try:
+                    normalized_provider = LLMProvider(provider_text.lower())
+                except ValueError:
+                    logger.warning("Ignoring unknown ensemble provider: %r", provider)
+                    continue
+            else:
+                logger.warning("Ignoring malformed ensemble provider entry: %r", provider)
+                continue
+
+            if normalized_provider not in normalized:
+                normalized.append(normalized_provider)
+
+        if not normalized:
+            logger.warning("No valid ensemble providers configured; using Ollama")
+            return [LLMProvider.OLLAMA]
+
+        return normalized
+
+    @staticmethod
+    def _extract_availability_model_ids(data: Any, list_key: str, id_key: str) -> List[str]:
+        """Return string model ids from provider availability payloads."""
+        if not isinstance(data, Mapping):
+            logger.warning("Ignoring malformed provider model availability payload")
+            return []
+
+        models = LLMEnsembleDetector._mapping_get(data, list_key, [])
+        if not isinstance(models, list):
+            logger.warning("Ignoring malformed provider model availability list")
+            return []
+
+        model_ids = []
+        for model in models[:MAX_AVAILABILITY_MODEL_ENTRIES]:
+            if not isinstance(model, Mapping):
+                logger.warning("Ignoring malformed provider model availability entry: %r", model)
+                continue
+
+            model_id = _safe_text(
+                LLMEnsembleDetector._mapping_get(model, id_key),
+                limit=LLMEnsembleDetector.MAX_MODEL_LABEL_LENGTH,
+            )
+            if model_id is None:
+                logger.warning("Ignoring malformed provider model id: %r", model_id)
+            else:
+                model_ids.append(model_id)
+
+        return model_ids
+
+    @staticmethod
+    def _normalize_remote_model_ids(model_ids: Any) -> set[str]:
+        """Return string model ids from a provider-health model id result."""
+        if not isinstance(model_ids, (list, tuple, set)):
+            logger.warning("Ignoring malformed provider remote model id list")
+            return set()
+
+        normalized = set()
+        for model_id in model_ids:
+            cleaned = _safe_text(model_id, limit=LLMEnsembleDetector.MAX_MODEL_LABEL_LENGTH)
+            if cleaned is not None:
+                normalized.add(cleaned)
+        return normalized
+
+    @classmethod
+    def _provider_status_map(cls, provider_status: Any) -> Dict[LLMProvider, List[str]]:
+        """Return a defensive provider-to-model availability map."""
+        if not isinstance(provider_status, Mapping):
+            logger.warning("Ignoring malformed ensemble provider status map")
+            return {}
+
+        normalized: Dict[LLMProvider, List[str]] = {}
+        items = cls._mapping_items(provider_status)
+        if not items:
+            logger.warning("Ignoring malformed ensemble provider status map")
+            return {}
+
+        for provider, models in items[:MAX_PROVIDER_STATUS_ENTRIES]:
+            if isinstance(provider, LLMProvider):
+                normalized_provider = provider
+            elif isinstance(provider, str):
+                provider_text = _safe_text(provider, limit=40)
+                if provider_text is None:
+                    logger.warning("Ignoring malformed ensemble provider status key: %r", provider)
+                    continue
+                try:
+                    normalized_provider = LLMProvider(provider_text.lower())
+                except ValueError:
+                    logger.warning("Ignoring unknown ensemble provider status key: %r", provider)
+                    continue
+            else:
+                logger.warning("Ignoring malformed ensemble provider status key: %r", provider)
+                continue
+
+            existing = normalized.setdefault(normalized_provider, [])
+            for model in cls._status_model_list(models):
+                if model not in existing and len(existing) < MAX_STATUS_MODEL_ENTRIES:
+                    existing.append(model)
+
+        return normalized
+
+    async def initialize(self) -> Dict[str, bool]:
+        """
+        Initialize detector and check model availability across all providers.
+
+        Returns:
+            Dict mapping model name to availability status
+        """
+        status = {}
+        self._available_models = []
+        self._available_providers = {}
+
+        # Check each provider
+        for provider in self.providers:
+            provider_models = await self._check_provider_availability(provider)
+            self._available_providers[provider] = provider_models
+
+            for model in provider_models:
+                status[f"{provider.value}:{model}"] = True
+                if model not in self._available_models:
+                    self._available_models.append(model)
+
+        # Also check explicitly configured models with Ollama
+        if LLMProvider.OLLAMA in self.providers:
+            try:
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(
+                        f"{self.base_url}/api/tags", timeout=aiohttp.ClientTimeout(total=10)
+                    ) as resp:
+                        if resp.status == 200:
+                            data = await resp.json()
+                            installed_models = self._extract_availability_model_ids(
+                                data, "models", "name"
+                            )
+
+                            for model in self.models:
+                                # Check exact match or prefix match
+                                available = model in installed_models or any(
+                                    m.startswith(model.split(":")[0]) for m in installed_models
+                                )
+                                status[model] = available
+                                if available and model not in self._available_models:
+                                    self._available_models.append(model)
+            except ENSEMBLE_RUNTIME_ERRORS as e:
+                logger.warning(f"Failed to check Ollama models: {e}")
+
+        self._initialized = True
+        total_available = len(self._available_models)
+        logger.info(
+            f"Ensemble detector: {total_available} models available across "
+            f"{len([p for p, m in self._available_providers.items() if m])} providers"
+        )
+        return status
+
+    async def _check_provider_availability(self, provider: LLMProvider) -> List[str]:
+        """
+        Check availability of models for a specific provider.
+
+        Args:
+            provider: The LLM provider to check
+
+        Returns:
+            List of available model names for this provider
+        """
+        available = []
+
+        if provider == LLMProvider.OLLAMA:
+            try:
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(
+                        f"{self.base_url}/api/tags", timeout=aiohttp.ClientTimeout(total=10)
+                    ) as resp:
+                        if resp.status == 200:
+                            data = await resp.json()
+                            available = self._extract_availability_model_ids(data, "models", "name")
+            except ENSEMBLE_RUNTIME_ERRORS as e:
+                logger.debug(f"Ollama not available: {e}")
+
+        elif provider == LLMProvider.OPENAI:
+            if self.openai_api_key:
+                # OpenAI models are available if API key is set
+                available = self._status_model_list(self.PROVIDER_MODELS[LLMProvider.OPENAI])
+                logger.debug(f"OpenAI available with {len(available)} models")
+            else:
+                logger.debug("OpenAI not available: no API key")
+
+        elif provider == LLMProvider.ANTHROPIC:
+            if self.anthropic_api_key:
+                # Anthropic models are available if API key is set
+                available = self._status_model_list(self.PROVIDER_MODELS[LLMProvider.ANTHROPIC])
+                logger.debug(f"Anthropic available with {len(available)} models")
+            else:
+                logger.debug("Anthropic not available: no API key")
+
+        elif provider == LLMProvider.DEEPSEEK:
+            if not self.deepseek_api_key:
+                logger.debug("DeepSeek not available: no API key")
+                return available
+
+            remote_models = await fetch_openai_compatible_model_ids(
+                self.deepseek_base_url,
+                self.deepseek_api_key,
+                provider_name="DeepSeek",
+            )
+            remote_model_ids = self._normalize_remote_model_ids(remote_models)
+            configured = self.PROVIDER_MODELS[LLMProvider.DEEPSEEK]
+            available = [model for model in configured if model in remote_model_ids]
+            logger.debug("DeepSeek available with %s configured models", len(available))
+
+        return available
+
+    async def detect_with_fallback(
+        self,
+        code: str,
+        context: Optional[Dict[str, Any]] = None,
+    ) -> List[EnsembleFinding]:
+        """
+        Detect vulnerabilities with provider fallback.
+
+        Tries providers in order until one succeeds.
+
+        Args:
+            code: Solidity source code to analyze
+            context: Optional additional context
+
+        Returns:
+            List of validated findings
+
+        Raises:
+            AllProvidersUnavailable: If no providers can process the request
+        """
+        if not self._initialized:
+            await self.initialize()
+
+        last_error: Optional[BaseException] = None
+        available_providers = self._provider_status_map(self._available_providers)
+
+        for provider in self.providers:
+            if not isinstance(provider, LLMProvider):
+                logger.warning("Ignoring malformed ensemble provider entry during fallback")
+                continue
+            provider_models = available_providers.get(provider, [])
+            if not provider_models:
+                continue
+
+            try:
+                logger.info(f"Trying provider: {provider.value}")
+                result = await self._detect_with_provider(provider, code, context)
+                return result
+            except ProviderUnavailable as e:
+                logger.warning(
+                    "Provider %s unavailable: %s",
+                    provider.value,
+                    self._safe_exception_summary(e),
+                )
+                last_error = e
+                continue
+            except ENSEMBLE_RUNTIME_ERRORS as e:
+                logger.warning(
+                    "Provider %s failed: %s",
+                    provider.value,
+                    self._safe_exception_summary(e),
+                )
+                last_error = e
+                continue
+
+        raise AllProvidersUnavailable(
+            f"All providers failed. Last error: {self._safe_exception_summary(last_error)}"
+        )
+
+    async def _detect_with_provider(
+        self,
+        provider: LLMProvider,
+        code: str,
+        context: Optional[Dict[str, Any]] = None,
+    ) -> List[EnsembleFinding]:
+        """
+        Run detection with a specific provider.
+
+        Args:
+            provider: The LLM provider to use
+            code: Solidity source code
+            context: Optional context
+
+        Returns:
+            List of findings from this provider
+        """
+        if not isinstance(provider, LLMProvider):
+            raise ProviderUnavailable("Provider is malformed")
+        provider_status = self._provider_status_map(self._available_providers)
+        models = self._status_model_list(provider_status.get(provider, []))[:3]
+
+        if not models:
+            raise ProviderUnavailable(f"No models available for {provider.value}")
+
+        tasks = []
+        for model in models:
+            if provider == LLMProvider.OLLAMA:
+                tasks.append(self._query_model(model, code, context))
+            elif provider == LLMProvider.OPENAI:
+                tasks.append(self._query_openai(model, code, context))
+            elif provider == LLMProvider.ANTHROPIC:
+                tasks.append(self._query_anthropic(model, code, context))
+            elif provider == LLMProvider.DEEPSEEK:
+                tasks.append(self._query_deepseek(model, code, context))
+
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        # Process results
+        model_findings: Dict[str, List[Dict]] = {}
+
+        for model, result in zip(models, results, strict=False):
+            if isinstance(result, BaseException):
+                logger.warning(
+                    "Model %s failed: %s",
+                    model,
+                    self._safe_exception_summary(result),
+                )
+            else:
+                model_findings[model] = result
+
+        model_findings = self._normalize_model_findings(model_findings)
+
+        if not model_findings:
+            raise ProviderUnavailable(f"All models failed for {provider.value}")
+
+        return self._ensemble_vote(model_findings)
+
+    async def _query_openai(
+        self,
+        model: str,
+        code: str,
+        context: Optional[Dict[str, Any]] = None,
+    ) -> List[Dict[str, Any]]:
+        """
+        Query OpenAI API for vulnerabilities.
+
+        Args:
+            model: OpenAI model name
+            code: Solidity code
+            context: Optional context
+
+        Returns:
+            List of findings from this model
+        """
+        if not self.openai_api_key:
+            raise ProviderUnavailable("OpenAI API key not configured")
+
+        prompt = self._build_detection_prompt(code, context)
+
+        headers = {
+            "Authorization": f"Bearer {self.openai_api_key}",
+            "Content-Type": "application/json",
+        }
+
+        payload = {
+            "model": model,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "You are an expert smart contract security auditor. Respond only with valid JSON.",
+                },
+                {"role": "user", "content": prompt},
+            ],
+            "temperature": self.temperature,
+            "max_tokens": 4096,
+        }
+
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    "https://api.openai.com/v1/chat/completions",
+                    json=payload,
+                    headers=headers,
+                    timeout=aiohttp.ClientTimeout(total=self.timeout),
+                ) as resp:
+                    if resp.status != 200:
+                        raise self._provider_http_error("OpenAI", resp.status)
+
+                    data = await resp.json()
+                    self._validate_optional_response_metadata(data, "OpenAI")
+                    content = self._extract_openai_compatible_content(data, "OpenAI")
+
+                    return self._parse_model_response(content, model)
+
+        except aiohttp.ClientError as e:
+            raise ProviderUnavailable("OpenAI connection error") from e
+
+    async def _query_deepseek(
+        self,
+        model: str,
+        code: str,
+        context: Optional[Dict[str, Any]] = None,
+    ) -> List[Dict[str, Any]]:
+        """
+        Query DeepSeek API for vulnerabilities.
+
+        DeepSeek exposes an OpenAI-compatible chat completions endpoint.
+        """
+        if not self.deepseek_api_key:
+            raise ProviderUnavailable("DeepSeek API key not configured")
+
+        prompt = self._build_detection_prompt(code, context)
+
+        headers = {
+            "Authorization": f"Bearer {self.deepseek_api_key}",
+            "Content-Type": "application/json",
+        }
+
+        payload = {
+            "model": model,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "You are an expert smart contract security auditor. Respond only with valid JSON.",
+                },
+                {"role": "user", "content": prompt},
+            ],
+            "temperature": self.temperature,
+            "max_tokens": 4096,
+        }
+
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    f"{self.deepseek_base_url}/v1/chat/completions",
+                    json=payload,
+                    headers=headers,
+                    timeout=aiohttp.ClientTimeout(total=self.timeout),
+                ) as resp:
+                    if resp.status != 200:
+                        raise self._provider_http_error("DeepSeek", resp.status)
+
+                    data = await resp.json()
+                    self._validate_optional_response_metadata(data, "DeepSeek")
+                    content = self._extract_openai_compatible_content(data, "DeepSeek")
+
+                    return self._parse_model_response(content, model)
+
+        except aiohttp.ClientError as e:
+            raise ProviderUnavailable("DeepSeek connection error") from e
+
+    @staticmethod
+    def _extract_openai_compatible_content(data: Any, provider_name: str) -> str:
+        """Extract chat content from OpenAI-compatible response payloads."""
+        if not isinstance(data, Mapping):
+            raise ProviderUnavailable(f"{provider_name} response payload is malformed")
+
+        choices = LLMEnsembleDetector._mapping_get(data, "choices")
+        if not isinstance(choices, list) or not choices:
+            raise ProviderUnavailable(f"{provider_name} response choices are malformed")
+
+        first_choice = choices[0]
+        if not isinstance(first_choice, Mapping):
+            raise ProviderUnavailable(f"{provider_name} response choice is malformed")
+
+        message = LLMEnsembleDetector._mapping_get(first_choice, "message")
+        if not isinstance(message, Mapping):
+            raise ProviderUnavailable(f"{provider_name} response message is malformed")
+
+        content = LLMEnsembleDetector._mapping_get(message, "content")
+        if not isinstance(content, str):
+            raise ProviderUnavailable(f"{provider_name} response content is malformed")
+
+        return content
+
+    @classmethod
+    def _validate_optional_response_metadata(cls, data: Any, provider_name: str) -> None:
+        """Reject malformed optional latency/token metadata on provider responses."""
+        if not isinstance(data, Mapping):
+            raise ProviderUnavailable(f"{provider_name} response payload is malformed")
+        if len(cls._mapping_items(data)) > MAX_PROVIDER_METADATA_KEYS:
+            raise ProviderUnavailable(f"{provider_name} response metadata is malformed")
+
+        usage = cls._mapping_get(data, "usage")
+        if usage is not None:
+            if not isinstance(usage, Mapping):
+                raise ProviderUnavailable(f"{provider_name} response usage is malformed")
+            if len(cls._mapping_items(usage)) > MAX_PROVIDER_METADATA_KEYS:
+                raise ProviderUnavailable(f"{provider_name} response usage is malformed")
+            for key in (
+                "prompt_tokens",
+                "completion_tokens",
+                "total_tokens",
+                "input_tokens",
+                "output_tokens",
+            ):
+                if key in usage and not cls._is_nonnegative_finite_scalar(
+                    cls._mapping_get(usage, key)
+                ):
+                    raise ProviderUnavailable(
+                        f"{provider_name} response token metadata is malformed"
+                    )
+
+        for key in (
+            "total_duration",
+            "load_duration",
+            "prompt_eval_duration",
+            "eval_duration",
+        ):
+            if key in data and not cls._is_nonnegative_finite_scalar(cls._mapping_get(data, key)):
+                raise ProviderUnavailable(f"{provider_name} response latency metadata is malformed")
+
+        for key in ("prompt_eval_count", "eval_count"):
+            if key in data and not cls._is_nonnegative_finite_scalar(cls._mapping_get(data, key)):
+                raise ProviderUnavailable(f"{provider_name} response token metadata is malformed")
+
+    @staticmethod
+    def _extract_anthropic_content(data: Any) -> str:
+        """Extract the first text block from an Anthropic messages response."""
+        if not isinstance(data, Mapping):
+            raise ProviderUnavailable("Anthropic response payload is malformed")
+
+        content_blocks = LLMEnsembleDetector._mapping_get(data, "content")
+        if not isinstance(content_blocks, list) or not content_blocks:
+            raise ProviderUnavailable("Anthropic response content is malformed")
+
+        for block in content_blocks:
+            if not isinstance(block, Mapping):
+                continue
+            if LLMEnsembleDetector._mapping_get(block, "type", "text") != "text":
+                continue
+            text = LLMEnsembleDetector._mapping_get(block, "text")
+            if isinstance(text, str):
+                return text
+
+        raise ProviderUnavailable("Anthropic response text is malformed")
+
+    @staticmethod
+    def _extract_ollama_content(data: Any) -> str:
+        """Extract chat content from an Ollama response payload."""
+        if not isinstance(data, Mapping):
+            raise ProviderUnavailable("Ollama response payload is malformed")
+
+        message = LLMEnsembleDetector._mapping_get(data, "message")
+        if not isinstance(message, Mapping):
+            raise ProviderUnavailable("Ollama response message is malformed")
+
+        content = LLMEnsembleDetector._mapping_get(message, "content")
+        if not isinstance(content, str):
+            raise ProviderUnavailable("Ollama response content is malformed")
+
+        return content
+
+    async def _query_anthropic(
+        self,
+        model: str,
+        code: str,
+        context: Optional[Dict[str, Any]] = None,
+    ) -> List[Dict[str, Any]]:
+        """
+        Query Anthropic API for vulnerabilities.
+
+        Args:
+            model: Anthropic model name
+            code: Solidity code
+            context: Optional context
+
+        Returns:
+            List of findings from this model
+        """
+        if not self.anthropic_api_key:
+            raise ProviderUnavailable("Anthropic API key not configured")
+
+        prompt = self._build_detection_prompt(code, context)
+
+        headers = {
+            "x-api-key": self.anthropic_api_key,
+            "Content-Type": "application/json",
+            "anthropic-version": "2023-06-01",
+        }
+
+        payload = {
+            "model": model,
+            "max_tokens": 4096,
+            "system": "You are an expert smart contract security auditor. Respond only with valid JSON.",
+            "messages": [{"role": "user", "content": prompt}],
+        }
+
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    "https://api.anthropic.com/v1/messages",
+                    json=payload,
+                    headers=headers,
+                    timeout=aiohttp.ClientTimeout(total=self.timeout),
+                ) as resp:
+                    if resp.status != 200:
+                        raise self._provider_http_error("Anthropic", resp.status)
+
+                    data = await resp.json()
+                    self._validate_optional_response_metadata(data, "Anthropic")
+                    content = self._extract_anthropic_content(data)
+
+                    return self._parse_model_response(content, model)
+
+        except aiohttp.ClientError as e:
+            raise ProviderUnavailable("Anthropic connection error") from e
+
+    async def detect_vulnerabilities(
+        self,
+        code: str,
+        context: Optional[Dict[str, Any]] = None,
+    ) -> EnsembleResult:
+        """
+        Execute vulnerability detection with ensemble voting.
+
+        Args:
+            code: Solidity source code to analyze
+            context: Optional additional context
+
+        Returns:
+            EnsembleResult with validated findings
+        """
+        import time
+
+        start_time = time.time()
+
+        if not self._initialized:
+            await self.initialize()
+
+        available_models = self._status_model_list(self._available_models)
+
+        if not available_models:
+            logger.error("No LLM models available for ensemble detection")
+            return EnsembleResult(
+                findings=[],
+                models_used=[],
+                models_available=[],
+                models_failed=self._status_model_list(self.models),
+                execution_time_ms=0,
+                consensus_threshold=self.consensus_threshold,
+                total_raw_findings=0,
+                filtered_findings=0,
+            )
+
+        # Query all available models in parallel
+        tasks = [self._query_model(model, code, context) for model in available_models]
+
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        # Process results
+        model_findings: Dict[str, List[Dict]] = {}
+        failed_models: List[str] = []
+
+        for model, result in zip(available_models, results, strict=False):
+            if isinstance(result, BaseException):
+                logger.warning(
+                    "Model %s failed: %s",
+                    model,
+                    self._safe_exception_summary(result),
+                )
+                failed_models.append(model)
+            else:
+                model_findings[model] = result
+
+        model_findings = self._normalize_model_findings(model_findings)
+
+        # Aggregate with voting
+        validated_findings = self._ensemble_vote(model_findings)
+
+        execution_time = (time.time() - start_time) * 1000
+
+        # Calculate statistics
+        total_raw = sum(len(f) for f in model_findings.values())
+
+        logger.info(
+            f"Ensemble detection complete: {len(validated_findings)} findings "
+            f"from {total_raw} raw ({len(model_findings)} models)"
+        )
+
+        return EnsembleResult(
+            findings=validated_findings,
+            models_used=list(model_findings.keys()),
+            models_available=available_models,
+            models_failed=failed_models,
+            execution_time_ms=execution_time,
+            consensus_threshold=self.consensus_threshold,
+            total_raw_findings=total_raw,
+            filtered_findings=total_raw - len(validated_findings),
+        )
+
+    async def _query_model(
+        self,
+        model: str,
+        code: str,
+        context: Optional[Dict[str, Any]] = None,
+    ) -> List[Dict[str, Any]]:
+        """
+        Query a single model for vulnerabilities.
+
+        Args:
+            model: Model name
+            code: Solidity code
+            context: Optional context
+
+        Returns:
+            List of findings from this model
+        """
+        prompt = self._build_detection_prompt(code, context)
+
+        payload = {
+            "model": model,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "You are an expert smart contract security auditor. Respond only with valid JSON.",
+                },
+                {"role": "user", "content": prompt},
+            ],
+            "stream": False,
+            "options": {
+                "temperature": self.temperature,
+                "num_predict": 4096,
+            },
+        }
+
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    f"{self.base_url}/api/chat",
+                    json=payload,
+                    timeout=aiohttp.ClientTimeout(total=self.timeout),
+                ) as resp:
+                    if resp.status != 200:
+                        raise RuntimeError(f"Ollama HTTP error: status={resp.status}")
+
+                    data = await resp.json()
+                    self._validate_optional_response_metadata(data, "Ollama")
+                    content = self._extract_ollama_content(data)
+
+                    return self._parse_model_response(content, model)
+
+        except ENSEMBLE_RUNTIME_ERRORS as e:
+            logger.warning(
+                "Model %s query failed: %s",
+                self._safe_model_label(model) or "unknown",
+                self._safe_exception_summary(e),
+            )
+            raise
+
+    def _parse_model_response(self, content: str, model: str) -> List[Dict[str, Any]]:
+        """Parse model response into findings list."""
+        source_model = self._safe_model_label(model)
+        if not isinstance(content, str) or len(content) > MAX_MODEL_RESPONSE_CHARS:
+            return []
+        try:
+            json_str = self._extract_first_json_array(content)
+
+            if json_str is not None:
+                findings = json.loads(json_str)
+                if not isinstance(findings, list):
+                    return []
+
+                # Normalize findings
+                normalized = []
+                for f in findings[:MAX_PARSED_FINDINGS]:
+                    vuln_type = (
+                        self._safe_vulnerability_type(f.get("type"))
+                        if isinstance(f, dict)
+                        else None
+                    )
+                    if vuln_type:
+                        # Add source model
+                        f["type"] = vuln_type
+                        if source_model is not None:
+                            f["_source_model"] = source_model
+                        normalized.append(f)
+
+                return normalized
+
+        except json.JSONDecodeError as e:
+            logger.debug(
+                "JSON parse error for %s: %s",
+                self._safe_model_label(model) or "unknown",
+                e.__class__.__name__,
+            )
+
+        return []
+
+    @staticmethod
+    def _extract_first_json_array(content: Any) -> Optional[str]:
+        """Return the first decodable JSON array from text, without spanning arrays."""
+        if not isinstance(content, str):
+            return None
+        if len(content) > MAX_JSON_ARRAY_SCAN_CHARS:
+            return None
+
+        decoder = json.JSONDecoder()
+        candidates = 0
+        for start, char in enumerate(content):
+            if char != "[":
+                continue
+            candidates += 1
+            if candidates > MAX_JSON_ARRAY_CANDIDATES:
+                return None
+            candidate_text = content[start:]
+            if len(candidate_text) > MAX_JSON_ARRAY_SCAN_CHARS:
+                return None
+            candidate = repair_common_json_errors(candidate_text)
+            try:
+                parsed, parsed_end = decoder.raw_decode(candidate)
+            except json.JSONDecodeError:
+                continue
+            if isinstance(parsed, list) and candidate[parsed_end:].strip() == "":
+                return candidate
+            if isinstance(parsed, list):
+                try:
+                    encoded = json.dumps(parsed, allow_nan=False)
+                except (TypeError, ValueError):
+                    return None
+                return encoded
+        return None
+
+    @classmethod
+    def _safe_optional_text(
+        cls, value: Any, *, limit: int = MAX_OPTIONAL_FIELD_CHARS
+    ) -> Optional[str]:
+        """Return optional scalar result metadata as bounded clean text."""
+        text = cls._safe_text(value, "")
+        if not text:
+            return None
+        if len(text) > limit:
+            return text[:limit]
+        return text
+
+    @classmethod
+    def _json_safe_raw_value(
+        cls,
+        value: Any,
+        *,
+        depth: int = 0,
+        seen: Optional[set[int]] = None,
+    ) -> Any:
+        """Return bounded JSON-safe raw response metadata."""
+        if depth > MAX_RAW_RESPONSE_DEPTH:
+            return ""
+        if seen is None:
+            seen = set()
+        if isinstance(value, bytes):
+            try:
+                value = value.decode("utf-8", errors="replace")
+            except Exception:
+                return ""
+        if isinstance(value, str):
+            text = cls._safe_text(value, "")
+            return text[:MAX_RAW_RESPONSE_STRING_CHARS] if text else ""
+        if isinstance(value, bool) or value is None:
+            return value
+        if isinstance(value, int):
+            return value
+        if isinstance(value, float):
+            return value if math.isfinite(value) else ""
+        if isinstance(value, Mapping):
+            value_id = id(value)
+            if value_id in seen:
+                return {}
+            seen.add(value_id)
+            try:
+                result = {}
+                try:
+                    iterator = value.items()
+                except (AttributeError, TypeError, ValueError, RuntimeError, RecursionError):
+                    return {}
+                for index, (key, item) in enumerate(iterator):
+                    if index >= MAX_RAW_RESPONSE_ITEMS:
+                        break
+                    key_text = cls._safe_key_text(key, limit=120)
+                    if key_text is None:
+                        continue
+                    result[key_text] = cls._json_safe_raw_value(item, depth=depth + 1, seen=seen)
+                return result
+            finally:
+                seen.discard(value_id)
+        if isinstance(value, (list, tuple, set)):
+            value_id = id(value)
+            if value_id in seen:
+                return []
+            seen.add(value_id)
+            try:
+                return [
+                    cls._json_safe_raw_value(item, depth=depth + 1, seen=seen)
+                    for index, item in enumerate(value)
+                    if index < MAX_RAW_RESPONSE_ITEMS
+                ]
+            finally:
+                seen.discard(value_id)
+        return ""
+
+    def _ensemble_vote(
+        self,
+        model_findings: Dict[str, List[Dict]],
+    ) -> List[EnsembleFinding]:
+        """
+        Aggregate findings using voting strategy.
+
+        Findings are grouped by type and location, then validated
+        based on the voting strategy.
+        """
+        model_findings = self._normalize_model_findings(model_findings)
+
+        if not model_findings:
+            return []
+
+        # Group findings by type + location signature
+        finding_groups: Dict[str, Dict[str, Any]] = {}
+
+        for model, findings in model_findings.items():
+            for finding in findings:
+                # Create signature for grouping similar findings
+                signature = self._create_finding_signature(finding)
+
+                if signature not in finding_groups:
+                    if len(finding_groups) >= MAX_ENSEMBLE_GROUPS:
+                        continue
+                    finding_groups[signature] = {
+                        "finding": finding,
+                        "votes": [],
+                        "confidences": [],
+                        "models": [],
+                        "raw_responses": {},
+                        "seen_models": set(),
+                    }
+
+                if model in finding_groups[signature]["seen_models"]:
+                    continue
+                finding_groups[signature]["seen_models"].add(model)
+
+                finding_groups[signature]["votes"].append(self._model_weight(model))
+                finding_groups[signature]["confidences"].append(
+                    self._safe_confidence(finding.get("confidence"), 0.7)
+                )
+                finding_groups[signature]["models"].append(model)
+                finding_groups[signature]["raw_responses"][model] = self._safe_raw_response_payload(
+                    finding
+                )
+
+        # Apply voting strategy
+        validated = []
+        total_models = len(model_findings)
+
+        for _signature, group in finding_groups.items():
+            votes = len(group["votes"])
+            weighted_votes = sum(group["votes"])
+
+            # Check if finding passes voting threshold
+            passes = False
+
+            if self.voting_strategy == VotingStrategy.MAJORITY:
+                passes = votes > total_models / 2
+
+            elif self.voting_strategy == VotingStrategy.UNANIMOUS:
+                passes = votes == total_models
+
+            elif self.voting_strategy == VotingStrategy.THRESHOLD:
+                passes = votes >= self.consensus_threshold
+
+            elif self.voting_strategy == VotingStrategy.WEIGHTED:
+                # Weighted threshold based on available model weights
+                max_possible_weight = sum(self._model_weight(m) for m in model_findings.keys())
+                passes = weighted_votes >= max_possible_weight * 0.5
+
+            if passes:
+                if len(validated) >= MAX_ENSEMBLE_RESULTS:
+                    break
+                finding = group["finding"]
+
+                # Calculate aggregated confidence
+                base_confidence = self._aggregate_vote_confidence(group["confidences"])
+                vote_bonus = min(0.2, votes * 0.05)  # Up to +0.2 for votes
+                aggregated_confidence = min(0.99, base_confidence + vote_bonus)
+                vuln_type = self._safe_text(self._mapping_get(finding, "type"), "unknown")
+
+                validated.append(
+                    EnsembleFinding(
+                        type=vuln_type,
+                        severity=self._safe_severity(self._mapping_get(finding, "severity")),
+                        title=self._safe_text(self._mapping_get(finding, "title"), vuln_type),
+                        description=self._safe_text(self._mapping_get(finding, "description"), ""),
+                        location=self._safe_location(self._mapping_get(finding, "location")),
+                        confidence=aggregated_confidence,
+                        votes=votes,
+                        total_models=total_models,
+                        supporting_models=group["models"],
+                        attack_vector=self._safe_optional_text(
+                            self._mapping_get(finding, "attack_vector")
+                        ),
+                        remediation=self._safe_optional_text(
+                            self._mapping_get(finding, "remediation")
+                        ),
+                        swc_id=self._safe_optional_text(
+                            self._mapping_get(finding, "swc_id")
+                            or self._mapping_get(finding, "swc")
+                        ),
+                        cwe_id=self._safe_optional_text(
+                            self._mapping_get(finding, "cwe_id")
+                            or self._mapping_get(finding, "cwe")
+                        ),
+                        raw_responses=group["raw_responses"],
+                    )
+                )
+
+        # Sort by severity and confidence
+        severity_order = {"critical": 0, "high": 1, "medium": 2, "low": 3, "info": 4}
+        validated.sort(key=lambda f: (severity_order.get(f.severity, 5), -f.confidence))
+
+        return validated
+
+    @staticmethod
+    def _aggregate_vote_confidence(confidences: Any) -> float:
+        """Return bounded mean confidence across model votes."""
+        if not isinstance(confidences, list) or not confidences:
+            return 0.7
+
+        normalized = [
+            LLMEnsembleDetector._safe_confidence(confidence, 0.7) for confidence in confidences
+        ][:MAX_CONFIDENCE_VALUES]
+        return sum(normalized) / len(normalized)
+
+    @classmethod
+    def _normalize_model_findings(
+        cls,
+        model_findings: Dict[str, Any],
+    ) -> Dict[str, List[Dict[str, Any]]]:
+        """Keep only per-model finding lists with safe vulnerability type entries."""
+        if not isinstance(model_findings, Mapping):
+            logger.warning("Ignoring malformed ensemble model findings payload")
+            return {}
+
+        normalized: Dict[str, List[Dict[str, Any]]] = {}
+
+        items = cls._mapping_items(model_findings)
+
+        for model, findings in items[:MAX_STATUS_MODEL_ENTRIES]:
+            model_id = LLMEnsembleDetector._safe_model_label(model)
+            if model_id is None:
+                logger.warning("Ignoring malformed ensemble model id in findings payload")
+                continue
+            if not isinstance(findings, list):
+                logger.warning("Ignoring malformed findings payload from model %s", model_id)
+                continue
+            safe_findings = []
+            for finding in findings[:MAX_PARSED_FINDINGS]:
+                if not isinstance(finding, Mapping):
+                    continue
+                vuln_type = cls._safe_vulnerability_type(cls._mapping_get(finding, "type"))
+                if vuln_type is None:
+                    logger.warning(
+                        "Ignoring finding with malformed vulnerability type from model %s",
+                        model_id,
+                    )
+                    continue
+                safe_finding = dict(cls._mapping_items(finding))
+                safe_finding["type"] = vuln_type
+                safe_findings.append(safe_finding)
+            normalized.setdefault(model_id, []).extend(safe_findings)
+
+        return normalized
+
+    @classmethod
+    def _model_weight(cls, model: Any) -> float:
+        """Return a finite positive model weight, defaulting malformed entries."""
+        if not isinstance(model, str) or not model.strip():
+            return 1.0
+
+        weights = cls.MODEL_WEIGHTS
+        if not isinstance(weights, Mapping):
+            logger.warning("Ignoring malformed ensemble model weights; using default")
+            return 1.0
+
+        weight = cls._mapping_get(weights, model.strip(), 1.0)
+        if isinstance(weight, bool) or isinstance(weight, (dict, list, tuple, set)):
+            logger.warning("Ignoring malformed ensemble model weight for %s", model.strip())
+            return 1.0
+
+        try:
+            normalized_weight = float(weight)
+        except (TypeError, ValueError):
+            logger.warning("Ignoring malformed ensemble model weight for %s", model.strip())
+            return 1.0
+
+        if not math.isfinite(normalized_weight) or normalized_weight <= 0.0:
+            logger.warning("Ignoring malformed ensemble model weight for %s", model.strip())
+            return 1.0
+
+        return normalized_weight
+
+    @staticmethod
+    def _safe_raw_response_payload(finding: Any) -> Dict[str, Any]:
+        """Return a shallow raw response copy with JSON-object-compatible keys."""
+        if not isinstance(finding, Mapping):
+            return {}
+        payload = {}
+        items = LLMEnsembleDetector._mapping_items(finding)
+        for index, (key, value) in enumerate(items):
+            if index >= MAX_RAW_RESPONSE_ITEMS:
+                break
+            if not isinstance(key, str):
+                continue
+            cleaned_key = key.strip()
+            if (
+                not cleaned_key
+                or len(cleaned_key) > 120
+                or any(_is_unsafe_text_char(ch) for ch in cleaned_key)
+            ):
+                continue
+            payload[cleaned_key] = LLMEnsembleDetector._json_safe_raw_value(value)
+        if "confidence_explanation" in payload and not isinstance(
+            payload["confidence_explanation"], str
+        ):
+            payload.pop("confidence_explanation")
+        return payload
+
+    @staticmethod
+    def _safe_float(value: Any, default: float) -> float:
+        """Return a float for scalar values without accepting container reprs."""
+        if isinstance(value, (dict, list, tuple, set)):
+            return default
+        try:
+            if isinstance(value, bytes):
+                value = value.decode("utf-8", errors="replace")
+            if isinstance(value, str):
+                text = value.strip()
+                if not text or any(_is_unsafe_text_char(ch) for ch in text):
+                    return default
+                value = text
+            elif isinstance(value, bytes):
+                text = value.decode("utf-8", errors="replace").strip()
+                if not text or any(_is_unsafe_text_char(ch) for ch in text):
+                    return default
+                value = text
+            return float(value)
+        except (TypeError, ValueError):
+            return default
+
+    @staticmethod
+    def _is_nonnegative_finite_scalar(value: Any) -> bool:
+        """Return whether response metadata is a finite non-negative scalar."""
+        if isinstance(value, bool) or isinstance(value, (dict, list, tuple, set)):
+            return False
+        try:
+            if isinstance(value, str):
+                if any(_is_unsafe_text_char(ch) for ch in value):
+                    return False
+                text = value.strip()
+                value = text
+            elif isinstance(value, bytes):
+                raw_value = value.decode("utf-8", errors="replace")
+                if any(_is_unsafe_text_char(ch) for ch in raw_value):
+                    return False
+                text = raw_value.strip()
+                value = text
+            normalized = float(value)
+        except (TypeError, ValueError):
+            return False
+        return math.isfinite(normalized) and normalized >= 0
+
+    @staticmethod
+    def _safe_confidence(value: Any, default: float) -> float:
+        """Return a finite model confidence bounded to the documented 0.0-1.0 range."""
+        if isinstance(value, bool):
+            return default
+        confidence = LLMEnsembleDetector._safe_float(value, default)
+        if not math.isfinite(confidence) or confidence < 0.0 or confidence > 1.0:
+            return default
+        return confidence
+
+    @staticmethod
+    def _safe_text(value: Any, default: str) -> str:
+        """Return text fields only when the model supplied an actual string."""
+        if isinstance(value, bytes):
+            try:
+                value = value.decode("utf-8", errors="replace")
+            except Exception:
+                return default
+        if isinstance(value, str):
+            text = value.strip()
+            if text and not any(_is_unsafe_text_char(ch) for ch in text):
+                return text
+        return default
+
+    @classmethod
+    def _safe_vulnerability_type(cls, value: Any) -> Optional[str]:
+        """Return a safe vulnerability type/category label for consensus grouping."""
+        if isinstance(value, bytes):
+            try:
+                value = value.decode("utf-8", errors="replace")
+            except Exception:
+                return None
+        if not isinstance(value, str):
+            return None
+
+        vuln_type = value.strip()
+        if not vuln_type or len(vuln_type) > cls.MAX_VULNERABILITY_TYPE_LENGTH:
+            return None
+
+        if any(_is_unsafe_text_char(char) for char in vuln_type):
+            return None
+
+        return vuln_type
+
+    @classmethod
+    def _safe_model_label(cls, value: Any) -> Optional[str]:
+        """Return a safe model/provider label for result metadata keys."""
+        if isinstance(value, bytes):
+            try:
+                value = value.decode("utf-8", errors="replace")
+            except Exception:
+                return None
+        if not isinstance(value, str):
+            return None
+
+        label = value.strip()
+        if not label or len(label) > cls.MAX_MODEL_LABEL_LENGTH:
+            return None
+
+        if any(_is_unsafe_text_char(char) for char in label):
+            return None
+
+        return label
+
+    @classmethod
+    def _safe_severity(cls, value: Any) -> str:
+        """Return a normalized known severity, defaulting malformed labels."""
+        severity = cls._safe_text(value, "").strip().lower()
+        if severity in cls.VALID_SEVERITIES:
+            return severity
+        return "medium"
+
+    @staticmethod
+    def _safe_int(value: Any, default: int) -> int:
+        """Return an int for scalar values without accepting container reprs."""
+        if isinstance(value, bool) or isinstance(value, (dict, list, tuple, set)):
+            return default
+        try:
+            if isinstance(value, bytes):
+                value = value.decode("utf-8", errors="replace")
+            if isinstance(value, str):
+                text = value.strip()
+                if not text or any(_is_unsafe_text_char(ch) for ch in text):
+                    return default
+                value = text
+            elif isinstance(value, bytes):
+                text = value.decode("utf-8", errors="replace").strip()
+                if not text or any(_is_unsafe_text_char(ch) for ch in text):
+                    return default
+                value = text
+            return int(value)
+        except (OverflowError, TypeError, ValueError):
+            return default
+
+    @classmethod
+    def _safe_location(cls, value: Any) -> Dict[str, Any]:
+        """Return scalar location fields only when the model supplied an object."""
+        if not isinstance(value, Mapping):
+            return {}
+        location: Dict[str, Any] = {}
+        for index, (key, field_value) in enumerate(cls._mapping_items(value)):
+            if index >= MAX_RAW_RESPONSE_ITEMS:
+                break
+            if (
+                not isinstance(key, str)
+                or len(key) > 120
+                or any(_is_unsafe_text_char(ch) for ch in key)
+            ):
+                continue
+            if isinstance(field_value, (dict, list, tuple, set)):
+                continue
+            if key == "line":
+                line = cls._safe_int(field_value, 0)
+                if cls._is_nonnegative_finite_scalar(field_value):
+                    location[key] = line
+                continue
+            if isinstance(field_value, str):
+                text = cls._safe_text(field_value, "")
+                if not text:
+                    continue
+                location[key] = text
+                continue
+            if isinstance(field_value, bytes):
+                text = cls._safe_text(field_value, "")
+                if text:
+                    location[key] = text
+                continue
+            location[key] = field_value
+        return location
+
+    def _create_finding_signature(self, finding: Dict[str, Any]) -> str:
+        """
+        Create a unique signature for grouping similar findings.
+
+        Findings are considered similar if they have the same type
+        and approximately the same location.
+        """
+        if not isinstance(finding, Mapping):
+            finding = {}
+        vuln_type = (
+            self._safe_vulnerability_type(self._mapping_get(finding, "type")) or ""
+        ).lower()
+        location = self._safe_location(self._mapping_get(finding, "location"))
+
+        # Extract location components
+        func = self._safe_text(location.get("function"), "")
+        line = self._safe_int(location.get("line"), 0)
+        if line < 0:
+            line = 0
+        # Round line to nearest 5 for approximate matching.
+        line_group = (line // 5) * 5 if line else 0
+
+        # Create signature
+        sig_content = f"{vuln_type}:{func}:{line_group}"
+        return hashlib.sha256(sig_content.encode()).hexdigest()[:16]
+
+    def get_model_status(self) -> Dict[str, Any]:
+        """Get current model status information."""
+        configured_models = self._status_model_list(self.models)
+        available_models = self._status_model_list(self._available_models)
+        return {
+            "configured_models": configured_models,
+            "available_models": available_models,
+            "voting_strategy": self.voting_strategy.value,
+            "consensus_threshold": self.consensus_threshold,
+            "model_weights": {m: self._model_weight(m) for m in configured_models},
+            "initialized": self._initialized,
+        }
+
+    @staticmethod
+    def _status_model_list(models: Any) -> List[str]:
+        """Return a defensive, serializable model id list for public status."""
+        if not isinstance(models, (list, tuple, set, Mapping)):
+            logger.warning("Ignoring malformed ensemble model status list")
+            return []
+
+        normalized = []
+        iterable = models.keys() if isinstance(models, Mapping) else models
+        for model in list(iterable)[:MAX_STATUS_MODEL_ENTRIES]:
+            if len(normalized) >= MAX_STATUS_MODEL_ENTRIES:
+                break
+            if not isinstance(model, str):
+                continue
+            cleaned = model.strip()
+            if (
+                not cleaned
+                or len(cleaned) > LLMEnsembleDetector.MAX_MODEL_LABEL_LENGTH
+                or any(_is_unsafe_text_char(ch) for ch in cleaned)
+            ):
+                continue
+            if cleaned not in normalized:
+                normalized.append(cleaned)
+        return normalized
+
+
+# Convenience function for simple usage
+async def detect_with_ensemble(
+    code: str,
+    models: Optional[List[str]] = None,
+    min_votes: int = 2,
+) -> List[EnsembleFinding]:
+    """
+    Detect vulnerabilities using LLM ensemble.
+
+    Args:
+        code: Solidity source code
+        models: Models to use (default: deepseek-coder, codellama, llama3.1)
+        min_votes: Minimum votes for a finding to be valid
+
+    Returns:
+        List of validated findings
+    """
+    detector = LLMEnsembleDetector(
+        models=models,
+        consensus_threshold=min_votes,
+    )
+    result = await detector.detect_vulnerabilities(code)
+    return result.findings
+
+
+# Export
+__all__ = [
+    "LLMEnsembleDetector",
+    "EnsembleFinding",
+    "EnsembleResult",
+    "VotingStrategy",
+    "LLMProvider",
+    "ProviderUnavailable",
+    "AllProvidersUnavailable",
+    "detect_with_ensemble",
+]

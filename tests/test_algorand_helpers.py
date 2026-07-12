@@ -6,7 +6,7 @@ no Algorand node or external tools required.
 
 from __future__ import annotations
 
-from src.adapters.algorand_adapter import (
+from miesc.adapters.algorand_adapter import (
     AlgorandPatternDetector,
     PyTealParser,
     TealParser,

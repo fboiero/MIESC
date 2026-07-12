@@ -12,7 +12,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from src.ml.fine_tuning.dataset_generator import (
+from miesc.ml.fine_tuning.dataset_generator import (
     SoliditySecurityDatasetGenerator,
     TrainingExample,
     VulnerabilityExample,
@@ -515,7 +515,7 @@ class TestIntegration:
 # Test Fine-Tuning Trainer Module
 # =============================================================================
 
-from src.ml.fine_tuning.fine_tuning_trainer import (  # noqa: E402
+from miesc.ml.fine_tuning.fine_tuning_trainer import (  # noqa: E402
     SoliditySecurityTrainer,
     TrainingConfig,
 )
@@ -805,8 +805,8 @@ class TestTrainerMethodsMocked:
             with pytest.raises(ImportError):
                 trainer.load_dataset("test.json")
 
-    @patch("src.ml.fine_tuning.fine_tuning_trainer.SoliditySecurityTrainer.prepare_model")
-    @patch("src.ml.fine_tuning.fine_tuning_trainer.SoliditySecurityTrainer.load_dataset")
+    @patch("miesc.ml.fine_tuning.fine_tuning_trainer.SoliditySecurityTrainer.prepare_model")
+    @patch("miesc.ml.fine_tuning.fine_tuning_trainer.SoliditySecurityTrainer.load_dataset")
     def test_train_import_error(self, mock_load, mock_prepare, trainer):
         """Test train raises ImportError when deps missing."""
         with patch.dict("sys.modules", {"transformers": None, "trl": None}):
@@ -876,7 +876,7 @@ class TestTrainerWithMockedDeps:
             # Import mocked module
 
             with patch(
-                "src.ml.fine_tuning.fine_tuning_trainer.SoliditySecurityTrainer.load_dataset"
+                "miesc.ml.fine_tuning.fine_tuning_trainer.SoliditySecurityTrainer.load_dataset"
             ) as mock_method:
                 mock_method.return_value = Mock()
                 result = trainer.load_dataset("data.jsonl")
@@ -889,7 +889,7 @@ class TestTrainerWithMockedDeps:
         trainer = SoliditySecurityTrainer()
 
         with patch(
-            "src.ml.fine_tuning.fine_tuning_trainer.SoliditySecurityTrainer.load_dataset"
+            "miesc.ml.fine_tuning.fine_tuning_trainer.SoliditySecurityTrainer.load_dataset"
         ) as mock_method:
             mock_method.return_value = Mock()
             result = trainer.load_dataset("data.json")
@@ -901,7 +901,7 @@ class TestTrainerWithMockedDeps:
         trainer = SoliditySecurityTrainer()
 
         with patch(
-            "src.ml.fine_tuning.fine_tuning_trainer.SoliditySecurityTrainer.load_dataset"
+            "miesc.ml.fine_tuning.fine_tuning_trainer.SoliditySecurityTrainer.load_dataset"
         ) as mock_method:
             mock_method.return_value = Mock()
             result = trainer.load_dataset("user/dataset")

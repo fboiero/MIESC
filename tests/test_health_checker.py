@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.core.health_checker import (
+from miesc.core.health_checker import (
     HealthChecker,
     HealthStatus,
     SystemHealth,
@@ -160,7 +160,7 @@ class TestHealthChecker:
     def test_adapter_map_format(self, checker):
         """Test adapter map format."""
         for _name, (module, cls) in checker.ADAPTER_MAP.items():
-            assert module.startswith("src.adapters.")
+            assert module.startswith("miesc.adapters.")
             assert cls.endswith("Adapter")
 
 

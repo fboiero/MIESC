@@ -1,5 +1,5 @@
 """
-Tests for src.core.websocket_api — WebSocket real-time audit events.
+Tests for miesc.core.websocket_api — WebSocket real-time audit events.
 Coverage target: 69% → 80%+.
 """
 
@@ -11,7 +11,7 @@ import pytest
 
 fastapi = pytest.importorskip("fastapi")
 
-from src.core.websocket_api import (
+from miesc.core.websocket_api import (
     AuditProgressTracker,
     ConnectionManager,
     EventType,
@@ -151,7 +151,7 @@ class TestAuditProgressTracker:
 # --------------------------------------------------------------------------- #
 import asyncio as _aio  # noqa: E402
 
-import src.core.websocket_api as wa  # noqa: E402
+import miesc.core.websocket_api as wa  # noqa: E402
 
 
 def test_create_app_returns_none_when_unavailable(monkeypatch):

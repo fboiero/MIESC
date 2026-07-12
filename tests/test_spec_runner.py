@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 import pytest
 
-from src.formal.spec_runner import SpecRunner, VerificationResult, run_all_available
+from miesc.formal.spec_runner import SpecRunner, VerificationResult, run_all_available
 
 # ---------------------------------------------------------------------------
 # VerificationResult
@@ -58,9 +58,9 @@ class TestAvailability:
 
     def test_is_certora_respects_which(self):
         runner = SpecRunner()
-        with patch("src.formal.spec_runner.shutil.which", return_value=None):
+        with patch("miesc.formal.spec_runner.shutil.which", return_value=None):
             assert runner.is_certora_available() is False
-        with patch("src.formal.spec_runner.shutil.which", return_value="/opt/certoraRun"):
+        with patch("miesc.formal.spec_runner.shutil.which", return_value="/opt/certoraRun"):
             assert runner.is_certora_available() is True
 
 
@@ -222,7 +222,7 @@ class TestHalmosStatusLogic:
 
         with (
             patch.object(runner, "is_halmos_available", return_value=True),
-            patch("src.formal.spec_runner.subprocess.run", return_value=MockProc()),
+            patch("miesc.formal.spec_runner.subprocess.run", return_value=MockProc()),
         ):
             r = runner.run_halmos(str(tmp_path))
             assert r.status == "no_tests"
@@ -232,7 +232,7 @@ class TestHalmosStatusLogic:
 # =========================================================================== #
 # Runner subprocess branches (availability + subprocess mocked) + parse extras.
 # =========================================================================== #
-import src.formal.spec_runner as sr  # noqa: E402
+import miesc.formal.spec_runner as sr  # noqa: E402
 
 
 class _Proc:
@@ -329,7 +329,7 @@ class TestParseExtras:
 
 
 def test_run_all_available_runs_each_tool(monkeypatch):
-    from src.formal.spec_runner import run_all_available, VerificationResult
+    from miesc.formal.spec_runner import run_all_available, VerificationResult
 
     monkeypatch.setattr(SpecRunner, "availability_report",
                         lambda self: {"smtchecker": True, "certora": True, "halmos": True})

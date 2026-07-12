@@ -6,7 +6,7 @@ Comprehensive tests for CVSS scoring and risk matrix generation.
 
 import pytest
 
-from src.reports.risk_calculator import (
+from miesc.reports.risk_calculator import (
     AttackComplexity,
     AttackVector,
     CVSSScore,

@@ -34,7 +34,7 @@ from typing import Any, Dict
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Import MIESC adapter registry
-from src.adapters import register_all_adapters
+from miesc.adapters import register_all_adapters
 
 
 class NeonColors:

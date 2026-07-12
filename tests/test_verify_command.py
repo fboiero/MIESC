@@ -91,7 +91,7 @@ class TestVerifyCommand:
 
     def test_tool_smtchecker_when_solc_unavailable(self, contract):
         runner = CliRunner()
-        with patch("src.formal.SpecRunner") as SR:
+        with patch("miesc.formal.SpecRunner") as SR:
             instance = SR.return_value
             instance.availability_report.return_value = {
                 "certora": False,
@@ -107,7 +107,7 @@ class TestVerifyCommand:
         """Halmos requires a foundry.toml upstream of the contract. Without one
         the command must error with a clear message, not crash."""
         runner = CliRunner()
-        with patch("src.formal.SpecRunner") as SR:
+        with patch("miesc.formal.SpecRunner") as SR:
             instance = SR.return_value
             instance.availability_report.return_value = {
                 "certora": False,
@@ -149,7 +149,7 @@ class TestVerifyCommand:
             "elapsed_seconds": 0.01,
             "spec_file": contract,
         }
-        with patch("src.formal.SpecRunner") as SR:
+        with patch("miesc.formal.SpecRunner") as SR:
             instance = SR.return_value
             instance.availability_report.return_value = {
                 "certora": False,
@@ -189,7 +189,7 @@ class TestExitCodeContract:
         fake_result.counterexamples = []
         fake_result.elapsed_seconds = 0.01
         fake_result.to_dict.return_value = {"status": "passed"}
-        with patch("src.formal.SpecRunner") as SR:
+        with patch("miesc.formal.SpecRunner") as SR:
             instance = SR.return_value
             instance.availability_report.return_value = {
                 "certora": False,
@@ -210,7 +210,7 @@ class TestExitCodeContract:
         fake_result.counterexamples = ["x = 0"]
         fake_result.elapsed_seconds = 0.05
         fake_result.to_dict.return_value = {"status": "failed"}
-        with patch("src.formal.SpecRunner") as SR:
+        with patch("miesc.formal.SpecRunner") as SR:
             instance = SR.return_value
             instance.availability_report.return_value = {
                 "certora": False,

@@ -21,7 +21,7 @@ platform with the current Paper 1 and Paper 2 evidence.
 | Test config | `pytest --collect-only` failed via implicit coverage gate. | Removed global coverage from pytest `addopts`; coverage is now explicit. |
 | Async tests | `asyncio_mode = auto` required pytest-asyncio but dev extras did not install it. | Added `pytest-asyncio` to `dev` extras and aligned pytest minimum. |
 | Paper claims | README mixed current evidence with ambiguous “all layers” wording. | Added canonical research section and clarified Paper 1 vs Paper 2 scope. |
-| Remediation workflow | Paper 2 evidence lived in benchmark scripts only. | Added `src.security.remediation_pipeline` and `miesc remediate`. |
+| Remediation workflow | Paper 2 evidence lived in benchmark scripts only. | Added `miesc.security.remediation_pipeline` and `miesc remediate`. |
 | Active version drift | `miesc.core` hardcoded old versions and 7-layer narrative. | Switched active core modules to shared constants and package version. |
 | API docs drift | REST API docstrings still described a 7-layer/29-tool audit. | Updated public API wording to configured multi-layer audit. |
 | Benchmark duplication | `benchmarks/fix_eval.py` duplicated compile checks, fix application, re-scan, and failure taxonomy. | Reused the shared remediation pipeline for patch, compile, re-scan, and evidence fields. |

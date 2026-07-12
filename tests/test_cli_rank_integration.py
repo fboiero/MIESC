@@ -13,7 +13,7 @@ import pytest
 
 from miesc.cli.commands.audit import _rank_report_findings
 from miesc.cli.commands.scan import _apply_triage_rank
-from src.ml.triage_ranker import DEFAULT_MODEL_PATH, TriageRanker
+from miesc.ml.triage_ranker import DEFAULT_MODEL_PATH, TriageRanker
 
 REAL_CODE = ("pragma solidity ^0.4.24; contract C {"
              " function w() public { msg.sender.call.value(1)(); } }")
@@ -58,7 +58,7 @@ class TestApplyTriageRank:
         assert scores == sorted(scores, reverse=True)
 
     def test_no_model_is_noop(self, tmp_path, monkeypatch):
-        import src.ml.triage_ranker as tr
+        import miesc.ml.triage_ranker as tr
 
         class _NoModel:
             def available(self):
@@ -90,7 +90,7 @@ class TestRankReportFindings:
         assert findings["summary_count"] == 2  # untouched
 
     def test_no_model_is_noop(self, monkeypatch):
-        import src.ml.triage_ranker as tr
+        import miesc.ml.triage_ranker as tr
 
         class _NoModel:
             def available(self):

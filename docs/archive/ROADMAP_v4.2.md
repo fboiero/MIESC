@@ -111,7 +111,7 @@ rm "src/agents/symbolic_agent 2.py"
 ```python
 # src/utils/__init__.py
 """MIESC Utility Functions, including static report helpers."""
-from src.utils.web_dashboard import DashboardGenerator
+from miesc.utils.web_dashboard import DashboardGenerator
 
 # src/knowledge_base/__init__.py
 """MIESC Vulnerability Knowledge Base."""

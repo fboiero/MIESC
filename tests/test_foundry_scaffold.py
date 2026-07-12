@@ -20,7 +20,7 @@ from pathlib import Path
 
 import pytest
 
-from src.poc.foundry_scaffold import (
+from miesc.poc.foundry_scaffold import (
     REPO_REMAP_PREFIX,
     scaffold_foundry_project,
 )
@@ -53,7 +53,7 @@ def trivial_repo():
 def test_returns_none_when_forge_absent(trivial_repo, monkeypatch):
     """forge missing -> return None, never raise, no workspace created."""
     repo, contract = trivial_repo
-    monkeypatch.setattr("src.poc.foundry_scaffold.shutil.which", lambda _: None)
+    monkeypatch.setattr("miesc.poc.foundry_scaffold.shutil.which", lambda _: None)
 
     result = scaffold_foundry_project(repo, contract)
 

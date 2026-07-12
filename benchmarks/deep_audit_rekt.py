@@ -23,7 +23,7 @@ from typing import Any, Dict, List
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.agents.deep_audit_agent import DeepAuditAgent, DeepAuditConfig  # noqa: E402
+from miesc.agents.deep_audit_agent import DeepAuditAgent, DeepAuditConfig  # noqa: E402
 
 
 GT_PATH = PROJECT_ROOT / "data" / "datasets" / "rekt_exploits" / "exploits_ground_truth.json"

@@ -5,8 +5,8 @@ import time
 
 import pytest
 
-import src.llm.rag_utils as rag_utils_module
-from src.llm.rag_utils import (
+import miesc.llm.rag_utils as rag_utils_module
+from miesc.llm.rag_utils import (
     _safe_text,
     build_metadata_filter,
     cache_stats,

@@ -33,7 +33,7 @@ from unittest.mock import patch
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.agents.deep_audit_agent import DeepAuditAgent, DeepAuditConfig  # noqa: E402
+from miesc.agents.deep_audit_agent import DeepAuditAgent, DeepAuditConfig  # noqa: E402
 from benchmarks.deep_audit_rekt import load_targets, vuln_class_match  # noqa: E402
 
 
@@ -79,7 +79,7 @@ def run(
     }
 
     # Apply the model mock for the whole benchmark run
-    with patch("src.core.llm_config.get_model", side_effect=_mock_get_model):
+    with patch("miesc.core.llm_config.get_model", side_effect=_mock_get_model):
         for i, t in enumerate(targets, 1):
             name = t.get("name", Path(t["path"]).stem)
             expected = t.get("vulnerability_class", t.get("vulnerability", ""))

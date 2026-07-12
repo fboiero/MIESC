@@ -11,15 +11,15 @@ Covers:
 
 from datetime import datetime
 
-from src.benchmark.benchmark_runner import ContractResult
-from src.benchmark.dataset_loader import GroundTruth, VulnerabilityCategory, VulnerableContract
-from src.benchmark.pattern_benchmark import (
+from miesc.benchmark.benchmark_runner import ContractResult
+from miesc.benchmark.dataset_loader import GroundTruth, VulnerabilityCategory, VulnerableContract
+from miesc.benchmark.pattern_benchmark import (
     PatternBenchmarkResult,
     PatternBenchmarkRunner,
     PatternMatch,
     run_pattern_benchmark,
 )
-from src.benchmark.slither_benchmark import SlitherBenchmarkRunner
+from miesc.benchmark.slither_benchmark import SlitherBenchmarkRunner
 
 # ---------------------------------------------------------------------------
 # Shared helpers

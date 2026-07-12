@@ -14,14 +14,14 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.adapters.invariant_synthesizer import InvariantCategory, SynthesizedInvariant
-from src.ml.invariant_validator import (
+from miesc.adapters.invariant_synthesizer import InvariantCategory, SynthesizedInvariant
+from miesc.ml.invariant_validator import (
     InvariantTestGenerator,
     InvariantTestResult,
     InvariantValidator,
     ValidationReport,
 )
-from src.poc.validators.foundry_runner import FoundryResult, TestResult, TestStatus
+from miesc.poc.validators.foundry_runner import FoundryResult, TestResult, TestStatus
 
 
 class TestInvariantTestResult:
@@ -358,7 +358,7 @@ class TestInvariantValidator:
     @pytest.fixture
     def validator(self, tmp_path, mock_runner):
         """Create validator with mocked runner."""
-        with patch("src.ml.invariant_validator.FoundryRunner", return_value=mock_runner):
+        with patch("miesc.ml.invariant_validator.FoundryRunner", return_value=mock_runner):
             val = InvariantValidator(project_dir=tmp_path)
             val.runner = mock_runner
             return val
@@ -377,7 +377,7 @@ class TestInvariantValidator:
 
     def test_init(self, tmp_path):
         """Test initialization."""
-        with patch("src.ml.invariant_validator.FoundryRunner"):
+        with patch("miesc.ml.invariant_validator.FoundryRunner"):
             val = InvariantValidator(
                 project_dir=tmp_path,
                 fuzzing_runs=512,
@@ -582,7 +582,7 @@ class TestMapResultsToInvariants:
     @pytest.fixture
     def validator(self, tmp_path):
         """Create validator."""
-        with patch("src.ml.invariant_validator.FoundryRunner"):
+        with patch("miesc.ml.invariant_validator.FoundryRunner"):
             return InvariantValidator(project_dir=tmp_path)
 
     def test_map_matching_result(self, validator):
@@ -655,7 +655,7 @@ class TestValidateIndividualEdgeCases:
     @pytest.fixture
     def validator(self, tmp_path):
         """Create validator with mocks."""
-        with patch("src.ml.invariant_validator.FoundryRunner") as mock_runner_cls:
+        with patch("miesc.ml.invariant_validator.FoundryRunner") as mock_runner_cls:
             mock_runner = MagicMock()
             mock_runner_cls.return_value = mock_runner
             val = InvariantValidator(project_dir=tmp_path)
@@ -796,7 +796,7 @@ class TestConvenienceFunctions:
 
     def test_validate_invariants_cleanup(self, tmp_path):
         """Test validate_invariants cleans up after completion."""
-        from src.ml.invariant_validator import validate_invariants
+        from miesc.ml.invariant_validator import validate_invariants
 
         inv = SynthesizedInvariant(
             name="test",
@@ -807,7 +807,7 @@ class TestConvenienceFunctions:
             solidity_assertion="true",
         )
 
-        with patch("src.ml.invariant_validator.InvariantValidator") as mock_cls:
+        with patch("miesc.ml.invariant_validator.InvariantValidator") as mock_cls:
             mock_validator = MagicMock()
             mock_validator.validate.return_value = ValidationReport(
                 contract_name="Test",
@@ -834,7 +834,7 @@ class TestConvenienceFunctions:
 
     def test_quick_validate(self, tmp_path):
         """Test quick_validate function."""
-        from src.ml.invariant_validator import quick_validate
+        from miesc.ml.invariant_validator import quick_validate
 
         inv = SynthesizedInvariant(
             name="test",
@@ -853,7 +853,7 @@ class TestConvenienceFunctions:
         }
         """
 
-        with patch("src.ml.invariant_validator.InvariantValidator") as mock_cls:
+        with patch("miesc.ml.invariant_validator.InvariantValidator") as mock_cls:
             mock_validator = MagicMock()
             mock_validator.validate.return_value = ValidationReport(
                 contract_name="TestContract",
@@ -877,7 +877,7 @@ class TestConvenienceFunctions:
 
     def test_quick_validate_failure(self, tmp_path):
         """Test quick_validate returns False on failure."""
-        from src.ml.invariant_validator import quick_validate
+        from miesc.ml.invariant_validator import quick_validate
 
         inv = SynthesizedInvariant(
             name="failing",
@@ -888,7 +888,7 @@ class TestConvenienceFunctions:
             solidity_assertion="false",
         )
 
-        with patch("src.ml.invariant_validator.InvariantValidator") as mock_cls:
+        with patch("miesc.ml.invariant_validator.InvariantValidator") as mock_cls:
             mock_validator = MagicMock()
             mock_validator.validate.return_value = ValidationReport(
                 contract_name="TestContract",
@@ -912,7 +912,7 @@ class TestConvenienceFunctions:
 
     def test_quick_validate_exception(self):
         """Test quick_validate handles exceptions during validation."""
-        from src.ml.invariant_validator import quick_validate
+        from miesc.ml.invariant_validator import quick_validate
 
         inv = SynthesizedInvariant(
             name="error",
@@ -923,7 +923,7 @@ class TestConvenienceFunctions:
             solidity_assertion="error",
         )
 
-        with patch("src.ml.invariant_validator.InvariantValidator") as mock_cls:
+        with patch("miesc.ml.invariant_validator.InvariantValidator") as mock_cls:
             mock_validator = MagicMock()
             # Exception during validate(), not during __init__()
             mock_validator.validate.side_effect = Exception("Validation failed")

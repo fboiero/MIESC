@@ -12,8 +12,8 @@ import subprocess
 
 import pytest
 
-import src.core.tool_protocol as mod
-from src.core.tool_protocol import (
+import miesc.core.tool_protocol as mod
+from miesc.core.tool_protocol import (
     ToolAdapter,
     ToolCapability,
     ToolCategory,

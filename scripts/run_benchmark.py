@@ -26,7 +26,7 @@ ROOT_DIR = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT_DIR / "src"))
 sys.path.insert(0, str(ROOT_DIR))
 
-from src.benchmark import (  # noqa: E402
+from miesc.benchmark import (  # noqa: E402
     BenchmarkRunner,
     DatasetLoader,
     MetricsCalculator,

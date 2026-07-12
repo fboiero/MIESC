@@ -2,8 +2,8 @@
 
 import pytest
 
-from src.llm import embedding_rag
-from src.llm.embedding_rag import (
+from miesc.llm import embedding_rag
+from miesc.llm.embedding_rag import (
     EmbeddingRAG,
     HybridRAG,
     RetrievalResult,

@@ -25,7 +25,7 @@ from unittest.mock import patch
 
 import pytest
 
-from src.agents.deep_audit_agent import DeepAuditAgent, DeepAuditConfig, ReconResult, ScanResult
+from miesc.agents.deep_audit_agent import DeepAuditAgent, DeepAuditConfig, ReconResult, ScanResult
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -89,7 +89,7 @@ class TestDefiScanApi:
         which raised AttributeError and was swallowed by a try/except,
         silently returning []. Now must call analyze_code().
         """
-        from src.ml.defi_patterns import DeFiPatternDetector
+        from miesc.ml.defi_patterns import DeFiPatternDetector
 
         det = DeFiPatternDetector()
         # The contract MUST use analyze_code, not detect.
@@ -273,7 +273,7 @@ class TestCanonicalCategoryRouting:
     """Regression: before v5.1.7 the Phase-3 branches matched substrings in
     `ftype`. Slither detectors like `arbitrary-send-eth` (access control)
     didn't contain the substring 'access' and so never triggered property
-    generation. Now uses src.core.finding_taxonomy."""
+    generation. Now uses miesc.core.finding_taxonomy."""
 
     def test_arbitrary_send_eth_routes_to_access_control_branch(self, agent_no_llm, contract_path):
         agent_no_llm._start_time = time.monotonic()

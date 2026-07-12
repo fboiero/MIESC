@@ -14,7 +14,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.ml.slither_validator import (
+from miesc.ml.slither_validator import (
     HIGH_CONFIDENCE_DETECTORS,
     PATTERN_TO_SLITHER_DETECTORS,
     SlitherFinding,

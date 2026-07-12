@@ -140,7 +140,7 @@ def verify_miesc_adapters() -> Dict[str, Any]:
         project_root = Path(__file__).parent.parent
         sys.path.insert(0, str(project_root))
 
-        from src.adapters import register_all_adapters
+        from miesc.adapters import register_all_adapters
 
         report = register_all_adapters()
         return report
@@ -154,7 +154,7 @@ def run_quick_test(contract_path: str) -> Dict[str, Any]:
         project_root = Path(__file__).parent.parent
         sys.path.insert(0, str(project_root))
 
-        from src.adapters.slither_adapter import SlitherAdapter
+        from miesc.adapters.slither_adapter import SlitherAdapter
 
         adapter = SlitherAdapter()
         if adapter.is_available().value == "available":

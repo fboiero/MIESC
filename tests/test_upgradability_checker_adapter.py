@@ -7,8 +7,8 @@ unsafe delegatecall, UUPS upgrade guard, EIP-1967 slots, constructor-in-proxy).
 Every helper takes strings and returns dicts -> no mocking needed.
 """
 
-from src.adapters.upgradability_checker_adapter import UpgradabilityCheckerAdapter
-from src.core.tool_protocol import ToolStatus
+from miesc.adapters.upgradability_checker_adapter import UpgradabilityCheckerAdapter
+from miesc.core.tool_protocol import ToolStatus
 
 
 def _a():

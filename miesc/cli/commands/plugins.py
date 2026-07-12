@@ -629,7 +629,7 @@ def plugins_new(
     print_banner()
 
     try:
-        from src.plugins import PluginTemplateGenerator, PluginType
+        from miesc.plugins import PluginTemplateGenerator, PluginType
     except ImportError as e:
         error("Plugin template system not available")
         raise SystemExit(1) from e
@@ -703,7 +703,7 @@ def plugins_runtime(verbose: bool) -> None:
     print_banner()
 
     try:
-        from src.plugins import (  # noqa: F401  -- PluginType used downstream
+        from miesc.plugins import (  # noqa: F401  -- PluginType used downstream
             PluginType,
             get_registry,
         )
@@ -770,7 +770,7 @@ def plugins_load(plugin_path: str, enable: bool) -> None:
     print_banner()
 
     try:
-        from src.plugins import (
+        from miesc.plugins import (
             PluginContext,
             PluginLoader,
             get_registry,
@@ -850,7 +850,7 @@ def plugins_marketplace(
     print_banner()
 
     try:
-        from src.plugins.marketplace import MarketplaceClient, VerificationStatus
+        from miesc.plugins.marketplace import MarketplaceClient, VerificationStatus
     except ImportError as e:
         error("Marketplace module not available")
         raise SystemExit(1) from e
@@ -960,7 +960,7 @@ def plugins_submit(
     print_banner()
 
     try:
-        from src.plugins.marketplace import MarketplaceClient
+        from miesc.plugins.marketplace import MarketplaceClient
     except ImportError as e:
         error("Marketplace module not available")
         raise SystemExit(1) from e

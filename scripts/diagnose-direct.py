@@ -30,7 +30,7 @@ print("=" * 70)
 print()
 
 # Import ToolStatus
-from src.core.tool_protocol import ToolStatus
+from miesc.core.tool_protocol import ToolStatus
 
 # All adapters to test with their layer info
 ADAPTERS_CONFIG = [
@@ -122,7 +122,7 @@ for name, class_name, module_name, layer in ADAPTERS_CONFIG:
 
     try:
         # Dynamic import
-        module = __import__(f"src.adapters.{module_name}", fromlist=[class_name])
+        module = __import__(f"miesc.adapters.{module_name}", fromlist=[class_name])
         adapter_class = getattr(module, class_name)
 
         # Instantiate

@@ -6,7 +6,7 @@ severity normalization, truncation, dedup, and caching logic.
 
 from __future__ import annotations
 
-from src.adapters.llamaaudit_adapter import LlamaAuditAdapter
+from miesc.adapters.llamaaudit_adapter import LlamaAuditAdapter
 
 
 def _adapter():

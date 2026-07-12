@@ -6,8 +6,8 @@ external, missing immutable, zero-init, postfix increment, array .length in loop
 etc., plus severity filtering / breakdown and normalization.
 """
 
-from src.adapters.gas_analyzer_adapter import GasAnalyzerAdapter
-from src.core.tool_protocol import ToolStatus
+from miesc.adapters.gas_analyzer_adapter import GasAnalyzerAdapter
+from miesc.core.tool_protocol import ToolStatus
 
 GAS = (
     "pragma solidity ^0.8.0;\n"

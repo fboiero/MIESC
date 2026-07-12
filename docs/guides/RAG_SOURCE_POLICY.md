@@ -23,7 +23,7 @@ standards, official documentation, or reproducible artifacts.
 | `legacy_taxonomy` | 0.65 | Historical taxonomy mapping | SWC Registry and older mappings |
 
 The current implementation exposes these weights in
-`src.llm.embedding_rag.SOURCE_TIER_WEIGHTS`.
+`miesc.llm.embedding_rag.SOURCE_TIER_WEIGHTS`.
 
 ## Selection Criteria
 

@@ -8,7 +8,7 @@ import json
 
 import pytest
 
-from src.benchmark.dataset_loader import (
+from miesc.benchmark.dataset_loader import (
     DatasetLoader,
     GroundTruth,
     VulnerabilityCategory,

@@ -126,7 +126,7 @@ def run_smartbugs_detectors(contract_path: Path) -> Tuple[List[Dict], float]:
     start = time.time()
 
     try:
-        from detectors.smartbugs_detectors import SmartBugsDetectorEngine
+        from miesc.detectors.smartbugs_detectors import SmartBugsDetectorEngine
 
         engine = SmartBugsDetectorEngine()
         results = engine.analyze_file(contract_path)
@@ -176,7 +176,7 @@ def map_check_to_swc(check: str) -> str:
 def correlate_findings(findings: List[Dict]) -> Tuple[List[Dict], Dict]:
     """Correlate findings from multiple tools."""
     try:
-        from ml.correlation_engine import SmartCorrelationEngine
+        from miesc.ml.correlation_engine import SmartCorrelationEngine
 
         engine = SmartCorrelationEngine(min_tools_for_validation=1)
 

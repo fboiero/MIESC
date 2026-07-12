@@ -80,7 +80,7 @@ python -m pytest tests/test_mcp_server.py
 ### ML Pipeline
 
 ```python
-from src.ml import MLPipeline
+from miesc.ml import MLPipeline
 
 pipeline = MLPipeline()
 result = pipeline.process(findings)

@@ -16,7 +16,7 @@ from typing import Any, Dict, List
 
 import pytest
 
-from src.adapters.frontier_llm_adapter import (
+from miesc.adapters.frontier_llm_adapter import (
     ConversationResult,
     FrontierLLMAdapter,
     ToolSpec,

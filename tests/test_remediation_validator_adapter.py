@@ -6,10 +6,10 @@ fixes a reported vulnerability and whether it introduced a regression. Every hel
 takes strings/dicts and returns dicts/bools, so these tests need no mocking.
 """
 
-from src.adapters.remediation_validator_adapter import (
+from miesc.adapters.remediation_validator_adapter import (
     RemediationValidatorAdapter,
 )
-from src.core.tool_protocol import ToolStatus
+from miesc.core.tool_protocol import ToolStatus
 
 
 def _adapter():

@@ -346,7 +346,7 @@ def _evaluate_contract(
     if use_intelligence:
         intel_start = time.perf_counter()
         try:
-            from src.core.intelligence import enhance_findings
+            from miesc.core.intelligence import enhance_findings
 
             # Read source code for pattern detection
             try:
@@ -955,7 +955,7 @@ def evaluate_corpus(
     if with_llm and total_fn > 0:
         info(f"\n--- LLM follow-up on {total_fn} missed contracts ({with_llm}) ---")
         try:
-            from src.adapters.frontier_llm_adapter import FrontierLLMAdapter
+            from miesc.adapters.frontier_llm_adapter import FrontierLLMAdapter
 
             provider_map = {"ollama": "ollama", "claude": "anthropic", "gpt": "openai"}
             provider = provider_map.get(with_llm.lower(), with_llm.lower())

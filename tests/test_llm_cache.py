@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from src.cache.llm_cache import CacheEntry, CacheStats, LLMAnalysisCache
+from miesc.cache.llm_cache import CacheEntry, CacheStats, LLMAnalysisCache
 
 
 class TestCacheEntry:

@@ -454,7 +454,7 @@ def evaluate_audit(audit_id, audit_data, llm_enhance=False, frontier_model=None,
     if frontier_model:
         sys.path.insert(0, str(PROJECT_ROOT))
         sys.path.insert(0, str(PROJECT_ROOT / "src"))
-        from src.adapters.frontier_llm_adapter import FrontierLLMAdapter
+        from miesc.adapters.frontier_llm_adapter import FrontierLLMAdapter
 
         provider_map = {"claude": "anthropic", "claude-opus": "anthropic",
                         "claude-sonnet": "anthropic", "gpt": "openai", "gpt-4o": "openai", "gpt-4.1": "openai", "gpt-5": "openai",

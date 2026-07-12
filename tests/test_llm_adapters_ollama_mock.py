@@ -13,7 +13,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.core.tool_protocol import ToolStatus
+from miesc.core.tool_protocol import ToolStatus
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -49,7 +49,7 @@ def mock_ollama_tags(*model_names):
 class TestPeculiarAdapterDeeper:
     @pytest.fixture
     def adapter(self):
-        from src.adapters.peculiar_adapter import PeculiarAdapter
+        from miesc.adapters.peculiar_adapter import PeculiarAdapter
 
         return PeculiarAdapter()
 
@@ -120,7 +120,7 @@ class TestPeculiarAdapterDeeper:
 class TestLlamaAuditAdapterDeeper:
     @pytest.fixture
     def adapter(self):
-        from src.adapters.llamaaudit_adapter import LlamaAuditAdapter
+        from miesc.adapters.llamaaudit_adapter import LlamaAuditAdapter
 
         return LlamaAuditAdapter()
 
@@ -206,7 +206,7 @@ class TestLlamaAuditAdapterDeeper:
 class TestLLMBugScannerAdapterDeeper:
     @pytest.fixture
     def adapter(self):
-        from src.adapters.llmbugscanner_adapter import LLMBugScannerAdapter
+        from miesc.adapters.llmbugscanner_adapter import LLMBugScannerAdapter
 
         return LLMBugScannerAdapter()
 
@@ -255,9 +255,9 @@ class TestOllamaDownGracefulDegradation:
     @pytest.mark.parametrize(
         "module,cls",
         [
-            ("src.adapters.peculiar_adapter", "PeculiarAdapter"),
-            ("src.adapters.llamaaudit_adapter", "LlamaAuditAdapter"),
-            ("src.adapters.llmbugscanner_adapter", "LLMBugScannerAdapter"),
+            ("miesc.adapters.peculiar_adapter", "PeculiarAdapter"),
+            ("miesc.adapters.llamaaudit_adapter", "LlamaAuditAdapter"),
+            ("miesc.adapters.llmbugscanner_adapter", "LLMBugScannerAdapter"),
         ],
     )
     def test_analyze_with_ollama_unreachable(self, module, cls, tmp_path):

@@ -9,8 +9,8 @@ License: AGPL-3.0
 
 import pytest
 
-from src.detectors.detector_api import Category, Severity
-from src.detectors.example_detectors import (
+from miesc.detectors.detector_api import Category, Severity
+from miesc.detectors.example_detectors import (
     AccessControlDetector,
     FlashLoanDetector,
     MEVDetector,
@@ -390,7 +390,7 @@ class TestRegisterExampleDetectors:
 
     def test_all_exports(self):
         """Test that all classes are exported."""
-        from src.detectors.example_detectors import __all__
+        from miesc.detectors.example_detectors import __all__
 
         assert "UncheckedCallDetector" in __all__
         assert "FlashLoanDetector" in __all__

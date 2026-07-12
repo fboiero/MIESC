@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import json
 
-from src.adapters.hardhat_adapter import HardhatAdapter
-from src.adapters.propertygpt_adapter import PropertyGPTAdapter
-from src.adapters.smartllm_adapter import SmartLLMAdapter
-from src.adapters.zk_circuit_adapter import ZKCircuitAdapter
-from src.core.tool_protocol import ToolStatus
+from miesc.adapters.hardhat_adapter import HardhatAdapter
+from miesc.adapters.propertygpt_adapter import PropertyGPTAdapter
+from miesc.adapters.smartllm_adapter import SmartLLMAdapter
+from miesc.adapters.zk_circuit_adapter import ZKCircuitAdapter
+from miesc.core.tool_protocol import ToolStatus
 
 
 class _FakeResponse:

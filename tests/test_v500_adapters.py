@@ -54,7 +54,7 @@ NONEXISTENT_PATH = "/tmp/nonexistent_contract_v500_test.sol"
 # ---------------------------------------------------------------------------
 def _import_adapter_class(module_name: str, class_name: str):
     """Dynamically import and return the adapter class."""
-    mod = importlib.import_module(f"src.adapters.{module_name}")
+    mod = importlib.import_module(f"miesc.adapters.{module_name}")
     return getattr(mod, class_name)
 
 
@@ -82,7 +82,7 @@ class TestV500AdapterImport:
     def test_import(self, adapter_info):
         module_name, class_name = adapter_info
         cls = _import_adapter_class(module_name, class_name)
-        assert cls is not None, f"Failed to import {class_name} from src.adapters.{module_name}"
+        assert cls is not None, f"Failed to import {class_name} from miesc.adapters.{module_name}"
 
 
 # ---------------------------------------------------------------------------

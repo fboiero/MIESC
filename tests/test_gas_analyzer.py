@@ -15,8 +15,8 @@ import tempfile
 
 import pytest
 
-from src.adapters.gas_analyzer_adapter import GasAnalyzerAdapter
-from src.core.tool_protocol import ToolCategory, ToolStatus
+from miesc.adapters.gas_analyzer_adapter import GasAnalyzerAdapter
+from miesc.core.tool_protocol import ToolCategory, ToolStatus
 
 # ---------------------------------------------------------------------------
 # Shared fixtures

@@ -10,7 +10,7 @@ import json
 import urllib.error
 from unittest.mock import MagicMock, patch
 
-from src.core.ollama_models import list_ollama_models, select_ollama_model
+from miesc.core.ollama_models import list_ollama_models, select_ollama_model
 
 
 def _tags_response(names, status=200):

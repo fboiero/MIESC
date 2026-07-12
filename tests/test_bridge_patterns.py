@@ -9,7 +9,7 @@ Author: Fernando Boiero <fboiero@frvm.utn.edu.ar>
 
 from __future__ import annotations
 
-from src.adapters.bridge_patterns import (
+from miesc.adapters.bridge_patterns import (
     BRIDGE_EXPLOIT_PATTERNS,
     BridgePattern,
     detect_bridge_vulnerabilities,

@@ -29,7 +29,7 @@ sklearn = pytest.importorskip("sklearn")
 class TestFPClassifierPersistence:
     def test_predict_identical_across_instances_after_save(self, tmp_path):
         """Save with one instance, load with another, verify same prediction."""
-        from src.ml.fp_ml_classifier import AuditorTrainedFPClassifier, create_sample_dataset
+        from miesc.ml.fp_ml_classifier import AuditorTrainedFPClassifier, create_sample_dataset
 
         data = tmp_path / "labels.jsonl"
         create_sample_dataset(data, n=40)
@@ -49,7 +49,7 @@ class TestFPClassifierPersistence:
     def test_heuristic_fallback_when_no_sklearn(self, tmp_path):
         """When sklearn import fails, classifier must fall back gracefully,
         not crash callers."""
-        from src.ml.fp_ml_classifier import AuditorTrainedFPClassifier
+        from miesc.ml.fp_ml_classifier import AuditorTrainedFPClassifier
 
         clf = AuditorTrainedFPClassifier(model_path=tmp_path / "absent.pkl")
         clf._sklearn_available = False
@@ -107,7 +107,7 @@ class TestCanonicalCategoryContract:
     def test_all_categories_serializable(self):
         """Every enum value MUST be a string — we JSON-serialize this in
         the investigation report and in the FP classifier's features."""
-        from src.core.finding_taxonomy import CanonicalCategory
+        from miesc.core.finding_taxonomy import CanonicalCategory
 
         for c in CanonicalCategory:
             assert isinstance(c.value, str)
@@ -116,7 +116,7 @@ class TestCanonicalCategoryContract:
     def test_removing_a_category_would_fail_this(self):
         """Lock in the current enum set so an accidental rename/removal
         surfaces here, not in the agent at runtime."""
-        from src.core.finding_taxonomy import CanonicalCategory
+        from miesc.core.finding_taxonomy import CanonicalCategory
 
         required = {
             "reentrancy",
@@ -151,7 +151,7 @@ class TestPhaseOrdering:
     deep_investigation -> synthesis in that exact order."""
 
     def test_phases_in_correct_order(self, tmp_path):
-        from src.agents.deep_audit_agent import DeepAuditAgent, DeepAuditConfig
+        from miesc.agents.deep_audit_agent import DeepAuditAgent, DeepAuditConfig
 
         cfg = DeepAuditConfig(
             timeout_seconds=60,
@@ -181,7 +181,7 @@ class TestVulnerabilityExampleFields:
     triggers a clear failure."""
 
     def test_has_attack_steps_field(self):
-        from src.llm.vulnerability_rag import VulnerabilityExample
+        from miesc.llm.vulnerability_rag import VulnerabilityExample
 
         ex = VulnerabilityExample(
             id="x",
@@ -203,7 +203,7 @@ class TestVulnerabilityExampleFields:
     def test_registry_enrichment_preserved(self):
         """At least the top-8 patterns enriched in v5.1.6 must still carry
         both attack_steps and detection_heuristic."""
-        from src.llm.vulnerability_rag import EXPLOIT_EXAMPLES, SWC_REGISTRY
+        from miesc.llm.vulnerability_rag import EXPLOIT_EXAMPLES, SWC_REGISTRY
 
         required_enriched = [
             ("SWC-107", SWC_REGISTRY),
@@ -230,7 +230,7 @@ class TestSpecsVerifyIntegrationShape:
     """`miesc specs` emits specs that `miesc verify` must be able to consume."""
 
     def test_specs_emits_cvl_with_rule_block(self, tmp_path):
-        from src.formal.spec_generator import SpecFormat, SpecGenerator
+        from miesc.formal.spec_generator import SpecFormat, SpecGenerator
 
         findings = [
             {
@@ -255,7 +255,7 @@ class TestSpecsVerifyIntegrationShape:
         assert "rule" in content.lower()
 
     def test_spec_runner_result_has_required_fields_for_verify_json(self):
-        from src.formal.spec_runner import VerificationResult
+        from miesc.formal.spec_runner import VerificationResult
 
         r = VerificationResult(tool="halmos", spec_file="/x", status="passed")
         d = r.to_dict()
@@ -318,7 +318,7 @@ class TestBootstrapClassifierInterop:
         out = tmp_path / "labels.jsonl"
         out.write_text("\n".join(json.dumps(s) for s in samples))
 
-        from src.ml.fp_ml_classifier import AuditorTrainedFPClassifier
+        from miesc.ml.fp_ml_classifier import AuditorTrainedFPClassifier
 
         clf = AuditorTrainedFPClassifier(model_path=tmp_path / "m.pkl")
         metrics = clf.train(str(out))

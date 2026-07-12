@@ -6,7 +6,7 @@ which are pure and run without the optional GNN weights.
 
 from __future__ import annotations
 
-from src.adapters.peculiar_adapter import PeculiarAdapter
+from miesc.adapters.peculiar_adapter import PeculiarAdapter
 
 VULN_SRC = """contract Vuln {
     address owner;

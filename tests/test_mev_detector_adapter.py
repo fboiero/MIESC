@@ -6,8 +6,8 @@ sandwich / timestamp / flash-loan patterns, MEV risk scoring & banding, DeFi
 gating, severity filtering and normalization.
 """
 
-from src.adapters.mev_detector_adapter import MEVDetectorAdapter
-from src.core.tool_protocol import ToolStatus
+from miesc.adapters.mev_detector_adapter import MEVDetectorAdapter
+from miesc.core.tool_protocol import ToolStatus
 
 # Triggers sandwich_swap + flashloan_reentrancy + timestamp_dependence.
 MEV = (

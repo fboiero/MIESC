@@ -16,7 +16,7 @@ import urllib.error
 import urllib.request
 from unittest.mock import MagicMock, patch
 
-from src.core.tool_protocol import ToolStatus
+from miesc.core.tool_protocol import ToolStatus
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -25,8 +25,8 @@ from src.core.tool_protocol import ToolStatus
 
 def _make_adapter(ensemble=None):
     """Create an LLMBugScannerAdapter with mocked optional deps."""
-    with patch("src.adapters.llmbugscanner_adapter._EMBEDDING_RAG_AVAILABLE", False):
-        from src.adapters.llmbugscanner_adapter import LLMBugScannerAdapter
+    with patch("miesc.adapters.llmbugscanner_adapter._EMBEDDING_RAG_AVAILABLE", False):
+        from miesc.adapters.llmbugscanner_adapter import LLMBugScannerAdapter
 
         adapter = LLMBugScannerAdapter(ensemble=ensemble)
     return adapter
@@ -201,7 +201,7 @@ class TestParseFindingsEmptyResponse:
 class TestConsensusVoteAgreement:
     def test_consensus_vote_agreement(self):
         """Two models agree -> higher confidence."""
-        from src.adapters.llmbugscanner_adapter import ModelConfig
+        from miesc.adapters.llmbugscanner_adapter import ModelConfig
 
         adapter = _make_adapter()
 
@@ -264,7 +264,7 @@ class TestConsensusVoteAgreement:
 class TestConsensusVoteDisagreement:
     def test_consensus_vote_disagreement(self):
         """Models disagree -> lower confidence or filtered out."""
-        from src.adapters.llmbugscanner_adapter import ModelConfig
+        from miesc.adapters.llmbugscanner_adapter import ModelConfig
 
         adapter = _make_adapter()
 
@@ -328,7 +328,7 @@ class TestConsensusVoteDisagreement:
 
     def test_single_model_high_severity_fallback(self):
         """Single-model HIGH findings included as fallback when no consensus."""
-        from src.adapters.llmbugscanner_adapter import ModelConfig
+        from miesc.adapters.llmbugscanner_adapter import ModelConfig
 
         adapter = _make_adapter()
 
@@ -387,7 +387,7 @@ class TestConsensusVoteDisagreement:
 class TestAnalyzeTimeout:
     def test_analyze_timeout(self):
         """Model query times out -> graceful degradation, returns empty findings."""
-        from src.adapters.llmbugscanner_adapter import ModelConfig
+        from miesc.adapters.llmbugscanner_adapter import ModelConfig
 
         adapter = _make_adapter(
             ensemble=[
@@ -421,7 +421,7 @@ class TestAnalyzeTimeout:
 
     def test_analyze_full_timeout_returns_empty(self):
         """Full analyze() with all models timing out returns error or empty findings."""
-        from src.adapters.llmbugscanner_adapter import ModelConfig
+        from miesc.adapters.llmbugscanner_adapter import ModelConfig
 
         adapter = _make_adapter(
             ensemble=[

@@ -13,7 +13,7 @@ Accepted
 MIESC evolved from a research project to a production-ready tool. The original code lived in `src/`, but we needed a proper Python package structure for PyPI distribution and easier imports.
 
 We faced several challenges:
-1. **Import complexity**: Users had to use `from src.adapters import ...` which is non-standard
+1. **Import complexity**: Users had to use `from miesc.adapters import ...` which is non-standard
 2. **Lazy loading**: The full codebase has 50+ adapters, loading all at startup would be slow
 3. **Backwards compatibility**: Existing scripts and documentation referenced `src/`
 4. **Entry points**: CLI and MCP server needed clean entry points

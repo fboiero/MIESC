@@ -3,7 +3,7 @@ minimal concrete plugin exercising the MIESCPlugin base class."""
 
 from __future__ import annotations
 
-from src.plugins.protocol import (
+from miesc.plugins.protocol import (
     MIESCPlugin,
     PluginContext,
     PluginMetadata,

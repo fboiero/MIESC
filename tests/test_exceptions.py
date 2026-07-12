@@ -10,7 +10,7 @@ Tests the centralized exception handling system including:
 
 import pytest
 
-from src.core.exceptions import (
+from miesc.core.exceptions import (
     TOOL_INSTALL_SUGGESTIONS,
     AnalysisError,
     AnalysisTimeoutError,
@@ -339,7 +339,7 @@ class TestHandleAdapterErrorsDecorator:
 
     def test_successful_function(self):
         """Test decorator allows successful returns through."""
-        from src.core.exceptions import handle_adapter_errors
+        from miesc.core.exceptions import handle_adapter_errors
 
         @handle_adapter_errors
         def successful_func():
@@ -350,7 +350,7 @@ class TestHandleAdapterErrorsDecorator:
 
     def test_file_not_found_handling(self):
         """Test decorator handles FileNotFoundError."""
-        from src.core.exceptions import handle_adapter_errors
+        from miesc.core.exceptions import handle_adapter_errors
 
         @handle_adapter_errors
         def missing_file():
@@ -364,7 +364,7 @@ class TestHandleAdapterErrorsDecorator:
         """Test decorator handles subprocess.TimeoutExpired."""
         import subprocess
 
-        from src.core.exceptions import handle_adapter_errors
+        from miesc.core.exceptions import handle_adapter_errors
 
         @handle_adapter_errors
         def timeout_func():
@@ -378,7 +378,7 @@ class TestHandleAdapterErrorsDecorator:
         """Test decorator handles subprocess.CalledProcessError."""
         import subprocess
 
-        from src.core.exceptions import handle_adapter_errors
+        from miesc.core.exceptions import handle_adapter_errors
 
         @handle_adapter_errors
         def process_error():
@@ -392,7 +392,7 @@ class TestHandleAdapterErrorsDecorator:
 
     def test_permission_error_handling(self):
         """Test decorator handles PermissionError."""
-        from src.core.exceptions import handle_adapter_errors
+        from miesc.core.exceptions import handle_adapter_errors
 
         @handle_adapter_errors
         def permission_denied():
@@ -404,7 +404,7 @@ class TestHandleAdapterErrorsDecorator:
 
     def test_os_error_handling(self):
         """Test decorator handles OSError."""
-        from src.core.exceptions import handle_adapter_errors
+        from miesc.core.exceptions import handle_adapter_errors
 
         @handle_adapter_errors
         def os_error():
@@ -416,7 +416,7 @@ class TestHandleAdapterErrorsDecorator:
 
     def test_miesc_exception_handling(self):
         """Test decorator handles MIESCException."""
-        from src.core.exceptions import handle_adapter_errors
+        from miesc.core.exceptions import handle_adapter_errors
 
         @handle_adapter_errors
         def miesc_error():
@@ -428,7 +428,7 @@ class TestHandleAdapterErrorsDecorator:
 
     def test_generic_exception_handling(self):
         """Test decorator handles unknown exceptions."""
-        from src.core.exceptions import handle_adapter_errors
+        from miesc.core.exceptions import handle_adapter_errors
 
         @handle_adapter_errors
         def unknown_error():
@@ -440,7 +440,7 @@ class TestHandleAdapterErrorsDecorator:
 
     def test_decorated_function_with_args(self):
         """Test decorator preserves function arguments."""
-        from src.core.exceptions import handle_adapter_errors
+        from miesc.core.exceptions import handle_adapter_errors
 
         @handle_adapter_errors
         def func_with_args(a, b, c=None):
@@ -451,7 +451,7 @@ class TestHandleAdapterErrorsDecorator:
 
     def test_decorator_preserves_function_name(self):
         """Test decorator preserves function metadata."""
-        from src.core.exceptions import handle_adapter_errors
+        from miesc.core.exceptions import handle_adapter_errors
 
         @handle_adapter_errors
         def my_function():

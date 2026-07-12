@@ -88,7 +88,7 @@ def _run_agentic_audit_profile(
     ci: bool,
 ) -> None:
     """Run an agentic profile through DeepAuditAgent instead of raw tool loops."""
-    from src.agents.deep_audit_agent import DeepAuditAgent, DeepAuditConfig
+    from miesc.agents.deep_audit_agent import DeepAuditAgent, DeepAuditConfig
 
     config = DeepAuditConfig(
         timeout_seconds=int(profile.get("timeout", 600)),
@@ -442,7 +442,7 @@ def _run_full_audit_with_ml(
         # Recall-safe benign-context verifier (opt-in) over the ML-filtered findings
         if verify_fp:
             try:
-                from src.ml.benign_context_verifier import apply_to_results
+                from miesc.ml.benign_context_verifier import apply_to_results
 
                 wrapped = [{"findings": list(result.ml_filtered_findings)}]
                 d, fl = apply_to_results(wrapped, contract=contract, model=verify_model)
@@ -554,7 +554,7 @@ def _rank_report_findings(findings: dict[str, Any], *, contract: str) -> None:
     """Recall-safe triage on a correlation report's finding buckets (in place): order each
     list of findings by P(real). Never drops anything. No-ops without a trained model."""
     try:
-        from src.ml.triage_ranker import TriageRanker
+        from miesc.ml.triage_ranker import TriageRanker
     except Exception as e:  # noqa: BLE001
         info(f"rank skipped: {e}")
         return
@@ -611,7 +611,7 @@ def _run_full_audit_with_correlation(
             results = run_layer(layer, contract, timeout)
             if verify_fp:
                 try:
-                    from src.ml.benign_context_verifier import apply_to_results
+                    from miesc.ml.benign_context_verifier import apply_to_results
 
                     d, fl = apply_to_results(results, contract=contract, model=verify_model)
                     _vfp_dropped += d
@@ -729,7 +729,7 @@ def _run_full_audit_basic(
     # zero-recall pattern detection, context-aware FP suppression,
     # LLM↔static cross-validation, severity calibration.
     try:
-        from src.core.intelligence import enhance_findings
+        from miesc.core.intelligence import enhance_findings
 
         all_findings_flat: list[dict[str, Any]] = []
         for result in all_results:
@@ -762,7 +762,7 @@ def _run_full_audit_basic(
     # Recall-safe benign-context verifier (opt-in)
     if verify_fp:
         try:
-            from src.ml.benign_context_verifier import apply_to_results
+            from miesc.ml.benign_context_verifier import apply_to_results
 
             dropped, flagged = apply_to_results(all_results, contract=contract, model=verify_model)
             mode = f"LLM {verify_model}" if verify_model else "rule-only"
@@ -775,7 +775,7 @@ def _run_full_audit_basic(
 
     if rank:
         try:
-            from src.ml.triage_ranker import rank_results
+            from miesc.ml.triage_ranker import rank_results
 
             n = rank_results(all_results, contract=contract)
             info(f"rank: ordered {n} finding(s) by P(real) — triage, recall-safe (nothing dropped)"
@@ -951,7 +951,7 @@ def audit_quick(
     # zero-recall pattern detection, context-aware FP suppression,
     # LLM↔static cross-validation, severity calibration.
     try:
-        from src.core.intelligence import enhance_findings
+        from miesc.core.intelligence import enhance_findings
 
         all_findings_flat = []
         for result in all_results:
@@ -984,7 +984,7 @@ def audit_quick(
     # Recall-safe benign-context verifier (opt-in)
     if verify_fp:
         try:
-            from src.ml.benign_context_verifier import apply_to_results
+            from miesc.ml.benign_context_verifier import apply_to_results
 
             dropped, flagged = apply_to_results(all_results, contract=contract, model=verify_model)
             mode = f"LLM {verify_model}" if verify_model else "rule-only"
@@ -997,7 +997,7 @@ def audit_quick(
 
     if rank:
         try:
-            from src.ml.triage_ranker import rank_results
+            from miesc.ml.triage_ranker import rank_results
 
             n = rank_results(all_results, contract=contract)
             info(f"rank: ordered {n} finding(s) by P(real) — triage, recall-safe (nothing dropped)"
@@ -1286,7 +1286,7 @@ def audit_smart(
     if llm_validate and result.ml_filtered_findings:
         info("Running LLM validation on findings...")
         try:
-            from src.llm.finding_validator import LLMFindingValidator, ValidatorConfig
+            from miesc.llm.finding_validator import LLMFindingValidator, ValidatorConfig
 
             validator_config = ValidatorConfig(
                 min_severity_to_validate="medium",
@@ -1500,7 +1500,7 @@ def audit_profile(
     # zero-recall pattern detection, context-aware FP suppression,
     # LLM↔static cross-validation, severity calibration.
     try:
-        from src.core.intelligence import enhance_findings
+        from miesc.core.intelligence import enhance_findings
 
         all_findings_flat = []
         for result in all_results:
@@ -2026,7 +2026,7 @@ def audit_deep(
     """
     print_banner()
 
-    from src.agents.deep_audit_agent import DeepAuditAgent, DeepAuditConfig
+    from miesc.agents.deep_audit_agent import DeepAuditAgent, DeepAuditConfig
 
     config = DeepAuditConfig(
         timeout_seconds=timeout,

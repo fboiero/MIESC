@@ -18,21 +18,21 @@ __email__ = "fboiero@frvm.utn.edu.ar"
 # Lazy imports - heavy modules are only loaded when accessed
 _lazy_imports = {
     # Core
-    "ToolAdapter": ("src.core.tool_protocol", "ToolAdapter"),
-    "ToolStatus": ("src.core.tool_protocol", "ToolStatus"),
-    "CorrelationEngine": ("src.core.correlation_api", "SmartCorrelationEngine"),
-    "ResultAggregator": ("src.core.result_aggregator", "ResultAggregator"),
+    "ToolAdapter": ("miesc.core.tool_protocol", "ToolAdapter"),
+    "ToolStatus": ("miesc.core.tool_protocol", "ToolStatus"),
+    "CorrelationEngine": ("miesc.core.correlation_api", "SmartCorrelationEngine"),
+    "ResultAggregator": ("miesc.core.result_aggregator", "ResultAggregator"),
     # ML
-    "FalsePositiveFilter": ("src.ml", "FalsePositiveFilter"),
-    "SeverityPredictor": ("src.ml", "SeverityPredictor"),
-    "VulnerabilityClusterer": ("src.ml", "VulnerabilityClusterer"),
-    "CodeEmbeddings": ("src.ml", "CodeEmbeddings"),
+    "FalsePositiveFilter": ("miesc.ml", "FalsePositiveFilter"),
+    "SeverityPredictor": ("miesc.ml", "SeverityPredictor"),
+    "VulnerabilityClusterer": ("miesc.ml", "VulnerabilityClusterer"),
+    "CodeEmbeddings": ("miesc.ml", "CodeEmbeddings"),
     # Security
-    "InputValidator": ("src.security", "validate_contract_path"),
-    "APIRateLimiter": ("src.security", "RateLimiter"),
-    "SecureLogger": ("src.security", "SecureFormatter"),
-    "ComplianceMapper": ("src.security.compliance_mapper", "ComplianceMapper"),
-    "RemediationEngine": ("src.security", "RemediationEngine"),
+    "InputValidator": ("miesc.security", "validate_contract_path"),
+    "APIRateLimiter": ("miesc.security", "RateLimiter"),
+    "SecureLogger": ("miesc.security", "SecureFormatter"),
+    "ComplianceMapper": ("miesc.security.compliance_mapper", "ComplianceMapper"),
+    "RemediationEngine": ("miesc.security", "RemediationEngine"),
 }
 
 _loaded_modules: dict[str, Any] = {}

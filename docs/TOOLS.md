@@ -105,7 +105,7 @@ docker run --rm -v $(pwd):/contracts miesc:latest audit full /contracts/
 Implement the `ToolAdapter` interface:
 
 ```python
-from src.core.tool_protocol import ToolAdapter, ToolStatus
+from miesc.core.tool_protocol import ToolAdapter, ToolStatus
 
 class MyToolAdapter(ToolAdapter):
     @property

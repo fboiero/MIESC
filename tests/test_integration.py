@@ -9,14 +9,14 @@ import tempfile
 import pytest
 
 # Import MIESC components
-from src.core import (
+from miesc.core import (
     HealthChecker,
     HealthStatus,
     MLOrchestrator,
     get_ml_orchestrator,
     get_tool_discovery,
 )
-from src.ml import FeedbackLoop, FeedbackType, MLPipeline
+from miesc.ml import FeedbackLoop, FeedbackType, MLPipeline
 
 # Sample vulnerable contract for testing
 VULNERABLE_CONTRACT = """
@@ -136,7 +136,7 @@ class TestAdapterIntegration:
     def test_slither_adapter_available(self):
         """Test Slither adapter availability check."""
         try:
-            from src.adapters.slither_adapter import SlitherAdapter
+            from miesc.adapters.slither_adapter import SlitherAdapter
 
             adapter = SlitherAdapter()
             # Just check it can be instantiated
@@ -147,7 +147,7 @@ class TestAdapterIntegration:
     def test_mythril_adapter_available(self):
         """Test Mythril adapter availability check."""
         try:
-            from src.adapters.mythril_adapter import MythrilAdapter
+            from miesc.adapters.mythril_adapter import MythrilAdapter
 
             adapter = MythrilAdapter()
             assert adapter is not None
@@ -157,7 +157,7 @@ class TestAdapterIntegration:
     def test_solhint_adapter_available(self):
         """Test Solhint adapter availability check."""
         try:
-            from src.adapters.solhint_adapter import SolhintAdapter
+            from miesc.adapters.solhint_adapter import SolhintAdapter
 
             adapter = SolhintAdapter()
             assert adapter is not None

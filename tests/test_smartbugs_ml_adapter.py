@@ -9,8 +9,8 @@ prediction cache, availability gating and registration.
 
 import sys
 
-from src.adapters.smartbugs_ml_adapter import SmartBugsMLAdapter, register_adapter
-from src.core.tool_protocol import ToolStatus
+from miesc.adapters.smartbugs_ml_adapter import SmartBugsMLAdapter, register_adapter
+from miesc.core.tool_protocol import ToolStatus
 
 
 def _a(config=None):

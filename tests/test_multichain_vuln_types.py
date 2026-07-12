@@ -10,9 +10,9 @@ from __future__ import annotations
 
 import pytest
 
-from src.adapters.move_adapter import MoveAnalyzer, MoveVulnerability
-from src.adapters.solana_adapter import SolanaAnalyzer, SolanaVulnerability
-from src.adapters.stellar_adapter import StellarAnalyzer, StellarVulnerability
+from miesc.adapters.move_adapter import MoveAnalyzer, MoveVulnerability
+from miesc.adapters.solana_adapter import SolanaAnalyzer, SolanaVulnerability
+from miesc.adapters.stellar_adapter import StellarAnalyzer, StellarVulnerability
 
 # ---------------------------------------------------------------------------
 # Stellar / Soroban
@@ -49,7 +49,7 @@ class TestStellarVulnTypes:
         assert analyzer.chain_type is not None
 
     def test_pattern_detector_has_soroban_2024_patterns(self):
-        from src.adapters.stellar_adapter import StellarPatternDetector
+        from miesc.adapters.stellar_adapter import StellarPatternDetector
 
         assert hasattr(StellarPatternDetector, "SOROBAN_2024_PATTERNS")
         patterns = StellarPatternDetector.SOROBAN_2024_PATTERNS

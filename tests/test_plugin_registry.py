@@ -13,8 +13,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from src.plugins.protocol import PluginMetadata, PluginState, PluginType
-from src.plugins.registry import (
+from miesc.plugins.protocol import PluginMetadata, PluginState, PluginType
+from miesc.plugins.registry import (
     PluginEntry,
     PluginRegistry,
     get_registry,

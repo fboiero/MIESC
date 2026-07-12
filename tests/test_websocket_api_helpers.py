@@ -6,8 +6,8 @@ from __future__ import annotations
 import asyncio
 from unittest.mock import AsyncMock, MagicMock
 
-import src.core.websocket_api as ws
-from src.core.websocket_api import (
+import miesc.core.websocket_api as ws
+from miesc.core.websocket_api import (
     ConnectionManager,
     EventType,
     WebSocketEvent,

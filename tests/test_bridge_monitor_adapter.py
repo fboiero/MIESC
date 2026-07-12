@@ -9,8 +9,8 @@ finality). Every helper takes strings and returns dicts -> no mocking needed.
 Note: this analyzes EVM Solidity bridge contracts; it is not a non-EVM-chain feature.
 """
 
-from src.adapters.bridge_monitor_adapter import BridgeMonitorAdapter
-from src.core.tool_protocol import ToolStatus
+from miesc.adapters.bridge_monitor_adapter import BridgeMonitorAdapter
+from miesc.core.tool_protocol import ToolStatus
 
 
 def _a():

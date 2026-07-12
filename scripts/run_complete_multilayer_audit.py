@@ -30,7 +30,7 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 # Try to import remediations database
 try:
-    from security.remediations import (
+    from miesc.security.remediations import (
         get_remediation_by_swc,
         get_remediation_by_type,
         get_security_checklist,
@@ -42,7 +42,7 @@ except ImportError:
 
 # Try to import Smart Correlation Engine
 try:
-    from ml.correlation_engine import SmartCorrelationEngine
+    from miesc.ml.correlation_engine import SmartCorrelationEngine
 
     CORRELATION_ENGINE_AVAILABLE = True
 except ImportError:

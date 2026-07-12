@@ -322,7 +322,7 @@ def scan(
         # FP filter across all aggregated results (per-file code context)
         if fp_strictness.lower() != "off":
             try:
-                from src.ml.fp_filter import FalsePositiveFilter
+                from miesc.ml.fp_filter import FalsePositiveFilter
 
                 fp_filter = FalsePositiveFilter(strictness=fp_strictness.lower(), use_rag=False)
                 filtered_count = 0
@@ -352,7 +352,7 @@ def scan(
 
         # Intelligence engine on aggregated findings
         try:
-            from src.core.intelligence import enhance_findings
+            from miesc.core.intelligence import enhance_findings
 
             all_findings_flat: list[dict[str, Any]] = []
             for result in all_results:
@@ -387,8 +387,8 @@ def scan(
         # Frontier LLM in directory mode: concatenate top source files
         if frontier_model:
             try:
-                from src.adapters.frontier_llm_adapter import FrontierLLMAdapter
-                from src.core.tool_protocol import ToolStatus
+                from miesc.adapters.frontier_llm_adapter import FrontierLLMAdapter
+                from miesc.core.tool_protocol import ToolStatus
 
                 provider_map = {
                     "claude": ("anthropic", "claude-sonnet-4-6"),
@@ -535,7 +535,7 @@ def scan(
     # Apply FP filter based on strictness (v5.1.2+)
     if fp_strictness.lower() != "off":
         try:
-            from src.ml.fp_filter import FalsePositiveFilter
+            from miesc.ml.fp_filter import FalsePositiveFilter
 
             with open(contract, encoding="utf-8") as contract_handle:
                 code = contract_handle.read()
@@ -562,8 +562,8 @@ def scan(
     if ensemble:
         frontier_model = None  # ensemble handles its own providers
         try:
-            from src.adapters.frontier_llm_adapter import FrontierLLMAdapter
-            from src.core.tool_protocol import ToolStatus
+            from miesc.adapters.frontier_llm_adapter import FrontierLLMAdapter
+            from miesc.core.tool_protocol import ToolStatus
 
             ensemble_providers = [
                 ("anthropic", "claude-sonnet-4-6", "Claude"),
@@ -624,7 +624,7 @@ def scan(
     # Frontier LLM analysis (opt-in via --model claude/gpt)
     if frontier_model:
         try:
-            from src.adapters.frontier_llm_adapter import FrontierLLMAdapter
+            from miesc.adapters.frontier_llm_adapter import FrontierLLMAdapter
 
             provider_map = {
                 "claude": ("anthropic", "claude-sonnet-4-6"),
@@ -656,7 +656,7 @@ def scan(
             if (
                 adapter.is_available()
                 == __import__(
-                    "src.core.tool_protocol", fromlist=["ToolStatus"]
+                    "miesc.core.tool_protocol", fromlist=["ToolStatus"]
                 ).ToolStatus.AVAILABLE
             ):
                 if not quiet:
@@ -685,7 +685,7 @@ def scan(
     # zero-recall pattern detection, context-aware FP suppression,
     # LLM↔static cross-validation, severity calibration.
     try:
-        from src.core.intelligence import enhance_findings
+        from miesc.core.intelligence import enhance_findings
 
         all_findings_flat = []
         for result in all_results:
@@ -722,7 +722,7 @@ def scan(
     # to the top critical/high findings (opt-in via --llm-enhance)
     if llm_enhance:
         try:
-            from src.reports.llm_interpreter import LLMReportInterpreter
+            from miesc.reports.llm_interpreter import LLMReportInterpreter
 
             interp = LLMReportInterpreter()
             if interp.is_available():
@@ -856,7 +856,7 @@ def _run_agentic_scan_profile(
     rank: bool,
 ) -> None:
     from miesc.cli.commands.audit import _apply_deep_profile_config
-    from src.agents.deep_audit_agent import DeepAuditAgent, DeepAuditConfig
+    from miesc.agents.deep_audit_agent import DeepAuditAgent, DeepAuditConfig
 
     if not quiet:
         print_banner()
@@ -936,7 +936,7 @@ def _apply_verify_fp(
     API failover). Never drops a real finding on a weak signal.
     """
     try:
-        from src.ml.benign_context_verifier import apply_to_results
+        from miesc.ml.benign_context_verifier import apply_to_results
     except Exception as e:  # noqa: BLE001
         if not quiet:
             info(f"verify-fp skipped: {e}")
@@ -954,7 +954,7 @@ def _apply_triage_rank(all_results: list[dict[str, Any]], *, contract: str, quie
     """Recall-safe triage: reorder each result's findings by P(real) (most-likely-real first).
     Never drops a finding (recall 1.0). No-ops gracefully if no trained model is present."""
     try:
-        from src.ml.triage_ranker import rank_results
+        from miesc.ml.triage_ranker import rank_results
     except Exception as e:  # noqa: BLE001
         if not quiet:
             info(f"rank skipped: {e}")

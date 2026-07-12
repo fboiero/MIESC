@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 
 import pytest
 
-from src.core.websocket_api import (
+from miesc.core.websocket_api import (
     WEBSOCKET_AVAILABLE,
     AuditProgressTracker,
     ConnectionManager,
@@ -213,7 +213,7 @@ class TestWebSocketAvailability:
     def test_websocket_module_imports(self):
         """Test module imports without error."""
         # If we got here, the module imported successfully
-        from src.core.websocket_api import EventType, WebSocketEvent
+        from miesc.core.websocket_api import EventType, WebSocketEvent
 
         assert EventType is not None
         assert WebSocketEvent is not None
@@ -517,7 +517,7 @@ class TestGlobalFunctions:
 
     def test_get_connection_manager(self):
         """Test get_connection_manager function."""
-        from src.core.websocket_api import get_connection_manager
+        from miesc.core.websocket_api import get_connection_manager
 
         manager = get_connection_manager()
         # May return None if not initialized
@@ -525,7 +525,7 @@ class TestGlobalFunctions:
 
     def test_create_progress_tracker(self):
         """Test create_progress_tracker function."""
-        from src.core.websocket_api import create_progress_tracker
+        from miesc.core.websocket_api import create_progress_tracker
 
         tracker = create_progress_tracker("test-id")
         # May return None if manager not available
@@ -543,7 +543,7 @@ class TestWebSocketApp:
 
     def test_create_app(self):
         """Test create_websocket_app returns FastAPI app."""
-        from src.core.websocket_api import create_websocket_app
+        from miesc.core.websocket_api import create_websocket_app
 
         app = create_websocket_app()
         assert app is not None
@@ -551,7 +551,7 @@ class TestWebSocketApp:
 
     def test_app_has_manager(self):
         """Test app has ConnectionManager."""
-        from src.core.websocket_api import create_websocket_app
+        from miesc.core.websocket_api import create_websocket_app
 
         app = create_websocket_app()
         assert isinstance(app.state.manager, ConnectionManager)
@@ -563,7 +563,7 @@ class TestWebSocketServer:
 
     def test_server_init(self):
         """Test server initialization."""
-        from src.core.websocket_api import WebSocketServer
+        from miesc.core.websocket_api import WebSocketServer
 
         server = WebSocketServer(host="127.0.0.1", port=9999)
         assert server.host == "127.0.0.1"
@@ -571,7 +571,7 @@ class TestWebSocketServer:
 
     def test_server_default_values(self):
         """Test server default values."""
-        from src.core.websocket_api import WebSocketServer
+        from miesc.core.websocket_api import WebSocketServer
 
         server = WebSocketServer()
         assert server.host == "0.0.0.0"

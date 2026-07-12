@@ -12,9 +12,9 @@ import sys
 
 import z3
 
-import src.adapters.vuln_verifier_adapter as mod
-from src.adapters.vuln_verifier_adapter import VulnVerifierAdapter
-from src.core.tool_protocol import ToolStatus
+import miesc.adapters.vuln_verifier_adapter as mod
+from miesc.adapters.vuln_verifier_adapter import VulnVerifierAdapter
+from miesc.core.tool_protocol import ToolStatus
 
 
 def _a():

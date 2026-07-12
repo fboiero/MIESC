@@ -8,8 +8,8 @@ contract plus the file/source/exception paths.
 
 import sys
 
-from src.adapters.defi_adapter import DeFiAdapter
-from src.core.tool_protocol import ToolStatus
+from miesc.adapters.defi_adapter import DeFiAdapter
+from miesc.core.tool_protocol import ToolStatus
 
 # Triggers flash-loan (executeOperation/flashLoan) + oracle (getReserves) detectors.
 DEFI = (
@@ -38,7 +38,7 @@ def test_is_available():
 
 
 def test_is_available_not_installed(monkeypatch):
-    monkeypatch.setitem(sys.modules, "detectors.defi_detectors", None)
+    monkeypatch.setitem(sys.modules, "miesc.detectors.defi_detectors", None)
     assert _a().is_available() == ToolStatus.NOT_INSTALLED
 
 

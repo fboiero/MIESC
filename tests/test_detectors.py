@@ -15,7 +15,7 @@ class TestSeverityEnum:
 
     def test_severity_values(self):
         """Test all severity values exist."""
-        from src.detectors.defi_detectors import Severity
+        from miesc.detectors.defi_detectors import Severity
 
         assert Severity.CRITICAL.value == "critical"
         assert Severity.HIGH.value == "high"
@@ -29,7 +29,7 @@ class TestDeFiCategory:
 
     def test_defi_category_values(self):
         """Test all DeFi category values exist."""
-        from src.detectors.defi_detectors import DeFiCategory
+        from miesc.detectors.defi_detectors import DeFiCategory
 
         assert DeFiCategory.FLASH_LOAN.value == "flash_loan"
         assert DeFiCategory.ORACLE_MANIPULATION.value == "oracle_manipulation"
@@ -45,7 +45,7 @@ class TestDeFiFinding:
 
     def test_defi_finding_creation(self):
         """Test creating a DeFi finding."""
-        from src.detectors.defi_detectors import DeFiCategory, DeFiFinding, Severity
+        from miesc.detectors.defi_detectors import DeFiCategory, DeFiFinding, Severity
 
         finding = DeFiFinding(
             title="Test Finding",
@@ -67,7 +67,7 @@ class TestDeFiFinding:
 
     def test_defi_finding_defaults(self):
         """Test DeFiFinding default values."""
-        from src.detectors.defi_detectors import DeFiCategory, DeFiFinding, Severity
+        from miesc.detectors.defi_detectors import DeFiCategory, DeFiFinding, Severity
 
         finding = DeFiFinding(
             title="Test", description="Test", severity=Severity.LOW, category=DeFiCategory.SLIPPAGE
@@ -85,7 +85,7 @@ class TestFlashLoanDetector:
 
     def test_detector_attributes(self):
         """Test detector has correct attributes."""
-        from src.detectors.defi_detectors import DeFiCategory, FlashLoanDetector
+        from miesc.detectors.defi_detectors import DeFiCategory, FlashLoanDetector
 
         detector = FlashLoanDetector()
         assert detector.name == "flash-loan-detector"
@@ -93,7 +93,7 @@ class TestFlashLoanDetector:
 
     def test_detect_flash_loan_callback(self):
         """Test detecting flash loan callback patterns."""
-        from src.detectors.defi_detectors import FlashLoanDetector
+        from miesc.detectors.defi_detectors import FlashLoanDetector
 
         detector = FlashLoanDetector()
         source = """
@@ -110,7 +110,7 @@ class TestFlashLoanDetector:
 
     def test_detect_missing_repayment_validation(self):
         """Test detecting missing flash loan repayment validation."""
-        from src.detectors.defi_detectors import FlashLoanDetector, Severity
+        from miesc.detectors.defi_detectors import FlashLoanDetector, Severity
 
         detector = FlashLoanDetector()
         source = """
@@ -131,7 +131,7 @@ class TestFlashLoanDetector:
 
     def test_no_findings_for_safe_code(self):
         """Test no findings for code without flash loan patterns."""
-        from src.detectors.defi_detectors import FlashLoanDetector
+        from miesc.detectors.defi_detectors import FlashLoanDetector
 
         detector = FlashLoanDetector()
         source = """
@@ -150,7 +150,7 @@ class TestOracleManipulationDetector:
 
     def test_detector_attributes(self):
         """Test detector has correct attributes."""
-        from src.detectors.defi_detectors import DeFiCategory, OracleManipulationDetector
+        from miesc.detectors.defi_detectors import DeFiCategory, OracleManipulationDetector
 
         detector = OracleManipulationDetector()
         assert detector.name == "oracle-manipulation-detector"
@@ -158,7 +158,7 @@ class TestOracleManipulationDetector:
 
     def test_detect_spot_price_usage(self):
         """Test detecting spot price usage without TWAP."""
-        from src.detectors.defi_detectors import OracleManipulationDetector, Severity
+        from miesc.detectors.defi_detectors import OracleManipulationDetector, Severity
 
         detector = OracleManipulationDetector()
         source = """
@@ -173,7 +173,7 @@ class TestOracleManipulationDetector:
 
     def test_detect_missing_staleness_check(self):
         """Test detecting Chainlink usage without staleness check."""
-        from src.detectors.defi_detectors import OracleManipulationDetector
+        from miesc.detectors.defi_detectors import OracleManipulationDetector
 
         detector = OracleManipulationDetector()
         source = """
@@ -190,7 +190,7 @@ class TestOracleManipulationDetector:
 
     def test_no_findings_with_twap(self):
         """Test no spot price findings when TWAP is used."""
-        from src.detectors.defi_detectors import OracleManipulationDetector
+        from miesc.detectors.defi_detectors import OracleManipulationDetector
 
         detector = OracleManipulationDetector()
         source = """
@@ -211,7 +211,7 @@ class TestSandwichAttackDetector:
 
     def test_detector_attributes(self):
         """Test detector has correct attributes."""
-        from src.detectors.defi_detectors import DeFiCategory, SandwichAttackDetector
+        from miesc.detectors.defi_detectors import DeFiCategory, SandwichAttackDetector
 
         detector = SandwichAttackDetector()
         assert detector.name == "sandwich-attack-detector"
@@ -219,7 +219,7 @@ class TestSandwichAttackDetector:
 
     def test_detect_zero_slippage(self):
         """Test detecting zero slippage protection."""
-        from src.detectors.defi_detectors import SandwichAttackDetector, Severity
+        from miesc.detectors.defi_detectors import SandwichAttackDetector, Severity
 
         detector = SandwichAttackDetector()
         source = """
@@ -239,7 +239,7 @@ class TestSandwichAttackDetector:
 
     def test_detect_missing_deadline(self):
         """Test detecting missing transaction deadline."""
-        from src.detectors.defi_detectors import SandwichAttackDetector
+        from miesc.detectors.defi_detectors import SandwichAttackDetector
 
         detector = SandwichAttackDetector()
         source = """
@@ -253,7 +253,7 @@ class TestSandwichAttackDetector:
 
     def test_no_findings_without_swaps(self):
         """Test no findings when no swap operations."""
-        from src.detectors.defi_detectors import SandwichAttackDetector
+        from miesc.detectors.defi_detectors import SandwichAttackDetector
 
         detector = SandwichAttackDetector()
         source = """
@@ -271,7 +271,7 @@ class TestMEVExposureDetector:
 
     def test_detector_attributes(self):
         """Test detector has correct attributes."""
-        from src.detectors.defi_detectors import DeFiCategory, MEVExposureDetector
+        from miesc.detectors.defi_detectors import DeFiCategory, MEVExposureDetector
 
         detector = MEVExposureDetector()
         assert detector.name == "mev-exposure-detector"
@@ -279,7 +279,7 @@ class TestMEVExposureDetector:
 
     def test_detect_liquidation_mev(self):
         """Test detecting MEV-susceptible liquidation."""
-        from src.detectors.defi_detectors import MEVExposureDetector
+        from miesc.detectors.defi_detectors import MEVExposureDetector
 
         detector = MEVExposureDetector()
         source = """
@@ -293,7 +293,7 @@ class TestMEVExposureDetector:
 
     def test_detect_reward_claiming(self):
         """Test detecting MEV in reward claiming."""
-        from src.detectors.defi_detectors import MEVExposureDetector
+        from miesc.detectors.defi_detectors import MEVExposureDetector
 
         detector = MEVExposureDetector()
         source = """
@@ -307,7 +307,7 @@ class TestMEVExposureDetector:
 
     def test_lower_severity_with_protection(self):
         """Test lower severity when MEV protection exists."""
-        from src.detectors.defi_detectors import MEVExposureDetector, Severity
+        from miesc.detectors.defi_detectors import MEVExposureDetector, Severity
 
         detector = MEVExposureDetector()
         source = """
@@ -331,7 +331,7 @@ class TestPriceManipulationDetector:
 
     def test_detector_attributes(self):
         """Test detector has correct attributes."""
-        from src.detectors.defi_detectors import DeFiCategory, PriceManipulationDetector
+        from miesc.detectors.defi_detectors import DeFiCategory, PriceManipulationDetector
 
         detector = PriceManipulationDetector()
         assert detector.name == "price-manipulation-detector"
@@ -339,7 +339,7 @@ class TestPriceManipulationDetector:
 
     def test_detect_reserve_ratio(self):
         """Test detecting direct reserve ratio price calculation."""
-        from src.detectors.defi_detectors import PriceManipulationDetector
+        from miesc.detectors.defi_detectors import PriceManipulationDetector
 
         detector = PriceManipulationDetector()
         source = """
@@ -352,7 +352,7 @@ class TestPriceManipulationDetector:
 
     def test_detect_balance_supply_ratio(self):
         """Test detecting balance/supply ratio manipulation."""
-        from src.detectors.defi_detectors import PriceManipulationDetector
+        from miesc.detectors.defi_detectors import PriceManipulationDetector
 
         detector = PriceManipulationDetector()
         # Use the exact pattern format from PRICE_CALC_PATTERNS
@@ -371,14 +371,14 @@ class TestDeFiDetectorEngine:
 
     def test_engine_initialization(self):
         """Test engine initializes with all detectors."""
-        from src.detectors.defi_detectors import DeFiDetectorEngine
+        from miesc.detectors.defi_detectors import DeFiDetectorEngine
 
         engine = DeFiDetectorEngine()
         assert len(engine.detectors) == 5
 
     def test_engine_analyze(self):
         """Test engine runs all detectors."""
-        from src.detectors.defi_detectors import DeFiDetectorEngine
+        from miesc.detectors.defi_detectors import DeFiDetectorEngine
 
         engine = DeFiDetectorEngine()
         source = """
@@ -392,7 +392,7 @@ class TestDeFiDetectorEngine:
 
     def test_engine_get_summary(self):
         """Test engine generates summary."""
-        from src.detectors.defi_detectors import (
+        from miesc.detectors.defi_detectors import (
             DeFiCategory,
             DeFiDetectorEngine,
             DeFiFinding,
@@ -424,7 +424,7 @@ class TestAttackCategory:
 
     def test_attack_category_values(self):
         """Test all attack category values exist."""
-        from src.detectors.advanced_detectors import AttackCategory
+        from miesc.detectors.advanced_detectors import AttackCategory
 
         assert AttackCategory.RUG_PULL.value == "rug_pull"
         assert AttackCategory.GOVERNANCE.value == "governance_attack"
@@ -439,7 +439,7 @@ class TestAdvancedFinding:
 
     def test_advanced_finding_creation(self):
         """Test creating an advanced finding."""
-        from src.detectors.advanced_detectors import AdvancedFinding, AttackCategory, Severity
+        from miesc.detectors.advanced_detectors import AdvancedFinding, AttackCategory, Severity
 
         finding = AdvancedFinding(
             title="Rug Pull Risk",
@@ -464,7 +464,7 @@ class TestRugPullDetector:
 
     def test_detector_attributes(self):
         """Test detector has correct attributes."""
-        from src.detectors.advanced_detectors import AttackCategory, RugPullDetector
+        from miesc.detectors.advanced_detectors import AttackCategory, RugPullDetector
 
         detector = RugPullDetector()
         assert detector.name == "rug-pull-detector"
@@ -472,7 +472,7 @@ class TestRugPullDetector:
 
     def test_detect_owner_drain_function(self):
         """Test detecting owner drain function."""
-        from src.detectors.advanced_detectors import RugPullDetector
+        from miesc.detectors.advanced_detectors import RugPullDetector
 
         detector = RugPullDetector()
         source = """
@@ -485,7 +485,7 @@ class TestRugPullDetector:
 
     def test_detect_blacklist_functionality(self):
         """Test detecting blacklist functionality."""
-        from src.detectors.advanced_detectors import RugPullDetector
+        from miesc.detectors.advanced_detectors import RugPullDetector
 
         detector = RugPullDetector()
         source = """
@@ -500,7 +500,7 @@ class TestRugPullDetector:
 
     def test_detect_ownership_not_renounced(self):
         """Test detecting ownership not renounced."""
-        from src.detectors.advanced_detectors import RugPullDetector
+        from miesc.detectors.advanced_detectors import RugPullDetector
 
         detector = RugPullDetector()
         source = """
@@ -516,7 +516,7 @@ class TestRugPullDetector:
 
     def test_no_ownership_warning_if_renounced(self):
         """Test no ownership warning if renounced."""
-        from src.detectors.advanced_detectors import RugPullDetector
+        from miesc.detectors.advanced_detectors import RugPullDetector
 
         detector = RugPullDetector()
         source = """
@@ -539,7 +539,7 @@ class TestGovernanceDetector:
 
     def test_detector_attributes(self):
         """Test detector has correct attributes."""
-        from src.detectors.advanced_detectors import AttackCategory, GovernanceDetector
+        from miesc.detectors.advanced_detectors import AttackCategory, GovernanceDetector
 
         detector = GovernanceDetector()
         assert detector.name == "governance-detector"
@@ -547,7 +547,7 @@ class TestGovernanceDetector:
 
     def test_no_findings_for_non_governance(self):
         """Test no findings for non-governance contracts."""
-        from src.detectors.advanced_detectors import GovernanceDetector
+        from miesc.detectors.advanced_detectors import GovernanceDetector
 
         detector = GovernanceDetector()
         source = """
@@ -561,7 +561,7 @@ class TestGovernanceDetector:
 
     def test_detect_missing_checkpointing(self):
         """Test detecting missing vote checkpointing."""
-        from src.detectors.advanced_detectors import GovernanceDetector, Severity
+        from miesc.detectors.advanced_detectors import GovernanceDetector, Severity
 
         detector = GovernanceDetector()
         source = """
@@ -579,7 +579,7 @@ class TestGovernanceDetector:
 
     def test_detect_zero_timelock_delay(self):
         """Test detecting zero timelock delay."""
-        from src.detectors.advanced_detectors import GovernanceDetector
+        from miesc.detectors.advanced_detectors import GovernanceDetector
 
         detector = GovernanceDetector()
         source = """
@@ -600,7 +600,7 @@ class TestTokenSecurityDetector:
 
     def test_detector_attributes(self):
         """Test detector has correct attributes."""
-        from src.detectors.advanced_detectors import AttackCategory, TokenSecurityDetector
+        from miesc.detectors.advanced_detectors import AttackCategory, TokenSecurityDetector
 
         detector = TokenSecurityDetector()
         assert detector.name == "token-security-detector"
@@ -608,7 +608,7 @@ class TestTokenSecurityDetector:
 
     def test_no_findings_for_non_token(self):
         """Test no findings for non-token contracts."""
-        from src.detectors.advanced_detectors import TokenSecurityDetector
+        from miesc.detectors.advanced_detectors import TokenSecurityDetector
 
         detector = TokenSecurityDetector()
         source = """
@@ -623,7 +623,7 @@ class TestTokenSecurityDetector:
 
     def test_detect_high_fees(self):
         """Test detecting high transfer fees."""
-        from src.detectors.advanced_detectors import TokenSecurityDetector
+        from miesc.detectors.advanced_detectors import TokenSecurityDetector
 
         detector = TokenSecurityDetector()
         source = """
@@ -641,7 +641,7 @@ class TestTokenSecurityDetector:
 
     def test_detect_max_tx_limit(self):
         """Test detecting max transaction limits."""
-        from src.detectors.advanced_detectors import TokenSecurityDetector
+        from miesc.detectors.advanced_detectors import TokenSecurityDetector
 
         detector = TokenSecurityDetector()
         source = """
@@ -658,7 +658,7 @@ class TestTokenSecurityDetector:
 
     def test_detect_trading_controls(self):
         """Test detecting trading enable controls."""
-        from src.detectors.advanced_detectors import TokenSecurityDetector
+        from miesc.detectors.advanced_detectors import TokenSecurityDetector
 
         detector = TokenSecurityDetector()
         source = """
@@ -680,7 +680,7 @@ class TestProxyUpgradeDetector:
 
     def test_detector_attributes(self):
         """Test detector has correct attributes."""
-        from src.detectors.advanced_detectors import AttackCategory, ProxyUpgradeDetector
+        from miesc.detectors.advanced_detectors import AttackCategory, ProxyUpgradeDetector
 
         detector = ProxyUpgradeDetector()
         assert detector.name == "proxy-upgrade-detector"
@@ -688,7 +688,7 @@ class TestProxyUpgradeDetector:
 
     def test_no_findings_for_non_proxy(self):
         """Test no findings for non-proxy contracts."""
-        from src.detectors.advanced_detectors import ProxyUpgradeDetector
+        from miesc.detectors.advanced_detectors import ProxyUpgradeDetector
 
         detector = ProxyUpgradeDetector()
         source = """
@@ -702,7 +702,7 @@ class TestProxyUpgradeDetector:
 
     def test_detect_unprotected_upgrade(self):
         """Test detecting unprotected upgrade function."""
-        from src.detectors.advanced_detectors import ProxyUpgradeDetector
+        from miesc.detectors.advanced_detectors import ProxyUpgradeDetector
 
         detector = ProxyUpgradeDetector()
         # Test with delegatecall which is always detected
@@ -718,7 +718,7 @@ class TestProxyUpgradeDetector:
 
     def test_detect_delegatecall(self):
         """Test detecting delegatecall usage."""
-        from src.detectors.advanced_detectors import ProxyUpgradeDetector
+        from miesc.detectors.advanced_detectors import ProxyUpgradeDetector
 
         detector = ProxyUpgradeDetector()
         source = """
@@ -733,7 +733,7 @@ class TestProxyUpgradeDetector:
 
     def test_detect_missing_initializer_modifier(self):
         """Test detecting missing initializer modifier."""
-        from src.detectors.advanced_detectors import ProxyUpgradeDetector
+        from miesc.detectors.advanced_detectors import ProxyUpgradeDetector
 
         detector = ProxyUpgradeDetector()
         # The detector checks for Proxy/Upgradeable keywords and initialize function
@@ -760,7 +760,7 @@ class TestCentralizationDetector:
 
     def test_detector_attributes(self):
         """Test detector has correct attributes."""
-        from src.detectors.advanced_detectors import AttackCategory, CentralizationDetector
+        from miesc.detectors.advanced_detectors import AttackCategory, CentralizationDetector
 
         detector = CentralizationDetector()
         assert detector.name == "centralization-detector"
@@ -768,7 +768,7 @@ class TestCentralizationDetector:
 
     def test_detect_high_centralization(self):
         """Test detecting high centralization."""
-        from src.detectors.advanced_detectors import CentralizationDetector
+        from miesc.detectors.advanced_detectors import CentralizationDetector
 
         detector = CentralizationDetector()
         source = """
@@ -787,7 +787,7 @@ class TestCentralizationDetector:
 
     def test_detect_owner_selfdestruct(self):
         """Test detecting owner can destroy contract."""
-        from src.detectors.advanced_detectors import CentralizationDetector
+        from miesc.detectors.advanced_detectors import CentralizationDetector
 
         detector = CentralizationDetector()
         source = """
@@ -800,7 +800,7 @@ class TestCentralizationDetector:
 
     def test_detect_missing_timelock(self):
         """Test detecting missing timelock/multisig."""
-        from src.detectors.advanced_detectors import CentralizationDetector
+        from miesc.detectors.advanced_detectors import CentralizationDetector
 
         detector = CentralizationDetector()
         # Contract with multiple onlyOwner functions but no timelock
@@ -824,14 +824,14 @@ class TestAdvancedDetectorEngine:
 
     def test_engine_initialization(self):
         """Test engine initializes with all detectors."""
-        from src.detectors.advanced_detectors import AdvancedDetectorEngine
+        from miesc.detectors.advanced_detectors import AdvancedDetectorEngine
 
         engine = AdvancedDetectorEngine()
         assert len(engine.detectors) == 5
 
     def test_engine_analyze(self):
         """Test engine runs all detectors."""
-        from src.detectors.advanced_detectors import AdvancedDetectorEngine
+        from miesc.detectors.advanced_detectors import AdvancedDetectorEngine
 
         engine = AdvancedDetectorEngine()
         source = """
@@ -850,7 +850,7 @@ class TestAdvancedDetectorEngine:
 
     def test_engine_get_summary(self):
         """Test engine generates summary."""
-        from src.detectors.advanced_detectors import (
+        from miesc.detectors.advanced_detectors import (
             AdvancedDetectorEngine,
             AdvancedFinding,
             AttackCategory,
@@ -883,8 +883,8 @@ class TestDetectorIntegration:
 
     def test_combined_analysis(self):
         """Test running both DeFi and Advanced detectors."""
-        from src.detectors.advanced_detectors import AdvancedDetectorEngine
-        from src.detectors.defi_detectors import DeFiDetectorEngine
+        from miesc.detectors.advanced_detectors import AdvancedDetectorEngine
+        from miesc.detectors.defi_detectors import DeFiDetectorEngine
 
         source = """
         contract VulnerableDeFiToken is ERC20, Ownable {

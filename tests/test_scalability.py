@@ -46,7 +46,7 @@ class TestLargeContractScanning:
         return p
 
     def test_large_cairo_source_scans_under_10s(self, tmp_path):
-        from src.adapters.cairo_adapter import CairoAnalyzer
+        from miesc.adapters.cairo_adapter import CairoAnalyzer
 
         # 5000-line Cairo source
         code = "\n".join(f"fn f{i}() {{ let a: u256 = b + c; }}" for i in range(5000))
@@ -88,11 +88,11 @@ class TestSpecRunnerTimeouts:
         import subprocess as _sub
         from unittest.mock import patch
 
-        from src.formal.spec_runner import SpecRunner
+        from miesc.formal.spec_runner import SpecRunner
 
         runner = SpecRunner()
         fake_exc = _sub.TimeoutExpired(cmd=["solc"], timeout=1)
-        with patch("src.formal.spec_runner.subprocess.run", side_effect=fake_exc):
+        with patch("miesc.formal.spec_runner.subprocess.run", side_effect=fake_exc):
             with patch.object(runner, "is_solc_available", return_value=True):
                 contract = tmp_path / "C.sol"
                 contract.write_text("pragma solidity ^0.8.0; contract C {}")
@@ -106,11 +106,11 @@ class TestSpecRunnerTimeouts:
         import subprocess as _sub
         from unittest.mock import patch
 
-        from src.formal.spec_runner import SpecRunner
+        from miesc.formal.spec_runner import SpecRunner
 
         runner = SpecRunner()
         with patch(
-            "src.formal.spec_runner.subprocess.run",
+            "miesc.formal.spec_runner.subprocess.run",
             side_effect=_sub.TimeoutExpired(cmd=["halmos"], timeout=1),
         ):
             with patch.object(runner, "is_halmos_available", return_value=True):
@@ -127,7 +127,7 @@ class TestRAGLookupComplexity:
     def test_swc_registry_lookup_is_O1(self):
         """Dict-based lookup should be effectively constant-time; a 10x
         slowdown between 1 and 10,000 lookups would indicate O(n) regression."""
-        from src.llm.vulnerability_rag import SWC_REGISTRY
+        from miesc.llm.vulnerability_rag import SWC_REGISTRY
 
         keys = list(SWC_REGISTRY.keys())
         assert len(keys) > 10
@@ -155,7 +155,7 @@ class TestRAGLookupComplexity:
 
 class TestTaxonomyThroughput:
     def test_normalize_10k_findings_in_under_2s(self):
-        from src.core.finding_taxonomy import normalize_finding_type
+        from miesc.core.finding_taxonomy import normalize_finding_type
 
         finding = {
             "type": "arbitrary-send-eth",
@@ -171,7 +171,7 @@ class TestTaxonomyThroughput:
     def test_normalize_unknown_types_dont_pathologically_slow(self):
         """Substring fallback loop must terminate quickly even on completely
         unknown types (worst-case iteration)."""
-        from src.core.finding_taxonomy import normalize_finding_type
+        from miesc.core.finding_taxonomy import normalize_finding_type
 
         start = time.monotonic()
         for i in range(5000):
@@ -189,7 +189,7 @@ class TestAgentBatchThroughput:
     def test_analyze_does_not_leak_start_time_between_calls(self, tmp_path):
         """Each analyze() must reset _start_time. Without that, the second
         call's timeout fires immediately even though the first just finished."""
-        from src.agents.deep_audit_agent import DeepAuditAgent, DeepAuditConfig
+        from miesc.agents.deep_audit_agent import DeepAuditAgent, DeepAuditConfig
 
         cfg = DeepAuditConfig(
             timeout_seconds=60,
@@ -210,7 +210,7 @@ class TestAgentBatchThroughput:
     def test_concurrent_agents_do_not_share_mutable_state(self, tmp_path):
         """Running two DeepAuditAgent instances on different contracts at the
         same time must not corrupt each other's _start_time or finding lists."""
-        from src.agents.deep_audit_agent import DeepAuditAgent, DeepAuditConfig
+        from miesc.agents.deep_audit_agent import DeepAuditAgent, DeepAuditConfig
 
         cfg = DeepAuditConfig(
             timeout_seconds=60,
@@ -245,7 +245,7 @@ class TestCacheBounds:
         """The ML orchestrator's cache must not grow unboundedly across
         repeated analyses."""
         try:
-            from src.core.ml_orchestrator import MLOrchestrator
+            from miesc.core.ml_orchestrator import MLOrchestrator
         except ImportError:
             pytest.skip("MLOrchestrator import path changed")
         orch = MLOrchestrator()
@@ -270,7 +270,7 @@ class TestCanonicalCategorySerialization:
     def test_enum_values_are_json_safe(self):
         import json
 
-        from src.core.finding_taxonomy import CanonicalCategory
+        from miesc.core.finding_taxonomy import CanonicalCategory
 
         for c in CanonicalCategory:
             # .value should json-roundtrip without needing custom encoders
@@ -278,7 +278,7 @@ class TestCanonicalCategorySerialization:
             assert roundtrip == c.value
 
     def test_enum_can_be_stored_in_dict_key_or_value(self):
-        from src.core.finding_taxonomy import CanonicalCategory
+        from miesc.core.finding_taxonomy import CanonicalCategory
 
         # As values
         d = {"cat": CanonicalCategory.REENTRANCY.value}

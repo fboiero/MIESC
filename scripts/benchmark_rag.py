@@ -17,7 +17,7 @@ from typing import List, Dict, Any
 
 # Check if dependencies are available
 try:
-    from src.llm.embedding_rag import (
+    from miesc.llm.embedding_rag import (
         EmbeddingRAG,
         VULNERABILITY_KNOWLEDGE_BASE,
         batch_get_context_for_findings,

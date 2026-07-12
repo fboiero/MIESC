@@ -9,8 +9,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.evaluation.metrics import EvaluationMetrics, Finding
-from src.evaluation.rag_evaluator import (
+from miesc.evaluation.metrics import EvaluationMetrics, Finding
+from miesc.evaluation.rag_evaluator import (
     RAGEvaluationResult,
     RAGEvaluator,
     RAGRetrievalResult,

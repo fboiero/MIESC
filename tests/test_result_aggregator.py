@@ -6,7 +6,7 @@ Tests the finding aggregation and correlation system.
 
 import pytest
 
-from src.core.result_aggregator import (
+from miesc.core.result_aggregator import (
     AggregatedFinding,
     Finding,
     ResultAggregator,

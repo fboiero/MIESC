@@ -10,7 +10,7 @@ License: AGPL-3.0
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from src.detectors.detector_api import (
+from miesc.detectors.detector_api import (
     BaseDetector,
     Category,
     Finding,
@@ -521,7 +521,7 @@ class TestDetectorRegistry:
 
     def test_loads_builtin_transient_storage_detector_lazily(self):
         """Test built-in transient detector loads at registry discovery time."""
-        from src.detectors.transient_storage_detector import TransientStorageDetector
+        from miesc.detectors.transient_storage_detector import TransientStorageDetector
 
         registry = get_registry()
         original_detectors = dict(registry._detectors)
@@ -727,7 +727,7 @@ class TestIntegration:
 
     def test_find_multiline_pattern(self):
         """Test find_multiline_pattern method."""
-        from src.detectors.detector_api import BaseDetector, Category
+        from miesc.detectors.detector_api import BaseDetector, Category
 
         class MultilineDetector(BaseDetector):
             name = "multiline-detector"
@@ -760,7 +760,7 @@ contract Test {
 
     def test_pattern_detector_with_two_element_tuple(self):
         """Test PatternDetector with patterns that have no severity."""
-        from src.detectors.detector_api import Category, PatternDetector, Severity
+        from miesc.detectors.detector_api import Category, PatternDetector, Severity
 
         class TwoElementPatternDetector(PatternDetector):
             name = "two-element-pattern"
@@ -796,7 +796,7 @@ contract Test {
 
     def test_pattern_detector_should_run_false(self):
         """Test PatternDetector when should_run returns False."""
-        from src.detectors.detector_api import Category, PatternDetector, Severity
+        from miesc.detectors.detector_api import Category, PatternDetector, Severity
 
         class ConditionalPatternDetector(PatternDetector):
             name = "conditional-pattern"
@@ -822,7 +822,7 @@ contract Test {
 
     def test_pattern_detector_three_element_tuple(self):
         """Test PatternDetector with patterns that include severity."""
-        from src.detectors.detector_api import Category, PatternDetector, Severity
+        from miesc.detectors.detector_api import Category, PatternDetector, Severity
 
         class ThreeElementPatternDetector(PatternDetector):
             name = "three-element-pattern"

@@ -14,8 +14,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.adapters.hardhat_adapter import HardhatAdapter, register_adapter
-from src.core.tool_protocol import ToolCategory, ToolMetadata, ToolStatus
+from miesc.adapters.hardhat_adapter import HardhatAdapter, register_adapter
+from miesc.core.tool_protocol import ToolCategory, ToolMetadata, ToolStatus
 
 # =============================================================================
 # Fixtures
@@ -654,7 +654,7 @@ class TestAnalyze:
         with patch.object(adapter, "is_available", return_value=ToolStatus.AVAILABLE):
             with patch("subprocess.run", return_value=mock_result):
                 with patch(
-                    "src.adapters.hardhat_adapter.enhance_findings_with_llm", return_value=[]
+                    "miesc.adapters.hardhat_adapter.enhance_findings_with_llm", return_value=[]
                 ):
                     result = adapter.analyze(str(hardhat_project_dir), verbose=False)
 
@@ -700,7 +700,7 @@ class TestAnalyze:
         with patch.object(adapter, "is_available", return_value=ToolStatus.AVAILABLE):
             with patch("subprocess.run", return_value=mock_result):
                 with patch(
-                    "src.adapters.hardhat_adapter.enhance_findings_with_llm",
+                    "miesc.adapters.hardhat_adapter.enhance_findings_with_llm",
                     side_effect=lambda f, c, t: f,
                 ):
                     result = adapter.analyze(str(hardhat_project_dir), verbose=False)
@@ -731,7 +731,7 @@ class TestAnalyze:
         with patch.object(adapter, "is_available", return_value=ToolStatus.AVAILABLE):
             with patch("subprocess.run", return_value=mock_result):
                 with patch(
-                    "src.adapters.hardhat_adapter.enhance_findings_with_llm", return_value=[]
+                    "miesc.adapters.hardhat_adapter.enhance_findings_with_llm", return_value=[]
                 ):
                     result = adapter.analyze(str(hardhat_project_dir), verbose=False)
 
@@ -749,7 +749,7 @@ class TestAnalyze:
         with patch.object(adapter, "is_available", return_value=ToolStatus.AVAILABLE):
             with patch("subprocess.run", return_value=mock_result):
                 with patch(
-                    "src.adapters.hardhat_adapter.enhance_findings_with_llm", return_value=[]
+                    "miesc.adapters.hardhat_adapter.enhance_findings_with_llm", return_value=[]
                 ):
                     result = adapter.analyze(str(contract), verbose=False)
 
@@ -978,7 +978,7 @@ class TestIntegration:
         with patch.object(adapter, "is_available", return_value=ToolStatus.AVAILABLE):
             with patch("subprocess.run", return_value=mock_result):
                 with patch(
-                    "src.adapters.hardhat_adapter.enhance_findings_with_llm",
+                    "miesc.adapters.hardhat_adapter.enhance_findings_with_llm",
                     side_effect=lambda f, c, t: f,
                 ):
                     result = adapter.analyze(str(hardhat_project_dir), verbose=False)
@@ -1021,7 +1021,7 @@ class TestIntegration:
         with patch.object(adapter, "is_available", return_value=ToolStatus.AVAILABLE):
             with patch("subprocess.run", return_value=mock_result):
                 with patch(
-                    "src.adapters.hardhat_adapter.enhance_findings_with_llm", return_value=[]
+                    "miesc.adapters.hardhat_adapter.enhance_findings_with_llm", return_value=[]
                 ):
                     result = adapter.analyze(str(hardhat_project_dir), verbose=False)
 

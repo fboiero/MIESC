@@ -70,7 +70,7 @@ brew install ollama  # macOS
 ollama pull openhermes
 
 # Run PropertyGPT
-from src.adapters.propertygpt_adapter import PropertyGPTAdapter
+from miesc.adapters.propertygpt_adapter import PropertyGPTAdapter
 
 adapter = PropertyGPTAdapter()
 result = adapter.analyze("MyContract.sol", output_cvl_file="MyContract.spec")
@@ -179,7 +179,7 @@ Enhanced existing `smartllm_adapter.py` with:
 ### Usage
 
 ```python
-from src.adapters.smartllm_adapter import SmartLLMAdapter
+from miesc.adapters.smartllm_adapter import SmartLLMAdapter
 
 adapter = SmartLLMAdapter()
 # RAG and Verificator enabled by default
@@ -267,7 +267,7 @@ DogeFuzz is an advanced coverage-guided fuzzer that combines AFL-style power sch
 ### Usage
 
 ```python
-from src.adapters.dogefuzz_adapter import DogeFuzzAdapter
+from miesc.adapters.dogefuzz_adapter import DogeFuzzAdapter
 
 adapter = DogeFuzzAdapter()
 # Default: 10000 iterations, 4 workers, hybrid mode enabled

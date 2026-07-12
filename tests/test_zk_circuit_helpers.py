@@ -8,7 +8,7 @@ import subprocess
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from src.adapters.zk_circuit_adapter import ZKCircuitAdapter, ZKFramework
+from miesc.adapters.zk_circuit_adapter import ZKCircuitAdapter, ZKFramework
 
 
 def _adapter():

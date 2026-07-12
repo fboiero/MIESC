@@ -451,7 +451,7 @@ class TestGenerator:
 
 ```bash
 # Entrenar modelo especializado
-python -m src.ml.fine_tuning.fine_tuning_trainer \
+python -m miesc.ml.fine_tuning.fine_tuning_trainer \
     --base-model deepseek-ai/deepseek-coder-6.7b-instruct \
     --dataset data/fine_tuning/solidity_security_chatml.jsonl \
     --output models/miesc-security-v1 \

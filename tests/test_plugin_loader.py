@@ -15,14 +15,14 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.plugins.loader import (
+from miesc.plugins.loader import (
     DEFAULT_PLUGIN_DIRS,
     ENTRY_POINT_GROUP,
     DiscoveryResult,
     LoadedPlugin,
     PluginLoader,
 )
-from src.plugins.protocol import (
+from miesc.plugins.protocol import (
     MIESCPlugin,
     PluginContext,
     PluginMetadata,
@@ -690,7 +690,7 @@ class TestDiscoverAll:
 # =========================================================================== #
 import importlib.util as _ilu  # noqa: E402
 
-from src.plugins.loader import PluginLoader as _PL  # noqa: E402
+from miesc.plugins.loader import PluginLoader as _PL  # noqa: E402
 
 
 class TestLoaderExtraBranches:

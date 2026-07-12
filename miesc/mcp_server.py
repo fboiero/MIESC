@@ -248,7 +248,7 @@ async def miesc_deep_audit(
     """
     contract_path = _validate_contract_path(contract_path)
 
-    from src.agents.deep_audit_agent import DeepAuditAgent, DeepAuditConfig
+    from miesc.agents.deep_audit_agent import DeepAuditAgent, DeepAuditConfig
 
     config = DeepAuditConfig(
         timeout_seconds=timeout,
@@ -424,7 +424,7 @@ async def miesc_correlate(
         return json.dumps({"error": "Invalid JSON input for findings_map"})
 
     try:
-        from src.core.correlation_api import SmartCorrelationEngine
+        from miesc.core.correlation_api import SmartCorrelationEngine
 
         engine = SmartCorrelationEngine()
         correlated = engine.correlate(
@@ -437,7 +437,7 @@ async def miesc_correlate(
         return json.dumps(
             {
                 "error": "Correlation engine not available",
-                "hint": "Ensure src.core.correlation_api is installed",
+                "hint": "Ensure miesc.core.correlation_api is installed",
             }
         )
 
@@ -455,7 +455,7 @@ async def miesc_filter_fp(findings_json: str, threshold: float = 0.50) -> str:
         return json.dumps({"error": "Invalid JSON input"})
 
     try:
-        from src.ml.false_positive_filter import FalsePositiveFilter
+        from miesc.ml.false_positive_filter import FalsePositiveFilter
 
         fp_filter = FalsePositiveFilter()
         filtered = fp_filter.filter_findings(findings, fp_threshold=threshold)
@@ -629,7 +629,7 @@ async def miesc_map_compliance(findings_json: str, frameworks: Optional[str] = N
         return json.dumps({"error": "Invalid JSON input"})
 
     try:
-        from src.security.compliance_mapper import ComplianceMapper
+        from miesc.security.compliance_mapper import ComplianceMapper
 
         mapper = ComplianceMapper()
         framework_list = frameworks.split(",") if frameworks else None
@@ -652,7 +652,7 @@ async def miesc_remediate(findings_json: str, contract_name: str = "") -> str:
         return json.dumps({"error": "Invalid JSON input"})
 
     try:
-        from src.security.remediation_engine import RemediationEngine
+        from miesc.security.remediation_engine import RemediationEngine
 
         engine = RemediationEngine()
         remediated = engine.enrich_findings(findings, contract_name=contract_name)
@@ -693,7 +693,7 @@ async def miesc_apply_fix(
         return json.dumps({"error": "Invalid results_json"})
 
     try:
-        from src.security.remediation_pipeline import remediate_contract
+        from miesc.security.remediation_pipeline import remediate_contract
 
         contract = Path(_validate_contract_path(contract_path))
         patched = (
@@ -732,7 +732,7 @@ async def miesc_validate_remediation(
         return json.dumps({"error": "Invalid results_json"})
 
     try:
-        from src.security.remediation_pipeline import remediate_contract
+        from miesc.security.remediation_pipeline import remediate_contract
 
         contract = Path(_validate_contract_path(contract_path))
         patched = (

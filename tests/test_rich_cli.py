@@ -13,7 +13,7 @@ from unittest.mock import patch
 
 import pytest
 
-from src.core.rich_cli import (
+from miesc.core.rich_cli import (
     RICH_AVAILABLE,
     SeverityStyle,
 )
@@ -72,7 +72,7 @@ class TestRichAvailability:
 
     def test_module_imports(self):
         """Test module imports without error."""
-        from src.core.rich_cli import SeverityStyle
+        from miesc.core.rich_cli import SeverityStyle
 
         assert SeverityStyle is not None
 
@@ -94,14 +94,14 @@ class TestMIESCRichCLI:
     @pytest.fixture
     def cli(self):
         """Create CLI instance."""
-        from src.core.rich_cli import MIESCRichCLI
+        from miesc.core.rich_cli import MIESCRichCLI
 
         return MIESCRichCLI()
 
     @pytest.fixture
     def verbose_cli(self):
         """Create verbose CLI instance."""
-        from src.core.rich_cli import MIESCRichCLI
+        from miesc.core.rich_cli import MIESCRichCLI
 
         return MIESCRichCLI(verbose=True)
 
@@ -383,7 +383,7 @@ contract Test {
 
     def test_prompt_contract_with_mock(self, cli):
         """Test prompt_contract with mocked input."""
-        with patch("src.core.rich_cli.Prompt.ask", return_value="/path/to/contract.sol"):
+        with patch("miesc.core.rich_cli.Prompt.ask", return_value="/path/to/contract.sol"):
             result = cli.prompt_contract(default="default.sol")
             assert result == "/path/to/contract.sol"
 
@@ -391,7 +391,7 @@ contract Test {
         """Test prompt_tools with 'all' selection."""
         available = ["slither", "mythril", "echidna"]
 
-        with patch("src.core.rich_cli.Prompt.ask", return_value="all"):
+        with patch("miesc.core.rich_cli.Prompt.ask", return_value="all"):
             result = cli.prompt_tools(available)
             assert result == available
 
@@ -399,7 +399,7 @@ contract Test {
         """Test prompt_tools with specific selection."""
         available = ["slither", "mythril", "echidna"]
 
-        with patch("src.core.rich_cli.Prompt.ask", return_value="1,3"):
+        with patch("miesc.core.rich_cli.Prompt.ask", return_value="1,3"):
             result = cli.prompt_tools(available)
             assert result == ["slither", "echidna"]
 
@@ -407,43 +407,43 @@ contract Test {
         """Test prompt_tools with invalid input returns all."""
         available = ["slither", "mythril"]
 
-        with patch("src.core.rich_cli.Prompt.ask", return_value="invalid"):
+        with patch("miesc.core.rich_cli.Prompt.ask", return_value="invalid"):
             result = cli.prompt_tools(available)
             assert result == available
 
     def test_prompt_confirm_yes(self, cli):
         """Test prompt_confirm returns True."""
-        with patch("src.core.rich_cli.Confirm.ask", return_value=True):
+        with patch("miesc.core.rich_cli.Confirm.ask", return_value=True):
             result = cli.prompt_confirm("Continue?")
             assert result is True
 
     def test_prompt_confirm_no(self, cli):
         """Test prompt_confirm returns False."""
-        with patch("src.core.rich_cli.Confirm.ask", return_value=False):
+        with patch("miesc.core.rich_cli.Confirm.ask", return_value=False):
             result = cli.prompt_confirm("Continue?")
             assert result is False
 
     def test_show_export_options_sarif(self, cli):
         """Test show_export_options returns sarif."""
-        with patch("src.core.rich_cli.Prompt.ask", return_value="1"):
+        with patch("miesc.core.rich_cli.Prompt.ask", return_value="1"):
             result = cli.show_export_options()
             assert result == "sarif"
 
     def test_show_export_options_markdown(self, cli):
         """Test show_export_options returns markdown."""
-        with patch("src.core.rich_cli.Prompt.ask", return_value="4"):
+        with patch("miesc.core.rich_cli.Prompt.ask", return_value="4"):
             result = cli.show_export_options()
             assert result == "markdown"
 
     def test_show_export_options_invalid(self, cli):
         """Test show_export_options returns default on invalid."""
-        with patch("src.core.rich_cli.Prompt.ask", return_value="invalid"):
+        with patch("miesc.core.rich_cli.Prompt.ask", return_value="invalid"):
             result = cli.show_export_options()
             assert result == "sarif"
 
     def test_show_export_options_out_of_range(self, cli):
         """Test show_export_options returns default on out of range."""
-        with patch("src.core.rich_cli.Prompt.ask", return_value="99"):
+        with patch("miesc.core.rich_cli.Prompt.ask", return_value="99"):
             result = cli.show_export_options()
             assert result == "sarif"
 
@@ -485,7 +485,7 @@ class TestCreateCLI:
 
     def test_create_cli_default(self):
         """Test create_cli returns CLI instance."""
-        from src.core.rich_cli import create_cli
+        from miesc.core.rich_cli import create_cli
 
         cli = create_cli()
         assert cli is not None
@@ -493,7 +493,7 @@ class TestCreateCLI:
 
     def test_create_cli_verbose(self):
         """Test create_cli with verbose mode."""
-        from src.core.rich_cli import create_cli
+        from miesc.core.rich_cli import create_cli
 
         cli = create_cli(verbose=True)
         assert cli is not None
@@ -511,7 +511,7 @@ class TestEdgeCases:
 
     @pytest.fixture
     def cli(self):
-        from src.core.rich_cli import MIESCRichCLI
+        from miesc.core.rich_cli import MIESCRichCLI
 
         return MIESCRichCLI()
 
@@ -537,7 +537,7 @@ class TestEdgeCases:
 
     def test_long_code_preview(self):
         """Test code preview truncates long files."""
-        from src.core.rich_cli import MIESCRichCLI
+        from miesc.core.rich_cli import MIESCRichCLI
 
         cli = MIESCRichCLI(verbose=True)
 
@@ -585,13 +585,13 @@ class TestWithoutRich:
 
     def test_import_without_rich(self, monkeypatch):
         """Test module handles missing Rich gracefully."""
-        from src.core import rich_cli
+        from miesc.core import rich_cli
 
         assert hasattr(rich_cli, "RICH_AVAILABLE")
 
     def test_severity_style_without_rich(self):
         """Test SeverityStyle works regardless of Rich."""
-        from src.core.rich_cli import SeverityStyle
+        from miesc.core.rich_cli import SeverityStyle
 
         assert SeverityStyle.CRITICAL.value == "bold red"
         assert isinstance(SeverityStyle.CRITICAL, str)
@@ -605,7 +605,7 @@ if __name__ == "__main__":
 # Behaviour when rich is unavailable (RICH_AVAILABLE patched False).
 # --------------------------------------------------------------------------- #
 def test_create_cli_returns_none_without_rich(monkeypatch):
-    import src.core.rich_cli as mod
+    import miesc.core.rich_cli as mod
 
     monkeypatch.setattr(mod, "RICH_AVAILABLE", False)
     assert mod.create_cli() is None  # factory returns None
@@ -614,7 +614,7 @@ def test_create_cli_returns_none_without_rich(monkeypatch):
 def test_richcli_init_raises_without_rich(monkeypatch):
     import pytest as _pytest
 
-    import src.core.rich_cli as mod
+    import miesc.core.rich_cli as mod
 
     monkeypatch.setattr(mod, "RICH_AVAILABLE", False)
     with _pytest.raises(ImportError, match="Rich library not installed"):

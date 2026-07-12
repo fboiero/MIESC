@@ -16,7 +16,7 @@ import re
 
 import pytest
 
-from src.ml.classic_patterns import (
+from miesc.ml.classic_patterns import (
     CLASSIC_PATTERNS,
     AccessControlSemanticDetector,
     ClassicPatternDetector,

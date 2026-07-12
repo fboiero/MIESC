@@ -140,7 +140,7 @@ From thesis experiments on SmartBugs benchmark (5,127 contracts):
 ### 7.1 Multi-Format Exporters
 
 ```python
-from src.core.exporters import SARIFExporter, SonarQubeExporter
+from miesc.core.exporters import SARIFExporter, SonarQubeExporter
 
 # Export to SARIF for GitHub/GitLab
 sarif_output = SARIFExporter().export(findings, contract_path)
@@ -159,7 +159,7 @@ Supported formats:
 ### 7.2 Prometheus Metrics
 
 ```python
-from src.core.metrics import get_metrics
+from miesc.core.metrics import get_metrics
 
 metrics = get_metrics()
 metrics.record_finding("critical", "reentrancy", layer=1, confidence=0.95)
@@ -175,7 +175,7 @@ Metrics include:
 ### 7.3 WebSocket Real-Time API
 
 ```python
-from src.core.websocket_api import EventType, WebSocketEvent
+from miesc.core.websocket_api import EventType, WebSocketEvent
 
 # 16 event types for live updates
 EventType.AUDIT_STARTED
@@ -191,7 +191,7 @@ Endpoints:
 ### 7.4 Rich CLI
 
 ```python
-from src.core.rich_cli import MIESCRichCLI
+from miesc.core.rich_cli import MIESCRichCLI
 
 cli = MIESCRichCLI(verbose=True)
 cli.show_findings_table(findings)

@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from src.agents.auditor_agent import (
+from miesc.agents.auditor_agent import (
     COT_PROMPTS,
     AuditContext,
     AuditFinding,
@@ -51,21 +51,21 @@ EMPTY_CONTRACT = "pragma solidity ^0.8.0;\n\ncontract Empty {}\n"
 
 @pytest.fixture
 def mock_bus():
-    with patch("src.mcp_core.context_bus.get_context_bus") as m:
+    with patch("miesc.mcp_core.context_bus.get_context_bus") as m:
         m.return_value = MagicMock()
         yield m
 
 
 @pytest.fixture
 def agent(mock_bus):
-    from src.agents.auditor_agent import AutonomousAuditorAgent
+    from miesc.agents.auditor_agent import AutonomousAuditorAgent
 
     return AutonomousAuditorAgent()
 
 
 @pytest.fixture
 def agent_no_verbose(mock_bus):
-    from src.agents.auditor_agent import AutonomousAuditorAgent
+    from miesc.agents.auditor_agent import AutonomousAuditorAgent
 
     return AutonomousAuditorAgent(verbose=False)
 
@@ -365,10 +365,10 @@ class TestCOTPrompts:
 
 
 class TestAutonomousAuditorAgentInit:
-    @patch("src.mcp_core.context_bus.get_context_bus")
+    @patch("miesc.mcp_core.context_bus.get_context_bus")
     def test_init_defaults(self, mock_bus):
         mock_bus.return_value = MagicMock()
-        from src.agents.auditor_agent import AutonomousAuditorAgent
+        from miesc.agents.auditor_agent import AutonomousAuditorAgent
 
         agent = AutonomousAuditorAgent()
         assert agent.agent_name == "AutonomousAuditor"
@@ -376,10 +376,10 @@ class TestAutonomousAuditorAgentInit:
         assert agent.timeout == 120
         assert len(agent._step_handlers) == 8
 
-    @patch("src.mcp_core.context_bus.get_context_bus")
+    @patch("miesc.mcp_core.context_bus.get_context_bus")
     def test_init_custom(self, mock_bus):
         mock_bus.return_value = MagicMock()
-        from src.agents.auditor_agent import AutonomousAuditorAgent
+        from miesc.agents.auditor_agent import AutonomousAuditorAgent
 
         agent = AutonomousAuditorAgent(
             model="mistral:latest",
@@ -390,46 +390,46 @@ class TestAutonomousAuditorAgentInit:
         assert agent.timeout == 60
         assert agent.verbose is False
 
-    @patch("src.mcp_core.context_bus.get_context_bus")
+    @patch("miesc.mcp_core.context_bus.get_context_bus")
     def test_audit_steps_list(self, mock_bus):
         mock_bus.return_value = MagicMock()
-        from src.agents.auditor_agent import AutonomousAuditorAgent
+        from miesc.agents.auditor_agent import AutonomousAuditorAgent
 
         assert len(AutonomousAuditorAgent.AUDIT_STEPS) == 8
         assert AutonomousAuditorAgent.AUDIT_STEPS[0] == AuditStep.UNDERSTAND_CONTRACT
         assert AutonomousAuditorAgent.AUDIT_STEPS[-1] == AuditStep.GENERATE_RECOMMENDATIONS
 
-    @patch("src.mcp_core.context_bus.get_context_bus")
+    @patch("miesc.mcp_core.context_bus.get_context_bus")
     def test_get_context_types(self, mock_bus):
         mock_bus.return_value = MagicMock()
-        from src.agents.auditor_agent import AutonomousAuditorAgent
+        from miesc.agents.auditor_agent import AutonomousAuditorAgent
 
         agent = AutonomousAuditorAgent()
         types = agent.get_context_types()
         assert isinstance(types, list)
         assert len(types) > 0
 
-    @patch("src.mcp_core.context_bus.get_context_bus")
+    @patch("miesc.mcp_core.context_bus.get_context_bus")
     def test_capabilities(self, mock_bus):
         mock_bus.return_value = MagicMock()
-        from src.agents.auditor_agent import AutonomousAuditorAgent
+        from miesc.agents.auditor_agent import AutonomousAuditorAgent
 
         agent = AutonomousAuditorAgent()
         assert "full_audit" in agent.capabilities
         assert "vulnerability_detection" in agent.capabilities
 
-    @patch("src.mcp_core.context_bus.get_context_bus")
+    @patch("miesc.mcp_core.context_bus.get_context_bus")
     def test_agent_type_is_ai(self, mock_bus):
         mock_bus.return_value = MagicMock()
-        from src.agents.auditor_agent import AutonomousAuditorAgent
+        from miesc.agents.auditor_agent import AutonomousAuditorAgent
 
         agent = AutonomousAuditorAgent()
         assert agent.agent_type == "ai"
 
-    @patch("src.mcp_core.context_bus.get_context_bus")
+    @patch("miesc.mcp_core.context_bus.get_context_bus")
     def test_checkpoint_dir_created(self, mock_bus):
         mock_bus.return_value = MagicMock()
-        from src.agents.auditor_agent import AutonomousAuditorAgent
+        from miesc.agents.auditor_agent import AutonomousAuditorAgent
 
         with tempfile.TemporaryDirectory() as d:
             checkpoint_path = Path(d) / "checkpoints"
@@ -437,10 +437,10 @@ class TestAutonomousAuditorAgentInit:
             assert checkpoint_path.exists()
             assert agent.checkpoint_dir == checkpoint_path
 
-    @patch("src.mcp_core.context_bus.get_context_bus")
+    @patch("miesc.mcp_core.context_bus.get_context_bus")
     def test_all_step_handlers_registered(self, mock_bus):
         mock_bus.return_value = MagicMock()
-        from src.agents.auditor_agent import AutonomousAuditorAgent
+        from miesc.agents.auditor_agent import AutonomousAuditorAgent
 
         agent = AutonomousAuditorAgent()
         for step in AuditStep:
@@ -633,7 +633,7 @@ class TestInitializeContext:
 
 class TestCheckpoints:
     def test_save_checkpoint(self, mock_bus, contract_file):
-        from src.agents.auditor_agent import AutonomousAuditorAgent
+        from miesc.agents.auditor_agent import AutonomousAuditorAgent
 
         with tempfile.TemporaryDirectory() as d:
             agent = AutonomousAuditorAgent(checkpoint_dir=d)
@@ -660,7 +660,7 @@ class TestCheckpoints:
         asyncio.run(agent._save_checkpoint(ctx))  # must not raise
 
     def test_load_checkpoint(self, mock_bus, contract_file):
-        from src.agents.auditor_agent import AutonomousAuditorAgent
+        from miesc.agents.auditor_agent import AutonomousAuditorAgent
 
         with tempfile.TemporaryDirectory() as d:
             agent = AutonomousAuditorAgent(checkpoint_dir=d)
@@ -716,7 +716,7 @@ class TestStepHandlers:
             "risk_profile": "medium",
             "risk_factors": ["transfer", "owner"],
         }
-        with patch("src.agents.auditor_agent.COT_PROMPTS", SAFE_PROMPTS):
+        with patch("miesc.agents.auditor_agent.COT_PROMPTS", SAFE_PROMPTS):
             with patch.object(agent, "_query_llm", new=AsyncMock(return_value=llm_response)):
                 result_ctx = asyncio.run(agent._step_understand_contract(ctx))
         assert result_ctx.contract_type == ContractType.ERC20
@@ -725,7 +725,7 @@ class TestStepHandlers:
 
     def test_step_understand_contract_unknown_type(self, agent, ctx):
         llm_response = {"contract_type": "totally_unknown_type_xyz"}
-        with patch("src.agents.auditor_agent.COT_PROMPTS", SAFE_PROMPTS):
+        with patch("miesc.agents.auditor_agent.COT_PROMPTS", SAFE_PROMPTS):
             with patch.object(agent, "_query_llm", new=AsyncMock(return_value=llm_response)):
                 result_ctx = asyncio.run(agent._step_understand_contract(ctx))
         assert result_ctx.contract_type == ContractType.UNKNOWN
@@ -747,7 +747,7 @@ class TestStepHandlers:
                 },
             ]
         }
-        with patch("src.agents.auditor_agent.COT_PROMPTS", SAFE_PROMPTS):
+        with patch("miesc.agents.auditor_agent.COT_PROMPTS", SAFE_PROMPTS):
             with patch.object(agent, "_query_llm", new=AsyncMock(return_value=llm_response)):
                 result_ctx = asyncio.run(agent._step_identify_entry_points(ctx))
         assert len(result_ctx.entry_points) == 2
@@ -756,7 +756,7 @@ class TestStepHandlers:
 
     def test_step_identify_entry_points_empty(self, agent, ctx):
         llm_response = {"entry_points": []}
-        with patch("src.agents.auditor_agent.COT_PROMPTS", SAFE_PROMPTS):
+        with patch("miesc.agents.auditor_agent.COT_PROMPTS", SAFE_PROMPTS):
             with patch.object(agent, "_query_llm", new=AsyncMock(return_value=llm_response)):
                 result_ctx = asyncio.run(agent._step_identify_entry_points(ctx))
         assert result_ctx.entry_points == []
@@ -774,7 +774,7 @@ class TestStepHandlers:
             ],
             "total_value_risk": "high",
         }
-        with patch("src.agents.auditor_agent.COT_PROMPTS", SAFE_PROMPTS):
+        with patch("miesc.agents.auditor_agent.COT_PROMPTS", SAFE_PROMPTS):
             with patch.object(agent, "_query_llm", new=AsyncMock(return_value=llm_response)):
                 result_ctx = asyncio.run(agent._step_trace_value_flows(ctx))
         assert len(result_ctx.value_flows) == 1
@@ -789,7 +789,7 @@ class TestStepHandlers:
             "privilege_escalation_risks": [],
             "overall_assessment": "vulnerable",
         }
-        with patch("src.agents.auditor_agent.COT_PROMPTS", SAFE_PROMPTS):
+        with patch("miesc.agents.auditor_agent.COT_PROMPTS", SAFE_PROMPTS):
             with patch.object(agent, "_query_llm", new=AsyncMock(return_value=llm_response)):
                 result_ctx = asyncio.run(agent._step_check_access_control(ctx))
         assert result_ctx.access_control_patterns == ["Ownable"]
@@ -804,7 +804,7 @@ class TestStepHandlers:
             "cei_violations": ["withdraw() updates balance after call"],
             "race_conditions": [],
         }
-        with patch("src.agents.auditor_agent.COT_PROMPTS", SAFE_PROMPTS):
+        with patch("miesc.agents.auditor_agent.COT_PROMPTS", SAFE_PROMPTS):
             with patch.object(agent, "_query_llm", new=AsyncMock(return_value=llm_response)):
                 result_ctx = asyncio.run(agent._step_analyze_state_changes(ctx))
         assert len(result_ctx.findings) == 1
@@ -818,7 +818,7 @@ class TestStepHandlers:
             "cei_violations": [],
             "race_conditions": ["concurrent withdrawals"],
         }
-        with patch("src.agents.auditor_agent.COT_PROMPTS", SAFE_PROMPTS):
+        with patch("miesc.agents.auditor_agent.COT_PROMPTS", SAFE_PROMPTS):
             with patch.object(agent, "_query_llm", new=AsyncMock(return_value=llm_response)):
                 result_ctx = asyncio.run(agent._step_analyze_state_changes(ctx))
         assert len(result_ctx.findings) == 1
@@ -840,7 +840,7 @@ class TestStepHandlers:
                 }
             ]
         }
-        with patch("src.agents.auditor_agent.COT_PROMPTS", SAFE_PROMPTS):
+        with patch("miesc.agents.auditor_agent.COT_PROMPTS", SAFE_PROMPTS):
             with patch.object(agent, "_query_llm", new=AsyncMock(return_value=llm_response)):
                 result_ctx = asyncio.run(agent._step_detect_vulnerabilities(ctx))
         assert len(result_ctx.findings) == 1
@@ -873,7 +873,7 @@ class TestStepHandlers:
                 }
             ]
         }
-        with patch("src.agents.auditor_agent.COT_PROMPTS", SAFE_PROMPTS):
+        with patch("miesc.agents.auditor_agent.COT_PROMPTS", SAFE_PROMPTS):
             with patch.object(agent, "_query_llm", new=AsyncMock(return_value=llm_response)):
                 result_ctx = asyncio.run(agent._step_validate_findings(ctx))
         assert len(result_ctx.validated_findings) == 1
@@ -896,7 +896,7 @@ class TestStepHandlers:
                 {"id": "FP001", "is_valid": False, "validation_reason": "Safe pattern"}
             ]
         }
-        with patch("src.agents.auditor_agent.COT_PROMPTS", SAFE_PROMPTS):
+        with patch("miesc.agents.auditor_agent.COT_PROMPTS", SAFE_PROMPTS):
             with patch.object(agent, "_query_llm", new=AsyncMock(return_value=llm_response)):
                 result_ctx = asyncio.run(agent._step_validate_findings(ctx))
         assert result_ctx.validated_findings == []
@@ -931,7 +931,7 @@ class TestStepHandlers:
                 {"category": "security", "recommendation": "Use OpenZeppelin", "priority": "high"}
             ],
         }
-        with patch("src.agents.auditor_agent.COT_PROMPTS", SAFE_PROMPTS):
+        with patch("miesc.agents.auditor_agent.COT_PROMPTS", SAFE_PROMPTS):
             with patch.object(agent, "_query_llm", new=AsyncMock(return_value=llm_response)):
                 result_ctx = asyncio.run(agent._step_generate_recommendations(ctx))
         assert len(result_ctx.recommendations) == 1
@@ -986,7 +986,7 @@ class TestFullAuditFlow:
     def test_audit_with_skip_steps(self, agent, contract_file):
         """Audit skips explicitly requested steps."""
         empty_response = {}
-        with patch("src.agents.auditor_agent.COT_PROMPTS", SAFE_PROMPTS):
+        with patch("miesc.agents.auditor_agent.COT_PROMPTS", SAFE_PROMPTS):
             with patch.object(agent, "_query_llm", new=AsyncMock(return_value=empty_response)):
                 report = asyncio.run(
                     agent.audit(
@@ -1004,7 +1004,7 @@ class TestFullAuditFlow:
 
     def test_audit_handles_step_error_gracefully(self, agent, contract_file):
         """A step failure should not abort the whole audit."""
-        with patch("src.agents.auditor_agent.COT_PROMPTS", SAFE_PROMPTS):
+        with patch("miesc.agents.auditor_agent.COT_PROMPTS", SAFE_PROMPTS):
             with patch.object(
                 agent, "_query_llm", new=AsyncMock(side_effect=RuntimeError("LLM timeout"))
             ):

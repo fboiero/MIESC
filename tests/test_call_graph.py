@@ -11,7 +11,7 @@ Comprehensive tests for call graph construction and analysis including:
 
 import pytest
 
-from src.ml.call_graph import (
+from miesc.ml.call_graph import (
     CallEdge,
     CallGraph,
     CallGraphBuilder,

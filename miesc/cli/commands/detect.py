@@ -51,7 +51,7 @@ def detect(path: str, as_json: bool) -> None:
         print_banner()
 
     try:
-        from src.core.framework_detector import Framework, detect_framework
+        from miesc.core.framework_detector import Framework, detect_framework
     except ImportError:
         error("Framework detector module not available")
         sys.exit(1)

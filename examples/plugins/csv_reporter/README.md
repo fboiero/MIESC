@@ -20,8 +20,8 @@ No package installation needed — load via the MIESC plugin loader:
 
 ```python
 from pathlib import Path
-from src.plugins.loader import PluginLoader
-from src.plugins.protocol import PluginContext
+from miesc.plugins.loader import PluginLoader
+from miesc.plugins.protocol import PluginContext
 
 loader = PluginLoader()
 loaded = loader.load_plugin_file(

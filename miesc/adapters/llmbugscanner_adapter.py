@@ -1,0 +1,839 @@
+"""
+LLMBugScanner - Multi-LLM Ensemble Adapter for Smart Contract Vulnerability Detection.
+
+Based on: "LLMBugScanner: Leveraging LLM Ensembles for Accurate Smart Contract Bug Detection"
+(Georgia Tech, December 2025)
+
+Key Features:
+- Multi-LLM ensemble using local Ollama models
+- Cross-validation between models for false positive reduction
+- Consensus-based confidence scoring
+- State-of-the-art for logic bug detection
+
+The ensemble approach uses multiple models and aggregates their findings:
+1. Primary: deepseek-coder (specialized for code analysis)
+2. Secondary: codellama (general code understanding)
+3. Tertiary: mistral (reasoning and verification)
+
+Runs entirely locally via Ollama (DPGA-compliant, no API keys).
+
+Author: Fernando Boiero <fboiero@frvm.utn.edu.ar>
+Date: 2025-01-15
+"""
+
+import hashlib
+import json
+import logging
+import socket
+import subprocess
+import time
+from dataclasses import dataclass
+from pathlib import Path
+from typing import cast, Any, Dict, List, Optional, Set, Tuple
+
+from miesc.core.llm_config import get_ollama_host
+from miesc.core.tool_protocol import (
+    ToolAdapter,
+    ToolCapability,
+    ToolCategory,
+    ToolMetadata,
+    ToolStatus,
+)
+from miesc.security.llm_output_validator import (
+    extract_json_from_text,
+    repair_common_json_errors,
+)
+
+# Try to import EmbeddingRAG (optional dependency)
+try:
+    from miesc.llm.embedding_rag import EmbeddingRAG
+
+    _EMBEDDING_RAG_AVAILABLE = True
+except ImportError:
+    _EMBEDDING_RAG_AVAILABLE = False
+    EmbeddingRAG = None  # type: ignore[assignment,misc]
+
+logger = logging.getLogger(__name__)
+
+
+@dataclass
+class ModelConfig:
+    """Configuration for an ensemble member model."""
+
+    name: str
+    weight: float  # Voting weight (0.0-1.0)
+    timeout: int  # Seconds
+    specialization: str  # What this model is best at
+
+
+# Default ensemble configuration (local Ollama models)
+DEFAULT_ENSEMBLE = [
+    ModelConfig(name="deepseek-coder", weight=0.45, timeout=90, specialization="code_analysis"),
+    ModelConfig(name="codellama", weight=0.35, timeout=90, specialization="code_understanding"),
+    ModelConfig(name="mistral", weight=0.20, timeout=60, specialization="reasoning"),
+]
+
+# Vulnerability categories for consensus analysis
+VULNERABILITY_CATEGORIES = {
+    "reentrancy": ["reentrancy", "re-entrancy", "recursive call", "external call before state"],
+    "access_control": [
+        "access control",
+        "authorization",
+        "owner only",
+        "permission",
+        "admin",
+        "onlyowner",
+        "restricted",
+        "privilege",
+        "role",
+    ],
+    "integer_overflow": ["overflow", "underflow", "integer", "arithmetic"],
+    "unchecked_call": ["unchecked", "return value", "external call", "low-level call"],
+    "denial_of_service": ["dos", "denial of service", "gas limit", "loop", "unbounded"],
+    "front_running": ["front-run", "frontrun", "mev", "sandwich", "same-block", "same block"],
+    "flash_loan": ["flash loan", "flashloan", "flash-loan", "atomic", "same transaction"],
+    "oracle_manipulation": [
+        "oracle",
+        "price feed",
+        "chainlink",
+        "twap",
+        "spot price",
+        "price manipulation",
+        "getreserves",
+        "amm",
+        "uniswap",
+        "manipulat",
+    ],
+    "logic_error": ["logic", "business logic", "incorrect", "wrong", "bug"],
+    "timestamp_dependence": ["timestamp", "block.timestamp", "now"],
+    "tx_origin": ["tx.origin", "phishing"],
+    "delegatecall": ["delegatecall", "proxy", "storage collision"],
+    # DeFi-specific categories
+    "precision_loss": [
+        "precision",
+        "rounding",
+        "division before multiplication",
+        "truncat",
+        "decimal",
+        "loss of precision",
+    ],
+    "zero_address": ["zero address", "address(0)", "null address", "empty address"],
+    "missing_validation": [
+        "missing validation",
+        "no validation",
+        "missing check",
+        "unchecked input",
+        "input validation",
+    ],
+    "liquidation": ["liquidat", "collateral", "undercollateral", "health factor"],
+    "timelock": ["timelock", "time lock", "delay", "governance", "admin function"],
+}
+
+
+class LLMBugScannerAdapter(ToolAdapter):
+    """
+    Multi-LLM ensemble adapter for smart contract vulnerability detection.
+
+    Uses multiple local Ollama models and cross-validates findings
+    to achieve higher accuracy and reduce false positives.
+    """
+
+    def __init__(self, ensemble: Optional[List[ModelConfig]] = None):
+        super().__init__()
+        self._cache_dir = Path.home() / ".miesc" / "llmbugscanner_cache"
+        self._cache_dir.mkdir(parents=True, exist_ok=True)
+        self._ensemble = ensemble or DEFAULT_ENSEMBLE
+        self._consensus_threshold = 0.35  # Minimum weighted consensus for a finding
+        self._max_retries = 1
+        self._available_models: Set[str] = set()
+        self._model_aliases: Dict[str, str] = {}
+
+        # Initialize EmbeddingRAG if available
+        self._embedding_rag = None
+        self._use_rag = False
+        if _EMBEDDING_RAG_AVAILABLE:
+            try:
+                self._embedding_rag = EmbeddingRAG()
+                self._use_rag = True
+                logger.debug("LLMBugScanner: EmbeddingRAG (ChromaDB) enabled")
+            except Exception as e:
+                logger.debug(f"LLMBugScanner: EmbeddingRAG unavailable: {e}")
+
+    def get_metadata(self) -> ToolMetadata:
+        return ToolMetadata(
+            name="llmbugscanner",
+            version="1.0.0",
+            category=ToolCategory.AI_ANALYSIS,
+            author="Fernando Boiero (Based on Georgia Tech LLMBugScanner research)",
+            license="AGPL-3.0",
+            homepage="https://ollama.com",
+            repository="https://github.com/ollama/ollama",
+            # LLMBugScanner paper (Georgia Tech, Dec 2025)
+            documentation="https://arxiv.org/abs/2512.02069",
+            installation_cmd=(
+                "curl -fsSL https://ollama.com/install.sh | sh && "
+                "ollama pull deepseek-coder && "
+                "ollama pull codellama && "
+                "ollama pull mistral"
+            ),
+            capabilities=[
+                ToolCapability(
+                    name="ensemble_analysis",
+                    description="Multi-LLM ensemble vulnerability detection with cross-validation",
+                    supported_languages=["solidity"],
+                    detection_types=[
+                        "logic_bugs",
+                        "reentrancy",
+                        "access_control",
+                        "integer_overflow",
+                        "unchecked_calls",
+                        "denial_of_service",
+                        "front_running",
+                        "flash_loan_attacks",
+                        "oracle_manipulation",
+                    ],
+                ),
+                ToolCapability(
+                    name="consensus_scoring",
+                    description="Weighted consensus-based confidence scoring across models",
+                    supported_languages=["solidity"],
+                    detection_types=["false_positive_reduction"],
+                ),
+                ToolCapability(
+                    name="cross_validation",
+                    description="Cross-model validation for finding verification",
+                    supported_languages=["solidity"],
+                    detection_types=["finding_verification"],
+                ),
+            ],
+            cost=0.0,
+            requires_api_key=False,
+            is_optional=True,
+        )
+
+    def is_available(self) -> ToolStatus:
+        """Check if Ollama and at least one ensemble model is available via HTTP API."""
+        import urllib.error
+        import urllib.request
+
+        try:
+            ollama_host = get_ollama_host()
+            tags_url = f"{ollama_host}/api/tags"
+
+            req = urllib.request.Request(tags_url, method="GET")
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                if resp.status == 200:
+                    data = json.loads(resp.read().decode())
+                    models = [m.get("name", "") for m in data.get("models", [])]
+
+                    # Check which ensemble models are available
+                    self._available_models.clear()
+                    self._model_aliases.clear()
+                    for model in self._ensemble:
+                        for available_model in models:
+                            if model.name in available_model.lower():
+                                self._available_models.add(model.name)
+                                self._model_aliases[model.name] = available_model
+                                break
+
+                    if len(self._available_models) >= 1:
+                        logger.info(
+                            f"LLMBugScanner: {len(self._available_models)} models available at "
+                            f"{ollama_host}: {self._available_models}"
+                        )
+                        return ToolStatus.AVAILABLE
+                    else:
+                        logger.warning(
+                            "LLMBugScanner: No ensemble models found. Run: ollama pull deepseek-coder"
+                        )
+                        return ToolStatus.CONFIGURATION_ERROR
+                else:
+                    logger.warning(f"LLMBugScanner: Ollama returned status {resp.status}")
+                    return ToolStatus.CONFIGURATION_ERROR
+
+        except urllib.error.URLError as e:
+            logger.info(f"LLMBugScanner: Ollama not reachable: {e}")
+            return ToolStatus.NOT_INSTALLED
+        except Exception as e:
+            logger.error(f"LLMBugScanner: Error checking Ollama availability: {e}")
+            return ToolStatus.CONFIGURATION_ERROR
+
+    def analyze(self, contract_path: str, **kwargs: Any) -> Dict[str, Any]:
+        """
+        Analyze Solidity contract using multi-LLM ensemble.
+
+        Args:
+            contract_path: Path to the Solidity contract file
+            **kwargs: Optional configuration (consensus_threshold, etc.)
+
+        Returns:
+            Analysis results with consensus-validated findings
+        """
+        start_time = time.time()
+
+        # Check availability
+        if self.is_available() != ToolStatus.AVAILABLE:
+            return self._error_result(
+                start_time,
+                "LLMBugScanner not available. Ensure Ollama is installed with at least one model.",
+            )
+
+        try:
+            # Read contract
+            contract_code = self._read_contract(contract_path)
+            if not contract_code:
+                return self._error_result(start_time, f"Could not read contract: {contract_path}")
+
+            # Check cache
+            cache_key = self._get_cache_key(contract_code)
+            cached_result = self._get_cached_result(cache_key)
+            if cached_result:
+                logger.info(f"LLMBugScanner: Using cached result for {contract_path}")
+                cached_result["from_cache"] = True
+                cached_result["execution_time"] = time.time() - start_time
+                return cached_result
+
+            # Truncate if too long
+            contract_code = self._truncate_code(contract_code)
+
+            # Get available ensemble models
+            per_adapter_timeout = int(kwargs.get("timeout", self.get_default_config()["timeout"]))
+            active_ensemble = [
+                ModelConfig(
+                    name=self._model_aliases.get(m.name, m.name),
+                    weight=m.weight,
+                    timeout=max(15, min(m.timeout, per_adapter_timeout)),
+                    specialization=m.specialization,
+                )
+                for m in self._ensemble
+                if m.name in self._available_models
+            ]
+            logger.info(f"LLMBugScanner: Running ensemble with {len(active_ensemble)} models")
+
+            # STAGE 1: Run each model in parallel (simulated sequential for reliability)
+            all_findings: Dict[str, List[Dict[str, Any]]] = {}
+            model_results: Dict[str, Dict[str, Any]] = {}
+
+            for model in active_ensemble:
+                logger.info(f"LLMBugScanner: Analyzing with {model.name} ({model.specialization})")
+                model_findings = self._analyze_with_model(contract_code, contract_path, model)
+                all_findings[model.name] = model_findings
+                model_results[model.name] = {
+                    "findings_count": len(model_findings),
+                    "weight": model.weight,
+                    "specialization": model.specialization,
+                }
+
+            # STAGE 2: Consensus aggregation
+            logger.info("LLMBugScanner: Aggregating findings with consensus voting")
+            consensus_findings = self._aggregate_with_consensus(
+                all_findings,
+                active_ensemble,
+                kwargs.get("consensus_threshold", self._consensus_threshold),
+            )
+
+            # STAGE 3: Cross-validation (verify high-severity findings)
+            if kwargs.get("cross_validate", True):
+                logger.info("LLMBugScanner: Cross-validating critical findings")
+                consensus_findings = self._cross_validate_findings(
+                    contract_code, consensus_findings, active_ensemble
+                )
+
+            # Build result
+            result = {
+                "tool": "llmbugscanner",
+                "version": "1.0.0",
+                "status": "success",
+                "findings": consensus_findings,
+                "metadata": {
+                    "ensemble_size": len(active_ensemble),
+                    "models_used": [m.name for m in active_ensemble],
+                    "model_results": model_results,
+                    "total_raw_findings": sum(len(f) for f in all_findings.values()),
+                    "consensus_findings": len(consensus_findings),
+                    "consensus_threshold": self._consensus_threshold,
+                    "sovereign": True,
+                    "dpga_compliant": True,
+                },
+                "execution_time": time.time() - start_time,
+                "from_cache": False,
+            }
+
+            # Cache result
+            self._cache_result(cache_key, result)
+
+            return result
+
+        except Exception as e:
+            logger.error(f"LLMBugScanner analysis error: {e}", exc_info=True)
+            return self._error_result(start_time, str(e))
+
+    def normalize_findings(self, raw_output: Any) -> List[Dict[str, Any]]:
+        """Normalize findings - already normalized in analyze()."""
+        return raw_output.get("findings", []) if isinstance(raw_output, dict) else []
+
+    def can_analyze(self, contract_path: str) -> bool:
+        """Check if this adapter can analyze the given contract."""
+        return Path(contract_path).suffix == ".sol"
+
+    def get_default_config(self) -> Dict[str, Any]:
+        """Get default configuration."""
+        return {
+            "timeout": 180,
+            "consensus_threshold": 0.5,
+            "cross_validate": True,
+            "max_retries": 2,
+        }
+
+    # ============================================================================
+    # PRIVATE HELPER METHODS
+    # ============================================================================
+
+    def _error_result(self, start_time: float, error: str) -> Dict[str, Any]:
+        """Create error result."""
+        return {
+            "tool": "llmbugscanner",
+            "version": "1.0.0",
+            "status": "error",
+            "findings": [],
+            "execution_time": time.time() - start_time,
+            "error": error,
+        }
+
+    def _read_contract(self, contract_path: str) -> Optional[str]:
+        """Read contract file content."""
+        try:
+            with open(contract_path, "r", encoding="utf-8") as f:
+                return f.read()
+        except Exception as e:
+            logger.error(f"Error reading contract: {e}")
+            return None
+
+    def _truncate_code(self, code: str, max_chars: int = 24000) -> str:
+        """Truncate code to fit within context window."""
+        if len(code) <= max_chars:
+            return code
+        logger.warning(f"Contract truncated from {len(code)} to {max_chars} chars")
+        return code[:max_chars] + "\n// ... (truncated for analysis)"
+
+    def _analyze_with_model(
+        self, contract_code: str, contract_path: str, model: ModelConfig
+    ) -> List[Dict[str, Any]]:
+        """Run analysis with a single model."""
+        prompt = self._generate_analysis_prompt(contract_code, model.specialization)
+
+        for attempt in range(1, self._max_retries + 1):
+            try:
+                result = self._run_ollama_prompt(model.name, prompt, model.timeout)
+
+                if result.returncode == 0 and result.stdout:
+                    findings = self._parse_llm_response(
+                        result.stdout.strip(), contract_path, model.name
+                    )
+                    logger.info(f"Model {model.name}: {len(findings)} findings")
+                    return findings
+                else:
+                    logger.warning(
+                        f"{model.name} failed (attempt {attempt}): {result.stderr[:200]}"
+                    )
+
+            except subprocess.TimeoutExpired:
+                logger.warning(f"{model.name} timeout (attempt {attempt})")
+            except Exception as e:
+                logger.error(f"{model.name} error (attempt {attempt}): {e}")
+
+            time.sleep(1)
+
+        return []
+
+    def _run_ollama_prompt(
+        self, model_name: str, prompt: str, timeout: int
+    ) -> subprocess.CompletedProcess[str]:
+        """Run Ollama through its HTTP API with a bounded request timeout."""
+        import urllib.error
+        import urllib.request
+
+        generate_url = f"{get_ollama_host()}/api/generate"
+        payload = json.dumps(
+            {
+                "model": model_name,
+                "prompt": prompt,
+                "stream": False,
+                "options": {
+                    "temperature": 0.1,
+                    "num_ctx": 8192,
+                    "num_predict": 1536,
+                },
+            }
+        ).encode("utf-8")
+        req = urllib.request.Request(
+            generate_url,
+            data=payload,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                body = resp.read().decode("utf-8", errors="replace")
+                if resp.status != 200:
+                    return subprocess.CompletedProcess(
+                        args=["ollama", "api", model_name],
+                        returncode=resp.status,
+                        stdout="",
+                        stderr=body,
+                    )
+                data = json.loads(body)
+                stdout = data.get("response", "")
+                stderr = data.get("error", "")
+            return subprocess.CompletedProcess(
+                args=["ollama", "api", model_name],
+                returncode=0 if stdout else 1,
+                stdout=stdout,
+                stderr=stderr,
+            )
+        except (TimeoutError, socket.timeout) as exc:
+            raise subprocess.TimeoutExpired(["ollama", "api", model_name], timeout) from exc
+        except urllib.error.URLError as exc:
+            if isinstance(exc.reason, TimeoutError):
+                raise subprocess.TimeoutExpired(["ollama", "api", model_name], timeout) from exc
+            return subprocess.CompletedProcess(
+                args=["ollama", "api", model_name],
+                returncode=1,
+                stdout="",
+                stderr=str(exc),
+            )
+
+    def _generate_analysis_prompt(self, contract_code: str, specialization: str) -> str:
+        """Generate analysis prompt tailored to model specialization."""
+        # Get RAG context if available
+        rag_context = ""
+        if self._use_rag and self._embedding_rag:
+            try:
+                results = self._embedding_rag.search(query=contract_code[:2000], n_results=3)
+                if results:
+                    rag_context = "\nKNOWN VULNERABILITY PATTERNS:\n"
+                    for r in results:
+                        rag_context += f"- {r.document.title}: {r.document.description[:80]}...\n"
+                    rag_context += "\n"
+                    logger.debug(f"LLMBugScanner: Added RAG context ({len(results)} patterns)")
+            except Exception as e:
+                logger.debug(f"LLMBugScanner: RAG context failed: {e}")
+
+        base_prompt = f"""You are an expert smart contract security auditor.
+{rag_context}
+SMART CONTRACT:
+```solidity
+{contract_code}
+```
+
+"""
+        # Add specialization-specific instructions
+        if specialization == "code_analysis":
+            base_prompt += """Focus on:
+1. Reentrancy vulnerabilities (external calls before state changes)
+2. Integer overflow/underflow (without SafeMath)
+3. Unchecked return values from external calls
+4. Access control issues (missing modifiers, incorrect permissions)
+5. Logic bugs in business logic
+
+"""
+        elif specialization == "code_understanding":
+            base_prompt += """Focus on:
+1. Design pattern issues (antipatterns)
+2. State machine vulnerabilities
+3. Front-running vulnerabilities
+4. Flash loan attack vectors
+5. Oracle manipulation risks
+
+"""
+        elif specialization == "reasoning":
+            base_prompt += """Focus on:
+1. Complex logic bugs
+2. Edge cases and boundary conditions
+3. Economic attack vectors
+4. Token economics issues
+5. Governance vulnerabilities
+
+"""
+
+        base_prompt += """OUTPUT FORMAT (JSON only):
+{
+  "findings": [
+    {
+      "type": "vulnerability_category",
+      "severity": "CRITICAL/HIGH/MEDIUM/LOW",
+      "title": "Short descriptive title",
+      "description": "Detailed description of the issue",
+      "location": "Function name or line reference",
+      "impact": "What could happen if exploited",
+      "recommendation": "How to fix"
+    }
+  ]
+}
+
+Respond with ONLY the JSON, no additional text."""
+
+        return base_prompt
+
+    def _parse_llm_response(
+        self, llm_response: str, contract_path: str, model_name: str
+    ) -> List[Dict[str, Any]]:
+        """Parse LLM response to extract findings."""
+        findings = []
+
+        try:
+            # Robust JSON extraction (balanced braces + repair) — recoverable
+            # malformed LLM output (code fences, trailing commas, invalid escapes)
+            # must not silently drop findings.
+            json_str = extract_json_from_text(llm_response)
+            if not json_str:
+                return []
+            parsed = json.loads(repair_common_json_errors(json_str))
+
+            for idx, finding in enumerate(parsed.get("findings", [])):
+                normalized = {
+                    "id": f"llmbugscanner-{model_name}-{idx+1}",
+                    "title": finding.get("title", "Detected issue"),
+                    "description": finding.get("description", ""),
+                    "severity": finding.get("severity", "MEDIUM").upper(),
+                    "confidence": 0.7,  # Base confidence, will be adjusted by consensus
+                    "category": self._categorize_finding(finding),
+                    "location": {"file": contract_path, "details": finding.get("location", "")},
+                    "impact": finding.get("impact", ""),
+                    "recommendation": finding.get("recommendation", ""),
+                    "source_model": model_name,
+                    "raw_type": finding.get("type", ""),
+                }
+                findings.append(normalized)
+
+        except json.JSONDecodeError as e:
+            logger.error(f"JSON parse error from {model_name}: {e}")
+        except Exception as e:
+            logger.error(f"Error parsing {model_name} response: {e}")
+
+        return findings
+
+    def _categorize_finding(self, finding: Dict[str, Any]) -> str:
+        """Categorize finding based on type and description."""
+        text = (
+            f"{finding.get('type', '')} {finding.get('title', '')} "
+            f"{finding.get('description', '')}"
+        ).lower()
+
+        for category, keywords in VULNERABILITY_CATEGORIES.items():
+            if any(kw in text for kw in keywords):
+                return category
+
+        return "other"
+
+    def _aggregate_with_consensus(
+        self,
+        all_findings: Dict[str, List[Dict[str, Any]]],
+        ensemble: List[ModelConfig],
+        threshold: float,
+    ) -> List[Dict[str, Any]]:
+        """Aggregate findings using weighted consensus voting."""
+        # Build weight map
+        weights = {m.name: m.weight for m in ensemble}
+        total_weight = sum(weights.values())
+
+        # Group findings by category + severity + similar location
+        finding_groups: Dict[str, List[Tuple[str, Dict[str, Any]]]] = {}
+
+        for model_name, findings in all_findings.items():
+            for finding in findings:
+                key = self._get_finding_key(finding)
+                if key not in finding_groups:
+                    finding_groups[key] = []
+                finding_groups[key].append((model_name, finding))
+
+        logger.debug(
+            f"Consensus grouping: {len(finding_groups)} groups from {sum(len(f) for f in all_findings.values())} findings"
+        )
+
+        # Calculate consensus for each group
+        consensus_findings = []
+        single_model_findings = []  # Findings from only one model
+
+        for key, group in finding_groups.items():
+            # Calculate weighted vote
+            models_agreeing = {model_name for model_name, _ in group}
+            weighted_vote = sum(weights.get(m, 0) for m in models_agreeing)
+            consensus_score = weighted_vote / total_weight if total_weight > 0 else 0
+
+            logger.debug(
+                f"Group '{key}': {len(models_agreeing)} models, score={consensus_score:.2f}"
+            )
+
+            if consensus_score >= threshold:
+                # Merge findings from group
+                merged = self._merge_findings(group, consensus_score)
+                consensus_findings.append(merged)
+            elif len(models_agreeing) == 1:
+                # Track single-model findings for potential fallback
+                _, finding = group[0]
+                finding_copy = finding.copy()
+                finding_copy["consensus_score"] = consensus_score
+                finding_copy["single_model"] = True
+                single_model_findings.append(finding_copy)
+
+        # Fallback: if no consensus findings, include high-confidence single-model findings
+        if not consensus_findings and single_model_findings:
+            logger.info(
+                f"No consensus reached. Using fallback with {len(single_model_findings)} single-model findings"
+            )
+            # Only include CRITICAL/HIGH severity from single models
+            for finding in single_model_findings:
+                severity = finding.get("severity", "").upper()
+                if severity in ("CRITICAL", "HIGH"):
+                    finding["confidence"] = 0.4  # Lower confidence for non-consensus
+                    consensus_findings.append(finding)
+
+        # Sort by severity and confidence
+        severity_order = {"CRITICAL": 0, "HIGH": 1, "MEDIUM": 2, "LOW": 3, "INFO": 4}
+        consensus_findings.sort(
+            key=lambda f: (severity_order.get(f.get("severity", "LOW"), 4), -f.get("confidence", 0))
+        )
+
+        logger.info(f"Consensus result: {len(consensus_findings)} findings (threshold={threshold})")
+        return consensus_findings
+
+    def _get_finding_key(self, finding: Dict[str, Any]) -> str:
+        """Generate a key for grouping similar findings.
+
+        Uses normalized category only - severity and location are too variable
+        across models to use for grouping.
+        """
+        # Normalize category using keyword matching
+        category = self._categorize_finding(finding)
+
+        # Only group by category to maximize consensus opportunities
+        # Different models may report different severities for the same issue
+        return category
+
+    def _merge_findings(
+        self, group: List[Tuple[str, Dict[str, Any]]], consensus_score: float
+    ) -> Dict[str, Any]:
+        """Merge multiple findings from different models into one."""
+        # Take the most detailed finding as base
+        group.sort(key=lambda x: len(x[1].get("description", "")), reverse=True)
+        _, base = group[0]
+
+        models = [model for model, _ in group]
+
+        merged = base.copy()
+        merged["id"] = f"llmbugscanner-consensus-{hash(tuple(models)) % 10000}"
+        merged["confidence"] = min(0.95, 0.5 + (consensus_score * 0.5))  # Scale confidence
+        merged["consensus_score"] = round(consensus_score, 3)
+        merged["models_agreeing"] = models
+        merged["agreement_count"] = len(models)
+
+        return merged
+
+    def _cross_validate_findings(
+        self, contract_code: str, findings: List[Dict[str, Any]], ensemble: List[ModelConfig]
+    ) -> List[Dict[str, Any]]:
+        """Cross-validate critical/high severity findings."""
+        validated = []
+
+        for finding in findings:
+            severity = finding.get("severity", "MEDIUM").upper()
+
+            # Only cross-validate critical/high findings
+            if severity in ["CRITICAL", "HIGH"] and finding.get("agreement_count", 1) == 1:
+                # Single-model finding - verify with another model
+                is_valid = self._verify_finding(contract_code, finding, ensemble)
+                if is_valid:
+                    finding["cross_validated"] = True
+                    validated.append(finding)
+                else:
+                    logger.info(f"Cross-validation rejected: {finding.get('title')}")
+            else:
+                validated.append(finding)
+
+        return validated
+
+    def _verify_finding(
+        self, contract_code: str, finding: Dict[str, Any], ensemble: List[ModelConfig]
+    ) -> bool:
+        """Verify a finding using a different model."""
+        # Find a model that didn't originally report this finding
+        source_model = finding.get("source_model", "")
+        verifier = None
+
+        for model in ensemble:
+            if model.name != source_model and model.name in self._available_models:
+                verifier = model
+                break
+
+        if not verifier:
+            return True  # No other model available, keep finding
+
+        prompt = f"""You are verifying a security finding in a smart contract.
+
+FINDING TO VERIFY:
+- Title: {finding.get('title')}
+- Description: {finding.get('description')}
+- Location: {finding.get('location', {}).get('details', 'N/A')}
+- Severity: {finding.get('severity')}
+
+CONTRACT CODE:
+```solidity
+{contract_code[:3000]}
+```
+
+Is this finding VALID (true vulnerability) or FALSE POSITIVE?
+Respond with ONLY: VALID or FALSE_POSITIVE"""
+
+        try:
+            result = self._run_ollama_prompt(verifier.name, prompt, 60)
+
+            if result.returncode == 0:
+                response = result.stdout.strip().upper()
+                return "VALID" in response or "TRUE" in response
+
+        except Exception as e:
+            logger.error(f"Cross-validation error: {e}")
+
+        return True  # Conservative: keep on error
+
+    def _get_cache_key(self, contract_code: str) -> str:
+        """Generate cache key from contract code."""
+        models_str = "_".join(sorted(self._available_models))
+        aliases_str = "_".join(f"{k}:{v}" for k, v in sorted(self._model_aliases.items()))
+        return hashlib.sha256(
+            f"{contract_code}{models_str}{aliases_str}http-api-v2".encode()
+        ).hexdigest()
+
+    def _get_cached_result(self, cache_key: str) -> Optional[Dict[str, Any]]:
+        """Retrieve cached result if available."""
+        cache_file = self._cache_dir / f"{cache_key}.json"
+
+        if not cache_file.exists():
+            return None
+
+        try:
+            age_seconds = time.time() - cache_file.stat().st_mtime
+            if age_seconds > 86400:  # 24 hours
+                cache_file.unlink()
+                return None
+
+            with open(cache_file, "r") as f:
+                return cast(dict[str, Any] | None, json.load(f))
+        except Exception as e:
+            logger.error(f"Error reading cache: {e}")
+            return None
+
+    def _cache_result(self, cache_key: str, result: Dict[str, Any]) -> None:
+        """Cache analysis result."""
+        cache_file = self._cache_dir / f"{cache_key}.json"
+
+        try:
+            with open(cache_file, "w") as f:
+                json.dump(result, f, indent=2)
+        except Exception as e:
+            logger.error(f"Error writing cache: {e}")
+
+
+__all__ = ["LLMBugScannerAdapter", "ModelConfig", "DEFAULT_ENSEMBLE"]

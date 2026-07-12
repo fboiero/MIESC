@@ -20,17 +20,17 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.adapters.invariant_synthesizer import (
+from miesc.adapters.invariant_synthesizer import (
     InvariantCategory,
     SynthesizedInvariant,
 )
-from src.ml.invariant_validator import (
+from miesc.ml.invariant_validator import (
     InvariantTestGenerator,
     InvariantTestResult,
     InvariantValidator,
     ValidationReport,
 )
-from src.ml.ml_invariant_synthesizer import (
+from miesc.ml.ml_invariant_synthesizer import (
     ContractFeatures,
     FeatureExtractor,
     InvariantPrediction,
@@ -40,7 +40,7 @@ from src.ml.ml_invariant_synthesizer import (
     extract_contract_features,
     predict_invariants,
 )
-from src.poc.validators.foundry_runner import (
+from miesc.poc.validators.foundry_runner import (
     FoundryResult,
     TestResult,
     TestStatus,
@@ -538,7 +538,7 @@ class TestMLInvariantSynthesizer:
             )
             assert synth.collect_training_data is True
 
-    @patch("src.ml.ml_invariant_synthesizer.InvariantSynthesizer")
+    @patch("miesc.ml.ml_invariant_synthesizer.InvariantSynthesizer")
     def test_synthesize_success(self, mock_base_synth, sample_erc20_code):
         """Test successful synthesis."""
         # Mock base synthesizer

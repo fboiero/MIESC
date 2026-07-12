@@ -233,7 +233,7 @@ def cli_runner():
 @pytest.fixture
 def correlation_engine():
     """Pre-configured SmartCorrelationEngine."""
-    from src.ml.correlation_engine import SmartCorrelationEngine
+    from miesc.ml.correlation_engine import SmartCorrelationEngine
     return SmartCorrelationEngine(min_tools_for_validation=2)
 ```
 
@@ -256,7 +256,7 @@ def report_metadata():
 ```python
 # tests/test_my_module.py
 import pytest
-from src.my_module import MyClass
+from miesc.my_module import MyClass
 
 class TestMyClass:
     """Tests for MyClass."""

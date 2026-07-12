@@ -12,7 +12,7 @@ LLM Orchestrator
 
 Central orchestrator for LLM-based analysis.
 
-.. automodule:: src.llm.llm_orchestrator
+.. automodule:: miesc.llm.llm_orchestrator
    :members:
    :undoc-members:
    :show-inheritance:
@@ -22,7 +22,7 @@ Embedding RAG
 
 RAG (Retrieval-Augmented Generation) with ChromaDB embeddings.
 
-.. automodule:: src.llm.embedding_rag
+.. automodule:: miesc.llm.embedding_rag
    :members:
    :undoc-members:
    :show-inheritance:
@@ -41,7 +41,7 @@ RAG Components
 
 .. code-block:: python
 
-    from src.llm.embedding_rag import EmbeddingRAG
+    from miesc.llm.embedding_rag import EmbeddingRAG
 
     # Initialize RAG with ChromaDB
     rag = EmbeddingRAG()

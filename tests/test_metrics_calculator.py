@@ -7,7 +7,7 @@ calculations which are the core computation.
 
 from __future__ import annotations
 
-from src.benchmark.metrics_calculator import ConfusionMatrix
+from miesc.benchmark.metrics_calculator import ConfusionMatrix
 
 
 class TestConfusionMatrix:

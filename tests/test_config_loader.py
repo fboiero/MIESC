@@ -11,7 +11,7 @@ from unittest.mock import patch
 import pytest
 import yaml
 
-from src.core.config_loader import (
+from miesc.core.config_loader import (
     AdapterConfig,
     LayerConfig,
     MIESCConfig,
@@ -526,12 +526,12 @@ class TestMIESCConfigEdgeCases:
 # --------------------------------------------------------------------------- #
 class TestConfigLoaderFallbacks:
     def _reset(self):
-        from src.core.config_loader import MIESCConfig
+        from miesc.core.config_loader import MIESCConfig
         MIESCConfig._instance = None
 
     def test_defaults_when_no_config_file_exists(self, monkeypatch):
         from pathlib import Path
-        from src.core.config_loader import MIESCConfig
+        from miesc.core.config_loader import MIESCConfig
 
         self._reset()
         monkeypatch.delenv("MIESC_CONFIG", raising=False)
@@ -542,7 +542,7 @@ class TestConfigLoaderFallbacks:
         self._reset()
 
     def test_compliance_frameworks_empty_when_disabled(self):
-        from src.core.config_loader import MIESCConfig
+        from miesc.core.config_loader import MIESCConfig
 
         self._reset()
         cfg = MIESCConfig()

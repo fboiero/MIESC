@@ -1,7 +1,9 @@
 """MIESC Plugin System.
 
-Provides functionality for installing, managing, and loading
-external detector plugins from PyPI or local directories.
+Unified plugin package. Provides plugin management (install/config/compatibility
+via ``config`` and ``manager``) plus the plugin protocol, loader, registry,
+marketplace, and templates (merged from the former ``miesc.plugins`` on the
+src/ -> miesc/ package unification).
 """
 
 from .config import PluginConfig, PluginConfigManager
@@ -14,8 +16,50 @@ from .manager import (
     compare_versions,
     get_miesc_version,
 )
+from .loader import (
+    DEFAULT_PLUGIN_DIRS,
+    ENTRY_POINT_GROUP,
+    DiscoveryResult,
+    LoadedPlugin,
+    PluginLoader,
+)
+from .marketplace import (
+    DEFAULT_CACHE_PATH,
+    DEFAULT_INDEX_URL,
+    MarketplaceClient,
+    MarketplaceIndex,
+    MarketplacePlugin,
+    MarketplaceSearchResult,
+    VerificationStatus,
+)
+from .protocol import (
+    AdapterPlugin,
+    DetectorPlugin,
+    MIESCPlugin,
+    PluginContext,
+    PluginMetadata,
+    PluginResult,
+    PluginState,
+    PluginType,
+    ReporterPlugin,
+    TransformerPlugin,
+    get_plugin_classes,
+    is_plugin_class,
+)
+from .registry import (
+    DEFAULT_REGISTRY_PATH,
+    PluginEntry,
+    PluginRegistry,
+    get_registry,
+    set_registry,
+)
+from .template_generator import (
+    PluginTemplate,
+    PluginTemplateGenerator,
+)
 
 __all__ = [
+    # Management (config + manager)
     "PluginManager",
     "PluginInfo",
     "PluginConfig",
@@ -25,4 +69,42 @@ __all__ = [
     "VersionConstraint",
     "get_miesc_version",
     "compare_versions",
+    # Protocol
+    "PluginType",
+    "PluginState",
+    "PluginMetadata",
+    "PluginContext",
+    "PluginResult",
+    "MIESCPlugin",
+    "DetectorPlugin",
+    "AdapterPlugin",
+    "ReporterPlugin",
+    "TransformerPlugin",
+    "is_plugin_class",
+    "get_plugin_classes",
+    # Loader
+    "PluginLoader",
+    "LoadedPlugin",
+    "DiscoveryResult",
+    "ENTRY_POINT_GROUP",
+    "DEFAULT_PLUGIN_DIRS",
+    # Registry
+    "PluginRegistry",
+    "PluginEntry",
+    "DEFAULT_REGISTRY_PATH",
+    "get_registry",
+    "set_registry",
+    # Templates
+    "PluginTemplateGenerator",
+    "PluginTemplate",
+    # Marketplace
+    "MarketplaceClient",
+    "MarketplacePlugin",
+    "MarketplaceIndex",
+    "MarketplaceSearchResult",
+    "VerificationStatus",
+    "DEFAULT_INDEX_URL",
+    "DEFAULT_CACHE_PATH",
 ]
+
+__version__ = "1.0.0"

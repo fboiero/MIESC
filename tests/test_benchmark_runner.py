@@ -10,14 +10,14 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.benchmark.benchmark_runner import (
+from miesc.benchmark.benchmark_runner import (
     BenchmarkResult,
     BenchmarkRunner,
     ContractResult,
     DetectionMetrics,
     run_benchmark,
 )
-from src.benchmark.dataset_loader import (
+from miesc.benchmark.dataset_loader import (
     GroundTruth,
     VulnerabilityCategory,
     VulnerableContract,

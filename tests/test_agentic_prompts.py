@@ -15,8 +15,8 @@ contract, one of these assertions fails — that is the point.
 
 from __future__ import annotations
 
-import src.agents.agentic_prompts as agentic_prompts
-from src.agents.agentic_prompts import (
+import miesc.agents.agentic_prompts as agentic_prompts
+from miesc.agents.agentic_prompts import (
     AGENT_COMPLETENESS_PROMPT,
     AGENT_ENUM_PROMPT,
     AGENT_ENUM_PROMPT_SYSTEMATIC,

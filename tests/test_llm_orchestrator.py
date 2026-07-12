@@ -12,7 +12,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import aiohttp
 import pytest
 
-from src.llm.llm_orchestrator import (
+from miesc.llm.llm_orchestrator import (
     _MAX_ANALYSIS_VULNERABILITIES,
     _MAX_CONTEXT_SEQUENCE_ITEMS,
     _MAX_RECOMMENDATIONS,
@@ -1185,7 +1185,7 @@ class TestLLMOrchestrator:
             errors = ["forced invalid schema"]
 
         monkeypatch.setattr(
-            "src.llm.llm_orchestrator.safe_parse_llm_json",
+            "miesc.llm.llm_orchestrator.safe_parse_llm_json",
             lambda *_args, **_kwargs: InvalidValidation(),
         )
 
@@ -1220,7 +1220,7 @@ class TestLLMOrchestrator:
             errors = ["forced invalid schema"]
 
         monkeypatch.setattr(
-            "src.llm.llm_orchestrator.safe_parse_llm_json",
+            "miesc.llm.llm_orchestrator.safe_parse_llm_json",
             lambda *_args, **_kwargs: InvalidValidation(),
         )
 
@@ -1288,7 +1288,7 @@ class TestLLMOrchestrator:
             )
 
         monkeypatch.setattr(
-            "src.llm.llm_orchestrator.safe_parse_llm_json",
+            "miesc.llm.llm_orchestrator.safe_parse_llm_json",
             lambda *_args, **_kwargs: ValidValidation(),
         )
 
@@ -1339,7 +1339,7 @@ class TestLLMOrchestrator:
             )
 
         monkeypatch.setattr(
-            "src.llm.llm_orchestrator.safe_parse_llm_json",
+            "miesc.llm.llm_orchestrator.safe_parse_llm_json",
             lambda *_args, **_kwargs: ValidValidation(),
         )
 
@@ -1365,7 +1365,7 @@ class TestLLMOrchestrator:
             errors = ["forced invalid schema"]
 
         monkeypatch.setattr(
-            "src.llm.llm_orchestrator.safe_parse_llm_json",
+            "miesc.llm.llm_orchestrator.safe_parse_llm_json",
             lambda *_args, **_kwargs: InvalidValidation(),
         )
 
@@ -1859,7 +1859,7 @@ class TestLLMOrchestrator:
             analyze = AsyncMock(return_value=fresh_response)
             orchestrator.backends["ollama:fresh"].analyze = analyze
 
-            with patch("src.llm.llm_orchestrator.time.time", return_value=3.0):
+            with patch("miesc.llm.llm_orchestrator.time.time", return_value=3.0):
                 result = await orchestrator.query("test prompt")
 
             assert result is fresh_response
@@ -1891,7 +1891,7 @@ class TestLLMOrchestrator:
             analyze = AsyncMock(return_value=fresh_response)
             orchestrator.backends["ollama:fresh"].analyze = analyze
 
-            with patch("src.llm.llm_orchestrator.time.time", return_value=1.1):
+            with patch("miesc.llm.llm_orchestrator.time.time", return_value=1.1):
                 result = await orchestrator.query("test prompt")
 
             assert result is fresh_response
@@ -2442,7 +2442,7 @@ class TestIntegration:
         """Test malformed legacy confidence values are bounded before averaging."""
         orchestrator = LLMOrchestrator([])
         monkeypatch.setattr(
-            "src.llm.llm_orchestrator.safe_parse_llm_json",
+            "miesc.llm.llm_orchestrator.safe_parse_llm_json",
             lambda *_args, **_kwargs: MagicMock(is_valid=False, data=None, errors=["forced"]),
         )
 
@@ -2542,7 +2542,7 @@ def test_bounded_output_numeric_helpers_cap_values():
 
 
 def test_response_sequence_caps_items():
-    from src.llm.llm_orchestrator import _response_sequence
+    from miesc.llm.llm_orchestrator import _response_sequence
 
     sequence = _response_sequence(list(range(150)), "choices", "test")
 
@@ -2686,7 +2686,7 @@ def test_parse_analysis_handles_hostile_vulnerability_mapping(monkeypatch):
             raise RuntimeError("boom")
 
     monkeypatch.setattr(
-        "src.llm.llm_orchestrator.safe_parse_llm_json",
+        "miesc.llm.llm_orchestrator.safe_parse_llm_json",
         lambda *_args, **_kwargs: MagicMock(is_valid=False, data=None, errors=["forced"]),
     )
     monkeypatch.setattr(
@@ -2720,7 +2720,7 @@ def test_parse_analysis_caps_vulnerabilities_and_recommendations(monkeypatch):
         )
 
     monkeypatch.setattr(
-        "src.llm.llm_orchestrator.safe_parse_llm_json",
+        "miesc.llm.llm_orchestrator.safe_parse_llm_json",
         lambda *_args, **_kwargs: ValidValidation(),
     )
 

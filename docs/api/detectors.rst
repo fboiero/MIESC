@@ -12,7 +12,7 @@ Detector API
 
 Core detector protocol and registry.
 
-.. automodule:: src.detectors.detector_api
+.. automodule:: miesc.detectors.detector_api
    :members:
    :undoc-members:
    :show-inheritance:
@@ -28,7 +28,7 @@ Specialized detectors for DeFi vulnerabilities:
 - Liquidation issues
 - MEV vulnerabilities
 
-.. automodule:: src.detectors.defi_detectors
+.. automodule:: miesc.detectors.defi_detectors
    :members:
    :undoc-members:
    :show-inheritance:
@@ -44,7 +44,7 @@ Advanced vulnerability detection:
 - Proxy vulnerabilities
 - Centralization risks
 
-.. automodule:: src.detectors.advanced_detectors
+.. automodule:: miesc.detectors.advanced_detectors
    :members:
    :undoc-members:
    :show-inheritance:
@@ -54,7 +54,7 @@ Dependency Analyzer
 
 Supply chain security and dependency analysis.
 
-.. automodule:: src.detectors.dependency_analyzer
+.. automodule:: miesc.detectors.dependency_analyzer
    :members:
    :undoc-members:
    :show-inheritance:
@@ -64,7 +64,7 @@ SmartBugs Detectors
 
 SmartBugs dataset-inspired pattern detectors.
 
-.. automodule:: src.detectors.smartbugs_detectors
+.. automodule:: miesc.detectors.smartbugs_detectors
    :members:
    :undoc-members:
    :show-inheritance:

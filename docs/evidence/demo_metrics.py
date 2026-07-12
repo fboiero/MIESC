@@ -17,7 +17,7 @@ import time
 
 sys.path.insert(0, "/Users/fboiero/Documents/GitHub/MIESC")
 
-from src.core.metrics import (
+from miesc.core.metrics import (
     PROMETHEUS_AVAILABLE,
     InternalMetricsCollector,
     MetricValue,

@@ -1,5 +1,5 @@
 """
-Tests for src.adapters.smartllm_rag_knowledge — the knowledge base
+Tests for miesc.adapters.smartllm_rag_knowledge — the knowledge base
 that feeds RAG context to SmartLLM. v5.1.7 coverage push.
 
 Focus: the public knowledge-construction API + contract-type
@@ -14,8 +14,8 @@ import time
 
 import pytest
 
-import src.llm.embedding_rag as embedding_rag_module
-from src.adapters.smartllm_rag_knowledge import (
+import miesc.llm.embedding_rag as embedding_rag_module
+from miesc.adapters.smartllm_rag_knowledge import (
     _get_account_abstraction_knowledge,
     _get_cross_chain_knowledge,
     _get_intent_knowledge,
@@ -35,7 +35,7 @@ from src.adapters.smartllm_rag_knowledge import (
     get_relevant_knowledge,
     get_vulnerability_context,
 )
-from src.llm.embedding_rag import EmbeddingRAG, HybridRAG, RetrievalResult, VulnerabilityDocument
+from miesc.llm.embedding_rag import EmbeddingRAG, HybridRAG, RetrievalResult, VulnerabilityDocument
 
 
 class _ExplodingCollection:

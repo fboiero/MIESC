@@ -30,10 +30,10 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from src.security.remediation_pipeline import (  # noqa: E402
+from miesc.security.remediation_pipeline import (  # noqa: E402
     compile_contract as compile_contract_evidence,
 )
-from src.security.remediation_pipeline import (
+from miesc.security.remediation_pipeline import (
     remediate_contract,
     select_solc,
 )

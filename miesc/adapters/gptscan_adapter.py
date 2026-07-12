@@ -1,0 +1,564 @@
+"""
+GPTScan adapter for LLM-powered vulnerability scanning.
+
+Uses Ollama for local AI analysis. Based on GPTScan (ICSE 2024) methodology.
+Performs semantic analysis and pattern detection using local LLMs.
+
+Author: Fernando Boiero <fboiero@frvm.utn.edu.ar>
+Date: November 2025
+Version: 3.0.0 (Ollama Backend)
+"""
+
+import hashlib
+import json
+import logging
+import subprocess
+import time
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+from miesc.adapters._cache_mixin import LLMCacheMixin
+from miesc.adapters._ollama_mixin import OllamaCallMixin
+from miesc.core.llm_config import get_ollama_host
+from miesc.core.tool_protocol import (
+    ToolAdapter,
+    ToolCapability,
+    ToolCategory,
+    ToolMetadata,
+    ToolStatus,
+)
+from miesc.security.llm_output_validator import (
+    extract_json_from_text,
+    repair_common_json_errors,
+)
+
+# Try to import EmbeddingRAG (optional dependency)
+try:
+    from miesc.llm.embedding_rag import EmbeddingRAG
+
+    _EMBEDDING_RAG_AVAILABLE = True
+except ImportError:
+    _EMBEDDING_RAG_AVAILABLE = False
+    EmbeddingRAG = None  # type: ignore[assignment,misc]
+
+logger = logging.getLogger(__name__)
+
+
+class GPTScanAdapter(OllamaCallMixin, LLMCacheMixin, ToolAdapter):
+    """
+    GPTScan-style LLM integration using Ollama.
+
+    Uses local Ollama models (codellama, llama3, etc.) for security analysis.
+    No API key required - runs entirely locally.
+    """
+
+    # Vulnerability detection prompts based on GPTScan paper (ICSE 2024)
+    # Enhanced with Chain-of-Thought reasoning and self-verification
+    SECURITY_PROMPT = """CONTEXT: Defensive security audit by MIESC (open-source, AGPL-3.0). Purpose: identify vulnerabilities BEFORE deployment to PROTECT users. Findings generate patches, not exploits.
+
+You are an expert smart contract security auditor performing a systematic code review.
+
+ANALYSIS METHODOLOGY (follow these steps in order):
+
+STEP 1 — UNDERSTAND THE CONTRACT:
+- What is this contract's purpose? (token, vault, DEX, lending, governance, etc.)
+- What value does it handle? (ETH, ERC20 tokens, NFTs)
+- What are the entry points? (public/external functions)
+
+STEP 2 — TRACE VALUE FLOWS:
+- Where does value enter? (payable functions, token transfers in)
+- Where does value exit? (call{value:}, transfer, send, token transfers out)
+- Are there intermediate state changes between entry and exit?
+
+STEP 3 — CHECK EACH VULNERABILITY CLASS:
+For each, reason about whether it applies to THIS specific contract:
+
+a) REENTRANCY (SWC-107): Is there an external call BEFORE a state update?
+   Example: msg.sender.call{value: bal}("") followed by balances[msg.sender] = 0
+   Check: Is there a nonReentrant modifier or CEI pattern?
+
+b) ACCESS CONTROL (SWC-105): Can unauthorized users call sensitive functions?
+   Example: function setOwner(address) public { owner = newOwner; } — missing onlyOwner
+   Check: Are there modifiers (onlyOwner, onlyRole, auth)?
+
+c) UNCHECKED RETURNS (SWC-104): Are return values of external calls checked?
+   Example: token.transfer(to, amount) without checking bool return
+   Check: Using SafeERC20 or explicit require(success)?
+
+d) ORACLE MANIPULATION: Are spot prices used without TWAP or Chainlink?
+   Example: price = reserveA / reserveB — manipulable with flash loans
+   Check: latestRoundData() with staleness check? observe() for TWAP?
+
+e) FLASH LOAN RISK: Can the contract be exploited in a single transaction?
+   Example: Governance voting with flash-borrowed tokens
+   Check: Snapshot-based voting? Timelock on sensitive operations?
+
+f) PRECISION LOSS: Division before multiplication?
+   Example: reward = amount / totalSupply * rewardRate (loses precision)
+   Check: Multiplication first, then division? Using FixedPointMath?
+
+STEP 4 — SELF-VERIFICATION:
+For each finding, challenge yourself:
+- Could this be a false positive? (e.g., SafeMath makes overflow impossible in 0.8+)
+- Is the guard already implemented? (e.g., nonReentrant modifier present)
+- Is this exploitable in practice? (e.g., only owner can call, so access control is fine)
+
+FEW-SHOT EXAMPLES OF REAL EXPLOITS:
+
+Example 1 — Cream Finance reentrancy ($130M, 2021):
+```solidity
+function flashLoan(uint amount) external {
+    uint balanceBefore = token.balanceOf(address(this));
+    token.transfer(msg.sender, amount);           // external call
+    IFlashBorrower(msg.sender).onFlashLoan();     // callback into attacker
+    require(token.balanceOf(address(this)) >= balanceBefore);  // check AFTER callback
+}
+```
+Why vulnerable: the token-balance check happens after the attacker's callback,
+which can re-enter and drain other markets. Finding: REENTRANCY, CRITICAL.
+
+Example 2 — Euler Finance missing liquidity check ($197M, 2023):
+```solidity
+function donateToReserves(uint amount) external {
+    // no health check after moving balance into reserves
+    balances[msg.sender] -= amount;
+    reserves += amount;
+}
+```
+Why vulnerable: any borrower can self-liquidate by donating to reserves,
+bypassing the solvency invariant. Finding: ACCESS_CONTROL + invariant violation.
+
+Example 3 — BNB Chain bridge forged proof (2022, $586M):
+The contract verified Merkle proofs using a buggy IAVL verifier that accepted
+crafted inner-node proofs. Core lesson: NEVER trust off-the-shelf proof
+libraries for consensus-critical checks without fuzzing them exhaustively.
+
+%RAG_CONTEXT_PLACEHOLDER%
+
+OUTPUT FORMAT (JSON only):
+{
+    "vulnerabilities": [
+        {
+            "title": "Vulnerability Name",
+            "severity": "CRITICAL|HIGH|MEDIUM|LOW",
+            "confidence": 0.9,
+            "line": 42,
+            "function": "withdraw",
+            "description": "Detailed description with exploitation steps",
+            "reasoning": "Step-by-step analysis of why this is vulnerable",
+            "false_positive_check": "Why this is NOT a false positive",
+            "recommendation": "Specific fix with code example"
+        }
+    ]
+}
+
+CONTRACT CODE:
+```solidity
+%CONTRACT_CODE%
+```
+
+Respond ONLY with valid JSON. Report ONLY vulnerabilities you are CONFIDENT about after self-verification."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._default_timeout = 300  # 5 min for large contracts with LLM
+        # Set True by _run_ollama_analysis on a clock kill; read by analyze() to
+        # report status="timeout" instead of a misleading clean-zero success.
+        self._timed_out = False
+        self._init_cache("gptscan")
+        try:
+            from miesc.core.llm_config import USE_CASE_CODE_ANALYSIS, get_model
+
+            self._ollama_model = get_model(USE_CASE_CODE_ANALYSIS)
+        except Exception:
+            self._ollama_model = "qwen2.5-coder:14b"
+        self._ollama_url = get_ollama_host()
+
+        # Initialize EmbeddingRAG if available
+        self._embedding_rag: Any = None
+        self._use_rag: bool = False
+        if _EMBEDDING_RAG_AVAILABLE:
+            try:
+                self._embedding_rag = EmbeddingRAG()
+                self._use_rag = True
+                logger.debug("GPTScan: EmbeddingRAG (ChromaDB) enabled")
+            except Exception as e:
+                logger.debug(f"GPTScan: EmbeddingRAG unavailable: {e}")
+
+    def _get_cache_key(self, contract_code: str, model: str) -> str:
+        """SHA-256 over contract + model so a model change invalidates the cache."""
+        return hashlib.sha256(f"gptscan:{model}:{contract_code}".encode("utf-8")).hexdigest()
+
+    def get_metadata(self) -> ToolMetadata:
+        return ToolMetadata(
+            name="gptscan",
+            version="3.0.0",
+            category=ToolCategory.AI_ANALYSIS,
+            author="Based on GPTScan (ICSE 2024), Ollama Backend by Fernando Boiero",
+            license="MIT",
+            homepage="https://github.com/GPTScan/GPTScan",
+            repository="https://github.com/GPTScan/GPTScan",
+            documentation="https://github.com/GPTScan/GPTScan#readme",
+            installation_cmd="ollama pull codellama:7b",
+            capabilities=[
+                ToolCapability(
+                    name="ai_scanning",
+                    description="LLM-powered vulnerability scanning using Ollama",
+                    supported_languages=["solidity"],
+                    detection_types=[
+                        "complex_vulnerabilities",
+                        "logic_errors",
+                        "ai_detected_patterns",
+                        "semantic_issues",
+                        "access_control_flaws",
+                        "business_logic_bugs",
+                    ],
+                )
+            ],
+            cost=0.0,  # Free - local execution
+            requires_api_key=False,
+            is_optional=True,
+        )
+
+    def is_available(self) -> ToolStatus:
+        """Check if Ollama is running and accessible via HTTP API."""
+        import urllib.error
+        import urllib.request
+
+        try:
+            ollama_host = get_ollama_host()
+            tags_url = f"{ollama_host}/api/tags"
+
+            req = urllib.request.Request(tags_url, method="GET")
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                if resp.status == 200:
+                    data = json.loads(resp.read().decode())
+                    models = [m.get("name", "") for m in data.get("models", [])]
+                    model_names = " ".join(models).lower()
+
+                    suitable_models = ["codellama", "llama3", "deepseek-coder", "qwen2.5-coder"]
+                    for model in suitable_models:
+                        if model in model_names:
+                            logger.info(f"GPTScan: Ollama available at {ollama_host} with {model}")
+                            return ToolStatus.AVAILABLE
+
+                    logger.warning(
+                        "GPTScan: No suitable LLM model found. Run: ollama pull codellama:7b"
+                    )
+                    return ToolStatus.CONFIGURATION_ERROR
+                else:
+                    logger.warning(f"GPTScan: Ollama returned status {resp.status}")
+                    return ToolStatus.CONFIGURATION_ERROR
+
+        except urllib.error.URLError as e:
+            logger.info(f"GPTScan: Ollama not reachable: {e}")
+            return ToolStatus.NOT_INSTALLED
+        except subprocess.TimeoutExpired:
+            logger.warning("Ollama check timeout")
+            return ToolStatus.CONFIGURATION_ERROR
+        except Exception as e:
+            logger.error(f"Error checking Ollama: {e}")
+            return ToolStatus.CONFIGURATION_ERROR
+
+    def analyze(self, contract_path: str, **kwargs: Any) -> Dict[str, Any]:
+        """
+        Analyze contract using Ollama LLM for GPTScan-style analysis.
+
+        Args:
+            contract_path: Path to Solidity contract
+            **kwargs: Optional configuration (timeout, model)
+
+        Returns:
+            Analysis results with AI-detected findings
+        """
+        start_time = time.time()
+        # Reset per-run timeout flag (set by _run_ollama_analysis on a clock kill).
+        self._timed_out = False
+
+        # Check availability
+        if self.is_available() != ToolStatus.AVAILABLE:
+            return {
+                "tool": "gptscan",
+                "version": "3.0.0",
+                "status": "error",
+                "findings": [],
+                "execution_time": time.time() - start_time,
+                "error": "Ollama not available. Install from https://ollama.ai and run: ollama pull codellama:7b",
+            }
+
+        try:
+            # Read contract code
+            contract_code = self._read_contract(contract_path)
+            if not contract_code:
+                return {
+                    "tool": "gptscan",
+                    "version": "3.0.0",
+                    "status": "error",
+                    "findings": [],
+                    "execution_time": time.time() - start_time,
+                    "error": f"Could not read contract: {contract_path}",
+                }
+
+            # Get configuration
+            timeout = kwargs.get("timeout", self._default_timeout)
+            model = kwargs.get("model", self._detect_best_model())
+
+            # Cache lookup (GPTScan previously re-ran the LLM on every scan)
+            cache_key = self._get_cache_key(contract_code, model)
+            cached = self._get_cached_result(cache_key)
+            if cached:
+                logger.info(f"GPTScan: using cached result for {contract_path}")
+                cached["from_cache"] = True
+                cached["execution_time"] = time.time() - start_time
+                return cached
+
+            # Run Ollama analysis
+            raw_output = self._run_ollama_analysis(contract_code, model=model, timeout=timeout)
+
+            # Parse findings
+            findings = self._parse_gptscan_output(raw_output, contract_path)
+
+            # A clock-kill during the LLM call means results are incomplete —
+            # do not report a clean-zero success. Partial findings still returned.
+            run_status = "timeout" if self._timed_out else "success"
+            result = {
+                "tool": "gptscan",
+                "version": "3.0.0",
+                "status": run_status,
+                "findings": findings,
+                "metadata": {
+                    "model": model,
+                    "backend": "ollama",
+                    "cost_usd": 0.0,
+                    "timed_out": self._timed_out,
+                },
+                "execution_time": time.time() - start_time,
+            }
+            if self._timed_out:
+                result["error"] = "Ollama timed out during analysis; results may be incomplete"
+            else:
+                # Cache only complete results (a timeout must re-run next time)
+                result["from_cache"] = False
+                self._cache_result(cache_key, result)
+            return result
+
+        except subprocess.TimeoutExpired:
+            return {
+                "tool": "gptscan",
+                "version": "3.0.0",
+                "status": "timeout",
+                "findings": [],
+                "execution_time": time.time() - start_time,
+                "error": f"GPTScan analysis exceeded {timeout}s timeout",
+            }
+        except Exception as e:
+            logger.error(f"GPTScan analysis error: {e}", exc_info=True)
+            return {
+                "tool": "gptscan",
+                "version": "3.0.0",
+                "status": "error",
+                "findings": [],
+                "execution_time": time.time() - start_time,
+                "error": str(e),
+            }
+
+    def normalize_findings(self, raw_output: Any) -> List[Dict[str, Any]]:
+        """Normalize findings - already normalized in analyze()."""
+        return raw_output.get("findings", []) if isinstance(raw_output, dict) else []
+
+    def can_analyze(self, contract_path: str) -> bool:
+        """Check if adapter can analyze the contract."""
+        return Path(contract_path).suffix == ".sol"
+
+    def get_default_config(self) -> Dict[str, Any]:
+        """Get default configuration."""
+        return {"timeout": 600, "model": "gpt-4", "temperature": 0.1, "max_retries": 3}
+
+    # ============================================================================
+    # PRIVATE HELPER METHODS
+    # ============================================================================
+
+    def _read_contract(self, contract_path: str) -> Optional[str]:
+        """Read contract file content."""
+        try:
+            with open(contract_path, "r", encoding="utf-8") as f:
+                return f.read()
+        except Exception as e:
+            logger.error(f"Error reading contract: {e}")
+            return None
+
+    def _detect_best_model(self) -> str:
+        """Detect the best available Ollama model for security analysis via HTTP API."""
+        import os
+        import urllib.error
+        import urllib.request
+
+        # An explicit MIESC_LLM_MODEL override wins over the availability heuristic
+        # (e.g. pinning a benchmark to 14B for tractability / to avoid model thrash).
+        env_model = os.environ.get("MIESC_LLM_MODEL")
+        if env_model:
+            return env_model
+
+        try:
+            ollama_host = get_ollama_host()
+            tags_url = f"{ollama_host}/api/tags"
+
+            req = urllib.request.Request(tags_url, method="GET")
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                if resp.status == 200:
+                    data = json.loads(resp.read().decode())
+                    models = " ".join([m.get("name", "") for m in data.get("models", [])]).lower()
+
+                    # Priority order for security analysis
+                    model_priority = [
+                        ("qwen2.5-coder:32b", "qwen2.5-coder:32b"),
+                        ("qwen2.5-coder:14b", "qwen2.5-coder:14b"),
+                        ("qwen2.5-coder", "qwen2.5-coder:14b"),
+                        ("deepseek-coder:33b", "deepseek-coder:33b"),
+                        ("deepseek-coder", "deepseek-coder:6.7b"),
+                        ("codellama:13b", "codellama:13b"),
+                        ("codellama", "codellama:7b"),
+                    ]
+
+                    for keyword, full_name in model_priority:
+                        if keyword in models:
+                            return full_name
+
+            return "qwen2.5-coder:14b"  # Default fallback
+        except Exception:
+            return "qwen2.5-coder:14b"
+
+    def _run_ollama_analysis(
+        self, contract_code: str, model: str = "qwen2.5-coder:14b", timeout: int = 120
+    ) -> str:
+        """Execute security analysis using Ollama HTTP API."""
+
+        # Build RAG context first so we can inject it at the placeholder
+        rag_context = ""
+        if self._use_rag and self._embedding_rag:
+            try:
+                results = self._embedding_rag.search(query=contract_code[:2000], n_results=3)
+                if results:
+                    rag_context = "KNOWN VULNERABILITY PATTERNS (from security knowledge base):\n"
+                    for r in results:
+                        rag_context += (
+                            f"- {r.document.title} ({r.document.swc_id or 'Pattern'}): "
+                            f"{r.document.description[:200]}\n"
+                        )
+                    rag_context += (
+                        "\nIMPORTANT: Compare each finding against these patterns. "
+                        "Reference which pattern matches (if any) and explain specifically "
+                        "how the vulnerable code in this contract follows the same anti-pattern. "
+                        "If a pattern does NOT apply, do not force it."
+                    )
+                    logger.debug(f"GPTScan: Added RAG context ({len(results)} patterns)")
+            except Exception as e:
+                logger.debug(f"GPTScan: RAG context failed: {e}")
+
+        # Build prompt: inject contract + RAG into their respective placeholders
+        prompt = self.SECURITY_PROMPT.replace("%CONTRACT_CODE%", contract_code)
+        prompt = prompt.replace("%RAG_CONTEXT_PLACEHOLDER%", rag_context)
+
+        logger.info(f"GPTScan: Running Ollama analysis with {model}")
+
+        # Use Ollama HTTP API instead of CLI (timeout handling shared via mixin).
+        generate_url = f"{get_ollama_host()}/api/generate"
+        return (
+            self._ollama_generate(
+                prompt,
+                url=generate_url,
+                model=model,
+                timeout=timeout,
+                options={"temperature": 0.1, "num_ctx": 8192},
+                max_attempts=1,
+                log_prefix="GPTScan",
+            )
+            or ""
+        )
+
+    def _parse_gptscan_output(self, output: str, contract_path: str) -> List[Dict[str, Any]]:
+        """Parse GPTScan output and extract findings."""
+        findings: List[Dict[str, Any]] = []
+
+        try:
+            # Robust JSON extraction (balanced braces + repair) before falling
+            # back to weaker text parsing — recoverable malformed JSON (trailing
+            # commas, code fences) must not silently degrade to text.
+            json_str = extract_json_from_text(output)
+
+            if json_str:
+                parsed = json.loads(repair_common_json_errors(json_str))
+
+                # Extract findings from parsed JSON
+                vulnerabilities = parsed.get("vulnerabilities", [])
+
+                for idx, vuln in enumerate(vulnerabilities):
+                    finding = {
+                        "id": f"gptscan-{idx+1}",
+                        "title": vuln.get("title", "AI-detected vulnerability"),
+                        "description": vuln.get("description", ""),
+                        "severity": vuln.get("severity", "MEDIUM").upper(),
+                        "confidence": vuln.get("confidence", 0.75),
+                        "category": vuln.get("type", "ai_detected_pattern"),
+                        "location": {
+                            "file": contract_path,
+                            "line": vuln.get("line", 0),
+                            "function": vuln.get("function", ""),
+                        },
+                        "recommendation": vuln.get(
+                            "recommendation", "Review and address the AI-detected issue"
+                        ),
+                        "references": ["GPT-4 AI Analysis", vuln.get("reference", "")],
+                    }
+                    findings.append(finding)
+
+            else:
+                # Fallback: parse text output
+                logger.warning("GPTScan: No JSON found, using text parsing fallback")
+                findings = self._parse_text_output(output, contract_path)
+
+        except json.JSONDecodeError as e:
+            logger.error(f"GPTScan: JSON parse error - {e}")
+            findings = self._parse_text_output(output, contract_path)
+        except Exception as e:
+            logger.error(f"GPTScan: Parse error - {e}")
+
+        logger.info(f"GPTScan: Extracted {len(findings)} findings")
+        return findings
+
+    def _parse_text_output(self, output: str, contract_path: str) -> List[Dict[str, Any]]:
+        """Fallback text parsing for non-JSON output."""
+        findings: List[Dict[str, Any]] = []
+
+        # Look for common vulnerability keywords
+        keywords = {
+            "reentrancy": ("CRITICAL", "reentrancy"),
+            "overflow": ("HIGH", "arithmetic_overflow"),
+            "underflow": ("HIGH", "arithmetic_underflow"),
+            "access control": ("HIGH", "access_control"),
+            "unchecked": ("MEDIUM", "unchecked_calls"),
+            "logic error": ("HIGH", "logic_error"),
+        }
+
+        lines = output.split("\n")
+        for _i, line in enumerate(lines):
+            for keyword, (severity, category) in keywords.items():
+                if keyword.lower() in line.lower():
+                    findings.append(
+                        {
+                            "id": f"gptscan-text-{len(findings)+1}",
+                            "title": f"AI-detected: {keyword.title()}",
+                            "description": line.strip(),
+                            "severity": severity,
+                            "confidence": 0.70,  # Lower confidence for text parsing
+                            "category": category,
+                            "location": {"file": contract_path},
+                            "recommendation": f"Review potential {keyword} issue detected by AI",
+                            "references": ["GPT-4 AI Analysis"],
+                        }
+                    )
+
+        return findings
+
+
+__all__ = ["GPTScanAdapter"]

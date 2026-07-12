@@ -16,7 +16,7 @@ Contract.sol → LLM Adapter → RAG Enrichment → Ollama Backend → Findings
 ## Quick Start
 
 ```python
-from src.llm.embedding_rag import (
+from miesc.llm.embedding_rag import (
     EmbeddingRAG,
     get_context_for_finding,
     batch_get_context_for_findings,
@@ -135,7 +135,7 @@ results = rag.search_by_finding(finding, code_context="function withdraw()...")
 ### Single Finding Context
 
 ```python
-from src.llm.embedding_rag import get_context_for_finding
+from miesc.llm.embedding_rag import get_context_for_finding
 
 finding = {"type": "reentrancy", "title": "..."}
 context = get_context_for_finding(finding, code="...")
@@ -147,7 +147,7 @@ context = get_context_for_finding(finding, code="...")
 For verificator stage with multiple findings:
 
 ```python
-from src.llm.embedding_rag import batch_get_context_for_findings
+from miesc.llm.embedding_rag import batch_get_context_for_findings
 
 findings = [
     {"type": "reentrancy", "title": "Finding 1"},
@@ -223,7 +223,7 @@ rag.CACHE_TTL_SECONDS = 600   # Default: 300 (5 min)
 ### Add Custom Vulnerability
 
 ```python
-from src.llm.embedding_rag import VulnerabilityDocument
+from miesc.llm.embedding_rag import VulnerabilityDocument
 
 custom_vuln = VulnerabilityDocument(
     id="CUSTOM-001",

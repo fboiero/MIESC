@@ -1,95 +1,134 @@
 """
-MIESC LLM Module
+LLM Integration Module - MIESC v4.1.0
+=====================================
 
-Re-exports from src/llm for backward compatibility.
-Provides multi-backend LLM orchestration for security analysis.
+Sovereign LLM integration using multiple backends (Ollama, OpenAI, Anthropic, DeepSeek)
+for intelligent post-processing of security analysis results across all layers.
+
+Author: Fernando Boiero <fboiero@frvm.utn.edu.ar>
+Date: December 2025
+Version: 2.0.0
 """
 
+# v4.3.0+ New LLM Components (2025-2026 Improvements)
+from .agentic_contracts import (
+    AgentCapability,
+    CounterexampleEvidence,
+    DPGAgentConfig,
+    InvariantCandidate,
+    InvariantCategory,
+    InvariantExtractionAgent,
+    ReasoningProvider,
+    ReasoningResult,
+    ReasoningTask,
+    parse_invariant_candidates,
+)
+from .ensemble_detector import (
+    EnsembleFinding,
+    EnsembleResult,
+    LLMEnsembleDetector,
+    VotingStrategy,
+    detect_with_ensemble,
+)
+from .finding_validator import (
+    LLMFindingValidator,
+    LLMValidation,
+    ValidationResult,
+    ValidatorConfig,
+    validate_findings_sync,
+)
+from .llm_orchestrator import (
+    AnthropicBackend,
+    DeepSeekBackend,
+    LLMBackend,
+    LLMConfig,
+    LLMOrchestrator,
+    LLMProvider,
+    LLMResponse,
+    OllamaBackend,
+    OpenAIBackend,
+    VulnerabilityAnalysis,
+    analyze_solidity,
+)
+from .openllama_helper import (
+    OpenLLaMAHelper,
+    enhance_findings_with_llm,
+    explain_technical_output,
+    generate_remediation_advice,
+    prioritize_findings,
+)
+from .reasoning_provider_adapter import (
+    LLMOrchestratorReasoningProvider,
+    LocalHeuristicReasoningProvider,
+    ReasoningProviderRoute,
+    auto_reasoning_provider,
+)
+from .remediation_generator import (
+    REMEDIATION_PATTERNS,
+    Remediation,
+    RemediationGenerator,
+    RemediationResult,
+    generate_fix,
+    get_quick_fix,
+)
+from .vulnerability_rag import (
+    EXPLOIT_EXAMPLES,
+    SWC_REGISTRY,
+    EnhancedFinding,
+    SimilarVuln,
+    VulnerabilityExample,
+    VulnerabilityRAG,
+)
+
+# v5.1.0+ Embedding RAG with ChromaDB (optional dependencies)
 try:
-    from src.llm import (
-        AgentCapability,
-        AnthropicBackend,
-        CounterexampleEvidence,
-        DPGAgentConfig,
-        InvariantCandidate,
-        InvariantCategory,
-        InvariantExtractionAgent,
-        LLMBackend,
-        LLMConfig,
-        LLMOrchestrator,
-        LLMOrchestratorReasoningProvider,
-        # New LLM Orchestrator
-        LLMProvider,
-        LLMResponse,
-        LocalHeuristicReasoningProvider,
-        OllamaBackend,
-        OpenAIBackend,
-        # Legacy helpers
-        OpenLLaMAHelper,
-        ReasoningProvider,
-        ReasoningProviderRoute,
-        ReasoningResult,
-        ReasoningTask,
-        VulnerabilityAnalysis,
-        analyze_solidity,
-        auto_reasoning_provider,
-        enhance_findings_with_llm,
-        explain_technical_output,
-        generate_remediation_advice,
-        parse_invariant_candidates,
-        prioritize_findings,
+    from .embedding_rag import (
+        VULNERABILITY_KNOWLEDGE_BASE,
+        EmbeddingRAG,
+        HybridRAG,
+        RetrievalResult,
+        VulnerabilityDocument,
+        get_context_for_finding,
+        get_rag,
+        search_vulnerabilities,
     )
+
+    _EMBEDDING_RAG_AVAILABLE = True
 except ImportError:
-    AgentCapability = None
-    CounterexampleEvidence = None
-    DPGAgentConfig = None
-    InvariantCandidate = None
-    InvariantCategory = None
-    InvariantExtractionAgent = None
-    LLMOrchestratorReasoningProvider = None
-    LocalHeuristicReasoningProvider = None
-    OpenLLaMAHelper = None
-    ReasoningProvider = None
-    ReasoningProviderRoute = None
-    ReasoningResult = None
-    ReasoningTask = None
-    auto_reasoning_provider = None
-    enhance_findings_with_llm = None
-    explain_technical_output = None
-    prioritize_findings = None
-    generate_remediation_advice = None
-    parse_invariant_candidates = None
-    LLMProvider = None
-    LLMConfig = None
-    LLMResponse = None
-    VulnerabilityAnalysis = None
-    LLMBackend = None
-    OllamaBackend = None
-    OpenAIBackend = None
-    AnthropicBackend = None
-    LLMOrchestrator = None
-    analyze_solidity = None
+    # ChromaDB/sentence-transformers not installed
+    _EMBEDDING_RAG_AVAILABLE = False
+    EmbeddingRAG = None  # type: ignore[assignment,misc]
+    HybridRAG = None  # type: ignore[assignment,misc]
+    RetrievalResult = None  # type: ignore[assignment,misc]
+    VulnerabilityDocument = None  # type: ignore[assignment,misc]
+    VULNERABILITY_KNOWLEDGE_BASE = None  # type: ignore[assignment,misc]
+    get_rag = None  # type: ignore[assignment,misc]
+    search_vulnerabilities = None  # type: ignore[assignment,misc]
+    get_context_for_finding = None  # type: ignore[assignment,misc]
 
 __all__ = [
+    # Provider-agnostic agent contracts
     "AgentCapability",
     "CounterexampleEvidence",
     "DPGAgentConfig",
     "InvariantCandidate",
     "InvariantCategory",
     "InvariantExtractionAgent",
-    "LLMOrchestratorReasoningProvider",
-    "LocalHeuristicReasoningProvider",
-    "OpenLLaMAHelper",
     "ReasoningProvider",
-    "ReasoningProviderRoute",
     "ReasoningResult",
     "ReasoningTask",
+    "parse_invariant_candidates",
+    "LLMOrchestratorReasoningProvider",
+    "LocalHeuristicReasoningProvider",
+    "ReasoningProviderRoute",
     "auto_reasoning_provider",
+    # Legacy OpenLLaMA helpers
+    "OpenLLaMAHelper",
     "enhance_findings_with_llm",
     "explain_technical_output",
     "prioritize_findings",
     "generate_remediation_advice",
-    "parse_invariant_candidates",
+    # New LLM Orchestrator
     "LLMProvider",
     "LLMConfig",
     "LLMResponse",
@@ -98,6 +137,43 @@ __all__ = [
     "OllamaBackend",
     "OpenAIBackend",
     "AnthropicBackend",
+    "DeepSeekBackend",
     "LLMOrchestrator",
     "analyze_solidity",
+    # LLM Finding Validator
+    "LLMFindingValidator",
+    "LLMValidation",
+    "ValidationResult",
+    "ValidatorConfig",
+    "validate_findings_sync",
+    # v4.3.0+ LLM Ensemble Detector
+    "LLMEnsembleDetector",
+    "EnsembleFinding",
+    "EnsembleResult",
+    "VotingStrategy",
+    "detect_with_ensemble",
+    # v4.3.0+ Vulnerability RAG (keyword-based)
+    "VulnerabilityRAG",
+    "VulnerabilityExample",
+    "SimilarVuln",
+    "EnhancedFinding",
+    "SWC_REGISTRY",
+    "EXPLOIT_EXAMPLES",
+    # v4.3.0+ Remediation Generator
+    "RemediationGenerator",
+    "Remediation",
+    "RemediationResult",
+    "REMEDIATION_PATTERNS",
+    "generate_fix",
+    "get_quick_fix",
+    # v5.1.0+ Embedding RAG with ChromaDB (optional)
+    "EmbeddingRAG",
+    "HybridRAG",
+    "RetrievalResult",
+    "VulnerabilityDocument",
+    "VULNERABILITY_KNOWLEDGE_BASE",
+    "get_rag",
+    "search_vulnerabilities",
+    "get_context_for_finding",
+    "_EMBEDDING_RAG_AVAILABLE",
 ]

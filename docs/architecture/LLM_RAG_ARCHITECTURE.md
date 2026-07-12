@@ -767,7 +767,7 @@ if self._embedding_rag:
 ### Add Custom Vulnerability Pattern
 
 ```python
-from src.llm.embedding_rag import EmbeddingRAG, VulnerabilityDocument
+from miesc.llm.embedding_rag import EmbeddingRAG, VulnerabilityDocument
 
 rag = EmbeddingRAG()
 rag.add_custom_vulnerability(VulnerabilityDocument(

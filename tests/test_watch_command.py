@@ -97,7 +97,7 @@ def _build_handler(tools_to_run, debounce, last_scan_time, scan_lock, run_tool_m
 
             # Intelligence engine is wrapped in try/except → ignore
             try:
-                from src.core.intelligence import enhance_findings  # noqa: F401
+                from miesc.core.intelligence import enhance_findings  # noqa: F401
 
                 pass
             except Exception:

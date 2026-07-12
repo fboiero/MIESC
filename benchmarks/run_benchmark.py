@@ -35,8 +35,8 @@ from typing import Any, Dict, List, Tuple
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.adapters.crosschain_adapter import CrossChainAdapter
-from src.adapters.slither_adapter import SlitherAdapter
+from miesc.adapters.crosschain_adapter import CrossChainAdapter
+from miesc.adapters.slither_adapter import SlitherAdapter
 
 # Mapping from SmartBugs categories to MIESC detection types
 CATEGORY_MAPPING = {

@@ -12,7 +12,7 @@ Classic Patterns
 
 Traditional pattern-based detection with ML-enhanced confidence scoring.
 
-.. automodule:: src.ml.classic_patterns
+.. automodule:: miesc.ml.classic_patterns
    :members:
    :undoc-members:
    :show-inheritance:
@@ -22,7 +22,7 @@ DeFi Patterns
 
 DeFi-specific vulnerability patterns.
 
-.. automodule:: src.ml.defi_patterns
+.. automodule:: miesc.ml.defi_patterns
    :members:
    :undoc-members:
    :show-inheritance:
@@ -32,7 +32,7 @@ False Positive Classifier
 
 ML-based false positive filtering.
 
-.. automodule:: src.ml.fp_classifier
+.. automodule:: miesc.ml.fp_classifier
    :members:
    :undoc-members:
    :show-inheritance:
@@ -42,7 +42,7 @@ Correlation Engine
 
 Finding correlation and clustering.
 
-.. automodule:: src.ml.correlation_engine
+.. automodule:: miesc.ml.correlation_engine
    :members:
    :undoc-members:
    :show-inheritance:
@@ -59,7 +59,7 @@ The ML module implements a processing pipeline:
 
 .. code-block:: python
 
-    from src.ml import MLPipeline
+    from miesc.ml import MLPipeline
 
     pipeline = MLPipeline()
     result = pipeline.process(findings, code_context_map)
@@ -75,7 +75,7 @@ Dataset Generator
 
 Generate training data for fine-tuning LLMs.
 
-.. automodule:: src.ml.fine_tuning.dataset_generator
+.. automodule:: miesc.ml.fine_tuning.dataset_generator
    :members:
    :undoc-members:
    :show-inheritance:
@@ -85,7 +85,7 @@ Trainer
 
 Fine-tune models on security-specific data.
 
-.. automodule:: src.ml.fine_tuning.fine_tuning_trainer
+.. automodule:: miesc.ml.fine_tuning.fine_tuning_trainer
    :members:
    :undoc-members:
    :show-inheritance:

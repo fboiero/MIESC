@@ -5,7 +5,7 @@ import importlib
 import sys
 
 import miesc.llm as public_llm
-import src.llm as source_llm
+import miesc.llm as source_llm
 
 AGENTIC_EXPORTS = [
     "AgentCapability",
@@ -49,24 +49,8 @@ def test_miesc_llm_agentic_parser_is_usable():
     assert candidates[0].confidence == 0.9
 
 
-def test_miesc_llm_agentic_exports_degrade_to_none_on_src_import_error(monkeypatch):
-    original_import = builtins.__import__
-    original_module = sys.modules.get("miesc.llm")
-
-    def fail_src_llm(name, globals=None, locals=None, fromlist=(), level=0):
-        if name == "src.llm":
-            raise ImportError("simulated optional dependency failure")
-        return original_import(name, globals, locals, fromlist, level)
-
-    monkeypatch.setattr(builtins, "__import__", fail_src_llm)
-    sys.modules.pop("miesc.llm", None)
-    try:
-        degraded = importlib.import_module("miesc.llm")
-
-        for name in AGENTIC_EXPORTS:
-            assert getattr(degraded, name) is None
-            assert name in degraded.__all__
-    finally:
-        sys.modules.pop("miesc.llm", None)
-        if original_module is not None:
-            sys.modules["miesc.llm"] = original_module
+# Removed: test_miesc_llm_agentic_exports_degrade_to_none_on_src_import_error.
+# It asserted the FAÇADE gracefully degraded agentic exports to None when the
+# src.llm import failed. After unifying src.llm into miesc.llm, agentic_contracts
+# is a hard (required) import, not an optional-degradation path — so the behavior
+# no longer exists. The test also polluted sys.modules and broke sibling tests.

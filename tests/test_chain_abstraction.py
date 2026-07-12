@@ -6,7 +6,7 @@ Tests the multi-chain smart contract abstraction layer.
 
 import pytest
 
-from src.core.chain_abstraction import (
+from miesc.core.chain_abstraction import (
     VULNERABILITY_MAPPINGS,
     AbstractContract,
     AbstractEvent,

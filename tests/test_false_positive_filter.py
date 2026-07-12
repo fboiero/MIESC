@@ -11,7 +11,7 @@ from datetime import datetime
 
 import pytest
 
-from src.ml.false_positive_filter import (
+from miesc.ml.false_positive_filter import (
     SLITHER_DETECTOR_FP_RATES,
     FalsePositiveFilter,
     FeedbackEntry,

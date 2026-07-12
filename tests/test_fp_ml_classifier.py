@@ -1,10 +1,10 @@
-"""Tests for src.ml.fp_ml_classifier — Auditor-trained FP classifier."""
+"""Tests for miesc.ml.fp_ml_classifier — Auditor-trained FP classifier."""
 
 import json
 
 import pytest
 
-from src.ml.fp_ml_classifier import (
+from miesc.ml.fp_ml_classifier import (
     KNOWN_TOOLS,
     AuditorFindingFeatures,
     AuditorTrainedFPClassifier,

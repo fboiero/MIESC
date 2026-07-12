@@ -15,7 +15,7 @@ import pytest
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
-from security.remediation_engine import (  # noqa: E402
+from miesc.security.remediation_engine import (  # noqa: E402
     EnrichedFinding,
     FixEffort,
     FixRisk,
@@ -23,7 +23,7 @@ from security.remediation_engine import (  # noqa: E402
     RemediationReport,
     enrich_with_remediations,
 )
-from security.remediations import (  # noqa: E402
+from miesc.security.remediations import (  # noqa: E402
     get_all_remediations,
     get_remediation,
     get_remediation_by_type,

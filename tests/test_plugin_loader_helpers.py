@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from src.plugins.loader import PluginLoader
-from src.plugins.protocol import MIESCPlugin, PluginResult, PluginType
+from miesc.plugins.loader import PluginLoader
+from miesc.plugins.protocol import MIESCPlugin, PluginResult, PluginType
 
 
 class _ValidPlugin(MIESCPlugin):

@@ -24,7 +24,7 @@ class TestMCPToolRegistry:
 
     def test_registry_initialization(self):
         """Test registry initializes with default tools."""
-        from src.mcp_core.tool_registry import MCPToolRegistry
+        from miesc.mcp_core.tool_registry import MCPToolRegistry
 
         registry = MCPToolRegistry()
         assert len(registry._tools) > 0
@@ -32,7 +32,7 @@ class TestMCPToolRegistry:
 
     def test_list_tools_mcp_format(self):
         """Test tools are listed in MCP format."""
-        from src.mcp_core.tool_registry import get_tool_registry
+        from miesc.mcp_core.tool_registry import get_tool_registry
 
         registry = get_tool_registry()
         tools = registry.list_tools()
@@ -49,7 +49,7 @@ class TestMCPToolRegistry:
 
     def test_get_tool(self):
         """Test getting a specific tool."""
-        from src.mcp_core.tool_registry import get_tool_registry
+        from miesc.mcp_core.tool_registry import get_tool_registry
 
         registry = get_tool_registry()
         tool = registry.get_tool("miesc_run_audit")
@@ -60,7 +60,7 @@ class TestMCPToolRegistry:
 
     def test_register_custom_tool(self):
         """Test registering a custom tool."""
-        from src.mcp_core.tool_registry import MCPTool, MCPToolRegistry, ToolCategory
+        from miesc.mcp_core.tool_registry import MCPTool, MCPToolRegistry, ToolCategory
 
         registry = MCPToolRegistry()
         custom_tool = MCPTool(
@@ -75,7 +75,7 @@ class TestMCPToolRegistry:
 
     def test_unregister_tool(self):
         """Test unregistering a tool."""
-        from src.mcp_core.tool_registry import MCPTool, MCPToolRegistry, ToolCategory
+        from miesc.mcp_core.tool_registry import MCPTool, MCPToolRegistry, ToolCategory
 
         registry = MCPToolRegistry()
         custom_tool = MCPTool(
@@ -94,7 +94,7 @@ class TestMCPToolRegistry:
 
     def test_tool_parameter_schema(self):
         """Test tool parameter JSON schema generation."""
-        from src.mcp_core.tool_registry import MCPToolParameter
+        from miesc.mcp_core.tool_registry import MCPToolParameter
 
         param = MCPToolParameter(
             name="contract_path", type="string", description="Path to contract", required=True
@@ -106,7 +106,7 @@ class TestMCPToolRegistry:
 
     def test_mcp_response_format(self):
         """Test MCP tools/list response format."""
-        from src.mcp_core.tool_registry import get_tool_registry
+        from miesc.mcp_core.tool_registry import get_tool_registry
 
         registry = get_tool_registry()
         response = registry.get_mcp_response()
@@ -116,7 +116,7 @@ class TestMCPToolRegistry:
 
     def test_capabilities(self):
         """Test capabilities for MCP initialize."""
-        from src.mcp_core.tool_registry import get_tool_registry
+        from miesc.mcp_core.tool_registry import get_tool_registry
 
         registry = get_tool_registry()
         caps = registry.get_capabilities()
@@ -127,7 +127,7 @@ class TestMCPToolRegistry:
 
     def test_filter_by_category(self):
         """Test filtering tools by category."""
-        from src.mcp_core.tool_registry import ToolCategory, get_tool_registry
+        from miesc.mcp_core.tool_registry import ToolCategory, get_tool_registry
 
         registry = get_tool_registry()
         correlation_tools = registry.list_tools(category=ToolCategory.CORRELATION)
@@ -152,7 +152,7 @@ class TestPersistence:
         """Create temporary database for testing."""
         with tempfile.TemporaryDirectory() as tmpdir:
             db_path = os.path.join(tmpdir, "test.db")
-            from src.core.persistence import MIESCDatabase
+            from miesc.core.persistence import MIESCDatabase
 
             yield MIESCDatabase(db_path)
 
@@ -185,7 +185,7 @@ class TestPersistence:
 
     def test_update_audit_status(self, temp_db):
         """Test updating audit status."""
-        from src.core.persistence import AuditStatus
+        from miesc.core.persistence import AuditStatus
 
         audit_id = temp_db.create_audit("/tmp/Test.sol", ["slither"])
 
@@ -304,7 +304,7 @@ class TestPersistence:
 
     def test_audit_record_to_dict(self, temp_db):
         """Test AuditRecord.to_dict method."""
-        from src.core.persistence import AuditRecord
+        from miesc.core.persistence import AuditRecord
 
         record = AuditRecord(
             audit_id="audit-123",
@@ -329,7 +329,7 @@ class TestPersistence:
 
     def test_finding_record_to_dict(self, temp_db):
         """Test FindingRecord.to_dict method."""
-        from src.core.persistence import FindingRecord
+        from miesc.core.persistence import FindingRecord
 
         record = FindingRecord(
             finding_id="find-123",
@@ -356,7 +356,7 @@ class TestPersistence:
 
     def test_update_audit_status_without_results(self, temp_db):
         """Test updating audit status without results."""
-        from src.core.persistence import AuditStatus
+        from miesc.core.persistence import AuditStatus
 
         audit_id = temp_db.create_audit("/tmp/Test.sol", ["slither"])
 
@@ -516,7 +516,7 @@ class TestPersistenceSingleton:
 
     def test_get_database_singleton(self):
         """Test get_database returns singleton instance."""
-        from src.core.persistence import get_database, reset_database
+        from miesc.core.persistence import get_database, reset_database
 
         # Reset first to ensure clean state
         reset_database()
@@ -534,7 +534,7 @@ class TestPersistenceSingleton:
 
     def test_reset_database(self):
         """Test reset_database clears singleton."""
-        from src.core.persistence import get_database, reset_database
+        from miesc.core.persistence import get_database, reset_database
 
         with tempfile.TemporaryDirectory() as tmpdir:
             db_path = os.path.join(tmpdir, "reset_test.db")
@@ -563,14 +563,14 @@ class TestComplianceMapper:
 
     def test_mapper_initialization(self):
         """Test compliance mapper initializes."""
-        from src.security.compliance_mapper import ComplianceMapper
+        from miesc.security.compliance_mapper import ComplianceMapper
 
         mapper = ComplianceMapper()
         assert mapper is not None
 
     def test_map_reentrancy_finding(self):
         """Test mapping reentrancy vulnerability."""
-        from src.security.compliance_mapper import get_compliance_mapper
+        from miesc.security.compliance_mapper import get_compliance_mapper
 
         mapper = get_compliance_mapper()
         finding = {"type": "reentrancy", "severity": "high"}
@@ -586,7 +586,7 @@ class TestComplianceMapper:
 
     def test_map_integer_overflow(self):
         """Test mapping integer overflow."""
-        from src.security.compliance_mapper import get_compliance_mapper
+        from miesc.security.compliance_mapper import get_compliance_mapper
 
         mapper = get_compliance_mapper()
         finding = {"type": "integer-overflow"}
@@ -598,7 +598,7 @@ class TestComplianceMapper:
 
     def test_map_tx_origin(self):
         """Test mapping tx.origin vulnerability."""
-        from src.security.compliance_mapper import get_compliance_mapper
+        from miesc.security.compliance_mapper import get_compliance_mapper
 
         mapper = get_compliance_mapper()
         finding = {"type": "tx-origin"}
@@ -610,7 +610,7 @@ class TestComplianceMapper:
 
     def test_generate_report(self):
         """Test generating compliance report."""
-        from src.security.compliance_mapper import get_compliance_mapper
+        from miesc.security.compliance_mapper import get_compliance_mapper
 
         mapper = get_compliance_mapper()
         findings = [
@@ -629,7 +629,7 @@ class TestComplianceMapper:
 
     def test_iso27001_gaps(self):
         """Test identifying ISO 27001 gaps."""
-        from src.security.compliance_mapper import get_compliance_mapper
+        from miesc.security.compliance_mapper import get_compliance_mapper
 
         mapper = get_compliance_mapper()
         findings = [{"type": "reentrancy"}]
@@ -641,7 +641,7 @@ class TestComplianceMapper:
 
     def test_enrich_finding(self):
         """Test enriching a finding with compliance data."""
-        from src.security.compliance_mapper import get_compliance_mapper
+        from miesc.security.compliance_mapper import get_compliance_mapper
 
         mapper = get_compliance_mapper()
         finding = {"type": "reentrancy", "severity": "high", "title": "Test"}
@@ -654,7 +654,7 @@ class TestComplianceMapper:
 
     def test_unknown_vulnerability_type(self):
         """Test handling unknown vulnerability type."""
-        from src.security.compliance_mapper import get_compliance_mapper
+        from miesc.security.compliance_mapper import get_compliance_mapper
 
         mapper = get_compliance_mapper()
         finding = {"type": "unknown-vulnerability"}
@@ -667,7 +667,7 @@ class TestComplianceMapper:
 
     def test_existing_swc_preserved(self):
         """Test that existing SWC ID is preserved."""
-        from src.security.compliance_mapper import get_compliance_mapper
+        from miesc.security.compliance_mapper import get_compliance_mapper
 
         mapper = get_compliance_mapper()
         finding = {"type": "unknown", "swc_id": "SWC-107"}
@@ -678,7 +678,7 @@ class TestComplianceMapper:
 
     def test_vuln_type_normalization(self):
         """Test vulnerability type normalization."""
-        from src.security.compliance_mapper import get_compliance_mapper
+        from miesc.security.compliance_mapper import get_compliance_mapper
 
         mapper = get_compliance_mapper()
 
@@ -701,8 +701,8 @@ class TestIntegration:
 
     def test_mcp_to_persistence_flow(self):
         """Test flow from MCP tool registry to persistence."""
-        from src.core.persistence import MIESCDatabase
-        from src.mcp_core.tool_registry import get_tool_registry
+        from miesc.core.persistence import MIESCDatabase
+        from miesc.mcp_core.tool_registry import get_tool_registry
 
         # Get tools from registry
         registry = get_tool_registry()
@@ -717,8 +717,8 @@ class TestIntegration:
 
     def test_compliance_with_persistence(self):
         """Test compliance mapper with persistence."""
-        from src.core.persistence import MIESCDatabase
-        from src.security.compliance_mapper import get_compliance_mapper
+        from miesc.core.persistence import MIESCDatabase
+        from miesc.security.compliance_mapper import get_compliance_mapper
 
         mapper = get_compliance_mapper()
 

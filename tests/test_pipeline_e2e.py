@@ -75,7 +75,7 @@ class TestMIESCCoreAnalyze:
 
     def test_analyze_returns_findings(self, vulnerable_contract):
         """Vulnerable contract should produce findings."""
-        from src.miesc_core import MIESCCore
+        from miesc.miesc_core import MIESCCore
 
         core = MIESCCore()
         result = core.analyze(vulnerable_contract, tools=["slither", "aderyn"])
@@ -87,7 +87,7 @@ class TestMIESCCoreAnalyze:
 
     def test_analyze_finds_reentrancy_pattern(self, vulnerable_contract):
         """Should detect the reentrancy pattern (call before state update)."""
-        from src.miesc_core import MIESCCore
+        from miesc.miesc_core import MIESCCore
 
         core = MIESCCore()
         result = core.analyze(vulnerable_contract, tools=["slither", "aderyn"])
@@ -103,7 +103,7 @@ class TestMIESCCoreAnalyze:
 
     def test_analyze_safe_contract(self, safe_contract):
         """Safe contract should have fewer/no high-severity findings."""
-        from src.miesc_core import MIESCCore
+        from miesc.miesc_core import MIESCCore
 
         core = MIESCCore()
         result = core.analyze(safe_contract, tools=["slither", "aderyn"])
@@ -117,7 +117,7 @@ class TestMIESCCoreAnalyze:
 
     def test_analyze_with_nonexistent_tools(self, vulnerable_contract):
         """Non-existent tools should fail gracefully."""
-        from src.miesc_core import MIESCCore
+        from miesc.miesc_core import MIESCCore
 
         core = MIESCCore()
         result = core.analyze(vulnerable_contract, tools=["nonexistent_tool"])
@@ -128,7 +128,7 @@ class TestMIESCCoreAnalyze:
 
     def test_analyze_scan_alias(self, vulnerable_contract):
         """scan() should work as alias for analyze()."""
-        from src.miesc_core import MIESCCore
+        from miesc.miesc_core import MIESCCore
 
         core = MIESCCore()
         result = core.scan(vulnerable_contract, tools=["slither", "aderyn"])
@@ -143,7 +143,7 @@ class TestFPFilter:
     def test_filter_produces_results(self):
         """FP filter should process findings without errors."""
         try:
-            from src.ml.fp_filter import FalsePositiveFilter
+            from miesc.ml.fp_filter import FalsePositiveFilter
 
             fp = FalsePositiveFilter()
             finding = {
@@ -162,7 +162,7 @@ class TestFPFilter:
 
     def test_solidity_version_detection(self):
         """Should detect Solidity version from code."""
-        from src.ml.fp_filter import FalsePositiveFilter
+        from miesc.ml.fp_filter import FalsePositiveFilter
 
         fp = FalsePositiveFilter()
 
@@ -183,7 +183,7 @@ class TestClassicPatterns:
 
     def test_detects_reentrancy(self):
         """Should detect reentrancy pattern in vulnerable code."""
-        from src.ml.classic_patterns import ClassicPatternDetector, ClassicVulnType
+        from miesc.ml.classic_patterns import ClassicPatternDetector, ClassicVulnType
 
         detector = ClassicPatternDetector()
         matches = detector.detect(REENTRANCY_CONTRACT, categories=[ClassicVulnType.REENTRANCY])
@@ -193,7 +193,7 @@ class TestClassicPatterns:
 
     def test_oracle_patterns_exist(self):
         """Oracle manipulation patterns should be defined."""
-        from src.ml.classic_patterns import CLASSIC_PATTERNS, ClassicVulnType
+        from miesc.ml.classic_patterns import CLASSIC_PATTERNS, ClassicVulnType
 
         assert ClassicVulnType.ORACLE_MANIPULATION in CLASSIC_PATTERNS
         config = CLASSIC_PATTERNS[ClassicVulnType.ORACLE_MANIPULATION]
@@ -202,7 +202,7 @@ class TestClassicPatterns:
 
     def test_flash_loan_patterns_exist(self):
         """Flash loan patterns should be defined."""
-        from src.ml.classic_patterns import CLASSIC_PATTERNS, ClassicVulnType
+        from miesc.ml.classic_patterns import CLASSIC_PATTERNS, ClassicVulnType
 
         assert ClassicVulnType.FLASH_LOAN in CLASSIC_PATTERNS
         config = CLASSIC_PATTERNS[ClassicVulnType.FLASH_LOAN]

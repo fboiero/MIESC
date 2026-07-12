@@ -43,7 +43,7 @@ import tempfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
-from src.ml.benign_context_verifier import BenignContextVerifier  # noqa: E402
+from miesc.ml.benign_context_verifier import BenignContextVerifier  # noqa: E402
 
 # Slither detector -> a coarse vuln category the verifier understands.
 DETECTOR_CATEGORY = {
@@ -153,7 +153,7 @@ def _norm_miesc(t: str) -> str:
 def run_miesc(code: str) -> list[dict]:
     """Pure-python finding source (no solc) via MIESC's intelligence engine — lets the wild
     eval run where solc-select is unavailable. Same shape as run_slither()."""
-    from src.core.intelligence import detect_zero_recall_categories
+    from miesc.core.intelligence import detect_zero_recall_categories
     out = []
     for f in detect_zero_recall_categories(code):
         loc = f.get("location") or {}

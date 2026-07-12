@@ -14,7 +14,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.poc.validators.foundry_runner import (
+from miesc.poc.validators.foundry_runner import (
     MAX_GAS_REPORT_CONTRACTS,
     MAX_GAS_REPORT_METHODS,
     MAX_JSON_CANDIDATE_LINES,
@@ -687,7 +687,7 @@ class TestCompile:
         mock_result.stdout = ""
         mock_result.stderr = ["Error: ParserError"]
 
-        with caplog.at_level("ERROR", logger="src.poc.validators.foundry_runner"):
+        with caplog.at_level("ERROR", logger="miesc.poc.validators.foundry_runner"):
             with patch("subprocess.run", return_value=mock_result):
                 success = runner.compile()
 
@@ -703,7 +703,7 @@ class TestCompile:
         mock_result.stdout = "Compiling..."
         mock_result.stderr = ""
 
-        with caplog.at_level("ERROR", logger="src.poc.validators.foundry_runner"):
+        with caplog.at_level("ERROR", logger="miesc.poc.validators.foundry_runner"):
             with patch("subprocess.run", return_value=mock_result):
                 success = runner.compile()
 
@@ -719,7 +719,7 @@ class TestCompile:
 
     def test_compile_exception_is_sanitized(self, runner, caplog):
         """Compilation exception logs should be bounded and printable."""
-        with caplog.at_level("ERROR", logger="src.poc.validators.foundry_runner"):
+        with caplog.at_level("ERROR", logger="miesc.poc.validators.foundry_runner"):
             with patch("subprocess.run", side_effect=OSError("bad\nerror\x01" + ("x" * 600))):
                 success = runner.compile()
 
@@ -1952,7 +1952,7 @@ class TestFoundryInstallationCheck:
         mock_result.stdout = {"version": "forge 0.2.0"}
 
         with patch("subprocess.run", return_value=mock_result):
-            with caplog.at_level("DEBUG", logger="src.poc.validators.foundry_runner"):
+            with caplog.at_level("DEBUG", logger="miesc.poc.validators.foundry_runner"):
                 FoundryRunner(project_dir=tmp_path)
 
         assert "{'version': 'forge 0.2.0'}" not in caplog.text
@@ -1965,7 +1965,7 @@ class TestFoundryInstallationCheck:
         mock_result.stdout = "forge 0.2.0"
 
         with patch("subprocess.run", return_value=mock_result):
-            with caplog.at_level("WARNING", logger="src.poc.validators.foundry_runner"):
+            with caplog.at_level("WARNING", logger="miesc.poc.validators.foundry_runner"):
                 FoundryRunner(project_dir=tmp_path)
 
         assert "Foundry may not be properly installed" in caplog.text
@@ -2121,7 +2121,7 @@ More text
 
     def test_parse_forge_output_handles_text_parse_exception(self, runner, caplog):
         """Text fallback parser exceptions should not abort result construction."""
-        with caplog.at_level("DEBUG", logger="src.poc.validators.foundry_runner"):
+        with caplog.at_level("DEBUG", logger="miesc.poc.validators.foundry_runner"):
             with patch.object(runner, "_parse_text_output", side_effect=ValueError("bad\ntext")):
                 result = runner._parse_forge_output("[PASS] test_ok()", "", 0, 100.0)
 

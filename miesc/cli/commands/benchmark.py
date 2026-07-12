@@ -237,7 +237,7 @@ def benchmark(
     info(f"Running security audit on {directory}...")
 
     try:
-        from src.core.orchestrator import SecurityOrchestrator
+        from miesc.core.orchestrator import SecurityOrchestrator
 
         orchestrator = SecurityOrchestrator()
         # Quick audit for benchmark

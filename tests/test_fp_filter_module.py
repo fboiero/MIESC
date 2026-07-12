@@ -12,7 +12,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from src.ml.fp_filter import (
+from miesc.ml.fp_filter import (
     FalsePositiveFilter,
     FilterResult,
     FPCategory,
@@ -156,7 +156,7 @@ class TestFalsePositiveFilter:
 
     def test_strictness_presets(self):
         """Test that each strictness preset has distinct thresholds."""
-        from src.ml.fp_filter import FalsePositiveFilter
+        from miesc.ml.fp_filter import FalsePositiveFilter
 
         off = FalsePositiveFilter(strictness="off", use_rag=False)
         low = FalsePositiveFilter(strictness="low", use_rag=False)

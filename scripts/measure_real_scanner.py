@@ -38,7 +38,7 @@ from scripts.agentic_quality_loop import (  # noqa: E402
     make_llm_verifier,
     verify,
 )
-from src.core.intelligence import detect_zero_recall_categories  # noqa: E402
+from miesc.core.intelligence import detect_zero_recall_categories  # noqa: E402
 
 CORPUS = os.path.join(ROOT, "benchmarks", "datasets", "smartbugs-curated", "dataset")
 

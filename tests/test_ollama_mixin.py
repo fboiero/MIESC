@@ -11,7 +11,7 @@ import json
 import urllib.error
 from unittest.mock import MagicMock, patch
 
-from src.adapters._ollama_mixin import OllamaCallMixin
+from miesc.adapters._ollama_mixin import OllamaCallMixin
 
 
 class _Host(OllamaCallMixin):

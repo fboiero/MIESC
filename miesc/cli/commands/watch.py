@@ -144,7 +144,7 @@ def watch(directory: str, profile: str, debounce: float, recursive: bool) -> Non
 
             # v5.2.0: Apply intelligence engine (same as miesc scan)
             try:
-                from src.core.intelligence import enhance_findings
+                from miesc.core.intelligence import enhance_findings
 
                 if all_findings:
                     try:

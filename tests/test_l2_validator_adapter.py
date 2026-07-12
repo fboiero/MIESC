@@ -7,8 +7,8 @@ proof, sequencer forced inclusion / centralization, optimistic dispute mechanism
 L1-data-cost gas estimation). Every helper takes strings and returns dicts.
 """
 
-from src.adapters.l2_validator_adapter import L2ValidatorAdapter
-from src.core.tool_protocol import ToolStatus
+from miesc.adapters.l2_validator_adapter import L2ValidatorAdapter
+from miesc.core.tool_protocol import ToolStatus
 
 
 def _a():

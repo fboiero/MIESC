@@ -15,7 +15,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from src.llm.ensemble_detector import (
+from miesc.llm.ensemble_detector import (
     AllProvidersUnavailable,
     EnsembleResult,
     LLMEnsembleDetector,
@@ -925,7 +925,7 @@ class TestConvenienceFunctions:
 
     def test_detect_with_ensemble_function(self, sample_vulnerable_code, reentrancy_finding):
         """Test detect_with_ensemble convenience function."""
-        from src.llm.ensemble_detector import detect_with_ensemble
+        from miesc.llm.ensemble_detector import detect_with_ensemble
 
         async def run_test():
             tags_response = {"models": [{"name": "deepseek-coder:6.7b"}, {"name": "codellama:7b"}]}

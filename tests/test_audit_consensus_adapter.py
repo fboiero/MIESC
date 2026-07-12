@@ -1,5 +1,5 @@
 """
-Tests for src.adapters.audit_consensus_adapter — Bayesian consensus scoring.
+Tests for miesc.adapters.audit_consensus_adapter — Bayesian consensus scoring.
 
 Previously at 25% coverage. These tests cover the core public API +
 edge cases in the grouping/scoring/normalization pipeline.
@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import pytest
 
-from src.adapters.audit_consensus_adapter import AuditConsensusAdapter
+from miesc.adapters.audit_consensus_adapter import AuditConsensusAdapter
 
 
 @pytest.fixture

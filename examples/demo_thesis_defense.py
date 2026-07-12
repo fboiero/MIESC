@@ -1004,23 +1004,23 @@ class MIESCThesisDemo:
                     # Ejecutar herramientas reales
                     try:
                         if layer_num == 1:
-                            from src.adapters.slither_adapter import SlitherAdapter
+                            from miesc.adapters.slither_adapter import SlitherAdapter
 
                             adapter = SlitherAdapter()
                         elif layer_num == 3:
-                            from src.adapters.mythril_adapter import MythrilAdapter
+                            from miesc.adapters.mythril_adapter import MythrilAdapter
 
                             adapter = MythrilAdapter()
                         elif layer_num == 5:
-                            from src.adapters.smtchecker_adapter import SMTCheckerAdapter
+                            from miesc.adapters.smtchecker_adapter import SMTCheckerAdapter
 
                             adapter = SMTCheckerAdapter()
                         elif layer_num == 6:
-                            from src.adapters.threat_model_adapter import ThreatModelAdapter
+                            from miesc.adapters.threat_model_adapter import ThreatModelAdapter
 
                             adapter = ThreatModelAdapter()
                         elif layer_num == 7:
-                            from src.adapters.smartllm_adapter import SmartLLMAdapter
+                            from miesc.adapters.smartllm_adapter import SmartLLMAdapter
 
                             adapter = SmartLLMAdapter()
 
