@@ -354,7 +354,7 @@ Para contribuir al dataset o mejorar el modelo:
 
 ## Licencia
 
-GPL-3.0 - Este módulo es parte del proyecto MIESC.
+AGPL-3.0-only - Este módulo es parte del proyecto MIESC.
 
 ## Autor
 

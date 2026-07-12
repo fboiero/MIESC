@@ -1,5 +1,10 @@
 # MIESC v4.2.0 "Fortress" - Handoff Report for OSS Team
 
+> **Historical snapshot (v4.2.0, December 2025).** This is a point-in-time handoff
+> report preserved for the record. License and version details below reflect the
+> project as of v4.2.0. The current project license is **AGPL-3.0-only** (see
+> the root `LICENSE` file); refer to the latest release for up-to-date details.
+
 **Date:** 2025-12-13
 **Version:** 4.2.0
 **Author:** Fernando Boiero
