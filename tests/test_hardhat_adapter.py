@@ -15,7 +15,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from miesc.adapters.hardhat_adapter import HardhatAdapter, register_adapter
-from src.core.tool_protocol import ToolCategory, ToolMetadata, ToolStatus
+from miesc.core.tool_protocol import ToolCategory, ToolMetadata, ToolStatus
 
 # =============================================================================
 # Fixtures

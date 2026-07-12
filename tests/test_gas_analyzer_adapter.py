@@ -7,7 +7,7 @@ etc., plus severity filtering / breakdown and normalization.
 """
 
 from miesc.adapters.gas_analyzer_adapter import GasAnalyzerAdapter
-from src.core.tool_protocol import ToolStatus
+from miesc.core.tool_protocol import ToolStatus
 
 GAS = (
     "pragma solidity ^0.8.0;\n"

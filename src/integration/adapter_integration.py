@@ -27,7 +27,7 @@ import logging
 from typing import cast, Any, Dict, List, Optional
 
 from miesc.adapters import register_all_adapters
-from src.core.tool_protocol import ToolStatus, get_tool_registry
+from miesc.core.tool_protocol import ToolStatus, get_tool_registry
 
 logger = logging.getLogger(__name__)
 

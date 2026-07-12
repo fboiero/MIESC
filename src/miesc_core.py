@@ -10,7 +10,7 @@ MIESC Core - Compatibility shim for legacy imports.
 import warnings
 
 from miesc import __version__ as MIESC_VERSION
-from src.core.optimized_orchestrator import OptimizedOrchestrator
+from miesc.core.optimized_orchestrator import OptimizedOrchestrator
 
 warnings.warn(
     "src.miesc_core is deprecated. Use miesc.api instead. "

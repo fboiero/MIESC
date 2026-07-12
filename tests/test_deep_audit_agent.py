@@ -1831,8 +1831,8 @@ class TestLLMConsensus:
         with self._mock_opinions(agent, [op1, op2]):
             # Force two distinct models so both get queried
             with (
-                patch("src.core.llm_config.get_model", side_effect=["m1", "m2"]),
-                patch("src.core.llm_config.get_ollama_host", return_value="http://x"),
+                patch("miesc.core.llm_config.get_model", side_effect=["m1", "m2"]),
+                patch("miesc.core.llm_config.get_ollama_host", return_value="http://x"),
             ):
                 result = agent._get_llm_consensus({"title": "t"}, "src")
         assert result is not None
@@ -1850,8 +1850,8 @@ class TestLLMConsensus:
         }
         with self._mock_opinions(agent, [op1, op2]):
             with (
-                patch("src.core.llm_config.get_model", side_effect=["m1", "m2"]),
-                patch("src.core.llm_config.get_ollama_host", return_value="http://x"),
+                patch("miesc.core.llm_config.get_model", side_effect=["m1", "m2"]),
+                patch("miesc.core.llm_config.get_ollama_host", return_value="http://x"),
             ):
                 result = agent._get_llm_consensus({"title": "t"}, "src")
         assert result["consensus"] == "agree_rejected"
@@ -1873,8 +1873,8 @@ class TestLLMConsensus:
         }
         with self._mock_opinions(agent, [op1, op2]):
             with (
-                patch("src.core.llm_config.get_model", side_effect=["m1", "m2"]),
-                patch("src.core.llm_config.get_ollama_host", return_value="http://x"),
+                patch("miesc.core.llm_config.get_model", side_effect=["m1", "m2"]),
+                patch("miesc.core.llm_config.get_ollama_host", return_value="http://x"),
             ):
                 result = agent._get_llm_consensus({"title": "t"}, "src")
         assert result["consensus"] == "disagreement"
@@ -1885,8 +1885,8 @@ class TestLLMConsensus:
         op = {"confirmed": True, "reasoning": "y", "actual_severity": "CRITICAL", "_model": "m1"}
         with patch.object(agent, "_query_llm_verifier", return_value=op):
             with (
-                patch("src.core.llm_config.get_model", return_value="m1"),
-                patch("src.core.llm_config.get_ollama_host", return_value="http://x"),
+                patch("miesc.core.llm_config.get_model", return_value="m1"),
+                patch("miesc.core.llm_config.get_ollama_host", return_value="http://x"),
             ):
                 result = agent._get_llm_consensus({"title": "t"}, "src")
         assert result["consensus"] == "single_opinion"
@@ -1896,8 +1896,8 @@ class TestLLMConsensus:
     def test_all_queries_fail_returns_none(self, agent):
         with patch.object(agent, "_query_llm_verifier", return_value=None):
             with (
-                patch("src.core.llm_config.get_model", side_effect=["m1", "m2"]),
-                patch("src.core.llm_config.get_ollama_host", return_value="http://x"),
+                patch("miesc.core.llm_config.get_model", side_effect=["m1", "m2"]),
+                patch("miesc.core.llm_config.get_ollama_host", return_value="http://x"),
             ):
                 assert agent._get_llm_consensus({"title": "t"}, "src") is None
 

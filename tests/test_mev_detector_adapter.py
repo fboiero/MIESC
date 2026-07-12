@@ -7,7 +7,7 @@ gating, severity filtering and normalization.
 """
 
 from miesc.adapters.mev_detector_adapter import MEVDetectorAdapter
-from src.core.tool_protocol import ToolStatus
+from miesc.core.tool_protocol import ToolStatus
 
 # Triggers sandwich_swap + flashloan_reentrancy + timestamp_dependence.
 MEV = (

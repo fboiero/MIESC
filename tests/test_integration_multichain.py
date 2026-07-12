@@ -5,7 +5,7 @@ End-to-end tests for chain detection, adapter selection, analysis, and reporting
 
 import pytest
 
-from src.core.chain_abstraction import (
+from miesc.core.chain_abstraction import (
     VULNERABILITY_MAPPINGS,
     AbstractChainAnalyzer,
     AbstractContract,

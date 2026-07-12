@@ -7,7 +7,7 @@ from miesc.adapters.zk_circuit_adapter import (
     ZKCircuitAdapter,
     ZKFramework,
 )
-from src.core.tool_protocol import ToolStatus
+from miesc.core.tool_protocol import ToolStatus
 
 # ---------------------------------------------------------------------------
 # Sample circuit code fixtures

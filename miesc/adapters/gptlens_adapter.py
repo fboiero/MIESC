@@ -39,9 +39,9 @@ from typing import cast, Any, Dict, List, Optional, Tuple
 
 from miesc.adapters._cache_mixin import LLMCacheMixin
 from miesc.adapters._ollama_mixin import OllamaCallMixin
-from src.core.llm_config import get_ollama_host
-from src.core.ollama_models import list_ollama_models, select_ollama_model
-from src.core.tool_protocol import (
+from miesc.core.llm_config import get_ollama_host
+from miesc.core.ollama_models import list_ollama_models, select_ollama_model
+from miesc.core.tool_protocol import (
     ToolAdapter,
     ToolCapability,
     ToolCategory,

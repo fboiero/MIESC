@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from src.core.persistence import (
+from miesc.core.persistence import (
     AuditRecord,
     AuditStatus,
     FindingRecord,

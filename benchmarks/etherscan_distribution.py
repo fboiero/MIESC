@@ -34,7 +34,7 @@ RESULTS_DIR = PROJECT_ROOT / "benchmarks" / "results"
 def run_quick_analysis(contract_path):
     """Run fast analysis (slither + aderyn only)."""
     try:
-        from src.core.optimized_orchestrator import OptimizedOrchestrator
+        from miesc.core.optimized_orchestrator import OptimizedOrchestrator
         orch = OptimizedOrchestrator(cache_enabled=True)
         result = orch.analyze(str(contract_path), tools=["slither", "aderyn"], timeout=30)
 

@@ -14,38 +14,38 @@ class TestToolProtocol:
 
     def test_tool_metadata_import(self):
         """Test ToolMetadata can be imported."""
-        from src.core.tool_protocol import ToolMetadata
+        from miesc.core.tool_protocol import ToolMetadata
 
         assert ToolMetadata is not None
 
     def test_tool_adapter_import(self):
         """Test ToolAdapter can be imported."""
-        from src.core.tool_protocol import ToolAdapter
+        from miesc.core.tool_protocol import ToolAdapter
 
         assert ToolAdapter is not None
 
     def test_tool_status_import(self):
         """Test ToolStatus can be imported."""
-        from src.core.tool_protocol import ToolStatus
+        from miesc.core.tool_protocol import ToolStatus
 
         assert ToolStatus is not None
         assert isinstance(ToolStatus.AVAILABLE, Enum) or hasattr(ToolStatus, "value")
 
     def test_tool_category_import(self):
         """Test ToolCategory can be imported."""
-        from src.core.tool_protocol import ToolCategory
+        from miesc.core.tool_protocol import ToolCategory
 
         assert ToolCategory is not None
 
     def test_tool_capability_import(self):
         """Test ToolCapability can be imported."""
-        from src.core.tool_protocol import ToolCapability
+        from miesc.core.tool_protocol import ToolCapability
 
         assert ToolCapability is not None
 
     def test_create_tool_metadata(self):
         """Test creating ToolMetadata instance."""
-        from src.core.tool_protocol import ToolCategory, ToolMetadata
+        from miesc.core.tool_protocol import ToolCategory, ToolMetadata
 
         # ToolMetadata uses dataclass, check if it can be created
         try:
@@ -65,7 +65,7 @@ class TestToolProtocolCoverage:
 
     def _create_mock_adapter(self, name="test-tool", available=True):
         """Create a mock ToolAdapter for testing."""
-        from src.core.tool_protocol import (
+        from miesc.core.tool_protocol import (
             ToolAdapter,
             ToolCapability,
             ToolCategory,
@@ -141,7 +141,7 @@ class TestToolProtocolCoverage:
 
     def test_tool_registry_register(self):
         """Test ToolRegistry.register method (lines 262-269)."""
-        from src.core.tool_protocol import ToolRegistry
+        from miesc.core.tool_protocol import ToolRegistry
 
         registry = ToolRegistry()
         adapter = self._create_mock_adapter(name="registry-test")
@@ -154,7 +154,7 @@ class TestToolProtocolCoverage:
 
     def test_tool_registry_get_tool(self):
         """Test ToolRegistry.get_tool method (line 273)."""
-        from src.core.tool_protocol import ToolRegistry
+        from miesc.core.tool_protocol import ToolRegistry
 
         registry = ToolRegistry()
         adapter = self._create_mock_adapter(name="get-test")
@@ -169,7 +169,7 @@ class TestToolProtocolCoverage:
 
     def test_tool_registry_get_all_tools(self):
         """Test ToolRegistry.get_all_tools method (line 277)."""
-        from src.core.tool_protocol import ToolRegistry
+        from miesc.core.tool_protocol import ToolRegistry
 
         registry = ToolRegistry()
         adapter1 = self._create_mock_adapter(name="all-test-1")
@@ -183,7 +183,7 @@ class TestToolProtocolCoverage:
 
     def test_tool_registry_get_tools_by_category(self):
         """Test ToolRegistry.get_tools_by_category method (lines 279-284)."""
-        from src.core.tool_protocol import ToolCategory, ToolRegistry
+        from miesc.core.tool_protocol import ToolCategory, ToolRegistry
 
         registry = ToolRegistry()
         adapter = self._create_mock_adapter(name="category-test")
@@ -197,7 +197,7 @@ class TestToolProtocolCoverage:
 
     def test_tool_registry_get_available_tools(self):
         """Test ToolRegistry.get_available_tools method (lines 288-293)."""
-        from src.core.tool_protocol import ToolRegistry
+        from miesc.core.tool_protocol import ToolRegistry
 
         registry = ToolRegistry()
         available_adapter = self._create_mock_adapter(name="available-test", available=True)
@@ -212,7 +212,7 @@ class TestToolProtocolCoverage:
 
     def test_tool_registry_get_tool_status_report(self):
         """Test ToolRegistry.get_tool_status_report method (lines 295-331)."""
-        from src.core.tool_protocol import ToolRegistry
+        from miesc.core.tool_protocol import ToolRegistry
 
         registry = ToolRegistry()
         available_adapter = self._create_mock_adapter(name="report-available", available=True)
@@ -230,7 +230,7 @@ class TestToolProtocolCoverage:
 
     def test_tool_status_report_configuration_error(self):
         """Test get_tool_status_report with configuration_error (lines 328-329)."""
-        from src.core.tool_protocol import (
+        from miesc.core.tool_protocol import (
             ToolAdapter,
             ToolCategory,
             ToolMetadata,
@@ -273,7 +273,7 @@ class TestToolProtocolCoverage:
 
     def test_get_tool_registry_singleton(self):
         """Test get_tool_registry function (line 340)."""
-        from src.core.tool_protocol import get_tool_registry
+        from miesc.core.tool_protocol import get_tool_registry
 
         registry1 = get_tool_registry()
         registry2 = get_tool_registry()
@@ -286,13 +286,13 @@ class TestToolDiscovery:
 
     def test_import(self):
         """Test ToolDiscovery can be imported."""
-        from src.core.tool_discovery import ToolDiscovery
+        from miesc.core.tool_discovery import ToolDiscovery
 
         assert ToolDiscovery is not None
 
     def test_get_tool_discovery(self):
         """Test get_tool_discovery singleton."""
-        from src.core import get_tool_discovery
+        from miesc.core import get_tool_discovery
 
         discovery1 = get_tool_discovery()
         discovery2 = get_tool_discovery()
@@ -302,7 +302,7 @@ class TestToolDiscovery:
 
     def test_get_available_tools(self):
         """Test getting available tools."""
-        from src.core import get_tool_discovery
+        from miesc.core import get_tool_discovery
 
         discovery = get_tool_discovery()
         tools = discovery.get_available_tools()
@@ -311,7 +311,7 @@ class TestToolDiscovery:
 
     def test_get_tools_by_layer(self):
         """Test getting tools organized by layer."""
-        from src.core import get_tool_discovery
+        from miesc.core import get_tool_discovery
 
         discovery = get_tool_discovery()
         tools_by_layer = discovery.get_tools_by_layer()
@@ -320,7 +320,7 @@ class TestToolDiscovery:
 
     def test_get_all_tool_names(self):
         """Test getting all tool names."""
-        from src.core import get_tool_discovery
+        from miesc.core import get_tool_discovery
 
         discovery = get_tool_discovery()
         names = discovery.get_all_tool_names()
@@ -330,7 +330,7 @@ class TestToolDiscovery:
 
     def test_get_tool_existing(self):
         """Test getting a specific existing tool."""
-        from src.core import get_tool_discovery
+        from miesc.core import get_tool_discovery
 
         discovery = get_tool_discovery()
         tools = discovery.get_all_tool_names()
@@ -341,7 +341,7 @@ class TestToolDiscovery:
 
     def test_get_tool_nonexistent(self):
         """Test getting a non-existent tool."""
-        from src.core import get_tool_discovery
+        from miesc.core import get_tool_discovery
 
         discovery = get_tool_discovery()
         tool = discovery.get_tool("nonexistent_tool_xyz")
@@ -350,7 +350,7 @@ class TestToolDiscovery:
 
     def test_to_dict(self):
         """Test exporting discovery info to dict."""
-        from src.core import get_tool_discovery
+        from miesc.core import get_tool_discovery
 
         discovery = get_tool_discovery()
         data = discovery.to_dict()
@@ -363,7 +363,7 @@ class TestToolDiscovery:
 
     def test_cached_discovery(self):
         """Test that discovery results are cached."""
-        from src.core.tool_discovery import ToolDiscovery
+        from miesc.core.tool_discovery import ToolDiscovery
 
         discovery = ToolDiscovery()
 
@@ -376,7 +376,7 @@ class TestToolDiscovery:
 
     def test_forced_rediscovery(self):
         """Test that force=True re-discovers tools."""
-        from src.core.tool_discovery import ToolDiscovery
+        from miesc.core.tool_discovery import ToolDiscovery
 
         discovery = ToolDiscovery()
 
@@ -390,7 +390,7 @@ class TestToolDiscovery:
 
     def test_load_adapter_unknown(self):
         """Test loading an unknown adapter raises error."""
-        from src.core import get_tool_discovery
+        from miesc.core import get_tool_discovery
 
         discovery = get_tool_discovery()
 
@@ -408,7 +408,7 @@ class TestToolDiscoveryCoverage:
         import tempfile
         from unittest.mock import patch
 
-        from src.core.tool_discovery import ToolDiscovery
+        from miesc.core.tool_discovery import ToolDiscovery
 
         # Create ToolDiscovery with a non-existent path
         with tempfile.TemporaryDirectory():
@@ -423,7 +423,7 @@ class TestToolDiscoveryCoverage:
 
     def test_discover_skips_underscore_files(self, tmp_path):
         """Test that discover skips files starting with _ (line 140)."""
-        from src.core.tool_discovery import ToolDiscovery
+        from miesc.core.tool_discovery import ToolDiscovery
 
         # Create a fake adapters directory with underscore file
         adapters_dir = tmp_path / "adapters"
@@ -454,7 +454,7 @@ class PrivateAdapter:
         """Test that discover handles exceptions during adapter load (lines 146-148)."""
         from unittest.mock import patch
 
-        from src.core.tool_discovery import ToolDiscovery
+        from miesc.core.tool_discovery import ToolDiscovery
 
         adapters_dir = tmp_path / "adapters"
         adapters_dir.mkdir()
@@ -481,7 +481,7 @@ class ValidAdapter:
         from pathlib import Path
         from unittest.mock import patch
 
-        from src.core.tool_discovery import ToolDiscovery
+        from miesc.core.tool_discovery import ToolDiscovery
 
         adapters_dir = tmp_path / "adapters"
         adapters_dir.mkdir()
@@ -505,7 +505,7 @@ class ValidAdapter:
         from pathlib import Path
         from unittest.mock import patch
 
-        from src.core.tool_discovery import ToolDiscovery
+        from miesc.core.tool_discovery import ToolDiscovery
 
         adapters_dir = tmp_path / "adapters"
         adapters_dir.mkdir()
@@ -536,7 +536,7 @@ class ValidAdapter:
         from pathlib import Path
         from unittest.mock import patch
 
-        from src.core.tool_discovery import ToolDiscovery
+        from miesc.core.tool_discovery import ToolDiscovery
 
         adapters_dir = tmp_path / "adapters"
         adapters_dir.mkdir()
@@ -557,7 +557,7 @@ class TestToolInfo:
 
     def test_tool_info_to_dict(self):
         """Test ToolInfo.to_dict() method."""
-        from src.core.tool_discovery import ToolInfo
+        from miesc.core.tool_discovery import ToolInfo
 
         tool = ToolInfo(
             name="test_tool",
@@ -583,7 +583,7 @@ class TestToolInfo:
 
     def test_tool_info_defaults(self):
         """Test ToolInfo with default values."""
-        from src.core.tool_discovery import ToolInfo
+        from miesc.core.tool_discovery import ToolInfo
 
         tool = ToolInfo(
             name="minimal_tool",
@@ -606,26 +606,26 @@ class TestHealthChecker:
 
     def test_import(self):
         """Test HealthChecker can be imported."""
-        from src.core.health_checker import HealthChecker
+        from miesc.core.health_checker import HealthChecker
 
         assert HealthChecker is not None
 
     def test_health_status_import(self):
         """Test HealthStatus can be imported."""
-        from src.core import HealthStatus
+        from miesc.core import HealthStatus
 
         assert HealthStatus is not None
 
     def test_instantiation(self):
         """Test HealthChecker instantiation."""
-        from src.core.health_checker import HealthChecker
+        from miesc.core.health_checker import HealthChecker
 
         checker = HealthChecker()
         assert checker is not None
 
     def test_check_all(self):
         """Test comprehensive health check."""
-        from src.core.health_checker import HealthChecker
+        from miesc.core.health_checker import HealthChecker
 
         checker = HealthChecker()
         health = checker.check_all()
@@ -643,7 +643,7 @@ class TestHealthCheckerCoverage:
         """Test ToolHealth.to_dict method (line 38)."""
         from datetime import datetime
 
-        from src.core.health_checker import HealthStatus, ToolHealth
+        from miesc.core.health_checker import HealthStatus, ToolHealth
 
         health = ToolHealth(
             name="test_tool",
@@ -669,7 +669,7 @@ class TestHealthCheckerCoverage:
         """Test SystemHealth.to_dict method (line 63)."""
         from datetime import datetime
 
-        from src.core.health_checker import HealthStatus, SystemHealth, ToolHealth
+        from miesc.core.health_checker import HealthStatus, SystemHealth, ToolHealth
 
         tool = ToolHealth(
             name="test_tool", status=HealthStatus.HEALTHY, available=True, last_check=datetime.now()
@@ -696,7 +696,7 @@ class TestHealthCheckerCoverage:
 
     def test_load_adapter_not_found(self):
         """Test _load_adapter returns None for unknown tool (line 123)."""
-        from src.core.health_checker import HealthChecker
+        from miesc.core.health_checker import HealthChecker
 
         checker = HealthChecker()
         result = checker._load_adapter("nonexistent_tool")
@@ -706,7 +706,7 @@ class TestHealthCheckerCoverage:
         """Test _load_adapter handles import error (lines 131-133)."""
         from unittest.mock import patch
 
-        from src.core.health_checker import HealthChecker
+        from miesc.core.health_checker import HealthChecker
 
         checker = HealthChecker()
 
@@ -719,7 +719,7 @@ class TestHealthCheckerCoverage:
         """Test check_tool with cache hit (lines 141-145)."""
         from datetime import datetime
 
-        from src.core.health_checker import HealthChecker, HealthStatus, ToolHealth
+        from miesc.core.health_checker import HealthChecker, HealthStatus, ToolHealth
 
         checker = HealthChecker()
         checker._cache_ttl = 3600  # 1 hour
@@ -736,7 +736,7 @@ class TestHealthCheckerCoverage:
 
     def test_check_tool_adapter_not_found(self):
         """Test check_tool when adapter not found (line 153)."""
-        from src.core.health_checker import HealthChecker, HealthStatus
+        from miesc.core.health_checker import HealthChecker, HealthStatus
 
         checker = HealthChecker()
         result = checker.check_tool("nonexistent_tool", use_cache=False)
@@ -750,7 +750,7 @@ class TestHealthCheckerCoverage:
         """Test check_tool handles metadata exception (lines 176-177)."""
         from unittest.mock import MagicMock, patch
 
-        from src.core.health_checker import HealthChecker
+        from miesc.core.health_checker import HealthChecker
 
         checker = HealthChecker()
 
@@ -768,7 +768,7 @@ class TestHealthCheckerCoverage:
         """Test check_tool when tool is not available (line 183)."""
         from unittest.mock import MagicMock, patch
 
-        from src.core.health_checker import HealthChecker, HealthStatus
+        from miesc.core.health_checker import HealthChecker, HealthStatus
 
         checker = HealthChecker()
 
@@ -787,7 +787,7 @@ class TestHealthCheckerCoverage:
         """Test check_tool exception handling (lines 199-210)."""
         from unittest.mock import patch
 
-        from src.core.health_checker import HealthChecker, HealthStatus
+        from miesc.core.health_checker import HealthChecker, HealthStatus
 
         checker = HealthChecker()
 
@@ -799,7 +799,7 @@ class TestHealthCheckerCoverage:
 
     def test_check_all_with_specific_tools(self):
         """Test check_all with specific tool list."""
-        from src.core.health_checker import HealthChecker
+        from miesc.core.health_checker import HealthChecker
 
         checker = HealthChecker()
         health = checker.check_all(tools=["nonexistent1", "nonexistent2"])
@@ -810,7 +810,7 @@ class TestHealthCheckerCoverage:
         """Test check_all handles future exceptions (lines 234-236)."""
         from unittest.mock import patch
 
-        from src.core.health_checker import HealthChecker
+        from miesc.core.health_checker import HealthChecker
 
         checker = HealthChecker()
 
@@ -829,7 +829,7 @@ class TestHealthCheckerCoverage:
         """Test check_all returns DEGRADED status (lines 252-253)."""
         from unittest.mock import MagicMock, patch
 
-        from src.core.health_checker import HealthChecker, HealthStatus
+        from miesc.core.health_checker import HealthChecker, HealthStatus
 
         checker = HealthChecker()
 
@@ -851,7 +851,7 @@ class TestHealthCheckerCoverage:
         """Test check_all returns UNHEALTHY status (lines 254-255)."""
         from unittest.mock import MagicMock, patch
 
-        from src.core.health_checker import HealthChecker, HealthStatus
+        from miesc.core.health_checker import HealthChecker, HealthStatus
 
         checker = HealthChecker()
 
@@ -873,7 +873,7 @@ class TestHealthCheckerCoverage:
         from datetime import datetime
         from unittest.mock import patch
 
-        from src.core.health_checker import HealthChecker, HealthStatus, SystemHealth, ToolHealth
+        from miesc.core.health_checker import HealthChecker, HealthStatus, SystemHealth, ToolHealth
 
         checker = HealthChecker()
 
@@ -911,7 +911,7 @@ class TestHealthCheckerCoverage:
         from datetime import datetime
         from unittest.mock import patch
 
-        from src.core.health_checker import HealthChecker, HealthStatus, SystemHealth, ToolHealth
+        from miesc.core.health_checker import HealthChecker, HealthStatus, SystemHealth, ToolHealth
 
         checker = HealthChecker()
 
@@ -961,7 +961,7 @@ class TestHealthCheckerCoverage:
         """Test clear_cache method (line 291)."""
         from datetime import datetime
 
-        from src.core.health_checker import HealthChecker, HealthStatus, ToolHealth
+        from miesc.core.health_checker import HealthChecker, HealthStatus, ToolHealth
 
         checker = HealthChecker()
 
@@ -979,7 +979,7 @@ class TestHealthCheckerCoverage:
         import importlib
         from unittest.mock import MagicMock, patch
 
-        from src.core.health_checker import HealthChecker
+        from miesc.core.health_checker import HealthChecker
 
         checker = HealthChecker()
 
@@ -995,7 +995,7 @@ class TestHealthCheckerCoverage:
 
     def test_check_all_default_tools(self):
         """Test check_all with default tools (line 219)."""
-        from src.core.health_checker import HealthChecker
+        from miesc.core.health_checker import HealthChecker
 
         checker = HealthChecker()
         # Call without tools parameter to use default ADAPTER_MAP keys
@@ -1006,7 +1006,7 @@ class TestHealthCheckerCoverage:
 
     def test_create_health_endpoints(self):
         """Test create_health_endpoints function (lines 297-329)."""
-        from src.core.health_checker import create_health_endpoints
+        from miesc.core.health_checker import create_health_endpoints
 
         # This will try to import FastAPI; if not installed, skip
         try:
@@ -1025,20 +1025,20 @@ class TestResultAggregator:
 
     def test_import(self):
         """Test ResultAggregator can be imported."""
-        from src.core.result_aggregator import ResultAggregator
+        from miesc.core.result_aggregator import ResultAggregator
 
         assert ResultAggregator is not None
 
     def test_instantiation(self):
         """Test ResultAggregator instantiation."""
-        from src.core.result_aggregator import ResultAggregator
+        from miesc.core.result_aggregator import ResultAggregator
 
         aggregator = ResultAggregator()
         assert aggregator is not None
 
     def test_add_tool_results(self):
         """Test adding tool results."""
-        from src.core.result_aggregator import ResultAggregator
+        from miesc.core.result_aggregator import ResultAggregator
 
         aggregator = ResultAggregator()
         tool_result = {
@@ -1051,14 +1051,14 @@ class TestResultAggregator:
 
     def test_aggregator_has_add_method(self):
         """Test aggregator has add_tool_results method."""
-        from src.core.result_aggregator import ResultAggregator
+        from miesc.core.result_aggregator import ResultAggregator
 
         aggregator = ResultAggregator()
         assert hasattr(aggregator, "add_tool_results")
 
     def test_aggregator_has_normalize_method(self):
         """Test aggregator has _normalize_finding method."""
-        from src.core.result_aggregator import ResultAggregator
+        from miesc.core.result_aggregator import ResultAggregator
 
         aggregator = ResultAggregator()
         assert hasattr(aggregator, "_normalize_finding")
@@ -1069,7 +1069,7 @@ class TestResultAggregatorCoverage:
 
     def test_finding_to_dict(self):
         """Test Finding.to_dict method (line 31)."""
-        from src.core.result_aggregator import Finding
+        from miesc.core.result_aggregator import Finding
 
         finding = Finding(
             id="test-123",
@@ -1095,7 +1095,7 @@ class TestResultAggregatorCoverage:
 
     def test_aggregated_finding_to_dict(self):
         """Test AggregatedFinding.to_dict method (line 64)."""
-        from src.core.result_aggregator import AggregatedFinding, Finding
+        from miesc.core.result_aggregator import AggregatedFinding, Finding
 
         original = Finding(
             id="orig-1",
@@ -1132,7 +1132,7 @@ class TestResultAggregatorCoverage:
 
     def test_normalize_severity_variations(self):
         """Test _normalize_severity with various inputs (lines 202-213)."""
-        from src.core.result_aggregator import ResultAggregator
+        from miesc.core.result_aggregator import ResultAggregator
 
         aggregator = ResultAggregator()
 
@@ -1160,7 +1160,7 @@ class TestResultAggregatorCoverage:
 
     def test_normalize_finding_with_confidence_string(self):
         """Test _normalize_finding with string confidence (line 171)."""
-        from src.core.result_aggregator import ResultAggregator
+        from miesc.core.result_aggregator import ResultAggregator
 
         aggregator = ResultAggregator()
 
@@ -1187,7 +1187,7 @@ class TestResultAggregatorCoverage:
 
     def test_normalize_finding_exception(self):
         """Test _normalize_finding exception handling (lines 190-191)."""
-        from src.core.result_aggregator import ResultAggregator
+        from miesc.core.result_aggregator import ResultAggregator
 
         aggregator = ResultAggregator()
 
@@ -1197,7 +1197,7 @@ class TestResultAggregatorCoverage:
 
     def test_are_similar_different_files(self):
         """Test _are_similar with different files (lines 225-229)."""
-        from src.core.result_aggregator import Finding, ResultAggregator
+        from miesc.core.result_aggregator import Finding, ResultAggregator
 
         aggregator = ResultAggregator()
 
@@ -1224,7 +1224,7 @@ class TestResultAggregatorCoverage:
 
     def test_are_similar_distant_lines(self):
         """Test _are_similar with distant lines (line 228-229)."""
-        from src.core.result_aggregator import Finding, ResultAggregator
+        from miesc.core.result_aggregator import Finding, ResultAggregator
 
         aggregator = ResultAggregator()
 
@@ -1251,7 +1251,7 @@ class TestResultAggregatorCoverage:
 
     def test_are_similar_different_types_low_similarity(self):
         """Test _are_similar with different types and low message similarity (lines 235-239)."""
-        from src.core.result_aggregator import Finding, ResultAggregator
+        from miesc.core.result_aggregator import Finding, ResultAggregator
 
         aggregator = ResultAggregator()
 
@@ -1278,7 +1278,7 @@ class TestResultAggregatorCoverage:
 
     def test_normalize_type(self):
         """Test _normalize_type method (lines 245-251)."""
-        from src.core.result_aggregator import ResultAggregator
+        from miesc.core.result_aggregator import ResultAggregator
 
         aggregator = ResultAggregator()
 
@@ -1294,7 +1294,7 @@ class TestResultAggregatorCoverage:
 
     def test_aggregate_empty(self):
         """Test aggregate with empty findings (line 257-258)."""
-        from src.core.result_aggregator import ResultAggregator
+        from miesc.core.result_aggregator import ResultAggregator
 
         aggregator = ResultAggregator()
         result = aggregator.aggregate()
@@ -1302,7 +1302,7 @@ class TestResultAggregatorCoverage:
 
     def test_aggregate_with_findings(self):
         """Test full aggregate flow (lines 260-293)."""
-        from src.core.result_aggregator import ResultAggregator
+        from miesc.core.result_aggregator import ResultAggregator
 
         aggregator = ResultAggregator()
 
@@ -1344,7 +1344,7 @@ class TestResultAggregatorCoverage:
 
     def test_get_statistics(self):
         """Test get_statistics method (lines 341-371)."""
-        from src.core.result_aggregator import ResultAggregator
+        from miesc.core.result_aggregator import ResultAggregator
 
         aggregator = ResultAggregator()
 
@@ -1367,7 +1367,7 @@ class TestResultAggregatorCoverage:
 
     def test_get_high_confidence_findings(self):
         """Test get_high_confidence_findings method (lines 375-377)."""
-        from src.core.result_aggregator import ResultAggregator
+        from miesc.core.result_aggregator import ResultAggregator
 
         aggregator = ResultAggregator()
 
@@ -1391,7 +1391,7 @@ class TestResultAggregatorCoverage:
 
     def test_get_cross_validated_findings(self):
         """Test get_cross_validated_findings method (lines 381-383)."""
-        from src.core.result_aggregator import ResultAggregator
+        from miesc.core.result_aggregator import ResultAggregator
 
         aggregator = ResultAggregator()
 
@@ -1430,7 +1430,7 @@ class TestResultAggregatorCoverage:
 
     def test_to_report(self):
         """Test to_report method (lines 387-395)."""
-        from src.core.result_aggregator import ResultAggregator
+        from miesc.core.result_aggregator import ResultAggregator
 
         aggregator = ResultAggregator()
 
@@ -1452,7 +1452,7 @@ class TestResultAggregatorCoverage:
 
     def test_clear(self):
         """Test clear method (lines 399-400)."""
-        from src.core.result_aggregator import ResultAggregator
+        from miesc.core.result_aggregator import ResultAggregator
 
         aggregator = ResultAggregator()
 
@@ -1475,19 +1475,19 @@ class TestAgentProtocol:
 
     def test_agent_capability_import(self):
         """Test AgentCapability can be imported."""
-        from src.core.agent_protocol import AgentCapability
+        from miesc.core.agent_protocol import AgentCapability
 
         assert AgentCapability is not None
 
     def test_agent_metadata_import(self):
         """Test AgentMetadata can be imported."""
-        from src.core.agent_protocol import AgentMetadata
+        from miesc.core.agent_protocol import AgentMetadata
 
         assert AgentMetadata is not None
 
     def test_finding_import(self):
         """Test Finding can be imported."""
-        from src.core.agent_protocol import Finding
+        from miesc.core.agent_protocol import Finding
 
         assert Finding is not None
 
@@ -1499,7 +1499,7 @@ class TestAgentProtocolCoverage:
         """Test SecurityAgent with concrete implementation (lines 278, 302-320, 329, 338, 341, 344)."""
         from datetime import datetime
 
-        from src.core.agent_protocol import (
+        from miesc.core.agent_protocol import (
             AgentCapability,
             AgentSpeed,
             AnalysisResult,
@@ -1587,7 +1587,7 @@ class TestAgentProtocolCoverage:
 
     def test_security_agent_validate_fails(self):
         """Test SecurityAgent.validate returns False on invalid agent."""
-        from src.core.agent_protocol import (
+        from miesc.core.agent_protocol import (
             AgentCapability,
             AgentSpeed,
             SecurityAgent,
@@ -1647,7 +1647,7 @@ class TestAgentProtocolCoverage:
         """Test AgentPlugin.register decorator (lines 363-366)."""
         from datetime import datetime
 
-        from src.core.agent_protocol import (
+        from miesc.core.agent_protocol import (
             AgentCapability,
             AgentPlugin,
             AgentSpeed,
@@ -1721,7 +1721,7 @@ class TestAgentProtocolCoverage:
 
     def test_agent_plugin_register_invalid(self):
         """Test AgentPlugin.register raises TypeError for non-SecurityAgent."""
-        from src.core.agent_protocol import AgentPlugin
+        from miesc.core.agent_protocol import AgentPlugin
 
         with pytest.raises(TypeError) as exc_info:
 
@@ -1737,13 +1737,13 @@ class TestAgentRegistry:
 
     def test_import(self):
         """Test AgentRegistry can be imported."""
-        from src.core.agent_registry import AgentRegistry
+        from miesc.core.agent_registry import AgentRegistry
 
         assert AgentRegistry is not None
 
     def test_instantiation(self):
         """Test AgentRegistry instantiation."""
-        from src.core.agent_registry import AgentRegistry
+        from miesc.core.agent_registry import AgentRegistry
 
         registry = AgentRegistry()
         assert registry is not None
@@ -1754,7 +1754,7 @@ class TestAgentRegistryCoverage:
 
     def _create_mock_agent(self, name="test-agent", version="1.0.0", available=True, cost=0):
         """Create a mock agent for testing."""
-        from src.core.agent_protocol import AgentCapability, AgentSpeed, SecurityAgent
+        from miesc.core.agent_protocol import AgentCapability, AgentSpeed, SecurityAgent
 
         class MockAgent(SecurityAgent):
             @property
@@ -1806,7 +1806,7 @@ class TestAgentRegistryCoverage:
 
     def test_register_success(self):
         """Test register method success (lines 70-83)."""
-        from src.core.agent_registry import AgentRegistry
+        from miesc.core.agent_registry import AgentRegistry
 
         registry = AgentRegistry()
         agent = self._create_mock_agent()
@@ -1817,7 +1817,7 @@ class TestAgentRegistryCoverage:
 
     def test_register_not_security_agent(self):
         """Test register with non-SecurityAgent (line 70-71)."""
-        from src.core.agent_registry import AgentRegistry
+        from miesc.core.agent_registry import AgentRegistry
 
         registry = AgentRegistry()
 
@@ -1826,7 +1826,7 @@ class TestAgentRegistryCoverage:
 
     def test_register_duplicate_without_force(self):
         """Test register duplicate without force (lines 78-79)."""
-        from src.core.agent_registry import AgentRegistry
+        from miesc.core.agent_registry import AgentRegistry
 
         registry = AgentRegistry()
         agent = self._create_mock_agent()
@@ -1839,7 +1839,7 @@ class TestAgentRegistryCoverage:
 
     def test_register_duplicate_with_force(self):
         """Test register duplicate with force=True."""
-        from src.core.agent_registry import AgentRegistry
+        from miesc.core.agent_registry import AgentRegistry
 
         registry = AgentRegistry()
         agent = self._create_mock_agent()
@@ -1850,7 +1850,7 @@ class TestAgentRegistryCoverage:
 
     def test_unregister(self):
         """Test unregister method (lines 95-99)."""
-        from src.core.agent_registry import AgentRegistry
+        from miesc.core.agent_registry import AgentRegistry
 
         registry = AgentRegistry()
         agent = self._create_mock_agent()
@@ -1866,7 +1866,7 @@ class TestAgentRegistryCoverage:
 
     def test_get(self):
         """Test get method (line 111)."""
-        from src.core.agent_registry import AgentRegistry
+        from miesc.core.agent_registry import AgentRegistry
 
         registry = AgentRegistry()
         agent = self._create_mock_agent()
@@ -1881,7 +1881,7 @@ class TestAgentRegistryCoverage:
 
     def test_list_agents(self):
         """Test list_agents method (lines 123-128)."""
-        from src.core.agent_registry import AgentRegistry
+        from miesc.core.agent_registry import AgentRegistry
 
         registry = AgentRegistry()
         agent1 = self._create_mock_agent(name="agent1", available=True)
@@ -1900,7 +1900,7 @@ class TestAgentRegistryCoverage:
 
     def test_discover_all(self, tmp_path, monkeypatch):
         """Test discover_all method (lines 137-147)."""
-        from src.core.agent_registry import AgentRegistry
+        from miesc.core.agent_registry import AgentRegistry
 
         registry = AgentRegistry()
         registry._plugin_dirs = [tmp_path]
@@ -1911,14 +1911,14 @@ class TestAgentRegistryCoverage:
 
     def test_discover_from_directory(self, tmp_path):
         """Test _discover_from_directory method (lines 159-181)."""
-        from src.core.agent_registry import AgentRegistry
+        from miesc.core.agent_registry import AgentRegistry
 
         registry = AgentRegistry()
 
         # Create a simple agent file
         agent_file = tmp_path / "test_agent.py"
         agent_file.write_text("""
-from src.core.agent_protocol import SecurityAgent, AgentCapability, AgentSpeed
+from miesc.core.agent_protocol import SecurityAgent, AgentCapability, AgentSpeed
 
 class TestAgentClass(SecurityAgent):
     @property
@@ -1945,7 +1945,7 @@ class TestAgentClass(SecurityAgent):
 
     def test_filter_agents_by_language(self):
         """Test filter_agents by language (lines 253-255)."""
-        from src.core.agent_registry import AgentRegistry
+        from miesc.core.agent_registry import AgentRegistry
 
         registry = AgentRegistry()
         agent = self._create_mock_agent()
@@ -1959,7 +1959,7 @@ class TestAgentClass(SecurityAgent):
 
     def test_filter_agents_by_capability(self):
         """Test filter_agents by capability (lines 258-264)."""
-        from src.core.agent_registry import AgentRegistry
+        from miesc.core.agent_registry import AgentRegistry
 
         registry = AgentRegistry()
         agent = self._create_mock_agent()
@@ -1977,7 +1977,7 @@ class TestAgentClass(SecurityAgent):
 
     def test_filter_agents_free_only(self):
         """Test filter_agents with free_only (lines 267-268)."""
-        from src.core.agent_registry import AgentRegistry
+        from miesc.core.agent_registry import AgentRegistry
 
         registry = AgentRegistry()
         free_agent = self._create_mock_agent(name="free", cost=0)
@@ -1992,7 +1992,7 @@ class TestAgentClass(SecurityAgent):
 
     def test_filter_agents_by_speed(self):
         """Test filter_agents by speed (lines 271-280)."""
-        from src.core.agent_registry import AgentRegistry
+        from miesc.core.agent_registry import AgentRegistry
 
         registry = AgentRegistry()
         agent = self._create_mock_agent()  # FAST speed
@@ -2010,7 +2010,7 @@ class TestAgentClass(SecurityAgent):
 
     def test_get_statistics(self):
         """Test get_statistics method (lines 291-316)."""
-        from src.core.agent_registry import AgentRegistry
+        from miesc.core.agent_registry import AgentRegistry
 
         registry = AgentRegistry()
         agent = self._create_mock_agent()
@@ -2026,7 +2026,7 @@ class TestAgentClass(SecurityAgent):
 
     def test_validate_all(self):
         """Test validate_all method (lines 325-332)."""
-        from src.core.agent_registry import AgentRegistry
+        from miesc.core.agent_registry import AgentRegistry
 
         registry = AgentRegistry()
         agent = self._create_mock_agent()
@@ -2038,7 +2038,7 @@ class TestAgentClass(SecurityAgent):
 
     def test_magic_methods(self):
         """Test __len__, __contains__, __iter__, __repr__ (lines 336, 340, 344, 347)."""
-        from src.core.agent_registry import AgentRegistry
+        from miesc.core.agent_registry import AgentRegistry
 
         registry = AgentRegistry()
         agent = self._create_mock_agent()
@@ -2062,8 +2062,8 @@ class TestAgentClass(SecurityAgent):
 
     def test_register_validation_failure(self):
         """Test register with validation failure (line 75)."""
-        from src.core.agent_protocol import AgentCapability, AgentSpeed, SecurityAgent
-        from src.core.agent_registry import AgentRegistry
+        from miesc.core.agent_protocol import AgentCapability, AgentSpeed, SecurityAgent
+        from miesc.core.agent_registry import AgentRegistry
 
         # Create an agent with invalid name format (validation will fail)
         class InvalidAgent(SecurityAgent):
@@ -2120,14 +2120,14 @@ class TestAgentClass(SecurityAgent):
 
     def test_discover_from_directory_duplicate(self, tmp_path):
         """Test _discover_from_directory with duplicate skip (lines 172-179)."""
-        from src.core.agent_registry import AgentRegistry
+        from miesc.core.agent_registry import AgentRegistry
 
         registry = AgentRegistry()
 
         # Create a mock agent file that will produce duplicates
         agent_file = tmp_path / "test_agent.py"
         agent_file.write_text("""
-from src.core.agent_protocol import SecurityAgent, AgentCapability, AgentSpeed
+from miesc.core.agent_protocol import SecurityAgent, AgentCapability, AgentSpeed
 
 class TestAgent(SecurityAgent):
     @property
@@ -2165,7 +2165,7 @@ class TestAgent(SecurityAgent):
         """Test validate_all with exception in validation (lines 329-331)."""
         from unittest.mock import MagicMock
 
-        from src.core.agent_registry import AgentRegistry
+        from miesc.core.agent_registry import AgentRegistry
 
         registry = AgentRegistry()
         agent = self._create_mock_agent()
@@ -2185,7 +2185,7 @@ class TestAgent(SecurityAgent):
     def test_project_plugin_dir_exists(self, tmp_path, monkeypatch):
         """Test _init_plugin_dirs with existing project dir (line 48)."""
 
-        from src.core.agent_registry import AgentRegistry
+        from miesc.core.agent_registry import AgentRegistry
 
         # Create a plugins/agents directory
         plugins_dir = tmp_path / "plugins" / "agents"
@@ -2204,13 +2204,13 @@ class TestOptimizedOrchestrator:
 
     def test_import(self):
         """Test OptimizedOrchestrator can be imported."""
-        from src.core.optimized_orchestrator import OptimizedOrchestrator
+        from miesc.core.optimized_orchestrator import OptimizedOrchestrator
 
         assert OptimizedOrchestrator is not None
 
     def test_instantiation(self):
         """Test OptimizedOrchestrator instantiation."""
-        from src.core.optimized_orchestrator import OptimizedOrchestrator
+        from miesc.core.optimized_orchestrator import OptimizedOrchestrator
 
         orchestrator = OptimizedOrchestrator()
         assert orchestrator is not None
@@ -2223,7 +2223,7 @@ class TestOptimizedOrchestratorCoverage:
         """Test CacheEntry.is_valid method (lines 36-37)."""
         from datetime import datetime, timedelta
 
-        from src.core.optimized_orchestrator import CacheEntry
+        from miesc.core.optimized_orchestrator import CacheEntry
 
         # Valid entry (recent)
         entry = CacheEntry(
@@ -2249,7 +2249,7 @@ class TestOptimizedOrchestratorCoverage:
         """Test AnalysisResult.to_dict method (line 57)."""
         from datetime import datetime
 
-        from src.core.optimized_orchestrator import AnalysisResult
+        from miesc.core.optimized_orchestrator import AnalysisResult
 
         result = AnalysisResult(
             contract_path="test.sol",
@@ -2272,7 +2272,7 @@ class TestOptimizedOrchestratorCoverage:
 
     def test_result_cache_compute_hash(self, tmp_path):
         """Test ResultCache._compute_hash method (lines 82-87)."""
-        from src.core.optimized_orchestrator import ResultCache
+        from miesc.core.optimized_orchestrator import ResultCache
 
         cache = ResultCache(cache_dir=str(tmp_path / "cache"))
 
@@ -2289,7 +2289,7 @@ class TestOptimizedOrchestratorCoverage:
 
     def test_result_cache_get_cache_key(self, tmp_path):
         """Test ResultCache._get_cache_key method (lines 91-92)."""
-        from src.core.optimized_orchestrator import ResultCache
+        from miesc.core.optimized_orchestrator import ResultCache
 
         cache = ResultCache(cache_dir=str(tmp_path / "cache"))
 
@@ -2298,7 +2298,7 @@ class TestOptimizedOrchestratorCoverage:
 
     def test_result_cache_get_and_set(self, tmp_path):
         """Test ResultCache.get and set methods (lines 96-154)."""
-        from src.core.optimized_orchestrator import ResultCache
+        from miesc.core.optimized_orchestrator import ResultCache
 
         cache = ResultCache(cache_dir=str(tmp_path / "cache"), ttl_seconds=3600)
 
@@ -2320,7 +2320,7 @@ class TestOptimizedOrchestratorCoverage:
 
     def test_result_cache_clear(self, tmp_path):
         """Test ResultCache.clear method (lines 160-163)."""
-        from src.core.optimized_orchestrator import ResultCache
+        from miesc.core.optimized_orchestrator import ResultCache
 
         cache = ResultCache(cache_dir=str(tmp_path / "cache"))
 
@@ -2341,7 +2341,7 @@ class TestOptimizedOrchestratorCoverage:
     def test_run_tool_with_cache(self, tmp_path):
         """Test _run_tool method with cache hit (lines 198-202)."""
 
-        from src.core.optimized_orchestrator import OptimizedOrchestrator
+        from miesc.core.optimized_orchestrator import OptimizedOrchestrator
 
         orchestrator = OptimizedOrchestrator(
             cache_enabled=True,
@@ -2365,7 +2365,7 @@ class TestOptimizedOrchestratorCoverage:
         """Test _run_tool method with exception (lines 221-227)."""
         from unittest.mock import patch
 
-        from src.core.optimized_orchestrator import OptimizedOrchestrator
+        from miesc.core.optimized_orchestrator import OptimizedOrchestrator
 
         orchestrator = OptimizedOrchestrator(cache_enabled=False)
 
@@ -2385,7 +2385,7 @@ class TestOptimizedOrchestratorCoverage:
         """Test analyze with no tools available (lines 255-267)."""
         from unittest.mock import patch
 
-        from src.core.optimized_orchestrator import OptimizedOrchestrator
+        from miesc.core.optimized_orchestrator import OptimizedOrchestrator
 
         orchestrator = OptimizedOrchestrator(cache_enabled=False)
 
@@ -2403,7 +2403,7 @@ class TestOptimizedOrchestratorCoverage:
         """Test analyze with progress_callback (lines 291-304)."""
         from unittest.mock import patch
 
-        from src.core.optimized_orchestrator import OptimizedOrchestrator
+        from miesc.core.optimized_orchestrator import OptimizedOrchestrator
 
         orchestrator = OptimizedOrchestrator(cache_enabled=False)
 
@@ -2427,7 +2427,7 @@ class TestOptimizedOrchestratorCoverage:
         """Test _determine_tools with specific tools (lines 341-344)."""
         from unittest.mock import MagicMock, patch
 
-        from src.core.optimized_orchestrator import OptimizedOrchestrator
+        from miesc.core.optimized_orchestrator import OptimizedOrchestrator
 
         orchestrator = OptimizedOrchestrator(cache_enabled=False)
 
@@ -2443,7 +2443,7 @@ class TestOptimizedOrchestratorCoverage:
         """Test _determine_tools with layers (lines 346-355)."""
         from unittest.mock import MagicMock, patch
 
-        from src.core.optimized_orchestrator import OptimizedOrchestrator
+        from miesc.core.optimized_orchestrator import OptimizedOrchestrator
 
         orchestrator = OptimizedOrchestrator(cache_enabled=False)
 
@@ -2464,7 +2464,7 @@ class TestOptimizedOrchestratorCoverage:
         """Test _determine_tools default behavior (lines 357-360)."""
         from unittest.mock import MagicMock, patch
 
-        from src.core.optimized_orchestrator import OptimizedOrchestrator
+        from miesc.core.optimized_orchestrator import OptimizedOrchestrator
 
         orchestrator = OptimizedOrchestrator(cache_enabled=False)
 
@@ -2486,7 +2486,7 @@ class TestOptimizedOrchestratorCoverage:
         from datetime import datetime
         from unittest.mock import patch
 
-        from src.core.optimized_orchestrator import AnalysisResult, OptimizedOrchestrator
+        from miesc.core.optimized_orchestrator import AnalysisResult, OptimizedOrchestrator
 
         orchestrator = OptimizedOrchestrator(cache_enabled=False)
 
@@ -2519,7 +2519,7 @@ class TestOptimizedOrchestratorCoverage:
         from datetime import datetime
         from unittest.mock import patch
 
-        from src.core.optimized_orchestrator import AnalysisResult, OptimizedOrchestrator
+        from miesc.core.optimized_orchestrator import AnalysisResult, OptimizedOrchestrator
 
         orchestrator = OptimizedOrchestrator(cache_enabled=False)
 
@@ -2552,7 +2552,7 @@ class TestOptimizedOrchestratorCoverage:
         from datetime import datetime
         from unittest.mock import patch
 
-        from src.core.optimized_orchestrator import AnalysisResult, OptimizedOrchestrator
+        from miesc.core.optimized_orchestrator import AnalysisResult, OptimizedOrchestrator
 
         orchestrator = OptimizedOrchestrator(cache_enabled=False)
 
@@ -2579,7 +2579,7 @@ class TestOptimizedOrchestratorCoverage:
 
     def test_clear_cache(self, tmp_path):
         """Test clear_cache method (lines 418-419)."""
-        from src.core.optimized_orchestrator import OptimizedOrchestrator
+        from miesc.core.optimized_orchestrator import OptimizedOrchestrator
 
         orchestrator = OptimizedOrchestrator(cache_enabled=True)
 
@@ -2599,7 +2599,7 @@ class TestOptimizedOrchestratorCoverage:
 
     def test_clear_cache_disabled(self):
         """Test clear_cache when cache is disabled."""
-        from src.core.optimized_orchestrator import OptimizedOrchestrator
+        from miesc.core.optimized_orchestrator import OptimizedOrchestrator
 
         orchestrator = OptimizedOrchestrator(cache_enabled=False)
         # Should not raise error
@@ -2610,7 +2610,7 @@ class TestOptimizedOrchestratorCoverage:
         import json
         from datetime import datetime
 
-        from src.core.optimized_orchestrator import ResultCache
+        from miesc.core.optimized_orchestrator import ResultCache
 
         cache_dir = tmp_path / "cache"
         cache = ResultCache(cache_dir=str(cache_dir), ttl_seconds=3600)
@@ -2641,7 +2641,7 @@ class TestOptimizedOrchestratorCoverage:
         """Test cache invalidation when expired (lines 103-104)."""
         from datetime import datetime, timedelta
 
-        from src.core.optimized_orchestrator import CacheEntry, ResultCache
+        from miesc.core.optimized_orchestrator import CacheEntry, ResultCache
 
         cache = ResultCache(cache_dir=str(tmp_path / "cache"), ttl_seconds=1)
 
@@ -2668,7 +2668,7 @@ class TestOptimizedOrchestratorCoverage:
         """Test _run_tool success path with caching (lines 209-219)."""
         from unittest.mock import MagicMock, patch
 
-        from src.core.optimized_orchestrator import OptimizedOrchestrator
+        from miesc.core.optimized_orchestrator import OptimizedOrchestrator
 
         orchestrator = OptimizedOrchestrator(cache_enabled=True)
 
@@ -2692,7 +2692,7 @@ class TestOptimizedOrchestratorCoverage:
         """Test analyze with success callback (line 289)."""
         from unittest.mock import patch
 
-        from src.core.optimized_orchestrator import OptimizedOrchestrator
+        from miesc.core.optimized_orchestrator import OptimizedOrchestrator
 
         orchestrator = OptimizedOrchestrator(cache_enabled=False)
 
@@ -2717,7 +2717,7 @@ class TestOptimizedOrchestratorCoverage:
         """Test analyze with successful tool results for aggregation (lines 312-313)."""
         from unittest.mock import patch
 
-        from src.core.optimized_orchestrator import OptimizedOrchestrator
+        from miesc.core.optimized_orchestrator import OptimizedOrchestrator
 
         orchestrator = OptimizedOrchestrator(cache_enabled=False)
 
@@ -2741,13 +2741,13 @@ class TestMLOrchestrator:
 
     def test_import(self):
         """Test MLOrchestrator can be imported."""
-        from src.core.ml_orchestrator import MLOrchestrator
+        from miesc.core.ml_orchestrator import MLOrchestrator
 
         assert MLOrchestrator is not None
 
     def test_get_ml_orchestrator(self):
         """Test get_ml_orchestrator singleton."""
-        from src.core import get_ml_orchestrator
+        from miesc.core import get_ml_orchestrator
 
         orch1 = get_ml_orchestrator()
         orch2 = get_ml_orchestrator()
@@ -2757,7 +2757,7 @@ class TestMLOrchestrator:
 
     def test_ml_orchestrator_methods(self):
         """Test MLOrchestrator has required methods."""
-        from src.core import get_ml_orchestrator
+        from miesc.core import get_ml_orchestrator
 
         orchestrator = get_ml_orchestrator()
 
@@ -2775,7 +2775,7 @@ class TestMLOrchestratorCoverage:
         """Test MLAnalysisResult._calculate_risk_level with different scenarios (lines 131-136)."""
         from datetime import datetime
 
-        from src.core.ml_orchestrator import MLAnalysisResult
+        from miesc.core.ml_orchestrator import MLAnalysisResult
 
         # Test HIGH risk level (high > 2)
         result = MLAnalysisResult(
@@ -2812,7 +2812,7 @@ class TestMLOrchestratorCoverage:
 
     def test_read_contract_source_exception(self, tmp_path):
         """Test _read_contract_source handles exceptions (lines 185-187)."""
-        from src.core.ml_orchestrator import MLOrchestrator
+        from miesc.core.ml_orchestrator import MLOrchestrator
 
         orchestrator = MLOrchestrator(ml_enabled=False)
 
@@ -2824,7 +2824,7 @@ class TestMLOrchestratorCoverage:
 
     def test_orchestrator_ml_disabled(self):
         """Test orchestrator methods when ML is disabled (lines 491, 497)."""
-        from src.core.ml_orchestrator import MLOrchestrator
+        from miesc.core.ml_orchestrator import MLOrchestrator
         from miesc.ml import FeedbackType
 
         orchestrator = MLOrchestrator(ml_enabled=False)
@@ -2842,7 +2842,7 @@ class TestMLOrchestratorCoverage:
 
     def test_clear_cache(self):
         """Test clear_cache method (lines 516-517)."""
-        from src.core.ml_orchestrator import MLOrchestrator
+        from miesc.core.ml_orchestrator import MLOrchestrator
 
         orchestrator = MLOrchestrator(cache_enabled=True, ml_enabled=False)
 
@@ -2855,7 +2855,7 @@ class TestMLOrchestratorCoverage:
 
     def test_calculate_severity_distribution_variations(self):
         """Test _calculate_severity_distribution with various severities (lines 420-423)."""
-        from src.core.ml_orchestrator import MLOrchestrator
+        from miesc.core.ml_orchestrator import MLOrchestrator
 
         orchestrator = MLOrchestrator(ml_enabled=False)
 
@@ -2874,7 +2874,7 @@ class TestMLOrchestratorCoverage:
 
     def test_determine_tools_with_specific_tools(self):
         """Test _determine_tools with specific tools list (lines 433-434)."""
-        from src.core.ml_orchestrator import MLOrchestrator
+        from miesc.core.ml_orchestrator import MLOrchestrator
 
         orchestrator = MLOrchestrator(ml_enabled=False)
 
@@ -2895,7 +2895,7 @@ class TestMLOrchestratorCoverage:
         """Test MLAnalysisResult.to_dict method (lines 71-99)."""
         from datetime import datetime
 
-        from src.core.ml_orchestrator import MLAnalysisResult
+        from miesc.core.ml_orchestrator import MLAnalysisResult
 
         result = MLAnalysisResult(
             contract_path="test.sol",
@@ -2933,7 +2933,7 @@ class TestMLOrchestratorCoverage:
         """Test MLAnalysisResult.get_summary method (lines 101-122)."""
         from datetime import datetime
 
-        from src.core.ml_orchestrator import MLAnalysisResult
+        from miesc.core.ml_orchestrator import MLAnalysisResult
 
         result = MLAnalysisResult(
             contract_path="test.sol",
@@ -2974,7 +2974,7 @@ class TestMLOrchestratorCoverage:
 
     def test_build_code_context_map(self, tmp_path):
         """Test _build_code_context_map method (lines 195-212)."""
-        from src.core.ml_orchestrator import MLOrchestrator
+        from miesc.core.ml_orchestrator import MLOrchestrator
 
         orchestrator = MLOrchestrator(ml_enabled=False)
 
@@ -3000,7 +3000,7 @@ contract Test {
 
     def test_is_same_location(self):
         """Test _is_same_location method (lines 401-408)."""
-        from src.core.ml_orchestrator import MLOrchestrator
+        from miesc.core.ml_orchestrator import MLOrchestrator
 
         orchestrator = MLOrchestrator(ml_enabled=False)
 
@@ -3015,7 +3015,7 @@ contract Test {
 
     def test_determine_tools_with_layers(self):
         """Test _determine_tools with layers parameter (lines 436-444)."""
-        from src.core.ml_orchestrator import MLOrchestrator
+        from miesc.core.ml_orchestrator import MLOrchestrator
 
         orchestrator = MLOrchestrator(ml_enabled=False)
 
@@ -3026,7 +3026,7 @@ contract Test {
 
     def test_empty_result(self):
         """Test _empty_result method (lines 450-477)."""
-        from src.core.ml_orchestrator import MLOrchestrator
+        from miesc.core.ml_orchestrator import MLOrchestrator
 
         orchestrator = MLOrchestrator(ml_enabled=False)
         result = orchestrator._empty_result("test.sol", "code")
@@ -3040,7 +3040,7 @@ contract Test {
         """Test quick_scan and deep_scan methods (lines 499-512)."""
         from unittest.mock import MagicMock
 
-        from src.core.ml_orchestrator import MLOrchestrator
+        from miesc.core.ml_orchestrator import MLOrchestrator
 
         orchestrator = MLOrchestrator(ml_enabled=False)
 
@@ -3057,7 +3057,7 @@ contract Test {
     def test_run_tool_cache_paths(self, tmp_path):
         """Test _run_tool with cache paths (lines 222-246)."""
 
-        from src.core.ml_orchestrator import MLOrchestrator
+        from miesc.core.ml_orchestrator import MLOrchestrator
 
         orchestrator = MLOrchestrator(cache_enabled=True, ml_enabled=False)
 
@@ -3072,7 +3072,7 @@ contract Test {
         """Test analyze when no tools available (empty result path)."""
         from unittest.mock import MagicMock
 
-        from src.core.ml_orchestrator import MLOrchestrator
+        from miesc.core.ml_orchestrator import MLOrchestrator
 
         orchestrator = MLOrchestrator(ml_enabled=False)
 
@@ -3091,7 +3091,7 @@ contract Test {
     def test_run_tool_cache_hit(self, tmp_path):
         """Test _run_tool with cache hit (lines 222-226)."""
 
-        from src.core.ml_orchestrator import MLOrchestrator
+        from miesc.core.ml_orchestrator import MLOrchestrator
 
         orchestrator = MLOrchestrator(cache_enabled=True, ml_enabled=False)
 
@@ -3110,7 +3110,7 @@ contract Test {
         """Test _run_tool with successful tool execution (lines 228-238)."""
         from unittest.mock import MagicMock, patch
 
-        from src.core.ml_orchestrator import MLOrchestrator
+        from miesc.core.ml_orchestrator import MLOrchestrator
 
         orchestrator = MLOrchestrator(cache_enabled=True, ml_enabled=False)
 
@@ -3133,7 +3133,7 @@ contract Test {
         """Test analyze with successful tool execution (lines 280-378)."""
         from unittest.mock import MagicMock
 
-        from src.core.ml_orchestrator import MLOrchestrator
+        from miesc.core.ml_orchestrator import MLOrchestrator
 
         orchestrator = MLOrchestrator(ml_enabled=False)
 
@@ -3162,7 +3162,7 @@ contract Test {
         """Test analyze with tool execution error (lines 304-305, 317-324)."""
         from unittest.mock import MagicMock
 
-        from src.core.ml_orchestrator import MLOrchestrator
+        from miesc.core.ml_orchestrator import MLOrchestrator
 
         orchestrator = MLOrchestrator(ml_enabled=False)
 
@@ -3185,7 +3185,7 @@ contract Test {
         """Test analyze with ML enabled (lines 334-356)."""
         from unittest.mock import MagicMock
 
-        from src.core.ml_orchestrator import MLOrchestrator
+        from miesc.core.ml_orchestrator import MLOrchestrator
 
         orchestrator = MLOrchestrator(ml_enabled=True, fp_threshold=0.5)
 
@@ -3214,7 +3214,7 @@ contract Test {
         """Test submit_feedback when ML is enabled (line 488)."""
         from unittest.mock import MagicMock
 
-        from src.core.ml_orchestrator import MLOrchestrator
+        from miesc.core.ml_orchestrator import MLOrchestrator
         from miesc.ml import FeedbackType
 
         orchestrator = MLOrchestrator(ml_enabled=True)
@@ -3232,7 +3232,7 @@ contract Test {
         """Test get_ml_report when ML is enabled (line 496)."""
         from unittest.mock import MagicMock
 
-        from src.core.ml_orchestrator import MLOrchestrator
+        from miesc.core.ml_orchestrator import MLOrchestrator
 
         orchestrator = MLOrchestrator(ml_enabled=True)
 
@@ -3247,7 +3247,7 @@ contract Test {
         """Test _determine_tools with layers and available tools (lines 436-448)."""
         from unittest.mock import MagicMock
 
-        from src.core.ml_orchestrator import MLOrchestrator
+        from miesc.core.ml_orchestrator import MLOrchestrator
 
         orchestrator = MLOrchestrator(ml_enabled=False)
 
@@ -3270,13 +3270,13 @@ class TestConfigLoader:
 
     def test_import(self):
         """Test MIESCConfig can be imported."""
-        from src.core.config_loader import MIESCConfig
+        from miesc.core.config_loader import MIESCConfig
 
         assert MIESCConfig is not None
 
     def test_instantiation(self):
         """Test MIESCConfig instantiation (singleton)."""
-        from src.core.config_loader import MIESCConfig
+        from miesc.core.config_loader import MIESCConfig
 
         config = MIESCConfig()
         assert config is not None
@@ -3287,14 +3287,14 @@ class TestConfigLoaderCoverage:
 
     def _reset_singleton(self):
         """Reset the MIESCConfig singleton for testing."""
-        from src.core.config_loader import MIESCConfig
+        from miesc.core.config_loader import MIESCConfig
 
         MIESCConfig._instance = None
         MIESCConfig._config = {}
 
     def test_properties(self):
         """Test all config properties."""
-        from src.core.config_loader import MIESCConfig
+        from miesc.core.config_loader import MIESCConfig
 
         self._reset_singleton()
         config = MIESCConfig()
@@ -3316,7 +3316,7 @@ class TestConfigLoaderCoverage:
 
     def test_get_adapter_config(self):
         """Test get_adapter_config method (lines 121-124)."""
-        from src.core.config_loader import AdapterConfig, MIESCConfig
+        from miesc.core.config_loader import AdapterConfig, MIESCConfig
 
         self._reset_singleton()
         config = MIESCConfig()
@@ -3332,7 +3332,7 @@ class TestConfigLoaderCoverage:
 
     def test_get_layer_config(self):
         """Test get_layer_config method (lines 134-137)."""
-        from src.core.config_loader import LayerConfig, MIESCConfig
+        from miesc.core.config_loader import LayerConfig, MIESCConfig
 
         self._reset_singleton()
         config = MIESCConfig()
@@ -3346,7 +3346,7 @@ class TestConfigLoaderCoverage:
 
     def test_get_enabled_adapters(self):
         """Test get_enabled_adapters method (lines 146-147)."""
-        from src.core.config_loader import MIESCConfig
+        from miesc.core.config_loader import MIESCConfig
 
         self._reset_singleton()
         config = MIESCConfig()
@@ -3356,7 +3356,7 @@ class TestConfigLoaderCoverage:
 
     def test_get_adapters_by_layer(self):
         """Test get_adapters_by_layer method (lines 154-155)."""
-        from src.core.config_loader import MIESCConfig
+        from miesc.core.config_loader import MIESCConfig
 
         self._reset_singleton()
         config = MIESCConfig()
@@ -3366,7 +3366,7 @@ class TestConfigLoaderCoverage:
 
     def test_get_all_layers(self):
         """Test get_all_layers method (lines 162-173)."""
-        from src.core.config_loader import MIESCConfig
+        from miesc.core.config_loader import MIESCConfig
 
         self._reset_singleton()
         config = MIESCConfig()
@@ -3376,7 +3376,7 @@ class TestConfigLoaderCoverage:
 
     def test_get_llm_config(self):
         """Test get_llm_config method (line 177)."""
-        from src.core.config_loader import MIESCConfig
+        from miesc.core.config_loader import MIESCConfig
 
         self._reset_singleton()
         config = MIESCConfig()
@@ -3387,7 +3387,7 @@ class TestConfigLoaderCoverage:
 
     def test_get_results_config(self):
         """Test get_results_config method (line 185)."""
-        from src.core.config_loader import MIESCConfig
+        from miesc.core.config_loader import MIESCConfig
 
         self._reset_singleton()
         config = MIESCConfig()
@@ -3397,7 +3397,7 @@ class TestConfigLoaderCoverage:
 
     def test_get_compliance_frameworks(self):
         """Test get_compliance_frameworks method (lines 192-195)."""
-        from src.core.config_loader import MIESCConfig
+        from miesc.core.config_loader import MIESCConfig
 
         self._reset_singleton()
         config = MIESCConfig()
@@ -3407,7 +3407,7 @@ class TestConfigLoaderCoverage:
 
     def test_get_license_plan_config(self):
         """Test get_license_plan_config method (lines 199-200)."""
-        from src.core.config_loader import MIESCConfig
+        from miesc.core.config_loader import MIESCConfig
 
         self._reset_singleton()
         config = MIESCConfig()
@@ -3417,7 +3417,7 @@ class TestConfigLoaderCoverage:
 
     def test_to_dict(self):
         """Test to_dict method (line 204)."""
-        from src.core.config_loader import MIESCConfig
+        from miesc.core.config_loader import MIESCConfig
 
         self._reset_singleton()
         config = MIESCConfig()
@@ -3427,7 +3427,7 @@ class TestConfigLoaderCoverage:
 
     def test_reload(self):
         """Test reload method (line 92)."""
-        from src.core.config_loader import MIESCConfig
+        from miesc.core.config_loader import MIESCConfig
 
         self._reset_singleton()
         config = MIESCConfig()
@@ -3440,7 +3440,7 @@ class TestConfigLoaderCoverage:
         """Test MIESC_CONFIG env var (line 57)."""
         import os
 
-        from src.core.config_loader import MIESCConfig
+        from miesc.core.config_loader import MIESCConfig
 
         # Create temp config file
         config_file = tmp_path / "test_config.yaml"
@@ -3464,7 +3464,7 @@ class TestConfigLoaderCoverage:
         """Test default config when no file exists (lines 64, 74, 78)."""
         import os
 
-        from src.core.config_loader import MIESCConfig
+        from miesc.core.config_loader import MIESCConfig
 
         self._reset_singleton()
 
@@ -3479,14 +3479,14 @@ class TestConfigLoaderCoverage:
 
     def test_get_config_function(self):
         """Test get_config convenience function."""
-        from src.core.config_loader import get_config
+        from miesc.core.config_loader import get_config
 
         config = get_config()
         assert config is not None
 
     def test_get_chain_config_default(self):
         """Test get_chain_config returns default ethereum config."""
-        from src.core.config_loader import MIESCConfig
+        from miesc.core.config_loader import MIESCConfig
 
         self._reset_singleton()
         config = MIESCConfig()
@@ -3497,7 +3497,7 @@ class TestConfigLoaderCoverage:
 
     def test_get_chain_config_specific(self):
         """Test get_chain_config with specific chain name."""
-        from src.core.config_loader import MIESCConfig
+        from miesc.core.config_loader import MIESCConfig
 
         self._reset_singleton()
         config = MIESCConfig()
@@ -3512,7 +3512,7 @@ class TestConfigLoaderCoverage:
 
     def test_get_enabled_chains(self):
         """Test get_enabled_chains returns list of enabled chains."""
-        from src.core.config_loader import MIESCConfig
+        from miesc.core.config_loader import MIESCConfig
 
         self._reset_singleton()
         config = MIESCConfig()
@@ -3527,7 +3527,7 @@ class TestConfigLoaderCoverage:
         """Test get_chain_config with actual YAML config."""
         import os
 
-        from src.core.config_loader import MIESCConfig
+        from miesc.core.config_loader import MIESCConfig
 
         self._reset_singleton()
 
@@ -3583,7 +3583,7 @@ class TestCoreInit:
 
     def test_all_exports_available(self):
         """Test all expected exports are available."""
-        from src.core import (
+        from miesc.core import (
             HealthChecker,
             HealthStatus,
             MLOrchestrator,
@@ -3637,13 +3637,13 @@ class TestCorrelationAPICoverage:
 
     def test_correlation_api_import(self):
         """Test MIESCCorrelationAPI can be imported."""
-        from src.core.correlation_api import MIESCCorrelationAPI
+        from miesc.core.correlation_api import MIESCCorrelationAPI
 
         assert MIESCCorrelationAPI is not None
 
     def test_correlation_api_init_defaults(self):
         """Test MIESCCorrelationAPI initialization with defaults."""
-        from src.core.correlation_api import MIESCCorrelationAPI
+        from miesc.core.correlation_api import MIESCCorrelationAPI
 
         api = MIESCCorrelationAPI()
         assert api.confidence_threshold == 0.5
@@ -3652,7 +3652,7 @@ class TestCorrelationAPICoverage:
 
     def test_correlation_api_init_custom(self):
         """Test MIESCCorrelationAPI with custom parameters."""
-        from src.core.correlation_api import MIESCCorrelationAPI
+        from miesc.core.correlation_api import MIESCCorrelationAPI
 
         api = MIESCCorrelationAPI(
             min_tools_for_validation=3,
@@ -3666,7 +3666,7 @@ class TestCorrelationAPICoverage:
 
     def test_add_tool_results(self):
         """Test adding tool results."""
-        from src.core.correlation_api import MIESCCorrelationAPI
+        from miesc.core.correlation_api import MIESCCorrelationAPI
 
         api = MIESCCorrelationAPI()
         findings = self._create_sample_findings()
@@ -3677,7 +3677,7 @@ class TestCorrelationAPICoverage:
 
     def test_add_tool_results_multiple_tools(self):
         """Test adding results from multiple tools."""
-        from src.core.correlation_api import MIESCCorrelationAPI
+        from miesc.core.correlation_api import MIESCCorrelationAPI
 
         api = MIESCCorrelationAPI()
 
@@ -3689,7 +3689,7 @@ class TestCorrelationAPICoverage:
 
     def test_add_tool_results_sets_start_time(self):
         """Test that adding results sets start_time."""
-        from src.core.correlation_api import MIESCCorrelationAPI
+        from miesc.core.correlation_api import MIESCCorrelationAPI
 
         api = MIESCCorrelationAPI()
 
@@ -3699,7 +3699,7 @@ class TestCorrelationAPICoverage:
 
     def test_analyze_full_format(self):
         """Test analyze with full output format."""
-        from src.core.correlation_api import MIESCCorrelationAPI
+        from miesc.core.correlation_api import MIESCCorrelationAPI
 
         api = MIESCCorrelationAPI()
         api.add_tool_results("slither", self._create_sample_findings())
@@ -3714,7 +3714,7 @@ class TestCorrelationAPICoverage:
 
     def test_analyze_summary_format(self):
         """Test analyze with summary output format."""
-        from src.core.correlation_api import MIESCCorrelationAPI
+        from miesc.core.correlation_api import MIESCCorrelationAPI
 
         api = MIESCCorrelationAPI()
         api.add_tool_results("slither", self._create_sample_findings())
@@ -3730,7 +3730,7 @@ class TestCorrelationAPICoverage:
 
     def test_analyze_actionable_format(self):
         """Test analyze with actionable output format."""
-        from src.core.correlation_api import MIESCCorrelationAPI
+        from miesc.core.correlation_api import MIESCCorrelationAPI
 
         api = MIESCCorrelationAPI()
         api.add_tool_results("slither", self._create_sample_findings())
@@ -3745,7 +3745,7 @@ class TestCorrelationAPICoverage:
 
     def test_analyze_default_format(self):
         """Test analyze with default (full) output format."""
-        from src.core.correlation_api import MIESCCorrelationAPI
+        from miesc.core.correlation_api import MIESCCorrelationAPI
 
         api = MIESCCorrelationAPI()
         api.add_tool_results("slither", self._create_sample_findings())
@@ -3757,7 +3757,7 @@ class TestCorrelationAPICoverage:
 
     def test_analyze_with_clustering_disabled(self):
         """Test analyze with clustering disabled."""
-        from src.core.correlation_api import MIESCCorrelationAPI
+        from miesc.core.correlation_api import MIESCCorrelationAPI
 
         api = MIESCCorrelationAPI(enable_clustering=False)
         api.add_tool_results("slither", self._create_sample_findings())
@@ -3768,7 +3768,7 @@ class TestCorrelationAPICoverage:
 
     def test_get_findings_by_severity(self):
         """Test get_findings_by_severity method."""
-        from src.core.correlation_api import MIESCCorrelationAPI
+        from miesc.core.correlation_api import MIESCCorrelationAPI
 
         api = MIESCCorrelationAPI()
         api.add_tool_results("slither", self._create_sample_findings())
@@ -3779,7 +3779,7 @@ class TestCorrelationAPICoverage:
 
     def test_get_findings_by_type(self):
         """Test get_findings_by_type method."""
-        from src.core.correlation_api import MIESCCorrelationAPI
+        from miesc.core.correlation_api import MIESCCorrelationAPI
 
         api = MIESCCorrelationAPI()
         api.add_tool_results("slither", self._create_sample_findings())
@@ -3790,7 +3790,7 @@ class TestCorrelationAPICoverage:
 
     def test_get_cross_validated_only(self):
         """Test get_cross_validated_only method."""
-        from src.core.correlation_api import MIESCCorrelationAPI
+        from miesc.core.correlation_api import MIESCCorrelationAPI
 
         api = MIESCCorrelationAPI()
         api.add_tool_results("slither", self._create_sample_findings())
@@ -3802,7 +3802,7 @@ class TestCorrelationAPICoverage:
 
     def test_clear(self):
         """Test clear method."""
-        from src.core.correlation_api import MIESCCorrelationAPI
+        from miesc.core.correlation_api import MIESCCorrelationAPI
 
         api = MIESCCorrelationAPI()
         api.add_tool_results("slither", self._create_sample_findings())
@@ -3814,7 +3814,7 @@ class TestCorrelationAPICoverage:
 
     def test_analyze_contract_with_correlation_function(self):
         """Test analyze_contract_with_correlation convenience function."""
-        from src.core.correlation_api import analyze_contract_with_correlation
+        from miesc.core.correlation_api import analyze_contract_with_correlation
 
         tool_results = {
             "slither": self._create_sample_findings(),
@@ -3828,7 +3828,7 @@ class TestCorrelationAPICoverage:
 
     def test_analyze_contract_with_correlation_custom_thresholds(self):
         """Test analyze_contract_with_correlation with custom thresholds."""
-        from src.core.correlation_api import analyze_contract_with_correlation
+        from miesc.core.correlation_api import analyze_contract_with_correlation
 
         tool_results = {
             "slither": self._create_sample_findings(),
@@ -3844,7 +3844,7 @@ class TestCorrelationAPICoverage:
 
     def test_generate_summary_report_counts(self):
         """Test summary report correctly counts severities."""
-        from src.core.correlation_api import MIESCCorrelationAPI
+        from miesc.core.correlation_api import MIESCCorrelationAPI
 
         api = MIESCCorrelationAPI(confidence_threshold=0.1, fp_threshold=0.99)
         api.add_tool_results("slither", self._create_sample_findings())
@@ -3860,7 +3860,7 @@ class TestCorrelationAPICoverage:
 
     def test_generate_actionable_report_prioritization(self):
         """Test actionable report prioritizes by severity."""
-        from src.core.correlation_api import MIESCCorrelationAPI
+        from miesc.core.correlation_api import MIESCCorrelationAPI
 
         api = MIESCCorrelationAPI(confidence_threshold=0.1, fp_threshold=0.99)
 
@@ -3892,7 +3892,7 @@ class TestCorrelationAPICoverage:
 
     def test_full_report_with_clusters(self):
         """Test full report includes clusters when enabled."""
-        from src.core.correlation_api import MIESCCorrelationAPI
+        from miesc.core.correlation_api import MIESCCorrelationAPI
 
         api = MIESCCorrelationAPI(
             enable_clustering=True,
@@ -3907,7 +3907,7 @@ class TestCorrelationAPICoverage:
 
     def test_fp_filtering(self):
         """Test false positive filtering based on threshold."""
-        from src.core.correlation_api import MIESCCorrelationAPI
+        from miesc.core.correlation_api import MIESCCorrelationAPI
 
         # Very low FP threshold to filter most findings
         api = MIESCCorrelationAPI(fp_threshold=0.001)
@@ -3919,7 +3919,7 @@ class TestCorrelationAPICoverage:
 
     def test_confidence_filtering(self):
         """Test confidence filtering based on threshold."""
-        from src.core.correlation_api import MIESCCorrelationAPI
+        from miesc.core.correlation_api import MIESCCorrelationAPI
 
         # Very high confidence threshold to filter findings
         api = MIESCCorrelationAPI(confidence_threshold=0.99)
@@ -3931,7 +3931,7 @@ class TestCorrelationAPICoverage:
 
     def test_empty_findings(self):
         """Test handling of empty findings."""
-        from src.core.correlation_api import MIESCCorrelationAPI
+        from miesc.core.correlation_api import MIESCCorrelationAPI
 
         api = MIESCCorrelationAPI()
         api.add_tool_results("slither", [])
@@ -3941,7 +3941,7 @@ class TestCorrelationAPICoverage:
 
     def test_metadata_configuration(self):
         """Test metadata includes configuration."""
-        from src.core.correlation_api import MIESCCorrelationAPI
+        from miesc.core.correlation_api import MIESCCorrelationAPI
 
         api = MIESCCorrelationAPI(
             confidence_threshold=0.6,
@@ -3958,7 +3958,7 @@ class TestCorrelationAPICoverage:
 
     def test_add_same_tool_twice(self):
         """Test adding results from same tool twice doesn't duplicate in tools_used."""
-        from src.core.correlation_api import MIESCCorrelationAPI
+        from miesc.core.correlation_api import MIESCCorrelationAPI
 
         api = MIESCCorrelationAPI()
 
@@ -3970,7 +3970,7 @@ class TestCorrelationAPICoverage:
 
     def test_summary_with_cross_validated_findings(self):
         """Test summary report counts cross-validated findings (line 201)."""
-        from src.core.correlation_api import MIESCCorrelationAPI
+        from miesc.core.correlation_api import MIESCCorrelationAPI
 
         # Use low thresholds to ensure findings pass through
         api = MIESCCorrelationAPI(
@@ -4000,7 +4000,7 @@ class TestCorrelationAPICoverage:
 
     def test_summary_with_exact_location_cross_validation(self):
         """Test cross-validation with exact same location from multiple tools."""
-        from src.core.correlation_api import MIESCCorrelationAPI
+        from miesc.core.correlation_api import MIESCCorrelationAPI
 
         api = MIESCCorrelationAPI(
             min_tools_for_validation=2,
@@ -4027,7 +4027,7 @@ class TestCorrelationAPICoverage:
 
     def test_parse_root_causes_basic(self):
         """Test _parse_root_causes with basic LLM response format."""
-        from src.core.correlation_api import MIESCCorrelationAPI
+        from miesc.core.correlation_api import MIESCCorrelationAPI
 
         api = MIESCCorrelationAPI()
 
@@ -4052,7 +4052,7 @@ PRIORITY: MEDIUM"""
 
     def test_parse_root_causes_empty_response(self):
         """Test _parse_root_causes with empty response."""
-        from src.core.correlation_api import MIESCCorrelationAPI
+        from miesc.core.correlation_api import MIESCCorrelationAPI
 
         api = MIESCCorrelationAPI()
         result = api._parse_root_causes("", [])
@@ -4062,7 +4062,7 @@ PRIORITY: MEDIUM"""
 
     def test_parse_root_causes_malformed_response(self):
         """Test _parse_root_causes with malformed response."""
-        from src.core.correlation_api import MIESCCorrelationAPI
+        from miesc.core.correlation_api import MIESCCorrelationAPI
 
         api = MIESCCorrelationAPI()
         llm_response = """Some random text
@@ -4078,7 +4078,7 @@ and more noise"""
 
     def test_parse_root_causes_invalid_explains(self):
         """Test _parse_root_causes with invalid EXPLAINS format."""
-        from src.core.correlation_api import MIESCCorrelationAPI
+        from miesc.core.correlation_api import MIESCCorrelationAPI
 
         api = MIESCCorrelationAPI()
         llm_response = """ROOT_CAUSE_1: Test cause
@@ -4093,7 +4093,7 @@ PRIORITY: LOW"""
 
     def test_llm_root_cause_analysis_empty_findings(self):
         """Test _llm_root_cause_analysis with empty findings."""
-        from src.core.correlation_api import MIESCCorrelationAPI
+        from miesc.core.correlation_api import MIESCCorrelationAPI
 
         api = MIESCCorrelationAPI()
         result = api._llm_root_cause_analysis([])
@@ -4105,7 +4105,7 @@ PRIORITY: LOW"""
         """Test _llm_root_cause_analysis handles timeout."""
         import subprocess
 
-        from src.core.correlation_api import MIESCCorrelationAPI
+        from miesc.core.correlation_api import MIESCCorrelationAPI
         from miesc.ml.correlation_engine import CorrelatedFinding
 
         mock_run.side_effect = subprocess.TimeoutExpired("curl", 60)
@@ -4129,7 +4129,7 @@ PRIORITY: LOW"""
     @patch("subprocess.run")
     def test_llm_root_cause_analysis_json_error(self, mock_run):
         """Test _llm_root_cause_analysis handles JSON decode error."""
-        from src.core.correlation_api import MIESCCorrelationAPI
+        from miesc.core.correlation_api import MIESCCorrelationAPI
         from miesc.ml.correlation_engine import CorrelatedFinding
 
         mock_run.return_value = MagicMock(returncode=0, stdout="not valid json")
@@ -4153,7 +4153,7 @@ PRIORITY: LOW"""
         """Test _llm_root_cause_analysis with successful LLM response."""
         import json
 
-        from src.core.correlation_api import MIESCCorrelationAPI
+        from miesc.core.correlation_api import MIESCCorrelationAPI
         from miesc.ml.correlation_engine import CorrelatedFinding
 
         llm_response = """ROOT_CAUSE_1: Access control issue
@@ -4184,7 +4184,7 @@ PRIORITY: HIGH"""
         """Test analyze with LLM correlation enabled."""
         import json
 
-        from src.core.correlation_api import MIESCCorrelationAPI
+        from miesc.core.correlation_api import MIESCCorrelationAPI
 
         llm_response = """ROOT_CAUSE_1: Common pattern issue
 EXPLAINS: 1
@@ -4222,7 +4222,7 @@ PRIORITY: HIGH"""
     @patch("subprocess.run")
     def test_llm_root_cause_analysis_general_exception(self, mock_run):
         """Test _llm_root_cause_analysis handles general exceptions."""
-        from src.core.correlation_api import MIESCCorrelationAPI
+        from miesc.core.correlation_api import MIESCCorrelationAPI
         from miesc.ml.correlation_engine import CorrelatedFinding
 
         mock_run.side_effect = Exception("Connection refused")
@@ -4244,7 +4244,7 @@ PRIORITY: HIGH"""
     @patch("subprocess.run")
     def test_llm_root_cause_analysis_nonzero_return(self, mock_run):
         """Test _llm_root_cause_analysis handles non-zero return code."""
-        from src.core.correlation_api import MIESCCorrelationAPI
+        from miesc.core.correlation_api import MIESCCorrelationAPI
         from miesc.ml.correlation_engine import CorrelatedFinding
 
         mock_run.return_value = MagicMock(returncode=1, stdout="")
@@ -4272,7 +4272,7 @@ class TestMLOrchestratorExtraBranches:
     """Cover line_num coercion, _determine_tools default fallback, tool failure."""
 
     def _orch(self):
-        from src.core.ml_orchestrator import MLOrchestrator
+        from miesc.core.ml_orchestrator import MLOrchestrator
         return MLOrchestrator(ml_enabled=False, cache_enabled=False)
 
     def test_build_code_context_map_coerces_bad_line(self):
@@ -4307,7 +4307,7 @@ class TestOptimizedOrchestratorExtra:
     """ResultCache expiry/disk branches + performance metrics + warmup + batch."""
 
     def test_result_cache_expiry_memory_and_disk(self, tmp_path):
-        from src.core.optimized_orchestrator import ResultCache
+        from miesc.core.optimized_orchestrator import ResultCache
         sol = tmp_path / "C.sol"
         sol.write_text("contract C {}")
         cache = ResultCache(cache_dir=str(tmp_path / "cache"), ttl_seconds=0)  # everything expires
@@ -4317,7 +4317,7 @@ class TestOptimizedOrchestratorExtra:
         cache.clear()
 
     def test_result_cache_memory_hit(self, tmp_path):
-        from src.core.optimized_orchestrator import ResultCache
+        from miesc.core.optimized_orchestrator import ResultCache
         sol = tmp_path / "C.sol"
         sol.write_text("contract C {}")
         cache = ResultCache(cache_dir=str(tmp_path / "cache"), ttl_seconds=3600)
@@ -4325,7 +4325,7 @@ class TestOptimizedOrchestratorExtra:
         assert cache.get("slither", str(sol)) == {"findings": [1]}
 
     def _orch(self, tmp_path):
-        from src.core.optimized_orchestrator import OptimizedOrchestrator
+        from miesc.core.optimized_orchestrator import OptimizedOrchestrator
         return OptimizedOrchestrator(cache_enabled=True, max_workers=2)
 
     def test_get_performance_metrics(self, tmp_path):
@@ -4336,7 +4336,7 @@ class TestOptimizedOrchestratorExtra:
         assert "max_workers" in m
 
     def test_warmup_cache_no_cache_returns_zero(self):
-        from src.core.optimized_orchestrator import OptimizedOrchestrator
+        from miesc.core.optimized_orchestrator import OptimizedOrchestrator
         orch = OptimizedOrchestrator(cache_enabled=False)
         assert orch.warmup_cache("/tmp/C.sol") == 0
 

@@ -19,7 +19,7 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List
 
-from src.core.tool_protocol import (
+from miesc.core.tool_protocol import (
     ToolAdapter,
     ToolCapability,
     ToolCategory,

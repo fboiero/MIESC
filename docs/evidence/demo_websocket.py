@@ -17,7 +17,7 @@ import sys
 
 sys.path.insert(0, "/Users/fboiero/Documents/GitHub/MIESC")
 
-from src.core.websocket_api import (
+from miesc.core.websocket_api import (
     WEBSOCKET_AVAILABLE,
     AuditProgressTracker,
     ConnectionManager,

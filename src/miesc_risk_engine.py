@@ -2,14 +2,14 @@
 MIESC Risk Engine - Compatibility shim for legacy imports.
 
 .. deprecated:: 5.1.1
-    This module will be moved to ``src.core.risk_engine`` in v6.0.0.
+    This module will be moved to ``miesc.core.risk_engine`` in v6.0.0.
 """
 
 import warnings
 
 warnings.warn(
     "src.miesc_risk_engine is deprecated. "
-    "This module will be moved to src.core.risk_engine in v6.0.0.",
+    "This module will be moved to miesc.core.risk_engine in v6.0.0.",
     DeprecationWarning,
     stacklevel=2,
 )
@@ -20,7 +20,7 @@ class RiskEngine:
     Risk assessment engine for smart contract analysis.
 
     .. deprecated:: 5.1.1
-        Will be relocated to ``src.core.risk_engine`` in v6.0.0.
+        Will be relocated to ``miesc.core.risk_engine`` in v6.0.0.
     """
 
     SEVERITY_WEIGHTS = {"critical": 10, "high": 7, "medium": 4, "low": 2, "info": 1}

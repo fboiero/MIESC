@@ -110,7 +110,7 @@ def configure_logging(debug: bool = False, quiet: bool = False) -> None:
     # Lazy import of centralized logging
     if LOGGING_AVAILABLE is None:
         try:
-            from src.core.logging_config import setup_logging
+            from miesc.core.logging_config import setup_logging
 
             _setup_logging = setup_logging
             LOGGING_AVAILABLE = True
@@ -131,7 +131,7 @@ def get_ml_orchestrator() -> Any:
 
     if ML_ORCHESTRATOR_AVAILABLE is None:
         try:
-            from src.core.ml_orchestrator import MLOrchestrator
+            from miesc.core.ml_orchestrator import MLOrchestrator
 
             _MLOrchestrator = MLOrchestrator
             ML_ORCHESTRATOR_AVAILABLE = True
@@ -151,7 +151,7 @@ def get_correlation_api() -> Any:
 
     if _MIESCCorrelationAPI is None:
         try:
-            from src.core.correlation_api import MIESCCorrelationAPI
+            from miesc.core.correlation_api import MIESCCorrelationAPI
 
             _MIESCCorrelationAPI = MIESCCorrelationAPI
             logger.debug("MIESCCorrelationAPI loaded successfully")
@@ -369,7 +369,7 @@ class AdapterLoader:
 
         try:
             # Import ToolStatus enum
-            from src.core.tool_protocol import ToolStatus
+            from miesc.core.tool_protocol import ToolStatus
 
             status = adapter.is_available()
             return {
@@ -425,7 +425,7 @@ def run_tool(tool: str, contract: str, timeout: int = 0, **kwargs: Any) -> Dict[
 
     try:
         # Check if tool is available
-        from src.core.tool_protocol import ToolStatus
+        from miesc.core.tool_protocol import ToolStatus
 
         status = adapter.is_available()
 

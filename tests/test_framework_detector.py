@@ -13,7 +13,7 @@ from unittest.mock import patch
 
 import pytest
 
-from src.core.framework_detector import (
+from miesc.core.framework_detector import (
     Framework,
     FrameworkConfig,
     FrameworkDetector,
@@ -360,7 +360,7 @@ class TestConvenienceFunctions:
 
     def setup_method(self):
         """Reset module-level detector."""
-        import src.core.framework_detector as fd
+        import miesc.core.framework_detector as fd
 
         fd._detector = None
 
@@ -498,7 +498,7 @@ class TestEdgeCases:
             foundry_toml.write_text("[profile.default]")
 
             # Patch tomllib to None to simulate unavailability
-            with patch("src.core.framework_detector.tomllib", None):
+            with patch("miesc.core.framework_detector.tomllib", None):
                 config = detector.detect(tmpdir)
 
                 assert config.framework == Framework.FOUNDRY

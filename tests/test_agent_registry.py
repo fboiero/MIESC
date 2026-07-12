@@ -6,7 +6,7 @@ Tests the agent registry and discovery system.
 
 import pytest
 
-from src.core.agent_protocol import (
+from miesc.core.agent_protocol import (
     AgentCapability,
     AgentMetadata,
     AgentSpeed,
@@ -16,7 +16,7 @@ from src.core.agent_protocol import (
     FindingSeverity,
     SecurityAgent,
 )
-from src.core.agent_registry import AgentRegistry
+from miesc.core.agent_registry import AgentRegistry
 
 
 class TestAgentCapability:
@@ -464,7 +464,7 @@ class TestAgentRegistryDunder:
 # --------------------------------------------------------------------------- #
 class TestAgentRegistryLoaderErrors:
     def test_load_agents_from_broken_file(self, tmp_path):
-        from src.core.agent_registry import AgentRegistry
+        from miesc.core.agent_registry import AgentRegistry
 
         bad = tmp_path / "broken_agent.py"
         bad.write_text("def (:\n  this is not valid python\n")
@@ -472,8 +472,8 @@ class TestAgentRegistryLoaderErrors:
         assert AgentRegistry()._load_agents_from_file(bad) == []
 
     def test_load_agents_null_spec(self, tmp_path, monkeypatch):
-        import src.core.agent_registry as mod
-        from src.core.agent_registry import AgentRegistry
+        import miesc.core.agent_registry as mod
+        from miesc.core.agent_registry import AgentRegistry
 
         f = tmp_path / "x_agent.py"
         f.write_text("# empty\n")
@@ -482,7 +482,7 @@ class TestAgentRegistryLoaderErrors:
         assert AgentRegistry()._load_agents_from_file(f) == []
 
     def test_discover_directory_handles_load_failure(self, tmp_path, monkeypatch):
-        from src.core.agent_registry import AgentRegistry
+        from miesc.core.agent_registry import AgentRegistry
 
         (tmp_path / "foo_agent.py").write_text("# agent\n")
         reg = AgentRegistry()

@@ -346,7 +346,7 @@ def _evaluate_contract(
     if use_intelligence:
         intel_start = time.perf_counter()
         try:
-            from src.core.intelligence import enhance_findings
+            from miesc.core.intelligence import enhance_findings
 
             # Read source code for pattern detection
             try:

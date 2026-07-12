@@ -30,7 +30,7 @@ print("=" * 70)
 print()
 
 # Import ToolStatus
-from src.core.tool_protocol import ToolStatus
+from miesc.core.tool_protocol import ToolStatus
 
 # All adapters to test with their layer info
 ADAPTERS_CONFIG = [

@@ -38,7 +38,7 @@ import time
 from pathlib import Path
 from typing import cast, Any, Dict, List, Optional, Set, Tuple
 
-from src.core.tool_protocol import (
+from miesc.core.tool_protocol import (
     ToolAdapter,
     ToolCapability,
     ToolCategory,

@@ -107,7 +107,7 @@ class TestCanonicalCategoryContract:
     def test_all_categories_serializable(self):
         """Every enum value MUST be a string — we JSON-serialize this in
         the investigation report and in the FP classifier's features."""
-        from src.core.finding_taxonomy import CanonicalCategory
+        from miesc.core.finding_taxonomy import CanonicalCategory
 
         for c in CanonicalCategory:
             assert isinstance(c.value, str)
@@ -116,7 +116,7 @@ class TestCanonicalCategoryContract:
     def test_removing_a_category_would_fail_this(self):
         """Lock in the current enum set so an accidental rename/removal
         surfaces here, not in the agent at runtime."""
-        from src.core.finding_taxonomy import CanonicalCategory
+        from miesc.core.finding_taxonomy import CanonicalCategory
 
         required = {
             "reentrancy",

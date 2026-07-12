@@ -28,7 +28,7 @@ import re
 from dataclasses import dataclass, field
 from typing import cast, Any, Dict, List, Optional, Tuple
 
-from src.core.finding_taxonomy import CanonicalCategory, normalize_finding_type
+from miesc.core.finding_taxonomy import CanonicalCategory, normalize_finding_type
 
 # =============================================================================
 # 1. Cross-tool confirmation scoring

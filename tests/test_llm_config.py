@@ -7,8 +7,8 @@ Tests the centralized LLM configuration helper.
 import os
 from unittest.mock import patch
 
-import src.core.llm_config as llm_config_module
-from src.core.llm_config import (
+import miesc.core.llm_config as llm_config_module
+from miesc.core.llm_config import (
     DEFAULT_CONFIG,
     MAX_CACHE_ENTRIES,
     MAX_CACHE_TTL_SECONDS,
@@ -649,7 +649,7 @@ class TestLoadConfigWithMock:
             def get_llm_config(self):
                 return {"models": {"code_analysis": "custom-model"}}
 
-        import src.core.config_loader as config_loader_module
+        import miesc.core.config_loader as config_loader_module
 
         clear_config_cache()
         monkeypatch.setattr(config_loader_module, "get_config", lambda: FakeConfig())
@@ -669,7 +669,7 @@ class TestLoadConfigWithMock:
             def get_llm_config(self):
                 raise RuntimeError("boom")
 
-        import src.core.config_loader as config_loader_module
+        import miesc.core.config_loader as config_loader_module
 
         clear_config_cache()
         monkeypatch.setattr(config_loader_module, "get_config", lambda: NonMappingConfig())

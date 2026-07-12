@@ -10,7 +10,7 @@ import json
 from unittest.mock import MagicMock, patch
 
 from miesc.adapters.frontier_llm_adapter import FrontierLLMAdapter
-from src.core.tool_protocol import ToolStatus
+from miesc.core.tool_protocol import ToolStatus
 
 
 class TestProviderDetection:

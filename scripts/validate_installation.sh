@@ -122,7 +122,7 @@ else
     log_error "Error al cargar modulo CLI"
 fi
 
-if python3 -c "from src.core.result_aggregator import ResultAggregator" 2>/dev/null; then
+if python3 -c "from miesc.core.result_aggregator import ResultAggregator" 2>/dev/null; then
     log_success "Modulos core cargados correctamente"
 else
     log_error "Error al cargar modulos core"

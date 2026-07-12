@@ -155,7 +155,7 @@ class TestRAGLookupComplexity:
 
 class TestTaxonomyThroughput:
     def test_normalize_10k_findings_in_under_2s(self):
-        from src.core.finding_taxonomy import normalize_finding_type
+        from miesc.core.finding_taxonomy import normalize_finding_type
 
         finding = {
             "type": "arbitrary-send-eth",
@@ -171,7 +171,7 @@ class TestTaxonomyThroughput:
     def test_normalize_unknown_types_dont_pathologically_slow(self):
         """Substring fallback loop must terminate quickly even on completely
         unknown types (worst-case iteration)."""
-        from src.core.finding_taxonomy import normalize_finding_type
+        from miesc.core.finding_taxonomy import normalize_finding_type
 
         start = time.monotonic()
         for i in range(5000):
@@ -245,7 +245,7 @@ class TestCacheBounds:
         """The ML orchestrator's cache must not grow unboundedly across
         repeated analyses."""
         try:
-            from src.core.ml_orchestrator import MLOrchestrator
+            from miesc.core.ml_orchestrator import MLOrchestrator
         except ImportError:
             pytest.skip("MLOrchestrator import path changed")
         orch = MLOrchestrator()
@@ -270,7 +270,7 @@ class TestCanonicalCategorySerialization:
     def test_enum_values_are_json_safe(self):
         import json
 
-        from src.core.finding_taxonomy import CanonicalCategory
+        from miesc.core.finding_taxonomy import CanonicalCategory
 
         for c in CanonicalCategory:
             # .value should json-roundtrip without needing custom encoders
@@ -278,7 +278,7 @@ class TestCanonicalCategorySerialization:
             assert roundtrip == c.value
 
     def test_enum_can_be_stored_in_dict_key_or_value(self):
-        from src.core.finding_taxonomy import CanonicalCategory
+        from miesc.core.finding_taxonomy import CanonicalCategory
 
         # As values
         d = {"cat": CanonicalCategory.REENTRANCY.value}

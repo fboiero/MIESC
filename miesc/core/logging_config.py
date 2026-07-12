@@ -9,7 +9,7 @@ This module provides a unified logging system for MIESC with:
 - Performance timing utilities
 
 Usage:
-    from src.core.logging_config import get_logger, setup_logging
+    from miesc.core.logging_config import get_logger, setup_logging
 
     # Setup logging at application start
     setup_logging(level="DEBUG", json_format=False)

@@ -10,7 +10,7 @@ from miesc.adapters.contract_clone_detector_adapter import (
     ContractCloneDetectorAdapter,
     register_adapter,
 )
-from src.core.tool_protocol import ToolStatus
+from miesc.core.tool_protocol import ToolStatus
 
 
 def test_register_adapter():

@@ -25,9 +25,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import cast, Any, Dict, List, Optional, Tuple
 
-from src.core.llm_config import get_default_model
-from src.core.ollama_models import select_ollama_model
-from src.core.tool_protocol import (
+from miesc.core.llm_config import get_default_model
+from miesc.core.ollama_models import select_ollama_model
+from miesc.core.tool_protocol import (
     ToolAdapter,
     ToolCapability,
     ToolCategory,

@@ -66,7 +66,7 @@ Web frameworks are now optional to reduce installation size:
 from miesc.api import run_tool, run_full_audit
 
 # WebSocket API gracefully handles missing FastAPI
-from src.core.websocket_api import WebSocketAPI
+from miesc.core.websocket_api import WebSocketAPI
 # Returns None if FastAPI not installed
 ```
 

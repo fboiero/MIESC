@@ -17,7 +17,7 @@ import time
 from pathlib import Path
 from typing import cast, Any, Dict, List, Optional
 
-from src.core.tool_protocol import ToolCapability, ToolCategory, ToolMetadata, ToolStatus
+from miesc.core.tool_protocol import ToolCapability, ToolCategory, ToolMetadata, ToolStatus
 
 logger = logging.getLogger(__name__)
 

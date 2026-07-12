@@ -153,7 +153,7 @@ def _norm_miesc(t: str) -> str:
 def run_miesc(code: str) -> list[dict]:
     """Pure-python finding source (no solc) via MIESC's intelligence engine — lets the wild
     eval run where solc-select is unavailable. Same shape as run_slither()."""
-    from src.core.intelligence import detect_zero_recall_categories
+    from miesc.core.intelligence import detect_zero_recall_categories
     out = []
     for f in detect_zero_recall_categories(code):
         loc = f.get("location") or {}

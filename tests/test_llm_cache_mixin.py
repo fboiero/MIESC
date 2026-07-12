@@ -13,7 +13,7 @@ from unittest.mock import patch
 
 from miesc.adapters._cache_mixin import LLMCacheMixin
 from miesc.adapters.gptscan_adapter import GPTScanAdapter
-from src.core.tool_protocol import ToolStatus
+from miesc.core.tool_protocol import ToolStatus
 
 
 def _harness(tmp_path, ttl=1000):

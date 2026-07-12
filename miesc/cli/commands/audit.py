@@ -729,7 +729,7 @@ def _run_full_audit_basic(
     # zero-recall pattern detection, context-aware FP suppression,
     # LLM↔static cross-validation, severity calibration.
     try:
-        from src.core.intelligence import enhance_findings
+        from miesc.core.intelligence import enhance_findings
 
         all_findings_flat: list[dict[str, Any]] = []
         for result in all_results:
@@ -951,7 +951,7 @@ def audit_quick(
     # zero-recall pattern detection, context-aware FP suppression,
     # LLM↔static cross-validation, severity calibration.
     try:
-        from src.core.intelligence import enhance_findings
+        from miesc.core.intelligence import enhance_findings
 
         all_findings_flat = []
         for result in all_results:
@@ -1500,7 +1500,7 @@ def audit_profile(
     # zero-recall pattern detection, context-aware FP suppression,
     # LLM↔static cross-validation, severity calibration.
     try:
-        from src.core.intelligence import enhance_findings
+        from miesc.core.intelligence import enhance_findings
 
         all_findings_flat = []
         for result in all_results:

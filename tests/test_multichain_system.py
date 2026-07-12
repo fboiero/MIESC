@@ -49,7 +49,7 @@ from miesc.adapters.stellar_adapter import (
     StellarAnalyzer,
     StellarPatternDetector,
 )
-from src.core.chain_abstraction import (
+from miesc.core.chain_abstraction import (
     VULNERABILITY_MAPPINGS,
     AbstractContract,
     AbstractFunction,

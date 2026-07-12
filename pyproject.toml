@@ -197,7 +197,7 @@ packages = [
     "miesc.agents.audit_readiness",
     "src.benchmark",
     "src.cache",
-    "src.core",
+    "miesc.core",
     "src.detectors",
     "src.evaluation",
     "src.formal",

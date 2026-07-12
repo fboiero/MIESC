@@ -205,7 +205,7 @@ For deeper integration, create an adapter in `src/adapters/`:
 
 ```python
 # src/adapters/my_tool_adapter.py
-from src.core.tool_protocol import ToolAdapter
+from miesc.core.tool_protocol import ToolAdapter
 
 class MyToolAdapter(ToolAdapter):
     TOOL_NAME = "my-tool"
@@ -350,7 +350,7 @@ The intelligence engine (`src/core/intelligence.py`) provides:
 Access programmatically:
 
 ```python
-from src.core.intelligence import enhance_findings
+from miesc.core.intelligence import enhance_findings
 
 enhanced = enhance_findings(
     findings_list,

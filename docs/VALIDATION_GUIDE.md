@@ -208,7 +208,7 @@ Total: X tools available out of 32
 
 ```bash
 python3 -c "from miesc.cli.main import app; print('CLI loaded successfully')"
-python3 -c "from src.core.result_aggregator import ResultAggregator; print('Core modules loaded')"
+python3 -c "from miesc.core.result_aggregator import ResultAggregator; print('Core modules loaded')"
 python3 -c "from miesc.adapters import get_available_adapters; print(f'Adapters: {len(get_available_adapters())} available')"
 ```
 

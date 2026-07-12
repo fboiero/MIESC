@@ -245,7 +245,7 @@ class TestReDoSResistance:
         assert result["success"] is True
 
     def test_taxonomy_normalize_bounded_time_on_long_input(self):
-        from src.core.finding_taxonomy import normalize_finding_type
+        from miesc.core.finding_taxonomy import normalize_finding_type
 
         huge = {"type": "a" * 100000, "title": "b" * 100000}
         start = time.monotonic()

@@ -14,7 +14,7 @@ import z3
 
 import miesc.adapters.vuln_verifier_adapter as mod
 from miesc.adapters.vuln_verifier_adapter import VulnVerifierAdapter
-from src.core.tool_protocol import ToolStatus
+from miesc.core.tool_protocol import ToolStatus
 
 
 def _a():

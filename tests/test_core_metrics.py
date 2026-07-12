@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 import pytest
 
-from src.core.metrics import (
+from miesc.core.metrics import (
     InternalCounter,
     InternalGauge,
     InternalHistogram,
@@ -236,7 +236,7 @@ class TestMIESCMetrics:
     @pytest.fixture
     def metrics(self):
         """Create metrics without Prometheus."""
-        with patch("src.core.metrics.PROMETHEUS_AVAILABLE", False):
+        with patch("miesc.core.metrics.PROMETHEUS_AVAILABLE", False):
             return MIESCMetrics()
 
     def test_init_internal(self, metrics):

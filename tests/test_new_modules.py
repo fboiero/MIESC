@@ -152,7 +152,7 @@ class TestPersistence:
         """Create temporary database for testing."""
         with tempfile.TemporaryDirectory() as tmpdir:
             db_path = os.path.join(tmpdir, "test.db")
-            from src.core.persistence import MIESCDatabase
+            from miesc.core.persistence import MIESCDatabase
 
             yield MIESCDatabase(db_path)
 
@@ -185,7 +185,7 @@ class TestPersistence:
 
     def test_update_audit_status(self, temp_db):
         """Test updating audit status."""
-        from src.core.persistence import AuditStatus
+        from miesc.core.persistence import AuditStatus
 
         audit_id = temp_db.create_audit("/tmp/Test.sol", ["slither"])
 
@@ -304,7 +304,7 @@ class TestPersistence:
 
     def test_audit_record_to_dict(self, temp_db):
         """Test AuditRecord.to_dict method."""
-        from src.core.persistence import AuditRecord
+        from miesc.core.persistence import AuditRecord
 
         record = AuditRecord(
             audit_id="audit-123",
@@ -329,7 +329,7 @@ class TestPersistence:
 
     def test_finding_record_to_dict(self, temp_db):
         """Test FindingRecord.to_dict method."""
-        from src.core.persistence import FindingRecord
+        from miesc.core.persistence import FindingRecord
 
         record = FindingRecord(
             finding_id="find-123",
@@ -356,7 +356,7 @@ class TestPersistence:
 
     def test_update_audit_status_without_results(self, temp_db):
         """Test updating audit status without results."""
-        from src.core.persistence import AuditStatus
+        from miesc.core.persistence import AuditStatus
 
         audit_id = temp_db.create_audit("/tmp/Test.sol", ["slither"])
 
@@ -516,7 +516,7 @@ class TestPersistenceSingleton:
 
     def test_get_database_singleton(self):
         """Test get_database returns singleton instance."""
-        from src.core.persistence import get_database, reset_database
+        from miesc.core.persistence import get_database, reset_database
 
         # Reset first to ensure clean state
         reset_database()
@@ -534,7 +534,7 @@ class TestPersistenceSingleton:
 
     def test_reset_database(self):
         """Test reset_database clears singleton."""
-        from src.core.persistence import get_database, reset_database
+        from miesc.core.persistence import get_database, reset_database
 
         with tempfile.TemporaryDirectory() as tmpdir:
             db_path = os.path.join(tmpdir, "reset_test.db")
@@ -701,7 +701,7 @@ class TestIntegration:
 
     def test_mcp_to_persistence_flow(self):
         """Test flow from MCP tool registry to persistence."""
-        from src.core.persistence import MIESCDatabase
+        from miesc.core.persistence import MIESCDatabase
         from src.mcp_core.tool_registry import get_tool_registry
 
         # Get tools from registry
@@ -717,7 +717,7 @@ class TestIntegration:
 
     def test_compliance_with_persistence(self):
         """Test compliance mapper with persistence."""
-        from src.core.persistence import MIESCDatabase
+        from miesc.core.persistence import MIESCDatabase
         from miesc.security.compliance_mapper import get_compliance_mapper
 
         mapper = get_compliance_mapper()

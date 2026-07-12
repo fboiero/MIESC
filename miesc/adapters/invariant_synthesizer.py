@@ -32,7 +32,7 @@ from miesc.adapters.smartllm_rag_knowledge import (
     get_all_vulnerability_patterns,
     get_relevant_knowledge,
 )
-from src.core.llm_config import (
+from miesc.core.llm_config import (
     USE_CASE_PROPERTY_GENERATION,
     get_model,
     get_ollama_host,

@@ -18,10 +18,10 @@ __email__ = "fboiero@frvm.utn.edu.ar"
 # Lazy imports - heavy modules are only loaded when accessed
 _lazy_imports = {
     # Core
-    "ToolAdapter": ("src.core.tool_protocol", "ToolAdapter"),
-    "ToolStatus": ("src.core.tool_protocol", "ToolStatus"),
-    "CorrelationEngine": ("src.core.correlation_api", "SmartCorrelationEngine"),
-    "ResultAggregator": ("src.core.result_aggregator", "ResultAggregator"),
+    "ToolAdapter": ("miesc.core.tool_protocol", "ToolAdapter"),
+    "ToolStatus": ("miesc.core.tool_protocol", "ToolStatus"),
+    "CorrelationEngine": ("miesc.core.correlation_api", "SmartCorrelationEngine"),
+    "ResultAggregator": ("miesc.core.result_aggregator", "ResultAggregator"),
     # ML
     "FalsePositiveFilter": ("miesc.ml", "FalsePositiveFilter"),
     "SeverityPredictor": ("miesc.ml", "SeverityPredictor"),

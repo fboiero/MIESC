@@ -37,7 +37,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-from src.core.chain_abstraction import (
+from miesc.core.chain_abstraction import (
     AbstractChainAnalyzer,
     AbstractContract,
     AbstractEvent,

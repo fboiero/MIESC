@@ -14,7 +14,7 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional
 
-from src.core.agent_protocol import AgentMetadata, SecurityAgent
+from miesc.core.agent_protocol import AgentMetadata, SecurityAgent
 
 logger = logging.getLogger(__name__)
 
@@ -265,7 +265,7 @@ class AgentRegistry:
 
         # Filter by capability
         if capability:
-            from src.core.agent_protocol import AgentCapability
+            from miesc.core.agent_protocol import AgentCapability
 
             try:
                 cap = AgentCapability(capability.lower())
@@ -279,7 +279,7 @@ class AgentRegistry:
 
         # Filter by speed
         if max_speed:
-            from src.core.agent_protocol import AgentSpeed
+            from miesc.core.agent_protocol import AgentSpeed
 
             speed_order = {AgentSpeed.FAST: 0, AgentSpeed.MEDIUM: 1, AgentSpeed.SLOW: 2}
             try:
@@ -303,7 +303,7 @@ class AgentRegistry:
         free = len([a for a in self.agents.values() if a.cost == 0])
 
         # Count by capability
-        from src.core.agent_protocol import AgentCapability
+        from miesc.core.agent_protocol import AgentCapability
 
         capabilities = {}
         for cap in AgentCapability:

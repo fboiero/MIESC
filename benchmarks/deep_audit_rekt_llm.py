@@ -79,7 +79,7 @@ def run(
     }
 
     # Apply the model mock for the whole benchmark run
-    with patch("src.core.llm_config.get_model", side_effect=_mock_get_model):
+    with patch("miesc.core.llm_config.get_model", side_effect=_mock_get_model):
         for i, t in enumerate(targets, 1):
             name = t.get("name", Path(t["path"]).stem)
             expected = t.get("vulnerability_class", t.get("vulnerability", ""))

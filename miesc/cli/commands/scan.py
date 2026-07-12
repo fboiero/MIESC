@@ -352,7 +352,7 @@ def scan(
 
         # Intelligence engine on aggregated findings
         try:
-            from src.core.intelligence import enhance_findings
+            from miesc.core.intelligence import enhance_findings
 
             all_findings_flat: list[dict[str, Any]] = []
             for result in all_results:
@@ -388,7 +388,7 @@ def scan(
         if frontier_model:
             try:
                 from miesc.adapters.frontier_llm_adapter import FrontierLLMAdapter
-                from src.core.tool_protocol import ToolStatus
+                from miesc.core.tool_protocol import ToolStatus
 
                 provider_map = {
                     "claude": ("anthropic", "claude-sonnet-4-6"),
@@ -563,7 +563,7 @@ def scan(
         frontier_model = None  # ensemble handles its own providers
         try:
             from miesc.adapters.frontier_llm_adapter import FrontierLLMAdapter
-            from src.core.tool_protocol import ToolStatus
+            from miesc.core.tool_protocol import ToolStatus
 
             ensemble_providers = [
                 ("anthropic", "claude-sonnet-4-6", "Claude"),
@@ -656,7 +656,7 @@ def scan(
             if (
                 adapter.is_available()
                 == __import__(
-                    "src.core.tool_protocol", fromlist=["ToolStatus"]
+                    "miesc.core.tool_protocol", fromlist=["ToolStatus"]
                 ).ToolStatus.AVAILABLE
             ):
                 if not quiet:
@@ -685,7 +685,7 @@ def scan(
     # zero-recall pattern detection, context-aware FP suppression,
     # LLM↔static cross-validation, severity calibration.
     try:
-        from src.core.intelligence import enhance_findings
+        from miesc.core.intelligence import enhance_findings
 
         all_findings_flat = []
         for result in all_results:

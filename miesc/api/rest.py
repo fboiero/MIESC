@@ -297,7 +297,7 @@ class AdapterLoader:
             return {"status": "no_adapter", "available": False}
 
         try:
-            from src.core.tool_protocol import ToolStatus
+            from miesc.core.tool_protocol import ToolStatus
 
             tool_status = adapter.is_available()
             return {
@@ -342,7 +342,7 @@ def run_tool(tool: str, contract_path: str, timeout: int = 300, **kwargs: Any) -
         }
 
     try:
-        from src.core.tool_protocol import ToolStatus
+        from miesc.core.tool_protocol import ToolStatus
 
         tool_status = adapter.is_available()
 

@@ -104,7 +104,7 @@ def get_contracts_by_category(dataset_path):
 def run_miesc_analysis(contract_path, tools=None):
     """Run MIESC analysis on a single contract."""
     try:
-        from src.core.optimized_orchestrator import OptimizedOrchestrator
+        from miesc.core.optimized_orchestrator import OptimizedOrchestrator
         orch = OptimizedOrchestrator(cache_enabled=False)
         result = orch.analyze(str(contract_path), tools=tools, timeout=60)
 

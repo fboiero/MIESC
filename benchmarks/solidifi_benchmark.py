@@ -98,7 +98,7 @@ try:
     MythrilAdapter = mythril_module.MythrilAdapter
     # Check if Mythril is actually available
     _mythril_test = MythrilAdapter()
-    from src.core.tool_protocol import ToolStatus
+    from miesc.core.tool_protocol import ToolStatus
 
     MYTHRIL_AVAILABLE = _mythril_test.is_available() == ToolStatus.AVAILABLE
 except Exception as e:

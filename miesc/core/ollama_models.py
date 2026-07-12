@@ -9,7 +9,7 @@ import urllib.error
 import urllib.request
 from typing import Iterable, List, Optional, Union
 
-from src.core.llm_config import get_ollama_host
+from miesc.core.llm_config import get_ollama_host
 
 logger = logging.getLogger(__name__)
 

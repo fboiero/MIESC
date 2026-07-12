@@ -11,7 +11,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List
 
-from src.core.agent_protocol import (
+from miesc.core.agent_protocol import (
     AgentCapability,
     AgentSpeed,
     AnalysisResult,

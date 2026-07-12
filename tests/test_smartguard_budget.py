@@ -9,7 +9,7 @@ from __future__ import annotations
 from unittest.mock import patch
 
 from miesc.adapters.smartguard_adapter import SmartGuardAdapter
-from src.core.tool_protocol import ToolStatus
+from miesc.core.tool_protocol import ToolStatus
 
 
 def _patched(adapter, tmp_path):

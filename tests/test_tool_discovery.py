@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.core.tool_discovery import (
+from miesc.core.tool_discovery import (
     ToolDiscovery,
     ToolInfo,
     get_tool_discovery,
@@ -259,7 +259,7 @@ class TestGetToolDiscovery:
     def test_get_tool_discovery(self):
         """Test getting singleton instance."""
         # Reset the global
-        import src.core.tool_discovery as module
+        import miesc.core.tool_discovery as module
 
         module._discovery = None
 

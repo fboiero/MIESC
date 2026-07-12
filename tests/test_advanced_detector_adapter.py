@@ -10,7 +10,7 @@ import sys
 
 import miesc.adapters.advanced_detector_adapter as mod
 from miesc.adapters.advanced_detector_adapter import AdvancedDetectorAdapter
-from src.core.tool_protocol import ToolStatus
+from miesc.core.tool_protocol import ToolStatus
 
 # Triggers the rug-pull detector: withdraw-style function gated by onlyOwner.
 RUG = (

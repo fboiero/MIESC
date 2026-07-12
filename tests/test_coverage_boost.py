@@ -164,7 +164,7 @@ class TestCodeEmbeddingSimilarityNormal:
 # tool_discovery.py coverage
 # ---------------------------------------------------------------------------
 
-from src.core.tool_discovery import ToolDiscovery
+from miesc.core.tool_discovery import ToolDiscovery
 
 
 class TestToolDiscoveryFindAdaptersPathNotFound:

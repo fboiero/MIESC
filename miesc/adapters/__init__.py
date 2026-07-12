@@ -94,7 +94,7 @@ from miesc.adapters.vertigo_adapter import VertigoAdapter
 from miesc.adapters.vuln_verifier_adapter import VulnVerifierAdapter
 from miesc.adapters.wake_adapter import WakeAdapter
 from miesc.adapters.zk_circuit_adapter import ZKCircuitAdapter
-from src.core.tool_protocol import ToolStatus, get_tool_registry
+from miesc.core.tool_protocol import ToolStatus, get_tool_registry
 
 logger = logging.getLogger(__name__)
 

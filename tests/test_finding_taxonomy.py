@@ -1,8 +1,8 @@
-"""Tests for src.core.finding_taxonomy — canonical category normalization."""
+"""Tests for miesc.core.finding_taxonomy — canonical category normalization."""
 
 import pytest
 
-from src.core.finding_taxonomy import (
+from miesc.core.finding_taxonomy import (
     CanonicalCategory,
     is_category,
     normalize_finding_type,

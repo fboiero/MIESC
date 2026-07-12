@@ -7,7 +7,7 @@ from miesc.adapters.crosschain_adapter import (
     BridgeType,
     CrossChainAdapter,
 )
-from src.core.tool_protocol import ToolStatus
+from miesc.core.tool_protocol import ToolStatus
 
 # ---------------------------------------------------------------------------
 # Sample Solidity code fixtures

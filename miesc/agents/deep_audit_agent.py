@@ -479,7 +479,7 @@ class DeepAuditAgent(BaseAgent):
         # zero-recall pattern detection, context-aware FP suppression,
         # LLM↔static cross-validation, severity calibration.
         try:
-            from src.core.intelligence import enhance_findings
+            from miesc.core.intelligence import enhance_findings
 
             if result.filtered_findings:
                 try:
@@ -529,7 +529,7 @@ class DeepAuditAgent(BaseAgent):
             return get_ml_orchestrator()
         except Exception:
             try:
-                from src.core.ml_orchestrator import MLOrchestrator
+                from miesc.core.ml_orchestrator import MLOrchestrator
 
                 return MLOrchestrator()
             except Exception:
@@ -711,7 +711,7 @@ class DeepAuditAgent(BaseAgent):
                 # Slither/Aderyn detector names (arbitrary-send-eth,
                 # suicidal, unprotected-upgrade, reentrancy-eth, ...)
                 # not just MIESC-native vocabulary.
-                from src.core.finding_taxonomy import CanonicalCategory, normalize_finding_type
+                from miesc.core.finding_taxonomy import CanonicalCategory, normalize_finding_type
 
                 canonical = normalize_finding_type(finding)
                 enriched["investigation"]["canonical_category"] = (
@@ -1017,7 +1017,7 @@ Respond ONLY with JSON of the shape:
           - needs_manual_review: bool
         """
         try:
-            from src.core.llm_config import (
+            from miesc.core.llm_config import (
                 USE_CASE_CODE_ANALYSIS,
                 USE_CASE_VERIFICATION,
                 get_model,

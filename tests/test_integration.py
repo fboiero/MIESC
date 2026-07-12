@@ -9,7 +9,7 @@ import tempfile
 import pytest
 
 # Import MIESC components
-from src.core import (
+from miesc.core import (
     HealthChecker,
     HealthStatus,
     MLOrchestrator,

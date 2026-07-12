@@ -3,7 +3,7 @@ MIESC LLM Configuration Helper
 Provides centralized access to LLM configuration from miesc.yaml
 
 Usage:
-    from src.core.llm_config import get_model, get_ollama_host, get_generation_options
+    from miesc.core.llm_config import get_model, get_ollama_host, get_generation_options
 
     # Get model for specific use case
     model = get_model("code_analysis")  # Returns configured model or default
@@ -84,7 +84,7 @@ DEFAULT_CONFIG = {
 def _load_config() -> Dict[str, Any]:
     """Load LLM configuration from config_loader or use defaults."""
     try:
-        from src.core.config_loader import get_config
+        from miesc.core.config_loader import get_config
 
         config = get_config()
         llm_config = config.get_llm_config()

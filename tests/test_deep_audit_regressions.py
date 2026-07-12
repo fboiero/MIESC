@@ -273,7 +273,7 @@ class TestCanonicalCategoryRouting:
     """Regression: before v5.1.7 the Phase-3 branches matched substrings in
     `ftype`. Slither detectors like `arbitrary-send-eth` (access control)
     didn't contain the substring 'access' and so never triggered property
-    generation. Now uses src.core.finding_taxonomy."""
+    generation. Now uses miesc.core.finding_taxonomy."""
 
     def test_arbitrary_send_eth_routes_to_access_control_branch(self, agent_no_llm, contract_path):
         agent_no_llm._start_time = time.monotonic()

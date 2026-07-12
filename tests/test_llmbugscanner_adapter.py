@@ -16,7 +16,7 @@ import urllib.error
 import urllib.request
 from unittest.mock import MagicMock, patch
 
-from src.core.tool_protocol import ToolStatus
+from miesc.core.tool_protocol import ToolStatus
 
 # ---------------------------------------------------------------------------
 # Helpers

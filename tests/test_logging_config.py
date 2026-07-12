@@ -13,7 +13,7 @@ from unittest.mock import patch
 
 import pytest
 
-from src.core.logging_config import (
+from miesc.core.logging_config import (
     AnalysisLogger,
     ContextFilter,
     RichFormatter,
@@ -35,7 +35,7 @@ class TestCorrelationId:
 
     def setup_method(self):
         """Reset correlation ID before each test."""
-        from src.core.logging_config import _correlation_id
+        from miesc.core.logging_config import _correlation_id
 
         _correlation_id.set(None)
 
@@ -66,7 +66,7 @@ class TestLogContext:
     def test_add_log_context(self):
         """Test adding log context."""
         add_log_context(contract="Token.sol", layer=1)
-        from src.core.logging_config import _log_context
+        from miesc.core.logging_config import _log_context
 
         ctx = _log_context.get()
         assert ctx["contract"] == "Token.sol"
@@ -76,7 +76,7 @@ class TestLogContext:
         """Test clearing log context."""
         add_log_context(key="value")
         clear_log_context()
-        from src.core.logging_config import _log_context
+        from miesc.core.logging_config import _log_context
 
         assert _log_context.get() == {}
 
@@ -85,7 +85,7 @@ class TestLogContext:
         add_log_context(outer="value")
 
         with log_context(inner="temp"):
-            from src.core.logging_config import _log_context
+            from miesc.core.logging_config import _log_context
 
             ctx = _log_context.get()
             assert ctx["outer"] == "value"
@@ -103,7 +103,7 @@ class TestStructuredFormatter:
     def setup_method(self):
         """Reset context before each test."""
         clear_log_context()
-        from src.core.logging_config import _correlation_id
+        from miesc.core.logging_config import _correlation_id
 
         _correlation_id.set(None)
 
@@ -195,7 +195,7 @@ class TestRichFormatter:
     def setup_method(self):
         """Reset context before each test."""
         clear_log_context()
-        from src.core.logging_config import _correlation_id
+        from miesc.core.logging_config import _correlation_id
 
         _correlation_id.set(None)
 
@@ -358,7 +358,7 @@ class TestRequestContext:
 
     def setup_method(self):
         """Reset correlation ID before each test."""
-        from src.core.logging_config import _correlation_id
+        from miesc.core.logging_config import _correlation_id
 
         _correlation_id.set(None)
 
@@ -485,7 +485,7 @@ class TestIntegration:
         """Test nested log contexts."""
         with log_context(outer="value1"):
             with log_context(inner="value2"):
-                from src.core.logging_config import _log_context
+                from miesc.core.logging_config import _log_context
 
                 ctx = _log_context.get()
                 assert ctx["outer"] == "value1"

@@ -341,7 +341,7 @@ class MIESCCorrelationAPI:
         # Lazy load LLM configuration
         if self._llm_model is None:
             try:
-                from src.core.llm_config import USE_CASE_CORRELATION, get_model, get_ollama_host
+                from miesc.core.llm_config import USE_CASE_CORRELATION, get_model, get_ollama_host
 
                 self._llm_model = get_model(USE_CASE_CORRELATION)
                 self._ollama_host = get_ollama_host()

@@ -60,7 +60,7 @@ except ImportError:
     batch_get_context_for_findings = None  # type: ignore[assignment]
 from miesc.adapters._cache_mixin import LLMCacheMixin
 from miesc.adapters._ollama_mixin import OllamaCallMixin
-from src.core.llm_config import (
+from miesc.core.llm_config import (
     ROLE_GENERATOR,
     USE_CASE_CODE_ANALYSIS,
     get_generation_options,
@@ -68,7 +68,7 @@ from src.core.llm_config import (
     get_ollama_host,
     get_retry_config,
 )
-from src.core.tool_protocol import (
+from miesc.core.tool_protocol import (
     ToolAdapter,
     ToolCapability,
     ToolCategory,
@@ -1556,7 +1556,7 @@ Report ONLY vulnerabilities confirmed by your step-by-step analysis. Quality ove
             vuln_mitigation = vuln_dict.get("mitigation", "N/A")
 
         # Get role-specific system prompt from config
-        from src.core.llm_config import ROLE_VERIFICATOR, get_role_system_prompt
+        from miesc.core.llm_config import ROLE_VERIFICATOR, get_role_system_prompt
 
         system_prompt = get_role_system_prompt(ROLE_VERIFICATOR)
 

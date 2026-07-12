@@ -25,7 +25,7 @@ try:
         get_adapter_status_report,
         register_all_adapters,
     )
-    from src.core.tool_protocol import ToolStatus
+    from miesc.core.tool_protocol import ToolStatus
 except ImportError as e:
     print(f"Error importing MIESC modules: {e}")
     print("Make sure you're running from the MIESC project directory")

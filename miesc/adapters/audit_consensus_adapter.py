@@ -22,7 +22,7 @@ import time
 from collections import defaultdict
 from typing import cast, Any, Dict, List
 
-from src.core.tool_protocol import (
+from miesc.core.tool_protocol import (
     ToolAdapter,
     ToolCapability,
     ToolCategory,

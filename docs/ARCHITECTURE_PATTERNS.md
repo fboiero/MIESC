@@ -94,7 +94,7 @@ The Registry pattern provides a central catalog of all available tools, enabling
 
 **Usage**:
 ```python
-from src.core.tool_protocol import get_tool_registry
+from miesc.core.tool_protocol import get_tool_registry
 
 registry = get_tool_registry()
 static_tools = registry.get_tools_by_category(ToolCategory.STATIC_ANALYSIS)
@@ -347,7 +347,7 @@ To add a new security tool to MIESC:
 
 ```python
 # src/adapters/mytool_adapter.py
-from src.core.tool_protocol import ToolAdapter, ToolMetadata, ToolStatus
+from miesc.core.tool_protocol import ToolAdapter, ToolMetadata, ToolStatus
 
 class MyToolAdapter(ToolAdapter):
     def get_metadata(self) -> ToolMetadata:

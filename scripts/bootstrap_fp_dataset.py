@@ -94,11 +94,11 @@ def label_finding(
     """
     Return (label, reason) where label=True for TP, False for FP, None to skip.
 
-    Uses the canonical taxonomy (src.core.finding_taxonomy) for class matching
+    Uses the canonical taxonomy (miesc.core.finding_taxonomy) for class matching
     so Slither's `arbitrary-send-eth` is correctly recognized as access_control,
     etc.
     """
-    from src.core.finding_taxonomy import CanonicalCategory, normalize_finding_type
+    from miesc.core.finding_taxonomy import CanonicalCategory, normalize_finding_type
 
     ftype = str(f.get("type", f.get("check", ""))).lower().strip()
     if not ftype:

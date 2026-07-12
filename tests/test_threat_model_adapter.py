@@ -7,7 +7,7 @@ avg DREAD, highest-risk category, audit-readiness), filtering and normalization.
 """
 
 from miesc.adapters.threat_model_adapter import ThreatModelAdapter
-from src.core.tool_protocol import ToolStatus
+from miesc.core.tool_protocol import ToolStatus
 
 # Trips several STRIDE patterns: tx.origin (Spoofing), public state var (Tampering),
 # setter w/o validation (Tampering), unbounded loop + external call (DoS).

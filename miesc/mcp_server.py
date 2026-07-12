@@ -424,7 +424,7 @@ async def miesc_correlate(
         return json.dumps({"error": "Invalid JSON input for findings_map"})
 
     try:
-        from src.core.correlation_api import SmartCorrelationEngine
+        from miesc.core.correlation_api import SmartCorrelationEngine
 
         engine = SmartCorrelationEngine()
         correlated = engine.correlate(
@@ -437,7 +437,7 @@ async def miesc_correlate(
         return json.dumps(
             {
                 "error": "Correlation engine not available",
-                "hint": "Ensure src.core.correlation_api is installed",
+                "hint": "Ensure miesc.core.correlation_api is installed",
             }
         )
 

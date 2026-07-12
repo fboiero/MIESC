@@ -10,7 +10,7 @@ Note: this analyzes EVM Solidity bridge contracts; it is not a non-EVM-chain fea
 """
 
 from miesc.adapters.bridge_monitor_adapter import BridgeMonitorAdapter
-from src.core.tool_protocol import ToolStatus
+from miesc.core.tool_protocol import ToolStatus
 
 
 def _a():

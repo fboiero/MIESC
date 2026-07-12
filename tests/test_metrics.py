@@ -8,7 +8,7 @@ import time
 
 import pytest
 
-from src.core.metrics import (
+from miesc.core.metrics import (
     PROMETHEUS_AVAILABLE,
     InternalCounter,
     InternalGauge,
@@ -241,7 +241,7 @@ class TestMIESCMetrics:
         metrics.record_audit_end(status="success", duration=5.0, layers=7)
 
         # Check metric was recorded (works with both Prometheus and internal backend)
-        from src.core.metrics import PROMETHEUS_AVAILABLE
+        from miesc.core.metrics import PROMETHEUS_AVAILABLE
 
         if PROMETHEUS_AVAILABLE:
             # With Prometheus, check via text output
@@ -261,7 +261,7 @@ class TestMIESCMetrics:
         )
 
         # Check metric was recorded (works with both Prometheus and internal backend)
-        from src.core.metrics import PROMETHEUS_AVAILABLE
+        from miesc.core.metrics import PROMETHEUS_AVAILABLE
 
         if PROMETHEUS_AVAILABLE:
             text = metrics.get_metrics_text()
@@ -281,7 +281,7 @@ class TestMIESCMetrics:
         )
 
         # Check metric was recorded (works with both Prometheus and internal backend)
-        from src.core.metrics import PROMETHEUS_AVAILABLE
+        from miesc.core.metrics import PROMETHEUS_AVAILABLE
 
         if PROMETHEUS_AVAILABLE:
             text = metrics.get_metrics_text()
@@ -298,7 +298,7 @@ class TestMIESCMetrics:
         metrics.record_error(error_type="timeout", tool="mythril")
 
         # Check metric was recorded (works with both Prometheus and internal backend)
-        from src.core.metrics import PROMETHEUS_AVAILABLE
+        from miesc.core.metrics import PROMETHEUS_AVAILABLE
 
         if PROMETHEUS_AVAILABLE:
             text = metrics.get_metrics_text()
@@ -412,9 +412,9 @@ class TestMIESCMetricsHTTPServer:
         metrics = MIESCMetrics()
 
         # Mock PROMETHEUS_AVAILABLE as False
-        with patch("src.core.metrics.PROMETHEUS_AVAILABLE", False):
+        with patch("miesc.core.metrics.PROMETHEUS_AVAILABLE", False):
             # Should log warning but not raise
-            with patch.object(logging.getLogger("src.core.metrics"), "warning"):
+            with patch.object(logging.getLogger("miesc.core.metrics"), "warning"):
                 metrics.start_http_server(9999)
 
     def test_start_http_server_with_prometheus(self):
@@ -424,7 +424,7 @@ class TestMIESCMetricsHTTPServer:
         metrics = MIESCMetrics()
 
         if PROMETHEUS_AVAILABLE:
-            with patch("src.core.metrics.start_http_server") as mock_server:
+            with patch("miesc.core.metrics.start_http_server") as mock_server:
                 metrics.start_http_server(9999)
                 mock_server.assert_called_once()
 
@@ -439,7 +439,7 @@ class TestMIESCMetricsPrometheus:
         if PROMETHEUS_AVAILABLE:
             metrics = MIESCMetrics()
             metrics.active_audits = MagicMock()
-            with patch("src.core.metrics.PROMETHEUS_AVAILABLE", True):
+            with patch("miesc.core.metrics.PROMETHEUS_AVAILABLE", True):
                 metrics.record_audit_start()
                 metrics.active_audits.inc.assert_called_once()
 
@@ -453,7 +453,7 @@ class TestMIESCMetricsPrometheus:
             metrics.audits_total = MagicMock()
             metrics.audit_duration_seconds = MagicMock()
 
-            with patch("src.core.metrics.PROMETHEUS_AVAILABLE", True):
+            with patch("miesc.core.metrics.PROMETHEUS_AVAILABLE", True):
                 metrics.record_audit_end(status="success", duration=5.0, layers=7)
 
     def test_record_finding_prometheus(self):
@@ -465,7 +465,7 @@ class TestMIESCMetricsPrometheus:
             metrics.findings_total = MagicMock()
             metrics.finding_confidence = MagicMock()
 
-            with patch("src.core.metrics.PROMETHEUS_AVAILABLE", True):
+            with patch("miesc.core.metrics.PROMETHEUS_AVAILABLE", True):
                 metrics.record_finding(
                     severity="critical", finding_type="reentrancy", layer=1, confidence=0.95
                 )
@@ -479,7 +479,7 @@ class TestMIESCMetricsPrometheus:
             metrics.tool_executions_total = MagicMock()
             metrics.tool_execution_seconds = MagicMock()
 
-            with patch("src.core.metrics.PROMETHEUS_AVAILABLE", True):
+            with patch("miesc.core.metrics.PROMETHEUS_AVAILABLE", True):
                 metrics.record_tool_execution(tool="slither", layer=1, duration=2.5, success=True)
 
     def test_record_error_prometheus(self):
@@ -490,7 +490,7 @@ class TestMIESCMetricsPrometheus:
             metrics = MIESCMetrics()
             metrics.errors_total = MagicMock()
 
-            with patch("src.core.metrics.PROMETHEUS_AVAILABLE", True):
+            with patch("miesc.core.metrics.PROMETHEUS_AVAILABLE", True):
                 metrics.record_error(error_type="timeout", tool="mythril")
 
     def test_get_metrics_text_prometheus(self):
@@ -510,7 +510,7 @@ class TestMIESCMetricsInternal:
 
         metrics = MIESCMetrics()
 
-        with patch("src.core.metrics.PROMETHEUS_AVAILABLE", False):
+        with patch("miesc.core.metrics.PROMETHEUS_AVAILABLE", False):
             metrics.record_audit_start()
             # Should use internal gauge
             assert "miesc_active_audits" in metrics.internal.gauges or True
@@ -521,7 +521,7 @@ class TestMIESCMetricsInternal:
 
         metrics = MIESCMetrics()
 
-        with patch("src.core.metrics.PROMETHEUS_AVAILABLE", False):
+        with patch("miesc.core.metrics.PROMETHEUS_AVAILABLE", False):
             metrics.record_audit_start()
             metrics.record_audit_end(status="success", duration=5.0, layers=7)
 
@@ -531,7 +531,7 @@ class TestMIESCMetricsInternal:
 
         metrics = MIESCMetrics()
 
-        with patch("src.core.metrics.PROMETHEUS_AVAILABLE", False):
+        with patch("miesc.core.metrics.PROMETHEUS_AVAILABLE", False):
             metrics.record_finding(
                 severity="high", finding_type="overflow", layer=2, confidence=0.85
             )
@@ -544,6 +544,6 @@ class TestMIESCMetricsInternal:
         metrics.internal.increment_counter("test_counter")
         metrics.internal.set_gauge("test_gauge", 42)
 
-        with patch("src.core.metrics.PROMETHEUS_AVAILABLE", False):
+        with patch("miesc.core.metrics.PROMETHEUS_AVAILABLE", False):
             text = metrics.get_metrics_text()
             assert isinstance(text, str)

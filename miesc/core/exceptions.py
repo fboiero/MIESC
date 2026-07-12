@@ -8,7 +8,7 @@ This module provides a hierarchical exception system for MIESC with:
 - Structured error context for debugging
 
 Usage:
-    from src.core.exceptions import ToolAdapterError, AnalysisTimeoutError
+    from miesc.core.exceptions import ToolAdapterError, AnalysisTimeoutError
 
     raise ToolAdapterError(
         message="Slither not found",
@@ -488,7 +488,7 @@ def handle_adapter_errors(func: F) -> F:
     This ensures adapters return consistent error formats instead of crashing.
 
     Usage:
-        from src.core.exceptions import handle_adapter_errors
+        from miesc.core.exceptions import handle_adapter_errors
 
         class MyAdapter:
             @handle_adapter_errors

@@ -12,7 +12,7 @@ integration with the MIESC pipeline.
 Base Protocol
 -------------
 
-.. automodule:: src.core.tool_protocol
+.. automodule:: miesc.core.tool_protocol
    :members:
    :undoc-members:
    :show-inheritance:

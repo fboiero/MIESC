@@ -19,8 +19,8 @@ from typing import Any, Dict, List, Optional
 
 from miesc.adapters._cache_mixin import LLMCacheMixin
 from miesc.adapters._ollama_mixin import OllamaCallMixin
-from src.core.llm_config import get_ollama_host
-from src.core.tool_protocol import (
+from miesc.core.llm_config import get_ollama_host
+from miesc.core.tool_protocol import (
     ToolAdapter,
     ToolCapability,
     ToolCategory,
@@ -167,7 +167,7 @@ Respond ONLY with valid JSON. Report ONLY vulnerabilities you are CONFIDENT abou
         self._timed_out = False
         self._init_cache("gptscan")
         try:
-            from src.core.llm_config import USE_CASE_CODE_ANALYSIS, get_model
+            from miesc.core.llm_config import USE_CASE_CODE_ANALYSIS, get_model
 
             self._ollama_model = get_model(USE_CASE_CODE_ANALYSIS)
         except Exception:

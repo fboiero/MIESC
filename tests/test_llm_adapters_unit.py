@@ -12,7 +12,7 @@ from unittest.mock import patch
 
 import pytest
 
-from src.core.tool_protocol import ToolCategory, ToolStatus
+from miesc.core.tool_protocol import ToolCategory, ToolStatus
 
 # ---------------------------------------------------------------------------
 # GPTLens Adapter

@@ -694,7 +694,7 @@ class TestSlitherAdapterComprehensive(TestAdapterBase):
     def test_is_available_installed(self):
         """Test availability when tool is installed."""
         from miesc.adapters.slither_adapter import SlitherAdapter
-        from src.core.tool_protocol import ToolStatus
+        from miesc.core.tool_protocol import ToolStatus
 
         with patch("subprocess.run") as mock_run:
             mock_run.return_value = MagicMock(returncode=0, stdout="0.10.0", stderr="")
@@ -705,7 +705,7 @@ class TestSlitherAdapterComprehensive(TestAdapterBase):
     def test_is_available_not_installed(self):
         """Test availability when tool is not installed."""
         from miesc.adapters.slither_adapter import SlitherAdapter
-        from src.core.tool_protocol import ToolStatus
+        from miesc.core.tool_protocol import ToolStatus
 
         with patch("subprocess.run") as mock_run:
             mock_run.side_effect = FileNotFoundError()
@@ -754,7 +754,7 @@ class TestMythrilAdapterComprehensive(TestAdapterBase):
     def test_is_available_installed(self):
         """Test availability check when installed."""
         from miesc.adapters.mythril_adapter import MythrilAdapter
-        from src.core.tool_protocol import ToolStatus
+        from miesc.core.tool_protocol import ToolStatus
 
         with patch("subprocess.run") as mock_run:
             mock_run.return_value = MagicMock(
@@ -784,7 +784,7 @@ class TestEchidnaAdapterComprehensive(TestAdapterBase):
     def test_is_available_check(self):
         """Test availability check."""
         from miesc.adapters.echidna_adapter import EchidnaAdapter
-        from src.core.tool_protocol import ToolStatus
+        from miesc.core.tool_protocol import ToolStatus
 
         with patch("subprocess.run") as mock_run:
             mock_run.return_value = MagicMock(returncode=0, stdout="2.2.0")
@@ -833,7 +833,7 @@ class TestFoundryAdapterComprehensive(TestAdapterBase):
     def test_is_available_check(self):
         """Test forge availability check."""
         from miesc.adapters.foundry_adapter import FoundryAdapter
-        from src.core.tool_protocol import ToolStatus
+        from miesc.core.tool_protocol import ToolStatus
 
         with patch("subprocess.run") as mock_run:
             mock_run.return_value = MagicMock(returncode=0, stdout="forge 0.2.0")
@@ -917,7 +917,7 @@ class TestAdapterCategories:
         """Test static analysis adapters have correct category."""
         from miesc.adapters.aderyn_adapter import AderynAdapter
         from miesc.adapters.slither_adapter import SlitherAdapter
-        from src.core.tool_protocol import ToolCategory
+        from miesc.core.tool_protocol import ToolCategory
 
         # Note: solhint uses DYNAMIC_TESTING category in implementation
         static_adapters = [SlitherAdapter(), AderynAdapter()]
@@ -932,7 +932,7 @@ class TestAdapterCategories:
         """Test symbolic execution adapters have correct category."""
         from miesc.adapters.manticore_adapter import ManticoreAdapter
         from miesc.adapters.mythril_adapter import MythrilAdapter
-        from src.core.tool_protocol import ToolCategory
+        from miesc.core.tool_protocol import ToolCategory
 
         sym_adapters = [MythrilAdapter(), ManticoreAdapter()]
 
@@ -946,7 +946,7 @@ class TestAdapterCategories:
         """Test dynamic testing (fuzzing) adapters have correct category."""
         from miesc.adapters.echidna_adapter import EchidnaAdapter
         from miesc.adapters.foundry_adapter import FoundryAdapter
-        from src.core.tool_protocol import ToolCategory
+        from miesc.core.tool_protocol import ToolCategory
 
         fuzz_adapters = [EchidnaAdapter(), FoundryAdapter()]
 
@@ -960,7 +960,7 @@ class TestAdapterCategories:
         """Test formal verification adapters have correct category."""
         from miesc.adapters.certora_adapter import CertoraAdapter
         from miesc.adapters.smtchecker_adapter import SMTCheckerAdapter
-        from src.core.tool_protocol import ToolCategory
+        from miesc.core.tool_protocol import ToolCategory
 
         fv_adapters = [SMTCheckerAdapter(), CertoraAdapter()]
 
@@ -974,7 +974,7 @@ class TestAdapterCategories:
         """Test AI analysis adapters have correct category."""
         from miesc.adapters.gptscan_adapter import GPTScanAdapter
         from miesc.adapters.smartllm_adapter import SmartLLMAdapter
-        from src.core.tool_protocol import ToolCategory
+        from miesc.core.tool_protocol import ToolCategory
 
         ai_adapters = [SmartLLMAdapter(), GPTScanAdapter()]
 
@@ -2003,7 +2003,7 @@ class TestManticoreAdapterExtended(TestAdapterBase):
     def test_is_available_version_check_failed(self):
         """Test is_available when version check fails."""
         from miesc.adapters.manticore_adapter import ManticoreAdapter
-        from src.core.tool_protocol import ToolStatus
+        from miesc.core.tool_protocol import ToolStatus
 
         adapter = ManticoreAdapter()
         with (
@@ -2017,7 +2017,7 @@ class TestManticoreAdapterExtended(TestAdapterBase):
     def test_is_available_not_installed(self):
         """Test is_available when not installed."""
         from miesc.adapters.manticore_adapter import ManticoreAdapter
-        from src.core.tool_protocol import ToolStatus
+        from miesc.core.tool_protocol import ToolStatus
 
         adapter = ManticoreAdapter()
         with patch("subprocess.run") as mock_run:
@@ -2028,7 +2028,7 @@ class TestManticoreAdapterExtended(TestAdapterBase):
     def test_is_available_timeout(self):
         """Test is_available handles timeout."""
         from miesc.adapters.manticore_adapter import ManticoreAdapter
-        from src.core.tool_protocol import ToolStatus
+        from miesc.core.tool_protocol import ToolStatus
 
         adapter = ManticoreAdapter()
         with (
@@ -2042,7 +2042,7 @@ class TestManticoreAdapterExtended(TestAdapterBase):
     def test_is_available_exception(self):
         """Test is_available handles generic exception."""
         from miesc.adapters.manticore_adapter import ManticoreAdapter
-        from src.core.tool_protocol import ToolStatus
+        from miesc.core.tool_protocol import ToolStatus
 
         adapter = ManticoreAdapter()
         with (
@@ -2059,7 +2059,7 @@ class TestManticoreAdapterExtended(TestAdapterBase):
 
         adapter = ManticoreAdapter()
         with patch.object(adapter, "is_available") as mock_avail:
-            from src.core.tool_protocol import ToolStatus
+            from miesc.core.tool_protocol import ToolStatus
 
             mock_avail.return_value = ToolStatus.NOT_INSTALLED
             result = adapter.analyze(temp_contract)
@@ -2139,7 +2139,7 @@ class TestManticoreAdapterExtended(TestAdapterBase):
             patch.object(adapter, "is_available") as mock_avail,
             patch.object(adapter, "_run_manticore") as mock_run,
         ):
-            from src.core.tool_protocol import ToolStatus
+            from miesc.core.tool_protocol import ToolStatus
 
             mock_avail.return_value = ToolStatus.AVAILABLE
             mock_run.side_effect = subprocess.TimeoutExpired(cmd="manticore", timeout=600)
@@ -2155,7 +2155,7 @@ class TestManticoreAdapterExtended(TestAdapterBase):
             patch.object(adapter, "is_available") as mock_avail,
             patch.object(adapter, "_run_manticore") as mock_run,
         ):
-            from src.core.tool_protocol import ToolStatus
+            from miesc.core.tool_protocol import ToolStatus
 
             mock_avail.return_value = ToolStatus.AVAILABLE
             mock_run.side_effect = Exception("Analysis failed")
@@ -2173,7 +2173,7 @@ class TestManticoreAdapterExtended(TestAdapterBase):
             patch.object(adapter, "_run_manticore") as mock_run,
             patch("builtins.open", mock_open()) as m,
         ):
-            from src.core.tool_protocol import ToolStatus
+            from miesc.core.tool_protocol import ToolStatus
 
             mock_avail.return_value = ToolStatus.AVAILABLE
             mock_run.return_value = "Analysis complete"
@@ -2215,7 +2215,7 @@ class TestMEVDetectorAdapterExtended(TestAdapterBase):
     def test_is_available(self):
         """Test is_available always returns AVAILABLE."""
         from miesc.adapters.mev_detector_adapter import MEVDetectorAdapter
-        from src.core.tool_protocol import ToolStatus
+        from miesc.core.tool_protocol import ToolStatus
 
         adapter = MEVDetectorAdapter()
         assert adapter.is_available() == ToolStatus.AVAILABLE
@@ -2400,7 +2400,7 @@ class TestEchidnaAdapterExtended(TestAdapterBase):
     def test_is_available_config_error_returncode(self):
         """Test is_available with non-zero return code."""
         from miesc.adapters.echidna_adapter import EchidnaAdapter
-        from src.core.tool_protocol import ToolStatus
+        from miesc.core.tool_protocol import ToolStatus
 
         adapter = EchidnaAdapter()
         with patch("subprocess.run") as mock_run:
@@ -2414,7 +2414,7 @@ class TestEchidnaAdapterExtended(TestAdapterBase):
 
         adapter = EchidnaAdapter()
         with patch.object(adapter, "is_available") as mock_avail:
-            from src.core.tool_protocol import ToolStatus
+            from miesc.core.tool_protocol import ToolStatus
 
             mock_avail.return_value = ToolStatus.NOT_INSTALLED
             result = adapter.analyze(temp_contract)
@@ -2437,7 +2437,7 @@ class TestEchidnaAdapterExtended(TestAdapterBase):
                 patch.object(adapter, "is_available") as mock_avail,
                 patch("subprocess.run") as mock_run,
             ):
-                from src.core.tool_protocol import ToolStatus
+                from miesc.core.tool_protocol import ToolStatus
 
                 mock_avail.return_value = ToolStatus.AVAILABLE
                 mock_run.return_value = MagicMock(returncode=0, stdout="Tests passed", stderr="")
@@ -2456,7 +2456,7 @@ class TestEchidnaAdapterExtended(TestAdapterBase):
             patch.object(adapter, "is_available") as mock_avail,
             patch("subprocess.run") as mock_run,
         ):
-            from src.core.tool_protocol import ToolStatus
+            from miesc.core.tool_protocol import ToolStatus
 
             mock_avail.return_value = ToolStatus.AVAILABLE
             mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
@@ -2472,7 +2472,7 @@ class TestEchidnaAdapterExtended(TestAdapterBase):
             patch.object(adapter, "is_available") as mock_avail,
             patch("subprocess.run") as mock_run,
         ):
-            from src.core.tool_protocol import ToolStatus
+            from miesc.core.tool_protocol import ToolStatus
 
             mock_avail.return_value = ToolStatus.AVAILABLE
             mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
@@ -2488,7 +2488,7 @@ class TestEchidnaAdapterExtended(TestAdapterBase):
             patch.object(adapter, "is_available") as mock_avail,
             patch("subprocess.run") as mock_run,
         ):
-            from src.core.tool_protocol import ToolStatus
+            from miesc.core.tool_protocol import ToolStatus
 
             mock_avail.return_value = ToolStatus.AVAILABLE
             mock_run.return_value = MagicMock(returncode=0, stdout="assertion failed!", stderr="")
@@ -2504,7 +2504,7 @@ class TestEchidnaAdapterExtended(TestAdapterBase):
             patch.object(adapter, "is_available") as mock_avail,
             patch("subprocess.run") as mock_run,
         ):
-            from src.core.tool_protocol import ToolStatus
+            from miesc.core.tool_protocol import ToolStatus
 
             mock_avail.return_value = ToolStatus.AVAILABLE
             mock_run.side_effect = subprocess.TimeoutExpired(cmd="echidna", timeout=600)
@@ -2521,7 +2521,7 @@ class TestEchidnaAdapterExtended(TestAdapterBase):
             patch.object(adapter, "is_available") as mock_avail,
             patch("subprocess.run") as mock_run,
         ):
-            from src.core.tool_protocol import ToolStatus
+            from miesc.core.tool_protocol import ToolStatus
 
             mock_avail.return_value = ToolStatus.AVAILABLE
             mock_run.side_effect = FileNotFoundError()
@@ -2537,7 +2537,7 @@ class TestEchidnaAdapterExtended(TestAdapterBase):
             patch.object(adapter, "is_available") as mock_avail,
             patch("subprocess.run") as mock_run,
         ):
-            from src.core.tool_protocol import ToolStatus
+            from miesc.core.tool_protocol import ToolStatus
 
             mock_avail.return_value = ToolStatus.AVAILABLE
             mock_run.side_effect = Exception("Unknown error")
@@ -2639,7 +2639,7 @@ class TestSolhintAdapterExtended(TestAdapterBase):
     def test_is_available_config_error_exception(self):
         """Test is_available with exception."""
         from miesc.adapters.solhint_adapter import SolhintAdapter
-        from src.core.tool_protocol import ToolStatus
+        from miesc.core.tool_protocol import ToolStatus
 
         adapter = SolhintAdapter()
         with patch("subprocess.run") as mock_run:
@@ -2653,7 +2653,7 @@ class TestSolhintAdapterExtended(TestAdapterBase):
 
         adapter = SolhintAdapter()
         with patch.object(adapter, "is_available") as mock_avail:
-            from src.core.tool_protocol import ToolStatus
+            from miesc.core.tool_protocol import ToolStatus
 
             mock_avail.return_value = ToolStatus.NOT_INSTALLED
             result = adapter.analyze(temp_contract)
@@ -2675,7 +2675,7 @@ class TestSolhintAdapterExtended(TestAdapterBase):
                 patch.object(adapter, "is_available") as mock_avail,
                 patch("subprocess.run") as mock_run,
             ):
-                from src.core.tool_protocol import ToolStatus
+                from miesc.core.tool_protocol import ToolStatus
 
                 mock_avail.return_value = ToolStatus.AVAILABLE
                 mock_run.return_value = MagicMock(returncode=0, stdout="[]", stderr="")
@@ -2694,7 +2694,7 @@ class TestSolhintAdapterExtended(TestAdapterBase):
             patch.object(adapter, "is_available") as mock_avail,
             patch("subprocess.run") as mock_run,
         ):
-            from src.core.tool_protocol import ToolStatus
+            from miesc.core.tool_protocol import ToolStatus
 
             mock_avail.return_value = ToolStatus.AVAILABLE
             mock_run.return_value = MagicMock(returncode=0, stdout="[]", stderr="")
@@ -2710,7 +2710,7 @@ class TestSolhintAdapterExtended(TestAdapterBase):
             patch.object(adapter, "is_available") as mock_avail,
             patch("subprocess.run") as mock_run,
         ):
-            from src.core.tool_protocol import ToolStatus
+            from miesc.core.tool_protocol import ToolStatus
 
             mock_avail.return_value = ToolStatus.AVAILABLE
             mock_run.return_value = MagicMock(returncode=0, stdout="[]", stderr="")
@@ -2732,7 +2732,7 @@ class TestSolhintAdapterExtended(TestAdapterBase):
                 patch.object(adapter, "is_available") as mock_avail,
                 patch("subprocess.run") as mock_run,
             ):
-                from src.core.tool_protocol import ToolStatus
+                from miesc.core.tool_protocol import ToolStatus
 
                 mock_avail.return_value = ToolStatus.AVAILABLE
                 mock_run.return_value = MagicMock(returncode=0, stdout="[]", stderr="")
@@ -2751,7 +2751,7 @@ class TestSolhintAdapterExtended(TestAdapterBase):
             patch.object(adapter, "is_available") as mock_avail,
             patch("subprocess.run") as mock_run,
         ):
-            from src.core.tool_protocol import ToolStatus
+            from miesc.core.tool_protocol import ToolStatus
 
             mock_avail.return_value = ToolStatus.AVAILABLE
             mock_run.side_effect = subprocess.TimeoutExpired(cmd="solhint", timeout=60)
@@ -2768,7 +2768,7 @@ class TestSolhintAdapterExtended(TestAdapterBase):
             patch.object(adapter, "is_available") as mock_avail,
             patch("subprocess.run") as mock_run,
         ):
-            from src.core.tool_protocol import ToolStatus
+            from miesc.core.tool_protocol import ToolStatus
 
             mock_avail.return_value = ToolStatus.AVAILABLE
             mock_run.side_effect = FileNotFoundError()
@@ -2784,7 +2784,7 @@ class TestSolhintAdapterExtended(TestAdapterBase):
             patch.object(adapter, "is_available") as mock_avail,
             patch("subprocess.run") as mock_run,
         ):
-            from src.core.tool_protocol import ToolStatus
+            from miesc.core.tool_protocol import ToolStatus
 
             mock_avail.return_value = ToolStatus.AVAILABLE
             mock_run.side_effect = Exception("Unknown error")
@@ -3722,7 +3722,7 @@ class TestCorrelationAPI:
 
     def test_api_initialization(self):
         """Test MIESCCorrelationAPI initialization."""
-        from src.core.correlation_api import MIESCCorrelationAPI
+        from miesc.core.correlation_api import MIESCCorrelationAPI
 
         api = MIESCCorrelationAPI(
             min_tools_for_validation=3,
@@ -3736,7 +3736,7 @@ class TestCorrelationAPI:
 
     def test_add_tool_results(self):
         """Test add_tool_results method."""
-        from src.core.correlation_api import MIESCCorrelationAPI
+        from miesc.core.correlation_api import MIESCCorrelationAPI
 
         api = MIESCCorrelationAPI()
         findings = [{"type": "reentrancy", "severity": "high", "message": "test"}]
@@ -3746,7 +3746,7 @@ class TestCorrelationAPI:
 
     def test_analyze_full_report(self):
         """Test analyze with full report format."""
-        from src.core.correlation_api import MIESCCorrelationAPI
+        from miesc.core.correlation_api import MIESCCorrelationAPI
 
         api = MIESCCorrelationAPI()
         api.add_tool_results(
@@ -3768,7 +3768,7 @@ class TestCorrelationAPI:
 
     def test_analyze_summary_report(self):
         """Test analyze with summary report format."""
-        from src.core.correlation_api import MIESCCorrelationAPI
+        from miesc.core.correlation_api import MIESCCorrelationAPI
 
         api = MIESCCorrelationAPI()
         api.add_tool_results(
@@ -3790,7 +3790,7 @@ class TestCorrelationAPI:
 
     def test_analyze_actionable_report(self):
         """Test analyze with actionable report format."""
-        from src.core.correlation_api import MIESCCorrelationAPI
+        from miesc.core.correlation_api import MIESCCorrelationAPI
 
         api = MIESCCorrelationAPI()
         api.add_tool_results(
@@ -3812,7 +3812,7 @@ class TestCorrelationAPI:
 
     def test_get_findings_by_severity(self):
         """Test get_findings_by_severity method."""
-        from src.core.correlation_api import MIESCCorrelationAPI
+        from miesc.core.correlation_api import MIESCCorrelationAPI
 
         api = MIESCCorrelationAPI()
         api.add_tool_results(
@@ -3840,7 +3840,7 @@ class TestCorrelationAPI:
 
     def test_get_findings_by_type(self):
         """Test get_findings_by_type method."""
-        from src.core.correlation_api import MIESCCorrelationAPI
+        from miesc.core.correlation_api import MIESCCorrelationAPI
 
         api = MIESCCorrelationAPI()
         api.add_tool_results(
@@ -3861,7 +3861,7 @@ class TestCorrelationAPI:
 
     def test_get_cross_validated_only(self):
         """Test get_cross_validated_only method."""
-        from src.core.correlation_api import MIESCCorrelationAPI
+        from miesc.core.correlation_api import MIESCCorrelationAPI
 
         api = MIESCCorrelationAPI()
         api.add_tool_results(
@@ -3894,7 +3894,7 @@ class TestCorrelationAPI:
 
     def test_clear(self):
         """Test clear method."""
-        from src.core.correlation_api import MIESCCorrelationAPI
+        from miesc.core.correlation_api import MIESCCorrelationAPI
 
         api = MIESCCorrelationAPI()
         api.add_tool_results("slither", [{"type": "test"}])
@@ -3904,7 +3904,7 @@ class TestCorrelationAPI:
 
     def test_analyze_contract_with_correlation_convenience(self):
         """Test analyze_contract_with_correlation convenience function."""
-        from src.core.correlation_api import analyze_contract_with_correlation
+        from miesc.core.correlation_api import analyze_contract_with_correlation
 
         tool_results = {
             "slither": [
@@ -3923,7 +3923,7 @@ class TestCorrelationAPI:
 
     def test_main_demo(self, capsys):
         """Test main() demo function runs without error."""
-        from src.core.correlation_api import main
+        from miesc.core.correlation_api import main
 
         # Call main - it should run without errors
         main()
@@ -3943,7 +3943,7 @@ class TestHealthChecker:
 
     def test_health_status_enum(self):
         """Test HealthStatus enum values."""
-        from src.core.health_checker import HealthStatus
+        from miesc.core.health_checker import HealthStatus
 
         assert HealthStatus.HEALTHY.value == "healthy"
         assert HealthStatus.DEGRADED.value == "degraded"
@@ -3954,7 +3954,7 @@ class TestHealthChecker:
         """Test ToolHealth dataclass creation and to_dict."""
         from datetime import datetime
 
-        from src.core.health_checker import HealthStatus, ToolHealth
+        from miesc.core.health_checker import HealthStatus, ToolHealth
 
         health = ToolHealth(
             name="slither",
@@ -3980,7 +3980,7 @@ class TestHealthChecker:
         """Test SystemHealth dataclass creation and to_dict."""
         from datetime import datetime
 
-        from src.core.health_checker import HealthStatus, SystemHealth, ToolHealth
+        from miesc.core.health_checker import HealthStatus, SystemHealth, ToolHealth
 
         tool = ToolHealth(
             name="mythril", status=HealthStatus.HEALTHY, available=True, last_check=datetime.now()
@@ -4005,7 +4005,7 @@ class TestHealthChecker:
 
     def test_health_checker_init(self):
         """Test HealthChecker initialization."""
-        from src.core.health_checker import HealthChecker
+        from miesc.core.health_checker import HealthChecker
 
         checker = HealthChecker(max_workers=2)
         assert checker.max_workers == 2
@@ -4014,7 +4014,7 @@ class TestHealthChecker:
 
     def test_health_checker_adapter_map(self):
         """Test HealthChecker has adapter mappings."""
-        from src.core.health_checker import HealthChecker
+        from miesc.core.health_checker import HealthChecker
 
         checker = HealthChecker()
         assert "slither" in checker.ADAPTER_MAP
@@ -4023,7 +4023,7 @@ class TestHealthChecker:
 
     def test_health_checker_check_tool_unknown(self):
         """Test checking unknown tool."""
-        from src.core.health_checker import HealthChecker, HealthStatus
+        from miesc.core.health_checker import HealthChecker, HealthStatus
 
         checker = HealthChecker()
         health = checker.check_tool("nonexistent_tool")
@@ -4036,7 +4036,7 @@ class TestHealthChecker:
         """Test check_tool caching behavior."""
         from datetime import datetime
 
-        from src.core.health_checker import HealthChecker, HealthStatus, ToolHealth
+        from miesc.core.health_checker import HealthChecker, HealthStatus, ToolHealth
 
         checker = HealthChecker()
         # Pre-populate cache
@@ -4053,7 +4053,7 @@ class TestHealthChecker:
         """Test clear_cache method."""
         from datetime import datetime
 
-        from src.core.health_checker import HealthChecker, HealthStatus, ToolHealth
+        from miesc.core.health_checker import HealthChecker, HealthStatus, ToolHealth
 
         checker = HealthChecker()
         checker._cache["test"] = ToolHealth(
@@ -4070,7 +4070,7 @@ class TestToolDiscovery:
 
     def test_tool_info_dataclass(self):
         """Test ToolInfo dataclass creation and to_dict."""
-        from src.core.tool_discovery import ToolInfo
+        from miesc.core.tool_discovery import ToolInfo
 
         info = ToolInfo(
             name="slither",
@@ -4090,7 +4090,7 @@ class TestToolDiscovery:
 
     def test_tool_discovery_init(self):
         """Test ToolDiscovery initialization."""
-        from src.core.tool_discovery import ToolDiscovery
+        from miesc.core.tool_discovery import ToolDiscovery
 
         discovery = ToolDiscovery()
         assert discovery._tools == {}
@@ -4098,14 +4098,14 @@ class TestToolDiscovery:
 
     def test_tool_discovery_name_mapping(self):
         """Test ToolDiscovery has name mappings."""
-        from src.core.tool_discovery import ToolDiscovery
+        from miesc.core.tool_discovery import ToolDiscovery
 
         assert "slither_adapter" in ToolDiscovery.NAME_MAPPING
         assert ToolDiscovery.NAME_MAPPING["slither_adapter"] == "slither"
 
     def test_tool_discovery_layer_mapping(self):
         """Test ToolDiscovery has layer mappings."""
-        from src.core.tool_discovery import ToolDiscovery
+        from miesc.core.tool_discovery import ToolDiscovery
 
         assert "slither" in ToolDiscovery.LAYER_MAPPING
         layer, category = ToolDiscovery.LAYER_MAPPING["slither"]
@@ -4113,7 +4113,7 @@ class TestToolDiscovery:
 
     def test_tool_discovery_discover(self):
         """Test discover method returns tools."""
-        from src.core.tool_discovery import ToolDiscovery
+        from miesc.core.tool_discovery import ToolDiscovery
 
         discovery = ToolDiscovery()
         tools = discovery.discover()
@@ -4124,7 +4124,7 @@ class TestToolDiscovery:
 
     def test_tool_discovery_get_tool(self):
         """Test get_tool method."""
-        from src.core.tool_discovery import ToolDiscovery
+        from miesc.core.tool_discovery import ToolDiscovery
 
         discovery = ToolDiscovery()
         discovery.discover()
@@ -4136,7 +4136,7 @@ class TestToolDiscovery:
 
     def test_tool_discovery_get_all_tool_names(self):
         """Test get_all_tool_names method."""
-        from src.core.tool_discovery import ToolDiscovery
+        from miesc.core.tool_discovery import ToolDiscovery
 
         discovery = ToolDiscovery()
         names = discovery.get_all_tool_names()
@@ -4145,7 +4145,7 @@ class TestToolDiscovery:
 
     def test_tool_discovery_get_tools_by_layer(self):
         """Test get_tools_by_layer method."""
-        from src.core.tool_discovery import ToolDiscovery
+        from miesc.core.tool_discovery import ToolDiscovery
 
         discovery = ToolDiscovery()
         by_layer = discovery.get_tools_by_layer()
@@ -4154,7 +4154,7 @@ class TestToolDiscovery:
 
     def test_tool_discovery_to_dict(self):
         """Test to_dict method."""
-        from src.core.tool_discovery import ToolDiscovery
+        from miesc.core.tool_discovery import ToolDiscovery
 
         discovery = ToolDiscovery()
         d = discovery.to_dict()
@@ -4166,7 +4166,7 @@ class TestToolDiscovery:
 
     def test_get_tool_discovery_singleton(self):
         """Test get_tool_discovery returns singleton."""
-        from src.core.tool_discovery import get_tool_discovery
+        from miesc.core.tool_discovery import get_tool_discovery
 
         d1 = get_tool_discovery()
         d2 = get_tool_discovery()
@@ -4179,7 +4179,7 @@ class TestResultAggregator:
 
     def test_finding_dataclass(self):
         """Test Finding dataclass creation and to_dict."""
-        from src.core.result_aggregator import Finding
+        from miesc.core.result_aggregator import Finding
 
         finding = Finding(
             id="abc123",
@@ -4202,7 +4202,7 @@ class TestResultAggregator:
 
     def test_aggregated_finding_dataclass(self):
         """Test AggregatedFinding dataclass."""
-        from src.core.result_aggregator import AggregatedFinding, Finding
+        from miesc.core.result_aggregator import AggregatedFinding, Finding
 
         f = Finding(id="1", tool="t", severity="high", type="test", message="msg")
 
@@ -4229,7 +4229,7 @@ class TestResultAggregator:
 
     def test_result_aggregator_init(self):
         """Test ResultAggregator initialization."""
-        from src.core.result_aggregator import ResultAggregator
+        from miesc.core.result_aggregator import ResultAggregator
 
         agg = ResultAggregator(similarity_threshold=0.8, min_confirmations=3, confidence_boost=0.2)
 
@@ -4239,7 +4239,7 @@ class TestResultAggregator:
 
     def test_result_aggregator_severity_map(self):
         """Test severity mapping."""
-        from src.core.result_aggregator import ResultAggregator
+        from miesc.core.result_aggregator import ResultAggregator
 
         assert ResultAggregator.SEVERITY_MAP["critical"] == 10
         assert ResultAggregator.SEVERITY_MAP["high"] == 8
@@ -4248,7 +4248,7 @@ class TestResultAggregator:
 
     def test_result_aggregator_add_tool_results(self):
         """Test adding tool results."""
-        from src.core.result_aggregator import ResultAggregator
+        from miesc.core.result_aggregator import ResultAggregator
 
         agg = ResultAggregator()
         count = agg.add_tool_results(
@@ -4270,7 +4270,7 @@ class TestResultAggregator:
 
     def test_result_aggregator_normalize_severity(self):
         """Test severity normalization."""
-        from src.core.result_aggregator import ResultAggregator
+        from miesc.core.result_aggregator import ResultAggregator
 
         agg = ResultAggregator()
 
@@ -4282,7 +4282,7 @@ class TestResultAggregator:
 
     def test_result_aggregator_normalize_type(self):
         """Test type normalization."""
-        from src.core.result_aggregator import ResultAggregator
+        from miesc.core.result_aggregator import ResultAggregator
 
         agg = ResultAggregator()
 
@@ -4292,7 +4292,7 @@ class TestResultAggregator:
 
     def test_result_aggregator_aggregate(self):
         """Test aggregation of findings."""
-        from src.core.result_aggregator import ResultAggregator
+        from miesc.core.result_aggregator import ResultAggregator
 
         agg = ResultAggregator()
 
@@ -4332,7 +4332,7 @@ class TestResultAggregator:
 
     def test_result_aggregator_get_statistics(self):
         """Test statistics generation."""
-        from src.core.result_aggregator import ResultAggregator
+        from miesc.core.result_aggregator import ResultAggregator
 
         agg = ResultAggregator()
         agg.add_tool_results(
@@ -4364,7 +4364,7 @@ class TestResultAggregator:
 
     def test_result_aggregator_get_high_confidence(self):
         """Test getting high confidence findings."""
-        from src.core.result_aggregator import ResultAggregator
+        from miesc.core.result_aggregator import ResultAggregator
 
         agg = ResultAggregator()
         agg.add_tool_results(
@@ -4387,7 +4387,7 @@ class TestResultAggregator:
 
     def test_result_aggregator_get_cross_validated(self):
         """Test getting cross-validated findings."""
-        from src.core.result_aggregator import ResultAggregator
+        from miesc.core.result_aggregator import ResultAggregator
 
         agg = ResultAggregator(min_confirmations=2)
 
@@ -4412,7 +4412,7 @@ class TestResultAggregator:
 
     def test_result_aggregator_to_report(self):
         """Test report generation."""
-        from src.core.result_aggregator import ResultAggregator
+        from miesc.core.result_aggregator import ResultAggregator
 
         agg = ResultAggregator()
         agg.add_tool_results(
@@ -4438,7 +4438,7 @@ class TestResultAggregator:
 
     def test_result_aggregator_clear(self):
         """Test clear method."""
-        from src.core.result_aggregator import ResultAggregator
+        from miesc.core.result_aggregator import ResultAggregator
 
         agg = ResultAggregator()
         agg.add_tool_results("slither", {"findings": [{"type": "t", "message": "m"}]})

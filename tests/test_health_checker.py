@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.core.health_checker import (
+from miesc.core.health_checker import (
     HealthChecker,
     HealthStatus,
     SystemHealth,

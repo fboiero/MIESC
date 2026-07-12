@@ -10,7 +10,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.core.result_aggregator import ResultAggregator
+from miesc.core.result_aggregator import ResultAggregator
 from miesc.ml import MLPipeline
 from miesc.ml.correlation_engine import (
     ExploitChainAnalyzer,

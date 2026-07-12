@@ -16,7 +16,7 @@ from unittest.mock import MagicMock, mock_open, patch
 import pytest
 
 from miesc.adapters.semgrep_adapter import SemgrepAdapter, register_adapter
-from src.core.tool_protocol import ToolCategory, ToolMetadata, ToolStatus
+from miesc.core.tool_protocol import ToolCategory, ToolMetadata, ToolStatus
 
 # =============================================================================
 # Fixtures

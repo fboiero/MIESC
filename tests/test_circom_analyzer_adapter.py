@@ -11,7 +11,7 @@ import json
 
 import miesc.adapters.circom_analyzer_adapter as mod
 from miesc.adapters.circom_analyzer_adapter import CircomAnalyzerAdapter
-from src.core.tool_protocol import ToolStatus
+from miesc.core.tool_protocol import ToolStatus
 
 
 def _a():

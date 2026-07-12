@@ -9,10 +9,10 @@ import tempfile
 
 import pytest
 
-from src.core.exporters import (
+from miesc.core.exporters import (
     Finding as ExportFinding,
 )
-from src.core.exporters import (
+from miesc.core.exporters import (
     MarkdownExporter,
     ReportExporter,
     SARIFExporter,

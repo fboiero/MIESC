@@ -1,5 +1,5 @@
 """
-Tests for src.core.intelligence — the 6-improvement intelligence engine.
+Tests for miesc.core.intelligence — the 6-improvement intelligence engine.
 
 1. Cross-tool confirmation scoring
 2. Semantic deduplication
@@ -11,7 +11,7 @@ Tests for src.core.intelligence — the 6-improvement intelligence engine.
 
 from __future__ import annotations
 
-from src.core.intelligence import (
+from miesc.core.intelligence import (
     MergedFinding,
     _passes_zero_recall_context_filter,
     calibrate_severity,

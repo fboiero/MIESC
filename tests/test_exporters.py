@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from src.core.exporters import (
+from miesc.core.exporters import (
     CheckmarxExporter,
     Finding,
     JSONExporter,
@@ -358,7 +358,7 @@ class TestFinding:
 
 def test_sarif_region_includes_columns():
     """SARIF _create_region must emit start/end columns when present (lines 204/207)."""
-    from src.core.exporters import Finding, SARIFExporter
+    from miesc.core.exporters import Finding, SARIFExporter
     import json as _json
 
     f = Finding(
