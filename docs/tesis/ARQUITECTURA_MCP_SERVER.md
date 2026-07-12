@@ -326,7 +326,7 @@ from mcp.server import Server
 from mcp.types import Tool, Resource, TextContent
 from typing import List, Dict, Any
 
-from miesc.core.engine import MIESCEngine
+from ..core.engine import MIESCEngine
 from .tools import TOOL_DEFINITIONS
 from .formatters import format_for_claude
 

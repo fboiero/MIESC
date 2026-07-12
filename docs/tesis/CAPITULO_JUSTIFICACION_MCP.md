@@ -329,10 +329,10 @@ from mcp.server import Server
 from mcp.server.stdio import stdio_server
 from mcp.types import Tool, Resource, TextContent
 
-from miesc.adapters import register_all_adapters, get_adapter_by_name
-from miesc.mcp.tool_handler import MIESCToolHandler
-from miesc.mcp.resource_handler import MIESCResourceHandler
-from miesc.mcp.security import validate_contract_path, SecurityError
+from src.adapters import register_all_adapters, get_adapter_by_name
+from src.mcp.tool_handler import MIESCToolHandler
+from src.mcp.resource_handler import MIESCResourceHandler
+from src.mcp.security import validate_contract_path, SecurityError
 
 logger = logging.getLogger(__name__)
 

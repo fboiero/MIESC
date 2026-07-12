@@ -492,7 +492,7 @@ import requests
 from typing import Dict, Any, Optional
 from abc import ABC, abstractmethod
 
-from miesc.config.llm_config import LLM_CONFIG, verify_sovereign_backend
+from src.config.llm_config import LLM_CONFIG, verify_sovereign_backend
 
 class SovereigntyViolation(Exception):
     """Exception for data sovereignty violations."""
@@ -618,7 +618,7 @@ TCPDUMP_PID=$!
 
 # Run test analysis
 python3 -c "
-from miesc.adapters.gptscan_adapter import GPTScanAdapter
+from src.adapters.gptscan_adapter import GPTScanAdapter
 adapter = GPTScanAdapter()
 adapter.analyze('contracts/test/TestContract.sol')
 " 2>/dev/null
@@ -646,7 +646,7 @@ echo ""
 # 4. Verify MIESC configuration
 echo "[4/4] Verifying MIESC configuration..."
 python3 -c "
-from miesc.config.llm_config import LLM_CONFIG, verify_sovereign_backend
+from src.config.llm_config import LLM_CONFIG, verify_sovereign_backend
 print(f'      Backend: {LLM_CONFIG[\"backend\"]}')
 print(f'      URL: {LLM_CONFIG[\"base_url\"]}')
 print(f'      Allow External: {LLM_CONFIG[\"allow_external\"]}')

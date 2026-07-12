@@ -99,7 +99,7 @@ and benchmark scripts. It should accept an original contract plus findings and
 return patched source, compile result, re-scan result, no-regression result, and
 an evidence bundle.
 
-Implementation status: initial module added in `miesc.security.remediation_pipeline`.
+Implementation status: initial module added in `src.security.remediation_pipeline`.
 It provides the shared evidence dataclasses, Paper 2 compile-failure taxonomy,
 standalone compile checks, re-scan/no-regression fields, and a reusable
 `remediate_contract` entry point.
