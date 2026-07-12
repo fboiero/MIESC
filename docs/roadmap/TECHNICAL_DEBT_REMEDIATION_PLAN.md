@@ -83,12 +83,18 @@ rewritten to mirror `constants.py` exactly — keys `ml_detection`,
 `specialized_analysis`, `crosschain_zk_security`, `advanced_ensemble` with the
 canonical tool groupings — and 546 tests across config/core/mcp/registry/audit/
 multichain/rest stay green. A header note pins `constants.py` as authoritative.
-(New minor debt: the two miesc.yaml copies must be kept in sync; a single packaged
-source would remove that duplication.) The doc layer
-tables (`docs/index*.md`, `docs/ARCHITECTURE*.md`, `docs/TOOLS.md`, INSTALLATION,
-QUICKSTART, report templates) are now aligned to the canonical scheme; the one
-exception is `docs/architecture/layers.rst`, a Sphinx reference page on a distinct
-legacy ordering that carries a canonical-source note and is pending a full rewrite.
+The two `miesc.yaml` copies (dev `config/` and packaged `miesc/data/config/`) are
+now byte-identical and guarded against future drift by
+`tests/test_config_loader.py::TestConfigCopiesInSync` (asserts both exist, are
+byte-identical, and carry the canonical layer keys). All doc layer tables
+(`docs/index*.md`, `docs/ARCHITECTURE*.md`, `docs/TOOLS.md`, INSTALLATION,
+QUICKSTART, report templates, and `docs/architecture/layers.rst`) are aligned to
+the canonical scheme.
+
+This debt item is now fully resolved. Residual follow-ups (nice-to-have, not
+blocking): collapse the two `miesc.yaml` copies into a single packaged source, and
+migrate `src/core` to consume `constants.LAYERS` directly instead of mirroring it
+in YAML.
 
 **Validation path:** after the refactor, `constants.py`, `miesc.yaml`, the REST API
 `/layers` response, and the README "9 Defense Layers" block must all print the same

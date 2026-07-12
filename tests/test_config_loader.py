@@ -19,6 +19,50 @@ from src.core.config_loader import (
 )
 
 
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+_CONFIG_COPIES = [
+    _REPO_ROOT / "config" / "miesc.yaml",
+    _REPO_ROOT / "miesc" / "data" / "config" / "miesc.yaml",
+]
+
+# Canonical 9-layer taxonomy (mirrors miesc/cli/constants.py LAYERS keys).
+_CANONICAL_LAYER_KEYS = [
+    "static_analysis",
+    "dynamic_testing",
+    "symbolic_execution",
+    "formal_verification",
+    "ai_analysis",
+    "ml_detection",
+    "specialized_analysis",
+    "crosschain_zk_security",
+    "advanced_ensemble",
+]
+
+
+class TestConfigCopiesInSync:
+    """Guard: the dev (config/) and packaged (miesc/data/config/) YAMLs must not drift."""
+
+    def test_both_config_copies_exist(self):
+        for path in _CONFIG_COPIES:
+            assert path.is_file(), f"missing config copy: {path}"
+
+    def test_config_copies_are_byte_identical(self):
+        root, packaged = (p.read_text(encoding="utf-8") for p in _CONFIG_COPIES)
+        assert root == packaged, (
+            "config/miesc.yaml and miesc/data/config/miesc.yaml have diverged; "
+            "keep the two copies identical (see technical-debt plan)."
+        )
+
+    def test_config_layers_match_canonical_taxonomy(self):
+        for path in _CONFIG_COPIES:
+            data = yaml.safe_load(path.read_text(encoding="utf-8"))
+            keys = list(data.get("layers", {}).keys())
+            assert keys == _CANONICAL_LAYER_KEYS, (
+                f"{path} layer keys {keys} do not match the canonical "
+                f"constants.py taxonomy {_CANONICAL_LAYER_KEYS}"
+            )
+
+
 class TestAdapterConfig:
     """Test AdapterConfig dataclass."""
 
