@@ -151,6 +151,14 @@ if RICH_AVAILABLE:
     help="With --baseline: exit non-zero ONLY if there are findings not in the baseline "
     "(CI gate for newly introduced issues).",
 )
+@click.option(
+    "--annotate",
+    type=click.Choice(["github"], case_sensitive=False),
+    default=None,
+    help="Emit per-finding inline annotations for a CI provider. 'github' prints "
+    "GitHub Actions workflow commands (::error/::warning ...) so findings render "
+    "inline on the PR diff. With --baseline, only new findings are annotated.",
+)
 def scan(
     contract: str,
     output: str | None,
@@ -170,6 +178,7 @@ def scan(
     rank: bool,
     baseline_path: str | None,
     fail_on_new: bool,
+    annotate: str | None,
 ) -> None:
     """Quick vulnerability scan for a Solidity contract or directory.
 
@@ -280,6 +289,7 @@ def scan(
             rank=rank,
             baseline_path=baseline_path,
             fail_on_new=fail_on_new,
+            annotate=annotate,
         )
         return
 
@@ -302,6 +312,7 @@ def scan(
             rank=rank,
             baseline_path=baseline_path,
             fail_on_new=fail_on_new,
+            annotate=annotate,
         )
         return
 
@@ -488,6 +499,7 @@ def scan(
             rank=rank,
             baseline_path=baseline_path,
             fail_on_new=fail_on_new,
+            annotate=annotate,
         )
         return
 
@@ -795,6 +807,7 @@ def scan(
         rank=rank,
         baseline_path=baseline_path,
         fail_on_new=fail_on_new,
+        annotate=annotate,
     )
 
 
@@ -880,6 +893,7 @@ def _run_agentic_scan_profile(
     rank: bool,
     baseline_path: str | None = None,
     fail_on_new: bool = False,
+    annotate: str | None = None,
 ) -> None:
     from miesc.cli.commands.audit import _apply_deep_profile_config
     from miesc.agents.deep_audit_agent import DeepAuditAgent, DeepAuditConfig
@@ -919,6 +933,7 @@ def _run_agentic_scan_profile(
         rank=rank,
         baseline_path=baseline_path,
         fail_on_new=fail_on_new,
+        annotate=annotate,
     )
 
 
@@ -1009,6 +1024,7 @@ def _display_and_save(
     rank: bool = False,
     baseline_path: str | None = None,
     fail_on_new: bool = False,
+    annotate: str | None = None,
 ) -> None:
     """Display the scan summary table, optionally save JSON, and handle CI exit."""
     if verify_fp:
@@ -1136,6 +1152,30 @@ def _display_and_save(
         with open(output, "w", encoding="utf-8") as output_handle:
             json.dump(data, output_handle, indent=2, default=str)
         success(f"Report saved to {output}")
+
+    # Inline CI annotations (e.g. GitHub Actions ::error/::warning workflow
+    # commands). Emitted BEFORE the baseline/CI exit so annotations render even
+    # when the run is about to fail. With --baseline, only new findings annotate.
+    if annotate == "github":
+        from miesc.core.baseline import diff_against_baseline, load_baseline
+        from miesc.core.exporters import GitHubAnnotationsExporter
+
+        annotate_findings: list[dict[str, Any]] = []
+        for r in all_results:
+            for f in r.get("findings", []):
+                f.setdefault("file", r.get("contract", contract))
+                annotate_findings.append(f)
+
+        if baseline_path:
+            try:
+                baseline_obj = load_baseline(baseline_path)
+                annotate_findings = diff_against_baseline(annotate_findings, baseline_obj)["new"]
+            except (FileNotFoundError, ValueError) as exc:
+                if not quiet:
+                    warning(f"annotate: baseline unusable, annotating all findings: {exc}")
+
+        for line in GitHubAnnotationsExporter().to_github_annotations(annotate_findings):
+            click.echo(line)
 
     # Baseline suppression gate: report new/known/fixed and optionally fail on new
     if baseline_path:

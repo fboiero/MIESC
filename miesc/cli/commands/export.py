@@ -36,11 +36,19 @@ from miesc.cli.utils import (
     "--format",
     "-f",
     "fmt",
-    type=click.Choice(["sarif", "markdown", "csv", "html", "jsonl"]),
+    type=click.Choice(["sarif", "markdown", "csv", "html", "jsonl", "github"]),
     required=True,
 )
 @click.option("--output", "-o", type=click.Path(), help="Output file path")
-def export(input_file: str, fmt: str, output: str | None) -> None:
+@click.option(
+    "--baseline",
+    "baseline_path",
+    type=click.Path(),
+    default=None,
+    help="With -f github: annotate ONLY findings not present in this baseline "
+    "(see 'miesc baseline generate').",
+)
+def export(input_file: str, fmt: str, output: str | None, baseline_path: str | None) -> None:
     """Export JSON results to different formats.
 
     Converts MIESC JSON audit results to various output formats
@@ -52,6 +60,7 @@ def export(input_file: str, fmt: str, output: str | None) -> None:
       - csv: Spreadsheet-compatible CSV
       - html: Standalone HTML report
       - jsonl: One JSON object per finding (for ML pipelines)
+      - github: GitHub Actions inline annotations (::error/::warning ...)
 
     Examples:
       miesc export results.json -f sarif -o results.sarif.json
@@ -59,6 +68,8 @@ def export(input_file: str, fmt: str, output: str | None) -> None:
       miesc export results.json -f csv -o findings.csv
       miesc export results.json -f html -o report.html
       miesc export results.json -f jsonl -o findings.jsonl
+      miesc export results.json -f github
+      miesc export results.json -f github --baseline .miesc-baseline.json
     """
     print_banner()
 
@@ -179,6 +190,40 @@ def export(input_file: str, fmt: str, output: str | None) -> None:
                 lines.append(json.dumps(record))
         output_str = "\n".join(lines) + "\n" if lines else ""
         ext = ".jsonl"
+    elif fmt == "github":
+        from miesc.core.exporters import GitHubAnnotationsExporter
+
+        findings: list[dict[str, Any]] = []
+        for result in results:
+            for finding in result.get("findings", []):
+                if isinstance(finding, dict):
+                    finding.setdefault("tool", result.get("tool", "unknown"))
+                    finding.setdefault("file", result.get("contract", contract))
+                    findings.append(finding)
+
+        if baseline_path:
+            from miesc.core.baseline import diff_against_baseline, load_baseline
+
+            try:
+                baseline_obj = load_baseline(baseline_path)
+            except (FileNotFoundError, ValueError, json.JSONDecodeError) as exc:
+                error(f"Invalid or missing baseline {baseline_path}: {exc}")
+                return
+            findings = diff_against_baseline(findings, baseline_obj)["new"]
+
+        annotation_lines = GitHubAnnotationsExporter().to_github_annotations(findings)
+
+        # Emit to stdout so GitHub Actions renders the annotations inline.
+        for line in annotation_lines:
+            click.echo(line)
+
+        if output:
+            Path(output).write_text(
+                "\n".join(annotation_lines) + ("\n" if annotation_lines else ""),
+                encoding="utf-8",
+            )
+            success(f"Exported to {output}")
+        return
     else:
         error(f"Format {fmt} not supported")
         return
