@@ -268,8 +268,6 @@ filterwarnings = [
 [tool.coverage.run]
 source = ["miesc"]
 omit = [
-    # Wrapper package (re-exports from src/)
-    "miesc/*",
     # Legacy standalone tools (deprecated in v4.0+)
     "miesc/*_tool.py",
     "miesc/main.py",
