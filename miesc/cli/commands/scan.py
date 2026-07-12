@@ -137,6 +137,20 @@ if RICH_AVAILABLE:
     "first (never drops anything; recall 1.0). Needs a trained model "
     "(scripts/train_triage_model.py); no-ops gracefully without one.",
 )
+@click.option(
+    "--baseline",
+    "baseline_path",
+    type=click.Path(),
+    default=None,
+    help="Suppress findings already recorded in this baseline file "
+    "(see 'miesc baseline generate'). Reports new/known/fixed counts.",
+)
+@click.option(
+    "--fail-on-new",
+    is_flag=True,
+    help="With --baseline: exit non-zero ONLY if there are findings not in the baseline "
+    "(CI gate for newly introduced issues).",
+)
 def scan(
     contract: str,
     output: str | None,
@@ -154,6 +168,8 @@ def scan(
     verify_fp: bool,
     verify_model: str | None,
     rank: bool,
+    baseline_path: str | None,
+    fail_on_new: bool,
 ) -> None:
     """Quick vulnerability scan for a Solidity contract or directory.
 
@@ -262,6 +278,8 @@ def scan(
             verify_fp=verify_fp,
             verify_model=verify_model,
             rank=rank,
+            baseline_path=baseline_path,
+            fail_on_new=fail_on_new,
         )
         return
 
@@ -282,6 +300,8 @@ def scan(
             verify_fp=verify_fp,
             verify_model=verify_model,
             rank=rank,
+            baseline_path=baseline_path,
+            fail_on_new=fail_on_new,
         )
         return
 
@@ -466,6 +486,8 @@ def scan(
             verify_fp=verify_fp,
             verify_model=verify_model,
             rank=rank,
+            baseline_path=baseline_path,
+            fail_on_new=fail_on_new,
         )
         return
 
@@ -771,6 +793,8 @@ def scan(
         verify_fp=verify_fp,
         verify_model=verify_model,
         rank=rank,
+        baseline_path=baseline_path,
+        fail_on_new=fail_on_new,
     )
 
 
@@ -854,6 +878,8 @@ def _run_agentic_scan_profile(
     verify_fp: bool,
     verify_model: str | None,
     rank: bool,
+    baseline_path: str | None = None,
+    fail_on_new: bool = False,
 ) -> None:
     from miesc.cli.commands.audit import _apply_deep_profile_config
     from miesc.agents.deep_audit_agent import DeepAuditAgent, DeepAuditConfig
@@ -891,6 +917,8 @@ def _run_agentic_scan_profile(
         verify_fp=verify_fp,
         verify_model=verify_model,
         rank=rank,
+        baseline_path=baseline_path,
+        fail_on_new=fail_on_new,
     )
 
 
@@ -979,6 +1007,8 @@ def _display_and_save(
     verify_fp: bool = False,
     verify_model: str | None = None,
     rank: bool = False,
+    baseline_path: str | None = None,
+    fail_on_new: bool = False,
 ) -> None:
     """Display the scan summary table, optionally save JSON, and handle CI exit."""
     if verify_fp:
@@ -1106,6 +1136,18 @@ def _display_and_save(
         with open(output, "w", encoding="utf-8") as output_handle:
             json.dump(data, output_handle, indent=2, default=str)
         success(f"Report saved to {output}")
+
+    # Baseline suppression gate: report new/known/fixed and optionally fail on new
+    if baseline_path:
+        from miesc.cli.commands.baseline import apply_baseline_gate
+
+        gate_findings: list[dict[str, Any]] = []
+        for r in all_results:
+            for f in r.get("findings", []):
+                gate_findings.append(f)
+        apply_baseline_gate(
+            gate_findings, baseline_path, fail_on_new=fail_on_new, quiet=quiet
+        )
 
     # CI mode exit
     if ci and critical_high > 0:

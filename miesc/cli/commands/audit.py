@@ -416,6 +416,8 @@ def _run_full_audit_with_ml(
     verify_model: str | None = None,
     rank: bool = False,
     fp_strictness: str = "off",
+    baseline_path: str | None = None,
+    fail_on_new: bool = False,
 ) -> None:
     """Run full audit using ML Orchestrator."""
     # Determine tools from layers
@@ -542,6 +544,16 @@ def _run_full_audit_with_ml(
                     json.dump(data, f, indent=2)
             success(f"Report saved to {output}")
 
+        # Baseline suppression gate
+        if baseline_path:
+            from miesc.cli.commands.baseline import apply_baseline_gate
+
+            apply_baseline_gate(
+                list(result.ml_filtered_findings),
+                baseline_path,
+                fail_on_new=fail_on_new,
+            )
+
     except Exception as e:
         error(f"ML analysis failed: {e}")
         logger.exception("ML analysis error")
@@ -549,6 +561,7 @@ def _run_full_audit_with_ml(
         _run_full_audit_basic(
             contract, output, fmt, layer_list, timeout,
             verify_fp=verify_fp, verify_model=verify_model, rank=rank,
+            baseline_path=baseline_path, fail_on_new=fail_on_new,
         )
 
 
@@ -595,6 +608,8 @@ def _run_full_audit_with_correlation(
     verify_fp: bool = False,
     verify_model: str | None = None,
     rank: bool = False,
+    baseline_path: str | None = None,
+    fail_on_new: bool = False,
 ) -> None:
     """Run full audit using Correlation API."""
     all_results: list[dict[str, Any]] = []
@@ -678,6 +693,13 @@ def _run_full_audit_with_correlation(
             json.dump(report, f, indent=2, default=str)
         success(f"Report saved to {output}")
 
+    # Baseline suppression gate (on raw per-layer findings)
+    if baseline_path:
+        from miesc.cli.commands.baseline import apply_baseline_gate
+
+        gate_findings = [f for r in all_results for f in r.get("findings", [])]
+        apply_baseline_gate(gate_findings, baseline_path, fail_on_new=fail_on_new)
+
 
 def _run_full_audit_basic(
     contract: str,
@@ -688,6 +710,8 @@ def _run_full_audit_basic(
     verify_fp: bool = False,
     verify_model: str | None = None,
     rank: bool = False,
+    baseline_path: str | None = None,
+    fail_on_new: bool = False,
 ) -> None:
     """Run full audit in basic mode (no ML/correlation)."""
     import time as _time
@@ -863,6 +887,13 @@ def _run_full_audit_basic(
                 json.dump(data, f, indent=2, default=str)
         success(f"Report saved to {output}")
 
+    # Baseline suppression gate
+    if baseline_path:
+        from miesc.cli.commands.baseline import apply_baseline_gate
+
+        gate_findings = [f for r in all_results for f in r.get("findings", [])]
+        apply_baseline_gate(gate_findings, baseline_path, fail_on_new=fail_on_new)
+
 
 # =============================================================================
 # Audit Command Group
@@ -904,6 +935,19 @@ def audit() -> None:
     help="Recall-safe triage: order findings by P(real) so the most-likely-real surface "
     "first (never drops; recall 1.0). Needs a trained model (scripts/train_triage_model.py).",
 )
+@click.option(
+    "--baseline",
+    "baseline_path",
+    type=click.Path(),
+    default=None,
+    help="Suppress findings already recorded in this baseline file "
+    "(see 'miesc baseline generate').",
+)
+@click.option(
+    "--fail-on-new",
+    is_flag=True,
+    help="With --baseline: exit non-zero ONLY if there are findings not in the baseline.",
+)
 def audit_quick(
     contract: str,
     output: str | None,
@@ -913,6 +957,8 @@ def audit_quick(
     verify_fp: bool,
     verify_model: str | None,
     rank: bool,
+    baseline_path: str | None,
+    fail_on_new: bool,
 ) -> None:
     """Quick 3-tool scan for fast feedback (slither, aderyn, solhint)."""
     print_banner()
@@ -1049,6 +1095,13 @@ def audit_quick(
                 json.dump(data, f, indent=2, default=str)
         success(f"Report saved to {output}")
 
+    # Baseline suppression gate
+    if baseline_path:
+        from miesc.cli.commands.baseline import apply_baseline_gate
+
+        gate_findings = [f for r in all_results for f in r.get("findings", [])]
+        apply_baseline_gate(gate_findings, baseline_path, fail_on_new=fail_on_new)
+
     # CI mode exit
     if ci and (summary["CRITICAL"] > 0 or summary["HIGH"] > 0):
         error(f"Found {summary['CRITICAL']} critical and {summary['HIGH']} high issues")
@@ -1104,6 +1157,19 @@ def audit_quick(
     "(fixes issue #69). Drops ONLY type-deterministic benign findings; higher = more "
     "aggressive. Default off preserves raw recall.",
 )
+@click.option(
+    "--baseline",
+    "baseline_path",
+    type=click.Path(),
+    default=None,
+    help="Suppress findings already recorded in this baseline file "
+    "(see 'miesc baseline generate').",
+)
+@click.option(
+    "--fail-on-new",
+    is_flag=True,
+    help="With --baseline: exit non-zero ONLY if there are findings not in the baseline.",
+)
 def audit_full(
     contract: str,
     output: str | None,
@@ -1117,6 +1183,8 @@ def audit_full(
     verify_model: str | None,
     rank: bool,
     fp_strictness: str,
+    baseline_path: str | None,
+    fail_on_new: bool,
 ) -> None:
     """Complete 9-layer security audit with the configured layer tools.
 
@@ -1149,6 +1217,7 @@ def audit_full(
             contract, output, fmt, layer_list, timeout, ml_orchestrator,
             verify_fp=verify_fp, verify_model=verify_model, rank=rank,
             fp_strictness=fp_strictness,
+            baseline_path=baseline_path, fail_on_new=fail_on_new,
         )
         return
 
@@ -1161,6 +1230,7 @@ def audit_full(
         _run_full_audit_with_correlation(
             contract, output, fmt, layer_list, timeout, correlation_api,
             verify_fp=verify_fp, verify_model=verify_model, rank=rank,
+            baseline_path=baseline_path, fail_on_new=fail_on_new,
         )
         return
 
@@ -1171,6 +1241,7 @@ def audit_full(
     _run_full_audit_basic(
         contract, output, fmt, layer_list, timeout,
         verify_fp=verify_fp, verify_model=verify_model,
+        baseline_path=baseline_path, fail_on_new=fail_on_new,
     )
 
 

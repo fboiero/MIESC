@@ -31,6 +31,7 @@ from miesc import __version__ as VERSION  # noqa: E402
 # Import command modules
 from miesc.cli.commands.analyze import analyze as analyze_cmd  # noqa: E402
 from miesc.cli.commands.audit import audit as audit_group  # noqa: E402
+from miesc.cli.commands.baseline import baseline as baseline_group  # noqa: E402
 from miesc.cli.commands.benchmark import benchmark as benchmark_cmd  # noqa: E402
 from miesc.cli.commands.compliance import compliance as compliance_cmd  # noqa: E402
 from miesc.cli.commands.config import config as config_group  # noqa: E402
@@ -111,6 +112,7 @@ def cli(ctx: click.Context, version: bool, no_banner: bool, debug: bool, quiet: 
 # Register command groups
 cli.add_command(analyze_cmd, name="analyze")
 cli.add_command(audit_group, name="audit")
+cli.add_command(baseline_group, name="baseline")
 cli.add_command(benchmark_cmd, name="benchmark")
 cli.add_command(compliance_cmd, name="compliance")
 cli.add_command(config_group, name="config")
