@@ -32,7 +32,7 @@ Training data format (CSV or JSONL):
   }
 
 Usage:
-    from src.ml.fp_ml_classifier import AuditorTrainedFPClassifier
+    from miesc.ml.fp_ml_classifier import AuditorTrainedFPClassifier
 
     clf = AuditorTrainedFPClassifier()
     clf.train("data/auditor_labels.jsonl")

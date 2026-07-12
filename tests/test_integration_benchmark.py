@@ -5,7 +5,7 @@ Tests for SolidiFI benchmark flow including ground truth matching and metrics.
 
 import pytest
 
-from src.ml.correlation_engine import SmartCorrelationEngine
+from miesc.ml.correlation_engine import SmartCorrelationEngine
 
 # ============================================================================
 # Inline helpers to avoid importing solidifi_benchmark.py directly
@@ -60,7 +60,7 @@ class TestBenchmarkPipeline:
     def test_benchmark_processes_single_contract(self):
         """Single contract analysis should return expected structure."""
         # Simulate a single contract analysis result
-        from src.ml.classic_patterns import ClassicPatternDetector
+        from miesc.ml.classic_patterns import ClassicPatternDetector
 
         source_code = """
         // SPDX-License-Identifier: MIT

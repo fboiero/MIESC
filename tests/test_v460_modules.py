@@ -35,7 +35,7 @@ def _import_module_directly(module_path: str, module_name: str):
 
 
 # Get base path
-BASE_PATH = Path(__file__).parent.parent / "src" / "ml"
+BASE_PATH = Path(__file__).parent.parent / "miesc" / "ml"
 
 # Import v4.6.0 modules directly
 call_graph_module = _import_module_directly(str(BASE_PATH / "call_graph.py"), "call_graph_test")

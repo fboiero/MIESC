@@ -474,7 +474,7 @@ def main() -> None:
 
     print("\nTo train the model, run:")  # noqa: T201
     print(  # noqa: T201
-        "  python -m src.ml.fine_tuning.fine_tuning_trainer --train data/fine_tuning/solidity_security_chatml.jsonl"
+        "  python -m miesc.ml.fine_tuning.fine_tuning_trainer --train data/fine_tuning/solidity_security_chatml.jsonl"
     )
 
 

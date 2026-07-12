@@ -336,7 +336,7 @@ import sys
 sys.path.insert(0, 'src')
 
 try:
-    from ml import MLPipeline, get_ml_pipeline
+    from miesc.ml import MLPipeline, get_ml_pipeline
 
     print("Pipeline ML cargado correctamente")
     print("\nComponentes disponibles:")

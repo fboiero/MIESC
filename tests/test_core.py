@@ -2825,7 +2825,7 @@ class TestMLOrchestratorCoverage:
     def test_orchestrator_ml_disabled(self):
         """Test orchestrator methods when ML is disabled (lines 491, 497)."""
         from src.core.ml_orchestrator import MLOrchestrator
-        from src.ml import FeedbackType
+        from miesc.ml import FeedbackType
 
         orchestrator = MLOrchestrator(ml_enabled=False)
 
@@ -3215,7 +3215,7 @@ contract Test {
         from unittest.mock import MagicMock
 
         from src.core.ml_orchestrator import MLOrchestrator
-        from src.ml import FeedbackType
+        from miesc.ml import FeedbackType
 
         orchestrator = MLOrchestrator(ml_enabled=True)
 
@@ -4106,7 +4106,7 @@ PRIORITY: LOW"""
         import subprocess
 
         from src.core.correlation_api import MIESCCorrelationAPI
-        from src.ml.correlation_engine import CorrelatedFinding
+        from miesc.ml.correlation_engine import CorrelatedFinding
 
         mock_run.side_effect = subprocess.TimeoutExpired("curl", 60)
 
@@ -4130,7 +4130,7 @@ PRIORITY: LOW"""
     def test_llm_root_cause_analysis_json_error(self, mock_run):
         """Test _llm_root_cause_analysis handles JSON decode error."""
         from src.core.correlation_api import MIESCCorrelationAPI
-        from src.ml.correlation_engine import CorrelatedFinding
+        from miesc.ml.correlation_engine import CorrelatedFinding
 
         mock_run.return_value = MagicMock(returncode=0, stdout="not valid json")
 
@@ -4154,7 +4154,7 @@ PRIORITY: LOW"""
         import json
 
         from src.core.correlation_api import MIESCCorrelationAPI
-        from src.ml.correlation_engine import CorrelatedFinding
+        from miesc.ml.correlation_engine import CorrelatedFinding
 
         llm_response = """ROOT_CAUSE_1: Access control issue
 EXPLAINS: 1
@@ -4223,7 +4223,7 @@ PRIORITY: HIGH"""
     def test_llm_root_cause_analysis_general_exception(self, mock_run):
         """Test _llm_root_cause_analysis handles general exceptions."""
         from src.core.correlation_api import MIESCCorrelationAPI
-        from src.ml.correlation_engine import CorrelatedFinding
+        from miesc.ml.correlation_engine import CorrelatedFinding
 
         mock_run.side_effect = Exception("Connection refused")
 
@@ -4245,7 +4245,7 @@ PRIORITY: HIGH"""
     def test_llm_root_cause_analysis_nonzero_return(self, mock_run):
         """Test _llm_root_cause_analysis handles non-zero return code."""
         from src.core.correlation_api import MIESCCorrelationAPI
-        from src.ml.correlation_engine import CorrelatedFinding
+        from miesc.ml.correlation_engine import CorrelatedFinding
 
         mock_run.return_value = MagicMock(returncode=1, stdout="")
 

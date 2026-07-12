@@ -10,7 +10,7 @@ Comprehensive tests for taint analysis including:
 
 import pytest
 
-from src.ml.taint_analysis import (
+from miesc.ml.taint_analysis import (
     SanitizerType,
     TaintAnalyzer,
     TaintedPath,

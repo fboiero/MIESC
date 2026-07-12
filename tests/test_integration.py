@@ -16,7 +16,7 @@ from src.core import (
     get_ml_orchestrator,
     get_tool_discovery,
 )
-from src.ml import FeedbackLoop, FeedbackType, MLPipeline
+from miesc.ml import FeedbackLoop, FeedbackType, MLPipeline
 
 # Sample vulnerable contract for testing
 VULNERABLE_CONTRACT = """

@@ -10,7 +10,7 @@ Tests cover:
 
 import pytest
 
-from src.ml.severity_classifier import (
+from miesc.ml.severity_classifier import (
     ContractContext,
     ExploitabilityLevel,
     ImpactLevel,

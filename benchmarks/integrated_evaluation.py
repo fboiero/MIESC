@@ -23,7 +23,7 @@ sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 # Import MIESC components - use direct imports to avoid circular deps
 from detectors.smartbugs_detectors import SmartBugsDetectorEngine  # noqa: E402
-from ml.correlation_engine import SmartCorrelationEngine  # noqa: E402
+from miesc.ml.correlation_engine import SmartCorrelationEngine  # noqa: E402
 
 # Configuration
 DATASET_PATH = PROJECT_ROOT / "benchmarks" / "datasets" / "smartbugs-curated"

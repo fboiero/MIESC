@@ -754,7 +754,7 @@ class TestBuildCallGraph:
         ):
             with patch.dict(
                 "sys.modules",
-                {"src.ml.call_graph": MagicMock(CallGraphBuilder=lambda: mock_builder)},
+                {"miesc.ml.call_graph": MagicMock(CallGraphBuilder=lambda: mock_builder)},
             ):
                 cg, entries, ext = agent._build_call_graph("contract code")
                 assert cg is mock_cg
@@ -762,7 +762,7 @@ class TestBuildCallGraph:
                 assert len(ext) >= 1
 
     def test_import_failure(self, agent):
-        with patch.dict("sys.modules", {"src.ml.call_graph": None}):
+        with patch.dict("sys.modules", {"miesc.ml.call_graph": None}):
             cg, entries, ext = agent._build_call_graph("code")
             assert cg is None
             assert entries == []
@@ -771,7 +771,7 @@ class TestBuildCallGraph:
     def test_exception_returns_defaults(self, agent):
         mock_mod = MagicMock()
         mock_mod.CallGraphBuilder.side_effect = RuntimeError("broken")
-        with patch.dict("sys.modules", {"src.ml.call_graph": mock_mod}):
+        with patch.dict("sys.modules", {"miesc.ml.call_graph": mock_mod}):
             cg, entries, ext = agent._build_call_graph("code")
             assert cg is None
             assert entries == []
@@ -783,7 +783,7 @@ class TestBuildCallGraph:
         mock_builder.build_from_source.return_value = mock_cg
         mock_mod = MagicMock()
         mock_mod.CallGraphBuilder.return_value = mock_builder
-        with patch.dict("sys.modules", {"src.ml.call_graph": mock_mod}):
+        with patch.dict("sys.modules", {"miesc.ml.call_graph": mock_mod}):
             cg, entries, ext = agent._build_call_graph("code")
             assert cg is mock_cg
             assert entries == []
@@ -800,19 +800,19 @@ class TestRunTaintAnalysis:
         mock_analyzer.analyze.return_value = [{"sink": "call", "source": "msg.value"}]
         mock_mod = MagicMock()
         mock_mod.TaintAnalyzer.return_value = mock_analyzer
-        with patch.dict("sys.modules", {"src.ml.taint_analysis": mock_mod}):
+        with patch.dict("sys.modules", {"miesc.ml.taint_analysis": mock_mod}):
             result = agent._run_taint_analysis("code")
             assert len(result) == 1
 
     def test_import_failure(self, agent):
-        with patch.dict("sys.modules", {"src.ml.taint_analysis": None}):
+        with patch.dict("sys.modules", {"miesc.ml.taint_analysis": None}):
             result = agent._run_taint_analysis("code")
             assert result == []
 
     def test_exception(self, agent):
         mock_mod = MagicMock()
         mock_mod.TaintAnalyzer.side_effect = RuntimeError("no taint")
-        with patch.dict("sys.modules", {"src.ml.taint_analysis": mock_mod}):
+        with patch.dict("sys.modules", {"miesc.ml.taint_analysis": mock_mod}):
             result = agent._run_taint_analysis("code")
             assert result == []
 
@@ -992,14 +992,14 @@ class TestFilterFalsePositives:
         }
         mock_mod = MagicMock()
         mock_mod.FalsePositiveFilter.return_value = mock_fp
-        with patch.dict("sys.modules", {"src.ml.fp_filter": mock_mod}):
+        with patch.dict("sys.modules", {"miesc.ml.fp_filter": mock_mod}):
             result = agent._filter_false_positives(findings)
             assert len(result) == 1
 
     def test_import_failure(self, agent, tmp_contract):
         agent.contract_path = tmp_contract
         findings = [{"title": "test", "severity": "high"}]
-        with patch.dict("sys.modules", {"src.ml.fp_filter": None}):
+        with patch.dict("sys.modules", {"miesc.ml.fp_filter": None}):
             result = agent._filter_false_positives(findings)
             assert result == findings  # Returns original on failure
 
@@ -1010,7 +1010,7 @@ class TestFilterFalsePositives:
         mock_fp.filter_findings.return_value = "not a dict"
         mock_mod = MagicMock()
         mock_mod.FalsePositiveFilter.return_value = mock_fp
-        with patch.dict("sys.modules", {"src.ml.fp_filter": mock_mod}):
+        with patch.dict("sys.modules", {"miesc.ml.fp_filter": mock_mod}):
             result = agent._filter_false_positives(findings)
             assert result == findings
 
@@ -1103,7 +1103,7 @@ class TestTargetedTaintForFunction:
         ]
         mock_mod = MagicMock()
         mock_mod.TaintAnalyzer.return_value = mock_analyzer
-        with patch.dict("sys.modules", {"src.ml.taint_analysis": mock_mod}):
+        with patch.dict("sys.modules", {"miesc.ml.taint_analysis": mock_mod}):
             result = agent._targeted_taint_for_function("code", "withdraw")
             assert len(result) == 1  # Only withdraw match
 
@@ -1112,12 +1112,12 @@ class TestTargetedTaintForFunction:
         mock_analyzer.analyze.return_value = [{"sink": "other", "source": "x"}]
         mock_mod = MagicMock()
         mock_mod.TaintAnalyzer.return_value = mock_analyzer
-        with patch.dict("sys.modules", {"src.ml.taint_analysis": mock_mod}):
+        with patch.dict("sys.modules", {"miesc.ml.taint_analysis": mock_mod}):
             result = agent._targeted_taint_for_function("code", "withdraw")
             assert result == []
 
     def test_import_failure(self, agent):
-        with patch.dict("sys.modules", {"src.ml.taint_analysis": None}):
+        with patch.dict("sys.modules", {"miesc.ml.taint_analysis": None}):
             result = agent._targeted_taint_for_function("code", "withdraw")
             assert result == []
 
@@ -1126,7 +1126,7 @@ class TestTargetedTaintForFunction:
         mock_analyzer.analyze.return_value = "not a list"
         mock_mod = MagicMock()
         mock_mod.TaintAnalyzer.return_value = mock_analyzer
-        with patch.dict("sys.modules", {"src.ml.taint_analysis": mock_mod}):
+        with patch.dict("sys.modules", {"miesc.ml.taint_analysis": mock_mod}):
             result = agent._targeted_taint_for_function("code", "withdraw")
             assert result == []
 
@@ -1185,7 +1185,7 @@ class TestDetectExploitChains:
         mock_analyzer.analyze.return_value = [mock_chain]
         mock_mod = MagicMock()
         mock_mod.ExploitChainAnalyzer.return_value = mock_analyzer
-        with patch.dict("sys.modules", {"src.ml.correlation_engine": mock_mod}):
+        with patch.dict("sys.modules", {"miesc.ml.correlation_engine": mock_mod}):
             result = agent._detect_exploit_chains([{"title": "test"}])
             assert len(result) == 1
 
@@ -1194,12 +1194,12 @@ class TestDetectExploitChains:
         mock_analyzer.analyze.return_value = [{"name": "chain1"}]
         mock_mod = MagicMock()
         mock_mod.ExploitChainAnalyzer.return_value = mock_analyzer
-        with patch.dict("sys.modules", {"src.ml.correlation_engine": mock_mod}):
+        with patch.dict("sys.modules", {"miesc.ml.correlation_engine": mock_mod}):
             result = agent._detect_exploit_chains([])
             assert result == [{"name": "chain1"}]
 
     def test_import_failure(self, agent):
-        with patch.dict("sys.modules", {"src.ml.correlation_engine": None}):
+        with patch.dict("sys.modules", {"miesc.ml.correlation_engine": None}):
             result = agent._detect_exploit_chains([{"title": "test"}])
             assert result == []
 
@@ -1208,7 +1208,7 @@ class TestDetectExploitChains:
         mock_analyzer.analyze.return_value = "not a list"
         mock_mod = MagicMock()
         mock_mod.ExploitChainAnalyzer.return_value = mock_analyzer
-        with patch.dict("sys.modules", {"src.ml.correlation_engine": mock_mod}):
+        with patch.dict("sys.modules", {"miesc.ml.correlation_engine": mock_mod}):
             result = agent._detect_exploit_chains([])
             assert result == []
 
@@ -1224,7 +1224,7 @@ class TestCorrelateFindings:
         mock_mod.correlate_findings.return_value = {
             "findings": [{"title": "correlated", "severity": "high"}]
         }
-        with patch.dict("sys.modules", {"src.ml.correlation_engine": mock_mod}):
+        with patch.dict("sys.modules", {"miesc.ml.correlation_engine": mock_mod}):
             result = agent._correlate_findings([{"title": "raw"}])
             assert len(result) == 1
             assert result[0]["title"] == "correlated"
@@ -1232,13 +1232,13 @@ class TestCorrelateFindings:
     def test_non_dict_result(self, agent):
         mock_mod = MagicMock()
         mock_mod.correlate_findings.return_value = [{"title": "direct"}]
-        with patch.dict("sys.modules", {"src.ml.correlation_engine": mock_mod}):
+        with patch.dict("sys.modules", {"miesc.ml.correlation_engine": mock_mod}):
             result = agent._correlate_findings([{"title": "raw"}])
             assert result == [{"title": "raw"}]  # Falls back to original
 
     def test_import_failure(self, agent):
         findings = [{"title": "test"}]
-        with patch.dict("sys.modules", {"src.ml.correlation_engine": None}):
+        with patch.dict("sys.modules", {"miesc.ml.correlation_engine": None}):
             result = agent._correlate_findings(findings)
             assert result == findings
 
@@ -1786,7 +1786,7 @@ class TestTargetedDefiScan:
         """Regardless of how many DeFi patterns match, we cap at 5 for payload size."""
         fake_match = MagicMock()
         fake_match.to_dict.return_value = {"pattern": "x", "location": "withdraw"}
-        with patch("src.ml.defi_patterns.DeFiPatternDetector") as Det:
+        with patch("miesc.ml.defi_patterns.DeFiPatternDetector") as Det:
             Det.return_value.detect.return_value = [fake_match] * 20
             result = agent._targeted_defi_scan("source", "withdraw")
             assert len(result) <= 5

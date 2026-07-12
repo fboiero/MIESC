@@ -7,7 +7,7 @@ These tests lock that property so a future refactor cannot silently start losing
 vulnerabilities. All rule-only (model=None) -> deterministic, no network.
 """
 
-from src.ml.benign_context_verifier import (
+from miesc.ml.benign_context_verifier import (
     BenignContextVerifier,
     apply_to_results,
     match_benign,
@@ -339,7 +339,7 @@ class TestUncheckedCallLineScoping:
 import json as _json  # noqa: E402
 import urllib.request as _urlreq  # noqa: E402
 
-from src.ml.benign_context_verifier import (  # noqa: E402
+from miesc.ml.benign_context_verifier import (  # noqa: E402
     BenignContextVerifier,
     _extract_function,
     _func_signature,

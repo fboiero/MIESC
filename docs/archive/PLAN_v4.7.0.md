@@ -309,7 +309,7 @@ pip install scikit-learn xgboost
 ```bash
 # Test SlitherValidator
 python -c "
-from src.ml.slither_validator import SlitherValidator
+from miesc.ml.slither_validator import SlitherValidator
 v = SlitherValidator()
 print(f'Slither available: {v.is_available}')
 "

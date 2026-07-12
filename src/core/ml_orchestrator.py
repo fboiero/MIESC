@@ -19,7 +19,7 @@ from .result_aggregator import ResultAggregator
 from .tool_discovery import get_tool_discovery
 
 # ML components imported lazily to avoid circular imports
-# from ..ml import MLPipeline, MLEnhancedResult, FeedbackType, VulnerabilityCluster, get_ml_pipeline
+# from miesc.ml import MLPipeline, MLEnhancedResult, FeedbackType, VulnerabilityCluster, get_ml_pipeline
 
 logger = logging.getLogger(__name__)
 
@@ -170,7 +170,7 @@ class MLOrchestrator:
         self.ml_enabled = ml_enabled
         self.ml_pipeline = None
         if ml_enabled:
-            from ..ml import MLPipeline
+            from miesc.ml import MLPipeline
 
             self.ml_pipeline = MLPipeline(
                 fp_threshold=fp_threshold,

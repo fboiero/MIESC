@@ -6,7 +6,7 @@ Tests the severity prediction system based on context and patterns.
 
 import pytest
 
-from src.ml.severity_predictor import (
+from miesc.ml.severity_predictor import (
     SeverityLevel,
     SeverityPrediction,
     SeverityPredictor,

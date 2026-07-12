@@ -10,7 +10,7 @@ Comprehensive tests for Slither IR parsing functionality including:
 
 import pytest
 
-from src.ml.slither_ir_parser import (
+from miesc.ml.slither_ir_parser import (
     Call,
     FunctionIR,
     IRInstruction,

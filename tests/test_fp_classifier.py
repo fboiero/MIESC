@@ -2,7 +2,7 @@
 Tests for the False Positive Classifier v4.7.0
 """
 
-from src.ml.fp_classifier import (
+from miesc.ml.fp_classifier import (
     FeatureExtractor,
     FindingFeatures,
     FPClassifier,

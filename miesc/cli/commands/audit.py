@@ -442,7 +442,7 @@ def _run_full_audit_with_ml(
         # Recall-safe benign-context verifier (opt-in) over the ML-filtered findings
         if verify_fp:
             try:
-                from src.ml.benign_context_verifier import apply_to_results
+                from miesc.ml.benign_context_verifier import apply_to_results
 
                 wrapped = [{"findings": list(result.ml_filtered_findings)}]
                 d, fl = apply_to_results(wrapped, contract=contract, model=verify_model)
@@ -554,7 +554,7 @@ def _rank_report_findings(findings: dict[str, Any], *, contract: str) -> None:
     """Recall-safe triage on a correlation report's finding buckets (in place): order each
     list of findings by P(real). Never drops anything. No-ops without a trained model."""
     try:
-        from src.ml.triage_ranker import TriageRanker
+        from miesc.ml.triage_ranker import TriageRanker
     except Exception as e:  # noqa: BLE001
         info(f"rank skipped: {e}")
         return
@@ -611,7 +611,7 @@ def _run_full_audit_with_correlation(
             results = run_layer(layer, contract, timeout)
             if verify_fp:
                 try:
-                    from src.ml.benign_context_verifier import apply_to_results
+                    from miesc.ml.benign_context_verifier import apply_to_results
 
                     d, fl = apply_to_results(results, contract=contract, model=verify_model)
                     _vfp_dropped += d
@@ -762,7 +762,7 @@ def _run_full_audit_basic(
     # Recall-safe benign-context verifier (opt-in)
     if verify_fp:
         try:
-            from src.ml.benign_context_verifier import apply_to_results
+            from miesc.ml.benign_context_verifier import apply_to_results
 
             dropped, flagged = apply_to_results(all_results, contract=contract, model=verify_model)
             mode = f"LLM {verify_model}" if verify_model else "rule-only"
@@ -775,7 +775,7 @@ def _run_full_audit_basic(
 
     if rank:
         try:
-            from src.ml.triage_ranker import rank_results
+            from miesc.ml.triage_ranker import rank_results
 
             n = rank_results(all_results, contract=contract)
             info(f"rank: ordered {n} finding(s) by P(real) — triage, recall-safe (nothing dropped)"
@@ -984,7 +984,7 @@ def audit_quick(
     # Recall-safe benign-context verifier (opt-in)
     if verify_fp:
         try:
-            from src.ml.benign_context_verifier import apply_to_results
+            from miesc.ml.benign_context_verifier import apply_to_results
 
             dropped, flagged = apply_to_results(all_results, contract=contract, model=verify_model)
             mode = f"LLM {verify_model}" if verify_model else "rule-only"
@@ -997,7 +997,7 @@ def audit_quick(
 
     if rank:
         try:
-            from src.ml.triage_ranker import rank_results
+            from miesc.ml.triage_ranker import rank_results
 
             n = rank_results(all_results, contract=contract)
             info(f"rank: ordered {n} finding(s) by P(real) — triage, recall-safe (nothing dropped)"

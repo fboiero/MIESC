@@ -15,7 +15,7 @@ import pytest
 # ---------------------------------------------------------------------------
 # code_embeddings.py coverage
 # ---------------------------------------------------------------------------
-from src.ml.code_embeddings import (
+from miesc.ml.code_embeddings import (
     CodeEmbedding,
     SolidityTokenizer,
     VulnerabilityPatternDB,

@@ -7,7 +7,7 @@ config/Modelfile generation.
 
 from __future__ import annotations
 
-from src.ml.fine_tuning.fine_tuning_trainer import SoliditySecurityTrainer, TrainingConfig
+from miesc.ml.fine_tuning.fine_tuning_trainer import SoliditySecurityTrainer, TrainingConfig
 
 
 def _trainer():

@@ -12,7 +12,7 @@ import os
 
 import pytest
 
-from src.ml.triage_ranker import DEFAULT_MODEL_PATH, TriageRanker, features_for
+from miesc.ml.triage_ranker import DEFAULT_MODEL_PATH, TriageRanker, features_for
 
 REAL_CODE = ("pragma solidity ^0.4.24; contract C {"
              " function w() public { msg.sender.call.value(1)(); } }")
@@ -35,7 +35,7 @@ def test_features_are_29_dimensional():
 
 
 def test_structural_features_flag_deterministic_benign():
-    from src.ml.triage_ranker import _structural_features
+    from miesc.ml.triage_ranker import _structural_features
     # arithmetic on Solidity 0.8 -> a deterministic benign signal must fire
     v = _structural_features({"type": "arithmetic", "check": "arithmetic",
                               "location": {"function": "a", "line": 1}}, BENIGN_CODE)
@@ -110,7 +110,7 @@ class TestRankingWithModel:
 class TestRankResults:
     @needs_model
     def test_ranks_each_result_recall_safe(self, tmp_path):
-        from src.ml.triage_ranker import rank_results
+        from miesc.ml.triage_ranker import rank_results
         sol = tmp_path / "C.sol"
         sol.write_text(REAL_CODE)
         findings = [_f("arithmetic", "a"), _f("reentrancy", "w")]
@@ -123,7 +123,7 @@ class TestRankResults:
         assert all("triage_score" in f for f in results[0]["findings"])
 
     def test_no_model_returns_minus_one_and_is_noop(self, monkeypatch):
-        import src.ml.triage_ranker as tr
+        import miesc.ml.triage_ranker as tr
 
         class _NoModel:
             def available(self):
@@ -146,7 +146,7 @@ class TestTrain:
     def test_train_persists_and_reports_metrics(self, tmp_path):
         import json
 
-        from src.ml.triage_ranker import train
+        from miesc.ml.triage_ranker import train
         rows = []
         for i in range(30):
             real = (i % 2 == 0)

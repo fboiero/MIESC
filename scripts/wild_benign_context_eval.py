@@ -43,7 +43,7 @@ import tempfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
-from src.ml.benign_context_verifier import BenignContextVerifier  # noqa: E402
+from miesc.ml.benign_context_verifier import BenignContextVerifier  # noqa: E402
 
 # Slither detector -> a coarse vuln category the verifier understands.
 DETECTOR_CATEGORY = {

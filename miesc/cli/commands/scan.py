@@ -322,7 +322,7 @@ def scan(
         # FP filter across all aggregated results (per-file code context)
         if fp_strictness.lower() != "off":
             try:
-                from src.ml.fp_filter import FalsePositiveFilter
+                from miesc.ml.fp_filter import FalsePositiveFilter
 
                 fp_filter = FalsePositiveFilter(strictness=fp_strictness.lower(), use_rag=False)
                 filtered_count = 0
@@ -535,7 +535,7 @@ def scan(
     # Apply FP filter based on strictness (v5.1.2+)
     if fp_strictness.lower() != "off":
         try:
-            from src.ml.fp_filter import FalsePositiveFilter
+            from miesc.ml.fp_filter import FalsePositiveFilter
 
             with open(contract, encoding="utf-8") as contract_handle:
                 code = contract_handle.read()
@@ -936,7 +936,7 @@ def _apply_verify_fp(
     API failover). Never drops a real finding on a weak signal.
     """
     try:
-        from src.ml.benign_context_verifier import apply_to_results
+        from miesc.ml.benign_context_verifier import apply_to_results
     except Exception as e:  # noqa: BLE001
         if not quiet:
             info(f"verify-fp skipped: {e}")
@@ -954,7 +954,7 @@ def _apply_triage_rank(all_results: list[dict[str, Any]], *, contract: str, quie
     """Recall-safe triage: reorder each result's findings by P(real) (most-likely-real first).
     Never drops a finding (recall 1.0). No-ops gracefully if no trained model is present."""
     try:
-        from src.ml.triage_ranker import rank_results
+        from miesc.ml.triage_ranker import rank_results
     except Exception as e:  # noqa: BLE001
         if not quiet:
             info(f"rank skipped: {e}")

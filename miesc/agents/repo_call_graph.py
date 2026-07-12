@@ -26,7 +26,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional
 
-from src.ml.call_graph import CallEdge, CallGraph, CallGraphBuilder, FunctionNode, Visibility
+from miesc.ml.call_graph import CallEdge, CallGraph, CallGraphBuilder, FunctionNode, Visibility
 
 logger = logging.getLogger(__name__)
 

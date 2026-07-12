@@ -15,7 +15,7 @@ import pytest
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
-from ml.correlation_engine import (  # noqa: E402
+from miesc.ml.correlation_engine import (  # noqa: E402
     CorrelatedFinding,
     CorrelationMethod,
     ExploitChain,
@@ -788,7 +788,7 @@ class TestCorrelationEngineCoverageCompletion:
 
     def test_calculate_tool_agreement_weakness_category(self, engine):
         """Test tool agreement with tool weakness category (line 672)."""
-        from src.ml.correlation_engine import ToolProfile
+        from miesc.ml.correlation_engine import ToolProfile
 
         # Configure a tool with weakness in this category
         engine.tool_profiles["weak_tool"] = ToolProfile(
@@ -806,7 +806,7 @@ class TestCorrelationEngineCoverageCompletion:
 
     def test_exploit_chain_analyzer_insufficient_findings(self, engine):
         """Test chain detection with insufficient findings for chain (line 1158)."""
-        from src.ml.correlation_engine import ExploitChainAnalyzer
+        from miesc.ml.correlation_engine import ExploitChainAnalyzer
 
         # Add only one type of vulnerability (need multiple types for chains)
         engine.add_findings(
@@ -839,7 +839,7 @@ if __name__ == "__main__":
 # =========================================================================== #
 # Deduplication feature + ExploitChainAnalyzer (large uncovered clusters).
 # =========================================================================== #
-from src.ml.correlation_engine import (  # noqa: E402
+from miesc.ml.correlation_engine import (  # noqa: E402
     CorrelatedFinding,
     CorrelationMethod,
     ExploitChainAnalyzer,

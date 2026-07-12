@@ -176,7 +176,7 @@ def map_check_to_swc(check: str) -> str:
 def correlate_findings(findings: List[Dict]) -> Tuple[List[Dict], Dict]:
     """Correlate findings from multiple tools."""
     try:
-        from ml.correlation_engine import SmartCorrelationEngine
+        from miesc.ml.correlation_engine import SmartCorrelationEngine
 
         engine = SmartCorrelationEngine(min_tools_for_validation=1)
 

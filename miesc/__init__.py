@@ -23,10 +23,10 @@ _lazy_imports = {
     "CorrelationEngine": ("src.core.correlation_api", "SmartCorrelationEngine"),
     "ResultAggregator": ("src.core.result_aggregator", "ResultAggregator"),
     # ML
-    "FalsePositiveFilter": ("src.ml", "FalsePositiveFilter"),
-    "SeverityPredictor": ("src.ml", "SeverityPredictor"),
-    "VulnerabilityClusterer": ("src.ml", "VulnerabilityClusterer"),
-    "CodeEmbeddings": ("src.ml", "CodeEmbeddings"),
+    "FalsePositiveFilter": ("miesc.ml", "FalsePositiveFilter"),
+    "SeverityPredictor": ("miesc.ml", "SeverityPredictor"),
+    "VulnerabilityClusterer": ("miesc.ml", "VulnerabilityClusterer"),
+    "CodeEmbeddings": ("miesc.ml", "CodeEmbeddings"),
     # Security
     "InputValidator": ("miesc.security", "validate_contract_path"),
     "APIRateLimiter": ("miesc.security", "RateLimiter"),

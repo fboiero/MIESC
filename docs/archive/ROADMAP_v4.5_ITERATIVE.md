@@ -379,7 +379,7 @@ pytest --cov=src --cov-report=term-missing
 python3 -c "from miesc.llm.vulnerability_rag import VulnerabilityRAG; r = VulnerabilityRAG(); print(f'SWC: {len(r.SWC_REGISTRY)}, Exploits: {len(r.EXPLOIT_EXAMPLES)}')"
 
 # Verificar patrones
-python3 -c "from src.ml.defi_patterns import DeFiVulnType; print(f'DeFi types: {len(DeFiVulnType)}')"
+python3 -c "from miesc.ml.defi_patterns import DeFiVulnType; print(f'DeFi types: {len(DeFiVulnType)}')"
 
 # Test completo
 miesc audit smart tests/contracts/VulnerableDeFi.sol -v

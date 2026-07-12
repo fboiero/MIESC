@@ -7,7 +7,7 @@ and validation result recording.
 
 from __future__ import annotations
 
-from src.ml.ml_invariant_synthesizer import (
+from miesc.ml.ml_invariant_synthesizer import (
     MLInvariantSynthesizer,
     extract_contract_features,
     predict_invariants,

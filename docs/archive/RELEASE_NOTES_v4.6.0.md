@@ -31,7 +31,7 @@ MIESC v4.6.0 is a major release focused on **improving EVM detection quality** t
 Constructs and analyzes function call graphs for smart contracts.
 
 ```python
-from src.ml.call_graph import CallGraphBuilder, build_call_graph
+from miesc.ml.call_graph import CallGraphBuilder, build_call_graph
 
 # Build call graph from source
 builder = CallGraphBuilder()
@@ -65,7 +65,7 @@ risky_paths = graph.get_reentrancy_risk_paths()
 Tracks flow of user-controlled data to dangerous sinks.
 
 ```python
-from src.ml.taint_analysis import TaintAnalyzer, analyze_taint
+from miesc.ml.taint_analysis import TaintAnalyzer, analyze_taint
 
 # Analyze taint flows
 analyzer = TaintAnalyzer()
@@ -100,7 +100,7 @@ for path in tainted_paths:
 Parses Slither's intermediate representation for detailed analysis.
 
 ```python
-from src.ml.slither_ir_parser import SlitherIRParser, parse_slither_ir
+from miesc.ml.slither_ir_parser import SlitherIRParser, parse_slither_ir
 
 # Parse Slither output
 parser = SlitherIRParser()
@@ -128,7 +128,7 @@ calls = parser.get_external_calls("withdraw")
 Detects access control vulnerabilities through semantic analysis.
 
 ```python
-from src.ml.classic_patterns import AccessControlSemanticDetector
+from miesc.ml.classic_patterns import AccessControlSemanticDetector
 
 detector = AccessControlSemanticDetector()
 findings = detector.analyze(solidity_code)
@@ -145,7 +145,7 @@ findings = detector.analyze(solidity_code)
 Analyzes cross-function patterns for DoS vulnerabilities.
 
 ```python
-from src.ml.classic_patterns import DoSCrossFunctionDetector
+from miesc.ml.classic_patterns import DoSCrossFunctionDetector
 
 detector = DoSCrossFunctionDetector()
 findings = detector.analyze(solidity_code)
@@ -166,7 +166,7 @@ findings = detector.analyze(solidity_code)
 55 Slither detectors now have empirically-derived FP rates:
 
 ```python
-from src.ml.false_positive_filter import SLITHER_DETECTOR_FP_RATES
+from miesc.ml.false_positive_filter import SLITHER_DETECTOR_FP_RATES
 
 # High FP rate detectors (likely benign)
 SLITHER_DETECTOR_FP_RATES["reentrancy-benign"]  # 0.85
@@ -182,7 +182,7 @@ SLITHER_DETECTOR_FP_RATES["arbitrary-send-eth"] # 0.15
 Analyzes code context to adjust confidence:
 
 ```python
-from src.ml.false_positive_filter import SemanticContextAnalyzer
+from miesc.ml.false_positive_filter import SemanticContextAnalyzer
 
 analyzer = SemanticContextAnalyzer()
 adjustment = analyzer.analyze_finding_context(finding, source_code)
@@ -201,7 +201,7 @@ adjustment = analyzer.analyze_finding_context(finding, source_code)
 Critical vulnerability types now require multi-tool validation:
 
 ```python
-from src.ml.correlation_engine import CROSS_VALIDATION_REQUIRED
+from miesc.ml.correlation_engine import CROSS_VALIDATION_REQUIRED
 
 # These patterns require 2+ tools for high confidence
 CROSS_VALIDATION_REQUIRED = {
@@ -266,35 +266,35 @@ Patterns cover both `.send()` (returns bool) and `.transfer()` (2300 gas limit i
 
 ```python
 # Call Graph
-from src.ml import (
+from miesc.ml import (
     CallGraph, CallGraphBuilder, FunctionNode,
     CallEdge, CallPath, build_call_graph,
     analyze_reentrancy_risk, Visibility, Mutability
 )
 
 # Taint Analysis
-from src.ml import (
+from miesc.ml import (
     TaintAnalyzer, TaintSource, TaintSink,
     TaintedVariable, TaintedPath, SanitizerType,
     analyze_taint, find_tainted_sinks
 )
 
 # Slither IR
-from src.ml import (
+from miesc.ml import (
     SlitherIRParser, IROpcode, IRInstruction,
     FunctionIR, StateTransition, IRCall,
     parse_slither_ir, get_function_state_transitions
 )
 
 # Semantic Detectors
-from src.ml import (
+from miesc.ml import (
     AccessControlSemanticDetector, AccessControlFinding,
     DoSCrossFunctionDetector, DoSFinding,
     detect_semantic_vulnerabilities
 )
 
 # Enhanced FP Filter
-from src.ml import (
+from miesc.ml import (
     SLITHER_DETECTOR_FP_RATES, SemanticContextAnalyzer
 )
 ```

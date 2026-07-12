@@ -17,7 +17,7 @@ from dataclasses import asdict
 
 import pytest
 
-from src.ml.defi_patterns import (
+from miesc.ml.defi_patterns import (
     DEFI_VULNERABILITY_PATTERNS,
     DeFiPatternDetector,
     DeFiPatternMatch,

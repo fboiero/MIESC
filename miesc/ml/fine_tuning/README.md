@@ -61,7 +61,7 @@ pip install xformers
 ### 1. Generar Dataset
 
 ```python
-from src.ml.fine_tuning import SoliditySecurityDatasetGenerator
+from miesc.ml.fine_tuning import SoliditySecurityDatasetGenerator
 
 # Crear generador
 generator = SoliditySecurityDatasetGenerator(output_dir="data/fine_tuning")
@@ -84,7 +84,7 @@ data/fine_tuning/
 ### 2. Entrenar Modelo
 
 ```python
-from src.ml.fine_tuning import SoliditySecurityTrainer, TrainingConfig
+from miesc.ml.fine_tuning import SoliditySecurityTrainer, TrainingConfig
 
 # Configuración
 config = TrainingConfig(
@@ -210,7 +210,7 @@ config = TrainingConfig(
 ```bash
 # Generar configuración Axolotl
 python -c "
-from src.ml.fine_tuning import SoliditySecurityTrainer
+from miesc.ml.fine_tuning import SoliditySecurityTrainer
 trainer = SoliditySecurityTrainer()
 trainer.generate_axolotl_config('data/fine_tuning/solidity_security_alpaca.json')
 "
@@ -224,7 +224,7 @@ accelerate launch -m axolotl.cli.train models/miesc-solidity-security/axolotl_co
 ```bash
 # Usando DeepSpeed ZeRO-3
 accelerate launch --config_file accelerate_config.yaml \
-    -m src.ml.fine_tuning.fine_tuning_trainer \
+    -m miesc.ml.fine_tuning.fine_tuning_trainer \
     --train data/fine_tuning/solidity_security_chatml.jsonl \
     --deepspeed ds_config.json
 ```
@@ -241,7 +241,7 @@ accelerate launch --config_file accelerate_config.yaml \
 ### Benchmark
 
 ```python
-from src.ml.fine_tuning import evaluate_model
+from miesc.ml.fine_tuning import evaluate_model
 
 results = evaluate_model(
     model_path="models/miesc-solidity-security",
@@ -258,7 +258,7 @@ print(f"F1-Score: {results['f1']:.2%}")
 ### Agregar Ejemplos de Auditorías Reales
 
 ```python
-from src.ml.fine_tuning import SoliditySecurityDatasetGenerator, VulnerabilityExample
+from miesc.ml.fine_tuning import SoliditySecurityDatasetGenerator, VulnerabilityExample
 
 generator = SoliditySecurityDatasetGenerator()
 
@@ -282,7 +282,7 @@ generator.examples.append(example)
 ### Integrar con Feedback Loop de MIESC
 
 ```python
-from src.ml.feedback_loop import FeedbackCollector
+from miesc.ml.feedback_loop import FeedbackCollector
 
 # Recolectar feedback de auditorías
 collector = FeedbackCollector()

@@ -32,14 +32,14 @@ _BENIGN_PATTERNS: Optional[list] = None
 def _benign_patterns() -> list:
     global _BENIGN_PATTERNS
     if _BENIGN_PATTERNS is None:
-        from src.ml.benign_context_verifier import load_benign_patterns
+        from miesc.ml.benign_context_verifier import load_benign_patterns
         _BENIGN_PATTERNS = load_benign_patterns()
     return _BENIGN_PATTERNS
 
 
 def _structural_features(finding: dict[str, Any], code: str) -> list[float]:
     """The 12 structural signals the deterministic recall-safe verifier uses, as numbers."""
-    from src.ml.benign_context_verifier import (
+    from miesc.ml.benign_context_verifier import (
         _CONTEXTUAL_BENIGN, _extract_function, _func_signature, _function_at_line,
         _is_cei, _timestamp_is_benign, match_benign,
     )
@@ -83,7 +83,7 @@ def _structural_features(finding: dict[str, Any], code: str) -> list[float]:
 
 def features_for(finding: dict[str, Any], code: str) -> list[float]:
     """Coarse FP features (17) + structural signals (12) -> the 29-d feature vector."""
-    from src.ml.fp_ml_classifier import extract_features
+    from miesc.ml.fp_ml_classifier import extract_features
     coarse = list(extract_features(finding, code).to_vector())
     return coarse + _structural_features(finding, code)
 

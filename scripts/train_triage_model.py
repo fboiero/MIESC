@@ -82,7 +82,7 @@ def main() -> int:
             print(f"dataset not found: {args.dataset}")
             return 1
 
-    from src.ml.triage_ranker import train
+    from miesc.ml.triage_ranker import train
     print("training triage model (coarse + structural features)...")
     metrics = train(args.dataset)
     for k, v in metrics.items():

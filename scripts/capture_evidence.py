@@ -330,7 +330,7 @@ def capture_ml_evidence():
     ml_evidence = []
 
     try:
-        from ml import (
+        from miesc.ml import (
             FalsePositiveFilter,
             MLPipeline,
         )

@@ -29,7 +29,7 @@ sklearn = pytest.importorskip("sklearn")
 class TestFPClassifierPersistence:
     def test_predict_identical_across_instances_after_save(self, tmp_path):
         """Save with one instance, load with another, verify same prediction."""
-        from src.ml.fp_ml_classifier import AuditorTrainedFPClassifier, create_sample_dataset
+        from miesc.ml.fp_ml_classifier import AuditorTrainedFPClassifier, create_sample_dataset
 
         data = tmp_path / "labels.jsonl"
         create_sample_dataset(data, n=40)
@@ -49,7 +49,7 @@ class TestFPClassifierPersistence:
     def test_heuristic_fallback_when_no_sklearn(self, tmp_path):
         """When sklearn import fails, classifier must fall back gracefully,
         not crash callers."""
-        from src.ml.fp_ml_classifier import AuditorTrainedFPClassifier
+        from miesc.ml.fp_ml_classifier import AuditorTrainedFPClassifier
 
         clf = AuditorTrainedFPClassifier(model_path=tmp_path / "absent.pkl")
         clf._sklearn_available = False
@@ -318,7 +318,7 @@ class TestBootstrapClassifierInterop:
         out = tmp_path / "labels.jsonl"
         out.write_text("\n".join(json.dumps(s) for s in samples))
 
-        from src.ml.fp_ml_classifier import AuditorTrainedFPClassifier
+        from miesc.ml.fp_ml_classifier import AuditorTrainedFPClassifier
 
         clf = AuditorTrainedFPClassifier(model_path=tmp_path / "m.pkl")
         metrics = clf.train(str(out))

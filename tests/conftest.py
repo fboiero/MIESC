@@ -307,7 +307,7 @@ def multi_tool_findings():
 @pytest.fixture
 def correlation_engine():
     """Pre-configured correlation engine."""
-    from src.ml.correlation_engine import SmartCorrelationEngine
+    from miesc.ml.correlation_engine import SmartCorrelationEngine
 
     return SmartCorrelationEngine(min_tools_for_validation=2)
 

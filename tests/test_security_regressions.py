@@ -187,7 +187,7 @@ class TestPromptInjectionSanitization:
 class TestPickleSafety:
     def test_fp_classifier_load_handles_corrupt_pickle(self, tmp_path):
         """A corrupted pickle must NOT crash the process — log + fall back."""
-        from src.ml.fp_ml_classifier import AuditorTrainedFPClassifier
+        from miesc.ml.fp_ml_classifier import AuditorTrainedFPClassifier
 
         bad = tmp_path / "corrupt.pkl"
         bad.write_bytes(b"\x00\x01\x02 not a pickle")
@@ -196,7 +196,7 @@ class TestPickleSafety:
         assert clf.model is None
 
     def test_fp_classifier_load_handles_empty_file(self, tmp_path):
-        from src.ml.fp_ml_classifier import AuditorTrainedFPClassifier
+        from miesc.ml.fp_ml_classifier import AuditorTrainedFPClassifier
 
         empty = tmp_path / "empty.pkl"
         empty.write_bytes(b"")
@@ -206,7 +206,7 @@ class TestPickleSafety:
     def test_fp_classifier_save_load_roundtrip(self, tmp_path):
         """Benign baseline: a properly trained model must survive save+load."""
         pytest.importorskip("sklearn")
-        from src.ml.fp_ml_classifier import AuditorTrainedFPClassifier, create_sample_dataset
+        from miesc.ml.fp_ml_classifier import AuditorTrainedFPClassifier, create_sample_dataset
 
         data = tmp_path / "labels.jsonl"
         create_sample_dataset(data, n=40)

@@ -89,7 +89,7 @@ class TestDefiScanApi:
         which raised AttributeError and was swallowed by a try/except,
         silently returning []. Now must call analyze_code().
         """
-        from src.ml.defi_patterns import DeFiPatternDetector
+        from miesc.ml.defi_patterns import DeFiPatternDetector
 
         det = DeFiPatternDetector()
         # The contract MUST use analyze_code, not detect.

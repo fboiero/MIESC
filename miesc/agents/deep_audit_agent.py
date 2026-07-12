@@ -345,7 +345,7 @@ class DeepAuditAgent(BaseAgent):
     def _build_call_graph(self, source_code: str) -> Tuple[Any, List[Any], List[str]]:
         """Build call graph and extract entry points."""
         try:
-            from src.ml.call_graph import CallGraphBuilder
+            from miesc.ml.call_graph import CallGraphBuilder
 
             builder = CallGraphBuilder()
             cg = builder.build_from_source(source_code)
@@ -365,7 +365,7 @@ class DeepAuditAgent(BaseAgent):
     def _run_taint_analysis(self, source_code: str) -> Any:
         """Run taint analysis to find data flow vulnerabilities."""
         try:
-            from src.ml.taint_analysis import TaintAnalyzer
+            from miesc.ml.taint_analysis import TaintAnalyzer
 
             analyzer = TaintAnalyzer()
             return analyzer.analyze(source_code)
@@ -636,7 +636,7 @@ class DeepAuditAgent(BaseAgent):
     def _filter_false_positives(self, findings: List[Dict]) -> List[Dict]:
         """Apply FP filter to findings."""
         try:
-            from src.ml.fp_filter import FalsePositiveFilter
+            from miesc.ml.fp_filter import FalsePositiveFilter
 
             fp = FalsePositiveFilter()
             # filter_findings returns (kept, removed, stats); the optional second arg is a
@@ -1094,7 +1094,7 @@ Respond ONLY with JSON of the shape:
     def _targeted_taint_for_function(self, source_code: str, func_name: str) -> list:
         """Run taint analysis targeting a specific function."""
         try:
-            from src.ml.taint_analysis import TaintAnalyzer
+            from miesc.ml.taint_analysis import TaintAnalyzer
 
             analyzer = TaintAnalyzer()
             results = analyzer.analyze(source_code)
@@ -1115,7 +1115,7 @@ Respond ONLY with JSON of the shape:
         Returns a list of matched DeFi patterns serialized as dicts.
         """
         try:
-            from src.ml.defi_patterns import DeFiPatternDetector
+            from miesc.ml.defi_patterns import DeFiPatternDetector
 
             detector = DeFiPatternDetector()
             matches = detector.analyze_code(source_code) or []
@@ -1241,7 +1241,7 @@ Respond ONLY with JSON of the shape:
     def _detect_exploit_chains(self, findings: List[Dict]) -> List[Dict]:
         """Detect exploit chains across findings."""
         try:
-            from src.ml.correlation_engine import ExploitChainAnalyzer, SmartCorrelationEngine
+            from miesc.ml.correlation_engine import ExploitChainAnalyzer, SmartCorrelationEngine
 
             # ExploitChainAnalyzer.analyze needs CorrelatedFinding objects, not raw dicts:
             # build them via the correlation engine first.
@@ -1313,7 +1313,7 @@ Respond ONLY with JSON of the shape:
     def _correlate_findings(self, findings: List[Dict]) -> List[Dict]:
         """Correlate and deduplicate findings."""
         try:
-            from src.ml.correlation_engine import correlate_findings
+            from miesc.ml.correlation_engine import correlate_findings
 
             # correlate_findings expects tool_results: Dict[tool_name, List[finding]]
             result = correlate_findings({"deep_audit": findings})

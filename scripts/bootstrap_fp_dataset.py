@@ -274,7 +274,7 @@ def main():
 
     if args.train and len(samples) >= 10:
         print("\nTraining AuditorTrainedFPClassifier on the bootstrapped dataset...")
-        from src.ml.fp_ml_classifier import AuditorTrainedFPClassifier
+        from miesc.ml.fp_ml_classifier import AuditorTrainedFPClassifier
         clf = AuditorTrainedFPClassifier()
         metrics = clf.train(str(out_path))
         print(f"Metrics: {metrics}")

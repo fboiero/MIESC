@@ -455,7 +455,7 @@ async def miesc_filter_fp(findings_json: str, threshold: float = 0.50) -> str:
         return json.dumps({"error": "Invalid JSON input"})
 
     try:
-        from src.ml.false_positive_filter import FalsePositiveFilter
+        from miesc.ml.false_positive_filter import FalsePositiveFilter
 
         fp_filter = FalsePositiveFilter()
         filtered = fp_filter.filter_findings(findings, fp_threshold=threshold)

@@ -42,7 +42,7 @@ except ImportError:
 
 # Try to import Smart Correlation Engine
 try:
-    from ml.correlation_engine import SmartCorrelationEngine
+    from miesc.ml.correlation_engine import SmartCorrelationEngine
 
     CORRELATION_ENGINE_AVAILABLE = True
 except ImportError:

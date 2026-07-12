@@ -82,7 +82,7 @@ def _structural_features(finding: dict, code: str) -> list:
     features — the lever the 17 coarse features miss. No new deps."""
     import re
 
-    from src.ml.benign_context_verifier import (
+    from miesc.ml.benign_context_verifier import (
         _CONTEXTUAL_BENIGN, BenignContextVerifier, _extract_function, _func_signature,
         _function_at_line, _is_cei, _timestamp_is_benign, match_benign,
     )
@@ -130,7 +130,7 @@ def run(rich: bool = False) -> int:
     except ImportError:
         print("scikit-learn required: pip install scikit-learn numpy")
         return 1
-    from src.ml.fp_ml_classifier import extract_features
+    from miesc.ml.fp_ml_classifier import extract_features
 
     rows = [json.loads(l) for l in open(DATASET) if l.strip()]
     X, y = [], []
@@ -194,7 +194,7 @@ def rank() -> int:
     from sklearn.metrics import roc_auc_score
     from sklearn.model_selection import train_test_split
 
-    from src.ml.fp_ml_classifier import extract_features
+    from miesc.ml.fp_ml_classifier import extract_features
 
     rows = [json.loads(l) for l in open(DATASET) if l.strip()]
 
@@ -240,7 +240,7 @@ def cross() -> int:
     from sklearn.ensemble import GradientBoostingClassifier
     from sklearn.model_selection import train_test_split
 
-    from src.ml.fp_ml_classifier import extract_features
+    from miesc.ml.fp_ml_classifier import extract_features
 
     rows = [json.loads(l) for l in open(DATASET) if l.strip()]
 
