@@ -3,6 +3,14 @@ Security Layers
 
 MIESC implements 9 specialized security layers, each targeting different vulnerability classes.
 
+.. note::
+
+   The canonical L1–L9 taxonomy is defined in ``miesc/cli/constants.py`` (Static
+   Analysis · Dynamic Testing · Symbolic Execution · Formal Verification · AI
+   Analysis · ML Detection · Specialized Analysis · Cross-Chain & ZK Security ·
+   Advanced AI Ensemble). This reference page uses an older ordering and is pending
+   a full rewrite to that canonical scheme; see the technical-debt plan.
+
 .. contents:: Table of Contents
    :local:
    :depth: 2

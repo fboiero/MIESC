@@ -21,12 +21,14 @@ Paper 1 establishes the detection and evidence baseline:
 
 Paper 2 starts after detection and measures remediation artifacts:
 
-- 141/143 fixes applied.
-- 90/141 patched contracts compile standalone.
-- 93/141 eliminate the original finding by re-scan.
-- 91/141 pass bounded no-regression.
-- Compile failures are not noise; they are a measured failure mode dominated by
-  undefined symbols in low-level-call remediation.
+- 123/143 fixes applied.
+- 123/123 patched contracts compile standalone.
+- 88/123 eliminate the original finding by re-scan.
+- 121/123 pass bounded no-regression.
+- 70/123 clean of HIGH under external Slither validation.
+- The earlier v1 baseline had 51/141 standalone-compile failures dominated by
+  undefined symbols in low-level-call remediation; the v-next inline,
+  dependency-free guards resolved that failure mode (now 123/123 compile).
 
 ## Current Platform State
 

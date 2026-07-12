@@ -298,7 +298,7 @@ Security vulnerabilities: fboiero@frvm.utn.edu.ar (response within 48 hours)
 
 ### Security Standards Mapping
 
-MIESC maps findings to 12 international standards:
+MIESC maps findings to 12 international standards, including:
 - ISO/IEC 27001:2022
 - ISO/IEC 42001:2023 (AI Governance)
 - NIST SP 800-218

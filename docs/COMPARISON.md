@@ -53,7 +53,7 @@ Each finding includes plain-English `llm_insights` explaining business impact (w
 - CSV (for spreadsheets)
 
 ### 5. Real-world exploit recall
-On 11 historical DeFi exploits ($1.59B in combined losses), MIESC achieves **81.8% recall** (Cohen's κ = 0.77) — higher than any single tool measured in [Durieux et al. ICSE 2020](https://doi.org/10.1145/3377811.3380364) (best single tool: Slither 43.2%). On SmartBugs-curated (143 contracts), static + intelligence engine achieves **95.8% recall** (137/143; reproducible Paper 1 profile), with a local Ollama follow-up reported at 97.9% (140/143) as a secondary claim.
+On 11 historical DeFi exploits ($1.59B in combined losses), MIESC achieves **81.8% recall** (95% Wilson CI [52%, 95%]) — higher than any single tool measured in [Durieux et al. ICSE 2020](https://doi.org/10.1145/3377811.3380364) (best single tool: Slither 43.2%). On SmartBugs-curated (143 contracts), static + intelligence engine achieves **95.8% recall** (137/143; reproducible Paper 1 profile), with a local Ollama follow-up reported at 97.9% (140/143) as a secondary claim.
 
 ### 6. Defense-in-depth
 9 complementary layers (static, symbolic, fuzzing, formal verification, AI/LLM, pattern detection, DeFi-specific, exploit validation, consensus). No single competitor covers all of these.
@@ -138,7 +138,7 @@ All static analysis tools have FP rates of 80-90%+ (recall-focused). MIESC's RAG
 2. ✅ **Multi-chain:** Native support for Move, Cairo, Solana (77 vuln types)
 3. ✅ **Formal verification:** `miesc specs` generates CVL/Scribble/SMTChecker
 4. ✅ **Intelligence engine:** ~30% noise reduction, semantic dedup, fix-code generation
-5. ✅ **Automated remediation:** `miesc fix` (Paper 2 on SmartBugs-curated: 123/143 fixes applied, 123/123 compile standalone, 86/123 eliminate the finding on re-scan, 121/123 no-regression)
+5. ✅ **Automated remediation:** `miesc fix` (Paper 2 on SmartBugs-curated: 123/143 fixes applied, 123/123 compile standalone, 88/123 eliminate the finding on re-scan, 121/123 no-regression)
 
 **Remaining after v5.4.x:**
 1. **Speed:** Lazy-load LLM/RAG/ChromaDB (currently imported on every command)

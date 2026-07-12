@@ -314,11 +314,10 @@ function batchTransfer(address[] _receivers, uint256 _value) public returns (boo
 
 | Metric | Value | Notes |
 |--------|-------|-------|
-| **Recall** | **70.00%** | 35/50 vulnerabilities detected |
-| **Precision** | **100.00%** | 0 false positives |
-| **F1-Score** | **82.35%** | Excellent balance |
-| Total Findings | 369 | Across 50 contracts |
-| Execution Time | 43.0s | 0.86s/contract |
+| **Recall** | **95.8%** | 137/143 vulnerabilities detected |
+| **Precision** | **22.1%** | recall-first profile; FPs filtered at triage |
+| **F1-Score** | **35.9%** | static + intelligence, no LLM |
+| Execution Time | 737s | 5.15s/contract |
 
 **Performance by Category:**
 
@@ -330,7 +329,7 @@ function batchTransfer(address[] _receivers, uint256 _value) public returns (boo
 | access_control | 100% | 39% | 0.56 | 7 | 11 |
 | denial_of_service | 100% | 33% | 0.50 | 2 | 4 |
 
-> **Note:** Evaluation performed on 50 contracts from SmartBugs-curated dataset (2026-01-06). Categories with 100% recall: arithmetic, bad_randomness, front_running. All detections have 100% precision (0 false positives).
+> **Note:** Evaluation performed on the 143-contract SmartBugs-curated dataset (static + intelligence profile, no LLM). Several categories reach 100% recall (arithmetic, bad_randomness, unchecked_low_level_calls); precision is low (22.1%) by design because MIESC runs a recall-first profile and filters false positives at triage.
 
 ### Previous Correlation Engine Evaluation (2026-01-05)
 

@@ -74,11 +74,11 @@ La selección de contratos de prueba sigue las recomendaciones de Ghaleb y Patta
 
 | Contrato | LOC | Vulnerabilidades | SWC IDs | Fuente |
 |----------|-----|------------------|---------|--------|
-| VulnerableBank.sol | 87 | 5 | 107, 104, 105 | Diseño propio |
-| UnsafeToken.sol | 124 | 4 | 101, 111, 131 | Diseño propio |
-| ReentrancyDAO.sol | 156 | 3 | 107 | Adaptado de Atzei et al. (2017) |
-| WeakRandom.sol | 45 | 2 | 120 | Adaptado de SWC Registry |
-| **Total** | **412** | **14** | **7 categorías** | |
+| VulnerableBank.sol | 99 | 2 | 107 | Diseño propio |
+| UnsafeToken.sol | 142 | 10 | 101, 104, 114, 116, 120, 128 | Diseño propio |
+| AccessControlFlawed.sol | 121 | 7 | 105, 106, 115 | Diseño propio |
+| FlashLoanVault.sol | 252 | 10 | 107, 104, 114 (lógica DeFi) | Diseño propio |
+| **Total** | **614** | **29** | **9+ categorías** | |
 
 **Limitaciones metodológicas:** Según Durieux et al. (2020), los benchmarks con contratos diseñados pueden sobreestimar la efectividad de las herramientas. Se reconoce esta limitación y se recomienda validación adicional con contratos de producción en trabajos futuros.
 
@@ -339,7 +339,7 @@ Tiempo total de ejecución: 52.4s (paralelo)
 Estado: COMPLETADO
 ```
 
-**Observación:** La ejecución completa del pipeline de 7 capas genera 47 hallazgos brutos que se reducen a 16 únicos tras la deduplicación, demostrando la efectividad del proceso de normalización.
+**Observación:** La ejecución completa del pipeline sobre el corpus genera 385 hallazgos brutos que se reducen a 123 únicos tras el agrupamiento por causa-raíz, demostrando la efectividad del proceso de normalización.
 
 ---
 
@@ -442,76 +442,117 @@ $ curl -X POST http://localhost:8000/api/v1/analyze \
 
 ### 5.3.1 Análisis del Corpus de Prueba
 
-Se ejecutó MIESC sobre el corpus de 4 contratos con 14 vulnerabilidades conocidas. La Tabla 5.5 presenta los resultados agregados.
+Se ejecutó MIESC sobre un corpus de prueba de 4 contratos de diseño propio (614 LOC en total) con **29 vulnerabilidades documentadas** mediante anotaciones `// VULNERABILITY N:` en el código fuente, que constituyen el *ground truth*.
 
-**Tabla 5.5.** Resultados de detección en corpus de prueba
+**Tabla 5.5.** Corpus de prueba (`data/audit/`)
 
-| Contrato | Vulns Conocidas | Detectadas | TP | FP | FN | Precision | Recall |
-|----------|-----------------|------------|----|----|----|-----------|----|
-| VulnerableBank.sol | 5 | 6 | 5 | 1 | 0 | 0.83 | 1.00 |
-| UnsafeToken.sol | 4 | 5 | 4 | 1 | 0 | 0.80 | 1.00 |
-| ReentrancyDAO.sol | 3 | 3 | 3 | 0 | 0 | 1.00 | 1.00 |
-| WeakRandom.sol | 2 | 2 | 2 | 0 | 0 | 1.00 | 1.00 |
-| **Total** | **14** | **16** | **14** | **2** | **0** | **0.875** | **1.00** |
+| Contrato | LOC | Vulns documentadas | Categorías principales |
+|----------|-----|--------------------|------------------------|
+| VulnerableBank.sol | 99 | 2 | Reentrancy (SWC-107) |
+| UnsafeToken.sol | 142 | 10 | Múltiples (SWC-101/104/114/116/120/128) |
+| AccessControlFlawed.sol | 121 | 7 | Access control (SWC-105/106/115) |
+| FlashLoanVault.sol | 252 | 10 | Lógica DeFi (oráculo, first-depositor, reentrancy) |
+| **Total** | **614** | **29** | **9+ categorías SWC** |
+
+**Nota metodológica.** Una herramienta *recall-first* como MIESC produce muchos hallazgos por contrato, por lo que se distinguen dos criterios de "detección":
+- **Cobertura de línea:** ¿existe algún hallazgo a ±5 líneas del marcador de la vulnerabilidad? Criterio laxo, satisfecho casi trivialmente cuando hay muchos hallazgos.
+- **Detección type-aware:** ¿el hallazgo cercano identifica la vulnerabilidad del **tipo/SWC correcto**? Criterio significativo.
+
+Todos los resultados de esta sección son reproducibles; los artefactos crudos y la verificación vulnerabilidad-por-vulnerabilidad están en el expediente `docs/evidence/corpus_revalidation_20260709/`.
+
+### 5.3.2 Resultados de Detección de MIESC
+
+**Tabla 5.6.** Detección de MIESC (configuración estático + patrón, capas 1/6/7)
+
+| Contrato | Cobertura | Type-correct | Hallazgos |
+|----------|-----------|--------------|-----------|
+| VulnerableBank.sol | 2/2 | 2/2 | 47 |
+| UnsafeToken.sol | 10/10 | 5/10 | 103 |
+| AccessControlFlawed.sol | 7/7 | 3/7 | 82 |
+| FlashLoanVault.sol | 10/10 | 4/10 | 153 |
+| **Total** | **29/29 (100%)** | **14/29 (48%)** | **385** |
 
 **Métricas agregadas:**
-- **Precision:** 14 / (14 + 2) = 0.875 (87.5%)
-- **Recall:** 14 / (14 + 0) = 1.00 (100%)
-- **F1-Score:** 2 × (0.875 × 1.00) / (0.875 + 1.00) = **0.93**
+- **Cobertura de recall:** 29/29 = **100%**
+- **Recall type-aware:** 14/29 = **48%**
+- **Precisión:** ≈ 29/385 ≈ **7.5%** (sube a ~32% con filtrado de FP agresivo)
 
-### 5.3.2 Distribución de Severidades
+MIESC exhibe un perfil claramente *recall-first*: cubre la totalidad de las vulnerabilidades documentadas, pero con precisión baja producto de la inundación de hallazgos (385 sobre 614 LOC). Bajo el criterio significativo de tipo correcto, identifica el 48%.
 
-**Tabla 5.6.** Distribución de hallazgos por severidad
+### 5.3.3 Comparación con Slither (RQ2)
 
-| Severidad | Cantidad | Porcentaje | Definición (CVSS aproximado) |
-|-----------|----------|------------|------------------------------|
-| Critical | 2 | 12.5% | CVSS ≥ 9.0 |
-| High | 5 | 31.3% | 7.0 ≤ CVSS < 9.0 |
-| Medium | 6 | 37.5% | 4.0 ≤ CVSS < 7.0 |
-| Low | 3 | 18.7% | CVSS < 4.0 |
-| **Total** | **16** | **100%** | |
+Para responder RQ2 —si el enfoque multicapa mejora la detección respecto a herramientas individuales— se midió **Slither de forma aislada** sobre el mismo corpus, con idéntico criterio de correlación.
 
-**Figura 19.** Distribución de hallazgos por severidad en el corpus de prueba
+**Tabla 5.7.** MIESC vs Slither sobre el corpus real (29 vulnerabilidades)
 
-### 5.3.3 Detección por Capa
+| Configuración | Cobertura | Type-correct | Hallazgos | Precisión aprox. |
+|---------------|-----------|--------------|-----------|------------------|
+| Slither (sola) | 28/29 (96%) | **17/29 (58%)** | 62 | ~27% |
+| MIESC estático+patrón (capas 1/6/7) | 29/29 (100%) | 14/29 (48%) | 385 | ~7.5% |
+| MIESC + capa LLM frontier (`--deep`) | 27/29 (93%) | **21/29 (72%)** | ~110 | ~27% |
 
-La Tabla 5.7 muestra la contribución de cada capa a la detección total, evidenciando la complementariedad de técnicas.
+**Resultado RQ2 (honesto).** Combinar herramientas estáticas y de patrón (capas 1/6/7 de MIESC) **NO mejoró la detección respecto a Slither por sí sola**: alcanzó cobertura equivalente (100% vs 96%, una vulnerabilidad de diferencia) pero **menor precisión de tipo** (48% vs 58%) y **~6× más falsos positivos** (385 vs 62). La hipótesis de que combinar tools estáticos supera al mejor tool individual **no se sostiene en este corpus**.
 
-**Tabla 5.7.** Hallazgos detectados por capa
+La mejora real proviene de **agregar una capa de razonamiento LLM**: con un modelo frontier en modo `--deep`, el recall type-aware sube de 48% a **72%**, superando a Slither (58%). El valor diferencial del enfoque multicapa reside, por tanto, en la **capa de análisis semántico con LLM**, no en la combinación de herramientas estáticas.
 
-| Capa | Técnica | Hallazgos Brutos | Únicos | % Contribución Única |
-|------|---------|------------------|--------|---------------------|
-| 1 | Análisis Estático | 12 | 8 | 50.0% |
-| 2 | Fuzzing | 5 | 2 | 12.5% |
-| 3 | Ejecución Simbólica | 8 | 3 | 18.8% |
-| 4 | Invariant Testing | 3 | 1 | 6.2% |
-| 5 | Verificación Formal | 6 | 1 | 6.2% |
-| 6 | Property Testing | 4 | 0 | 0.0% |
-| 7 | Análisis IA | 9 | 1 | 6.2% |
-| **Total** | | **47** | **16** | **100%** |
+**Límite persistente.** Las vulnerabilidades de lógica DeFi profunda (manipulación de oráculo, first-depositor, redondeo en `FlashLoanVault`) permanecen difíciles incluso para los modelos frontier (4–6 de 10 según el modelo), constituyendo la frontera abierta del análisis automatizado de smart contracts.
 
-**Observación clave:** Ninguna capa individual detectó todas las vulnerabilidades. La combinación de capas 1, 2 y 3 fue necesaria para alcanzar cobertura completa, validando la hipótesis de complementariedad de Ghaleb y Pattabiraman (2020).
+Este resultado matiza la complementariedad de Durieux et al. (2020): si bien ninguna herramienta individual detecta todas las clases, **la combinación de tools estáticos no superó al mejor tool individual** en este corpus; la ganancia provino del razonamiento semántico.
 
-### 5.3.4 Comparación con Herramientas Individuales
+> **Nota de alcance.** No se re-midieron Mythril ni Echidna de forma aislada sobre este corpus (Mythril no disponible en el entorno de reproducción arm64; Echidna sin binarios arm64). La comparación de RQ2 se limita a Slither, la herramienta estática de referencia.
 
-**Tabla 5.8.** Comparativa de rendimiento MIESC vs herramientas individuales
+### 5.3.4 Ensemble multi-modelo: complementariedad al nivel de razonadores
 
-| Herramienta | TP | FP | FN | Precision | Recall | F1 |
-|-------------|----|----|----|-----------|----|-------|
-| MIESC (7 capas) | 14 | 2 | 0 | 0.875 | **1.00** | **0.93** |
-| Slither (sola) | 10 | 3 | 4 | 0.77 | 0.71 | 0.74 |
-| Mythril (sola) | 8 | 1 | 6 | 0.89 | 0.57 | 0.70 |
-| Echidna (sola) | 5 | 0 | 9 | 1.00 | 0.36 | 0.53 |
+Si combinar herramientas estáticas no mejora la detección (§5.3.3), ¿qué sí lo hace? Cada modelo LLM frontier detecta un subconjunto **distinto** de las 29 vulnerabilidades; la **unión** de sus detecciones type-aware supera a cualquiera individual.
 
-**Incremento de recall MIESC vs mejor individual (Slither):**
+**Tabla 5.8.** Detección type-aware por modelo y ensemble (unión)
 
-$$\Delta_{recall} = \frac{1.00 - 0.71}{0.71} \times 100 = 40.8\%$$
+| Configuración | Type-aware |
+|---------------|-----------|
+| qwen-14b (local) | 13/29 (44%) |
+| GPT-5 | 15/29 (51%) |
+| DeepSeek-V4-flash | 16/29 (55%) |
+| Slither (baseline estático) | 17/29 (58%) |
+| DeepSeek-V4-pro | 18/29 (62%) |
+| Claude Sonnet / GPT-4o / Claude Opus | 21/29 (72%) |
+| **Ensemble (unión de modelos)** | **25/29 (86%)** |
 
-**Resultado RQ2:** MIESC mejora el recall en **40.8%** respecto a la mejor herramienta individual, confirmando la hipótesis de que la combinación de técnicas supera análisis individuales.
+**Resultado.** El ensemble multi-modelo alcanza **86%**, muy por encima del mejor modelo individual (72%). Esto **reformula** la hipótesis de complementariedad de Ghaleb y Pattabiraman (2020): la complementariedad efectiva no proviene de apilar herramientas estáticas (§5.3.3), sino de **combinar razonadores LLM diversos**, cada uno con fortalezas distintas.
 
-Este resultado es consistente con los hallazgos de Ghaleb y Pattabiraman (2020), quienes reportan un incremento del 34% al combinar análisis estático y simbólico.
+Solo **4 vulnerabilidades no son detectadas por ningún modelo**: un *unchecked return value* en `transferFrom` y tres de lógica DeFi en `FlashLoanVault` (oracle manipulation, rounding en el cálculo de shares, y una aritmética que en Solidity 0.8.x revierte automáticamente). Constituyen la frontera abierta del análisis automatizado de smart contracts.
 
-**Figura 20.** Comparativa de rendimiento MIESC (7 capas) vs herramientas individuales (Slither, Mythril, Echidna)
+**Trade-off recall/precisión.** El ensemble maximiza el recall (86%) pero une los falsos positivos de todos los modelos, degradando la precisión; es una configuración de triage de máxima cobertura, no de reporte de alta precisión. MIESC expone esta capacidad mediante la opción `--ensemble`. Evidencia por-vulnerabilidad en `docs/evidence/corpus_revalidation_20260709/` (§16).
+
+### 5.3.5 Validación cruzada en EVMBench (40 auditorías)
+
+Para corroborar la tesis de complementariedad sobre un corpus distinto y mayor,
+se evaluó MIESC contra una extracción local de EVMBench (40 auditorías DeFi
+reales, 120 vulnerabilidades HIGH). Cada modelo se corrió una sola vez por el
+mismo pipeline y matcher; los números se reportan como **extracción local, no
+como puntaje oficial de leaderboard** (misma prevención metodológica que el
+Paper 1).
+
+**Tabla 5.8b.** Recall en EVMBench por configuración (40 auditorías, corrida única)
+
+| Configuración | Recall | Precisión | F1 | Costo/aud. |
+|---------------|--------|-----------|-----|-----------|
+| Estático solamente | 18.3% | 14.5% | 16.2% | $0 |
+| qwen2.5-coder:32b (local) | 59.2% | 30.1% | 39.9% | $0 |
+| **DeepSeek-R1 (open-weight)** | **70.8%** | **88.5%** | **78.7%** | **~$0.08** |
+| GPT-4o (frontier) | 73.7% | 20.0% | 31.5% | ~$1.20 |
+| GPT-5 (frontier) | 77.5% | 42.7% | 55.0% | ~$3 |
+| Claude Sonnet 4.6 (frontier) | 82.5% | 34.0% | 48.2% | ~$5.50 |
+| **Ensemble (unión 4 frontier)** | **92.5%** | — | — | ~$7 |
+
+**Resultado.** EVMBench reproduce el patrón del corpus de 29 vulnerabilidades: la
+unión de razonadores frontier (92.5%) supera ampliamente a cualquiera individual,
+confirmando la complementariedad al nivel de razonadores sobre un corpus 4× mayor.
+Además aporta el eje **económico**: el modelo de pesos abiertos (DeepSeek-R1, MIT)
+obtiene la **mejor precisión (88.5%) y F1 (78.7%)** de toda la comparación —por
+encima de los frontier— a **~$0.08 por auditoría (15–69× más barato)**; su menor
+recall de una sola pasada (70.8%) se recupera con un auto-ensemble de bajo costo.
+La taxonomía de tres niveles de apertura y el análisis económico completo están en
+el Capítulo 6 (Tabla 6.2b).
 
 ---
 
@@ -519,9 +560,9 @@ Este resultado es consistente con los hallazgos de Ghaleb y Pattabiraman (2020),
 
 ### 5.4.1 Efectividad de la Deduplicación
 
-Las 7 capas generaron un total de 47 hallazgos brutos. El algoritmo de deduplicación redujo este número a 16 hallazgos únicos.
+Las capas generaron un total de 385 hallazgos brutos sobre el corpus. El algoritmo de agrupamiento por causa-raíz (clustering) los redujo a 123 hallazgos únicos.
 
-**Tasa de deduplicación:** (47 - 16) / 47 × 100 = **66.0%**
+**Tasa de deduplicación:** (385 - 123) / 385 × 100 = **68.1%**
 
 **Tabla 5.9.** Análisis de hallazgos duplicados
 
@@ -591,13 +632,17 @@ El único error de mapeo en GPTScan correspondió a una clasificación ambigua d
 
 | Solución | Costo por Auditoría | Costo Mensual (100 auditorías) | Costo Anual |
 |----------|--------------------|---------------------------------|-------------|
-| MIESC (local) | $0.00 | $0.00 | **$0.00** |
+| MIESC (local, open-weight) | $0.00 | $0.00 | **$0.00** |
+| MIESC (open-weight hosteado, DeepSeek-R1) | ~$0.08 | ~$8.00 | ~$96.00 |
 | GPTScan + GPT-4 API | $0.15 | $15.00 | $180.00 |
 | MythX Cloud (Pro) | $0.50 | $50.00 | $600.00 |
 | Certora Cloud | ~$100 | ~$10,000 | ~$120,000 |
 | Auditoría manual | $5,000-50,000 | N/A | N/A |
 
-*Nota: Costos estimados basados en precios públicos de noviembre 2024*
+*Nota: Costos estimados basados en precios públicos de noviembre 2024. El nivel
+open-weight hosteado (pesos MIT accedidos por API, ~$0.08/auditoría) es 15–69×
+más barato que las APIs frontier y obtiene la mejor precisión/F1 medida en
+EVMBench (véase §5.3.5 y el Capítulo 6, Tabla 6.2b).*
 
 **Resultado RQ4:** MIESC es viable para producción con:
 - **Tiempo:** ~1 minuto para auditoría completa (ejecución paralela)
@@ -650,16 +695,16 @@ Estos resultados validan la decisión de diseño de utilizar el patrón Adapter 
 
 ### 5.7.2 Respuesta a RQ2
 
-El incremento del 40.8% en recall confirma la hipótesis de complementariedad de técnicas. Este resultado es consistente con:
+La medición controlada contra Slither (§5.3.3) **matiza** la hipótesis de complementariedad. Combinar herramientas estáticas y de patrón (capas 1/6/7) **no mejoró** la detección type-aware respecto al mejor tool individual: 48% vs 58% de Slither, con cobertura equivalente (100% vs 96%) pero ~6× más falsos positivos. La ganancia real provino de **agregar razonamiento LLM**, que elevó el recall type-aware de 48% a **72%**, superando a Slither; y de **combinar modelos LLM diversos en ensemble** (§5.3.4), que lo elevó aún más, a **86%** (unión de detecciones), a costa de precisión. Esto es consistente con:
 
-- Ghaleb y Pattabiraman (2020): 34% de incremento con 2 técnicas
-- Rameder et al. (2022): "Ninguna herramienta individual es suficiente"
+- Rameder et al. (2022): "Ninguna herramienta individual es suficiente" — pero, según nuestra medición, la complementariedad efectiva requiere **análisis semántico**, no solo combinar tools estáticos.
+- Durieux et al. (2020): ninguna herramienta individual cubre todas las clases de vulnerabilidad.
 
-La arquitectura de 7 capas representa una contribución original que extiende trabajos previos.
+La contribución del enfoque multicapa reside, por tanto, en integrar una capa de razonamiento LLM sobre el análisis estático — no en la mera combinación de herramientas estáticas.
 
 ### 5.7.3 Respuesta a RQ3
 
-La tasa de deduplicación del 66% demuestra que múltiples herramientas detectan las mismas vulnerabilidades con nomenclaturas distintas. La normalización a SWC/CWE/OWASP:
+La tasa de deduplicación del 68% demuestra que múltiples herramientas detectan las mismas vulnerabilidades con nomenclaturas distintas. La normalización a SWC/CWE/OWASP:
 
 - Reduce ruido en reportes
 - Facilita comparación entre auditorías

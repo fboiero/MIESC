@@ -26,7 +26,7 @@ cuantitativos ni las metricas de esta pagina.
 | `benchmarks/results/paper1_claims_matrix.json` | Matriz de claims cuantitativos y fuentes. |
 | `benchmarks/results/paper1_smartbugs_eval_layers_1_6_7.json` | Corrida SmartBugs completa con seleccion `solc` por `pragma` y Layer 6 especializado. |
 | `benchmarks/results/paper1_smartbugs_local_ollama_followup_20260623.json` | Evidencia secundaria del lift local-Ollama: 137/143 -> 140/143 sobre los misses SmartBugs. |
-| `benchmarks/results/paper1_exploits_eval_20260621.json` | Evidencia de exploits reales: 9/11, kappa 0.773, $1.59B evaluados. |
+| `benchmarks/results/paper1_exploits_eval_20260621.json` | Evidencia de exploits reales: 9/11, 95% Wilson CI [52%, 95%], $1.59B evaluados. |
 | `benchmarks/results/paper1_smartbugs_full_all_layers_smoke_20260506.json` | Smoke reproducible de las 9 capas completas sobre un contrato SmartBugs. |
 | `benchmarks/results/tooling_smoke_layers_1_6.json` | Smoke test de herramientas faltantes: Semgrep, Wake, DA-GNN y SmartGuard integrados en el pipeline. |
 | `src/llm/embedding_rag.py` | Base RAG versionada para evidencia LLM y recuperacion hibrida. |
@@ -340,7 +340,7 @@ extraidos de un corpus curado de 25 incidentes. Las clases de vulnerabilidad y
 los montos provienen de `data/datasets/rekt_exploits/exploits_ground_truth.json`;
 los 11 contratos evaluados suman **$1.59B** (el corpus completo de 25 incidentes
 totaliza un monto mayor, que no debe atribuirse al subconjunto evaluado). El
-resultado por exploit (9/11 detectados, recall 81.8%, Cohen's kappa = 0.773 con
+resultado por exploit (9/11 detectados, recall 81.8%, 95% Wilson CI [52%, 95%] con
 n=11, reportado como **indicativo** dado el tamano de muestra) esta registrado en
 `benchmarks/results/paper1_exploits_eval_20260621.json` y referenciado en la
 claims-matrix como `real_world_exploits` (estado `supported_with_note`).
@@ -366,7 +366,7 @@ Claims canonicas v2:
 | SmartBugs local-Ollama secundaria | 140/143 = 97.9% recall | `paper1_smartbugs_local_ollama_followup_20260623.json` |
 | EVMBench local extraction ensemble | 111/120 = 92.5% recall | `evmbench_ensemble_40.json` |
 | EVMBench static-only | 22/120 = 18.3% recall | `evmbench_static_40.json` |
-| Real-world exploits | 9/11 = 81.8% recall, kappa 0.773 | `paper1_exploits_eval_20260621.json` |
+| Real-world exploits | 9/11 = 81.8% recall, 95% Wilson CI [52%, 95%] | `paper1_exploits_eval_20260621.json` |
 
 No usar `paper1_smartbugs_eval_layers_1_6_7.jsonl` como fuente primaria de
 metricas agregadas: ese JSONL preserva una corrida anterior de 93.7% y queda

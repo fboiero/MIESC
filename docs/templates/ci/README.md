@@ -52,7 +52,7 @@ Setup -> Analysis -> Report -> Security Gate
 ### 2. Analysis
 
 - **Quick Audit** (PRs): Layers 1-2 for fast feedback
-- **Full Audit** (main): All 7 layers with parallel execution
+- **Full Audit** (main): All 9 layers with parallel execution
 - **Custom**: User-defined layer selection
 
 ### 3. Report
@@ -159,7 +159,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - run: pip install miesc
-      - run: miesc analyze contracts/ --layers 1,2,3,4,5,6,7 --parallel
+      - run: miesc analyze contracts/ --layers 1,2,3,4,5,6,7,8,9 --parallel
 ```
 
 ### Custom Layer Selection

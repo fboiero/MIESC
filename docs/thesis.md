@@ -47,7 +47,7 @@ title: Master's Thesis - MIESC
 
 This thesis presents **MIESC (Multi-layer Intelligent Evaluation for Smart Contracts)**, a production-grade security framework that implements a **7-layer Defense-in-Depth architecture** for comprehensive smart contract vulnerability detection.
 
-The framework integrates **25 specialized security tools** with **AI-powered correlation** using sovereign LLMs (Ollama) and **ML-based detection** (DA-GNN Graph Neural Networks), achieving **94.5% precision**, **92.8% recall**, and an **F1-score of 0.93**.
+The framework integrates **25 specialized security tools** with **AI-powered correlation** using sovereign LLMs (Ollama) and **ML-based detection** (DA-GNN Graph Neural Networks), achieving **95.8% recall** (137/143) on SmartBugs-curated at a deliberately recall-first precision of **~22%** (F1 **0.36**), and **92.5% ensemble recall** on an EVMBench high-severity extraction.
 
 Key innovations include:
 - Triple normalization system (SWC/CWE/OWASP) with 97.1% accuracy
@@ -95,9 +95,10 @@ Key innovations include:
 
 | Metric | Value |
 |--------|-------|
-| **Precision** | 94.5% |
-| **Recall** | 92.8% |
-| **F1-Score** | 0.93 |
+| **Recall** (SmartBugs-curated) | 95.8% (137/143) |
+| **Precision** | 22.1% (recall-first profile) |
+| **F1-Score** | 0.36 |
+| **EVMBench ensemble recall** | 92.5% (111/120) |
 | **False Positive Rate** | 5.5% |
 | **Detection Coverage** | 96% |
 | **Integrated Tools** | 25 |

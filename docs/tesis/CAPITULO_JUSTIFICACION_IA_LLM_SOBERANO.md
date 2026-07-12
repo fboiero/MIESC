@@ -164,6 +164,38 @@ Aunque estos costos parecen modestos, representan una barrera significativa para
 - Organizaciones educativas
 - Investigadores académicos
 
+### 6.2.4 Tres niveles de apertura: el costo no es binario
+
+La contraposición "API comercial cara vs. modelo local gratuito" oculta un tercer
+nivel intermedio que es clave para el argumento económico. Separando la **licencia
+de los pesos** del **método de acceso**, el espacio de modelos se ordena en tres
+niveles:
+
+**Tabla 6.2b.** Niveles de apertura de modelos y su desempeño medido en EVMBench
+(40 auditorías DeFi reales, 120 vulnerabilidades HIGH; corrida única por modelo,
+mismo pipeline y matcher).
+
+| Nivel | Ejemplo | Licencia de pesos | Acceso | Costo/aud. | Recall | Precisión | F1 |
+|-------|---------|-------------------|--------|-----------|--------|-----------|-----|
+| Frontier propietario | GPT-4o / GPT-5 / Claude | cerrada | API del proveedor | $1.20–5.50 | 73.7–82.5% | 20–43% | 32–55% |
+| **Open-weight hosteado** | **DeepSeek-R1 (MIT)** | **abierta (MIT)** | **API hosteada** | **~$0.08** | **70.8%** | **88.5%** | **78.7%** |
+| Open-weight local | qwen2.5-coder:32b | abierta (Apache 2.0) | self-host (GPU propia) | $0 | 59.2% | 30.1% | 39.9% |
+
+El hallazgo central para este capítulo: el modelo **open-weight** (DeepSeek-R1, con
+pesos MIT) obtiene la **mejor precisión (88.5%) y el mejor F1 (78.7%)** de toda la
+comparación, a un costo estimado de **~$0.08 por auditoría — entre 15 y 69 veces más
+barato** que los proveedores frontier. Su recall en una sola pasada (70.8%) queda por
+debajo de los frontier, pero un auto-ensemble de tres pasadas (≈$0.24/auditoría) lo
+eleva a 81.7%, dentro del rango de los frontier de una sola pasada. El ~$0.08 es
+**costo de hosting de conveniencia, no un peaje de licencia**: cualquiera con GPU
+suficiente puede correr los mismos pesos a costo marginal cero.
+
+La conclusión económica no es "gratis o carísimo", sino un **espectro**: pagar precio
+frontier no compra una ventaja de precisión/F1 sobre un modelo de pesos abiertos, y la
+soberanía total (nivel local, $0) está disponible con una caída de recall cuantificada,
+no asumida. El detalle metodológico y las fuentes reproducibles de estos números están
+en `docs/methodology/DATASETS.md` y en el Paper 1.
+
 ---
 
 ## 6.3 Solución: LLMs Soberanos con Ollama
@@ -212,8 +244,15 @@ Ollama soporta modelos cuyos pesos son públicos y auditables:
 | CodeLlama:7b | 7B | 8 GB | Meta Llama 2 | Muy buena (código) |
 | CodeLlama:13b | 13B | 16 GB | Meta Llama 2 | Excelente (código) |
 | Qwen2.5-Coder:7b | 7B | 8 GB | Apache 2.0 | Excelente (código) |
+| Qwen2.5-Coder:32b | 32B | 24 GB | Apache 2.0 | Excelente (local, $0) |
 | Mistral:7b | 7B | 8 GB | Apache 2.0 | Muy buena |
 | DeepSeek-Coder:6.7b | 6.7B | 8 GB | MIT | Excelente (código) |
+| DeepSeek-R1 (reasoner) | ~671B | API hosteada | MIT | Mejor precisión/F1 medida (§6.2.4) |
+
+El último renglón corresponde al nivel **open-weight hosteado**: pesos abiertos (MIT)
+demasiado grandes para el hardware de prueba, accedidos por API hosteada a costo muy
+bajo (~$0.08/auditoría). Es el modelo de pesos abiertos con mejor precisión y F1 en la
+comparación de EVMBench (Tabla 6.2b).
 
 **3. Sin telemetría**
 
@@ -704,23 +743,129 @@ Todo el stack es open source y auditable:
 - Ollama: Código abierto (MIT)
 - Modelos Llama: Pesos públicos y documentación de entrenamiento
 
+### 6.6.3 Soberanía como requisito, no preferencia
+
+Las secciones anteriores justifican los modelos de pesos abiertos y la ejecución
+local por sus **riesgos evitados** (confidencialidad, jurisdicción) y su **costo**.
+Esa es una defensa correcta pero incompleta: presenta la soberanía como una
+concesión que se acepta a cambio de seguridad y ahorro. El argumento más fuerte es
+el inverso y es de fondo: **el control sobre la herramienta es un requisito de
+primer orden del análisis de seguridad, y —a la luz de la evidencia empírica de
+este trabajo— ya no exige sacrificar capacidad.** Lo que se controla es
+epistemológicamente superior a lo que no se controla, por seis razones
+convergentes. Esta distinción no es nueva: Illich (1973) diferenció las
+herramientas *conviviales* —aquellas que la persona domina, inspecciona y adapta—
+de las que la dominan y la vuelven dependiente; una herramienta de seguridad opaca,
+que no puede examinarse ni modificarse, pertenece por construcción a la segunda
+clase.
+
+**1. Doctrina de ciberdefensa.** La ciberdefensa se define por el control y la
+soberanía sobre los propios medios. Floridi (2020) caracteriza la soberanía digital
+como el control efectivo sobre los datos, el software y los procesos de los que
+depende una organización; delegar el razonamiento de seguridad en un servicio
+externo cede precisamente ese control. Edificar una herramienta *defensiva* sobre una
+caja negra propietaria y de jurisdicción extranjera es doctrinalmente
+autocontradictorio: introduce, en el núcleo de la postura defensiva, una
+dependencia y una superficie de ataque que el defensor no controla ni puede
+inspeccionar. Una capacidad de ciberdefensa soberana requiere, por definición,
+tooling soberano; delegar el razonamiento de seguridad a un tercero opaco equivale
+a subordinar la decisión defensiva a un actor externo.
+
+**2. Reproducibilidad y periciabilidad.** Una auditoría con valor forense debe ser
+reproducible: otro perito, con el mismo insumo, debe poder obtener el mismo
+resultado. Un modelo de pesos abiertos y versionado, ejecutado localmente, es un
+artefacto **congelable y verificable**. Una API comercial es un blanco móvil: el
+proveedor puede actualizar el modelo en silencio, cambiar su comportamiento o
+deprecarlo (como ocurrió con generaciones previas de modelos frontier). No es
+posible construir una evidencia pericial reproducible sobre un artefacto que no se
+controla; la soberanía sobre el modelo es, por tanto, una condición de la
+cientificidad del método, no un lujo.
+
+**3. Autoría y rendición de cuentas.** Cuando el auditor humano firma un informe,
+asume la autoría y la responsabilidad de sus afirmaciones. La *libertad de estudiar
+cómo funciona el programa* —la libertad 1 de la definición de software libre de
+Stallman (2002)— es la condición técnica que hace posible esa rendición de cuentas:
+con pesos abiertos el auditor puede inspeccionar, atribuir y responder por el
+análisis; con una caja negra, la autoría del hallazgo se diluye en un servicio
+inescrutable que no puede examinar ni citar con precisión. Como observa Winner
+(1980), los artefactos no son neutrales: incorporan relaciones de poder, y un modelo
+cerrado inscribe en el análisis la autoridad del proveedor por encima de la del
+perito. La rendición de cuentas exige poder explicar *por qué* la herramienta
+concluyó lo que concluyó; un modelo cerrado convierte esa cadena de autoría en un
+acto de fe.
+
+**4. Longevidad y no-abandono.** Las licencias MIT y Apache 2.0 son irrevocables:
+los pesos, una vez publicados, no pueden ser retirados. Un modelo propietario, en
+cambio, puede ser deprecado o discontinuado por decisión unilateral del proveedor.
+Un baseline reproducible —el fundamento de esta tesis y de sus papers asociados— no
+puede depender de un recurso que un tercero puede eliminar.
+
+**5. Bien Público Digital.** MIESC se postula como Bien Público Digital ante la
+Digital Public Goods Alliance. Un bien público cuyo componente central requiere una
+API paga tiene, de hecho, un guardián con peaje: no es plenamente público. La
+apertura de pesos y la ejecución local son coherentes con la misión de acceso
+universal —incluidos investigadores, instituciones educativas y desarrolladores en
+economías con moneda débil— que un servicio comercial excluye por costo.
+
+**6. Paridad empírica.** El argumento anterior sería idealista si la soberanía
+costara capacidad. La evidencia de este trabajo demuestra que no la cuesta: en la
+evaluación de EVMBench (§6.2.4, Tabla 6.2b), el modelo de pesos abiertos DeepSeek-R1
+obtiene la **mejor precisión (88.5%) y F1 (78.7%)** de toda la comparación —por
+encima de los proveedores frontier— a un costo de **~$0.08 por auditoría (15–69×
+menor)**. La elección soberana dejó de ser un sacrificio y pasó a ser, en las
+métricas que importan para el triage, una elección dominante.
+
+La Tabla 6.6 sintetiza el argumento en un scorecard: el nivel local gana en todas
+las dimensiones de soberanía, el open-weight hosteado es el punto de equilibrio
+(soberanía casi total, mejor precisión/F1 y costo mínimo), y el frontier solo
+conserva ventaja en el recall de una sola pasada.
+
+**Tabla 6.6.** Scorecard de soberanía por nivel de acceso (✓ pleno · ◑ parcial · ✗ ausente)
+
+| Dimensión | Frontier hosteado | Open-weight hosteado | Open-weight local |
+|-----------|:-----------------:|:--------------------:|:-----------------:|
+| Control e inspección de pesos | ✗ (cerrado) | ✓ (MIT) | ✓ (MIT/Apache) |
+| Reproducibilidad pericial | ✗ (blanco móvil) | ◑ (pesos fijables; ejecución en el proveedor) | ✓ (congelable extremo a extremo) |
+| Autoría y rendición de cuentas | ✗ (caja negra) | ✓ (inspeccionable) | ✓ (inspeccionable) |
+| Longevidad (no-deprecación) | ✗ (deprecable) | ✓ (irrevocable) | ✓ (irrevocable) |
+| Ejecución sin salida de datos | ✗ | ✗ (API hosteada) | ✓ (100% local) |
+| Costo por auditoría | $1.20–5.50 | ~$0.08 | $0 |
+| Recall (una sola pasada) | 73.7–82.5% | 70.8% | 59.2% |
+| Precisión / F1 (medidos en EVMBench) | 20–43% / 32–55% | **88.5% / 78.7%** | 30% / 40% |
+
+**Límites honestos.** El argumento no es un absoluto sino un espectro, y su fuerza
+depende de reconocerlo. El mejor resultado de pesos abiertos (DeepSeek-R1, ~671B
+parámetros) se obtuvo mediante una **API hosteada**, no en ejecución 100% local: sus
+pesos son abiertos y auto-hospedables en principio, pero el hardware de prueba no
+alcanza para ejecutarlo localmente. La soberanía *total* —el modelo local de 32B,
+sin ninguna llamada externa— tiene un costo de recall cuantificado (59.2% frente al
+70.8–82.5% de los modelos mayores), recuperable en parte mediante auto-ensemble de
+bajo costo. Asimismo, los modelos frontier conservan una ventaja en recall de una
+sola pasada. La conclusión defendible no es "lo abierto siempre gana", sino que
+**el control sobre la herramienta se obtiene sin renunciar a una capacidad
+competitiva**, y que cada punto del espectro (frontier hosteado, pesos abiertos
+hosteados, pesos abiertos locales) ofrece un compromiso medido —no asumido— entre
+soberanía, costo y recall.
+
 ---
 
 ## 6.7 Conclusiones
 
 ### 6.7.1 Síntesis de la Justificación
 
-La decisión de implementar LLMs soberanos en MIESC responde a un análisis riguroso de riesgos y trade-offs. La justificación se fundamenta en:
+La decisión de implementar LLMs soberanos en MIESC responde a un análisis riguroso de riesgos y trade-offs. Su premisa de fondo (§6.6.3) es que **el control sobre la herramienta es un requisito de primer orden del análisis de seguridad, no una preferencia**: lo que se controla —pesos abiertos, ejecución auditable— es doctrinal, científica y epistemológicamente superior a lo que no se controla, y la evidencia de este trabajo demuestra que esa soberanía ya no exige sacrificar capacidad. La justificación se fundamenta en:
 
 1. **El código de smart contracts pre-auditoría tiene valor económico directo y significativo.** La filtración de este código puede resultar en pérdidas de decenas o cientos de millones de dólares.
 
 2. **Las APIs comerciales de LLM introducen vectores de riesgo inaceptables** para código de alto valor: transmisión a jurisdicciones extranjeras, retención por períodos extendidos, posible memorización en modelos.
 
-3. **Los modelos locales de 7-13B parámetros proporcionan capacidad suficiente** para el caso de uso de análisis de seguridad, especialmente cuando operan dentro de una arquitectura de múltiples capas.
+3. **Los modelos de pesos abiertos proporcionan capacidad suficiente** para el caso de uso de análisis de seguridad, especialmente dentro de una arquitectura de múltiples capas. Esto ya no es solo una expectativa: en la evaluación de EVMBench (§6.2.4), el modelo open-weight DeepSeek-R1 obtiene la **mejor precisión (88.5%) y F1 (78.7%)** de toda la comparación, por encima de los proveedores frontier; y un modelo local de 32B alcanza 59.2% de recall sin ninguna llamada externa.
 
-4. **El costo total de propiedad de LLMs soberanos es inferior** al de APIs comerciales para organizaciones que realizan auditorías regularmente.
+4. **El costo total de propiedad de LLMs soberanos es inferior** al de APIs comerciales para organizaciones que realizan auditorías regularmente. Medido en EVMBench, el nivel open-weight cuesta **~$0.08 por auditoría (15–69× menos que los frontier)** y el nivel local $0, sin sacrificar precisión de detección.
 
 5. **La ejecución local garantiza cumplimiento regulatorio automático** con GDPR, LGPD, LFPDPPP y regulaciones sectoriales.
+
+6. **El control es reproducibilidad, autoría y longevidad.** Solo un modelo de pesos abiertos y versionado permite una evidencia pericial reproducible, una cadena de autoría en la que el auditor puede responder por sus afirmaciones, y un baseline que ningún proveedor puede deprecar unilateralmente. Estas tres propiedades —ausentes por construcción en una API cerrada— son condiciones del método científico y forense, no beneficios accesorios. La contrapartida honesta es que la soberanía plena es un espectro: el nivel 100% local tiene un costo de recall medido, y el mejor resultado de pesos abiertos se obtuvo por API hosteada; el control sobre la herramienta se preserva en todo el espectro, con compromisos cuantificados entre soberanía, costo y recall.
 
 ### 6.7.2 Recomendación
 
@@ -744,6 +889,10 @@ Digital Public Goods Alliance. (2023). *Digital Public Goods Standard*. https://
 
 European Parliament. (2016). General Data Protection Regulation (GDPR). *Regulation (EU) 2016/679*.
 
+Floridi, L. (2020). The fight for digital sovereignty: What it is, and why it matters, especially for the EU. *Philosophy & Technology, 33*(3), 369-378. https://doi.org/10.1007/s13347-020-00423-6
+
+Illich, I. (1973). *Tools for conviviality*. Harper & Row.
+
 Meta AI. (2024). Llama 3 Model Card. https://ai.meta.com/llama/
 
 Ollama. (2024). Ollama Documentation. https://ollama.ai/
@@ -754,7 +903,11 @@ Presidencia de la República. (2010). Ley Federal de Protección de Datos Person
 
 República Federativa do Brasil. (2018). Lei Geral de Proteção de Dados (LGPD). *Lei nº 13.709*.
 
-Sun, Y., et al. (2024). GPTScan: Detecting logic vulnerabilities in smart contracts by combining GPT with program analysis. *ICSE 2024*, 1-12.
+Stallman, R. M. (2002). *Free software, free society: Selected essays of Richard M. Stallman*. GNU Press.
+
+Sun, Y., Wu, D., Xue, Y., Liu, H., Wang, H., Xu, Z., Xie, X., & Liu, Y. (2024). GPTScan: Detecting logic vulnerabilities in smart contracts by combining GPT with program analysis. *Proceedings of the 46th International Conference on Software Engineering (ICSE)*, Article 166. https://doi.org/10.1145/3597503.3623318
+
+Winner, L. (1980). Do artifacts have politics? *Daedalus, 109*(1), 121-136.
 
 Touvron, H., et al. (2023). LLaMA: Open and efficient foundation language models. *arXiv:2302.13971*.
 

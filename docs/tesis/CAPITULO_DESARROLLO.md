@@ -18,7 +18,7 @@ El origen de MIESC se encuentra en una experiencia práctica de auditoría reali
 
 **Tercer problema: La interpretación de resultados.** Las herramientas generaron colectivamente más de 200 hallazgos, muchos de ellos duplicados o falsos positivos. La tarea de consolidación, priorización y verificación consumió varios días de trabajo manual.
 
-Estos problemas no son únicos de la experiencia del autor. Durieux et al. (2020), en su evaluación empírica de 47,587 contratos, documentaron que "ninguna herramienta individual detecta más del 75% de las vulnerabilidades conocidas, y la combinación manual de herramientas es impráctica a escala" (p. 535). Rameder et al. (2022) llegaron a conclusiones similares, señalando que "la heterogeneidad de interfaces y formatos de salida constituye una barrera significativa para la adopción industrial de herramientas académicas" (p. 12).
+Estos problemas no son únicos de la experiencia del autor. Durieux et al. (2020), en su evaluación empírica de 47,587 contratos, documentaron que ninguna herramienta individual supera el 43.2% de recall (Slither, la mejor) y que solo alrededor del 42% de las vulnerabilidades son detectadas por el conjunto de herramientas, siendo la combinación manual impráctica a escala. Rameder et al. (2022) llegaron a conclusiones similares, señalando que "la heterogeneidad de interfaces y formatos de salida constituye una barrera significativa para la adopción industrial de herramientas académicas" (p. 12).
 
 ### 4.1.2 Objetivos del Desarrollo
 
@@ -54,6 +54,15 @@ La Tabla 4.1 presenta las métricas del proyecto en su versión 4.0.0, medidas m
 
 El índice de mantenibilidad de 72.3 supera el umbral de 65 propuesto por Oman y Hagemeister (1992) para código "altamente mantenible", lo cual valida las decisiones de diseño orientadas a la extensibilidad.
 
+> **Nota sobre versiones.** Esta tesis documenta la arquitectura de MIESC en su
+> versión **v4.0.0** (7 capas de defensa, 25 herramientas integradas). Las
+> versiones posteriores de la línea **v5.x** —usadas para la validación cruzada en
+> EVMBench (§5.3.5) y descritas en los papers asociados— ampliaron el pipeline a
+> **9 capas y 35 módulos** (13 externos + 22 internos), incorporando capas de
+> razonamiento con LLM y filtrado de falsos positivos. Los resultados de detección
+> de esta tesis corresponden a la arquitectura documentada, salvo la sección de
+> validación EVMBench, que se indica explícitamente como corrida en la línea v5.x.
+
 ---
 
 ## 4.2 Arquitectura del Sistema
@@ -64,7 +73,7 @@ La arquitectura de MIESC se fundamenta en el principio de defensa en profundidad
 
 La aplicación de este principio al análisis de contratos inteligentes es una contribución original de este trabajo. La justificación teórica se fundamenta en la observación empírica de que diferentes técnicas de análisis tienen fortalezas y debilidades complementarias:
 
-**Análisis estático:** Examina el código sin ejecutarlo, detectando patrones conocidos de vulnerabilidad con alta velocidad pero sin capacidad de razonar sobre comportamiento en tiempo de ejecución. Feist et al. (2019) reportan que Slither alcanza 82% de precisión pero solo 75% de recall, indicando que aproximadamente una de cada cuatro vulnerabilidades escapa a su detección.
+**Análisis estático:** Examina el código sin ejecutarlo, detectando patrones conocidos de vulnerabilidad con alta velocidad pero sin capacidad de razonar sobre comportamiento en tiempo de ejecución. Los autores de Slither (Feist et al., 2019) reportan alta precisión en su propio benchmark, pero la evaluación independiente a gran escala de Durieux et al. (2020) midió apenas 43.2% de recall sobre SmartBugs-curated, indicando que más de la mitad de las vulnerabilidades escapa a la detección estática a escala de corpus.
 
 **Ejecución simbólica:** Explora caminos de ejecución mediante representación simbólica de variables, capaz de descubrir vulnerabilidades dependientes de valores específicos de entrada. Baldoni et al. (2018) documentan su efectividad pero también su principal limitación: la explosión combinatoria de caminos en código complejo.
 
@@ -125,7 +134,7 @@ La selección de las 25 herramientas que componen MIESC siguió un proceso de ev
 
 5. **Instalabilidad:** Capacidad de instalación automatizada sin intervención manual compleja.
 
-**Capa 1 - Análisis Estático:** Slither fue seleccionada como herramienta principal por su equilibrio entre precisión (82%) y velocidad (1.2s promedio), según los benchmarks de Durieux et al. (2020). Solhint complementa con verificación de estilo y mejores prácticas. Securify2 aporta análisis de patrones de seguridad específicos de Ethereum. Semgrep permite definir reglas personalizadas para patrones específicos de cada organización.
+**Capa 1 - Análisis Estático:** Slither fue seleccionada como herramienta principal por su cobertura de detectores y velocidad (1.2s promedio); en la evaluación independiente de Durieux et al. (2020) es la mejor herramienta individual, con 43.2% de recall. Solhint complementa con verificación de estilo y mejores prácticas. Securify2 aporta análisis de patrones de seguridad específicos de Ethereum. Semgrep permite definir reglas personalizadas para patrones específicos de cada organización.
 
 **Capa 2 - Fuzzing:** Echidna, desarrollada por Trail of Bits, fue seleccionada por su capacidad de property-based testing específico para contratos. Foundry Fuzz aporta integración con el ecosistema Foundry, ampliamente adoptado en la industria. Medusa proporciona fuzzing basado en cobertura con soporte para invariantes complejas. Vertigo implementa mutation testing, una técnica complementaria que evalúa la calidad de las pruebas existentes.
 
@@ -177,7 +186,7 @@ La solución adoptada combina el patrón Adapter, documentado por Gamma et al. (
 
 ### 4.3.3 Implementación de la Interfaz Base
 
-La interfaz `ToolAdapter` se implementa utilizando el módulo `abc` (Abstract Base Classes) de Python, siguiendo las recomendaciones de van Rossum et al. (2001):
+La interfaz `ToolAdapter` se implementa utilizando el módulo `abc` (Abstract Base Classes) de Python, siguiendo las recomendaciones de van Rossum y Warsaw (2001b):
 
 ```python
 from abc import ABC, abstractmethod
@@ -919,7 +928,7 @@ result = subprocess.run(
 )
 ```
 
-**Fundamentación:** Touvron et al. (2023) demuestran que modelos open-weight de 7B parámetros alcanzan rendimiento competitivo para tareas de análisis de código. El trade-off de menor capacidad respecto a GPT-4 se compensa con la garantía de soberanía de datos y costo cero.
+**Fundamentación:** Touvron et al. (2023) demuestran que modelos open-weight de 7B parámetros alcanzan rendimiento competitivo para tareas de análisis de código. El trade-off frente a los modelos frontier es más acotado de lo que suele asumirse: en la evaluación de EVMBench, un modelo de pesos abiertos (DeepSeek-R1) supera a los proveedores frontier en precisión y F1, y la única desventaja medida —menor recall en una sola pasada— se recupera con un auto-ensemble de bajo costo. La contrapartida es soberanía de datos y un costo entre nulo (local) y ~$0.08/auditoría (open-weight hosteado).
 
 ---
 
@@ -1100,7 +1109,7 @@ Claessen, K., & Hughes, J. (2000). QuickCheck: A lightweight tool for random tes
 
 ConsenSys. (2023). *Smart contract best practices*. https://consensys.github.io/smart-contract-best-practices/
 
-David, Y., Kroening, D., & Schrammel, P. (2023). Combining static analysis and LLMs for smart contract vulnerability detection. *ICSE 2023*, 1234-1245.
+Sun, Y., Wu, D., Xue, Y., Liu, H., Wang, H., Xu, Z., Xie, X., & Liu, Y. (2024). GPTScan: Detecting logic vulnerabilities in smart contracts by combining GPT with program analysis. *Proceedings of the 46th International Conference on Software Engineering (ICSE)*, Article 166. https://doi.org/10.1145/3597503.3623318
 
 de Moura, L., & Bjørner, N. (2008). Z3: An efficient SMT solver. *TACAS 2008*, 337-340.
 
@@ -1186,7 +1195,7 @@ Touvron, H., et al. (2023). LLaMA: Open and efficient foundation language models
 
 Trail of Bits. (2024). *Slither documentation*. https://github.com/crytic/slither
 
-van Rossum, G., et al. (2001). PEP 3119 – Introducing abstract base classes. *Python Enhancement Proposals*.
+van Rossum, G., & Warsaw, B. (2001b). PEP 3119 – Introducing abstract base classes. *Python Enhancement Proposals*.
 
 van Rossum, G., et al. (2019). PEP 585 – Type hinting generics in standard collections. *Python Enhancement Proposals*.
 

@@ -488,9 +488,8 @@ git checkout -b feature/v4.1-scientific-validation
 
 | Métrica | Valor | Validación |
 |---------|-------|------------|
-| Recall (reentrancy) | 87.5% | SmartBugs dataset |
-| Precision | 89.47% | SmartBugs dataset |
-| Reducción FP | 43% | vs herramientas individuales |
+| Recall (SmartBugs-curated) | 95.8% (137/143) | SmartBugs dataset |
+| Precision | 22.1% | perfil recall-first; FPs filtrados en triage |
 | Throughput | 346 contratos/min | Benchmarks escalabilidad |
 | Costo por auditoría | $0 | LLM soberano (Ollama) |
 

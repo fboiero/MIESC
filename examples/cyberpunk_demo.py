@@ -286,9 +286,9 @@ def analyze_contract(contract_path: str):
         "agents_used": 17,
         "tools_integrated": 15,
         "standards_mapped": 12,
-        "precision": 89.47,
-        "recall": 86.2,
-        "cohens_kappa": 0.847,
+        "smartbugs_recall": 95.8,
+        "evmbench_recall": 92.5,
+        "defi_recall": 81.8,
     }
 
     return stats
@@ -567,18 +567,18 @@ def generate_landing_page(stats: dict):
             </div>
 
             <div class="stat-card">
-                <div class="stat-value">{stats['precision']}%</div>
-                <div class="stat-label">Precision</div>
+                <div class="stat-value">{stats['smartbugs_recall']}%</div>
+                <div class="stat-label">SmartBugs-curated Recall</div>
             </div>
 
             <div class="stat-card">
-                <div class="stat-value">{stats['recall']}%</div>
-                <div class="stat-label">Recall</div>
+                <div class="stat-value">{stats['evmbench_recall']}%</div>
+                <div class="stat-label">EVMBench Recall</div>
             </div>
 
             <div class="stat-card">
-                <div class="stat-value">{stats['cohens_kappa']}</div>
-                <div class="stat-label">Cohen's Kappa</div>
+                <div class="stat-value">{stats['defi_recall']}%</div>
+                <div class="stat-label">Real DeFi Exploit Recall</div>
             </div>
 
             <div class="stat-card">

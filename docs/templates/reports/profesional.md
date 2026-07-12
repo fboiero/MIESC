@@ -149,11 +149,11 @@ Layer 1: Static Analysis        [{{ layer1_coverage | default('--') }}]
 Layer 2: Dynamic Testing        [{{ layer2_coverage | default('--') }}]
 Layer 3: Symbolic Execution     [{{ layer3_coverage | default('--') }}]
 Layer 4: Formal Verification    [{{ layer4_coverage | default('--') }}]
-Layer 5: Property Testing       [{{ layer5_coverage | default('--') }}]
-Layer 6: AI/LLM Analysis        [{{ layer6_coverage | default('--') }}]
-Layer 7: Pattern Recognition    [{{ layer7_coverage | default('--') }}]
-Layer 8: DeFi Security          [{{ layer8_coverage | default('--') }}]
-Layer 9: Advanced Detection     [{{ layer9_coverage | default('--') }}]
+Layer 5: AI Analysis       [{{ layer5_coverage | default('--') }}]
+Layer 6: ML Detection        [{{ layer6_coverage | default('--') }}]
+Layer 7: Specialized Analysis    [{{ layer7_coverage | default('--') }}]
+Layer 8: Cross-Chain & ZK Security          [{{ layer8_coverage | default('--') }}]
+Layer 9: Advanced AI Ensemble     [{{ layer9_coverage | default('--') }}]
 ```
 
 ### Tools Utilized

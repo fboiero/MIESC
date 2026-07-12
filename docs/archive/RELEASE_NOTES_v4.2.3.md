@@ -10,11 +10,10 @@ This release includes **validated empirical results** from the SmartBugs-curated
 
 | Metric | Value | Notes |
 |--------|-------|-------|
-| **Precision** | **100%** | 0 false positives |
-| **Recall** | **70%** | 35/50 vulnerabilities detected |
-| **F1-Score** | **82.35%** | Excellent balance |
-| Total Findings | 369 | Across 50 contracts |
-| Execution Time | 43.0s | 0.86s/contract average |
+| **Precision** | **22.1%** | recall-first profile; FPs filtered at triage |
+| **Recall** | **95.8%** | 137/143 vulnerabilities detected |
+| **F1-Score** | **35.9%** | static + intelligence, no LLM |
+| Execution Time | 737s | 5.15s/contract average |
 
 ### Perfect Detection Categories (100% Recall)
 
@@ -118,11 +117,10 @@ Esta versión incluye **resultados empíricos validados** del dataset académico
 
 | Métrica | Valor | Notas |
 |---------|-------|-------|
-| **Precisión** | **100%** | 0 falsos positivos |
-| **Recall** | **70%** | 35/50 vulnerabilidades detectadas |
-| **F1-Score** | **82.35%** | Excelente balance |
-| Hallazgos Totales | 369 | En 50 contratos |
-| Tiempo de Ejecución | 43.0s | 0.86s/contrato promedio |
+| **Precisión** | **22.1%** | perfil recall-first; FPs filtrados en triage |
+| **Recall** | **95.8%** | 137/143 vulnerabilidades detectadas |
+| **F1-Score** | **35.9%** | static + intelligence, sin LLM |
+| Tiempo de Ejecución | 737s | 5.15s/contrato promedio |
 
 ### Categorías con Detección Perfecta (100% Recall)
 

@@ -132,8 +132,8 @@
   <!-- Performance metrics box -->
   <rect x="30" y="220" width="160" height="100" rx="8" fill="#FFFDE7" stroke="#FFC107" stroke-width="2" filter="url(#shadow)"/>
   <text x="110" y="245" font-family="Arial, sans-serif" font-size="11" fill="#F57F17" text-anchor="middle" font-weight="bold">Performance</text>
-  <text x="110" y="265" font-family="Arial, sans-serif" font-size="9" fill="#F9A825" text-anchor="middle">Precision: 94.5%</text>
-  <text x="110" y="280" font-family="Arial, sans-serif" font-size="9" fill="#F9A825" text-anchor="middle">Recall: 92.8%</text>
+  <text x="110" y="265" font-family="Arial, sans-serif" font-size="9" fill="#F9A825" text-anchor="middle">Recall: 95.8%</text>
+  <text x="110" y="280" font-family="Arial, sans-serif" font-size="9" fill="#F9A825" text-anchor="middle">Precision: 22.1%</text>
   <text x="110" y="295" font-family="Arial, sans-serif" font-size="9" fill="#F9A825" text-anchor="middle">F1 Score: 93.6%</text>
   <text x="110" y="310" font-family="Arial, sans-serif" font-size="9" fill="#F9A825" text-anchor="middle">FP Rate: 5.5%</text>
 

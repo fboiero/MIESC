@@ -164,6 +164,36 @@ Although these costs appear modest, they represent a significant barrier for:
 - Educational organizations
 - Academic researchers
 
+### 6.2.4 Three openness tiers: cost is not binary
+
+The "expensive commercial API vs. free local model" contrast hides a third,
+intermediate tier that is key to the economic argument. Separating the **weight
+license** from the **access method**, the model space sorts into three tiers:
+
+**Table 6.2b.** Model openness tiers and their measured performance on EVMBench
+(40 real DeFi audits, 120 HIGH-severity vulnerabilities; single run per model,
+same pipeline and matcher).
+
+| Tier | Example | Weight license | Access | Cost/audit | Recall | Precision | F1 |
+|------|---------|----------------|--------|-----------|--------|-----------|-----|
+| Frontier proprietary | GPT-4o / GPT-5 / Claude | closed | vendor API | $1.20–5.50 | 73.7–82.5% | 20–43% | 32–55% |
+| **Open-weight hosted** | **DeepSeek-R1 (MIT)** | **open (MIT)** | **hosted API** | **~$0.08** | **70.8%** | **88.5%** | **78.7%** |
+| Open-weight local | qwen2.5-coder:32b | open (Apache 2.0) | self-host (own GPU) | $0 | 59.2% | 30.1% | 39.9% |
+
+The central finding for this chapter: the **open-weight** model (DeepSeek-R1, MIT
+weights) obtains the **best precision (88.5%) and best F1 (78.7%)** in the whole
+comparison, at an estimated **~$0.08 per audit — 15 to 69 times cheaper** than the
+frontier providers. Its single-pass recall (70.8%) trails the frontier, but a
+three-pass self-ensemble (≈$0.24/audit) lifts it to 81.7%, inside the frontier
+single-run range. The ~$0.08 is **hosting-convenience cost, not a license toll**:
+anyone with a sufficient GPU can run the same weights at zero marginal cost.
+
+The economic conclusion is not "free or very expensive" but a **spectrum**: paying
+frontier prices buys no precision/F1 advantage over an open-weight model, and full
+sovereignty (local tier, $0) is available with a quantified — not assumed — recall
+drop. Methodology and reproducible sources for these numbers are in
+`docs/methodology/DATASETS.md` and Paper 1.
+
 ---
 
 ## 6.3 Solution: Sovereign LLMs with Ollama
@@ -212,8 +242,15 @@ Ollama supports models whose weights are public and auditable:
 | CodeLlama:7b | 7B | 8 GB | Meta Llama 2 | Very good (code) |
 | CodeLlama:13b | 13B | 16 GB | Meta Llama 2 | Excellent (code) |
 | Qwen2.5-Coder:7b | 7B | 8 GB | Apache 2.0 | Excellent (code) |
+| Qwen2.5-Coder:32b | 32B | 24 GB | Apache 2.0 | Excellent (local, $0) |
 | Mistral:7b | 7B | 8 GB | Apache 2.0 | Very good |
 | DeepSeek-Coder:6.7b | 6.7B | 8 GB | MIT | Excellent (code) |
+| DeepSeek-R1 (reasoner) | ~671B | hosted API | MIT | Best measured precision/F1 (§6.2.4) |
+
+The last row is the **open-weight hosted** tier: open (MIT) weights too large for the
+test hardware, accessed via a low-cost hosted API (~$0.08/audit). It is the
+open-weight model with the best precision and F1 in the EVMBench comparison
+(Table 6.2b).
 
 **3. No telemetry**
 
@@ -704,23 +741,121 @@ The entire stack is open source and auditable:
 - Ollama: Open source (MIT)
 - Llama models: Public weights and training documentation
 
+### 6.6.3 Sovereignty as a requirement, not a preference
+
+The preceding sections justify open-weight models and local execution by the
+**risks they avoid** (confidentiality, jurisdiction) and their **cost**. That is a
+correct but incomplete defense: it frames sovereignty as a concession accepted in
+exchange for security and savings. The stronger argument is the inverse and it is
+foundational: **control over the tool is a first-order requirement of security
+analysis, and — in light of this work's empirical evidence — it no longer demands
+sacrificing capability.** What is controlled is epistemically superior to what is
+not, for six convergent reasons. The distinction is not new: Illich (1973)
+separated *convivial* tools — those a person masters, inspects, and adapts — from
+those that dominate the user and create dependency; an opaque security tool that
+cannot be examined or modified belongs by construction to the second class.
+
+**1. Cyberdefense doctrine.** Cyberdefense is defined by control and sovereignty
+over one's own means. Floridi (2020) characterizes digital sovereignty as effective
+control over the data, software, and processes an organization depends on;
+delegating security reasoning to an external service cedes exactly that control. Building a *defensive* tool on a proprietary, foreign-
+jurisdiction black box is doctrinally self-contradictory: it inserts, at the core
+of the defensive posture, a dependency and an attack surface the defender neither
+controls nor can inspect. A sovereign cyberdefense capability requires, by
+definition, sovereign tooling; delegating security reasoning to an opaque third
+party subordinates the defensive decision to an external actor.
+
+**2. Reproducibility and forensic value.** An audit with forensic value must be
+reproducible: another expert, given the same input, must reach the same result. A
+versioned, open-weight model executed locally is a **freezable, verifiable
+artifact**. A commercial API is a moving target: the provider can silently update
+the model, change its behavior, or deprecate it (as happened to prior frontier
+generations). Reproducible forensic evidence cannot be built on an artifact one
+does not control; sovereignty over the model is therefore a condition of the
+method's scientific validity, not a luxury.
+
+**3. Authorship and accountability.** When the human auditor signs a report, they
+assume authorship and responsibility for its claims. The *freedom to study how the
+program works* — freedom 1 of Stallman's (2002) free-software definition — is the
+technical precondition of that accountability: with open weights the auditor can
+inspect, attribute, and answer for the analysis; with a black box, the authorship
+of a finding dissolves into an inscrutable service they can neither examine nor
+cite precisely. As Winner (1980) observes, artifacts are not neutral: they embody
+power relations, and a closed model inscribes the provider's authority over that of
+the human expert in the analysis itself. Accountability requires being able to explain *why* the tool
+concluded what it did; a closed model turns that authorship chain into an act of
+faith.
+
+**4. Longevity and non-abandonment.** MIT and Apache 2.0 licenses are irrevocable:
+once published, weights cannot be withdrawn. A proprietary model, by contrast, can
+be deprecated or discontinued by unilateral provider decision. A reproducible
+baseline — the foundation of this thesis and its associated papers — cannot depend
+on a resource a third party can delete.
+
+**5. Digital Public Good.** MIESC is a Digital Public Goods Alliance candidate. A
+public good whose core component requires a paid API effectively has a gatekeeper
+charging a toll: it is not fully public. Open weights and local execution are
+coherent with the universal-access mission — including researchers, educational
+institutions, and developers in weak-currency economies — that a commercial service
+excludes by cost.
+
+**6. Empirical parity.** The argument above would be idealistic if sovereignty cost
+capability. This work's evidence shows it does not: on the EVMBench evaluation
+(§6.2.4, Table 6.2b), the open-weight DeepSeek-R1 obtains the **best precision
+(88.5%) and F1 (78.7%)** in the whole comparison — above the frontier providers —
+at **~$0.08 per audit (15–69× less)**. The sovereign choice stopped being a
+sacrifice and became, on the metrics that matter for triage, a dominant one.
+
+Table 6.6 synthesizes the argument in a scorecard: the local tier wins on every
+sovereignty dimension, the hosted open-weight tier is the balance point (near-full
+sovereignty, best precision/F1, and minimal cost), and the frontier tier retains an
+advantage only in single-run recall.
+
+**Table 6.6.** Sovereignty scorecard by access tier (✓ full · ◑ partial · ✗ absent)
+
+| Dimension | Hosted frontier | Hosted open-weight | Local open-weight |
+|-----------|:---------------:|:------------------:|:-----------------:|
+| Weight control and inspection | ✗ (closed) | ✓ (MIT) | ✓ (MIT/Apache) |
+| Forensic reproducibility | ✗ (moving target) | ◑ (weights freezable; execution at provider) | ✓ (freezable end-to-end) |
+| Authorship and accountability | ✗ (black box) | ✓ (inspectable) | ✓ (inspectable) |
+| Longevity (non-deprecation) | ✗ (deprecable) | ✓ (irrevocable) | ✓ (irrevocable) |
+| Execution with no data egress | ✗ | ✗ (hosted API) | ✓ (100% local) |
+| Cost per audit | $1.20–5.50 | ~$0.08 | $0 |
+| Recall (single pass) | 73.7–82.5% | 70.8% | 59.2% |
+| Precision / F1 (measured on EVMBench) | 20–43% / 32–55% | **88.5% / 78.7%** | 30% / 40% |
+
+**Honest limits.** The argument is a spectrum, not an absolute, and its strength
+depends on acknowledging that. The best open-weight result (DeepSeek-R1, ~671B
+parameters) was obtained via a **hosted API**, not fully local execution: its
+weights are open and self-hostable in principle, but the test hardware cannot run
+it locally. *Full* sovereignty — the local 32B model, with no external calls — has
+a quantified recall cost (59.2% vs the 70.8–82.5% of larger models), partly
+recoverable via low-cost self-ensemble. Frontier models also retain a single-run
+recall advantage. The defensible conclusion is not "open always wins" but that
+**control over the tool is obtained without giving up competitive capability**, and
+that each point on the spectrum (hosted frontier, hosted open-weight, local
+open-weight) offers a measured — not assumed — trade-off between sovereignty, cost,
+and recall.
+
 ---
 
 ## 6.7 Conclusions
 
 ### 6.7.1 Justification Summary
 
-The decision to implement sovereign LLMs in MIESC responds to a rigorous risk and trade-off analysis. The justification is based on:
+The decision to implement sovereign LLMs in MIESC responds to a rigorous risk and trade-off analysis. Its underlying premise (§6.6.3) is that **control over the tool is a first-order requirement of security analysis, not a preference**: what is controlled — open weights, auditable execution — is doctrinally, scientifically, and epistemically superior to what is not, and this work's evidence shows that sovereignty no longer demands sacrificing capability. The justification is based on:
 
 1. **Pre-audit smart contract code has direct and significant economic value.** Leaking this code can result in losses of tens or hundreds of millions of dollars.
 
 2. **Commercial LLM APIs introduce unacceptable risk vectors** for high-value code: transmission to foreign jurisdictions, extended retention periods, possible memorization in models.
 
-3. **Local 7-13B parameter models provide sufficient capability** for the security analysis use case, especially when operating within a multi-layer architecture.
+3. **Open-weight models provide sufficient capability** for the security analysis use case, especially within a multi-layer architecture. This is no longer just an expectation: on the EVMBench evaluation (§6.2.4) the open-weight DeepSeek-R1 obtains the **best precision (88.5%) and F1 (78.7%)** in the whole comparison, above the frontier providers; and a local 32B model reaches 59.2% recall with no external calls.
 
-4. **Total cost of ownership of sovereign LLMs is lower** than commercial APIs for organizations performing audits regularly.
+4. **Total cost of ownership of sovereign LLMs is lower** than commercial APIs for organizations performing audits regularly. Measured on EVMBench, the open-weight tier costs **~$0.08 per audit (15–69× less than frontier)** and the local tier $0, without sacrificing detection precision.
 
 5. **Local execution guarantees automatic regulatory compliance** with GDPR, LGPD, LFPDPPP and sector regulations.
+
+6. **Control is reproducibility, authorship, and longevity.** Only a versioned, open-weight model enables reproducible forensic evidence, an authorship chain in which the auditor can answer for their claims, and a baseline no provider can unilaterally deprecate. These three properties — absent by construction in a closed API — are conditions of the scientific and forensic method, not incidental benefits. The honest counterpart is that full sovereignty is a spectrum: the 100%-local tier has a measured recall cost, and the best open-weight result was obtained via a hosted API; control over the tool is preserved across the whole spectrum, with quantified trade-offs among sovereignty, cost, and recall.
 
 ### 6.7.2 Recommendation
 
@@ -744,6 +879,10 @@ Digital Public Goods Alliance. (2023). *Digital Public Goods Standard*. https://
 
 European Parliament. (2016). General Data Protection Regulation (GDPR). *Regulation (EU) 2016/679*.
 
+Floridi, L. (2020). The fight for digital sovereignty: What it is, and why it matters, especially for the EU. *Philosophy & Technology, 33*(3), 369-378. https://doi.org/10.1007/s13347-020-00423-6
+
+Illich, I. (1973). *Tools for conviviality*. Harper & Row.
+
 Meta AI. (2024). Llama 3 Model Card. https://ai.meta.com/llama/
 
 Ollama. (2024). Ollama Documentation. https://ollama.ai/
@@ -754,7 +893,11 @@ Presidencia de la Republica. (2010). Ley Federal de Proteccion de Datos Personal
 
 Republica Federativa do Brasil. (2018). Lei Geral de Protecao de Dados (LGPD). *Lei n. 13.709*.
 
-Sun, Y., et al. (2024). GPTScan: Detecting logic vulnerabilities in smart contracts by combining GPT with program analysis. *ICSE 2024*, 1-12.
+Stallman, R. M. (2002). *Free software, free society: Selected essays of Richard M. Stallman*. GNU Press.
+
+Sun, Y., Wu, D., Xue, Y., Liu, H., Wang, H., Xu, Z., Xie, X., & Liu, Y. (2024). GPTScan: Detecting logic vulnerabilities in smart contracts by combining GPT with program analysis. *Proceedings of the 46th International Conference on Software Engineering (ICSE)*, Article 166. https://doi.org/10.1145/3597503.3623318
+
+Winner, L. (1980). Do artifacts have politics? *Daedalus, 109*(1), 121-136.
 
 Touvron, H., et al. (2023). LLaMA: Open and efficient foundation language models. *arXiv:2302.13971*.
 

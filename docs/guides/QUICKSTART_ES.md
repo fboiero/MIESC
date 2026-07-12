@@ -56,7 +56,7 @@ miesc audit quick MiContrato.sol
 miesc audit quick MiContrato.sol -o reporte.json
 ```
 
-### Auditoria Completa - 9 Capas, 31 Herramientas
+### Auditoria Completa - 9 Capas, 50 Herramientas
 
 ```bash
 # Auditoria de seguridad completa con las 9 capas de defensa
@@ -89,11 +89,11 @@ MIESC analiza contratos a traves de **9 capas de defensa especializadas**:
 | 2 | Testing Dinamico | Echidna, Medusa, Foundry, DogeFuzz | Fuzzing, testing de propiedades |
 | 3 | Ejecucion Simbolica | Mythril, Manticore, Halmos | Exploracion de caminos, SMT solving |
 | 4 | Verificacion Formal | Certora, SMTChecker | Pruebas matematicas |
-| 5 | Testing de Propiedades | PropertyGPT, Wake, Vertigo | Generacion de invariantes |
-| 6 | Analisis IA/LLM | SmartLLM, GPTScan, LLMSmartAudit | Deteccion potenciada por IA |
-| 7 | Reconocimiento de Patrones | DA-GNN, SmartGuard, Clone Detector | Patrones basados en ML |
-| 8 | Seguridad DeFi | DeFi Analyzer, MEV Detector, Gas Analyzer | Especifico de protocolos |
-| 9 | Deteccion Avanzada | Advanced Detector, Threat Model | Correlacion entre capas |
+| 5 | Analisis con IA | SmartLLM, GPTScan, LLMSmartAudit, GPTLens | Deteccion potenciada por LLM |
+| 6 | Deteccion ML | DA-GNN, SmartBugs-ML, SmartGuard, Peculiar | Clasificadores ML |
+| 7 | Analisis Especializado | Threat Model, Gas Analyzer, MEV Detector, DeFi | Chequeos de dominio |
+| 8 | Seguridad Cross-Chain y ZK | Cross-Chain, ZK Circuit, Bridge Monitor, Circom | Bridge/ZK (experimental) |
+| 9 | Ensemble Avanzado de IA | LLMBugScanner, Audit Consensus, Exploit Synthesizer | Consenso multi-LLM |
 
 ### Ejecutar Capas Especificas
 

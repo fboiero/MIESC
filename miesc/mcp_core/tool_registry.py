@@ -417,9 +417,10 @@ class MCPToolRegistry:
             MCPTool(
                 name="miesc_get_metrics",
                 description=(
-                    "Retrieve MIESC's scientific validation metrics. "
-                    "Returns precision, recall, F1-score, and Cohen's kappa from thesis experiments. "
-                    "Based on analysis of 5,127 smart contracts."
+                    "Retrieve MIESC's reproducible benchmark metrics. "
+                    "Returns recall on SmartBugs-curated, real-world DeFi exploits "
+                    "(with 95% Wilson CI), and the EVMBench ensemble, sourced from "
+                    "the released per-claim matrix."
                 ),
                 category=ToolCategory.REPORTING,
                 parameters=[],

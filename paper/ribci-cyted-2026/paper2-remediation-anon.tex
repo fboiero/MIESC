@@ -54,7 +54,7 @@
 \maketitle
 
 \begin{abstract}
-Detection tools usually stop at the finding: they identify a vulnerable function, but the patch, regression test, and audit evidence remain manual work. This paper evaluates how far an automated smart-contract pipeline can move from a finding to inspectable remediation artifacts without hiding residual failures. MIESC takes normalized Solidity findings, emits self-contained patch candidates, generates Foundry exploit tests, creates formal-specification stubs, and maps findings to compliance controls. On SmartBugs-curated (143 contracts), the v2 remediation baseline applies patches to 123 contracts after 18 no-HIGH and 2 empty-scan cases, compiles all 123 emitted patches standalone, eliminates the target finding in 86/123 cases by MIESC re-scan, satisfies a bounded no-regression criterion in 121/123 cases, and leaves 58/123 patched contracts clean of HIGH findings under external Slither validation. We keep these metrics separate because each answers a different question: whether a patch was emitted, whether it compiles, whether the original scanner still reports the target class, and whether an independent analyzer still reports HIGH findings. On an illustrative vulnerable contract, the generated tests and specifications show the end-to-end artifact flow. The pipeline can run locally without API calls, but the external Slither result shows that automated remediation remains a triage aid rather than a proof of semantic correctness. MIESC is available under AGPL-3.0.
+Detection tools usually stop at the finding: they identify a vulnerable function, but the patch, regression test, and audit evidence remain manual work. This paper evaluates how far an automated smart-contract pipeline can move from a finding to inspectable remediation artifacts without hiding residual failures. MIESC takes normalized Solidity findings, emits self-contained patch candidates, generates Foundry exploit tests, creates formal-specification stubs, and maps findings to compliance controls. On SmartBugs-curated (143 contracts), the v2 remediation baseline applies patches to 123 contracts after 18 no-HIGH and 2 empty-scan cases, compiles all 123 emitted patches standalone, eliminates the target finding in 88/123 cases by MIESC re-scan, satisfies a bounded no-regression criterion in 121/123 cases, and leaves 70/123 patched contracts clean of HIGH findings under external Slither validation. We keep these metrics separate because each answers a different question: whether a patch was emitted, whether it compiles, whether the original scanner still reports the target class, and whether an independent analyzer still reports HIGH findings. On an illustrative vulnerable contract, the generated tests and specifications show the end-to-end artifact flow. The pipeline can run locally without API calls, but the external Slither result shows that automated remediation remains a triage aid rather than a proof of semantic correctness. MIESC is available under AGPL-3.0.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -89,7 +89,7 @@ miesc report results.json -t premium -f pdf
 We evaluate patch quality on the SmartBugs-curated corpus (143 contracts, 10 vulnerability categories), trace the artifact pipeline on an illustrative vulnerable contract, and compare against five prior automated repair tools. Our contributions are:
 
 \begin{enumerate}
-    \item \textbf{Self-contained patch generation} (\texttt{miesc fix}): text-level Solidity patch candidates that avoid adding external dependencies. Evaluated on 143 contracts under the v2 external-validation baseline: 86\% current-scan fix application rate (123/143 after 18 no-HIGH and 2 empty-scan cases), 100\% standalone compilation for patched contracts, 70\% vulnerability elimination by re-scan, 98\% pass rate under a bounded no-regression criterion, and 47\% clean-HIGH rate under external Slither validation.
+    \item \textbf{Self-contained patch generation} (\texttt{miesc fix}): text-level Solidity patch candidates that avoid adding external dependencies. Evaluated on 143 contracts under the v2 external-validation baseline: 86\% current-scan fix application rate (123/143 after 18 no-HIGH and 2 empty-scan cases), 100\% standalone compilation for patched contracts, 72\% vulnerability elimination by re-scan, 98\% pass rate under a bounded no-regression criterion, and 57\% clean-HIGH rate under external Slither validation.
     \item \textbf{Exploit test generation} (\texttt{miesc test-gen}): Foundry test templates that demonstrate exploitability on the vulnerable contract and verify that the patched version blocks the same exploit path.
     \item \textbf{Formal specification generation} (\texttt{miesc specs}): auto-generated Certora CVL rules, Scribble annotations, and SMTChecker assertions from findings.
     \item \textbf{Compliance mapping} (\texttt{miesc compliance}): automated mapping to 12 international standards (ISO~27001, NIST~CSF, OWASP, MiCA, DORA, CWE, SWC).
@@ -246,15 +246,15 @@ As an illustrative example, we also trace the full pipeline end-to-end on a sing
 \midrule
 Fix applied (current scan) & 123/143 & 86\% \\
 Compilation (standalone) & 123/123 & 100\% \\
-Vulnerability eliminated & 86/123 & 70\% \\
+Vulnerability eliminated & 88/123 & 72\% \\
 No-regression criterion & 121/123 & 98\% \\
-External Slither clean-HIGH & 58/123 & 47\% \\
+External Slither clean-HIGH & 70/123 & 57\% \\
 Fix failed & 0/123 & 0\% \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Table~\ref{tab:fix} shows aggregate results across the 143-contract corpus under the v2 external-validation baseline. The current scan produced 123 patched contracts (86\% of the corpus), while 18 contracts had no current HIGH/CRITICAL finding and 2 produced empty scan output before fix application. All 123 patched contracts compile standalone without external dependencies (100\%), 86 reduce HIGH/CRITICAL findings for the target category upon MIESC re-scan (70\%), 121 satisfy the bounded no-regression criterion (98\%), and 58 have no HIGH findings under external Slither validation (47\%).
+Table~\ref{tab:fix} shows aggregate results across the 143-contract corpus under the v2 external-validation baseline. The current scan produced 123 patched contracts (86\% of the corpus), while 18 contracts had no current HIGH/CRITICAL finding and 2 produced empty scan output before fix application. All 123 patched contracts compile standalone without external dependencies (100\%), 88 reduce HIGH/CRITICAL findings for the target category upon MIESC re-scan (72\%), 121 satisfy the bounded no-regression criterion (98\%), and 70 have no HIGH findings under external Slither validation (57\%).
 
 \begin{table}[htbp]
 \caption{Per-Category Patch Results}
@@ -265,12 +265,12 @@ Table~\ref{tab:fix} shows aggregate results across the 143-contract corpus under
 \textbf{Category} & \textbf{Applied} & \textbf{Compile} & \textbf{Eliminated} & \textbf{No Regr.} \\
 \midrule
 Reentrancy & 31 & 31 (100\%) & 30 (97\%) & 29 (94\%) \\
-Access Control & 17 & 17 (100\%) & 9 (53\%) & 17 (100\%) \\
+Access Control & 17 & 17 (100\%) & 10 (59\%) & 17 (100\%) \\
 Unchecked Calls & 47 & 47 (100\%) & 34 (72\%) & 47 (100\%) \\
 Arithmetic & 4 & 4 (100\%) & 3 (75\%) & 4 (100\%) \\
-Others (6 cats) & 24 & 24 (100\%) & 10 (42\%) & 24 (100\%) \\
+Others (6 cats) & 24 & 24 (100\%) & 11 (46\%) & 24 (100\%) \\
 \midrule
-\textbf{Total} & \textbf{123} & \textbf{123 (100\%)} & \textbf{86 (70\%)} & \textbf{121 (98\%)} \\
+\textbf{Total} & \textbf{123} & \textbf{123 (100\%)} & \textbf{88 (72\%)} & \textbf{121 (98\%)} \\
 \bottomrule
 \end{tabular}
 
@@ -280,9 +280,9 @@ Others (6 cats) & 24 & 24 (100\%) & 10 (42\%) & 24 (100\%) \\
 
 Table~\ref{tab:fix-category} breaks down results by category. Reentrancy remains the strongest transformation by target elimination: 30/31 patched contracts reduce the target finding on MIESC re-scan. The v2 patcher removes the standalone compilation bottleneck: every patched contract in the current-scan denominator compiles. Arithmetic has a smaller denominator because 11/15 historical arithmetic contracts no longer produce a current HIGH/CRITICAL finding in the scan profile, while the 4 patched arithmetic contracts all compile and 3/4 reduce the target finding. Unchecked low-level calls remain the largest category: 47 contracts are patched, all compile, and 34 reduce the target finding.
 
-Viewed by transformation class, reentrancy guard injection applies to 31 contracts, compiles in 31, and eliminates the target finding in 30. The \texttt{require(success)} wrapper applies to 47 unchecked-call contracts, compiles in 47, and eliminates 34 target findings. External Slither validation is stricter than the MIESC re-scan: 58/123 patched contracts are clean of HIGH findings, while 65 residual HIGH findings remain, concentrated in reentrancy, unchecked-call, and dynamic-array patterns.
+Viewed by transformation class, reentrancy guard injection applies to 31 contracts, compiles in 31, and eliminates the target finding in 30. The \texttt{require(success)} wrapper applies to 47 unchecked-call contracts, compiles in 47, and eliminates 34 target findings. External Slither validation is stricter than the MIESC re-scan: 70/123 patched contracts are clean of HIGH findings, while 53 residual HIGH findings remain, concentrated in reentrancy, unchecked-call, and dynamic-array patterns.
 
-\textbf{Experiment validity audit.} To separate patch quality from corpus compilability, we additionally compile the original contracts under the same standalone criterion. In the v2 run, 142/143 original files compile standalone. The patcher emits 123 patched contracts; all 123 compile, and all 123 are also checked by external Slither validation without tool errors. Joint success is stricter than any single metric: 86/123 patches both compile and reduce the target finding under MIESC re-scan, 121/123 compile and satisfy the bounded no-regression criterion, and 58/123 compile and are clean of HIGH findings under Slither.
+\textbf{Experiment validity audit.} To separate patch quality from corpus compilability, we additionally compile the original contracts under the same standalone criterion. In the v2 run, 142/143 original files compile standalone. The patcher emits 123 patched contracts; all 123 compile, and all 123 are also checked by external Slither validation without tool errors. Joint success is stricter than any single metric: 88/123 patches both compile and reduce the target finding under MIESC re-scan, 121/123 compile and satisfy the bounded no-regression criterion, and 70/123 compile and are clean of HIGH findings under Slither.
 
 \subsection{Stage 3: Test Validity}
 
@@ -396,7 +396,7 @@ API cost in local mode & \$0 \\
 \end{tabular}
 \end{table}
 
-Table~\ref{tab:e2e} traces the full pipeline on a single illustrative contract. The complete pipeline---from scan to report---executes in under 10 seconds in local mode. For corpus-scale remediation results, see Tables~\ref{tab:fix}--\ref{tab:fix-category}. Across the 143-contract corpus, the v2 remediation baseline applies fixes to 86\% of contracts under the current scan, compiles 100\% of patched contracts standalone, eliminates target-category HIGH/CRITICAL findings in 70\%, satisfies the bounded no-regression criterion for 98\% of patched contracts, and leaves 47\% of patched contracts clean of HIGH findings under external Slither validation.
+Table~\ref{tab:e2e} traces the full pipeline on a single illustrative contract. The complete pipeline---from scan to report---executes in under 10 seconds in local mode. For corpus-scale remediation results, see Tables~\ref{tab:fix}--\ref{tab:fix-category}. Across the 143-contract corpus, the v2 remediation baseline applies fixes to 86\% of contracts under the current scan, compiles 100\% of patched contracts standalone, eliminates target-category HIGH/CRITICAL findings in 72\%, satisfies the bounded no-regression criterion for 98\% of patched contracts, and leaves 57\% of patched contracts clean of HIGH findings under external Slither validation.
 
 \subsection{Comparison with Prior Work}
 \label{sec:comparison}
@@ -416,7 +416,7 @@ sGuard~[6] & '21 & 4 & --- & ${\sim}$100 & \texttimes & \texttimes/\texttimes \\
 Elysium~[7] & '22 & 7 SWC & +30\textsuperscript{b} & --- & \texttimes & \texttimes/\texttimes \\
 ACFIX~[8] & '24 & 1 & 94.9 & --- & \texttimes & \texttimes/\texttimes \\
 SCPatcher~[9] & '25 & Gen. & 81.5 & 91 & \texttimes & \texttimes/\texttimes \\
-\textbf{MIESC} & \textbf{'26} & \textbf{10 cats.} & \textbf{70} & \textbf{100} & \checkmark & \checkmark/\checkmark \\
+\textbf{MIESC} & \textbf{'26} & \textbf{10 cats.} & \textbf{72} & \textbf{100} & \checkmark & \checkmark/\checkmark \\
 \bottomrule
 \end{tabular}
 
@@ -424,13 +424,13 @@ SCPatcher~[9] & '25 & Gen. & 81.5 & 91 & \texttimes & \texttimes/\texttimes \\
 \scriptsize{\textsuperscript{a}Requires pre-existing test suite. \textsuperscript{b}Relative to Shield.}
 \end{table}
 
-Table~\ref{tab:comparison} compares MIESC against five prior automated repair tools. MIESC reaches 100\% standalone compilation for emitted patches (123/123) under a strict no-external-dependency criterion, while SCPatcher reports 91\% compilation under different evaluation targets and dependency assumptions, so the numbers are not directly interchangeable; the MIESC ``Fix\%'' column reports vulnerability elimination on re-scan (86/123, 70\%). ACFIX reports 94.9\% fix rate but is limited to a single vulnerability class (RBAC). MIESC is the only evaluated tool that reports artifacts across the remediation lifecycle: patch generation, exploit testing, formal specifications, and compliance mapping.
+Table~\ref{tab:comparison} compares MIESC against five prior automated repair tools. MIESC reaches 100\% standalone compilation for emitted patches (123/123) under a strict no-external-dependency criterion, while SCPatcher reports 91\% compilation under different evaluation targets and dependency assumptions, so the numbers are not directly interchangeable; the MIESC ``Fix\%'' column reports vulnerability elimination on re-scan (88/123, 72\%). ACFIX reports 94.9\% fix rate but is limited to a single vulnerability class (RBAC). MIESC is the only evaluated tool that reports artifacts across the remediation lifecycle: patch generation, exploit testing, formal specifications, and compliance mapping.
 
 \subsection{Failure Analysis}
 
-In the v2 baseline, standalone compilation is no longer a failure mode: all 123 emitted patches compile (0 failures), versus 51/141 standalone failures in the prior v1 run (42 undefined-symbol and 9 other compiler errors, with unchecked low-level calls the largest share). The inline, dependency-free guards and the current-scan-filtered denominator removed that bottleneck. The remaining v2 gaps are therefore semantic rather than syntactic: 37/123 patched contracts do not eliminate the target HIGH/CRITICAL finding on MIESC re-scan, and external Slither validation finds only 58/123 patched contracts clean of HIGH (47\%), reporting 65 residual HIGH findings across the rest.
+In the v2 baseline, standalone compilation is no longer a failure mode: all 123 emitted patches compile (0 failures), versus 51/141 standalone failures in the prior v1 run (42 undefined-symbol and 9 other compiler errors, with unchecked low-level calls the largest share). The inline, dependency-free guards and the current-scan-filtered denominator removed that bottleneck. The remaining v2 gaps are therefore semantic rather than syntactic: 35/123 patched contracts do not eliminate the target HIGH/CRITICAL finding on MIESC re-scan, and external Slither validation finds only 70/123 patched contracts clean of HIGH (57\%), reporting 53 residual HIGH findings across the rest.
 
-This reframes the root-cause direction for future work. With standalone compilation solved, the priority shifts from symbol-resolution repair to semantic adequacy: eliminating the target finding without introducing new HIGH findings under independent (Slither/SMTChecker/Foundry) validation. The external-validation gap (65 residual HIGH findings) is the main lever, and removing re-scan circularity by leaning on independent tools is the next step.
+This reframes the root-cause direction for future work. With standalone compilation solved, the priority shifts from symbol-resolution repair to semantic adequacy: eliminating the target finding without introducing new HIGH findings under independent (Slither/SMTChecker/Foundry) validation. The external-validation gap (53 residual HIGH findings) is the main lever, and removing re-scan circularity by leaning on independent tools is the next step.
 
 % ===========================================================================
 \section{Discussion}
@@ -490,7 +490,7 @@ We identify four threats to the validity of our evaluation:
 \section{Conclusion and Future Work}
 % ===========================================================================
 
-This paper reports how far the current MIESC remediation pipeline can move after detection, and where it still falls short. Evaluated on 143 contracts from SmartBugs-curated, the v2 baseline applies fixes to 123 contracts under the current scan (86\%), compiles all 123 emitted patches standalone (100\%), eliminates the target-category finding in 86/123 cases by MIESC re-scan (70\%), satisfies the bounded no-regression criterion in 121/123 cases (98\%), and reports 58/123 patched contracts clean of HIGH findings under external Slither validation (47\%). The 47\% external clean-HIGH result is intentionally reported as a separate metric: it shows that successful patch emission and compilation do not imply semantic closure under an independent analyzer. Compared to five prior repair tools (Table~\ref{tab:comparison}), MIESC is the only system in our comparison that reports exploit tests, formal specifications, and compliance documentation alongside patches.
+This paper reports how far the current MIESC remediation pipeline can move after detection, and where it still falls short. Evaluated on 143 contracts from SmartBugs-curated, the v2 baseline applies fixes to 123 contracts under the current scan (86\%), compiles all 123 emitted patches standalone (100\%), eliminates the target-category finding in 88/123 cases by MIESC re-scan (72\%), satisfies the bounded no-regression criterion in 121/123 cases (98\%), and reports 70/123 patched contracts clean of HIGH findings under external Slither validation (57\%). The 57\% external clean-HIGH result is intentionally reported as a separate metric: it shows that successful patch emission and compilation do not imply semantic closure under an independent analyzer. Compared to five prior repair tools (Table~\ref{tab:comparison}), MIESC is the only system in our comparison that reports exploit tests, formal specifications, and compliance documentation alongside patches.
 
 The design choice is to keep each stage inspectable. Detection informs patching, patching informs test generation, test generation checks the exercised exploit path, and formal verification can add stronger evidence when the generated specification is tractable. The current evidence supports this as a remediation-assistance workflow, not as a claim of fully automatic program repair.
 

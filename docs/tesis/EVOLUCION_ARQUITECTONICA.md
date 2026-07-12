@@ -143,7 +143,7 @@ Cambios:
 
 | Decisión | Justificación | Referencia |
 |----------|---------------|------------|
-| Usar Click para CLI | Framework maduro, autodocumentado | Pallets (2022) |
+| Usar Click para CLI | Framework maduro, autodocumentado | Click (Pallets) |
 | Agregar Mythril | Complementa análisis estático con simbólico | Mueller (2018) |
 | JSON como formato interno | Portabilidad y procesamiento | ECMA-404 |
 

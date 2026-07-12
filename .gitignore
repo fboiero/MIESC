@@ -16,6 +16,7 @@ __pycache__/
 *.egg-info/
 dist/
 build/
+miesc-[0-9]*/
 .eggs/
 uv.lock
 
@@ -137,6 +138,9 @@ benchmarks/results/evmbench/*
 !benchmarks/results/evmbench/evmbench_static_40.json
 data/benchmark_history/
 analysis/results/*.json
+
+# Slither call-graph artifacts written into the dataset tree by benchmark runs
+benchmarks/datasets/**/*.dot
 analysis/results/*.html
 analysis/results/*.txt
 analysis/policy/*.json
@@ -319,6 +323,7 @@ venv*/
 .venv-test/
 
 evaluation_results/
+validation_results/
 analysis/
 /reports/
 CLAUDE.md

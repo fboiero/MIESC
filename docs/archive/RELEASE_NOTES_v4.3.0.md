@@ -159,9 +159,9 @@ Total coverage: 80.40%
 
 ### Validation Results (SmartBugs-curated dataset)
 
-- **Precision**: 100% (0 false positives)
-- **Recall**: 70% (35/50 vulnerabilities detected)
-- **F1-Score**: 82.35%
+- **Precision**: 22.1% (recall-first profile; FPs filtered at triage)
+- **Recall**: 95.8% (137/143 vulnerabilities detected)
+- **F1-Score**: 35.9%
 
 ---
 

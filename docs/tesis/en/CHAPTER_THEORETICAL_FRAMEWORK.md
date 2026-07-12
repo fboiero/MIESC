@@ -137,7 +137,7 @@ OWASP (2023) maintains a classification of the 10 most critical vulnerabilities,
 5. **Denial of Service:** Fund blocking
 6. **Access Control Issues:** $80M (Parity Wallet, 2017)
 7. **Unprotected Functions:** Multiple incidents
-8. **Flash Loan Attacks:** $180M (Wormhole, 2022)
+8. **Cross-Chain Bridge Exploits:** ~$320M (Wormhole bridge incident, February 2022)
 9. **Signature Malleability:** Fund theft
 10. **Short Address Attack:** Transfer manipulation
 
@@ -147,7 +147,7 @@ OWASP (2023) maintains a classification of the 10 most critical vulnerabilities,
 
 ### 2.4.1 Static Analysis
 
-Static analysis examines code without executing it (Aho et al., 2006). According to Chen et al. (2024), in the context of smart contracts it includes:
+Static analysis examines code without executing it (Aho et al., 2006). According to Ivanov et al. (2023), in the context of smart contracts it includes:
 
 **1. Data flow analysis:**
 - Variable tracking (taint analysis)
@@ -242,11 +242,11 @@ MIESC implements the SOLID principles (Martin, 2000):
 
 ### 2.5.3 Defense in Depth
 
-Defense in Depth is a security strategy that employs multiple layers of controls (Ross et al., 2016; NIST, 2024). According to NIST SP 800-53:
+Defense in Depth is a security strategy that employs multiple layers of controls (Ross et al., 2016a; NIST, 2024). According to NIST SP 800-53:
 
 > "Defense in depth is an information security strategy that integrates people, technology, and operations capabilities to establish variable barriers across multiple layers and missions of the organization."
 
-Luo et al. (2023) demonstrate that applying defense-in-depth to smart contract security significantly improves the vulnerability detection rate.
+Durieux et al. (2020) show empirically that no single tool detects all vulnerability classes and that combining complementary tools increases detection coverage, evidence that supports the defense-in-depth approach.
 
 **Figure 4.** MIESC Defense-in-Depth Architecture
 
@@ -361,7 +361,7 @@ Atzei, N., Bartoletti, M., & Cimoli, T. (2017). A survey of attacks on Ethereum 
 
 Chainalysis. (2024). The 2024 Crypto Crime Report. Chainalysis Inc.
 
-Chen, Y., Zhang, L., & Liu, X. (2024). Security defense for smart contracts: A comprehensive survey. *arXiv preprint arXiv:2401.00000*.
+Ivanov, N., Li, C., Yan, Q., Sun, Z., Cao, Z., & Luo, X. (2023). Security defense for smart contracts: A comprehensive survey. *arXiv preprint arXiv:2302.07347*. https://arxiv.org/abs/2302.07347
 
 Di Pietro, R., Ferretti, S., & Verde, N. V. (2024). Securing critical infrastructure with blockchain technology: A systematic review. *MDPI Electronics, 13*(1), 1-24.
 
@@ -385,7 +385,7 @@ Lewis, P., Perez, E., Piktus, A., Petroni, F., Karpukhin, V., Goyal, N., ... & K
 
 Libicki, M. C. (2009). *Cyberdeterrence and Cyberwar*. RAND Corporation.
 
-Luo, Y., Chen, Z., Fan, L., & Liu, C. (2023). Multi-layer security defense for smart contracts: A defense-in-depth approach. *IEEE Transactions on Software Engineering*.
+Durieux, T., Ferreira, J. F., Abreu, R., & Cruz, P. (2020). Empirical review of automated analysis tools on 47,587 Ethereum smart contracts. *Proceedings of the ACM/IEEE 42nd International Conference on Software Engineering (ICSE)*, 530-541. https://doi.org/10.1145/3377811.3380364
 
 Luu, L., Chu, D. H., Olickel, H., Saxena, P., & Hobor, A. (2016). Making smart contracts smarter. In *Proceedings of the 2016 ACM SIGSAC Conference on Computer and Communications Security* (pp. 254-269). ACM.
 
@@ -409,7 +409,7 @@ Sayeed, S., Marco-Gisbert, H., & Caira, T. (2020). Smart contract: Attacks and p
 
 Smart Contract Weakness Classification. (2020). SWC Registry. https://swcregistry.io/
 
-Sun, Y., Wu, D., Xue, Y., Liu, H., Wang, H., Xu, Z., ... & Chen, Y. (2024). GPTScan: Detecting logic vulnerabilities in smart contracts by combining GPT with program analysis. In *Proceedings of the 46th International Conference on Software Engineering* (pp. 1-12). ACM.
+Sun, Y., Wu, D., Xue, Y., Liu, H., Wang, H., Xu, Z., Xie, X., & Liu, Y. (2024). GPTScan: Detecting logic vulnerabilities in smart contracts by combining GPT with program analysis. *Proceedings of the 46th International Conference on Software Engineering (ICSE)*, Article 166. https://doi.org/10.1145/3597503.3623318
 
 Sutton, M., Greene, A., & Amini, P. (2007). *Fuzzing: Brute Force Vulnerability Discovery*. Addison-Wesley.
 

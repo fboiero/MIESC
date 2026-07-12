@@ -126,8 +126,8 @@ Report saved to results.json
 | Metric | Slither alone | Mythril alone | MIESC Paper 1 reproducible profile | Evidence scope |
 |--------|:------------:|:-------------:|:---------------------------------:|:--------------|
 | Recall | 43.2% | 27.4% | **95.8%** | Full SmartBugs-curated corpus |
-| Precision | 8.3% | 6.1% | **22.2%** | Full SmartBugs-curated corpus |
-| F1-Score | 13.9% | 10.0% | **36.0%** | Full SmartBugs-curated corpus |
+| Precision | 8.3% | 6.1% | **22.1%** | Full SmartBugs-curated corpus |
+| F1-Score | 13.9% | 10.0% | **35.9%** | Full SmartBugs-curated corpus |
 
 The full-corpus SmartBugs result is the reproducible Paper 1 profile. A local
 Ollama follow-up on the remaining misses is reported in Paper 1 as 140/143
@@ -142,11 +142,13 @@ separately as an end-to-end integration smoke run, not as a corpus-wide claim.
 | Reentrancy | 3 | 3 | **100%** | Euler $197M, Rari $80M, Platypus $8.5M |
 | Access Control | 3 | 3 | **100%** | Parity $280M, Ronin $624M |
 | Flash Loan | 2 | 2 | **100%** | bZx $8.1M, Compound $80M |
-| Overall | 11 | 9 | **81.8%** | Cohen's Kappa: 0.77 |
+| Overall | 11 | 9 | **81.8%** | 95% Wilson CI: [52%, 95%] |
 
 > **81.8% recall on real-world exploits** — MIESC would have flagged 9 of 11 multi-million dollar exploits before deployment. [Paper 1 reproducibility](./paper/PAPER1_REPRODUCIBILITY.md) | [Exploit evaluation](./benchmarks/evaluate_exploits.py)
 
 **Why recall matters more than precision for pre-audit triage**: High recall means fewer missed vulnerabilities. False positives are filtered in the triage step — missed vulnerabilities become exploits in production.
+
+**Cost efficiency (EVMBench, 40 audits)**: detection does not require frontier prices. An open-weight model (DeepSeek-R1, MIT weights) reaches the best precision (88.5%) and F1 (78.7%) in the comparison at an estimated ~$0.08/audit — 15–69× cheaper than frontier APIs — while a fully-local 32B model reaches 59.2% recall at $0. Paying frontier prices buys higher single-run recall, not better precision/F1. See Paper 1 for the run-count-matched detail.
 
 ### Research Papers and Reproducible Claims
 
@@ -164,16 +166,20 @@ Current technical-debt cleanup and remaining platform work are tracked in the [t
 ### The 9 Defense Layers
 
 ```
-Layer 1  Static Analysis        Slither, Aderyn, Solhint, Semgrep
-Layer 2  Dynamic Testing        Echidna, Foundry, Medusa
-Layer 3  Symbolic Execution     Mythril, Halmos, Manticore
-Layer 4  Formal Verification    SMTChecker, Scribble, Certora*
-Layer 5  AI/LLM Analysis        SmartLLM, GPTScan, LLMSmartAudit (Ollama)
-Layer 6  Pattern Detection      Gas Analyzer, Clone Detector, Threat Model
-Layer 7  DeFi Security          MEV Detector, Flash Loan Analyzer, Oracle Checker
-Layer 8  Exploit Validation     PoC Synthesizer (Foundry), Vulnerability Verifier
-Layer 9  Consensus & Reporting  Bayesian Consensus, RAG Enrichment, PDF Reports
+Layer 1  Static Analysis            Slither, Aderyn, Solhint, Semgrep
+Layer 2  Dynamic Testing            Echidna, Foundry, Medusa
+Layer 3  Symbolic Execution         Mythril, Halmos, Manticore
+Layer 4  Formal Verification        SMTChecker, Scribble, Certora*
+Layer 5  AI Analysis                SmartLLM, GPTScan, LLMSmartAudit, GPTLens (Ollama)
+Layer 6  ML Detection               DA-GNN, SmartBugs-ML, SmartGuard, Peculiar
+Layer 7  Specialized Analysis       Threat Model, Gas Analyzer, MEV Detector, Clone Detector, DeFi
+Layer 8  Cross-Chain & ZK Security  Cross-Chain, ZK Circuit, Bridge Monitor, L2 Validator, Circom
+Layer 9  Advanced AI Ensemble       LLMBugScanner, Audit Consensus, Exploit Synthesizer, Vuln Verifier
 ```
+
+Layers 8–9 include experimental multi-chain/ZK and ensemble-consensus modules; the
+EVM analysis path (Layers 1–7) is the production-ready core (multi-chain is on the
+roadmap). The canonical layer definition lives in `miesc/cli/constants.py`.
 
 *Certora requires API key. All other tools are fully open-source.
 
@@ -281,7 +287,7 @@ miesc analyze Token.sol           # EVM (Solidity/Vyper) — production
 # experimental adapter code exists but is not production-validated yet.
 ```
 
-**77 vulnerability types** across 4 ecosystems, informed by real 2024-2026 exploits (zkLend $9.6M, Braavos, Wormhole $326M, Ronin $624M).
+**77 vulnerability types** across 4 ecosystems, informed by real 2024-2026 exploits (zkLend $9.6M, Braavos, Wormhole $320M, Ronin $624M).
 
 Bridge vulnerability detection:
 ```bash

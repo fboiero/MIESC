@@ -58,14 +58,13 @@ This major release introduces **4 cutting-edge research-based enhancements** tha
 
 ## Performance Improvements
 
-| Metric | v3.5.0 | v4.0.0 | Change |
-|--------|--------|--------|--------|
-| **Total Adapters** | 22 | 25 | +13.6% |
-| **Precision** | 89.47% | 94.5% | +5.03pp |
-| **Recall** | 86.2% | 92.8% | +6.6pp |
-| **False Positive Rate** | 10.53% | 5.5% | -48% |
-| **Detection Coverage** | 85% | 96% | +11pp |
-| **Formal Verification Adoption** | 5% | 40% | +700% |
+| Benchmark | Result |
+|-----------|--------|
+| Total Adapters | 25 |
+| SmartBugs-curated recall | 95.8% (137/143) |
+| SmartBugs-curated precision | 22.1% (recall-first profile) |
+| Real-world DeFi exploits | 81.8% recall (9/11, 95% Wilson CI [52%, 95%]) |
+| EVMBench ensemble recall | 92.5% (111/120) |
 | **ML Detection Accuracy** | N/A | 95.7% | New capability |
 
 ---
@@ -118,10 +117,6 @@ miesc list-tools # Should show: 25 adapters
 
 ### Changed
 - Increased tool count from 22 to 25 adapters (+13.6%)
-- Improved precision from 89.47% to 94.5% (+5.03pp)
-- Improved recall from 86.2% to 92.8% (+6.6pp)
-- Reduced false positive rate from 10.53% to 5.5% (-48%)
-- Increased detection coverage from 85% to 96% (+11pp)
 - Updated README with comprehensive "What's New in v4.0" section
 - Enhanced CHANGELOG with full v4.0.0 details
 

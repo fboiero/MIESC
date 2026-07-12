@@ -132,14 +132,14 @@ All version strings now synchronized:
 
 ## Performance Metrics
 
-Validated on SmartBugs-curated benchmark (50 contracts):
+Validated on SmartBugs-curated benchmark (143 contracts):
 
 | Metric | Value |
 |--------|-------|
-| **Precision** | 100% |
-| **Recall** | 70% |
-| **F1-Score** | 82.35% |
-| **False Positives** | 0 |
+| **Precision** | 22.1% |
+| **Recall** | 95.8% |
+| **F1-Score** | 35.9% |
+| **Corpus** | SmartBugs-curated (143) |
 | **Tools** | 31/31 operational |
 
 ### Categories with 100% Recall

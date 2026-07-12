@@ -314,17 +314,17 @@ power_score = (coverage_factor * 0.5 +
 
 ## Overall Progress
 
-### Metrics Achieved (After All 4 Enhancements)
+### Reproducible Benchmark Evidence
 
-| Metric | Before (v3.5) | After (v4.0) | Change |
-|--------|---------------|---------------|---------|
-| **Total Adapters** | 22 | 25 | +13.6% |
-| **Precision** | 89.47% | 94.5% | +5.03pp |
-| **Recall** | 86.2% | 92.8% | +6.6pp |
-| **FP Rate** | 10.53% | 5.5% | -48% |
-| **Detection Coverage** | 85% | 96% | +11pp |
-| **Formal Verification Adoption** | 5% | 40% | +700% |
-| **ML Accuracy** | N/A | 95.7% | New capability |
+| Benchmark | Result |
+|-----------|--------|
+| Total Adapters | 25 |
+| SmartBugs-curated recall | 95.8% (137/143) |
+| Real-world DeFi exploits | 81.8% recall (9/11, 95% Wilson CI [52%, 95%]) |
+| EVMBench ensemble recall | 92.5% (111/120) |
+
+Every quantitative claim is traced to a source artifact in
+`benchmarks/results/paper1_claims_matrix.json`.
 
 ### Timeline
 

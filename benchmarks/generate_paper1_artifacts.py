@@ -374,7 +374,7 @@ def generate_claims_matrix(ensemble: dict) -> dict:
                 "claim_id": "real_world_exploits",
                 "paper_claim": (
                     "MIESC detects 9/11 real-world DeFi exploits (81.8% recall, "
-                    "Cohen's kappa 0.773) across $1.59B in evaluated losses."
+                    "95% Wilson CI [52%, 95%]) across $1.59B in evaluated losses."
                 ),
                 "value": real_world_exploits["aggregate"],
                 "unit": "recall",

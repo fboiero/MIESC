@@ -34,8 +34,6 @@ Chainalysis. (2024). *The 2024 crypto crime report*. Chainalysis Inc. https://ww
 
 Chen, T., Li, X., Luo, X., & Zhang, X. (2020). Under-optimized smart contracts devour your money. *Proceedings of the 24th IEEE International Conference on Software Analysis, Evolution and Reengineering (SANER)*, 442-453. https://doi.org/10.1109/SANER.2020.9045642
 
-Chen, Y., Zhang, L., & Liu, X. (2024). Security defense for smart contracts: A comprehensive survey. *arXiv preprint arXiv:2401.00000*. https://arxiv.org/abs/2401.00000
-
 Claessen, K., & Hughes, J. (2000). QuickCheck: A lightweight tool for random testing of Haskell programs. *ACM SIGPLAN Notices, 35*(9), 268-279. https://doi.org/10.1145/351240.351266
 
 Clarke, E. M., Henzinger, T. A., Veith, H., & Bloem, R. (Eds.). (2018). *Handbook of model checking*. Springer. https://doi.org/10.1007/978-3-319-10575-8
@@ -44,7 +42,7 @@ Clarke, E. M., Henzinger, T. A., Veith, H., & Bloem, R. (Eds.). (2018). *Handboo
 
 ## D
 
-David, Y., Kroening, D., & Schrammel, P. (2023). Combining static analysis and LLMs for smart contract vulnerability detection. *Proceedings of the 45th International Conference on Software Engineering (ICSE)*, 1234-1245. https://doi.org/10.1109/ICSE48619.2023.00108
+De Baets, C., Suleiman, B., Chitizadeh, A., & Razzak, I. (2024). Vulnerability detection in smart contracts: A comprehensive survey. *arXiv preprint arXiv:2407.07922*. https://arxiv.org/abs/2407.07922
 
 de Moura, L., & Bjorner, N. (2008). Z3: An efficient SMT solver. En C. R. Ramakrishnan & J. Rehof (Eds.), *Lecture Notes in Computer Science: Vol. 4963. Tools and Algorithms for the Construction and Analysis of Systems* (pp. 337-340). Springer. https://doi.org/10.1007/978-3-540-78800-3_24
 
@@ -78,6 +76,8 @@ Fellegi, I. P., & Sunter, A. B. (1969). A theory for record linkage. *Journal of
 
 Ferreira, J. F., Cruz, P., Durieux, T., & Abreu, R. (2020). SmartBugs: A framework to analyze Solidity smart contracts. *Proceedings of the 35th IEEE/ACM International Conference on Automated Software Engineering (ASE)*, 1349-1352. https://doi.org/10.1145/3324884.3415298
 
+Floridi, L. (2020). The fight for digital sovereignty: What it is, and why it matters, especially for the EU. *Philosophy & Technology, 33*(3), 369-378. https://doi.org/10.1007/s13347-020-00423-6
+
 ---
 
 ## G
@@ -110,6 +110,12 @@ Hou, X., Zhao, Y., Liu, Y., Yang, Z., Wang, K., Li, L., Luo, X., Lo, D., Grundy,
 
 ---
 
+## I
+
+Ivanov, N., Li, C., Yan, Q., Sun, Z., Cao, Z., & Luo, X. (2023). Security defense for smart contracts: A comprehensive survey. *arXiv preprint arXiv:2302.07347*. https://arxiv.org/abs/2302.07347
+
+---
+
 ## J
 
 Joint Chiefs of Staff. (2018). *Cyberspace Operations (JP 3-12)*. U.S. Department of Defense. https://www.jcs.mil/Portals/36/Documents/Doctrine/pubs/jp3_12.pdf
@@ -117,6 +123,8 @@ Joint Chiefs of Staff. (2018). *Cyberspace Operations (JP 3-12)*. U.S. Departmen
 ---
 
 ## K
+
+Illich, I. (1973). *Tools for conviviality*. Harper & Row.
 
 King, J. C. (1976). Symbolic execution and program testing. *Communications of the ACM, 19*(7), 385-394. https://doi.org/10.1145/360248.360252
 
@@ -133,8 +141,6 @@ Lewis, P., Perez, E., Piktus, A., Petroni, F., Karpukhin, V., Goyal, N., Kuttler
 Libicki, M. C. (2009). *Cyberdeterrence and cyberwar*. RAND Corporation. https://www.rand.org/pubs/monographs/MG877.html
 
 Linux Foundation. (2024). *SPDX License List* (Version 3.22). Software Package Data Exchange. https://spdx.org/licenses/
-
-Luo, Y., Chen, Z., Fan, L., & Liu, C. (2023). Multi-layer security defense for smart contracts: A defense-in-depth approach. *IEEE Transactions on Software Engineering*. https://doi.org/10.1109/TSE.2023.3289145
 
 Luu, L., Chu, D. H., Olickel, H., Saxena, P., & Hobor, A. (2016). Making smart contracts smarter. *Proceedings of the 2016 ACM SIGSAC Conference on Computer and Communications Security (CCS)*, 254-269. https://doi.org/10.1145/2976749.2978309
 
@@ -208,9 +214,9 @@ Qin, K., Zhou, L., Livshits, B., & Gervais, A. (2021). Attacking the DeFi ecosys
 
 Rameder, H., Di Angelo, M., & Salzer, G. (2022). Review of automated vulnerability analysis of smart contracts on Ethereum. *Frontiers in Blockchain, 5*, Article 814977. https://doi.org/10.3389/fbloc.2022.814977
 
-Ross, R., McEvilley, M., & Oren, J. C. (2016). *Systems security engineering: Considerations for a multidisciplinary approach in the engineering of trustworthy secure systems* (NIST Special Publication 800-160, Vol. 1). National Institute of Standards and Technology. https://doi.org/10.6028/NIST.SP.800-160v1
+Ross, R., McEvilley, M., & Oren, J. C. (2016a). *Systems security engineering: Considerations for a multidisciplinary approach in the engineering of trustworthy secure systems* (NIST Special Publication 800-160, Vol. 1). National Institute of Standards and Technology. https://doi.org/10.6028/NIST.SP.800-160v1
 
-Ross, R., Pillitteri, V., Dempsey, K., Riddle, M., & Guissanie, G. (2016). *Protecting controlled unclassified information in nonfederal systems and organizations* (NIST Special Publication 800-171). National Institute of Standards and Technology. https://doi.org/10.6028/NIST.SP.800-171
+Ross, R., Pillitteri, V., Dempsey, K., Riddle, M., & Guissanie, G. (2016b). *Protecting controlled unclassified information in nonfederal systems and organizations* (NIST Special Publication 800-171). National Institute of Standards and Technology. https://doi.org/10.6028/NIST.SP.800-171
 
 Runeson, P., Host, M., Rainer, A., & Regnell, B. (2012). *Case study research in software engineering: Guidelines and examples*. Wiley.
 
@@ -231,6 +237,8 @@ Shaw, M. (2012). The role of design spaces. *IEEE Software, 29*(1), 46-50. https
 Smart Contract Weakness Classification. (2020). *SWC Registry*. https://swcregistry.io/
 
 Sommerville, I. (2016). *Software engineering* (10th ed.). Pearson.
+
+Stallman, R. M. (2002). *Free software, free society: Selected essays of Richard M. Stallman*. GNU Press.
 
 Sun, Y., Wu, D., Xue, Y., Liu, H., Wang, H., Xu, Z., Xie, X., & Liu, Y. (2024). GPTScan: Detecting logic vulnerabilities in smart contracts by combining GPT with program analysis. *Proceedings of the 46th International Conference on Software Engineering (ICSE)*, Article 166. https://doi.org/10.1145/3597503.3623318
 
@@ -254,7 +262,9 @@ Tsankov, P., Dan, A., Drachsler-Cohen, D., Gervais, A., Bunzli, F., & Vechev, M.
 
 ## V
 
-van Rossum, G., Warsaw, B., & Coghlan, N. (2001). *PEP 8 - Style guide for Python code*. Python Enhancement Proposals. https://peps.python.org/pep-0008/
+van Rossum, G., Warsaw, B., & Coghlan, N. (2001a). *PEP 8 - Style guide for Python code*. Python Enhancement Proposals. https://peps.python.org/pep-0008/
+
+van Rossum, G., & Warsaw, B. (2001b). *PEP 3119 - Introducing abstract base classes*. Python Enhancement Proposals. https://peps.python.org/pep-3119/
 
 van Rossum, G., et al. (2019). *PEP 585 - Type hinting generics in standard collections*. Python Enhancement Proposals. https://peps.python.org/pep-0585/
 
@@ -267,6 +277,8 @@ Vidal, F. R., Ivaki, N., & Laranjeiro, N. (2024). OpenSCV: An open hierarchical 
 ## W
 
 Werner, S. M., Perez, D., Gudgeon, L., Klages-Mundt, A., Harz, D., & Knottenbelt, W. J. (2024). SoK: Decentralized finance (DeFi) attacks. *Proceedings of the 45th IEEE Symposium on Security and Privacy (S&P)*, 1-18. https://doi.org/10.1109/SP54263.2024.00123
+
+Winner, L. (1980). Do artifacts have politics? *Daedalus, 109*(1), 121-136.
 
 Wohlin, C., Runeson, P., Host, M., Ohlsson, M. C., Regnell, B., & Wesslen, A. (2012). *Experimentation in software engineering*. Springer. https://doi.org/10.1007/978-3-642-29044-2
 
@@ -294,15 +306,15 @@ Las referencias siguen el formato de la American Psychological Association (APA)
 4. **Software/herramientas:** Se cita como software con URL del repositorio
 5. **Documentos gubernamentales:** Se incluye organizacion y numero de publicacion
 
-**Total de referencias:** 85
+**Total de referencias:** 98
 
 **Distribucion por tipo:**
-- Articulos de conferencia: 32 (38%)
-- Libros: 14 (16%)
-- Articulos de revista: 15 (18%)
-- Documentacion tecnica/estandares: 14 (16%)
-- Preprints: 6 (7%)
-- Documentos gubernamentales: 4 (5%)
+- Articulos de conferencia: 29 (30%)
+- Libros: 15 (15%)
+- Articulos de revista: 24 (24%)
+- Documentacion tecnica/estandares: 21 (21%)
+- Preprints: 4 (4%)
+- Documentos gubernamentales: 5 (5%)
 
 **Referencias clave por area:**
 
@@ -310,7 +322,7 @@ Las referencias siguen el formato de la American Psychological Association (APA)
 - Joint Chiefs of Staff (2018) - Cyberspace Operations
 - Libicki (2009) - Cyberdeterrence and Cyberwar
 - NIST (2024) - Cybersecurity Framework 2.0
-- Ross et al. (2016) - Systems Security Engineering
+- Ross et al. (2016a) - Systems Security Engineering
 - Di Pietro et al. (2024) - Critical Infrastructure Protection
 
 ### Smart Contracts y Blockchain
@@ -335,7 +347,7 @@ Las referencias siguen el formato de la American Psychological Association (APA)
 ### Patrones y Arquitectura
 - Gamma et al. (1994) - Design Patterns
 - Martin (2000, 2017) - SOLID Principles
-- Luo et al. (2023) - Defense-in-Depth for Smart Contracts
+- Durieux et al. (2020) - Empirical tool complementarity (defense-in-depth basis)
 
 ---
 

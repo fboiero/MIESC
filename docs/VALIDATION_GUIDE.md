@@ -1,6 +1,6 @@
 # MIESC - Guia de Validacion e Instalacion
 
-**MIESC v4.2.3** - Multi-layer Intelligent Evaluation for Smart Contracts
+**MIESC v5.4.3** - Multi-layer Intelligent Evaluation for Smart Contracts
 **Autor:** Fernando Boiero (fboiero@frvm.utn.edu.ar)
 **Institucion:** Maestria en Ciberdefensa, UNDEF-IUA Argentina
 **Fecha de Validacion:** Enero 2026
@@ -86,7 +86,7 @@ ls -la
 
 # Verificar version del proyecto
 cat pyproject.toml | grep version
-# Salida: version = "4.2.3"
+# Salida: version = "5.4.3"
 ```
 
 ---
@@ -142,7 +142,7 @@ cargo install aderyn
 miesc --version
 
 # Salida esperada:
-# MIESC v4.2.3 - Multi-layer Intelligent Evaluation for Smart Contracts
+# MIESC v5.4.3 - Multi-layer Intelligent Evaluation for Smart Contracts
 ```
 
 ---
@@ -161,13 +161,13 @@ MIESC System Diagnostics
 ========================
 
 [OK] Python 3.12.x detected
-[OK] MIESC v4.2.3 installed
+[OK] MIESC v5.4.3 installed
 [OK] Slither v0.10.x available
 [OK] Solhint v5.x.x available
 [WARN] Mythril not installed (optional)
 [WARN] Echidna not installed (optional)
 
-Tools Available: 4/32
+Tools Available: 4/50
 Layers Active: 1, 5, 6, 7
 
 System Status: OPERATIONAL
@@ -201,7 +201,7 @@ Layer 3 - Symbolic Execution:
 
 ...
 
-Total: X tools available out of 32
+Total: X tools available out of 50 (50 tools across 35 analysis modules)
 ```
 
 ### 4.3 Verificar Importaciones de Python
@@ -353,7 +353,7 @@ miesc export results/analysis.json -f csv -o results/findings.csv
 ```json
 {
   "metadata": {
-    "version": "4.2.3",
+    "version": "5.4.3",
     "timestamp": "2026-01-08T12:00:00Z",
     "contract": "VulnerableBank.sol",
     "analysis_duration": "45.2s"
@@ -403,12 +403,11 @@ xdg-open dashboard/index.html  # Linux
 
 | Metrica | Valor |
 |---------|-------|
-| Precision | 100% |
-| Recall | 70% |
-| F1-Score | 82.35% |
-| Contratos Analizados | 50 |
-| Vulnerabilidades Detectadas | 35/50 |
-| Falsos Positivos | 0 |
+| Precision | 22.1% |
+| Recall | 95.8% |
+| F1-Score | 35.9% |
+| Contratos Analizados | 143 |
+| Vulnerabilidades Detectadas | 137/143 |
 
 ### 8.2 Tiempos de Ejecucion
 
@@ -586,7 +585,7 @@ MIESC/
 │   ├── api/               # REST API
 │   └── core/              # Logica central
 ├── src/                   # Modulos fuente
-│   ├── adapters/          # Adaptadores de herramientas (32)
+│   ├── adapters/          # Adaptadores de herramientas (50 tools / 35 modulos)
 │   ├── core/              # Infraestructura core
 │   ├── ml/                # Machine Learning
 │   ├── security/          # Modulos de seguridad
@@ -602,5 +601,5 @@ MIESC/
 
 ---
 
-**Documento generado automaticamente por MIESC v4.2.3**
+**Documento generado automaticamente por MIESC v5.4.3**
 **Ultima actualizacion:** Enero 2026

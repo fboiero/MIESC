@@ -62,7 +62,7 @@ MIESC provides multi-layer security analysis:
 3. **Layer 4**: Fuzzing (Echidna, Medusa, Foundry)
 4. **Layer 5**: Formal Verification (Certora, Halmos)
 5. **Layer 6-7**: ML/AI Detection (SmartLLM, GPTLens)
-6. **Layer 8-9**: DeFi & Advanced Detection
+6. **Layer 8-9**: Cross-Chain & ZK Security, Advanced AI Ensemble
 
 Key Features
 ------------

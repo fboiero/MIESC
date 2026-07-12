@@ -29,6 +29,27 @@ from miesc.llm import enhance_findings_with_llm
 
 logger = logging.getLogger(__name__)
 
+# Marker Slither prints to stderr when SlithIR generation crashes for a
+# function. When this happens Slither may still emit a (partial) JSON report,
+# so downstream code must not treat the run as a complete analysis.
+_SLITHER_IR_FAILURE_MARKER = "Failed to generate IR"
+
+
+def incomplete_functions_from_stderr(stderr: Optional[str]) -> List[str]:
+    """Return the Slither stderr lines that report a SlithIR generation failure.
+
+    Each such line means one function was skipped by the detectors, so a real
+    vulnerability there is a silent miss. An empty list means the analysis was
+    complete (with respect to this failure mode).
+    """
+    if not stderr:
+        return []
+    return [
+        line.strip()
+        for line in stderr.splitlines()
+        if _SLITHER_IR_FAILURE_MARKER in line
+    ]
+
 
 def _find_slither_binary() -> str:
     """
@@ -353,6 +374,23 @@ class SlitherAdapter(ToolAdapter):
             with open(output_path, "r") as f:
                 raw_output = json.load(f)
 
+            # Detect partial/incomplete analysis. Slither can still emit a JSON
+            # report while silently skipping detectors for functions whose
+            # SlithIR generation crashed (common on legacy Solidity 0.4.x
+            # constructs). Left unflagged, a real vulnerability in the crashed
+            # function is a SILENT miss. Surface it so downstream can rely on the
+            # pattern-layer fallback or route the contract to manual review.
+            incomplete_functions = incomplete_functions_from_stderr(result.stderr)
+            analysis_incomplete = bool(incomplete_functions)
+            if analysis_incomplete:
+                logger.warning(
+                    "Slither analysis INCOMPLETE for %s: %d function(s) skipped "
+                    "due to SlithIR generation failure. Detector coverage is "
+                    "partial; pattern-layer fallback is recommended.",
+                    contract_path,
+                    len(incomplete_functions),
+                )
+
             # Normalize findings
             findings = self.normalize_findings(raw_output)
 
@@ -375,6 +413,8 @@ class SlitherAdapter(ToolAdapter):
                 "normalized_findings_count": len(findings),
                 "slither_version": raw_output.get("success", False),
                 "excluded_detectors": exclude_detectors,
+                "analysis_incomplete": analysis_incomplete,
+                "incomplete_functions": incomplete_functions,
             }
 
             logger.info(

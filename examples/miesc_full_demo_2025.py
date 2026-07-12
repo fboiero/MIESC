@@ -8,7 +8,7 @@ Comprehensive demonstration of MIESC v3.4.0 featuring:
 - Real adapter registry statistics
 - Cyberpunk visual presentation
 - Live system status monitoring
-- Scientific metrics (89.47% precision, Cohen's Kappa 0.847)
+- Reproducible recall benchmarks (SmartBugs-curated 95.8%, EVMBench 92.5%)
 
 Usage:
     python miesc_full_demo_2025.py [contract.sol]
@@ -364,28 +364,28 @@ def display_scientific_metrics():
         f"{NeonColors.NEON_PURPLE}╔══════════════════════════════════════════════════════════╗{NeonColors.ENDC}"
     )
     print(
-        f"{NeonColors.NEON_PURPLE}║            PEER-REVIEWED PERFORMANCE METRICS             ║{NeonColors.ENDC}"
+        f"{NeonColors.NEON_PURPLE}║             REPRODUCIBLE PERFORMANCE METRICS             ║{NeonColors.ENDC}"
     )
     print(
         f"{NeonColors.NEON_PURPLE}╠══════════════════════════════════════════════════════════╣{NeonColors.ENDC}"
     )
     print(
-        f"{NeonColors.NEON_CYAN}║  Dataset:             5,127 Smart Contracts              ║{NeonColors.ENDC}"
+        f"{NeonColors.NEON_CYAN}║  Datasets:           SmartBugs-curated / EVMBench / DeFi ║{NeonColors.ENDC}"
     )
     print(
-        f"{NeonColors.NEON_GREEN}║  Precision:           89.47%                             ║{NeonColors.ENDC}"
+        f"{NeonColors.NEON_GREEN}║  SmartBugs-curated:               95.8% recall (137/143) ║{NeonColors.ENDC}"
     )
     print(
-        f"{NeonColors.NEON_GREEN}║  Recall:              86.2%                              ║{NeonColors.ENDC}"
+        f"{NeonColors.NEON_GREEN}║  EVMBench (ensemble):             92.5% recall (111/120) ║{NeonColors.ENDC}"
     )
     print(
-        f"{NeonColors.NEON_GREEN}║  Cohen's Kappa:       0.847 (Almost Perfect Agreement)  ║{NeonColors.ENDC}"
+        f"{NeonColors.NEON_GREEN}║  Real DeFi exploits:                 81.8% recall (9/11) ║{NeonColors.ENDC}"
     )
     print(
-        f"{NeonColors.NEON_YELLOW}║  False Positive Cut:  -73.6%                             ║{NeonColors.ENDC}"
+        f"{NeonColors.NEON_YELLOW}║  DeFi 95% Wilson CI:                          [52%, 95%] ║{NeonColors.ENDC}"
     )
     print(
-        f"{NeonColors.NEON_YELLOW}║  Execution Speed:     90% faster than manual             ║{NeonColors.ENDC}"
+        f"{NeonColors.NEON_YELLOW}║  Source:    benchmarks/results/paper1_claims_matrix.json ║{NeonColors.ENDC}"
     )
     print(
         f"{NeonColors.NEON_PURPLE}╚══════════════════════════════════════════════════════════╝{NeonColors.ENDC}\n"
@@ -661,23 +661,23 @@ def generate_html_dashboard(adapter_report: Dict[str, Any], contract_path: str):
             </div>
 
             <div class="stat-card">
-                <div class="stat-value">89.47%</div>
-                <div class="stat-label">Precision</div>
+                <div class="stat-value">95.8%</div>
+                <div class="stat-label">SmartBugs-curated Recall</div>
             </div>
 
             <div class="stat-card">
-                <div class="stat-value">86.2%</div>
-                <div class="stat-label">Recall</div>
+                <div class="stat-value">92.5%</div>
+                <div class="stat-label">EVMBench Recall</div>
             </div>
 
             <div class="stat-card">
-                <div class="stat-value">0.847</div>
-                <div class="stat-label">Cohen's Kappa</div>
+                <div class="stat-value">81.8%</div>
+                <div class="stat-label">Real DeFi Exploit Recall</div>
             </div>
 
             <div class="stat-card">
-                <div class="stat-value">5,127</div>
-                <div class="stat-label">Contracts Tested</div>
+                <div class="stat-value">137/143</div>
+                <div class="stat-label">SmartBugs Detected</div>
             </div>
 
             <div class="stat-card">

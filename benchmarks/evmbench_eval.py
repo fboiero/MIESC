@@ -458,6 +458,7 @@ def evaluate_audit(audit_id, audit_data, llm_enhance=False, frontier_model=None,
 
         provider_map = {"claude": "anthropic", "claude-opus": "anthropic",
                         "claude-sonnet": "anthropic", "gpt": "openai", "gpt-4o": "openai", "gpt-4.1": "openai", "gpt-5": "openai",
+                        "deepseek": "deepseek", "deepseek-r": "deepseek",
                         "ollama": "ollama", "qwen32b": "ollama", "qwen14b": "ollama", "codellama": "ollama"}
         _frontier_adapter = FrontierLLMAdapter(provider=provider_map.get(frontier_model, "auto"))
 
@@ -496,6 +497,7 @@ def evaluate_audit(audit_id, audit_data, llm_enhance=False, frontier_model=None,
             try:
                 model_map = {"claude": "claude-sonnet-4-6", "claude-opus": "claude-opus-4-6",
                              "gpt": "gpt-4o", "gpt-4o": "gpt-4o", "gpt-4.1": "gpt-4.1", "gpt-5": "gpt-5",
+                             "deepseek": "deepseek-chat", "deepseek-r": "deepseek-reasoner",
                              "ollama": "qwen2.5-coder:32b", "qwen32b": "qwen2.5-coder:32b",
                              "qwen14b": "qwen2.5-coder:14b", "codellama": "codellama:13b"}
                 result = _frontier_adapter.analyze(
@@ -519,7 +521,8 @@ def evaluate_audit(audit_id, audit_data, llm_enhance=False, frontier_model=None,
             for sf in source_files_sorted[:5]:
                 try:
                     model_map = {"claude": "claude-sonnet-4-6", "claude-opus": "claude-opus-4-6",
-                                 "gpt": "gpt-4o", "gpt-4o": "gpt-4o"}
+                                 "gpt": "gpt-4o", "gpt-4o": "gpt-4o",
+                                 "deepseek": "deepseek-chat", "deepseek-r": "deepseek-reasoner"}
                     result = _frontier_adapter.analyze(
                         sf, model=model_map.get(frontier_model, "claude-sonnet-4-6"),
                     )

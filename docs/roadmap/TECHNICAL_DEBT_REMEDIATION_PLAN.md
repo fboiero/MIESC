@@ -40,5 +40,56 @@ platform with the current Paper 1 and Paper 2 evidence.
 
 ## Remaining Debt
 
-No active debt remains in this plan. New debt should be added here only when it
-has a concrete owner, scope, and validation path.
+### Layer-taxonomy split between the CLI and the config (open)
+
+The 9-layer defense stack is defined **twice, incompatibly**, in active code:
+
+- `miesc/cli/constants.py` (drives `miesc audit --layer N` and the CLI output)
+  groups layers 5–9 as: **L5 AI Analysis · L6 ML Detection · L7 Specialized
+  Analysis · L8 Cross-Chain & ZK Security · L9 Advanced AI Ensemble**, with real
+  adapters per layer (e.g. L8 = `crosschain, zk_circuit, bridge_monitor,
+  l2_validator, circom_analyzer`).
+- `miesc/data/config/miesc.yaml` (and the README/public docs) groups layers 5–9
+  as: **L5 AI/LLM Analysis · L6 Pattern Detection · L7 DeFi Security · L8 Exploit
+  Validation · L9 Consensus & Reporting**.
+
+These are not a wording difference; they are two different *tool groupings* of
+real adapters. The CLI has a Cross-Chain/ZK layer the README scheme does not
+mention; the README scheme has an Exploit-Validation layer the CLI grouping does
+not surface as a layer.
+
+**Impact:** public docs cannot be made consistent without either lying about what
+the CLI does or misrepresenting the config. Documentation of the layer names was
+therefore intentionally left untouched pending this decision.
+
+**Decision (resolved):** the canonical taxonomy is **`miesc/cli/constants.py`** —
+it is what the shipping CLI entry point (`miesc.cli.main:cli`) and the REST API
+execute, every one of its per-layer adapters exists, and `tests/test_rest_api.py`
+already asserts its names ("ML Detection", "Specialized Analysis"). The canonical
+L1–L9 are: Static Analysis · Dynamic Testing · Symbolic Execution · Formal
+Verification · AI Analysis · ML Detection · Specialized Analysis · Cross-Chain & ZK
+Security · Advanced AI Ensemble.
+
+**Done:** README "9 Defense Layers" block and `mcp_server.py` docstring aligned to
+`constants.py`.
+
+**miesc.yaml migration — DONE.** Investigation showed the feared "~19 references"
+were false positives (tool-category enums, capability strings, and the
+exploit-validation *feature*, not the config keys): no production code reads the
+L5–L9 layer keys of `miesc.yaml`, and the config-loader tests only look up
+`static_analysis` (L1) or synthetic layers. Both copies
+(`miesc/data/config/miesc.yaml` and root `config/miesc.yaml`) were therefore safely
+rewritten to mirror `constants.py` exactly — keys `ml_detection`,
+`specialized_analysis`, `crosschain_zk_security`, `advanced_ensemble` with the
+canonical tool groupings — and 546 tests across config/core/mcp/registry/audit/
+multichain/rest stay green. A header note pins `constants.py` as authoritative.
+(New minor debt: the two miesc.yaml copies must be kept in sync; a single packaged
+source would remove that duplication.) The doc layer
+tables (`docs/index*.md`, `docs/ARCHITECTURE*.md`, `docs/TOOLS.md`, INSTALLATION,
+QUICKSTART, report templates) are now aligned to the canonical scheme; the one
+exception is `docs/architecture/layers.rst`, a Sphinx reference page on a distinct
+legacy ordering that carries a canonical-source note and is pending a full rewrite.
+
+**Validation path:** after the refactor, `constants.py`, `miesc.yaml`, the REST API
+`/layers` response, and the README "9 Defense Layers" block must all print the same
+L1–L9 names, and the full test suite must stay green.

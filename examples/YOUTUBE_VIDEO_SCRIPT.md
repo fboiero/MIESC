@@ -297,10 +297,10 @@ Enlaces:
 - Documentación: https://fboiero.github.io/MIESC
 - PyPI: https://pypi.org/project/miesc/
 
-Resultados validados (SmartBugs-curated, 50 contratos):
-- Precisión: 100%
-- Recall: 70%
-- F1-Score: 82.35%
+Resultados validados (SmartBugs-curated, 143 contratos):
+- Precisión: 22.1%
+- Recall: 95.8%
+- F1-Score: 35.9%
 
 #smartcontract #ethereum #solidity #security #audit #blockchain #defi #web3
 #slither #mythril #echidna #foundry #hardhat

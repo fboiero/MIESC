@@ -23,11 +23,11 @@ flowchart TB
         E --> L2[Layer 2: Dynamic]
         E --> L3[Layer 3: Symbolic]
         E --> L4[Layer 4: Formal]
-        E --> L5[Layer 5: Property]
-        E --> L6[Layer 6: AI/LLM]
-        E --> L7[Layer 7: ML]
-        E --> L8[Layer 8: DeFi]
-        E --> L9[Layer 9: Advanced]
+        E --> L5[Layer 5: AI Analysis]
+        E --> L6[Layer 6: ML Detection]
+        E --> L7[Layer 7: Specialized]
+        E --> L8[Layer 8: Cross-Chain & ZK]
+        E --> L9[Layer 9: Advanced Ensemble]
     end
 
     subgraph Processing
@@ -210,34 +210,34 @@ graph LR
         F2[SMTChecker]
     end
 
-    subgraph Layer5["Layer 5: Property Testing"]
-        P1[PropertyGPT]
-        P2[Wake]
-        P3[Vertigo]
+    subgraph Layer5["Layer 5: AI Analysis"]
+        P1[SmartLLM]
+        P2[GPTScan]
+        P3[LLMSmartAudit]
     end
 
-    subgraph Layer6["Layer 6: AI/LLM Analysis"]
-        A1[SmartLLM]
-        A2[GPTScan]
-        A3[LLMSmartAudit]
+    subgraph Layer6["Layer 6: ML Detection"]
+        A1[DA-GNN]
+        A2[SmartBugs-ML]
+        A3[SmartGuard]
     end
 
-    subgraph Layer7["Layer 7: Pattern Recognition"]
-        M1[DA-GNN]
-        M2[SmartGuard]
-        M3[Clone Detector]
+    subgraph Layer7["Layer 7: Specialized Analysis"]
+        M1[Threat Model]
+        M2[Gas Analyzer]
+        M3[MEV Detector]
     end
 
-    subgraph Layer8["Layer 8: DeFi Security"]
-        DF1[DeFi Analyzer]
-        DF2[MEV Detector]
-        DF3[Gas Analyzer]
+    subgraph Layer8["Layer 8: Cross-Chain & ZK Security"]
+        DF1[Cross-Chain]
+        DF2[ZK Circuit]
+        DF3[Bridge Monitor]
     end
 
-    subgraph Layer9["Layer 9: Advanced Detection"]
-        AD1[Threat Model]
-        AD2[SmartBugs]
-        AD3[Ensemble]
+    subgraph Layer9["Layer 9: Advanced AI Ensemble"]
+        AD1[LLMBugScanner]
+        AD2[Audit Consensus]
+        AD3[Exploit Synthesizer]
     end
 
     Contract[Contract.sol] --> Layer1
@@ -268,11 +268,13 @@ graph LR
 | 2 | Dynamic Testing | Echidna, Foundry, Medusa | Fuzzing, property testing |
 | 3 | Symbolic Execution | Mythril, Halmos | Path exploration |
 | 4 | Formal Verification | Certora, SMTChecker | Mathematical proofs |
-| 5 | Property Testing | PropertyGPT, Wake, Vertigo | Mutation testing |
-| 6 | AI/LLM Analysis | SmartLLM, GPTScan | LLM-based detection |
-| 7 | Pattern Recognition | DA-GNN, SmartGuard | ML-based patterns |
-| 8 | DeFi Security | MEV Detector, DeFi Analyzer | Protocol-specific |
-| 9 | Advanced Detection | Threat Model, SmartBugs | Ensemble analysis |
+| 5 | AI Analysis | SmartLLM, GPTScan, LLMSmartAudit, GPTLens, LlamaAudit, iAudit | LLM-based detection |
+| 6 | ML Detection | DA-GNN, SmartBugs-ML, SmartBugs-Detector, SmartGuard, Peculiar | ML-based classification |
+| 7 | Specialized Analysis | Threat Model, Gas Analyzer, MEV Detector, Clone Detector, DeFi, Advanced Detector, Upgradability Checker | Domain-specific checks |
+| 8 | Cross-Chain & ZK Security | Cross-Chain, ZK Circuit, Bridge Monitor, L2 Validator, Circom Analyzer | Bridge & ZK circuit analysis |
+| 9 | Advanced AI Ensemble | LLMBugScanner, Audit Consensus, Exploit Synthesizer, Vuln Verifier, Remediation Validator | Multi-LLM consensus |
+
+> Layers 8–9 (Cross-Chain & ZK Security, Advanced AI Ensemble) are experimental modules on the multi-chain roadmap; the EVM core is Layers 1–7.
 
 ---
 

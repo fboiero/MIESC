@@ -143,7 +143,7 @@ de integración end-to-end (smoke run), no como una afirmación a nivel de corpu
 | Reentrancy | 3 | 3 | **100%** | Euler $197M, Rari $80M, Platypus $8.5M |
 | Access Control | 3 | 3 | **100%** | Parity $280M, Ronin $624M |
 | Flash Loan | 2 | 2 | **100%** | bZx $8.1M, Compound $80M |
-| General | 11 | 9 | **81.8%** | Cohen's Kappa: 0.77 |
+| General | 11 | 9 | **81.8%** | IC Wilson 95%: [52%, 95%] |
 
 > **81.8% recall en exploits reales** — MIESC habría marcado 9 de 11 exploits multimillonarios antes del deploy. [Reproducibilidad del Paper 1](./paper/PAPER1_REPRODUCIBILITY.md) | [Evaluación de exploits](./benchmarks/evaluate_exploits.py)
 
@@ -282,7 +282,7 @@ miesc analyze Token.sol           # EVM (Solidity/Vyper) — producción
 # existe código de adapter experimental pero todavía no está validado para producción.
 ```
 
-**77 tipos de vulnerabilidades** en 4 ecosistemas, basados en exploits reales de 2024-2026 (zkLend $9.6M, Braavos, Wormhole $326M, Ronin $624M).
+**77 tipos de vulnerabilidades** en 4 ecosistemas, basados en exploits reales de 2024-2026 (zkLend $9.6M, Braavos, Wormhole $320M, Ronin $624M).
 
 Detección de vulnerabilidades en bridges:
 ```bash
@@ -662,8 +662,8 @@ El proyecto cumple plenamente con los 9 indicadores de la DPGA: licencia abierta
 |----------|-------------|
 | [Cumplimiento DPG](./docs/policies/DPG-COMPLIANCE.md) | Declaración de cumplimiento de los 9 indicadores |
 | [Relevancia ODS](./docs/policies/SDG_RELEVANCE.md) | Mapeo de Objetivos de Desarrollo Sostenible |
-| [Política de Privacidad](./PRIVACY.md) | Declaración de manejo de datos y privacidad |
-| [Uso Responsable](./RESPONSIBLE_USE.md) | Directrices de uso ético |
+| [Política de Privacidad](docs/policies/PRIVACY.md) | Declaración de manejo de datos y privacidad |
+| [Uso Responsable](docs/policies/RESPONSIBLE_USE.md) | Directrices de uso ético |
 | [No Hacer Daño](./docs/policies/DO_NO_HARM.md) | Evaluación de riesgos y mitigaciones |
 
 ---

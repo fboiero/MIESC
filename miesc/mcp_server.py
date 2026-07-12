@@ -289,8 +289,10 @@ async def miesc_run_tool(tool_name: str, contract_path: str, timeout: int = 300)
 async def miesc_run_layer(layer: int, contract_path: str, timeout: int = 300) -> str:
     """
     Run all tools in a specific defense layer (1-9).
-    Layers: 1=Static, 2=Dynamic/Fuzzing, 3=Symbolic, 4=Formal Verification,
-    5=AI Analysis, 6=ML Detection, 7=Specialized, 8=Cross-Chain/ZK, 9=Advanced Ensemble.
+    Layers (canonical, per miesc.cli.constants.LAYERS): 1=Static Analysis,
+    2=Dynamic Testing, 3=Symbolic Execution, 4=Formal Verification, 5=AI Analysis,
+    6=ML Detection, 7=Specialized Analysis, 8=Cross-Chain & ZK Security,
+    9=Advanced AI Ensemble.
     """
     contract_path = _validate_contract_path(contract_path)
     LAYERS = _get_layers()
@@ -775,9 +777,10 @@ async def miesc_remediation_evidence_bundle(
 @mcp.tool()
 async def miesc_get_metrics() -> str:
     """
-    Retrieve MIESC's scientific validation metrics.
-    Returns precision, recall, F1-score from thesis experiments
-    (analysis of 5,127 smart contracts).
+    Retrieve MIESC's reproducible benchmark metrics.
+    Returns recall on SmartBugs-curated (143 contracts), real-world DeFi
+    exploits (with 95% Wilson CI), and the EVMBench ensemble, each sourced
+    from the released per-claim matrix (benchmarks/results/paper1_claims_matrix.json).
     """
     return json.dumps(
         {
@@ -785,20 +788,12 @@ async def miesc_get_metrics() -> str:
             "version": __version__,
             "layers": 9,
             "tools": 50,
-            "validation": {
-                "contracts_analyzed": 5127,
-                "dataset": "SmartBugs Curated + Real-world DeFi",
-                "metrics": {
-                    "precision": 0.89,
-                    "recall": 0.84,
-                    "f1_score": 0.86,
-                    "cohens_kappa": 0.72,
-                    "false_positive_rate": 0.11,
-                },
-                "cross_validation_improvement": {
-                    "precision_delta": "+12%",
-                    "fp_reduction": "-45%",
-                },
+            "reproducible_benchmarks": {
+                "smartbugs_curated_recall": 0.958,
+                "real_world_exploit_recall": 0.818,
+                "real_world_exploit_wilson_ci_95": [0.52, 0.95],
+                "evmbench_ensemble_recall": 0.925,
+                "source": "benchmarks/results/paper1_claims_matrix.json",
             },
             "thesis": {
                 "title": "Multi-layer Intelligent Evaluation for Smart Contracts",

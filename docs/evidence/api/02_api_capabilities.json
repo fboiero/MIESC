@@ -37,11 +37,12 @@
       "OWASP Smart Contract Top 10"
     ],
     "institution": "UNDEF - Universidad de la Defensa Nacional",
-    "scientific_validation": {
-      "cohens_kappa": 0.847,
-      "f1_score": 0.8781,
-      "precision": 0.8947,
-      "recall": 0.862
+    "reproducible_benchmarks": {
+      "evmbench_ensemble_recall": 0.925,
+      "real_world_exploit_recall": 0.818,
+      "real_world_exploit_wilson_ci_95": [0.52, 0.95],
+      "smartbugs_curated_recall": 0.958,
+      "source": "benchmarks/results/paper1_claims_matrix.json"
     },
     "thesis": "Master's in Cyberdefense"
   },

@@ -21,7 +21,7 @@ Abrir `/Users/fboiero/Documents/GitHub/MIESC/paper/miesc-paper.pdf` y verificar:
 - [ ] 15 referencias usadas en bibliografía
 - [ ] Números: 13 ext + 22 int = 35 modules, 93 RAG/source documents
 - [ ] SmartBugs: 95.8% recall, 35.9% F1; local 32B assisted: 97.9% recall
-- [ ] DeFi exploits: 81.8% recall, Cohen's κ = 0.773
+- [ ] DeFi exploits: 81.8% recall, 95% Wilson CI [52%, 95%]
 - [ ] EVMBench: 92.5% ensemble recall, 111/120 findings
 - [ ] Modelo LLM especificado: qwen2.5-coder:32b
 - [ ] Comando de reproducibilidad visible (no vacío)
@@ -58,7 +58,7 @@ confidence scoring, automated remediation, and multi-provider LLM ensembles.
 On SmartBugs-curated (143 contracts), the static+intelligence profile reaches
 95.8% recall (137/143); adding a local 32B model at zero API cost raises recall
 to 97.9% (140/143). On 11 real DeFi exploits totaling $1.59B in combined losses, recall
-reaches 81.8% with Cohen's kappa = 0.773. On an EVMBench local high-severity
+reaches 81.8% with a 95% Wilson CI of [52%, 95%]. On an EVMBench local high-severity
 extraction (40 audits, 120 findings), a reproducible four-provider union
 ensemble (Claude Sonnet 4.6 + GPT-5 + GPT-4o + local Ollama) detects 111/120
 vulnerabilities (92.5% recall). The best single provider reaches 82.5%; a
@@ -98,7 +98,7 @@ License:             CC BY 4.0
 
 Si arXiv pide endorsement en todas las categorías, hay que contactar autores que puedan endorsar.
 
-**Código de endorsement de Fernando:** `AORK7R`
+**Código de endorsement de Fernando:** `[REDACTED-ENDORSEMENT-CODE]`
 
 **Cómo verificar quién puede endorsar:** En cada paper de arXiv, abajo del abstract hay un link "Which of the authors of this article can endorse?" — click ahí para confirmar.
 
@@ -132,7 +132,7 @@ across 9 defense layers. We evaluated it on the SmartBugs-curated
 benchmark — your dataset — achieving 95.8% recall in the latest
 reproducible profile and 97.9% recall when adding a local 32B model.
 We also validated against 11 real-world DeFi exploits totaling $1.59B
-in combined losses, with 81.8% recall (Cohen's κ = 0.773), and report 92.5%
+in combined losses, with 81.8% recall (95% Wilson CI [52%, 95%]), and report 92.5%
 ensemble recall on an EVMBench high-severity extraction.
 
 Your work on SmartBugs (ICSE 2020, ASE 2023) was foundational to our
@@ -140,7 +140,7 @@ evaluation methodology, and we cite both papers.
 
 The framework is publicly available at: https://github.com/fboiero/MIESC
 
-My arXiv endorsement code is: AORK7R
+My arXiv endorsement code is: [REDACTED-ENDORSEMENT-CODE]
 
 I attach the paper PDF for your review. I would be very grateful for
 your endorsement.
@@ -181,7 +181,7 @@ Your work on Slither is central to our framework and evaluation, and
 we cite it prominently.
 
 Tool: https://github.com/fboiero/MIESC
-My arXiv endorsement code: AORK7R
+My arXiv endorsement code: [REDACTED-ENDORSEMENT-CODE]
 
 I attach the paper for your review.
 
@@ -218,7 +218,7 @@ We cite GPTScan (ICSE 2024) as a foundational reference for
 AI-enhanced security analysis.
 
 Tool: https://github.com/fboiero/MIESC
-My arXiv endorsement code: AORK7R
+My arXiv endorsement code: [REDACTED-ENDORSEMENT-CODE]
 
 I attach the paper for your review.
 
@@ -256,7 +256,7 @@ Your work on Echidna (ISSTA 2020) is cited in our paper as a key
 dynamic testing technique.
 
 Tool: https://github.com/fboiero/MIESC
-My arXiv endorsement code: AORK7R
+My arXiv endorsement code: [REDACTED-ENDORSEMENT-CODE]
 
 I attach the paper for your review.
 

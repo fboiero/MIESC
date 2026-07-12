@@ -46,7 +46,7 @@ title: Smart Contract Security Framework
 - Defense-in-Depth analysis across 9 security layers
 - 50 integrated tools (Slither, Mythril, Echidna, Certora, etc.)
 - Model Context Protocol (MCP) integration with MCP client
-- 95.8% Recall, 22.2% Precision, F1-Score 36.0% (SmartBugs-curated, 137/143 contracts)
+- 95.8% Recall, 22.1% Precision, F1-Score 35.9% (SmartBugs-curated, 137/143 contracts)
 - Sovereign AI with Ollama (code never leaves your machine)
 
 ---
@@ -79,7 +79,7 @@ title: Smart Contract Security Framework
 ### Key Achievements (v5.4.3)
 
 - **50 Integrated Tools** across 9 defense layers
-- **95.8% Recall**, **22.2% Precision**, **F1-Score 36.0%** (SmartBugs-curated, 137/143 contracts)
+- **95.8% Recall**, **22.1% Precision**, **F1-Score 35.9%** (SmartBugs-curated, 137/143 contracts)
 - **Compliance mapping** across 12 international standards (ISO 27001, NIST CSF, OWASP, …)
 - **Sovereign AI** with Ollama - code never leaves your machine
 - **$0 Operational Cost** - fully local execution
@@ -105,14 +105,13 @@ package.
 ### 1. PropertyGPT (Layer 4 - Formal Verification)
 
 - Automated CVL property generation for formal verification
-- 80% recall on ground-truth Certora properties
-- Increases formal verification adoption from 5% to 40% (+700%)
+- PropertyGPT (Liu et al., NDSS 2025) reports 80% recall on ground-truth Certora properties
 - Based on NDSS 2025 paper (arXiv:2405.02580)
 
 ### 2. DA-GNN (Layer 6 - ML Detection)
 
 - Graph Neural Network-based vulnerability detection
-- 95.7% accuracy with 4.3% false positive rate
+- The source technique reports 95.7% accuracy with 4.3% false positive rate (Computer Networks, 2024)
 - Represents contracts as control-flow + data-flow graphs
 - Based on Computer Networks (ScienceDirect, Feb 2024)
 
@@ -120,14 +119,14 @@ package.
 
 - Retrieval-Augmented Generation with ERC-20/721/1155 knowledge base
 - Verificator role for fact-checking (Generator → Verificator → Consensus)
-- Precision improved from 75% to 88% (+17%), FP rate reduced by 52%
+- The source technique reports precision improved from 75% to 88% (+17%) and FP rate reduced by 52% (arXiv:2502.13167, 2025)
 - Based on arXiv:2502.13167 (Feb 2025)
 
 ### 4. DogeFuzz (Layer 2 - Dynamic Testing)
 
 - AFL-style coverage-guided fuzzing with power scheduling
 - Hybrid fuzzing + symbolic execution
-- 85% code coverage, 3x faster than Echidna
+- The source technique reports 85% code coverage and 3x faster than Echidna (arXiv:2409.01788, 2024)
 - Based on arXiv:2409.01788 (Sep 2024)
 
 ---
@@ -142,11 +141,13 @@ package.
 | **2** | Dynamic Testing | Echidna, Medusa, Foundry, DogeFuzz | Property-based fuzzing |
 | **3** | Symbolic Execution | Mythril, Manticore, Halmos | Deep state exploration |
 | **4** | Formal Verification | Certora, SMTChecker | Mathematical proofs |
-| **5** | Property Testing | PropertyGPT, Wake, Vertigo | Invariant generation |
-| **6** | AI/LLM Analysis | SmartLLM, GPTScan, LLM-SmartAudit | Semantic analysis |
-| **7** | Pattern Recognition | DA-GNN, SmartGuard, Clone Detector | ML-based detection |
-| **8** | DeFi Security | DeFi Analyzer, MEV Detector, Gas Analyzer | Protocol-specific |
-| **9** | Advanced Detection | Advanced Detector, Threat Model | Cross-layer correlation |
+| **5** | AI Analysis | SmartLLM, GPTScan, LLMSmartAudit, GPTLens, LlamaAudit, iAudit | LLM-powered semantic analysis |
+| **6** | ML Detection | DA-GNN, SmartBugs-ML, SmartBugs-Detector, SmartGuard, Peculiar | ML-based classification |
+| **7** | Specialized Analysis | Threat Model, Gas Analyzer, MEV Detector, Clone Detector, DeFi, Advanced Detector, Upgradability Checker | Domain-specific checks |
+| **8** | Cross-Chain & ZK Security | Cross-Chain, ZK Circuit, Bridge Monitor, L2 Validator, Circom Analyzer | Bridge & ZK circuit analysis |
+| **9** | Advanced AI Ensemble | LLMBugScanner, Audit Consensus, Exploit Synthesizer, Vuln Verifier, Remediation Validator | Multi-LLM consensus |
+
+> Layers 8–9 (Cross-Chain & ZK Security, Advanced AI Ensemble) are experimental modules on the multi-chain roadmap; the EVM core is Layers 1–7.
 
 ### AI-Powered Intelligence
 
@@ -242,15 +243,15 @@ Static Dynamic Symbolic Formal
    │     │      │         │
    └──┬──┴──────┴─────────┘
       │
-   Layer5 (Property Testing)
+   Layer5 (AI Analysis)
       │
-   Layer6 (AI/LLM Analysis)
+   Layer6 (ML Detection)
       │
-   Layer7 (ML Pattern Recognition)
+   Layer7 (Specialized Analysis)
       │
-   Layer8 (DeFi Security)
+   Layer8 (Cross-Chain & ZK Security)
       │
-   Layer9 (Advanced Detection + Correlation)
+   Layer9 (Advanced AI Ensemble)
       │
    Report (JSON/HTML/PDF/SARIF)
 ```
@@ -260,11 +261,11 @@ Static Dynamic Symbolic Formal
 | Layer | Agent | Purpose | Output |
 |-------|-------|---------|--------|
 | **L1-4** | Analysis Agents | Multi-tool scanning | Raw vulnerability findings |
-| **L5** | Property Agent | Invariant generation | CVL properties/property tests |
-| **L6** | AI Agent | Semantic analysis | Correlated findings + root cause |
-| **L7** | ML Agent | Graph-based detection | Vulnerability patterns |
-| **L8** | DeFi Agent | Protocol-specific analysis | DeFi/MEV risks |
-| **L9** | Advanced Agent | Cross-layer correlation | Final audit report |
+| **L5** | AI Agent | LLM-powered semantic analysis | Correlated findings + root cause |
+| **L6** | ML Agent | ML-based classification | Vulnerability patterns |
+| **L7** | Specialized Agent | Domain-specific analysis (gas, MEV, DeFi, upgradability) | Specialized risks |
+| **L8** | Cross-Chain & ZK Agent | Bridge & ZK circuit analysis | Cross-chain/ZK risks |
+| **L9** | Advanced Ensemble Agent | Multi-LLM consensus | Final audit report |
 
 [Architecture Details](thesis.md)
 
@@ -279,8 +280,8 @@ SmartBugs-curated (143 contracts, 207 ground-truth vulnerabilities):
 | Metric | Value | Notes |
 |--------|-------|-------|
 | **Recall** | 95.8% | 137/143 contracts, full SmartBugs-curated corpus |
-| **Precision** | 22.2% | Full SmartBugs-curated corpus |
-| **F1-Score** | 36.0% | Full SmartBugs-curated corpus |
+| **Precision** | 22.1% | Full SmartBugs-curated corpus |
+| **F1-Score** | 35.9% | Full SmartBugs-curated corpus |
 | **Slither baseline (recall)** | 43.2% | Static-only comparison |
 | **Layered Tools** | 50 | Core tools grouped across 9 defense layers |
 
@@ -288,7 +289,7 @@ SmartBugs-curated (143 contracts, 207 ground-truth vulnerabilities):
 >
 > EVMBench: the four-provider ensemble reaches 92.5% recall (111/120) on local high-severity extraction (not an official leaderboard result).
 >
-> Real-world exploits: 81.8% recall (9 of 11), Cohen's Kappa = 0.77, across $1.59B in evaluated losses.
+> Real-world exploits: 81.8% recall (9 of 11), 95% Wilson CI [52%, 95%], across $1.59B in evaluated losses.
 
 ### Test Suite
 
@@ -311,7 +312,7 @@ SmartBugs-curated (143 contracts, 207 ground-truth vulnerabilities):
 
 **Advisor**: M.Sc. Eduardo Casanovas
 
-**Expected Defense**: Q4 2025
+**Defense**: Held 2025-12-18
 
 ### Research Contributions
 

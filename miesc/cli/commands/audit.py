@@ -415,6 +415,7 @@ def _run_full_audit_with_ml(
     verify_fp: bool = False,
     verify_model: str | None = None,
     rank: bool = False,
+    fp_strictness: str = "off",
 ) -> None:
     """Run full audit using ML Orchestrator."""
     # Determine tools from layers
@@ -437,6 +438,7 @@ def _run_full_audit_with_ml(
             tools=tools_to_run,
             timeout=timeout,
             progress_callback=progress_callback if RICH_AVAILABLE else None,
+            fp_strictness=fp_strictness,
         )
 
         # Recall-safe benign-context verifier (opt-in) over the ML-filtered findings
@@ -1093,6 +1095,15 @@ def audit_quick(
     help="Recall-safe triage: order findings by P(real) so the most-likely-real surface "
     "first (never drops; recall 1.0). Needs a trained model (scripts/train_triage_model.py).",
 )
+@click.option(
+    "--fp-strictness",
+    "fp_strictness",
+    type=click.Choice(["off", "low", "medium", "high"], case_sensitive=False),
+    default="off",
+    help="Recall-safe benign-context FP filter applied inside the ML orchestrator "
+    "(fixes issue #69). Drops ONLY type-deterministic benign findings; higher = more "
+    "aggressive. Default off preserves raw recall.",
+)
 def audit_full(
     contract: str,
     output: str | None,
@@ -1105,6 +1116,7 @@ def audit_full(
     verify_fp: bool,
     verify_model: str | None,
     rank: bool,
+    fp_strictness: str,
 ) -> None:
     """Complete 9-layer security audit with the configured layer tools.
 
@@ -1136,6 +1148,7 @@ def audit_full(
         _run_full_audit_with_ml(
             contract, output, fmt, layer_list, timeout, ml_orchestrator,
             verify_fp=verify_fp, verify_model=verify_model, rank=rank,
+            fp_strictness=fp_strictness,
         )
         return
 

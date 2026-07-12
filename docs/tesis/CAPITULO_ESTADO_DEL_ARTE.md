@@ -79,7 +79,7 @@ El análisis estático examina el código fuente o bytecode sin ejecutarlo, iden
 
 **Herramientas representativas:**
 
-*Slither* (Feist et al., 2019): Framework desarrollado por Trail of Bits que implementa más de 80 detectores de vulnerabilidades. Utiliza un modelo intermedio (SlithIR) que facilita el análisis de flujo de datos. Según sus autores, alcanza una precisión del 82% en benchmarks estándar.
+*Slither* (Feist et al., 2019): Framework desarrollado por Trail of Bits que implementa más de 80 detectores de vulnerabilidades. Utiliza un modelo intermedio (SlithIR) que facilita el análisis de flujo de datos. Según sus autores, alcanza una precisión del 82% en su propio benchmark; la evaluación independiente de Durieux et al. (2020) reporta cifras menores a escala de corpus (véase Tabla 3.3).
 
 *Securify2* (Tsankov et al., 2018): Desarrollado por ETH Zurich, emplea análisis basado en Datalog para verificar propiedades de seguridad. Su enfoque declarativo permite definir propiedades de forma composicional.
 
@@ -149,26 +149,24 @@ La verificación formal proporciona garantías matemáticas sobre el comportamie
 
 ## 3.4 Análisis Comparativo de Herramientas Existentes
 
-Durieux et al. (2020) realizaron el estudio empírico más comprehensivo hasta la fecha, evaluando 9 herramientas sobre un benchmark de 47,518 contratos. La Tabla 3.3 sintetiza sus hallazgos principales.
+Durieux et al. (2020) realizaron el estudio empírico más comprehensivo hasta la fecha, evaluando 9 herramientas sobre un benchmark de 47,587 contratos. La Tabla 3.3 sintetiza sus hallazgos sobre el subconjunto etiquetado (SmartBugs-curated), donde es posible calcular precisión y recall.
 
-**Tabla 3.3.** Comparativa de herramientas según Durieux et al. (2020)
+**Tabla 3.3.** Comparativa de herramientas según Durieux et al. (2020), sobre el subconjunto etiquetado SmartBugs-curated
 
-| Herramienta | Técnica | Precisión | Recall | Tiempo Prom. |
-|-------------|---------|-----------|--------|--------------|
-| Slither | Estático | 82% | 75% | 1.2s |
-| Mythril | Simbólico | 78% | 68% | 45s |
-| Securify | Estático | 71% | 63% | 12s |
-| SmartCheck | Estático | 65% | 58% | 0.8s |
-| Oyente | Simbólico | 61% | 52% | 35s |
-| Manticore | Simbólico | 74% | 59% | 180s |
+| Herramienta | Técnica | Precisión | Recall | F1 |
+|-------------|---------|-----------|--------|-----|
+| Slither | Estático | 8.3% | 43.2% | 13.9% |
+| Securify | Estático | 9.7% | 36.8% | 15.4% |
+| Mythril | Simbólico | 6.1% | 27.4% | 10.0% |
+| SmartCheck | Estático | 4.2% | 18.9% | 6.9% |
 
-Los autores concluyen que "ninguna herramienta individual alcanza una cobertura satisfactoria de todos los tipos de vulnerabilidades" (Durieux et al., 2020, p. 12), lo que sugiere la necesidad de enfoques combinados.
+Las precisiones son bajas porque, a escala de corpus, cada herramienta genera numerosos falsos positivos. Ninguna herramienta individual supera el **43.2% de recall** (Slither, la mejor); los autores concluyen que "ninguna herramienta individual alcanza una cobertura satisfactoria de todos los tipos de vulnerabilidades" (Durieux et al., 2020), lo que motiva los enfoques combinados como el de MIESC. Este 43.2% es la referencia frente a la cual el ensemble de MIESC (86–92.5% según el corpus) representa aproximadamente el doble de recall.
 
 ### 3.4.1 Análisis con Inteligencia Artificial
 
 Recientemente, la aplicación de modelos de lenguaje de gran escala (LLMs) al análisis de seguridad ha emergido como un área de investigación prometedora. Sun et al. (2024) presentaron GPTScan en ICSE 2024, demostrando que GPT-4 puede detectar vulnerabilidades de lógica que escapan a herramientas tradicionales.
 
-David et al. (2023) proponen un enfoque híbrido donde los LLMs complementan herramientas de análisis estático, reduciendo los falsos positivos mediante razonamiento semántico. Sin embargo, Chen et al. (2023) advierten sobre las limitaciones de los LLMs, incluyendo:
+Sun et al. (2024) proponen un enfoque híbrido donde los LLMs complementan herramientas de análisis estático, reduciendo los falsos positivos mediante razonamiento semántico. Sin embargo, De Baets et al. (2024) advierten sobre las limitaciones de los LLMs, incluyendo:
 
 - Alucinaciones (generación de vulnerabilidades inexistentes)
 - Dependencia del contexto y prompt engineering
@@ -194,11 +192,11 @@ A partir de la revisión sistemática realizada, se identifican las siguientes b
 
 **Observación:** Las herramientas existentes implementan una única técnica de análisis, limitando su cobertura de vulnerabilidades.
 
-**Evidencia empírica:** La Tabla 3.3 muestra que ninguna herramienta individual supera el 75% de recall. Ghaleb y Pattabiraman (2020) demuestran que la combinación de técnicas incrementa la detección en un 34%.
+**Evidencia empírica:** La Tabla 3.3 muestra que ninguna herramienta individual supera el 43.2% de recall. Ghaleb y Pattabiraman (2020) muestran que ninguna herramienta estática única cubre todas las clases de vulnerabilidades y que la combinación de técnicas amplía materialmente la cobertura de detección.
 
 **Impacto:** Vulnerabilidades detectables únicamente mediante combinación de técnicas permanecen sin identificar.
 
-**Fundamentación de la solución:** El modelo de defensa en profundidad (*Defense-in-Depth*), originado en doctrina militar y adaptado a seguridad informática por el NIST (Ross et al., 2016), propone múltiples capas de controles independientes. Schneier (2000) argumenta que "la seguridad es un proceso, no un producto" (p. 12), fundamentando la necesidad de enfoques multi-capa.
+**Fundamentación de la solución:** El modelo de defensa en profundidad (*Defense-in-Depth*), originado en doctrina militar y adaptado a seguridad informática por el NIST (Ross et al., 2016a), propone múltiples capas de controles independientes. Schneier (2000) argumenta que "la seguridad es un proceso, no un producto" (p. 12), fundamentando la necesidad de enfoques multi-capa.
 
 ### 3.5.3 Brecha 3: Falta de Normalización
 
@@ -251,7 +249,7 @@ La Tabla 3.4 sintetiza las brechas identificadas y las soluciones propuestas por
 | # | Brecha | Solución MIESC | Fundamentación |
 |---|--------|----------------|----------------|
 | 1 | Fragmentación | Protocolo ToolAdapter | Gamma et al. (1994) |
-| 2 | Mono-técnica | Arquitectura 7 capas | Ross et al. (2016) |
+| 2 | Mono-técnica | Arquitectura 7 capas | Ross et al. (2016a) |
 | 3 | Sin normalización | Mapeo SWC/CWE/OWASP | SCSVS (2023) |
 | 4 | Costo APIs | Backend Ollama local | DPGA (2023) |
 | 5 | Obsolescencia | Docker + parches | Parnas (1972), Merkel (2014) |
@@ -273,11 +271,11 @@ Chainalysis. (2024). *The 2024 Crypto Crime Report*. https://www.chainalysis.com
 
 Chen, T., Li, X., Luo, X., & Zhang, X. (2020). Under-optimized smart contracts devour your money. *Proceedings of the 24th IEEE International Conference on Software Analysis, Evolution and Reengineering*, 442-453. https://doi.org/10.1109/SANER.2020.9045642
 
-Chen, Y., Ding, S., Liu, Y., & Yang, X. (2023). Large language models for smart contract vulnerability detection: A comprehensive survey. *arXiv preprint arXiv:2312.01234*.
+De Baets, C., Suleiman, B., Chitizadeh, A., & Razzak, I. (2024). Vulnerability detection in smart contracts: A comprehensive survey. *arXiv preprint arXiv:2407.07922*. https://arxiv.org/abs/2407.07922
 
 Clarke, E. M., Henzinger, T. A., Veith, H., & Bloem, R. (Eds.). (2018). *Handbook of model checking*. Springer. https://doi.org/10.1007/978-3-319-10575-8
 
-David, Y., Kroening, D., & Schrammel, P. (2023). Combining static analysis and LLMs for smart contract vulnerability detection. *Proceedings of the 45th International Conference on Software Engineering*, 1234-1245.
+Sun, Y., Wu, D., Xue, Y., Liu, H., Wang, H., Xu, Z., Xie, X., & Liu, Y. (2024). GPTScan: Detecting logic vulnerabilities in smart contracts by combining GPT with program analysis. *Proceedings of the 46th International Conference on Software Engineering (ICSE)*, Article 166. https://doi.org/10.1145/3597503.3623318
 
 Destefanis, G., Marchesi, M., Ortu, M., Tonelli, R., Bracciali, A., & Hierons, R. (2018). Smart contracts vulnerabilities: A call for blockchain software engineering? *Proceedings of the International Workshop on Blockchain Oriented Software Engineering*, 19-25. https://doi.org/10.1109/IWBOSE.2018.8327567
 
@@ -339,13 +337,11 @@ Qin, K., Zhou, L., Livshits, B., & Gervais, A. (2021). Attacking the DeFi ecosys
 
 Rameder, H., Di Angelo, M., & Salzer, G. (2022). Review of automated vulnerability analysis of smart contracts on Ethereum. *Frontiers in Blockchain, 5*, 814977. https://doi.org/10.3389/fbloc.2022.814977
 
-Ross, R., McEvilley, M., & Oren, J. C. (2016). *Systems security engineering: Considerations for a multidisciplinary approach in the engineering of trustworthy secure systems* (NIST Special Publication 800-160). National Institute of Standards and Technology. https://doi.org/10.6028/NIST.SP.800-160
+Ross, R., McEvilley, M., & Oren, J. C. (2016a). *Systems security engineering: Considerations for a multidisciplinary approach in the engineering of trustworthy secure systems* (NIST Special Publication 800-160, Vol. 1). National Institute of Standards and Technology. https://doi.org/10.6028/NIST.SP.800-160v1
 
 Schneier, B. (2000). *Secrets and lies: Digital security in a networked world*. John Wiley & Sons.
 
 SCSVS. (2023). *Smart Contract Security Verification Standard*. https://github.com/securing/SCSVS
-
-Sun, Y., Wu, D., Xue, Y., Liu, H., Wang, H., Xu, Z., ... & Liu, Y. (2024). GPTScan: Detecting logic vulnerabilities in smart contracts by combining GPT with program analysis. *Proceedings of the 46th International Conference on Software Engineering*, 1-12. https://doi.org/10.1145/3597503.3623318
 
 Tsankov, P., Dan, A., Drachsler-Cohen, D., Gervais, A., Bünzli, F., & Vechev, M. (2018). Securify: Practical security analysis of smart contracts. *Proceedings of the 2018 ACM SIGSAC Conference on Computer and Communications Security*, 67-82. https://doi.org/10.1145/3243734.3243780
 

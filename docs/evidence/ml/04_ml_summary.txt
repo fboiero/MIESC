@@ -17,8 +17,7 @@ Components Used:
 - CodeEmbedder: Pattern matching via embeddings
 - FeedbackLoop: Learns from auditor feedback
 
-Validation Metrics:
-- Precision: 89.47%
-- Recall: 86.20%
-- F1-Score: 87.81%
-- Cohen's Kappa: 0.847
+Note: The Input/Output figures above are the actual measured results of this
+pipeline run. Reproducible benchmark evidence (SmartBugs recall, EVMBench, and
+real-world exploit detection with Wilson confidence intervals) is tracked in
+benchmarks/results/paper1_claims_matrix.json.

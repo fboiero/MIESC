@@ -18,7 +18,7 @@ The origin of MIESC lies in a practical auditing experience conducted in 2023, w
 
 **Third problem: Results interpretation.** The tools collectively generated more than 200 findings, many of them duplicates or false positives. The task of consolidation, prioritization, and verification consumed several days of manual work.
 
-These problems are not unique to the author's experience. Durieux et al. (2020), in their empirical evaluation of 47,587 contracts, documented that "no individual tool detects more than 75% of known vulnerabilities, and manual combination of tools is impractical at scale" (p. 535). Rameder et al. (2022) reached similar conclusions, noting that "the heterogeneity of interfaces and output formats constitutes a significant barrier to industrial adoption of academic tools" (p. 12).
+These problems are not unique to the author's experience. Durieux et al. (2020), in their empirical evaluation of 47,587 contracts, documented that no individual tool exceeds 43.2% recall (Slither, the best) and that only about 42% of vulnerabilities are detected across the tool set, making manual combination of tools impractical at scale. Rameder et al. (2022) reached similar conclusions, noting that "the heterogeneity of interfaces and output formats constitutes a significant barrier to industrial adoption of academic tools" (p. 12).
 
 ### 4.1.2 Development Objectives
 
@@ -54,9 +54,14 @@ Table 4.1 presents project metrics in version 4.0.0, measured using standard cod
 
 The maintainability index of 72.3 exceeds the threshold of 65 proposed by Oman and Hagemeister (1992) for "highly maintainable" code, which validates design decisions oriented toward extensibility.
 
----
-
-## 4.2 System Architecture
+> **Version note.** This thesis documents the MIESC architecture at version
+> **v4.0.0** (7 defense layers, 25 integrated tools). Later releases in the
+> **v5.x** line — used for the EVMBench cross-validation (§5.3.5) and described in
+> the associated papers — expanded the pipeline to **9 layers and 35 modules**
+> (13 external + 22 internal), adding LLM-reasoning layers and false-positive
+> filtering. The detection results in this thesis correspond to the documented
+> architecture, except the EVMBench validation section, which is explicitly noted
+> as run on the v5.x line.
 
 ### 4.2.1 The Defense-in-Depth Principle: Foundations and Application
 
@@ -64,7 +69,7 @@ MIESC's architecture is founded on the Defense-in-Depth (DiD) principle, a conce
 
 The application of this principle to smart contract analysis is an original contribution of this work. The theoretical justification is based on the empirical observation that different analysis techniques have complementary strengths and weaknesses:
 
-**Static analysis:** Examines code without executing it, detecting known vulnerability patterns with high speed but without the ability to reason about runtime behavior. Feist et al. (2019) report that Slither achieves 82% precision but only 75% recall, indicating that approximately one in four vulnerabilities escapes detection.
+**Static analysis:** Examines code without executing it, detecting known vulnerability patterns with high speed but without the ability to reason about runtime behavior. Slither's authors (Feist et al., 2019) report high precision on their own benchmark, but the independent large-scale evaluation of Durieux et al. (2020) measured only 43.2% recall on SmartBugs-curated, indicating that more than half of vulnerabilities escape static detection at corpus scale.
 
 **Symbolic execution:** Explores execution paths through symbolic representation of variables, capable of discovering vulnerabilities dependent on specific input values. Baldoni et al. (2018) document its effectiveness but also its main limitation: the combinatorial explosion of paths in complex code.
 
@@ -125,7 +130,7 @@ The selection of the 25 tools that compose MIESC followed a structured evaluatio
 
 5. **Installability:** Capacity for automated installation without complex manual intervention.
 
-**Layer 1 - Static Analysis:** Slither was selected as the main tool for its balance between precision (82%) and speed (1.2s average), according to benchmarks by Durieux et al. (2020). Solhint complements with style verification and best practices. Securify2 contributes Ethereum-specific security pattern analysis. Semgrep allows defining custom rules for organization-specific patterns.
+**Layer 1 - Static Analysis:** Slither was selected as the main tool for its detector coverage and speed (1.2s average); in the independent evaluation of Durieux et al. (2020) it is the best single tool, with 43.2% recall. Solhint complements with style verification and best practices. Securify2 contributes Ethereum-specific security pattern analysis. Semgrep allows defining custom rules for organization-specific patterns.
 
 **Layer 2 - Fuzzing:** Echidna, developed by Trail of Bits, was selected for its property-based testing capability specific to contracts. Foundry Fuzz contributes integration with the Foundry ecosystem, widely adopted in industry. Medusa provides coverage-based fuzzing with support for complex invariants. Vertigo implements mutation testing, a complementary technique that evaluates the quality of existing tests.
 
@@ -177,7 +182,7 @@ The adopted solution combines the Adapter pattern, documented by Gamma et al. (1
 
 ### 4.3.3 Base Interface Implementation
 
-The `ToolAdapter` interface is implemented using Python's `abc` (Abstract Base Classes) module, following recommendations from van Rossum et al. (2001):
+The `ToolAdapter` interface is implemented using Python's `abc` (Abstract Base Classes) module, following recommendations from van Rossum and Warsaw (2001b):
 
 ```python
 from abc import ABC, abstractmethod
