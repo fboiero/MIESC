@@ -24,7 +24,7 @@ from miesc.core.tool_protocol import (  # noqa: E402
     ToolMetadata,
     ToolStatus,
 )
-from src.detectors.defi_detectors import DeFiDetectorEngine, DeFiFinding  # noqa: E402
+from miesc.detectors.defi_detectors import DeFiDetectorEngine, DeFiFinding  # noqa: E402
 
 
 class DeFiAdapter:
@@ -42,7 +42,7 @@ class DeFiAdapter:
     def is_available(self) -> ToolStatus:
         """Check if DeFi detector engine is available."""
         try:
-            from detectors.defi_detectors import DeFiDetectorEngine  # noqa: F401
+            from miesc.detectors.defi_detectors import DeFiDetectorEngine  # noqa: F401
 
             return ToolStatus.AVAILABLE
         except ImportError:

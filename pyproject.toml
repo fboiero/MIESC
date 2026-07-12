@@ -198,7 +198,7 @@ packages = [
     "src.benchmark",
     "src.cache",
     "miesc.core",
-    "src.detectors",
+    "miesc.detectors",
     "src.evaluation",
     "src.formal",
     "src.integration",

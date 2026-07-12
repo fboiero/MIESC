@@ -15,7 +15,7 @@ import pytest
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
-from detectors.smartbugs_detectors import (  # noqa: E402
+from miesc.detectors.smartbugs_detectors import (  # noqa: E402
     AccessControlDetector,
     ArithmeticDetector,
     BadRandomnessDetector,
@@ -1036,7 +1036,7 @@ if __name__ == "__main__":
 # coverage of the defensive skip branches (pre-0.8 contract required).
 # --------------------------------------------------------------------------- #
 def test_arithmetic_skip_conditions():
-    from src.detectors.smartbugs_detectors import SmartBugsDetectorEngine
+    from miesc.detectors.smartbugs_detectors import SmartBugsDetectorEngine
 
     src = (
         "pragma solidity ^0.4.24;\n"

@@ -323,7 +323,7 @@ class MIESCWebSocketServer:
             import sys
 
             sys.path.insert(0, str(Path(__file__).parent.parent))
-            from detectors.smartbugs_detectors import SmartBugsDetectorEngine
+            from miesc.detectors.smartbugs_detectors import SmartBugsDetectorEngine
 
             detector = SmartBugsDetectorEngine()
             all_findings = []

@@ -9,7 +9,7 @@ and summary stats. Written from scratch (module previously had no tests).
 
 from pathlib import Path
 
-from src.detectors.dependency_analyzer import (
+from miesc.detectors.dependency_analyzer import (
     DependencyAnalyzer,
     DependencyFinding,
     DependencyRisk,

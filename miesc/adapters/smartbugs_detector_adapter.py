@@ -23,8 +23,8 @@ from typing import Any, Dict, List, Optional
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
-from detectors.smartbugs_detectors import SmartBugsDetectorEngine  # noqa: E402
-from detectors.transient_storage_detector import TransientStorageDetector  # noqa: E402
+from miesc.detectors.smartbugs_detectors import SmartBugsDetectorEngine  # noqa: E402
+from miesc.detectors.transient_storage_detector import TransientStorageDetector  # noqa: E402
 from miesc.core.tool_protocol import (  # noqa: E402
     ToolCapability,
     ToolCategory,
@@ -64,7 +64,7 @@ class SmartBugsDetectorAdapter:
     def is_available(self) -> ToolStatus:
         """Check if SmartBugs detector engine is available."""
         try:
-            from detectors.smartbugs_detectors import SmartBugsDetectorEngine  # noqa: F401
+            from miesc.detectors.smartbugs_detectors import SmartBugsDetectorEngine  # noqa: F401
 
             return ToolStatus.AVAILABLE
         except ImportError:

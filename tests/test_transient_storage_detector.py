@@ -2,8 +2,8 @@ from pathlib import Path
 
 import pytest
 
-from src.detectors.detector_api import Category, Severity
-from src.detectors.transient_storage_detector import (
+from miesc.detectors.detector_api import Category, Severity
+from miesc.detectors.transient_storage_detector import (
     TransientStorageDetector,
     detect_transient_storage_risks,
 )

@@ -708,7 +708,7 @@ class PluginManager:
             detector_module = importlib.import_module("miesc.detectors")
         except ImportError:
             try:
-                detector_module = importlib.import_module("src.detectors.detector_api")
+                detector_module = importlib.import_module("miesc.detectors.detector_api")
             except ImportError:
                 return detector_classes
         BaseDetectorClass = detector_module.BaseDetector

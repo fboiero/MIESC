@@ -22,7 +22,7 @@ from typing import Any, Dict, List
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
-from detectors.advanced_detectors import AdvancedDetectorEngine, AdvancedFinding  # noqa: E402
+from miesc.detectors.advanced_detectors import AdvancedDetectorEngine, AdvancedFinding  # noqa: E402
 from miesc.core.tool_protocol import (  # noqa: E402
     ToolCapability,
     ToolCategory,
@@ -46,7 +46,7 @@ class AdvancedDetectorAdapter:
     def is_available(self) -> ToolStatus:
         """Check if advanced detector engine is available."""
         try:
-            from detectors.advanced_detectors import AdvancedDetectorEngine  # noqa: F401
+            from miesc.detectors.advanced_detectors import AdvancedDetectorEngine  # noqa: F401
 
             return ToolStatus.AVAILABLE
         except ImportError:

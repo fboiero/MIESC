@@ -333,7 +333,7 @@ class TestToolDiscoveryAutoDiscover:
 # detector_api.py coverage
 # ---------------------------------------------------------------------------
 
-from src.detectors.detector_api import (
+from miesc.detectors.detector_api import (
     BaseDetector,
     DetectorRegistry,
     Finding,

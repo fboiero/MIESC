@@ -48,7 +48,7 @@ def test_is_available():
 
 
 def test_is_available_not_installed(monkeypatch):
-    monkeypatch.setitem(sys.modules, "detectors.smartbugs_detectors", None)
+    monkeypatch.setitem(sys.modules, "miesc.detectors.smartbugs_detectors", None)
     assert _a().is_available() == ToolStatus.NOT_INSTALLED
 
 

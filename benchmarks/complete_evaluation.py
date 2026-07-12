@@ -126,7 +126,7 @@ def run_smartbugs_detectors(contract_path: Path) -> Tuple[List[Dict], float]:
     start = time.time()
 
     try:
-        from detectors.smartbugs_detectors import SmartBugsDetectorEngine
+        from miesc.detectors.smartbugs_detectors import SmartBugsDetectorEngine
 
         engine = SmartBugsDetectorEngine()
         results = engine.analyze_file(contract_path)
