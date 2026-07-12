@@ -27,6 +27,8 @@ from typing import Optional
 import click
 
 from miesc.cli.utils import console, error, info, success, warning
+from miesc.core.baseline import fingerprint
+from miesc.core.code_actions import FixEdit, to_code_actions
 
 # ---------------------------------------------------------------------------
 # Patcher helpers
@@ -1719,6 +1721,126 @@ def _collect_fixable_findings(data: dict) -> list[dict]:
 
 
 # ---------------------------------------------------------------------------
+# CodeAction builders (editor-agnostic machine contract)
+# ---------------------------------------------------------------------------
+
+_UNKNOWN_FN = {"", "unknown", "<unknown>", "none", "n/a"}
+
+_TITLE_BY_CATEGORY = {
+    "reentrancy": "Add nonReentrant guard",
+    "access_control": "Restrict access with onlyOwner",
+    "unchecked_call": "Check low-level call return value",
+    "arithmetic": "Add overflow protection (SafeMath)",
+}
+
+
+def _resolve_line(finding: dict) -> Optional[int]:
+    """Extract a 1-based line hint from a finding across the known shapes."""
+    raw_line = finding.get("line") or finding.get("line_number")
+    if not raw_line:
+        loc = finding.get("location", {})
+        if isinstance(loc, dict):
+            raw_line = loc.get("line")
+    if not raw_line:
+        return None
+    try:
+        return int(raw_line)
+    except (TypeError, ValueError):
+        return None
+
+
+def _resolve_function_name(source: str, finding: dict) -> str:
+    """Resolve the target function the same way ``apply_fix`` does."""
+    fn_name = finding.get("function") or finding.get("function_name") or ""
+    if fn_name.lower() in _UNKNOWN_FN:
+        fn_name = ""
+    if not fn_name:
+        loc = finding.get("location", {})
+        if isinstance(loc, dict):
+            fn_name = loc.get("function", "") or ""
+            if fn_name.lower() in _UNKNOWN_FN:
+                fn_name = ""
+    if not fn_name:
+        line_hint = _resolve_line(finding)
+        if line_hint:
+            fn_name = _infer_function_at_line(source, line_hint)
+    return fn_name
+
+
+def _fix_category(ftype: str) -> str:
+    """Collapse a raw finding type to the fix family (used for titles/dedup)."""
+    t = ftype.lower().replace("-", "_")
+    if "reentrancy" in t:
+        return "reentrancy"
+    if any(
+        k in t
+        for k in (
+            "access_control",
+            "suicidal",
+            "selfdestruct",
+            "arbitrary_send_eth",
+            "controlled_delegatecall",
+        )
+    ):
+        return "access_control"
+    if "unchecked" in t:
+        return "unchecked_call"
+    if any(k in t for k in ("arithmetic", "integer_overflow", "overflow")):
+        return "arithmetic"
+    return t
+
+
+def _action_title(ftype: str, fn_name: str) -> str:
+    """Human-readable quick-fix label shown by the editor."""
+    base = _TITLE_BY_CATEGORY.get(_fix_category(ftype)) or f"Apply MIESC fix: {ftype}"
+    return f"{base} in {fn_name}" if fn_name else base
+
+
+def _finding_id(finding: dict, index: int) -> str:
+    """Stable, unique identifier for a finding within a code-actions payload.
+
+    Prefers an explicit id; otherwise reuses the content fingerprint from
+    ``miesc.core.baseline`` (line-shift stable) plus the line/index to keep it
+    unique when several findings share a fingerprint.
+    """
+    explicit = finding.get("id") or finding.get("finding_id")
+    if explicit:
+        return str(explicit)
+    line = _resolve_line(finding)
+    suffix = str(line) if line is not None else str(index)
+    return f"{fingerprint(finding)}:{suffix}"
+
+
+def build_code_actions(source: str, findings: list[dict], file_label: str) -> list[dict]:
+    """Turn fixable findings into LSP ``CodeAction`` dicts.
+
+    Each fix is applied *independently* against the original ``source`` (not
+    cumulatively), so every action's ranges are correct against the file the
+    user currently has open. Findings whose fix produces no change are dropped.
+    """
+    fixes: list[FixEdit] = []
+    for index, finding in enumerate(findings):
+        fn_name = _resolve_function_name(source, finding)
+        normalized = dict(finding)
+        if fn_name:
+            normalized["function"] = fn_name
+        patched, changed = apply_fix(source, normalized)
+        if not changed:
+            continue
+        ftype = finding.get("type") or finding.get("title") or "unknown"
+        fixes.append(
+            FixEdit(
+                finding_id=_finding_id(finding, index),
+                title=_action_title(ftype, fn_name),
+                file=file_label,
+                original=source,
+                patched=patched,
+            )
+        )
+    return to_code_actions(fixes)
+
+
+# ---------------------------------------------------------------------------
 # CLI command
 # ---------------------------------------------------------------------------
 
@@ -1746,12 +1868,24 @@ def _collect_fixable_findings(data: dict) -> list[dict]:
     default=False,
     help="Show what would be applied without writing any file.",
 )
+@click.option(
+    "--format",
+    "-f",
+    "output_format",
+    type=click.Choice(["patch", "code-actions"], case_sensitive=False),
+    default="patch",
+    help=(
+        "Output format. 'patch' (default) writes a fixed .sol file; "
+        "'code-actions' emits LSP CodeAction JSON (editor quick-fix contract)."
+    ),
+)
 @click.option("--quiet", "-q", is_flag=True, help="Minimal output.")
 def fix(
     results_file: str,
     contract_path: str,
     output: str | None,
     dry_run: bool,
+    output_format: str,
     quiet: bool,
 ) -> None:
     """Auto-generate a patched Solidity file from scan findings.
@@ -1769,6 +1903,7 @@ def fix(
       miesc fix results.json --contract MyContract.sol
       miesc fix results.json -c MyContract.sol -o MyContract.fixed.sol
       miesc fix results.json -c MyContract.sol --dry-run
+      miesc fix results.json -c MyContract.sol -f code-actions
 
     \b
     Fix types supported:
@@ -1778,7 +1913,9 @@ def fix(
       arithmetic      → adds SafeMath (pre-0.8) or comment block
       <other>         → inserts fix_code as a comment block
     """
-    if not quiet:
+    # When emitting the machine contract to stdout, keep it pure JSON.
+    stdout_json = output_format == "code-actions" and not output
+    if not quiet and not stdout_json:
         info(f"Loading results from {results_file}")
 
     # ------------------------------------------------------------------
@@ -1797,10 +1934,13 @@ def fix(
     fixable = _collect_fixable_findings(data)
 
     if not fixable:
+        if output_format == "code-actions":
+            click.echo("[]")
+            sys.exit(0)
         warning("No findings with fix_code found — nothing to fix.")
         sys.exit(0)
 
-    if not quiet:
+    if not quiet and not stdout_json:
         info(f"Found {len(fixable)} finding(s) with fix_code")
 
     # ------------------------------------------------------------------
@@ -1812,6 +1952,26 @@ def fix(
     except OSError as exc:
         error(f"Cannot read contract: {exc}")
         sys.exit(1)
+
+    # ------------------------------------------------------------------
+    # code-actions format: emit the LSP CodeAction JSON contract and stop.
+    # Each fix is derived independently against the original source so an
+    # editor can offer them as individual quick-fixes.
+    # ------------------------------------------------------------------
+    if output_format == "code-actions":
+        actions = build_code_actions(source, fixable, contract_path)
+        payload = json.dumps(actions, indent=2)
+        if output:
+            try:
+                Path(output).write_text(payload + "\n", encoding="utf-8")
+            except OSError as exc:
+                error(f"Cannot write output file: {exc}")
+                sys.exit(1)
+            if not quiet:
+                success(f"Wrote {len(actions)} code action(s) to {output}")
+        else:
+            click.echo(payload)
+        sys.exit(0)
 
     # ------------------------------------------------------------------
     # Apply fixes (track already-fixed functions to report skips cleanly)
