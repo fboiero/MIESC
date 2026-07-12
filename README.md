@@ -665,8 +665,8 @@ The project is fully compliant with all 9 DPGA indicators: open license (AGPL-3.
 |--------|-------------|
 | [DPG Compliance](./docs/policies/DPG-COMPLIANCE.md) | Full 9-indicator compliance statement |
 | [SDG Relevance](./docs/policies/SDG_RELEVANCE.md) | Sustainable Development Goals mapping |
-| [Privacy Policy](./PRIVACY.md) | Data handling and privacy statement |
-| [Responsible Use](./RESPONSIBLE_USE.md) | Ethical use guidelines |
+| [Privacy Policy](./docs/policies/PRIVACY.md) | Data handling and privacy statement |
+| [Responsible Use](./docs/policies/RESPONSIBLE_USE.md) | Ethical use guidelines |
 | [Do No Harm](./docs/policies/DO_NO_HARM.md) | Risk assessment and mitigations |
 
 ---
