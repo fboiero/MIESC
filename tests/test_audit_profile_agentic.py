@@ -39,7 +39,7 @@ def test_audit_profile_paper_ensemble_routes_to_deep_agent(monkeypatch, tmp_path
             }
 
     audit_module = importlib.import_module("miesc.cli.commands.audit")
-    monkeypatch.setattr("src.agents.deep_audit_agent.DeepAuditAgent", FakeAgent)
+    monkeypatch.setattr("miesc.agents.deep_audit_agent.DeepAuditAgent", FakeAgent)
     monkeypatch.setattr(
         audit_module,
         "run_tool",

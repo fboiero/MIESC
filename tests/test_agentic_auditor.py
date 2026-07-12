@@ -22,16 +22,16 @@ from typing import Any, Callable, Dict, List
 import pytest
 
 from src.adapters.frontier_llm_adapter import ConversationResult, ToolSpec
-from src.agents.agentic_auditor import (
+from miesc.agents.agentic_auditor import (
     AgenticAuditConfig,
     AgenticAuditor,
     AuditResult,
     _extract_json_array,
     audit_repo_multipersona,
 )
-from src.agents.exploit_validator import ValidationResult
-from src.agents.hypothesis_ledger import Hypothesis
-from src.agents.repo_call_graph import RepoCallGraph
+from miesc.agents.exploit_validator import ValidationResult
+from miesc.agents.hypothesis_ledger import Hypothesis
+from miesc.agents.repo_call_graph import RepoCallGraph
 
 # ---------------------------------------------------------------------------
 # Inline Solidity fixtures (cross-contract call: Bank.withdraw -> Token.transfer)
@@ -655,7 +655,7 @@ def test_exploit_validate_passed_promotes_and_never_drops(
         # withdraw -> not in map -> fake returns "skipped".
     }
     monkeypatch.setattr(
-        "src.agents.agentic_auditor.ExploitValidator",
+        "miesc.agents.agentic_auditor.ExploitValidator",
         _fake_validator_class(results),
     )
 
@@ -704,7 +704,7 @@ def test_exploit_validate_no_compile_sharpens_description(
         ),
     }
     monkeypatch.setattr(
-        "src.agents.agentic_auditor.ExploitValidator",
+        "miesc.agents.agentic_auditor.ExploitValidator",
         _fake_validator_class(results),
     )
 
@@ -735,7 +735,7 @@ def test_exploit_validate_off_by_default_path_untouched(
             raise AssertionError("ExploitValidator constructed while OFF")
 
     monkeypatch.setattr(
-        "src.agents.agentic_auditor.ExploitValidator", _ExplodingValidator
+        "miesc.agents.agentic_auditor.ExploitValidator", _ExplodingValidator
     )
 
     adapter = ScriptedAdapter([
@@ -769,7 +769,7 @@ def test_exploit_validate_one_failure_never_aborts_audit(
             raise RuntimeError("validator exploded")
 
     monkeypatch.setattr(
-        "src.agents.agentic_auditor.ExploitValidator", _BoomValidator
+        "miesc.agents.agentic_auditor.ExploitValidator", _BoomValidator
     )
 
     adapter = ScriptedAdapter([_enum([TRANSFER_CANDIDATE]), _verify([])])

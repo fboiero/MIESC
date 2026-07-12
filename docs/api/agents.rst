@@ -11,7 +11,7 @@ Each agent specializes in a specific analysis domain.
 Base Agent
 ----------
 
-.. automodule:: src.agents.base_agent
+.. automodule:: miesc.agents.base_agent
    :members:
    :undoc-members:
    :show-inheritance:
@@ -24,7 +24,7 @@ SmartLLM Agent
 
 Multi-stage LLM analysis with Generator, Verificator, and Consensus stages.
 
-.. automodule:: src.agents.smartllm_agent
+.. automodule:: miesc.agents.smartllm_agent
    :members:
    :undoc-members:
    :show-inheritance:
@@ -32,7 +32,7 @@ Multi-stage LLM analysis with Generator, Verificator, and Consensus stages.
 GPTScan Agent
 ~~~~~~~~~~~~~
 
-.. automodule:: src.agents.gptscan_agent
+.. automodule:: miesc.agents.gptscan_agent
    :members:
    :undoc-members:
    :show-inheritance:
@@ -40,7 +40,7 @@ GPTScan Agent
 LLM SmartAudit Agent
 ~~~~~~~~~~~~~~~~~~~~
 
-.. automodule:: src.agents.llm_smartaudit_agent
+.. automodule:: miesc.agents.llm_smartaudit_agent
    :members:
    :undoc-members:
    :show-inheritance:
@@ -50,7 +50,7 @@ Ollama Agent
 
 Local LLM integration via Ollama.
 
-.. automodule:: src.agents.ollama_agent
+.. automodule:: miesc.agents.ollama_agent
    :members:
    :undoc-members:
    :show-inheritance:
@@ -61,7 +61,7 @@ Static Analysis Agents
 Aderyn Agent
 ~~~~~~~~~~~~
 
-.. automodule:: src.agents.aderyn_agent
+.. automodule:: miesc.agents.aderyn_agent
    :members:
    :undoc-members:
    :show-inheritance:
@@ -72,7 +72,7 @@ Symbolic Execution Agents
 Halmos Agent
 ~~~~~~~~~~~~
 
-.. automodule:: src.agents.halmos_agent
+.. automodule:: miesc.agents.halmos_agent
    :members:
    :undoc-members:
    :show-inheritance:
@@ -80,7 +80,7 @@ Halmos Agent
 SMTChecker Agent
 ~~~~~~~~~~~~~~~~
 
-.. automodule:: src.agents.smtchecker_agent
+.. automodule:: miesc.agents.smtchecker_agent
    :members:
    :undoc-members:
    :show-inheritance:
@@ -91,7 +91,7 @@ Fuzzing Agents
 Medusa Agent
 ~~~~~~~~~~~~
 
-.. automodule:: src.agents.medusa_agent
+.. automodule:: miesc.agents.medusa_agent
    :members:
    :undoc-members:
    :show-inheritance:
@@ -99,7 +99,7 @@ Medusa Agent
 Wake Agent
 ~~~~~~~~~~
 
-.. automodule:: src.agents.wake_agent
+.. automodule:: miesc.agents.wake_agent
    :members:
    :undoc-members:
    :show-inheritance:
@@ -112,7 +112,7 @@ CrewAI Coordinator
 
 Multi-agent coordination using CrewAI framework.
 
-.. automodule:: src.agents.crewai_coordinator
+.. automodule:: miesc.agents.crewai_coordinator
    :members:
    :undoc-members:
    :show-inheritance:

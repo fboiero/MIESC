@@ -5,7 +5,7 @@ Covers the dedup/stable-id contract that makes agentic passes compound
 instead of repeat (design §4, D4).
 """
 
-from src.agents.hypothesis_ledger import (
+from miesc.agents.hypothesis_ledger import (
     Hypothesis,
     HypothesisLedger,
     hypothesis_id,

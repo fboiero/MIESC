@@ -1,0 +1,76 @@
+[
+  {
+    "id": "reentrancy",
+    "name": "Reentrancy Attack",
+    "swc_id": "SWC-107",
+    "description": "External call before state update allows reentrant calls",
+    "patterns": [
+      "call{value:",
+      ".call(",
+      "before state update",
+      "external call"
+    ],
+    "severity": "High",
+    "explanation": "Attacker can recursively call the function before state is updated",
+    "fix": "Use Checks-Effects-Interactions pattern or ReentrancyGuard"
+  },
+  {
+    "id": "access_control",
+    "name": "Missing Access Control",
+    "swc_id": "SWC-105",
+    "description": "Critical functions lack proper access control",
+    "patterns": [
+      "function ",
+      "public",
+      "no modifier",
+      "no require(msg.sender"
+    ],
+    "severity": "High",
+    "explanation": "Unauthorized users can call privileged functions",
+    "fix": "Add onlyOwner or role-based access control modifiers"
+  },
+  {
+    "id": "unchecked_call",
+    "swc_id": "SWC-104",
+    "name": "Unchecked Low-Level Call",
+    "description": "Return value of low-level call not checked",
+    "patterns": [
+      ".call(",
+      ".delegatecall(",
+      "no require",
+      "no if"
+    ],
+    "severity": "Medium",
+    "explanation": "Call failures may be silently ignored",
+    "fix": "Always check return value with require() or handle failures"
+  },
+  {
+    "id": "timestamp_dependence",
+    "swc_id": "SWC-116",
+    "name": "Block Timestamp Manipulation",
+    "description": "Uses block.timestamp for critical logic",
+    "patterns": [
+      "block.timestamp",
+      "now",
+      "critical logic"
+    ],
+    "severity": "Medium",
+    "explanation": "Miners can manipulate timestamp within ~15 seconds",
+    "fix": "Use block.number or oracle for time-dependent logic"
+  },
+  {
+    "id": "weak_randomness",
+    "swc_id": "SWC-120",
+    "name": "Weak Source of Randomness",
+    "description": "Uses predictable source for randomness",
+    "patterns": [
+      "block.timestamp",
+      "block.number",
+      "block.difficulty",
+      "random"
+    ],
+    "severity": "High",
+    "explanation": "Attackers can predict random numbers",
+    "fix": "Use Chainlink VRF or commit-reveal scheme"
+  }
+]

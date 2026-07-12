@@ -47,13 +47,13 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 # Layer 7 - Audit Readiness Analyzers (OpenZeppelin Guide)
-from src.agents.audit_readiness import (
+from miesc.agents.audit_readiness import (
     DocumentationAnalyzer,
     MaturityAnalyzer,
     SecurityPracticesAnalyzer,
     TestingAnalyzer,
 )
-from src.agents.base_agent import BaseAgent
+from miesc.agents.base_agent import BaseAgent
 from src.mcp_core.context_bus import MCPMessage
 
 logger = logging.getLogger(__name__)

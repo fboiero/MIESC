@@ -1,6 +1,6 @@
 """Tests for opt-in agentic invariant metadata in DeepAuditAgent."""
 
-from src.agents.deep_audit_agent import DeepAuditAgent, DeepAuditConfig, ReconResult, ScanResult
+from miesc.agents.deep_audit_agent import DeepAuditAgent, DeepAuditConfig, ReconResult, ScanResult
 
 
 def test_deep_audit_extracts_agentic_invariant_metadata_locally():

@@ -4,13 +4,13 @@ MIESC Agentic Auditor — the Phase-1 orchestration loop (design §7).
 This is the integration heart of the agentic auditor: it wires the already-built
 Phase-1 modules into a single multi-turn, tool-using, memory-backed audit loop.
 
-  * :class:`~src.agents.repo_call_graph.RepoCallGraph` is the *tool backend* — the
+  * :class:`~miesc.agents.repo_call_graph.RepoCallGraph` is the *tool backend* — the
     model receives a compact ``repo_map()`` up front and pulls exact function
     bodies / call chains on demand via four tools.
-  * :class:`~src.agents.hypothesis_ledger.HypothesisLedger` is the *memory* — every
+  * :class:`~miesc.agents.hypothesis_ledger.HypothesisLedger` is the *memory* — every
     suspected bug is tracked with a stable id and a status so passes compound
     instead of repeat and the loop has a real convergence criterion.
-  * :mod:`src.agents.agentic_prompts` supplies the three turn prompts
+  * :mod:`miesc.agents.agentic_prompts` supplies the three turn prompts
     (enumerate / verify / completeness).
   * :meth:`~src.adapters.frontier_llm_adapter.FrontierLLMAdapter.converse_with_tools`
     runs the Anthropic tool-use conversation.
@@ -46,7 +46,7 @@ from src.adapters.frontier_llm_adapter import (
     FrontierLLMAdapter,
     ToolSpec,
 )
-from src.agents.agentic_prompts import (
+from miesc.agents.agentic_prompts import (
     AGENT_COMPLETENESS_PROMPT,
     AGENT_ENUM_PROMPT,
     AGENT_ENUM_PROMPT_SYSTEMATIC,
@@ -54,14 +54,14 @@ from src.agents.agentic_prompts import (
     PERSONA_ENUM_PROMPTS,
     PERSONA_ENUM_PROMPTS_SYSTEMATIC,
 )
-from src.agents.base_agent import BaseAgent
-from src.agents.exploit_validator import (
+from miesc.agents.base_agent import BaseAgent
+from miesc.agents.exploit_validator import (
     ExploitValidationConfig,
     ExploitValidator,
     ValidationResult,
 )
-from src.agents.hypothesis_ledger import Hypothesis, HypothesisLedger
-from src.agents.repo_call_graph import RepoCallGraph
+from miesc.agents.hypothesis_ledger import Hypothesis, HypothesisLedger
+from miesc.agents.repo_call_graph import RepoCallGraph
 
 logger = logging.getLogger(__name__)
 

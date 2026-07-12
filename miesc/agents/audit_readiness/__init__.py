@@ -11,10 +11,10 @@ Components:
 - SecurityPracticesAnalyzer: Security patterns detection
 """
 
-from src.agents.audit_readiness.documentation_analyzer import DocumentationAnalyzer
-from src.agents.audit_readiness.maturity_analyzer import MaturityAnalyzer
-from src.agents.audit_readiness.security_practices_analyzer import SecurityPracticesAnalyzer
-from src.agents.audit_readiness.testing_analyzer import TestingAnalyzer
+from miesc.agents.audit_readiness.documentation_analyzer import DocumentationAnalyzer
+from miesc.agents.audit_readiness.maturity_analyzer import MaturityAnalyzer
+from miesc.agents.audit_readiness.security_practices_analyzer import SecurityPracticesAnalyzer
+from miesc.agents.audit_readiness.testing_analyzer import TestingAnalyzer
 
 __all__ = [
     "DocumentationAnalyzer",

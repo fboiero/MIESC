@@ -25,7 +25,7 @@ from unittest.mock import patch
 
 import pytest
 
-from src.agents.deep_audit_agent import DeepAuditAgent, DeepAuditConfig, ReconResult, ScanResult
+from miesc.agents.deep_audit_agent import DeepAuditAgent, DeepAuditConfig, ReconResult, ScanResult
 
 # ---------------------------------------------------------------------------
 # Fixtures

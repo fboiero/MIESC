@@ -18,7 +18,7 @@ import os
 from datetime import datetime
 from typing import Any, Dict, List
 
-from src.agents.base_agent import BaseAgent
+from miesc.agents.base_agent import BaseAgent
 
 logger = logging.getLogger(__name__)
 

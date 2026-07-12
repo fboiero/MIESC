@@ -151,7 +151,7 @@ class TestPhaseOrdering:
     deep_investigation -> synthesis in that exact order."""
 
     def test_phases_in_correct_order(self, tmp_path):
-        from src.agents.deep_audit_agent import DeepAuditAgent, DeepAuditConfig
+        from miesc.agents.deep_audit_agent import DeepAuditAgent, DeepAuditConfig
 
         cfg = DeepAuditConfig(
             timeout_seconds=60,

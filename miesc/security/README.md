@@ -90,7 +90,7 @@ logger.info("Using key: sk-1234567890abcdef")
 ### Secure Agent Implementation
 
 ```python
-from src.agents.base_agent import BaseAgent
+from miesc.agents.base_agent import BaseAgent
 from miesc.security import (
     validate_contract_path,
     validate_solc_version,

@@ -33,7 +33,7 @@ def test_scan_agentic_profile_routes_to_deep_agent(monkeypatch, tmp_path):
             }
 
     scan_module = importlib.import_module("miesc.cli.commands.scan")
-    monkeypatch.setattr("src.agents.deep_audit_agent.DeepAuditAgent", FakeAgent)
+    monkeypatch.setattr("miesc.agents.deep_audit_agent.DeepAuditAgent", FakeAgent)
     monkeypatch.setattr(
         scan_module,
         "run_tool",

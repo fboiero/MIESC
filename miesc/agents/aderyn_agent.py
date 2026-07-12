@@ -19,7 +19,7 @@ import subprocess
 from pathlib import Path
 from typing import cast, Any, Dict, List, Optional
 
-from src.agents.base_agent import BaseAgent
+from miesc.agents.base_agent import BaseAgent
 from src.mcp_core.context_bus import MCPMessage
 
 

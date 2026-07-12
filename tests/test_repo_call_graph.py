@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from src.agents.repo_call_graph import RepoCallGraph
+from miesc.agents.repo_call_graph import RepoCallGraph
 
 TOKEN_SOL = """// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;

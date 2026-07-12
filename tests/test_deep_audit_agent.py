@@ -10,7 +10,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.agents.deep_audit_agent import (
+from miesc.agents.deep_audit_agent import (
     RISK_PATTERNS,
     AuditPhase,
     DeepAuditAgent,
@@ -577,7 +577,7 @@ class TestTimeout:
 
 class TestFullFlow:
     @patch("src.mcp_core.context_bus.get_context_bus")
-    @patch("src.agents.deep_audit_agent.DeepAuditAgent._get_ml_orchestrator")
+    @patch("miesc.agents.deep_audit_agent.DeepAuditAgent._get_ml_orchestrator")
     def test_analyze_minimal(self, mock_orch, mock_bus, agent, tmp_contract):
         """Test full analyze with all external deps mocked."""
         mock_bus.return_value = MagicMock()
@@ -601,8 +601,8 @@ class TestFullFlow:
         assert result["phases"]["reconnaissance"]["risk_profile"]["has_selfdestruct"] is True
 
     @patch("src.mcp_core.context_bus.get_context_bus")
-    @patch("src.agents.deep_audit_agent.DeepAuditAgent._run_tools_parallel")
-    @patch("src.agents.deep_audit_agent.DeepAuditAgent._get_ml_orchestrator")
+    @patch("miesc.agents.deep_audit_agent.DeepAuditAgent._run_tools_parallel")
+    @patch("miesc.agents.deep_audit_agent.DeepAuditAgent._get_ml_orchestrator")
     def test_analyze_with_findings(self, mock_orch, mock_run_tools, mock_bus, tmp_contract):
         mock_bus.return_value = MagicMock()
 
@@ -702,7 +702,7 @@ class TestFullFlow:
 
 
 class TestRunDeepAudit:
-    @patch("src.agents.deep_audit_agent.DeepAuditAgent.analyze")
+    @patch("miesc.agents.deep_audit_agent.DeepAuditAgent.analyze")
     def test_run_deep_audit(self, mock_analyze, tmp_contract):
         mock_analyze.return_value = {"findings": [], "summary": {"total": 0}}
         result = run_deep_audit(tmp_contract, timeout_seconds=30, enable_llm=False)
@@ -750,7 +750,7 @@ class TestBuildCallGraph:
         mock_builder.build_from_source.return_value = mock_cg
 
         with patch(
-            "src.agents.deep_audit_agent.CallGraphBuilder", mock_builder.__class__, create=True
+            "miesc.agents.deep_audit_agent.CallGraphBuilder", mock_builder.__class__, create=True
         ):
             with patch.dict(
                 "sys.modules",
@@ -838,7 +838,7 @@ class TestGetMLOrchestrator:
         mock_orch = MagicMock()
         mock_core = MagicMock()
         mock_core.MLOrchestrator.return_value = mock_orch
-        with patch("src.agents.deep_audit_agent.DeepAuditAgent._get_ml_orchestrator"):
+        with patch("miesc.agents.deep_audit_agent.DeepAuditAgent._get_ml_orchestrator"):
             # Test the actual fallback logic by calling the real method
             pass
 

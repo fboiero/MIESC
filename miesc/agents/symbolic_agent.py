@@ -12,7 +12,7 @@ import subprocess
 from pathlib import Path
 from typing import Any, Dict, List
 
-from src.agents.base_agent import BaseAgent
+from miesc.agents.base_agent import BaseAgent
 from src.integration.adapter_integration import integrate_symbolic_execution
 
 logger = logging.getLogger(__name__)

@@ -9,7 +9,7 @@ structured-output* agent. Unlike the original one-shot prompts, these:
   (``get_function_body``, ``list_callers``, ``list_callees``, ``get_paths_to``)
   instead of reasoning over a truncated source blob, and
 - instruct the model to emit hypotheses as STRUCTURED JSON whose field names
-  align EXACTLY with :class:`src.agents.hypothesis_ledger.Hypothesis`, so the
+  align EXACTLY with :class:`miesc.agents.hypothesis_ledger.Hypothesis`, so the
   orchestrator can parse each candidate into a ledger entry.
 
 Prompt roles in the §7 loop (design: docs/design/agentic_auditor_phase1_20260707.md):
@@ -29,7 +29,7 @@ License: AGPL-3.0
 """
 
 # Structured output contract for enumerated hypotheses. Field names MUST match
-# src.agents.hypothesis_ledger.Hypothesis so the orchestrator can parse directly.
+# miesc.agents.hypothesis_ledger.Hypothesis so the orchestrator can parse directly.
 HYPOTHESIS_JSON_SCHEMA: dict = {
     "type": "array",
     "items": {
@@ -365,7 +365,7 @@ def _build_persona_enum_prompt(persona: str, coverage_tmpl: str) -> str:
 
 
 # Five specialized enum prompts keyed by vuln class. Run them all over the SAME
-# call graph and union the findings (see src.agents.agentic_auditor.audit_repo_multipersona).
+# call graph and union the findings (see miesc.agents.agentic_auditor.audit_repo_multipersona).
 # SAMPLING is the default (cheap); SYSTEMATIC is the opt-in exhaustive variant.
 PERSONA_ENUM_PROMPTS: dict = {
     persona: _build_persona_enum_prompt(persona, _COVERAGE_SAMPLING_PERSONA)

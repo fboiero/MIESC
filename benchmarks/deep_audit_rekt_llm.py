@@ -33,7 +33,7 @@ from unittest.mock import patch
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.agents.deep_audit_agent import DeepAuditAgent, DeepAuditConfig  # noqa: E402
+from miesc.agents.deep_audit_agent import DeepAuditAgent, DeepAuditConfig  # noqa: E402
 from benchmarks.deep_audit_rekt import load_targets, vuln_class_match  # noqa: E402
 
 

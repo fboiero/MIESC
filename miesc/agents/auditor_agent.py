@@ -30,7 +30,7 @@ from enum import Enum
 from pathlib import Path
 from typing import cast, Any, Callable, Dict, List, Optional
 
-from src.agents.base_agent import BaseAgent
+from miesc.agents.base_agent import BaseAgent
 
 logger = logging.getLogger(__name__)
 

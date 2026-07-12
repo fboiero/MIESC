@@ -64,7 +64,7 @@ services:
     networks:
       - miesc-network
     healthcheck:
-      test: ["CMD", "python", "-c", "from src.agents.base_agent import BaseAgent; print('OK')"]
+      test: ["CMD", "python", "-c", "from miesc.agents.base_agent import BaseAgent; print('OK')"]
       interval: 30s
       timeout: 10s
       retries: 3

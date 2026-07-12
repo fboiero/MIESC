@@ -189,7 +189,7 @@ class TestAgentBatchThroughput:
     def test_analyze_does_not_leak_start_time_between_calls(self, tmp_path):
         """Each analyze() must reset _start_time. Without that, the second
         call's timeout fires immediately even though the first just finished."""
-        from src.agents.deep_audit_agent import DeepAuditAgent, DeepAuditConfig
+        from miesc.agents.deep_audit_agent import DeepAuditAgent, DeepAuditConfig
 
         cfg = DeepAuditConfig(
             timeout_seconds=60,
@@ -210,7 +210,7 @@ class TestAgentBatchThroughput:
     def test_concurrent_agents_do_not_share_mutable_state(self, tmp_path):
         """Running two DeepAuditAgent instances on different contracts at the
         same time must not corrupt each other's _start_time or finding lists."""
-        from src.agents.deep_audit_agent import DeepAuditAgent, DeepAuditConfig
+        from miesc.agents.deep_audit_agent import DeepAuditAgent, DeepAuditConfig
 
         cfg = DeepAuditConfig(
             timeout_seconds=60,

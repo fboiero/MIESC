@@ -14,9 +14,9 @@ import pytest
 
 
 def _agent():
-    from src.agents.policy_agent import PolicyAgent
+    from miesc.agents.policy_agent import PolicyAgent
 
-    with patch("src.agents.base_agent.get_context_bus") as mock_bus:
+    with patch("miesc.agents.base_agent.get_context_bus") as mock_bus:
         mock_bus.return_value = MagicMock()
         return PolicyAgent()
 

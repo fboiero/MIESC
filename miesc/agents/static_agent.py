@@ -11,7 +11,7 @@ import logging
 import subprocess
 from typing import Any, Dict, List
 
-from src.agents.base_agent import BaseAgent
+from miesc.agents.base_agent import BaseAgent
 from src.integration.adapter_integration import integrate_static_analysis
 
 logger = logging.getLogger(__name__)

@@ -248,7 +248,7 @@ async def miesc_deep_audit(
     """
     contract_path = _validate_contract_path(contract_path)
 
-    from src.agents.deep_audit_agent import DeepAuditAgent, DeepAuditConfig
+    from miesc.agents.deep_audit_agent import DeepAuditAgent, DeepAuditConfig
 
     config = DeepAuditConfig(
         timeout_seconds=timeout,

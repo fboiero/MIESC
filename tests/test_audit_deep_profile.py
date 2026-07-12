@@ -4,7 +4,7 @@ import pytest
 from click.testing import CliRunner
 
 from miesc.cli.commands.audit import _apply_deep_profile_config, audit_deep
-from src.agents.deep_audit_agent import DeepAuditConfig
+from miesc.agents.deep_audit_agent import DeepAuditConfig
 
 
 def test_deep_audit_profile_enables_agentic_invariants_without_remote():
@@ -50,7 +50,7 @@ def test_deep_audit_cli_applies_profile_to_agent_config(monkeypatch, tmp_path):
                 "narrative": "",
             }
 
-    monkeypatch.setattr("src.agents.deep_audit_agent.DeepAuditAgent", FakeAgent)
+    monkeypatch.setattr("miesc.agents.deep_audit_agent.DeepAuditAgent", FakeAgent)
 
     result = CliRunner().invoke(
         audit_deep,

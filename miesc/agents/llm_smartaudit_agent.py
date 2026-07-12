@@ -15,7 +15,7 @@ import os
 import time
 from typing import Optional, Any, Dict, List
 
-from src.agents.base_agent import BaseAgent
+from miesc.agents.base_agent import BaseAgent
 
 try:
     from dotenv import load_dotenv

@@ -97,9 +97,9 @@ class TestDeepAuditIntegration:
     def test_deep_audit_no_load_adapters_warning(self, tmp_path, caplog):
         import logging
 
-        from src.agents.deep_audit_agent import DeepAuditAgent, DeepAuditConfig
+        from miesc.agents.deep_audit_agent import DeepAuditAgent, DeepAuditConfig
 
-        caplog.set_level(logging.WARNING, logger="src.agents.deep_audit_agent")
+        caplog.set_level(logging.WARNING, logger="miesc.agents.deep_audit_agent")
         cfg = DeepAuditConfig(
             timeout_seconds=30,
             enable_llm=False,

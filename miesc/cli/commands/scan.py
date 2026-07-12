@@ -856,7 +856,7 @@ def _run_agentic_scan_profile(
     rank: bool,
 ) -> None:
     from miesc.cli.commands.audit import _apply_deep_profile_config
-    from src.agents.deep_audit_agent import DeepAuditAgent, DeepAuditConfig
+    from miesc.agents.deep_audit_agent import DeepAuditAgent, DeepAuditConfig
 
     if not quiet:
         print_banner()

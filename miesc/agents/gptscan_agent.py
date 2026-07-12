@@ -23,7 +23,7 @@ try:
 except ImportError:
     pass  # dotenv not installed, environment variables must be set manually
 
-from src.agents.base_agent import BaseAgent
+from miesc.agents.base_agent import BaseAgent
 
 logger = logging.getLogger(__name__)
 

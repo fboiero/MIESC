@@ -88,7 +88,7 @@ def _run_agentic_audit_profile(
     ci: bool,
 ) -> None:
     """Run an agentic profile through DeepAuditAgent instead of raw tool loops."""
-    from src.agents.deep_audit_agent import DeepAuditAgent, DeepAuditConfig
+    from miesc.agents.deep_audit_agent import DeepAuditAgent, DeepAuditConfig
 
     config = DeepAuditConfig(
         timeout_seconds=int(profile.get("timeout", 600)),
@@ -2026,7 +2026,7 @@ def audit_deep(
     """
     print_banner()
 
-    from src.agents.deep_audit_agent import DeepAuditAgent, DeepAuditConfig
+    from miesc.agents.deep_audit_agent import DeepAuditAgent, DeepAuditConfig
 
     config = DeepAuditConfig(
         timeout_seconds=timeout,

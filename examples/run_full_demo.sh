@@ -398,7 +398,7 @@ demo_agentes() {
 import sys
 sys.path.insert(0, 'src')
 
-from agents import (
+from miesc.agents import (
     StaticAgent, DynamicAgent, SymbolicAgent,
     FormalAgent, PolicyAgent, SmartLLMAgent,
     BaseAgent

@@ -271,7 +271,7 @@ class TestLLMOutputValidation:
     def test_query_llm_verifier_handles_nonjson_response(self):
         """If an LLM returns plain prose (no JSON block), the helper must
         return SOMETHING coherent, not crash."""
-        from src.agents.deep_audit_agent import DeepAuditAgent, DeepAuditConfig
+        from miesc.agents.deep_audit_agent import DeepAuditAgent, DeepAuditConfig
 
         agent = DeepAuditAgent(DeepAuditConfig(enable_llm=True))
 
@@ -298,7 +298,7 @@ class TestLLMOutputValidation:
     def test_query_llm_verifier_handles_malformed_json(self):
         """LLMs sometimes emit JSON with unclosed braces / trailing commas.
         Must return something parseable-ish, not crash."""
-        from src.agents.deep_audit_agent import DeepAuditAgent, DeepAuditConfig
+        from miesc.agents.deep_audit_agent import DeepAuditAgent, DeepAuditConfig
 
         agent = DeepAuditAgent(DeepAuditConfig(enable_llm=True))
 
@@ -318,7 +318,7 @@ class TestLLMOutputValidation:
     def test_query_llm_verifier_handles_network_error(self):
         """Network failure must return None, not bubble up as an exception
         that breaks the phase loop."""
-        from src.agents.deep_audit_agent import DeepAuditAgent, DeepAuditConfig
+        from miesc.agents.deep_audit_agent import DeepAuditAgent, DeepAuditConfig
 
         agent = DeepAuditAgent(DeepAuditConfig(enable_llm=True))
 
