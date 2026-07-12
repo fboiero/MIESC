@@ -27,6 +27,32 @@ from miesc.core.chain_abstraction import (
 class TestMultichainPipeline:
     """End-to-end multichain analysis tests."""
 
+    @pytest.fixture(autouse=True)
+    def _isolate_chain_registry(self):
+        """Fully reset the global chain registry around each test.
+
+        ``ChainRegistry`` is a process-wide singleton and
+        ``get_chain_registry`` caches a module-level instance. Tests below
+        register mock analyzers via ``ChainRegistry.__new__(ChainRegistry)``,
+        which returns the existing singleton (not a fresh object) once it has
+        been created, and then mutate its ``_analyzers``. Without this reset
+        those mock analyzers leak into the shared registry and cause
+        order-dependent failures in unrelated tests (e.g.
+        ``test_chain_abstraction`` expecting an empty registry). Resetting the
+        class singleton *and* the cached module-level instance keeps every test
+        hermetic.
+        """
+        import miesc.core.chain_abstraction as chain_mod
+
+        def _reset() -> None:
+            ChainRegistry._instance = None
+            ChainRegistry._analyzers = {}
+            chain_mod._chain_registry = None
+
+        _reset()
+        yield
+        _reset()
+
     def test_solidity_contract_detects_evm_chain(self):
         """A .sol file should detect EVM chain type."""
         # Create a fresh registry to avoid singleton interference
