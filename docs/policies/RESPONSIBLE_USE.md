@@ -1,5 +1,7 @@
 # Responsible Use Policy
 
+**[Versión en Español](RESPONSIBLE_USE_ES.md)**
+
 **MIESC - Multi-layer Intelligent Evaluation for Smart Contracts**
 **Last updated:** 2026-03-31
 

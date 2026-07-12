@@ -1,5 +1,7 @@
 # Sustainable Development Goals (SDG) Relevance
 
+**[Versión en Español](SDG_RELEVANCE_ES.md)**
+
 **MIESC - Multi-layer Intelligent Evaluation for Smart Contracts**
 
 This document maps MIESC's contributions to the United Nations Sustainable Development Goals (SDGs) as required by the [Digital Public Goods Standard](https://digitalpublicgoods.net/standard/).

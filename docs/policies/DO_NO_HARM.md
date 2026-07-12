@@ -1,5 +1,7 @@
 # Do No Harm Assessment
 
+**[Versión en Español](DO_NO_HARM_ES.md)**
+
 **MIESC - Multi-layer Intelligent Evaluation for Smart Contracts**
 **Last updated:** 2026-03-31
 

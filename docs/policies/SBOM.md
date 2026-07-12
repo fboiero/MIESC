@@ -1,5 +1,7 @@
 # Software Bill of Materials (SBOM)
 
+**[Versión en Español](SBOM_ES.md)**
+
 This document describes MIESC's SBOM generation, distribution, and verification process.
 
 ---
