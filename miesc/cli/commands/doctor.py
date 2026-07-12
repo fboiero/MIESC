@@ -34,7 +34,7 @@ if RICH_AVAILABLE:
     from rich import box
     from rich.table import Table
 
-from src.llm.provider_health import fetch_openai_compatible_model_ids
+from miesc.llm.provider_health import fetch_openai_compatible_model_ids
 
 
 def _deepseek_doctor_status() -> tuple[str, str]:

@@ -1286,7 +1286,7 @@ def audit_smart(
     if llm_validate and result.ml_filtered_findings:
         info("Running LLM validation on findings...")
         try:
-            from src.llm.finding_validator import LLMFindingValidator, ValidatorConfig
+            from miesc.llm.finding_validator import LLMFindingValidator, ValidatorConfig
 
             validator_config = ValidatorConfig(
                 min_severity_to_validate="medium",

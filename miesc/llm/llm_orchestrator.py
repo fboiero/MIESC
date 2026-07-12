@@ -22,7 +22,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import aiohttp
 
-from src.llm.provider_health import fetch_openai_compatible_model_ids
+from miesc.llm.provider_health import fetch_openai_compatible_model_ids
 from miesc.security.llm_output_validator import (
     AnalysisResponse,
     repair_common_json_errors,

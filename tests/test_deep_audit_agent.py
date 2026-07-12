@@ -1033,7 +1033,7 @@ class TestEnrichWithRAG:
         mock_rag.search_by_finding.return_value = [mock_result]
         mock_mod = MagicMock()
         mock_mod.EmbeddingRAG.return_value = mock_rag
-        with patch.dict("sys.modules", {"src.llm.embedding_rag": mock_mod}):
+        with patch.dict("sys.modules", {"miesc.llm.embedding_rag": mock_mod}):
             result = agent._enrich_with_rag({"title": "reentrancy", "severity": "high"})
             assert result["matched"] is True
             assert result["similar_vuln"] == "Reentrancy Attack"
@@ -1045,12 +1045,12 @@ class TestEnrichWithRAG:
         mock_rag.search_by_finding.return_value = []
         mock_mod = MagicMock()
         mock_mod.EmbeddingRAG.return_value = mock_rag
-        with patch.dict("sys.modules", {"src.llm.embedding_rag": mock_mod}):
+        with patch.dict("sys.modules", {"miesc.llm.embedding_rag": mock_mod}):
             result = agent._enrich_with_rag({"title": "test"})
             assert result["matched"] is False
 
     def test_import_failure(self, agent):
-        with patch.dict("sys.modules", {"src.llm.embedding_rag": None}):
+        with patch.dict("sys.modules", {"miesc.llm.embedding_rag": None}):
             result = agent._enrich_with_rag({"title": "test"})
             assert result["matched"] is False
 
@@ -1066,7 +1066,7 @@ class TestEnrichWithRAG:
         mock_rag.search_by_finding.return_value = [mock_result]
         mock_mod = MagicMock()
         mock_mod.EmbeddingRAG.return_value = mock_rag
-        with patch.dict("sys.modules", {"src.llm.embedding_rag": mock_mod}):
+        with patch.dict("sys.modules", {"miesc.llm.embedding_rag": mock_mod}):
             result = agent._enrich_with_rag({"title": "test", "severity": "high"})
             assert result["severity_match"] is True
 
@@ -1084,7 +1084,7 @@ class TestEnrichWithRAG:
         mock_rag.search_by_finding.return_value = [mock_result]
         mock_mod = MagicMock()
         mock_mod.EmbeddingRAG.return_value = mock_rag
-        with patch.dict("sys.modules", {"src.llm.embedding_rag": mock_mod}):
+        with patch.dict("sys.modules", {"miesc.llm.embedding_rag": mock_mod}):
             result = agent._enrich_with_rag({"title": "test", "severity": "high"})
             assert result["matched"] is True
 
@@ -1312,7 +1312,7 @@ class TestTryLLMOrchestrator:
     def test_import_failure(self, agent):
         agent.config.llm_provider = "auto"
         agent.contract_path = "/fake.sol"
-        with patch.dict("sys.modules", {"src.llm.llm_orchestrator": None}):
+        with patch.dict("sys.modules", {"miesc.llm.llm_orchestrator": None}):
             result = agent._try_llm_orchestrator([], {}, [])
             assert result == ""
 
@@ -1321,7 +1321,7 @@ class TestTryLLMOrchestrator:
         agent.contract_path = "/fake.sol"
         mock_mod = MagicMock()
         mock_mod.LLMOrchestrator.side_effect = RuntimeError("LLM error")
-        with patch.dict("sys.modules", {"src.llm.llm_orchestrator": mock_mod}):
+        with patch.dict("sys.modules", {"miesc.llm.llm_orchestrator": mock_mod}):
             result = agent._try_llm_orchestrator([], {}, [])
             assert result == ""
 

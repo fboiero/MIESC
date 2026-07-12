@@ -879,7 +879,7 @@ class DeepAuditAgent(BaseAgent):
     ) -> Dict[str, Any]:
         """Extract provider-neutral invariant candidates for report metadata."""
         try:
-            from src.llm import (
+            from miesc.llm import (
                 DPGAgentConfig,
                 InvariantExtractionAgent,
                 auto_reasoning_provider,
@@ -918,7 +918,7 @@ class DeepAuditAgent(BaseAgent):
     def _enrich_with_rag(self, finding: Dict) -> Dict[str, Any]:
         """Enrich a finding with RAG vulnerability knowledge."""
         try:
-            from src.llm.embedding_rag import EmbeddingRAG
+            from miesc.llm.embedding_rag import EmbeddingRAG
 
             rag = EmbeddingRAG()
             results = rag.search_by_finding(finding)
@@ -1350,7 +1350,7 @@ Respond ONLY with JSON of the shape:
             import asyncio
             import os
 
-            from src.llm.llm_orchestrator import (
+            from miesc.llm.llm_orchestrator import (
                 LLMConfig,
                 LLMOrchestrator,
                 LLMProvider,

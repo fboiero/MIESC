@@ -44,7 +44,7 @@ from miesc.security.prompt_sanitizer import (
 
 # Try to import EmbeddingRAG (optional dependency)
 try:
-    from src.llm.embedding_rag import (
+    from miesc.llm.embedding_rag import (
         KNOWLEDGE_BASE_VERSION,
         EmbeddingRAG,
         batch_get_context_for_findings,

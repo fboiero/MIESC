@@ -3,7 +3,7 @@ import asyncio
 import aiohttp
 import pytest
 
-from src.llm.remediation_generator import (
+from miesc.llm.remediation_generator import (
     MAX_BATCH_FINDINGS,
     MAX_CONCURRENT_REMEDIATIONS,
     MAX_METADATA_LIST_ITEMS,
@@ -2468,7 +2468,7 @@ async def test_query_llm_handles_hostile_message_get(monkeypatch):
 def test_parse_json_response_rejects_oversized_and_too_many_keys(monkeypatch):
     generator = RemediationGenerator()
     monkeypatch.setattr(
-        "src.llm.remediation_generator.extract_json_from_text",
+        "miesc.llm.remediation_generator.extract_json_from_text",
         lambda _content: pytest.fail("oversized content should not be extracted"),
     )
 
@@ -2482,13 +2482,13 @@ def test_parse_json_response_handles_extraction_and_recursion_errors(monkeypatch
     generator = RemediationGenerator()
 
     monkeypatch.setattr(
-        "src.llm.remediation_generator.extract_json_from_text",
+        "miesc.llm.remediation_generator.extract_json_from_text",
         lambda _content: (_ for _ in ()).throw(RuntimeError("boom")),
     )
     assert generator._parse_json_response("wrapped {bad}") == {}
 
     monkeypatch.setattr(
-        "src.llm.remediation_generator.repair_common_json_errors",
+        "miesc.llm.remediation_generator.repair_common_json_errors",
         lambda _content: (_ for _ in ()).throw(RecursionError("deep")),
     )
     assert generator._parse_json_response('{"fixed_code": "contract Fixed {}"}') == {}

@@ -40,7 +40,7 @@ from src.core.tool_protocol import (
 
 # Try to import EmbeddingRAG (optional dependency)
 try:
-    from src.llm.embedding_rag import EmbeddingRAG
+    from miesc.llm.embedding_rag import EmbeddingRAG
 
     _EMBEDDING_RAG_AVAILABLE = True
 except ImportError:

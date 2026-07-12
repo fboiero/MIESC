@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import aiohttp
 import pytest
 
-from src.llm.provider_health import (
+from miesc.llm.provider_health import (
     _authorization_headers,
     _model_id_text,
     _model_list,
@@ -399,7 +399,7 @@ def test_authorization_headers_keep_api_key_out_of_debug_logs(caplog):
     """Test API key handling stays isolated from provider health debug logging."""
     secret = "sk-test-secret"
 
-    with caplog.at_level("DEBUG", logger="src.llm.provider_health"):
+    with caplog.at_level("DEBUG", logger="miesc.llm.provider_health"):
         headers = _authorization_headers(secret)
 
     assert headers == {"Authorization": f"Bearer {secret}"}
@@ -548,7 +548,7 @@ def test_fetch_openai_compatible_model_ids_defaults_malformed_provider_name(capl
         assert models == set()
         session.assert_not_called()
 
-    with caplog.at_level("DEBUG", logger="src.llm.provider_health"):
+    with caplog.at_level("DEBUG", logger="miesc.llm.provider_health"):
         asyncio.run(run_test())
 
     assert "provider model check received malformed endpoint credentials" in caplog.text
@@ -570,7 +570,7 @@ def test_fetch_openai_compatible_model_ids_bounds_provider_label(caplog):
         assert models == set()
         session.assert_not_called()
 
-    with caplog.at_level("DEBUG", logger="src.llm.provider_health"):
+    with caplog.at_level("DEBUG", logger="miesc.llm.provider_health"):
         asyncio.run(run_test())
 
     assert "x" * 80 in caplog.text
@@ -591,7 +591,7 @@ def test_fetch_openai_compatible_model_ids_defaults_blank_provider_name(caplog):
         assert models == set()
         session.assert_not_called()
 
-    with caplog.at_level("DEBUG", logger="src.llm.provider_health"):
+    with caplog.at_level("DEBUG", logger="miesc.llm.provider_health"):
         asyncio.run(run_test())
 
     assert "provider model check received malformed endpoint credentials" in caplog.text
@@ -673,7 +673,7 @@ def test_fetch_openai_compatible_model_ids_redacts_json_exception_text(caplog):
 
         assert models == set()
 
-    with caplog.at_level("DEBUG", logger="src.llm.provider_health"):
+    with caplog.at_level("DEBUG", logger="miesc.llm.provider_health"):
         asyncio.run(run_test())
 
     assert "ValueError" in caplog.text
@@ -699,7 +699,7 @@ def test_fetch_openai_compatible_model_ids_logs_non_object_payload(caplog):
 
         assert models == set()
 
-    with caplog.at_level("DEBUG", logger="src.llm.provider_health"):
+    with caplog.at_level("DEBUG", logger="miesc.llm.provider_health"):
         asyncio.run(run_test())
 
     assert "DeepSeek model check returned malformed JSON body" in caplog.text
@@ -724,7 +724,7 @@ def test_fetch_openai_compatible_model_ids_malformed_response_status(caplog):
         assert models == set()
         response.json.assert_not_awaited()
 
-    with caplog.at_level("DEBUG", logger="src.llm.provider_health"):
+    with caplog.at_level("DEBUG", logger="miesc.llm.provider_health"):
         asyncio.run(run_test())
 
     assert "DeepSeek model check returned malformed response status" in caplog.text
@@ -747,7 +747,7 @@ def test_fetch_openai_compatible_model_ids_rejects_bool_response_status(caplog):
         assert models == set()
         response.json.assert_not_awaited()
 
-    with caplog.at_level("DEBUG", logger="src.llm.provider_health"):
+    with caplog.at_level("DEBUG", logger="miesc.llm.provider_health"):
         asyncio.run(run_test())
 
     assert "DeepSeek model check returned malformed response status" in caplog.text
@@ -771,7 +771,7 @@ def test_fetch_openai_compatible_model_ids_malformed_json_accessor(caplog):
 
         assert models == set()
 
-    with caplog.at_level("DEBUG", logger="src.llm.provider_health"):
+    with caplog.at_level("DEBUG", logger="miesc.llm.provider_health"):
         asyncio.run(run_test())
 
     assert "DeepSeek model check returned malformed JSON accessor" in caplog.text
@@ -837,7 +837,7 @@ def test_fetch_openai_compatible_model_ids_redacts_client_error_text(caplog):
 
         assert models == set()
 
-    with caplog.at_level("DEBUG", logger="src.llm.provider_health"):
+    with caplog.at_level("DEBUG", logger="miesc.llm.provider_health"):
         asyncio.run(run_test())
 
     assert "ClientError" in caplog.text

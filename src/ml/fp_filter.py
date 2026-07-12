@@ -467,7 +467,7 @@ class FalsePositiveFilter:
         self._rag_available = False
         if use_rag:
             try:
-                from src.llm.embedding_rag import EmbeddingRAG
+                from miesc.llm.embedding_rag import EmbeddingRAG
 
                 self._rag = EmbeddingRAG()
                 self._rag_available = True

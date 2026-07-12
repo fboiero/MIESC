@@ -3,8 +3,8 @@ import subprocess
 import urllib.error
 from types import MappingProxyType
 
-import src.llm.openllama_helper as openllama_helper_module
-from src.llm.openllama_helper import (
+import miesc.llm.openllama_helper as openllama_helper_module
+from miesc.llm.openllama_helper import (
     MAX_ANALYZE_RESPONSE_CHARS,
     MAX_GENERATE_RESPONSE_BYTES,
     MAX_GENERATE_RESPONSE_TEXT_CHARS,
@@ -1683,7 +1683,7 @@ def test_convenience_functions_delegate_to_helper(monkeypatch):
             calls.append(("remediate", finding, contract_code))
             return "advice"
 
-    monkeypatch.setattr("src.llm.openllama_helper.OpenLLaMAHelper", FakeHelper)
+    monkeypatch.setattr("miesc.llm.openllama_helper.OpenLLaMAHelper", FakeHelper)
 
     config = LLMConfig(model="fake")
 

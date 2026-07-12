@@ -27,7 +27,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from src.llm.rag_utils import (
+from miesc.llm.rag_utils import (
     build_metadata_filter,
     cache_stats,
     get_cached_result,

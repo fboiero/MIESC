@@ -2,26 +2,26 @@
 
 import pytest
 
-from src.llm import (
+from miesc.llm import (
     LLMOrchestratorReasoningProvider as ExportedLLMOrchestratorReasoningProvider,
 )
-from src.llm import (
+from miesc.llm import (
     LocalHeuristicReasoningProvider as ExportedLocalHeuristicReasoningProvider,
 )
-from src.llm import (
+from miesc.llm import (
     ReasoningProviderRoute as ExportedReasoningProviderRoute,
 )
-from src.llm import (
+from miesc.llm import (
     auto_reasoning_provider as exported_auto_reasoning_provider,
 )
-from src.llm.agentic_contracts import (
+from miesc.llm.agentic_contracts import (
     AgentCapability,
     DPGAgentConfig,
     InvariantExtractionAgent,
     ReasoningTask,
 )
-from src.llm.llm_orchestrator import LLMResponse
-from src.llm.reasoning_provider_adapter import (
+from miesc.llm.llm_orchestrator import LLMResponse
+from miesc.llm.reasoning_provider_adapter import (
     LLMOrchestratorReasoningProvider,
     LocalHeuristicReasoningProvider,
     ReasoningProviderRoute,

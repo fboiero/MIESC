@@ -376,7 +376,7 @@ tests/test_multichain_system.py               ✅ 117 tests
 pytest --cov=src --cov-report=term-missing
 
 # Verificar RAG
-python3 -c "from src.llm.vulnerability_rag import VulnerabilityRAG; r = VulnerabilityRAG(); print(f'SWC: {len(r.SWC_REGISTRY)}, Exploits: {len(r.EXPLOIT_EXAMPLES)}')"
+python3 -c "from miesc.llm.vulnerability_rag import VulnerabilityRAG; r = VulnerabilityRAG(); print(f'SWC: {len(r.SWC_REGISTRY)}, Exploits: {len(r.EXPLOIT_EXAMPLES)}')"
 
 # Verificar patrones
 python3 -c "from src.ml.defi_patterns import DeFiVulnType; print(f'DeFi types: {len(DeFiVulnType)}')"

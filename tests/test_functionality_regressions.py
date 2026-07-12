@@ -181,7 +181,7 @@ class TestVulnerabilityExampleFields:
     triggers a clear failure."""
 
     def test_has_attack_steps_field(self):
-        from src.llm.vulnerability_rag import VulnerabilityExample
+        from miesc.llm.vulnerability_rag import VulnerabilityExample
 
         ex = VulnerabilityExample(
             id="x",
@@ -203,7 +203,7 @@ class TestVulnerabilityExampleFields:
     def test_registry_enrichment_preserved(self):
         """At least the top-8 patterns enriched in v5.1.6 must still carry
         both attack_steps and detection_heuristic."""
-        from src.llm.vulnerability_rag import EXPLOIT_EXAMPLES, SWC_REGISTRY
+        from miesc.llm.vulnerability_rag import EXPLOIT_EXAMPLES, SWC_REGISTRY
 
         required_enriched = [
             ("SWC-107", SWC_REGISTRY),

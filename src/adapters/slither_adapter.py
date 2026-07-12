@@ -25,7 +25,7 @@ from src.core.tool_protocol import (
     ToolMetadata,
     ToolStatus,
 )
-from src.llm import enhance_findings_with_llm
+from miesc.llm import enhance_findings_with_llm
 
 logger = logging.getLogger(__name__)
 

@@ -1,7 +1,7 @@
 import aiohttp
 import pytest
 
-from src.llm.finding_validator import (
+from miesc.llm.finding_validator import (
     MAX_VALIDATION_JSON_KEYS,
     MAX_VALIDATION_RESPONSE_CHARS,
     LLMFindingValidator,
@@ -1135,7 +1135,7 @@ def test_get_statistics_avoids_division_by_zero():
 def test_validate_findings_sync_rejects_malformed_findings_container(monkeypatch):
     with monkeypatch.context() as m:
         m.setattr(
-            "src.llm.finding_validator.LLMFindingValidator",
+            "miesc.llm.finding_validator.LLMFindingValidator",
             lambda *_args, **_kwargs: pytest.fail("validator should not be constructed"),
         )
 
@@ -1606,7 +1606,7 @@ def test_validate_findings_sync_delegates_and_closes(monkeypatch):
         async def close(self):
             events.append(("close",))
 
-    monkeypatch.setattr("src.llm.finding_validator.LLMFindingValidator", FakeValidator)
+    monkeypatch.setattr("miesc.llm.finding_validator.LLMFindingValidator", FakeValidator)
     config = ValidatorConfig(model="fake")
 
     result = validate_findings_sync([{"id": "F-1"}], {"Vault.sol": "code"}, config)
@@ -1955,7 +1955,7 @@ def test_validate_findings_sync_closes_when_batch_raises(monkeypatch):
         async def close(self):
             events.append(("close",))
 
-    monkeypatch.setattr("src.llm.finding_validator.LLMFindingValidator", FakeValidator)
+    monkeypatch.setattr("miesc.llm.finding_validator.LLMFindingValidator", FakeValidator)
 
     with pytest.raises(RuntimeError, match="batch failed"):
         validate_findings_sync([{"id": "F-1"}])
@@ -2129,7 +2129,7 @@ def test_parse_response_rejects_oversized_and_too_many_keys(monkeypatch):
     validator = LLMFindingValidator(ValidatorConfig())
 
     monkeypatch.setattr(
-        "src.llm.finding_validator.extract_json_from_text",
+        "miesc.llm.finding_validator.extract_json_from_text",
         lambda _response: pytest.fail("oversized response should not be extracted"),
     )
     validation = validator._parse_response("x" * (MAX_VALIDATION_RESPONSE_CHARS + 1), "F-1")
@@ -2144,7 +2144,7 @@ def test_parse_response_handles_repair_runtime_error(monkeypatch):
     validator = LLMFindingValidator(ValidatorConfig())
 
     monkeypatch.setattr(
-        "src.llm.finding_validator.repair_common_json_errors",
+        "miesc.llm.finding_validator.repair_common_json_errors",
         lambda _response: (_ for _ in ()).throw(RuntimeError("repair failed")),
     )
 

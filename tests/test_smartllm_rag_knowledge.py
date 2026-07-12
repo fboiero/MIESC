@@ -14,7 +14,7 @@ import time
 
 import pytest
 
-import src.llm.embedding_rag as embedding_rag_module
+import miesc.llm.embedding_rag as embedding_rag_module
 from src.adapters.smartllm_rag_knowledge import (
     _get_account_abstraction_knowledge,
     _get_cross_chain_knowledge,
@@ -35,7 +35,7 @@ from src.adapters.smartllm_rag_knowledge import (
     get_relevant_knowledge,
     get_vulnerability_context,
 )
-from src.llm.embedding_rag import EmbeddingRAG, HybridRAG, RetrievalResult, VulnerabilityDocument
+from miesc.llm.embedding_rag import EmbeddingRAG, HybridRAG, RetrievalResult, VulnerabilityDocument
 
 
 class _ExplodingCollection:

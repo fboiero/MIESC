@@ -139,7 +139,7 @@ class RAGEvaluator:
         """Lazy initialization of EmbeddingRAG."""
         if self._embedding_rag is None:
             try:
-                from src.llm.embedding_rag import EmbeddingRAG
+                from miesc.llm.embedding_rag import EmbeddingRAG
 
                 self._embedding_rag = EmbeddingRAG()
             except ImportError:

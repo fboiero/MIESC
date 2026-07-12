@@ -203,7 +203,7 @@ packages = [
     "src.formal",
     "src.integration",
     "src.knowledge_base",
-    "src.llm",
+    "miesc.llm",
     "src.mcp_core",
     "src.ml",
     "src.ml.fine_tuning",

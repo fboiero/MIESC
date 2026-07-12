@@ -23,7 +23,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import aiohttp
 import pytest
 
-from src.llm.ensemble_detector import (
+from miesc.llm.ensemble_detector import (
     MAX_AVAILABILITY_MODEL_ENTRIES,
     MAX_CONFIDENCE_VALUES,
     MAX_ENSEMBLE_GROUPS,
@@ -1127,7 +1127,7 @@ class TestLLMEnsembleDetectorProviderAvailability:
             )
 
             with patch(
-                "src.llm.ensemble_detector.fetch_openai_compatible_model_ids",
+                "miesc.llm.ensemble_detector.fetch_openai_compatible_model_ids",
                 new_callable=AsyncMock,
             ) as mock_fetch_models:
                 mock_fetch_models.return_value = {"id": "deepseek-v4-flash"}

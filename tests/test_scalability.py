@@ -127,7 +127,7 @@ class TestRAGLookupComplexity:
     def test_swc_registry_lookup_is_O1(self):
         """Dict-based lookup should be effectively constant-time; a 10x
         slowdown between 1 and 10,000 lookups would indicate O(n) regression."""
-        from src.llm.vulnerability_rag import SWC_REGISTRY
+        from miesc.llm.vulnerability_rag import SWC_REGISTRY
 
         keys = list(SWC_REGISTRY.keys())
         assert len(keys) > 10

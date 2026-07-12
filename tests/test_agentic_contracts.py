@@ -2,7 +2,7 @@
 Tests for provider-agnostic agent contracts.
 """
 
-from src.llm.agentic_contracts import (
+from miesc.llm.agentic_contracts import (
     MAX_AGENT_METADATA_KEYS,
     MAX_AGENT_SOURCE_CHARS,
     MAX_AGENT_TEXT_CHARS,

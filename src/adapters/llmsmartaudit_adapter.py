@@ -36,7 +36,7 @@ from miesc.security.llm_output_validator import (
 
 # Try to import EmbeddingRAG (optional dependency)
 try:
-    from src.llm.embedding_rag import KNOWLEDGE_BASE_VERSION, EmbeddingRAG
+    from miesc.llm.embedding_rag import KNOWLEDGE_BASE_VERSION, EmbeddingRAG
 
     _EMBEDDING_RAG_AVAILABLE = True
 except ImportError:

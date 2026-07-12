@@ -3408,7 +3408,7 @@ class TestOpenLLaMAHelper:
 
     def test_llm_config_defaults(self):
         """Test LLMConfig default values."""
-        from src.llm.openllama_helper import LLMConfig
+        from miesc.llm.openllama_helper import LLMConfig
 
         config = LLMConfig()
         assert config.model == "qwen2.5-coder:14b"
@@ -3418,7 +3418,7 @@ class TestOpenLLaMAHelper:
 
     def test_openllama_helper_init(self):
         """Test OpenLLaMAHelper initialization."""
-        from src.llm.openllama_helper import LLMConfig, OpenLLaMAHelper
+        from miesc.llm.openllama_helper import LLMConfig, OpenLLaMAHelper
 
         config = LLMConfig(model="codellama", timeout=60)
         helper = OpenLLaMAHelper(config=config)
@@ -3427,7 +3427,7 @@ class TestOpenLLaMAHelper:
 
     def test_is_available_not_installed(self):
         """Test is_available when ollama not installed."""
-        from src.llm.openllama_helper import OpenLLaMAHelper
+        from miesc.llm.openllama_helper import OpenLLaMAHelper
 
         helper = OpenLLaMAHelper()
         helper._available = None
@@ -3438,7 +3438,7 @@ class TestOpenLLaMAHelper:
 
     def test_is_available_timeout(self):
         """Test is_available when timeout."""
-        from src.llm.openllama_helper import OpenLLaMAHelper
+        from miesc.llm.openllama_helper import OpenLLaMAHelper
 
         helper = OpenLLaMAHelper()
         helper._available = None
@@ -3449,7 +3449,7 @@ class TestOpenLLaMAHelper:
 
     def test_is_available_model_not_found(self):
         """Test is_available when model not found."""
-        from src.llm.openllama_helper import OpenLLaMAHelper
+        from miesc.llm.openllama_helper import OpenLLaMAHelper
 
         helper = OpenLLaMAHelper()
         helper._available = None
@@ -3460,7 +3460,7 @@ class TestOpenLLaMAHelper:
 
     def test_is_available_model_found(self):
         """Test is_available when model found."""
-        from src.llm.openllama_helper import OpenLLaMAHelper
+        from miesc.llm.openllama_helper import OpenLLaMAHelper
 
         helper = OpenLLaMAHelper()
         helper._available = None
@@ -3471,7 +3471,7 @@ class TestOpenLLaMAHelper:
 
     def test_enhance_findings_not_available(self):
         """Test enhance_findings when LLM not available."""
-        from src.llm.openllama_helper import OpenLLaMAHelper
+        from miesc.llm.openllama_helper import OpenLLaMAHelper
 
         helper = OpenLLaMAHelper()
         helper._available = False
@@ -3481,7 +3481,7 @@ class TestOpenLLaMAHelper:
 
     def test_enhance_findings_empty(self):
         """Test enhance_findings with empty findings."""
-        from src.llm.openllama_helper import OpenLLaMAHelper
+        from miesc.llm.openllama_helper import OpenLLaMAHelper
 
         helper = OpenLLaMAHelper()
         result = helper.enhance_findings([], "code", "slither")
@@ -3489,7 +3489,7 @@ class TestOpenLLaMAHelper:
 
     def test_enhance_findings_with_llm(self):
         """Test enhance_findings with LLM available."""
-        from src.llm.openllama_helper import OpenLLaMAHelper
+        from miesc.llm.openllama_helper import OpenLLaMAHelper
 
         helper = OpenLLaMAHelper()
         helper._available = True
@@ -3501,7 +3501,7 @@ class TestOpenLLaMAHelper:
 
     def test_explain_technical_output_not_available(self):
         """Test explain_technical_output when LLM not available."""
-        from src.llm.openllama_helper import OpenLLaMAHelper
+        from miesc.llm.openllama_helper import OpenLLaMAHelper
 
         helper = OpenLLaMAHelper()
         helper._available = False
@@ -3511,7 +3511,7 @@ class TestOpenLLaMAHelper:
 
     def test_explain_technical_output_with_llm(self):
         """Test explain_technical_output with LLM available."""
-        from src.llm.openllama_helper import OpenLLaMAHelper
+        from miesc.llm.openllama_helper import OpenLLaMAHelper
 
         helper = OpenLLaMAHelper()
         helper._available = True
@@ -3522,7 +3522,7 @@ class TestOpenLLaMAHelper:
 
     def test_prioritize_findings_not_available(self):
         """Test prioritize_findings when LLM not available."""
-        from src.llm.openllama_helper import OpenLLaMAHelper
+        from miesc.llm.openllama_helper import OpenLLaMAHelper
 
         helper = OpenLLaMAHelper()
         helper._available = False
@@ -3532,7 +3532,7 @@ class TestOpenLLaMAHelper:
 
     def test_prioritize_findings_empty(self):
         """Test prioritize_findings with empty findings."""
-        from src.llm.openllama_helper import OpenLLaMAHelper
+        from miesc.llm.openllama_helper import OpenLLaMAHelper
 
         helper = OpenLLaMAHelper()
         result = helper.prioritize_findings([], "code")
@@ -3540,7 +3540,7 @@ class TestOpenLLaMAHelper:
 
     def test_prioritize_findings_with_llm(self):
         """Test prioritize_findings with LLM available."""
-        from src.llm.openllama_helper import OpenLLaMAHelper
+        from miesc.llm.openllama_helper import OpenLLaMAHelper
 
         helper = OpenLLaMAHelper()
         helper._available = True
@@ -3554,7 +3554,7 @@ class TestOpenLLaMAHelper:
 
     def test_generate_remediation_advice_not_available(self):
         """Test generate_remediation_advice when LLM not available."""
-        from src.llm.openllama_helper import OpenLLaMAHelper
+        from miesc.llm.openllama_helper import OpenLLaMAHelper
 
         helper = OpenLLaMAHelper()
         helper._available = False
@@ -3564,7 +3564,7 @@ class TestOpenLLaMAHelper:
 
     def test_generate_remediation_advice_with_llm(self):
         """Test generate_remediation_advice with LLM available."""
-        from src.llm.openllama_helper import OpenLLaMAHelper
+        from miesc.llm.openllama_helper import OpenLLaMAHelper
 
         helper = OpenLLaMAHelper()
         helper._available = True
@@ -3578,7 +3578,7 @@ class TestOpenLLaMAHelper:
         """Test _call_llm with successful HTTP call."""
         import json as json_mod
 
-        from src.llm.openllama_helper import OpenLLaMAHelper
+        from miesc.llm.openllama_helper import OpenLLaMAHelper
 
         helper = OpenLLaMAHelper()
         mock_response = json_mod.dumps({"response": "LLM response"}).encode()
@@ -3602,7 +3602,7 @@ class TestOpenLLaMAHelper:
         """Test _call_llm with retry on HTTP failure."""
         import urllib.error
 
-        from src.llm.openllama_helper import LLMConfig, OpenLLaMAHelper
+        from miesc.llm.openllama_helper import LLMConfig, OpenLLaMAHelper
 
         config = LLMConfig(retry_attempts=2, retry_delay=0.1)
         helper = OpenLLaMAHelper(config=config)
@@ -3614,7 +3614,7 @@ class TestOpenLLaMAHelper:
 
     def test_call_llm_timeout(self):
         """Test _call_llm with timeout."""
-        from src.llm.openllama_helper import LLMConfig, OpenLLaMAHelper
+        from miesc.llm.openllama_helper import LLMConfig, OpenLLaMAHelper
 
         config = LLMConfig(retry_attempts=1)
         helper = OpenLLaMAHelper(config=config)
@@ -3624,7 +3624,7 @@ class TestOpenLLaMAHelper:
 
     def test_severity_score(self):
         """Test _severity_score method."""
-        from src.llm.openllama_helper import OpenLLaMAHelper
+        from miesc.llm.openllama_helper import OpenLLaMAHelper
 
         helper = OpenLLaMAHelper()
         assert helper._severity_score("CRITICAL") == 4
@@ -3636,7 +3636,7 @@ class TestOpenLLaMAHelper:
 
     def test_create_findings_summary(self):
         """Test _create_findings_summary method."""
-        from src.llm.openllama_helper import OpenLLaMAHelper
+        from miesc.llm.openllama_helper import OpenLLaMAHelper
 
         helper = OpenLLaMAHelper()
         findings = [
@@ -3653,7 +3653,7 @@ class TestOpenLLaMAHelper:
 
     def test_parse_priorities_valid_json(self):
         """Test _parse_priorities with valid JSON."""
-        from src.llm.openllama_helper import OpenLLaMAHelper
+        from miesc.llm.openllama_helper import OpenLLaMAHelper
 
         helper = OpenLLaMAHelper()
         response = '{"priorities": [{"index": 0, "priority": 9, "reason": "Critical"}, {"index": 1, "priority": 5, "reason": "Medium"}]}'
@@ -3664,7 +3664,7 @@ class TestOpenLLaMAHelper:
 
     def test_parse_priorities_invalid_json(self):
         """Test _parse_priorities with invalid JSON."""
-        from src.llm.openllama_helper import OpenLLaMAHelper
+        from miesc.llm.openllama_helper import OpenLLaMAHelper
 
         helper = OpenLLaMAHelper()
         response = "not valid json"
@@ -3673,7 +3673,7 @@ class TestOpenLLaMAHelper:
 
     def test_parse_priorities_no_json(self):
         """Test _parse_priorities with no JSON in response."""
-        from src.llm.openllama_helper import OpenLLaMAHelper
+        from miesc.llm.openllama_helper import OpenLLaMAHelper
 
         helper = OpenLLaMAHelper()
         response = "Just plain text without JSON"
@@ -3682,7 +3682,7 @@ class TestOpenLLaMAHelper:
 
     def test_convenience_functions(self):
         """Test convenience functions."""
-        from src.llm.openllama_helper import (
+        from miesc.llm.openllama_helper import (
             enhance_findings_with_llm,
             explain_technical_output,
             generate_remediation_advice,
@@ -3690,7 +3690,7 @@ class TestOpenLLaMAHelper:
         )
 
         findings = [{"type": "test"}]
-        with patch("src.llm.openllama_helper.OpenLLaMAHelper") as mock_helper_cls:
+        with patch("miesc.llm.openllama_helper.OpenLLaMAHelper") as mock_helper_cls:
             helper = mock_helper_cls.return_value
             helper.enhance_findings.return_value = findings
             helper.explain_technical_output.return_value = "explained"

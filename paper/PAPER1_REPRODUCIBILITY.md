@@ -280,7 +280,7 @@ configuracion usada por los adaptadores LLM:
 ```bash
 python3 -m venv .venv
 .venv/bin/python -m pip install -e '.[rag]'
-.venv/bin/python -c "from src.llm.embedding_rag import EmbeddingRAG; print(EmbeddingRAG().get_stats())"
+.venv/bin/python -c "from miesc.llm.embedding_rag import EmbeddingRAG; print(EmbeddingRAG().get_stats())"
 ```
 
 Resultado esperado despues de la expansion y ranking por evidencia del
