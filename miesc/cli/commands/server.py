@@ -68,7 +68,7 @@ def server_mcp(port: int, host: str) -> None:
     try:
         import asyncio
 
-        from src.mcp_core.websocket_server import run_server
+        from miesc.mcp_core.websocket_server import run_server
 
         info("Press Ctrl+C to stop the server")
         asyncio.run(run_server(host=host, port=port))

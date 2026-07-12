@@ -22,8 +22,8 @@ from pathlib import Path
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.evaluation import RAGEvaluator, EvaluationMetrics
-from src.evaluation.metrics import Finding
+from miesc.evaluation import RAGEvaluator, EvaluationMetrics
+from miesc.evaluation.metrics import Finding
 
 logging.basicConfig(
     level=logging.INFO,

@@ -14,9 +14,9 @@ from typing import Any, Dict, List
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from src.miesc_core import MIESCCore
-from src.miesc_policy_mapper import PolicyMapper
-from src.miesc_risk_engine import RiskEngine
+from miesc.miesc_core import MIESCCore
+from miesc.miesc_policy_mapper import PolicyMapper
+from miesc.miesc_risk_engine import RiskEngine
 
 # Configuration
 CONTRACTS_DIR = Path(__file__).parent / "contracts" / "audit"

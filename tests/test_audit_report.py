@@ -15,7 +15,7 @@ from tempfile import TemporaryDirectory
 
 import pytest
 
-from src.reports.audit_report import (
+from miesc.reports.audit_report import (
     AuditMetadata,
     AuditReportGenerator,
     Finding,
@@ -463,7 +463,7 @@ class TestReportsInit:
 
     def test_import_audit_report_generator(self):
         """Test that AuditReportGenerator is exported."""
-        from src.reports import AuditReportGenerator
+        from miesc.reports import AuditReportGenerator
 
         assert AuditReportGenerator is not None
         assert hasattr(AuditReportGenerator, "VERSION")
@@ -474,7 +474,7 @@ class TestCreateSampleReport:
 
     def test_create_sample_report(self):
         """Test creating a sample report."""
-        from src.reports.audit_report import create_sample_report
+        from miesc.reports.audit_report import create_sample_report
 
         generator = create_sample_report()
 
@@ -484,7 +484,7 @@ class TestCreateSampleReport:
 
     def test_sample_report_generates_html(self):
         """Test that sample report can generate HTML."""
-        from src.reports.audit_report import create_sample_report
+        from miesc.reports.audit_report import create_sample_report
 
         generator = create_sample_report()
         html = generator.generate_html()
@@ -498,7 +498,7 @@ class TestVersionConsistency:
 
     def test_version_import(self):
         """Test that MIESC_VERSION is imported correctly."""
-        from src.reports.audit_report import MIESC_VERSION
+        from miesc.reports.audit_report import MIESC_VERSION
 
         assert MIESC_VERSION is not None
         assert isinstance(MIESC_VERSION, str)
@@ -507,7 +507,7 @@ class TestVersionConsistency:
     def test_generator_version_matches_miesc(self, sample_metadata, sample_findings):
         """Test that generator VERSION matches MIESC version."""
         from miesc import __version__
-        from src.reports.audit_report import AuditReportGenerator
+        from miesc.reports.audit_report import AuditReportGenerator
 
         assert AuditReportGenerator.VERSION == __version__
 
@@ -805,11 +805,11 @@ class TestPDFGeneration:
             Path(tmpdir) / "report.pdf"
 
             with patch.dict("sys.modules", {"weasyprint": MagicMock()}):
-                with patch("src.reports.audit_report.HTML", mock_html_class, create=True):
+                with patch("miesc.reports.audit_report.HTML", mock_html_class, create=True):
                     # Import after patching
                     import importlib
 
-                    import src.reports.audit_report as audit_module
+                    import miesc.reports.audit_report as audit_module
 
                     importlib.reload(audit_module)
 
@@ -1076,7 +1076,7 @@ class TestVersionImportFallback:
         # This tests that if miesc import fails, fallback is used
         # We can't easily force the import to fail, but we can
         # verify the fallback constant exists in the module
-        from src.reports.audit_report import MIESC_VERSION
+        from miesc.reports.audit_report import MIESC_VERSION
 
         assert MIESC_VERSION is not None
         assert len(MIESC_VERSION) > 0

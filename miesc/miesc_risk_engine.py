@@ -8,7 +8,7 @@ MIESC Risk Engine - Compatibility shim for legacy imports.
 import warnings
 
 warnings.warn(
-    "src.miesc_risk_engine is deprecated. "
+    "miesc.miesc_risk_engine is deprecated. "
     "This module will be moved to miesc.core.risk_engine in v6.0.0.",
     DeprecationWarning,
     stacklevel=2,

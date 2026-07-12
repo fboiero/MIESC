@@ -19,7 +19,7 @@ except ImportError:
 from datetime import datetime
 
 from miesc.agents.base_agent import BaseAgent
-from src.mcp_core.context_bus import MCPMessage
+from miesc.mcp_core.context_bus import MCPMessage
 
 logger = logging.getLogger(__name__)
 

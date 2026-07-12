@@ -86,7 +86,7 @@ src/poc/
 
 **API propuesta:**
 ```python
-from src.poc import PoCGenerator
+from miesc.poc import PoCGenerator
 
 generator = PoCGenerator()
 poc = generator.generate(finding, target_contract="Token.sol")

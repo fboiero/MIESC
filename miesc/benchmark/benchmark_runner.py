@@ -6,7 +6,7 @@ Runs MIESC analysis against known vulnerable contracts and
 measures detection accuracy.
 
 Usage:
-    from src.benchmark import BenchmarkRunner, load_smartbugs
+    from miesc.benchmark import BenchmarkRunner, load_smartbugs
 
     runner = BenchmarkRunner()
     contracts = load_smartbugs()

@@ -20,7 +20,7 @@ from miesc.core.agent_protocol import (
     FindingSeverity,
     SecurityAgent,
 )
-from src.slither_tool import run_slither_analysis
+from miesc.slither_tool import run_slither_analysis
 
 logger = logging.getLogger(__name__)
 

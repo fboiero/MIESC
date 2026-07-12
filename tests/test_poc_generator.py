@@ -15,8 +15,8 @@ from pathlib import Path
 
 import pytest
 
-import src.poc.poc_generator as poc_generator_module
-from src.poc.poc_generator import (
+import miesc.poc.poc_generator as poc_generator_module
+from miesc.poc.poc_generator import (
     GenerationOptions,
     PoCGenerator,
     PoCResult,

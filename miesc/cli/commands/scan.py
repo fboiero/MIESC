@@ -722,7 +722,7 @@ def scan(
     # to the top critical/high findings (opt-in via --llm-enhance)
     if llm_enhance:
         try:
-            from src.reports.llm_interpreter import LLMReportInterpreter
+            from miesc.reports.llm_interpreter import LLMReportInterpreter
 
             interp = LLMReportInterpreter()
             if interp.is_available():

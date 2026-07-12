@@ -1349,7 +1349,7 @@ def report(
     if llm_interpret:
         info("LLM interpretation enabled - generating AI-powered insights...")
         try:
-            from src.reports.llm_interpreter import LLMReportInterpreter
+            from miesc.reports.llm_interpreter import LLMReportInterpreter
 
             # Get contract code if available
             contract_path = results.get("contract_path") or results.get("contract")
@@ -1421,7 +1421,7 @@ def report(
     if template in ("profesional", "premium"):
         info("Generating premium report data (CVSS scores, risk matrix, etc.)...")
         try:
-            from src.reports.risk_calculator import calculate_premium_risk_data
+            from miesc.reports.risk_calculator import calculate_premium_risk_data
 
             # Enrich findings with category field for CVSS differentiation
             # The risk calculator uses finding["category"] to select CVSS vectors.
@@ -1681,7 +1681,7 @@ def report(
             # If LLM is enabled and premium, use premium insights
             if llm_interpret and variables.get("llm_enabled"):
                 try:
-                    from src.reports.llm_interpreter import generate_premium_report_insights
+                    from miesc.reports.llm_interpreter import generate_premium_report_insights
 
                     info(
                         "Generating premium LLM insights (attack scenarios, deployment recommendation)..."
@@ -1759,7 +1759,7 @@ def report(
     # =========================================================================
     if template in ("profesional", "premium"):
         try:
-            from src.poc.poc_generator import PoCGenerator
+            from miesc.poc.poc_generator import PoCGenerator
 
             poc_generator = PoCGenerator()
             contract_name_for_poc = (

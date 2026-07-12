@@ -75,7 +75,7 @@ class TestMIESCCoreAnalyze:
 
     def test_analyze_returns_findings(self, vulnerable_contract):
         """Vulnerable contract should produce findings."""
-        from src.miesc_core import MIESCCore
+        from miesc.miesc_core import MIESCCore
 
         core = MIESCCore()
         result = core.analyze(vulnerable_contract, tools=["slither", "aderyn"])
@@ -87,7 +87,7 @@ class TestMIESCCoreAnalyze:
 
     def test_analyze_finds_reentrancy_pattern(self, vulnerable_contract):
         """Should detect the reentrancy pattern (call before state update)."""
-        from src.miesc_core import MIESCCore
+        from miesc.miesc_core import MIESCCore
 
         core = MIESCCore()
         result = core.analyze(vulnerable_contract, tools=["slither", "aderyn"])
@@ -103,7 +103,7 @@ class TestMIESCCoreAnalyze:
 
     def test_analyze_safe_contract(self, safe_contract):
         """Safe contract should have fewer/no high-severity findings."""
-        from src.miesc_core import MIESCCore
+        from miesc.miesc_core import MIESCCore
 
         core = MIESCCore()
         result = core.analyze(safe_contract, tools=["slither", "aderyn"])
@@ -117,7 +117,7 @@ class TestMIESCCoreAnalyze:
 
     def test_analyze_with_nonexistent_tools(self, vulnerable_contract):
         """Non-existent tools should fail gracefully."""
-        from src.miesc_core import MIESCCore
+        from miesc.miesc_core import MIESCCore
 
         core = MIESCCore()
         result = core.analyze(vulnerable_contract, tools=["nonexistent_tool"])
@@ -128,7 +128,7 @@ class TestMIESCCoreAnalyze:
 
     def test_analyze_scan_alias(self, vulnerable_contract):
         """scan() should work as alias for analyze()."""
-        from src.miesc_core import MIESCCore
+        from miesc.miesc_core import MIESCCore
 
         core = MIESCCore()
         result = core.scan(vulnerable_contract, tools=["slither", "aderyn"])

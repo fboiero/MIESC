@@ -11,7 +11,7 @@ import warnings
 from miesc.security.compliance_mapper import ComplianceMapper
 
 warnings.warn(
-    "src.miesc_policy_mapper is deprecated. Use miesc.security.compliance_mapper instead. "
+    "miesc.miesc_policy_mapper is deprecated. Use miesc.security.compliance_mapper instead. "
     "This module will be removed in v6.0.0.",
     DeprecationWarning,
     stacklevel=2,

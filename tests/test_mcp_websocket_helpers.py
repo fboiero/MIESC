@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from datetime import datetime
 
-from src.mcp_core.websocket_server import (
+from miesc.mcp_core.websocket_server import (
     AuditSession,
     EventType,
     MIESCWebSocketServer,

@@ -17,7 +17,7 @@ from miesc.core.exporters import (
     ReportExporter,
     SARIFExporter,
 )
-from src.reports.audit_report import AuditReportGenerator, Finding
+from miesc.reports.audit_report import AuditReportGenerator, Finding
 
 # ============================================================================
 # TestReportGeneration - Report generation across formats
@@ -388,7 +388,7 @@ class TestDeploymentRecommendation:
 
     def test_nogo_with_critical_findings(self):
         """Deployment should be NO-GO when there are critical findings."""
-        from src.reports.risk_calculator import RiskCalculator
+        from miesc.reports.risk_calculator import RiskCalculator
 
         calculator = RiskCalculator()
         findings = [
@@ -402,7 +402,7 @@ class TestDeploymentRecommendation:
 
     def test_nogo_with_multiple_high_findings(self):
         """Deployment should be NO-GO when there are 2+ high findings."""
-        from src.reports.risk_calculator import RiskCalculator
+        from miesc.reports.risk_calculator import RiskCalculator
 
         calculator = RiskCalculator()
         findings = [
@@ -416,7 +416,7 @@ class TestDeploymentRecommendation:
 
     def test_conditional_with_one_high_finding(self):
         """Deployment should be CONDITIONAL with 1 high finding."""
-        from src.reports.risk_calculator import RiskCalculator
+        from miesc.reports.risk_calculator import RiskCalculator
 
         calculator = RiskCalculator()
         findings = [
@@ -429,7 +429,7 @@ class TestDeploymentRecommendation:
 
     def test_go_with_only_low_findings(self):
         """Deployment should be GO when only low/info findings."""
-        from src.reports.risk_calculator import RiskCalculator
+        from miesc.reports.risk_calculator import RiskCalculator
 
         calculator = RiskCalculator()
         findings = [

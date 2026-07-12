@@ -5,7 +5,7 @@ Metrics Calculator for Benchmark Comparison
 Calculates detection metrics and compares benchmark runs.
 
 Usage:
-    from src.benchmark import MetricsCalculator, compare_runs
+    from miesc.benchmark import MetricsCalculator, compare_runs
 
     calc = MetricsCalculator()
     comparison = calc.compare(before_result, after_result)

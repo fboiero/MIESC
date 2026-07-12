@@ -40,7 +40,7 @@ from miesc.ml.ml_invariant_synthesizer import (
     extract_contract_features,
     predict_invariants,
 )
-from src.poc.validators.foundry_runner import (
+from miesc.poc.validators.foundry_runner import (
     FoundryResult,
     TestResult,
     TestStatus,

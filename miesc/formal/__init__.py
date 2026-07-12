@@ -8,12 +8,12 @@ Bridges MIESC findings to formal verification tools:
   - Halmos (symbolic testing)
 """
 
-from src.formal.spec_generator import (
+from miesc.formal.spec_generator import (
     GeneratedSpec,
     SpecFormat,
     SpecGenerator,
 )
-from src.formal.spec_runner import (
+from miesc.formal.spec_runner import (
     SpecRunner,
     VerificationResult,
     run_all_available,

@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 from miesc.agents.base_agent import BaseAgent
-from src.integration.adapter_integration import integrate_symbolic_execution
+from miesc.integration.adapter_integration import integrate_symbolic_execution
 
 logger = logging.getLogger(__name__)
 

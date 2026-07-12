@@ -1155,7 +1155,7 @@ Respond ONLY with JSON of the shape:
         if not func_name:
             return None
         try:
-            from src.formal.spec_generator import SpecFormat, SpecGenerator
+            from miesc.formal.spec_generator import SpecFormat, SpecGenerator
 
             generator = SpecGenerator()
             # Force the function name into the finding so the generator targets it
@@ -1433,7 +1433,7 @@ Write for a non-technical executive audience."""
     def _try_ollama_interpreter(self, findings: List[Dict], summary: Dict) -> str:
         """Try Ollama via LLMReportInterpreter (existing module)."""
         try:
-            from src.reports.llm_interpreter import LLMReportInterpreter
+            from miesc.reports.llm_interpreter import LLMReportInterpreter
 
             interp = LLMReportInterpreter()
             if not interp.is_available():

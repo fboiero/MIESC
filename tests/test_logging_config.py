@@ -254,7 +254,7 @@ class TestRichFormatter:
         """Test long logger names are shortened."""
         formatter = RichFormatter()
         record = logging.LogRecord(
-            name="src.very.long.module.name.here",
+            name="miesc.very.long.module.name.here",
             level=logging.INFO,
             pathname="test.py",
             lineno=1,

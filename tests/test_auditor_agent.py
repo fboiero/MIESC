@@ -51,7 +51,7 @@ EMPTY_CONTRACT = "pragma solidity ^0.8.0;\n\ncontract Empty {}\n"
 
 @pytest.fixture
 def mock_bus():
-    with patch("src.mcp_core.context_bus.get_context_bus") as m:
+    with patch("miesc.mcp_core.context_bus.get_context_bus") as m:
         m.return_value = MagicMock()
         yield m
 
@@ -365,7 +365,7 @@ class TestCOTPrompts:
 
 
 class TestAutonomousAuditorAgentInit:
-    @patch("src.mcp_core.context_bus.get_context_bus")
+    @patch("miesc.mcp_core.context_bus.get_context_bus")
     def test_init_defaults(self, mock_bus):
         mock_bus.return_value = MagicMock()
         from miesc.agents.auditor_agent import AutonomousAuditorAgent
@@ -376,7 +376,7 @@ class TestAutonomousAuditorAgentInit:
         assert agent.timeout == 120
         assert len(agent._step_handlers) == 8
 
-    @patch("src.mcp_core.context_bus.get_context_bus")
+    @patch("miesc.mcp_core.context_bus.get_context_bus")
     def test_init_custom(self, mock_bus):
         mock_bus.return_value = MagicMock()
         from miesc.agents.auditor_agent import AutonomousAuditorAgent
@@ -390,7 +390,7 @@ class TestAutonomousAuditorAgentInit:
         assert agent.timeout == 60
         assert agent.verbose is False
 
-    @patch("src.mcp_core.context_bus.get_context_bus")
+    @patch("miesc.mcp_core.context_bus.get_context_bus")
     def test_audit_steps_list(self, mock_bus):
         mock_bus.return_value = MagicMock()
         from miesc.agents.auditor_agent import AutonomousAuditorAgent
@@ -399,7 +399,7 @@ class TestAutonomousAuditorAgentInit:
         assert AutonomousAuditorAgent.AUDIT_STEPS[0] == AuditStep.UNDERSTAND_CONTRACT
         assert AutonomousAuditorAgent.AUDIT_STEPS[-1] == AuditStep.GENERATE_RECOMMENDATIONS
 
-    @patch("src.mcp_core.context_bus.get_context_bus")
+    @patch("miesc.mcp_core.context_bus.get_context_bus")
     def test_get_context_types(self, mock_bus):
         mock_bus.return_value = MagicMock()
         from miesc.agents.auditor_agent import AutonomousAuditorAgent
@@ -409,7 +409,7 @@ class TestAutonomousAuditorAgentInit:
         assert isinstance(types, list)
         assert len(types) > 0
 
-    @patch("src.mcp_core.context_bus.get_context_bus")
+    @patch("miesc.mcp_core.context_bus.get_context_bus")
     def test_capabilities(self, mock_bus):
         mock_bus.return_value = MagicMock()
         from miesc.agents.auditor_agent import AutonomousAuditorAgent
@@ -418,7 +418,7 @@ class TestAutonomousAuditorAgentInit:
         assert "full_audit" in agent.capabilities
         assert "vulnerability_detection" in agent.capabilities
 
-    @patch("src.mcp_core.context_bus.get_context_bus")
+    @patch("miesc.mcp_core.context_bus.get_context_bus")
     def test_agent_type_is_ai(self, mock_bus):
         mock_bus.return_value = MagicMock()
         from miesc.agents.auditor_agent import AutonomousAuditorAgent
@@ -426,7 +426,7 @@ class TestAutonomousAuditorAgentInit:
         agent = AutonomousAuditorAgent()
         assert agent.agent_type == "ai"
 
-    @patch("src.mcp_core.context_bus.get_context_bus")
+    @patch("miesc.mcp_core.context_bus.get_context_bus")
     def test_checkpoint_dir_created(self, mock_bus):
         mock_bus.return_value = MagicMock()
         from miesc.agents.auditor_agent import AutonomousAuditorAgent
@@ -437,7 +437,7 @@ class TestAutonomousAuditorAgentInit:
             assert checkpoint_path.exists()
             assert agent.checkpoint_dir == checkpoint_path
 
-    @patch("src.mcp_core.context_bus.get_context_bus")
+    @patch("miesc.mcp_core.context_bus.get_context_bus")
     def test_all_step_handlers_registered(self, mock_bus):
         mock_bus.return_value = MagicMock()
         from miesc.agents.auditor_agent import AutonomousAuditorAgent

@@ -576,7 +576,7 @@ class TestTimeout:
 
 
 class TestFullFlow:
-    @patch("src.mcp_core.context_bus.get_context_bus")
+    @patch("miesc.mcp_core.context_bus.get_context_bus")
     @patch("miesc.agents.deep_audit_agent.DeepAuditAgent._get_ml_orchestrator")
     def test_analyze_minimal(self, mock_orch, mock_bus, agent, tmp_contract):
         """Test full analyze with all external deps mocked."""
@@ -600,7 +600,7 @@ class TestFullFlow:
         assert "metadata" in result
         assert result["phases"]["reconnaissance"]["risk_profile"]["has_selfdestruct"] is True
 
-    @patch("src.mcp_core.context_bus.get_context_bus")
+    @patch("miesc.mcp_core.context_bus.get_context_bus")
     @patch("miesc.agents.deep_audit_agent.DeepAuditAgent._run_tools_parallel")
     @patch("miesc.agents.deep_audit_agent.DeepAuditAgent._get_ml_orchestrator")
     def test_analyze_with_findings(self, mock_orch, mock_run_tools, mock_bus, tmp_contract):
@@ -1339,7 +1339,7 @@ class TestTryOllamaInterpreter:
         mock_interp.generate_executive_interpretation.return_value = "Audit summary"
         mock_mod = MagicMock()
         mock_mod.LLMReportInterpreter.return_value = mock_interp
-        with patch.dict("sys.modules", {"src.reports.llm_interpreter": mock_mod}):
+        with patch.dict("sys.modules", {"miesc.reports.llm_interpreter": mock_mod}):
             result = agent._try_ollama_interpreter([{"title": "test"}], {"total": 1})
             assert result == "Audit summary"
 
@@ -1349,7 +1349,7 @@ class TestTryOllamaInterpreter:
         mock_interp.is_available.return_value = False
         mock_mod = MagicMock()
         mock_mod.LLMReportInterpreter.return_value = mock_interp
-        with patch.dict("sys.modules", {"src.reports.llm_interpreter": mock_mod}):
+        with patch.dict("sys.modules", {"miesc.reports.llm_interpreter": mock_mod}):
             result = agent._try_ollama_interpreter([], {})
             assert result == ""
 
@@ -1360,13 +1360,13 @@ class TestTryOllamaInterpreter:
         mock_interp.generate_executive_interpretation.return_value = 42
         mock_mod = MagicMock()
         mock_mod.LLMReportInterpreter.return_value = mock_interp
-        with patch.dict("sys.modules", {"src.reports.llm_interpreter": mock_mod}):
+        with patch.dict("sys.modules", {"miesc.reports.llm_interpreter": mock_mod}):
             result = agent._try_ollama_interpreter([], {})
             assert result == ""
 
     def test_import_failure(self, agent):
         agent.contract_path = "/fake.sol"
-        with patch.dict("sys.modules", {"src.reports.llm_interpreter": None}):
+        with patch.dict("sys.modules", {"miesc.reports.llm_interpreter": None}):
             result = agent._try_ollama_interpreter([], {})
             assert result == ""
 
@@ -1377,7 +1377,7 @@ class TestTryOllamaInterpreter:
         mock_interp.generate_executive_interpretation.return_value = "result"
         mock_mod = MagicMock()
         mock_mod.LLMReportInterpreter.return_value = mock_interp
-        with patch.dict("sys.modules", {"src.reports.llm_interpreter": mock_mod}):
+        with patch.dict("sys.modules", {"miesc.reports.llm_interpreter": mock_mod}):
             result = agent._try_ollama_interpreter([], {})
             assert isinstance(result, str)
 
@@ -1802,7 +1802,7 @@ class TestTargetedPropertyGeneration:
         fake_spec = MagicMock()
         fake_spec.rule_name = "rule_accessControl"
         fake_spec.content = "rule accessControl { ... }"
-        with patch("src.formal.spec_generator.SpecGenerator") as Gen:
+        with patch("miesc.formal.spec_generator.SpecGenerator") as Gen:
             Gen.return_value.generate_specs.return_value = [fake_spec]
             result = agent._targeted_property_for_function(finding, "setOwner")
             assert result is not None

@@ -315,7 +315,7 @@ def correlation_engine():
 @pytest.fixture
 def report_findings():
     """Findings suitable for report generation (using audit_report.Finding)."""
-    from src.reports.audit_report import Finding
+    from miesc.reports.audit_report import Finding
 
     return [
         Finding(
@@ -363,7 +363,7 @@ def report_findings():
 @pytest.fixture
 def report_metadata():
     """Pre-configured audit metadata for report tests."""
-    from src.reports.audit_report import AuditMetadata
+    from miesc.reports.audit_report import AuditMetadata
 
     return AuditMetadata(
         project_name="Test Project",

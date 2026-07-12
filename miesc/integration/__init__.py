@@ -9,7 +9,7 @@ Autor: Fernando Boiero <fboiero@frvm.utn.edu.ar>
 Fecha: 2025-01-10
 """
 
-from src.integration.adapter_integration import (
+from miesc.integration.adapter_integration import (
     AdapterIntegration,
     integrate_dynamic_testing,
     integrate_static_analysis,

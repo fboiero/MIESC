@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 
 import pytest
 
-from src.benchmark.metrics_calculator import (
+from miesc.benchmark.metrics_calculator import (
     ComparisonResult,
     MetricsCalculator,
     MetricsDelta,
@@ -133,7 +133,7 @@ class TestMetricsCalculatorCompare:
 
     def test_compare_needs_benchmark_results(self, calc):
         """MetricsCalculator.compare() takes BenchmarkResult objects."""
-        from src.benchmark.benchmark_runner import BenchmarkResult, DetectionMetrics
+        from miesc.benchmark.benchmark_runner import BenchmarkResult, DetectionMetrics
 
         now = datetime.now(timezone.utc)
         metrics = DetectionMetrics(

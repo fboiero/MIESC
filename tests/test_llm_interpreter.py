@@ -13,7 +13,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.reports.llm_interpreter import (
+from miesc.reports.llm_interpreter import (
     LLMInterpreterConfig,
     LLMReportInterpreter,
     generate_llm_report_insights,
@@ -763,7 +763,7 @@ class TestGeneratePremiumReportInsights:
 
         assert result["available"] is False
 
-    @patch("src.reports.llm_interpreter.generate_llm_report_insights")
+    @patch("miesc.reports.llm_interpreter.generate_llm_report_insights")
     @patch.object(LLMReportInterpreter, "is_available")
     @patch.object(LLMReportInterpreter, "generate_deployment_recommendation")
     @patch.object(LLMReportInterpreter, "generate_attack_scenario")

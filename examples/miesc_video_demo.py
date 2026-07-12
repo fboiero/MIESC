@@ -721,7 +721,7 @@ def generate_real_report(open_browser: bool = True):
     )
 
     try:
-        from src.reports.audit_report import AuditMetadata, AuditReportGenerator, Finding
+        from miesc.reports.audit_report import AuditMetadata, AuditReportGenerator, Finding
 
         metadata = AuditMetadata(
             project_name="VulnerableVault Security Audit",

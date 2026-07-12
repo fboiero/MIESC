@@ -230,7 +230,7 @@ class TestSpecsVerifyIntegrationShape:
     """`miesc specs` emits specs that `miesc verify` must be able to consume."""
 
     def test_specs_emits_cvl_with_rule_block(self, tmp_path):
-        from src.formal.spec_generator import SpecFormat, SpecGenerator
+        from miesc.formal.spec_generator import SpecFormat, SpecGenerator
 
         findings = [
             {
@@ -255,7 +255,7 @@ class TestSpecsVerifyIntegrationShape:
         assert "rule" in content.lower()
 
     def test_spec_runner_result_has_required_fields_for_verify_json(self):
-        from src.formal.spec_runner import VerificationResult
+        from miesc.formal.spec_runner import VerificationResult
 
         r = VerificationResult(tool="halmos", spec_file="/x", status="passed")
         d = r.to_dict()

@@ -256,7 +256,7 @@ def report_metadata():
 ```python
 # tests/test_my_module.py
 import pytest
-from src.my_module import MyClass
+from miesc.my_module import MyClass
 
 class TestMyClass:
     """Tests for MyClass."""

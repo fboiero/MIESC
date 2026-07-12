@@ -13,7 +13,7 @@ from miesc import __version__ as MIESC_VERSION
 from miesc.core.optimized_orchestrator import OptimizedOrchestrator
 
 warnings.warn(
-    "src.miesc_core is deprecated. Use miesc.api instead. "
+    "miesc.miesc_core is deprecated. Use miesc.api instead. "
     "This module will be removed in v6.0.0.",
     DeprecationWarning,
     stacklevel=2,

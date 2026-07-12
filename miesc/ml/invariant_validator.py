@@ -30,7 +30,7 @@ from miesc.adapters.invariant_synthesizer import (
     InvariantCategory,
     SynthesizedInvariant,
 )
-from src.poc.validators.foundry_runner import (
+from miesc.poc.validators.foundry_runner import (
     FoundryResult,
     FoundryRunner,
     TestResult,

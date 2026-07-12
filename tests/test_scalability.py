@@ -88,11 +88,11 @@ class TestSpecRunnerTimeouts:
         import subprocess as _sub
         from unittest.mock import patch
 
-        from src.formal.spec_runner import SpecRunner
+        from miesc.formal.spec_runner import SpecRunner
 
         runner = SpecRunner()
         fake_exc = _sub.TimeoutExpired(cmd=["solc"], timeout=1)
-        with patch("src.formal.spec_runner.subprocess.run", side_effect=fake_exc):
+        with patch("miesc.formal.spec_runner.subprocess.run", side_effect=fake_exc):
             with patch.object(runner, "is_solc_available", return_value=True):
                 contract = tmp_path / "C.sol"
                 contract.write_text("pragma solidity ^0.8.0; contract C {}")
@@ -106,11 +106,11 @@ class TestSpecRunnerTimeouts:
         import subprocess as _sub
         from unittest.mock import patch
 
-        from src.formal.spec_runner import SpecRunner
+        from miesc.formal.spec_runner import SpecRunner
 
         runner = SpecRunner()
         with patch(
-            "src.formal.spec_runner.subprocess.run",
+            "miesc.formal.spec_runner.subprocess.run",
             side_effect=_sub.TimeoutExpired(cmd=["halmos"], timeout=1),
         ):
             with patch.object(runner, "is_halmos_available", return_value=True):

@@ -21,7 +21,7 @@ from miesc.ml.invariant_validator import (
     InvariantValidator,
     ValidationReport,
 )
-from src.poc.validators.foundry_runner import FoundryResult, TestResult, TestStatus
+from miesc.poc.validators.foundry_runner import FoundryResult, TestResult, TestStatus
 
 
 class TestInvariantTestResult:

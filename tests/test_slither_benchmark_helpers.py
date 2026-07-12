@@ -5,12 +5,12 @@ No slither subprocess — only the result-parsing and ground-truth matching logi
 
 from __future__ import annotations
 
-from src.benchmark.dataset_loader import (
+from miesc.benchmark.dataset_loader import (
     GroundTruth,
     VulnerabilityCategory,
     VulnerableContract,
 )
-from src.benchmark.slither_benchmark import ContractResult, SlitherBenchmarkRunner
+from miesc.benchmark.slither_benchmark import ContractResult, SlitherBenchmarkRunner
 
 
 def _runner():

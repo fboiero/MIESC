@@ -33,10 +33,10 @@ class TestCommandInjectionResistance:
     user-controlled input."""
 
     def test_spec_runner_uses_list_args_for_certora(self):
-        from src.formal.spec_runner import SpecRunner
+        from miesc.formal.spec_runner import SpecRunner
 
         runner = SpecRunner()
-        with patch("src.formal.spec_runner.subprocess.run") as proc:
+        with patch("miesc.formal.spec_runner.subprocess.run") as proc:
             proc.return_value = MagicMock(stdout="", stderr="", returncode=0)
             with patch.object(runner, "is_certora_available", return_value=True):
                 runner.run_certora("contract.sol", "rules.spec")
@@ -48,10 +48,10 @@ class TestCommandInjectionResistance:
             assert call.kwargs.get("shell", False) is False
 
     def test_spec_runner_uses_list_args_for_halmos(self, tmp_path):
-        from src.formal.spec_runner import SpecRunner
+        from miesc.formal.spec_runner import SpecRunner
 
         runner = SpecRunner()
-        with patch("src.formal.spec_runner.subprocess.run") as proc:
+        with patch("miesc.formal.spec_runner.subprocess.run") as proc:
             proc.return_value = MagicMock(stdout="", stderr="", returncode=0)
             with patch.object(runner, "is_halmos_available", return_value=True):
                 runner.run_halmos(str(tmp_path))
@@ -61,10 +61,10 @@ class TestCommandInjectionResistance:
             assert call.kwargs.get("shell", False) is False
 
     def test_spec_runner_uses_list_args_for_smtchecker(self):
-        from src.formal.spec_runner import SpecRunner
+        from miesc.formal.spec_runner import SpecRunner
 
         runner = SpecRunner()
-        with patch("src.formal.spec_runner.subprocess.run") as proc:
+        with patch("miesc.formal.spec_runner.subprocess.run") as proc:
             proc.return_value = MagicMock(stdout="", stderr="", returncode=0)
             with patch.object(runner, "is_solc_available", return_value=True):
                 runner.run_smtchecker("contract.sol")
@@ -76,11 +76,11 @@ class TestCommandInjectionResistance:
     def test_malicious_filename_not_shell_interpreted(self, tmp_path):
         """A filename containing shell metacharacters must be passed literally
         to subprocess (list args protect against this automatically)."""
-        from src.formal.spec_runner import SpecRunner
+        from miesc.formal.spec_runner import SpecRunner
 
         runner = SpecRunner()
         evil_path = "contract.sol; rm -rf /tmp/test_evil"
-        with patch("src.formal.spec_runner.subprocess.run") as proc:
+        with patch("miesc.formal.spec_runner.subprocess.run") as proc:
             proc.return_value = MagicMock(stdout="", stderr="", returncode=0)
             with patch.object(runner, "is_solc_available", return_value=True):
                 runner.run_smtchecker(evil_path)
@@ -254,7 +254,7 @@ class TestReDoSResistance:
 
     def test_halmos_ansi_stripper_bounded_on_long_output(self):
         """The ANSI stripper is a simple regex but must not hang on pathological input."""
-        from src.formal.spec_runner import SpecRunner
+        from miesc.formal.spec_runner import SpecRunner
 
         evil = ("\x1b[" + "9" * 100 + "m") * 10000 + "[PASS] x\n"
         start = time.monotonic()

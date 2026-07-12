@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from src.benchmark.metrics_calculator import (
+from miesc.benchmark.metrics_calculator import (
     BenchmarkResult,
     DetectionMetrics,
     MetricsCalculator,

@@ -15,7 +15,7 @@ from tempfile import TemporaryDirectory
 
 import pytest
 
-from src.utils.enhanced_reporter import (
+from miesc.utils.enhanced_reporter import (
     EnhancedReporter,
     ExecutiveSummary,
     Finding,
@@ -850,7 +850,7 @@ class TestEnhancedReporterMain:
         with patch.object(sys, "argv", ["enhanced_reporter", "--results", "/nonexistent/path"]):
             with patch.object(sys, "exit") as mock_exit:
                 try:
-                    from src.utils.enhanced_reporter import main
+                    from miesc.utils.enhanced_reporter import main
 
                     main()
                 except SystemExit:
@@ -878,7 +878,7 @@ class TestEnhancedReporterMain:
                 ["enhanced_reporter", "--results", str(results_dir), "--output", str(output_dir)],
             ):
                 try:
-                    from src.utils.enhanced_reporter import main
+                    from miesc.utils.enhanced_reporter import main
 
                     main()
                 except SystemExit:
@@ -911,7 +911,7 @@ class TestEnhancedReporterMain:
                 ],
             ):
                 try:
-                    from src.utils.enhanced_reporter import main
+                    from miesc.utils.enhanced_reporter import main
 
                     main()
                 except SystemExit:
@@ -941,7 +941,7 @@ class TestEnhancedReporterMain:
                 ],
             ):
                 try:
-                    from src.utils.enhanced_reporter import main
+                    from miesc.utils.enhanced_reporter import main
 
                     main()
                 except SystemExit:

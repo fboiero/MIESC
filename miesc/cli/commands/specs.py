@@ -81,7 +81,7 @@ def specs(
 
     # Generate
     try:
-        from src.formal import SpecFormat, SpecGenerator
+        from miesc.formal import SpecFormat, SpecGenerator
 
         gen = SpecGenerator()
         fmt = SpecFormat(format.lower())

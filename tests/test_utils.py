@@ -95,7 +95,7 @@ class TestAIAuditAssistant:
 
         # Mock openai import
         with patch.dict(sys.modules, {"openai": MagicMock()}):
-            from src.utils.ai_assistant import AIAuditAssistant
+            from miesc.utils.ai_assistant import AIAuditAssistant
 
             with pytest.raises(ValueError, match="OPENAI_API_KEY not set"):
                 AIAuditAssistant()
@@ -104,7 +104,7 @@ class TestAIAuditAssistant:
         """Test initialization with API key."""
         mock_openai = MagicMock()
         with patch.dict(sys.modules, {"openai": mock_openai}):
-            from src.utils.ai_assistant import AIAuditAssistant
+            from miesc.utils.ai_assistant import AIAuditAssistant
 
             assistant = AIAuditAssistant(model="gpt-4o-mini")
             assert assistant.model == "gpt-4o-mini"
@@ -128,7 +128,7 @@ class TestAIAuditAssistant:
         mock_openai.OpenAI.return_value.chat.completions.create.return_value = mock_response
 
         with patch.dict(sys.modules, {"openai": mock_openai}):
-            from src.utils.ai_assistant import AIAuditAssistant
+            from miesc.utils.ai_assistant import AIAuditAssistant
 
             assistant = AIAuditAssistant()
             result = assistant.classify_finding(sample_finding)
@@ -143,7 +143,7 @@ class TestAIAuditAssistant:
         mock_openai.OpenAI.return_value.chat.completions.create.side_effect = Exception("API Error")
 
         with patch.dict(sys.modules, {"openai": mock_openai}):
-            from src.utils.ai_assistant import AIAuditAssistant
+            from miesc.utils.ai_assistant import AIAuditAssistant
 
             assistant = AIAuditAssistant()
             result = assistant.classify_finding(sample_finding)
@@ -156,7 +156,7 @@ class TestAIAuditAssistant:
         mock_openai = MagicMock()
 
         with patch.dict(sys.modules, {"openai": mock_openai}):
-            from src.utils.ai_assistant import AIAuditAssistant
+            from miesc.utils.ai_assistant import AIAuditAssistant
 
             assistant = AIAuditAssistant()
 
@@ -174,7 +174,7 @@ class TestAIAuditAssistant:
         mock_openai = MagicMock()
 
         with patch.dict(sys.modules, {"openai": mock_openai}):
-            from src.utils.ai_assistant import AIAuditAssistant
+            from miesc.utils.ai_assistant import AIAuditAssistant
 
             assistant = AIAuditAssistant()
 
@@ -190,7 +190,7 @@ class TestAIAuditAssistant:
         mock_openai = MagicMock()
 
         with patch.dict(sys.modules, {"openai": mock_openai}):
-            from src.utils.ai_assistant import AIAuditAssistant
+            from miesc.utils.ai_assistant import AIAuditAssistant
 
             assistant = AIAuditAssistant()
 
@@ -268,7 +268,7 @@ class TestAIAssistantMain:
 
         with patch.dict(sys.modules, {"openai": mock_openai}):
             with patch.object(sys, "argv", test_args):
-                from src.utils.ai_assistant import main
+                from miesc.utils.ai_assistant import main
 
                 main()
 
@@ -316,7 +316,7 @@ class TestAIAssistantMain:
                 original_dir = os.getcwd()
                 os.chdir(tmp_path)
                 try:
-                    from src.utils.ai_assistant import main
+                    from miesc.utils.ai_assistant import main
 
                     main()
 
@@ -337,7 +337,7 @@ class TestFindingDataclass:
 
     def test_finding_creation(self):
         """Test Finding creation with all fields."""
-        from src.utils.enhanced_reporter import Finding
+        from miesc.utils.enhanced_reporter import Finding
 
         finding = Finding(
             tool="slither",
@@ -358,7 +358,7 @@ class TestFindingDataclass:
 
     def test_finding_optional_fields(self):
         """Test Finding with optional fields as None."""
-        from src.utils.enhanced_reporter import Finding
+        from miesc.utils.enhanced_reporter import Finding
 
         finding = Finding(
             tool="mythril",
@@ -379,7 +379,7 @@ class TestExecutiveSummary:
 
     def test_executive_summary_creation(self):
         """Test ExecutiveSummary creation."""
-        from src.utils.enhanced_reporter import ExecutiveSummary
+        from miesc.utils.enhanced_reporter import ExecutiveSummary
 
         summary = ExecutiveSummary(
             total_findings=15,
@@ -503,7 +503,7 @@ contract Test {
 
     def test_reporter_initialization(self, temp_results_dir):
         """Test reporter initialization."""
-        from src.utils.enhanced_reporter import EnhancedReporter
+        from miesc.utils.enhanced_reporter import EnhancedReporter
 
         reporter = EnhancedReporter(temp_results_dir)
         assert reporter.results_dir == temp_results_dir
@@ -511,7 +511,7 @@ contract Test {
 
     def test_collect_all_findings(self, temp_results_dir):
         """Test collecting findings from all tools."""
-        from src.utils.enhanced_reporter import EnhancedReporter
+        from miesc.utils.enhanced_reporter import EnhancedReporter
 
         reporter = EnhancedReporter(temp_results_dir)
         reporter.collect_all_findings()
@@ -521,7 +521,7 @@ contract Test {
 
     def test_collect_slither(self, temp_results_dir):
         """Test Slither results collection."""
-        from src.utils.enhanced_reporter import EnhancedReporter
+        from miesc.utils.enhanced_reporter import EnhancedReporter
 
         reporter = EnhancedReporter(temp_results_dir)
         reporter._collect_slither()
@@ -532,7 +532,7 @@ contract Test {
 
     def test_collect_mythril(self, temp_results_dir):
         """Test Mythril results collection."""
-        from src.utils.enhanced_reporter import EnhancedReporter
+        from miesc.utils.enhanced_reporter import EnhancedReporter
 
         reporter = EnhancedReporter(temp_results_dir)
         reporter._collect_mythril()
@@ -543,7 +543,7 @@ contract Test {
 
     def test_collect_echidna(self, temp_results_dir):
         """Test Echidna results collection."""
-        from src.utils.enhanced_reporter import EnhancedReporter
+        from miesc.utils.enhanced_reporter import EnhancedReporter
 
         reporter = EnhancedReporter(temp_results_dir)
         reporter._collect_echidna()
@@ -553,7 +553,7 @@ contract Test {
 
     def test_collect_foundry_fuzz(self, temp_results_dir):
         """Test Foundry fuzz results collection."""
-        from src.utils.enhanced_reporter import EnhancedReporter
+        from miesc.utils.enhanced_reporter import EnhancedReporter
 
         reporter = EnhancedReporter(temp_results_dir)
         reporter._collect_foundry_fuzz()
@@ -563,7 +563,7 @@ contract Test {
 
     def test_collect_manticore(self, temp_results_dir):
         """Test Manticore results collection."""
-        from src.utils.enhanced_reporter import EnhancedReporter
+        from miesc.utils.enhanced_reporter import EnhancedReporter
 
         reporter = EnhancedReporter(temp_results_dir)
         reporter._collect_manticore()
@@ -572,7 +572,7 @@ contract Test {
 
     def test_generate_executive_summary(self, temp_results_dir):
         """Test executive summary generation."""
-        from src.utils.enhanced_reporter import EnhancedReporter
+        from miesc.utils.enhanced_reporter import EnhancedReporter
 
         reporter = EnhancedReporter(temp_results_dir)
         reporter.collect_all_findings()
@@ -584,7 +584,7 @@ contract Test {
 
     def test_generate_json_report(self, temp_results_dir, tmp_path):
         """Test JSON report generation."""
-        from src.utils.enhanced_reporter import EnhancedReporter
+        from miesc.utils.enhanced_reporter import EnhancedReporter
 
         reporter = EnhancedReporter(temp_results_dir)
         reporter.collect_all_findings()
@@ -600,7 +600,7 @@ contract Test {
 
     def test_generate_markdown_report(self, temp_results_dir, tmp_path):
         """Test Markdown report generation."""
-        from src.utils.enhanced_reporter import EnhancedReporter
+        from miesc.utils.enhanced_reporter import EnhancedReporter
 
         reporter = EnhancedReporter(temp_results_dir)
         reporter.collect_all_findings()
@@ -615,7 +615,7 @@ contract Test {
 
     def test_calculate_analysis_duration(self, temp_results_dir):
         """Test analysis duration calculation."""
-        from src.utils.enhanced_reporter import EnhancedReporter
+        from miesc.utils.enhanced_reporter import EnhancedReporter
 
         reporter = EnhancedReporter(temp_results_dir)
 
@@ -631,7 +631,7 @@ contract Test {
 
     def test_calculate_lines_of_code(self, temp_results_dir):
         """Test LOC calculation."""
-        from src.utils.enhanced_reporter import EnhancedReporter
+        from miesc.utils.enhanced_reporter import EnhancedReporter
 
         reporter = EnhancedReporter(temp_results_dir)
         loc = reporter._calculate_lines_of_code()
@@ -640,7 +640,7 @@ contract Test {
 
     def test_generate_statistics(self, temp_results_dir):
         """Test statistics generation."""
-        from src.utils.enhanced_reporter import EnhancedReporter
+        from miesc.utils.enhanced_reporter import EnhancedReporter
 
         reporter = EnhancedReporter(temp_results_dir)
         reporter.collect_all_findings()
@@ -654,7 +654,7 @@ contract Test {
 
     def test_empty_results_directory(self, tmp_path):
         """Test handling of empty results directory."""
-        from src.utils.enhanced_reporter import EnhancedReporter
+        from miesc.utils.enhanced_reporter import EnhancedReporter
 
         empty_dir = tmp_path / "empty"
         empty_dir.mkdir()
@@ -716,7 +716,7 @@ class TestXauditDashboard:
 
     def test_dashboard_initialization(self, temp_results_dir):
         """Test dashboard initialization."""
-        from src.utils.metrics_dashboard import XauditDashboard
+        from miesc.utils.metrics_dashboard import XauditDashboard
 
         dashboard = XauditDashboard(str(temp_results_dir))
 
@@ -727,7 +727,7 @@ class TestXauditDashboard:
 
     def test_collect_slither_metrics(self, temp_results_dir):
         """Test Slither metrics collection."""
-        from src.utils.metrics_dashboard import XauditDashboard
+        from miesc.utils.metrics_dashboard import XauditDashboard
 
         dashboard = XauditDashboard(str(temp_results_dir))
         slither = dashboard.metrics["slither"]
@@ -738,7 +738,7 @@ class TestXauditDashboard:
 
     def test_collect_foundry_metrics(self, temp_results_dir):
         """Test Foundry metrics collection."""
-        from src.utils.metrics_dashboard import XauditDashboard
+        from miesc.utils.metrics_dashboard import XauditDashboard
 
         dashboard = XauditDashboard(str(temp_results_dir))
         foundry = dashboard.metrics["foundry"]
@@ -748,7 +748,7 @@ class TestXauditDashboard:
 
     def test_collect_echidna_metrics(self, temp_results_dir):
         """Test Echidna metrics collection."""
-        from src.utils.metrics_dashboard import XauditDashboard
+        from miesc.utils.metrics_dashboard import XauditDashboard
 
         dashboard = XauditDashboard(str(temp_results_dir))
         echidna = dashboard.metrics["echidna"]
@@ -758,11 +758,11 @@ class TestXauditDashboard:
 
     def test_generate_charts_without_matplotlib(self, temp_results_dir, tmp_path, monkeypatch):
         """Test chart generation skips when matplotlib unavailable."""
-        from src.utils import metrics_dashboard
+        from miesc.utils import metrics_dashboard
 
         monkeypatch.setattr(metrics_dashboard, "plt", None)
 
-        from src.utils.metrics_dashboard import XauditDashboard
+        from miesc.utils.metrics_dashboard import XauditDashboard
 
         dashboard = XauditDashboard(str(temp_results_dir))
 
@@ -776,7 +776,7 @@ class TestXauditDashboard:
         """Test chart generation with matplotlib."""
         pytest.importorskip("matplotlib")
 
-        from src.utils.metrics_dashboard import XauditDashboard
+        from miesc.utils.metrics_dashboard import XauditDashboard
 
         dashboard = XauditDashboard(str(temp_results_dir))
 
@@ -791,7 +791,7 @@ class TestXauditDashboard:
 
     def test_generate_html_report(self, temp_results_dir, tmp_path):
         """Test HTML report generation."""
-        from src.utils.metrics_dashboard import XauditDashboard
+        from miesc.utils.metrics_dashboard import XauditDashboard
 
         dashboard = XauditDashboard(str(temp_results_dir))
 
@@ -805,7 +805,7 @@ class TestXauditDashboard:
 
     def test_save_metrics_json(self, temp_results_dir, tmp_path):
         """Test metrics JSON export."""
-        from src.utils.metrics_dashboard import XauditDashboard
+        from miesc.utils.metrics_dashboard import XauditDashboard
 
         dashboard = XauditDashboard(str(temp_results_dir))
 
@@ -819,7 +819,7 @@ class TestXauditDashboard:
 
     def test_empty_results(self, tmp_path):
         """Test handling of empty results."""
-        from src.utils.metrics_dashboard import XauditDashboard
+        from miesc.utils.metrics_dashboard import XauditDashboard
 
         empty_dir = tmp_path / "empty"
         empty_dir.mkdir()
@@ -947,7 +947,7 @@ class TestWebDashboardGenerator:
 
     def test_dashboard_initialization(self, temp_results_dir):
         """Test dashboard initialization."""
-        from src.utils.web_dashboard import WebDashboardGenerator
+        from miesc.utils.web_dashboard import WebDashboardGenerator
 
         dashboard = WebDashboardGenerator(str(temp_results_dir))
 
@@ -956,7 +956,7 @@ class TestWebDashboardGenerator:
 
     def test_parse_solhint(self, temp_results_dir):
         """Test Solhint parsing."""
-        from src.utils.web_dashboard import WebDashboardGenerator
+        from miesc.utils.web_dashboard import WebDashboardGenerator
 
         dashboard = WebDashboardGenerator(str(temp_results_dir))
         solhint = dashboard.metrics["tools"]["solhint"]
@@ -966,7 +966,7 @@ class TestWebDashboardGenerator:
 
     def test_parse_slither(self, temp_results_dir):
         """Test Slither parsing."""
-        from src.utils.web_dashboard import WebDashboardGenerator
+        from miesc.utils.web_dashboard import WebDashboardGenerator
 
         dashboard = WebDashboardGenerator(str(temp_results_dir))
         slither = dashboard.metrics["tools"]["slither"]
@@ -976,7 +976,7 @@ class TestWebDashboardGenerator:
 
     def test_parse_surya(self, temp_results_dir):
         """Test Surya parsing."""
-        from src.utils.web_dashboard import WebDashboardGenerator
+        from miesc.utils.web_dashboard import WebDashboardGenerator
 
         dashboard = WebDashboardGenerator(str(temp_results_dir))
         surya = dashboard.metrics["tools"]["surya"]
@@ -986,7 +986,7 @@ class TestWebDashboardGenerator:
 
     def test_parse_mythril(self, temp_results_dir):
         """Test Mythril parsing."""
-        from src.utils.web_dashboard import WebDashboardGenerator
+        from miesc.utils.web_dashboard import WebDashboardGenerator
 
         dashboard = WebDashboardGenerator(str(temp_results_dir))
         mythril = dashboard.metrics["tools"]["mythril"]
@@ -996,7 +996,7 @@ class TestWebDashboardGenerator:
 
     def test_parse_manticore(self, temp_results_dir):
         """Test Manticore parsing."""
-        from src.utils.web_dashboard import WebDashboardGenerator
+        from miesc.utils.web_dashboard import WebDashboardGenerator
 
         dashboard = WebDashboardGenerator(str(temp_results_dir))
         manticore = dashboard.metrics["tools"]["manticore"]
@@ -1006,7 +1006,7 @@ class TestWebDashboardGenerator:
 
     def test_parse_echidna(self, temp_results_dir):
         """Test Echidna parsing."""
-        from src.utils.web_dashboard import WebDashboardGenerator
+        from miesc.utils.web_dashboard import WebDashboardGenerator
 
         dashboard = WebDashboardGenerator(str(temp_results_dir))
         echidna = dashboard.metrics["tools"]["echidna"]
@@ -1017,7 +1017,7 @@ class TestWebDashboardGenerator:
 
     def test_parse_medusa(self, temp_results_dir):
         """Test Medusa parsing."""
-        from src.utils.web_dashboard import WebDashboardGenerator
+        from miesc.utils.web_dashboard import WebDashboardGenerator
 
         dashboard = WebDashboardGenerator(str(temp_results_dir))
         medusa = dashboard.metrics["tools"]["medusa"]
@@ -1028,7 +1028,7 @@ class TestWebDashboardGenerator:
 
     def test_parse_foundry_fuzz(self, temp_results_dir):
         """Test Foundry fuzz parsing."""
-        from src.utils.web_dashboard import WebDashboardGenerator
+        from miesc.utils.web_dashboard import WebDashboardGenerator
 
         dashboard = WebDashboardGenerator(str(temp_results_dir))
         fuzz = dashboard.metrics["tools"]["foundry_fuzz"]
@@ -1039,7 +1039,7 @@ class TestWebDashboardGenerator:
 
     def test_parse_foundry_invariants(self, temp_results_dir):
         """Test Foundry invariants parsing."""
-        from src.utils.web_dashboard import WebDashboardGenerator
+        from miesc.utils.web_dashboard import WebDashboardGenerator
 
         dashboard = WebDashboardGenerator(str(temp_results_dir))
         inv = dashboard.metrics["tools"]["foundry_invariants"]
@@ -1050,7 +1050,7 @@ class TestWebDashboardGenerator:
 
     def test_parse_certora(self, temp_results_dir):
         """Test Certora parsing."""
-        from src.utils.web_dashboard import WebDashboardGenerator
+        from miesc.utils.web_dashboard import WebDashboardGenerator
 
         dashboard = WebDashboardGenerator(str(temp_results_dir))
         certora = dashboard.metrics["tools"]["certora"]
@@ -1061,7 +1061,7 @@ class TestWebDashboardGenerator:
 
     def test_calculate_summary(self, temp_results_dir):
         """Test summary calculation."""
-        from src.utils.web_dashboard import WebDashboardGenerator
+        from miesc.utils.web_dashboard import WebDashboardGenerator
 
         dashboard = WebDashboardGenerator(str(temp_results_dir))
         summary = dashboard._calculate_summary()
@@ -1073,7 +1073,7 @@ class TestWebDashboardGenerator:
 
     def test_generate_html_dashboard(self, temp_results_dir, tmp_path):
         """Test HTML dashboard generation."""
-        from src.utils.web_dashboard import WebDashboardGenerator
+        from miesc.utils.web_dashboard import WebDashboardGenerator
 
         dashboard = WebDashboardGenerator(str(temp_results_dir))
 
@@ -1088,7 +1088,7 @@ class TestWebDashboardGenerator:
 
     def test_generate_tool_badges(self, temp_results_dir):
         """Test tool badges HTML generation."""
-        from src.utils.web_dashboard import WebDashboardGenerator
+        from miesc.utils.web_dashboard import WebDashboardGenerator
 
         dashboard = WebDashboardGenerator(str(temp_results_dir))
         badges = dashboard._generate_tool_badges()
@@ -1099,7 +1099,7 @@ class TestWebDashboardGenerator:
 
     def test_generate_static_analysis_table(self, temp_results_dir):
         """Test static analysis table generation."""
-        from src.utils.web_dashboard import WebDashboardGenerator
+        from miesc.utils.web_dashboard import WebDashboardGenerator
 
         dashboard = WebDashboardGenerator(str(temp_results_dir))
         table = dashboard._generate_static_analysis_table()
@@ -1109,7 +1109,7 @@ class TestWebDashboardGenerator:
 
     def test_generate_symbolic_analysis_table(self, temp_results_dir):
         """Test symbolic analysis table generation."""
-        from src.utils.web_dashboard import WebDashboardGenerator
+        from miesc.utils.web_dashboard import WebDashboardGenerator
 
         dashboard = WebDashboardGenerator(str(temp_results_dir))
         table = dashboard._generate_symbolic_analysis_table()
@@ -1118,7 +1118,7 @@ class TestWebDashboardGenerator:
 
     def test_generate_fuzzing_table(self, temp_results_dir):
         """Test fuzzing table generation."""
-        from src.utils.web_dashboard import WebDashboardGenerator
+        from miesc.utils.web_dashboard import WebDashboardGenerator
 
         dashboard = WebDashboardGenerator(str(temp_results_dir))
         table = dashboard._generate_fuzzing_table()
@@ -1127,7 +1127,7 @@ class TestWebDashboardGenerator:
 
     def test_generate_formal_verification_table(self, temp_results_dir):
         """Test formal verification table generation."""
-        from src.utils.web_dashboard import WebDashboardGenerator
+        from miesc.utils.web_dashboard import WebDashboardGenerator
 
         dashboard = WebDashboardGenerator(str(temp_results_dir))
         table = dashboard._generate_formal_verification_table()
@@ -1136,7 +1136,7 @@ class TestWebDashboardGenerator:
 
     def test_save_metrics_json(self, temp_results_dir, tmp_path):
         """Test metrics JSON saving."""
-        from src.utils.web_dashboard import WebDashboardGenerator
+        from miesc.utils.web_dashboard import WebDashboardGenerator
 
         dashboard = WebDashboardGenerator(str(temp_results_dir))
 
@@ -1149,7 +1149,7 @@ class TestWebDashboardGenerator:
 
     def test_group_by_severity(self, temp_results_dir):
         """Test severity grouping helper."""
-        from src.utils.web_dashboard import WebDashboardGenerator
+        from miesc.utils.web_dashboard import WebDashboardGenerator
 
         dashboard = WebDashboardGenerator(str(temp_results_dir))
 
@@ -1168,7 +1168,7 @@ class TestWebDashboardGenerator:
 
     def test_empty_results_directory(self, tmp_path):
         """Test handling of empty results directory."""
-        from src.utils.web_dashboard import WebDashboardGenerator
+        from miesc.utils.web_dashboard import WebDashboardGenerator
 
         empty_dir = tmp_path / "empty"
         empty_dir.mkdir()
@@ -1181,7 +1181,7 @@ class TestWebDashboardGenerator:
 
     def test_parse_solhint_malformed_json(self, tmp_path):
         """Test handling of malformed Solhint JSON."""
-        from src.utils.web_dashboard import WebDashboardGenerator
+        from miesc.utils.web_dashboard import WebDashboardGenerator
 
         solhint_dir = tmp_path / "solhint"
         solhint_dir.mkdir()
@@ -1195,7 +1195,7 @@ class TestWebDashboardGenerator:
 
     def test_parse_slither_malformed_json(self, tmp_path):
         """Test handling of malformed Slither JSON."""
-        from src.utils.web_dashboard import WebDashboardGenerator
+        from miesc.utils.web_dashboard import WebDashboardGenerator
 
         slither_dir = tmp_path / "slither"
         slither_dir.mkdir()
@@ -1209,7 +1209,7 @@ class TestWebDashboardGenerator:
 
     def test_parse_mythril_malformed_json(self, tmp_path):
         """Test handling of malformed Mythril JSON."""
-        from src.utils.web_dashboard import WebDashboardGenerator
+        from miesc.utils.web_dashboard import WebDashboardGenerator
 
         mythril_dir = tmp_path / "mythril"
         mythril_dir.mkdir()
@@ -1221,7 +1221,7 @@ class TestWebDashboardGenerator:
 
     def test_parse_echidna_malformed_json(self, tmp_path):
         """Test handling of malformed Echidna JSON."""
-        from src.utils.web_dashboard import WebDashboardGenerator
+        from miesc.utils.web_dashboard import WebDashboardGenerator
 
         echidna_dir = tmp_path / "echidna"
         echidna_dir.mkdir()
@@ -1233,7 +1233,7 @@ class TestWebDashboardGenerator:
 
     def test_parse_medusa_malformed_json(self, tmp_path):
         """Test handling of malformed Medusa JSON."""
-        from src.utils.web_dashboard import WebDashboardGenerator
+        from miesc.utils.web_dashboard import WebDashboardGenerator
 
         medusa_dir = tmp_path / "medusa"
         medusa_dir.mkdir()
@@ -1245,7 +1245,7 @@ class TestWebDashboardGenerator:
 
     def test_parse_foundry_malformed_json(self, tmp_path):
         """Test handling of malformed Foundry JSON."""
-        from src.utils.web_dashboard import WebDashboardGenerator
+        from miesc.utils.web_dashboard import WebDashboardGenerator
 
         foundry_dir = tmp_path / "foundry"
         foundry_dir.mkdir()
@@ -1291,8 +1291,8 @@ class TestUtilsIntegration:
         }
         (slither_dir / "results.json").write_text(json.dumps(slither_data))
 
-        from src.utils.enhanced_reporter import EnhancedReporter
-        from src.utils.web_dashboard import WebDashboardGenerator
+        from miesc.utils.enhanced_reporter import EnhancedReporter
+        from miesc.utils.web_dashboard import WebDashboardGenerator
 
         # Both should parse same data
         reporter = EnhancedReporter(results)
@@ -1312,7 +1312,7 @@ class TestXauditDashboardCoverage:
 
     def test_collect_foundry_metrics_no_results(self, tmp_path):
         """Test collecting Foundry metrics when no results exist."""
-        from src.utils.metrics_dashboard import XauditDashboard
+        from miesc.utils.metrics_dashboard import XauditDashboard
 
         dashboard = XauditDashboard(tmp_path)
         result = dashboard._collect_foundry_metrics()
@@ -1322,7 +1322,7 @@ class TestXauditDashboardCoverage:
 
     def test_collect_foundry_metrics_with_results(self, tmp_path):
         """Test collecting Foundry metrics with test results."""
-        from src.utils.metrics_dashboard import XauditDashboard
+        from miesc.utils.metrics_dashboard import XauditDashboard
 
         foundry_dir = tmp_path / "foundry"
         foundry_dir.mkdir()
@@ -1341,7 +1341,7 @@ class TestXauditDashboardCoverage:
 
     def test_collect_echidna_metrics_no_results(self, tmp_path):
         """Test collecting Echidna metrics when no results exist."""
-        from src.utils.metrics_dashboard import XauditDashboard
+        from miesc.utils.metrics_dashboard import XauditDashboard
 
         dashboard = XauditDashboard(tmp_path)
         result = dashboard._collect_echidna_metrics()
@@ -1351,7 +1351,7 @@ class TestXauditDashboardCoverage:
 
     def test_collect_echidna_metrics_with_results(self, tmp_path):
         """Test collecting Echidna metrics with property results."""
-        from src.utils.metrics_dashboard import XauditDashboard
+        from miesc.utils.metrics_dashboard import XauditDashboard
 
         echidna_dir = tmp_path / "echidna"
         echidna_dir.mkdir()
@@ -1370,7 +1370,7 @@ class TestXauditDashboardCoverage:
 
     def test_collect_metrics(self, tmp_path):
         """Test collecting all metrics from dashboard."""
-        from src.utils.metrics_dashboard import XauditDashboard
+        from miesc.utils.metrics_dashboard import XauditDashboard
 
         # Create various result directories
         slither_dir = tmp_path / "slither"
@@ -1395,7 +1395,7 @@ class TestMetricsDashboardMain:
         with patch.object(sys, "argv", ["metrics_dashboard", "--results", "/nonexistent/path"]):
             with patch.object(sys, "exit"):
                 try:
-                    from src.utils.metrics_dashboard import main
+                    from miesc.utils.metrics_dashboard import main
 
                     main()
                 except (SystemExit, ValueError):
@@ -1436,7 +1436,7 @@ class TestMetricsDashboardMain:
             ["metrics_dashboard", "--results", str(results_dir), "--output", str(output_dir)],
         ):
             try:
-                from src.utils.metrics_dashboard import main
+                from miesc.utils.metrics_dashboard import main
 
                 main()
             except (SystemExit, ValueError):

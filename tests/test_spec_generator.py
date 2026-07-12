@@ -2,7 +2,7 @@
 
 import pytest
 
-from src.formal import GeneratedSpec, SpecFormat, SpecGenerator
+from miesc.formal import GeneratedSpec, SpecFormat, SpecGenerator
 
 
 @pytest.fixture

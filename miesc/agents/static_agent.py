@@ -12,7 +12,7 @@ import subprocess
 from typing import Any, Dict, List
 
 from miesc.agents.base_agent import BaseAgent
-from src.integration.adapter_integration import integrate_static_analysis
+from miesc.integration.adapter_integration import integrate_static_analysis
 
 logger = logging.getLogger(__name__)
 

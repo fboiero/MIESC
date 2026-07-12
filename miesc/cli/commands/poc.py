@@ -44,7 +44,7 @@ def get_poc_generator() -> Any | None:
 
     if POC_AVAILABLE is None:
         try:
-            from src.poc import PoCGenerator
+            from miesc.poc import PoCGenerator
 
             _PoCGenerator = PoCGenerator
             POC_AVAILABLE = True
@@ -64,7 +64,7 @@ def get_foundry_runner(project_dir: str) -> Any | None:
 
     if _FoundryRunner is None:
         try:
-            from src.poc.validators import FoundryRunner
+            from miesc.poc.validators import FoundryRunner
 
             _FoundryRunner = FoundryRunner
             logger.debug("FoundryRunner loaded successfully")
@@ -147,7 +147,7 @@ def poc_generate(
         finding["function"] = target_function
 
     # Configure options
-    from src.poc import GenerationOptions
+    from miesc.poc import GenerationOptions
 
     options = GenerationOptions(
         fork_url=fork_url,
@@ -338,7 +338,7 @@ def poc_list(verbose: bool) -> None:
     info("Available vulnerability types for PoC generation:\n")
 
     # Get vulnerability types from the generator
-    from src.poc import VulnerabilityType
+    from miesc.poc import VulnerabilityType
 
     if RICH_AVAILABLE:
         table = Table(title="Supported Vulnerability Types", box=box.ROUNDED)

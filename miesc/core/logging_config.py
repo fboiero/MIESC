@@ -153,7 +153,7 @@ class RichFormatter(logging.Formatter):
 
         # Logger name (shortened)
         logger_name = record.name
-        if logger_name.startswith("src."):
+        if logger_name.startswith("miesc."):
             logger_name = logger_name[4:]
         if len(logger_name) > 20:
             parts = logger_name.split(".")

@@ -4,7 +4,7 @@ Tests for MIESC evaluation metrics module.
 Tests the evaluation metrics used for measuring vulnerability detection effectiveness.
 """
 
-from src.evaluation.metrics import (
+from miesc.evaluation.metrics import (
     EvaluationMetrics,
     Finding,
     compare_metrics,
