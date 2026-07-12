@@ -17,6 +17,7 @@ from miesc.cli.utils import (
     RICH_AVAILABLE,
     console,
     error,
+    get_data_path,
     get_root_dir,
     load_config,
     print_banner,
@@ -44,7 +45,7 @@ def config_show() -> None:
 
     cfg = load_config()
     if not cfg:
-        warning("No configuration found at config/miesc.yaml")
+        warning("No MIESC configuration found")
         return
 
     if RICH_AVAILABLE:
@@ -79,7 +80,7 @@ def config_validate() -> None:
     """Validate configuration file."""
     print_banner()
 
-    config_path = ROOT_DIR / "config" / "miesc.yaml"
+    config_path = get_data_path("config", "miesc.yaml")
     if not config_path.exists():
         error(f"Config file not found: {config_path}")
         sys.exit(1)

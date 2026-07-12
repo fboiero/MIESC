@@ -3473,8 +3473,22 @@ class TestConfigLoaderCoverage:
         os.environ.pop("MIESC_CONFIG", None)
 
         config = MIESCConfig()
-        # Should get default config
-        assert config.version == "5.1.2"
+        # With no cwd/env override, the finder falls back to the single packaged
+        # config source; its version must be the current one (not the old stale
+        # root duplicate that used to shadow it).
+        from pathlib import Path
+
+        import yaml as _yaml
+
+        _packaged = (
+            Path(__file__).resolve().parent.parent
+            / "miesc"
+            / "data"
+            / "config"
+            / "miesc.yaml"
+        )
+        _expected = _yaml.safe_load(_packaged.read_text(encoding="utf-8"))["version"]
+        assert config.version == _expected
         self._reset_singleton()
 
     def test_get_config_function(self):

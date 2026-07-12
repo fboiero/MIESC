@@ -20,10 +20,8 @@ from src.core.config_loader import (
 
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent
-_CONFIG_COPIES = [
-    _REPO_ROOT / "config" / "miesc.yaml",
-    _REPO_ROOT / "miesc" / "data" / "config" / "miesc.yaml",
-]
+_PACKAGED_CONFIG = _REPO_ROOT / "miesc" / "data" / "config" / "miesc.yaml"
+_OLD_ROOT_CONFIG = _REPO_ROOT / "config" / "miesc.yaml"
 
 # Canonical 9-layer taxonomy (mirrors miesc/cli/constants.py LAYERS keys).
 _CANONICAL_LAYER_KEYS = [
@@ -39,28 +37,38 @@ _CANONICAL_LAYER_KEYS = [
 ]
 
 
-class TestConfigCopiesInSync:
-    """Guard: the dev (config/) and packaged (miesc/data/config/) YAMLs must not drift."""
+class TestSingleConfigSource:
+    """Guard: config has a single packaged source of truth (no drifting duplicate)."""
 
-    def test_both_config_copies_exist(self):
-        for path in _CONFIG_COPIES:
-            assert path.is_file(), f"missing config copy: {path}"
+    def test_packaged_config_exists(self):
+        assert _PACKAGED_CONFIG.is_file(), f"missing packaged config: {_PACKAGED_CONFIG}"
 
-    def test_config_copies_are_byte_identical(self):
-        root, packaged = (p.read_text(encoding="utf-8") for p in _CONFIG_COPIES)
-        assert root == packaged, (
-            "config/miesc.yaml and miesc/data/config/miesc.yaml have diverged; "
-            "keep the two copies identical (see technical-debt plan)."
+    def test_no_duplicate_root_config(self):
+        # Config was unified to the single packaged source; the old dev duplicate
+        # must not be re-introduced (it silently drifted before — stale version/layers).
+        assert not _OLD_ROOT_CONFIG.exists(), (
+            "config/miesc.yaml was re-introduced; the single source is "
+            "miesc/data/config/miesc.yaml (see technical-debt plan)."
         )
 
     def test_config_layers_match_canonical_taxonomy(self):
-        for path in _CONFIG_COPIES:
-            data = yaml.safe_load(path.read_text(encoding="utf-8"))
-            keys = list(data.get("layers", {}).keys())
-            assert keys == _CANONICAL_LAYER_KEYS, (
-                f"{path} layer keys {keys} do not match the canonical "
-                f"constants.py taxonomy {_CANONICAL_LAYER_KEYS}"
-            )
+        data = yaml.safe_load(_PACKAGED_CONFIG.read_text(encoding="utf-8"))
+        keys = list(data.get("layers", {}).keys())
+        assert keys == _CANONICAL_LAYER_KEYS, (
+            f"{_PACKAGED_CONFIG} layer keys {keys} do not match the canonical "
+            f"constants.py taxonomy {_CANONICAL_LAYER_KEYS}"
+        )
+
+    def test_config_loader_falls_back_to_packaged(self, tmp_path, monkeypatch):
+        # With no cwd/env override, the finder must resolve to the packaged file.
+        from src.core.config_loader import MIESCConfig
+
+        monkeypatch.delenv("MIESC_CONFIG", raising=False)
+        monkeypatch.chdir(tmp_path)  # empty cwd -> no local override
+        MIESCConfig._instance = None
+        resolved = MIESCConfig()._find_config_file()
+        assert resolved == _PACKAGED_CONFIG, f"finder resolved to {resolved}"
+        MIESCConfig._instance = None
 
 
 class TestAdapterConfig:

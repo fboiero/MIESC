@@ -1,6 +1,7 @@
 """
 MIESC Configuration Loader
-Carga y gestiona la configuración centralizada desde config/miesc.yaml
+Carga y gestiona la configuración centralizada desde el archivo empaquetado
+miesc/data/config/miesc.yaml (con overrides opcionales por env MIESC_CONFIG o cwd).
 """
 
 import os
@@ -48,10 +49,19 @@ class MIESCConfig:
         """Encuentra el archivo de configuración."""
         # Buscar en orden de prioridad
         env_config = os.environ.get("MIESC_CONFIG", "")
+        # Single packaged source of truth: miesc/data/config/miesc.yaml.
+        # The cwd/env paths above it allow optional per-user or per-project overrides.
+        packaged = (
+            Path(__file__).parent.parent.parent
+            / "miesc"
+            / "data"
+            / "config"
+            / "miesc.yaml"
+        )
         search_paths = [
             Path.cwd() / "config" / "miesc.yaml",
             Path.cwd() / "miesc.yaml",
-            Path(__file__).parent.parent.parent / "config" / "miesc.yaml",
+            packaged,
             Path.home() / ".miesc" / "config.yaml",
         ]
 
@@ -64,7 +74,7 @@ class MIESCConfig:
                 return path
 
         # Retornar path default aunque no exista
-        return Path(__file__).parent.parent.parent / "config" / "miesc.yaml"
+        return packaged
 
     def _load_config(self) -> None:
         """Carga la configuración desde el archivo YAML."""

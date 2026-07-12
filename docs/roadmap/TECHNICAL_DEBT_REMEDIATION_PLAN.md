@@ -91,10 +91,16 @@ byte-identical, and carry the canonical layer keys). All doc layer tables
 QUICKSTART, report templates, and `docs/architecture/layers.rst`) are aligned to
 the canonical scheme.
 
-This debt item is now fully resolved. Residual follow-ups (nice-to-have, not
-blocking): collapse the two `miesc.yaml` copies into a single packaged source, and
-migrate `src/core` to consume `constants.LAYERS` directly instead of mirroring it
-in YAML.
+This debt item is now fully resolved. Config was also **collapsed to a single
+packaged source**: `miesc/data/config/miesc.yaml` is the sole source of truth;
+`config_loader` and the `miesc config` command resolve to it (via the packaged path
+/ `get_data_path`), the stale root duplicates `config/miesc.yaml` and
+`config/profiles.yaml` were removed (root `config/` keeps only `codecov.yml` and
+`foundry.toml`), and `TestSingleConfigSource` now guards that the packaged source
+exists, has the canonical layer keys, that the finder falls back to it, and that
+the root duplicate is not re-introduced. The last residual follow-up (nice-to-have):
+migrate `src/core` to consume `constants.LAYERS` directly instead of mirroring the
+taxonomy in YAML.
 
 **Validation path:** after the refactor, `constants.py`, `miesc.yaml`, the REST API
 `/layers` response, and the README "9 Defense Layers" block must all print the same
