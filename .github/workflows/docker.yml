@@ -6,7 +6,7 @@ on:
     paths:
       - 'docker/Dockerfile'
       - 'docker/Dockerfile.*'
-      - 'src/**'
+      - 'miesc/**'
       - 'miesc/**'
       - 'pyproject.toml'
       - '.github/workflows/docker.yml'

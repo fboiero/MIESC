@@ -6,7 +6,7 @@ on:
     paths:
       - '**.sol'
       - 'contracts/**'
-      - 'src/**'
+      - 'miesc/**'
   pull_request:
     branches: [main]
     paths:

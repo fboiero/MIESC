@@ -34,13 +34,13 @@ jobs:
           pip install ruff 'black>=26.1.0' isort mypy
 
       - name: Run Ruff (linter)
-        run: ruff check src/ tests/ --output-format=github
+        run: ruff check miesc/ tests/ --output-format=github
 
       - name: Check Black formatting
-        run: black --check src/ tests/
+        run: black --check miesc/ tests/
 
       - name: Check import sorting (via ruff)
-        run: ruff check src/ tests/ --select I001
+        run: ruff check miesc/ tests/ --select I001
 
   # =============================================================================
   # Type Checking
@@ -67,7 +67,7 @@ jobs:
 
       - name: Run mypy
         id: mypy
-        run: mypy src/ miesc/ --ignore-missing-imports
+        run: mypy miesc/ --ignore-missing-imports
         continue-on-error: true
 
       - name: Record type-check status
@@ -110,7 +110,7 @@ jobs:
             --ignore=tests/test_integration.py \
             -v \
             --tb=short \
-            --cov=src \
+            --cov=miesc \
             --cov-report=xml \
             --cov-report=term-missing \
             --cov-fail-under=65
@@ -187,7 +187,7 @@ jobs:
         run: pip install bandit pip-audit safety
 
       - name: Run Bandit (Python security linter)
-        run: bandit -r src/ -ll -ii --exit-zero
+        run: bandit -r miesc/ -ll -ii --exit-zero
 
       - name: Install project dependencies
         run: pip install -e .
@@ -247,7 +247,7 @@ jobs:
       - name: Test Docker image
         run: |
           docker run --rm miesc:latest --version
-          docker run --rm --entrypoint python miesc:latest -c "from src.core import get_ml_orchestrator; print('MIESC OK')"
+          docker run --rm --entrypoint python miesc:latest -c "from miesc.core import get_ml_orchestrator; print('MIESC OK')"
 
       - name: Scan Docker image for vulnerabilities (Trivy)
         uses: aquasecurity/trivy-action@master

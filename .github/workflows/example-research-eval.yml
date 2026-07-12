@@ -13,7 +13,7 @@ name: Research Evaluation
 on:
   push:
     branches: [main]
-    paths: ['src/**', 'miesc/**', 'config/**']
+    paths: ['miesc/**', 'config/**']
   workflow_dispatch:
     inputs:
       layers:
