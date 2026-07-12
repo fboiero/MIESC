@@ -122,7 +122,7 @@ for name, class_name, module_name, layer in ADAPTERS_CONFIG:
 
     try:
         # Dynamic import
-        module = __import__(f"src.adapters.{module_name}", fromlist=[class_name])
+        module = __import__(f"miesc.adapters.{module_name}", fromlist=[class_name])
         adapter_class = getattr(module, class_name)
 
         # Instantiate

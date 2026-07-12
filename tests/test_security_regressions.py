@@ -231,7 +231,7 @@ class TestReDoSResistance:
 
     def test_cairo_scan_bounded_time_on_pathological_input(self):
         """5000 lines of whitespace-nested code must scan in reasonable time."""
-        from src.adapters.cairo_adapter import CairoAnalyzer
+        from miesc.adapters.cairo_adapter import CairoAnalyzer
 
         # Pathological input: deeply-nested pattern that a bad regex would
         # backtrack on catastrophically

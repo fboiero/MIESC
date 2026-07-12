@@ -68,7 +68,7 @@ Use individual tool adapters:
 
 .. code-block:: python
 
-    from src.adapters.slither_adapter import SlitherAdapter
+    from miesc.adapters.slither_adapter import SlitherAdapter
 
     # Initialize adapter
     adapter = SlitherAdapter()

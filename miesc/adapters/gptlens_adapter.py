@@ -37,8 +37,8 @@ import urllib.request
 from pathlib import Path
 from typing import cast, Any, Dict, List, Optional, Tuple
 
-from src.adapters._cache_mixin import LLMCacheMixin
-from src.adapters._ollama_mixin import OllamaCallMixin
+from miesc.adapters._cache_mixin import LLMCacheMixin
+from miesc.adapters._ollama_mixin import OllamaCallMixin
 from src.core.llm_config import get_ollama_host
 from src.core.ollama_models import list_ollama_models, select_ollama_model
 from src.core.tool_protocol import (
@@ -246,7 +246,7 @@ DEFAULT_SEVERITY_MAP = {
 # Prompts (extracted to gptlens_prompts.py for maintainability)
 # ============================================================================
 
-from src.adapters.gptlens_prompts import (  # noqa: E402
+from miesc.adapters.gptlens_prompts import (  # noqa: E402
     AUDITOR_PROMPT_TEMPLATE,
     CRITIC_PROMPT_TEMPLATE,
 )

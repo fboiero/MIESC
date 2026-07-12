@@ -12,7 +12,7 @@ Phase-1 modules into a single multi-turn, tool-using, memory-backed audit loop.
     instead of repeat and the loop has a real convergence criterion.
   * :mod:`miesc.agents.agentic_prompts` supplies the three turn prompts
     (enumerate / verify / completeness).
-  * :meth:`~src.adapters.frontier_llm_adapter.FrontierLLMAdapter.converse_with_tools`
+  * :meth:`~miesc.adapters.frontier_llm_adapter.FrontierLLMAdapter.converse_with_tools`
     runs the Anthropic tool-use conversation.
 
 The loop (design §7):
@@ -41,7 +41,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List
 
-from src.adapters.frontier_llm_adapter import (
+from miesc.adapters.frontier_llm_adapter import (
     ConversationResult,
     FrontierLLMAdapter,
     ToolSpec,

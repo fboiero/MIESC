@@ -11,7 +11,7 @@ import pytest
 @pytest.fixture
 def adapter():
     # Import lazily to avoid triggering Ollama availability checks during collection
-    from src.adapters.gptscan_adapter import GPTScanAdapter
+    from miesc.adapters.gptscan_adapter import GPTScanAdapter
 
     return GPTScanAdapter()
 

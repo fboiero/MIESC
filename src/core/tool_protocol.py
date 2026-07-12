@@ -222,7 +222,7 @@ class ToolAdapter(ABC):
 After installation, verify availability:
 
 ```python
-from src.adapters.{metadata.name}_adapter import {metadata.name.title()}Adapter
+from miesc.adapters.{metadata.name}_adapter import {metadata.name.title()}Adapter
 
 adapter = {metadata.name.title()}Adapter()
 status = adapter.is_available()

@@ -15,7 +15,7 @@ from unittest.mock import MagicMock, mock_open, patch
 
 import pytest
 
-from src.adapters.semgrep_adapter import SemgrepAdapter, register_adapter
+from miesc.adapters.semgrep_adapter import SemgrepAdapter, register_adapter
 from src.core.tool_protocol import ToolCategory, ToolMetadata, ToolStatus
 
 # =============================================================================
@@ -246,7 +246,7 @@ class TestInitialization:
         pysemgrep.touch()
 
         with patch(
-            "src.adapters.semgrep_adapter.Path.resolve",
+            "miesc.adapters.semgrep_adapter.Path.resolve",
             return_value=tmp_path / "src" / "adapters" / "semgrep_adapter.py",
         ):
             adapter = SemgrepAdapter(config={})
@@ -378,7 +378,7 @@ class TestAnalyze:
                 with patch.object(adapter, "_create_custom_rules_file", return_value=None):
                     with patch("builtins.open", mock_open(read_data="contract code")):
                         with patch(
-                            "src.adapters.semgrep_adapter.enhance_findings_with_llm",
+                            "miesc.adapters.semgrep_adapter.enhance_findings_with_llm",
                             return_value=[],
                         ):
                             result = adapter.analyze("/path/to/contract.sol", verbose=False)
@@ -409,7 +409,7 @@ class TestAnalyze:
                 with patch.object(adapter, "_create_custom_rules_file", return_value=None):
                     with patch("builtins.open", mock_open(read_data="contract")):
                         with patch(
-                            "src.adapters.semgrep_adapter.enhance_findings_with_llm",
+                            "miesc.adapters.semgrep_adapter.enhance_findings_with_llm",
                             side_effect=lambda f, c, t: f,
                         ):
                             result = adapter.analyze("/path/to/contract.sol", verbose=False)
@@ -449,7 +449,7 @@ class TestAnalyze:
                 with patch.object(adapter, "_create_custom_rules_file", return_value=None):
                     with patch("builtins.open", mock_open(read_data="contract")):
                         with patch(
-                            "src.adapters.semgrep_adapter.enhance_findings_with_llm",
+                            "miesc.adapters.semgrep_adapter.enhance_findings_with_llm",
                             side_effect=lambda f, c, t: f,
                         ):
                             result = adapter.analyze("/path/to/contract.sol", verbose=False)
@@ -467,7 +467,7 @@ class TestAnalyze:
                 with patch.object(adapter, "_create_custom_rules_file", return_value=None):
                     with patch("builtins.open", mock_open(read_data="contract")):
                         with patch(
-                            "src.adapters.semgrep_adapter.enhance_findings_with_llm",
+                            "miesc.adapters.semgrep_adapter.enhance_findings_with_llm",
                             return_value=[],
                         ):
                             result = adapter.analyze(
@@ -977,7 +977,7 @@ class TestIntegration:
             with patch("subprocess.run", return_value=mock_result):
                 with patch.object(adapter, "_create_custom_rules_file", return_value=None):
                     with patch(
-                        "src.adapters.semgrep_adapter.enhance_findings_with_llm",
+                        "miesc.adapters.semgrep_adapter.enhance_findings_with_llm",
                         side_effect=lambda f, c, t: f,
                     ):
                         result = adapter.analyze(str(contract), verbose=False)
@@ -1007,7 +1007,7 @@ class TestIntegration:
             with patch("subprocess.run", return_value=mock_result) as mock_run:
                 with patch("builtins.open", mock_open(read_data="contract")):
                     with patch(
-                        "src.adapters.semgrep_adapter.enhance_findings_with_llm", return_value=[]
+                        "miesc.adapters.semgrep_adapter.enhance_findings_with_llm", return_value=[]
                     ):
                         result = adapter_with_config.analyze(str(contract), verbose=False)
 

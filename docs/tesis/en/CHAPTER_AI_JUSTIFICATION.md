@@ -618,7 +618,7 @@ TCPDUMP_PID=$!
 
 # Run test analysis
 python3 -c "
-from src.adapters.gptscan_adapter import GPTScanAdapter
+from miesc.adapters.gptscan_adapter import GPTScanAdapter
 adapter = GPTScanAdapter()
 adapter.analyze('contracts/test/TestContract.sol')
 " 2>/dev/null

@@ -14,7 +14,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.adapters.invariant_synthesizer import InvariantCategory, SynthesizedInvariant
+from miesc.adapters.invariant_synthesizer import InvariantCategory, SynthesizedInvariant
 from miesc.ml.invariant_validator import (
     InvariantTestGenerator,
     InvariantTestResult,

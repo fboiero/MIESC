@@ -46,7 +46,7 @@ class TestLargeContractScanning:
         return p
 
     def test_large_cairo_source_scans_under_10s(self, tmp_path):
-        from src.adapters.cairo_adapter import CairoAnalyzer
+        from miesc.adapters.cairo_adapter import CairoAnalyzer
 
         # 5000-line Cairo source
         code = "\n".join(f"fn f{i}() {{ let a: u256 = b + c; }}" for i in range(5000))

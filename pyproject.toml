@@ -192,7 +192,7 @@ packages = [
     "miesc.plugins",
     "miesc.plugins.templates",
     "src",
-    "src.adapters",
+    "miesc.adapters",
     "miesc.agents",
     "miesc.agents.audit_readiness",
     "src.benchmark",

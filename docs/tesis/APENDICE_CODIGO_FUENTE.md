@@ -341,7 +341,7 @@ class SlitherAdapter(ToolAdapter):
 from typing import List, Dict, Any, Set
 from dataclasses import asdict
 import hashlib
-from ..adapters.base_adapter import Finding, Severity
+from miesc.adapters.base_adapter import Finding, Severity
 
 class FindingNormalizer:
     """
@@ -500,7 +500,7 @@ from typing import Dict, Any, List, Optional
 from concurrent.futures import ThreadPoolExecutor
 import time
 
-from ..adapters import get_all_adapters, get_adapters_by_layer
+from miesc.adapters import get_all_adapters, get_adapters_by_layer
 from ..normalizer.finding_normalizer import FindingNormalizer
 
 class PipelineOrchestrator:
@@ -661,7 +661,7 @@ from mcp.server.stdio import stdio_server
 from mcp.types import Tool, Resource, TextContent
 
 from ..pipeline.orchestrator import PipelineOrchestrator
-from ..adapters import get_all_adapters
+from miesc.adapters import get_all_adapters
 
 app = Server("miesc-security")
 orchestrator = PipelineOrchestrator()

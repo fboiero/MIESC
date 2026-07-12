@@ -310,7 +310,7 @@ class AdapterLoader:
         for tool_name, class_name in ADAPTER_MAP.items():
             try:
                 # Build module name
-                module_name = f"src.adapters.{tool_name}_adapter"
+                module_name = f"miesc.adapters.{tool_name}_adapter"
 
                 # Try to import module
                 module = importlib.import_module(module_name)
@@ -671,7 +671,7 @@ def load_adapters(force_reload: bool = False) -> Dict[str, Any]:
 
     for tool_name, class_name in ADAPTER_MAP.items():
         try:
-            module_name = f"src.adapters.{tool_name}_adapter"
+            module_name = f"miesc.adapters.{tool_name}_adapter"
             module = importlib.import_module(module_name)
             cls = getattr(module, class_name, None)
             if cls is None:

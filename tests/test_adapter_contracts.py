@@ -115,7 +115,7 @@ def _import_adapter(tool_name: str, class_name: str):
     import importlib
 
     try:
-        module = importlib.import_module(f"src.adapters.{tool_name}_adapter")
+        module = importlib.import_module(f"miesc.adapters.{tool_name}_adapter")
     except ImportError:
         return None
     return getattr(module, class_name, None)
@@ -134,7 +134,7 @@ class TestAdapterImportContract:
         import importlib
 
         try:
-            module = importlib.import_module(f"src.adapters.{tool_name}_adapter")
+            module = importlib.import_module(f"miesc.adapters.{tool_name}_adapter")
         except ImportError:
             pytest.skip(f"{tool_name}_adapter has unmet optional deps")
         # Either class exists or module exposes None — both OK

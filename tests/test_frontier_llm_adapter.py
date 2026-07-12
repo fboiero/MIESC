@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 from unittest.mock import MagicMock, patch
 
-from src.adapters.frontier_llm_adapter import FrontierLLMAdapter
+from miesc.adapters.frontier_llm_adapter import FrontierLLMAdapter
 from src.core.tool_protocol import ToolStatus
 
 

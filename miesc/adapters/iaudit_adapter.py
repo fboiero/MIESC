@@ -39,8 +39,8 @@ import urllib.request
 from pathlib import Path
 from typing import cast, Any, Dict, List, Optional, Tuple
 
-from src.adapters._cache_mixin import LLMCacheMixin
-from src.adapters._ollama_mixin import OllamaCallMixin
+from miesc.adapters._cache_mixin import LLMCacheMixin
+from miesc.adapters._ollama_mixin import OllamaCallMixin
 from src.core.llm_config import get_ollama_host
 from src.core.tool_protocol import (
     ToolAdapter,
@@ -272,7 +272,7 @@ VULNERABILITY_PATTERNS: Dict[str, Dict[str, Any]] = {
 # ---------------------------------------------------------------------------
 # Agent prompt templates (extracted to iaudit_prompts.py for maintainability)
 # ---------------------------------------------------------------------------
-from src.adapters.iaudit_prompts import (  # noqa: E402
+from miesc.adapters.iaudit_prompts import (  # noqa: E402
     DETECTOR_PROMPT,
     PLANNER_PROMPT,
     REVIEWER_PROMPT,

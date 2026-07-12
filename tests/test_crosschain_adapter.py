@@ -1,8 +1,8 @@
-"""Tests for src.adapters.crosschain_adapter — Cross-chain bridge security analyzer."""
+"""Tests for miesc.adapters.crosschain_adapter — Cross-chain bridge security analyzer."""
 
 import pytest
 
-from src.adapters.crosschain_adapter import (
+from miesc.adapters.crosschain_adapter import (
     CROSSCHAIN_VULNERABILITY_PATTERNS,
     BridgeType,
     CrossChainAdapter,

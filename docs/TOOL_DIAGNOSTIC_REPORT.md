@@ -66,7 +66,7 @@ The adapter now prefers `.tools/semgrep/bin/pysemgrep` when present. This avoids
 Validation:
 
 ```bash
-uv run python -c "from src.adapters.semgrep_adapter import SemgrepAdapter; a=SemgrepAdapter(); print(a.semgrep_bin); print(a.is_available().name)"
+uv run python -c "from miesc.adapters.semgrep_adapter import SemgrepAdapter; a=SemgrepAdapter(); print(a.semgrep_bin); print(a.is_available().name)"
 ```
 
 Expected:
@@ -83,7 +83,7 @@ The SMTChecker adapter now selects a working `solc` binary instead of trusting t
 Validation:
 
 ```bash
-uv run python -c "from src.adapters.smtchecker_adapter import SMTCheckerAdapter; a=SMTCheckerAdapter(); print(a._solc_cmd); print(a.is_available().name)"
+uv run python -c "from miesc.adapters.smtchecker_adapter import SMTCheckerAdapter; a=SMTCheckerAdapter(); print(a._solc_cmd); print(a.is_available().name)"
 ```
 
 Expected:

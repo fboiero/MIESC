@@ -1,8 +1,8 @@
-"""Tests for src.adapters.zk_circuit_adapter — ZK circuit security analyzer."""
+"""Tests for miesc.adapters.zk_circuit_adapter — ZK circuit security analyzer."""
 
 import pytest
 
-from src.adapters.zk_circuit_adapter import (
+from miesc.adapters.zk_circuit_adapter import (
     ZK_VULNERABILITY_PATTERNS,
     ZKCircuitAdapter,
     ZKFramework,

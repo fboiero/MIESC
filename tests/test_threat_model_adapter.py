@@ -6,7 +6,7 @@ pattern detection, DREAD-score -> severity mapping, threat metrics (breakdown,
 avg DREAD, highest-risk category, audit-readiness), filtering and normalization.
 """
 
-from src.adapters.threat_model_adapter import ThreatModelAdapter
+from miesc.adapters.threat_model_adapter import ThreatModelAdapter
 from src.core.tool_protocol import ToolStatus
 
 # Trips several STRIDE patterns: tx.origin (Spoofing), public state var (Tampering),

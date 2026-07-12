@@ -27,7 +27,7 @@ from enum import Enum
 from pathlib import Path
 from typing import cast, Any, Dict, List, Optional
 
-from src.adapters.smartllm_rag_knowledge import (
+from miesc.adapters.smartllm_rag_knowledge import (
     FORMAL_INVARIANTS,
     get_all_vulnerability_patterns,
     get_relevant_knowledge,

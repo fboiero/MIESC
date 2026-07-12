@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from src.adapters.llmbugscanner_adapter import LLMBugScannerAdapter, ModelConfig
+from miesc.adapters.llmbugscanner_adapter import LLMBugScannerAdapter, ModelConfig
 
 
 def _adapter():

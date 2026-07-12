@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from src.adapters.crosschain_adapter import BridgeType, CrossChainAdapter
+from miesc.adapters.crosschain_adapter import BridgeType, CrossChainAdapter
 
 BRIDGE = """contract Bridge {
     mapping(bytes32 => bool) processed;

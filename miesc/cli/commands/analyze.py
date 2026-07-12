@@ -98,12 +98,12 @@ def analyze(contract: str, chain: str | None, output: str | None, ci: bool, quie
             return
 
         elif chain == "starknet":
-            from src.adapters.cairo_adapter import CairoAnalyzer
+            from miesc.adapters.cairo_adapter import CairoAnalyzer
 
             result = CairoAnalyzer().analyze(contract)
 
         elif chain == "move":
-            from src.adapters.move_adapter import MoveAnalyzer
+            from miesc.adapters.move_adapter import MoveAnalyzer
 
             analyzer: Any = MoveAnalyzer()
             # MoveAnalyzer is AbstractChainAnalyzer — use parse + detect
@@ -119,7 +119,7 @@ def analyze(contract: str, chain: str | None, output: str | None, ci: bool, quie
             }
 
         elif chain == "solana":
-            from src.adapters.solana_adapter import SolanaAnalyzer
+            from miesc.adapters.solana_adapter import SolanaAnalyzer
 
             analyzer = SolanaAnalyzer()
             contract_obj = analyzer.parse(Path(contract))

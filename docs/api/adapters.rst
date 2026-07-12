@@ -23,7 +23,7 @@ Static Analysis Adapters
 Slither Adapter
 ~~~~~~~~~~~~~~~
 
-.. automodule:: src.adapters.slither_adapter
+.. automodule:: miesc.adapters.slither_adapter
    :members:
    :undoc-members:
    :show-inheritance:
@@ -31,7 +31,7 @@ Slither Adapter
 Aderyn Adapter
 ~~~~~~~~~~~~~~
 
-.. automodule:: src.adapters.aderyn_adapter
+.. automodule:: miesc.adapters.aderyn_adapter
    :members:
    :undoc-members:
    :show-inheritance:
@@ -39,7 +39,7 @@ Aderyn Adapter
 Solhint Adapter
 ~~~~~~~~~~~~~~~
 
-.. automodule:: src.adapters.solhint_adapter
+.. automodule:: miesc.adapters.solhint_adapter
    :members:
    :undoc-members:
    :show-inheritance:
@@ -47,7 +47,7 @@ Solhint Adapter
 Semgrep Adapter
 ~~~~~~~~~~~~~~~
 
-.. automodule:: src.adapters.semgrep_adapter
+.. automodule:: miesc.adapters.semgrep_adapter
    :members:
    :undoc-members:
    :show-inheritance:
@@ -58,7 +58,7 @@ Symbolic Execution Adapters
 Mythril Adapter
 ~~~~~~~~~~~~~~~
 
-.. automodule:: src.adapters.mythril_adapter
+.. automodule:: miesc.adapters.mythril_adapter
    :members:
    :undoc-members:
    :show-inheritance:
@@ -69,7 +69,7 @@ Dynamic Testing Adapters
 Hardhat Adapter
 ~~~~~~~~~~~~~~~
 
-.. automodule:: src.adapters.hardhat_adapter
+.. automodule:: miesc.adapters.hardhat_adapter
    :members:
    :undoc-members:
    :show-inheritance:
@@ -80,7 +80,7 @@ DeFi Adapters
 DeFi Adapter
 ~~~~~~~~~~~~
 
-.. automodule:: src.adapters.defi_adapter
+.. automodule:: miesc.adapters.defi_adapter
    :members:
    :undoc-members:
    :show-inheritance:
@@ -88,7 +88,7 @@ DeFi Adapter
 Advanced Detector Adapter
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. automodule:: src.adapters.advanced_detector_adapter
+.. automodule:: miesc.adapters.advanced_detector_adapter
    :members:
    :undoc-members:
    :show-inheritance:
@@ -99,7 +99,7 @@ LLM Adapters
 SmartLLM Adapter
 ~~~~~~~~~~~~~~~~
 
-.. automodule:: src.adapters.smartllm_adapter
+.. automodule:: miesc.adapters.smartllm_adapter
    :members:
    :undoc-members:
    :show-inheritance:
@@ -107,7 +107,7 @@ SmartLLM Adapter
 GPTLens Adapter
 ~~~~~~~~~~~~~~~
 
-.. automodule:: src.adapters.gptlens_adapter
+.. automodule:: miesc.adapters.gptlens_adapter
    :members:
    :undoc-members:
    :show-inheritance:

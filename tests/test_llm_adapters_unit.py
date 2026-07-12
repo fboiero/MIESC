@@ -22,7 +22,7 @@ from src.core.tool_protocol import ToolCategory, ToolStatus
 class TestGPTLensAdapter:
     @pytest.fixture
     def adapter(self):
-        from src.adapters.gptlens_adapter import GPTLensAdapter
+        from miesc.adapters.gptlens_adapter import GPTLensAdapter
 
         return GPTLensAdapter()
 
@@ -46,7 +46,7 @@ class TestGPTLensAdapter:
             assert status in (ToolStatus.NOT_INSTALLED, ToolStatus.CONFIGURATION_ERROR)
 
     def test_prompt_templates_are_strings(self):
-        from src.adapters.gptlens_adapter import AUDITOR_PROMPT_TEMPLATE, CRITIC_PROMPT_TEMPLATE
+        from miesc.adapters.gptlens_adapter import AUDITOR_PROMPT_TEMPLATE, CRITIC_PROMPT_TEMPLATE
 
         assert isinstance(AUDITOR_PROMPT_TEMPLATE, str)
         assert isinstance(CRITIC_PROMPT_TEMPLATE, str)
@@ -54,7 +54,7 @@ class TestGPTLensAdapter:
         assert "{contract_code}" in CRITIC_PROMPT_TEMPLATE
 
     def test_prompt_templates_have_json_output_format(self):
-        from src.adapters.gptlens_adapter import AUDITOR_PROMPT_TEMPLATE
+        from miesc.adapters.gptlens_adapter import AUDITOR_PROMPT_TEMPLATE
 
         assert "JSON" in AUDITOR_PROMPT_TEMPLATE
         assert "findings" in AUDITOR_PROMPT_TEMPLATE
@@ -123,7 +123,7 @@ class TestGPTLensAdapter:
 class TestIAuditAdapter:
     @pytest.fixture
     def adapter(self):
-        from src.adapters.iaudit_adapter import IAuditAdapter
+        from miesc.adapters.iaudit_adapter import IAuditAdapter
 
         return IAuditAdapter()
 
@@ -175,7 +175,7 @@ class TestIAuditAdapter:
         assert normalized[0]["cwe_id"] is None
 
     def test_prompt_templates_imported(self):
-        from src.adapters.iaudit_prompts import (
+        from miesc.adapters.iaudit_prompts import (
             DETECTOR_PROMPT,
             PLANNER_PROMPT,
             REVIEWER_PROMPT,
@@ -188,7 +188,7 @@ class TestIAuditAdapter:
         assert "{detector_findings}" in REVIEWER_PROMPT
 
     def test_planner_prompt_has_json_schema(self):
-        from src.adapters.iaudit_prompts import PLANNER_PROMPT
+        from miesc.adapters.iaudit_prompts import PLANNER_PROMPT
 
         assert "entry_points" in PLANNER_PROMPT
         assert "attack_surface" in PLANNER_PROMPT
@@ -210,7 +210,7 @@ class TestIAuditAdapter:
 class TestLlamaAuditAdapter:
     @pytest.fixture
     def adapter(self):
-        from src.adapters.llamaaudit_adapter import LlamaAuditAdapter
+        from miesc.adapters.llamaaudit_adapter import LlamaAuditAdapter
 
         return LlamaAuditAdapter()
 
@@ -254,7 +254,7 @@ class TestLlamaAuditAdapter:
 class TestLLMSmartAuditAdapter:
     @pytest.fixture
     def adapter(self):
-        from src.adapters.llmsmartaudit_adapter import LLMSmartAuditAdapter
+        from miesc.adapters.llmsmartaudit_adapter import LLMSmartAuditAdapter
 
         return LLMSmartAuditAdapter()
 
@@ -285,7 +285,7 @@ class TestLLMSmartAuditAdapter:
 class TestLLMBugScannerAdapter:
     @pytest.fixture
     def adapter(self):
-        from src.adapters.llmbugscanner_adapter import LLMBugScannerAdapter
+        from miesc.adapters.llmbugscanner_adapter import LLMBugScannerAdapter
 
         return LLMBugScannerAdapter()
 
@@ -306,7 +306,7 @@ class TestLLMBugScannerAdapter:
 class TestPeculiarAdapter:
     @pytest.fixture
     def adapter(self):
-        from src.adapters.peculiar_adapter import PeculiarAdapter
+        from miesc.adapters.peculiar_adapter import PeculiarAdapter
 
         return PeculiarAdapter()
 
@@ -341,11 +341,11 @@ class TestLLMAdapterContract:
     @pytest.mark.parametrize(
         "module,cls",
         [
-            ("src.adapters.gptlens_adapter", "GPTLensAdapter"),
-            ("src.adapters.iaudit_adapter", "IAuditAdapter"),
-            ("src.adapters.llamaaudit_adapter", "LlamaAuditAdapter"),
-            ("src.adapters.llmbugscanner_adapter", "LLMBugScannerAdapter"),
-            ("src.adapters.peculiar_adapter", "PeculiarAdapter"),
+            ("miesc.adapters.gptlens_adapter", "GPTLensAdapter"),
+            ("miesc.adapters.iaudit_adapter", "IAuditAdapter"),
+            ("miesc.adapters.llamaaudit_adapter", "LlamaAuditAdapter"),
+            ("miesc.adapters.llmbugscanner_adapter", "LLMBugScannerAdapter"),
+            ("miesc.adapters.peculiar_adapter", "PeculiarAdapter"),
         ],
     )
     def test_has_required_methods(self, module, cls):
@@ -362,11 +362,11 @@ class TestLLMAdapterContract:
     @pytest.mark.parametrize(
         "module,cls",
         [
-            ("src.adapters.gptlens_adapter", "GPTLensAdapter"),
-            ("src.adapters.iaudit_adapter", "IAuditAdapter"),
-            ("src.adapters.llamaaudit_adapter", "LlamaAuditAdapter"),
-            ("src.adapters.llmbugscanner_adapter", "LLMBugScannerAdapter"),
-            ("src.adapters.peculiar_adapter", "PeculiarAdapter"),
+            ("miesc.adapters.gptlens_adapter", "GPTLensAdapter"),
+            ("miesc.adapters.iaudit_adapter", "IAuditAdapter"),
+            ("miesc.adapters.llamaaudit_adapter", "LlamaAuditAdapter"),
+            ("miesc.adapters.llmbugscanner_adapter", "LLMBugScannerAdapter"),
+            ("miesc.adapters.peculiar_adapter", "PeculiarAdapter"),
         ],
     )
     def test_metadata_has_name_and_category(self, module, cls):
@@ -387,7 +387,7 @@ class TestLLMAdapterContract:
 class TestGPTScanTimeout:
     @pytest.fixture
     def adapter(self):
-        from src.adapters.gptscan_adapter import GPTScanAdapter
+        from miesc.adapters.gptscan_adapter import GPTScanAdapter
 
         return GPTScanAdapter()
 
@@ -412,7 +412,7 @@ class TestGPTScanTimeout:
 class TestSmartLLMTimeout:
     @pytest.fixture
     def adapter(self):
-        from src.adapters.smartllm_adapter import SmartLLMAdapter
+        from miesc.adapters.smartllm_adapter import SmartLLMAdapter
 
         return SmartLLMAdapter()
 

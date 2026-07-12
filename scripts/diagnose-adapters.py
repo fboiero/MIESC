@@ -21,7 +21,7 @@ sys.path.insert(0, str(project_root))
 
 # Now import MIESC modules
 try:
-    from src.adapters import (
+    from miesc.adapters import (
         get_adapter_status_report,
         register_all_adapters,
     )

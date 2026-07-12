@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from src.adapters.cardano_adapter import (
+from miesc.adapters.cardano_adapter import (
     CardanoAnalyzer,
     CardanoContract,
     CardanoPatternDetector,

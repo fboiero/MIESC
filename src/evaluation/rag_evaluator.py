@@ -151,11 +151,11 @@ class RAGEvaluator:
         if adapter_name not in self._adapters:
             # Dynamic import based on adapter name
             adapter_map = {
-                "smartllm": ("src.adapters.smartllm_adapter", "SmartLLMAdapter"),
-                "gptscan": ("src.adapters.gptscan_adapter", "GPTScanAdapter"),
-                "gptlens": ("src.adapters.gptlens_adapter", "GPTLensAdapter"),
-                "llmbugscanner": ("src.adapters.llmbugscanner_adapter", "LLMBugScannerAdapter"),
-                "llmsmartaudit": ("src.adapters.llmsmartaudit_adapter", "LLMSmartAuditAdapter"),
+                "smartllm": ("miesc.adapters.smartllm_adapter", "SmartLLMAdapter"),
+                "gptscan": ("miesc.adapters.gptscan_adapter", "GPTScanAdapter"),
+                "gptlens": ("miesc.adapters.gptlens_adapter", "GPTLensAdapter"),
+                "llmbugscanner": ("miesc.adapters.llmbugscanner_adapter", "LLMBugScannerAdapter"),
+                "llmsmartaudit": ("miesc.adapters.llmsmartaudit_adapter", "LLMSmartAuditAdapter"),
             }
 
             if adapter_name not in adapter_map:

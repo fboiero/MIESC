@@ -381,7 +381,7 @@ class MyToolAdapter(ToolAdapter):
 2. **Register** in `src/adapters/__init__.py`:
 
 ```python
-from src.adapters.mytool_adapter import MyToolAdapter
+from miesc.adapters.mytool_adapter import MyToolAdapter
 
 adapters_to_register = [
     ...

@@ -6,7 +6,7 @@ external, missing immutable, zero-init, postfix increment, array .length in loop
 etc., plus severity filtering / breakdown and normalization.
 """
 
-from src.adapters.gas_analyzer_adapter import GasAnalyzerAdapter
+from miesc.adapters.gas_analyzer_adapter import GasAnalyzerAdapter
 from src.core.tool_protocol import ToolStatus
 
 GAS = (

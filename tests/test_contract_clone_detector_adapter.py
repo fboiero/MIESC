@@ -6,7 +6,7 @@ normalization, SHA256 hashing, feature extraction, Jaccard + metric similarity,
 clone-type classification, malicious-hash matching and finding generation.
 """
 
-from src.adapters.contract_clone_detector_adapter import (
+from miesc.adapters.contract_clone_detector_adapter import (
     ContractCloneDetectorAdapter,
     register_adapter,
 )

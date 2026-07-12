@@ -25,7 +25,7 @@ import time
 from pathlib import Path
 from typing import cast, Any, Dict, List, Optional
 
-from src.adapters.smartllm_rag_knowledge import (
+from miesc.adapters.smartllm_rag_knowledge import (
     get_relevant_knowledge,
     get_vulnerability_context,
 )
@@ -58,8 +58,8 @@ except ImportError:
     KNOWLEDGE_BASE_VERSION = "unavailable"
     get_context_for_finding = None  # type: ignore[assignment]
     batch_get_context_for_findings = None  # type: ignore[assignment]
-from src.adapters._cache_mixin import LLMCacheMixin
-from src.adapters._ollama_mixin import OllamaCallMixin
+from miesc.adapters._cache_mixin import LLMCacheMixin
+from miesc.adapters._ollama_mixin import OllamaCallMixin
 from src.core.llm_config import (
     ROLE_GENERATOR,
     USE_CASE_CODE_ANALYSIS,

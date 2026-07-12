@@ -245,7 +245,7 @@ pytest tests/test_integration_pipeline.py -v --no-cov
 """Tests for SlitherAdapter."""
 
 import pytest
-from src.adapters.slither_adapter import SlitherAdapter
+from miesc.adapters.slither_adapter import SlitherAdapter
 
 
 class TestSlitherAdapter:

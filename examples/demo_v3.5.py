@@ -16,7 +16,7 @@ from pathlib import Path
 # Add MIESC to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.adapters import register_all_adapters
+from miesc.adapters import register_all_adapters
 
 
 def print_banner():
@@ -189,7 +189,7 @@ def run_demo():
 
     try:
         # Import and run Slither adapter
-        from src.adapters.slither_adapter import SlitherAdapter
+        from miesc.adapters.slither_adapter import SlitherAdapter
 
         slither = SlitherAdapter()
         if slither.is_available().name == "AVAILABLE":

@@ -8,7 +8,7 @@ contract plus the file/source/exception paths.
 
 import sys
 
-from src.adapters.defi_adapter import DeFiAdapter
+from miesc.adapters.defi_adapter import DeFiAdapter
 from src.core.tool_protocol import ToolStatus
 
 # Triggers flash-loan (executeOperation/flashLoan) + oracle (getReserves) detectors.

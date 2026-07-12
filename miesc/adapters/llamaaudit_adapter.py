@@ -29,8 +29,8 @@ import urllib.request
 from pathlib import Path
 from typing import Any, Dict, List, Optional, cast
 
-from src.adapters._cache_mixin import LLMCacheMixin
-from src.adapters._ollama_mixin import OllamaCallMixin
+from miesc.adapters._cache_mixin import LLMCacheMixin
+from miesc.adapters._ollama_mixin import OllamaCallMixin
 from src.core.llm_config import get_ollama_host
 from src.core.ollama_models import select_ollama_model
 from src.core.tool_protocol import (

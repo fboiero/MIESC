@@ -20,7 +20,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.adapters.invariant_synthesizer import (
+from miesc.adapters.invariant_synthesizer import (
     InvariantCategory,
     SynthesizedInvariant,
 )

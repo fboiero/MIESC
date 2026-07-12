@@ -8,7 +8,7 @@ parser now uses balanced-brace extraction + common-error repair.
 
 from __future__ import annotations
 
-from src.adapters.smartguard_adapter import SmartGuardAdapter
+from miesc.adapters.smartguard_adapter import SmartGuardAdapter
 
 
 def _adapter():
@@ -66,7 +66,7 @@ def test_no_vulnerabilities_returns_empty():
 
 
 def test_gptscan_parses_malformed_json():
-    from src.adapters.gptscan_adapter import GPTScanAdapter
+    from miesc.adapters.gptscan_adapter import GPTScanAdapter
 
     resp = (
         '```json\n{"vulnerabilities":[{"title":"Reentrancy","severity":"high",'
@@ -78,7 +78,7 @@ def test_gptscan_parses_malformed_json():
 
 
 def test_llmsmartaudit_parses_malformed_json():
-    from src.adapters.llmsmartaudit_adapter import LLMSmartAuditAdapter
+    from miesc.adapters.llmsmartaudit_adapter import LLMSmartAuditAdapter
 
     resp = (
         'Here:\n```json\n{"issues":[{"title":"Overflow","severity":"medium",'
@@ -104,7 +104,7 @@ def test_parses_invalid_backslash_escape():
 
 
 def test_llmbugscanner_parses_malformed_json():
-    from src.adapters.llmbugscanner_adapter import LLMBugScannerAdapter
+    from miesc.adapters.llmbugscanner_adapter import LLMBugScannerAdapter
 
     resp = (
         '```json\n{"findings":[{"title":"Reentrancy","severity":"high",'

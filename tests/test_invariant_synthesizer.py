@@ -21,7 +21,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.adapters.invariant_synthesizer import (
+from miesc.adapters.invariant_synthesizer import (
     InvariantCategory,
     InvariantFormat,
     InvariantSynthesizer,
@@ -129,13 +129,13 @@ contract Generic {
 @pytest.fixture
 def synthesizer():
     """Create InvariantSynthesizer with mocked dependencies."""
-    with patch("src.adapters.invariant_synthesizer.get_model", return_value="deepseek-coder:6.7b"):
+    with patch("miesc.adapters.invariant_synthesizer.get_model", return_value="deepseek-coder:6.7b"):
         with patch(
-            "src.adapters.invariant_synthesizer.get_ollama_host",
+            "miesc.adapters.invariant_synthesizer.get_ollama_host",
             return_value="http://localhost:11434",
         ):
             with patch(
-                "src.adapters.invariant_synthesizer.get_retry_config",
+                "miesc.adapters.invariant_synthesizer.get_retry_config",
                 return_value={"attempts": 2, "delay": 1},
             ):
                 synth = InvariantSynthesizer()
@@ -970,18 +970,18 @@ class TestSynthesizeEndToEnd:
 class TestSynthesizeInvariantsConvenience:
     def test_synthesize_invariants_with_path(self, erc20_file):
         with patch(
-            "src.adapters.invariant_synthesizer.get_model", return_value="deepseek-coder:6.7b"
+            "miesc.adapters.invariant_synthesizer.get_model", return_value="deepseek-coder:6.7b"
         ):
             with patch(
-                "src.adapters.invariant_synthesizer.get_ollama_host",
+                "miesc.adapters.invariant_synthesizer.get_ollama_host",
                 return_value="http://localhost:11434",
             ):
                 with patch(
-                    "src.adapters.invariant_synthesizer.get_retry_config",
+                    "miesc.adapters.invariant_synthesizer.get_retry_config",
                     return_value={"attempts": 2, "delay": 1},
                 ):
                     with patch(
-                        "src.adapters.invariant_synthesizer.InvariantSynthesizer._is_ollama_available",
+                        "miesc.adapters.invariant_synthesizer.InvariantSynthesizer._is_ollama_available",
                         return_value=False,
                     ):
                         result = synthesize_invariants(erc20_file)
@@ -989,18 +989,18 @@ class TestSynthesizeInvariantsConvenience:
 
     def test_synthesize_invariants_with_formats(self, erc20_file):
         with patch(
-            "src.adapters.invariant_synthesizer.get_model", return_value="deepseek-coder:6.7b"
+            "miesc.adapters.invariant_synthesizer.get_model", return_value="deepseek-coder:6.7b"
         ):
             with patch(
-                "src.adapters.invariant_synthesizer.get_ollama_host",
+                "miesc.adapters.invariant_synthesizer.get_ollama_host",
                 return_value="http://localhost:11434",
             ):
                 with patch(
-                    "src.adapters.invariant_synthesizer.get_retry_config",
+                    "miesc.adapters.invariant_synthesizer.get_retry_config",
                     return_value={"attempts": 2, "delay": 1},
                 ):
                     with patch(
-                        "src.adapters.invariant_synthesizer.InvariantSynthesizer._is_ollama_available",
+                        "miesc.adapters.invariant_synthesizer.InvariantSynthesizer._is_ollama_available",
                         return_value=False,
                     ):
                         result = synthesize_invariants(erc20_file, formats=["solidity", "echidna"])
@@ -1009,18 +1009,18 @@ class TestSynthesizeInvariantsConvenience:
 
     def test_synthesize_invariants_unknown_format_skipped(self, erc20_file):
         with patch(
-            "src.adapters.invariant_synthesizer.get_model", return_value="deepseek-coder:6.7b"
+            "miesc.adapters.invariant_synthesizer.get_model", return_value="deepseek-coder:6.7b"
         ):
             with patch(
-                "src.adapters.invariant_synthesizer.get_ollama_host",
+                "miesc.adapters.invariant_synthesizer.get_ollama_host",
                 return_value="http://localhost:11434",
             ):
                 with patch(
-                    "src.adapters.invariant_synthesizer.get_retry_config",
+                    "miesc.adapters.invariant_synthesizer.get_retry_config",
                     return_value={"attempts": 2, "delay": 1},
                 ):
                     with patch(
-                        "src.adapters.invariant_synthesizer.InvariantSynthesizer._is_ollama_available",
+                        "miesc.adapters.invariant_synthesizer.InvariantSynthesizer._is_ollama_available",
                         return_value=False,
                     ):
                         # "fakeformat" should be skipped gracefully
@@ -1031,14 +1031,14 @@ class TestSynthesizeInvariantsConvenience:
 
     def test_synthesize_invariants_nonexistent_returns_error(self):
         with patch(
-            "src.adapters.invariant_synthesizer.get_model", return_value="deepseek-coder:6.7b"
+            "miesc.adapters.invariant_synthesizer.get_model", return_value="deepseek-coder:6.7b"
         ):
             with patch(
-                "src.adapters.invariant_synthesizer.get_ollama_host",
+                "miesc.adapters.invariant_synthesizer.get_ollama_host",
                 return_value="http://localhost:11434",
             ):
                 with patch(
-                    "src.adapters.invariant_synthesizer.get_retry_config",
+                    "miesc.adapters.invariant_synthesizer.get_retry_config",
                     return_value={"attempts": 2, "delay": 1},
                 ):
                     result = synthesize_invariants("/nonexistent/file.sol")

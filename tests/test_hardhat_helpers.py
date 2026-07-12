@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from src.adapters.hardhat_adapter import HardhatAdapter
+from miesc.adapters.hardhat_adapter import HardhatAdapter
 
 
 def _adapter():

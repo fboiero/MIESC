@@ -8,7 +8,7 @@ external deps; driven with a triggering contract plus file/source/exception path
 
 import sys
 
-from src.adapters.smartbugs_detector_adapter import SmartBugsDetectorAdapter
+from miesc.adapters.smartbugs_detector_adapter import SmartBugsDetectorAdapter
 from src.core.tool_protocol import ToolStatus
 
 # Triggers bad_randomness: blockhash-based pseudo-randomness.

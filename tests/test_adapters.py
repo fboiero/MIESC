@@ -57,20 +57,20 @@ class TestSlitherAdapter(TestAdapterBase):
 
     def test_import(self):
         """Test adapter can be imported."""
-        from src.adapters.slither_adapter import SlitherAdapter
+        from miesc.adapters.slither_adapter import SlitherAdapter
 
         assert SlitherAdapter is not None
 
     def test_instantiation(self):
         """Test adapter can be instantiated."""
-        from src.adapters.slither_adapter import SlitherAdapter
+        from miesc.adapters.slither_adapter import SlitherAdapter
 
         adapter = SlitherAdapter()
         assert adapter is not None
 
     def test_metadata(self):
         """Test adapter metadata."""
-        from src.adapters.slither_adapter import SlitherAdapter
+        from miesc.adapters.slither_adapter import SlitherAdapter
 
         adapter = SlitherAdapter()
         metadata = adapter.get_metadata()
@@ -81,7 +81,7 @@ class TestSlitherAdapter(TestAdapterBase):
 
     def test_is_available(self):
         """Test availability check returns bool or ToolStatus."""
-        from src.adapters.slither_adapter import SlitherAdapter
+        from miesc.adapters.slither_adapter import SlitherAdapter
 
         adapter = SlitherAdapter()
         # Should return bool or ToolStatus without error
@@ -91,7 +91,7 @@ class TestSlitherAdapter(TestAdapterBase):
 
     def test_analyze_nonexistent_file(self, nonexistent_contract):
         """Test analysis of non-existent file."""
-        from src.adapters.slither_adapter import SlitherAdapter
+        from miesc.adapters.slither_adapter import SlitherAdapter
 
         adapter = SlitherAdapter()
         result = adapter.analyze(nonexistent_contract, timeout=10)
@@ -101,7 +101,7 @@ class TestSlitherAdapter(TestAdapterBase):
 
     def test_severity_mapping(self):
         """Test severity mapping constants."""
-        from src.adapters.slither_adapter import SlitherAdapter
+        from miesc.adapters.slither_adapter import SlitherAdapter
 
         assert "High" in SlitherAdapter.SEVERITY_MAP
         assert "Medium" in SlitherAdapter.SEVERITY_MAP
@@ -113,20 +113,20 @@ class TestMythrilAdapter(TestAdapterBase):
 
     def test_import(self):
         """Test adapter can be imported."""
-        from src.adapters.mythril_adapter import MythrilAdapter
+        from miesc.adapters.mythril_adapter import MythrilAdapter
 
         assert MythrilAdapter is not None
 
     def test_instantiation(self):
         """Test adapter can be instantiated."""
-        from src.adapters.mythril_adapter import MythrilAdapter
+        from miesc.adapters.mythril_adapter import MythrilAdapter
 
         adapter = MythrilAdapter()
         assert adapter is not None
 
     def test_metadata(self):
         """Test adapter metadata."""
-        from src.adapters.mythril_adapter import MythrilAdapter
+        from miesc.adapters.mythril_adapter import MythrilAdapter
 
         adapter = MythrilAdapter()
         metadata = adapter.get_metadata()
@@ -136,7 +136,7 @@ class TestMythrilAdapter(TestAdapterBase):
 
     def test_is_available(self):
         """Test availability check returns bool or ToolStatus."""
-        from src.adapters.mythril_adapter import MythrilAdapter
+        from miesc.adapters.mythril_adapter import MythrilAdapter
 
         adapter = MythrilAdapter()
         result = adapter.is_available()
@@ -149,20 +149,20 @@ class TestSolhintAdapter(TestAdapterBase):
 
     def test_import(self):
         """Test adapter can be imported."""
-        from src.adapters.solhint_adapter import SolhintAdapter
+        from miesc.adapters.solhint_adapter import SolhintAdapter
 
         assert SolhintAdapter is not None
 
     def test_instantiation(self):
         """Test adapter can be instantiated."""
-        from src.adapters.solhint_adapter import SolhintAdapter
+        from miesc.adapters.solhint_adapter import SolhintAdapter
 
         adapter = SolhintAdapter()
         assert adapter is not None
 
     def test_metadata(self):
         """Test adapter metadata."""
-        from src.adapters.solhint_adapter import SolhintAdapter
+        from miesc.adapters.solhint_adapter import SolhintAdapter
 
         adapter = SolhintAdapter()
         metadata = adapter.get_metadata()
@@ -175,20 +175,20 @@ class TestSMTCheckerAdapter(TestAdapterBase):
 
     def test_import(self):
         """Test adapter can be imported."""
-        from src.adapters.smtchecker_adapter import SMTCheckerAdapter
+        from miesc.adapters.smtchecker_adapter import SMTCheckerAdapter
 
         assert SMTCheckerAdapter is not None
 
     def test_instantiation(self):
         """Test adapter can be instantiated."""
-        from src.adapters.smtchecker_adapter import SMTCheckerAdapter
+        from miesc.adapters.smtchecker_adapter import SMTCheckerAdapter
 
         adapter = SMTCheckerAdapter()
         assert adapter is not None
 
     def test_metadata(self):
         """Test adapter metadata."""
-        from src.adapters.smtchecker_adapter import SMTCheckerAdapter
+        from miesc.adapters.smtchecker_adapter import SMTCheckerAdapter
 
         adapter = SMTCheckerAdapter()
         metadata = adapter.get_metadata()
@@ -197,7 +197,7 @@ class TestSMTCheckerAdapter(TestAdapterBase):
 
     def test_find_solc_binary_skips_broken_path_candidate(self):
         """Test SMTChecker selects a working solc binary when PATH has a broken shim."""
-        from src.adapters.smtchecker_adapter import SMTCheckerAdapter
+        from miesc.adapters.smtchecker_adapter import SMTCheckerAdapter
 
         def fake_run(cmd, **kwargs):
             if cmd[0] == "/usr/local/bin/solc":
@@ -206,9 +206,9 @@ class TestSMTCheckerAdapter(TestAdapterBase):
 
         with (
             patch(
-                "src.adapters.smtchecker_adapter.shutil.which", return_value="/usr/local/bin/solc"
+                "miesc.adapters.smtchecker_adapter.shutil.which", return_value="/usr/local/bin/solc"
             ),
-            patch("src.adapters.smtchecker_adapter.os.path.exists", return_value=True),
+            patch("miesc.adapters.smtchecker_adapter.os.path.exists", return_value=True),
             patch("subprocess.run", side_effect=fake_run),
         ):
             adapter = SMTCheckerAdapter()
@@ -221,13 +221,13 @@ class TestEchidnaAdapter(TestAdapterBase):
 
     def test_import(self):
         """Test adapter can be imported."""
-        from src.adapters.echidna_adapter import EchidnaAdapter
+        from miesc.adapters.echidna_adapter import EchidnaAdapter
 
         assert EchidnaAdapter is not None
 
     def test_instantiation(self):
         """Test adapter can be instantiated."""
-        from src.adapters.echidna_adapter import EchidnaAdapter
+        from miesc.adapters.echidna_adapter import EchidnaAdapter
 
         adapter = EchidnaAdapter()
         assert adapter is not None
@@ -238,13 +238,13 @@ class TestFoundryAdapter(TestAdapterBase):
 
     def test_import(self):
         """Test adapter can be imported."""
-        from src.adapters.foundry_adapter import FoundryAdapter
+        from miesc.adapters.foundry_adapter import FoundryAdapter
 
         assert FoundryAdapter is not None
 
     def test_instantiation(self):
         """Test adapter can be instantiated."""
-        from src.adapters.foundry_adapter import FoundryAdapter
+        from miesc.adapters.foundry_adapter import FoundryAdapter
 
         adapter = FoundryAdapter()
         assert adapter is not None
@@ -255,13 +255,13 @@ class TestAderynAdapter(TestAdapterBase):
 
     def test_import(self):
         """Test adapter can be imported."""
-        from src.adapters.aderyn_adapter import AderynAdapter
+        from miesc.adapters.aderyn_adapter import AderynAdapter
 
         assert AderynAdapter is not None
 
     def test_instantiation(self):
         """Test adapter can be instantiated."""
-        from src.adapters.aderyn_adapter import AderynAdapter
+        from miesc.adapters.aderyn_adapter import AderynAdapter
 
         adapter = AderynAdapter()
         assert adapter is not None
@@ -272,13 +272,13 @@ class TestHalmosAdapter(TestAdapterBase):
 
     def test_import(self):
         """Test adapter can be imported."""
-        from src.adapters.halmos_adapter import HalmosAdapter
+        from miesc.adapters.halmos_adapter import HalmosAdapter
 
         assert HalmosAdapter is not None
 
     def test_instantiation(self):
         """Test adapter can be instantiated."""
-        from src.adapters.halmos_adapter import HalmosAdapter
+        from miesc.adapters.halmos_adapter import HalmosAdapter
 
         adapter = HalmosAdapter()
         assert adapter is not None
@@ -289,13 +289,13 @@ class TestManticoreAdapter(TestAdapterBase):
 
     def test_import(self):
         """Test adapter can be imported."""
-        from src.adapters.manticore_adapter import ManticoreAdapter
+        from miesc.adapters.manticore_adapter import ManticoreAdapter
 
         assert ManticoreAdapter is not None
 
     def test_instantiation(self):
         """Test adapter can be instantiated."""
-        from src.adapters.manticore_adapter import ManticoreAdapter
+        from miesc.adapters.manticore_adapter import ManticoreAdapter
 
         adapter = ManticoreAdapter()
         assert adapter is not None
@@ -306,13 +306,13 @@ class TestCertoraAdapter(TestAdapterBase):
 
     def test_import(self):
         """Test adapter can be imported."""
-        from src.adapters.certora_adapter import CertoraAdapter
+        from miesc.adapters.certora_adapter import CertoraAdapter
 
         assert CertoraAdapter is not None
 
     def test_instantiation(self):
         """Test adapter can be instantiated."""
-        from src.adapters.certora_adapter import CertoraAdapter
+        from miesc.adapters.certora_adapter import CertoraAdapter
 
         adapter = CertoraAdapter()
         assert adapter is not None
@@ -323,13 +323,13 @@ class TestPropertyGPTAdapter(TestAdapterBase):
 
     def test_import(self):
         """Test adapter can be imported."""
-        from src.adapters.propertygpt_adapter import PropertyGPTAdapter
+        from miesc.adapters.propertygpt_adapter import PropertyGPTAdapter
 
         assert PropertyGPTAdapter is not None
 
     def test_instantiation(self):
         """Test adapter can be instantiated."""
-        from src.adapters.propertygpt_adapter import PropertyGPTAdapter
+        from miesc.adapters.propertygpt_adapter import PropertyGPTAdapter
 
         adapter = PropertyGPTAdapter()
         assert adapter is not None
@@ -340,13 +340,13 @@ class TestSmartLLMAdapter(TestAdapterBase):
 
     def test_import(self):
         """Test adapter can be imported."""
-        from src.adapters.smartllm_adapter import SmartLLMAdapter
+        from miesc.adapters.smartllm_adapter import SmartLLMAdapter
 
         assert SmartLLMAdapter is not None
 
     def test_instantiation(self):
         """Test adapter can be instantiated."""
-        from src.adapters.smartllm_adapter import SmartLLMAdapter
+        from miesc.adapters.smartllm_adapter import SmartLLMAdapter
 
         adapter = SmartLLMAdapter()
         assert adapter is not None
@@ -357,13 +357,13 @@ class TestThreatModelAdapter(TestAdapterBase):
 
     def test_import(self):
         """Test adapter can be imported."""
-        from src.adapters.threat_model_adapter import ThreatModelAdapter
+        from miesc.adapters.threat_model_adapter import ThreatModelAdapter
 
         assert ThreatModelAdapter is not None
 
     def test_instantiation(self):
         """Test adapter can be instantiated."""
-        from src.adapters.threat_model_adapter import ThreatModelAdapter
+        from miesc.adapters.threat_model_adapter import ThreatModelAdapter
 
         adapter = ThreatModelAdapter()
         assert adapter is not None
@@ -374,13 +374,13 @@ class TestGasAnalyzerAdapter(TestAdapterBase):
 
     def test_import(self):
         """Test adapter can be imported."""
-        from src.adapters.gas_analyzer_adapter import GasAnalyzerAdapter
+        from miesc.adapters.gas_analyzer_adapter import GasAnalyzerAdapter
 
         assert GasAnalyzerAdapter is not None
 
     def test_instantiation(self):
         """Test adapter can be instantiated."""
-        from src.adapters.gas_analyzer_adapter import GasAnalyzerAdapter
+        from miesc.adapters.gas_analyzer_adapter import GasAnalyzerAdapter
 
         adapter = GasAnalyzerAdapter()
         assert adapter is not None
@@ -391,13 +391,13 @@ class TestMEVDetectorAdapter(TestAdapterBase):
 
     def test_import(self):
         """Test adapter can be imported."""
-        from src.adapters.mev_detector_adapter import MEVDetectorAdapter
+        from miesc.adapters.mev_detector_adapter import MEVDetectorAdapter
 
         assert MEVDetectorAdapter is not None
 
     def test_instantiation(self):
         """Test adapter can be instantiated."""
-        from src.adapters.mev_detector_adapter import MEVDetectorAdapter
+        from miesc.adapters.mev_detector_adapter import MEVDetectorAdapter
 
         adapter = MEVDetectorAdapter()
         assert adapter is not None
@@ -408,13 +408,13 @@ class TestMedusaAdapter(TestAdapterBase):
 
     def test_import(self):
         """Test adapter can be imported."""
-        from src.adapters.medusa_adapter import MedusaAdapter
+        from miesc.adapters.medusa_adapter import MedusaAdapter
 
         assert MedusaAdapter is not None
 
     def test_instantiation(self):
         """Test adapter can be instantiated."""
-        from src.adapters.medusa_adapter import MedusaAdapter
+        from miesc.adapters.medusa_adapter import MedusaAdapter
 
         adapter = MedusaAdapter()
         assert adapter is not None
@@ -425,13 +425,13 @@ class TestWakeAdapter(TestAdapterBase):
 
     def test_import(self):
         """Test adapter can be imported."""
-        from src.adapters.wake_adapter import WakeAdapter
+        from miesc.adapters.wake_adapter import WakeAdapter
 
         assert WakeAdapter is not None
 
     def test_instantiation(self):
         """Test adapter can be instantiated."""
-        from src.adapters.wake_adapter import WakeAdapter
+        from miesc.adapters.wake_adapter import WakeAdapter
 
         adapter = WakeAdapter()
         assert adapter is not None
@@ -442,20 +442,20 @@ class TestSmartGuardAdapter(TestAdapterBase):
 
     def test_import(self):
         """Test adapter can be imported."""
-        from src.adapters.smartguard_adapter import SmartGuardAdapter
+        from miesc.adapters.smartguard_adapter import SmartGuardAdapter
 
         assert SmartGuardAdapter is not None
 
     def test_instantiation(self):
         """Test adapter can be instantiated."""
-        from src.adapters.smartguard_adapter import SmartGuardAdapter
+        from miesc.adapters.smartguard_adapter import SmartGuardAdapter
 
         adapter = SmartGuardAdapter()
         assert adapter is not None
 
     def test_metadata(self):
         """Test adapter metadata."""
-        from src.adapters.smartguard_adapter import SmartGuardAdapter
+        from miesc.adapters.smartguard_adapter import SmartGuardAdapter
 
         adapter = SmartGuardAdapter()
         metadata = adapter.get_metadata()
@@ -466,7 +466,7 @@ class TestSmartGuardAdapter(TestAdapterBase):
 
     def test_knowledge_base(self):
         """Test vulnerability knowledge base is populated."""
-        from src.adapters.smartguard_adapter import VULNERABILITY_KNOWLEDGE_BASE
+        from miesc.adapters.smartguard_adapter import VULNERABILITY_KNOWLEDGE_BASE
 
         assert len(VULNERABILITY_KNOWLEDGE_BASE) > 0
         # Check first entry has CoT reasoning
@@ -482,18 +482,18 @@ class TestGPTScanAdapter(TestAdapterBase):
     """Tests for GPTScanAdapter."""
 
     def test_import(self):
-        from src.adapters.gptscan_adapter import GPTScanAdapter
+        from miesc.adapters.gptscan_adapter import GPTScanAdapter
 
         assert GPTScanAdapter is not None
 
     def test_instantiation(self):
-        from src.adapters.gptscan_adapter import GPTScanAdapter
+        from miesc.adapters.gptscan_adapter import GPTScanAdapter
 
         adapter = GPTScanAdapter()
         assert adapter is not None
 
     def test_metadata(self):
-        from src.adapters.gptscan_adapter import GPTScanAdapter
+        from miesc.adapters.gptscan_adapter import GPTScanAdapter
 
         adapter = GPTScanAdapter()
         metadata = adapter.get_metadata()
@@ -505,12 +505,12 @@ class TestLLMSmartAuditAdapter(TestAdapterBase):
     """Tests for LLMSmartAuditAdapter."""
 
     def test_import(self):
-        from src.adapters.llmsmartaudit_adapter import LLMSmartAuditAdapter
+        from miesc.adapters.llmsmartaudit_adapter import LLMSmartAuditAdapter
 
         assert LLMSmartAuditAdapter is not None
 
     def test_instantiation(self):
-        from src.adapters.llmsmartaudit_adapter import LLMSmartAuditAdapter
+        from miesc.adapters.llmsmartaudit_adapter import LLMSmartAuditAdapter
 
         adapter = LLMSmartAuditAdapter()
         assert adapter is not None
@@ -520,12 +520,12 @@ class TestVertigoAdapter(TestAdapterBase):
     """Tests for VertigoAdapter (mutation testing)."""
 
     def test_import(self):
-        from src.adapters.vertigo_adapter import VertigoAdapter
+        from miesc.adapters.vertigo_adapter import VertigoAdapter
 
         assert VertigoAdapter is not None
 
     def test_instantiation(self):
-        from src.adapters.vertigo_adapter import VertigoAdapter
+        from miesc.adapters.vertigo_adapter import VertigoAdapter
 
         adapter = VertigoAdapter()
         assert adapter is not None
@@ -535,19 +535,19 @@ class TestDeFiAdapter(TestAdapterBase):
     """Tests for DeFiAdapter (specialized DeFi analysis)."""
 
     def test_import(self):
-        from src.adapters.defi_adapter import DeFiAdapter
+        from miesc.adapters.defi_adapter import DeFiAdapter
 
         assert DeFiAdapter is not None
 
     def test_instantiation(self):
-        from src.adapters.defi_adapter import DeFiAdapter
+        from miesc.adapters.defi_adapter import DeFiAdapter
 
         adapter = DeFiAdapter()
         assert adapter is not None
 
     def test_has_name_attribute(self):
         """Test DeFiAdapter has name attribute (uses different interface)."""
-        from src.adapters.defi_adapter import DeFiAdapter
+        from miesc.adapters.defi_adapter import DeFiAdapter
 
         adapter = DeFiAdapter()
         assert hasattr(adapter, "name") or hasattr(DeFiAdapter, "name")
@@ -558,12 +558,12 @@ class TestAdvancedDetectorAdapter(TestAdapterBase):
     """Tests for AdvancedDetectorAdapter."""
 
     def test_import(self):
-        from src.adapters.advanced_detector_adapter import AdvancedDetectorAdapter
+        from miesc.adapters.advanced_detector_adapter import AdvancedDetectorAdapter
 
         assert AdvancedDetectorAdapter is not None
 
     def test_instantiation(self):
-        from src.adapters.advanced_detector_adapter import AdvancedDetectorAdapter
+        from miesc.adapters.advanced_detector_adapter import AdvancedDetectorAdapter
 
         adapter = AdvancedDetectorAdapter()
         assert adapter is not None
@@ -573,12 +573,12 @@ class TestSmartBugsDetectorAdapter(TestAdapterBase):
     """Tests for SmartBugsDetectorAdapter."""
 
     def test_import(self):
-        from src.adapters.smartbugs_detector_adapter import SmartBugsDetectorAdapter
+        from miesc.adapters.smartbugs_detector_adapter import SmartBugsDetectorAdapter
 
         assert SmartBugsDetectorAdapter is not None
 
     def test_instantiation(self):
-        from src.adapters.smartbugs_detector_adapter import SmartBugsDetectorAdapter
+        from miesc.adapters.smartbugs_detector_adapter import SmartBugsDetectorAdapter
 
         adapter = SmartBugsDetectorAdapter()
         assert adapter is not None
@@ -588,12 +588,12 @@ class TestSmartBugsMLAdapter(TestAdapterBase):
     """Tests for SmartBugsMLAdapter (ML-based detection)."""
 
     def test_import(self):
-        from src.adapters.smartbugs_ml_adapter import SmartBugsMLAdapter
+        from miesc.adapters.smartbugs_ml_adapter import SmartBugsMLAdapter
 
         assert SmartBugsMLAdapter is not None
 
     def test_instantiation(self):
-        from src.adapters.smartbugs_ml_adapter import SmartBugsMLAdapter
+        from miesc.adapters.smartbugs_ml_adapter import SmartBugsMLAdapter
 
         adapter = SmartBugsMLAdapter()
         assert adapter is not None
@@ -603,12 +603,12 @@ class TestDAGNNAdapter(TestAdapterBase):
     """Tests for DAGNNAdapter (graph neural network)."""
 
     def test_import(self):
-        from src.adapters.dagnn_adapter import DAGNNAdapter
+        from miesc.adapters.dagnn_adapter import DAGNNAdapter
 
         assert DAGNNAdapter is not None
 
     def test_instantiation(self):
-        from src.adapters.dagnn_adapter import DAGNNAdapter
+        from miesc.adapters.dagnn_adapter import DAGNNAdapter
 
         adapter = DAGNNAdapter()
         assert adapter is not None
@@ -618,12 +618,12 @@ class TestDogeFuzzAdapter(TestAdapterBase):
     """Tests for DogeFuzzAdapter (directed greybox fuzzer)."""
 
     def test_import(self):
-        from src.adapters.dogefuzz_adapter import DogeFuzzAdapter
+        from miesc.adapters.dogefuzz_adapter import DogeFuzzAdapter
 
         assert DogeFuzzAdapter is not None
 
     def test_instantiation(self):
-        from src.adapters.dogefuzz_adapter import DogeFuzzAdapter
+        from miesc.adapters.dogefuzz_adapter import DogeFuzzAdapter
 
         adapter = DogeFuzzAdapter()
         assert adapter is not None
@@ -633,12 +633,12 @@ class TestContractCloneDetectorAdapter(TestAdapterBase):
     """Tests for ContractCloneDetectorAdapter."""
 
     def test_import(self):
-        from src.adapters.contract_clone_detector_adapter import ContractCloneDetectorAdapter
+        from miesc.adapters.contract_clone_detector_adapter import ContractCloneDetectorAdapter
 
         assert ContractCloneDetectorAdapter is not None
 
     def test_instantiation(self):
-        from src.adapters.contract_clone_detector_adapter import ContractCloneDetectorAdapter
+        from miesc.adapters.contract_clone_detector_adapter import ContractCloneDetectorAdapter
 
         adapter = ContractCloneDetectorAdapter()
         assert adapter is not None
@@ -654,7 +654,7 @@ class TestSlitherAdapterComprehensive(TestAdapterBase):
 
     def test_analyze_with_mocked_subprocess_success(self, temp_contract):
         """Test analysis with mocked successful subprocess."""
-        from src.adapters.slither_adapter import SlitherAdapter
+        from miesc.adapters.slither_adapter import SlitherAdapter
 
         mock_output = {"success": True, "results": {"detectors": []}}
 
@@ -670,7 +670,7 @@ class TestSlitherAdapterComprehensive(TestAdapterBase):
 
     def test_analyze_with_mocked_subprocess_failure(self, temp_contract):
         """Test analysis with mocked failed subprocess."""
-        from src.adapters.slither_adapter import SlitherAdapter
+        from miesc.adapters.slither_adapter import SlitherAdapter
 
         with patch("subprocess.run") as mock_run:
             mock_run.side_effect = subprocess.CalledProcessError(1, "slither")
@@ -682,7 +682,7 @@ class TestSlitherAdapterComprehensive(TestAdapterBase):
 
     def test_analyze_with_timeout(self, temp_contract):
         """Test analysis with timeout."""
-        from src.adapters.slither_adapter import SlitherAdapter
+        from miesc.adapters.slither_adapter import SlitherAdapter
 
         with patch("subprocess.run") as mock_run:
             mock_run.side_effect = subprocess.TimeoutExpired("slither", 30)
@@ -693,7 +693,7 @@ class TestSlitherAdapterComprehensive(TestAdapterBase):
 
     def test_is_available_installed(self):
         """Test availability when tool is installed."""
-        from src.adapters.slither_adapter import SlitherAdapter
+        from miesc.adapters.slither_adapter import SlitherAdapter
         from src.core.tool_protocol import ToolStatus
 
         with patch("subprocess.run") as mock_run:
@@ -704,7 +704,7 @@ class TestSlitherAdapterComprehensive(TestAdapterBase):
 
     def test_is_available_not_installed(self):
         """Test availability when tool is not installed."""
-        from src.adapters.slither_adapter import SlitherAdapter
+        from miesc.adapters.slither_adapter import SlitherAdapter
         from src.core.tool_protocol import ToolStatus
 
         with patch("subprocess.run") as mock_run:
@@ -715,7 +715,7 @@ class TestSlitherAdapterComprehensive(TestAdapterBase):
 
     def test_severity_mapping_complete(self):
         """Test all severity levels are mapped."""
-        from src.adapters.slither_adapter import SlitherAdapter
+        from miesc.adapters.slither_adapter import SlitherAdapter
 
         expected_keys = {"High", "Medium", "Low", "Informational", "Optimization"}
         actual_keys = set(SlitherAdapter.SEVERITY_MAP.keys())
@@ -723,7 +723,7 @@ class TestSlitherAdapterComprehensive(TestAdapterBase):
 
     def test_metadata_capabilities(self):
         """Test metadata has expected capabilities."""
-        from src.adapters.slither_adapter import SlitherAdapter
+        from miesc.adapters.slither_adapter import SlitherAdapter
 
         adapter = SlitherAdapter()
         metadata = adapter.get_metadata()
@@ -739,7 +739,7 @@ class TestMythrilAdapterComprehensive(TestAdapterBase):
 
     def test_analyze_with_mocked_success(self, temp_contract):
         """Test analysis with mocked successful execution."""
-        from src.adapters.mythril_adapter import MythrilAdapter
+        from miesc.adapters.mythril_adapter import MythrilAdapter
 
         mock_output = {"success": True, "issues": []}
 
@@ -753,7 +753,7 @@ class TestMythrilAdapterComprehensive(TestAdapterBase):
 
     def test_is_available_installed(self):
         """Test availability check when installed."""
-        from src.adapters.mythril_adapter import MythrilAdapter
+        from miesc.adapters.mythril_adapter import MythrilAdapter
         from src.core.tool_protocol import ToolStatus
 
         with patch("subprocess.run") as mock_run:
@@ -771,7 +771,7 @@ class TestEchidnaAdapterComprehensive(TestAdapterBase):
 
     def test_analyze_with_mocked_success(self, temp_contract):
         """Test analysis with mocked fuzzing results."""
-        from src.adapters.echidna_adapter import EchidnaAdapter
+        from miesc.adapters.echidna_adapter import EchidnaAdapter
 
         with patch("subprocess.run") as mock_run:
             mock_run.return_value = MagicMock(
@@ -783,7 +783,7 @@ class TestEchidnaAdapterComprehensive(TestAdapterBase):
 
     def test_is_available_check(self):
         """Test availability check."""
-        from src.adapters.echidna_adapter import EchidnaAdapter
+        from miesc.adapters.echidna_adapter import EchidnaAdapter
         from src.core.tool_protocol import ToolStatus
 
         with patch("subprocess.run") as mock_run:
@@ -798,7 +798,7 @@ class TestSMTCheckerAdapterComprehensive(TestAdapterBase):
 
     def test_analyze_with_mocked_solc(self, temp_contract):
         """Test analysis with mocked solc SMTChecker."""
-        from src.adapters.smtchecker_adapter import SMTCheckerAdapter
+        from miesc.adapters.smtchecker_adapter import SMTCheckerAdapter
 
         with patch("subprocess.run") as mock_run:
             mock_run.return_value = MagicMock(returncode=0, stdout="", stderr='{"errors": []}')
@@ -808,7 +808,7 @@ class TestSMTCheckerAdapterComprehensive(TestAdapterBase):
 
     def test_metadata_targets(self):
         """Test SMTChecker has verification targets."""
-        from src.adapters.smtchecker_adapter import SMTCheckerAdapter
+        from miesc.adapters.smtchecker_adapter import SMTCheckerAdapter
 
         adapter = SMTCheckerAdapter()
         metadata = adapter.get_metadata()
@@ -820,7 +820,7 @@ class TestFoundryAdapterComprehensive(TestAdapterBase):
 
     def test_analyze_with_mocked_forge(self, temp_contract):
         """Test analysis with mocked forge test."""
-        from src.adapters.foundry_adapter import FoundryAdapter
+        from miesc.adapters.foundry_adapter import FoundryAdapter
 
         with patch("subprocess.run") as mock_run:
             mock_run.return_value = MagicMock(
@@ -832,7 +832,7 @@ class TestFoundryAdapterComprehensive(TestAdapterBase):
 
     def test_is_available_check(self):
         """Test forge availability check."""
-        from src.adapters.foundry_adapter import FoundryAdapter
+        from miesc.adapters.foundry_adapter import FoundryAdapter
         from src.core.tool_protocol import ToolStatus
 
         with patch("subprocess.run") as mock_run:
@@ -847,7 +847,7 @@ class TestHalmosAdapterComprehensive(TestAdapterBase):
 
     def test_analyze_with_mocked_success(self, temp_contract):
         """Test analysis with mocked halmos execution."""
-        from src.adapters.halmos_adapter import HalmosAdapter
+        from miesc.adapters.halmos_adapter import HalmosAdapter
 
         with patch("subprocess.run") as mock_run:
             mock_run.return_value = MagicMock(returncode=0, stdout='[{"test": "ok"}]', stderr="")
@@ -866,7 +866,7 @@ class TestAdapterErrorHandling(TestAdapterBase):
 
     def test_slither_handles_invalid_json(self, temp_contract):
         """Test Slither handles invalid JSON output."""
-        from src.adapters.slither_adapter import SlitherAdapter
+        from miesc.adapters.slither_adapter import SlitherAdapter
 
         with patch("subprocess.run") as mock_run:
             mock_run.return_value = MagicMock(returncode=0, stdout="not valid json", stderr="")
@@ -876,7 +876,7 @@ class TestAdapterErrorHandling(TestAdapterBase):
 
     def test_mythril_handles_empty_output(self, temp_contract):
         """Test Mythril handles empty output."""
-        from src.adapters.mythril_adapter import MythrilAdapter
+        from miesc.adapters.mythril_adapter import MythrilAdapter
 
         with patch("subprocess.run") as mock_run:
             mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
@@ -886,7 +886,7 @@ class TestAdapterErrorHandling(TestAdapterBase):
 
     def test_adapter_handles_permission_error(self, temp_contract):
         """Test adapter handles permission errors."""
-        from src.adapters.slither_adapter import SlitherAdapter
+        from miesc.adapters.slither_adapter import SlitherAdapter
 
         with patch("subprocess.run") as mock_run:
             mock_run.side_effect = PermissionError("Access denied")
@@ -896,7 +896,7 @@ class TestAdapterErrorHandling(TestAdapterBase):
 
     def test_adapter_handles_oserror(self, temp_contract):
         """Test adapter handles OS errors."""
-        from src.adapters.slither_adapter import SlitherAdapter
+        from miesc.adapters.slither_adapter import SlitherAdapter
 
         with patch("subprocess.run") as mock_run:
             mock_run.side_effect = OSError("System error")
@@ -915,8 +915,8 @@ class TestAdapterCategories:
 
     def test_static_analysis_adapters(self):
         """Test static analysis adapters have correct category."""
-        from src.adapters.aderyn_adapter import AderynAdapter
-        from src.adapters.slither_adapter import SlitherAdapter
+        from miesc.adapters.aderyn_adapter import AderynAdapter
+        from miesc.adapters.slither_adapter import SlitherAdapter
         from src.core.tool_protocol import ToolCategory
 
         # Note: solhint uses DYNAMIC_TESTING category in implementation
@@ -930,8 +930,8 @@ class TestAdapterCategories:
 
     def test_symbolic_execution_adapters(self):
         """Test symbolic execution adapters have correct category."""
-        from src.adapters.manticore_adapter import ManticoreAdapter
-        from src.adapters.mythril_adapter import MythrilAdapter
+        from miesc.adapters.manticore_adapter import ManticoreAdapter
+        from miesc.adapters.mythril_adapter import MythrilAdapter
         from src.core.tool_protocol import ToolCategory
 
         sym_adapters = [MythrilAdapter(), ManticoreAdapter()]
@@ -944,8 +944,8 @@ class TestAdapterCategories:
 
     def test_dynamic_testing_adapters(self):
         """Test dynamic testing (fuzzing) adapters have correct category."""
-        from src.adapters.echidna_adapter import EchidnaAdapter
-        from src.adapters.foundry_adapter import FoundryAdapter
+        from miesc.adapters.echidna_adapter import EchidnaAdapter
+        from miesc.adapters.foundry_adapter import FoundryAdapter
         from src.core.tool_protocol import ToolCategory
 
         fuzz_adapters = [EchidnaAdapter(), FoundryAdapter()]
@@ -958,8 +958,8 @@ class TestAdapterCategories:
 
     def test_formal_verification_adapters(self):
         """Test formal verification adapters have correct category."""
-        from src.adapters.certora_adapter import CertoraAdapter
-        from src.adapters.smtchecker_adapter import SMTCheckerAdapter
+        from miesc.adapters.certora_adapter import CertoraAdapter
+        from miesc.adapters.smtchecker_adapter import SMTCheckerAdapter
         from src.core.tool_protocol import ToolCategory
 
         fv_adapters = [SMTCheckerAdapter(), CertoraAdapter()]
@@ -972,8 +972,8 @@ class TestAdapterCategories:
 
     def test_ai_analysis_adapters(self):
         """Test AI analysis adapters have correct category."""
-        from src.adapters.gptscan_adapter import GPTScanAdapter
-        from src.adapters.smartllm_adapter import SmartLLMAdapter
+        from miesc.adapters.gptscan_adapter import GPTScanAdapter
+        from miesc.adapters.smartllm_adapter import SmartLLMAdapter
         from src.core.tool_protocol import ToolCategory
 
         ai_adapters = [SmartLLMAdapter(), GPTScanAdapter()]
@@ -1034,14 +1034,14 @@ class TestAdapterRegistry:
     def test_all_adapters_importable(self):
         """Test all 31 adapters can be imported."""
         for module_name, class_name in self.ALL_ADAPTERS:
-            module = __import__(f"src.adapters.{module_name}", fromlist=[class_name])
+            module = __import__(f"miesc.adapters.{module_name}", fromlist=[class_name])
             adapter_class = getattr(module, class_name)
             assert adapter_class is not None, f"Failed to import {class_name}"
 
     def test_all_adapters_instantiable(self):
         """Test all adapters can be instantiated."""
         for module_name, class_name in self.ALL_ADAPTERS:
-            module = __import__(f"src.adapters.{module_name}", fromlist=[class_name])
+            module = __import__(f"miesc.adapters.{module_name}", fromlist=[class_name])
             adapter_class = getattr(module, class_name)
             adapter = adapter_class()
             assert adapter is not None, f"Failed to instantiate {class_name}"
@@ -1051,7 +1051,7 @@ class TestAdapterRegistry:
         required_methods = ["analyze", "get_metadata", "is_available"]
 
         for module_name, class_name in self.STANDARD_ADAPTERS:
-            module = __import__(f"src.adapters.{module_name}", fromlist=[class_name])
+            module = __import__(f"miesc.adapters.{module_name}", fromlist=[class_name])
             adapter_class = getattr(module, class_name)
             adapter = adapter_class()
 
@@ -1062,7 +1062,7 @@ class TestAdapterRegistry:
     def test_standard_adapters_have_valid_metadata(self):
         """Test standard adapters return valid metadata."""
         for module_name, class_name in self.STANDARD_ADAPTERS:
-            module = __import__(f"src.adapters.{module_name}", fromlist=[class_name])
+            module = __import__(f"miesc.adapters.{module_name}", fromlist=[class_name])
             adapter_class = getattr(module, class_name)
             adapter = adapter_class()
             metadata = adapter.get_metadata()
@@ -1075,7 +1075,7 @@ class TestAdapterRegistry:
         """Test all standard adapter names are unique."""
         names = []
         for module_name, class_name in self.STANDARD_ADAPTERS:
-            module = __import__(f"src.adapters.{module_name}", fromlist=[class_name])
+            module = __import__(f"miesc.adapters.{module_name}", fromlist=[class_name])
             adapter_class = getattr(module, class_name)
             adapter = adapter_class()
             metadata = adapter.get_metadata()
@@ -1086,7 +1086,7 @@ class TestAdapterRegistry:
     def test_alternate_adapters_have_name(self):
         """Test alternate interface adapters have name attribute."""
         for module_name, class_name in self.ALTERNATE_ADAPTERS:
-            module = __import__(f"src.adapters.{module_name}", fromlist=[class_name])
+            module = __import__(f"miesc.adapters.{module_name}", fromlist=[class_name])
             adapter_class = getattr(module, class_name)
             adapter = adapter_class()
 
@@ -1104,8 +1104,8 @@ class TestAdapterIntegration(TestAdapterBase):
 
     def test_multiple_adapters_can_analyze_same_contract(self, temp_contract):
         """Test multiple adapters can analyze the same contract."""
-        from src.adapters.slither_adapter import SlitherAdapter
-        from src.adapters.solhint_adapter import SolhintAdapter
+        from miesc.adapters.slither_adapter import SlitherAdapter
+        from miesc.adapters.solhint_adapter import SolhintAdapter
 
         adapters = [SlitherAdapter(), SolhintAdapter()]
         results = []
@@ -1121,7 +1121,7 @@ class TestAdapterIntegration(TestAdapterBase):
 
     def test_adapter_results_have_consistent_structure(self, temp_contract):
         """Test adapter results have consistent structure."""
-        from src.adapters.slither_adapter import SlitherAdapter
+        from miesc.adapters.slither_adapter import SlitherAdapter
 
         with patch("subprocess.run") as mock_run:
             mock_run.return_value = MagicMock(
@@ -1147,7 +1147,7 @@ class TestDogeFuzzAdapterCoverage(TestAdapterBase):
 
     def test_is_available_not_installed(self):
         """Test is_available when python not found."""
-        from src.adapters.dogefuzz_adapter import DogeFuzzAdapter
+        from miesc.adapters.dogefuzz_adapter import DogeFuzzAdapter
 
         adapter = DogeFuzzAdapter()
 
@@ -1158,7 +1158,7 @@ class TestDogeFuzzAdapterCoverage(TestAdapterBase):
 
     def test_is_available_configuration_error(self):
         """Test is_available with configuration error."""
-        from src.adapters.dogefuzz_adapter import DogeFuzzAdapter
+        from miesc.adapters.dogefuzz_adapter import DogeFuzzAdapter
 
         adapter = DogeFuzzAdapter()
 
@@ -1168,7 +1168,7 @@ class TestDogeFuzzAdapterCoverage(TestAdapterBase):
 
     def test_analyze_tool_not_available(self, temp_contract):
         """Test analyze when tool is not available."""
-        from src.adapters.dogefuzz_adapter import DogeFuzzAdapter
+        from miesc.adapters.dogefuzz_adapter import DogeFuzzAdapter
 
         adapter = DogeFuzzAdapter()
         # Just analyze - even if not available, should return valid result
@@ -1178,7 +1178,7 @@ class TestDogeFuzzAdapterCoverage(TestAdapterBase):
 
     def test_symbolic_execution_phase(self, temp_contract):
         """Test symbolic execution internal method."""
-        from src.adapters.dogefuzz_adapter import DogeFuzzAdapter
+        from miesc.adapters.dogefuzz_adapter import DogeFuzzAdapter
 
         adapter = DogeFuzzAdapter()
         # Just check attribute exists - don't call if complex
@@ -1186,7 +1186,7 @@ class TestDogeFuzzAdapterCoverage(TestAdapterBase):
 
     def test_create_finding(self, temp_contract):
         """Test adapter can analyze and create findings."""
-        from src.adapters.dogefuzz_adapter import DogeFuzzAdapter
+        from miesc.adapters.dogefuzz_adapter import DogeFuzzAdapter
 
         adapter = DogeFuzzAdapter()
         # Just ensure analyze returns dict with expected keys
@@ -1195,7 +1195,7 @@ class TestDogeFuzzAdapterCoverage(TestAdapterBase):
 
     def test_coverage_data_zero_statements(self):
         """Test CoverageData.get_coverage_percentage with zero statements."""
-        from src.adapters.dogefuzz_adapter import CoverageData
+        from miesc.adapters.dogefuzz_adapter import CoverageData
 
         coverage = CoverageData(
             statements_covered=set(),
@@ -1209,7 +1209,7 @@ class TestDogeFuzzAdapterCoverage(TestAdapterBase):
 
     def test_coverage_data_with_coverage(self):
         """Test CoverageData.get_coverage_percentage with actual coverage."""
-        from src.adapters.dogefuzz_adapter import CoverageData
+        from miesc.adapters.dogefuzz_adapter import CoverageData
 
         coverage = CoverageData(
             statements_covered={1, 2, 3, 4, 5},
@@ -1223,7 +1223,7 @@ class TestDogeFuzzAdapterCoverage(TestAdapterBase):
 
     def test_normalize_findings_not_dict(self):
         """Test normalize_findings with non-dict input."""
-        from src.adapters.dogefuzz_adapter import DogeFuzzAdapter
+        from miesc.adapters.dogefuzz_adapter import DogeFuzzAdapter
 
         adapter = DogeFuzzAdapter()
         result = adapter.normalize_findings("not a dict")
@@ -1231,7 +1231,7 @@ class TestDogeFuzzAdapterCoverage(TestAdapterBase):
 
     def test_normalize_findings_dict(self):
         """Test normalize_findings with dict input."""
-        from src.adapters.dogefuzz_adapter import DogeFuzzAdapter
+        from miesc.adapters.dogefuzz_adapter import DogeFuzzAdapter
 
         adapter = DogeFuzzAdapter()
         result = adapter.normalize_findings({"findings": [{"id": "1"}]})
@@ -1239,21 +1239,21 @@ class TestDogeFuzzAdapterCoverage(TestAdapterBase):
 
     def test_can_analyze_sol_file(self, temp_contract):
         """Test can_analyze with .sol file."""
-        from src.adapters.dogefuzz_adapter import DogeFuzzAdapter
+        from miesc.adapters.dogefuzz_adapter import DogeFuzzAdapter
 
         adapter = DogeFuzzAdapter()
         assert adapter.can_analyze(temp_contract)
 
     def test_can_analyze_non_sol_file(self):
         """Test can_analyze with non-.sol file."""
-        from src.adapters.dogefuzz_adapter import DogeFuzzAdapter
+        from miesc.adapters.dogefuzz_adapter import DogeFuzzAdapter
 
         adapter = DogeFuzzAdapter()
         assert not adapter.can_analyze("/path/to/file.txt")
 
     def test_get_default_config(self):
         """Test get_default_config returns expected keys."""
-        from src.adapters.dogefuzz_adapter import DogeFuzzAdapter
+        from miesc.adapters.dogefuzz_adapter import DogeFuzzAdapter
 
         adapter = DogeFuzzAdapter()
         config = adapter.get_default_config()
@@ -1268,7 +1268,7 @@ class TestSlitherAdapterCoverage(TestAdapterBase):
 
     def test_parse_output_complex_results(self):
         """Test parsing complex slither output."""
-        from src.adapters.slither_adapter import SlitherAdapter
+        from miesc.adapters.slither_adapter import SlitherAdapter
 
         adapter = SlitherAdapter()
 
@@ -1295,7 +1295,7 @@ class TestSlitherAdapterCoverage(TestAdapterBase):
 
     def test_analyze_with_valid_contract(self, temp_contract):
         """Test analyze with valid contract file."""
-        from src.adapters.slither_adapter import SlitherAdapter
+        from miesc.adapters.slither_adapter import SlitherAdapter
 
         adapter = SlitherAdapter()
 
@@ -1325,7 +1325,7 @@ class TestSlitherAdapterCoverage(TestAdapterBase):
 
     def test_run_analysis_timeout(self, temp_contract):
         """Test analysis with timeout."""
-        from src.adapters.slither_adapter import SlitherAdapter
+        from miesc.adapters.slither_adapter import SlitherAdapter
 
         adapter = SlitherAdapter()
 
@@ -1336,7 +1336,7 @@ class TestSlitherAdapterCoverage(TestAdapterBase):
 
     def test_is_available_config_error(self):
         """Test is_available returns config error on bad returncode."""
-        from src.adapters.slither_adapter import SlitherAdapter
+        from miesc.adapters.slither_adapter import SlitherAdapter
 
         adapter = SlitherAdapter()
 
@@ -1348,7 +1348,7 @@ class TestSlitherAdapterCoverage(TestAdapterBase):
 
     def test_normalize_findings_empty_elements(self):
         """Test normalize_findings with empty elements."""
-        from src.adapters.slither_adapter import SlitherAdapter
+        from miesc.adapters.slither_adapter import SlitherAdapter
 
         adapter = SlitherAdapter()
         raw = {
@@ -1370,7 +1370,7 @@ class TestSlitherAdapterCoverage(TestAdapterBase):
 
     def test_normalize_findings_exception(self):
         """Test normalize_findings handles exceptions."""
-        from src.adapters.slither_adapter import SlitherAdapter
+        from miesc.adapters.slither_adapter import SlitherAdapter
 
         adapter = SlitherAdapter()
         # Pass invalid data that might cause exception
@@ -1379,21 +1379,21 @@ class TestSlitherAdapterCoverage(TestAdapterBase):
 
     def test_can_analyze_sol_file(self, temp_contract):
         """Test can_analyze with .sol file."""
-        from src.adapters.slither_adapter import SlitherAdapter
+        from miesc.adapters.slither_adapter import SlitherAdapter
 
         adapter = SlitherAdapter()
         assert adapter.can_analyze(temp_contract)
 
     def test_can_analyze_non_sol_file(self):
         """Test can_analyze with non-.sol file."""
-        from src.adapters.slither_adapter import SlitherAdapter
+        from miesc.adapters.slither_adapter import SlitherAdapter
 
         adapter = SlitherAdapter()
         assert not adapter.can_analyze("/path/to/file.txt")
 
     def test_can_analyze_directory(self):
         """Test can_analyze with directory."""
-        from src.adapters.slither_adapter import SlitherAdapter
+        from miesc.adapters.slither_adapter import SlitherAdapter
 
         adapter = SlitherAdapter()
         import tempfile
@@ -1405,7 +1405,7 @@ class TestSlitherAdapterCoverage(TestAdapterBase):
 
     def test_get_default_config(self):
         """Test get_default_config returns expected keys."""
-        from src.adapters.slither_adapter import SlitherAdapter
+        from miesc.adapters.slither_adapter import SlitherAdapter
 
         adapter = SlitherAdapter()
         config = adapter.get_default_config()
@@ -1414,7 +1414,7 @@ class TestSlitherAdapterCoverage(TestAdapterBase):
 
     def test_analyze_with_exclude_detectors(self, temp_contract):
         """Test analyze with exclude_detectors option."""
-        from src.adapters.slither_adapter import SlitherAdapter
+        from miesc.adapters.slither_adapter import SlitherAdapter
 
         adapter = SlitherAdapter()
         result = adapter.analyze(temp_contract, exclude_detectors=["reentrancy"])
@@ -1422,7 +1422,7 @@ class TestSlitherAdapterCoverage(TestAdapterBase):
 
     def test_analyze_with_filter_paths(self, temp_contract):
         """Test analyze with filter_paths option."""
-        from src.adapters.slither_adapter import SlitherAdapter
+        from miesc.adapters.slither_adapter import SlitherAdapter
 
         adapter = SlitherAdapter()
         result = adapter.analyze(temp_contract, filter_paths=["node_modules"])
@@ -1430,7 +1430,7 @@ class TestSlitherAdapterCoverage(TestAdapterBase):
 
     def test_analyze_json_decode_error(self, temp_contract):
         """Test analyze handles JSONDecodeError."""
-        from src.adapters.slither_adapter import SlitherAdapter
+        from miesc.adapters.slither_adapter import SlitherAdapter
 
         adapter = SlitherAdapter()
 
@@ -1445,7 +1445,7 @@ class TestSlitherAdapterCoverage(TestAdapterBase):
 
     def test_normalize_findings_with_elements(self):
         """Test normalize_findings with detector elements."""
-        from src.adapters.slither_adapter import SlitherAdapter
+        from miesc.adapters.slither_adapter import SlitherAdapter
 
         adapter = SlitherAdapter()
         raw = {
@@ -1476,7 +1476,7 @@ class TestSlitherAdapterCoverage(TestAdapterBase):
 
     def test_can_analyze_with_sol_directory(self):
         """Test can_analyze with directory containing .sol files."""
-        from src.adapters.slither_adapter import SlitherAdapter
+        from miesc.adapters.slither_adapter import SlitherAdapter
 
         adapter = SlitherAdapter()
         import os
@@ -1496,7 +1496,7 @@ class TestEchidnaAdapterCoverage(TestAdapterBase):
 
     def test_parse_echidna_output(self):
         """Test adapter instantiation and basic methods."""
-        from src.adapters.echidna_adapter import EchidnaAdapter
+        from miesc.adapters.echidna_adapter import EchidnaAdapter
 
         adapter = EchidnaAdapter()
         assert adapter is not None
@@ -1504,7 +1504,7 @@ class TestEchidnaAdapterCoverage(TestAdapterBase):
 
     def test_create_config_file(self, temp_contract):
         """Test echidna analysis with config options."""
-        from src.adapters.echidna_adapter import EchidnaAdapter
+        from miesc.adapters.echidna_adapter import EchidnaAdapter
 
         adapter = EchidnaAdapter()
         result = adapter.analyze(temp_contract, test_limit=100)
@@ -1512,7 +1512,7 @@ class TestEchidnaAdapterCoverage(TestAdapterBase):
 
     def test_is_available_config_error(self):
         """Test is_available returns config error on bad returncode."""
-        from src.adapters.echidna_adapter import EchidnaAdapter
+        from miesc.adapters.echidna_adapter import EchidnaAdapter
 
         adapter = EchidnaAdapter()
         with patch("subprocess.run") as mock_run:
@@ -1522,7 +1522,7 @@ class TestEchidnaAdapterCoverage(TestAdapterBase):
 
     def test_is_available_timeout(self):
         """Test is_available handles timeout."""
-        from src.adapters.echidna_adapter import EchidnaAdapter
+        from miesc.adapters.echidna_adapter import EchidnaAdapter
 
         adapter = EchidnaAdapter()
         with patch("subprocess.run") as mock_run:
@@ -1532,7 +1532,7 @@ class TestEchidnaAdapterCoverage(TestAdapterBase):
 
     def test_normalize_findings(self):
         """Test normalize_findings method."""
-        from src.adapters.echidna_adapter import EchidnaAdapter
+        from miesc.adapters.echidna_adapter import EchidnaAdapter
 
         adapter = EchidnaAdapter()
         raw = {"findings": [{"name": "test", "status": "failed"}]}
@@ -1542,7 +1542,7 @@ class TestEchidnaAdapterCoverage(TestAdapterBase):
 
     def test_get_default_config(self):
         """Test get_default_config method."""
-        from src.adapters.echidna_adapter import EchidnaAdapter
+        from miesc.adapters.echidna_adapter import EchidnaAdapter
 
         adapter = EchidnaAdapter()
         if hasattr(adapter, "get_default_config"):
@@ -1551,7 +1551,7 @@ class TestEchidnaAdapterCoverage(TestAdapterBase):
 
     def test_can_analyze(self, temp_contract):
         """Test can_analyze method."""
-        from src.adapters.echidna_adapter import EchidnaAdapter
+        from miesc.adapters.echidna_adapter import EchidnaAdapter
 
         adapter = EchidnaAdapter()
         if hasattr(adapter, "can_analyze"):
@@ -1564,7 +1564,7 @@ class TestSolhintAdapterCoverage(TestAdapterBase):
 
     def test_parse_solhint_json(self):
         """Test parsing solhint JSON output."""
-        from src.adapters.solhint_adapter import SolhintAdapter
+        from miesc.adapters.solhint_adapter import SolhintAdapter
 
         adapter = SolhintAdapter()
 
@@ -1586,7 +1586,7 @@ class TestSolhintAdapterCoverage(TestAdapterBase):
 
     def test_analyze_with_rules(self, temp_contract):
         """Test analyze with custom rules."""
-        from src.adapters.solhint_adapter import SolhintAdapter
+        from miesc.adapters.solhint_adapter import SolhintAdapter
 
         adapter = SolhintAdapter()
 
@@ -1597,7 +1597,7 @@ class TestSolhintAdapterCoverage(TestAdapterBase):
 
     def test_is_available_config_error(self):
         """Test is_available returns config error on bad returncode."""
-        from src.adapters.solhint_adapter import SolhintAdapter
+        from miesc.adapters.solhint_adapter import SolhintAdapter
 
         adapter = SolhintAdapter()
         with patch("subprocess.run") as mock_run:
@@ -1607,7 +1607,7 @@ class TestSolhintAdapterCoverage(TestAdapterBase):
 
     def test_is_available_timeout(self):
         """Test is_available handles timeout."""
-        from src.adapters.solhint_adapter import SolhintAdapter
+        from miesc.adapters.solhint_adapter import SolhintAdapter
 
         adapter = SolhintAdapter()
         with patch("subprocess.run") as mock_run:
@@ -1617,7 +1617,7 @@ class TestSolhintAdapterCoverage(TestAdapterBase):
 
     def test_normalize_findings(self):
         """Test normalize_findings method."""
-        from src.adapters.solhint_adapter import SolhintAdapter
+        from miesc.adapters.solhint_adapter import SolhintAdapter
 
         adapter = SolhintAdapter()
         raw = {"findings": [{"ruleId": "test", "message": "Test msg"}]}
@@ -1627,7 +1627,7 @@ class TestSolhintAdapterCoverage(TestAdapterBase):
 
     def test_get_default_config(self):
         """Test get_default_config method."""
-        from src.adapters.solhint_adapter import SolhintAdapter
+        from miesc.adapters.solhint_adapter import SolhintAdapter
 
         adapter = SolhintAdapter()
         if hasattr(adapter, "get_default_config"):
@@ -1636,7 +1636,7 @@ class TestSolhintAdapterCoverage(TestAdapterBase):
 
     def test_can_analyze(self, temp_contract):
         """Test can_analyze method."""
-        from src.adapters.solhint_adapter import SolhintAdapter
+        from miesc.adapters.solhint_adapter import SolhintAdapter
 
         adapter = SolhintAdapter()
         if hasattr(adapter, "can_analyze"):
@@ -1649,7 +1649,7 @@ class TestManticoreAdapterCoverage(TestAdapterBase):
 
     def test_workspace_creation(self):
         """Test workspace directory creation."""
-        from src.adapters.manticore_adapter import ManticoreAdapter
+        from miesc.adapters.manticore_adapter import ManticoreAdapter
 
         adapter = ManticoreAdapter()
 
@@ -1660,7 +1660,7 @@ class TestManticoreAdapterCoverage(TestAdapterBase):
 
     def test_parse_manticore_output(self):
         """Test parsing manticore output files."""
-        from src.adapters.manticore_adapter import ManticoreAdapter
+        from miesc.adapters.manticore_adapter import ManticoreAdapter
 
         adapter = ManticoreAdapter()
 
@@ -1672,7 +1672,7 @@ class TestManticoreAdapterCoverage(TestAdapterBase):
 
     def test_is_available(self):
         """Test is_available method."""
-        from src.adapters.manticore_adapter import ManticoreAdapter
+        from miesc.adapters.manticore_adapter import ManticoreAdapter
 
         adapter = ManticoreAdapter()
         result = adapter.is_available()
@@ -1680,7 +1680,7 @@ class TestManticoreAdapterCoverage(TestAdapterBase):
 
     def test_normalize_findings(self):
         """Test normalize_findings method."""
-        from src.adapters.manticore_adapter import ManticoreAdapter
+        from miesc.adapters.manticore_adapter import ManticoreAdapter
 
         adapter = ManticoreAdapter()
         raw = {"findings": [{"type": "test"}]}
@@ -1690,7 +1690,7 @@ class TestManticoreAdapterCoverage(TestAdapterBase):
 
     def test_get_default_config(self):
         """Test get_default_config method."""
-        from src.adapters.manticore_adapter import ManticoreAdapter
+        from miesc.adapters.manticore_adapter import ManticoreAdapter
 
         adapter = ManticoreAdapter()
         if hasattr(adapter, "get_default_config"):
@@ -1699,7 +1699,7 @@ class TestManticoreAdapterCoverage(TestAdapterBase):
 
     def test_analyze(self, temp_contract):
         """Test analyze method."""
-        from src.adapters.manticore_adapter import ManticoreAdapter
+        from miesc.adapters.manticore_adapter import ManticoreAdapter
 
         adapter = ManticoreAdapter()
         result = adapter.analyze(temp_contract)
@@ -1711,7 +1711,7 @@ class TestMevDetectorAdapterCoverage(TestAdapterBase):
 
     def test_detect_frontrunning(self, temp_contract):
         """Test MEV detection with vulnerable contract."""
-        from src.adapters.mev_detector_adapter import MEVDetectorAdapter
+        from miesc.adapters.mev_detector_adapter import MEVDetectorAdapter
 
         adapter = MEVDetectorAdapter()
         result = adapter.analyze(temp_contract)
@@ -1720,7 +1720,7 @@ class TestMevDetectorAdapterCoverage(TestAdapterBase):
 
     def test_detect_sandwich_attack(self, temp_contract):
         """Test MEV adapter metadata."""
-        from src.adapters.mev_detector_adapter import MEVDetectorAdapter
+        from miesc.adapters.mev_detector_adapter import MEVDetectorAdapter
 
         adapter = MEVDetectorAdapter()
         metadata = adapter.get_metadata()
@@ -1728,7 +1728,7 @@ class TestMevDetectorAdapterCoverage(TestAdapterBase):
 
     def test_normalize_findings(self):
         """Test normalize_findings method."""
-        from src.adapters.mev_detector_adapter import MEVDetectorAdapter
+        from miesc.adapters.mev_detector_adapter import MEVDetectorAdapter
 
         adapter = MEVDetectorAdapter()
         raw = {"findings": [{"type": "frontrunning"}]}
@@ -1738,7 +1738,7 @@ class TestMevDetectorAdapterCoverage(TestAdapterBase):
 
     def test_get_default_config(self):
         """Test get_default_config method."""
-        from src.adapters.mev_detector_adapter import MEVDetectorAdapter
+        from miesc.adapters.mev_detector_adapter import MEVDetectorAdapter
 
         adapter = MEVDetectorAdapter()
         if hasattr(adapter, "get_default_config"):
@@ -1747,7 +1747,7 @@ class TestMevDetectorAdapterCoverage(TestAdapterBase):
 
     def test_can_analyze(self, temp_contract):
         """Test can_analyze method."""
-        from src.adapters.mev_detector_adapter import MEVDetectorAdapter
+        from miesc.adapters.mev_detector_adapter import MEVDetectorAdapter
 
         adapter = MEVDetectorAdapter()
         if hasattr(adapter, "can_analyze"):
@@ -1943,7 +1943,7 @@ class TestGasAnalyzerAdapterCoverage(TestAdapterBase):
 
     def test_analyze(self, temp_contract):
         """Test gas analyzer analysis."""
-        from src.adapters.gas_analyzer_adapter import GasAnalyzerAdapter
+        from miesc.adapters.gas_analyzer_adapter import GasAnalyzerAdapter
 
         adapter = GasAnalyzerAdapter()
         result = adapter.analyze(temp_contract)
@@ -1952,7 +1952,7 @@ class TestGasAnalyzerAdapterCoverage(TestAdapterBase):
 
     def test_get_metadata(self):
         """Test get_metadata method."""
-        from src.adapters.gas_analyzer_adapter import GasAnalyzerAdapter
+        from miesc.adapters.gas_analyzer_adapter import GasAnalyzerAdapter
 
         adapter = GasAnalyzerAdapter()
         if hasattr(adapter, "get_metadata"):
@@ -1961,7 +1961,7 @@ class TestGasAnalyzerAdapterCoverage(TestAdapterBase):
 
     def test_normalize_findings(self):
         """Test normalize_findings method."""
-        from src.adapters.gas_analyzer_adapter import GasAnalyzerAdapter
+        from miesc.adapters.gas_analyzer_adapter import GasAnalyzerAdapter
 
         adapter = GasAnalyzerAdapter()
         raw = {"findings": [{"type": "gas_optimization"}]}
@@ -1971,7 +1971,7 @@ class TestGasAnalyzerAdapterCoverage(TestAdapterBase):
 
     def test_get_default_config(self):
         """Test get_default_config method."""
-        from src.adapters.gas_analyzer_adapter import GasAnalyzerAdapter
+        from miesc.adapters.gas_analyzer_adapter import GasAnalyzerAdapter
 
         adapter = GasAnalyzerAdapter()
         if hasattr(adapter, "get_default_config"):
@@ -1984,7 +1984,7 @@ class TestFoundryAdapterCoverage(TestAdapterBase):
 
     def test_parse_forge_output(self, temp_contract):
         """Test foundry adapter analysis."""
-        from src.adapters.foundry_adapter import FoundryAdapter
+        from miesc.adapters.foundry_adapter import FoundryAdapter
 
         adapter = FoundryAdapter()
         result = adapter.analyze(temp_contract)
@@ -2002,7 +2002,7 @@ class TestManticoreAdapterExtended(TestAdapterBase):
 
     def test_is_available_version_check_failed(self):
         """Test is_available when version check fails."""
-        from src.adapters.manticore_adapter import ManticoreAdapter
+        from miesc.adapters.manticore_adapter import ManticoreAdapter
         from src.core.tool_protocol import ToolStatus
 
         adapter = ManticoreAdapter()
@@ -2016,7 +2016,7 @@ class TestManticoreAdapterExtended(TestAdapterBase):
 
     def test_is_available_not_installed(self):
         """Test is_available when not installed."""
-        from src.adapters.manticore_adapter import ManticoreAdapter
+        from miesc.adapters.manticore_adapter import ManticoreAdapter
         from src.core.tool_protocol import ToolStatus
 
         adapter = ManticoreAdapter()
@@ -2027,7 +2027,7 @@ class TestManticoreAdapterExtended(TestAdapterBase):
 
     def test_is_available_timeout(self):
         """Test is_available handles timeout."""
-        from src.adapters.manticore_adapter import ManticoreAdapter
+        from miesc.adapters.manticore_adapter import ManticoreAdapter
         from src.core.tool_protocol import ToolStatus
 
         adapter = ManticoreAdapter()
@@ -2041,7 +2041,7 @@ class TestManticoreAdapterExtended(TestAdapterBase):
 
     def test_is_available_exception(self):
         """Test is_available handles generic exception."""
-        from src.adapters.manticore_adapter import ManticoreAdapter
+        from miesc.adapters.manticore_adapter import ManticoreAdapter
         from src.core.tool_protocol import ToolStatus
 
         adapter = ManticoreAdapter()
@@ -2055,7 +2055,7 @@ class TestManticoreAdapterExtended(TestAdapterBase):
 
     def test_analyze_tool_not_available(self, temp_contract):
         """Test analyze when tool not available."""
-        from src.adapters.manticore_adapter import ManticoreAdapter
+        from miesc.adapters.manticore_adapter import ManticoreAdapter
 
         adapter = ManticoreAdapter()
         with patch.object(adapter, "is_available") as mock_avail:
@@ -2068,7 +2068,7 @@ class TestManticoreAdapterExtended(TestAdapterBase):
 
     def test_parse_manticore_output_revert(self):
         """Test _parse_manticore_output with REVERT in output."""
-        from src.adapters.manticore_adapter import ManticoreAdapter
+        from miesc.adapters.manticore_adapter import ManticoreAdapter
 
         adapter = ManticoreAdapter()
         output = "Line with REVERT detected\nAnother line"
@@ -2078,7 +2078,7 @@ class TestManticoreAdapterExtended(TestAdapterBase):
 
     def test_parse_manticore_output_overflow(self):
         """Test _parse_manticore_output with overflow."""
-        from src.adapters.manticore_adapter import ManticoreAdapter
+        from miesc.adapters.manticore_adapter import ManticoreAdapter
 
         adapter = ManticoreAdapter()
         output = "Integer overflow detected in function\nunderflow warning"
@@ -2093,7 +2093,7 @@ class TestManticoreAdapterExtended(TestAdapterBase):
 
     def test_parse_manticore_output_reentrancy(self):
         """Test _parse_manticore_output with reentrancy."""
-        from src.adapters.manticore_adapter import ManticoreAdapter
+        from miesc.adapters.manticore_adapter import ManticoreAdapter
 
         adapter = ManticoreAdapter()
         output = "reentrancy vulnerability found\nexternal call detected"
@@ -2111,7 +2111,7 @@ class TestManticoreAdapterExtended(TestAdapterBase):
         import os
         import tempfile
 
-        from src.adapters.manticore_adapter import ManticoreAdapter
+        from miesc.adapters.manticore_adapter import ManticoreAdapter
 
         adapter = ManticoreAdapter()
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -2132,7 +2132,7 @@ class TestManticoreAdapterExtended(TestAdapterBase):
 
     def test_analyze_with_timeout(self, temp_contract):
         """Test analyze handles timeout."""
-        from src.adapters.manticore_adapter import ManticoreAdapter
+        from miesc.adapters.manticore_adapter import ManticoreAdapter
 
         adapter = ManticoreAdapter()
         with (
@@ -2148,7 +2148,7 @@ class TestManticoreAdapterExtended(TestAdapterBase):
 
     def test_analyze_with_exception(self, temp_contract):
         """Test analyze handles generic exception."""
-        from src.adapters.manticore_adapter import ManticoreAdapter
+        from miesc.adapters.manticore_adapter import ManticoreAdapter
 
         adapter = ManticoreAdapter()
         with (
@@ -2165,7 +2165,7 @@ class TestManticoreAdapterExtended(TestAdapterBase):
 
     def test_analyze_contract_read_error(self, temp_contract):
         """Test analyze handles contract read error."""
-        from src.adapters.manticore_adapter import ManticoreAdapter
+        from miesc.adapters.manticore_adapter import ManticoreAdapter
 
         adapter = ManticoreAdapter()
         with (
@@ -2183,14 +2183,14 @@ class TestManticoreAdapterExtended(TestAdapterBase):
 
     def test_can_analyze_non_sol(self):
         """Test can_analyze with non-.sol file."""
-        from src.adapters.manticore_adapter import ManticoreAdapter
+        from miesc.adapters.manticore_adapter import ManticoreAdapter
 
         adapter = ManticoreAdapter()
         assert not adapter.can_analyze("/path/to/file.txt")
 
     def test_normalize_findings_list(self):
         """Test normalize_findings with list input."""
-        from src.adapters.manticore_adapter import ManticoreAdapter
+        from miesc.adapters.manticore_adapter import ManticoreAdapter
 
         adapter = ManticoreAdapter()
         result = adapter.normalize_findings([{"id": "1"}])
@@ -2198,7 +2198,7 @@ class TestManticoreAdapterExtended(TestAdapterBase):
 
     def test_run_manticore_method(self, temp_contract):
         """Test _run_manticore method."""
-        from src.adapters.manticore_adapter import ManticoreAdapter
+        from miesc.adapters.manticore_adapter import ManticoreAdapter
 
         adapter = ManticoreAdapter()
         with patch("subprocess.run") as mock_run:
@@ -2214,7 +2214,7 @@ class TestMEVDetectorAdapterExtended(TestAdapterBase):
 
     def test_is_available(self):
         """Test is_available always returns AVAILABLE."""
-        from src.adapters.mev_detector_adapter import MEVDetectorAdapter
+        from miesc.adapters.mev_detector_adapter import MEVDetectorAdapter
         from src.core.tool_protocol import ToolStatus
 
         adapter = MEVDetectorAdapter()
@@ -2222,7 +2222,7 @@ class TestMEVDetectorAdapterExtended(TestAdapterBase):
 
     def test_analyze_defi_only_non_defi(self, temp_contract):
         """Test analyze with include_defi_only on non-DeFi contract."""
-        from src.adapters.mev_detector_adapter import MEVDetectorAdapter
+        from miesc.adapters.mev_detector_adapter import MEVDetectorAdapter
 
         adapter = MEVDetectorAdapter()
         result = adapter.analyze(temp_contract, include_defi_only=True)
@@ -2230,7 +2230,7 @@ class TestMEVDetectorAdapterExtended(TestAdapterBase):
 
     def test_analyze_with_min_severity(self, temp_contract):
         """Test analyze with min_severity filter."""
-        from src.adapters.mev_detector_adapter import MEVDetectorAdapter
+        from miesc.adapters.mev_detector_adapter import MEVDetectorAdapter
 
         adapter = MEVDetectorAdapter()
         result = adapter.analyze(temp_contract, min_severity="High")
@@ -2239,7 +2239,7 @@ class TestMEVDetectorAdapterExtended(TestAdapterBase):
 
     def test_is_defi_contract(self):
         """Test _is_defi_contract method."""
-        from src.adapters.mev_detector_adapter import MEVDetectorAdapter
+        from miesc.adapters.mev_detector_adapter import MEVDetectorAdapter
 
         adapter = MEVDetectorAdapter()
         # DeFi contract
@@ -2251,14 +2251,14 @@ class TestMEVDetectorAdapterExtended(TestAdapterBase):
 
     def test_calculate_mev_risk_empty(self):
         """Test _calculate_mev_risk with empty findings."""
-        from src.adapters.mev_detector_adapter import MEVDetectorAdapter
+        from miesc.adapters.mev_detector_adapter import MEVDetectorAdapter
 
         adapter = MEVDetectorAdapter()
         assert adapter._calculate_mev_risk([]) == 0.0
 
     def test_calculate_mev_risk_critical(self):
         """Test _calculate_mev_risk with critical findings."""
-        from src.adapters.mev_detector_adapter import MEVDetectorAdapter
+        from miesc.adapters.mev_detector_adapter import MEVDetectorAdapter
 
         adapter = MEVDetectorAdapter()
         findings = [{"severity": "Critical"}, {"severity": "High"}, {"severity": "Medium"}]
@@ -2268,7 +2268,7 @@ class TestMEVDetectorAdapterExtended(TestAdapterBase):
 
     def test_risk_level_all_levels(self):
         """Test _risk_level for all thresholds."""
-        from src.adapters.mev_detector_adapter import MEVDetectorAdapter
+        from miesc.adapters.mev_detector_adapter import MEVDetectorAdapter
 
         adapter = MEVDetectorAdapter()
         assert adapter._risk_level(75) == "Critical"
@@ -2279,7 +2279,7 @@ class TestMEVDetectorAdapterExtended(TestAdapterBase):
 
     def test_severity_level(self):
         """Test _severity_level for all severities."""
-        from src.adapters.mev_detector_adapter import MEVDetectorAdapter
+        from miesc.adapters.mev_detector_adapter import MEVDetectorAdapter
 
         adapter = MEVDetectorAdapter()
         assert adapter._severity_level("Critical") == 4
@@ -2290,7 +2290,7 @@ class TestMEVDetectorAdapterExtended(TestAdapterBase):
 
     def test_severity_breakdown(self):
         """Test _severity_breakdown method."""
-        from src.adapters.mev_detector_adapter import MEVDetectorAdapter
+        from miesc.adapters.mev_detector_adapter import MEVDetectorAdapter
 
         adapter = MEVDetectorAdapter()
         findings = [
@@ -2306,7 +2306,7 @@ class TestMEVDetectorAdapterExtended(TestAdapterBase):
 
     def test_extract_attack_vectors(self):
         """Test _extract_attack_vectors method."""
-        from src.adapters.mev_detector_adapter import MEVDetectorAdapter
+        from miesc.adapters.mev_detector_adapter import MEVDetectorAdapter
 
         adapter = MEVDetectorAdapter()
         findings = [
@@ -2321,7 +2321,7 @@ class TestMEVDetectorAdapterExtended(TestAdapterBase):
 
     def test_analyze_mev_patterns_frontrun(self):
         """Test MEV pattern detection for frontrunning."""
-        from src.adapters.mev_detector_adapter import MEVDetectorAdapter
+        from miesc.adapters.mev_detector_adapter import MEVDetectorAdapter
 
         adapter = MEVDetectorAdapter()
         code = """
@@ -2336,7 +2336,7 @@ class TestMEVDetectorAdapterExtended(TestAdapterBase):
 
     def test_analyze_mev_patterns_timestamp(self):
         """Test MEV pattern detection for timestamp dependence."""
-        from src.adapters.mev_detector_adapter import MEVDetectorAdapter
+        from miesc.adapters.mev_detector_adapter import MEVDetectorAdapter
 
         adapter = MEVDetectorAdapter()
         code = """
@@ -2356,7 +2356,7 @@ class TestMEVDetectorAdapterExtended(TestAdapterBase):
 
     def test_can_analyze_sol(self):
         """Test can_analyze with .sol file."""
-        from src.adapters.mev_detector_adapter import MEVDetectorAdapter
+        from miesc.adapters.mev_detector_adapter import MEVDetectorAdapter
 
         adapter = MEVDetectorAdapter()
         assert adapter.can_analyze("/path/to/contract.sol")
@@ -2364,14 +2364,14 @@ class TestMEVDetectorAdapterExtended(TestAdapterBase):
 
     def test_normalize_findings_empty(self):
         """Test normalize_findings with empty dict."""
-        from src.adapters.mev_detector_adapter import MEVDetectorAdapter
+        from miesc.adapters.mev_detector_adapter import MEVDetectorAdapter
 
         adapter = MEVDetectorAdapter()
         assert adapter.normalize_findings({}) == []
 
     def test_analyze_exception_handling(self):
         """Test analyze handles exceptions gracefully."""
-        from src.adapters.mev_detector_adapter import MEVDetectorAdapter
+        from miesc.adapters.mev_detector_adapter import MEVDetectorAdapter
 
         adapter = MEVDetectorAdapter()
         # Non-existent file should trigger exception
@@ -2385,7 +2385,7 @@ class TestEchidnaAdapterExtended(TestAdapterBase):
 
     def test_init_with_config(self):
         """Test EchidnaAdapter initialization with config."""
-        from src.adapters.echidna_adapter import EchidnaAdapter
+        from miesc.adapters.echidna_adapter import EchidnaAdapter
 
         config = {
             "test_limit": 10000,
@@ -2399,7 +2399,7 @@ class TestEchidnaAdapterExtended(TestAdapterBase):
 
     def test_is_available_config_error_returncode(self):
         """Test is_available with non-zero return code."""
-        from src.adapters.echidna_adapter import EchidnaAdapter
+        from miesc.adapters.echidna_adapter import EchidnaAdapter
         from src.core.tool_protocol import ToolStatus
 
         adapter = EchidnaAdapter()
@@ -2410,7 +2410,7 @@ class TestEchidnaAdapterExtended(TestAdapterBase):
 
     def test_analyze_not_available(self, temp_contract):
         """Test analyze when tool not available."""
-        from src.adapters.echidna_adapter import EchidnaAdapter
+        from miesc.adapters.echidna_adapter import EchidnaAdapter
 
         adapter = EchidnaAdapter()
         with patch.object(adapter, "is_available") as mock_avail:
@@ -2425,7 +2425,7 @@ class TestEchidnaAdapterExtended(TestAdapterBase):
         """Test analyze with config file."""
         import os
 
-        from src.adapters.echidna_adapter import EchidnaAdapter
+        from miesc.adapters.echidna_adapter import EchidnaAdapter
 
         # Create a temp config file
         config_path = "/tmp/echidna_test.yaml"
@@ -2449,7 +2449,7 @@ class TestEchidnaAdapterExtended(TestAdapterBase):
 
     def test_analyze_with_corpus_dir(self, temp_contract):
         """Test analyze with corpus directory."""
-        from src.adapters.echidna_adapter import EchidnaAdapter
+        from miesc.adapters.echidna_adapter import EchidnaAdapter
 
         adapter = EchidnaAdapter(config={"corpus_dir": "/tmp/echidna_corpus"})
         with (
@@ -2465,7 +2465,7 @@ class TestEchidnaAdapterExtended(TestAdapterBase):
 
     def test_analyze_with_contract_name(self, temp_contract):
         """Test analyze with contract name option."""
-        from src.adapters.echidna_adapter import EchidnaAdapter
+        from miesc.adapters.echidna_adapter import EchidnaAdapter
 
         adapter = EchidnaAdapter()
         with (
@@ -2481,7 +2481,7 @@ class TestEchidnaAdapterExtended(TestAdapterBase):
 
     def test_analyze_assertion_mode(self, temp_contract):
         """Test analyze in assertion mode."""
-        from src.adapters.echidna_adapter import EchidnaAdapter
+        from miesc.adapters.echidna_adapter import EchidnaAdapter
 
         adapter = EchidnaAdapter()
         with (
@@ -2497,7 +2497,7 @@ class TestEchidnaAdapterExtended(TestAdapterBase):
 
     def test_analyze_timeout(self, temp_contract):
         """Test analyze handles timeout."""
-        from src.adapters.echidna_adapter import EchidnaAdapter
+        from miesc.adapters.echidna_adapter import EchidnaAdapter
 
         adapter = EchidnaAdapter()
         with (
@@ -2514,7 +2514,7 @@ class TestEchidnaAdapterExtended(TestAdapterBase):
 
     def test_analyze_file_not_found(self):
         """Test analyze with non-existent file."""
-        from src.adapters.echidna_adapter import EchidnaAdapter
+        from miesc.adapters.echidna_adapter import EchidnaAdapter
 
         adapter = EchidnaAdapter()
         with (
@@ -2530,7 +2530,7 @@ class TestEchidnaAdapterExtended(TestAdapterBase):
 
     def test_analyze_generic_exception(self, temp_contract):
         """Test analyze handles generic exception."""
-        from src.adapters.echidna_adapter import EchidnaAdapter
+        from miesc.adapters.echidna_adapter import EchidnaAdapter
 
         adapter = EchidnaAdapter()
         with (
@@ -2546,7 +2546,7 @@ class TestEchidnaAdapterExtended(TestAdapterBase):
 
     def test_parse_output_failed_property(self):
         """Test _parse_output with failed property."""
-        from src.adapters.echidna_adapter import EchidnaAdapter
+        from miesc.adapters.echidna_adapter import EchidnaAdapter
 
         adapter = EchidnaAdapter()
         stdout = """
@@ -2562,7 +2562,7 @@ class TestEchidnaAdapterExtended(TestAdapterBase):
 
     def test_parse_output_assertion_failure(self):
         """Test _parse_output with assertion failure."""
-        from src.adapters.echidna_adapter import EchidnaAdapter
+        from miesc.adapters.echidna_adapter import EchidnaAdapter
 
         adapter = EchidnaAdapter()
         stdout = "assertion failure detected in test_func failed"
@@ -2571,7 +2571,7 @@ class TestEchidnaAdapterExtended(TestAdapterBase):
 
     def test_extract_tests_run(self):
         """Test _extract_tests_run method."""
-        from src.adapters.echidna_adapter import EchidnaAdapter
+        from miesc.adapters.echidna_adapter import EchidnaAdapter
 
         adapter = EchidnaAdapter()
         assert adapter._extract_tests_run("Ran 50000 tests") == 50000
@@ -2580,7 +2580,7 @@ class TestEchidnaAdapterExtended(TestAdapterBase):
 
     def test_extract_coverage(self):
         """Test _extract_coverage method."""
-        from src.adapters.echidna_adapter import EchidnaAdapter
+        from miesc.adapters.echidna_adapter import EchidnaAdapter
 
         adapter = EchidnaAdapter()
         coverage = adapter._extract_coverage("some output")
@@ -2589,7 +2589,7 @@ class TestEchidnaAdapterExtended(TestAdapterBase):
 
     def test_normalize_findings_list(self):
         """Test normalize_findings with list input."""
-        from src.adapters.echidna_adapter import EchidnaAdapter
+        from miesc.adapters.echidna_adapter import EchidnaAdapter
 
         adapter = EchidnaAdapter()
         input_list = [{"id": "1"}, {"id": "2"}]
@@ -2598,7 +2598,7 @@ class TestEchidnaAdapterExtended(TestAdapterBase):
 
     def test_can_analyze_nonexistent(self):
         """Test can_analyze with non-existent file."""
-        from src.adapters.echidna_adapter import EchidnaAdapter
+        from miesc.adapters.echidna_adapter import EchidnaAdapter
 
         adapter = EchidnaAdapter()
         # Non-existent file
@@ -2607,7 +2607,7 @@ class TestEchidnaAdapterExtended(TestAdapterBase):
 
     def test_get_default_config_keys(self):
         """Test get_default_config returns expected keys."""
-        from src.adapters.echidna_adapter import EchidnaAdapter
+        from miesc.adapters.echidna_adapter import EchidnaAdapter
 
         adapter = EchidnaAdapter()
         config = adapter.get_default_config()
@@ -2621,7 +2621,7 @@ class TestSolhintAdapterExtended(TestAdapterBase):
 
     def test_init_with_config(self):
         """Test SolhintAdapter initialization with config."""
-        from src.adapters.solhint_adapter import SolhintAdapter
+        from miesc.adapters.solhint_adapter import SolhintAdapter
 
         config = {
             "config_file": "/tmp/.solhint.json",
@@ -2638,7 +2638,7 @@ class TestSolhintAdapterExtended(TestAdapterBase):
 
     def test_is_available_config_error_exception(self):
         """Test is_available with exception."""
-        from src.adapters.solhint_adapter import SolhintAdapter
+        from miesc.adapters.solhint_adapter import SolhintAdapter
         from src.core.tool_protocol import ToolStatus
 
         adapter = SolhintAdapter()
@@ -2649,7 +2649,7 @@ class TestSolhintAdapterExtended(TestAdapterBase):
 
     def test_analyze_not_available(self, temp_contract):
         """Test analyze when tool not available."""
-        from src.adapters.solhint_adapter import SolhintAdapter
+        from miesc.adapters.solhint_adapter import SolhintAdapter
 
         adapter = SolhintAdapter()
         with patch.object(adapter, "is_available") as mock_avail:
@@ -2664,7 +2664,7 @@ class TestSolhintAdapterExtended(TestAdapterBase):
         """Test analyze with config file."""
         import os
 
-        from src.adapters.solhint_adapter import SolhintAdapter
+        from miesc.adapters.solhint_adapter import SolhintAdapter
 
         config_path = "/tmp/.solhint_test.json"
         with open(config_path, "w") as f:
@@ -2687,7 +2687,7 @@ class TestSolhintAdapterExtended(TestAdapterBase):
 
     def test_analyze_with_max_warnings(self, temp_contract):
         """Test analyze with max_warnings option."""
-        from src.adapters.solhint_adapter import SolhintAdapter
+        from miesc.adapters.solhint_adapter import SolhintAdapter
 
         adapter = SolhintAdapter(config={"max_warnings": 5})
         with (
@@ -2703,7 +2703,7 @@ class TestSolhintAdapterExtended(TestAdapterBase):
 
     def test_analyze_with_quiet_mode(self, temp_contract):
         """Test analyze with quiet mode."""
-        from src.adapters.solhint_adapter import SolhintAdapter
+        from miesc.adapters.solhint_adapter import SolhintAdapter
 
         adapter = SolhintAdapter(config={"quiet": True})
         with (
@@ -2721,7 +2721,7 @@ class TestSolhintAdapterExtended(TestAdapterBase):
         """Test analyze with ignore path."""
         import os
 
-        from src.adapters.solhint_adapter import SolhintAdapter
+        from miesc.adapters.solhint_adapter import SolhintAdapter
 
         ignore_path = "/tmp/.solhintignore"
         with open(ignore_path, "w") as f:
@@ -2744,7 +2744,7 @@ class TestSolhintAdapterExtended(TestAdapterBase):
 
     def test_analyze_timeout(self, temp_contract):
         """Test analyze handles timeout."""
-        from src.adapters.solhint_adapter import SolhintAdapter
+        from miesc.adapters.solhint_adapter import SolhintAdapter
 
         adapter = SolhintAdapter()
         with (
@@ -2761,7 +2761,7 @@ class TestSolhintAdapterExtended(TestAdapterBase):
 
     def test_analyze_file_not_found(self):
         """Test analyze with non-existent file."""
-        from src.adapters.solhint_adapter import SolhintAdapter
+        from miesc.adapters.solhint_adapter import SolhintAdapter
 
         adapter = SolhintAdapter()
         with (
@@ -2777,7 +2777,7 @@ class TestSolhintAdapterExtended(TestAdapterBase):
 
     def test_analyze_generic_exception(self, temp_contract):
         """Test analyze handles generic exception."""
-        from src.adapters.solhint_adapter import SolhintAdapter
+        from miesc.adapters.solhint_adapter import SolhintAdapter
 
         adapter = SolhintAdapter()
         with (
@@ -2793,7 +2793,7 @@ class TestSolhintAdapterExtended(TestAdapterBase):
 
     def test_parse_output_json(self):
         """Test _parse_output with JSON output."""
-        from src.adapters.solhint_adapter import SolhintAdapter
+        from miesc.adapters.solhint_adapter import SolhintAdapter
 
         adapter = SolhintAdapter()
         json_output = json.dumps(
@@ -2814,7 +2814,7 @@ class TestSolhintAdapterExtended(TestAdapterBase):
 
     def test_parse_output_invalid_json(self):
         """Test _parse_output with invalid JSON (fallback to text)."""
-        from src.adapters.solhint_adapter import SolhintAdapter
+        from miesc.adapters.solhint_adapter import SolhintAdapter
 
         adapter = SolhintAdapter()
         text_output = "test.sol:10:5: [error] No unused vars (no-unused-vars)"
@@ -2823,7 +2823,7 @@ class TestSolhintAdapterExtended(TestAdapterBase):
 
     def test_normalize_issue_security(self):
         """Test _normalize_issue with security rule."""
-        from src.adapters.solhint_adapter import SolhintAdapter
+        from miesc.adapters.solhint_adapter import SolhintAdapter
 
         adapter = SolhintAdapter()
         issue = {
@@ -2840,7 +2840,7 @@ class TestSolhintAdapterExtended(TestAdapterBase):
 
     def test_normalize_issue_style(self):
         """Test _normalize_issue with style rule."""
-        from src.adapters.solhint_adapter import SolhintAdapter
+        from miesc.adapters.solhint_adapter import SolhintAdapter
 
         adapter = SolhintAdapter()
         issue = {
@@ -2857,7 +2857,7 @@ class TestSolhintAdapterExtended(TestAdapterBase):
 
     def test_normalize_issue_with_fix(self):
         """Test _normalize_issue with fix suggestion."""
-        from src.adapters.solhint_adapter import SolhintAdapter
+        from miesc.adapters.solhint_adapter import SolhintAdapter
 
         adapter = SolhintAdapter()
         issue = {
@@ -2874,7 +2874,7 @@ class TestSolhintAdapterExtended(TestAdapterBase):
 
     def test_parse_text_output(self):
         """Test _parse_text_output method."""
-        from src.adapters.solhint_adapter import SolhintAdapter
+        from miesc.adapters.solhint_adapter import SolhintAdapter
 
         adapter = SolhintAdapter()
         text = "test.sol:10:5: [error] Avoid low level calls (avoid-low-level-calls)\ntest.sol:20:1: [warning] Check send result (check-send-result)"
@@ -2887,7 +2887,7 @@ class TestSolhintAdapterExtended(TestAdapterBase):
 
     def test_get_recommendation_known_rule(self):
         """Test _get_recommendation with known rule."""
-        from src.adapters.solhint_adapter import SolhintAdapter
+        from miesc.adapters.solhint_adapter import SolhintAdapter
 
         adapter = SolhintAdapter()
         rec = adapter._get_recommendation("avoid-call-value")
@@ -2895,7 +2895,7 @@ class TestSolhintAdapterExtended(TestAdapterBase):
 
     def test_get_recommendation_unknown_rule(self):
         """Test _get_recommendation with unknown rule."""
-        from src.adapters.solhint_adapter import SolhintAdapter
+        from miesc.adapters.solhint_adapter import SolhintAdapter
 
         adapter = SolhintAdapter()
         rec = adapter._get_recommendation("unknown-rule")
@@ -2903,7 +2903,7 @@ class TestSolhintAdapterExtended(TestAdapterBase):
 
     def test_normalize_findings_list(self):
         """Test normalize_findings with list input."""
-        from src.adapters.solhint_adapter import SolhintAdapter
+        from miesc.adapters.solhint_adapter import SolhintAdapter
 
         adapter = SolhintAdapter()
         input_list = [{"id": "1"}]
@@ -2912,7 +2912,7 @@ class TestSolhintAdapterExtended(TestAdapterBase):
 
     def test_normalize_findings_invalid(self):
         """Test normalize_findings with invalid input."""
-        from src.adapters.solhint_adapter import SolhintAdapter
+        from miesc.adapters.solhint_adapter import SolhintAdapter
 
         adapter = SolhintAdapter()
         result = adapter.normalize_findings("invalid")
@@ -2923,7 +2923,7 @@ class TestSolhintAdapterExtended(TestAdapterBase):
         import os
         import tempfile
 
-        from src.adapters.solhint_adapter import SolhintAdapter
+        from miesc.adapters.solhint_adapter import SolhintAdapter
 
         adapter = SolhintAdapter()
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -2937,14 +2937,14 @@ class TestSolhintAdapterExtended(TestAdapterBase):
 
     def test_can_analyze_non_sol(self):
         """Test can_analyze with non-.sol file."""
-        from src.adapters.solhint_adapter import SolhintAdapter
+        from miesc.adapters.solhint_adapter import SolhintAdapter
 
         adapter = SolhintAdapter()
         assert not adapter.can_analyze("/path/to/file.txt")
 
     def test_get_default_config_keys(self):
         """Test get_default_config returns expected keys."""
-        from src.adapters.solhint_adapter import SolhintAdapter
+        from miesc.adapters.solhint_adapter import SolhintAdapter
 
         adapter = SolhintAdapter()
         config = adapter.get_default_config()
@@ -4075,7 +4075,7 @@ class TestToolDiscovery:
         info = ToolInfo(
             name="slither",
             adapter_class="SlitherAdapter",
-            module_path="src.adapters.slither_adapter",
+            module_path="miesc.adapters.slither_adapter",
             layer="static_analysis",
             category="Static Analysis",
             available=True,
@@ -4454,28 +4454,28 @@ class TestAdaptersRegistry:
 
     def test_get_available_adapters(self):
         """Test getting available adapters."""
-        from src.adapters import get_available_adapters
+        from miesc.adapters import get_available_adapters
 
         adapters = get_available_adapters()
         assert isinstance(adapters, list)
 
     def test_get_adapter_status_report(self):
         """Test getting adapter status report."""
-        from src.adapters import get_adapter_status_report
+        from miesc.adapters import get_adapter_status_report
 
         report = get_adapter_status_report()
         assert isinstance(report, dict)
 
     def test_get_adapter_by_name_not_found(self):
         """Test getting adapter by name when not found."""
-        from src.adapters import get_adapter_by_name
+        from miesc.adapters import get_adapter_by_name
 
         adapter = get_adapter_by_name("nonexistent_adapter")
         assert adapter is None
 
     def test_get_adapter_by_name_found(self):
         """Test getting adapter by name when found."""
-        from src.adapters import get_adapter_by_name, register_all_adapters
+        from miesc.adapters import get_adapter_by_name, register_all_adapters
 
         # First register adapters
         register_all_adapters()
@@ -4487,7 +4487,7 @@ class TestAdaptersRegistry:
 
     def test_register_all_adapters(self):
         """Test registering all adapters."""
-        from src.adapters import register_all_adapters
+        from miesc.adapters import register_all_adapters
 
         report = register_all_adapters()
 
@@ -4503,7 +4503,7 @@ class TestAdaptersRegistry:
 
     def test_register_all_adapters_reports_status(self):
         """Test that register_all_adapters reports correct status."""
-        from src.adapters import register_all_adapters
+        from miesc.adapters import register_all_adapters
 
         report = register_all_adapters()
 

@@ -1,8 +1,8 @@
-"""Tests for src.adapters.cairo_adapter — Cairo/Starknet analyzer."""
+"""Tests for miesc.adapters.cairo_adapter — Cairo/Starknet analyzer."""
 
 import pytest
 
-from src.adapters.cairo_adapter import (
+from miesc.adapters.cairo_adapter import (
     CAIRO_PATTERNS,
     CairoAnalyzer,
     CairoFinding,
@@ -306,7 +306,7 @@ mod T {
 
     def test_malformed_pattern_does_not_abort_scan(self, analyzer, monkeypatch):
         """A malformed regex in the registry must NOT break the whole scan."""
-        from src.adapters import cairo_adapter as mod
+        from miesc.adapters import cairo_adapter as mod
 
         # Inject a broken pattern temporarily
         original = mod.CAIRO_PATTERNS[CairoVulnType.FELT_OVERFLOW]["patterns"][0]

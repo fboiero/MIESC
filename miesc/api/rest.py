@@ -253,13 +253,13 @@ class AdapterLoader:
 
     @classmethod
     def load_all(cls) -> Dict[str, Any]:
-        """Load all available adapters from src/adapters/."""
+        """Load all available adapters from miesc/adapters/."""
         if cls._loaded:
             return cls._adapters
 
         for tool_name, class_name in ADAPTER_MAP.items():
             try:
-                module_name = f"src.adapters.{tool_name}_adapter"
+                module_name = f"miesc.adapters.{tool_name}_adapter"
                 module = importlib.import_module(module_name)
                 adapter_class = getattr(module, class_name, None)
 

@@ -387,7 +387,7 @@ def scan(
         # Frontier LLM in directory mode: concatenate top source files
         if frontier_model:
             try:
-                from src.adapters.frontier_llm_adapter import FrontierLLMAdapter
+                from miesc.adapters.frontier_llm_adapter import FrontierLLMAdapter
                 from src.core.tool_protocol import ToolStatus
 
                 provider_map = {
@@ -562,7 +562,7 @@ def scan(
     if ensemble:
         frontier_model = None  # ensemble handles its own providers
         try:
-            from src.adapters.frontier_llm_adapter import FrontierLLMAdapter
+            from miesc.adapters.frontier_llm_adapter import FrontierLLMAdapter
             from src.core.tool_protocol import ToolStatus
 
             ensemble_providers = [
@@ -624,7 +624,7 @@ def scan(
     # Frontier LLM analysis (opt-in via --model claude/gpt)
     if frontier_model:
         try:
-            from src.adapters.frontier_llm_adapter import FrontierLLMAdapter
+            from miesc.adapters.frontier_llm_adapter import FrontierLLMAdapter
 
             provider_map = {
                 "claude": ("anthropic", "claude-sonnet-4-6"),

@@ -11,8 +11,8 @@ import time
 from pathlib import Path
 from unittest.mock import patch
 
-from src.adapters._cache_mixin import LLMCacheMixin
-from src.adapters.gptscan_adapter import GPTScanAdapter
+from miesc.adapters._cache_mixin import LLMCacheMixin
+from miesc.adapters.gptscan_adapter import GPTScanAdapter
 from src.core.tool_protocol import ToolStatus
 
 
@@ -59,7 +59,7 @@ def test_corrupt_entry_is_deleted(tmp_path):
 def test_read_error_returns_none(tmp_path):
     h = _harness(tmp_path, ttl=1000)
     h._cache_result("k", {"status": "success"})
-    with patch("src.adapters._cache_mixin.json.load", side_effect=RuntimeError("boom")):
+    with patch("miesc.adapters._cache_mixin.json.load", side_effect=RuntimeError("boom")):
         assert h._get_cached_result("k") is None  # generic error swallowed
 
 
@@ -112,7 +112,7 @@ def test_gptscan_second_scan_hits_cache(tmp_path):
 
 
 def test_cache_disabled_env_parsing():
-    from src.adapters._cache_mixin import _cache_disabled
+    from miesc.adapters._cache_mixin import _cache_disabled
 
     for val in ("1", "true", "TRUE", "yes", " Yes "):
         with patch.dict(os.environ, {"MIESC_DISABLE_LLM_CACHE": val}):

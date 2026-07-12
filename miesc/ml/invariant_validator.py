@@ -26,7 +26,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
-from src.adapters.invariant_synthesizer import (
+from miesc.adapters.invariant_synthesizer import (
     InvariantCategory,
     SynthesizedInvariant,
 )

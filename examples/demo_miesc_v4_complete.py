@@ -79,7 +79,7 @@ class MIESCCompleteDemo:
         print("=" * 80)
 
         try:
-            from src.adapters import register_all_adapters
+            from miesc.adapters import register_all_adapters
 
             print("\n[1.1] Registering all 25 security adapters...")
             report = register_all_adapters()

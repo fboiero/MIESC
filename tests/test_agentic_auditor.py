@@ -21,7 +21,7 @@ from typing import Any, Callable, Dict, List
 
 import pytest
 
-from src.adapters.frontier_llm_adapter import ConversationResult, ToolSpec
+from miesc.adapters.frontier_llm_adapter import ConversationResult, ToolSpec
 from miesc.agents.agentic_auditor import (
     AgenticAuditConfig,
     AgenticAuditor,

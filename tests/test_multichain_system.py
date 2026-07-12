@@ -20,7 +20,7 @@ from pathlib import Path
 
 import pytest
 
-from src.adapters.algorand_adapter import (
+from miesc.adapters.algorand_adapter import (
     AlgorandAnalyzer,
     AlgorandContract,
     AlgorandPatternDetector,
@@ -28,7 +28,7 @@ from src.adapters.algorand_adapter import (
     TealParser,
     TealProgram,
 )
-from src.adapters.cardano_adapter import (
+from miesc.adapters.cardano_adapter import (
     AikenParser,
     CardanoAnalyzer,
     CardanoPatternDetector,
@@ -36,7 +36,7 @@ from src.adapters.cardano_adapter import (
     PlutusParser,
     PlutusScriptType,
 )
-from src.adapters.solana_adapter import (
+from miesc.adapters.solana_adapter import (
     AnchorAccount,
     AnchorInstruction,
     SolanaAnalyzer,
@@ -44,7 +44,7 @@ from src.adapters.solana_adapter import (
     analyze_solana_program,
     parse_anchor_idl,
 )
-from src.adapters.stellar_adapter import (
+from miesc.adapters.stellar_adapter import (
     SorobanParser,
     StellarAnalyzer,
     StellarPatternDetector,
@@ -1355,7 +1355,7 @@ class TestEdgeCases:
 
 
 # Import NEAR adapter
-from src.adapters.near_adapter import (  # noqa: E402
+from miesc.adapters.near_adapter import (  # noqa: E402
     NearAnalyzer,
     NearPatternDetector,
     analyze_near_contract,
@@ -1545,7 +1545,7 @@ class TestNearPatternDetector:
 
 
 # Import Move adapter
-from src.adapters.move_adapter import (  # noqa: E402
+from miesc.adapters.move_adapter import (  # noqa: E402
     MoveAnalyzer,
     MoveChainVariant,
     MovePatternDetector,
@@ -2415,9 +2415,9 @@ class TestCrossChainAnalysis:
 
     def test_all_analyzers_registered(self):
         """Test that all analyzers can be registered."""
-        from src.adapters.move_adapter import register_move_analyzer
-        from src.adapters.near_adapter import register_near_analyzer
-        from src.adapters.solana_adapter import register_solana_analyzer
+        from miesc.adapters.move_adapter import register_move_analyzer
+        from miesc.adapters.near_adapter import register_near_analyzer
+        from miesc.adapters.solana_adapter import register_solana_analyzer
 
         register_solana_analyzer()
         register_near_analyzer()

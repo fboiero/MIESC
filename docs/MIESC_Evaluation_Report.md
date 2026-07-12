@@ -322,7 +322,7 @@ python3 run_complete_multilayer_audit.py examples/contracts/*.sol
 
 # Usar adapter de Slither directamente
 python3 -c "
-from src.adapters.slither_adapter import SlitherAdapter
+from miesc.adapters.slither_adapter import SlitherAdapter
 adapter = SlitherAdapter()
 result = adapter.analyze('examples/contracts/VulnerableBank.sol')
 print(result)

@@ -562,7 +562,7 @@ class TestToolInfo:
         tool = ToolInfo(
             name="test_tool",
             adapter_class="TestAdapter",
-            module_path="src.adapters.test_adapter",
+            module_path="miesc.adapters.test_adapter",
             layer="static_analysis",
             category="Static Analysis",
             available=True,
@@ -588,7 +588,7 @@ class TestToolInfo:
         tool = ToolInfo(
             name="minimal_tool",
             adapter_class="MinimalAdapter",
-            module_path="src.adapters.minimal",
+            module_path="miesc.adapters.minimal",
             layer="other",
             category="Other",
             available=False,

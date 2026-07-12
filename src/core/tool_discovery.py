@@ -114,8 +114,8 @@ class ToolDiscovery:
         """Encuentra el directorio de adaptadores."""
         # Intentar múltiples ubicaciones
         candidates = [
-            Path(__file__).parent.parent / "adapters",
-            Path.cwd() / "src" / "adapters",
+            Path(__file__).resolve().parents[2] / "miesc" / "adapters",
+            Path.cwd() / "miesc" / "adapters",
             Path.cwd() / "adapters",
         ]
 
@@ -156,7 +156,7 @@ class ToolDiscovery:
         tool_name = self.NAME_MAPPING.get(file_stem, file_stem.replace("_adapter", ""))
 
         # Construir nombre del módulo
-        module_name = f"src.adapters.{file_stem}"
+        module_name = f"miesc.adapters.{file_stem}"
 
         # Determinar capa y categoría
         layer, category = self.LAYER_MAPPING.get(tool_name, ("other", "Other"))

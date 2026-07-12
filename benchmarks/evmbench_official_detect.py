@@ -51,7 +51,7 @@ def miesc_focused_scan(repo_dir, model, max_files=6):
     44KB Vault.sol is missed inside 500KB of context, but found when that file is
     analyzed on its own. So we run one focused pass per implementation file.
     """
-    from src.adapters.frontier_llm_adapter import FrontierLLMAdapter
+    from miesc.adapters.frontier_llm_adapter import FrontierLLMAdapter
     provider, real_model = _MODEL_ALIAS.get(model, ("auto", model))
     adapter = FrontierLLMAdapter(provider=provider)
     files = [p for p in Path(repo_dir).rglob("*.sol")
