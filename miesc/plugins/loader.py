@@ -44,8 +44,22 @@ from .protocol import (
     get_plugin_classes,
     is_plugin_class,
 )
+from .version import (
+    PLUGIN_API_VERSION,
+    ApiCompatResult,
+    check_api_compatibility,
+)
 
 logger = logging.getLogger(__name__)
+
+
+class PluginAPIIncompatibleError(RuntimeError):
+    """Raised when a plugin declares an incompatible Plugin API version."""
+
+    def __init__(self, plugin_name: str, result: ApiCompatResult) -> None:
+        self.plugin_name = plugin_name
+        self.result = result
+        super().__init__(f"Plugin '{plugin_name}': {result.message}")
 
 
 # Entry point group name for MIESC plugins
@@ -346,6 +360,17 @@ class PluginLoader:
         # Create instance
         instance = loaded_plugin.plugin_class()
 
+        # Enforce Plugin API compatibility BEFORE initializing. An
+        # incompatible plugin must never be silently loaded.
+        compat = check_api_compatibility(self.resolve_api_version(instance))
+        if not compat.compatible:
+            instance._state = PluginState.ERROR
+            loaded_plugin.load_error = compat.message
+            logger.error(
+                f"Refusing to load plugin '{instance.name}': {compat.message}"
+            )
+            raise PluginAPIIncompatibleError(instance.name, compat)
+
         # Initialize
         try:
             instance.initialize(context)
@@ -361,6 +386,26 @@ class PluginLoader:
             raise
 
         return instance
+
+    @staticmethod
+    def resolve_api_version(
+        plugin: Union[MIESCPlugin, Type[MIESCPlugin]],
+    ) -> str:
+        """Resolve the Plugin API version a plugin targets.
+
+        Works for both instances (reads the ``api_version`` property) and
+        classes (reads the ``API_VERSION`` class attribute), falling back to
+        the host :data:`PLUGIN_API_VERSION` when neither is present.
+        """
+        if isinstance(plugin, MIESCPlugin):
+            try:
+                declared = plugin.api_version
+                if declared:
+                    return str(declared)
+            except Exception:  # pragma: no cover - defensive
+                pass
+        declared = getattr(plugin, "API_VERSION", None)
+        return str(declared) if declared else PLUGIN_API_VERSION
 
     def validate_plugin(
         self,
@@ -412,6 +457,14 @@ class PluginLoader:
                 errors.append("Invalid plugin type")
         except Exception as e:
             errors.append(f"Error getting plugin_type: {e}")
+
+        # Check Plugin API compatibility
+        try:
+            compat = check_api_compatibility(self.resolve_api_version(instance))
+            if not compat.compatible:
+                errors.append(compat.message)
+        except Exception as e:
+            errors.append(f"Error checking plugin API version: {e}")
 
         # Check version compatibility
         try:
@@ -500,6 +553,7 @@ __all__ = [
     "PluginLoader",
     "LoadedPlugin",
     "DiscoveryResult",
+    "PluginAPIIncompatibleError",
     "ENTRY_POINT_GROUP",
     "DEFAULT_PLUGIN_DIRS",
 ]

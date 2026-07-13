@@ -21,7 +21,22 @@ from .loader import (
     ENTRY_POINT_GROUP,
     DiscoveryResult,
     LoadedPlugin,
+    PluginAPIIncompatibleError,
     PluginLoader,
+)
+from .conformance import (
+    ConformanceIssue,
+    ConformanceReport,
+    ConformanceSeverity,
+    PluginConformanceChecker,
+    check_plugin_conformance,
+)
+from .version import (
+    PLUGIN_API_VERSION,
+    ApiCompatResult,
+    ApiCompatStatus,
+    check_api_compatibility,
+    parse_api_version,
 )
 from .marketplace import (
     DEFAULT_CACHE_PATH,
@@ -86,8 +101,21 @@ __all__ = [
     "PluginLoader",
     "LoadedPlugin",
     "DiscoveryResult",
+    "PluginAPIIncompatibleError",
     "ENTRY_POINT_GROUP",
     "DEFAULT_PLUGIN_DIRS",
+    # API versioning
+    "PLUGIN_API_VERSION",
+    "ApiCompatStatus",
+    "ApiCompatResult",
+    "check_api_compatibility",
+    "parse_api_version",
+    # Conformance
+    "PluginConformanceChecker",
+    "ConformanceReport",
+    "ConformanceIssue",
+    "ConformanceSeverity",
+    "check_plugin_conformance",
     # Registry
     "PluginRegistry",
     "PluginEntry",
