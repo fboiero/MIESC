@@ -105,14 +105,14 @@ class TestOrchestratorFPIntegration(unittest.TestCase):
             _finding("solc-version", "informational"),  # benign FP on modern code
             _finding("reentrancy-eth", "critical"),  # real vuln, must survive
         ]
-        with patch.object(
-            MLOrchestrator, "_read_contract_source", return_value=MODERN_CODE
-        ), patch.object(
-            MLOrchestrator, "_determine_tools", return_value=["slither"]
-        ), patch.object(
-            MLOrchestrator,
-            "_run_tool",
-            return_value={"status": "success", "findings": findings},
+        with (
+            patch.object(MLOrchestrator, "_read_contract_source", return_value=MODERN_CODE),
+            patch.object(MLOrchestrator, "_determine_tools", return_value=["slither"]),
+            patch.object(
+                MLOrchestrator,
+                "_run_tool",
+                return_value={"status": "success", "findings": findings},
+            ),
         ):
             return orch.analyze("Bank.sol", fp_strictness=fp_strictness)
 
@@ -127,9 +127,7 @@ class TestOrchestratorFPIntegration(unittest.TestCase):
     def test_high_strictness_preserves_real_vulnerability(self):
         result = self._analyze("high")
         kept = {f.get("type") for f in result.ml_filtered_findings}
-        self.assertIn(
-            "reentrancy-eth", kept, "recall regression: real reentrancy was dropped"
-        )
+        self.assertIn("reentrancy-eth", kept, "recall regression: real reentrancy was dropped")
 
     def test_off_strictness_removes_nothing(self):
         result = self._analyze("off")

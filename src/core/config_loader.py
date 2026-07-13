@@ -7,7 +7,7 @@ miesc/data/config/miesc.yaml (con overrides opcionales por env MIESC_CONFIG o cw
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import cast, Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 import yaml  # type: ignore[import-untyped]
 
@@ -51,13 +51,7 @@ class MIESCConfig:
         env_config = os.environ.get("MIESC_CONFIG", "")
         # Single packaged source of truth: miesc/data/config/miesc.yaml.
         # The cwd/env paths above it allow optional per-user or per-project overrides.
-        packaged = (
-            Path(__file__).parent.parent.parent
-            / "miesc"
-            / "data"
-            / "config"
-            / "miesc.yaml"
-        )
+        packaged = Path(__file__).parent.parent.parent / "miesc" / "data" / "config" / "miesc.yaml"
         search_paths = [
             Path.cwd() / "config" / "miesc.yaml",
             Path.cwd() / "miesc.yaml",
@@ -220,7 +214,9 @@ class MIESCConfig:
         """Obtiene frameworks de compliance habilitados."""
         compliance = self._config.get("compliance", {})
         if compliance.get("enabled", True):
-            return cast(List[str], compliance.get("frameworks", ["ISO27001", "NIST", "OWASP", "CWE", "SWC"]))
+            return cast(
+                List[str], compliance.get("frameworks", ["ISO27001", "NIST", "OWASP", "CWE", "SWC"])
+            )
         return []
 
     def get_chain_config(self, chain_name: Optional[str] = None) -> Dict[str, Any]:

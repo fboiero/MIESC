@@ -18,7 +18,6 @@ from src.core.config_loader import (
     get_config,
 )
 
-
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 _PACKAGED_CONFIG = _REPO_ROOT / "miesc" / "data" / "config" / "miesc.yaml"
 _OLD_ROOT_CONFIG = _REPO_ROOT / "config" / "miesc.yaml"
@@ -579,10 +578,12 @@ class TestMIESCConfigEdgeCases:
 class TestConfigLoaderFallbacks:
     def _reset(self):
         from src.core.config_loader import MIESCConfig
+
         MIESCConfig._instance = None
 
     def test_defaults_when_no_config_file_exists(self, monkeypatch):
         from pathlib import Path
+
         from src.core.config_loader import MIESCConfig
 
         self._reset()

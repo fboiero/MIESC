@@ -3481,11 +3481,7 @@ class TestConfigLoaderCoverage:
         import yaml as _yaml
 
         _packaged = (
-            Path(__file__).resolve().parent.parent
-            / "miesc"
-            / "data"
-            / "config"
-            / "miesc.yaml"
+            Path(__file__).resolve().parent.parent / "miesc" / "data" / "config" / "miesc.yaml"
         )
         _expected = _yaml.safe_load(_packaged.read_text(encoding="utf-8"))["version"]
         assert config.version == _expected
@@ -4287,6 +4283,7 @@ class TestMLOrchestratorExtraBranches:
 
     def _orch(self):
         from src.core.ml_orchestrator import MLOrchestrator
+
         return MLOrchestrator(ml_enabled=False, cache_enabled=False)
 
     def test_build_code_context_map_coerces_bad_line(self):
@@ -4294,7 +4291,7 @@ class TestMLOrchestratorExtraBranches:
         source = "\n".join(f"line{i}" for i in range(1, 30))
         findings = [
             {"location": {"file": "C.sol", "line": "not-a-number"}},  # -> 0
-            {"location": {"file": "C.sol", "line": "5"}},             # -> int 5
+            {"location": {"file": "C.sol", "line": "5"}},  # -> int 5
         ]
         ctx = orch._build_code_context_map(source, findings)
         assert isinstance(ctx, dict)
@@ -4307,11 +4304,14 @@ class TestMLOrchestratorExtraBranches:
 
     def test_analyze_handles_tool_failure(self, tmp_path):
         from unittest.mock import patch
+
         orch = self._orch()
         sol = tmp_path / "C.sol"
         sol.write_text("pragma solidity ^0.8.0;\ncontract C {}")
-        with patch.object(orch, "_determine_tools", return_value=["boom_tool"]), \
-             patch.object(orch, "_run_tool", side_effect=RuntimeError("tool exploded")):
+        with (
+            patch.object(orch, "_determine_tools", return_value=["boom_tool"]),
+            patch.object(orch, "_run_tool", side_effect=RuntimeError("tool exploded")),
+        ):
             result = orch.analyze(str(sol))
         # tool failure is caught and recorded, analysis still returns a result
         assert result is not None
@@ -4322,6 +4322,7 @@ class TestOptimizedOrchestratorExtra:
 
     def test_result_cache_expiry_memory_and_disk(self, tmp_path):
         from src.core.optimized_orchestrator import ResultCache
+
         sol = tmp_path / "C.sol"
         sol.write_text("contract C {}")
         cache = ResultCache(cache_dir=str(tmp_path / "cache"), ttl_seconds=0)  # everything expires
@@ -4332,6 +4333,7 @@ class TestOptimizedOrchestratorExtra:
 
     def test_result_cache_memory_hit(self, tmp_path):
         from src.core.optimized_orchestrator import ResultCache
+
         sol = tmp_path / "C.sol"
         sol.write_text("contract C {}")
         cache = ResultCache(cache_dir=str(tmp_path / "cache"), ttl_seconds=3600)
@@ -4340,6 +4342,7 @@ class TestOptimizedOrchestratorExtra:
 
     def _orch(self, tmp_path):
         from src.core.optimized_orchestrator import OptimizedOrchestrator
+
         return OptimizedOrchestrator(cache_enabled=True, max_workers=2)
 
     def test_get_performance_metrics(self, tmp_path):
@@ -4351,22 +4354,27 @@ class TestOptimizedOrchestratorExtra:
 
     def test_warmup_cache_no_cache_returns_zero(self):
         from src.core.optimized_orchestrator import OptimizedOrchestrator
+
         orch = OptimizedOrchestrator(cache_enabled=False)
         assert orch.warmup_cache("/tmp/C.sol") == 0
 
     def test_warmup_cache_runs_available_tools(self, tmp_path):
         from unittest.mock import MagicMock, patch
+
         orch = self._orch(tmp_path)
         sol = tmp_path / "C.sol"
         sol.write_text("contract C {}")
         fake_tool = MagicMock()
         fake_tool.name = "slither"
-        with patch.object(orch.discovery, "get_available_tools", return_value=[fake_tool]), \
-             patch.object(orch, "_run_tool", return_value={"status": "success", "findings": []}):
+        with (
+            patch.object(orch.discovery, "get_available_tools", return_value=[fake_tool]),
+            patch.object(orch, "_run_tool", return_value={"status": "success", "findings": []}),
+        ):
             assert orch.warmup_cache(str(sol), tools=["slither"]) >= 0
 
     def test_analyze_batch(self, tmp_path):
         from unittest.mock import patch
+
         orch = self._orch(tmp_path)
         c1, c2 = tmp_path / "A.sol", tmp_path / "B.sol"
         c1.write_text("contract A {}")
