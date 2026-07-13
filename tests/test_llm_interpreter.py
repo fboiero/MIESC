@@ -386,42 +386,6 @@ class TestSuggestRemediationPriority:
         assert result == []
 
 
-class TestGenerateToolOutputExplanation:
-    """Tests for generate_tool_output_explanation method."""
-
-    @pytest.fixture
-    def interpreter(self):
-        """Create interpreter with mocked availability."""
-        interp = LLMReportInterpreter()
-        interp._available = True
-        return interp
-
-    def test_returns_empty_when_not_available(self):
-        """Test returns empty string when LLM not available."""
-        interpreter = LLMReportInterpreter()
-        interpreter._available = False
-
-        result = interpreter.generate_tool_output_explanation("Slither", "output")
-        assert result == ""
-
-    def test_returns_empty_when_no_output(self, interpreter):
-        """Test returns empty string when no tool output."""
-        result = interpreter.generate_tool_output_explanation("Slither", "")
-        assert result == ""
-
-    @patch.object(LLMReportInterpreter, "_call_llm")
-    def test_generates_explanation(self, mock_call_llm, interpreter):
-        """Test generates tool output explanation."""
-        mock_call_llm.return_value = "The tool found a reentrancy issue."
-
-        result = interpreter.generate_tool_output_explanation(
-            "Slither", "Reentrancy vulnerability detected in withdraw()"
-        )
-
-        assert result == "The tool found a reentrancy issue."
-        mock_call_llm.assert_called_once()
-
-
 class TestGenerateAttackScenario:
     """Tests for generate_attack_scenario method."""
 

@@ -401,8 +401,8 @@ class TestConvenienceFunction:
         assert "chains" in report["exploit_chains"]
 
 
-class TestExploitChainAnalyzer:
-    """Tests for ExploitChainAnalyzer class."""
+class TestExploitChainAnalyzerComprehensive:
+    """Tests for ExploitChainAnalyzer class (initialization, chains, summary)."""
 
     @pytest.fixture
     def analyzer(self):
@@ -839,12 +839,8 @@ if __name__ == "__main__":
 # =========================================================================== #
 # Deduplication feature + ExploitChainAnalyzer (large uncovered clusters).
 # =========================================================================== #
-from miesc.ml.correlation_engine import (  # noqa: E402
-    CorrelatedFinding,
-    CorrelationMethod,
-    ExploitChainAnalyzer,
-    SmartCorrelationEngine,
-)
+# (CorrelatedFinding, CorrelationMethod, ExploitChainAnalyzer, SmartCorrelationEngine
+# are already imported at module top.)
 
 
 def _raw(vtype, tool, file="C.sol", line=10, func="withdraw", sev="high", conf=0.7, msg="m"):
