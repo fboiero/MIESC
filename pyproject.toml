@@ -56,7 +56,7 @@ dev = [
     "black>=26.1.0",
     "ruff>=0.1.0",
     "mypy>=1.0.0",
-    "mutmut>=2.4.0",
+    "mutmut>=3.6.0",  # 3.x rewrite; 2.5.1 crashes under Python 3.14 (itertools.count pickle)
     "build>=1.2.0",
     "twine>=5.0.0",
 ]
@@ -436,41 +436,34 @@ fail_under = 80  # Coverage target: locked at 80% (real coverage ~81.1%)
 show_missing = true
 
 # ============================================
-# MUTATION TESTING (mutmut)
+# MUTATION TESTING (mutmut 3.x)
 # ============================================
-# Run with: mutmut run
-# View results: mutmut results
-# HTML report: mutmut html
+# Run with:      mutmut run
+# View results:  mutmut results        (lists surviving mutants)
+# CI/CD stats:   mutmut export-cicd-stats  -> mutants/mutmut-cicd-stats.json
 # ============================================
+# mutmut 3.x notes (see docs/roadmap/MUTATION_STATUS_20260712.md):
+#   - The whole `miesc/` package is copied into a mutants/ sandbox so imports
+#     resolve; `only_mutate` then restricts which files actually get mutated.
+#   - Runs are scoped to the well-tested v6 core modules that carry dedicated,
+#     mutation-grade test suites. Broadening the mutation surface is future work.
+#   - mutmut 3.x runs pytest in-process (no `python -m pytest` subprocess), so
+#     it does not depend on `python` being on PATH.
 
 [tool.mutmut]
-# Paths to mutate
-paths_to_mutate = "miesc/"
-
-# Test runner configuration
-runner = "python -m pytest tests/ -x --no-cov -q"
-
-# Files to exclude from mutation
-paths_to_exclude = [
-    "miesc/*_tool.py",
-    "miesc/miesc_*.py",
-    "miesc/detectors/smartbugs_detectors.py",
-    "miesc/agents/crewai_coordinator.py",
-    "miesc/miesc_tests/",
+# Copy the full package (imports must resolve inside the mutants/ sandbox)...
+source_paths = ["miesc/"]
+# ...but only mutate the v6 core modules that have dedicated mutation-grade tests.
+only_mutate = [
+    "miesc/core/baseline.py",
+    "miesc/core/code_actions.py",
+    "miesc/formal/unified_report.py",
 ]
-
-# Test timeout per mutation (seconds)
-# Mutations that cause tests to hang will be killed
+# Scope the test run to the matching suites for fast, representative feedback.
+pytest_add_cli_args_test_selection = [
+    "tests/test_baseline.py",
+    "tests/test_code_actions.py",
+    "tests/test_unified_report.py",
+]
+pytest_add_cli_args = ["--no-cov", "-p", "no:cacheprovider"]
 timeout_multiplier = 2.0
-
-# Disable mutations for specific patterns
-disable_mutation_types = [
-    # These often produce equivalent mutants
-    "string",
-    "fstring",
-    "annotation",
-]
-
-# Minimum score threshold (percentage of mutations killed)
-# Used by make mutate-check target
-# score_threshold = 60

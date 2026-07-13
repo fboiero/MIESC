@@ -328,3 +328,9 @@ analysis/
 /reports/
 CLAUDE.md
 apik.sh
+
+# Mutation testing (mutmut 3.x sandbox and caches)
+mutants/
+.mutmut-cache
+mutmut-stats.json
+mutmut-cicd-stats.json
