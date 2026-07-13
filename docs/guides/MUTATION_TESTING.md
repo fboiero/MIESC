@@ -28,21 +28,17 @@ Mutation testing measures the effectiveness of your test suite by introducing sm
 
 ## Quick Start
 
-```bash
-# Install mutmut
-pip install mutmut
+MIESC uses **mutmut 3.x** (pinned `mutmut>=3.6.0` in the dev dependencies).
+Scope lives entirely in `pyproject.toml [tool.mutmut]`, so the Make targets take
+no path arguments.
 
-# Or install with dev dependencies
+```bash
+# Install with dev dependencies (brings in mutmut 3.6.0+)
 pip install -e ".[dev]"
 
-# Run mutation testing (quick mode)
-make mutate-quick
-
-# View results
-make mutate-results
-
-# Generate HTML report
-make mutate-html
+# Run the scoped mutation suite, then check the score against the gate
+make mutate
+make mutate-check
 ```
 
 ---
@@ -51,13 +47,17 @@ make mutate-html
 
 | Target | Description |
 |--------|-------------|
-| `make mutate` | Full mutation analysis (30-60 min) |
-| `make mutate-quick` | Quick test on core modules only |
-| `make mutate-results` | Show results summary |
-| `make mutate-html` | Generate HTML report |
-| `make mutate-show` | Show surviving mutant details |
-| `make mutate-check` | CI check (fails if score < 60%) |
-| `make mutate-clean` | Clean cache files |
+| `make mutate` | Run the scoped mutation suite (`mutmut run`), then print results |
+| `make mutate-run` | Alias of `make mutate` (scope lives in pyproject) |
+| `make mutate-quick` | Same scoped run, shorthand for local iteration |
+| `make mutate-results` | Show the results summary (`mutmut results`) |
+| `make mutate-show` | Show surviving mutants (tests failed to catch) |
+| `make mutate-html` | Export machine-readable CI stats (`mutmut export-cicd-stats`) |
+| `make mutate-check` | CI gate: parse stats JSON, fail if score < 60% |
+| `make mutate-clean` | Remove the `mutants/` sandbox and cache |
+
+> Scope is **not** passed on the command line. All targets run `mutmut run` and
+> read the scope from `pyproject.toml [tool.mutmut]` (see below).
 
 ---
 
@@ -66,88 +66,84 @@ make mutate-html
 ### Full Analysis
 
 ```bash
-# Run all mutations
+# Run the scoped mutation suite (scope comes from pyproject.toml)
 mutmut run
 
 # View summary
 mutmut results
 
-# Example output:
-# Legend for output:
-# 🎉 Killed mutants: 142
-# ⏰ Timeout: 3
-# 🤔 Suspicious: 0
-# 🙁 Survived: 18
-# 🔇 Skipped: 5
+# Example output (mutmut 3.x):
+# core/baseline.py: 146/218 killed
+# core/code_actions.py: 130/152 killed
+# formal/unified_report.py: 6/6 killed
 ```
 
-### Targeting Specific Files
+### Changing the Scope
+
+Scope is defined in `pyproject.toml [tool.mutmut]`, not on the command line.
+mutmut 3.x copies `source_paths` into a `mutants/` sandbox and mutates only the
+files listed in `only_mutate`. To mutate a different module, edit those keys —
+do not pass `--paths-to-mutate` (a mutmut 2.x flag that no longer exists).
+
+### Viewing and Reviewing Mutants
 
 ```bash
-# Mutate specific module
-mutmut run --paths-to-mutate src/core/
+# Show results / surviving mutants
+mutmut results
 
-# Mutate single file
-mutmut run --paths-to-mutate src/core/finding.py
-```
-
-### Viewing Mutants
-
-```bash
-# Show all surviving mutants
-mutmut show all
-
-# Show specific mutant by ID
-mutmut show 42
-
-# Apply mutant temporarily (for debugging)
-mutmut apply 42
-
-# Restore original code
-mutmut apply 0
+# Interactive review of survivors (mutmut 3.x TUI)
+mutmut browse
 ```
 
 ---
 
 ## Configuration
 
-Mutation testing is configured in `pyproject.toml`:
+Mutation testing is configured in `pyproject.toml`. The current block scopes the
+run to the v6 core modules that have dedicated mutation-grade tests:
 
 ```toml
 [tool.mutmut]
-# Paths to mutate
-paths_to_mutate = "src/"
-
-# Test runner command
-runner = "python -m pytest tests/ -x --no-cov -q"
-
-# Files to exclude
-paths_to_exclude = [
-    "src/*_tool.py",
-    "src/miesc_*.py",
-    # ... more exclusions
+# Copy the full package into the sandbox so imports resolve...
+source_paths = ["miesc/"]
+# ...but only mutate the v6 core modules that have dedicated tests.
+only_mutate = [
+    "miesc/core/baseline.py",
+    "miesc/core/code_actions.py",
+    "miesc/formal/unified_report.py",
 ]
-
-# Timeout multiplier
+# Scope the test run to the matching suites for fast, representative feedback.
+pytest_add_cli_args_test_selection = [
+    "tests/test_baseline.py",
+    "tests/test_code_actions.py",
+    "tests/test_unified_report.py",
+]
+pytest_add_cli_args = ["--no-cov", "-p", "no:cacheprovider"]
 timeout_multiplier = 2.0
-
-# Disabled mutation types
-disable_mutation_types = [
-    "string",
-    "fstring",
-    "annotation",
-]
 ```
 
-### Configuration Options
+### Configuration Options (mutmut 3.x)
 
-| Option | Description | Default |
-|--------|-------------|---------|
-| `paths_to_mutate` | Source directories to mutate | Required |
-| `runner` | Test command to run | `pytest` |
-| `paths_to_exclude` | Files/dirs to skip | None |
-| `timeout_multiplier` | Test timeout factor | 1.0 |
-| `disable_mutation_types` | Skip certain mutation types | None |
+| Option | Description |
+|--------|-------------|
+| `source_paths` | Package(s) copied into the `mutants/` sandbox (must be the *whole* package so imports resolve) |
+| `only_mutate` | The specific files that actually get mutated |
+| `pytest_add_cli_args_test_selection` | Test files run against the mutants |
+| `pytest_add_cli_args` | Extra pytest args (mutmut runs pytest **in-process**) |
+| `timeout_multiplier` | Test timeout factor |
+
+> **Why copy the whole package but only mutate a few files?** mutmut 3.x runs
+> the tests from inside the `mutants/` sandbox. If `source_paths` pointed at just
+> a handful of files, the sandbox would contain a *partial* `miesc` package and
+> every import would fail. So we copy `miesc/` wholesale and narrow the actual
+> mutation target with `only_mutate`.
+
+> **Migrating from mutmut 2.x?** Several keys were renamed: `paths_to_mutate`
+> → `source_paths`, `paths_to_exclude` → `do_not_mutate`. The `runner` key and
+> `disable_mutation_types` were removed (pytest now runs in-process, and 3.x
+> does not support disabling mutation types). See
+> [../roadmap/MUTATION_STATUS_20260712.md](../roadmap/MUTATION_STATUS_20260712.md)
+> for the full 2.x → 3.x migration notes.
 
 ---
 
@@ -164,44 +160,54 @@ mutmut applies various mutation operators:
 | **Keyword** | `break` → `continue` | Control flow |
 | **Number** | `0` → `1` | Constant values |
 
-### Disabled Types in MIESC
-
-We disable some mutation types that often produce equivalent mutants:
-
-- **string**: String literal changes rarely affect behavior
-- **fstring**: F-string mutations often produce valid variants
-- **annotation**: Type hints don't affect runtime
+> **Note (mutmut 3.x):** unlike mutmut 2.x, the 3.x engine does not support
+> `disable_mutation_types`. We control noise by narrowing *what* gets mutated via
+> `only_mutate` rather than by disabling operator classes.
 
 ---
 
 ## Interpreting Results
 
-### Good Score
+### Score Bands
 
 - **> 80%**: Excellent test coverage
 - **60-80%**: Good, but room for improvement
-- **< 60%**: Tests need strengthening
+- **< 60%**: Tests need strengthening (below the CI gate)
+
+### Current Recorded Score
+
+The current scoped run scores **75.0% (282/376 mutants killed)**, which clears
+the 60% gate. Per-module breakdown:
+
+| Module | Score |
+|--------|-------|
+| `miesc/core/baseline.py` | 67.0% |
+| `miesc/core/code_actions.py` | 85.5% |
+| `miesc/formal/unified_report.py` | 100.0% |
+
+See [../roadmap/MUTATION_STATUS_20260712.md](../roadmap/MUTATION_STATUS_20260712.md)
+for the full record, including the mutmut 2.x → 3.x toolchain fix that unblocked
+these numbers.
 
 ### Surviving Mutants
 
 Surviving mutants indicate potential test gaps:
 
 ```bash
-# View surviving mutant
-mutmut show 42
+# Review survivors
+mutmut results   # summary
+mutmut browse    # interactive TUI (mutmut 3.x)
 
-# Example output:
-# --- src/core/finding.py
-# +++ src/core/finding.py
-# @@ -45,7 +45,7 @@
-#  def severity_score(self):
+# Illustrative mutant:
+# miesc/core/baseline.py
+# @@ def severity_score(self):
 # -    return self.severity * 10
 # +    return self.severity * 11
 ```
 
 **Actions:**
 
-1. Add test that catches the mutation
+1. Add a test that catches the mutation
 2. Mark as equivalent mutant (rare)
 3. Refactor code to be more testable
 
@@ -212,10 +218,11 @@ mutmut show 42
 ### GitHub Actions
 
 ```yaml
+- name: Install dev dependencies
+  run: pip install -e ".[dev]"
+
 - name: Run Mutation Testing
-  run: |
-    pip install mutmut
-    mutmut run --paths-to-mutate src/core/ --CI
+  run: make mutate
 
 - name: Check Mutation Score
   run: make mutate-check
@@ -223,11 +230,12 @@ mutmut show 42
 
 ### Score Threshold
 
-The `mutate-check` target enforces a 60% minimum score:
+`make mutate-check` exports `mutants/mutmut-cicd-stats.json` and fails if the
+score drops below 60%:
 
 ```bash
 make mutate-check
-# Mutation score: 75.5% (151/200 mutants killed)
+# Mutation score: 75.0% (282/376 mutants killed)
 # ✓ Mutation score check passed
 ```
 
@@ -235,39 +243,14 @@ make mutate-check
 
 ## Performance Tips
 
-### Speed Up Testing
-
-```bash
-# Use fewer cores
-mutmut run --max-workers 2
-
-# Quick feedback mode
-mutmut run --paths-to-mutate src/core/ --CI
-
-# Skip slow tests
-mutmut run --runner "pytest tests/unit/ -x --no-cov -q"
-```
-
-### Incremental Testing
-
-```bash
-# Resume after interruption
-mutmut run  # Continues from last mutant
-
-# Reset and start fresh
-rm -rf .mutmut-cache
-mutmut run
-```
-
-### Cache Management
-
-```bash
-# View cache status
-ls -la .mutmut-cache/
-
-# Clear cache
-make mutate-clean
-```
+- **Narrow the scope**: keep `only_mutate` in `pyproject.toml` pointed at the
+  modules under active work — mutating fewer files is the main speed lever.
+- **Scope the tests**: `pytest_add_cli_args_test_selection` runs only the
+  matching suites against each mutant instead of the whole test set.
+- **Resume after interruption**: mutmut caches progress, so re-running
+  `mutmut run` (or `make mutate`) continues from where it stopped.
+- **Reset from scratch**: `make mutate-clean` removes the `mutants/` sandbox and
+  cache, then re-run `make mutate`.
 
 ---
 
@@ -285,11 +268,17 @@ make mutate-clean
 
 ### "No mutations generated"
 
-Check that `paths_to_mutate` points to valid Python files:
+Check that the files listed in `only_mutate` exist and contain mutatable code:
 
 ```bash
-ls -la src/core/*.py
+ls -la miesc/core/*.py
 ```
+
+### Imports fail inside the sandbox
+
+If mutants error on `import miesc...`, make sure `source_paths` copies the
+**whole** package (`["miesc/"]`), not just the target files — a partial package
+in the `mutants/` sandbox breaks imports.
 
 ### Tests timeout
 
@@ -300,21 +289,13 @@ Increase the timeout multiplier:
 timeout_multiplier = 3.0
 ```
 
-### Out of memory
+### Cache / sandbox corruption
 
-Reduce parallelism:
-
-```bash
-mutmut run --max-workers 1
-```
-
-### Cache corruption
-
-Clear and restart:
+Clear the sandbox and restart:
 
 ```bash
 make mutate-clean
-mutmut run
+make mutate
 ```
 
 ---
@@ -324,7 +305,8 @@ mutmut run
 - [mutmut Documentation](https://mutmut.readthedocs.io/)
 - [Mutation Testing Theory](https://en.wikipedia.org/wiki/Mutation_testing)
 - [MIESC Testing Guide](TESTING.md)
+- [Mutation Testing Status (2026-07-12)](../roadmap/MUTATION_STATUS_20260712.md)
 
 ---
 
-*Last updated: February 2026*
+*Last updated: July 2026 (mutmut 3.x, single-package `miesc/`)*

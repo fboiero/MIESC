@@ -212,7 +212,7 @@ Non-EVM analyzers are useful for:
 
 | Phase | Chains | Target |
 |-------|--------|--------|
-| Current (v5.4.x) | EVM | Production (9 layers, 50 tools) |
+| Current (v6.0.0) | EVM | Production (9 layers, 50 tools) |
 | Next | Solana, NEAR | Experimental adapters → validated analysis |
 | Later | Move, Stellar | Formal-verification research |
 | Future | All chains | Production-grade multi-chain |

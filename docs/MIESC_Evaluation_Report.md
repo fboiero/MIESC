@@ -3,7 +3,7 @@
 > **Reporte historico (MIESC v4.2.2).** Este documento es un informe fechado que
 > refleja el estado del sistema en su version 4.2.2. Los conteos de herramientas y
 > capas, y las metricas aqui reportadas corresponden a ese momento. Para el estado
-> actual (MIESC v5.4.x, 50 herramientas en 35 modulos de analisis, 9 capas de
+> actual (MIESC v6.0.0, 50 herramientas en 35 modulos de analisis, 9 capas de
 > defensa) consultar la documentacion vigente.
 
 ## Resumen Ejecutivo
