@@ -17,12 +17,24 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
 try:
-    from miesc.plugins.protocol import PluginContext, PluginMetadata, PluginType, ReporterPlugin
+    from miesc.plugins.protocol import (
+        PLUGIN_API_VERSION,
+        PluginContext,
+        PluginMetadata,
+        PluginType,
+        ReporterPlugin,
+    )
 except ImportError:
     import sys
 
     sys.path.insert(0, str(Path(__file__).resolve().parents[4]))
-    from miesc.plugins.protocol import PluginContext, PluginMetadata, PluginType, ReporterPlugin
+    from miesc.plugins.protocol import (
+        PLUGIN_API_VERSION,
+        PluginContext,
+        PluginMetadata,
+        PluginType,
+        ReporterPlugin,
+    )
 
 
 # Columns written to the CSV — order matters for readability in spreadsheets.
@@ -57,6 +69,9 @@ class CSVReporterPlugin(ReporterPlugin):
 
     The output file is UTF-8, comma-separated, with a header row.
     """
+
+    # Plugin API version this plugin targets (see miesc.plugins.PLUGIN_API_VERSION).
+    API_VERSION = PLUGIN_API_VERSION
 
     @property
     def name(self) -> str:
@@ -99,6 +114,7 @@ class CSVReporterPlugin(ReporterPlugin):
             license="MIT",
             tags=["csv", "export", "reporter", "example"],
             min_miesc_version="5.0.0",
+            api_version=self.api_version,
             config_schema={
                 "type": "object",
                 "properties": {
