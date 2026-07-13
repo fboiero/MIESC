@@ -55,9 +55,15 @@ FROM python:3.12-slim-bookworm AS foundry-builder
 RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates git \
     && rm -rf /var/lib/apt/lists/*
 
-# Security Note: Foundry from official source (paradigm.xyz)
-# For high-security environments, consider building from source
-RUN curl -L https://foundry.paradigm.xyz | bash
+# Security Note: Foundry from official source (paradigm.xyz).
+# Hardened (MED-003, CWE-494): enforce HTTPS/TLS1.2 and download-then-run instead of
+# piping remote content straight into a shell. Full SHA-pinning is intentionally not
+# used here because the installer script is a moving target (a fixed hash would break
+# the build on every upstream update); TLS enforcement + materialized script is the
+# non-brittle mitigation. For high-security environments, build Foundry from source.
+RUN curl --proto '=https' --tlsv1.2 -fsSL https://foundry.paradigm.xyz -o /tmp/foundryup.sh \
+    && bash /tmp/foundryup.sh \
+    && rm -f /tmp/foundryup.sh
 ENV PATH="/root/.foundry/bin:${PATH}"
 RUN foundryup
 

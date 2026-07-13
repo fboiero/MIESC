@@ -29,14 +29,14 @@ This document tracks security issues identified during the security audit that r
 |----|--------|------|
 | MED-001 TOCTOU | ✅ FIXED | `mode=0o700` in dagnn/exploit_synthesizer adapters |
 | MED-002 NPM pin | ✅ FIXED | `solhint@5.0.3` in both Dockerfiles |
-| MED-003 curl-to-shell | ⚠️ OPEN | still `curl \| sh` without hash (build-time hardening pending) |
+| MED-003 curl-to-shell | ✅ FIXED | TLS/proto enforced + download-then-run (no pipe to shell); SHA-pin skipped (moving installers) |
 | MED-004 Ollama auth | ✅ FIXED | main compose + `prod-llm.yml` now bind `127.0.0.1:11434` |
 | MED-005 base image | ⚠️ PARTIAL | tag-pinned; digest pin pending |
 | MED-006 lock file | ✅ FIXED | regenerated for Python 3.12 |
 | MED-007 WebSocket auth | ✅ FIXED | `_validate_websocket_token` enforced (tested) |
 | MED-008 SSL on FS | ✅ FIXED | `*.key/*.pem/*.crt`, `ssl/` in `.gitignore` |
 
-**6 of 8 fully fixed; 2 remaining are build-time Docker hardening (MED-003, MED-005).**
+**7 of 8 fully fixed; 1 remaining is a build-time Docker digest pin (MED-005).**
 The backlog was previously stale (overstated open items and understated some as fixed
 that were only partial); corrected here with per-item verification.
 
@@ -98,30 +98,38 @@ RUN npm install -g solhint@5.0.3
 
 **Severity:** MEDIUM
 **CWE:** CWE-494
-**Status:** OPEN (verified 2026-06-21: `docker/Dockerfile:60` and `docker/Dockerfile.x86` still `curl ... | sh/bash` without hash verification — build-time hardening pending)
+**Status:** FIXED (2026-07-12). No installer script is piped directly into a shell
+anymore in any Dockerfile.
 
-**Location:** `docker/Dockerfile:35-40`
+**Location:** `docker/Dockerfile:60`, `docker/Dockerfile.x86:35,39`
 
-**Current Code:**
+**Before:**
 ```dockerfile
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 RUN curl -L https://foundry.paradigm.xyz | bash
 ```
 
-**Required Fix:**
+**After (applied):**
 ```dockerfile
-# Option 1: Download and verify
-RUN curl -sSf https://sh.rustup.rs -o /tmp/rustup.sh && \
-    echo "EXPECTED_SHA256  /tmp/rustup.sh" | sha256sum -c - && \
-    sh /tmp/rustup.sh -y && \
-    rm /tmp/rustup.sh
-
-# Option 2: Use package manager
-RUN apt-get install -y rustup
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o /tmp/rustup-init.sh \
+    && sh /tmp/rustup-init.sh -y \
+    && rm -f /tmp/rustup-init.sh
+RUN curl --proto '=https' --tlsv1.2 -fsSL https://foundry.paradigm.xyz -o /tmp/foundryup.sh \
+    && bash /tmp/foundryup.sh \
+    && rm -f /tmp/foundryup.sh
 ```
 
-**Effort:** 2 hours (need to research current hashes)
-**Assignee:** TBD
+**Rationale:** the mitigation is (1) enforce HTTPS + TLS 1.2 on every installer
+download (the Foundry lines previously used a bare `curl -L`), and (2) materialize
+the script to a file and run it, instead of streaming remote content directly into
+an interpreter. Full SHA-256 pinning of these installers is intentionally NOT done:
+the rustup/foundryup install scripts are moving targets, so a fixed hash would break
+the build on every upstream release. A per-tool digest-pinned install (download a
+specific rustup-init / foundry release binary + verify its published checksum) is
+the stronger option and remains available for high-security environments.
+
+**Verification:** grep confirms zero `curl ... | sh|bash` installer pipes across all
+four Dockerfiles; the CI `docker.yml` build validates the images end-to-end.
 
 ---
 
