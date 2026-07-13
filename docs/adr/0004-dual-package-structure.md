@@ -2,11 +2,21 @@
 
 ## Status
 
-Accepted
+Superseded by the v6.0.0 package unification (see note below).
 
 ## Date
 
 2026-02-08
+
+> **Superseded (v6.0.0).** The dual-package split described here no longer
+> exists. In v6.0.0 the `src/` implementation package was folded into a single
+> `miesc/` package: every module that used to live under `src/` (adapters,
+> agents, core, llm, ml, reports, and the rest) now lives directly under
+> `miesc/`, and the re-export/`__getattr__` façade was removed. There is no
+> longer a "public API vs. internal implementation" package boundary — `miesc/`
+> is the whole codebase. This ADR is kept for historical context; for the
+> current layout see [../ARCHITECTURE.md](../ARCHITECTURE.md). The "Migration
+> Path (Future v6.0)" section below is the plan that was actually carried out.
 
 ## Context
 

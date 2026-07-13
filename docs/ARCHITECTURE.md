@@ -51,29 +51,35 @@ flowchart TB
 
 ## Package Structure Overview
 
-MIESC uses a dual-package structure to maintain backward compatibility while providing a clean public API:
+As of v6.0.0, MIESC ships as a **single `miesc/` package**. Everything —
+public API, CLI, tool adapters, agents, ML pipeline, and report generation —
+lives under one import root. (Earlier releases split the code into a public
+`miesc/` façade and an internal `src/` implementation package; that split was
+removed in the v6.0.0 unification. See
+[ADR-0004](adr/0004-dual-package-structure.md), now superseded.)
 
 ```
 MIESC/
-├── miesc/                  # Public API package (installed via pip)
+├── miesc/                  # The whole package (installed via pip)
 │   ├── __init__.py        # Version and top-level exports
-│   ├── cli/               # Command-line interface
-│   │   ├── main.py        # CLI entry point
-│   │   └── commands/      # 15 command modules
-│   ├── api/               # Python API
-│   ├── detectors/         # Custom detector API
-│   ├── core/              # Core abstractions
-│   └── mcp/               # MCP protocol support
-│
-├── src/                    # Internal implementation
-│   ├── adapters/          # 50 tool adapters
-│   ├── agents/            # Analysis agents
-│   ├── core/              # Core framework
-│   ├── detectors/         # Built-in detectors
-│   ├── llm/               # LLM integration
-│   ├── ml/                # ML pipeline
-│   ├── mcp_core/          # MCP implementation
-│   └── reports/           # Report generation
+│   ├── cli/               # Command-line interface (Click) + commands/
+│   ├── api/               # Python API + local REST API (rest.py)
+│   ├── core/              # Core abstractions: agent protocol/registry,
+│   │                      #   baseline, code actions, chain abstraction
+│   ├── adapters/          # Tool adapters (Slither, Mythril, Echidna, …)
+│   ├── agents/            # Analysis agents (agentic auditor, tool agents)
+│   ├── detectors/         # Built-in + custom detector API (BaseDetector)
+│   ├── llm/               # LLM integration, RAG, ensemble, orchestrator
+│   ├── ml/                # ML pipeline (FP filter, embeddings, call graph)
+│   ├── formal/            # Formal specs + unified report
+│   ├── lsp/               # Language Server Protocol server + diagnostics
+│   ├── mcp/ + mcp_core/   # MCP protocol support and implementation
+│   ├── reports/           # Report generation (audit, risk, LLM interpret)
+│   ├── security/          # AI-security hardening, compliance, remediations
+│   ├── knowledge_base/    # Vulnerability pattern knowledge base
+│   ├── plugins/           # Plugin discovery and loading
+│   ├── evaluation/ …      # Benchmarking, integration, cache, utils, data
+│   └── …
 │
 └── config/                 # Configuration files
     └── miesc.yaml         # Central configuration
@@ -83,9 +89,11 @@ MIESC/
 
 ## Package Relationships
 
-### miesc/ - Public API
+### One package, subpackages by concern
 
-The `miesc/` package is the **public API** that users import:
+There is no longer a "public API vs. internal implementation" package
+boundary. `miesc/` is the entire codebase, organized into subpackages by
+concern. Users install `miesc` and import directly from it:
 
 ```python
 # User-facing imports
@@ -93,24 +101,14 @@ from miesc.api import run_tool, run_full_audit
 from miesc.detectors import BaseDetector, Finding, Severity
 ```
 
-This package:
-- Provides stable, documented APIs
-- Re-exports from `src/` for backward compatibility
-- Is installed when users run `pip install miesc`
+The stable, documented surface for external users is `miesc.api`,
+`miesc.detectors`, and the CLI. The remaining subpackages (`adapters`,
+`agents`, `core`, `llm`, `ml`, `reports`, …) are the implementation: importable,
+but not part of the compatibility contract and may change between versions.
 
-### src/ - Internal Implementation
-
-The `src/` package contains the **internal implementation**:
-
-- Tool adapters (`src/adapters/`)
-- Core framework (`src/core/`)
-- Analysis agents (`src/agents/`)
-- Report generation (`src/reports/`)
-
-This package:
-- Contains the actual implementation code
-- May change between versions without notice
-- Should not be imported directly by external users
+Top-level `__init__.py` still uses lazy `__getattr__` loading so that importing
+`miesc` (or invoking the CLI) does not eagerly pull in all 50+ adapters and the
+ML stack — startup stays fast even though everything lives in one package.
 
 ### Relationship Diagram
 
@@ -120,40 +118,40 @@ flowchart TB
         UC[Application / Script]
     end
 
-    subgraph PublicAPI["miesc/ (Public API)"]
-        CLI[cli/]
-        API[api/]
-        DET[detectors/]
-        CORE[core/]
-    end
-
-    subgraph Internal["src/ (Internal Implementation)"]
-        ADAP[adapters/]
-        AGEN[agents/]
-        ICORE[core/]
-        ML[ml/]
-        LLM[llm/]
-        REP[reports/]
+    subgraph Package["miesc/ (single package)"]
+        subgraph Surface["Stable surface"]
+            CLI[cli/]
+            API[api/]
+            DET[detectors/]
+        end
+        subgraph Impl["Implementation subpackages"]
+            CORE[core/]
+            ADAP[adapters/]
+            AGEN[agents/]
+            ML[ml/]
+            LLM[llm/]
+            REP[reports/]
+        end
     end
 
     UC --> CLI
     UC --> API
     UC --> DET
 
-    CLI --> ADAP
-    CLI --> AGEN
-    API --> ICORE
+    CLI --> CORE
+    API --> CORE
     DET --> ADAP
-    CORE --> ICORE
+    CORE --> ADAP
+    CORE --> AGEN
     CORE --> ML
 
     ADAP --> LLM
     AGEN --> LLM
     ML --> LLM
-    ICORE --> REP
+    CORE --> REP
 
-    style PublicAPI fill:#e3f2fd
-    style Internal fill:#fce4ec
+    style Surface fill:#e3f2fd
+    style Impl fill:#fce4ec
 ```
 
 **ASCII Fallback:**
@@ -165,18 +163,17 @@ flowchart TB
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                   miesc/ (Public API)                       │
-│  ┌─────────┐  ┌─────────┐  ┌───────────┐  ┌─────────────┐  │
-│  │   cli   │  │   api   │  │ detectors │  │    core     │  │
-│  └────┬────┘  └────┬────┘  └─────┬─────┘  └──────┬──────┘  │
-└───────┼────────────┼─────────────┼───────────────┼──────────┘
-        │            │             │               │
-        ▼            ▼             ▼               ▼
-┌─────────────────────────────────────────────────────────────┐
-│                src/ (Internal Implementation)               │
-│  ┌──────────┐  ┌────────┐  ┌────────┐  ┌────────┐          │
-│  │ adapters │  │ agents │  │  core  │  │   ml   │   ...    │
-│  └──────────┘  └────────┘  └────────┘  └────────┘          │
+│                 miesc/ (single package)                     │
+│  Stable surface:                                            │
+│  ┌─────────┐  ┌─────────┐  ┌───────────┐                    │
+│  │   cli   │  │   api   │  │ detectors │                    │
+│  └────┬────┘  └────┬────┘  └─────┬─────┘                    │
+│       │            │             │                          │
+│       ▼            ▼             ▼                          │
+│  Implementation subpackages:                                │
+│  ┌──────┐ ┌──────────┐ ┌────────┐ ┌──────┐ ┌─────┐          │
+│  │ core │ │ adapters │ │ agents │ │  ml  │ │ llm │  ...     │
+│  └──────┘ └──────────┘ └────────┘ └──────┘ └─────┘          │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -333,27 +330,37 @@ MIESC discovers plugins from:
 
 ## CLI Architecture
 
-The CLI is built with Click and organized into command modules:
+The CLI is built with Click and organized into per-command modules:
 
 ```
 miesc/cli/
-├── main.py              # CLI entry point (126 lines)
-└── commands/            # 15 command modules
+├── main.py              # CLI entry point (thin dispatcher)
+└── commands/            # one module per command
     ├── scan.py          # miesc scan
+    ├── analyze.py       # miesc analyze
     ├── audit.py         # miesc audit
+    ├── detect.py        # miesc detect
     ├── report.py        # miesc report
     ├── export.py        # miesc export
-    ├── doctor.py        # miesc doctor
-    ├── version.py       # miesc version
-    ├── config.py        # miesc config
-    ├── server.py        # miesc server
+    ├── remediate.py     # miesc remediate
+    ├── fix.py           # miesc fix
+    ├── baseline.py      # miesc baseline
+    ├── verify.py        # miesc verify
+    ├── specs.py         # miesc specs (formal)
+    ├── testgen.py       # miesc testgen
+    ├── poc.py           # miesc poc
+    ├── evaluate.py      # miesc evaluate
     ├── benchmark.py     # miesc benchmark
-    ├── watch.py         # miesc watch
+    ├── compliance.py    # miesc compliance
+    ├── config.py        # miesc config
+    ├── init.py          # miesc init
+    ├── doctor.py        # miesc doctor
+    ├── tools.py         # miesc tools
     ├── detectors.py     # miesc detectors
     ├── plugins.py       # miesc plugins
-    ├── mcp.py           # miesc mcp
-    ├── init.py          # miesc init
-    └── web.py           # miesc web
+    ├── server.py        # miesc server (REST API)
+    ├── lsp.py           # miesc lsp (Language Server)
+    └── watch.py         # miesc watch
 ```
 
 ---
@@ -501,4 +508,4 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on:
 
 ---
 
-*Last updated: February 2026*
+*Last updated: July 2026 (v6.0.0 single-package unification)*
