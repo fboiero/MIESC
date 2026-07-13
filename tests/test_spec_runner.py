@@ -1,5 +1,6 @@
 """Tests for src.formal.spec_runner — Formal verification runner."""
 
+import json
 from unittest.mock import patch
 
 import pytest
@@ -52,7 +53,13 @@ class TestAvailability:
     def test_availability_report_structure(self):
         runner = SpecRunner()
         report = runner.availability_report()
-        assert set(report.keys()) == {"certora", "halmos", "smtchecker"}
+        assert set(report.keys()) == {
+            "certora",
+            "halmos",
+            "smtchecker",
+            "scribble",
+            "kontrol",
+        }
         for v in report.values():
             assert isinstance(v, bool)
 
@@ -200,6 +207,8 @@ class TestRunAllAvailable:
             patch.object(SpecRunner, "is_certora_available", return_value=False),
             patch.object(SpecRunner, "is_halmos_available", return_value=False),
             patch.object(SpecRunner, "is_solc_available", return_value=False),
+            patch.object(SpecRunner, "is_scribble_available", return_value=False),
+            patch.object(SpecRunner, "is_kontrol_available", return_value=False),
         ):
             results = run_all_available("contract.sol", spec_path="rules.spec")
             assert results == {}
@@ -342,3 +351,283 @@ def test_run_all_available_runs_each_tool(monkeypatch):
 
     results = run_all_available("/proj/C.sol", spec_path="C.spec")
     assert set(results) == {"smtchecker", "certora", "halmos"}
+
+
+# =========================================================================== #
+# Scribble (T3.2) — availability, run + result-mapping, all-mocked binaries.
+# =========================================================================== #
+
+
+class TestScribbleAvailability:
+    def test_absent_returns_false(self):
+        runner = SpecRunner()
+        with patch("miesc.formal.spec_runner.shutil.which", return_value=None):
+            assert runner.is_scribble_available() is False
+
+    def test_present_returns_true(self):
+        runner = SpecRunner()
+        with patch(
+            "miesc.formal.spec_runner.shutil.which", return_value="/usr/bin/scribble"
+        ):
+            assert runner.is_scribble_available() is True
+
+
+class TestRunScribble:
+    def test_unavailable_yields_error_no_crash(self):
+        runner = SpecRunner()
+        with patch.object(runner, "is_scribble_available", return_value=False):
+            r = runner.run_scribble("C.sol")
+            assert r.tool == "scribble"
+            assert r.status == "error"
+            assert "scribble" in r.stderr.lower()
+
+    def test_passing_run_maps_to_passed(self, monkeypatch):
+        runner = SpecRunner()
+        monkeypatch.setattr(runner, "is_scribble_available", lambda: True)
+        # Mock the adapter: no violations found -> every armed assertion held.
+        monkeypatch.setattr(
+            "miesc.adapters.scribble_adapter.ScribbleAdapter.analyze",
+            lambda self, path, **k: {"status": "success", "findings": [], "metadata": {}},
+        )
+        r = runner.run_scribble("C.sol")
+        assert r.status == "passed"
+        assert r.rules_failed == 0
+        assert r.counterexamples == []
+
+    def test_violation_run_maps_to_failed_with_message(self, monkeypatch):
+        runner = SpecRunner()
+        monkeypatch.setattr(runner, "is_scribble_available", lambda: True)
+        monkeypatch.setattr(
+            "miesc.adapters.scribble_adapter.ScribbleAdapter.analyze",
+            lambda self, path, **k: {
+                "status": "success",
+                "findings": [
+                    {"type": "invariant_violation", "message": "totalSupply invariant broke"},
+                ],
+                "metadata": {},
+            },
+        )
+        r = runner.run_scribble("C.sol")
+        assert r.status == "failed"
+        assert r.rules_failed == 1
+        assert any("invariant" in c for c in r.counterexamples)
+
+    def test_adapter_error_maps_to_error(self, monkeypatch):
+        runner = SpecRunner()
+        monkeypatch.setattr(runner, "is_scribble_available", lambda: True)
+        monkeypatch.setattr(
+            "miesc.adapters.scribble_adapter.ScribbleAdapter.analyze",
+            lambda self, path, **k: {"status": "error", "findings": [], "error": "boom"},
+        )
+        r = runner.run_scribble("C.sol")
+        assert r.status == "error"
+        assert "boom" in r.stderr
+
+    def test_end_to_end_with_mocked_cli(self, monkeypatch, tmp_path):
+        """Drive run_scribble through the real adapter with a mocked CLI binary."""
+        contract = tmp_path / "C.sol"
+        contract.write_text("contract C { function f() external {} }")
+        runner = SpecRunner()
+        monkeypatch.setattr(runner, "is_scribble_available", lambda: True)
+        # Adapter gate: pretend the scribble binary exists.
+        monkeypatch.setattr(
+            "miesc.adapters.scribble_adapter.shutil.which", lambda _: "/usr/bin/scribble"
+        )
+        # Mock the CLI: report one violation in Scribble JSON output format.
+        cli_out = json.dumps(
+            {
+                "violations": [
+                    {"type": "assertion_violation", "message": "postcondition failed", "line": 3}
+                ],
+                "annotations_processed": 1,
+            }
+        )
+        monkeypatch.setattr(
+            "miesc.adapters.scribble_adapter.subprocess.run",
+            lambda *a, **k: _Proc(stdout=cli_out, returncode=0),
+        )
+        r = runner.run_scribble(str(contract))
+        assert r.tool == "scribble"
+        assert r.status == "failed"
+        assert r.rules_failed == 1
+
+
+# =========================================================================== #
+# Kontrol (T3.2) — availability, run + result-mapping, all-mocked binaries.
+# =========================================================================== #
+
+
+class TestKontrolAvailability:
+    def test_absent_returns_false(self):
+        runner = SpecRunner()
+        with patch("miesc.formal.spec_runner.shutil.which", return_value=None):
+            assert runner.is_kontrol_available() is False
+
+    def test_requires_both_kontrol_and_forge(self):
+        runner = SpecRunner()
+        # Only kontrol present, forge missing -> unavailable.
+        with patch(
+            "miesc.formal.spec_runner.shutil.which",
+            side_effect=lambda tool: "/usr/bin/kontrol" if tool == "kontrol" else None,
+        ):
+            assert runner.is_kontrol_available() is False
+        # Both present -> available.
+        with patch(
+            "miesc.formal.spec_runner.shutil.which",
+            side_effect=lambda tool: f"/usr/bin/{tool}",
+        ):
+            assert runner.is_kontrol_available() is True
+
+
+class TestKontrolParser:
+    def test_counts_proved_and_failed(self):
+        out = """
+        PROOF SUMMARY:
+          PASSED: test_Invariant()
+          FAILED: test_Bad()
+          Counterexample: amount = 115792089237316195423570985008687907853269984665640564039457584007913129639935
+        """
+        passed, failed, cex = SpecRunner._parse_kontrol_output(out)
+        assert passed == 1
+        assert failed == 1
+        assert len(cex) == 1
+        assert "115792089" in cex[0]
+
+    def test_empty_output(self):
+        passed, failed, cex = SpecRunner._parse_kontrol_output("")
+        assert passed == 0 and failed == 0 and cex == []
+
+
+class TestRunKontrol:
+    def test_unavailable_yields_error_no_crash(self):
+        runner = SpecRunner()
+        with patch.object(runner, "is_kontrol_available", return_value=False):
+            r = runner.run_kontrol("/proj")
+            assert r.tool == "kontrol"
+            assert r.status == "error"
+            assert "kontrol" in r.stderr.lower()
+
+    def test_passing_run_maps_to_passed(self, monkeypatch):
+        runner = SpecRunner()
+        monkeypatch.setattr(runner, "is_kontrol_available", lambda: True)
+        monkeypatch.setattr(
+            sr.subprocess, "run", lambda *a, **k: _Proc(stdout="PROVED: test_x()")
+        )
+        r = runner.run_kontrol("/proj")
+        assert r.status == "passed"
+        assert r.rules_passed == 1
+
+    def test_violation_maps_to_failed_with_counterexample(self, monkeypatch):
+        runner = SpecRunner()
+        monkeypatch.setattr(runner, "is_kontrol_available", lambda: True)
+        monkeypatch.setattr(
+            sr.subprocess,
+            "run",
+            lambda *a, **k: _Proc(stdout="FAILED: test_y()\nCounterexample: x = 0"),
+        )
+        r = runner.run_kontrol("/proj")
+        assert r.status == "failed"
+        assert r.rules_failed == 1
+        assert r.counterexamples == ["x = 0"]
+
+    def test_no_proofs_maps_to_no_tests(self, monkeypatch):
+        runner = SpecRunner()
+        monkeypatch.setattr(runner, "is_kontrol_available", lambda: True)
+        monkeypatch.setattr(
+            sr.subprocess, "run", lambda *a, **k: _Proc(stdout="nothing to prove")
+        )
+        assert runner.run_kontrol("/proj").status == "no_tests"
+
+    def test_timeout(self, monkeypatch):
+        runner = SpecRunner()
+        monkeypatch.setattr(runner, "is_kontrol_available", lambda: True)
+        monkeypatch.setattr(
+            sr.subprocess,
+            "run",
+            lambda *a, **k: (_ for _ in ()).throw(
+                sr.subprocess.TimeoutExpired("kontrol", 1200)
+            ),
+        )
+        assert runner.run_kontrol("/proj").status == "timeout"
+
+    def test_error(self, monkeypatch):
+        runner = SpecRunner()
+        monkeypatch.setattr(runner, "is_kontrol_available", lambda: True)
+        monkeypatch.setattr(
+            sr.subprocess, "run", lambda *a, **k: (_ for _ in ()).throw(OSError("boom"))
+        )
+        assert runner.run_kontrol("/proj").status == "error"
+
+
+def test_run_all_available_includes_scribble_and_kontrol(monkeypatch):
+    from miesc.formal.spec_runner import VerificationResult, run_all_available
+
+    monkeypatch.setattr(
+        SpecRunner,
+        "availability_report",
+        lambda self: {
+            "smtchecker": True,
+            "certora": False,
+            "halmos": False,
+            "scribble": True,
+            "kontrol": True,
+        },
+    )
+    monkeypatch.setattr(
+        SpecRunner,
+        "run_smtchecker",
+        lambda self, c, **k: VerificationResult(tool="smtchecker", spec_file=c, status="passed"),
+    )
+    monkeypatch.setattr(
+        SpecRunner,
+        "run_scribble",
+        lambda self, c, **k: VerificationResult(tool="scribble", spec_file=c, status="passed"),
+    )
+    monkeypatch.setattr(
+        SpecRunner,
+        "run_kontrol",
+        lambda self, d, **k: VerificationResult(tool="kontrol", spec_file=d, status="failed"),
+    )
+
+    results = run_all_available("/proj/C.sol")
+    assert "scribble" in results
+    assert "kontrol" in results
+    assert results["kontrol"].status == "failed"
+
+
+def test_unified_report_aggregates_scribble_and_kontrol():
+    """New provers must flow into the unified report aggregation (T3.1)."""
+    from miesc.formal.spec_runner import VerificationResult
+    from miesc.formal.unified_report import UnifiedVerificationReport
+
+    results = {
+        "scribble": VerificationResult(
+            tool="scribble", spec_file="C.sol", status="passed"
+        ),
+        "kontrol": VerificationResult(
+            tool="kontrol",
+            spec_file="/proj",
+            status="failed",
+            rules_failed=1,
+            rules_total=1,
+            counterexamples=["x = 0 at line 7"],
+        ),
+    }
+    availability = {
+        "certora": False,
+        "halmos": False,
+        "smtchecker": False,
+        "scribble": True,
+        "kontrol": True,
+    }
+    report = UnifiedVerificationReport.from_runner_results(
+        "C.sol", results, availability=availability
+    )
+    provers = {p.prover: p for p in report.provers}
+    assert provers["scribble"].status == "verified"
+    assert provers["kontrol"].status == "violated"
+    assert provers["kontrol"].counterexamples[0].source_line == 7
+    # A single violated prover dominates the overall verdict.
+    assert report.overall_verdict == "violated"
+    # Absent provers are recorded as unavailable for completeness.
+    assert provers["certora"].status == "unavailable"
