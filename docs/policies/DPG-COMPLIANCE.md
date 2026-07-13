@@ -313,7 +313,7 @@ MIESC maps findings to 12 international standards, including:
 | Code Review | Pull request required |
 | Testing | 5967 tests passed, 8 skipped in the latest full local regression |
 | CI/CD | GitHub Actions pipeline |
-| Security Scanning | Bandit, Semgrep, Snyk |
+| Security Scanning | Bandit, pip-audit, safety (dependencies); Trivy + CodeQL SARIF upload (Docker image) — see `.github/workflows/ci.yml` |
 | Documentation | MkDocs with versioning |
 
 ---
@@ -407,7 +407,7 @@ See: [GOVERNANCE.md](./GOVERNANCE.md)
 |------|---------|
 | **Project Lead** | Fernando Boiero |
 | **Email** | fboiero@frvm.utn.edu.ar |
-| **Institution** | Universidad de la Defensa Nacional (UNDEF) |
+| **Institution** | Originated at Universidad de la Defensa Nacional (UNDEF); continues at UTN-FRVM, Argentina |
 | **GitHub** | https://github.com/fboiero/MIESC |
 | **Documentation** | https://fboiero.github.io/MIESC |
 
@@ -419,7 +419,7 @@ This document serves as MIESC's application for recognition as a Digital Public 
 
 **Submitted by**: Fernando Boiero
 **DPGA submission**: December 5, 2025 (application #13478 / GID0092948)
-**Last updated**: June 2026
+**Last updated**: July 2026 (evidence reconciled for release v6.0.0)
 
 ---
 

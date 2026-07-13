@@ -5,7 +5,7 @@ General Information,Website,https://fboiero.github.io/MIESC/
 General Information,GitHub Repository,https://github.com/fboiero/MIESC
 General Information,Type of Digital Solution,Software
 1. SDG Relevance,Which SDGs,"SDG 9: Industry, Innovation and Infrastructure; SDG 16: Peace, Justice and Strong Institutions"
-1. SDG Relevance,How is it relevant,"SDG 9: MIESC directly supports Target 9.5 by providing open-source blockchain security technology, democratizing access to advanced tools previously available only to well-funded organizations. SDG 16: Contributes to Target 16.5 (reduce corruption) and Target 16.6 (effective institutions) by providing transparent, verifiable security auditing for blockchain-based financial systems."
+1. SDG Relevance,How is it relevant,"SDG 9: MIESC directly supports Target 9.b by providing open-source blockchain security technology, democratizing access to advanced tools previously available only to well-funded organizations. SDG 16: Contributes to Target 16.5 (reduce corruption) and Target 16.6 (effective institutions) by providing transparent, verifiable security auditing for blockchain-based financial systems."
 2. Open Licensing,License,AGPL-3.0
 2. Open Licensing,Evidence,https://github.com/fboiero/MIESC/blob/main/LICENSE
 3. Clear Ownership,Owner Name,Fernando Boiero
