@@ -10,7 +10,9 @@ the rare timeout/unsat branches are forced with tiny fake solvers.
 
 import sys
 
-import z3
+import pytest
+
+z3 = pytest.importorskip("z3")
 
 import miesc.adapters.vuln_verifier_adapter as mod
 from miesc.adapters.vuln_verifier_adapter import VulnVerifierAdapter
