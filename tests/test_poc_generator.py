@@ -2406,13 +2406,19 @@ class TestPoCRunMethod:
 
     def test_run_timeout_execution_time_is_nonnegative(self, generator, sample_poc, tmp_path):
         """Clock skew during timeout handling should not return negative duration."""
+        import itertools
         import subprocess
         from unittest.mock import patch
 
         test_dir = tmp_path / "test" / "exploits"
         test_dir.mkdir(parents=True)
 
-        with patch("time.time", side_effect=[10.0, 9.0]):
+        # The first time.time() call is the start timestamp (10.0); every later
+        # call (there may be any number, e.g. logging in the minimal env vs CI)
+        # returns 9.0, so end < start reproduces the clock-skew and exercises the
+        # negative-duration clamp regardless of how many times time.time() runs.
+        skewed_clock = itertools.chain([10.0], itertools.repeat(9.0))
+        with patch("time.time", side_effect=skewed_clock):
             with patch("subprocess.run", side_effect=subprocess.TimeoutExpired("forge", 300)):
                 result = generator.run(sample_poc, tmp_path, verbose=False)
 
