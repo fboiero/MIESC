@@ -15,8 +15,6 @@ from __future__ import annotations
 
 import json
 
-import pytest
-
 from miesc.core.baseline import (
     Baseline,
     diff_against_baseline,
@@ -26,13 +24,14 @@ from miesc.core.baseline import (
     normalize_finding,
 )
 
-
 # =============================================================================
 # Helpers
 # =============================================================================
 
 
-def _finding(rule="reentrancy", file="contracts/Bank.sol", line=15, message="Reentrancy in withdraw()"):
+def _finding(
+    rule="reentrancy", file="contracts/Bank.sol", line=15, message="Reentrancy in withdraw()"
+):
     return {
         "type": rule,
         "severity": "high",
@@ -83,8 +82,12 @@ class TestFingerprint:
     def test_flat_file_key_supported(self):
         """A finding using flat 'file' instead of nested location still resolves."""
         nested = _finding(file="X.sol")
-        flat = {"type": "reentrancy", "severity": "high",
-                "message": "Reentrancy in withdraw()", "file": "X.sol"}
+        flat = {
+            "type": "reentrancy",
+            "severity": "high",
+            "message": "Reentrancy in withdraw()",
+            "file": "X.sol",
+        }
         assert fingerprint(nested) == fingerprint(flat)
 
     def test_normalize_finding_fields(self):
@@ -204,7 +207,7 @@ class TestDiff:
         baseline = generate_baseline([_finding(rule="a"), _finding(rule="b")])
         current = [
             _finding(rule="a", line=99),  # known (line-shifted)
-            _finding(rule="c"),           # new
+            _finding(rule="c"),  # new
         ]
         diff = diff_against_baseline(current, baseline)
         assert [f["type"] for f in diff["known"]] == ["a"]

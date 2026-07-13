@@ -89,8 +89,9 @@ def test_analyze_min_severity_filter(tmp_path):
     sol = tmp_path / "Pool.sol"
     sol.write_text(MEV)
     out = a.analyze(str(sol), min_severity="High")
-    assert all(a._severity_level(f["severity"]) >= a._severity_level("High")
-               for f in out["findings"])
+    assert all(
+        a._severity_level(f["severity"]) >= a._severity_level("High") for f in out["findings"]
+    )
 
 
 def test_analyze_defi_only_skips_non_defi(tmp_path):

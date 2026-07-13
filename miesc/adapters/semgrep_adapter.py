@@ -26,7 +26,7 @@ import subprocess
 import tempfile
 import time
 from pathlib import Path
-from typing import cast, Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 from miesc.core.tool_protocol import (
     ToolAdapter,

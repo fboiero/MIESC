@@ -71,13 +71,24 @@ class TestCalculateResults:
         r = _runner()
         gt = GroundTruth(category=VulnerabilityCategory.REENTRANCY, lines=[5])
         vc = VulnerableContract(
-            name="C", path="C.sol", source_code="x", pragma_version="0.8.0",
-            vulnerabilities=[gt], source_url="", dataset="test",
+            name="C",
+            path="C.sol",
+            source_code="x",
+            pragma_version="0.8.0",
+            vulnerabilities=[gt],
+            source_url="",
+            dataset="test",
         )
         cr = ContractResult(
-            contract_name="C", contract_path="C.sol", ground_truth=[gt],
-            detected_findings=[], true_positives=[{"type": "reentrancy-eth"}],
-            false_positives=[{"type": "x"}], false_negatives=[], analysis_time_ms=10, error=None,
+            contract_name="C",
+            contract_path="C.sol",
+            ground_truth=[gt],
+            detected_findings=[],
+            true_positives=[{"type": "reentrancy-eth"}],
+            false_positives=[{"type": "x"}],
+            false_negatives=[],
+            analysis_time_ms=10,
+            error=None,
         )
         res = r._calculate_results([vc], [cr], 1.5)
         assert res.overall_metrics.true_positives == 1

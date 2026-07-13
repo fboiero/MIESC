@@ -34,7 +34,6 @@ from miesc.core.baseline import (
     load_baseline,
 )
 
-
 # =============================================================================
 # Shared helpers
 # =============================================================================
@@ -172,9 +171,7 @@ def baseline_generate(results: str, output: str, quiet: bool) -> None:
     help="Exit non-zero if any finding is not present in the baseline (CI gate).",
 )
 @click.option("--quiet", "-q", is_flag=True, help="Suppress per-finding detail.")
-def baseline_diff(
-    results: str, baseline_path: str, fail_on_new: bool, quiet: bool
-) -> None:
+def baseline_diff(results: str, baseline_path: str, fail_on_new: bool, quiet: bool) -> None:
     """Diff current results against a baseline: new / known / fixed.
 
     RESULTS is a JSON report produced by ``miesc scan -o`` or ``miesc audit``.
@@ -186,9 +183,7 @@ def baseline_diff(
         2 - Baseline file missing or invalid
     """
     findings = load_findings_from_results(results)
-    result = apply_baseline_gate(
-        findings, baseline_path, fail_on_new=fail_on_new, quiet=True
-    )
+    result = apply_baseline_gate(findings, baseline_path, fail_on_new=fail_on_new, quiet=True)
 
     n_new = len(result["new"])
     n_known = len(result["known"])
@@ -203,10 +198,7 @@ def baseline_diff(
         info("New findings:")
         for finding in result["new"]:
             rule = (
-                finding.get("type")
-                or finding.get("rule_id")
-                or finding.get("title")
-                or "unknown"
+                finding.get("type") or finding.get("rule_id") or finding.get("title") or "unknown"
             )
             sev = str(finding.get("severity", "")).upper()
             loc = finding.get("location")

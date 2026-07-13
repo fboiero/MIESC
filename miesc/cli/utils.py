@@ -378,7 +378,12 @@ class AdapterLoader:
                 "install_cmd": install_cmd,
             }
         except Exception as e:
-            return {"status": "error", "available": False, "error": str(e), "install_cmd": install_cmd}
+            return {
+                "status": "error",
+                "available": False,
+                "error": str(e),
+                "install_cmd": install_cmd,
+            }
 
     @classmethod
     def reset(cls) -> None:

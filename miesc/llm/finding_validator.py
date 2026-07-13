@@ -78,7 +78,9 @@ def _safe_mapping_get(mapping: Any, key: str, default: Any = None) -> Any:
         return default
 
 
-def _safe_text(value: Any, *, allow_multiline: bool = False, limit: int = MAX_VALIDATOR_TEXT_CHARS) -> str:
+def _safe_text(
+    value: Any, *, allow_multiline: bool = False, limit: int = MAX_VALIDATOR_TEXT_CHARS
+) -> str:
     """Return bounded safe text, preserving normal surrounding whitespace trimming."""
     if isinstance(value, bytes):
         try:
@@ -331,7 +333,9 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
                     and self._safe_model_name(name)
                 ]
                 return any(
-                    self._model_name_matches_configured_model(self._safe_model_name(self.config.model), name)
+                    self._model_name_matches_configured_model(
+                        self._safe_model_name(self.config.model), name
+                    )
                     for name in model_names
                 )
         except VALIDATOR_RUNTIME_ERRORS as e:

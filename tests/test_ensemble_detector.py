@@ -1977,7 +1977,8 @@ class TestLLMEnsembleDetectorVoting:
                     "confidence": 0.9,
                 }
             ],
-            "x" * (LLMEnsembleDetector.MAX_MODEL_LABEL_LENGTH + 1): [
+            "x"
+            * (LLMEnsembleDetector.MAX_MODEL_LABEL_LENGTH + 1): [
                 {
                     "type": "reentrancy",
                     "severity": "high",

@@ -349,7 +349,12 @@ class DependencyAnalyzer:
 
     def get_summary(self, findings: List[DependencyFinding]) -> Dict:
         """Generate summary statistics."""
-        summary: Dict[str, Any] = {"total": len(findings), "by_severity": {}, "by_package": {}, "cves": []}
+        summary: Dict[str, Any] = {
+            "total": len(findings),
+            "by_severity": {},
+            "by_package": {},
+            "cves": [],
+        }
 
         for finding in findings:
             # Count by severity

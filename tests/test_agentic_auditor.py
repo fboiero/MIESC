@@ -88,6 +88,7 @@ def graph() -> Iterator[RepoCallGraph]:
 # Scripted adapter — returns canned ConversationResult objects, in order.
 # ---------------------------------------------------------------------------
 
+
 class ScriptedAdapter:
     """Mock adapter feeding pre-baked replies to converse_with_tools.
 
@@ -155,8 +156,10 @@ WITHDRAW_CANDIDATE = {
 
 def _hid(candidate: Dict[str, str]) -> str:
     return Hypothesis.make(
-        candidate["contract"], candidate["function"],
-        candidate["vuln_class"], candidate["claim"],
+        candidate["contract"],
+        candidate["function"],
+        candidate["vuln_class"],
+        candidate["claim"],
     ).id
 
 
@@ -164,10 +167,11 @@ def _hid(candidate: Dict[str, str]) -> str:
 # JSON extraction
 # ---------------------------------------------------------------------------
 
+
 def test_extract_json_array_handles_prose_and_fences() -> None:
     assert _extract_json_array('[{"a": 1}]') == [{"a": 1}]
     assert _extract_json_array('Here you go:\n```json\n[{"a": 1}]\n```') == [{"a": 1}]
-    assert _extract_json_array("prose [ {\"a\": 1} ] trailing") == [{"a": 1}]
+    assert _extract_json_array('prose [ {"a": 1} ] trailing') == [{"a": 1}]
     assert _extract_json_array('{"a": 1}') == [{"a": 1}]  # lone object -> wrapped
     assert _extract_json_array("no json here") == []
     assert _extract_json_array("") == []
@@ -179,20 +183,18 @@ def test_extract_json_array_handles_prose_and_fences() -> None:
 # Tool dispatch against the real RepoCallGraph
 # ---------------------------------------------------------------------------
 
+
 def test_on_tool_call_routes_to_real_graph(graph: RepoCallGraph) -> None:
     auditor = AgenticAuditor(ScriptedAdapter([]), graph, AgenticAuditConfig())
 
-    body = auditor._on_tool_call("get_function_body",
-                                 {"contract": "Token", "function": "transfer"})
+    body = auditor._on_tool_call("get_function_body", {"contract": "Token", "function": "transfer"})
     assert "function transfer" in body
 
     # Cross-contract caller: Bank.withdraw calls Token.transfer.
-    callers = auditor._on_tool_call("list_callers",
-                                    {"contract": "Token", "function": "transfer"})
+    callers = auditor._on_tool_call("list_callers", {"contract": "Token", "function": "transfer"})
     assert "Bank.withdraw" in callers
 
-    callees = auditor._on_tool_call("list_callees",
-                                    {"contract": "Bank", "function": "withdraw"})
+    callees = auditor._on_tool_call("list_callees", {"contract": "Bank", "function": "withdraw"})
     assert "Token.transfer" in callees
 
     # Missing contract/function -> graceful "not found", never an exception.
@@ -200,8 +202,9 @@ def test_on_tool_call_routes_to_real_graph(graph: RepoCallGraph) -> None:
         "get_function_body", {"contract": "Nope", "function": "ghost"}
     )
     assert "not found" in auditor._on_tool_call("get_function_body", {})
-    assert "not found" in auditor._on_tool_call("bogus_tool",
-                                                {"contract": "Token", "function": "mint"})
+    assert "not found" in auditor._on_tool_call(
+        "bogus_tool", {"contract": "Token", "function": "mint"}
+    )
 
 
 def test_on_tool_call_whole_repo_tools(graph: RepoCallGraph) -> None:
@@ -231,24 +234,35 @@ def test_on_tool_call_whole_repo_tools(graph: RepoCallGraph) -> None:
     assert "not found" in auditor._on_tool_call("read_contract_source", {})
     assert "not found" in auditor._on_tool_call("grep_repo", {})
     # Nonsense grep pattern -> no-match string, never raises.
-    assert "no matches" in auditor._on_tool_call(
-        "grep_repo", {"pattern": "zzz_never_here_zzz"}
-    )
+    assert "no matches" in auditor._on_tool_call("grep_repo", {"pattern": "zzz_never_here_zzz"})
 
 
 # ---------------------------------------------------------------------------
 # The loop: enumerate -> verify -> confirm, stop on n_target
 # ---------------------------------------------------------------------------
 
+
 def test_loop_enumerate_verify_confirm_stops_on_n_target(graph: RepoCallGraph) -> None:
-    adapter = ScriptedAdapter([
-        # Round 0 ENUMERATE — one candidate, with a real tool call exercised.
-        _enum([TRANSFER_CANDIDATE],
-              tool_calls=[("get_function_body", {"contract": "Token", "function": "transfer"})]),
-        # VERIFY — confirm it.
-        _verify([{"id": _hid(TRANSFER_CANDIDATE), "verdict": "confirmed",
-                  "reason": "underflow lets attacker mint balance and drain", "severity": "high"}]),
-    ])
+    adapter = ScriptedAdapter(
+        [
+            # Round 0 ENUMERATE — one candidate, with a real tool call exercised.
+            _enum(
+                [TRANSFER_CANDIDATE],
+                tool_calls=[("get_function_body", {"contract": "Token", "function": "transfer"})],
+            ),
+            # VERIFY — confirm it.
+            _verify(
+                [
+                    {
+                        "id": _hid(TRANSFER_CANDIDATE),
+                        "verdict": "confirmed",
+                        "reason": "underflow lets attacker mint balance and drain",
+                        "severity": "high",
+                    }
+                ]
+            ),
+        ]
+    )
     config = AgenticAuditConfig(n_target=1, max_rounds=4)
     auditor = AgenticAuditor(adapter, graph, config)
 
@@ -268,17 +282,35 @@ def test_loop_enumerate_verify_confirm_stops_on_n_target(graph: RepoCallGraph) -
 
 
 def test_finding_shape_matches_audit_md_consumer(graph: RepoCallGraph) -> None:
-    adapter = ScriptedAdapter([
-        _enum([TRANSFER_CANDIDATE]),
-        _verify([{"id": _hid(TRANSFER_CANDIDATE), "verdict": "confirmed",
-                  "reason": "balance underflow", "severity": "high"}]),
-    ])
+    adapter = ScriptedAdapter(
+        [
+            _enum([TRANSFER_CANDIDATE]),
+            _verify(
+                [
+                    {
+                        "id": _hid(TRANSFER_CANDIDATE),
+                        "verdict": "confirmed",
+                        "reason": "balance underflow",
+                        "severity": "high",
+                    }
+                ]
+            ),
+        ]
+    )
     auditor = AgenticAuditor(adapter, graph, AgenticAuditConfig(n_target=1))
     finding = auditor.audit_repo(Path("/unused")).findings[0]
 
     # Keys findings_to_audit_md reads (benchmarks/evmbench_official_detect.py:202).
-    for key in ("title", "severity", "type", "function", "description",
-                "impact", "proof_of_concept", "recommendation"):
+    for key in (
+        "title",
+        "severity",
+        "type",
+        "function",
+        "description",
+        "impact",
+        "proof_of_concept",
+        "recommendation",
+    ):
         assert key in finding, f"finding missing '{key}': {finding}"
     assert finding["severity"] == "high"
     assert finding["type"] == "arithmetic"
@@ -286,6 +318,7 @@ def test_finding_shape_matches_audit_md_consumer(graph: RepoCallGraph) -> None:
     assert finding["description"] == "balance underflow"
     # Drop-in: the real harness formatter must consume it without error.
     from benchmarks.evmbench_official_detect import findings_to_audit_md
+
     md = findings_to_audit_md([finding], "AgenticAuditorTest")
     assert "transfer" in md
     assert "severity: high" in md
@@ -295,13 +328,24 @@ def test_finding_shape_matches_audit_md_consumer(graph: RepoCallGraph) -> None:
 # Convergence: an empty completeness round stops the loop
 # ---------------------------------------------------------------------------
 
+
 def test_loop_stops_on_convergence_empty_round(graph: RepoCallGraph) -> None:
-    adapter = ScriptedAdapter([
-        _enum([TRANSFER_CANDIDATE]),           # enumerate
-        _verify([{"id": _hid(TRANSFER_CANDIDATE), "verdict": "confirmed",
-                  "reason": "underflow", "severity": "high"}]),  # verify
-        _enum([]),                             # completeness round finds nothing new
-    ])
+    adapter = ScriptedAdapter(
+        [
+            _enum([TRANSFER_CANDIDATE]),  # enumerate
+            _verify(
+                [
+                    {
+                        "id": _hid(TRANSFER_CANDIDATE),
+                        "verdict": "confirmed",
+                        "reason": "underflow",
+                        "severity": "high",
+                    }
+                ]
+            ),  # verify
+            _enum([]),  # completeness round finds nothing new
+        ]
+    )
     # n_target far above what will ever confirm -> would loop, but convergence stops it.
     config = AgenticAuditConfig(n_target=5, max_rounds=4)
     auditor = AgenticAuditor(adapter, graph, config)
@@ -320,20 +364,33 @@ def test_loop_stops_on_convergence_empty_round(graph: RepoCallGraph) -> None:
 # Ruled-out hypotheses never reappear
 # ---------------------------------------------------------------------------
 
+
 def test_ruled_out_hypotheses_do_not_reappear(graph: RepoCallGraph) -> None:
-    adapter = ScriptedAdapter([
-        # Enumerate two candidates.
-        _enum([TRANSFER_CANDIDATE, WITHDRAW_CANDIDATE]),
-        # Verify: confirm transfer, rule out withdraw.
-        _verify([
-            {"id": _hid(TRANSFER_CANDIDATE), "verdict": "confirmed",
-             "reason": "underflow drains", "severity": "high"},
-            {"id": _hid(WITHDRAW_CANDIDATE), "verdict": "ruled_out",
-             "reason": "nonReentrant guard present upstream", "severity": None},
-        ]),
-        # Completeness re-raises the SAME ruled-out withdraw candidate.
-        _enum([WITHDRAW_CANDIDATE]),
-    ])
+    adapter = ScriptedAdapter(
+        [
+            # Enumerate two candidates.
+            _enum([TRANSFER_CANDIDATE, WITHDRAW_CANDIDATE]),
+            # Verify: confirm transfer, rule out withdraw.
+            _verify(
+                [
+                    {
+                        "id": _hid(TRANSFER_CANDIDATE),
+                        "verdict": "confirmed",
+                        "reason": "underflow drains",
+                        "severity": "high",
+                    },
+                    {
+                        "id": _hid(WITHDRAW_CANDIDATE),
+                        "verdict": "ruled_out",
+                        "reason": "nonReentrant guard present upstream",
+                        "severity": None,
+                    },
+                ]
+            ),
+            # Completeness re-raises the SAME ruled-out withdraw candidate.
+            _enum([WITHDRAW_CANDIDATE]),
+        ]
+    )
     config = AgenticAuditConfig(n_target=5, max_rounds=4)
     auditor = AgenticAuditor(adapter, graph, config)
 
@@ -355,15 +412,18 @@ def test_ruled_out_hypotheses_do_not_reappear(graph: RepoCallGraph) -> None:
 # one is NOT. Verification only DROPS clear false positives, it does not gate.
 # ---------------------------------------------------------------------------
 
+
 def test_open_unverified_hypothesis_surfaces_as_medium_finding(graph: RepoCallGraph) -> None:
     # ENUMERATE surfaces a candidate; VERIFY returns NO verdict for it, so it
     # stays OPEN. Under the new semantics that survivor must still surface as a
     # finding (severity "medium", detail = the enum's specific claim) — the
     # verifier only removes hypotheses it explicitly rules out.
-    adapter = ScriptedAdapter([
-        _enum([TRANSFER_CANDIDATE]),
-        _verify([]),  # verifier gives no verdict -> hypothesis remains OPEN
-    ])
+    adapter = ScriptedAdapter(
+        [
+            _enum([TRANSFER_CANDIDATE]),
+            _verify([]),  # verifier gives no verdict -> hypothesis remains OPEN
+        ]
+    )
     # n_target=0 -> no completeness loop; the single round-0 pass is all we run.
     auditor = AgenticAuditor(adapter, graph, AgenticAuditConfig(n_target=0))
 
@@ -390,19 +450,33 @@ def test_confirmed_and_open_survive_ruled_out_dropped(graph: RepoCallGraph) -> N
     # Mixed verdicts in one pass: confirm TRANSFER, rule out WITHDRAW, leave a
     # third (mint) OPEN. Findings = confirmed + open (2), ruled-out dropped.
     MINT_CANDIDATE = {
-        "contract": "Token", "function": "mint", "vuln_class": "access_control",
+        "contract": "Token",
+        "function": "mint",
+        "vuln_class": "access_control",
         "claim": "mint is unguarded so anyone can inflate balances",
     }
-    adapter = ScriptedAdapter([
-        _enum([TRANSFER_CANDIDATE, WITHDRAW_CANDIDATE, MINT_CANDIDATE]),
-        _verify([
-            {"id": _hid(TRANSFER_CANDIDATE), "verdict": "confirmed",
-             "reason": "underflow drains", "severity": "high"},
-            {"id": _hid(WITHDRAW_CANDIDATE), "verdict": "ruled_out",
-             "reason": "guard present", "severity": None},
-            # MINT gets no verdict -> stays OPEN.
-        ]),
-    ])
+    adapter = ScriptedAdapter(
+        [
+            _enum([TRANSFER_CANDIDATE, WITHDRAW_CANDIDATE, MINT_CANDIDATE]),
+            _verify(
+                [
+                    {
+                        "id": _hid(TRANSFER_CANDIDATE),
+                        "verdict": "confirmed",
+                        "reason": "underflow drains",
+                        "severity": "high",
+                    },
+                    {
+                        "id": _hid(WITHDRAW_CANDIDATE),
+                        "verdict": "ruled_out",
+                        "reason": "guard present",
+                        "severity": None,
+                    },
+                    # MINT gets no verdict -> stays OPEN.
+                ]
+            ),
+        ]
+    )
     auditor = AgenticAuditor(adapter, graph, AgenticAuditConfig(n_target=0))
 
     result = auditor.audit_repo(Path("/unused"))
@@ -418,16 +492,35 @@ def test_confirmed_and_open_survive_ruled_out_dropped(graph: RepoCallGraph) -> N
 # Token budget short-circuits the loop
 # ---------------------------------------------------------------------------
 
+
 def test_token_budget_halts_completeness_loop(graph: RepoCallGraph) -> None:
-    adapter = ScriptedAdapter([
-        _enum([TRANSFER_CANDIDATE], usage={"input_tokens": 100, "output_tokens": 100}),
-        _verify([{"id": _hid(TRANSFER_CANDIDATE), "verdict": "confirmed",
-                  "reason": "underflow", "severity": "high"}],
-                usage={"input_tokens": 100, "output_tokens": 100}),
-        # Would keep going, but budget (300) is already exceeded by now.
-        _enum([{"contract": "Token", "function": "mint", "vuln_class": "access_control",
-                "claim": "mint is unguarded"}]),
-    ])
+    adapter = ScriptedAdapter(
+        [
+            _enum([TRANSFER_CANDIDATE], usage={"input_tokens": 100, "output_tokens": 100}),
+            _verify(
+                [
+                    {
+                        "id": _hid(TRANSFER_CANDIDATE),
+                        "verdict": "confirmed",
+                        "reason": "underflow",
+                        "severity": "high",
+                    }
+                ],
+                usage={"input_tokens": 100, "output_tokens": 100},
+            ),
+            # Would keep going, but budget (300) is already exceeded by now.
+            _enum(
+                [
+                    {
+                        "contract": "Token",
+                        "function": "mint",
+                        "vuln_class": "access_control",
+                        "claim": "mint is unguarded",
+                    }
+                ]
+            ),
+        ]
+    )
     config = AgenticAuditConfig(n_target=5, max_rounds=4, token_budget=300)
     auditor = AgenticAuditor(adapter, graph, config)
 
@@ -442,6 +535,7 @@ def test_token_budget_halts_completeness_loop(graph: RepoCallGraph) -> None:
 # Multi-persona: config.persona selects the persona enum prompt; the union of
 # several persona passes over the SAME graph combines and dedups findings.
 # ---------------------------------------------------------------------------
+
 
 def test_persona_config_selects_persona_enum_prompt(graph: RepoCallGraph) -> None:
     # With persona set, the ENUMERATE user message must be the access-control
@@ -468,7 +562,9 @@ def test_persona_general_falls_back_to_general_enum_prompt(graph: RepoCallGraph)
     # "general" is not a PERSONA_ENUM_PROMPTS key -> falls back to the broad enum.
     # The harness uses "general" as a union member for cross-cutting bugs.
     adapter = ScriptedAdapter([_enum([]), _verify([])])
-    AgenticAuditor(adapter, graph, AgenticAuditConfig(n_target=0, persona="general")).audit_repo(Path("/unused"))
+    AgenticAuditor(adapter, graph, AgenticAuditConfig(n_target=0, persona="general")).audit_repo(
+        Path("/unused")
+    )
     enum_user = adapter.calls[0]["user"]
     assert "EXCLUSIVELY on" not in enum_user
 
@@ -477,6 +573,7 @@ def test_persona_general_falls_back_to_general_enum_prompt(graph: RepoCallGraph)
 # Systematic coverage flag: opt-in. Default (False) => SAMPLING enum text;
 # True => SYSTEMATIC enum text + a bumped enum-pass tool budget.
 # ---------------------------------------------------------------------------
+
 
 def test_default_config_enum_uses_sampling_coverage(graph: RepoCallGraph) -> None:
     adapter = ScriptedAdapter([_enum([]), _verify([])])
@@ -505,7 +602,7 @@ def test_systematic_persona_config_uses_systematic_persona_prompt(graph: RepoCal
     AgenticAuditor(adapter, graph, config).audit_repo(Path("/unused"))
     enum_user = adapter.calls[0]["user"]
     assert "EXCLUSIVELY on ACCESS CONTROL" in enum_user  # persona focus kept
-    assert "SYSTEMATIC COVERAGE" in enum_user             # systematic coverage on
+    assert "SYSTEMATIC COVERAGE" in enum_user  # systematic coverage on
 
 
 def test_default_max_tool_calls_is_cheap() -> None:
@@ -538,12 +635,16 @@ def test_multipersona_unions_findings_and_dedups_duplicates(graph: RepoCallGraph
     # re-raises persona 1's exact candidate. The union must contain BOTH bugs
     # and collapse the exact duplicate. n_target=0 -> each persona = enum+verify
     # (2 scripted steps), so the shared adapter script is 4 steps in persona order.
-    adapter = ScriptedAdapter([
-        # persona 1 (access_control): finds TRANSFER only.
-        _enum([TRANSFER_CANDIDATE]), _verify([]),
-        # persona 2 (reentrancy): finds WITHDRAW + a duplicate TRANSFER.
-        _enum([WITHDRAW_CANDIDATE, TRANSFER_CANDIDATE]), _verify([]),
-    ])
+    adapter = ScriptedAdapter(
+        [
+            # persona 1 (access_control): finds TRANSFER only.
+            _enum([TRANSFER_CANDIDATE]),
+            _verify([]),
+            # persona 2 (reentrancy): finds WITHDRAW + a duplicate TRANSFER.
+            _enum([WITHDRAW_CANDIDATE, TRANSFER_CANDIDATE]),
+            _verify([]),
+        ]
+    )
     base = AgenticAuditConfig(n_target=0)
     result = audit_repo_multipersona(
         adapter, graph, base, ["access_control", "reentrancy"], Path("/unused")
@@ -557,7 +658,7 @@ def test_multipersona_unions_findings_and_dedups_duplicates(graph: RepoCallGraph
     assert result.trace["personas"] == ["access_control", "reentrancy"]
     per = {p["persona"]: p["unique_added"] for p in result.trace["per_persona"]}
     assert per["access_control"] == 1  # contributed transfer
-    assert per["reentrancy"] == 1      # contributed withdraw (transfer deduped)
+    assert per["reentrancy"] == 1  # contributed withdraw (transfer deduped)
     # Merged ledger carries every distinct hypothesis (transfer + withdraw).
     assert len(result.ledger.all()) == 2
 
@@ -588,12 +689,22 @@ def test_round0_verify_runs_even_when_enum_alone_exhausts_budget(graph: RepoCall
     # Regression: on big repos, enumeration ALONE blows the token budget. The
     # round-0 verify must still run (force=True) or the enumerated hypotheses are
     # silently discarded (the bug that made large audits score 0/N).
-    adapter = ScriptedAdapter([
-        _enum([TRANSFER_CANDIDATE], usage={"input_tokens": 300, "output_tokens": 200}),
-        _verify([{"id": _hid(TRANSFER_CANDIDATE), "verdict": "confirmed",
-                  "reason": "underflow", "severity": "high"}],
-                usage={"input_tokens": 50, "output_tokens": 50}),
-    ])
+    adapter = ScriptedAdapter(
+        [
+            _enum([TRANSFER_CANDIDATE], usage={"input_tokens": 300, "output_tokens": 200}),
+            _verify(
+                [
+                    {
+                        "id": _hid(TRANSFER_CANDIDATE),
+                        "verdict": "confirmed",
+                        "reason": "underflow",
+                        "severity": "high",
+                    }
+                ],
+                usage={"input_tokens": 50, "output_tokens": 50},
+            ),
+        ]
+    )
     config = AgenticAuditConfig(n_target=5, max_rounds=4, token_budget=300)
     auditor = AgenticAuditor(adapter, graph, config)
 
@@ -612,6 +723,7 @@ def test_round0_verify_runs_even_when_enum_alone_exhausts_budget(graph: RepoCall
 # drops it. Fully offline: the real ExploitValidator is swapped for a fake that
 # returns scripted ValidationResults (no forge, no API).
 # ---------------------------------------------------------------------------
+
 
 def _fake_validator_class(results_by_function, box=None):
     """Build a drop-in replacement for ExploitValidator whose ``validate`` returns
@@ -639,10 +751,12 @@ def test_exploit_validate_passed_promotes_and_never_drops(
     # Two survivors: TRANSFER is PROVEN by a passing exploit, WITHDRAW is skipped.
     # The proven one is promoted to high with the exploit in the PoC; NEITHER is
     # dropped (recall-safe) — the finding count equals the surviving count.
-    adapter = ScriptedAdapter([
-        _enum([TRANSFER_CANDIDATE, WITHDRAW_CANDIDATE]),
-        _verify([]),  # both stay OPEN survivors
-    ])
+    adapter = ScriptedAdapter(
+        [
+            _enum([TRANSFER_CANDIDATE, WITHDRAW_CANDIDATE]),
+            _verify([]),  # both stay OPEN survivors
+        ]
+    )
     exploit_src = "contract Exploit is Test { function test_exploit() public {} }"
     results = {
         "transfer": ValidationResult(
@@ -723,9 +837,7 @@ def test_exploit_validate_no_compile_sharpens_description(
     assert result.trace["exploit"]["no_compile"] == 1
 
 
-def test_exploit_validate_off_by_default_path_untouched(
-    graph: RepoCallGraph, monkeypatch
-) -> None:
+def test_exploit_validate_off_by_default_path_untouched(graph: RepoCallGraph, monkeypatch) -> None:
     # Default config: exploit_validate=False. The ExploitValidator must NEVER be
     # constructed and the audit behaves EXACTLY as today (no "exploit" in trace).
     assert AgenticAuditConfig().exploit_validate is False
@@ -734,15 +846,23 @@ def test_exploit_validate_off_by_default_path_untouched(
         def __init__(self, *a, **kw):  # pragma: no cover - must never run
             raise AssertionError("ExploitValidator constructed while OFF")
 
-    monkeypatch.setattr(
-        "miesc.agents.agentic_auditor.ExploitValidator", _ExplodingValidator
-    )
+    monkeypatch.setattr("miesc.agents.agentic_auditor.ExploitValidator", _ExplodingValidator)
 
-    adapter = ScriptedAdapter([
-        _enum([TRANSFER_CANDIDATE]),
-        _verify([{"id": _hid(TRANSFER_CANDIDATE), "verdict": "confirmed",
-                  "reason": "balance underflow", "severity": "high"}]),
-    ])
+    adapter = ScriptedAdapter(
+        [
+            _enum([TRANSFER_CANDIDATE]),
+            _verify(
+                [
+                    {
+                        "id": _hid(TRANSFER_CANDIDATE),
+                        "verdict": "confirmed",
+                        "reason": "balance underflow",
+                        "severity": "high",
+                    }
+                ]
+            ),
+        ]
+    )
     config = AgenticAuditConfig(n_target=1)  # exploit_validate defaults False
     result = AgenticAuditor(adapter, graph, config).audit_repo(Path("/unused"))
 
@@ -756,9 +876,7 @@ def test_exploit_validate_off_by_default_path_untouched(
     assert "exploit" not in result.trace
 
 
-def test_exploit_validate_one_failure_never_aborts_audit(
-    graph: RepoCallGraph, monkeypatch
-) -> None:
+def test_exploit_validate_one_failure_never_aborts_audit(graph: RepoCallGraph, monkeypatch) -> None:
     # Defensive budget/robustness: even if validate() itself raises, the audit
     # completes and the hypothesis survives (counted as skipped).
     class _BoomValidator:
@@ -768,9 +886,7 @@ def test_exploit_validate_one_failure_never_aborts_audit(
         def validate(self, h):
             raise RuntimeError("validator exploded")
 
-    monkeypatch.setattr(
-        "miesc.agents.agentic_auditor.ExploitValidator", _BoomValidator
-    )
+    monkeypatch.setattr("miesc.agents.agentic_auditor.ExploitValidator", _BoomValidator)
 
     adapter = ScriptedAdapter([_enum([TRANSFER_CANDIDATE]), _verify([])])
     config = AgenticAuditConfig(n_target=0, exploit_validate=True)

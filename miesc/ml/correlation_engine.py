@@ -21,7 +21,7 @@ from dataclasses import dataclass, field
 from difflib import SequenceMatcher
 from enum import Enum
 from pathlib import Path
-from typing import cast, Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set, cast
 
 logger = logging.getLogger(__name__)
 

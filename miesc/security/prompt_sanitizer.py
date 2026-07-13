@@ -31,7 +31,7 @@ import logging
 import re
 from dataclasses import dataclass
 from enum import Enum
-from typing import cast, Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, cast
 
 logger = logging.getLogger(__name__)
 

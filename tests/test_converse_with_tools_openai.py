@@ -22,7 +22,6 @@ from miesc.adapters.frontier_llm_adapter import (
     ToolSpec,
 )
 
-
 # ---------------------------------------------------------------------------
 # Minimal stand-ins for the openai SDK response objects. The adapter reads
 # response.choices[0].message.{content,tool_calls} and each tool_call's
@@ -122,9 +121,7 @@ def test_openai_tool_round_then_final_text(monkeypatch):
                     _ToolCall(
                         id="call_01",
                         name="get_function_body",
-                        arguments=json.dumps(
-                            {"contract": "Wallet", "function": "withdraw"}
-                        ),
+                        arguments=json.dumps({"contract": "Wallet", "function": "withdraw"}),
                     )
                 ],
             ),
@@ -171,9 +168,7 @@ def test_openai_tool_round_then_final_text(monkeypatch):
     )
 
     # on_tool_call was invoked once with the correctly-parsed (JSON) args.
-    assert seen_calls == [
-        ("get_function_body", {"contract": "Wallet", "function": "withdraw"})
-    ]
+    assert seen_calls == [("get_function_body", {"contract": "Wallet", "function": "withdraw"})]
 
     # Result shape.
     assert isinstance(result, ConversationResult)
@@ -186,11 +181,7 @@ def test_openai_tool_round_then_final_text(monkeypatch):
     assert result.tool_calls[0]["result"] == "function withdraw() public { ... }"
 
     # A role:"tool" message with the tool_call_id + result was appended.
-    tool_turns = [
-        m
-        for m in result.messages
-        if isinstance(m, dict) and m.get("role") == "tool"
-    ]
+    tool_turns = [m for m in result.messages if isinstance(m, dict) and m.get("role") == "tool"]
     assert len(tool_turns) == 1
     assert tool_turns[0]["tool_call_id"] == "call_01"
     assert tool_turns[0]["content"] == "function withdraw() public { ... }"
@@ -244,9 +235,7 @@ def test_openai_max_iterations_cutoff_forces_final_answer(monkeypatch):
         usage=_Usage(prompt_tokens=20, completion_tokens=8),
     )
     # First 3 calls loop on tools; the 4th (forced, no tools) returns content.
-    fake_completions = _FakeCompletions(
-        scripted=[tool_round, tool_round, tool_round, forced_final]
-    )
+    fake_completions = _FakeCompletions(scripted=[tool_round, tool_round, tool_round, forced_final])
     _install_fake_openai(monkeypatch, fake_completions)
 
     call_count = {"n": 0}
@@ -326,8 +315,11 @@ def test_openai_tool_call_exception_is_surfaced_to_model(monkeypatch):
             message=_ChatMessage(
                 content=None,
                 tool_calls=[
-                    _ToolCall(id="call_err", name="get_function_body",
-                              arguments=json.dumps({"contract": "X", "function": "y"}))
+                    _ToolCall(
+                        id="call_err",
+                        name="get_function_body",
+                        arguments=json.dumps({"contract": "X", "function": "y"}),
+                    )
                 ],
             ),
             usage=_Usage(prompt_tokens=10, completion_tokens=5),
@@ -344,9 +336,7 @@ def test_openai_tool_call_exception_is_surfaced_to_model(monkeypatch):
         raise RuntimeError("boom")
 
     adapter = FrontierLLMAdapter(provider="openai")
-    tools = [
-        ToolSpec(name="get_function_body", description="d", input_schema={"type": "object"})
-    ]
+    tools = [ToolSpec(name="get_function_body", description="d", input_schema={"type": "object"})]
 
     result = adapter.converse_with_tools(
         system="s",

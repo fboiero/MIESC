@@ -86,32 +86,48 @@ def test_extract_imports():
 # --------------------------------------------------------------------------- #
 def test_check_import_openzeppelin_vuln():
     a = _a()
-    info = {"line": 1, "path": "@openzeppelin/contracts/access/Ownable.sol",
-            "package": "openzeppelin", "contract": "Ownable"}
+    info = {
+        "line": 1,
+        "path": "@openzeppelin/contracts/access/Ownable.sol",
+        "package": "openzeppelin",
+        "contract": "Ownable",
+    }
     out = a._check_import(info, "0.8.20")
     assert out and "Ownable" in out[0].title
 
 
 def test_check_import_unnecessary_safemath_on_08():
     a = _a()
-    info = {"line": 2, "path": "@openzeppelin/contracts/utils/math/SafeMath.sol",
-            "package": "openzeppelin", "contract": "SafeMath"}
+    info = {
+        "line": 2,
+        "path": "@openzeppelin/contracts/utils/math/SafeMath.sol",
+        "package": "openzeppelin",
+        "contract": "SafeMath",
+    }
     out = a._check_import(info, "0.8.20")
     assert any("Unnecessary SafeMath" in f.title for f in out)
 
 
 def test_check_import_safemath_pre_08_not_flagged():
     a = _a()
-    info = {"line": 2, "path": "@openzeppelin/contracts/math/SafeMath.sol",
-            "package": "openzeppelin", "contract": "SafeMath"}
+    info = {
+        "line": 2,
+        "path": "@openzeppelin/contracts/math/SafeMath.sol",
+        "package": "openzeppelin",
+        "contract": "SafeMath",
+    }
     out = a._check_import(info, "0.6.0")  # SafeMath legitimate pre-0.8
     assert not any("SafeMath" in f.title for f in out)
 
 
 def test_check_import_dangerous_non_safemath():
     a = _a()
-    info = {"line": 3, "path": "@openzeppelin/contracts/utils/Counters.sol",
-            "package": "openzeppelin", "contract": "Counters"}
+    info = {
+        "line": 3,
+        "path": "@openzeppelin/contracts/utils/Counters.sol",
+        "package": "openzeppelin",
+        "contract": "Counters",
+    }
     out = a._check_import(info, "0.8.20")
     assert any("Counters" in f.title for f in out)
 
@@ -121,10 +137,12 @@ def test_check_import_dangerous_non_safemath():
 # --------------------------------------------------------------------------- #
 def test_check_dangerous_patterns():
     a = _a()
-    src = ("require(tx.origin == owner);\n"
-           "selfdestruct(payable(o));\n"
-           "x.delegatecall('');\n"
-           "ecrecover(h, v, r, s);")
+    src = (
+        "require(tx.origin == owner);\n"
+        "selfdestruct(payable(o));\n"
+        "x.delegatecall('');\n"
+        "ecrecover(h, v, r, s);"
+    )
     out = a._check_dangerous_patterns(src, src.split("\n"))
     titles = " ".join(f.title for f in out)
     assert "tx.origin" in titles

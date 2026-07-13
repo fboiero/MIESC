@@ -39,7 +39,7 @@ import re
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import cast, Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 from miesc.core.chain_abstraction import (
     AbstractChainAnalyzer,
@@ -247,10 +247,14 @@ class PlutusParser:
         contract.data_types = self._parse_data_types(content)
 
         # Parse validators
-        contract.validators = cast(List[Union[PlutusValidator, AikenValidator]], self._parse_validators(content))
+        contract.validators = cast(
+            List[Union[PlutusValidator, AikenValidator]], self._parse_validators(content)
+        )
 
         # Parse minting policies
-        contract.minting_policies = cast(List[Union[PlutusValidator, AikenValidator]], self._parse_minting_policies(content))
+        contract.minting_policies = cast(
+            List[Union[PlutusValidator, AikenValidator]], self._parse_minting_policies(content)
+        )
 
         return contract
 
@@ -439,7 +443,9 @@ class AikenParser:
         contract.data_types = self._parse_types(content)
 
         # Parse validators
-        contract.validators = cast(List[Union[PlutusValidator, AikenValidator]], self._parse_validators(content, path))
+        contract.validators = cast(
+            List[Union[PlutusValidator, AikenValidator]], self._parse_validators(content, path)
+        )
 
         return contract
 
@@ -716,7 +722,9 @@ class CardanoPatternDetector:
                 )
 
             # Check for incomplete pattern matching
-            when_clauses = getattr(validator, "when_clauses", []) if hasattr(validator, "when_clauses") else []
+            when_clauses = (
+                getattr(validator, "when_clauses", []) if hasattr(validator, "when_clauses") else []
+            )
             if not any("_" in c or "else" in c.lower() for c in when_clauses):
                 # No catch-all pattern
                 if when_clauses:

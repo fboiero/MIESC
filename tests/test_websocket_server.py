@@ -670,6 +670,7 @@ class TestRunServer:
 def test_heartbeat_loop_emits_then_cancels():
     import asyncio as _aio
     from unittest.mock import AsyncMock, patch
+
     from miesc.mcp_core.websocket_server import MIESCWebSocketServer
 
     async def _run():
@@ -680,8 +681,10 @@ def test_heartbeat_loop_emits_then_cancels():
         server._clients = {good, bad}
         server._sessions = {}
         # first sleep returns -> emit heartbeat; second raises -> break
-        with patch("miesc.mcp_core.websocket_server.asyncio.sleep",
-                   side_effect=[None, _aio.CancelledError()]):
+        with patch(
+            "miesc.mcp_core.websocket_server.asyncio.sleep",
+            side_effect=[None, _aio.CancelledError()],
+        ):
             await server._heartbeat_loop()
         good.send.assert_awaited()
 
@@ -690,13 +693,18 @@ def test_heartbeat_loop_emits_then_cancels():
 
 def test_run_server_starts_and_stops_on_cancel():
     from unittest.mock import AsyncMock, patch
+
     from miesc.mcp_core import websocket_server as ws
 
     async def _run():
-        with patch.object(ws.MIESCWebSocketServer, "start", new=AsyncMock()), \
-             patch.object(ws.MIESCWebSocketServer, "stop", new=AsyncMock()) as stop, \
-             patch("miesc.mcp_core.websocket_server.asyncio.Future",
-                   side_effect=asyncio.CancelledError()):
+        with (
+            patch.object(ws.MIESCWebSocketServer, "start", new=AsyncMock()),
+            patch.object(ws.MIESCWebSocketServer, "stop", new=AsyncMock()) as stop,
+            patch(
+                "miesc.mcp_core.websocket_server.asyncio.Future",
+                side_effect=asyncio.CancelledError(),
+            ),
+        ):
             await ws.run_server(host="localhost", port=9999)
         stop.assert_awaited()
 
@@ -706,6 +714,7 @@ def test_run_server_starts_and_stops_on_cancel():
 def test_handle_message_routes_commands():
     import json as _json
     from unittest.mock import AsyncMock
+
     from miesc.mcp_core.websocket_server import MIESCWebSocketServer
 
     async def _run():
@@ -716,7 +725,9 @@ def test_handle_message_routes_commands():
         await server._handle_message(ws, _json.dumps({"command": "subscribe", "session_id": "s1"}))
         assert "s1" in server._subscriptions[ws]
         # unsubscribe -> discards
-        await server._handle_message(ws, _json.dumps({"command": "unsubscribe", "session_id": "s1"}))
+        await server._handle_message(
+            ws, _json.dumps({"command": "unsubscribe", "session_id": "s1"})
+        )
         assert "s1" not in server._subscriptions[ws]
         # get_sessions -> sends the list
         await server._handle_message(ws, _json.dumps({"command": "get_sessions"}))

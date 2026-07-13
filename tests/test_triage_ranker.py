@@ -14,15 +14,22 @@ import pytest
 
 from miesc.ml.triage_ranker import DEFAULT_MODEL_PATH, TriageRanker, features_for
 
-REAL_CODE = ("pragma solidity ^0.4.24; contract C {"
-             " function w() public { msg.sender.call.value(1)(); } }")
-BENIGN_CODE = ("pragma solidity ^0.8.0; contract C {"
-               " function a(uint x) public pure returns (uint) { return x + 1; } }")
+REAL_CODE = (
+    "pragma solidity ^0.4.24; contract C {" " function w() public { msg.sender.call.value(1)(); } }"
+)
+BENIGN_CODE = (
+    "pragma solidity ^0.8.0; contract C {"
+    " function a(uint x) public pure returns (uint) { return x + 1; } }"
+)
 
 
 def _f(vtype, fn, line=1):
-    return {"type": vtype, "check": vtype, "severity": "high",
-            "location": {"function": fn, "line": line}}
+    return {
+        "type": vtype,
+        "check": vtype,
+        "severity": "high",
+        "location": {"function": fn, "line": line},
+    }
 
 
 # --------------------------------------------------------------------------- #
@@ -36,9 +43,12 @@ def test_features_are_29_dimensional():
 
 def test_structural_features_flag_deterministic_benign():
     from miesc.ml.triage_ranker import _structural_features
+
     # arithmetic on Solidity 0.8 -> a deterministic benign signal must fire
-    v = _structural_features({"type": "arithmetic", "check": "arithmetic",
-                              "location": {"function": "a", "line": 1}}, BENIGN_CODE)
+    v = _structural_features(
+        {"type": "arithmetic", "check": "arithmetic", "location": {"function": "a", "line": 1}},
+        BENIGN_CODE,
+    )
     assert v[0] == 1.0  # has_benign
     assert v[2] == 1.0  # is_deterministic
 
@@ -111,6 +121,7 @@ class TestRankResults:
     @needs_model
     def test_ranks_each_result_recall_safe(self, tmp_path):
         from miesc.ml.triage_ranker import rank_results
+
         sol = tmp_path / "C.sol"
         sol.write_text(REAL_CODE)
         findings = [_f("arithmetic", "a"), _f("reentrancy", "w")]
@@ -147,14 +158,17 @@ class TestTrain:
         import json
 
         from miesc.ml.triage_ranker import train
+
         rows = []
         for i in range(30):
-            real = (i % 2 == 0)
-            rows.append({
-                "finding": _f("reentrancy" if real else "arithmetic", "w" if real else "a"),
-                "context": REAL_CODE if real else BENIGN_CODE,
-                "label": real,
-            })
+            real = i % 2 == 0
+            rows.append(
+                {
+                    "finding": _f("reentrancy" if real else "arithmetic", "w" if real else "a"),
+                    "context": REAL_CODE if real else BENIGN_CODE,
+                    "label": real,
+                }
+            )
         ds = tmp_path / "ds.jsonl"
         ds.write_text("\n".join(json.dumps(r) for r in rows))
         model_path = tmp_path / "m.joblib"

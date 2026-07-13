@@ -11,7 +11,6 @@ from miesc.agents.hypothesis_ledger import (
     hypothesis_id,
 )
 
-
 # ---------------------------------------------------------------------------
 # Stable id + normalization
 # ---------------------------------------------------------------------------
@@ -19,9 +18,7 @@ from miesc.agents.hypothesis_ledger import (
 
 def test_id_is_stable_and_normalizes_claim():
     h1 = Hypothesis.make("Vault", "withdraw", "reentrancy", "Missing nonReentrant guard")
-    h2 = Hypothesis.make(
-        "Vault", "withdraw", "reentrancy", "  missing   NONREENTRANT   guard "
-    )
+    h2 = Hypothesis.make("Vault", "withdraw", "reentrancy", "  missing   NONREENTRANT   guard ")
     # Same contract/function + whitespace/case-different claim => same id.
     assert h1.id == h2.id
     assert h1.id == hypothesis_id("Vault", "withdraw", "Missing nonReentrant guard")

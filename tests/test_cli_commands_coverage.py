@@ -103,9 +103,7 @@ class TestPocGenerate:
         with runner.isolated_filesystem():
             Path("finding.json").write_text(json.dumps({"type": "reentrancy"}))
             with patch("miesc.cli.commands.poc.get_poc_generator", return_value=gen):
-                result = runner.invoke(
-                    poc, ["generate", "finding.json", "-c", "Token.sol"]
-                )
+                result = runner.invoke(poc, ["generate", "finding.json", "-c", "Token.sol"])
         assert result.exit_code == 0
 
     def test_generate_exception(self, runner):
@@ -211,17 +209,17 @@ from miesc.plugins.manager import (  # noqa: E402
 
 
 def _plugin(**kw) -> PluginInfo:
-    defaults = dict(
-        name="demo",
-        package="miesc-demo",
-        version="1.0.0",
-        enabled=True,
-        detector_count=3,
-        detectors=["det-a", "det-b"],
-        description="A demo plugin",
-        author="Tester",
-        local=False,
-    )
+    defaults = {
+        "name": "demo",
+        "package": "miesc-demo",
+        "version": "1.0.0",
+        "enabled": True,
+        "detector_count": 3,
+        "detectors": ["det-a", "det-b"],
+        "description": "A demo plugin",
+        "author": "Tester",
+        "local": False,
+    }
     defaults.update(kw)
     return PluginInfo(**defaults)
 
@@ -329,9 +327,7 @@ class TestToolsList:
 
 class TestToolsInfo:
     def test_info_no_adapter(self, runner):
-        with patch(
-            "miesc.cli.commands.tools.AdapterLoader.get_adapter", return_value=None
-        ):
+        with patch("miesc.cli.commands.tools.AdapterLoader.get_adapter", return_value=None):
             result = runner.invoke(tools, ["info", "does-not-exist"])
         assert result.exit_code == 0
         assert "no adapter" in result.output.lower()
@@ -356,9 +352,7 @@ class TestToolsInfo:
         )
         adapter.get_metadata.return_value = meta
         adapter.is_available.return_value = SimpleNamespace(value="available")
-        with patch(
-            "miesc.cli.commands.tools.AdapterLoader.get_adapter", return_value=adapter
-        ):
+        with patch("miesc.cli.commands.tools.AdapterLoader.get_adapter", return_value=adapter):
             result = runner.invoke(tools, ["info", "slither"])
         assert result.exit_code == 0
         assert "Slither" in result.output
@@ -372,8 +366,9 @@ from miesc.cli.commands.detectors import detectors  # noqa: E402
 
 class TestDetectorsList:
     def test_list_empty(self, runner):
-        with patch("miesc.detectors.list_detectors", return_value=[]), patch(
-            "miesc.detectors.load_local_plugins", return_value=None
+        with (
+            patch("miesc.detectors.list_detectors", return_value=[]),
+            patch("miesc.detectors.load_local_plugins", return_value=None),
         ):
             result = runner.invoke(detectors, ["list"])
         assert result.exit_code == 0
@@ -389,8 +384,9 @@ class TestDetectorsList:
                 "author": "me",
             }
         ]
-        with patch("miesc.detectors.list_detectors", return_value=det), patch(
-            "miesc.detectors.load_local_plugins", return_value=None
+        with (
+            patch("miesc.detectors.list_detectors", return_value=det),
+            patch("miesc.detectors.load_local_plugins", return_value=None),
         ):
             result = runner.invoke(detectors, ["list", "-v"])
         assert result.exit_code == 0
@@ -402,9 +398,7 @@ class TestDetectorsInfo:
         registry = MagicMock()
         registry.get.return_value = None
         registry.list_detectors.return_value = ["a", "b"]
-        with patch(
-            "miesc.detectors.detector_api.get_registry", return_value=registry
-        ):
+        with patch("miesc.detectors.detector_api.get_registry", return_value=registry):
             result = runner.invoke(detectors, ["info", "ghost"])
         assert result.exit_code == 0
         assert "not found" in result.output.lower()
@@ -422,9 +416,7 @@ class TestDetectorsInfo:
         )
         registry = MagicMock()
         registry.get.return_value = det
-        with patch(
-            "miesc.detectors.detector_api.get_registry", return_value=registry
-        ):
+        with patch("miesc.detectors.detector_api.get_registry", return_value=registry):
             result = runner.invoke(detectors, ["info", "flash-loan"])
         assert result.exit_code == 0
         assert "flash-loan" in result.output
@@ -434,8 +426,9 @@ class TestDetectorsRun:
     def test_run_no_detectors(self, runner):
         with runner.isolated_filesystem():
             Path("c.sol").write_text("contract C {}")
-            with patch("miesc.detectors.get_all_detectors", return_value={}), patch(
-                "miesc.detectors.load_local_plugins", return_value=None
+            with (
+                patch("miesc.detectors.get_all_detectors", return_value={}),
+                patch("miesc.detectors.load_local_plugins", return_value=None),
             ):
                 result = runner.invoke(detectors, ["run", "c.sol"])
         assert result.exit_code == 0
@@ -444,9 +437,10 @@ class TestDetectorsRun:
     def test_run_unknown_detector_filter(self, runner):
         with runner.isolated_filesystem():
             Path("c.sol").write_text("contract C {}")
-            with patch(
-                "miesc.detectors.get_all_detectors", return_value={"known": object()}
-            ), patch("miesc.detectors.load_local_plugins", return_value=None):
+            with (
+                patch("miesc.detectors.get_all_detectors", return_value={"known": object()}),
+                patch("miesc.detectors.load_local_plugins", return_value=None),
+            ):
                 result = runner.invoke(detectors, ["run", "c.sol", "-d", "missing"])
         assert result.exit_code == 1
 
@@ -460,14 +454,12 @@ class TestDetectorsRun:
         )
         with runner.isolated_filesystem():
             Path("c.sol").write_text("contract C {}")
-            with patch(
-                "miesc.detectors.get_all_detectors", return_value={"known": object()}
-            ), patch("miesc.detectors.load_local_plugins", return_value=None), patch(
-                "miesc.detectors.run_detector", return_value=[finding]
+            with (
+                patch("miesc.detectors.get_all_detectors", return_value={"known": object()}),
+                patch("miesc.detectors.load_local_plugins", return_value=None),
+                patch("miesc.detectors.run_detector", return_value=[finding]),
             ):
-                result = runner.invoke(
-                    detectors, ["run", "c.sol", "-o", "out.json", "-s", "high"]
-                )
+                result = runner.invoke(detectors, ["run", "c.sol", "-o", "out.json", "-s", "high"])
             assert result.exit_code == 0
             assert Path("out.json").exists()
             saved = json.loads(Path("out.json").read_text())

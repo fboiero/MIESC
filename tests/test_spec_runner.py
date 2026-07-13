@@ -260,22 +260,24 @@ def _runner(monkeypatch, tool, available=True):
 class TestRunCertora:
     def test_success(self, monkeypatch):
         r = _runner(monkeypatch, "certora")
-        monkeypatch.setattr(sr.subprocess, "run",
-                            lambda *a, **k: _Proc(stdout="Rule x: VERIFIED"))
+        monkeypatch.setattr(sr.subprocess, "run", lambda *a, **k: _Proc(stdout="Rule x: VERIFIED"))
         res = r.run_certora("C.sol", "C.spec")
         assert res.status == "passed" and res.rules_passed == 1
 
     def test_timeout(self, monkeypatch):
         r = _runner(monkeypatch, "certora")
-        monkeypatch.setattr(sr.subprocess, "run",
-                            lambda *a, **k: (_ for _ in ()).throw(
-                                sr.subprocess.TimeoutExpired("certoraRun", 600)))
+        monkeypatch.setattr(
+            sr.subprocess,
+            "run",
+            lambda *a, **k: (_ for _ in ()).throw(sr.subprocess.TimeoutExpired("certoraRun", 600)),
+        )
         assert r.run_certora("C.sol", "C.spec").status == "timeout"
 
     def test_error(self, monkeypatch):
         r = _runner(monkeypatch, "certora")
-        monkeypatch.setattr(sr.subprocess, "run",
-                            lambda *a, **k: (_ for _ in ()).throw(OSError("boom")))
+        monkeypatch.setattr(
+            sr.subprocess, "run", lambda *a, **k: (_ for _ in ()).throw(OSError("boom"))
+        )
         assert r.run_certora("C.sol", "C.spec").status == "error"
 
     def test_not_available(self, monkeypatch):
@@ -286,15 +288,13 @@ class TestRunCertora:
 class TestRunHalmos:
     def test_passed_with_contract_arg(self, monkeypatch):
         r = _runner(monkeypatch, "halmos")
-        monkeypatch.setattr(sr.subprocess, "run",
-                            lambda *a, **k: _Proc(stdout="[PASS] check_inv"))
+        monkeypatch.setattr(sr.subprocess, "run", lambda *a, **k: _Proc(stdout="[PASS] check_inv"))
         res = r.run_halmos("/dir", test_contract="MyTest")
         assert res.status == "passed"
 
     def test_failed(self, monkeypatch):
         r = _runner(monkeypatch, "halmos")
-        monkeypatch.setattr(sr.subprocess, "run",
-                            lambda *a, **k: _Proc(stdout="[FAIL] check_bad"))
+        monkeypatch.setattr(sr.subprocess, "run", lambda *a, **k: _Proc(stdout="[FAIL] check_bad"))
         assert r.run_halmos("/dir").status == "failed"
 
     def test_no_tests(self, monkeypatch):
@@ -304,23 +304,26 @@ class TestRunHalmos:
 
     def test_error(self, monkeypatch):
         r = _runner(monkeypatch, "halmos")
-        monkeypatch.setattr(sr.subprocess, "run",
-                            lambda *a, **k: (_ for _ in ()).throw(OSError("boom")))
+        monkeypatch.setattr(
+            sr.subprocess, "run", lambda *a, **k: (_ for _ in ()).throw(OSError("boom"))
+        )
         assert r.run_halmos("/dir").status == "error"
 
 
 class TestRunSmtchecker:
     def test_runs(self, monkeypatch):
         r = _runner(monkeypatch, "solc")  # smtchecker uses solc
-        monkeypatch.setattr(sr.subprocess, "run",
-                            lambda *a, **k: _Proc(stderr="Warning: assertion violation"))
+        monkeypatch.setattr(
+            sr.subprocess, "run", lambda *a, **k: _Proc(stderr="Warning: assertion violation")
+        )
         res = r.run_smtchecker("C.sol")
         assert res.tool == "smtchecker"
 
     def test_error(self, monkeypatch):
         r = _runner(monkeypatch, "solc")
-        monkeypatch.setattr(sr.subprocess, "run",
-                            lambda *a, **k: (_ for _ in ()).throw(OSError("boom")))
+        monkeypatch.setattr(
+            sr.subprocess, "run", lambda *a, **k: (_ for _ in ()).throw(OSError("boom"))
+        )
         assert r.run_smtchecker("C.sol").status == "error"
 
 
@@ -338,16 +341,28 @@ class TestParseExtras:
 
 
 def test_run_all_available_runs_each_tool(monkeypatch):
-    from miesc.formal.spec_runner import run_all_available, VerificationResult
+    from miesc.formal.spec_runner import VerificationResult, run_all_available
 
-    monkeypatch.setattr(SpecRunner, "availability_report",
-                        lambda self: {"smtchecker": True, "certora": True, "halmos": True})
-    monkeypatch.setattr(SpecRunner, "run_smtchecker",
-                        lambda self, c, **k: VerificationResult(tool="smtchecker", spec_file=c, status="passed"))
-    monkeypatch.setattr(SpecRunner, "run_certora",
-                        lambda self, c, s, **k: VerificationResult(tool="certora", spec_file=s, status="passed"))
-    monkeypatch.setattr(SpecRunner, "run_halmos",
-                        lambda self, d, **k: VerificationResult(tool="halmos", spec_file=d, status="passed"))
+    monkeypatch.setattr(
+        SpecRunner,
+        "availability_report",
+        lambda self: {"smtchecker": True, "certora": True, "halmos": True},
+    )
+    monkeypatch.setattr(
+        SpecRunner,
+        "run_smtchecker",
+        lambda self, c, **k: VerificationResult(tool="smtchecker", spec_file=c, status="passed"),
+    )
+    monkeypatch.setattr(
+        SpecRunner,
+        "run_certora",
+        lambda self, c, s, **k: VerificationResult(tool="certora", spec_file=s, status="passed"),
+    )
+    monkeypatch.setattr(
+        SpecRunner,
+        "run_halmos",
+        lambda self, d, **k: VerificationResult(tool="halmos", spec_file=d, status="passed"),
+    )
 
     results = run_all_available("/proj/C.sol", spec_path="C.spec")
     assert set(results) == {"smtchecker", "certora", "halmos"}
@@ -366,9 +381,7 @@ class TestScribbleAvailability:
 
     def test_present_returns_true(self):
         runner = SpecRunner()
-        with patch(
-            "miesc.formal.spec_runner.shutil.which", return_value="/usr/bin/scribble"
-        ):
+        with patch("miesc.formal.spec_runner.shutil.which", return_value="/usr/bin/scribble"):
             assert runner.is_scribble_available() is True
 
 
@@ -510,9 +523,7 @@ class TestRunKontrol:
     def test_passing_run_maps_to_passed(self, monkeypatch):
         runner = SpecRunner()
         monkeypatch.setattr(runner, "is_kontrol_available", lambda: True)
-        monkeypatch.setattr(
-            sr.subprocess, "run", lambda *a, **k: _Proc(stdout="PROVED: test_x()")
-        )
+        monkeypatch.setattr(sr.subprocess, "run", lambda *a, **k: _Proc(stdout="PROVED: test_x()"))
         r = runner.run_kontrol("/proj")
         assert r.status == "passed"
         assert r.rules_passed == 1
@@ -533,9 +544,7 @@ class TestRunKontrol:
     def test_no_proofs_maps_to_no_tests(self, monkeypatch):
         runner = SpecRunner()
         monkeypatch.setattr(runner, "is_kontrol_available", lambda: True)
-        monkeypatch.setattr(
-            sr.subprocess, "run", lambda *a, **k: _Proc(stdout="nothing to prove")
-        )
+        monkeypatch.setattr(sr.subprocess, "run", lambda *a, **k: _Proc(stdout="nothing to prove"))
         assert runner.run_kontrol("/proj").status == "no_tests"
 
     def test_timeout(self, monkeypatch):
@@ -544,9 +553,7 @@ class TestRunKontrol:
         monkeypatch.setattr(
             sr.subprocess,
             "run",
-            lambda *a, **k: (_ for _ in ()).throw(
-                sr.subprocess.TimeoutExpired("kontrol", 1200)
-            ),
+            lambda *a, **k: (_ for _ in ()).throw(sr.subprocess.TimeoutExpired("kontrol", 1200)),
         )
         assert runner.run_kontrol("/proj").status == "timeout"
 
@@ -601,9 +608,7 @@ def test_unified_report_aggregates_scribble_and_kontrol():
     from miesc.formal.unified_report import UnifiedVerificationReport
 
     results = {
-        "scribble": VerificationResult(
-            tool="scribble", spec_file="C.sol", status="passed"
-        ),
+        "scribble": VerificationResult(tool="scribble", spec_file="C.sol", status="passed"),
         "kontrol": VerificationResult(
             tool="kontrol",
             spec_file="/proj",

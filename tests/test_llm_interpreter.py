@@ -29,6 +29,7 @@ def _drop_llm_model_env(monkeypatch):
     """
     monkeypatch.delenv("MIESC_LLM_MODEL", raising=False)
 
+
 # =============================================================================
 # LLMInterpreterConfig Tests
 # =============================================================================

@@ -20,7 +20,6 @@ from miesc.adapters.frontier_llm_adapter import (
     ToolSpec,
 )
 
-
 # ---------------------------------------------------------------------------
 # Minimal stand-ins for the anthropic SDK response objects. The adapter reads
 # blocks via getattr(block, "type"/"name"/"input"/"id"/"text") and the message
@@ -147,9 +146,7 @@ def test_tool_round_then_final_text(monkeypatch):
     )
 
     # on_tool_call was invoked once with the correctly-parsed args.
-    assert seen_calls == [
-        ("get_function_body", {"contract": "Wallet", "function": "withdraw"})
-    ]
+    assert seen_calls == [("get_function_body", {"contract": "Wallet", "function": "withdraw"})]
 
     # Result shape.
     assert isinstance(result, ConversationResult)
@@ -167,10 +164,7 @@ def test_tool_round_then_final_text(monkeypatch):
         for m in result.messages
         if m.get("role") == "user"
         and isinstance(m.get("content"), list)
-        and any(
-            isinstance(b, dict) and b.get("type") == "tool_result"
-            for b in m["content"]
-        )
+        and any(isinstance(b, dict) and b.get("type") == "tool_result" for b in m["content"])
     ]
     assert len(tool_result_turns) == 1
     tr_block = tool_result_turns[0]["content"][0]
@@ -215,9 +209,7 @@ def test_max_iterations_cutoff_forces_final_answer(monkeypatch):
         usage=_Usage(input_tokens=20, output_tokens=8),
     )
     # First 3 calls loop on tools; the 4th (forced, no tools) returns text.
-    fake_messages = _FakeMessages(
-        scripted=[tool_round, tool_round, tool_round, forced_final]
-    )
+    fake_messages = _FakeMessages(scripted=[tool_round, tool_round, tool_round, forced_final])
     _install_fake_anthropic(monkeypatch, fake_messages)
 
     call_count = {"n": 0}
@@ -289,9 +281,7 @@ def test_tool_call_exception_is_surfaced_to_model(monkeypatch):
         raise RuntimeError("boom")
 
     adapter = FrontierLLMAdapter(provider="anthropic")
-    tools = [
-        ToolSpec(name="get_function_body", description="d", input_schema={"type": "object"})
-    ]
+    tools = [ToolSpec(name="get_function_body", description="d", input_schema={"type": "object"})]
 
     result = adapter.converse_with_tools(
         system="s",

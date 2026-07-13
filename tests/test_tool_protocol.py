@@ -7,10 +7,7 @@ ToolRegistry + concrete ToolAdapter helper methods (finding/result builders,
 severity normalization, JSON parsing) + three subprocess helpers (mocked here).
 """
 
-import json
 import subprocess
-
-import pytest
 
 import miesc.core.tool_protocol as mod
 from miesc.core.tool_protocol import (
@@ -27,21 +24,35 @@ from miesc.core.tool_protocol import (
 class FakeAdapter(ToolAdapter):
     """Minimal concrete adapter to exercise the base-class helpers."""
 
-    def __init__(self, name="fake", category=ToolCategory.STATIC_ANALYSIS,
-                 status=ToolStatus.AVAILABLE):
+    def __init__(
+        self, name="fake", category=ToolCategory.STATIC_ANALYSIS, status=ToolStatus.AVAILABLE
+    ):
         self._name = name
         self._category = category
         self._status = status
 
     def get_metadata(self) -> ToolMetadata:
         return ToolMetadata(
-            name=self._name, version="1.0.0", category=self._category,
-            author="t", license="MIT", homepage="h", repository="r",
-            documentation="d", installation_cmd="pip install x",
-            capabilities=[ToolCapability(name="c", description="d",
-                                         supported_languages=["solidity"],
-                                         detection_types=["x"])],
-            cost=0.0, requires_api_key=False, is_optional=True,
+            name=self._name,
+            version="1.0.0",
+            category=self._category,
+            author="t",
+            license="MIT",
+            homepage="h",
+            repository="r",
+            documentation="d",
+            installation_cmd="pip install x",
+            capabilities=[
+                ToolCapability(
+                    name="c",
+                    description="d",
+                    supported_languages=["solidity"],
+                    detection_types=["x"],
+                )
+            ],
+            cost=0.0,
+            requires_api_key=False,
+            is_optional=True,
         )
 
     def is_available(self) -> ToolStatus:
@@ -67,8 +78,9 @@ class _Proc:
 def test_enums_and_dataclasses():
     assert ToolStatus.AVAILABLE.value != ToolStatus.NOT_INSTALLED.value
     assert isinstance(ToolCategory.STATIC_ANALYSIS.value, str)
-    cap = ToolCapability(name="n", description="d", supported_languages=["solidity"],
-                         detection_types=["reentrancy"])
+    cap = ToolCapability(
+        name="n", description="d", supported_languages=["solidity"], detection_types=["reentrancy"]
+    )
     assert cap.supported_languages == ["solidity"]
     md = FakeAdapter().get_metadata()
     assert md.name == "fake" and md.is_optional is True
@@ -105,8 +117,9 @@ def test_normalize_severity():
 # --------------------------------------------------------------------------- #
 def test_create_finding_normalizes_and_clamps():
     a = FakeAdapter()
-    f = a.create_finding("ID1", "reentrancy", "high", "msg", file_path="C.sol",
-                         line=5, confidence=2.0)
+    f = a.create_finding(
+        "ID1", "reentrancy", "high", "msg", file_path="C.sol", line=5, confidence=2.0
+    )
     assert f["severity"] == "High"
     assert f["confidence"] == 1.0  # clamped to [0,1]
     assert f["location"]["line"] == 5
@@ -132,7 +145,7 @@ def test_parse_json_safely():
     # empty
     assert a.parse_json_safely("")[0] is None
     # embedded JSON with ANSI codes and surrounding text
-    data, err = a.parse_json_safely('\x1b[31mLOG\x1b[0m result: [1, 2, 3] done')
+    data, err = a.parse_json_safely("\x1b[31mLOG\x1b[0m result: [1, 2, 3] done")
     assert data == [1, 2, 3] and err is None
     # invalid
     data, err = a.parse_json_safely("{not json")
@@ -152,24 +165,28 @@ def test_check_binary_available_all_paths(monkeypatch):
 
     def _notfound(*x, **k):
         raise FileNotFoundError()
+
     monkeypatch.setattr(mod.subprocess, "run", _notfound)
     assert a.check_binary_available("slither") == ToolStatus.NOT_INSTALLED
 
     def _timeout(*x, **k):
         raise subprocess.TimeoutExpired(cmd="slither", timeout=10)
+
     monkeypatch.setattr(mod.subprocess, "run", _timeout)
     assert a.check_binary_available("slither") == ToolStatus.CONFIGURATION_ERROR
 
     def _boom(*x, **k):
         raise OSError("weird")
+
     monkeypatch.setattr(mod.subprocess, "run", _boom)
     assert a.check_binary_available("slither") == ToolStatus.CONFIGURATION_ERROR
 
 
 def test_run_subprocess(monkeypatch):
     a = FakeAdapter()
-    monkeypatch.setattr(mod.subprocess, "run",
-                        lambda *x, **k: _Proc(returncode=0, stdout="out", stderr="err"))
+    monkeypatch.setattr(
+        mod.subprocess, "run", lambda *x, **k: _Proc(returncode=0, stdout="out", stderr="err")
+    )
     rc, out, err = a.run_subprocess(["echo", "hi"])
     assert (rc, out, err) == (0, "out", "err")
 
@@ -218,10 +235,10 @@ def test_find_binary_default(monkeypatch):
 # --------------------------------------------------------------------------- #
 def test_tool_registry():
     reg = ToolRegistry()
-    a1 = FakeAdapter(name="t1", category=ToolCategory.STATIC_ANALYSIS,
-                     status=ToolStatus.AVAILABLE)
-    a2 = FakeAdapter(name="t2", category=ToolCategory.STATIC_ANALYSIS,
-                     status=ToolStatus.NOT_INSTALLED)
+    a1 = FakeAdapter(name="t1", category=ToolCategory.STATIC_ANALYSIS, status=ToolStatus.AVAILABLE)
+    a2 = FakeAdapter(
+        name="t2", category=ToolCategory.STATIC_ANALYSIS, status=ToolStatus.NOT_INSTALLED
+    )
     reg.register(a1)
     reg.register(a2)
     assert reg.get_tool("t1") is a1

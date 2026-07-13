@@ -20,7 +20,7 @@ import logging
 import math
 import time
 from collections import defaultdict
-from typing import cast, Any, Dict, List
+from typing import Any, Dict, List, cast
 
 from miesc.core.tool_protocol import (
     ToolAdapter,
@@ -168,7 +168,9 @@ class AuditConsensusAdapter(ToolAdapter):
 
     def _group_findings(self, findings_map: Dict[str, List]) -> Dict[str, Dict]:
         """Group findings by vulnerability type and approximate location."""
-        groups: Dict[str, Dict[str, Any]] = defaultdict(lambda: {"findings": [], "tools": set(), "tool_findings": {}})
+        groups: Dict[str, Dict[str, Any]] = defaultdict(
+            lambda: {"findings": [], "tools": set(), "tool_findings": {}}
+        )
 
         for tool_name, tool_findings in findings_map.items():
             if not isinstance(tool_findings, list):

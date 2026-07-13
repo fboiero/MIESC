@@ -141,6 +141,7 @@ class AuditResult:
 # Robust JSON extraction — the model may wrap JSON in prose / markdown fences.
 # ---------------------------------------------------------------------------
 
+
 def _extract_json_array(text: str) -> List[Any]:
     """Defensively pull a JSON array out of a possibly-noisy model reply.
 
@@ -266,7 +267,8 @@ class AgenticAuditor(BaseAgent):
             logger.warning(
                 "DEBUG ENUM: final_text=%d chars | parsed %d candidate(s)\n"
                 "--- final_text head ---\n%s\n--- end ---",
-                len(result.final_text or ""), len(candidates),
+                len(result.final_text or ""),
+                len(candidates),
                 (result.final_text or "")[:2500],
             )
         added = self._ingest_candidates(candidates, ledger)
@@ -325,9 +327,12 @@ class AgenticAuditor(BaseAgent):
         logger.info(
             "AgenticAuditor: %d finding(s) (surviving hypotheses: %d confirmed + "
             "%d unruled-out open) in %d round(s), %d tool call(s), %d tokens",
-            len(findings), trace["confirmed"],
-            trace["surviving"] - trace["confirmed"], trace["rounds"],
-            trace["tool_calls"], trace["tokens"],
+            len(findings),
+            trace["confirmed"],
+            trace["surviving"] - trace["confirmed"],
+            trace["rounds"],
+            trace["tool_calls"],
+            trace["tokens"],
         )
         return AuditResult(findings=findings, ledger=ledger, trace=trace)
 
@@ -354,9 +359,7 @@ class AgenticAuditor(BaseAgent):
         if not force and self._over_budget(trace):
             return 0
 
-        verify_user = AGENT_VERIFY_PROMPT.format(
-            ledger=self._verify_ledger_text(open_hyps)
-        )
+        verify_user = AGENT_VERIFY_PROMPT.format(ledger=self._verify_ledger_text(open_hyps))
         result = self._converse(system, verify_user, tools)
         self._accumulate(trace, result)
         verdicts = _extract_json_array(result.final_text)
@@ -374,8 +377,7 @@ class AgenticAuditor(BaseAgent):
             reason = str(v.get("reason", "") or "").strip()
             if verdict == "confirmed":
                 severity = v.get("severity") or "medium"
-                ledger.confirm(hid, evidence=reason or "confirmed by agent",
-                               severity=str(severity))
+                ledger.confirm(hid, evidence=reason or "confirmed by agent", severity=str(severity))
             elif verdict == "ruled_out":
                 ledger.rule_out(hid, reason or "ruled out by agent")
             # Any other verdict leaves the hypothesis open for a later round.
@@ -507,9 +509,7 @@ class AgenticAuditor(BaseAgent):
             return None
         return model
 
-    def _ingest_candidates(
-        self, candidates: List[Any], ledger: HypothesisLedger
-    ) -> int:
+    def _ingest_candidates(self, candidates: List[Any], ledger: HypothesisLedger) -> int:
         """Turn parsed candidate dicts into ledger hypotheses. Returns # added."""
         added = 0
         for c in candidates:
@@ -535,8 +535,7 @@ class AgenticAuditor(BaseAgent):
     def _verify_ledger_text(open_hyps: List[Hypothesis]) -> str:
         """Render open hypotheses WITH their ids so the model can echo verdicts."""
         return "\n".join(
-            f"- id={h.id} [{h.vuln_class}] {h.contract}.{h.function}: {h.claim}"
-            for h in open_hyps
+            f"- id={h.id} [{h.vuln_class}] {h.contract}.{h.function}: {h.claim}" for h in open_hyps
         )
 
     def _accumulate(self, trace: Dict[str, Any], result: ConversationResult) -> None:
@@ -609,7 +608,9 @@ class AgenticAuditor(BaseAgent):
                 logger.warning(
                     "AgenticAuditor: exploit validation of %s.%s raised (%s); "
                     "treating as skipped",
-                    h.contract, h.function, exc,
+                    h.contract,
+                    h.function,
+                    exc,
                 )
                 counts["skipped"] += 1
                 continue
@@ -620,9 +621,7 @@ class AgenticAuditor(BaseAgent):
             if vr.status == "passed":
                 # PROVEN loss-of-funds: promote to high; NEVER dropped.
                 h.severity = "high"
-                h.evidence.append(
-                    f"exploit_passed: {vr.sharpened_claim or h.claim}"
-                )
+                h.evidence.append(f"exploit_passed: {vr.sharpened_claim or h.claim}")
             elif vr.status in ("compiled_failed", "no_compile"):
                 # Unproven but not disproven — keep the hypothesis; only sharpen.
                 if vr.sharpened_claim:
@@ -633,8 +632,11 @@ class AgenticAuditor(BaseAgent):
         logger.info(
             "AgenticAuditor: exploit phase validated %d hypothesis(es): "
             "%d passed, %d compiled_failed, %d no_compile, %d skipped",
-            counts["validated"], counts["passed"], counts["compiled_failed"],
-            counts["no_compile"], counts["skipped"],
+            counts["validated"],
+            counts["passed"],
+            counts["compiled_failed"],
+            counts["no_compile"],
+            counts["skipped"],
         )
 
     def _ledger_to_findings(self, ledger: HypothesisLedger) -> List[Dict[str, Any]]:
@@ -707,6 +709,7 @@ class AgenticAuditor(BaseAgent):
 # Multi-persona union — the recall lever (design: multi-persona enumeration).
 # ---------------------------------------------------------------------------
 
+
 def audit_repo_multipersona(
     adapter: FrontierLLMAdapter,
     graph: RepoCallGraph,
@@ -752,14 +755,13 @@ def audit_repo_multipersona(
     for persona in personas:
         try:
             config = replace(base_config, persona=persona)
-            result = AgenticAuditor(adapter, graph, config).audit_repo(
-                repo_dir, scope=scope
-            )
+            result = AgenticAuditor(adapter, graph, config).audit_repo(repo_dir, scope=scope)
         except Exception as exc:  # keep the union alive if one persona dies
             logger.warning("multipersona: persona %r failed: %s", persona, exc)
             failed.append({"persona": persona, "error": str(exc)})
-            per_persona.append({"persona": persona, "findings": 0,
-                                "unique_added": 0, "error": str(exc)})
+            per_persona.append(
+                {"persona": persona, "findings": 0, "unique_added": 0, "error": str(exc)}
+            )
             continue
 
         unique_added = 0
@@ -787,11 +789,13 @@ def audit_repo_multipersona(
         if isinstance(ex, dict):
             for k, v in ex.items():
                 exploit_totals[k] = exploit_totals.get(k, 0) + int(v or 0)
-        per_persona.append({
-            "persona": persona,
-            "findings": len(result.findings),
-            "unique_added": unique_added,
-        })
+        per_persona.append(
+            {
+                "persona": persona,
+                "findings": len(result.findings),
+                "unique_added": unique_added,
+            }
+        )
 
     trace: Dict[str, Any] = {
         "personas": list(personas),
@@ -805,7 +809,11 @@ def audit_repo_multipersona(
     logger.info(
         "multipersona: %d unioned finding(s) across %d persona(s) "
         "(%d failed), %d tool call(s), %d tokens",
-        len(unioned), len(personas), len(failed), total_tool_calls, total_tokens,
+        len(unioned),
+        len(personas),
+        len(failed),
+        total_tool_calls,
+        total_tokens,
     )
     return AuditResult(findings=unioned, ledger=merged_ledger, trace=trace)
 

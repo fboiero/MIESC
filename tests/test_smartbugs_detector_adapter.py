@@ -108,8 +108,9 @@ def test_analyze_handles_engine_exception(tmp_path, monkeypatch):
     a = _a()
     sol = tmp_path / "C.sol"
     sol.write_text("contract C {}")
-    monkeypatch.setattr(a.engine, "analyze_file",
-                        lambda *args, **k: (_ for _ in ()).throw(RuntimeError("sb boom")))
+    monkeypatch.setattr(
+        a.engine, "analyze_file", lambda *args, **k: (_ for _ in ()).throw(RuntimeError("sb boom"))
+    )
     out = a.analyze(str(sol))
     assert out["success"] is False
     assert "sb boom" in out["error"]
@@ -139,8 +140,9 @@ def test_analyze_source_converts_transient_storage_finding():
 
 def test_analyze_source_handles_exception(monkeypatch):
     a = _a()
-    monkeypatch.setattr(a.engine, "analyze",
-                        lambda *args, **k: (_ for _ in ()).throw(ValueError("src boom")))
+    monkeypatch.setattr(
+        a.engine, "analyze", lambda *args, **k: (_ for _ in ()).throw(ValueError("src boom"))
+    )
     out = a.analyze_source("contract C {}")
     assert out["success"] is False
     assert "src boom" in out["error"]

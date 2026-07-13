@@ -42,7 +42,7 @@ import tempfile
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Type, Union
+from typing import Any, Dict, List, Tuple, Type, Union
 
 from .protocol import (
     MIESCPlugin,
@@ -116,18 +116,12 @@ class ConformanceReport:
     @property
     def failures(self) -> List[ConformanceIssue]:
         """Issues that block conformance (failed ERROR checks)."""
-        return [
-            i
-            for i in self.issues
-            if not i.passed and i.severity == ConformanceSeverity.ERROR
-        ]
+        return [i for i in self.issues if not i.passed and i.severity == ConformanceSeverity.ERROR]
 
     @property
     def warnings(self) -> List[ConformanceIssue]:
         return [
-            i
-            for i in self.issues
-            if not i.passed and i.severity == ConformanceSeverity.WARNING
+            i for i in self.issues if not i.passed and i.severity == ConformanceSeverity.WARNING
         ]
 
     @property
@@ -221,9 +215,7 @@ class PluginConformanceChecker:
         report = ConformanceReport(plugin=name, host_api_version=self.host_api_version)
 
         # 1. Structural: concrete MIESCPlugin subclass.
-        if not isinstance(plugin_class, type) or not issubclass(
-            plugin_class, MIESCPlugin
-        ):
+        if not isinstance(plugin_class, type) or not issubclass(plugin_class, MIESCPlugin):
             report.add(
                 "subclass",
                 False,
@@ -312,8 +304,7 @@ class PluginConformanceChecker:
                 report.add(
                     "version",
                     False,
-                    f"Plugin 'version' {pver!r} is not valid semver "
-                    "(MAJOR.MINOR.PATCH).",
+                    f"Plugin 'version' {pver!r} is not valid semver " "(MAJOR.MINOR.PATCH).",
                     severity=ConformanceSeverity.WARNING,
                 )
             else:
@@ -335,9 +326,7 @@ class PluginConformanceChecker:
         except Exception as e:
             report.add("plugin_type", False, f"Error reading 'plugin_type': {e}")
 
-    def _check_api_version(
-        self, instance: MIESCPlugin, report: ConformanceReport
-    ) -> None:
+    def _check_api_version(self, instance: MIESCPlugin, report: ConformanceReport) -> None:
         try:
             declared = instance.api_version
         except Exception as e:
@@ -359,8 +348,7 @@ class PluginConformanceChecker:
             report.add(
                 "api_version",
                 False,
-                f"Declared api_version {declared!r} is not valid semver "
-                "(MAJOR.MINOR.PATCH).",
+                f"Declared api_version {declared!r} is not valid semver " "(MAJOR.MINOR.PATCH).",
             )
             return
         report.add("api_version", True, f"Declares Plugin API v{declared}.")
@@ -417,9 +405,7 @@ class PluginConformanceChecker:
             return
         report.add(f"method:{method_name}", True, f"'{method_name}' signature OK.")
 
-    def _check_type_properties(
-        self, instance: MIESCPlugin, report: ConformanceReport
-    ) -> None:
+    def _check_type_properties(self, instance: MIESCPlugin, report: ConformanceReport) -> None:
         try:
             ptype = instance.plugin_type
         except Exception:
@@ -438,9 +424,7 @@ class PluginConformanceChecker:
             except Exception as e:
                 report.add(f"property:{prop}", False, f"Error reading '{prop}': {e}")
 
-    def _check_registration(
-        self, instance: MIESCPlugin, report: ConformanceReport
-    ) -> None:
+    def _check_registration(self, instance: MIESCPlugin, report: ConformanceReport) -> None:
         # Local import to avoid a circular import at module load time.
         from .registry import PluginRegistry
 
@@ -477,9 +461,7 @@ class PluginConformanceChecker:
                 report.add("metadata", False, f"get_metadata() raised: {e}")
 
             try:
-                registry = PluginRegistry(
-                    registry_path=tmp_path / "registry.json", auto_load=False
-                )
+                registry = PluginRegistry(registry_path=tmp_path / "registry.json", auto_load=False)
                 registry.register(instance, enabled=True)
                 if instance.name not in registry:
                     report.add(

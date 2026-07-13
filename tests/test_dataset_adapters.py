@@ -9,12 +9,13 @@ import importlib.util
 import json
 import os
 
-import pytest
-
 _SPEC = importlib.util.spec_from_file_location(
     "dataset_adapters",
-    os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                 "scripts", "dataset_adapters.py"),
+    os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        "scripts",
+        "dataset_adapters.py",
+    ),
 )
 da = importlib.util.module_from_spec(_SPEC)
 _SPEC.loader.exec_module(da)
@@ -82,6 +83,6 @@ def test_solidifi_adapter_maps_category_and_line_range(tmp_path):
     entry = gt[0]
     assert entry["path"] == "Re-entrancy__buggy_1.sol"
     vuln = entry["vulnerabilities"][0]
-    assert vuln["category"] == "reentrancy"           # from folder, not the mangled CSV value
-    assert vuln["lines"] == list(range(10, 18))        # loc=10, length=8 -> [10..17]
+    assert vuln["category"] == "reentrancy"  # from folder, not the mangled CSV value
+    assert vuln["lines"] == list(range(10, 18))  # loc=10, length=8 -> [10..17]
     assert os.path.exists(os.path.join(a.out_corpus, "Re-entrancy__buggy_1.sol"))

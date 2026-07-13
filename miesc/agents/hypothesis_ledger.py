@@ -57,16 +57,16 @@ class Hypothesis:
     id: str  # stable hash of (contract, function, normalized_claim)
     contract: str
     function: str
-    vuln_class: str  # arithmetic | access_control | reentrancy | accounting | state_consistency | other
+    vuln_class: (
+        str  # arithmetic | access_control | reentrancy | accounting | state_consistency | other
+    )
     claim: str  # one-sentence suspected bug
     status: str = _STATUS_OPEN  # open | ruled_out | confirmed
     evidence: list[str] = field(default_factory=list)
     severity: str | None = None
 
     @classmethod
-    def make(
-        cls, contract: str, function: str, vuln_class: str, claim: str
-    ) -> "Hypothesis":
+    def make(cls, contract: str, function: str, vuln_class: str, claim: str) -> "Hypothesis":
         """Build a Hypothesis with a correctly-computed stable id."""
         return cls(
             id=hypothesis_id(contract, function, claim),
@@ -156,9 +156,7 @@ class HypothesisLedger:
         lines.append("OPEN (still to verify):")
         if open_items:
             for h in open_items:
-                lines.append(
-                    f"  - [{h.vuln_class}] {h.contract}.{h.function}: {h.claim}"
-                )
+                lines.append(f"  - [{h.vuln_class}] {h.contract}.{h.function}: {h.claim}")
         else:
             lines.append("  (none)")
 
@@ -171,9 +169,7 @@ class HypothesisLedger:
                         reason = ev[len("ruled_out:") :].strip()
                         break
                 suffix = f" ({reason})" if reason else ""
-                lines.append(
-                    f"  - [{h.vuln_class}] {h.contract}.{h.function}: {h.claim}{suffix}"
-                )
+                lines.append(f"  - [{h.vuln_class}] {h.contract}.{h.function}: {h.claim}{suffix}")
         else:
             lines.append("  (none)")
 

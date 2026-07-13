@@ -362,7 +362,13 @@ Respond in JSON format:
         }
 
         # Group findings by severity
-        by_severity: Dict[str, List[Any]] = {"Critical": [], "High": [], "Medium": [], "Low": [], "Info": []}
+        by_severity: Dict[str, List[Any]] = {
+            "Critical": [],
+            "High": [],
+            "Medium": [],
+            "Low": [],
+            "Info": [],
+        }
         for finding in findings:
             severity = finding.get("severity", "Medium")
             by_severity[severity].append(finding)

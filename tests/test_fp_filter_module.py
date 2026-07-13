@@ -908,9 +908,7 @@ class TestRagValidateFinding:
     def test_severity_mismatch_flags_context_safe(self, rag_filter):
         """Reported critical vs known low pattern → severity mismatch FP."""
         rag_filter._rag.search.return_value = [_rag_result(0.9, severity="low")]
-        match = rag_filter._rag_validate_finding(
-            {"type": "reentrancy", "severity": "critical"}
-        )
+        match = rag_filter._rag_validate_finding({"type": "reentrancy", "severity": "critical"})
         assert match is not None
         assert match.category == FPCategory.CONTEXT_SAFE
         assert match.pattern == "rag_severity_mismatch"
@@ -930,9 +928,7 @@ class TestRagValidateFinding:
     def test_match_without_fp_indicators_returns_none(self, rag_filter):
         """Strong match, matching severity, no fix in context → real vuln (None)."""
         rag_filter._rag.search.return_value = [_rag_result(0.9, severity="high")]
-        result = rag_filter._rag_validate_finding(
-            {"type": "reentrancy", "severity": "high"}
-        )
+        result = rag_filter._rag_validate_finding({"type": "reentrancy", "severity": "high"})
         assert result is None
 
     def test_exception_is_swallowed(self, rag_filter):

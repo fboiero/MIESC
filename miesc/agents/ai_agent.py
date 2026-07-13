@@ -96,7 +96,11 @@ class AIAgent(BaseAgent):
         Returns:
             Dictionary with triage results
         """
-        results: Dict[str, Any] = {"ai_triage": [], "false_positives": [], "root_cause_analysis": []}
+        results: Dict[str, Any] = {
+            "ai_triage": [],
+            "false_positives": [],
+            "root_cause_analysis": [],
+        }
 
         # Aggregate findings from all layers
         aggregated = kwargs.get("aggregated_findings")

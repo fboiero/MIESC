@@ -52,13 +52,11 @@ class FakeOrchestrator:
 
 
 def test_llm_orchestrator_provider_returns_reasoning_result_from_json():
-    orchestrator = FakeOrchestrator(
-        """
+    orchestrator = FakeOrchestrator("""
         ```json
         {"invariants": [{"statement": "totalAssets covers totalSupply"}]}
         ```
-        """
-    )
+        """)
     provider = LLMOrchestratorReasoningProvider(
         orchestrator,
         route=ReasoningProviderRoute(
@@ -151,16 +149,14 @@ def test_llm_orchestrator_provider_parses_embedded_json_object():
 
 def test_llm_orchestrator_provider_uses_later_parseable_fenced_json():
     provider = LLMOrchestratorReasoningProvider(
-        FakeOrchestrator(
-            """
+        FakeOrchestrator("""
             ```solidity
             contract NotJson {}
             ```
             ```json
             {"invariants": [{"id": "later_json"}]}
             ```
-            """
-        ),
+            """),
         route=ReasoningProviderRoute(
             backend_key="local:test-agent",
             provider_kind="local",
@@ -268,8 +264,7 @@ def test_local_heuristic_provider_extracts_replaceable_invariants():
     provider = LocalHeuristicReasoningProvider()
     agent = InvariantExtractionAgent(provider)
 
-    invariants = agent.extract(
-        """
+    invariants = agent.extract("""
         contract Vault {
             uint256 public totalSupply;
             uint256 public totalAssets;
@@ -279,8 +274,7 @@ def test_local_heuristic_provider_extracts_replaceable_invariants():
             function deposit(uint256 amount) external {}
             function mint(uint256 amount) external onlyOwner {}
         }
-        """
-    )
+        """)
 
     categories = {candidate.category.value for candidate in invariants}
     assert "accounting" in categories

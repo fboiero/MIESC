@@ -30,7 +30,7 @@ import logging
 import re
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import cast, Any, Dict, Generic, List, Optional, Type, TypeVar
+from typing import Any, Dict, Generic, List, Optional, Type, TypeVar, cast
 
 from pydantic import (
     BaseModel,

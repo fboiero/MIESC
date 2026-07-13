@@ -428,14 +428,14 @@ class TestRelevantKnowledgeDispatch:
     @pytest.mark.parametrize(
         "keyword",
         [
-            "uups",            # proxy
-            "wormhole",        # cross-chain bridge
-            "rebase",          # token
-            "paymaster",       # account abstraction
-            "eigenlayer",      # restaking
-            "cowswap",         # intent
-            "arbitrum",        # l2
-            "flashbot",        # mev
+            "uups",  # proxy
+            "wormhole",  # cross-chain bridge
+            "rebase",  # token
+            "paymaster",  # account abstraction
+            "eigenlayer",  # restaking
+            "cowswap",  # intent
+            "arbitrum",  # l2
+            "flashbot",  # mev
         ],
     )
     def test_keyword_adds_knowledge(self, keyword):
@@ -934,7 +934,9 @@ class TestEmbeddingRAGCustomVulnerabilityShapes:
 
 
 class TestEmbeddingRAGSearchBoundaryShapes:
-    def test_search_empties_malformed_query_and_bounds_malformed_similarity_metadata(self, tmp_path):
+    def test_search_empties_malformed_query_and_bounds_malformed_similarity_metadata(
+        self, tmp_path
+    ):
         vulnerability = VulnerabilityDocument(
             id="CUSTOM-003",
             title="Malformed Similarity Boundary",
@@ -1048,9 +1050,7 @@ class TestEmbeddingRAGSearchBoundaryShapes:
 
         assert set(scores_by_id) == set(documents)
         assert scores_by_id["CUSTOM-SIMILARITY-VALID"] > 0.7
-        assert scores_by_id["CUSTOM-SIMILARITY-HIGH"] > scores_by_id[
-            "CUSTOM-SIMILARITY-VALID"
-        ]
+        assert scores_by_id["CUSTOM-SIMILARITY-HIGH"] > scores_by_id["CUSTOM-SIMILARITY-VALID"]
         assert scores_by_id["CUSTOM-SIMILARITY-BAD"] < 0.3
         assert all(math.isfinite(score) for score in scores_by_id.values())
 
@@ -1222,7 +1222,9 @@ class TestEmbeddingRAGSearchBoundaryShapes:
         assert [result.document.id for result in results] == ["CUSTOM-COUNT-TEXT"]
 
     def test_coerce_embedding_model_name_rejects_control_chars(self):
-        assert embedding_rag_module._coerce_embedding_model_name("  custom-model  ") == "custom-model"
+        assert (
+            embedding_rag_module._coerce_embedding_model_name("  custom-model  ") == "custom-model"
+        )
         assert (
             embedding_rag_module._coerce_embedding_model_name("custom\nmodel")
             == EmbeddingRAG.DEFAULT_MODEL
@@ -1456,9 +1458,7 @@ class TestEmbeddingRAGSearchBoundaryShapes:
         rag._doc_index = documents
 
         results = rag.batch_search(["batch similarity row boundary"], n_results=2)
-        scores_by_id = {
-            result.document.id: result.similarity_score for result in results[0]
-        }
+        scores_by_id = {result.document.id: result.similarity_score for result in results[0]}
 
         assert set(scores_by_id) == set(documents)
         assert scores_by_id["CUSTOM-BATCH-SIMILARITY-VALID"] > 0.75

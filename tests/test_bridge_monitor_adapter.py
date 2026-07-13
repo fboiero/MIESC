@@ -102,8 +102,10 @@ def test_nonce_tracking_flags_relay_without_nonce():
 
 def test_nonce_tracking_clean_with_used_hashes():
     a = _a()
-    src = ("mapping(bytes32=>bool) usedHashes;\n"
-           "function relayMessage(bytes d) external { require(!usedHashes[keccak256(d)]); }")
+    src = (
+        "mapping(bytes32=>bool) usedHashes;\n"
+        "function relayMessage(bytes d) external { require(!usedHashes[keccak256(d)]); }"
+    )
     out = a._check_nonce_tracking(src, _lines(src), "C.sol")
     assert out == []
 
@@ -154,7 +156,9 @@ def test_relayer_trust_flags_single_relayer():
 
 def test_relayer_trust_clean_with_multisig():
     a = _a()
-    src = "address public relayer;\nuint threshold;\nfunction verify(bytes[] signatures) external {}"
+    src = (
+        "address public relayer;\nuint threshold;\nfunction verify(bytes[] signatures) external {}"
+    )
     out = a._check_relayer_trust(src, _lines(src), "C.sol")
     assert out == []
 
@@ -171,8 +175,7 @@ def test_deposit_withdrawal_flags_missing_invariant():
 
 def test_deposit_withdrawal_clean_with_balance_tracking():
     a = _a()
-    src = ("uint totalDeposited;\n"
-           "function deposit() external {}\nfunction withdraw() external {}")
+    src = "uint totalDeposited;\n" "function deposit() external {}\nfunction withdraw() external {}"
     out = a._check_deposit_withdrawal(src, _lines(src), "C.sol")
     assert out == []
 
@@ -199,8 +202,8 @@ def test_finality_clean_with_confirmations():
 # --------------------------------------------------------------------------- #
 def test_analyze_non_bridge_returns_empty():
     a = _a()
-    import tempfile
     import os
+    import tempfile
 
     fd, path = tempfile.mkstemp(suffix=".sol")
     try:

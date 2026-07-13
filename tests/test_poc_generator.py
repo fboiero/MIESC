@@ -1477,9 +1477,7 @@ class TestTemplateCustomization:
 
         assert "createSelectFork" not in result
 
-    def test_customize_respects_include_console_logs_false(
-        self, generator, reentrancy_finding
-    ):
+    def test_customize_respects_include_console_logs_false(self, generator, reentrancy_finding):
         """Console imports and log statements should be removable on request."""
         template = """// SPDX-License-Identifier: MIT
 import "forge-std/Test.sol";
@@ -1584,9 +1582,7 @@ contract {{CONTRACT_NAME}}Test {
         assert "assertTrue(true)" in result
         assert "{{" not in result
 
-    def test_customize_malformed_bool_options_default_safely(
-        self, generator, reentrancy_finding
-    ):
+    def test_customize_malformed_bool_options_default_safely(self, generator, reentrancy_finding):
         """Only real bool option values should alter generated output."""
         template = generator._get_default_template(VulnerabilityType.REENTRANCY)
         options = GenerationOptions()

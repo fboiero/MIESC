@@ -68,7 +68,11 @@ class SymbolicAgent(BaseAgent):
         Returns:
             Dictionary with results from symbolic tools
         """
-        results: Dict[str, Any] = {"symbolic_findings": [], "mythril_results": {}, "manticore_results": {}}
+        results: Dict[str, Any] = {
+            "symbolic_findings": [],
+            "mythril_results": {},
+            "manticore_results": {},
+        }
 
         max_depth = kwargs.get("max_depth", 128)
         timeout = kwargs.get("timeout", 900)  # 15 minutes default

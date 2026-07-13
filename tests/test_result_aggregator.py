@@ -601,7 +601,12 @@ class TestDefensiveNormalization:
     def test_range_line_kept(self, agg):
         f = agg._normalize_finding(
             "slither",
-            {"type": "reentrancy", "severity": "high", "location": {"line": "5-10"}, "message": "x"},
+            {
+                "type": "reentrancy",
+                "severity": "high",
+                "location": {"line": "5-10"},
+                "message": "x",
+            },
         )
         assert f is not None and f.line == 5
 
@@ -615,7 +620,13 @@ class TestDefensiveNormalization:
     def test_unparseable_confidence_defaults(self, agg):
         f = agg._normalize_finding(
             "x",
-            {"type": "r", "severity": "high", "confidence": "weird", "location": {"line": 3}, "message": "m"},
+            {
+                "type": "r",
+                "severity": "high",
+                "confidence": "weird",
+                "location": {"line": 3},
+                "message": "m",
+            },
         )
         assert f is not None and f.confidence == 0.7
 

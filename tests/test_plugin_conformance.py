@@ -16,7 +16,6 @@ from miesc.plugins import (
     AdapterPlugin,
     DetectorPlugin,
     PluginContext,
-    PluginType,
     ReporterPlugin,
     TransformerPlugin,
 )
@@ -274,9 +273,7 @@ class TestNonConforming:
         assert report.passed
         warn_checks = {w.check for w in report.warnings}
         assert "name_format" in warn_checks
-        assert all(
-            w.severity == ConformanceSeverity.WARNING for w in report.warnings
-        )
+        assert all(w.severity == ConformanceSeverity.WARNING for w in report.warnings)
 
 
 class TestFileConformance:

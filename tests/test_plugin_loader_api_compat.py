@@ -124,10 +124,7 @@ class TestLoaderApiCompat:
 
     def test_resolve_api_version_from_class_and_instance(self):
         assert PluginLoader.resolve_api_version(_CompatDetector) == PLUGIN_API_VERSION
-        assert (
-            PluginLoader.resolve_api_version(_CompatDetector())
-            == PLUGIN_API_VERSION
-        )
+        assert PluginLoader.resolve_api_version(_CompatDetector()) == PLUGIN_API_VERSION
 
 
 class TestBackwardCompat:

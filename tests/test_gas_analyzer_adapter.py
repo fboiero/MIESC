@@ -45,7 +45,9 @@ def test_severity_level_and_breakdown():
     assert a._severity_level("High") == 3
     assert a._severity_level("Critical") == 4
     assert a._severity_level("nonsense") == 0
-    bd = a._severity_breakdown([{"severity": "Medium"}, {"severity": "Medium"}, {"severity": "Low"}])
+    bd = a._severity_breakdown(
+        [{"severity": "Medium"}, {"severity": "Medium"}, {"severity": "Low"}]
+    )
     assert bd["Medium"] == 2 and bd["Low"] == 1
 
 
@@ -72,8 +74,9 @@ def test_analyze_min_severity_filter(tmp_path):
     out = a.analyze(str(sol), min_severity="Medium")
     assert out["status"] == "success"
     # nothing below Medium survives
-    assert all(a._severity_level(f["severity"]) >= a._severity_level("Medium")
-               for f in out["findings"])
+    assert all(
+        a._severity_level(f["severity"]) >= a._severity_level("Medium") for f in out["findings"]
+    )
 
 
 def test_analyze_handles_error(tmp_path):

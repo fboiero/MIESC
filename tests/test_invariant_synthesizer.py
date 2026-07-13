@@ -129,7 +129,9 @@ contract Generic {
 @pytest.fixture
 def synthesizer():
     """Create InvariantSynthesizer with mocked dependencies."""
-    with patch("miesc.adapters.invariant_synthesizer.get_model", return_value="deepseek-coder:6.7b"):
+    with patch(
+        "miesc.adapters.invariant_synthesizer.get_model", return_value="deepseek-coder:6.7b"
+    ):
         with patch(
             "miesc.adapters.invariant_synthesizer.get_ollama_host",
             return_value="http://localhost:11434",

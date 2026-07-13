@@ -60,9 +60,7 @@ def test_returns_none_when_forge_absent(trivial_repo, monkeypatch):
     assert result is None
 
 
-@pytest.mark.skipif(
-    not shutil.which("forge"), reason="forge not installed"
-)
+@pytest.mark.skipif(not shutil.which("forge"), reason="forge not installed")
 def test_scaffold_compiles_real_contract(trivial_repo):
     """Live forge: scaffolded project builds against the REAL contract."""
     repo, contract = trivial_repo
@@ -101,8 +99,8 @@ def test_scaffold_compiles_real_contract(trivial_repo):
             text=True,
             timeout=180,
         )
-        assert build.returncode == 0, (
-            f"forge build failed:\nSTDOUT:\n{build.stdout}\nSTDERR:\n{build.stderr}"
-        )
+        assert (
+            build.returncode == 0
+        ), f"forge build failed:\nSTDOUT:\n{build.stdout}\nSTDERR:\n{build.stderr}"
     finally:
         shutil.rmtree(project, ignore_errors=True)

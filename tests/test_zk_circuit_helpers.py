@@ -18,10 +18,16 @@ def _adapter():
 class TestRunCircomspect:
     def test_json_issues_parsed(self):
         a = _adapter()
-        payload = {"issues": [
-            {"message": "unconstrained signal", "severity": "warning", "code": "CW01",
-             "span": {"start": {"line": 4}}},
-        ]}
+        payload = {
+            "issues": [
+                {
+                    "message": "unconstrained signal",
+                    "severity": "warning",
+                    "code": "CW01",
+                    "span": {"start": {"line": 4}},
+                },
+            ]
+        }
         proc = MagicMock(returncode=0, stdout=json.dumps(payload), stderr="")
         with patch("subprocess.run", return_value=proc):
             out = a._run_circomspect("c.circom")

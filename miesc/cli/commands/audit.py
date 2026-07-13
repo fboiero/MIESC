@@ -135,7 +135,9 @@ def _run_agentic_audit_profile(
         success(f"Report saved to {output}")
 
     if ci and (summary.get("CRITICAL", 0) > 0 or summary.get("HIGH", 0) > 0):
-        error(f"Found {summary.get('CRITICAL', 0)} critical and {summary.get('HIGH', 0)} high issues")
+        error(
+            f"Found {summary.get('CRITICAL', 0)} critical and {summary.get('HIGH', 0)} high issues"
+        )
         sys.exit(1)
 
 
@@ -559,9 +561,16 @@ def _run_full_audit_with_ml(
         logger.exception("ML analysis error")
         info("Falling back to basic mode...")
         _run_full_audit_basic(
-            contract, output, fmt, layer_list, timeout,
-            verify_fp=verify_fp, verify_model=verify_model, rank=rank,
-            baseline_path=baseline_path, fail_on_new=fail_on_new,
+            contract,
+            output,
+            fmt,
+            layer_list,
+            timeout,
+            verify_fp=verify_fp,
+            verify_model=verify_model,
+            rank=rank,
+            baseline_path=baseline_path,
+            fail_on_new=fail_on_new,
         )
 
 
@@ -804,8 +813,11 @@ def _run_full_audit_basic(
             from miesc.ml.triage_ranker import rank_results
 
             n = rank_results(all_results, contract=contract)
-            info(f"rank: ordered {n} finding(s) by P(real) — triage, recall-safe (nothing dropped)"
-                 if n >= 0 else "rank: no triage model (order unchanged)")
+            info(
+                f"rank: ordered {n} finding(s) by P(real) — triage, recall-safe (nothing dropped)"
+                if n >= 0
+                else "rank: no triage model (order unchanged)"
+            )
         except Exception as e:  # noqa: BLE001
             info(f"rank skipped: {e}")
 
@@ -1072,8 +1084,11 @@ def audit_quick(
             from miesc.ml.triage_ranker import rank_results
 
             n = rank_results(all_results, contract=contract)
-            info(f"rank: ordered {n} finding(s) by P(real) — triage, recall-safe (nothing dropped)"
-                 if n >= 0 else "rank: no triage model (order unchanged)")
+            info(
+                f"rank: ordered {n} finding(s) by P(real) — triage, recall-safe (nothing dropped)"
+                if n >= 0
+                else "rank: no triage model (order unchanged)"
+            )
         except Exception as e:  # noqa: BLE001
             info(f"rank skipped: {e}")
 
@@ -1251,10 +1266,18 @@ def audit_full(
             else "ML Pipeline enabled - FP filtering active"
         )
         _run_full_audit_with_ml(
-            contract, output, fmt, layer_list, timeout, ml_orchestrator,
-            verify_fp=verify_fp, verify_model=verify_model, rank=rank,
+            contract,
+            output,
+            fmt,
+            layer_list,
+            timeout,
+            ml_orchestrator,
+            verify_fp=verify_fp,
+            verify_model=verify_model,
+            rank=rank,
             fp_strictness=fp_strictness,
-            baseline_path=baseline_path, fail_on_new=fail_on_new,
+            baseline_path=baseline_path,
+            fail_on_new=fail_on_new,
         )
         return
 
@@ -1265,9 +1288,17 @@ def audit_full(
             else "Correlation enabled - Cross-tool validation active"
         )
         _run_full_audit_with_correlation(
-            contract, output, fmt, layer_list, timeout, correlation_api,
-            verify_fp=verify_fp, verify_model=verify_model, rank=rank,
-            baseline_path=baseline_path, fail_on_new=fail_on_new,
+            contract,
+            output,
+            fmt,
+            layer_list,
+            timeout,
+            correlation_api,
+            verify_fp=verify_fp,
+            verify_model=verify_model,
+            rank=rank,
+            baseline_path=baseline_path,
+            fail_on_new=fail_on_new,
         )
         return
 
@@ -1276,9 +1307,15 @@ def audit_full(
         warning("ML/Correlation modules not available, using basic mode")
 
     _run_full_audit_basic(
-        contract, output, fmt, layer_list, timeout,
-        verify_fp=verify_fp, verify_model=verify_model,
-        baseline_path=baseline_path, fail_on_new=fail_on_new,
+        contract,
+        output,
+        fmt,
+        layer_list,
+        timeout,
+        verify_fp=verify_fp,
+        verify_model=verify_model,
+        baseline_path=baseline_path,
+        fail_on_new=fail_on_new,
     )
 
 

@@ -115,8 +115,7 @@ def test_delegatecall_flags_unvalidated_target():
 
 def test_delegatecall_clean_with_validation():
     a = _a()
-    src = ("require(target == implementation);\n"
-           "(bool ok,) = target.delegatecall(d);")
+    src = "require(target == implementation);\n" "(bool ok,) = target.delegatecall(d);"
     out = a._check_delegatecall(src, _lines(src), "C.sol")
     assert out == []
 
@@ -140,8 +139,10 @@ def test_uups_guard_flags_authorize_without_access_control():
 
 def test_uups_guard_clean_with_access_control():
     a = _a()
-    src = ("function _authorizeUpgrade(address newImpl) internal override "
-           "{ require(msg.sender == owner); }")
+    src = (
+        "function _authorizeUpgrade(address newImpl) internal override "
+        "{ require(msg.sender == owner); }"
+    )
     out = a._check_uups_guard(src, _lines(src), "C.sol")
     assert out == []
 
@@ -158,9 +159,11 @@ def test_eip1967_flags_noncompliant_proxy():
 
 def test_eip1967_clean_with_standard_slot():
     a = _a()
-    src = ("contract C is UUPSUpgradeable {\n"
-           "  bytes32 constant _IMPLEMENTATION_SLOT = 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc;\n"
-           "  function f() { t.delegatecall(d); }\n}")
+    src = (
+        "contract C is UUPSUpgradeable {\n"
+        "  bytes32 constant _IMPLEMENTATION_SLOT = 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc;\n"
+        "  function f() { t.delegatecall(d); }\n}"
+    )
     out = a._check_eip1967(src, _lines(src), "C.sol")
     assert out == []
 
@@ -227,8 +230,13 @@ def test_analyze_missing_file_returns_error():
 def test_normalize_findings_maps_known_key_and_skips_non_dict():
     a = _a()
     raw = [
-        {"type": "selfdestruct_in_implementation", "vuln_key": "selfdestruct_in_implementation",
-         "line": 7, "file": "C.sol", "code": "selfdestruct(o);"},
+        {
+            "type": "selfdestruct_in_implementation",
+            "vuln_key": "selfdestruct_in_implementation",
+            "line": 7,
+            "file": "C.sol",
+            "code": "selfdestruct(o);",
+        },
         12345,  # non-dict skipped
     ]
     out = a.normalize_findings(raw)

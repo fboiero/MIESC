@@ -330,9 +330,7 @@ class LspServer:
     # stdio serve loop
     # ------------------------------------------------------------------
 
-    def serve(
-        self, stdin: Optional[BinaryIO] = None, stdout: Optional[BinaryIO] = None
-    ) -> None:
+    def serve(self, stdin: Optional[BinaryIO] = None, stdout: Optional[BinaryIO] = None) -> None:
         """Run the blocking read → dispatch → write loop over binary streams.
 
         Reads Content-Length-framed requests from ``stdin``, dispatches each, and

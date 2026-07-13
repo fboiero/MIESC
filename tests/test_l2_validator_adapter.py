@@ -46,8 +46,10 @@ def test_cross_domain_flags_handler_without_sender_check():
 
 def test_cross_domain_clean_with_sender_check():
     a = _a()
-    src = ("ICrossDomainMessenger m;\n"
-           "function receiveMsg() external { require(m.xDomainMessageSender() == l1); }")
+    src = (
+        "ICrossDomainMessenger m;\n"
+        "function receiveMsg() external { require(m.xDomainMessageSender() == l1); }"
+    )
     out = a._check_cross_domain_messaging(src, _lines(src), "C.sol")
     assert out == []
 

@@ -18,7 +18,7 @@ License: AGPL-3.0
 from __future__ import annotations
 
 from enum import Enum
-from typing import cast, Any, Dict, Iterable, Optional
+from typing import Any, Dict, Iterable, Optional, cast
 
 
 class CanonicalCategory(str, Enum):

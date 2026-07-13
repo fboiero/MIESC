@@ -150,14 +150,14 @@ def test_reports_low_review_when_no_external_call(detector: TransientStorageDete
 
 
 def test_ignores_comments_and_strings(detector: TransientStorageDetector) -> None:
-    code = '''
+    code = """
     contract Safe {
         function noop() external {
             // assembly { tstore(0x00, 1) } to.transfer(1 ether);
             string memory note = "tstore(0x00, 1) and to.transfer(1 ether)";
         }
     }
-    '''
+    """
 
     assert detector.analyze(code) == []
 

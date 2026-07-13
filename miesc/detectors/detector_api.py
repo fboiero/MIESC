@@ -435,7 +435,9 @@ class DetectorRegistry:
             if TransientStorageDetector.name not in self._detectors:
                 self.register_class(TransientStorageDetector)
         except Exception as e:
-            print(f"Warning: Failed to load built-in detector transient-storage-detector: {e}")  # noqa: T201
+            print(
+                f"Warning: Failed to load built-in detector transient-storage-detector: {e}"
+            )  # noqa: T201
 
         try:
             # Python 3.10+ style

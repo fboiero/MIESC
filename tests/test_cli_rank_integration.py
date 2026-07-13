@@ -15,10 +15,13 @@ from miesc.cli.commands.audit import _rank_report_findings
 from miesc.cli.commands.scan import _apply_triage_rank
 from miesc.ml.triage_ranker import DEFAULT_MODEL_PATH, TriageRanker
 
-REAL_CODE = ("pragma solidity ^0.4.24; contract C {"
-             " function w() public { msg.sender.call.value(1)(); } }")
-BENIGN_CODE = ("pragma solidity ^0.8.0; contract C {"
-               " function a(uint x) public pure returns (uint) { return x + 1; } }")
+REAL_CODE = (
+    "pragma solidity ^0.4.24; contract C {" " function w() public { msg.sender.call.value(1)(); } }"
+)
+BENIGN_CODE = (
+    "pragma solidity ^0.8.0; contract C {"
+    " function a(uint x) public pure returns (uint) { return x + 1; } }"
+)
 
 
 def _model_ready():
@@ -36,8 +39,12 @@ needs_model = pytest.mark.skipif(not _model_ready(), reason="no trained triage m
 
 
 def _f(vtype, fn, file):
-    return {"type": vtype, "check": vtype, "severity": "high",
-            "location": {"function": fn, "line": 1, "file": file}}
+    return {
+        "type": vtype,
+        "check": vtype,
+        "severity": "high",
+        "location": {"function": fn, "line": 1, "file": file},
+    }
 
 
 # --------------------------------------------------------------------------- #
@@ -48,8 +55,12 @@ class TestApplyTriageRank:
     def test_ranks_and_is_recall_safe(self, tmp_path):
         sol = tmp_path / "C.sol"
         sol.write_text(REAL_CODE)
-        results = [{"tool": "t", "findings": [_f("arithmetic", "a", str(sol)),
-                                              _f("reentrancy", "w", str(sol))]}]
+        results = [
+            {
+                "tool": "t",
+                "findings": [_f("arithmetic", "a", str(sol)), _f("reentrancy", "w", str(sol))],
+            }
+        ]
         _apply_triage_rank(results, contract=str(sol), quiet=True)
         fs = results[0]["findings"]
         assert len(fs) == 2  # recall-safe: nothing dropped
@@ -86,7 +97,8 @@ class TestRankReportFindings:
         act = findings["actionable"]
         assert len(act) == 2  # recall-safe
         assert [f["triage_score"] for f in act] == sorted(
-            [f["triage_score"] for f in act], reverse=True)
+            [f["triage_score"] for f in act], reverse=True
+        )
         assert findings["summary_count"] == 2  # untouched
 
     def test_no_model_is_noop(self, monkeypatch):

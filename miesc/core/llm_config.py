@@ -354,9 +354,11 @@ def get_cache_config() -> Dict[str, Any]:
         cache = DEFAULT_CONFIG["cache"]
     default_cache = cast(Dict[str, Any], DEFAULT_CONFIG["cache"])
     return {
-        "enabled": cache.get("enabled")
-        if isinstance(cache.get("enabled"), bool)
-        else default_cache["enabled"],
+        "enabled": (
+            cache.get("enabled")
+            if isinstance(cache.get("enabled"), bool)
+            else default_cache["enabled"]
+        ),
         "ttl_seconds": _bounded_int(
             cache.get("ttl_seconds"),
             int(default_cache["ttl_seconds"]),

@@ -14,7 +14,6 @@ import pytest
 
 z3 = pytest.importorskip("z3")
 
-import miesc.adapters.vuln_verifier_adapter as mod
 from miesc.adapters.vuln_verifier_adapter import VulnVerifierAdapter
 from miesc.core.tool_protocol import ToolStatus
 
@@ -167,8 +166,9 @@ def test_verify_with_z3_dispatches_each_strategy():
 
 def test_verify_with_z3_falls_back_on_exception(monkeypatch):
     a = _a()
-    monkeypatch.setattr(a, "_verify_overflow_z3",
-                        lambda *args, **k: (_ for _ in ()).throw(RuntimeError("z3 boom")))
+    monkeypatch.setattr(
+        a, "_verify_overflow_z3", lambda *args, **k: (_ for _ in ()).throw(RuntimeError("z3 boom"))
+    )
     res = a._verify_with_z3(_finding(), "source", "C.sol", "arithmetic_overflow")
     # exception -> heuristic fallback still returns a dict
     assert res["status"] in ("verified", "refuted", "unknown")
@@ -244,12 +244,28 @@ def test_analyze_verifies_overflow_finding(tmp_path):
 def test_normalize_findings_statuses_counter_example_and_skip():
     a = _a()
     raw = [
-        {"status": "verified", "strategy": "arithmetic_overflow", "file": "C.sol", "line": 3,
-         "counter_example": {"a": "1", "b": "2"}, "original_finding": _finding()},
-        {"status": "refuted", "strategy": "access_control", "file": "C.sol", "line": 4,
-         "original_finding": _finding()},
-        {"status": "unknown", "strategy": "reentrancy", "file": "C.sol", "line": 5,
-         "original_finding": _finding()},
+        {
+            "status": "verified",
+            "strategy": "arithmetic_overflow",
+            "file": "C.sol",
+            "line": 3,
+            "counter_example": {"a": "1", "b": "2"},
+            "original_finding": _finding(),
+        },
+        {
+            "status": "refuted",
+            "strategy": "access_control",
+            "file": "C.sol",
+            "line": 4,
+            "original_finding": _finding(),
+        },
+        {
+            "status": "unknown",
+            "strategy": "reentrancy",
+            "file": "C.sol",
+            "line": 5,
+            "original_finding": _finding(),
+        },
         "not-a-dict",
     ]
     out = a.normalize_findings(raw)

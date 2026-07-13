@@ -28,13 +28,14 @@ Opt-in: the LLM path requires a local Ollama model; without one the rule-only pa
 
 Author: Fernando Boiero · License: AGPL-3.0
 """
+
 from __future__ import annotations
 
 import glob
 import json
 import os
 import re
-from typing import cast, Any, Optional
+from typing import Any, Optional, cast
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 _DEFAULT_BENIGN_GLOB = os.path.join(_ROOT, "data", "rag", "benign_patterns_seed_*.jsonl")
@@ -69,7 +70,7 @@ def _extract_function(code: str, fn: str) -> str:
         return ""
     brace = code.find("{", m.start())
     if brace == -1:
-        return code[m.start():m.start() + 400]
+        return code[m.start() : m.start() + 400]
     depth, i = 0, brace
     while i < len(code):
         if code[i] == "{":
@@ -77,9 +78,9 @@ def _extract_function(code: str, fn: str) -> str:
         elif code[i] == "}":
             depth -= 1
             if depth == 0:
-                return code[m.start():i + 1]
+                return code[m.start() : i + 1]
         i += 1
-    return code[m.start():]
+    return code[m.start() :]
 
 
 def _func_signature(code: str, fn: str) -> str:
@@ -112,7 +113,7 @@ def _function_at_line(code: str, line: int) -> tuple[str, str]:
                     break
             i += 1
         if code.count("\n", 0, m.start()) + 1 <= target <= code.count("\n", 0, end) + 1:
-            return code[m.start():end + 1], code[m.start():brace]
+            return code[m.start() : end + 1], code[m.start() : brace]
     return "", ""
 
 
@@ -147,7 +148,9 @@ _CONTEXTUAL_BENIGN = {
 }
 
 
-def match_benign(finding: dict[str, Any], code: str, patterns: list[dict[str, Any]]) -> Optional[dict[str, Any]]:
+def match_benign(
+    finding: dict[str, Any], code: str, patterns: list[dict[str, Any]]
+) -> Optional[dict[str, Any]]:
     """Return the benign pattern this finding matches, else None.
 
     Type-deterministic patterns (finding-type facts / compiler guarantees) are checked first
@@ -161,14 +164,19 @@ def match_benign(finding: dict[str, Any], code: str, patterns: list[dict[str, An
         return by_id.get(pid)
 
     # --- Type-deterministic, scope-INDEPENDENT (fire regardless of function resolution) ---
-    if re.search(r"pragma|naming|visibilit|unused|solc.version|useless_public|constants_instead"
-                 r"|instead_of_literal|boolean_equality|constant_functions_assembly|style|lint"
-                 r"|missing_event|event_emission|missing.event", vtype + " " + raw_type):
+    if re.search(
+        r"pragma|naming|visibilit|unused|solc.version|useless_public|constants_instead"
+        r"|instead_of_literal|boolean_equality|constant_functions_assembly|style|lint"
+        r"|missing_event|event_emission|missing.event",
+        vtype + " " + raw_type,
+    ):
         return has("BENIGN-PRAGMA-INFORMATIONAL")
     # SWC-118 (wrong-constructor-name) is impossible on Solidity >=0.5: the `constructor`
     # keyword is mandatory, so a same-name function is just a regular function. Compiler-
     # guaranteed benign on >=0.5 (validated: 0 real across sources).
-    if "constructor" in raw_type and re.search(r"pragma\s+solidity\s*[\^>=]*\s*0\.([5-9]|\d{2})", code):
+    if "constructor" in raw_type and re.search(
+        r"pragma\s+solidity\s*[\^>=]*\s*0\.([5-9]|\d{2})", code
+    ):
         return has("BENIGN-CONSTRUCTOR-MODERN")
 
     # --- Scope-dependent patterns need the enclosing function ---
@@ -196,7 +204,9 @@ def match_benign(finding: dict[str, Any], code: str, patterns: list[dict[str, An
             return has("BENIGN-REENTRANCY-GUARD")
         if _is_cei(body):
             return has("BENIGN-CEI-ORDER")
-    if "access" in vtype and re.search(r"onlyOwner|onlyRole|require\s*\(\s*msg\.sender\s*==\s*owner", sig):
+    if "access" in vtype and re.search(
+        r"onlyOwner|onlyRole|require\s*\(\s*msg\.sender\s*==\s*owner", sig
+    ):
         return has("BENIGN-ACCESS-ONLYOWNER")
     if ("time" in vtype or "timestamp" in vtype) and _timestamp_is_benign(body):
         return has("BENIGN-TIMESTAMP-TIMELOCK")
@@ -207,7 +217,7 @@ def match_benign(finding: dict[str, Any], code: str, patterns: list[dict[str, An
         lines_arr = code.splitlines()
         if isinstance(line, int) and 1 <= line <= len(lines_arr):
             scope = lines_arr[line - 1]
-            window = " ".join(lines_arr[line - 1:line + 2])
+            window = " ".join(lines_arr[line - 1 : line + 2])
         else:
             scope = window = body  # no line -> fall back to function body
         if re.search(r"safeTransfer|SafeERC20", scope):
@@ -217,13 +227,19 @@ def match_benign(finding: dict[str, Any], code: str, patterns: list[dict[str, An
         # so an unchecked ERC20 transfer is a REAL vuln. Distinguish by the 2-arg ERC20
         # signature (a comma in the transfer args) and only treat the 1-arg native form as
         # benign. (A wild eval at scale caught 7 real ERC20-transfer vulns dropped here.)
-        if (re.search(r"\.transfer\(", scope)
-                and not re.search(r"\.transfer\([^)]*,", scope)   # exclude ERC20 2-arg transfer
-                and not re.search(r"\.send\(|\.call\b", scope)):
+        if (
+            re.search(r"\.transfer\(", scope)
+            and not re.search(r"\.transfer\([^)]*,", scope)  # exclude ERC20 2-arg transfer
+            and not re.search(r"\.send\(|\.call\b", scope)
+        ):
             return has("BENIGN-TRANSFER-REVERTS")
         if re.search(r"require\s*\(\s*(ok|success)\b", window):
             return has("BENIGN-CHECKED-CALL")
-    if "front" in vtype and re.search(r"keccak256", code) and re.search(r"commit", code, re.IGNORECASE):
+    if (
+        "front" in vtype
+        and re.search(r"keccak256", code)
+        and re.search(r"commit", code, re.IGNORECASE)
+    ):
         return has("BENIGN-FRONTRUN-COMMITREVEAL")
     if "short" in vtype and re.search(r"pragma\s+solidity\s*[\^>=]*\s*0\.([5-9]|\d{2})", code):
         return has("BENIGN-SHORTADDR-DEPRECATED")
@@ -250,13 +266,19 @@ class BenignContextVerifier:
         if not self.model:
             return False
         vtype = _norm(finding.get("type") or "")
-        rel = [p for p in self.patterns if (lambda c: c and (c in vtype or vtype in c))(_norm(p.get("resembles_category", "")))]
+        rel = [
+            p
+            for p in self.patterns
+            if (lambda c: c and (c in vtype or vtype in c))(_norm(p.get("resembles_category", "")))
+        ]
         ref = ""
         if rel:
             lines = "\n".join(f"- {p['title']}: {p['why_safe']}" for p in rel[:6])
-            ref = ("REFERENCE — known benign mitigations for this category (a finding is a "
-                   "false positive ONLY if the code UNAMBIGUOUSLY implements one of these for "
-                   "THIS exact finding; if absent/partial/unsure, keep it):\n" + lines + "\n")
+            ref = (
+                "REFERENCE — known benign mitigations for this category (a finding is a "
+                "false positive ONLY if the code UNAMBIGUOUSLY implements one of these for "
+                "THIS exact finding; if absent/partial/unsure, keep it):\n" + lines + "\n"
+            )
         prompt = (
             "You are a smart-contract security verifier. Decide if a reported finding is a "
             "TRUE vulnerability or a FALSE POSITIVE in the context of this contract.\n"
@@ -281,10 +303,19 @@ class BenignContextVerifier:
 
         if self.model and self.model.lower() != "deepseek":
             try:
-                body = json.dumps({"model": self.model, "prompt": prompt, "stream": False,
-                                   "options": {"temperature": 0}}).encode()
-                req = urllib.request.Request(self.host.rstrip("/") + "/api/generate", data=body,
-                                             headers={"Content-Type": "application/json"})
+                body = json.dumps(
+                    {
+                        "model": self.model,
+                        "prompt": prompt,
+                        "stream": False,
+                        "options": {"temperature": 0},
+                    }
+                ).encode()
+                req = urllib.request.Request(
+                    self.host.rstrip("/") + "/api/generate",
+                    data=body,
+                    headers={"Content-Type": "application/json"},
+                )
                 with urllib.request.urlopen(req, timeout=self.timeout) as r:
                     return cast(str, json.loads(r.read()).get("response", ""))
             except Exception:  # noqa: BLE001 - fall through to DeepSeek failover
@@ -294,12 +325,19 @@ class BenignContextVerifier:
             try:
                 base = os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com").rstrip("/")
                 ds_model = os.environ.get("DEEPSEEK_MODEL", "deepseek-chat")
-                body = json.dumps({"model": ds_model,
-                                   "messages": [{"role": "user", "content": prompt}],
-                                   "temperature": 0, "stream": False}).encode()
-                req = urllib.request.Request(base + "/chat/completions", data=body,
-                                             headers={"Content-Type": "application/json",
-                                                      "Authorization": f"Bearer {key}"})
+                body = json.dumps(
+                    {
+                        "model": ds_model,
+                        "messages": [{"role": "user", "content": prompt}],
+                        "temperature": 0,
+                        "stream": False,
+                    }
+                ).encode()
+                req = urllib.request.Request(
+                    base + "/chat/completions",
+                    data=body,
+                    headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"},
+                )
                 with urllib.request.urlopen(req, timeout=self.timeout) as r:
                     return cast(str, json.loads(r.read())["choices"][0]["message"]["content"])
             except Exception:  # noqa: BLE001 - recall-safe: failure -> keep
@@ -337,7 +375,9 @@ class BenignContextVerifier:
         for f in findings:
             v = self.verify(f, code)
             f = {**f, "verifier_verdict": v}
-            (dropped if v == "false_positive" else flagged if v == "needs_review" else kept).append(f)
+            (dropped if v == "false_positive" else flagged if v == "needs_review" else kept).append(
+                f
+            )
         return {"kept": kept + flagged, "dropped": dropped, "flagged": flagged, "confirmed": kept}
 
 
@@ -356,7 +396,9 @@ def apply_to_results(
     def _code(fp: str) -> str:
         if fp not in code_cache:
             try:
-                code_cache[fp] = open(fp, encoding="utf-8").read() if fp and os.path.isfile(fp) else ""
+                code_cache[fp] = (
+                    open(fp, encoding="utf-8").read() if fp and os.path.isfile(fp) else ""
+                )
             except Exception:
                 code_cache[fp] = ""
         return code_cache[fp]

@@ -527,10 +527,12 @@ class TestMIESCConfigEdgeCases:
 class TestConfigLoaderFallbacks:
     def _reset(self):
         from miesc.core.config_loader import MIESCConfig
+
         MIESCConfig._instance = None
 
     def test_defaults_when_no_config_file_exists(self, monkeypatch):
         from pathlib import Path
+
         from miesc.core.config_loader import MIESCConfig
 
         self._reset()

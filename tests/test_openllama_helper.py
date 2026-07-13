@@ -1584,10 +1584,7 @@ def test_generate_insights_defaults_cyclic_finding_metadata(monkeypatch):
 
 
 def test_has_recursive_container_caps_total_nodes():
-    large = {
-        f"group{i}": {f"k{j}": {"value": j} for j in range(60)}
-        for i in range(20)
-    }
+    large = {f"group{i}": {f"k{j}": {"value": j} for j in range(60)} for i in range(20)}
 
     assert OpenLLaMAHelper._has_recursive_container(large) is True
 
@@ -1788,8 +1785,7 @@ def test_parse_priorities_rejects_non_list_priorities():
 def test_parse_priorities_skips_malformed_priority_items():
     helper = OpenLLaMAHelper()
 
-    priorities = helper._parse_priorities(
-        """
+    priorities = helper._parse_priorities("""
         {
             "priorities": [
                 "not an object",
@@ -1797,8 +1793,7 @@ def test_parse_priorities_skips_malformed_priority_items():
                 ["also invalid"]
             ]
         }
-        """
-    )
+        """)
 
     assert priorities == {1: {"priority": 8, "reason": "valid"}}
 
@@ -1806,8 +1801,7 @@ def test_parse_priorities_skips_malformed_priority_items():
 def test_parse_priorities_skips_non_integer_indexes():
     helper = OpenLLaMAHelper()
 
-    priorities = helper._parse_priorities(
-        """
+    priorities = helper._parse_priorities("""
         {
             "priorities": [
                 {"index": "1", "priority": 9, "reason": "string index"},
@@ -1815,8 +1809,7 @@ def test_parse_priorities_skips_non_integer_indexes():
                 {"index": 2, "priority": 8, "reason": "valid index"}
             ]
         }
-        """
-    )
+        """)
 
     assert priorities == {2: {"priority": 8, "reason": "valid index"}}
 
@@ -1824,8 +1817,7 @@ def test_parse_priorities_skips_non_integer_indexes():
 def test_parse_priorities_skips_negative_and_oversized_indexes():
     helper = OpenLLaMAHelper()
 
-    priorities = helper._parse_priorities(
-        """
+    priorities = helper._parse_priorities("""
         {
             "priorities": [
                 {"index": -1, "priority": 9, "reason": "negative"},
@@ -1833,8 +1825,7 @@ def test_parse_priorities_skips_negative_and_oversized_indexes():
                 {"index": 2, "priority": 8, "reason": "valid index"}
             ]
         }
-        """
-    )
+        """)
 
     assert priorities == {2: {"priority": 8, "reason": "valid index"}}
 
@@ -1882,16 +1873,14 @@ def test_parse_priorities_skips_hostile_item_get_accessors(monkeypatch):
 def test_parse_priorities_defaults_malformed_priority_payload_fields():
     helper = OpenLLaMAHelper()
 
-    priorities = helper._parse_priorities(
-        """
+    priorities = helper._parse_priorities("""
         {
             "priorities": [
                 {"index": 0, "priority": ["critical"], "reason": {"why": "bad shape"}},
                 {"index": 1, "priority": true, "reason": "bool priority"}
             ]
         }
-        """
-    )
+        """)
 
     assert priorities == {
         0: {"priority": 5, "reason": ""},
@@ -1923,8 +1912,7 @@ def test_parse_priorities_bounds_priority_reason_text_fields():
 def test_parse_priorities_defaults_out_of_range_priority_scores():
     helper = OpenLLaMAHelper()
 
-    priorities = helper._parse_priorities(
-        """
+    priorities = helper._parse_priorities("""
         {
             "priorities": [
                 {"index": 0, "priority": 0, "reason": "too low"},
@@ -1933,8 +1921,7 @@ def test_parse_priorities_defaults_out_of_range_priority_scores():
                 {"index": 3, "priority": 10, "reason": "maximum"}
             ]
         }
-        """
-    )
+        """)
 
     assert priorities == {
         0: {"priority": 5, "reason": "too low"},

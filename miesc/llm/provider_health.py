@@ -161,7 +161,9 @@ async def fetch_openai_compatible_model_ids(
             ) as resp:
                 status = getattr(resp, "status", None)
                 if not isinstance(status, int) or isinstance(status, bool):
-                    logger.debug("%s model check returned malformed response status", provider_label)
+                    logger.debug(
+                        "%s model check returned malformed response status", provider_label
+                    )
                     return set()
                 if status != 200:
                     logger.debug("%s model check failed with status %s", provider_label, status)

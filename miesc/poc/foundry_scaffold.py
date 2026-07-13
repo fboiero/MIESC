@@ -54,8 +54,7 @@ KNOWN_DEPS: Dict[str, Tuple[str, str]] = {
     ),
     "@openzeppelin/contracts-upgradeable": (
         "OpenZeppelin/openzeppelin-contracts-upgradeable",
-        "@openzeppelin/contracts-upgradeable/="
-        "lib/openzeppelin-contracts-upgradeable/contracts/",
+        "@openzeppelin/contracts-upgradeable/=" "lib/openzeppelin-contracts-upgradeable/contracts/",
     ),
     "@chainlink/contracts": (
         "smartcontractkit/chainlink",

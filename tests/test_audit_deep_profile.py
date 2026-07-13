@@ -3,8 +3,8 @@
 import pytest
 from click.testing import CliRunner
 
-from miesc.cli.commands.audit import _apply_deep_profile_config, audit_deep
 from miesc.agents.deep_audit_agent import DeepAuditConfig
+from miesc.cli.commands.audit import _apply_deep_profile_config, audit_deep
 
 
 def test_deep_audit_profile_enables_agentic_invariants_without_remote():

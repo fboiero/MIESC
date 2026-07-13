@@ -12,7 +12,8 @@ import sys
 _SCRIPTS = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "scripts")
 sys.path.insert(0, _SCRIPTS)
 _SPEC = importlib.util.spec_from_file_location(
-    "train_triage_model", os.path.join(_SCRIPTS, "train_triage_model.py"))
+    "train_triage_model", os.path.join(_SCRIPTS, "train_triage_model.py")
+)
 ttm = importlib.util.module_from_spec(_SPEC)
 _SPEC.loader.exec_module(ttm)
 
@@ -21,14 +22,38 @@ def test_build_dataset_reshapes_and_dedups(tmp_path, monkeypatch):
     wild = tmp_path / "wild.jsonl"
     rows = [
         # real vuln
-        {"type": "reentrancy", "check": "reentrancy_crossfunction", "severity": "high",
-         "function": "w", "line": 5, "contract": "A.sol", "code": "contract A{}", "label": True},
+        {
+            "type": "reentrancy",
+            "check": "reentrancy_crossfunction",
+            "severity": "high",
+            "function": "w",
+            "line": 5,
+            "contract": "A.sol",
+            "code": "contract A{}",
+            "label": True,
+        },
         # benign FP
-        {"type": "arithmetic", "check": "arithmetic", "severity": "medium",
-         "function": "a", "line": 9, "contract": "B.sol", "code": "contract B{}", "label": False},
+        {
+            "type": "arithmetic",
+            "check": "arithmetic",
+            "severity": "medium",
+            "function": "a",
+            "line": 9,
+            "contract": "B.sol",
+            "code": "contract B{}",
+            "label": False,
+        },
         # exact duplicate of the first (same check/line/contract/label) -> deduped
-        {"type": "reentrancy", "check": "reentrancy_crossfunction", "severity": "high",
-         "function": "w", "line": 5, "contract": "A.sol", "code": "contract A{}", "label": True},
+        {
+            "type": "reentrancy",
+            "check": "reentrancy_crossfunction",
+            "severity": "high",
+            "function": "w",
+            "line": 5,
+            "contract": "A.sol",
+            "code": "contract A{}",
+            "label": True,
+        },
         # unanchored (label None) -> skipped
         {"type": "x", "check": "x", "line": 1, "contract": "C.sol", "code": "c", "label": None},
     ]

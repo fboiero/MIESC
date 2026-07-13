@@ -53,10 +53,17 @@ def test_analyze_circom_cli_branch(monkeypatch, tmp_path):
     circ.write_text("template T() { signal input a; }")
 
     monkeypatch.setattr(mod.shutil, "which", lambda name: "/usr/bin/circomspect")
-    fake_json = json.dumps([
-        {"type": "under constrained signal", "level": "error", "line": 1,
-         "message": "signal a under-constrained", "template": "T"}
-    ])
+    fake_json = json.dumps(
+        [
+            {
+                "type": "under constrained signal",
+                "level": "error",
+                "line": 1,
+                "message": "signal a under-constrained",
+                "template": "T",
+            }
+        ]
+    )
     monkeypatch.setattr(mod.subprocess, "run", lambda *a, **k: _FakeProc(fake_json))
 
     out = a.analyze(str(circ))
@@ -172,13 +179,15 @@ def test_normalize_circomspect_list_and_dict_forms():
     a = _a()
     # list form, known type
     out1 = a._normalize_circomspect(
-        [{"type": "unused signal", "level": "warning", "line": 3, "message": "m"}], "c.circom")
+        [{"type": "unused signal", "level": "warning", "line": 3, "message": "m"}], "c.circom"
+    )
     assert out1[0]["type"] == "unused_signal"
     assert out1[0]["severity"] == "High"  # 'warning' -> High
     # dict-with-issues form, unknown type -> Medium fallback
     out2 = a._normalize_circomspect(
         {"issues": [{"type": "exotic thing", "level": "info", "line": 1, "message": "m"}]},
-        "c.circom")
+        "c.circom",
+    )
     assert out2[0]["severity"] == "Medium"  # 'info' -> Medium
 
 

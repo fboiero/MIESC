@@ -8,7 +8,7 @@ Each agent wraps one or more security tools and communicates via MCP Context Bus
 import logging
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import Callable, Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from miesc.mcp_core.context_bus import MCPMessage, get_context_bus
 

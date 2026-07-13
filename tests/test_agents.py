@@ -846,8 +846,9 @@ class TestBaseAgentExtraBranches:
     """Cover aggregate_contexts delegation and run() exception handling."""
 
     def _agent(self, analyze_impl):
-        from unittest.mock import MagicMock, patch
         from typing import Any, Dict, List
+        from unittest.mock import MagicMock, patch
+
         from miesc.agents.base_agent import BaseAgent
 
         class _A(BaseAgent):

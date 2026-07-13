@@ -22,7 +22,7 @@ import functools
 import logging
 import subprocess
 from enum import Enum
-from typing import cast, Any, Callable, Dict, List, Optional, TypeVar, Union
+from typing import Any, Callable, Dict, List, Optional, TypeVar, Union, cast
 
 logger = logging.getLogger(__name__)
 

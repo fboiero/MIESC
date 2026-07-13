@@ -76,8 +76,11 @@ def test_analyze_handles_engine_exception(tmp_path, monkeypatch):
     a = _a()
     sol = tmp_path / "C.sol"
     sol.write_text("contract C {}")
-    monkeypatch.setattr(a.engine, "analyze_file",
-                        lambda *args, **k: (_ for _ in ()).throw(RuntimeError("defi boom")))
+    monkeypatch.setattr(
+        a.engine,
+        "analyze_file",
+        lambda *args, **k: (_ for _ in ()).throw(RuntimeError("defi boom")),
+    )
     out = a.analyze(str(sol))
     assert out["success"] is False
     assert "defi boom" in out["error"]
@@ -94,8 +97,9 @@ def test_analyze_source_triggers_findings():
 
 def test_analyze_source_handles_exception(monkeypatch):
     a = _a()
-    monkeypatch.setattr(a.engine, "analyze",
-                        lambda *args, **k: (_ for _ in ()).throw(ValueError("src boom")))
+    monkeypatch.setattr(
+        a.engine, "analyze", lambda *args, **k: (_ for _ in ()).throw(ValueError("src boom"))
+    )
     out = a.analyze_source("contract C {}")
     assert out["success"] is False
     assert "src boom" in out["error"]
@@ -146,9 +150,7 @@ def test_zero_slippage_and_missing_deadline():
 
 def test_mev_liquidation_pattern():
     src = (
-        "contract Lending {\n"
-        "  function liquidate(address user) public { _seize(user); }\n"
-        "}\n"
+        "contract Lending {\n" "  function liquidate(address user) public { _seize(user); }\n" "}\n"
     )
     out = _a().analyze_source(src)
     assert out["success"] is True

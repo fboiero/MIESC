@@ -152,9 +152,7 @@ def test_validate_confirmed_via_cei_without_explicit_guard():
 def test_check_regressions_detects_removed_guard():
     a = _adapter()
     original = (
-        "function withdraw() external nonReentrant {\n"
-        "  payable(msg.sender).transfer(1);\n"
-        "}"
+        "function withdraw() external nonReentrant {\n" "  payable(msg.sender).transfer(1);\n" "}"
     )
     patched = (
         "function withdraw() external {\n"  # nonReentrant removed
@@ -254,8 +252,13 @@ def test_normalize_findings_maps_status_and_skips_non_dict():
     raw = [
         {"status": "fix_confirmed", "file": "C.sol", "line": 3, "original_finding": {}},
         "garbage-not-a-dict",
-        {"status": "fix_failed", "file": "C.sol", "line": 9,
-         "original_finding": {"type": "reentrancy"}, "reason": "still vulnerable"},
+        {
+            "status": "fix_failed",
+            "file": "C.sol",
+            "line": 9,
+            "original_finding": {"type": "reentrancy"},
+            "reason": "still vulnerable",
+        },
     ]
     out = a.normalize_findings(raw)
     assert len(out) == 2  # the string is skipped

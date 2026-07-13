@@ -19,7 +19,7 @@ from collections import Counter
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import cast, Any, Optional
+from typing import Any, Optional, cast
 
 from miesc import __version__ as MIESC_VERSION
 from miesc.cli.commands.fix import _collect_fixable_findings, apply_fix

@@ -44,11 +44,13 @@ class TestFormatInstruction:
 
     def test_chatml_format(self):
         t = _trainer()
-        ex = {"messages": [
-            {"role": "system", "content": "sys"},
-            {"role": "user", "content": "usr"},
-            {"role": "assistant", "content": "asst"},
-        ]}
+        ex = {
+            "messages": [
+                {"role": "system", "content": "sys"},
+                {"role": "user", "content": "usr"},
+                {"role": "assistant", "content": "asst"},
+            ]
+        }
         out = t.format_instruction(ex)
         assert "<|system|>" in out and "<|user|>" in out and "<|assistant|>" in out
 

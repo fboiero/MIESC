@@ -26,7 +26,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional
 
-from miesc.ml.call_graph import CallEdge, CallGraph, CallGraphBuilder, FunctionNode, Visibility
+from miesc.ml.call_graph import CallEdge, CallGraph, CallGraphBuilder
 
 logger = logging.getLogger(__name__)
 
@@ -77,9 +77,7 @@ _CALL_KEYWORDS = frozenset(
 )
 
 # Receivers that denote language/global namespaces rather than another contract.
-_GLOBAL_RECEIVERS = frozenset(
-    {"this", "msg", "block", "tx", "abi", "address", "super", "type"}
-)
+_GLOBAL_RECEIVERS = frozenset({"this", "msg", "block", "tx", "abi", "address", "super", "type"})
 
 # contract | interface | library <Name> ... {   (header up to the opening brace)
 _CONTRACT_HEADER = re.compile(
@@ -113,9 +111,7 @@ class RepoCallGraph:
     can disambiguate cross-contract targets.
     """
 
-    def __init__(
-        self, contracts: Dict[str, _ContractInfo], repo_dir: Path | None = None
-    ) -> None:
+    def __init__(self, contracts: Dict[str, _ContractInfo], repo_dir: Path | None = None) -> None:
         self._contracts = contracts
         self._repo_dir = Path(repo_dir) if repo_dir is not None else Path(".")
         self._merged = CallGraph("repo")
@@ -134,11 +130,7 @@ class RepoCallGraph:
                 falls back to the whole repo.
         """
         root = Path(repo_dir)
-        files = [
-            p
-            for p in root.rglob("*.sol")
-            if not any(s in str(p).lower() for s in _SKIP_PATH)
-        ]
+        files = [p for p in root.rglob("*.sol") if not any(s in str(p).lower() for s in _SKIP_PATH)]
         if scope:
             scoped = [p for p in files if scope.strip("/").lower() in str(p).lower()]
             if scoped:
@@ -180,9 +172,7 @@ class RepoCallGraph:
         lines: List[str] = []
         for name in sorted(self._contracts):
             info = self._contracts[name]
-            entry_fns = sorted(
-                fn.name for fn in info.graph.nodes.values() if fn.is_entry_point
-            )
+            entry_fns = sorted(fn.name for fn in info.graph.nodes.values() if fn.is_entry_point)
             fns = ", ".join(entry_fns) if entry_fns else "(none)"
             lines.append(f"contract {name}: {fns}")
 

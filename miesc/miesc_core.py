@@ -1,4 +1,5 @@
 from typing import Any, Optional
+
 """
 MIESC Core - Compatibility shim for legacy imports.
 

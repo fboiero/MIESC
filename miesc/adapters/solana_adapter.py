@@ -37,7 +37,7 @@ import re
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import cast, Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, cast
 
 from miesc.core.chain_abstraction import (
     AbstractChainAnalyzer,

@@ -1,4 +1,5 @@
 from typing import Any, cast
+
 """
 MIESC Vulnerability Knowledge Base
 

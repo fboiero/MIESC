@@ -366,9 +366,7 @@ class PluginLoader:
         if not compat.compatible:
             instance._state = PluginState.ERROR
             loaded_plugin.load_error = compat.message
-            logger.error(
-                f"Refusing to load plugin '{instance.name}': {compat.message}"
-            )
+            logger.error(f"Refusing to load plugin '{instance.name}': {compat.message}")
             raise PluginAPIIncompatibleError(instance.name, compat)
 
         # Initialize

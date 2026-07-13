@@ -768,7 +768,9 @@ class RemediationGenerator:
         # Add imports to fixed code if not present
         if imports:
             imports_str = "\n".join(imports)
-            if not fixed_code.startswith("//") or fixed_code.startswith("// SPDX-License-Identifier:"):
+            if not fixed_code.startswith("//") or fixed_code.startswith(
+                "// SPDX-License-Identifier:"
+            ):
                 fixed_code = f"{imports_str}\n\n{fixed_code}"
 
         return Remediation(

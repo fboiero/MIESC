@@ -17,7 +17,7 @@ import logging
 import os
 import time
 from pathlib import Path
-from typing import cast, Any, Dict, Optional
+from typing import Any, Dict, Optional, cast
 
 logger = logging.getLogger(__name__)
 

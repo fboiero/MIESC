@@ -23,7 +23,7 @@ import logging
 import subprocess
 import time
 from pathlib import Path
-from typing import cast, Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 from miesc.adapters.smartllm_rag_knowledge import (
     get_relevant_knowledge,
@@ -1080,7 +1080,9 @@ Report ONLY vulnerabilities confirmed by your step-by-step analysis. Quality ove
                     depth -= 1
                     if depth == 0:
                         try:
-                            return cast(Optional[Dict[Any, Any]], json.loads(text[start : start + i + 1]))
+                            return cast(
+                                Optional[Dict[Any, Any]], json.loads(text[start : start + i + 1])
+                            )
                         except json.JSONDecodeError:
                             break
 
@@ -1540,7 +1542,9 @@ Report ONLY vulnerabilities confirmed by your step-by-step analysis. Quality ove
         if preloaded_context:
             vuln_context_str = preloaded_context
             vuln_mitigation = "See context above for mitigation strategies."
-        elif self._use_embedding_rag and self._embedding_rag and get_context_for_finding is not None:
+        elif (
+            self._use_embedding_rag and self._embedding_rag and get_context_for_finding is not None
+        ):
             try:
                 # EmbeddingRAG returns a formatted string
                 vuln_context_str = get_context_for_finding(finding, contract_code[:1000])

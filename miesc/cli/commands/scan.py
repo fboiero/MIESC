@@ -565,7 +565,9 @@ def scan(
 
             from concurrent.futures import ThreadPoolExecutor, as_completed
 
-            with ThreadPoolExecutor(max_workers=get_max_workers(default=len(profile_tools))) as pool:
+            with ThreadPoolExecutor(
+                max_workers=get_max_workers(default=len(profile_tools))
+            ) as pool:
                 futures = {
                     pool.submit(run_tool, tool, contract, 300, llm_enhance=llm_enhance): tool
                     for tool in profile_tools
@@ -713,9 +715,7 @@ def scan(
             provider, model_id = provider_map.get(frontier_model.lower(), ("auto", None))
             # DeepSeek V4 is OpenAI-compatible: point the OpenAI client at the
             # DeepSeek endpoint using DEEPSEEK_API_KEY.
-            if frontier_model.lower().startswith("deepseek") and os.environ.get(
-                "DEEPSEEK_API_KEY"
-            ):
+            if frontier_model.lower().startswith("deepseek") and os.environ.get("DEEPSEEK_API_KEY"):
                 os.environ["OPENAI_API_KEY"] = os.environ["DEEPSEEK_API_KEY"]
                 os.environ["OPENAI_BASE_URL"] = os.environ.get(
                     "DEEPSEEK_BASE_URL", "https://api.deepseek.com"
@@ -936,8 +936,8 @@ def _run_agentic_scan_profile(
     slack_url: str | None = None,
     notify_min_severity: str = "low",
 ) -> None:
-    from miesc.cli.commands.audit import _apply_deep_profile_config
     from miesc.agents.deep_audit_agent import DeepAuditAgent, DeepAuditConfig
+    from miesc.cli.commands.audit import _apply_deep_profile_config
 
     if not quiet:
         print_banner()
@@ -1049,10 +1049,14 @@ def _apply_triage_rank(all_results: list[dict[str, Any]], *, contract: str, quie
     total = rank_results(all_results, contract=contract)
     if not quiet:
         if total < 0:
-            info("rank: no triage model — train with scripts/train_triage_model.py "
-                 "(order unchanged)")
+            info(
+                "rank: no triage model — train with scripts/train_triage_model.py "
+                "(order unchanged)"
+            )
         else:
-            info(f"rank: ordered {total} finding(s) by P(real) — triage, recall-safe (nothing dropped)")
+            info(
+                f"rank: ordered {total} finding(s) by P(real) — triage, recall-safe (nothing dropped)"
+            )
 
 
 def _display_and_save(
@@ -1232,9 +1236,7 @@ def _display_and_save(
         for r in all_results:
             for f in r.get("findings", []):
                 gate_findings.append(f)
-        apply_baseline_gate(
-            gate_findings, baseline_path, fail_on_new=fail_on_new, quiet=quiet
-        )
+        apply_baseline_gate(gate_findings, baseline_path, fail_on_new=fail_on_new, quiet=quiet)
 
     # Outbound notifications (webhook / Slack). Fire BEFORE the CI exit so a
     # channel is alerted even when the run is about to fail. SSRF-guarded and

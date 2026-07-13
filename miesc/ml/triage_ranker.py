@@ -14,6 +14,7 @@ Graceful by design: if no trained model is present (or scikit-learn is unavailab
 returns None and `rank` leaves the order unchanged — callers degrade to the existing
 confidence ordering. Train a model with `scripts/train_triage_model.py`.
 """
+
 from __future__ import annotations
 
 import os
@@ -22,7 +23,8 @@ from typing import Any, Callable, Optional
 
 DEFAULT_MODEL_PATH = os.path.join(
     os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
-    "models", "triage_model.joblib",
+    "models",
+    "triage_model.joblib",
 )
 
 
@@ -33,6 +35,7 @@ def _benign_patterns() -> list:
     global _BENIGN_PATTERNS
     if _BENIGN_PATTERNS is None:
         from miesc.ml.benign_context_verifier import load_benign_patterns
+
         _BENIGN_PATTERNS = load_benign_patterns()
     return _BENIGN_PATTERNS
 
@@ -40,8 +43,13 @@ def _benign_patterns() -> list:
 def _structural_features(finding: dict[str, Any], code: str) -> list[float]:
     """The 12 structural signals the deterministic recall-safe verifier uses, as numbers."""
     from miesc.ml.benign_context_verifier import (
-        _CONTEXTUAL_BENIGN, _extract_function, _func_signature, _function_at_line,
-        _is_cei, _timestamp_is_benign, match_benign,
+        _CONTEXTUAL_BENIGN,
+        _extract_function,
+        _func_signature,
+        _function_at_line,
+        _is_cei,
+        _timestamp_is_benign,
+        match_benign,
     )
 
     _loc = finding.get("location")
@@ -52,8 +60,11 @@ def _structural_features(finding: dict[str, Any], code: str) -> list[float]:
         line = int(line)
     except (TypeError, ValueError):
         line = 0
-    f2 = {"type": finding.get("type"), "title": finding.get("check") or finding.get("title"),
-          "location": {"function": fn, "line": line}}
+    f2 = {
+        "type": finding.get("type"),
+        "title": finding.get("check") or finding.get("title"),
+        "location": {"function": fn, "line": line},
+    }
     benign = match_benign(f2, code, _benign_patterns())
     has_benign = 1.0 if benign else 0.0
     is_ctx = 1.0 if (benign and benign["id"] in _CONTEXTUAL_BENIGN) else 0.0
@@ -65,25 +76,43 @@ def _structural_features(finding: dict[str, Any], code: str) -> list[float]:
     else:
         body, sig = "", ""
     scoped = 1.0 if body else 0.0
-    has_guard = 1.0 if re.search(r"nonReentrant|ReentrancyGuard|onlyOwner|onlyRole", sig or "") else 0.0
+    has_guard = (
+        1.0 if re.search(r"nonReentrant|ReentrancyGuard|onlyOwner|onlyRole", sig or "") else 0.0
+    )
     is_cei = 1.0 if (body and _is_cei(body)) else 0.0
     ts_benign = 1.0 if (body and _timestamp_is_benign(body)) else 0.0
     pragma08 = 1.0 if re.search(r"pragma\s+solidity\s*\^?0\.8", code) else 0.0
     lines = code.splitlines()
     flagged = lines[line - 1] if (1 <= line <= len(lines)) else ""
-    window = " ".join(lines[line - 1:line + 2]) if flagged else ""
+    window = " ".join(lines[line - 1 : line + 2]) if flagged else ""
     checked = 1.0 if re.search(r"require\s*\(\s*(ok|success)", window) else 0.0
-    native_transfer = 1.0 if (re.search(r"\.transfer\(", flagged)
-                              and not re.search(r"\.transfer\([^)]*,", flagged)) else 0.0
+    native_transfer = (
+        1.0
+        if (re.search(r"\.transfer\(", flagged) and not re.search(r"\.transfer\([^)]*,", flagged))
+        else 0.0
+    )
     safeerc = 1.0 if re.search(r"safeTransfer|SafeERC20", flagged) else 0.0
     body_len = min(len(body) / 2000.0, 1.0)
-    return [has_benign, is_ctx, is_det, scoped, has_guard, is_cei, ts_benign,
-            pragma08, checked, native_transfer, safeerc, body_len]
+    return [
+        has_benign,
+        is_ctx,
+        is_det,
+        scoped,
+        has_guard,
+        is_cei,
+        ts_benign,
+        pragma08,
+        checked,
+        native_transfer,
+        safeerc,
+        body_len,
+    ]
 
 
 def features_for(finding: dict[str, Any], code: str) -> list[float]:
     """Coarse FP features (17) + structural signals (12) -> the 29-d feature vector."""
     from miesc.ml.fp_ml_classifier import extract_features
+
     coarse = list(extract_features(finding, code).to_vector())
     return coarse + _structural_features(finding, code)
 
@@ -101,6 +130,7 @@ class TriageRanker:
             return
         try:
             import joblib
+
             self.model = joblib.load(self.model_path)
         except Exception:  # noqa: BLE001 — missing joblib/sklearn or stale model -> degrade
             self.model = None
@@ -178,7 +208,7 @@ def train(dataset_path: str, model_path: str = DEFAULT_MODEL_PATH) -> dict[str, 
     from sklearn.metrics import roc_auc_score
     from sklearn.model_selection import train_test_split
 
-    rows = [json.loads(l) for l in open(dataset_path) if l.strip()]
+    rows = [json.loads(ln) for ln in open(dataset_path) if ln.strip()]
     X = np.array([features_for(r["finding"], r.get("context", "")) for r in rows])
     y = np.array([1 if r["label"] else 0 for r in rows])
     if len(set(y.tolist())) < 2 or len(y) < 20:
@@ -191,5 +221,11 @@ def train(dataset_path: str, model_path: str = DEFAULT_MODEL_PATH) -> dict[str, 
     auc = float(roc_auc_score(yte, model.predict_proba(Xte)[:, 1]))
     os.makedirs(os.path.dirname(model_path), exist_ok=True)
     joblib.dump(model, model_path)
-    return {"samples": len(y), "real": int(y.sum()), "fp": int((y == 0).sum()),
-            "features": X.shape[1], "heldout_auc": round(auc, 4), "model_path": model_path}
+    return {
+        "samples": len(y),
+        "real": int(y.sum()),
+        "fp": int((y == 0).sum()),
+        "features": X.shape[1],
+        "heldout_auc": round(auc, 4),
+        "model_path": model_path,
+    }

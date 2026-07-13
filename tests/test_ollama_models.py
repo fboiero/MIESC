@@ -28,9 +28,7 @@ def _drop_llm_model_env(monkeypatch):
 def _tags_response(names, status=200):
     resp = MagicMock()
     resp.status = status
-    resp.read.return_value = json.dumps(
-        {"models": [{"name": n} for n in names]}
-    ).encode("utf-8")
+    resp.read.return_value = json.dumps({"models": [{"name": n} for n in names]}).encode("utf-8")
     cm = MagicMock()
     cm.__enter__.return_value = resp
     cm.__exit__.return_value = False
@@ -70,9 +68,7 @@ class TestSelectOllamaModel:
         assert select_ollama_model(["llama3"], installed=["llama3:8b"]) == "llama3:8b"
 
     def test_fallback_exact_match(self):
-        result = select_ollama_model(
-            ["mistral"], installed=["llama3:8b"], fallback="llama3:8b"
-        )
+        result = select_ollama_model(["mistral"], installed=["llama3:8b"], fallback="llama3:8b")
         assert result == "llama3:8b"
 
     def test_fallback_family_prefix(self):

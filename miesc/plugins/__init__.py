@@ -7,14 +7,12 @@ src/ -> miesc/ package unification).
 """
 
 from .config import PluginConfig, PluginConfigManager
-from .manager import (
-    CompatibilityInfo,
-    CompatibilityStatus,
-    PluginInfo,
-    PluginManager,
-    VersionConstraint,
-    compare_versions,
-    get_miesc_version,
+from .conformance import (
+    ConformanceIssue,
+    ConformanceReport,
+    ConformanceSeverity,
+    PluginConformanceChecker,
+    check_plugin_conformance,
 )
 from .loader import (
     DEFAULT_PLUGIN_DIRS,
@@ -24,19 +22,14 @@ from .loader import (
     PluginAPIIncompatibleError,
     PluginLoader,
 )
-from .conformance import (
-    ConformanceIssue,
-    ConformanceReport,
-    ConformanceSeverity,
-    PluginConformanceChecker,
-    check_plugin_conformance,
-)
-from .version import (
-    PLUGIN_API_VERSION,
-    ApiCompatResult,
-    ApiCompatStatus,
-    check_api_compatibility,
-    parse_api_version,
+from .manager import (
+    CompatibilityInfo,
+    CompatibilityStatus,
+    PluginInfo,
+    PluginManager,
+    VersionConstraint,
+    compare_versions,
+    get_miesc_version,
 )
 from .marketplace import (
     DEFAULT_CACHE_PATH,
@@ -71,6 +64,13 @@ from .registry import (
 from .template_generator import (
     PluginTemplate,
     PluginTemplateGenerator,
+)
+from .version import (
+    PLUGIN_API_VERSION,
+    ApiCompatResult,
+    ApiCompatStatus,
+    check_api_compatibility,
+    parse_api_version,
 )
 
 __all__ = [

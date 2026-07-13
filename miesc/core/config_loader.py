@@ -6,7 +6,7 @@ Carga y gestiona la configuración centralizada desde config/miesc.yaml
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import cast, Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 import yaml  # type: ignore[import-untyped]
 
@@ -210,7 +210,9 @@ class MIESCConfig:
         """Obtiene frameworks de compliance habilitados."""
         compliance = self._config.get("compliance", {})
         if compliance.get("enabled", True):
-            return cast(List[str], compliance.get("frameworks", ["ISO27001", "NIST", "OWASP", "CWE", "SWC"]))
+            return cast(
+                List[str], compliance.get("frameworks", ["ISO27001", "NIST", "OWASP", "CWE", "SWC"])
+            )
         return []
 
     def get_chain_config(self, chain_name: Optional[str] = None) -> Dict[str, Any]:

@@ -41,9 +41,8 @@ def _apply_remediation_profile_config(
     evidence_config = profile.get("remediation_evidence", {})
     if evidence_config.get("require_compile"):
         compile_check = True
-    if (
-        evidence_config.get("require_original_finding_eliminated")
-        or evidence_config.get("require_no_regression")
+    if evidence_config.get("require_original_finding_eliminated") or evidence_config.get(
+        "require_no_regression"
     ):
         rescan_check = True
 

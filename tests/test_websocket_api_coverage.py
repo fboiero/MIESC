@@ -167,8 +167,15 @@ def test_server_run_without_app_returns():
 
 def test_server_run_invokes_uvicorn(monkeypatch):
     called = {}
-    monkeypatch.setattr(wa, "uvicorn", type("U", (), {
-        "run": staticmethod(lambda app, host, port: called.update(host=host, port=port))})())
+    monkeypatch.setattr(
+        wa,
+        "uvicorn",
+        type(
+            "U",
+            (),
+            {"run": staticmethod(lambda app, host, port: called.update(host=host, port=port))},
+        )(),
+    )
     server = wa.WebSocketServer(host="127.0.0.1", port=9000)
     server.app = object()  # truthy app
     server.run()
@@ -180,9 +187,14 @@ def test_server_start_and_stop(monkeypatch):
 
     fake_server = MagicMock()
     fake_server.serve = AsyncMock()
-    fake_uvicorn = type("U", (), {
-        "Config": staticmethod(lambda *a, **k: MagicMock()),
-        "Server": staticmethod(lambda cfg: fake_server)})()
+    fake_uvicorn = type(
+        "U",
+        (),
+        {
+            "Config": staticmethod(lambda *a, **k: MagicMock()),
+            "Server": staticmethod(lambda cfg: fake_server),
+        },
+    )()
     monkeypatch.setattr(wa, "uvicorn", fake_uvicorn)
 
     async def _run():
@@ -213,6 +225,7 @@ def test_get_connection_manager():
 
 def test_broadcast_disconnects_failed_connection():
     from unittest.mock import AsyncMock
+
     async def _run():
         m = wa.ConnectionManager()
         good = AsyncMock()
@@ -223,11 +236,13 @@ def test_broadcast_disconnects_failed_connection():
         await m.broadcast(evt)
         assert bad not in m.active_connections  # cleaned up
         good.send_text.assert_awaited()
+
     _aio.run(_run())
 
 
 def test_send_to_audit_disconnects_failed_connection():
     from unittest.mock import AsyncMock
+
     async def _run():
         m = wa.ConnectionManager()
         bad = AsyncMock()
@@ -238,4 +253,5 @@ def test_send_to_audit_disconnects_failed_connection():
         assert bad not in m.active_connections
         # missing-audit branch: no-op, no raise
         await m.send_to_audit("nope", evt)
+
     _aio.run(_run())

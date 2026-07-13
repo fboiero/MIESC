@@ -16,7 +16,7 @@ import os
 import shutil
 import subprocess
 from pathlib import Path
-from typing import cast, Any, Dict, List
+from typing import Any, Dict, List, cast
 
 from miesc.core.tool_protocol import (
     ToolAdapter,

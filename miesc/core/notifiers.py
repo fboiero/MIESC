@@ -109,15 +109,10 @@ def _top_findings(
     return top
 
 
-def meets_threshold(
-    findings: Sequence[Dict[str, Any]], min_severity: str = "low"
-) -> bool:
+def meets_threshold(findings: Sequence[Dict[str, Any]], min_severity: str = "low") -> bool:
     """True if any finding is at least as severe as ``min_severity``."""
     floor = _severity_rank(min_severity)
-    return any(
-        _severity_rank(normalize_finding(f).get("severity", "")) >= floor
-        for f in findings
-    )
+    return any(_severity_rank(normalize_finding(f).get("severity", "")) >= floor for f in findings)
 
 
 def build_summary(
@@ -206,9 +201,7 @@ def build_slack_payload(
         for finding in top:
             emoji = _SLACK_EMOJI.get(str(finding["severity"]).lower(), ":white_circle:")
             location = f" (`{finding['file']}`)" if finding["file"] else ""
-            lines.append(
-                f"{emoji} *{finding['severity'].upper()}* {finding['title']}{location}"
-            )
+            lines.append(f"{emoji} *{finding['severity'].upper()}* {finding['title']}{location}")
         blocks.append(
             {
                 "type": "section",
@@ -272,13 +265,9 @@ def notify_webhook(
     """POST a generic JSON summary to ``url``. Gated by ``min_severity``."""
     findings = _iter_findings(results)
     if not meets_threshold(findings, min_severity):
-        logger.info(
-            "Notifier: no findings at/above %r severity; webhook skipped", min_severity
-        )
+        logger.info("Notifier: no findings at/above %r severity; webhook skipped", min_severity)
         return False
-    payload = build_summary(
-        results, contract, min_severity=min_severity, ci_failed=ci_failed
-    )
+    payload = build_summary(results, contract, min_severity=min_severity, ci_failed=ci_failed)
     return _post_json(url, payload)
 
 
@@ -293,13 +282,9 @@ def notify_slack(
     """POST a Slack Block Kit summary to ``url``. Gated by ``min_severity``."""
     findings = _iter_findings(results)
     if not meets_threshold(findings, min_severity):
-        logger.info(
-            "Notifier: no findings at/above %r severity; Slack skipped", min_severity
-        )
+        logger.info("Notifier: no findings at/above %r severity; Slack skipped", min_severity)
         return False
-    payload = build_slack_payload(
-        results, contract, min_severity=min_severity, ci_failed=ci_failed
-    )
+    payload = build_slack_payload(results, contract, min_severity=min_severity, ci_failed=ci_failed)
     return _post_json(url, payload)
 
 

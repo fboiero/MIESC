@@ -29,7 +29,7 @@ import subprocess
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import cast, Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple, cast
 
 from miesc.core.llm_config import get_ollama_host
 from miesc.core.tool_protocol import (

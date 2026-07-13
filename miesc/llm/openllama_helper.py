@@ -198,7 +198,9 @@ class OpenLLaMAHelper:
                 valid_findings,
                 key=lambda f: self._severity_score(self._mapping_get(f, "severity", "LOW")),
                 reverse=True,
-            )[:5]  # Top 5 most severe
+            )[
+                :5
+            ]  # Top 5 most severe
 
             for finding in top_findings:
                 insights = self._generate_insights(finding, prompt_context, prompt_adapter_name)
@@ -948,11 +950,13 @@ INSIGHTS:"""
                     priority = self._mapping_get(item, "priority", 5)
                     reason = self._priority_item_text(self._mapping_get(item, "reason", ""))
                     priorities[idx] = {
-                        "priority": priority
-                        if isinstance(priority, int)
-                        and not isinstance(priority, bool)
-                        and 1 <= priority <= 10
-                        else 5,
+                        "priority": (
+                            priority
+                            if isinstance(priority, int)
+                            and not isinstance(priority, bool)
+                            and 1 <= priority <= 10
+                            else 5
+                        ),
                         "reason": reason,
                     }
 

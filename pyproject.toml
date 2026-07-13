@@ -233,10 +233,13 @@ ignore = [
 "miesc/api/rest.py" = ["F401", "E741", "F841"]
 "miesc/cli/main.py" = ["F401", "E741", "F841"]
 "tests/test_rest_api.py" = ["F401"]
+# Deprecated compat shim + knowledge_base loader import after module-level setup.
+"miesc/miesc_core.py" = ["E402"]
+"miesc/knowledge_base/__init__.py" = ["E402"]
 # Tests frequently define helpers with single-letter names, redefine classes
-# by coverage group, and use throwaway expressions. These are stylistic-only
-# and do not affect production code.
-"tests/*.py" = ["E402", "E741", "F811", "B018"]
+# by coverage group, use throwaway expressions, and assert broad exceptions.
+# These are stylistic-only and do not affect production code.
+"tests/*.py" = ["E402", "E741", "F811", "B018", "B017"]
 
 [tool.mypy]
 python_version = "3.12"

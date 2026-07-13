@@ -130,7 +130,8 @@ class InvariantCandidate:
     def to_dict(self) -> Dict[str, Any]:
         return {
             "id": _safe_label(self.id) or _derive_invariant_id(self.statement),
-            "statement": _safe_text(self.statement, MAX_AGENT_TEXT_CHARS, allow_multiline=True) or "",
+            "statement": _safe_text(self.statement, MAX_AGENT_TEXT_CHARS, allow_multiline=True)
+            or "",
             "category": self.category.value,
             "affected_functions": _safe_text_list(self.affected_functions),
             "state_variables": _safe_text_list(self.state_variables),

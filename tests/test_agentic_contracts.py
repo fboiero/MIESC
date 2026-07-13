@@ -97,8 +97,7 @@ def test_invariant_extraction_task_carries_dpg_policy():
 
 
 def test_parse_invariant_candidates_accepts_json_string_and_bounds_confidence():
-    candidates = parse_invariant_candidates(
-        """
+    candidates = parse_invariant_candidates("""
         {
           "invariants": [
             {
@@ -110,8 +109,7 @@ def test_parse_invariant_candidates_accepts_json_string_and_bounds_confidence():
             }
           ]
         }
-        """
-    )
+        """)
 
     assert len(candidates) == 1
     assert candidates[0].id.startswith("unlocktime_must_not_increase")
@@ -229,9 +227,7 @@ def test_counterexample_evidence_export_sanitizes_scalar_fields():
 def test_dpg_config_export_clamps_max_source_chars():
     assert DPGAgentConfig(max_source_chars=-1).to_dict()["max_source_chars"] == 0
     assert (
-        DPGAgentConfig(max_source_chars=MAX_AGENT_SOURCE_CHARS * 2).to_dict()[
-            "max_source_chars"
-        ]
+        DPGAgentConfig(max_source_chars=MAX_AGENT_SOURCE_CHARS * 2).to_dict()["max_source_chars"]
         == MAX_AGENT_SOURCE_CHARS
     )
 

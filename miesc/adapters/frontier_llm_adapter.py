@@ -26,7 +26,7 @@ import json
 import logging
 import os
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, cast
 
@@ -71,6 +71,7 @@ class ConversationResult:
     messages: List[Any]  # full conversation history (role/content dicts)
     tool_calls: List[Dict[str, Any]]  # trace: [{"name":..., "args":..., "result":...}]
     usage: Dict[str, int]  # accumulated token usage totals
+
 
 # ---------------------------------------------------------------------------
 # Security audit prompt — Chain-of-Thought with structured output
@@ -939,16 +940,28 @@ Respond with a JSON array."""
         cost = (in_tok * pin + out_tok * pout) / 1_000_000
         logger.info(
             "FrontierLLM usage [%s]: in=%d out=%d%s ~$%.4f",
-            model, in_tok, out_tok, f" reasoning={reasoning_tok}" if reasoning_tok else "", cost,
+            model,
+            in_tok,
+            out_tok,
+            f" reasoning={reasoning_tok}" if reasoning_tok else "",
+            cost,
         )
         ledger = os.environ.get("MIESC_FRONTIER_USAGE_LOG")
         if ledger:
             try:
                 with open(ledger, "a", encoding="utf-8") as f:
-                    f.write(json.dumps({
-                        "model": model, "input_tokens": in_tok, "output_tokens": out_tok,
-                        "reasoning_tokens": reasoning_tok, "cost_usd": round(cost, 6),
-                    }) + "\n")
+                    f.write(
+                        json.dumps(
+                            {
+                                "model": model,
+                                "input_tokens": in_tok,
+                                "output_tokens": out_tok,
+                                "reasoning_tokens": reasoning_tok,
+                                "cost_usd": round(cost, 6),
+                            }
+                        )
+                        + "\n"
+                    )
             except Exception:  # noqa: BLE001 - ledger is best-effort
                 pass
 
@@ -974,8 +987,9 @@ Respond with a JSON array."""
 
         u = getattr(message, "usage", None)
         if u:
-            self._record_usage(model, getattr(u, "input_tokens", 0) or 0,
-                               getattr(u, "output_tokens", 0) or 0)
+            self._record_usage(
+                model, getattr(u, "input_tokens", 0) or 0, getattr(u, "output_tokens", 0) or 0
+            )
         return self._parse_response(getattr(message.content[0], "text", ""))
 
     def converse_with_tools(
@@ -1078,9 +1092,10 @@ Respond with a JSON array."""
         final_text = ""
 
         logger.info(
-            "FrontierLLM: Starting tool-use conversation with %s "
-            "(%d tools, max_iterations=%d)",
-            model, len(anthropic_tools), max_iterations,
+            "FrontierLLM: Starting tool-use conversation with %s " "(%d tools, max_iterations=%d)",
+            model,
+            len(anthropic_tools),
+            max_iterations,
         )
 
         for round_idx in range(max_iterations):
@@ -1106,9 +1121,7 @@ Respond with a JSON array."""
             # Preserve the assistant turn verbatim (tool_use blocks included).
             conversation.append({"role": "assistant", "content": content})
 
-            tool_use_blocks = [
-                b for b in content if getattr(b, "type", None) == "tool_use"
-            ]
+            tool_use_blocks = [b for b in content if getattr(b, "type", None) == "tool_use"]
 
             # Final text: model stopped naturally or emitted no tool calls.
             if getattr(message, "stop_reason", None) == "end_turn" or not tool_use_blocks:
@@ -1184,14 +1197,10 @@ Respond with a JSON array."""
             content = list(getattr(message, "content", []) or [])
             conversation.append({"role": "assistant", "content": content})
             final_text = "".join(
-                getattr(b, "text", "") or ""
-                for b in content
-                if getattr(b, "type", None) == "text"
+                getattr(b, "text", "") or "" for b in content if getattr(b, "type", None) == "text"
             )
         except Exception as e:  # noqa: BLE001 - keep empty final_text on failure
-            logger.warning(
-                "FrontierLLM: forced final answer call failed: %s", e
-            )
+            logger.warning("FrontierLLM: forced final answer call failed: %s", e)
             final_text = ""
         return ConversationResult(
             final_text=final_text,
@@ -1267,9 +1276,10 @@ Respond with a JSON array."""
             extra["seed"] = int(os.environ.get("MIESC_LLM_SEED", "42"))
 
         logger.info(
-            "FrontierLLM: Starting tool-use conversation with %s "
-            "(%d tools, max_iterations=%d)",
-            model, len(openai_tools), max_iterations,
+            "FrontierLLM: Starting tool-use conversation with %s " "(%d tools, max_iterations=%d)",
+            model,
+            len(openai_tools),
+            max_iterations,
         )
 
         for round_idx in range(max_iterations):
@@ -1391,13 +1401,9 @@ Respond with a JSON array."""
                 self._record_usage(model, in_tok, out_tok, reasoning)
             msg = response.choices[0].message
             final_text = getattr(msg, "content", "") or ""
-            conversation.append(
-                {"role": "assistant", "content": final_text}
-            )
+            conversation.append({"role": "assistant", "content": final_text})
         except Exception as e:  # noqa: BLE001 - keep empty final_text on failure
-            logger.warning(
-                "FrontierLLM: forced final answer call failed: %s", e
-            )
+            logger.warning("FrontierLLM: forced final answer call failed: %s", e)
             final_text = ""
         return ConversationResult(
             final_text=final_text,
@@ -1419,7 +1425,9 @@ Respond with a JSON array."""
         ):
             client: Any = openai.OpenAI(
                 base_url="https://api.deepseek.com",
-                api_key=os.environ["DEEPSEEK_API_KEY"], timeout=300)
+                api_key=os.environ["DEEPSEEK_API_KEY"],
+                timeout=300,
+            )
         else:
             client = openai.OpenAI()
 
@@ -1467,8 +1475,12 @@ Respond with a JSON array."""
             details = getattr(u, "completion_tokens_details", None)
             if details:
                 reasoning = getattr(details, "reasoning_tokens", 0) or 0
-            self._record_usage(model, getattr(u, "prompt_tokens", 0) or 0,
-                               getattr(u, "completion_tokens", 0) or 0, reasoning)
+            self._record_usage(
+                model,
+                getattr(u, "prompt_tokens", 0) or 0,
+                getattr(u, "completion_tokens", 0) or 0,
+                reasoning,
+            )
         return self._parse_response(response.choices[0].message.content)
 
     def _ensure_ollama_model(self, model: str) -> bool:

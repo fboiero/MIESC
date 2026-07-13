@@ -20,12 +20,12 @@ Version: 1.0.0
 """
 
 import logging
-import re
 import os
+import re
 import subprocess
 import time
 from pathlib import Path
-from typing import cast, Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 from miesc.core.tool_protocol import (
     ToolAdapter,

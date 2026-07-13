@@ -354,7 +354,12 @@ class MedusaAdapter(ToolAdapter):
 
     def _extract_coverage_metrics(self, output: str) -> Dict[str, Any]:
         """Extract coverage metrics from Medusa output."""
-        metrics: Dict[str, Any] = {"tests_run": 0, "coverage_percentage": 0, "paths_explored": 0, "corpus_size": 0}
+        metrics: Dict[str, Any] = {
+            "tests_run": 0,
+            "coverage_percentage": 0,
+            "paths_explored": 0,
+            "corpus_size": 0,
+        }
 
         try:
             lines = output.split("\n")

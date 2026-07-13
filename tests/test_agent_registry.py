@@ -477,8 +477,9 @@ class TestAgentRegistryLoaderErrors:
 
         f = tmp_path / "x_agent.py"
         f.write_text("# empty\n")
-        monkeypatch.setattr(mod.importlib.util, "spec_from_file_location",
-                            lambda *a, **k: None)  # spec is None (lines 201-203)
+        monkeypatch.setattr(
+            mod.importlib.util, "spec_from_file_location", lambda *a, **k: None
+        )  # spec is None (lines 201-203)
         assert AgentRegistry()._load_agents_from_file(f) == []
 
     def test_discover_directory_handles_load_failure(self, tmp_path, monkeypatch):
@@ -486,7 +487,10 @@ class TestAgentRegistryLoaderErrors:
 
         (tmp_path / "foo_agent.py").write_text("# agent\n")
         reg = AgentRegistry()
-        monkeypatch.setattr(reg, "_load_agents_from_file",
-                            lambda *a, **k: (_ for _ in ()).throw(RuntimeError("boom")))
+        monkeypatch.setattr(
+            reg,
+            "_load_agents_from_file",
+            lambda *a, **k: (_ for _ in ()).throw(RuntimeError("boom")),
+        )
         # exception escapes the inner call -> caught by _discover_from_directory (180-181)
         assert reg._discover_from_directory(tmp_path) == {}

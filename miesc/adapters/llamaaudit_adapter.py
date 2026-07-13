@@ -787,7 +787,9 @@ Respond with ONLY the JSON object. No explanations outside JSON."""
                     depth -= 1
                     if depth == 0:
                         try:
-                            return cast(Optional[Dict[Any, Any]], json.loads(text[start : start + i + 1]))
+                            return cast(
+                                Optional[Dict[Any, Any]], json.loads(text[start : start + i + 1])
+                            )
                         except json.JSONDecodeError:
                             break
 

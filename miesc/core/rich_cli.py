@@ -200,7 +200,9 @@ class MIESCRichCLI:
                 task_name = task["name"]
                 task_id = task_ids[task_name]
 
-                def update_progress(completed: float, description: Optional[str] = None, _tid: Any = task_id) -> None:
+                def update_progress(
+                    completed: float, description: Optional[str] = None, _tid: Any = task_id
+                ) -> None:
                     progress.update(_tid, completed=completed)
                     if description:
                         progress.update(_tid, description=description)

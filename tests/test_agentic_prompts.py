@@ -165,7 +165,7 @@ def test_persona_enum_prompts_mention_hypothesis_fields():
 
 
 def test_persona_enum_prompts_format_with_repo_map():
-    for persona, prompt in PERSONA_ENUM_PROMPTS.items():
+    for prompt in PERSONA_ENUM_PROMPTS.values():
         rendered = prompt.format(repo_map="ContractX: foo(), bar()")
         assert "ContractX: foo(), bar()" in rendered
         assert '{"contract"' in rendered  # embedded JSON braces collapsed
@@ -276,7 +276,14 @@ def test_exploit_draft_prompt_formats_with_all_placeholders():
     # Placeholders were substituted.
     for token in ("C", "src/C.sol", "callers: A.g"):
         assert token in rendered
-    for ph in ("{contract}", "{function}", "{claim}", "{function_body}", "{context}", "{contract_path}"):
+    for ph in (
+        "{contract}",
+        "{function}",
+        "{claim}",
+        "{function_body}",
+        "{context}",
+        "{contract_path}",
+    ):
         assert ph not in rendered
     # It demands a real, compilable Foundry test file.
     assert "forge-std/Test.sol" in rendered

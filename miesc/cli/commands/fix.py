@@ -178,9 +178,7 @@ def _remove_redundant_guard_inheritance(source: str, guard_name: str) -> str:
         if not bases_text:
             continue
         bases = [base.strip() for base in bases_text.split(",")]
-        base_names = [
-            m.group(1) for base in bases if (m := re.match(r"(\w+)", base))
-        ]
+        base_names = [m.group(1) for base in bases if (m := re.match(r"(\w+)", base))]
         if guard_name not in base_names:
             continue
         if not any(base != guard_name and base_has_guard(base) for base in base_names):

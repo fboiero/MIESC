@@ -18,7 +18,7 @@ Integration: Part of MIESC Framework v2.1+
 import os
 import subprocess
 from pathlib import Path
-from typing import cast, Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 from miesc.agents.base_agent import BaseAgent
 

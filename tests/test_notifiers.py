@@ -27,7 +27,6 @@ from click.testing import CliRunner
 from miesc.core import notifiers
 from miesc.core.net_guard import SSRFError, guard_outbound_url, is_url_safe
 
-
 # =============================================================================
 # Helpers
 # =============================================================================
@@ -36,8 +35,12 @@ from miesc.core.net_guard import SSRFError, guard_outbound_url, is_url_safe
 PUBLIC_URL = "https://8.8.8.8/webhook"
 
 
-def _finding(severity="high", type="reentrancy", file="contracts/Bank.sol",
-             message="Reentrancy in withdraw()"):
+def _finding(
+    severity="high",
+    type="reentrancy",
+    file="contracts/Bank.sol",
+    message="Reentrancy in withdraw()",
+):
     return {"severity": severity, "type": type, "file": file, "message": message}
 
 
@@ -149,14 +152,14 @@ class TestSSRFGuard:
     @pytest.mark.parametrize(
         "url",
         [
-            "https://127.0.0.1/hook",          # loopback
-            "http://localhost/hook",           # loopback + plain http
-            "https://10.0.0.5/hook",           # private
-            "https://192.168.1.10/hook",       # private
+            "https://127.0.0.1/hook",  # loopback
+            "http://localhost/hook",  # loopback + plain http
+            "https://10.0.0.5/hook",  # private
+            "https://192.168.1.10/hook",  # private
             "https://169.254.169.254/latest",  # link-local / AWS metadata
             "https://metadata.google.internal/x",  # GCP metadata host
-            "http://8.8.8.8/hook",             # plain http (non-local) rejected
-            "ftp://8.8.8.8/hook",              # bad scheme
+            "http://8.8.8.8/hook",  # plain http (non-local) rejected
+            "ftp://8.8.8.8/hook",  # bad scheme
         ],
     )
     def test_guard_rejects_internal_targets(self, url):
@@ -206,27 +209,21 @@ class TestThresholdGating:
     def test_below_threshold_skips_webhook(self):
         results = _results(_finding(severity="low"))
         with _patch_urlopen() as m:
-            ok = notifiers.notify_webhook(
-                PUBLIC_URL, results, "C.sol", min_severity="high"
-            )
+            ok = notifiers.notify_webhook(PUBLIC_URL, results, "C.sol", min_severity="high")
         assert ok is False
         m.assert_not_called()
 
     def test_below_threshold_skips_slack(self):
         results = _results(_finding(severity="medium"))
         with _patch_urlopen() as m:
-            ok = notifiers.notify_slack(
-                PUBLIC_URL, results, "C.sol", min_severity="critical"
-            )
+            ok = notifiers.notify_slack(PUBLIC_URL, results, "C.sol", min_severity="critical")
         assert ok is False
         m.assert_not_called()
 
     def test_at_threshold_sends(self):
         results = _results(_finding(severity="high"))
         with _patch_urlopen() as m:
-            ok = notifiers.notify_slack(
-                PUBLIC_URL, results, "C.sol", min_severity="high"
-            )
+            ok = notifiers.notify_slack(PUBLIC_URL, results, "C.sol", min_severity="high")
         assert ok is True
         m.assert_called_once()
 
@@ -251,9 +248,7 @@ class TestNetworkErrors:
 
     def test_timeout_does_not_raise(self):
         results = _results(_finding(severity="critical"))
-        with mock.patch.object(
-            notifiers.urllib.request, "urlopen", side_effect=TimeoutError()
-        ):
+        with mock.patch.object(notifiers.urllib.request, "urlopen", side_effect=TimeoutError()):
             ok = notifiers.notify_slack(PUBLIC_URL, results, "C.sol")
         assert ok is False
 

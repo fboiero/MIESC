@@ -1,9 +1,5 @@
 """Compatibility tests for the public miesc.llm package facade."""
 
-import builtins
-import importlib
-import sys
-
 import miesc.llm as public_llm
 import miesc.llm as source_llm
 

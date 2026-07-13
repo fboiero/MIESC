@@ -13,7 +13,7 @@ Repository: https://github.com/Marvinmw/LLM-SmartAudit (Not public yet as of Oct
 import logging
 import os
 import time
-from typing import Optional, Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from miesc.agents.base_agent import BaseAgent
 

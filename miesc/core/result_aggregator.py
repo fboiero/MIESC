@@ -205,7 +205,9 @@ class ResultAggregator:
             # Extraer campos con fallbacks
             severity = self._normalize_severity(raw.get("severity", raw.get("impact", "medium")))
 
-            finding_type = raw.get("type", raw.get("check", raw.get("name", "unknown"))) or "unknown"
+            finding_type = (
+                raw.get("type", raw.get("check", raw.get("name", "unknown"))) or "unknown"
+            )
             message = raw.get("message", raw.get("description", raw.get("title", ""))) or ""
 
             # Ubicación

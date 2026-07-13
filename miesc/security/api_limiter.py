@@ -258,7 +258,9 @@ class APIQuotaManager:
 
             return True
 
-    def record_call(self, model: str, tokens: Optional[int] = None, cost: Optional[float] = None) -> None:
+    def record_call(
+        self, model: str, tokens: Optional[int] = None, cost: Optional[float] = None
+    ) -> None:
         """
         Record an API call for quota tracking.
 

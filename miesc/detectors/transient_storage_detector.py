@@ -31,7 +31,9 @@ _TRANSIENT_VAR_DECL_RE = re.compile(
 )
 _TSTORE_SET_RE = re.compile(r"\btstore\s*\([^,]+,\s*(?:1|true|0x0*1)\s*\)", re.IGNORECASE)
 _TSTORE_CLEAR_RE = re.compile(r"\btstore\s*\([^,]+,\s*(?:0|false|0x0+)\s*\)", re.IGNORECASE)
-_TRANSIENT_KEYWORD_CLEAR_RE = re.compile(r"\bdelete\s+\w+|\b\w+\s*=\s*(?:false|0)\s*;", re.IGNORECASE)
+_TRANSIENT_KEYWORD_CLEAR_RE = re.compile(
+    r"\bdelete\s+\w+|\b\w+\s*=\s*(?:false|0)\s*;", re.IGNORECASE
+)
 _LOW_GAS_RE = re.compile(
     r"\.(?:transfer|send)\s*\(|\bgas\s*:\s*2300\b|\bcall\s*\([^;{)]*,\s*2300\s*,",
     re.IGNORECASE,

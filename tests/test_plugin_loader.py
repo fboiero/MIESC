@@ -696,11 +696,11 @@ from miesc.plugins.loader import PluginLoader as _PL  # noqa: E402
 class TestLoaderExtraBranches:
     def test_version_compatible_branches(self):
         lo = _PL()
-        assert lo._version_compatible("3.0.0", "4.0.0") is False         # below min
+        assert lo._version_compatible("3.0.0", "4.0.0") is False  # below min
         assert lo._version_compatible("5.0.0", "4.0.0", "4.5.0") is False  # above max
-        assert lo._version_compatible("4.2.0", "4.0.0", "4.5.0") is True   # in range
-        assert lo._version_compatible("4.0", "4.0") is True                # 2-part padding
-        assert lo._version_compatible("nope", "4.0.0") is True             # parse error -> True
+        assert lo._version_compatible("4.2.0", "4.0.0", "4.5.0") is True  # in range
+        assert lo._version_compatible("4.0", "4.0") is True  # 2-part padding
+        assert lo._version_compatible("nope", "4.0.0") is True  # parse error -> True
 
     def test_validate_plugin_rejects_non_plugin(self):
         errors = _PL().validate_plugin(object)

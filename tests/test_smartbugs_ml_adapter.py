@@ -22,9 +22,14 @@ def _a(config=None):
 
 def _features(**over):
     base = {
-        "external_calls": 0.0, "state_changes_after_call": 0.0, "has_delegatecall": 0.0,
-        "uses_blockhash": 0.0, "uses_timestamp": 0.0, "has_unchecked_math": 0.0,
-        "has_selfdestruct": 0.0, "has_access_control": 0.0,
+        "external_calls": 0.0,
+        "state_changes_after_call": 0.0,
+        "has_delegatecall": 0.0,
+        "uses_blockhash": 0.0,
+        "uses_timestamp": 0.0,
+        "has_unchecked_math": 0.0,
+        "has_selfdestruct": 0.0,
+        "has_access_control": 0.0,
     }
     base.update(over)
     return base
@@ -107,15 +112,22 @@ def test_inference_reentrancy():
 
 def test_inference_delegatecall_randomness_overflow_selfdestruct():
     a = _a()
-    assert any(f["type"] == "delegatecall"
-               for f in a._run_ml_inference(_features(has_delegatecall=1.0), ""))
-    assert any(f["type"] == "bad_randomness"
-               for f in a._run_ml_inference(_features(uses_blockhash=1.0), ""))
-    assert any(f["type"] == "integer_overflow"
-               for f in a._run_ml_inference(_features(has_unchecked_math=1.0), ""))
-    assert any(f["type"] == "unprotected_selfdestruct"
-               for f in a._run_ml_inference(
-                   _features(has_selfdestruct=1.0, has_access_control=0.0), ""))
+    assert any(
+        f["type"] == "delegatecall"
+        for f in a._run_ml_inference(_features(has_delegatecall=1.0), "")
+    )
+    assert any(
+        f["type"] == "bad_randomness"
+        for f in a._run_ml_inference(_features(uses_blockhash=1.0), "")
+    )
+    assert any(
+        f["type"] == "integer_overflow"
+        for f in a._run_ml_inference(_features(has_unchecked_math=1.0), "")
+    )
+    assert any(
+        f["type"] == "unprotected_selfdestruct"
+        for f in a._run_ml_inference(_features(has_selfdestruct=1.0, has_access_control=0.0), "")
+    )
 
 
 def test_inference_threshold_suppresses_low_confidence():
@@ -163,8 +175,9 @@ def test_analyze_handles_exception(tmp_path, monkeypatch):
     a = _a()
     sol = tmp_path / "C.sol"
     sol.write_text("contract C {}")
-    monkeypatch.setattr(a, "_extract_features",
-                        lambda *args, **k: (_ for _ in ()).throw(RuntimeError("ml boom")))
+    monkeypatch.setattr(
+        a, "_extract_features", lambda *args, **k: (_ for _ in ()).throw(RuntimeError("ml boom"))
+    )
     out = a.analyze(str(sol))
     assert out["success"] is False
     assert "ml boom" in out["error"]

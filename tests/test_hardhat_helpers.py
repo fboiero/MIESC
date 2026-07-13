@@ -19,7 +19,7 @@ class TestParseCompilationOutput:
         assert len(findings) >= 2
         sevs = {f["severity"] for f in findings}
         assert "medium" in sevs  # warning
-        assert "high" in sevs    # error
+        assert "high" in sevs  # error
         assert all(f["file"] == "Token.sol" for f in findings)
 
     def test_no_diagnostics(self):

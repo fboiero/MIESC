@@ -32,9 +32,18 @@ sh = _load("sherlock_scraper")
 class TestParseLocations:
     def test_sha_range(self):
         locs = c4.parse_locations(
-            "github.com/code-423n4/2023-05-ajna/blob/a4f9f6c/contracts/Pool.sol#L393-L406")
-        assert locs == [{"org": "code-423n4", "repo": "2023-05-ajna", "sha": "a4f9f6c",
-                         "path": "contracts/Pool.sol", "lstart": 393, "lend": 406}]
+            "github.com/code-423n4/2023-05-ajna/blob/a4f9f6c/contracts/Pool.sol#L393-L406"
+        )
+        assert locs == [
+            {
+                "org": "code-423n4",
+                "repo": "2023-05-ajna",
+                "sha": "a4f9f6c",
+                "path": "contracts/Pool.sol",
+                "lstart": 393,
+                "lend": 406,
+            }
+        ]
 
     def test_single_line(self):
         locs = c4.parse_locations("https://github.com/foo/bar/blob/abc1234/src/V.sol#L135")
@@ -42,8 +51,7 @@ class TestParseLocations:
 
     def test_branch_ref_and_columns(self):
         # Sherlock pins to a branch (main), and permalinks may carry column suffixes
-        locs = c4.parse_locations(
-            "github.com/sherlock-audit/x/blob/main/src/T.sol#L10C5-L20C30")
+        locs = c4.parse_locations("github.com/sherlock-audit/x/blob/main/src/T.sol#L10C5-L20C30")
         assert locs[0]["sha"] == "main" and locs[0]["lstart"] == 10 and locs[0]["lend"] == 20
 
     def test_no_permalink(self):
@@ -75,7 +83,9 @@ class TestTitleCategory:
         assert c4.title_category("Reentrancy in withdraw()") == "reentrancy"
         assert c4.title_category("Integer overflow in mint") == "arithmetic"
         assert c4.title_category("Missing access control on setOwner") == "access_control"
-        assert c4.title_category("Unchecked return value of transfer") == "unchecked_low_level_calls"
+        assert (
+            c4.title_category("Unchecked return value of transfer") == "unchecked_low_level_calls"
+        )
         assert c4.title_category("Sandwich attack on swap") == "front_running"
 
     def test_unmapped_is_other(self):
@@ -89,7 +99,7 @@ class TestSherlock:
     def test_folder_regex(self):
         assert sh.FOLDER_RE.match("003-H/136-best.md").groups() == ("003", "H", "136-best.md")
         assert sh.FOLDER_RE.match("001-M/168.md").groups() == ("001", "M", "168.md")
-        assert sh.FOLDER_RE.match("003.md") is None        # root summary -> skipped
+        assert sh.FOLDER_RE.match("003.md") is None  # root summary -> skipped
         assert sh.FOLDER_RE.match("005-Low/x.md") is None  # Low -> not [HM]
 
     def test_first_heading_skips_handle_and_severity(self):

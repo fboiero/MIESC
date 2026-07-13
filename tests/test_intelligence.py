@@ -849,27 +849,34 @@ class TestZeroRecallContextFilter:
         assert _passes_zero_recall_context_filter(None, "anything", "anything") is True
 
     def test_commented_match_is_suppressed(self):
-        assert _passes_zero_recall_context_filter(
-            "randomness_context", "// uint x = blockhash(1);", "// uint x = blockhash(1);"
-        ) is False
+        assert (
+            _passes_zero_recall_context_filter(
+                "randomness_context", "// uint x = blockhash(1);", "// uint x = blockhash(1);"
+            )
+            is False
+        )
 
     def test_unknown_filter_fires(self):
-        assert _passes_zero_recall_context_filter(
-            "some_unknown_filter", "code", "code"
-        ) is True
+        assert _passes_zero_recall_context_filter("some_unknown_filter", "code", "code") is True
 
     # --- non_timelock_timestamp ---
     def test_pure_timelock_is_suppressed(self):
         src = "function f() { require(block.timestamp > deadline); }"
-        assert _passes_zero_recall_context_filter(
-            "non_timelock_timestamp", src, "require(block.timestamp > deadline)"
-        ) is False
+        assert (
+            _passes_zero_recall_context_filter(
+                "non_timelock_timestamp", src, "require(block.timestamp > deadline)"
+            )
+            is False
+        )
 
     def test_non_timelock_timestamp_fires(self):
         src = "function f() { uint t = block.timestamp; bet(t); }"
-        assert _passes_zero_recall_context_filter(
-            "non_timelock_timestamp", src, "uint t = block.timestamp;"
-        ) is True
+        assert (
+            _passes_zero_recall_context_filter(
+                "non_timelock_timestamp", src, "uint t = block.timestamp;"
+            )
+            is True
+        )
 
     # --- randomness_context ---
     def test_randomness_keccak_fires(self):
@@ -903,9 +910,12 @@ class TestZeroRecallContextFilter:
 
     def test_non_timelock_skips_commented_timestamp_line(self):
         src = "// legacy: block.timestamp check\nuint t = block.timestamp; bet(t);"
-        assert _passes_zero_recall_context_filter(
-            "non_timelock_timestamp", src, "uint t = block.timestamp;"
-        ) is True
+        assert (
+            _passes_zero_recall_context_filter(
+                "non_timelock_timestamp", src, "uint t = block.timestamp;"
+            )
+            is True
+        )
 
 
 class TestContextAwareFpCheckExtra:

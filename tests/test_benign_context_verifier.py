@@ -29,74 +29,102 @@ def _f(vtype, function="", line=None):
 class TestRecallSafePairs:
     def test_reentrancy_guarded_is_flagged_not_dropped(self):
         # guard PRESENCE is contextual, not proof of benignity -> flag, never drop
-        code = ("pragma solidity ^0.8.0; contract C { mapping(address=>uint) b; bool l;"
-                " modifier nonReentrant(){require(!l);l=true;_;l=false;}"
-                " function withdraw(uint a) external nonReentrant {"
-                ' (bool ok,)=msg.sender.call{value:a}(""); require(ok); b[msg.sender]-=a; } }')
+        code = (
+            "pragma solidity ^0.8.0; contract C { mapping(address=>uint) b; bool l;"
+            " modifier nonReentrant(){require(!l);l=true;_;l=false;}"
+            " function withdraw(uint a) external nonReentrant {"
+            ' (bool ok,)=msg.sender.call{value:a}(""); require(ok); b[msg.sender]-=a; } }'
+        )
         assert V.verify(_f("reentrancy", "withdraw"), code) == "needs_review"
 
     def test_reentrancy_unguarded_is_kept(self):
-        code = ("pragma solidity ^0.8.0; contract C { mapping(address=>uint) b;"
-                " function withdraw(uint a) external {"
-                ' (bool ok,)=msg.sender.call{value:a}(""); require(ok); b[msg.sender]-=a; } }')
+        code = (
+            "pragma solidity ^0.8.0; contract C { mapping(address=>uint) b;"
+            " function withdraw(uint a) external {"
+            ' (bool ok,)=msg.sender.call{value:a}(""); require(ok); b[msg.sender]-=a; } }'
+        )
         assert V.verify(_f("reentrancy", "withdraw"), code) == "confirmed"
 
     def test_reentrancy_cei_is_flagged_not_dropped(self):
         # CEI ordering is contextual (subtle reentrancy can remain) -> flag, never drop
-        code = ("pragma solidity ^0.8.0; contract C { mapping(address=>uint) balances;"
-                " function withdraw(uint a) external { require(balances[msg.sender]>=a);"
-                ' balances[msg.sender]-=a; (bool ok,)=msg.sender.call{value:a}(""); require(ok); } }')
+        code = (
+            "pragma solidity ^0.8.0; contract C { mapping(address=>uint) balances;"
+            " function withdraw(uint a) external { require(balances[msg.sender]>=a);"
+            ' balances[msg.sender]-=a; (bool ok,)=msg.sender.call{value:a}(""); require(ok); } }'
+        )
         assert V.verify(_f("reentrancy", "withdraw"), code) == "needs_review"
 
     def test_access_onlyowner_is_flagged_not_dropped(self):
         # onlyOwner presence is contextual (owner-rug) -> flag, never drop
-        code = ("pragma solidity ^0.8.0; contract C { address owner;"
-                " modifier onlyOwner(){require(msg.sender==owner);_;}"
-                " function setOwner(address n) external onlyOwner { owner=n; } }")
+        code = (
+            "pragma solidity ^0.8.0; contract C { address owner;"
+            " modifier onlyOwner(){require(msg.sender==owner);_;}"
+            " function setOwner(address n) external onlyOwner { owner=n; } }"
+        )
         assert V.verify(_f("access_control", "setOwner"), code) == "needs_review"
 
     def test_access_unprotected_is_kept(self):
-        code = ("pragma solidity ^0.8.0; contract C { address owner;"
-                " function setOwner(address n) external { owner=n; } }")
+        code = (
+            "pragma solidity ^0.8.0; contract C { address owner;"
+            " function setOwner(address n) external { owner=n; } }"
+        )
         assert V.verify(_f("access_control", "setOwner"), code) == "confirmed"
 
     def test_arithmetic_solidity08_is_dropped(self):
-        code = ("pragma solidity ^0.8.0; contract C { mapping(address=>uint) b;"
-                " function add(uint a) public { b[msg.sender]+=a; } }")
+        code = (
+            "pragma solidity ^0.8.0; contract C { mapping(address=>uint) b;"
+            " function add(uint a) public { b[msg.sender]+=a; } }"
+        )
         assert V.verify(_f("arithmetic", "add"), code) == "false_positive"
 
     def test_arithmetic_solidity04_is_kept(self):
-        code = ("pragma solidity ^0.4.24; contract C { mapping(address=>uint) b;"
-                " function add(uint a) public { b[msg.sender]+=a; } }")
+        code = (
+            "pragma solidity ^0.4.24; contract C { mapping(address=>uint) b;"
+            " function add(uint a) public { b[msg.sender]+=a; } }"
+        )
         assert V.verify(_f("arithmetic", "add"), code) == "confirmed"
 
     def test_rounding_on_solidity08_is_kept(self):
         # 0.8 guards overflow/underflow but NOT precision/rounding -> must NOT drop
-        code = ("pragma solidity ^0.8.0; contract C { uint s;"
-                " function f(uint a, uint b, uint c) public { s = a * b / c; } }")
-        finding = {"type": "arithmetic", "title": "rounding_error_division",
-                   "location": {"function": "f"}, "severity": "medium"}
+        code = (
+            "pragma solidity ^0.8.0; contract C { uint s;"
+            " function f(uint a, uint b, uint c) public { s = a * b / c; } }"
+        )
+        finding = {
+            "type": "arithmetic",
+            "title": "rounding_error_division",
+            "location": {"function": "f"},
+            "severity": "medium",
+        }
         assert V.verify(finding, code) != "false_positive"
 
     def test_unchecked_call_discarded_is_kept(self):
-        code = ("pragma solidity ^0.8.0; contract C {"
-                ' function pay(address a) external { a.call{value:1}(""); } }')
+        code = (
+            "pragma solidity ^0.8.0; contract C {"
+            ' function pay(address a) external { a.call{value:1}(""); } }'
+        )
         assert V.verify(_f("unchecked_low_level_calls", "pay"), code) == "confirmed"
 
     def test_unchecked_call_checked_is_dropped(self):
-        code = ("pragma solidity ^0.8.0; contract C {"
-                ' function pay(address a) external { (bool ok,)=a.call{value:1}(""); require(ok); } }')
+        code = (
+            "pragma solidity ^0.8.0; contract C {"
+            ' function pay(address a) external { (bool ok,)=a.call{value:1}(""); require(ok); } }'
+        )
         assert V.verify(_f("unchecked_low_level_calls", "pay"), code) == "false_positive"
 
     def test_timestamp_timelock_is_flagged_not_dropped(self):
         # timestamp gate is contextual (miner skew can still matter) -> flag, never drop
-        code = ("pragma solidity ^0.8.0; contract C { uint t;"
-                ' function unlock() external { require(block.timestamp>=t,"locked"); } }')
+        code = (
+            "pragma solidity ^0.8.0; contract C { uint t;"
+            ' function unlock() external { require(block.timestamp>=t,"locked"); } }'
+        )
         assert V.verify(_f("time_manipulation", "unlock"), code) == "needs_review"
 
     def test_timestamp_entropy_is_kept(self):
-        code = ("pragma solidity ^0.8.0; contract C {"
-                " function pick(uint n) public view returns(uint){ return block.timestamp % n; } }")
+        code = (
+            "pragma solidity ^0.8.0; contract C {"
+            " function pick(uint n) public view returns(uint){ return block.timestamp % n; } }"
+        )
         assert V.verify(_f("time_manipulation", "pick"), code) == "confirmed"
 
     def test_informational_lint_is_dropped(self):
@@ -142,8 +170,10 @@ class TestNeverDropOnWeakSignal:
         assert V.verify(_f("reentrancy", "doesNotExist"), code) == "needs_review"
 
     def test_unknown_function_no_line_does_not_falsely_drop_real(self):
-        code = ("pragma solidity ^0.8.0; contract C { mapping(address=>uint) b;"
-                ' function open(uint a) external { (bool ok,)=msg.sender.call{value:a}(""); b[msg.sender]-=a; } }')
+        code = (
+            "pragma solidity ^0.8.0; contract C { mapping(address=>uint) b;"
+            ' function open(uint a) external { (bool ok,)=msg.sender.call{value:a}(""); b[msg.sender]-=a; } }'
+        )
         # no scope info + no benign signal -> must not be dropped
         assert V.verify(_f("reentrancy", "unknown"), code) != "false_positive"
 
@@ -165,10 +195,21 @@ class TestApplyToResults:
             ' (bool ok,)=msg.sender.call{value:a}(""); require(ok); b[msg.sender]-=a; } }'
         )
         results = [
-            {"tool": "t", "findings": [
-                {"type": "unchecked_low_level_calls", "location": {"function": "pay"}, "file": str(checked)},
-                {"type": "reentrancy", "location": {"function": "withdraw"}, "file": str(openf)},
-            ]},
+            {
+                "tool": "t",
+                "findings": [
+                    {
+                        "type": "unchecked_low_level_calls",
+                        "location": {"function": "pay"},
+                        "file": str(checked),
+                    },
+                    {
+                        "type": "reentrancy",
+                        "location": {"function": "withdraw"},
+                        "file": str(openf),
+                    },
+                ],
+            },
         ]
         dropped, flagged = apply_to_results(results)
         kept = results[0]["findings"]
@@ -182,16 +223,28 @@ class TestApplyToResults:
             " modifier nonReentrant(){require(!l);l=true;_;l=false;}"
             ' function withdraw() external nonReentrant { msg.sender.call{value:1}(""); } }'
         )
-        results = [{"tool": "t", "findings": [
-            {"type": "reentrancy", "location": {"function": "withdraw"}, "file": str(guarded)}]}]
+        results = [
+            {
+                "tool": "t",
+                "findings": [
+                    {
+                        "type": "reentrancy",
+                        "location": {"function": "withdraw"},
+                        "file": str(guarded),
+                    }
+                ],
+            }
+        ]
         dropped, flagged = apply_to_results(results)
         assert dropped == 0 and flagged == 1  # guard PRESENCE -> flagged, never dropped
         assert len(results[0]["findings"]) == 1  # finding retained
 
     def test_match_benign_returns_pattern_for_guarded(self):
-        code = ("pragma solidity ^0.8.0; contract C { bool l;"
-                " modifier nonReentrant(){require(!l);l=true;_;l=false;}"
-                ' function w() external nonReentrant { msg.sender.call{value:1}(""); } }')
+        code = (
+            "pragma solidity ^0.8.0; contract C { bool l;"
+            " modifier nonReentrant(){require(!l);l=true;_;l=false;}"
+            ' function w() external nonReentrant { msg.sender.call{value:1}(""); } }'
+        )
         p = match_benign({"type": "reentrancy", "location": {"function": "w"}}, code, V.patterns)
         assert p is not None and "REENTRANCY" in p["id"]
 
@@ -199,7 +252,9 @@ class TestApplyToResults:
         # model=None must never attempt an LLM query
         assert V.model is None
         v = BenignContextVerifier()
-        assert v._llm_false_positive({"type": "reentrancy", "function": "x"}, "contract C {}") is False
+        assert (
+            v._llm_false_positive({"type": "reentrancy", "function": "x"}, "contract C {}") is False
+        )
 
 
 # --------------------------------------------------------------------------- #
@@ -211,23 +266,29 @@ class TestLLMNeverDrops:
         v = BenignContextVerifier(model="dummy")
         v._llm_false_positive = lambda finding, code: True  # force max-aggressive LLM
         # real unchecked send (the exact pattern the LLM wrongly dropped) with NO benign rule
-        code = ("pragma solidity ^0.4.24; contract C { address owner;"
-                " function flush() public { owner.send(this.balance); } }")
+        code = (
+            "pragma solidity ^0.4.24; contract C { address owner;"
+            " function flush() public { owner.send(this.balance); } }"
+        )
         assert v.verify(_f("unchecked_low_level_calls", "flush"), code) == "needs_review"
 
     def test_llm_cannot_drop_real_timestamp_vuln(self):
         v = BenignContextVerifier(model="dummy")
         v._llm_false_positive = lambda finding, code: True
-        code = ("pragma solidity ^0.4.24; contract C { uint start;"
-                " function buy() public { if (now < start) throw; } }")
+        code = (
+            "pragma solidity ^0.4.24; contract C { uint start;"
+            " function buy() public { if (now < start) throw; } }"
+        )
         assert v.verify(_f("time_manipulation", "buy"), code) != "false_positive"
 
     def test_rule_benign_still_drops_even_with_llm_off(self):
         # the deterministic rule path is the ONLY drop path and must still work
         v = BenignContextVerifier(model="dummy")
         v._llm_false_positive = lambda finding, code: False
-        code = ("pragma solidity ^0.8.0; contract C { mapping(address=>uint) b;"
-                " function add(uint a) public { b[msg.sender]+=a; } }")
+        code = (
+            "pragma solidity ^0.8.0; contract C { mapping(address=>uint) b;"
+            " function add(uint a) public { b[msg.sender]+=a; } }"
+        )
         assert v.verify(_f("arithmetic", "add"), code) == "false_positive"
 
 
@@ -240,8 +301,13 @@ class TestDeterministicAdditions:
 
     def test_missing_event_emission_is_dropped(self):
         # missing event is informational (not in DASP/SWC exploit taxonomy) -> drop
-        code = "pragma solidity ^0.8.0; contract C { uint v; function set(uint x) public { v = x; } }"
-        assert V.verify(self._f("missing_event_emission", "missing_event_emission"), code) == "false_positive"
+        code = (
+            "pragma solidity ^0.8.0; contract C { uint v; function set(uint x) public { v = x; } }"
+        )
+        assert (
+            V.verify(self._f("missing_event_emission", "missing_event_emission"), code)
+            == "false_positive"
+        )
 
     def test_constructor_mismatch_modern_is_dropped(self):
         # SWC-118 impossible on >=0.5 -> compiler-guaranteed benign
@@ -250,8 +316,10 @@ class TestDeterministicAdditions:
 
     def test_constructor_mismatch_legacy_is_kept(self):
         # on <0.5 the wrong-constructor-name vuln is REAL -> must NOT drop
-        code = ("pragma solidity ^0.4.24; contract C { address owner;"
-                " function C() public { owner = msg.sender; } }")
+        code = (
+            "pragma solidity ^0.4.24; contract C { address owner;"
+            " function C() public { owner = msg.sender; } }"
+        )
         assert V.verify(self._f("access_control", "constructor_mismatch"), code) != "false_positive"
 
 
@@ -259,17 +327,19 @@ class TestDeterministicAdditions:
 # filter() — the public kept/dropped/flagged splitter
 # --------------------------------------------------------------------------- #
 class TestFilterSplit:
-    CODE = ("pragma solidity ^0.8.0; contract C { bool l;"
-            " modifier nonReentrant(){require(!l);l=true;_;l=false;}"
-            ' function g() external nonReentrant { msg.sender.call{value:1}(""); }'
-            ' function o() external { msg.sender.call{value:1}(""); }'
-            " function add(uint a) public { uint b = a + 1; } }")
+    CODE = (
+        "pragma solidity ^0.8.0; contract C { bool l;"
+        " modifier nonReentrant(){require(!l);l=true;_;l=false;}"
+        ' function g() external nonReentrant { msg.sender.call{value:1}(""); }'
+        ' function o() external { msg.sender.call{value:1}(""); }'
+        " function add(uint a) public { uint b = a + 1; } }"
+    )
 
     def test_splits_dropped_flagged_confirmed(self):
         findings = [
-            {"type": "arithmetic", "location": {"function": "add"}},     # 0.8 -> dropped
-            {"type": "reentrancy", "location": {"function": "g"}},       # guard -> flagged
-            {"type": "reentrancy", "location": {"function": "o"}},       # unguarded -> confirmed
+            {"type": "arithmetic", "location": {"function": "add"}},  # 0.8 -> dropped
+            {"type": "reentrancy", "location": {"function": "g"}},  # guard -> flagged
+            {"type": "reentrancy", "location": {"function": "o"}},  # unguarded -> confirmed
         ]
         out = V.filter(findings, self.CODE)
         assert len(out["dropped"]) == 1
@@ -286,9 +356,13 @@ class TestLLMQueryParsing:
     def test_parses_true_and_handles_no_json(self, monkeypatch):
         v = BenignContextVerifier(model="dummy")
         monkeypatch.setattr(v, "_query", lambda prompt: '{"false_positive": true}')
-        assert v._llm_false_positive({"type": "reentrancy", "function": "x"}, "contract C{}") is True
+        assert (
+            v._llm_false_positive({"type": "reentrancy", "function": "x"}, "contract C{}") is True
+        )
         monkeypatch.setattr(v, "_query", lambda prompt: "no json here")
-        assert v._llm_false_positive({"type": "reentrancy", "function": "x"}, "contract C{}") is False
+        assert (
+            v._llm_false_positive({"type": "reentrancy", "function": "x"}, "contract C{}") is False
+        )
 
 
 # --------------------------------------------------------------------------- #
@@ -297,18 +371,21 @@ class TestLLMQueryParsing:
 # --------------------------------------------------------------------------- #
 class TestUncheckedCallLineScoping:
     CODE = (
-        "pragma solidity ^0.8.0;\n"      # 1
-        "contract C {\n"                  # 2
-        "  function f(address t) external {\n"          # 3
-        '    t.call{value:1}("");\n'                     # 4  <- unchecked call (REAL)
-        "    payable(msg.sender).transfer(1);\n"        # 5  <- a .transfer elsewhere
-        "  }\n"                            # 6
-        "}\n"                             # 7
+        "pragma solidity ^0.8.0;\n"  # 1
+        "contract C {\n"  # 2
+        "  function f(address t) external {\n"  # 3
+        '    t.call{value:1}("");\n'  # 4  <- unchecked call (REAL)
+        "    payable(msg.sender).transfer(1);\n"  # 5  <- a .transfer elsewhere
+        "  }\n"  # 6
+        "}\n"  # 7
     )
 
     def _f(self, title, line):
-        return {"type": "unchecked_low_level_calls", "title": title,
-                "location": {"function": "unknown", "line": line}}
+        return {
+            "type": "unchecked_low_level_calls",
+            "title": title,
+            "location": {"function": "unknown", "line": line},
+        }
 
     def test_unchecked_call_not_dropped_when_transfer_elsewhere(self):
         # the .call() on line 4 is real; a .transfer() on line 5 must NOT make it benign
@@ -321,15 +398,20 @@ class TestUncheckedCallLineScoping:
     def test_erc20_two_arg_transfer_is_kept(self):
         # ERC20 token.transfer(to, amount) returns bool and may fail silently (SWC-104) ->
         # NOT benign even though it's a ".transfer(" call
-        code = ("pragma solidity ^0.8.0;\n"
-                "contract C {\n"
-                "  function w(address to, uint a) external {\n"
-                "    token.transfer(to, a);\n"   # line 4: ERC20 2-arg -> real
-                "  }\n"
-                "  function token() internal returns (C) { return this; }\n"
-                "}\n")
-        f = {"type": "unchecked_low_level_calls", "title": "erc20_return_check",
-             "location": {"function": "unknown", "line": 4}}
+        code = (
+            "pragma solidity ^0.8.0;\n"
+            "contract C {\n"
+            "  function w(address to, uint a) external {\n"
+            "    token.transfer(to, a);\n"  # line 4: ERC20 2-arg -> real
+            "  }\n"
+            "  function token() internal returns (C) { return this; }\n"
+            "}\n"
+        )
+        f = {
+            "type": "unchecked_low_level_calls",
+            "title": "erc20_return_check",
+            "location": {"function": "unknown", "line": 4},
+        }
         assert V.verify(f, code) != "false_positive"
 
 
@@ -367,30 +449,34 @@ class _Resp:
 class TestQueryTransport:
     def test_ollama_success(self, monkeypatch):
         v = BenignContextVerifier(model="llama3")
-        monkeypatch.setattr(_urlreq, "urlopen",
-                            lambda *a, **k: _Resp(_json.dumps({"response": "ok"}).encode()))
+        monkeypatch.setattr(
+            _urlreq, "urlopen", lambda *a, **k: _Resp(_json.dumps({"response": "ok"}).encode())
+        )
         assert v._query("p") == "ok"
 
     def test_ollama_fail_no_key_returns_empty(self, monkeypatch):
         v = BenignContextVerifier(model="llama3")
         monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
-        monkeypatch.setattr(_urlreq, "urlopen",
-                            lambda *a, **k: (_ for _ in ()).throw(OSError("ollama down")))
+        monkeypatch.setattr(
+            _urlreq, "urlopen", lambda *a, **k: (_ for _ in ()).throw(OSError("ollama down"))
+        )
         assert v._query("p") == ""
 
     def test_deepseek_success(self, monkeypatch):
         v = BenignContextVerifier(model="deepseek")  # skips ollama branch
         monkeypatch.setenv("DEEPSEEK_API_KEY", "k")
         payload = {"choices": [{"message": {"content": "ds-answer"}}]}
-        monkeypatch.setattr(_urlreq, "urlopen",
-                            lambda *a, **k: _Resp(_json.dumps(payload).encode()))
+        monkeypatch.setattr(
+            _urlreq, "urlopen", lambda *a, **k: _Resp(_json.dumps(payload).encode())
+        )
         assert v._query("p") == "ds-answer"
 
     def test_deepseek_failure_returns_empty(self, monkeypatch):
         v = BenignContextVerifier(model="deepseek")
         monkeypatch.setenv("DEEPSEEK_API_KEY", "k")
-        monkeypatch.setattr(_urlreq, "urlopen",
-                            lambda *a, **k: (_ for _ in ()).throw(OSError("ds down")))
+        monkeypatch.setattr(
+            _urlreq, "urlopen", lambda *a, **k: (_ for _ in ()).throw(OSError("ds down"))
+        )
         assert v._query("p") == ""
 
     def test_no_model_no_key_returns_empty(self, monkeypatch):
@@ -424,15 +510,18 @@ class TestMatchBenignExtraBranches:
 
     def test_safeerc20_transfer(self):
         f = {"type": "unchecked-transfer", "function": "pay", "line": 2}
-        code = ("contract C {\n  function pay() external {\n"
-                "    token.safeTransfer(to, amt);\n  }\n}")
+        code = (
+            "contract C {\n  function pay() external {\n" "    token.safeTransfer(to, amt);\n  }\n}"
+        )
         # should resolve a benign match (SAFEERC20) without raising
         match_benign(f, code, self._patterns())
 
     def test_commit_reveal_frontrunning(self):
         f = {"type": "front-running", "function": "bid", "line": 2}
-        code = ("contract C {\n  function bid(bytes32 c) external {\n"
-                "    commits[msg.sender] = keccak256(abi.encode(c));\n  }\n}")
+        code = (
+            "contract C {\n  function bid(bytes32 c) external {\n"
+            "    commits[msg.sender] = keccak256(abi.encode(c));\n  }\n}"
+        )
         match_benign(f, code, self._patterns())
 
     def test_short_address_deprecated_pragma(self):
@@ -444,9 +533,14 @@ class TestMatchBenignExtraBranches:
 def test_apply_to_results_in_place(tmp_path):
     sol = tmp_path / "C.sol"
     sol.write_text("contract C { function w() external { msg.sender.call{value:1}(''); } }")
-    results = [{"tool": "t", "findings": [
-        {"type": "reentrancy", "function": "w", "line": 1, "file": str(sol)},
-    ]}]
+    results = [
+        {
+            "tool": "t",
+            "findings": [
+                {"type": "reentrancy", "function": "w", "line": 1, "file": str(sol)},
+            ],
+        }
+    ]
     dropped, flagged = apply_to_results(results, model=None)
     assert isinstance(dropped, int) and isinstance(flagged, int)
     # recall-safe: each finding gets a verdict; the real reentrancy is kept
@@ -454,7 +548,12 @@ def test_apply_to_results_in_place(tmp_path):
 
 
 def test_apply_to_results_missing_file_uses_empty_code():
-    results = [{"tool": "t", "contract": "/nonexistent/C.sol",
-                "findings": [{"type": "reentrancy", "function": "w", "line": 1}]}]
+    results = [
+        {
+            "tool": "t",
+            "contract": "/nonexistent/C.sol",
+            "findings": [{"type": "reentrancy", "function": "w", "line": 1}],
+        }
+    ]
     dropped, flagged = apply_to_results(results, model=None)
     assert dropped >= 0 and flagged >= 0

@@ -27,7 +27,7 @@ import logging
 import time
 import urllib.error
 import urllib.request
-from typing import cast, Any, Dict, Optional
+from typing import Any, Dict, Optional, cast
 
 logger = logging.getLogger(__name__)
 

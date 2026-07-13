@@ -70,9 +70,7 @@ def repo() -> Iterator[RepoCallGraph]:
         # A test file that MUST be skipped by the scope/skip rules.
         tests = root / "tests"
         tests.mkdir()
-        (tests / "BankTest.sol").write_text(
-            "contract BankTest { function noop() public {} }"
-        )
+        (tests / "BankTest.sol").write_text("contract BankTest { function noop() public {} }")
         yield RepoCallGraph.build(root)
     finally:
         shutil.rmtree(root, ignore_errors=True)

@@ -117,7 +117,9 @@ class PolicyAgent(BaseAgent):
             self.documentation_analyzer: Optional[DocumentationAnalyzer] = DocumentationAnalyzer()
             self.testing_analyzer: Optional[TestingAnalyzer] = TestingAnalyzer()
             self.maturity_analyzer: Optional[MaturityAnalyzer] = MaturityAnalyzer()
-            self.security_practices_analyzer: Optional[SecurityPracticesAnalyzer] = SecurityPracticesAnalyzer()
+            self.security_practices_analyzer: Optional[SecurityPracticesAnalyzer] = (
+                SecurityPracticesAnalyzer()
+            )
             logger.info("Layer 7 analyzers initialized successfully")
         except Exception as e:
             logger.warning(f"Layer 7 analyzers initialization failed: {e}")
@@ -1693,7 +1695,10 @@ class PolicyAgent(BaseAgent):
         return recommendations[:10]  # Limit to top 10 most important
 
     def _comprehensive_audit_readiness_assessment(
-        self, findings: List[Dict[str, Any]], contract_path: Optional[str] = None, project_root: Optional[str] = None
+        self,
+        findings: List[Dict[str, Any]],
+        contract_path: Optional[str] = None,
+        project_root: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         [LAYER 7 - AUDIT READINESS - COMPREHENSIVE]

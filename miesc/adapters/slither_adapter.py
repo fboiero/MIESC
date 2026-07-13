@@ -44,11 +44,7 @@ def incomplete_functions_from_stderr(stderr: Optional[str]) -> List[str]:
     """
     if not stderr:
         return []
-    return [
-        line.strip()
-        for line in stderr.splitlines()
-        if _SLITHER_IR_FAILURE_MARKER in line
-    ]
+    return [line.strip() for line in stderr.splitlines() if _SLITHER_IR_FAILURE_MARKER in line]
 
 
 def _find_slither_binary() -> str:
@@ -816,7 +812,9 @@ auto_detect_solc = false
         for item in artifacts.iterdir():
             match = re.fullmatch(r"solc-(\d+)\.(\d+)\.(\d+)", item.name)
             if match:
-                versions.append(cast(Tuple[int, int, int], tuple(int(part) for part in match.groups())))
+                versions.append(
+                    cast(Tuple[int, int, int], tuple(int(part) for part in match.groups()))
+                )
         return sorted(versions)
 
     def _parse_pragma_constraints(self, pragma: str) -> List[Tuple[str, Tuple[int, int, int]]]:
@@ -824,7 +822,9 @@ auto_detect_solc = false
         constraints: List[Tuple[str, Tuple[int, int, int]]] = []
         for raw_op, version_text in re.findall(r"(\^|~|>=|<=|>|<|=)?\s*(\d+\.\d+\.\d+)", pragma):
             op = raw_op or "="
-            version = cast(Tuple[int, int, int], tuple(int(part) for part in version_text.split(".")))
+            version = cast(
+                Tuple[int, int, int], tuple(int(part) for part in version_text.split("."))
+            )
 
             if op == "^":
                 constraints.append((">=", version))

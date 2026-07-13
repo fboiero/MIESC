@@ -34,16 +34,14 @@ def test_deep_audit_extracts_agentic_invariant_metadata_locally():
 
 def test_deep_audit_agentic_invariants_are_metadata_only(monkeypatch, tmp_path):
     contract = tmp_path / "Vault.sol"
-    contract.write_text(
-        """
+    contract.write_text("""
         pragma solidity ^0.8.20;
         contract Vault {
             uint256 public totalSupply;
             uint256 public totalAssets;
             function deposit(uint256 amount) external {}
         }
-        """
-    )
+        """)
     finding = {"id": "static-1", "severity": "HIGH", "type": "reentrancy"}
     agent = DeepAuditAgent(
         DeepAuditConfig(

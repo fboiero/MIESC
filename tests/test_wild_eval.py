@@ -12,7 +12,8 @@ import sys
 _SCRIPTS = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "scripts")
 sys.path.insert(0, _SCRIPTS)
 _SPEC = importlib.util.spec_from_file_location(
-    "wild_benign_context_eval", os.path.join(_SCRIPTS, "wild_benign_context_eval.py"))
+    "wild_benign_context_eval", os.path.join(_SCRIPTS, "wild_benign_context_eval.py")
+)
 w = importlib.util.module_from_spec(_SPEC)
 _SPEC.loader.exec_module(w)
 
@@ -21,8 +22,10 @@ _SPEC.loader.exec_module(w)
 # anchored_real: a finding is REAL iff category + line match an annotated vuln
 # --------------------------------------------------------------------------- #
 class TestAnchoredReal:
-    VULNS = [{"category": "reentrancy", "lines": [10, 11]},
-             {"category": "access_control", "lines": []}]
+    VULNS = [
+        {"category": "reentrancy", "lines": [10, 11]},
+        {"category": "access_control", "lines": []},
+    ]
 
     def test_exact_line_match(self):
         assert w.anchored_real({"type": "reentrancy", "line": 10}, self.VULNS) is True
@@ -65,10 +68,17 @@ class TestNormMiesc:
 # --------------------------------------------------------------------------- #
 def test_load_ground_truth_splits_vuln_and_clean(tmp_path):
     gt = tmp_path / "vulnerabilities.json"
-    gt.write_text(json.dumps([
-        {"path": "dir/Vuln.sol", "vulnerabilities": [{"category": "reentrancy", "lines": [5]}]},
-        {"path": "dir/Clean.sol", "vulnerabilities": [], "clean": True},
-    ]))
+    gt.write_text(
+        json.dumps(
+            [
+                {
+                    "path": "dir/Vuln.sol",
+                    "vulnerabilities": [{"category": "reentrancy", "lines": [5]}],
+                },
+                {"path": "dir/Clean.sol", "vulnerabilities": [], "clean": True},
+            ]
+        )
+    )
     vuln_idx, clean = w.load_ground_truth(str(gt))
     assert "Vuln.sol" in vuln_idx
     assert vuln_idx["Vuln.sol"][0]["category"] == "reentrancy"

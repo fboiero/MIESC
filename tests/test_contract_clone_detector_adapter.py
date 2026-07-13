@@ -18,6 +18,7 @@ def test_register_adapter():
     assert reg["adapter_class"] is ContractCloneDetectorAdapter
     assert reg["metadata"]["name"] == "contract_clone_detector"
 
+
 CONTRACT = (
     "// SPDX-License-Identifier: MIT\n"
     "pragma solidity ^0.8.0;\n"
@@ -50,7 +51,9 @@ def test_metadata_availability_check():
 def test_init_defaults_and_config():
     assert _a().similarity_threshold == 0.85
     assert _a().check_malicious_db is True
-    custom = _a({"similarity_threshold": 0.5, "check_malicious_db": False, "methods": ["token_based"]})
+    custom = _a(
+        {"similarity_threshold": 0.5, "check_malicious_db": False, "methods": ["token_based"]}
+    )
     assert custom.similarity_threshold == 0.5
     assert custom.check_malicious_db is False
     assert custom.methods == ["token_based"]

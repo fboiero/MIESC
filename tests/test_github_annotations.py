@@ -26,14 +26,18 @@ from click.testing import CliRunner
 from miesc.core.baseline import generate_baseline
 from miesc.core.exporters import Finding, GitHubAnnotationsExporter, ReportExporter
 
-
 # =============================================================================
 # Helpers
 # =============================================================================
 
 
-def _finding(rule="reentrancy", severity="high", file="contracts/Bank.sol",
-             line=15, message="Reentrancy in withdraw()"):
+def _finding(
+    rule="reentrancy",
+    severity="high",
+    file="contracts/Bank.sol",
+    line=15,
+    message="Reentrancy in withdraw()",
+):
     """A dict-shaped finding with a nested location (tool-native shape)."""
     return {
         "type": rule,
@@ -107,8 +111,12 @@ class TestFormat:
     def test_supports_dataclass_finding(self):
         exp = GitHubAnnotationsExporter()
         f = Finding(
-            id="F1", type="unchecked_call", severity="medium", title="t",
-            description="unchecked external call", file_path="contracts/T.sol",
+            id="F1",
+            type="unchecked_call",
+            severity="medium",
+            title="t",
+            description="unchecked external call",
+            file_path="contracts/T.sol",
             line_start=7,
         )
         level, props, message = _parse(exp.to_github_annotations([f])[0])
@@ -267,8 +275,13 @@ class TestDispatcher:
     def test_export_all_still_five_formats(self, tmp_path):
         # github must NOT leak into export_all's fixed format set.
         f = Finding(
-            id="F1", type="reentrancy", severity="high", title="t",
-            description="d", file_path="C.sol", line_start=1,
+            id="F1",
+            type="reentrancy",
+            severity="high",
+            title="t",
+            description="d",
+            file_path="C.sol",
+            line_start=1,
         )
         results = ReportExporter().export_all([f], str(tmp_path))
         assert set(results) == {"sarif", "sonarqube", "checkmarx", "markdown", "json"}
@@ -311,9 +324,7 @@ class TestCliWiring:
         generate_baseline([_finding(rule="a")]).save(base)
         results = _write_results(tmp_path / "r.json", [_finding(rule="a"), _finding(rule="b")])
 
-        result = CliRunner().invoke(
-            export, ["-f", "github", str(results), "--baseline", str(base)]
-        )
+        result = CliRunner().invoke(export, ["-f", "github", str(results), "--baseline", str(base)])
         assert result.exit_code == 0, result.output
         annotation_lines = [ln for ln in result.output.splitlines() if ln.startswith("::")]
         assert len(annotation_lines) == 1

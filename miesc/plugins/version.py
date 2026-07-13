@@ -197,8 +197,7 @@ def check_api_compatibility(
         plugin_api_version=plugin_api_version,
         host_api_version=host_api_version,
         message=(
-            f"Plugin API v{plugin_api_version} is compatible with host "
-            f"v{host_api_version}."
+            f"Plugin API v{plugin_api_version} is compatible with host " f"v{host_api_version}."
         ),
     )
 

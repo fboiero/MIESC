@@ -1044,18 +1044,18 @@ def test_arithmetic_skip_conditions():
         "    uint counter; uint idx; uint num; uint length; uint size; uint index;\n"
         "    function f() public {\n"
         "        uint a; uint b; uint n;\n"
-        "        x = arr[i + 1];\n"            # array indexing skip
-        "        string memory s = a + b;\n"   # string skip
-        "        require(a + b > 0);\n"        # require/assert skip
-        "        assert(a - b < n);\n"         # assert skip
+        "        x = arr[i + 1];\n"  # array indexing skip
+        "        string memory s = a + b;\n"  # string skip
+        "        require(a + b > 0);\n"  # require/assert skip
+        "        assert(a - b < n);\n"  # assert skip
         "        for (uint i = 0; i < n; i++) { y = i + 1; }\n"  # i++ / i = i + 1
-        "        ++i;\n"                        # ++i
-        "        i += 1;\n"                     # i += 1
+        "        ++i;\n"  # ++i
+        "        i += 1;\n"  # i += 1
         "        for (uint j = n; j > 0; j--) { z = j - 1; }\n"  # j-- / j -= 1
         "        --j;\n"
         "        j -= 1;\n"
-        "        counter += 1;\n"               # counter += 1 (counter var)
-        "        idx = idx + 1;\n"              # idx = idx + 1
+        "        counter += 1;\n"  # counter += 1 (counter var)
+        "        idx = idx + 1;\n"  # idx = idx + 1
         "        length -= 1;\n"
         "        size = size + 1;\n"
         "        index += 1;\n"
@@ -1063,12 +1063,11 @@ def test_arithmetic_skip_conditions():
         "        i = i + 1;\n"
         "        k++;\n"
         "        a + b;\n"
-
         "    }\n"
         "    function g() public view returns (uint) { uint a; uint b; return a + b; }\n"  # view skip
         "    function h() public pure returns (uint) { uint a; uint b; return a * b; }\n"  # pure skip
-        "    uint constant Z = 1 + 2;\n"        # constant skip
-        "    uint immutable W = 3 + 4;\n"       # immutable skip
+        "    uint constant Z = 1 + 2;\n"  # constant skip
+        "    uint immutable W = 3 + 4;\n"  # immutable skip
         "}\n"
     )
     findings = SmartBugsDetectorEngine().analyze(src)

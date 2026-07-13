@@ -17,7 +17,7 @@ Integration: Part of MIESC Framework v2.1
 import os
 import subprocess
 from pathlib import Path
-from typing import cast, Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 from miesc.agents.base_agent import BaseAgent
 from miesc.mcp_core.context_bus import MCPMessage
@@ -142,7 +142,10 @@ class AderynAgent(BaseAgent):
         """Get Aderyn version"""
         try:
             result = subprocess.run(
-                [self.aderyn_path or "aderyn", "--version"], capture_output=True, text=True, timeout=5
+                [self.aderyn_path or "aderyn", "--version"],
+                capture_output=True,
+                text=True,
+                timeout=5,
             )
             return cast(str, result.stdout.strip())
         except (subprocess.TimeoutExpired, FileNotFoundError, OSError):

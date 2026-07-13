@@ -37,8 +37,11 @@ class _DummyPlugin(MIESCPlugin):
 class TestPluginMetadata:
     def test_roundtrip(self):
         meta = PluginMetadata(
-            name="p", version="1.0.0", plugin_type=PluginType.DETECTOR,
-            description="d", author="a",
+            name="p",
+            version="1.0.0",
+            plugin_type=PluginType.DETECTOR,
+            description="d",
+            author="a",
         )
         restored = PluginMetadata.from_dict(meta.to_dict())
         assert restored.name == "p"

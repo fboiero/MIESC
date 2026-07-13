@@ -24,7 +24,12 @@ def _agent():
 # Diverse findings touching many types/severities to exercise scoring branches.
 RICH = [
     {"severity": "Critical", "type": "reentrancy", "category": "reentrancy", "swc_id": "SWC-107"},
-    {"severity": "High", "type": "access-control", "category": "access_control", "swc_id": "SWC-105"},
+    {
+        "severity": "High",
+        "type": "access-control",
+        "category": "access_control",
+        "swc_id": "SWC-105",
+    },
     {"severity": "High", "type": "arithmetic", "swc_id": "SWC-101"},
     {"severity": "Medium", "type": "timestamp", "swc_id": "SWC-116"},
     {"severity": "Low", "type": "unchecked-call", "swc_id": "SWC-104"},
@@ -37,9 +42,16 @@ RICH = [
 ]
 
 CHECK_METHODS = [
-    "_check_iso27001", "_check_nist_ssdf", "_check_owasp_coverage", "_map_to_swc_registry",
-    "_check_dasp_top10", "_check_consensys_practices", "_check_scsvs_compliance",
-    "_audit_checklist_score", "_assess_defi_risks", "_check_mica_compliance",
+    "_check_iso27001",
+    "_check_nist_ssdf",
+    "_check_owasp_coverage",
+    "_map_to_swc_registry",
+    "_check_dasp_top10",
+    "_check_consensys_practices",
+    "_check_scsvs_compliance",
+    "_audit_checklist_score",
+    "_assess_defi_risks",
+    "_check_mica_compliance",
     "_check_dora_resilience",
 ]
 
@@ -60,10 +72,19 @@ def test_analyze_full_flow_rich(monkeypatch):
     a = _agent()
     monkeypatch.setattr(a, "_aggregate_all_findings", lambda: RICH)
     results = a.analyze("/tmp/contracts/C.sol")
-    for key in ("iso27001_status", "nist_ssdf_status", "owasp_coverage",
-                "swc_classification", "dasp_coverage", "scsvs_status", "ccss_status",
-                "defi_risk_assessment", "mica_compliance", "dora_resilience",
-                "compliance_report"):
+    for key in (
+        "iso27001_status",
+        "nist_ssdf_status",
+        "owasp_coverage",
+        "swc_classification",
+        "dasp_coverage",
+        "scsvs_status",
+        "ccss_status",
+        "defi_risk_assessment",
+        "mica_compliance",
+        "dora_resilience",
+        "compliance_report",
+    ):
         assert key in results
     assert "audit_readiness" in results  # analyzers-unavailable branch
 
@@ -125,29 +146,44 @@ def test_calculate_overall_compliance():
 
 def _mock_analyzers(agent, *, raises=False):
     from unittest.mock import MagicMock
+
     if raises:
+
         def _boom(*a, **k):
             raise RuntimeError("analyzer failed")
-        for attr in ("documentation_analyzer", "testing_analyzer",
-                     "maturity_analyzer", "security_practices_analyzer"):
+
+        for attr in (
+            "documentation_analyzer",
+            "testing_analyzer",
+            "maturity_analyzer",
+            "security_practices_analyzer",
+        ):
             m = MagicMock()
             m.analyze_all.side_effect = _boom
             setattr(agent, attr, m)
         return
-    doc = MagicMock(); doc.analyze_all.return_value = {
+    doc = MagicMock()
+    doc.analyze_all.return_value = {
         "passes_audit_readiness": False,
         "natspec": {"coverage_percentage": 50},
-        "readme": {"passes_threshold": False, "sections_missing": ["Install", "Usage"]}}
-    testing = MagicMock(); testing.analyze_all.return_value = {
+        "readme": {"passes_threshold": False, "sections_missing": ["Install", "Usage"]},
+    }
+    testing = MagicMock()
+    testing.analyze_all.return_value = {
         "passes_audit_readiness": False,
         "coverage": {"line_coverage": 60},
-        "property_tests": {"passes_threshold": False}}
-    maturity = MagicMock(); maturity.analyze_all.return_value = {
+        "property_tests": {"passes_threshold": False},
+    }
+    maturity = MagicMock()
+    maturity.analyze_all.return_value = {
         "passes_audit_readiness": False,
-        "maturity": {"maturity_score": 0.3, "maturity_level": "early"}}
-    security = MagicMock(); security.analyze_all.return_value = {
+        "maturity": {"maturity_score": 0.3, "maturity_level": "early"},
+    }
+    security = MagicMock()
+    security.analyze_all.return_value = {
         "passes_audit_readiness": False,
-        "practices": {"recommendations": ["Use ReentrancyGuard"]}}
+        "practices": {"recommendations": ["Use ReentrancyGuard"]},
+    }
     agent.documentation_analyzer = doc
     agent.testing_analyzer = testing
     agent.maturity_analyzer = maturity

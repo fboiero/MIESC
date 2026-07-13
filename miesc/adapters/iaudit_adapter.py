@@ -37,7 +37,7 @@ import time
 import urllib.error
 import urllib.request
 from pathlib import Path
-from typing import cast, Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, cast
 
 from miesc.adapters._cache_mixin import LLMCacheMixin
 from miesc.adapters._ollama_mixin import OllamaCallMixin

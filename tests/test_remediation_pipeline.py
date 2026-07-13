@@ -252,8 +252,14 @@ class _Proc:
 
 
 def test_classify_compile_failure_extra_branches():
-    assert rp.classify_compile_failure("requires different compiler version") == "solidity_version_mismatch"
-    assert rp.classify_compile_failure("Error: File not found foo.sol") == "missing_import_or_dependency"
+    assert (
+        rp.classify_compile_failure("requires different compiler version")
+        == "solidity_version_mismatch"
+    )
+    assert (
+        rp.classify_compile_failure("Error: File not found foo.sol")
+        == "missing_import_or_dependency"
+    )
     assert rp.classify_compile_failure("X not found or not visible") == "undefined_symbol"
     assert rp.classify_compile_failure("TypeError: bad") == "type_error"
     assert rp.classify_compile_failure("operation timeout") == "compile_timeout"
@@ -277,19 +283,22 @@ def test_compile_contract_success_timeout_and_error(tmp_path, monkeypatch):
     sol.write_text("pragma solidity ^0.8.20;\ncontract C {}")
     monkeypatch.setattr(rp.shutil, "which", lambda n: "/usr/bin/solc")
 
-    monkeypatch.setattr(rp.subprocess, "run",
-                        lambda *a, **k: _Proc(returncode=0, stdout="Binary: 60..."))
+    monkeypatch.setattr(
+        rp.subprocess, "run", lambda *a, **k: _Proc(returncode=0, stdout="Binary: 60...")
+    )
     ev = compile_contract(sol)
     assert ev.compiles is True
 
     def _timeout(*a, **k):
         raise rp.subprocess.TimeoutExpired(cmd="solc", timeout=15)
+
     monkeypatch.setattr(rp.subprocess, "run", _timeout)
     ev = compile_contract(sol)
     assert ev.failure_class == "compile_timeout"
 
     def _boom(*a, **k):
         raise OSError("solc missing")
+
     monkeypatch.setattr(rp.subprocess, "run", _boom)
     ev = compile_contract(sol)
     assert ev.compiles is False
@@ -307,11 +316,13 @@ def test_run_scan_success_and_failure(tmp_path, monkeypatch):
     def _ok(*a, **k):
         out.write_text('{"findings": []}')
         return _Proc(returncode=0)
+
     monkeypatch.setattr(rp.subprocess, "run", _ok)
     assert run_scan(tmp_path / "C.sol", out) == {"findings": []}
 
     def _boom(*a, **k):
         raise OSError("scan failed")
+
     monkeypatch.setattr(rp.subprocess, "run", _boom)
     assert run_scan(tmp_path / "C.sol", tmp_path / "x.json") is None
 
@@ -325,6 +336,7 @@ def test_evidence_to_dict():
 
 def test_apply_patch_candidates_counts_skips():
     from miesc.security.remediation_pipeline import apply_patch_candidates
+
     # an unknown finding type yields no change -> skipped counter increments
     src = "contract C { function f() public {} }"
     patched, applied, skipped = apply_patch_candidates(src, [{"type": "no-such-fix"}])
@@ -344,13 +356,23 @@ def test_remediate_contract_compile_checked_status(tmp_path, monkeypatch):
     contract = tmp_path / "Victim.sol"
     contract.write_text(SIMPLE_CONTRACT)
     # compile_check=True, rescan_check=False -> status becomes "compile_checked"
-    monkeypatch.setattr("miesc.security.remediation_pipeline.compile_contract",
-                        lambda *a, **k: CompileEvidence(checked=True, compiles=True, solc="solc"))
+    monkeypatch.setattr(
+        "miesc.security.remediation_pipeline.compile_contract",
+        lambda *a, **k: CompileEvidence(checked=True, compiles=True, solc="solc"),
+    )
     evidence = remediate_contract(
         contract_path=contract,
-        results={"contract": str(contract), "findings": [
-            {"type": "reentrancy", "function": "withdraw", "severity": "High",
-             "fix_code": "add nonReentrant"}]},
+        results={
+            "contract": str(contract),
+            "findings": [
+                {
+                    "type": "reentrancy",
+                    "function": "withdraw",
+                    "severity": "High",
+                    "fix_code": "add nonReentrant",
+                }
+            ],
+        },
         output_path=tmp_path / "Victim.fixed.sol",
         compile_check=True,
         rescan_check=False,

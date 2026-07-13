@@ -79,17 +79,12 @@ class Baseline:
             "version": self.version,
             "fingerprint_algorithm": "sha256-content-16",
             "count": len(self.entries),
-            "fingerprints": {
-                fp: self.entries[fp].to_dict() for fp in sorted(self.entries)
-            },
+            "fingerprints": {fp: self.entries[fp].to_dict() for fp in sorted(self.entries)},
         }
 
     def to_json(self) -> str:
         """Serialize to stable, sorted, deterministic JSON (trailing newline)."""
-        return (
-            json.dumps(self.to_dict(), indent=2, sort_keys=True, ensure_ascii=False)
-            + "\n"
-        )
+        return json.dumps(self.to_dict(), indent=2, sort_keys=True, ensure_ascii=False) + "\n"
 
     def save(self, path: Union[str, Path] = DEFAULT_BASELINE_FILENAME) -> Path:
         """Write the baseline to ``path`` and return the resolved path."""

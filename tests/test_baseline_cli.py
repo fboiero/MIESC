@@ -26,13 +26,14 @@ from miesc.cli.commands.baseline import (
 )
 from miesc.core.baseline import generate_baseline
 
-
 # =============================================================================
 # Helpers
 # =============================================================================
 
 
-def _finding(rule="reentrancy", file="contracts/Bank.sol", line=15, message="Reentrancy in withdraw()"):
+def _finding(
+    rule="reentrancy", file="contracts/Bank.sol", line=15, message="Reentrancy in withdraw()"
+):
     return {
         "type": rule,
         "severity": "high",
@@ -91,9 +92,7 @@ class TestGenerateCommand:
         results = _write_results(tmp_path / "r.json", [_finding(rule="a"), _finding(rule="b")])
         out = tmp_path / ".miesc-baseline.json"
 
-        result = runner.invoke(
-            baseline, ["generate", str(results), "-o", str(out)]
-        )
+        result = runner.invoke(baseline, ["generate", str(results), "-o", str(out)])
         assert result.exit_code == 0, result.output
         assert out.exists()
         data = json.loads(out.read_text())
@@ -190,8 +189,10 @@ class TestApplyBaselineGate:
         generate_baseline([_finding(rule="a")]).save(base)
         with pytest.raises(SystemExit) as exc:
             apply_baseline_gate(
-                [_finding(rule="a"), _finding(rule="b")], str(base),
-                fail_on_new=True, quiet=True,
+                [_finding(rule="a"), _finding(rule="b")],
+                str(base),
+                fail_on_new=True,
+                quiet=True,
             )
         assert exc.value.code == 1
 
@@ -199,9 +200,7 @@ class TestApplyBaselineGate:
         base = tmp_path / "b.json"
         generate_baseline([_finding(rule="a"), _finding(rule="b")]).save(base)
         # returns normally (no SystemExit) when nothing new
-        result = apply_baseline_gate(
-            [_finding(rule="a")], str(base), fail_on_new=True, quiet=True
-        )
+        result = apply_baseline_gate([_finding(rule="a")], str(base), fail_on_new=True, quiet=True)
         assert result["new"] == []
         assert len(result["fixed"]) == 1
 
@@ -210,13 +209,16 @@ class TestApplyBaselineGate:
         generate_baseline([_finding(rule="a")]).save(base)
         # new finding present but fail_on_new=False -> no exit
         result = apply_baseline_gate(
-            [_finding(rule="a"), _finding(rule="b")], str(base),
-            fail_on_new=False, quiet=True,
+            [_finding(rule="a"), _finding(rule="b")],
+            str(base),
+            fail_on_new=False,
+            quiet=True,
         )
         assert len(result["new"]) == 1
 
     def test_gate_missing_baseline_exits_2(self, tmp_path):
         with pytest.raises(SystemExit) as exc:
-            apply_baseline_gate([_finding()], str(tmp_path / "nope.json"),
-                                fail_on_new=True, quiet=True)
+            apply_baseline_gate(
+                [_finding()], str(tmp_path / "nope.json"), fail_on_new=True, quiet=True
+            )
         assert exc.value.code == 2

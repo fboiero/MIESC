@@ -849,10 +849,16 @@ from miesc.ml.correlation_engine import (  # noqa: E402
 
 def _raw(vtype, tool, file="C.sol", line=10, func="withdraw", sev="high", conf=0.7, msg="m"):
     return {
-        "type": vtype, "canonical_type": vtype, "severity": sev, "confidence": conf,
-        "tool": tool, "message": msg, "description": msg * 3,
+        "type": vtype,
+        "canonical_type": vtype,
+        "severity": sev,
+        "confidence": conf,
+        "tool": tool,
+        "message": msg,
+        "description": msg * 3,
         "location": {"file": file, "line": line, "function": func},
-        "swc_id": "SWC-107", "cwe_id": "CWE-841",
+        "swc_id": "SWC-107",
+        "cwe_id": "CWE-841",
     }
 
 
@@ -861,7 +867,7 @@ class TestDeduplication:
         eng = SmartCorrelationEngine()
         findings = [
             _raw("reentrancy", "slither", line=10),
-            _raw("reentrancy", "mythril", line=11),   # same 5-line bucket+func -> merges
+            _raw("reentrancy", "mythril", line=11),  # same 5-line bucket+func -> merges
             _raw("arithmetic", "slither", line=50, func="add"),  # unique
         ]
         dedup = eng.deduplicate_findings(findings)
@@ -887,14 +893,28 @@ class TestDeduplication:
 
 def _cf(vtype, sev="high", file="C.sol", func="withdraw", fid="F", conf=0.8):
     return CorrelatedFinding(
-        id=fid, canonical_type=vtype, severity=sev, message="m",
+        id=fid,
+        canonical_type=vtype,
+        severity=sev,
+        message="m",
         location={"file": file, "line": 10, "function": func},
-        swc_id=None, cwe_id=None, source_findings=[], confirming_tools=["slither"],
-        correlation_method=CorrelationMethod.EXACT_MATCH if hasattr(
-            CorrelationMethod, "EXACT_MATCH") else list(CorrelationMethod)[0],
-        base_confidence=conf, tool_agreement_score=conf, context_score=conf,
-        ml_confidence=conf, final_confidence=conf, is_cross_validated=True,
-        false_positive_probability=0.1, remediation_priority=1,
+        swc_id=None,
+        cwe_id=None,
+        source_findings=[],
+        confirming_tools=["slither"],
+        correlation_method=(
+            CorrelationMethod.EXACT_MATCH
+            if hasattr(CorrelationMethod, "EXACT_MATCH")
+            else list(CorrelationMethod)[0]
+        ),
+        base_confidence=conf,
+        tool_agreement_score=conf,
+        context_score=conf,
+        ml_confidence=conf,
+        final_confidence=conf,
+        is_cross_validated=True,
+        false_positive_probability=0.1,
+        remediation_priority=1,
     )
 
 
@@ -911,7 +931,7 @@ class TestExploitChainAnalyzer:
         names = [c.name for c in chains]
         assert "Fund Drain Attack" in names
         fund = next(c for c in chains if c.name == "Fund Drain Attack")
-        assert fund.attack_vector == "external"   # reentrancy -> external
+        assert fund.attack_vector == "external"  # reentrancy -> external
         assert fund.severity == "critical"
 
     def test_proximity_chain_for_unknown_type_combo(self):

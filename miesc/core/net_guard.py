@@ -98,9 +98,7 @@ def guard_outbound_url(
     # --- scheme ------------------------------------------------------------
     if scheme == "http":
         if not (allow_localhost and host_l in _LOCAL_HOSTNAMES):
-            raise SSRFError(
-                f"Only HTTPS URLs are allowed for outbound requests, got {scheme!r}"
-            )
+            raise SSRFError(f"Only HTTPS URLs are allowed for outbound requests, got {scheme!r}")
     elif scheme != "https":
         raise SSRFError(f"Unsupported URL scheme {scheme!r}; use https")
 

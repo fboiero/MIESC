@@ -185,10 +185,7 @@ def verify(
                 info(f"Running Kontrol on {foundry_root}...") if not quiet else None
                 results["kontrol"] = runner.run_kontrol(str(foundry_root), timeout=timeout)
         elif tool_lower == "kontrol":
-            error(
-                "kontrol not installed; "
-                "see https://docs.runtimeverification.com/kontrol"
-            )
+            error("kontrol not installed; " "see https://docs.runtimeverification.com/kontrol")
             sys.exit(1)
 
     if not results:

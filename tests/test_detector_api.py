@@ -560,9 +560,7 @@ class TestDetectorRegistry:
             findings = registry.run_all(source)
 
             transient_findings = [
-                finding
-                for finding in findings
-                if finding.detector == "transient-storage-detector"
+                finding for finding in findings if finding.detector == "transient-storage-detector"
             ]
             assert len(transient_findings) == 1
             assert transient_findings[0].metadata["pattern"] == "transient-low-gas-reentrancy"

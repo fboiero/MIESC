@@ -22,13 +22,13 @@ from typing import Any, Dict, List
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
-from miesc.detectors.advanced_detectors import AdvancedDetectorEngine, AdvancedFinding  # noqa: E402
 from miesc.core.tool_protocol import (  # noqa: E402
     ToolCapability,
     ToolCategory,
     ToolMetadata,
     ToolStatus,
 )
+from miesc.detectors.advanced_detectors import AdvancedDetectorEngine, AdvancedFinding  # noqa: E402
 
 
 class AdvancedDetectorAdapter:

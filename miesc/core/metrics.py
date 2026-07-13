@@ -61,7 +61,9 @@ class InternalMetricsCollector:
         self.gauges: Dict[str, float] = {}
         self.histograms: Dict[str, List[float]] = {}
 
-    def increment_counter(self, name: str, value: float = 1.0, labels: Optional[Dict[str, str]] = None) -> None:
+    def increment_counter(
+        self, name: str, value: float = 1.0, labels: Optional[Dict[str, str]] = None
+    ) -> None:
         """Increment a counter metric."""
         key = self._make_key(name, labels)
         self.counters[key] = self.counters.get(key, 0) + value
@@ -73,7 +75,9 @@ class InternalMetricsCollector:
         self.gauges[key] = value
         self.metrics.append(MetricValue(name, "gauge", value, labels or {}))
 
-    def observe_histogram(self, name: str, value: float, labels: Optional[Dict[str, str]] = None) -> None:
+    def observe_histogram(
+        self, name: str, value: float, labels: Optional[Dict[str, str]] = None
+    ) -> None:
         """Add observation to histogram."""
         key = self._make_key(name, labels)
         if key not in self.histograms:
@@ -270,7 +274,9 @@ class MIESCMetrics:
                 "miesc_audit_duration_seconds", duration, labels={"layers": str(layers)}
             )
 
-    def record_finding(self, severity: str, finding_type: str, layer: int, confidence: float) -> None:
+    def record_finding(
+        self, severity: str, finding_type: str, layer: int, confidence: float
+    ) -> None:
         """Record a security finding."""
         if PROMETHEUS_AVAILABLE:
             self.findings_total.labels(severity=severity, type=finding_type, layer=str(layer)).inc()
@@ -308,7 +314,9 @@ class MIESCMetrics:
             )
 
     @contextmanager
-    def measure_time(self, metric_name: str, labels: Optional[Dict[str, str]] = None) -> Iterator[None]:
+    def measure_time(
+        self, metric_name: str, labels: Optional[Dict[str, str]] = None
+    ) -> Iterator[None]:
         """Context manager to measure execution time."""
         start = time.perf_counter()
         try:

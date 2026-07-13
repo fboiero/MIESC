@@ -157,7 +157,9 @@ def test_extract_openai_compatible_model_ids_handles_mapping_accessor_failures()
             raise RuntimeError("secret model body")
 
     assert extract_openai_compatible_model_ids(MalformedPayload({"data": []})) == set()
-    assert extract_openai_compatible_model_ids({"data": [MalformedModel({"id": "model-a"})]}) == set()
+    assert (
+        extract_openai_compatible_model_ids({"data": [MalformedModel({"id": "model-a"})]}) == set()
+    )
 
 
 def test_model_list_handles_nested_mapping_accessor_failures():
@@ -407,7 +409,9 @@ def test_authorization_headers_keep_api_key_out_of_debug_logs(caplog):
 
 
 def test_authorization_headers_reject_control_chars():
-    assert _authorization_headers("  sk-test-secret  ") == {"Authorization": "Bearer sk-test-secret"}
+    assert _authorization_headers("  sk-test-secret  ") == {
+        "Authorization": "Bearer sk-test-secret"
+    }
     assert _authorization_headers("sk-test\nsecret") == {"Authorization": "Bearer "}
     assert _authorization_headers("sk-test\rsecret") == {"Authorization": "Bearer "}
     assert _authorization_headers("sk-test\u2028secret") == {"Authorization": "Bearer "}
@@ -518,16 +522,22 @@ def test_fetch_openai_compatible_model_ids_rejects_non_finite_timeout():
 def test_fetch_openai_compatible_model_ids_rejects_string_and_bytes_timeout():
     async def run_test():
         with patch("aiohttp.ClientSession") as session:
-            assert await fetch_openai_compatible_model_ids(
-                "https://api.deepseek.example",
-                "test-key",
-                timeout="10",
-            ) == set()
-            assert await fetch_openai_compatible_model_ids(
-                "https://api.deepseek.example",
-                "test-key",
-                timeout=b"10",
-            ) == set()
+            assert (
+                await fetch_openai_compatible_model_ids(
+                    "https://api.deepseek.example",
+                    "test-key",
+                    timeout="10",
+                )
+                == set()
+            )
+            assert (
+                await fetch_openai_compatible_model_ids(
+                    "https://api.deepseek.example",
+                    "test-key",
+                    timeout=b"10",
+                )
+                == set()
+            )
 
         session.assert_not_called()
 
@@ -856,14 +866,20 @@ def test_fetch_openai_compatible_model_ids_handles_strip_accessor_failures():
 
     async def run_test():
         with patch("aiohttp.ClientSession") as session:
-            assert await fetch_openai_compatible_model_ids(
-                MalformedUrl("https://api.deepseek.example"),
-                "test-key",
-            ) == set()
-            assert await fetch_openai_compatible_model_ids(
-                "https://api.deepseek.example",
-                MalformedKey("test-key"),
-            ) == set()
+            assert (
+                await fetch_openai_compatible_model_ids(
+                    MalformedUrl("https://api.deepseek.example"),
+                    "test-key",
+                )
+                == set()
+            )
+            assert (
+                await fetch_openai_compatible_model_ids(
+                    "https://api.deepseek.example",
+                    MalformedKey("test-key"),
+                )
+                == set()
+            )
 
         session.assert_not_called()
 

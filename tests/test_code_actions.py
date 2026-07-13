@@ -308,9 +308,7 @@ class TestCliCodeActionsFormat:
             [{"type": "reentrancy", "function": "withdraw", "line": 7, "fix_code": "x"}],
             tmp_path,
         )
-        result = CliRunner().invoke(
-            fix, [str(results), "-c", str(contract), "-f", "code-actions"]
-        )
+        result = CliRunner().invoke(fix, [str(results), "-c", str(contract), "-f", "code-actions"])
         assert result.exit_code == 0
         payload = json.loads(result.output)
         assert isinstance(payload, list) and len(payload) == 1
@@ -337,8 +335,6 @@ class TestCliCodeActionsFormat:
         contract = tmp_path / "Victim.sol"
         contract.write_text(REENTRANCY_CONTRACT)
         results = _make_results([{"type": "reentrancy", "function": "withdraw"}], tmp_path)
-        result = CliRunner().invoke(
-            fix, [str(results), "-c", str(contract), "-f", "code-actions"]
-        )
+        result = CliRunner().invoke(fix, [str(results), "-c", str(contract), "-f", "code-actions"])
         assert result.exit_code == 0
         assert json.loads(result.output) == []

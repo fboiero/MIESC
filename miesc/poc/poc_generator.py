@@ -526,9 +526,7 @@ def _strip_template_comments(solidity_code: str) -> str:
             line_end = solidity_code.find("\n", index)
             line_end = len(solidity_code) if line_end < 0 else line_end
             comment_text = solidity_code[index:line_end]
-            line_comment_preserved = comment_text.lstrip().startswith(
-                "// SPDX-License-Identifier:"
-            )
+            line_comment_preserved = comment_text.lstrip().startswith("// SPDX-License-Identifier:")
             if line_comment_preserved:
                 output.append(comment_text)
                 index = line_end
@@ -673,9 +671,9 @@ class PoCTemplate:
         return {
             "name": self.name if isinstance(self.name, str) else "template",
             "vulnerability_type": _safe_vulnerability_type_value(self.vulnerability_type),
-            "target_contract": self.target_contract
-            if isinstance(self.target_contract, str)
-            else "",
+            "target_contract": (
+                self.target_contract if isinstance(self.target_contract, str) else ""
+            ),
             "target_function": _safe_optional_text(self.target_function),
             "finding_id": _safe_optional_text(self.finding_id),
             "description": _safe_optional_text(self.description) or "",

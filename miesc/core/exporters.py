@@ -13,7 +13,7 @@ import json
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import cast, Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 # Import version from miesc package
 try:
@@ -614,12 +614,7 @@ class GitHubAnnotationsExporter:
     @staticmethod
     def _escape_data(value: str) -> str:
         """Escape a workflow-command message body (GitHub ``escapeData``)."""
-        return (
-            str(value)
-            .replace("%", "%25")
-            .replace("\r", "%0D")
-            .replace("\n", "%0A")
-        )
+        return str(value).replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
 
     @staticmethod
     def _escape_property(value: str) -> str:

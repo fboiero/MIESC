@@ -26,7 +26,7 @@ import logging
 import os
 import re
 import time
-from typing import cast, Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 from miesc.core.llm_config import get_ollama_host
 from miesc.core.ollama_models import list_ollama_models, select_ollama_model

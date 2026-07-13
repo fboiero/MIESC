@@ -49,6 +49,7 @@ from miesc import __version__  # noqa: E402
 
 logger = logging.getLogger("miesc.mcp_server")
 
+
 class _MissingMCP:
     """Import-time stub used when the optional MCP SDK is unavailable."""
 
