@@ -439,7 +439,7 @@ Los colaboradores regulares pueden ser invitados a convertirse en mantenedores. 
 
 ## Licencia
 
-Al contribuir a MIESC, aceptas que tus contribuciones serán licenciadas bajo la [Licencia AGPL-3.0](./LICENSE).
+Al contribuir a MIESC, aceptas que tus contribuciones serán licenciadas bajo la [Licencia AGPL-3.0](../LICENSE).
 
 ---
 

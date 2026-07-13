@@ -10,7 +10,7 @@
 
 - [Guía de Inicio Rápido](../docs/guides/QUICKSTART.md) - Comienza en 5 minutos
 - [Documentación Completa](https://fboiero.github.io/MIESC) - Guía de usuario completa
-- [Referencia API](docs/api/) - Documentación para desarrolladores
+- [Referencia API](../docs/api/) - Documentación para desarrolladores
 - [Referencia de Herramientas](../docs/TOOLS.md) - Las 50 herramientas de seguridad
 
 ### Comunidad

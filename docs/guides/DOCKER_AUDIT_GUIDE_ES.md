@@ -37,7 +37,7 @@ Verificar que funciona:
 
 ```bash
 docker run --rm ghcr.io/fboiero/miesc:full --version
-# Debe mostrar: MIESC version 5.1.0
+# Debe mostrar: MIESC version 6.0.0
 
 docker run --rm ghcr.io/fboiero/miesc:full doctor
 # Muestra las ~30 herramientas disponibles
