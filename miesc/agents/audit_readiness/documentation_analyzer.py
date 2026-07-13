@@ -14,10 +14,47 @@ License: AGPL v3
 """
 
 import logging
+import tempfile
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Iterator, List, Optional
 
 logger = logging.getLogger(__name__)
+
+
+def _is_system_temp_root(path: Path) -> bool:
+    """
+    Return True if ``path`` is a system temporary directory (e.g. ``/tmp``).
+
+    Recursively globbing a system temp root scans the entire shared temp area,
+    which can hang the process (and traverse unrelated files). Callers use this
+    to fall back to a non-recursive scan bounded to the immediate directory.
+    """
+    try:
+        resolved = path.resolve()
+    except (OSError, RuntimeError):
+        return False
+
+    candidates = [tempfile.gettempdir(), "/tmp", "/private/tmp", "/var/tmp", "/private/var/tmp"]
+    for candidate in candidates:
+        try:
+            if resolved == Path(candidate).resolve():
+                return True
+        except (OSError, RuntimeError):
+            continue
+    return False
+
+
+def _safe_rglob(project_path: Path, pattern: str) -> Iterator[Path]:
+    """
+    Recursively glob ``pattern`` under ``project_path``.
+
+    If ``project_path`` is a system temp root, fall back to a non-recursive
+    glob of the immediate directory only, so we never traverse the whole shared
+    temp area (which would hang on a machine with a large ``/tmp``).
+    """
+    if _is_system_temp_root(project_path):
+        return project_path.glob(pattern)
+    return project_path.rglob(pattern)
 
 
 class DocumentationAnalyzer:
@@ -478,7 +515,7 @@ class DocumentationAnalyzer:
             diagrams: List[Path] = []
             for pattern in diagram_patterns:
                 for ext in diagram_extensions:
-                    diagrams.extend(project_path.rglob(f"{pattern}{ext}"))
+                    diagrams.extend(_safe_rglob(project_path, f"{pattern}{ext}"))
 
             architecture_diagrams_found = len(diagrams)
 
@@ -556,7 +593,7 @@ class DocumentationAnalyzer:
             api_docs_exist = any(d.exists() and any(d.rglob("*.md")) for d in api_doc_paths)
 
             # Count Solidity interfaces (these should be documented)
-            interface_files = list(project_path.rglob("I*.sol"))
+            interface_files = list(_safe_rglob(project_path, "I*.sol"))
             interface_count = len(interface_files)
 
             # Calculate score
