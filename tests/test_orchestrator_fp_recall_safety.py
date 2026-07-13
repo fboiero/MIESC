@@ -8,7 +8,9 @@ filter drop a true positive, recall silently regresses; these tests guard that.
 """
 
 import unittest
+from unittest.mock import patch
 
+from src.core.ml_orchestrator import MLOrchestrator
 from src.ml.fp_filter import FalsePositiveFilter
 
 # A modern-Solidity contract: the solc-version pragma warning is a textbook
@@ -84,6 +86,57 @@ class TestOrchestratorFPRecallSafety(unittest.TestCase):
         # the finding would otherwise cross the drop threshold.)
         self.assertFalse(
             fr.is_likely_fp, "recall regression: real overflow dropped by SafeMath heuristic"
+        )
+
+
+class TestOrchestratorFPIntegration(unittest.TestCase):
+    """Issue #69: ``analyze(fp_strictness=...)`` must engage the FP filter
+    end-to-end. The bug was that ``audit full`` removed 0 false positives because
+    the orchestrator did not apply the strictness filter to its findings. These
+    tests drive the orchestrator (not just the filter) with a benign FP plus a real
+    vulnerability and assert the filter is actually engaged and recall-safe.
+    """
+
+    def _analyze(self, fp_strictness: str):
+        # ml_enabled=False isolates the fp_strictness stage from the (dormant) ML
+        # pipeline; the FP stage runs regardless of ml_enabled.
+        orch = MLOrchestrator(ml_enabled=False)
+        findings = [
+            _finding("solc-version", "informational"),  # benign FP on modern code
+            _finding("reentrancy-eth", "critical"),  # real vuln, must survive
+        ]
+        with patch.object(
+            MLOrchestrator, "_read_contract_source", return_value=MODERN_CODE
+        ), patch.object(
+            MLOrchestrator, "_determine_tools", return_value=["slither"]
+        ), patch.object(
+            MLOrchestrator,
+            "_run_tool",
+            return_value={"status": "success", "findings": findings},
+        ):
+            return orch.analyze("Bank.sol", fp_strictness=fp_strictness)
+
+    def test_high_strictness_removes_benign_fp(self):
+        result = self._analyze("high")
+        self.assertGreaterEqual(
+            result.false_positives_removed,
+            1,
+            "issue #69 regression: orchestrator removed 0 FPs at fp_strictness=high",
+        )
+
+    def test_high_strictness_preserves_real_vulnerability(self):
+        result = self._analyze("high")
+        kept = {f.get("type") for f in result.ml_filtered_findings}
+        self.assertIn(
+            "reentrancy-eth", kept, "recall regression: real reentrancy was dropped"
+        )
+
+    def test_off_strictness_removes_nothing(self):
+        result = self._analyze("off")
+        self.assertEqual(
+            result.false_positives_removed,
+            0,
+            "default 'off' must preserve raw recall (no orchestrator FP removal)",
         )
 
 
