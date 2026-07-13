@@ -431,8 +431,8 @@ class TestExperimentLogger:
             assert record.experiment_id == logger.experiment_id
 
 
-class TestCreateReproducibilityReport:
-    """Tests for create_reproducibility_report function."""
+class TestCreateReproducibilityReportWithFullLogger:
+    """Tests for create_reproducibility_report with a fully populated logger."""
 
     def test_creates_report(self):
         """Test creating a reproducibility report."""

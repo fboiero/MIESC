@@ -236,10 +236,11 @@ ignore = [
 # Deprecated compat shim + knowledge_base loader import after module-level setup.
 "miesc/miesc_core.py" = ["E402"]
 "miesc/knowledge_base/__init__.py" = ["E402"]
-# Tests frequently define helpers with single-letter names, redefine classes
-# by coverage group, use throwaway expressions, and assert broad exceptions.
-# These are stylistic-only and do not affect production code.
-"tests/*.py" = ["E402", "E741", "F811", "B018", "B017"]
+# Tests frequently define helpers with single-letter names, use throwaway
+# expressions, and assert broad exceptions. These are stylistic-only and do
+# not affect production code. F811 is intentionally NOT ignored here: it
+# guards against shadowed/dead tests (duplicate class or import redefinitions).
+"tests/*.py" = ["E402", "E741", "B018", "B017"]
 
 [tool.mypy]
 python_version = "3.12"

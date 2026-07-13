@@ -236,11 +236,7 @@ from miesc.security.remediation_pipeline import (  # noqa: E402
     CompileEvidence,
     RescanEvidence,
     compile_contract,
-    count_high_findings,
-    diff_high_finding_types,
     run_scan,
-    select_solc,
-    summarize_high_finding_types,
 )
 
 

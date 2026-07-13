@@ -256,7 +256,7 @@ class TestZeroRecallPatterns:
     def test_empty_code(self):
         assert detect_zero_recall_categories("") == []
 
-    def test_blockhash_without_randomness_context_not_flagged(self):
+    def test_blockhash_view_getter_not_flagged_as_randomness(self):
         code = "function previous() external view returns (bytes32) { return blockhash(block.number - 1); }"
         findings = detect_zero_recall_categories(code)
         types = [f["type"] for f in findings]

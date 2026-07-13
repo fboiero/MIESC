@@ -422,13 +422,10 @@ import json as _json  # noqa: E402
 import urllib.request as _urlreq  # noqa: E402
 
 from miesc.ml.benign_context_verifier import (  # noqa: E402
-    BenignContextVerifier,
     _extract_function,
     _func_signature,
     _function_at_line,
-    apply_to_results,
     load_benign_patterns,
-    match_benign,
 )
 
 
