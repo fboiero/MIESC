@@ -159,6 +159,29 @@ if RICH_AVAILABLE:
     "GitHub Actions workflow commands (::error/::warning ...) so findings render "
     "inline on the PR diff. With --baseline, only new findings are annotated.",
 )
+@click.option(
+    "--notify",
+    "notify_url",
+    type=str,
+    default=None,
+    help="POST a JSON scan summary (severity counts, pass/fail, top findings) to "
+    "this webhook URL. SSRF-guarded; network errors never fail the scan.",
+)
+@click.option(
+    "--slack",
+    "slack_url",
+    type=str,
+    default=None,
+    help="POST a Slack Block Kit summary to this Slack Incoming Webhook URL. "
+    "SSRF-guarded; network errors never fail the scan.",
+)
+@click.option(
+    "--notify-min-severity",
+    type=click.Choice(["info", "low", "medium", "high", "critical"], case_sensitive=False),
+    default="low",
+    help="Only send --notify/--slack when at least one finding reaches this "
+    "severity (default: low).",
+)
 def scan(
     contract: str,
     output: str | None,
@@ -179,6 +202,9 @@ def scan(
     baseline_path: str | None,
     fail_on_new: bool,
     annotate: str | None,
+    notify_url: str | None,
+    slack_url: str | None,
+    notify_min_severity: str,
 ) -> None:
     """Quick vulnerability scan for a Solidity contract or directory.
 
@@ -290,6 +316,9 @@ def scan(
             baseline_path=baseline_path,
             fail_on_new=fail_on_new,
             annotate=annotate,
+            notify_url=notify_url,
+            slack_url=slack_url,
+            notify_min_severity=notify_min_severity,
         )
         return
 
@@ -313,6 +342,9 @@ def scan(
             baseline_path=baseline_path,
             fail_on_new=fail_on_new,
             annotate=annotate,
+            notify_url=notify_url,
+            slack_url=slack_url,
+            notify_min_severity=notify_min_severity,
         )
         return
 
@@ -500,6 +532,9 @@ def scan(
             baseline_path=baseline_path,
             fail_on_new=fail_on_new,
             annotate=annotate,
+            notify_url=notify_url,
+            slack_url=slack_url,
+            notify_min_severity=notify_min_severity,
         )
         return
 
@@ -808,6 +843,9 @@ def scan(
         baseline_path=baseline_path,
         fail_on_new=fail_on_new,
         annotate=annotate,
+        notify_url=notify_url,
+        slack_url=slack_url,
+        notify_min_severity=notify_min_severity,
     )
 
 
@@ -894,6 +932,9 @@ def _run_agentic_scan_profile(
     baseline_path: str | None = None,
     fail_on_new: bool = False,
     annotate: str | None = None,
+    notify_url: str | None = None,
+    slack_url: str | None = None,
+    notify_min_severity: str = "low",
 ) -> None:
     from miesc.cli.commands.audit import _apply_deep_profile_config
     from miesc.agents.deep_audit_agent import DeepAuditAgent, DeepAuditConfig
@@ -934,6 +975,9 @@ def _run_agentic_scan_profile(
         baseline_path=baseline_path,
         fail_on_new=fail_on_new,
         annotate=annotate,
+        notify_url=notify_url,
+        slack_url=slack_url,
+        notify_min_severity=notify_min_severity,
     )
 
 
@@ -1025,6 +1069,9 @@ def _display_and_save(
     baseline_path: str | None = None,
     fail_on_new: bool = False,
     annotate: str | None = None,
+    notify_url: str | None = None,
+    slack_url: str | None = None,
+    notify_min_severity: str = "low",
 ) -> None:
     """Display the scan summary table, optionally save JSON, and handle CI exit."""
     if verify_fp:
@@ -1188,6 +1235,24 @@ def _display_and_save(
         apply_baseline_gate(
             gate_findings, baseline_path, fail_on_new=fail_on_new, quiet=quiet
         )
+
+    # Outbound notifications (webhook / Slack). Fire BEFORE the CI exit so a
+    # channel is alerted even when the run is about to fail. SSRF-guarded and
+    # error-swallowing: a broken sink never aborts the scan.
+    if notify_url or slack_url:
+        from miesc.core.notifiers import dispatch_notifications
+
+        delivered = dispatch_notifications(
+            all_results,
+            str(contract),
+            webhook_url=notify_url,
+            slack_url=slack_url,
+            min_severity=notify_min_severity,
+            ci_failed=critical_high > 0,
+        )
+        if not quiet:
+            for sink, ok in delivered.items():
+                info(f"notify[{sink}]: {'sent' if ok else 'skipped/failed'}")
 
     # CI mode exit
     if ci and critical_high > 0:

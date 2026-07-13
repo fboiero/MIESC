@@ -22,11 +22,9 @@ Date: February 2026
 Version: 1.0.0
 """
 
-import ipaddress
 import json
 import logging
 import re
-import socket
 import urllib.error
 import urllib.request
 from dataclasses import dataclass, field
@@ -65,59 +63,28 @@ def _validate_marketplace_url(url: str) -> str:
     Raises:
         MarketplaceError: If URL fails security validation
     """
-    parsed = urlparse(url)
+    from miesc.core.net_guard import SSRFError, guard_outbound_url
 
-    # Check scheme - only HTTPS allowed (or http://localhost for dev)
-    if parsed.scheme == "http":
-        if parsed.hostname not in ("localhost", "127.0.0.1"):
-            raise MarketplaceError(
-                f"Only HTTPS URLs allowed for marketplace. Got: {parsed.scheme}://"
-            )
-    elif parsed.scheme != "https":
-        raise MarketplaceError(f"Invalid URL scheme for marketplace: {parsed.scheme}. Use HTTPS.")
+    hostname = urlparse(url).hostname
 
-    hostname = parsed.hostname
-    if not hostname:
-        raise MarketplaceError("Invalid URL: no hostname")
-
-    # Check if hostname is an IP address
+    # Delegate SSRF checks (scheme, private/reserved IPs, metadata endpoints,
+    # DNS-resolution rebinding) to the shared, audited guard. The marketplace
+    # keeps its own curated host whitelist on top for defence in depth.
     try:
-        ip = ipaddress.ip_address(hostname)
-        # Block private, loopback, reserved IPs (except localhost for dev)
-        if ip.is_private or ip.is_reserved or ip.is_multicast or ip.is_link_local:
-            if str(ip) not in ("127.0.0.1", "::1"):
-                raise MarketplaceError(f"Access to private/reserved IP addresses blocked: {ip}")
-    except ValueError as ip_err:
-        # Not an IP address, it's a hostname - check against whitelist
-        if hostname not in ALLOWED_MARKETPLACE_HOSTS:
-            # Also block cloud metadata endpoints
-            if hostname in ("169.254.169.254", "metadata.google.internal"):
-                raise MarketplaceError(
-                    f"Access to cloud metadata endpoints blocked: {hostname}"
-                ) from ip_err
+        guard_outbound_url(
+            url,
+            allow_localhost=True,
+            allowed_hosts=ALLOWED_MARKETPLACE_HOSTS,
+        )
+    except SSRFError as exc:
+        raise MarketplaceError(str(exc)) from exc
 
-            # Resolve hostname and check resulting IP
-            try:
-                resolved_ips = socket.getaddrinfo(hostname, None)
-                for _family, _, _, _, sockaddr in resolved_ips:
-                    ip_str = sockaddr[0]
-                    try:
-                        ip = ipaddress.ip_address(ip_str)
-                        if ip.is_private or ip.is_reserved or ip.is_loopback:
-                            raise MarketplaceError(
-                                f"Hostname {hostname} resolves to private IP {ip}"
-                            )
-                    except ValueError:
-                        continue
-            except socket.gaierror:
-                # DNS resolution failed - let the actual request handle this
-                pass
-
-            logger.warning(
-                "Marketplace URL host '%s' not in whitelist. " "Allowed hosts: %s",
-                hostname,
-                ", ".join(sorted(ALLOWED_MARKETPLACE_HOSTS)),
-            )
+    if hostname and hostname not in ALLOWED_MARKETPLACE_HOSTS:
+        logger.warning(
+            "Marketplace URL host '%s' not in whitelist. Allowed hosts: %s",
+            hostname,
+            ", ".join(sorted(ALLOWED_MARKETPLACE_HOSTS)),
+        )
 
     return url
 
