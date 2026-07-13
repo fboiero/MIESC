@@ -201,10 +201,10 @@ Register with: `miesc plugins install ./plugins/my_detector.py`
 
 ### Custom Adapter
 
-For deeper integration, create an adapter in `src/adapters/`:
+For deeper integration, create an adapter in `miesc/adapters/`:
 
 ```python
-# src/adapters/my_tool_adapter.py
+# miesc/adapters/my_tool_adapter.py
 from miesc.core.tool_protocol import ToolAdapter
 
 class MyToolAdapter(ToolAdapter):
@@ -339,7 +339,7 @@ Every finding follows this structure:
 
 ### Intelligence Engine
 
-The intelligence engine (`src/core/intelligence.py`) provides:
+The intelligence engine (`miesc/core/intelligence.py`) provides:
 
 1. **Cross-tool confidence scoring** — Bayesian posterior from per-tool weights
 2. **Semantic deduplication** — Groups findings by category + function ±15 lines

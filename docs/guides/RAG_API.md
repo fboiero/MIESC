@@ -336,5 +336,5 @@ docker run ghcr.io/fboiero/miesc:full ...
 ## See Also
 
 - [Professional Audit Workflow](PROFESSIONAL_AUDIT_WORKFLOW.md)
-- [Source adapters](https://github.com/fboiero/MIESC/tree/main/src/adapters)
-- [Knowledge Base Source](https://github.com/fboiero/MIESC/blob/main/src/llm/embedding_rag.py)
+- [Source adapters](https://github.com/fboiero/MIESC/tree/main/miesc/adapters)
+- [Knowledge Base Source](https://github.com/fboiero/MIESC/blob/main/miesc/llm/embedding_rag.py)

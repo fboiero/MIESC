@@ -489,7 +489,7 @@ Regular contributors may be invited to become maintainers. Criteria:
 
 ## License
 
-By contributing to MIESC, you agree that your contributions will be licensed under the [AGPL-3.0 License](./LICENSE).
+By contributing to MIESC, you agree that your contributions will be licensed under the [AGPL-3.0 License](../LICENSE).
 
 ---
 

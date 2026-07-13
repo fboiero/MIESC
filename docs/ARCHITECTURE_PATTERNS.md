@@ -17,7 +17,7 @@ MIESC follows a **layered architecture** with **50 tools across 35 analysis modu
 
 ### 1. Adapter Pattern
 
-**Location**: `src/adapters/`
+**Location**: `miesc/adapters/`
 
 The Adapter pattern is the cornerstone of MIESC's tool integration strategy. Each security tool (Slither, Mythril, Echidna, etc.) has its own adapter that translates between the tool's native interface and MIESC's unified interface.
 
@@ -48,7 +48,7 @@ The Adapter pattern is the cornerstone of MIESC's tool integration strategy. Eac
 - New tools can be added by implementing `ToolAdapter`
 - Each tool's quirks are encapsulated in its adapter
 
-**Implementation**: `src/core/tool_protocol.py`
+**Implementation**: `miesc/core/tool_protocol.py`
 
 ```python
 class ToolAdapter(ABC):
@@ -69,7 +69,7 @@ class ToolAdapter(ABC):
 
 ### 2. Registry Pattern
 
-**Location**: `src/core/tool_protocol.py`
+**Location**: `miesc/core/tool_protocol.py`
 
 The Registry pattern provides a central catalog of all available tools, enabling dynamic tool discovery and selection.
 
@@ -104,7 +104,7 @@ static_tools = registry.get_tools_by_category(ToolCategory.STATIC_ANALYSIS)
 
 ### 3. Protocol Pattern (Abstract Base Class)
 
-**Location**: `src/core/tool_protocol.py`
+**Location**: `miesc/core/tool_protocol.py`
 
 Python's Protocol/ABC pattern defines the contract that all adapters must follow, ensuring type safety and consistent interfaces.
 
@@ -132,7 +132,7 @@ class ToolAdapter(ABC):
 
 ### 4. Strategy Pattern
 
-**Location**: `src/core/ml_orchestrator.py`, analysis profiles
+**Location**: `miesc/core/ml_orchestrator.py`, analysis profiles
 
 The Strategy pattern allows MIESC to switch between different analysis strategies (quick, standard, thorough) at runtime.
 
@@ -164,7 +164,7 @@ profiles:
 
 ### 5. Observer Pattern (Event-Driven)
 
-**Location**: `src/core/ml_orchestrator.py`
+**Location**: `miesc/core/ml_orchestrator.py`
 
 The Observer pattern enables real-time progress reporting and event handling during analysis.
 
@@ -188,7 +188,7 @@ The Observer pattern enables real-time progress reporting and event handling dur
 
 ### 6. Factory Pattern
 
-**Location**: `src/adapters/__init__.py`
+**Location**: `miesc/adapters/__init__.py`
 
 The Factory pattern creates adapter instances based on configuration, abstracting instantiation details.
 
@@ -208,7 +208,7 @@ def register_all_adapters():
 
 ### 7. Singleton Pattern
 
-**Location**: `src/core/tool_protocol.py`
+**Location**: `miesc/core/tool_protocol.py`
 
 The Singleton pattern ensures a single ToolRegistry instance throughout the application.
 
@@ -345,10 +345,10 @@ if non_optional:
 
 To add a new security tool to MIESC:
 
-1. **Create Adapter** in `src/adapters/`:
+1. **Create Adapter** in `miesc/adapters/`:
 
 ```python
-# src/adapters/mytool_adapter.py
+# miesc/adapters/mytool_adapter.py
 from miesc.core.tool_protocol import ToolAdapter, ToolMetadata, ToolStatus
 
 class MyToolAdapter(ToolAdapter):
@@ -380,7 +380,7 @@ class MyToolAdapter(ToolAdapter):
         ...
 ```
 
-2. **Register** in `src/adapters/__init__.py`:
+2. **Register** in `miesc/adapters/__init__.py`:
 
 ```python
 from miesc.adapters.mytool_adapter import MyToolAdapter
