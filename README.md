@@ -659,7 +659,7 @@ MIESC is a candidate for [Digital Public Goods Alliance](https://digitalpublicgo
 - **SDG 16** (Peace & Strong Institutions): Protecting digital assets, reducing fraud
 - **SDG 17** (Partnerships): Open-source collaboration for global security standards
 
-The project is fully compliant with all 9 DPGA indicators: open license (AGPL-3.0), clear ownership, platform independence, comprehensive documentation, data portability (SARIF/CSV/JSON), privacy-preserving (local-first), standards-based (12 international standards), and responsible use policies.
+The project self-assesses as meeting all 9 DPGA indicators — open license (AGPL-3.0-only), clear ownership, platform independence, comprehensive documentation, data portability (SARIF/CSV/JSON), privacy-preserving (local-first), standards-based (12 international standards), and responsible use policies — and its DPGA application is under review.
 
 | Policy | Description |
 |--------|-------------|
