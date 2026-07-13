@@ -315,7 +315,7 @@ MIESC mapea hallazgos a 12 estándares internacionales:
 | Revisión de Código | Pull request requerido |
 | Pruebas | 5967 pruebas pasando, 8 omitidas en la ultima regresion local completa |
 | CI/CD | Pipeline de GitHub Actions |
-| Escaneo de Seguridad | Bandit, Semgrep, Snyk |
+| Escaneo de Seguridad | Bandit, pip-audit, safety (dependencias); Trivy + carga SARIF a CodeQL (imagen Docker) — ver `.github/workflows/ci.yml` |
 | Documentación | MkDocs con versionado |
 
 ---
@@ -410,7 +410,7 @@ Ver: [GOVERNANCE_ES.md](./GOVERNANCE_ES.md)
 |-----|----------|
 | **Líder del Proyecto** | Fernando Boiero |
 | **Email** | fboiero@frvm.utn.edu.ar |
-| **Institución** | Universidad de la Defensa Nacional (UNDEF) |
+| **Institución** | Originada en la Universidad de la Defensa Nacional (UNDEF); continúa en UTN-FRVM, Argentina |
 | **GitHub** | https://github.com/fboiero/MIESC |
 | **Documentación** | https://fboiero.github.io/MIESC |
 
@@ -422,7 +422,7 @@ Este documento sirve como la aplicación de MIESC para reconocimiento como Bien 
 
 **Enviado por**: Fernando Boiero
 **Envío DPGA**: 5 de Diciembre de 2025 (aplicación #13478 / GID0092948)
-**Última actualización**: Junio 2026
+**Última actualización**: Julio 2026 (evidencia reconciliada para la versión v6.0.0)
 
 ---
 

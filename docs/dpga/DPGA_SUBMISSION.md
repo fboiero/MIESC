@@ -148,6 +148,40 @@ Full detail:
 - Indicator 9 narrative:
   [`../policies/DPG-COMPLIANCE.md` §Indicator 9](../policies/DPG-COMPLIANCE.md#indicator-9-do-no-harm)
 
+## Submission readiness verdict
+
+Evidence-verification pass performed against the repository at release **v6.0.0**
+(the release being submitted). Every in-repo path and relative link cited in this
+package and in `DPG-COMPLIANCE.md` was resolved on the default branch; the DPG
+Standard version cited (v1.1.6) is current (published 2024-09-04).
+
+| # | Indicator | Verdict | Notes |
+|---|-----------|---------|-------|
+| 1 | SDG relevance | Evidence VERIFIED ✓ | `SDG_RELEVANCE.md` + `DPG-COMPLIANCE.md` §1 present; SDG 9.b / 16.5 / 16.6 with targets. SDG-9 target now consistent (`9.b`) across all four DPGA-facing docs. |
+| 2 | Open licensing | Evidence VERIFIED ✓ | Full AGPL-3.0 text in `LICENSE`; `pyproject.toml` SPDX `AGPL-3.0-only`; OSI-approved. Consistent everywhere it matters. |
+| 3 | Clear ownership | Evidence VERIFIED ✓ | `DPG-COMPLIANCE.md` §3 + `docs/CONTRIBUTORS.md`; copyright 2024–2026; no patents; UNDEF→UTN-FRVM lineage now consistent in ownership and contact tables. |
+| 4 | Platform independence | Evidence VERIFIED ✓ | `DPG-COMPLIANCE.md` §4 + `ARCHITECTURE.md`; local-first (Ollama), pluggable adapters, graceful degradation. |
+| 5 | Documentation | Evidence VERIFIED ✓ | README EN/ES, `CONTRIBUTING.md`, `openapi.yaml` all resolve. Reconfirm the hosted site (`fboiero.github.io/MIESC`) renders live before filing — it could not be checked from the repo. |
+| 6 | Data extraction / portability | Evidence VERIFIED ✓ | Open export formats (JSON, SARIF 2.1, CSV, Markdown, HTML, PDF) documented in `DPG-COMPLIANCE.md` §6. |
+| 7 | Privacy & applicable laws | Evidence VERIFIED ✓ | `PRIVACY.md` present; local processing, no telemetry; GDPR/CCPA/Argentina Law 25.326 noted. |
+| 8 | Standards & best practices | Evidence VERIFIED ✓ | SARIF/OpenAPI/MCP/SWC/CWE + 12 standards + Contributor Covenant CoC. Security-scanner list corrected to match `ci.yml` (Bandit, pip-audit, safety, Trivy, CodeQL — Semgrep/Snyk were not actually wired in). The point-in-time test count in §8 should be re-run and refreshed against v6.0.0 before it is quoted to a reviewer. |
+| 9 | Do no harm by design | Evidence VERIFIED ✓ | `DO_NO_HARM.md` + `RESPONSIBLE_USE.md` + dual-use narrative; 9A/9B/9C answers in the responses CSV (no PII, no hosted content, CoC governs interactions). |
+
+**Bottom line.** All nine indicators resolve to real, current in-repo evidence;
+no broken links remain in this package or in `DPG-COMPLIANCE.md` (EN/ES). The
+verdict is a self-assessment supporting the DPGA's open review of application
+#13478 — it does not assert the DPGA has granted recognition. Two residual items
+are reviewer-facing rather than blocking: confirm the hosted docs site is live
+(indicator 5) and refresh the test count against v6.0.0 (indicator 8).
+
+**Flagged in frozen files (not editable in this pass — for Fernando's attention).**
+The root `README.md` (a frozen paper artifact) states the project "is fully
+compliant with all 9 DPGA indicators." That reads stronger than the honest
+"self-assessed 9/9, under review" framing used throughout this package. Consider
+softening it to "self-assesses as meeting all 9 DPGA indicators (application
+#13478 under review)" the next time the README baseline is intentionally
+refreshed — do not edit it ad hoc while it is frozen.
+
 ## Submission checklist
 
 Practical items to complete before (or while) filing with the DPGA:
@@ -177,6 +211,16 @@ Practical items to complete before (or while) filing with the DPGA:
       `DPG-COMPLIANCE.md`).
 - [ ] **Confirm license SPDX** is expressed as `AGPL-3.0-only` consistently
       across `LICENSE`, package metadata and the application form.
+- [ ] **Confirm the SDG-9 target.** This package and the responses CSV were
+      reconciled to **Target 9.b** (the choice used across `DPG-COMPLIANCE.md`,
+      `SDG_RELEVANCE.md` and this file). If you prefer 9.5 in the portal, change
+      it in one place and re-align the others.
+- [ ] **Refresh the CI/test evidence.** The security-scanner row in
+      `DPG-COMPLIANCE.md` §8 now matches `ci.yml` (Bandit, pip-audit, safety,
+      Trivy, CodeQL). Re-run the suite and update the test-count line to the
+      v6.0.0 figure before quoting it.
+- [ ] **Confirm the hosted docs site** (`fboiero.github.io/MIESC`) renders live;
+      it is cited as indicator-5 evidence but was not verifiable from the repo.
 
 ---
 
