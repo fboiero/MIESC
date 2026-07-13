@@ -948,6 +948,27 @@ def audit() -> None:
     is_flag=True,
     help="With --baseline: exit non-zero ONLY if there are findings not in the baseline.",
 )
+@click.option(
+    "--notify",
+    "notify_url",
+    type=str,
+    default=None,
+    help="POST a JSON scan summary to this webhook URL (SSRF-guarded; never fails the run).",
+)
+@click.option(
+    "--slack",
+    "slack_url",
+    type=str,
+    default=None,
+    help="POST a Slack Block Kit summary to this Slack Incoming Webhook URL "
+    "(SSRF-guarded; never fails the run).",
+)
+@click.option(
+    "--notify-min-severity",
+    type=click.Choice(["info", "low", "medium", "high", "critical"], case_sensitive=False),
+    default="low",
+    help="Only send --notify/--slack when a finding reaches this severity (default: low).",
+)
 def audit_quick(
     contract: str,
     output: str | None,
@@ -959,6 +980,9 @@ def audit_quick(
     rank: bool,
     baseline_path: str | None,
     fail_on_new: bool,
+    notify_url: str | None,
+    slack_url: str | None,
+    notify_min_severity: str,
 ) -> None:
     """Quick 3-tool scan for fast feedback (slither, aderyn, solhint)."""
     print_banner()
@@ -1101,6 +1125,19 @@ def audit_quick(
 
         gate_findings = [f for r in all_results for f in r.get("findings", [])]
         apply_baseline_gate(gate_findings, baseline_path, fail_on_new=fail_on_new)
+
+    # Outbound notifications (webhook / Slack), fired before the CI exit.
+    if notify_url or slack_url:
+        from miesc.core.notifiers import dispatch_notifications
+
+        dispatch_notifications(
+            all_results,
+            str(contract),
+            webhook_url=notify_url,
+            slack_url=slack_url,
+            min_severity=notify_min_severity,
+            ci_failed=(summary["CRITICAL"] > 0 or summary["HIGH"] > 0),
+        )
 
     # CI mode exit
     if ci and (summary["CRITICAL"] > 0 or summary["HIGH"] > 0):

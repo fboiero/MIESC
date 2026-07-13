@@ -71,6 +71,18 @@ inputs:
     description: 'Path to a .miesc-baseline.json; when set, only findings NOT in the baseline are annotated inline'
     required: false
     default: ''
+  notify-webhook:
+    description: 'Generic webhook URL to POST a JSON scan summary to (mode=scan). SSRF-guarded; network errors never fail the run'
+    required: false
+    default: ''
+  slack-webhook:
+    description: 'Slack Incoming Webhook URL to POST a Block Kit summary to (mode=scan). SSRF-guarded; network errors never fail the run'
+    required: false
+    default: ''
+  notify-min-severity:
+    description: 'Only send notify/slack when a finding reaches this severity: info, low, medium, high, critical'
+    required: false
+    default: 'low'
 
 outputs:
   report-path:
@@ -161,7 +173,17 @@ runs:
         # Run analysis based on mode
         case "$MODE" in
           scan)
-            miesc scan "$PATH_INPUT" -o "$RESULTS_JSON" --ci 2>&1
+            NOTIFY_FLAGS=""
+            if [ -n "${{ inputs.notify-webhook }}" ]; then
+              NOTIFY_FLAGS="$NOTIFY_FLAGS --notify ${{ inputs.notify-webhook }}"
+            fi
+            if [ -n "${{ inputs.slack-webhook }}" ]; then
+              NOTIFY_FLAGS="$NOTIFY_FLAGS --slack ${{ inputs.slack-webhook }}"
+            fi
+            if [ -n "$NOTIFY_FLAGS" ]; then
+              NOTIFY_FLAGS="$NOTIFY_FLAGS --notify-min-severity ${{ inputs.notify-min-severity }}"
+            fi
+            miesc scan "$PATH_INPUT" -o "$RESULTS_JSON" --ci $NOTIFY_FLAGS 2>&1
             MIESC_EXIT=$?
             ;;
           audit-quick)
