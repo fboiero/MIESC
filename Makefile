@@ -41,7 +41,7 @@ install-dev:  ## Install development dependencies
 
 test:  ## Run unit tests
 	@echo "$(BLUE)Running MIESC tests...$(NC)"
-	$(PYTHON) -m pytest tests/ -v --cov=src --cov-report=term-missing
+	$(PYTHON) -m pytest tests/ -v --cov=miesc --cov-report=term-missing
 	@echo "$(GREEN)✓ Tests complete$(NC)"
 
 test-quick:  ## Run quick tests (no coverage)
@@ -52,9 +52,9 @@ test-quick:  ## Run quick tests (no coverage)
 lint:  ## Run blocking linters (ruff)
 	@echo "$(BLUE)Running linters...$(NC)"
 	@echo "  → ruff"
-	$(PYTHON) -m ruff check miesc/ src/ tests/
+	$(PYTHON) -m ruff check miesc/ tests/
 	@echo "  → ruff import sorting"
-	$(PYTHON) -m ruff check miesc/ src/ tests/ --select I001
+	$(PYTHON) -m ruff check miesc/ tests/ --select I001
 	@echo "$(GREEN)✓ Linting complete$(NC)"
 
 typecheck:  ## Run public package type checks
@@ -63,7 +63,7 @@ typecheck:  ## Run public package type checks
 
 format:  ## Format code with black
 	@echo "$(BLUE)Formatting code...$(NC)"
-	black miesc/ src/ tests/
+	black miesc/ tests/
 	@echo "$(GREEN)✓ Code formatted$(NC)"
 
 audit:  ## Run sample audit
@@ -297,9 +297,9 @@ security:  ## Run all security checks
 security-sast:  ## Run SAST (Bandit + Semgrep)
 	@echo "$(BLUE)Running SAST...$(NC)"
 	@echo "  → Bandit"
-	@bandit -r src/ -ll || true
+	@bandit -r miesc/ -ll || true
 	@echo "  → Semgrep"
-	@semgrep --config=auto src/ || true
+	@semgrep --config=auto miesc/ || true
 	@echo "$(GREEN)✓ SAST complete$(NC)"
 
 security-deps:  ## Audit dependencies
@@ -309,7 +309,7 @@ security-deps:  ## Audit dependencies
 
 security-secrets:  ## Scan for secrets
 	@echo "$(BLUE)Scanning for hardcoded secrets...$(NC)"
-	@grep -r -n -E "(api[_-]?key|password|secret|token)\s*=\s*['\"][^'\"]+['\"]" src/ || echo "  ✓ No secrets found"
+	@grep -r -n -E "(api[_-]?key|password|secret|token)\s*=\s*['\"][^'\"]+['\"]" miesc/ || echo "  ✓ No secrets found"
 	@echo "$(GREEN)✓ Secret scan complete$(NC)"
 
 policy-check:  ## Run compliance mapping validation
@@ -334,7 +334,7 @@ pre-commit-run:  ## Run pre-commit hooks manually
 test-coverage:  ## Run tests with detailed coverage report
 	@echo "$(BLUE)Running tests with coverage...$(NC)"
 	@pytest tests/ \
-		--cov=src \
+		--cov=miesc \
 		--cov-report=term-missing \
 		--cov-report=html \
 		--cov-report=xml \

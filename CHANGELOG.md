@@ -7,6 +7,69 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [6.0.0] - UNRELEASED (draft)
+
+> Draft entry for the upcoming major release. The version bump
+> (`miesc/__init__.py`, `CITATION.cff`, Docker tags, README) is intentionally
+> NOT applied yet — this section documents the cycle-6 work so cutting the
+> release is a mechanical step once the feature set is complete.
+
+MIESC v6.0 turns the analyzer into something a team can adopt in CI without a
+first-run finding flood, act on inside the pull request, consume from an editor,
+and extend through a versioned plugin contract. It is a MAJOR release because it
+introduces new public surfaces (baseline engine, plugin API contract, code-action
+output) intended to be stable going forward.
+
+### Added
+
+- **T1.1 - Finding baseline & suppression engine.** New `miesc/core/baseline.py`,
+  `miesc baseline generate|diff` commands, and `--baseline` / `--fail-on-new`
+  flags on `scan` and `audit`. Content-hash fingerprints stay stable when
+  unrelated edits shift line numbers, so teams can adopt MIESC in CI on an
+  existing codebase and fail only on newly introduced findings.
+- **T1.2 - SARIF-native inline PR annotations.** Findings are emitted as GitHub
+  workflow annotations (`::error`/`::warning file=,line=`) that render inline on
+  the PR diff. Composes with the baseline engine so only new findings are
+  annotated.
+- **T1.3 - Webhook + Slack notifier sink for CI.** Analysis results can be pushed
+  to a webhook or Slack channel, closing the loop from detection to team
+  notification in a pipeline.
+- **T2.1 - Structured code-action / textEdit output.** `fix --format code-actions`
+  emits LSP-shaped JSON (one object per fix with `finding_id`, `title`, `file`,
+  and an `edits` array of `{range, newText}`) — an editor-agnostic quick-fix
+  contract the platform/IDE layer can consume.
+- **T3.1 - Unified formal-verification report + SARIF.** `verify --sarif`
+  aggregates certora, halmos, and the Solidity SMTChecker into one deterministic
+  JSON report and matching SARIF file, linking counterexamples back to the source
+  findings they confirm or refute.
+- **T3.3 - Versioned Plugin API contract + conformance suite.** A stable,
+  versioned plugin API so third-party detectors can target a documented contract,
+  validated by a conformance test suite.
+- **T3.4 - Reference example plugins + marketplace seeding.** Reference plugins
+  demonstrating the versioned API, plus initial marketplace index seeding.
+
+### Changed
+
+- Coverage gate raised and locked at `--cov-fail-under=80` (current line coverage
+  81.12%).
+- Migrated mutation tooling to the mutmut 3.x toolchain (py3.14 compatible);
+  recorded a 75% mutation score on the v6 core modules.
+- The validation suite is now deterministic regardless of machine state
+  (ollama/gptlens model detection mocked, leaked singletons fixed), so a green
+  gate is reproducible rather than incidental.
+
+### Fixed
+
+- Repointed the Makefile `test`, `test-coverage`, `lint`, `format`, and
+  `security-sast`/`security-secrets` targets from the dead `src/` directory to
+  `miesc/` after the src→miesc package unification (the `src/` tree is now only
+  stale `.pyc` bytecode). This restores real coverage measurement and linting.
+- Removed a stale `miesc/*` blanket coverage omit that zeroed measurement.
+- Bounded `documentation_analyzer` scans to the project root instead of system
+  tmp.
+- Corrected a benchmark orchestrator import
+  (`SecurityOrchestrator` -> `MIESCOrchestrator`).
+
 ## [5.4.3] - 2026-05-16
 
 ### Documentation
