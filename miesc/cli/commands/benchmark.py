@@ -237,9 +237,9 @@ def benchmark(
     info(f"Running security audit on {directory}...")
 
     try:
-        from miesc.core.orchestrator import SecurityOrchestrator
+        from miesc.core.orchestrator import MIESCOrchestrator
 
-        orchestrator = SecurityOrchestrator()
+        orchestrator = MIESCOrchestrator()
         # Quick audit for benchmark
         results = orchestrator.run_quick_audit(str(directory_path))
     except Exception as e:

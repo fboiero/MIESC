@@ -138,6 +138,22 @@ class MIESCOrchestrator:
 
         return results
 
+    def run_quick_audit(self, contract_path: str) -> Dict[str, Any]:
+        """
+        Run a fast audit suitable for benchmarking.
+
+        Compatibility helper used by the ``miesc benchmark`` command. It delegates
+        to :meth:`audit` and returns the same result dictionary (including the
+        ``summary`` block the benchmark reporting relies on).
+
+        Args:
+            contract_path: Path to the contract file or directory to audit.
+
+        Returns:
+            Audit results dictionary with a populated ``summary``.
+        """
+        return self.audit(contract_path)
+
     def _run_layer(
         self,
         layer_num: int,
