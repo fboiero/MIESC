@@ -687,6 +687,82 @@ def plugins_new(
         raise SystemExit(1) from e
 
 
+@plugins.command("conformance")
+@click.argument("plugin_path", type=click.Path(exists=True))
+@click.option("--json", "as_json", is_flag=True, help="Emit the report as JSON")
+def plugins_conformance(plugin_path: str, as_json: bool) -> None:
+    """Check that a plugin conforms to the MIESC Plugin API.
+
+    Loads the plugin file and verifies it implements the plugin protocol
+    correctly: required methods/properties present, signatures compatible,
+    a valid and host-compatible API version declared, and clean registration.
+
+    Exit code is non-zero if any plugin in the file fails conformance.
+
+    \b
+    Examples:
+        miesc plugins conformance ./my_plugin.py
+        miesc plugins conformance ./my_plugin.py --json
+    """
+    if not as_json:
+        print_banner()
+
+    try:
+        from miesc.plugins import PLUGIN_API_VERSION, PluginConformanceChecker
+        from miesc.plugins.conformance import ConformanceSeverity
+    except ImportError as e:
+        error("Plugin conformance system not available")
+        raise SystemExit(1) from e
+
+    checker = PluginConformanceChecker()
+
+    try:
+        reports = checker.check_file(plugin_path)
+    except Exception as e:
+        error(f"Failed to load plugin for conformance check: {e}")
+        raise SystemExit(1) from e
+
+    if as_json:
+        payload = {
+            "host_api_version": PLUGIN_API_VERSION,
+            "path": str(plugin_path),
+            "passed": all(r.passed for r in reports),
+            "reports": [r.to_dict() for r in reports],
+        }
+        print(json.dumps(payload, indent=2))  # noqa: T201
+        raise SystemExit(0 if payload["passed"] else 1)
+
+    info(f"Host Plugin API version: {PLUGIN_API_VERSION}")
+    all_passed = True
+
+    for report in reports:
+        if not report.passed:
+            all_passed = False
+
+        header = f"{report.plugin} (targets API v{report.api_version})"
+        if report.passed:
+            success(f"CONFORMANT: {header}")
+        else:
+            error(f"NON-CONFORMANT: {header}")
+
+        for issue in report.issues:
+            if issue.passed:
+                continue
+            if issue.severity == ConformanceSeverity.ERROR:
+                error(f"  [FAIL] {issue.check}: {issue.message}")
+            elif issue.severity == ConformanceSeverity.WARNING:
+                warning(f"  [WARN] {issue.check}: {issue.message}")
+
+        if report.passed and not report.warnings:
+            info("  All checks passed.")
+
+    if all_passed:
+        success("All plugins conform to the MIESC Plugin API")
+    else:
+        error("One or more plugins failed conformance")
+        raise SystemExit(1)
+
+
 @plugins.command("runtime")
 @click.option("--verbose", "-v", is_flag=True, help="Show detailed info")
 def plugins_runtime(verbose: bool) -> None:

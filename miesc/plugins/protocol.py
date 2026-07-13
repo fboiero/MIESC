@@ -45,6 +45,8 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Type, Union
 
+from .version import PLUGIN_API_VERSION
+
 logger = logging.getLogger(__name__)
 
 
@@ -88,6 +90,9 @@ class PluginMetadata:
     max_miesc_version: Optional[str] = None
     entry_point: Optional[str] = None
     config_schema: Optional[Dict[str, Any]] = None
+    # Plugin API version this plugin targets (semver). Defaults to the API
+    # version provided by the host the plugin was authored against.
+    api_version: str = PLUGIN_API_VERSION
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
@@ -104,6 +109,7 @@ class PluginMetadata:
             "dependencies": self.dependencies,
             "min_miesc_version": self.min_miesc_version,
             "max_miesc_version": self.max_miesc_version,
+            "api_version": self.api_version,
         }
 
     @classmethod
@@ -128,6 +134,7 @@ class PluginMetadata:
             max_miesc_version=data.get("max_miesc_version"),
             entry_point=data.get("entry_point"),
             config_schema=data.get("config_schema"),
+            api_version=data.get("api_version", PLUGIN_API_VERSION),
         )
 
 
@@ -203,6 +210,12 @@ class MIESCPlugin(ABC):
     _context: Optional[PluginContext] = None
     _config: Dict[str, Any] = field(default_factory=dict)
 
+    # Plugin API version this plugin targets. Community plugins SHOULD set
+    # this explicitly (the scaffold does) to the version they were built
+    # against. Defaults to the host's current API version for backward
+    # compatibility with plugins written before API versioning existed.
+    API_VERSION: str = PLUGIN_API_VERSION
+
     def __init__(self) -> None:
         """Initialize plugin instance."""
         self._state = PluginState.LOADED
@@ -236,6 +249,15 @@ class MIESCPlugin(ABC):
     def author(self) -> str:
         """Plugin author."""
         return ""
+
+    @property
+    def api_version(self) -> str:
+        """Plugin API version this plugin targets (semver).
+
+        Resolves from the ``API_VERSION`` class attribute so subclasses can
+        declare it declaratively. Override this property for dynamic behaviour.
+        """
+        return type(self).API_VERSION
 
     @property
     def state(self) -> PluginState:
@@ -318,6 +340,7 @@ class MIESCPlugin(ABC):
             plugin_type=self.plugin_type,
             description=self.description,
             author=self.author,
+            api_version=self.api_version,
         )
 
     def configure(self, config: Dict[str, Any]) -> None:

@@ -235,6 +235,90 @@ dependencies = [
 
 MIESC checks compatibility before installation and warns if versions don't match.
 
+## Plugin API Versioning
+
+The MIESC Plugin API (the `MIESCPlugin` protocol and its specialized base
+classes) is **versioned, not frozen**. It carries an explicit semantic version
+so community plugins can build on a stable, evolving surface:
+
+```python
+from miesc.plugins import PLUGIN_API_VERSION  # e.g. "1.0.0"
+```
+
+- **MAJOR** — breaking change to the protocol (a method/attribute is removed,
+  renamed, or its required signature changes).
+- **MINOR** — backward-compatible additions (new optional hooks or services).
+- **PATCH** — internal fixes with no protocol impact.
+
+A plugin declares the API version it was built against via the `API_VERSION`
+class attribute (the scaffold sets this for you):
+
+```python
+class MyDetector(DetectorPlugin):
+    API_VERSION = "1.0.0"   # the Plugin API this plugin targets
+    ...
+```
+
+### Compatibility rule enforced by the loader
+
+When a plugin is loaded, MIESC compares its declared `API_VERSION` against the
+host's `PLUGIN_API_VERSION`:
+
+| Situation | Result |
+|---|---|
+| Same MAJOR, plugin MINOR ≤ host MINOR | Loaded (host is backward compatible) |
+| Same MAJOR, plugin MINOR > host MINOR | Rejected — host is too old for the plugin |
+| Different MAJOR | Rejected — the protocol is incompatible |
+| Non-semver `API_VERSION` | Rejected — invalid declaration |
+
+Rejections raise `PluginAPIIncompatibleError` with an actionable message
+instead of silently loading an incompatible plugin. Plugins written before API
+versioning existed (no `API_VERSION`) default to the host version and keep
+working.
+
+You can check compatibility directly:
+
+```python
+from miesc.plugins import check_api_compatibility
+
+result = check_api_compatibility("1.4.0", "1.2.0")
+print(result.compatible)  # False
+print(result.message)     # host provides v1.2.0, plugin needs MINOR 4 ...
+```
+
+## Conformance Suite
+
+Before publishing, verify your plugin conforms to the Plugin API with the
+self-service conformance harness. It checks that the class is a concrete
+`MIESCPlugin`, instantiates, exposes the required identity properties, declares
+a valid and host-compatible API version, implements the required methods with
+compatible signatures, and registers cleanly.
+
+From the CLI:
+
+```bash
+# Human-readable report (exit code is non-zero on failure)
+miesc plugins conformance ./miesc_my_detector/plugin.py
+
+# Machine-readable
+miesc plugins conformance ./miesc_my_detector/plugin.py --json
+```
+
+Or programmatically:
+
+```python
+from miesc.plugins import PluginConformanceChecker
+
+report = PluginConformanceChecker().check(MyDetector)
+if not report.passed:
+    for issue in report.failures:
+        print(f"{issue.check}: {issue.message}")
+```
+
+Each report exposes `passed`, `failures` (blocking), and `warnings`
+(recommendations such as non-`lowercase-hyphen` names), plus a structured
+`to_dict()` for tooling and CI gates.
+
 ## Testing Your Plugin
 
 ```python

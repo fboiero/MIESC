@@ -27,6 +27,7 @@ from pathlib import Path
 from typing import List, Optional
 
 from .protocol import PluginType
+from .version import PLUGIN_API_VERSION
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +44,7 @@ class PluginTemplate:
     version: str = "0.1.0"
     license: str = "MIT"
     min_miesc_version: str = "4.5.0"
+    api_version: str = PLUGIN_API_VERSION
     tags: List[str] = field(default_factory=list)
     dependencies: List[str] = field(default_factory=list)
 
@@ -284,6 +286,9 @@ class {class_name}Detector(DetectorPlugin):
     This detector analyzes Solidity code for specific vulnerability patterns.
     """
 
+    # Plugin API version this plugin targets (see miesc.plugins.PLUGIN_API_VERSION).
+    API_VERSION = "{template.api_version}"
+
     # Define detection patterns
     PATTERNS = [
         # Add your regex patterns here
@@ -367,6 +372,7 @@ class {class_name}Detector(DetectorPlugin):
             author=self.author,
             tags={template.tags},
             min_miesc_version="{template.min_miesc_version}",
+            api_version="{template.api_version}",
         )
 '''
 
@@ -400,6 +406,9 @@ class {class_name}Adapter(AdapterPlugin):
     This adapter wraps an external tool and normalizes its output
     to the MIESC finding format.
     """
+
+    # Plugin API version this plugin targets (see miesc.plugins.PLUGIN_API_VERSION).
+    API_VERSION = "{template.api_version}"
 
     # Tool configuration
     TOOL_COMMAND = "mytool"  # Replace with actual tool command
@@ -538,6 +547,9 @@ class {class_name}Reporter(ReporterPlugin):
     Generates reports in a custom format from vulnerability findings.
     """
 
+    # Plugin API version this plugin targets (see miesc.plugins.PLUGIN_API_VERSION).
+    API_VERSION = "{template.api_version}"
+
     @property
     def name(self) -> str:
         return "{template.name}"
@@ -671,6 +683,9 @@ class {class_name}Transformer(TransformerPlugin):
     Transforms vulnerable code patterns to secure alternatives.
     """
 
+    # Plugin API version this plugin targets (see miesc.plugins.PLUGIN_API_VERSION).
+    API_VERSION = "{template.api_version}"
+
     # Define transformation rules
     # (pattern, replacement, description)
     TRANSFORMATIONS = [
@@ -768,6 +783,9 @@ class {class_name}Plugin(MIESCPlugin):
     {template.description}
     """
 
+    # Plugin API version this plugin targets (see miesc.plugins.PLUGIN_API_VERSION).
+    API_VERSION = "{template.api_version}"
+
     @property
     def name(self) -> str:
         return "{template.name}"
@@ -832,7 +850,7 @@ import pytest
 from pathlib import Path
 
 from {module_name} import {plugin_class}
-from miesc.plugins import PluginContext, PluginType
+from miesc.plugins import PLUGIN_API_VERSION, PluginContext, PluginType
 
 
 @pytest.fixture
@@ -868,6 +886,12 @@ class Test{plugin_class}:
     def test_plugin_type(self, plugin):
         """Should have correct type."""
         assert plugin.plugin_type == PluginType.{template.plugin_type.name}
+
+    def test_plugin_api_version(self, plugin):
+        """Should declare a Plugin API version compatible with the host."""
+        assert plugin.api_version == "{template.api_version}"
+        # Same MAJOR line as the host it was scaffolded against.
+        assert plugin.api_version.split(".")[0] == PLUGIN_API_VERSION.split(".")[0]
 
     def test_plugin_initialize(self, plugin, plugin_context):
         """Should initialize with context."""
