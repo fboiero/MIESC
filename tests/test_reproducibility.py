@@ -19,6 +19,8 @@ import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from miesc.security.reproducibility import (
     EnvironmentFingerprint,
     ExperimentLogger,
@@ -643,6 +645,12 @@ class TestExperimentLoggerMethods:
 
 class TestCreateReproducibilityReport:
     """Tests for create_reproducibility_report function."""
+
+    @pytest.fixture(autouse=True)
+    def _seed(self):
+        # The report asserts random_seed is set; make each test self-contained
+        # (order-independent) instead of relying on a sibling test's global seed.
+        set_global_seeds(42)
 
     def test_create_report_basic(self, tmp_path):
         """Test creating a reproducibility report."""
