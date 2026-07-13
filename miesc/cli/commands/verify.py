@@ -37,7 +37,10 @@ def _find_foundry_root(start: Path) -> Optional[Path]:
 @click.option(
     "--tool",
     "-t",
-    type=click.Choice(["all", "certora", "halmos", "smtchecker"], case_sensitive=False),
+    type=click.Choice(
+        ["all", "certora", "halmos", "smtchecker", "scribble", "kontrol"],
+        case_sensitive=False,
+    ),
     default="all",
     help="Which prover to run (default: all available).",
 )
@@ -155,6 +158,37 @@ def verify(
                 results["halmos"] = runner.run_halmos(str(foundry_root), timeout=timeout)
         elif tool_lower == "halmos":
             error("halmos not installed; pip install halmos")
+            sys.exit(1)
+
+    # Scribble — annotation instrumentation, operates on the contract file
+    if tool_lower in ("all", "scribble"):
+        if availability.get("scribble"):
+            info("Running Scribble...") if not quiet else None
+            results["scribble"] = runner.run_scribble(contract_path, timeout=timeout)
+        elif tool_lower == "scribble":
+            error("scribble not installed; npm install -g eth-scribble")
+            sys.exit(1)
+
+    # Kontrol — KEVM symbolic proving on the Foundry project dir
+    if tool_lower in ("all", "kontrol"):
+        if availability.get("kontrol"):
+            foundry_root = _find_foundry_root(Path(contract_path))
+            if foundry_root is None:
+                if tool_lower == "kontrol":
+                    error(
+                        f"No foundry.toml found above {contract_path}. "
+                        "Kontrol requires a Foundry project layout."
+                    )
+                    sys.exit(1)
+                warning("Skipping Kontrol: no foundry.toml found upstream of contract.")
+            else:
+                info(f"Running Kontrol on {foundry_root}...") if not quiet else None
+                results["kontrol"] = runner.run_kontrol(str(foundry_root), timeout=timeout)
+        elif tool_lower == "kontrol":
+            error(
+                "kontrol not installed; "
+                "see https://docs.runtimeverification.com/kontrol"
+            )
             sys.exit(1)
 
     if not results:
