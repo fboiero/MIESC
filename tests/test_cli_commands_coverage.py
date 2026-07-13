@@ -541,6 +541,14 @@ class TestBenchmarkHelpers:
 
 
 class TestBenchmarkCommand:
+    def test_orchestrator_symbol_exists(self):
+        """Regression: benchmark imports MIESCOrchestrator, which must be a real
+        symbol exposing run_quick_audit (previously imported a non-existent
+        SecurityOrchestrator, so the audit path always raised ImportError)."""
+        from miesc.core.orchestrator import MIESCOrchestrator
+
+        assert hasattr(MIESCOrchestrator, "run_quick_audit")
+
     def test_benchmark_history_flag(self, runner, tmp_path, monkeypatch):
         monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path))
         contracts = tmp_path / "contracts"
@@ -559,8 +567,7 @@ class TestBenchmarkCommand:
             "tools": ["slither"],
         }
         with patch(
-            "miesc.core.orchestrator.SecurityOrchestrator",
-            create=True,
+            "miesc.core.orchestrator.MIESCOrchestrator",
             return_value=orch,
         ):
             result = runner.invoke(benchmark, [str(contracts), "--save"])
@@ -574,8 +581,7 @@ class TestBenchmarkCommand:
         orch = MagicMock()
         orch.run_quick_audit.side_effect = RuntimeError("boom")
         with patch(
-            "miesc.core.orchestrator.SecurityOrchestrator",
-            create=True,
+            "miesc.core.orchestrator.MIESCOrchestrator",
             return_value=orch,
         ):
             result = runner.invoke(benchmark, [str(contracts)])

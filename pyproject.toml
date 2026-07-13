@@ -432,7 +432,7 @@ exclude_lines = [
     "if TYPE_CHECKING:",
     "@(abc\\.)?abstractmethod",
 ]
-fail_under = 79  # Coverage target: ~80% (fluctuates with new code)
+fail_under = 80  # Coverage target: locked at 80% (real coverage ~81.1%)
 show_missing = true
 
 # ============================================
