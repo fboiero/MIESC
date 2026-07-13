@@ -9,11 +9,6 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [6.0.0] - 2026-07-12
 
-> Draft entry for the upcoming major release. The version bump
-> (`miesc/__init__.py`, `CITATION.cff`, Docker tags, README) is intentionally
-> NOT applied yet — this section documents the cycle-6 work so cutting the
-> release is a mechanical step once the feature set is complete.
-
 MIESC v6.0 turns the analyzer into something a team can adopt in CI without a
 first-run finding flood, act on inside the pull request, consume from an editor,
 and extend through a versioned plugin contract. It is a MAJOR release because it
