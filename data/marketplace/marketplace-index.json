@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "updated_at": "2026-02-02T00:00:00Z",
+  "updated_at": "2026-07-12T00:00:00Z",
   "plugins": [
     {
       "name": "Dangerous Delegatecall Detector",
@@ -20,6 +20,63 @@
       "verification_status": "verified",
       "added_at": "2026-02-02T00:00:00Z",
       "updated_at": "2026-02-02T00:00:00Z"
+    },
+    {
+      "name": "Reentrancy Detector",
+      "slug": "reentrancy-detector",
+      "pypi_package": "miesc-reentrancy_detector",
+      "version": "1.0.0",
+      "plugin_type": "detector",
+      "description": "Detects reentrancy vulnerabilities by flagging external ETH calls (.call{value:}) made before state updates (Checks-Effects-Interactions violations)",
+      "author": "Fernando Boiero",
+      "author_email": "fboiero@frvm.utn.edu.ar",
+      "homepage": "https://github.com/fboiero/MIESC/tree/main/examples/plugins/reentrancy_detector",
+      "repository": "https://github.com/fboiero/MIESC",
+      "license": "MIT",
+      "tags": ["security", "reentrancy", "swc-107", "example"],
+      "min_miesc_version": "5.0.0",
+      "max_miesc_version": null,
+      "verification_status": "verified",
+      "added_at": "2026-07-12T00:00:00Z",
+      "updated_at": "2026-07-12T00:00:00Z"
+    },
+    {
+      "name": "tx.origin Authentication Detector",
+      "slug": "txorigin-auth-detector",
+      "pypi_package": "miesc-txorigin_detector",
+      "version": "1.0.0",
+      "plugin_type": "detector",
+      "description": "Detects authorization checks that rely on tx.origin, which is vulnerable to phishing via malicious intermediary contracts; recommends msg.sender for access control",
+      "author": "Fernando Boiero",
+      "author_email": "fboiero@frvm.utn.edu.ar",
+      "homepage": "https://github.com/fboiero/MIESC/tree/main/examples/plugins/txorigin_detector",
+      "repository": "https://github.com/fboiero/MIESC",
+      "license": "MIT",
+      "tags": ["security", "access-control", "tx-origin", "swc-115", "example"],
+      "min_miesc_version": "5.0.0",
+      "max_miesc_version": null,
+      "verification_status": "verified",
+      "added_at": "2026-07-12T00:00:00Z",
+      "updated_at": "2026-07-12T00:00:00Z"
+    },
+    {
+      "name": "CSV Reporter",
+      "slug": "csv-reporter",
+      "pypi_package": "miesc-csv_reporter",
+      "version": "1.0.0",
+      "plugin_type": "reporter",
+      "description": "Exports MIESC findings as a CSV file for spreadsheet analysis and triage, demonstrating the ReporterPlugin protocol",
+      "author": "Fernando Boiero",
+      "author_email": "fboiero@frvm.utn.edu.ar",
+      "homepage": "https://github.com/fboiero/MIESC/tree/main/examples/plugins/csv_reporter",
+      "repository": "https://github.com/fboiero/MIESC",
+      "license": "MIT",
+      "tags": ["reporter", "csv", "export", "example"],
+      "min_miesc_version": "5.0.0",
+      "max_miesc_version": null,
+      "verification_status": "verified",
+      "added_at": "2026-07-12T00:00:00Z",
+      "updated_at": "2026-07-12T00:00:00Z"
     }
   ]
 }

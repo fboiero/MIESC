@@ -22,12 +22,24 @@ from typing import Any, Dict, List, Optional
 # Use the installed package when available; fall back to a relative import
 # when running directly from the examples directory.
 try:
-    from miesc.plugins.protocol import DetectorPlugin, PluginContext, PluginMetadata, PluginType
+    from miesc.plugins.protocol import (
+        PLUGIN_API_VERSION,
+        DetectorPlugin,
+        PluginContext,
+        PluginMetadata,
+        PluginType,
+    )
 except ImportError:
     import sys
 
     sys.path.insert(0, str(Path(__file__).resolve().parents[4]))
-    from miesc.plugins.protocol import DetectorPlugin, PluginContext, PluginMetadata, PluginType
+    from miesc.plugins.protocol import (
+        PLUGIN_API_VERSION,
+        DetectorPlugin,
+        PluginContext,
+        PluginMetadata,
+        PluginType,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -72,6 +84,9 @@ class ReentrancyDetectorPlugin(DetectorPlugin):
     - Medium — Bare external ETH call (no confirmed CEI violation)
     """
 
+    # Plugin API version this plugin targets (see miesc.plugins.PLUGIN_API_VERSION).
+    API_VERSION = PLUGIN_API_VERSION
+
     @property
     def name(self) -> str:
         return "reentrancy-detector"
@@ -106,6 +121,7 @@ class ReentrancyDetectorPlugin(DetectorPlugin):
             license="MIT",
             tags=["reentrancy", "security", "example"],
             min_miesc_version="5.0.0",
+            api_version=self.api_version,
         )
 
     # ------------------------------------------------------------------
