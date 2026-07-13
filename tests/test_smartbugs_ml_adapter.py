@@ -41,10 +41,19 @@ def _features(**over):
 def test_metadata_and_availability():
     a = _a()
     assert a.get_metadata().name == "smartbugs_ml"
-    assert a.is_available() == ToolStatus.AVAILABLE
+    # numpy/sklearn are optional and absent in minimal CI environments, so the
+    # adapter legitimately reports NOT_INSTALLED there. Assert availability is
+    # one of the two valid states and only check the "available" details when
+    # the ML libraries are actually importable.
+    status = a.is_available()
+    assert status in (ToolStatus.AVAILABLE, ToolStatus.NOT_INSTALLED)
     chk = a.check_availability()
-    assert chk["available"] is True
-    assert "scikit-learn" in chk["ml_library"]
+    if status == ToolStatus.AVAILABLE:
+        assert chk["available"] is True
+        assert "scikit-learn" in chk["ml_library"]
+    else:
+        assert chk["available"] is False
+        assert "install_command" in chk
 
 
 def test_availability_not_installed(monkeypatch):
