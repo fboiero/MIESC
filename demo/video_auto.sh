@@ -1,5 +1,5 @@
 #!/bin/bash
-# MIESC v5.1.1 — Automated Demo Recording
+# MIESC v6.0.0 — Automated Demo Recording
 # Run with: asciinema rec -c ./demo/video_auto.sh demo/miesc-demo.cast
 # Or direct: ./demo/video_auto.sh
 
@@ -49,7 +49,7 @@ cp "$SRC/examples/contracts/FlashLoanAttack.sol" .
 clear
 sleep 1
 
-banner "MIESC v5.1.1 — Smart Contract Security Audit Demo"
+banner "MIESC v6.0.0 — Smart Contract Security Audit Demo"
 
 echo -e "  ${GREEN}MIESC${NC} orchestrates ${BOLD}35 analysis modules${NC} across ${BOLD}9 defense layers${NC}"
 echo -e "  for comprehensive pre-audit triage of smart contracts."
@@ -146,7 +146,7 @@ for f in results.json report.md audit.pdf findings.sarif findings.csv; do
 done
 echo "  └─────────────────────┴──────────┴────────────────────────────┘"
 echo ""
-echo -e "  ${BOLD}MIESC v5.1.1${NC} — Multi-layer Intelligent Evaluation for Smart Contracts"
+echo -e "  ${BOLD}MIESC v6.0.0${NC} — Multi-layer Intelligent Evaluation for Smart Contracts"
 echo -e "  ${GREEN}pip install miesc${NC} | ${BLUE}https://github.com/fboiero/MIESC${NC}"
 echo ""
 sleep 5

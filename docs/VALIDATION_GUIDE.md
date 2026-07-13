@@ -1,6 +1,6 @@
 # MIESC - Guia de Validacion e Instalacion
 
-**MIESC v5.4.3** - Multi-layer Intelligent Evaluation for Smart Contracts
+**MIESC v6.0.0** - Multi-layer Intelligent Evaluation for Smart Contracts
 **Autor:** Fernando Boiero (fboiero@frvm.utn.edu.ar)
 **Institucion:** Maestria en Ciberdefensa, UNDEF-IUA Argentina
 **Fecha de Validacion:** Enero 2026
@@ -86,7 +86,7 @@ ls -la
 
 # Verificar version del proyecto
 cat pyproject.toml | grep version
-# Salida: version = "5.4.3"
+# Salida: version = "6.0.0"
 ```
 
 ---
@@ -142,7 +142,7 @@ cargo install aderyn
 miesc --version
 
 # Salida esperada:
-# MIESC v5.4.3 - Multi-layer Intelligent Evaluation for Smart Contracts
+# MIESC v6.0.0 - Multi-layer Intelligent Evaluation for Smart Contracts
 ```
 
 ---
@@ -161,7 +161,7 @@ MIESC System Diagnostics
 ========================
 
 [OK] Python 3.12.x detected
-[OK] MIESC v5.4.3 installed
+[OK] MIESC v6.0.0 installed
 [OK] Slither v0.10.x available
 [OK] Solhint v5.x.x available
 [WARN] Mythril not installed (optional)
@@ -353,7 +353,7 @@ miesc export results/analysis.json -f csv -o results/findings.csv
 ```json
 {
   "metadata": {
-    "version": "5.4.3",
+    "version": "6.0.0",
     "timestamp": "2026-01-08T12:00:00Z",
     "contract": "VulnerableBank.sol",
     "analysis_duration": "45.2s"
@@ -601,5 +601,5 @@ MIESC/
 
 ---
 
-**Documento generado automaticamente por MIESC v5.4.3**
+**Documento generado automaticamente por MIESC v6.0.0**
 **Ultima actualizacion:** Enero 2026

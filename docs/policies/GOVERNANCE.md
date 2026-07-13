@@ -19,7 +19,7 @@ single source of truth.
 
 MIESC began as part of a Master's thesis in Cyberdefense at Universidad de la
 Defensa Nacional (UNDEF), Argentina, and has since shipped as a maintained
-open-source product (current release: v5.4.3).
+open-source product (current release: v6.0.0).
 
 | Phase | Model | Window |
 |-------|-------|--------|

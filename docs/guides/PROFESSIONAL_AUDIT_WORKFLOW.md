@@ -1,6 +1,6 @@
 # Professional Smart Contract Audit Workflow
 
-**MIESC v5.4.3** | Professional Auditor Guide
+**MIESC v6.0.0** | Professional Auditor Guide
 
 This guide walks you through a structured workflow for professional smart contract security audits with MIESC.
 
@@ -45,19 +45,19 @@ MIESC runs a **configured adapter stack** across **9 defense layers**. Each laye
 
 ```bash
 # Standard image (~15 tools, fast)
-docker pull ghcr.io/fboiero/miesc:5.4.3
+docker pull ghcr.io/fboiero/miesc:6.0.0
 
 # Full image (~30 tools, comprehensive)
-docker pull ghcr.io/fboiero/miesc:5.4.3-full
+docker pull ghcr.io/fboiero/miesc:6.0.0-full
 
 # Verify installation
-docker run --rm ghcr.io/fboiero/miesc:5.4.3 --version
+docker run --rm ghcr.io/fboiero/miesc:6.0.0 --version
 ```
 
 ### Local Installation
 
 ```bash
-pip install miesc==5.4.3
+pip install miesc==6.0.0
 miesc doctor  # Check tool availability
 ```
 
@@ -85,7 +85,7 @@ export OLLAMA_HOST=http://localhost:11434
 miesc scan contract.sol
 
 # Or with Docker
-docker run --rm -v $(pwd):/contracts ghcr.io/fboiero/miesc:5.4.3 \
+docker run --rm -v $(pwd):/contracts ghcr.io/fboiero/miesc:6.0.0 \
   scan /contracts/Contract.sol
 ```
 
@@ -464,7 +464,7 @@ jobs:
         run: |
           docker run --rm \
             -v ${{ github.workspace }}:/contracts \
-            ghcr.io/fboiero/miesc:5.4.3 \
+            ghcr.io/fboiero/miesc:6.0.0 \
             audit quick /contracts \
             --ci \
             -o /contracts/results.json
@@ -473,7 +473,7 @@ jobs:
         run: |
           docker run --rm \
             -v ${{ github.workspace }}:/contracts \
-            ghcr.io/fboiero/miesc:5.4.3 \
+            ghcr.io/fboiero/miesc:6.0.0 \
             export /contracts/results.json \
             -f sarif \
             -o /contracts/results.sarif.json
@@ -503,7 +503,7 @@ repos:
 
 ```yaml
 security-audit:
-  image: ghcr.io/fboiero/miesc:5.4.3
+  image: ghcr.io/fboiero/miesc:6.0.0
   stage: test
   script:
     - miesc audit quick ./contracts --ci -o results.json
@@ -661,13 +661,13 @@ miesc benchmark ./contracts --compare last
 ```bash
 # Basic audit
 docker run --rm -v $(pwd):/contracts \
-  ghcr.io/fboiero/miesc:5.4.3 \
+  ghcr.io/fboiero/miesc:6.0.0 \
   audit quick /contracts -o /contracts/results.json
 
 # With LLM (macOS)
 docker run --rm -v $(pwd):/contracts \
   -e OLLAMA_HOST=http://host.docker.internal:11434 \
-  ghcr.io/fboiero/miesc:5.4.3 \
+  ghcr.io/fboiero/miesc:6.0.0 \
   audit full /contracts --skip-unavailable -o /contracts/results.json
 ```
 
@@ -677,13 +677,13 @@ docker run --rm -v $(pwd):/contracts \
 # Full audit with all tools
 docker run --rm -v $(pwd):/contracts \
   -e OLLAMA_HOST=http://host.docker.internal:11434 \
-  ghcr.io/fboiero/miesc:5.4.3-full \
+  ghcr.io/fboiero/miesc:6.0.0-full \
   audit full /contracts --skip-unavailable -o /contracts/results.json
 
 # Generate premium report
 docker run --rm -v $(pwd):/contracts \
   -e OLLAMA_HOST=http://host.docker.internal:11434 \
-  ghcr.io/fboiero/miesc:5.4.3-full \
+  ghcr.io/fboiero/miesc:6.0.0-full \
   report /contracts/results.json \
   -t premium --llm-interpret -f pdf -o /contracts/report.pdf
 ```
@@ -699,4 +699,4 @@ docker run --rm -v $(pwd):/contracts \
 
 ---
 
-*Document version: 5.4.3 | Last updated: May 2026*
+*Document version: 6.0.0 | Last updated: May 2026*

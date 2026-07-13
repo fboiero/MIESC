@@ -1,4 +1,4 @@
-# MIESC v5.4.3 FULL - Extended Docker Image
+# MIESC v6.0.0 FULL - Extended Docker Image
 # Multi-layer Intelligent Evaluation for Smart Contracts
 #
 # This image includes advanced security analysis tools:
@@ -18,10 +18,10 @@
 # Memory requirement: 8GB+ RAM recommended
 #
 # PREREQUISITE: Build the standard image first:
-#   docker build -t miesc:5.4.3 -t ghcr.io/fboiero/miesc:5.4.3 -f docker/Dockerfile .
+#   docker build -t miesc:6.0.0 -t ghcr.io/fboiero/miesc:6.0.0 -f docker/Dockerfile .
 #
 # Then build this full image:
-#   docker build -t ghcr.io/fboiero/miesc:5.4.3-full -f docker/Dockerfile.full .
+#   docker build -t ghcr.io/fboiero/miesc:6.0.0-full -f docker/Dockerfile.full .
 #
 # Or use the build script:
 #   ./scripts/build-images.sh --full
@@ -37,7 +37,7 @@ ARG MIESC_BUILD_HALMOS=auto
 ARG MIESC_BUILD_SEMGREP=auto
 
 LABEL maintainer="Fernando Boiero <fboiero@frvm.utn.edu.ar>"
-LABEL version="5.4.3-full"
+LABEL version="6.0.0-full"
 LABEL description="MIESC FULL - Researcher image with 9-layer smart-contract security tooling"
 
 # ==========================================
@@ -208,7 +208,7 @@ RUN ARCH="$(dpkg --print-architecture)" && \
 # ENVIRONMENT CONFIGURATION
 # ==========================================
 
-ENV MIESC_VERSION="5.4.3-full"
+ENV MIESC_VERSION="6.0.0-full"
 ENV MIESC_ENV="docker-full"
 ENV PATH="/app/.tools/mythril/bin:/app/.tools/manticore39/bin:/app/.tools/wake/bin:/app/.tools/certora/bin:/app/.tools/semgrep/bin:/home/miesc/.local/bin:${PATH}"
 ENV PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION="python"

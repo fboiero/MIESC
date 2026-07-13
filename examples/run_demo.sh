@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# MIESC v5.4.3 - Demo core local
+# MIESC v6.0.0 - Demo core local
 # Multi-layer Intelligent Evaluation for Smart Contracts
 # Autor: Fernando Boiero - UNDEF/IUA
 # =============================================================================

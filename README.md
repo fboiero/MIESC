@@ -320,7 +320,7 @@ miesc scan Bridge.sol             # Detects 7 bridge exploit patterns
 
 ## Docker
 
-The current release is **v5.4.3** (see [CHANGELOG](./CHANGELOG.md)). Release status,
+The current release is **v6.0.0** (see [CHANGELOG](./CHANGELOG.md)). Release status,
 published artifact links, GHCR digest, and smoke-test commands from the most recent detailed
 release-status report (v5.4.2) are recorded in
 [MIESC 5.4.2 Release Status](./docs/policies/RELEASE_STATUS_5.4.2.md).
@@ -494,7 +494,7 @@ miesc detectors list                         # List all available detectors
 # Pre-commit hook (.pre-commit-config.yaml)
 repos:
   - repo: https://github.com/fboiero/MIESC
-    rev: v5.4.3
+    rev: v6.0.0
     hooks:
       - id: miesc-quick
         args: ['--ci']

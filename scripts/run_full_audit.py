@@ -28,7 +28,7 @@ def print_banner():
     """Print MIESC banner"""
     print("""
 ╔════════════════════════════════════════════════════════════════════════════╗
-║                    MIESC v5.4.3 - Full Security Audit                      ║
+║                    MIESC v6.0.0 - Full Security Audit                      ║
 ║          Multi-layer Intelligent Evaluation for Smart Contracts            ║
 ╠════════════════════════════════════════════════════════════════════════════╣
 ║  Author: Fernando Boiero | Institution: UNDEF - IUA Córdoba                ║
@@ -167,7 +167,7 @@ def generate_consolidated_report(all_results: List[Dict]) -> Dict:
 
     report = {
         "audit_info": {
-            "tool": "MIESC v5.4.3",
+            "tool": "MIESC v6.0.0",
             "timestamp": datetime.now().isoformat(),
             "contracts_audited": len(all_results),
             "tools_used": TOOLS,

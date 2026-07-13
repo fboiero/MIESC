@@ -446,7 +446,7 @@ def print_banner():
     banner = f"""
 {color('╔════════════════════════════════════════════════════════════════════╗', Colors.CYAN)}
 {color('║', Colors.CYAN)}  {color('MIESC-Quick', Colors.BOLD)} - Lightweight Pre-Audit Scanner                       {color('║', Colors.CYAN)}
-{color('║', Colors.CYAN)}  {color('v5.4.3', Colors.DIM)}         For full audits: miesc audit <contract.sol>             {color('║', Colors.CYAN)}
+{color('║', Colors.CYAN)}  {color('v6.0.0', Colors.DIM)}         For full audits: miesc audit <contract.sol>             {color('║', Colors.CYAN)}
 {color('╚════════════════════════════════════════════════════════════════════╝', Colors.CYAN)}
 """
     print(banner)

@@ -1,6 +1,6 @@
 # MIESC — Plan de Mejoras
 
-**Versión actual**: 5.4.3 · **Revisión del plan**: Junio 2026
+**Versión actual**: 6.0.0 · **Revisión del plan**: Junio 2026
 **Estado**: código-completo. El backlog de ingeniería está mayormente saldado;
 el foco se corre a **distribución y publicación**.
 
@@ -40,7 +40,7 @@ el foco se corre a **distribución y publicación**.
       **#58** (4 bumps PATCH: aiohttp, cbor2, idna, wcwidth).
 - [ ] Mantener **CI Lint&Format** verde (black + ruff sobre `src/ tests/`)
       antes de cada merge — incorporar al flujo, no descubrirlo en CI.
-- [x] Refrescar este plan a la realidad v5.4.3.
+- [x] Refrescar este plan a la realidad v6.0.0.
 
 ### Tier 2 — Crecimiento (producto / comunidad)
 - [ ] **DPGA**: completar el proceso de certificación en curso.

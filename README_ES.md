@@ -319,7 +319,7 @@ El estado de la versión, los enlaces a los artefactos publicados, el digest de 
 y los comandos de smoke-test del último estado de versión detallado publicado (5.4.2)
 están registrados en
 [Estado de la Versión MIESC 5.4.2](./docs/policies/RELEASE_STATUS_5.4.2.md). La
-versión actual publicada es la 5.4.3 (PyPI y GHCR).
+versión actual publicada es la 6.0.0 (PyPI y GHCR).
 
 ```bash
 # Imagen estándar (~3GB, multi-arch incluyendo Apple Silicon)
@@ -490,7 +490,7 @@ miesc detectors list                         # Listar todos los detectores dispo
 # Pre-commit hook (.pre-commit-config.yaml)
 repos:
   - repo: https://github.com/fboiero/MIESC
-    rev: v5.4.3
+    rev: v6.0.0
     hooks:
       - id: miesc-quick
         args: ['--ci']

@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# MIESC v5.4.3 - DEMO COMPLETA CORE LOCAL
+# MIESC v6.0.0 - DEMO COMPLETA CORE LOCAL
 # Multi-layer Intelligent Evaluation for Smart Contracts
 #
 # Maestria en Ciberdefensa - UNDEF/IUA
@@ -484,7 +484,7 @@ demo_tests() {
 # =============================================================================
 
 demo_resumen() {
-    print_section "RESUMEN - MIESC v5.4.3"
+    print_section "RESUMEN - MIESC v6.0.0"
 
     echo -e "${WHITE}Contribuciones principales de la tesis:${NC}"
     echo ""

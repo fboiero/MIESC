@@ -6,7 +6,7 @@ title: Smart Contract Security Framework
 # MIESC - Multi-layer Intelligent Evaluation for Smart Contracts
 
 <p align="center">
-  <img src="https://img.shields.io/badge/MIESC-v5.4.3-blue?style=for-the-badge" alt="MIESC v5.4.3">
+  <img src="https://img.shields.io/badge/MIESC-v6.0.0-blue?style=for-the-badge" alt="MIESC v6.0.0">
   <img src="https://img.shields.io/pypi/v/miesc?style=for-the-badge&label=PyPI" alt="PyPI">
   <img src="https://img.shields.io/badge/License-AGPL--3.0-green?style=for-the-badge" alt="License">
   <img src="https://img.shields.io/badge/Python-3.12+-yellow?style=for-the-badge" alt="Python">
@@ -76,7 +76,7 @@ title: Smart Contract Security Framework
 
 **MIESC** is a smart contract security framework built on a **9-layer defense-in-depth architecture**. It runs **50 security tools** and cross-checks their output with **AI-powered correlation** and **ML-based detection**, so real vulnerabilities surface and false positives get filtered out.
 
-### Key Achievements (v5.4.3)
+### Key Achievements (v6.0.0)
 
 - **50 Integrated Tools** across 9 defense layers
 - **95.8% Recall**, **22.1% Precision**, **F1-Score 35.9%** (SmartBugs-curated, 137/143 contracts)
@@ -87,7 +87,7 @@ title: Smart Contract Security Framework
 
 ---
 
-## What's Current in v5.4.3
+## What's Current in v6.0.0
 
 **Current Core Release** - public CLI, local REST API, MCP stdio, OpenAPI, and
 static report generation with the platform/product UI kept outside the public
@@ -273,7 +273,7 @@ Static Dynamic Symbolic Formal
 
 ## Performance Metrics
 
-### v5.4.3 Results (SmartBugs-curated Benchmark)
+### v6.0.0 Results (SmartBugs-curated Benchmark)
 
 SmartBugs-curated (143 contracts, 207 ground-truth vulnerabilities):
 
@@ -331,7 +331,7 @@ SmartBugs-curated (143 contracts, 207 ground-truth vulnerabilities):
   title = {MIESC: Multi-layer Intelligent Evaluation for Smart Contracts},
   year = {2025},
   url = {https://github.com/fboiero/MIESC},
-  version = {5.4.3},
+  version = {6.0.0},
   note = {Implementation for Master's thesis in Cyberdefense}
 }
 ```
@@ -496,7 +496,7 @@ Ensures framework remains open-source. Allows commercial use with attribution. D
 ---
 
 <p align="center">
-  <strong>MIESC v5.4.3</strong> | Master's Thesis in Cyberdefense | AGPL-3.0 License
+  <strong>MIESC v6.0.0</strong> | Master's Thesis in Cyberdefense | AGPL-3.0 License
 </p>
 
 <p align="center">

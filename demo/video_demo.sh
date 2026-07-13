@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# MIESC v5.1.1 — Full Security Audit Demo
+# MIESC v6.0.0 — Full Security Audit Demo
 # =============================================================================
 # This script demonstrates the complete MIESC workflow:
 #   1. Doctor check (tool availability)
@@ -12,7 +12,7 @@
 #   7. CSV export for spreadsheet analysis
 #
 # Prerequisites:
-#   pip install miesc==5.1.1
+#   pip install miesc==6.0.0
 #   ollama serve & ollama pull qwen2.5-coder:14b
 # =============================================================================
 
@@ -56,13 +56,13 @@ cp "$CONTRACTS_DIR/FlashLoanAttack.sol" .
 
 clear
 
-banner "MIESC v5.1.1 — Multi-layer Smart Contract Security Audit"
+banner "MIESC v6.0.0 — Multi-layer Smart Contract Security Audit"
 
 echo -e "  ${GREEN}MIESC${NC} orchestrates ${BOLD}35 analysis modules${NC} across ${BOLD}9 defense layers${NC}"
 echo -e "  to provide comprehensive pre-audit triage for smart contracts."
 echo ""
 echo -e "  📦 pip install miesc"
-echo -e "  🐳 docker run ghcr.io/fboiero/miesc:5.1.1"
+echo -e "  🐳 docker run ghcr.io/fboiero/miesc:6.0.0"
 echo -e "  🔗 https://github.com/fboiero/MIESC"
 echo ""
 echo -e "  Today we'll audit 3 intentionally vulnerable contracts:"
@@ -204,7 +204,7 @@ done
 echo "  └─────────────────────────┴────────────┴──────────────────────────┘"
 
 echo ""
-echo -e "  ${GREEN}MIESC v5.1.1${NC} — Multi-layer Intelligent Evaluation for Smart Contracts"
+echo -e "  ${GREEN}MIESC v6.0.0${NC} — Multi-layer Intelligent Evaluation for Smart Contracts"
 echo -e "  ${BLUE}https://github.com/fboiero/MIESC${NC}"
 echo -e "  ${BLUE}pip install miesc${NC}"
 echo ""

@@ -7,7 +7,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-## [6.0.0] - UNRELEASED (draft)
+## [6.0.0] - 2026-07-12
 
 > Draft entry for the upcoming major release. The version bump
 > (`miesc/__init__.py`, `CITATION.cff`, Docker tags, README) is intentionally

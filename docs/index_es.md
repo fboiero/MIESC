@@ -7,7 +7,7 @@ lang: es
 # MIESC - Evaluación Inteligente Multicapa para Smart Contracts
 
 <p align="center">
-  <img src="https://img.shields.io/badge/MIESC-v5.4.3-blue?style=for-the-badge" alt="MIESC v5.4.3">
+  <img src="https://img.shields.io/badge/MIESC-v6.0.0-blue?style=for-the-badge" alt="MIESC v6.0.0">
   <img src="https://img.shields.io/pypi/v/miesc?style=for-the-badge&label=PyPI" alt="PyPI">
   <img src="https://img.shields.io/badge/Licencia-AGPL--3.0-green?style=for-the-badge" alt="Licencia">
   <img src="https://img.shields.io/badge/Python-3.12+-yellow?style=for-the-badge" alt="Python">
@@ -77,7 +77,7 @@ lang: es
 
 **MIESC** es un framework de seguridad de smart contracts de grado de producción que implementa una **arquitectura Defense-in-Depth de 9 capas**, integrando **50 herramientas de seguridad especializadas** con **correlación potenciada por IA** y **detección basada en ML** para ofrecer detección integral de vulnerabilidades con precisión líder en la industria.
 
-### Logros Principales (v5.4.3)
+### Logros Principales (v6.0.0)
 
 - **50 Herramientas Integradas** en 9 capas de defensa
 - **95.8% Recall**, **22.1% Precisión**, **F1-Score 35.9%** (SmartBugs-curated, 137/143 contratos)
@@ -88,7 +88,7 @@ lang: es
 
 ---
 
-## Estado Actual en v5.4.3
+## Estado Actual en v6.0.0
 
 **Release Core Actual** - CLI pública, API REST local, MCP stdio, OpenAPI y
 generación de reportes estáticos, manteniendo la UI de producto/plataforma fuera
@@ -272,7 +272,7 @@ Static Dynamic Symbolic Formal
 
 ## Métricas de Rendimiento
 
-### Resultados v5.4.3 (Benchmark SmartBugs-curated)
+### Resultados v6.0.0 (Benchmark SmartBugs-curated)
 
 SmartBugs-curated (143 contratos, 207 vulnerabilidades ground-truth):
 
@@ -330,7 +330,7 @@ SmartBugs-curated (143 contratos, 207 vulnerabilidades ground-truth):
   title = {MIESC: Evaluación Inteligente Multicapa para Smart Contracts},
   year = {2025},
   url = {https://github.com/fboiero/MIESC},
-  version = {5.4.3},
+  version = {6.0.0},
   note = {Implementación para Tesis de Maestría en Ciberdefensa}
 }
 ```
@@ -498,7 +498,7 @@ Asegura que el framework permanezca open-source. Permite uso comercial con atrib
 ---
 
 <p align="center">
-  <strong>MIESC v5.4.3</strong> | Tesis de Maestría en Ciberdefensa | Licencia AGPL-3.0
+  <strong>MIESC v6.0.0</strong> | Tesis de Maestría en Ciberdefensa | Licencia AGPL-3.0
 </p>
 
 <p align="center">

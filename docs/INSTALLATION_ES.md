@@ -1,4 +1,4 @@
-# MIESC v5.4.3 - Guía de Instalación Completa
+# MIESC v6.0.0 - Guía de Instalación Completa
 
 **[English Version](INSTALLATION.md)**
 
@@ -274,15 +274,15 @@ Para un entorno completo y aislado con todas las herramientas preinstaladas:
 ### ARM64 (Apple Silicon)
 
 ```bash
-docker build -t miesc:v5.4.3 .
-docker run --rm -v $(pwd):/contracts miesc:v5.4.3 audit quick /contracts/MiContrato.sol
+docker build -t miesc:v6.0.0 .
+docker run --rm -v $(pwd):/contracts miesc:v6.0.0 audit quick /contracts/MiContrato.sol
 ```
 
 ### x86_64 (Intel/AMD)
 
 ```bash
-docker build --platform linux/amd64 -f Dockerfile.x86 -t miesc:v5.4.3-x86 .
-docker run --platform linux/amd64 --rm -v $(pwd):/contracts miesc:v5.4.3-x86 audit quick /contracts/MiContrato.sol
+docker build --platform linux/amd64 -f Dockerfile.x86 -t miesc:v6.0.0-x86 .
+docker run --platform linux/amd64 --rm -v $(pwd):/contracts miesc:v6.0.0-x86 audit quick /contracts/MiContrato.sol
 ```
 
 ### Imagen Pre-construida
@@ -318,7 +318,7 @@ miesc doctor
 Salida esperada:
 
 ```
-MIESC v5.4.3 - Verificación de Instalación
+MIESC v6.0.0 - Verificación de Instalación
 ============================================================
 
 1. Entorno Python
@@ -445,4 +445,4 @@ Después de la instalación:
 
 ---
 
-**Versión**: 5.4.3 | **Última Actualización**: Mayo 2026
+**Versión**: 6.0.0 | **Última Actualización**: Mayo 2026

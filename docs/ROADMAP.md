@@ -5,7 +5,7 @@ Development roadmap for MIESC. The authoritative history of shipped changes live
 
 ---
 
-## Current Version: 5.4.3 (released 2026-05-16)
+## Current Version: 6.0.0 (released 2026-05-16)
 
 MIESC is feature-complete and in active maintenance. Highlights of the 5.x line:
 
@@ -18,7 +18,7 @@ MIESC is feature-complete and in active maintenance. Highlights of the 5.x line:
 - **Multi-chain**: EVM + Cardano/Plutus-Aiken, Algorand/TEAL, Stellar/Soroban, Starknet/Cairo.
 - **Research**: `miesc evaluate` framework, plugin system, two academic papers.
 
-> Versions 5.2.0 → 5.4.3 are **shipped** (see CHANGELOG). An earlier version of this
+> Versions 5.2.0 → 6.0.0 are **shipped** (see CHANGELOG). An earlier version of this
 > roadmap listed them as future work; corrected 2026-06.
 
 ---

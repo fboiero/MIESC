@@ -24,7 +24,7 @@ class Colors:
     NC = '\033[0m'
 
 print("=" * 70)
-print("MIESC Direct Adapter Diagnostic v5.4.3")
+print("MIESC Direct Adapter Diagnostic v6.0.0")
 print(f"OLLAMA_HOST: {os.environ.get('OLLAMA_HOST', 'not set')}")
 print("=" * 70)
 print()

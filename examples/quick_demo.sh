@@ -5,7 +5,7 @@
 set -e
 
 echo ""
-echo "=== MIESC v5.4.3 - Quick Demo ==="
+echo "=== MIESC v6.0.0 - Quick Demo ==="
 echo ""
 
 echo "[1/4] Version y herramientas..."
