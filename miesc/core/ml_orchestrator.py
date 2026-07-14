@@ -397,6 +397,19 @@ class MLOrchestrator:
         if progress_callback:
             progress_callback("aggregation", "Aggregating results", 0.8)
 
+        # Collapse exact-duplicate findings (issue #69): the same vulnerability
+        # reported by multiple tools at the same location is pure noise in the
+        # headline count. Provenance is preserved in each survivor's "tools" list;
+        # findings that differ in any identifying field are never collapsed.
+        ml_filtered_findings, duplicates_collapsed = self._collapse_exact_duplicates(
+            ml_filtered_findings
+        )
+        if duplicates_collapsed:
+            logger.info(
+                "Collapsed %d exact-duplicate findings (provenance preserved)",
+                duplicates_collapsed,
+            )
+
         # Calculate severity distribution
         severity_dist = self._calculate_severity_distribution(ml_filtered_findings)
 
@@ -435,6 +448,53 @@ class MLOrchestrator:
             ml_processing_time_ms=ml_processing_time,
             timestamp=datetime.now(),
         )
+
+    @staticmethod
+    def _duplicate_key(f: Dict[str, Any]) -> tuple:
+        """Identity of a finding, independent of the reporting tool.
+
+        Two findings share this key only if they are the *same* vulnerability at
+        the *same* location, i.e. they differ solely in which tool reported them.
+        """
+        loc = f.get("location", {}) or {}
+        return (
+            loc.get("file"),
+            loc.get("line"),
+            f.get("swc"),
+            f.get("type"),
+            f.get("check"),
+            (f.get("title") or "").strip().lower(),
+            (f.get("severity") or "").strip().lower(),
+        )
+
+    def _collapse_exact_duplicates(
+        self, findings: List[Dict[str, Any]]
+    ) -> "tuple[List[Dict[str, Any]], int]":
+        """Collapse findings that are identical except for the reporting tool.
+
+        Multiple tools frequently report the same vulnerability at the same line
+        (e.g. four SWC-107 findings). These are noise in the reported count: keep
+        one representative per identity and record every contributing tool in its
+        ``tools`` list. Findings that differ in any identifying field are preserved
+        untouched, so recall is not affected. Returns (deduped, num_collapsed).
+        """
+        grouped: Dict[tuple, Dict[str, Any]] = {}
+        order: List[tuple] = []
+        collapsed = 0
+        for f in findings:
+            k = self._duplicate_key(f)
+            if k in grouped:
+                rep = grouped[k]
+                tool = f.get("tool")
+                if tool and tool not in rep["tools"]:
+                    rep["tools"].append(tool)
+                collapsed += 1
+            else:
+                rep = dict(f)
+                rep["tools"] = [f["tool"]] if f.get("tool") else []
+                grouped[k] = rep
+                order.append(k)
+        return [grouped[k] for k in order], collapsed
 
     def _is_same_location(self, f1: Dict[str, Any], f2: Dict[str, Any]) -> bool:
         """Verifica si dos hallazgos están en la misma ubicación."""
