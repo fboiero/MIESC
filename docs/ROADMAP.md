@@ -34,7 +34,7 @@ MIESC is feature-complete and in active maintenance. Highlights of the 5.x line:
   re-scan circularity. Standalone compilation is already 123/123 in v2.
 - **Reproducibility**: the benchmark harness reports external-tool crash counts per run;
   document the unloaded-machine measurement protocol.
-- **Quality**: 81% line coverage, 75% mutation score on core v6 modules, and a
+- **Quality**: 88% line coverage, 75% mutation score on core v6 modules, and a
   deterministic order-independent suite; ongoing robustness hardening toward higher coverage.
 
 ## Medium-term
@@ -66,7 +66,7 @@ archived under [`docs/archive/`](archive/).
 - **6.0.0** — CI-native adoption (finding baseline & suppression, fail-only-on-new), SARIF
   inline PR annotations, editor-agnostic code-action output + `miesc lsp` diagnostics server,
   unified formal-verification report (Scribble/Kontrol), versioned plugin API + conformance
-  suite + reference plugins, webhook/Slack notifier. 81% coverage, 75% mutation, DPGA 9/9
+  suite + reference plugins, webhook/Slack notifier. 88% coverage, 75% mutation, DPGA 9/9
   (self-assessed, application under review).
 - **5.4.x** — remediation pipeline (Paper 2), research evaluation framework, multi-chain
   analyzers (Cardano/Algorand/Stellar), PyPI + multi-arch Docker.

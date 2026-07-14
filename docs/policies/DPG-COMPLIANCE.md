@@ -311,7 +311,7 @@ MIESC maps findings to 12 international standards, including:
 |----------|----------------|
 | Version Control | Git with signed commits |
 | Code Review | Pull request required |
-| Testing | 8756 tests passed, 1 skipped in the latest full local regression (v6.0.0); 81% line coverage; 75% mutation score on core v6 modules |
+| Testing | 9130 tests passed, 1 skipped in the latest full local regression (v6.0.0); 88% line coverage; 75% mutation score on core v6 modules |
 | CI/CD | GitHub Actions pipeline |
 | Security Scanning | Bandit, pip-audit, safety (dependencies); Trivy + CodeQL SARIF upload (Docker image) — see `.github/workflows/ci.yml` |
 | Documentation | MkDocs with versioning |

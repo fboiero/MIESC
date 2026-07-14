@@ -313,7 +313,7 @@ MIESC mapea hallazgos a 12 estándares internacionales:
 |----------|----------------|
 | Control de Versiones | Git con commits firmados |
 | Revisión de Código | Pull request requerido |
-| Pruebas | 8756 pruebas pasando, 1 omitida en la última regresión local completa (v6.0.0); 81% de cobertura de líneas; 75% de mutation score en módulos core v6 |
+| Pruebas | 9130 pruebas pasando, 1 omitida en la última regresión local completa (v6.0.0); 88% de cobertura de líneas; 75% de mutation score en módulos core v6 |
 | CI/CD | Pipeline de GitHub Actions |
 | Escaneo de Seguridad | Bandit, pip-audit, safety (dependencias); Trivy + carga SARIF a CodeQL (imagen Docker) — ver `.github/workflows/ci.yml` |
 | Documentación | MkDocs con versionado |
