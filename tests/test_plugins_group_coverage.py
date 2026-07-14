@@ -131,9 +131,7 @@ class TestPluginsCreate:
         manager = MagicMock()
         manager.create_plugin_scaffold.return_value = tmp_path / "my-detector"
         with patch("miesc.plugins.PluginManager", return_value=manager):
-            result = runner.invoke(
-                plugins, ["create", "my-detector", "-o", str(tmp_path)]
-            )
+            result = runner.invoke(plugins, ["create", "my-detector", "-o", str(tmp_path)])
         assert result.exit_code == 0, result.output
         assert "Created plugin at" in result.output
 

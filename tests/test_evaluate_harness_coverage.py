@@ -163,7 +163,11 @@ class TestEvaluateContract:
             side_effect=_layer_returning("reentrancy-eth"),
         ):
             result = _evaluate_contract(
-                contract, {"reentrancy"}, [1], timeout=1, skip_unavailable=True,
+                contract,
+                {"reentrancy"},
+                [1],
+                timeout=1,
+                skip_unavailable=True,
                 use_intelligence=False,
             )
         assert result["match"]["hit"] is True
@@ -179,7 +183,11 @@ class TestEvaluateContract:
             side_effect=_layer_returning("some-unrelated-lint"),
         ):
             result = _evaluate_contract(
-                contract, {"reentrancy"}, [1], timeout=1, skip_unavailable=True,
+                contract,
+                {"reentrancy"},
+                [1],
+                timeout=1,
+                skip_unavailable=True,
                 use_intelligence=False,
             )
         assert result["match"]["hit"] is False
@@ -192,7 +200,11 @@ class TestEvaluateContract:
             side_effect=RuntimeError("boom"),
         ):
             result = _evaluate_contract(
-                contract, {"reentrancy"}, [1], timeout=1, skip_unavailable=True,
+                contract,
+                {"reentrancy"},
+                [1],
+                timeout=1,
+                skip_unavailable=True,
                 use_intelligence=False,
             )
         # Exception path still yields a well-formed result (no findings).
@@ -207,7 +219,11 @@ class TestEvaluateContract:
 
         with patch("miesc.cli.commands.evaluate.run_layer", side_effect=_fake):
             result = _evaluate_contract(
-                contract, {"reentrancy"}, [1], timeout=1, skip_unavailable=True,
+                contract,
+                {"reentrancy"},
+                [1],
+                timeout=1,
+                skip_unavailable=True,
                 use_intelligence=False,
             )
         assert result["aggregate"]["findings_count"] == 0
@@ -387,9 +403,7 @@ class TestDownloadCommand:
         target = tmp_path / "sb"
         (target / "dataset").mkdir(parents=True)
         (target / "dataset" / "a.sol").write_text("pragma solidity ^0.8.0;", encoding="utf-8")
-        result = runner.invoke(
-            evaluate, ["download", "smartbugs", "--output", str(target)]
-        )
+        result = runner.invoke(evaluate, ["download", "smartbugs", "--output", str(target)])
         assert result.exit_code == 0, result.output
         assert "already exists" in result.output
 
@@ -408,8 +422,6 @@ class TestDownloadCommand:
             return _Proc()
 
         with patch("subprocess.run", side_effect=_fake_run):
-            result = runner.invoke(
-                evaluate, ["download", "smartbugs", "--output", str(target)]
-            )
+            result = runner.invoke(evaluate, ["download", "smartbugs", "--output", str(target)])
         assert result.exit_code == 0, result.output
         assert "Downloaded" in result.output

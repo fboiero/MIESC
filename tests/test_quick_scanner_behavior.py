@@ -109,7 +109,9 @@ class TestRunSlither:
 
 class TestRunAderyn:
     def test_parses_issues(self, scanner_all_available):
-        payload = {"issues": [{"title": "Centralization", "severity": "medium", "description": "x"}]}
+        payload = {
+            "issues": [{"title": "Centralization", "severity": "medium", "description": "x"}]
+        }
         with patch("subprocess.run", return_value=_proc(json.dumps(payload))):
             findings = scanner_all_available._run_aderyn("A.sol")
         assert findings[0]["tool"] == "aderyn"
@@ -126,10 +128,20 @@ class TestRunSolhint:
         payload = [
             {
                 "messages": [
-                    {"ruleId": "no-unused-vars", "severity": 2, "message": "unused", "line": 3,
-                     "column": 5},
-                    {"ruleId": "quotes", "severity": 1, "message": "use double", "line": 4,
-                     "column": 1},
+                    {
+                        "ruleId": "no-unused-vars",
+                        "severity": 2,
+                        "message": "unused",
+                        "line": 3,
+                        "column": 5,
+                    },
+                    {
+                        "ruleId": "quotes",
+                        "severity": 1,
+                        "message": "use double",
+                        "line": 4,
+                        "column": 1,
+                    },
                 ]
             }
         ]
