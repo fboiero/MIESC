@@ -138,5 +138,60 @@ class TestOrchestratorFPIntegration(unittest.TestCase):
         )
 
 
+class TestExactDuplicateCollapse(unittest.TestCase):
+    """Issue #69(b): findings that are identical except for the reporting tool
+    collapse to a single entry (with provenance preserved), while findings that
+    differ in any identifying field are never collapsed."""
+
+    def setUp(self):
+        self.orch = MLOrchestrator(ml_enabled=False)
+
+    def _f(self, swc, line, tool, file="C.sol", severity="high", title=None):
+        return {
+            "swc": swc,
+            "type": swc,
+            "check": swc,
+            "title": title or swc,
+            "severity": severity,
+            "tool": tool,
+            "location": {"file": file, "line": line},
+        }
+
+    def test_identical_findings_from_different_tools_collapse(self):
+        findings = [
+            self._f("SWC-107", 20, "slither"),
+            self._f("SWC-107", 20, "mythril"),
+            self._f("SWC-107", 20, "aderyn"),
+            self._f("SWC-107", 20, "gptscan"),
+        ]
+        deduped, collapsed = self.orch._collapse_exact_duplicates(findings)
+        self.assertEqual(len(deduped), 1)
+        self.assertEqual(collapsed, 3)
+        self.assertEqual(set(deduped[0]["tools"]), {"slither", "mythril", "aderyn", "gptscan"})
+
+    def test_distinct_findings_are_preserved(self):
+        findings = [
+            self._f("SWC-107", 20, "slither"),  # reentrancy @ L20
+            self._f("SWC-107", 42, "slither"),  # reentrancy @ L42 (different line)
+            self._f("SWC-101", 20, "slither"),  # overflow @ L20 (different swc)
+            self._f("SWC-107", 20, "mythril"),  # exact dup of the first
+        ]
+        deduped, collapsed = self.orch._collapse_exact_duplicates(findings)
+        self.assertEqual(len(deduped), 3, "distinct findings must be preserved")
+        self.assertEqual(collapsed, 1, "only the exact duplicate is collapsed")
+
+    def test_empty_input(self):
+        deduped, collapsed = self.orch._collapse_exact_duplicates([])
+        self.assertEqual(deduped, [])
+        self.assertEqual(collapsed, 0)
+
+    def test_original_findings_are_not_mutated(self):
+        f1 = self._f("SWC-107", 20, "slither")
+        f2 = self._f("SWC-107", 20, "mythril")
+        self.orch._collapse_exact_duplicates([f1, f2])
+        self.assertNotIn("tools", f1, "input findings must not be mutated")
+        self.assertNotIn("tools", f2, "input findings must not be mutated")
+
+
 if __name__ == "__main__":
     unittest.main()
