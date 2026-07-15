@@ -240,7 +240,7 @@ def load_config() -> Dict[str, Any]:
 
 
 def load_profiles() -> Dict[str, Any]:
-    """Load analysis profiles from config/profiles.yaml."""
+    """Load analysis profiles from the packaged miesc/data/config/profiles.yaml."""
     profiles_path = get_data_path("config", "profiles.yaml")
     if profiles_path.exists() and YAML_AVAILABLE:
         with open(profiles_path) as f:

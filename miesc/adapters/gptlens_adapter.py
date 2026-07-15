@@ -56,7 +56,7 @@ logger = logging.getLogger(__name__)
 # ============================================================================
 
 # Ollama URL resolved at runtime via get_ollama_host()
-# Supports OLLAMA_HOST env var and config/miesc.yaml
+# Supports OLLAMA_HOST env var and the packaged miesc/data/config/miesc.yaml
 
 # Default models for each role
 DEFAULT_AUDITOR_MODEL = "deepseek-coder"

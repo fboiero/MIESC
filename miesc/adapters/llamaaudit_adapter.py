@@ -311,7 +311,7 @@ OUTPUT FORMAT - Respond with ONLY valid JSON:
 Respond with ONLY the JSON object. No explanations outside JSON."""
 
     # Ollama URLs resolved at runtime via get_ollama_host()
-    # Supports OLLAMA_HOST env var and config/miesc.yaml
+    # Supports OLLAMA_HOST env var and the packaged miesc/data/config/miesc.yaml
 
     def __init__(self) -> None:
         super().__init__()
