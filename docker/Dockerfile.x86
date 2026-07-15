@@ -32,11 +32,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Rust (required for Aderyn)
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+# Hardened (MED-003, CWE-494): download-then-run instead of piping into a shell
+# (TLS/proto already enforced). Installer scripts are moving targets, so full
+# SHA-pinning is intentionally omitted to avoid brittle builds on upstream updates.
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o /tmp/rustup-init.sh \
+    && sh /tmp/rustup-init.sh -y \
+    && rm -f /tmp/rustup-init.sh
 ENV PATH="/root/.cargo/bin:${PATH}"
 
 # Install Foundry (forge, cast, anvil)
-RUN curl -L https://foundry.paradigm.xyz | bash
+# Hardened (MED-003, CWE-494): enforce HTTPS/TLS1.2 + download-then-run.
+RUN curl --proto '=https' --tlsv1.2 -fsSL https://foundry.paradigm.xyz -o /tmp/foundryup.sh \
+    && bash /tmp/foundryup.sh \
+    && rm -f /tmp/foundryup.sh
 ENV PATH="/root/.foundry/bin:${PATH}"
 RUN /root/.foundry/bin/foundryup
 
