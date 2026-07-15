@@ -3461,20 +3461,27 @@ class TestConfigLoaderCoverage:
             self._reset_singleton()
 
     def test_default_config_when_no_file(self, tmp_path, monkeypatch):
-        """Test default config when no file exists (lines 64, 74, 78)."""
+        """With no cwd/env override, the loader resolves to the PACKAGED config
+        (miesc/data/config/miesc.yaml), not a hardcoded version. Previously this
+        asserted a hardcoded "5.1.2" that only matched the stale repo-root config;
+        the loader now points at the packaged file, so compare dynamically."""
         import os
+        from pathlib import Path
 
+        import yaml
+
+        import miesc.core.config_loader as cl
         from miesc.core.config_loader import MIESCConfig
 
         self._reset_singleton()
 
-        # Mock Path.cwd() to return a temp dir with no config
+        # Mock Path.cwd() to a temp dir with no ./config, and drop the env override.
         monkeypatch.setattr("pathlib.Path.cwd", lambda: tmp_path)
         os.environ.pop("MIESC_CONFIG", None)
 
         config = MIESCConfig()
-        # Should get default config
-        assert config.version == "5.1.2"
+        packaged = Path(cl.__file__).parent.parent / "data" / "config" / "miesc.yaml"
+        assert config.version == yaml.safe_load(packaged.read_text())["version"]
         self._reset_singleton()
 
     def test_get_config_function(self):
