@@ -148,7 +148,7 @@ The Strategy pattern allows MIESC to switch between different analysis strategie
 └─────────────────┘
 ```
 
-**Configuration**: `config/miesc.yaml`
+**Configuration**: `miesc/data/config/miesc.yaml` (packaged)
 
 ```yaml
 profiles:

@@ -231,7 +231,7 @@ def info(msg: str) -> None:
 
 
 def load_config() -> Dict[str, Any]:
-    """Load MIESC configuration from config/miesc.yaml."""
+    """Load MIESC configuration from the packaged miesc/data/config/miesc.yaml."""
     config_path = get_data_path("config", "miesc.yaml")
     if config_path.exists() and YAML_AVAILABLE:
         with open(config_path) as f:
