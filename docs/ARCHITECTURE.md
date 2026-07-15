@@ -462,7 +462,7 @@ Query: "reentrancy vulnerability"
 
 ### Central Configuration
 
-All settings in `config/miesc.yaml`:
+All settings in the packaged `miesc/data/config/miesc.yaml`:
 
 ```yaml
 # General settings

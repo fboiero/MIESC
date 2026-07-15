@@ -44,7 +44,7 @@ def config_show() -> None:
 
     cfg = load_config()
     if not cfg:
-        warning("No configuration found at config/miesc.yaml")
+        warning("No configuration found (expected packaged miesc/data/config/miesc.yaml)")
         return
 
     if RICH_AVAILABLE:
