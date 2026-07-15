@@ -551,3 +551,40 @@ class TestConfigLoaderFallbacks:
         cfg._config = {"compliance": {"enabled": False}}
         assert cfg.get_compliance_frameworks() == []
         self._reset()
+
+
+class TestConfigFileDiscovery:
+    """The packaged config must be discoverable from an installed wheel, where
+    there is no ``./config/miesc.yaml`` beside the CWD. Regression: the loader
+    used to look under ``<install-root>/config/`` (which is never shipped) and
+    silently fell back to hardcoded defaults."""
+
+    @pytest.fixture
+    def reset_singleton(self):
+        MIESCConfig._instance = None
+        yield
+        MIESCConfig._instance = None
+
+    def _packaged_path(self) -> Path:
+        import miesc.core.config_loader as cl
+
+        return Path(cl.__file__).parent.parent / "data" / "config" / "miesc.yaml"
+
+    def test_packaged_config_ships_inside_package(self):
+        assert (
+            self._packaged_path().is_file()
+        ), "miesc/data/config/miesc.yaml must ship inside the miesc package"
+
+    def test_wheel_run_resolves_packaged_config_not_defaults(
+        self, reset_singleton, tmp_path, monkeypatch
+    ):
+        # Simulate an installed-wheel run: cwd has no ./config or ./miesc.yaml,
+        # and no MIESC_CONFIG override. The loader must resolve to the packaged
+        # config, not to the never-shipped <root>/config/ path or defaults.
+        monkeypatch.delenv("MIESC_CONFIG", raising=False)
+        monkeypatch.chdir(tmp_path)
+        packaged = self._packaged_path()
+        cfg = MIESCConfig()
+        assert cfg._find_config_file() == packaged
+        # And the loaded config is the real packaged file, not hardcoded defaults.
+        assert cfg.version == yaml.safe_load(packaged.read_text())["version"]
