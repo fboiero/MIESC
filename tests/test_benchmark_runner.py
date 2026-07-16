@@ -230,9 +230,13 @@ class TestBenchmarkResult:
 
     def test_create_result(self, sample_result):
         """Test creating benchmark result."""
+        from miesc import __version__ as miesc_version
+
         assert sample_result.total_contracts == 100
         assert sample_result.analyzed_contracts == 95
-        assert sample_result.miesc_version == "5.1.2"
+        # miesc_version defaults to the live package version, not a hardcoded string,
+        # so benchmark results record the version that actually produced them.
+        assert sample_result.miesc_version == miesc_version
 
     def test_success_rate(self, sample_result):
         """Test success rate calculation."""

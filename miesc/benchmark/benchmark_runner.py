@@ -27,6 +27,13 @@ from typing import Dict, List, Optional, Tuple
 from .dataset_loader import GroundTruth, VulnerableContract
 
 
+def _detect_miesc_version() -> str:
+    """Current MIESC version, read lazily to avoid an import cycle at module load."""
+    from miesc import __version__
+
+    return __version__
+
+
 @dataclass
 class DetectionMetrics:
     """Metrics for a single category."""
@@ -116,7 +123,7 @@ class BenchmarkResult:
     metrics_by_category: Dict[str, DetectionMetrics]
     overall_metrics: DetectionMetrics
     total_time_seconds: float
-    miesc_version: str = "5.1.2"
+    miesc_version: str = field(default_factory=_detect_miesc_version)
     config: Dict = field(default_factory=dict)
 
     @property
