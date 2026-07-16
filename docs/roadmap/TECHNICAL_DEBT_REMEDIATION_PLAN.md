@@ -40,7 +40,7 @@ platform with the current Paper 1 and Paper 2 evidence.
 
 ## Remaining Debt
 
-### Layer-taxonomy split between the CLI and the config (open)
+### Layer-taxonomy split between the CLI and the config (resolved)
 
 The 9-layer defense stack is defined **twice, incompatibly**, in active code:
 
@@ -83,12 +83,13 @@ rewritten to mirror `constants.py` exactly — keys `ml_detection`,
 `specialized_analysis`, `crosschain_zk_security`, `advanced_ensemble` with the
 canonical tool groupings — and 546 tests across config/core/mcp/registry/audit/
 multichain/rest stay green. A header note pins `constants.py` as authoritative.
-(New minor debt: the two miesc.yaml copies must be kept in sync; a single packaged
-source would remove that duplication.) The doc layer
+(The prior duplication is now removed: the stale root `config/miesc.yaml` was
+deleted and `config_loader` resolves the packaged `miesc/data/config/miesc.yaml`,
+so there is a single source of truth.) The doc layer
 tables (`docs/index*.md`, `docs/ARCHITECTURE*.md`, `docs/TOOLS.md`, INSTALLATION,
-QUICKSTART, report templates) are now aligned to the canonical scheme; the one
-exception is `docs/architecture/layers.rst`, a Sphinx reference page on a distinct
-legacy ordering that carries a canonical-source note and is pending a full rewrite.
+QUICKSTART, report templates) are now aligned to the canonical scheme, and
+`docs/architecture/layers.rst` has been rewritten to the canonical `constants.py`
+L1–L9 ordering — the last legacy-ordering exception is closed.
 
 **Validation path:** after the refactor, `constants.py`, `miesc.yaml`, the REST API
 `/layers` response, and the README "9 Defense Layers" block must all print the same
