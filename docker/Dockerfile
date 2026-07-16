@@ -20,7 +20,9 @@
 # ============================================================
 # Stage 1a: aderyn-downloader (runs in parallel with foundry-builder)
 # ============================================================
-FROM python:3.12-slim-bookworm AS aderyn-downloader
+# Base image pinned by digest (MED-005): Dependabot's docker ecosystem keeps the
+# digest current, so security patches still flow while builds stay reproducible.
+FROM python:3.12-slim-bookworm@sha256:d50fb7611f86d04a3b0471b46d7557818d88983fc3136726336b2a4c657aa30b AS aderyn-downloader
 ARG TARGETARCH
 ARG ADERYN_VERSION=0.6.8
 
@@ -50,7 +52,7 @@ RUN set -eux; \
 # ============================================================
 # Stage 1b: foundry-builder (runs in parallel with aderyn-downloader)
 # ============================================================
-FROM python:3.12-slim-bookworm AS foundry-builder
+FROM python:3.12-slim-bookworm@sha256:d50fb7611f86d04a3b0471b46d7557818d88983fc3136726336b2a4c657aa30b AS foundry-builder
 
 RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates git \
     && rm -rf /var/lib/apt/lists/*
@@ -70,7 +72,7 @@ RUN foundryup
 # ============================================================
 # Stage 2: Runtime - Create lean production image
 # ============================================================
-FROM python:3.12-slim-bookworm
+FROM python:3.12-slim-bookworm@sha256:d50fb7611f86d04a3b0471b46d7557818d88983fc3136726336b2a4c657aa30b
 
 LABEL maintainer="Fernando Boiero <fboiero@frvm.utn.edu.ar>"
 ARG MIESC_VERSION=6.0.0

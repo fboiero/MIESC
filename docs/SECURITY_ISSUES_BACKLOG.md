@@ -31,12 +31,12 @@ This document tracks security issues identified during the security audit that r
 | MED-002 NPM pin | ✅ FIXED | `solhint@5.0.3` in both Dockerfiles |
 | MED-003 curl-to-shell | ✅ FIXED | no installer piped to a shell; Foundry/rustup enforce HTTPS/TLS1.2 + download-then-run in both Dockerfiles |
 | MED-004 Ollama auth | ✅ FIXED | main compose + `prod-llm.yml` now bind `127.0.0.1:11434` |
-| MED-005 base image | ⚠️ PARTIAL | tag-pinned; digest pin pending |
+| MED-005 base image | ✅ FIXED | base images pinned by `@sha256:` digest in both Dockerfiles; Dependabot (docker) keeps digests current |
 | MED-006 lock file | ✅ FIXED | regenerated for Python 3.12 |
 | MED-007 WebSocket auth | ✅ FIXED | `_validate_websocket_token` enforced (tested) |
 | MED-008 SSL on FS | ✅ FIXED | `*.key/*.pem/*.crt`, `ssl/` in `.gitignore` |
 
-**7 of 8 fully fixed; 1 remaining is build-time Docker hardening (MED-005 base-image digest pin).**
+**8 of 8 fully fixed.**
 The backlog was previously stale (overstated open items and understated some as fixed
 that were only partial); corrected here with per-item verification.
 
@@ -158,7 +158,7 @@ ollama:
 
 **Severity:** MEDIUM
 **CWE:** CWE-1104
-**Status:** PARTIAL (verified 2026-06-21: tag-pinned `python:3.12-slim-bookworm`; `@sha256:` digest pin still pending)
+**Status:** FIXED (2026-07-16: all `FROM` stages in `docker/Dockerfile` (python:3.12-slim-bookworm) and `docker/Dockerfile.x86` (python:3.10-slim-bookworm) pin the multi-arch manifest digest via `@sha256:`, keeping the human-readable tag. Dependabot's `docker` ecosystem (`.github/dependabot.yml`) auto-updates the digests, so base-image security patches still flow. Improves the OpenSSF Scorecard Pinned-Dependencies check.)
 
 **Location:** `docker/Dockerfile.prod:1`
 
