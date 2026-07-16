@@ -5,11 +5,10 @@ MIESC implements 9 specialized security layers, each targeting different vulnera
 
 .. note::
 
-   The canonical L1–L9 taxonomy is defined in ``miesc/cli/constants.py`` (Static
-   Analysis · Dynamic Testing · Symbolic Execution · Formal Verification · AI
-   Analysis · ML Detection · Specialized Analysis · Cross-Chain & ZK Security ·
-   Advanced AI Ensemble). This reference page uses an older ordering and is pending
-   a full rewrite to that canonical scheme; see the technical-debt plan.
+   This page follows the canonical L1–L9 taxonomy defined in
+   ``miesc/cli/constants.py`` (``LAYERS``), which the shipping CLI and REST API
+   execute. Layers 8–9 (Cross-Chain & ZK Security, Advanced AI Ensemble) are
+   experimental multi-chain/ensemble modules; the production EVM core is Layers 1–7.
 
 .. contents:: Table of Contents
    :local:
@@ -20,7 +19,7 @@ Layer Overview
 
 .. list-table::
    :header-rows: 1
-   :widths: 10 25 30 35
+   :widths: 8 26 40 26
 
    * - Layer
      - Name
@@ -28,45 +27,45 @@ Layer Overview
      - Detection Focus
    * - 1
      - Static Analysis
-     - Slither, Aderyn, Solhint
+     - Slither, Aderyn, Solhint, Semgrep
      - Code quality, known patterns
    * - 2
-     - Pattern Detection
-     - Semgrep, SmartBugs
-     - Regex patterns, signatures
+     - Dynamic Testing
+     - Echidna, Foundry, Medusa
+     - Fuzzing, property-based testing
    * - 3
      - Symbolic Execution
-     - Mythril, Halmos
+     - Mythril, Halmos, Manticore
      - Path exploration, constraints
    * - 4
-     - Fuzzing
-     - Echidna, Medusa, Foundry
-     - Property-based testing
-   * - 5
      - Formal Verification
-     - Certora, SMTChecker
+     - SMTChecker, Scribble, Certora, PropertyGPT
      - Mathematical proofs
+   * - 5
+     - AI Analysis
+     - SmartLLM, GPTScan, LLMSmartAudit, GPTLens
+     - Semantic understanding (LLM)
    * - 6
      - ML Detection
-     - DA-GNN, FP Classifier
-     - Graph neural networks
+     - DA-GNN, SmartBugs-ML, SmartGuard, Peculiar
+     - Learned classifiers
    * - 7
-     - LLM Analysis
-     - SmartLLM, GPTLens
-     - Semantic understanding
+     - Specialized Analysis
+     - Threat Model, Gas Analyzer, MEV Detector, Clone Detector, DeFi
+     - Domain-specific security checks
    * - 8
-     - DeFi Security
-     - DeFi Detector
-     - Flash loans, oracles, MEV
+     - Cross-Chain & ZK Security
+     - Cross-Chain, ZK Circuit, Bridge Monitor, L2 Validator, Circom
+     - Bridges, ZK circuits (experimental)
    * - 9
-     - Advanced Detection
-     - Advanced Detector
-     - Rug pulls, governance
+     - Advanced AI Ensemble
+     - LLMBugScanner, Audit Consensus, Exploit Synthesizer, Vuln Verifier
+     - Multi-LLM consensus + exploit validation
 
-Layer 1-2: Static Analysis
---------------------------
+Layer 1: Static Analysis
+------------------------
 
-Fast, comprehensive code scanning:
+Fast, comprehensive code scanning without executing the contract:
 
 * **Slither**: 90+ detectors, AST-based analysis
 * **Aderyn**: Rust-based, fast detection
@@ -84,6 +83,26 @@ Limitations:
 * Cannot detect runtime issues
 * Limited cross-function analysis
 
+Layer 2: Dynamic Testing
+------------------------
+
+Random and guided execution testing:
+
+* **Echidna**: Property-based fuzzer
+* **Foundry Fuzz**: Integrated testing
+* **Medusa**: Coverage-guided, parallel fuzzer
+
+Strengths:
+
+* Finds edge cases and violates invariants
+* Reproducible, low-false-positive findings
+* Fast iteration
+
+Limitations:
+
+* Requires test harnesses / properties
+* May miss rare paths
+
 Layer 3: Symbolic Execution
 ---------------------------
 
@@ -91,11 +110,11 @@ Path exploration with constraint solving:
 
 * **Mythril**: SMT-based symbolic execution
 * **Halmos**: Symbolic testing framework
+* **Manticore**: Multi-path exploration (deprecated)
 
 Strengths:
 
 * Finds deep logic bugs
-* Proves absence of bugs
 * Generates exploit inputs
 
 Limitations:
@@ -103,129 +122,114 @@ Limitations:
 * Path explosion on complex code
 * Slow (30s-5min per contract)
 
-Layer 4: Fuzzing
-----------------
-
-Random and guided testing:
-
-* **Echidna**: Property-based fuzzer
-* **Medusa**: Parallel fuzzer
-* **Foundry Fuzz**: Integrated testing
-
-Strengths:
-
-* Finds edge cases
-* Tests invariants
-* Fast iteration
-
-Limitations:
-
-* Requires test harnesses
-* May miss rare paths
-
-Layer 5: Formal Verification
+Layer 4: Formal Verification
 ----------------------------
 
 Mathematical correctness proofs:
 
-* **Certora**: CVL specification language
-* **SMTChecker**: Solc built-in verifier
+* **SMTChecker**: Solc built-in CHC verifier
+* **Scribble**: Runtime verification instrumentation
+* **Certora**: CVL specification language (requires API key)
+* **PropertyGPT**: LLM-generated candidate properties
 
 Strengths:
 
-* Proves properties hold
-* Covers all paths
+* Proves properties hold across all paths
 * High confidence
 
 Limitations:
 
 * Requires specifications
-* Complex to set up
-* False positives on timeouts
+* Complex to set up; false positives on timeouts
+
+Layer 5: AI Analysis
+--------------------
+
+Large language model semantic analysis (local via Ollama):
+
+* **SmartLLM**: Multi-stage RAG-enhanced analysis
+* **GPTScan**: LLM + program analysis for logic bugs
+* **LLMSmartAudit**: Multi-agent audit
+* **GPTLens**: Auditor + Critic architecture
+
+Strengths:
+
+* Understands context and business logic
+* Explains findings and generates fixes
+
+Limitations:
+
+* Hallucinations possible (mitigated by validation)
+* Slower than static analysis
 
 Layer 6: ML Detection
 ---------------------
 
-Machine learning vulnerability detection:
+Learned and feature-based classifiers:
 
-* **DA-GNN**: Graph neural network
-* **FP Classifier**: False positive reduction
+* **DA-GNN**: Graph-based pattern analysis
+* **SmartBugs-ML** / **SmartGuard** / **Peculiar**: heuristic classifiers
 
 Strengths:
 
-* Learns from patterns
-* Reduces false positives
-* Adapts to new code
+* Complements pattern and LLM layers
+* Targets structural patterns
 
 Limitations:
 
-* Requires training data
-* Black box predictions
+* Coverage bounded by the underlying heuristics
 
-Layer 7: LLM Analysis
----------------------
+Layer 7: Specialized Analysis
+-----------------------------
 
-Large language model semantic analysis:
+Domain-specific security checks:
 
-* **SmartLLM**: Multi-stage analysis
-* **GPTLens**: Auditor + Critic architecture
-* **LLMBugScanner**: Ensemble voting
-
-Strengths:
-
-* Understands context
-* Explains findings
-* Generates fixes
-
-Limitations:
-
-* Hallucinations possible
-* Slow (30s-2min)
-* API costs (for cloud models)
-
-Layer 8: DeFi Security
-----------------------
-
-DeFi-specific vulnerability detection:
-
-* Flash loan attacks
-* Oracle manipulation
-* Price manipulation
-* MEV vulnerabilities
-* Liquidation issues
+* **Threat Model**: STRIDE/DREAD analysis
+* **Gas Analyzer**: gas-optimization and DoS patterns
+* **MEV Detector**: front-running, sandwich, and MEV patterns
+* **Clone Detector**: known-exploit similarity
+* **DeFi**: flash-loan, oracle, and price-manipulation checks
+* **Advanced Detector** / **Upgradability Checker**: proxy and cross-cutting patterns
 
 Strengths:
 
-* DeFi domain expertise
-* Protocol-specific checks
+* Protocol- and domain-aware checks
 * Cross-contract analysis
 
 Limitations:
 
-* Limited to DeFi patterns
-* Requires protocol knowledge
+* Scoped to the modeled patterns
 
-Layer 9: Advanced Detection
----------------------------
+Layer 8: Cross-Chain & ZK Security (experimental)
+-------------------------------------------------
 
-Emerging threat detection:
+Bridge and zero-knowledge circuit analysis for multi-chain deployments:
 
-* Rug pull patterns
-* Governance attacks
-* Honeypot detection
-* Proxy vulnerabilities
-* Centralization risks
+* **Cross-Chain** / **Bridge Monitor**: bridge-security and event analysis
+* **ZK Circuit** / **Circom Analyzer**: zero-knowledge circuit checks
+* **L2 Validator**: L2 validity checks
+
+This layer is experimental and part of the multi-chain roadmap; the production
+core is Layers 1–7 (EVM).
+
+Layer 9: Advanced AI Ensemble
+-----------------------------
+
+Multi-LLM ensemble, cross-tool consensus, and exploit validation:
+
+* **LLMBugScanner**: ensemble voting across LLM reasoners
+* **Audit Consensus**: Bayesian meta-analysis (per-tool weights)
+* **Exploit Synthesizer**: Foundry PoC generation and execution
+* **Vuln Verifier** / **Remediation Validator**: Z3-based confirmation and patch verification
 
 Strengths:
 
-* Catches modern attacks
-* Token security analysis
-* Upgrade safety
+* Reduces single-model variance
+* Confirms findings with executable evidence
 
 Limitations:
 
-* Higher false positive rate
-* Requires context
+* Higher latency; runs after the detection layers
 
 Layer Selection
 ---------------
@@ -242,8 +246,8 @@ MIESC automatically selects layers based on:
     # Full analysis (all layers)
     miesc audit full contract.sol
 
-    # Quick scan (layers 1-2 only)
+    # Quick scan (fast static tools)
     miesc audit quick contract.sol
 
-    # Static + LLM (layers 1-2, 7)
-    miesc audit static contract.sol --llm-interpret
+    # Run a specific layer
+    miesc audit layer 5 contract.sol
