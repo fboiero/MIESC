@@ -57,6 +57,16 @@ if RICH_AVAILABLE:
     help="False positive filter strictness: off=report everything, low=permissive, medium=balanced (default), high=aggressive for CI",
 )
 @click.option(
+    "--min-confidence",
+    "min_confidence",
+    type=float,
+    default=0.0,
+    help="Drop findings whose calibrated confidence is below this threshold (0.0-1.0). "
+    "Confidence blends detector reliability, cross-tool agreement and the false-positive "
+    "signal; findings without a confidence score are always kept. Default 0.0 keeps "
+    "everything.",
+)
+@click.option(
     "--llm-enhance",
     is_flag=True,
     help="Enhance top findings with AI insights (adds ~40s, requires Ollama)",
@@ -189,6 +199,7 @@ def scan(
     ci: bool,
     quiet: bool,
     fp_strictness: str,
+    min_confidence: float,
     llm_enhance: bool,
     verbose: bool,
     recursive: bool,
@@ -310,6 +321,7 @@ def scan(
             quiet=quiet,
             verbose=verbose,
             ci=ci,
+            min_confidence=min_confidence,
             verify_fp=verify_fp,
             verify_model=verify_model,
             rank=rank,
@@ -336,6 +348,7 @@ def scan(
             quiet=quiet,
             verbose=verbose,
             ci=ci,
+            min_confidence=min_confidence,
             verify_fp=verify_fp,
             verify_model=verify_model,
             rank=rank,
@@ -526,6 +539,7 @@ def scan(
             quiet=quiet,
             verbose=verbose,
             ci=ci,
+            min_confidence=min_confidence,
             verify_fp=verify_fp,
             verify_model=verify_model,
             rank=rank,
@@ -837,6 +851,7 @@ def scan(
         quiet=quiet,
         verbose=verbose,
         ci=ci,
+        min_confidence=min_confidence,
         verify_fp=verify_fp,
         verify_model=verify_model,
         rank=rank,
@@ -926,9 +941,10 @@ def _run_agentic_scan_profile(
     quiet: bool,
     verbose: bool,
     ci: bool,
-    verify_fp: bool,
-    verify_model: str | None,
-    rank: bool,
+    min_confidence: float = 0.0,
+    verify_fp: bool = False,
+    verify_model: str | None = None,
+    rank: bool = False,
     baseline_path: str | None = None,
     fail_on_new: bool = False,
     annotate: str | None = None,
@@ -969,6 +985,7 @@ def _run_agentic_scan_profile(
         quiet=quiet,
         verbose=verbose,
         ci=ci,
+        min_confidence=min_confidence,
         verify_fp=verify_fp,
         verify_model=verify_model,
         rank=rank,
@@ -1067,6 +1084,7 @@ def _display_and_save(
     quiet: bool,
     verbose: bool,
     ci: bool,
+    min_confidence: float = 0.0,
     verify_fp: bool = False,
     verify_model: str | None = None,
     rank: bool = False,
@@ -1082,6 +1100,36 @@ def _display_and_save(
         _apply_verify_fp(all_results, contract=contract, model=verify_model, quiet=quiet)
     if rank:
         _apply_triage_rank(all_results, contract=contract, quiet=quiet)
+
+    # Attach a calibrated confidence score to every scan finding (scan runs its own
+    # adapter + FP-filter pipeline, so findings arrive un-annotated). Mirrors the ML
+    # orchestrator's default path, then applies the --min-confidence gate before the
+    # summary/report is written. Best-effort: never breaks the scan.
+    try:
+        from miesc.core.confidence import annotate_confidence, filter_by_min_confidence
+
+        try:
+            contract_source = (
+                Path(contract).read_text(encoding="utf-8") if Path(contract).is_file() else ""
+            )
+        except Exception:
+            contract_source = ""
+        for result in all_results:
+            annotate_confidence(result.get("findings", []), contract_source, str(contract))
+        if min_confidence and min_confidence > 0.0:
+            dropped_total = 0
+            for result in all_results:
+                kept, dropped = filter_by_min_confidence(result.get("findings", []), min_confidence)
+                result["findings"] = kept
+                dropped_total += dropped
+            if not quiet and dropped_total:
+                info(
+                    f"min-confidence {min_confidence}: dropped {dropped_total} "
+                    f"low-confidence finding(s)"
+                )
+    except Exception as e:  # noqa: BLE001
+        if not quiet:
+            info(f"confidence annotation skipped: {e}")
     # Detect tool failures — help users who installed miesc without slither/aderyn
     tools_succeeded = [r for r in all_results if r.get("status") != "error"]
     tools_errored = [r for r in all_results if r.get("status") == "error"]

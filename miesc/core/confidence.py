@@ -20,10 +20,13 @@ running the full (heavier) correlation pass.
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
-from typing import List, Optional, Sequence
+from typing import Any, Dict, List, Optional, Sequence
 
 from miesc.ml.correlation_engine import SmartCorrelationEngine
+
+logger = logging.getLogger(__name__)
 
 # Reuse the correlation engine's calibrated priors so tool trust lives in ONE
 # place. If the engine grows/retunes a tool weight, confidence follows.
@@ -111,3 +114,69 @@ class ConfidenceCalibrator:
             tool_count=tool_count,
             contributing_tools=distinct,
         )
+
+
+def annotate_confidence(
+    findings: Sequence[Dict[str, Any]],
+    contract_source: str = "",
+    contract_path: str = "",
+) -> None:
+    """Attach a calibrated ``confidence`` (0-1) and ``confidence_level`` to each
+    finding, in place.
+
+    Blends the detector reliability prior, cross-tool agreement (the ``tools``
+    provenance list) and the benign-context FP probability. Best-effort: a failure
+    never breaks the caller, it just leaves confidence unset. This is the single
+    source of truth shared by the ML orchestrator (default ``analyze`` path) and the
+    ``scan`` CLI, so both annotate findings identically.
+    """
+    try:
+        from miesc.ml.fp_filter import FalsePositiveFilter
+
+        calibrator = ConfidenceCalibrator()
+        fp_scorer = FalsePositiveFilter(strictness="high", use_rag=False)
+    except Exception as e:  # pragma: no cover - defensive
+        logger.warning("Confidence calibration unavailable: %s", e)
+        return
+
+    for finding in findings:
+        try:
+            tools = finding.get("tools") or ([finding["tool"]] if finding.get("tool") else [])
+            vuln_type = finding.get("type") or finding.get("check") or finding.get("swc") or ""
+            try:
+                fp_probability = fp_scorer.filter_finding(
+                    finding, code_context=contract_source, file_path=contract_path
+                ).fp_probability
+            except Exception:
+                fp_probability = None
+            result = calibrator.calibrate(tools, vuln_type, fp_probability)
+            finding["confidence"] = result.score
+            finding["confidence_level"] = result.level
+        except Exception as e:  # pragma: no cover - defensive
+            logger.debug("Confidence calibration skipped for a finding: %s", e)
+
+
+def filter_by_min_confidence(
+    findings: Sequence[Dict[str, Any]],
+    min_confidence: float,
+) -> "tuple[List[Dict[str, Any]], int]":
+    """Drop findings whose calibrated ``confidence`` is below ``min_confidence``.
+
+    Findings without a ``confidence`` key default to ``1.0`` so that unannotated
+    findings are never silently dropped. A non-positive threshold is a no-op.
+    Returns ``(kept, dropped_count)``.
+    """
+    if not min_confidence or min_confidence <= 0.0:
+        return list(findings), 0
+    kept: List[Dict[str, Any]] = []
+    dropped = 0
+    for f in findings:
+        try:
+            score = float(f.get("confidence", 1.0))
+        except (TypeError, ValueError):
+            score = 1.0
+        if score >= min_confidence:
+            kept.append(f)
+        else:
+            dropped += 1
+    return kept, dropped

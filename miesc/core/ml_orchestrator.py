@@ -513,32 +513,13 @@ class MLOrchestrator:
         Blends the detector reliability prior, cross-tool agreement (the ``tools``
         provenance list) and the benign-context FP probability. Best-effort: a
         failure never breaks the analysis, it just leaves confidence unset.
+
+        Delegates to :func:`miesc.core.confidence.annotate_confidence` so the ML
+        orchestrator and the ``scan`` CLI share one calibration implementation.
         """
-        try:
-            from miesc.core.confidence import ConfidenceCalibrator
-            from miesc.ml.fp_filter import FalsePositiveFilter
+        from miesc.core.confidence import annotate_confidence
 
-            calibrator = ConfidenceCalibrator()
-            fp_scorer = FalsePositiveFilter(strictness="high", use_rag=False)
-        except Exception as e:  # pragma: no cover - defensive
-            logger.warning("Confidence calibration unavailable: %s", e)
-            return
-
-        for finding in findings:
-            try:
-                tools = finding.get("tools") or ([finding["tool"]] if finding.get("tool") else [])
-                vuln_type = finding.get("type") or finding.get("check") or finding.get("swc") or ""
-                try:
-                    fp_probability = fp_scorer.filter_finding(
-                        finding, code_context=contract_source, file_path=contract_path
-                    ).fp_probability
-                except Exception:
-                    fp_probability = None
-                result = calibrator.calibrate(tools, vuln_type, fp_probability)
-                finding["confidence"] = result.score
-                finding["confidence_level"] = result.level
-            except Exception as e:  # pragma: no cover - defensive
-                logger.debug("Confidence calibration skipped for a finding: %s", e)
+        annotate_confidence(findings, contract_source, contract_path)
 
     def _is_same_location(self, f1: Dict[str, Any], f2: Dict[str, Any]) -> bool:
         """Verifica si dos hallazgos están en la misma ubicación."""

@@ -418,6 +418,7 @@ def _run_full_audit_with_ml(
     verify_model: str | None = None,
     rank: bool = False,
     fp_strictness: str = "off",
+    min_confidence: float = 0.0,
     baseline_path: str | None = None,
     fail_on_new: bool = False,
 ) -> None:
@@ -461,9 +462,24 @@ def _run_full_audit_with_ml(
             except Exception as e:  # noqa: BLE001
                 info(f"verify-fp skipped: {e}")
 
+        # Confidence gate: drop findings below the calibrated-confidence threshold.
+        # The orchestrator already annotated every finding on the default path, so
+        # this runs before the report/output is written. Unannotated findings default
+        # to 1.0 and are never dropped.
+        if min_confidence and min_confidence > 0.0:
+            from miesc.core.confidence import filter_by_min_confidence
+
+            kept, dropped = filter_by_min_confidence(result.ml_filtered_findings, min_confidence)
+            result.ml_filtered_findings = kept
+            if dropped:
+                info(
+                    f"min-confidence {min_confidence}: dropped {dropped} "
+                    f"low-confidence finding(s)"
+                )
+
         # Display ML-enhanced summary
         summary_data = result.get_summary()
-        if verify_fp:
+        if verify_fp or (min_confidence and min_confidence > 0.0):
             # The ML get_summary() is computed from internal counts and does not reflect
             # the post-hoc verifier; recompute the displayed totals from the filtered set.
             _sf = summarize_findings([{"tool": "ml", "findings": result.ml_filtered_findings}])
@@ -1210,6 +1226,16 @@ def audit_quick(
     "aggressive. Default off preserves raw recall.",
 )
 @click.option(
+    "--min-confidence",
+    "min_confidence",
+    type=float,
+    default=0.0,
+    help="Drop findings whose calibrated confidence is below this threshold (0.0-1.0). "
+    "Confidence blends detector reliability, cross-tool agreement and the false-positive "
+    "signal; findings without a confidence score are always kept. Default 0.0 keeps "
+    "everything.",
+)
+@click.option(
     "--baseline",
     "baseline_path",
     type=click.Path(),
@@ -1235,6 +1261,7 @@ def audit_full(
     verify_model: str | None,
     rank: bool,
     fp_strictness: str,
+    min_confidence: float,
     baseline_path: str | None,
     fail_on_new: bool,
 ) -> None:
@@ -1276,6 +1303,7 @@ def audit_full(
             verify_model=verify_model,
             rank=rank,
             fp_strictness=fp_strictness,
+            min_confidence=min_confidence,
             baseline_path=baseline_path,
             fail_on_new=fail_on_new,
         )
