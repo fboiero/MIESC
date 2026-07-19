@@ -169,6 +169,9 @@ class SARIFExporter:
         result = {
             "ruleId": self._get_rule_id(finding),
             "level": self._severity_to_level(finding.severity),
+            # SARIF rank (0-100): calibrated confidence, so viewers can sort/triage
+            # by trust. Mirrors properties.confidence in the spec's dedicated slot.
+            "rank": round(finding.confidence * 100, 1),
             "message": {"text": finding.description},
             "locations": [
                 {
