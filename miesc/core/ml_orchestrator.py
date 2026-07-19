@@ -410,6 +410,11 @@ class MLOrchestrator:
                 duplicates_collapsed,
             )
 
+        # Attach a calibrated confidence score to every finding (detector prior +
+        # cross-tool agreement + FP signal), so consumers can rank and filter by
+        # trust. Runs on the default path, not only under --correlate.
+        self._annotate_confidence(ml_filtered_findings, contract_source, contract_path)
+
         # Calculate severity distribution
         severity_dist = self._calculate_severity_distribution(ml_filtered_findings)
 
@@ -495,6 +500,26 @@ class MLOrchestrator:
                 grouped[k] = rep
                 order.append(k)
         return [grouped[k] for k in order], collapsed
+
+    def _annotate_confidence(
+        self,
+        findings: List[Dict[str, Any]],
+        contract_source: str,
+        contract_path: str,
+    ) -> None:
+        """Attach a calibrated ``confidence`` (0-1) and ``confidence_level`` to each
+        finding, in place.
+
+        Blends the detector reliability prior, cross-tool agreement (the ``tools``
+        provenance list) and the benign-context FP probability. Best-effort: a
+        failure never breaks the analysis, it just leaves confidence unset.
+
+        Delegates to :func:`miesc.core.confidence.annotate_confidence` so the ML
+        orchestrator and the ``scan`` CLI share one calibration implementation.
+        """
+        from miesc.core.confidence import annotate_confidence
+
+        annotate_confidence(findings, contract_source, contract_path)
 
     def _is_same_location(self, f1: Dict[str, Any], f2: Dict[str, Any]) -> bool:
         """Verifica si dos hallazgos están en la misma ubicación."""
