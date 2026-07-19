@@ -3014,6 +3014,7 @@ def _extract_heuristic_financial_math_precision_plans(
         combined_lower,
         (
             "muldiv",
+            "1e8",
             "1e18",
             "wad",
             "ray",
@@ -3187,6 +3188,8 @@ def _financial_math_unit_sources(
         units.append("scale:1e18")
     if "1e6" in source_lower:
         units.append("scale:1e6")
+    if "1e8" in source_lower:
+        units.append("scale:1e8")
     if (
         "decimals()" in source_lower
         or ".decimals(" in source_lower
@@ -3215,7 +3218,7 @@ def _financial_math_scale_factor(
                 return "1e27"
             if marker == "bps":
                 return "10000 bps"
-            if marker in {"1e18", "1e27", "1e6", "wad", "ray"}:
+            if marker in {"1e18", "1e27", "1e8", "1e6", "wad", "ray"}:
                 return marker
             if marker == "basis_points":
                 return "10000 bps"
@@ -3229,6 +3232,8 @@ def _financial_math_scale_factor(
         return "1e18"
     if "1e6" in source_lower:
         return "1e6"
+    if "1e8" in source_lower:
+        return "1e8"
     if "10000" in source_lower or "basis" in source_lower or "bps" in source_lower:
         return "10000 bps"
     if _financial_math_has_percent_scale(source_lower):
@@ -3253,6 +3258,7 @@ def _financial_math_scale_markers(
         ("ray", "ray"),
         ("1e18", "1e18"),
         ("wad", "wad"),
+        ("1e8", "1e8"),
         ("1e6", "1e6"),
         ("decimals()", "decimals()"),
         (".decimals(", "decimals()"),
@@ -3283,6 +3289,8 @@ def _financial_math_summary_unit_marker(unit: str) -> str:
         return "1e27"
     if _has_any(unit_lower, ("1e18", "wad", "18 decimals", ":18")):
         return "1e18"
+    if _has_any(unit_lower, ("1e8", "8 decimals", ":8")):
+        return "1e8"
     if _has_any(unit_lower, ("1e6", "6 decimals", ":6")):
         return "1e6"
     if _has_any(unit_lower, ("10000", "basis_points", "basis", "bps")):

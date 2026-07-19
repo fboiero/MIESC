@@ -2324,6 +2324,39 @@ def test_local_heuristic_provider_detects_financial_math_summary_six_decimal_sca
     assert any(risk["category"] == "unit_conversion_loss" for risk in plan["risks"])
 
 
+def test_local_heuristic_provider_detects_financial_math_eight_decimal_oracle_scale():
+    provider = LocalHeuristicReasoningProvider()
+    task = ReasoningTask(
+        capability=AgentCapability.FINANCIAL_MATH_PRECISION_HARDENING,
+        objective="build financial math precision hardening plans",
+        prompt="""
+        contract OracleMath {
+            function collateralValue(uint256 amountWad, uint256 answer1e8)
+                external
+                pure
+                returns (uint256)
+            {
+                return amountWad * answer1e8 / 1e18 / 1e8;
+            }
+        }
+        """,
+        inputs={
+            "math_summary": {
+                "surfaces": ["oracle collateral math"],
+                "units": ["price:8 decimals", "amount:18 decimals"],
+            }
+        },
+    )
+
+    result = provider.complete_json(task)
+    plan = result.data["financial_math_precision_hardening_plans"][0]
+
+    assert plan["surfaces"][0]["scale_factor"] == "mixed scales"
+    assert "scale:1e8" in plan["surfaces"][0]["unit_sources"]
+    assert "scale:1e18" in plan["surfaces"][0]["unit_sources"]
+    assert any(risk["category"] == "scale_mismatch" for risk in plan["risks"])
+
+
 def test_local_heuristic_provider_treats_financial_math_ray_aliases_as_same_scale():
     provider = LocalHeuristicReasoningProvider()
     task = ReasoningTask(
