@@ -2391,6 +2391,38 @@ def test_local_heuristic_provider_detects_financial_math_decimal_shift_scale():
     assert any(risk["category"] == "scale_mismatch" for risk in plan["risks"])
 
 
+def test_local_heuristic_provider_detects_financial_math_decimal_shift_phrase():
+    provider = LocalHeuristicReasoningProvider()
+    task = ReasoningTask(
+        capability=AgentCapability.FINANCIAL_MATH_PRECISION_HARDENING,
+        objective="build financial math precision hardening plans",
+        prompt="""
+        contract Vault {
+            uint256 public totalAssetsWad;
+
+            function recordDeposit(uint256 rawAssets, uint256 priceWad) external {
+                uint256 assetsWad = rawAssets * priceWad / priceWad;
+                totalAssetsWad += assetsWad;
+            }
+        }
+        """,
+        inputs={
+            "math_summary": {
+                "surfaces": ["asset normalization"],
+                "units": ["asset:6 decimals to 18 decimals", "price:18 decimals"],
+            }
+        },
+    )
+
+    result = provider.complete_json(task)
+    plan = result.data["financial_math_precision_hardening_plans"][0]
+
+    assert plan["surfaces"][0]["scale_factor"] == "mixed scales"
+    assert "scale:1e12" in plan["surfaces"][0]["unit_sources"]
+    assert "scale:1e18" in plan["surfaces"][0]["unit_sources"]
+    assert any(risk["category"] == "scale_mismatch" for risk in plan["risks"])
+
+
 def test_local_heuristic_provider_treats_financial_math_ray_aliases_as_same_scale():
     provider = LocalHeuristicReasoningProvider()
     task = ReasoningTask(

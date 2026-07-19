@@ -3291,15 +3291,25 @@ def _financial_math_summary_unit_marker(unit: str) -> str:
     unit_lower = unit.lower()
     if unit_lower in {"wad", "ray", "bps"}:
         return unit_lower
+    if _has_any(
+        unit_lower,
+        (
+            "1e12",
+            "12 decimal shift",
+            "6 to 18 decimals",
+            "6 decimals to 18 decimals",
+            "18 to 6 decimals",
+            "18 decimals to 6 decimals",
+            "6->18 decimals",
+            "18->6 decimals",
+            ":12",
+        ),
+    ):
+        return "1e12"
     if _has_any(unit_lower, ("1e27", "ray", "27 decimals", ":27")):
         return "1e27"
     if _has_any(unit_lower, ("1e18", "wad", "18 decimals", ":18")):
         return "1e18"
-    if _has_any(
-        unit_lower,
-        ("1e12", "12 decimal shift", "6 to 18 decimals", "6->18 decimals", ":12"),
-    ):
-        return "1e12"
     if _has_any(unit_lower, ("1e8", "8 decimals", ":8")):
         return "1e8"
     if _has_any(unit_lower, ("1e6", "6 decimals", ":6")):
