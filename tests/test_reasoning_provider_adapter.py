@@ -2357,6 +2357,40 @@ def test_local_heuristic_provider_detects_financial_math_eight_decimal_oracle_sc
     assert any(risk["category"] == "scale_mismatch" for risk in plan["risks"])
 
 
+def test_local_heuristic_provider_detects_financial_math_decimal_shift_scale():
+    provider = LocalHeuristicReasoningProvider()
+    task = ReasoningTask(
+        capability=AgentCapability.FINANCIAL_MATH_PRECISION_HARDENING,
+        objective="build financial math precision hardening plans",
+        prompt="""
+        contract Deposits {
+            uint256 public totalShares;
+
+            function deposit(uint256 usdcAmount, uint256 sharePriceWad) external {
+                uint256 normalizedAmount = usdcAmount * 1e12;
+                uint256 shares = normalizedAmount * 1e18 / sharePriceWad;
+                totalShares += shares;
+            }
+        }
+        """,
+        inputs={
+            "math_summary": {
+                "surfaces": ["asset normalization"],
+                "units": ["USDC:6", "6 to 18 decimals", "sharePrice:18 decimals"],
+            }
+        },
+    )
+
+    result = provider.complete_json(task)
+    plan = result.data["financial_math_precision_hardening_plans"][0]
+
+    assert plan["surfaces"][0]["scale_factor"] == "mixed scales"
+    assert "scale:1e12" in plan["surfaces"][0]["unit_sources"]
+    assert "scale:1e6" in plan["surfaces"][0]["unit_sources"]
+    assert "scale:1e18" in plan["surfaces"][0]["unit_sources"]
+    assert any(risk["category"] == "scale_mismatch" for risk in plan["risks"])
+
+
 def test_local_heuristic_provider_treats_financial_math_ray_aliases_as_same_scale():
     provider = LocalHeuristicReasoningProvider()
     task = ReasoningTask(
