@@ -407,6 +407,35 @@ def _ml_result_to_markdown(result: Any, contract: str) -> str:
 # =============================================================================
 
 
+def _apply_ci_gate(
+    results: List[Dict[str, Any]],
+    *,
+    ci: bool,
+    fail_on_confidence: float,
+) -> None:
+    """Exit non-zero in CI mode when confident critical/high findings remain.
+
+    When ``fail_on_confidence > 0`` the gate counts ONLY findings whose calibrated
+    confidence meets the threshold (via ``filter_results_by_confidence``), leaving the
+    reported/saved findings untouched; otherwise it gates on every finding. A no-op
+    unless ``ci`` is set.
+    """
+    if not ci:
+        return
+    gate_results = results
+    if fail_on_confidence and fail_on_confidence > 0.0:
+        from miesc.core.confidence import filter_results_by_confidence
+
+        gate_results = filter_results_by_confidence(results, fail_on_confidence)
+    summary = summarize_findings(gate_results)
+    if summary.get("CRITICAL", 0) > 0 or summary.get("HIGH", 0) > 0:
+        error(
+            f"Found {summary.get('CRITICAL', 0)} critical and "
+            f"{summary.get('HIGH', 0)} high issues"
+        )
+        sys.exit(1)
+
+
 def _run_full_audit_with_ml(
     contract: str,
     output: str | None,
@@ -419,6 +448,8 @@ def _run_full_audit_with_ml(
     rank: bool = False,
     fp_strictness: str = "off",
     min_confidence: float = 0.0,
+    ci: bool = False,
+    fail_on_confidence: float = 0.0,
     baseline_path: str | None = None,
     fail_on_new: bool = False,
 ) -> None:
@@ -572,6 +603,13 @@ def _run_full_audit_with_ml(
                 fail_on_new=fail_on_new,
             )
 
+        # Confidence-aware CI gate (exit only; report/output already written above).
+        _apply_ci_gate(
+            [{"tool": "ml", "findings": list(result.ml_filtered_findings)}],
+            ci=ci,
+            fail_on_confidence=fail_on_confidence,
+        )
+
     except Exception as e:
         error(f"ML analysis failed: {e}")
         logger.exception("ML analysis error")
@@ -585,6 +623,8 @@ def _run_full_audit_with_ml(
             verify_fp=verify_fp,
             verify_model=verify_model,
             rank=rank,
+            ci=ci,
+            fail_on_confidence=fail_on_confidence,
             baseline_path=baseline_path,
             fail_on_new=fail_on_new,
         )
@@ -633,6 +673,8 @@ def _run_full_audit_with_correlation(
     verify_fp: bool = False,
     verify_model: str | None = None,
     rank: bool = False,
+    ci: bool = False,
+    fail_on_confidence: float = 0.0,
     baseline_path: str | None = None,
     fail_on_new: bool = False,
 ) -> None:
@@ -725,6 +767,10 @@ def _run_full_audit_with_correlation(
         gate_findings = [f for r in all_results for f in r.get("findings", [])]
         apply_baseline_gate(gate_findings, baseline_path, fail_on_new=fail_on_new)
 
+    # Confidence-aware CI gate on the raw per-layer findings (the correlation report
+    # summary has no per-severity counts). Exit only; the report/output is unchanged.
+    _apply_ci_gate(all_results, ci=ci, fail_on_confidence=fail_on_confidence)
+
 
 def _run_full_audit_basic(
     contract: str,
@@ -735,6 +781,8 @@ def _run_full_audit_basic(
     verify_fp: bool = False,
     verify_model: str | None = None,
     rank: bool = False,
+    ci: bool = False,
+    fail_on_confidence: float = 0.0,
     baseline_path: str | None = None,
     fail_on_new: bool = False,
 ) -> None:
@@ -921,6 +969,9 @@ def _run_full_audit_basic(
 
         gate_findings = [f for r in all_results for f in r.get("findings", [])]
         apply_baseline_gate(gate_findings, baseline_path, fail_on_new=fail_on_new)
+
+    # Confidence-aware CI gate (exit only; the report/output above is unchanged).
+    _apply_ci_gate(all_results, ci=ci, fail_on_confidence=fail_on_confidence)
 
 
 # =============================================================================
@@ -1235,6 +1286,16 @@ def audit_quick(
     "signal; findings without a confidence score are always kept. Default 0.0 keeps "
     "everything.",
 )
+@click.option("--ci", is_flag=True, help="CI mode: exit with error if critical/high issues found")
+@click.option(
+    "--fail-on-confidence",
+    "fail_on_confidence",
+    type=float,
+    default=0.0,
+    help="Only trip the CI gate (--ci) on findings whose calibrated confidence is >= "
+    "this threshold (0.0-1.0). Findings are still reported in full; this affects only "
+    "the exit code. Default 0.0 gates on everything.",
+)
 @click.option(
     "--baseline",
     "baseline_path",
@@ -1262,6 +1323,8 @@ def audit_full(
     rank: bool,
     fp_strictness: str,
     min_confidence: float,
+    ci: bool,
+    fail_on_confidence: float,
     baseline_path: str | None,
     fail_on_new: bool,
 ) -> None:
@@ -1304,6 +1367,8 @@ def audit_full(
             rank=rank,
             fp_strictness=fp_strictness,
             min_confidence=min_confidence,
+            ci=ci,
+            fail_on_confidence=fail_on_confidence,
             baseline_path=baseline_path,
             fail_on_new=fail_on_new,
         )
@@ -1325,6 +1390,8 @@ def audit_full(
             verify_fp=verify_fp,
             verify_model=verify_model,
             rank=rank,
+            ci=ci,
+            fail_on_confidence=fail_on_confidence,
             baseline_path=baseline_path,
             fail_on_new=fail_on_new,
         )
@@ -1342,6 +1409,8 @@ def audit_full(
         timeout,
         verify_fp=verify_fp,
         verify_model=verify_model,
+        ci=ci,
+        fail_on_confidence=fail_on_confidence,
         baseline_path=baseline_path,
         fail_on_new=fail_on_new,
     )

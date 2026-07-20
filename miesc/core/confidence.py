@@ -180,3 +180,30 @@ def filter_by_min_confidence(
         else:
             dropped += 1
     return kept, dropped
+
+
+def filter_results_by_confidence(
+    results: Sequence[Dict[str, Any]],
+    min_confidence: float,
+) -> List[Dict[str, Any]]:
+    """Return shallow copies of ``results`` with low-confidence findings removed.
+
+    ``results`` is the CLI's per-tool result structure: a list of dicts each with a
+    ``"findings"`` list. Each result is shallow-copied and its ``findings`` replaced
+    by those meeting ``min_confidence`` (delegating to :func:`filter_by_min_confidence`,
+    so findings without a ``confidence`` key are kept). A non-positive threshold
+    returns shallow copies unchanged.
+
+    Neither the input ``results`` list, the input result dicts, nor their finding
+    dicts are mutated. This lets callers compute a CI-gate severity summary over the
+    confident subset WITHOUT altering the findings that are reported/saved.
+    """
+    if not min_confidence or min_confidence <= 0.0:
+        return [dict(r) for r in results]
+    out: List[Dict[str, Any]] = []
+    for r in results:
+        new_r = dict(r)
+        kept, _ = filter_by_min_confidence(r.get("findings", []), min_confidence)
+        new_r["findings"] = kept
+        out.append(new_r)
+    return out

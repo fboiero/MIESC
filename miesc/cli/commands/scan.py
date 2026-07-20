@@ -67,6 +67,15 @@ if RICH_AVAILABLE:
     "everything.",
 )
 @click.option(
+    "--fail-on-confidence",
+    "fail_on_confidence",
+    type=float,
+    default=0.0,
+    help="Only trip the CI gate (--ci / --fail-on) on findings whose calibrated "
+    "confidence is >= this threshold (0.0-1.0). Findings are still reported in full; "
+    "this affects only the exit code. Default 0.0 gates on everything.",
+)
+@click.option(
     "--llm-enhance",
     is_flag=True,
     help="Enhance top findings with AI insights (adds ~40s, requires Ollama)",
@@ -200,6 +209,7 @@ def scan(
     quiet: bool,
     fp_strictness: str,
     min_confidence: float,
+    fail_on_confidence: float,
     llm_enhance: bool,
     verbose: bool,
     recursive: bool,
@@ -322,6 +332,7 @@ def scan(
             verbose=verbose,
             ci=ci,
             min_confidence=min_confidence,
+            fail_on_confidence=fail_on_confidence,
             verify_fp=verify_fp,
             verify_model=verify_model,
             rank=rank,
@@ -349,6 +360,7 @@ def scan(
             verbose=verbose,
             ci=ci,
             min_confidence=min_confidence,
+            fail_on_confidence=fail_on_confidence,
             verify_fp=verify_fp,
             verify_model=verify_model,
             rank=rank,
@@ -540,6 +552,7 @@ def scan(
             verbose=verbose,
             ci=ci,
             min_confidence=min_confidence,
+            fail_on_confidence=fail_on_confidence,
             verify_fp=verify_fp,
             verify_model=verify_model,
             rank=rank,
@@ -852,6 +865,7 @@ def scan(
         verbose=verbose,
         ci=ci,
         min_confidence=min_confidence,
+        fail_on_confidence=fail_on_confidence,
         verify_fp=verify_fp,
         verify_model=verify_model,
         rank=rank,
@@ -942,6 +956,7 @@ def _run_agentic_scan_profile(
     verbose: bool,
     ci: bool,
     min_confidence: float = 0.0,
+    fail_on_confidence: float = 0.0,
     verify_fp: bool = False,
     verify_model: str | None = None,
     rank: bool = False,
@@ -986,6 +1001,7 @@ def _run_agentic_scan_profile(
         verbose=verbose,
         ci=ci,
         min_confidence=min_confidence,
+        fail_on_confidence=fail_on_confidence,
         verify_fp=verify_fp,
         verify_model=verify_model,
         rank=rank,
@@ -1085,6 +1101,7 @@ def _display_and_save(
     verbose: bool,
     ci: bool,
     min_confidence: float = 0.0,
+    fail_on_confidence: float = 0.0,
     verify_fp: bool = False,
     verify_model: str | None = None,
     rank: bool = False,
@@ -1145,6 +1162,20 @@ def _display_and_save(
     summary = summarize_findings(all_results)
     total = sum(summary.values())
     critical_high = summary.get("CRITICAL", 0) + summary.get("HIGH", 0)
+
+    # CI-gate severity: identical to the displayed counts unless --fail-on-confidence
+    # is set, in which case the gate only counts findings meeting the confidence
+    # threshold. The displayed summary/output above still reflect ALL findings; only
+    # the exit decision (and the notification's ci_failed flag) use this value.
+    if fail_on_confidence and fail_on_confidence > 0.0:
+        from miesc.core.confidence import filter_results_by_confidence
+
+        gate_summary = summarize_findings(
+            filter_results_by_confidence(all_results, fail_on_confidence)
+        )
+        gate_critical_high = gate_summary.get("CRITICAL", 0) + gate_summary.get("HIGH", 0)
+    else:
+        gate_critical_high = critical_high
 
     # Display summary
     if RICH_AVAILABLE:
@@ -1298,13 +1329,13 @@ def _display_and_save(
             webhook_url=notify_url,
             slack_url=slack_url,
             min_severity=notify_min_severity,
-            ci_failed=critical_high > 0,
+            ci_failed=gate_critical_high > 0,
         )
         if not quiet:
             for sink, ok in delivered.items():
                 info(f"notify[{sink}]: {'sent' if ok else 'skipped/failed'}")
 
     # CI mode exit
-    if ci and critical_high > 0:
-        error(f"CI check failed: {critical_high} critical/high issues")
+    if ci and gate_critical_high > 0:
+        error(f"CI check failed: {gate_critical_high} critical/high issues")
         sys.exit(1)
