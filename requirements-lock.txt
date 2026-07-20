@@ -158,7 +158,7 @@ wcwidth==0.8.2
     # via prettytable
 web3==7.16.0
     # via slither-analyzer
-websockets==15.0.1
+websockets==16.1.1
     # via web3
 yarl==1.24.2
     # via aiohttp
