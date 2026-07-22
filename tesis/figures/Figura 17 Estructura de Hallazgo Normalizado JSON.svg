@@ -1,0 +1,165 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 850 750" font-family="Arial, Helvetica, sans-serif">
+  <!-- Background -->
+  <rect width="850" height="750" fill="#ffffff"/>
+  
+  <!-- Title -->
+  <text x="425" y="28" text-anchor="middle" font-size="18" font-weight="bold" fill="#2c3e50">
+    Figura 17: Estructura de Hallazgo Normalizado MIESC
+  </text>
+  
+  <!-- Terminal/Code window -->
+  <rect x="40" y="45" width="770" height="640" fill="#1e1e1e" rx="8"/>
+  
+  <!-- Terminal header -->
+  <rect x="40" y="45" width="770" height="28" fill="#3c3c3c" rx="8"/>
+  <rect x="40" y="65" width="770" height="8" fill="#3c3c3c"/>
+  <circle cx="60" cy="59" r="6" fill="#ff5f56"/>
+  <circle cx="80" cy="59" r="6" fill="#ffbd2e"/>
+  <circle cx="100" cy="59" r="6" fill="#27c93f"/>
+  <text x="425" y="63" text-anchor="middle" font-size="11" fill="#aaa">normalized_finding.json</text>
+  
+  <!-- JSON Content -->
+  <text x="55" y="95" font-size="11" font-family="Consolas, monospace" fill="#aaa">{</text>
+  
+  <!-- ID and basic info -->
+  <text x="70" y="115" font-size="11" font-family="Consolas, monospace" fill="#9cdcfe">"id"</text>
+  <text x="100" y="115" font-size="11" font-family="Consolas, monospace" fill="#aaa">:</text>
+  <text x="115" y="115" font-size="11" font-family="Consolas, monospace" fill="#ce9178">"MIESC-2024-VB-001"</text>
+  <text x="280" y="115" font-size="11" font-family="Consolas, monospace" fill="#aaa">,</text>
+  
+  <text x="70" y="135" font-size="11" font-family="Consolas, monospace" fill="#9cdcfe">"type"</text>
+  <text x="115" y="135" font-size="11" font-family="Consolas, monospace" fill="#aaa">:</text>
+  <text x="130" y="135" font-size="11" font-family="Consolas, monospace" fill="#ce9178">"reentrancy-eth"</text>
+  <text x="260" y="135" font-size="11" font-family="Consolas, monospace" fill="#aaa">,</text>
+  
+  <text x="70" y="155" font-size="11" font-family="Consolas, monospace" fill="#9cdcfe">"severity"</text>
+  <text x="150" y="155" font-size="11" font-family="Consolas, monospace" fill="#aaa">:</text>
+  <text x="165" y="155" font-size="11" font-family="Consolas, monospace" fill="#e74c3c">"HIGH"</text>
+  <text x="210" y="155" font-size="11" font-family="Consolas, monospace" fill="#aaa">,</text>
+  <text x="230" y="155" font-size="11" font-family="Consolas, monospace" fill="#9cdcfe">"confidence"</text>
+  <text x="320" y="155" font-size="11" font-family="Consolas, monospace" fill="#aaa">:</text>
+  <text x="335" y="155" font-size="11" font-family="Consolas, monospace" fill="#27ae60">"HIGH"</text>
+  <text x="380" y="155" font-size="11" font-family="Consolas, monospace" fill="#aaa">,</text>
+  
+  <!-- Location block -->
+  <text x="70" y="180" font-size="11" font-family="Consolas, monospace" fill="#9cdcfe">"location"</text>
+  <text x="145" y="180" font-size="11" font-family="Consolas, monospace" fill="#aaa">: {</text>
+  <text x="90" y="200" font-size="11" font-family="Consolas, monospace" fill="#9cdcfe">"file"</text>
+  <text x="130" y="200" font-size="11" font-family="Consolas, monospace" fill="#aaa">:</text>
+  <text x="145" y="200" font-size="11" font-family="Consolas, monospace" fill="#ce9178">"contracts/audit/VulnerableBank.sol"</text>
+  <text x="430" y="200" font-size="11" font-family="Consolas, monospace" fill="#aaa">,</text>
+  <text x="90" y="220" font-size="11" font-family="Consolas, monospace" fill="#9cdcfe">"line"</text>
+  <text x="130" y="220" font-size="11" font-family="Consolas, monospace" fill="#aaa">:</text>
+  <text x="145" y="220" font-size="11" font-family="Consolas, monospace" fill="#b5cea8">35</text>
+  <text x="165" y="220" font-size="11" font-family="Consolas, monospace" fill="#aaa">,</text>
+  <text x="185" y="220" font-size="11" font-family="Consolas, monospace" fill="#9cdcfe">"function"</text>
+  <text x="260" y="220" font-size="11" font-family="Consolas, monospace" fill="#aaa">:</text>
+  <text x="275" y="220" font-size="11" font-family="Consolas, monospace" fill="#ce9178">"withdraw()"</text>
+  <text x="370" y="220" font-size="11" font-family="Consolas, monospace" fill="#aaa">,</text>
+  <text x="390" y="220" font-size="11" font-family="Consolas, monospace" fill="#9cdcfe">"contract"</text>
+  <text x="465" y="220" font-size="11" font-family="Consolas, monospace" fill="#aaa">:</text>
+  <text x="480" y="220" font-size="11" font-family="Consolas, monospace" fill="#ce9178">"VulnerableBank"</text>
+  <text x="70" y="240" font-size="11" font-family="Consolas, monospace" fill="#aaa">},</text>
+  
+  <!-- Classification block - highlighted -->
+  <rect x="60" y="252" width="740" height="110" fill="#2d2d2d" rx="4"/>
+  <text x="70" y="272" font-size="11" font-family="Consolas, monospace" fill="#9cdcfe">"classification"</text>
+  <text x="175" y="272" font-size="11" font-family="Consolas, monospace" fill="#aaa">: {</text>
+  <text x="200" y="272" font-size="9" font-family="Consolas, monospace" fill="#6a9955">// Triple clasificación estándar</text>
+  
+  <text x="90" y="295" font-size="11" font-family="Consolas, monospace" fill="#e74c3c">"swc_id"</text>
+  <text x="155" y="295" font-size="11" font-family="Consolas, monospace" fill="#aaa">:</text>
+  <text x="170" y="295" font-size="11" font-family="Consolas, monospace" fill="#ce9178">"SWC-107"</text>
+  <text x="250" y="295" font-size="11" font-family="Consolas, monospace" fill="#aaa">,</text>
+  <text x="270" y="295" font-size="11" font-family="Consolas, monospace" fill="#e74c3c">"swc_title"</text>
+  <text x="355" y="295" font-size="11" font-family="Consolas, monospace" fill="#aaa">:</text>
+  <text x="370" y="295" font-size="11" font-family="Consolas, monospace" fill="#ce9178">"Reentrancy"</text>
+  <text x="465" y="295" font-size="11" font-family="Consolas, monospace" fill="#aaa">,</text>
+  
+  <text x="90" y="318" font-size="11" font-family="Consolas, monospace" fill="#f39c12">"cwe_id"</text>
+  <text x="155" y="318" font-size="11" font-family="Consolas, monospace" fill="#aaa">:</text>
+  <text x="170" y="318" font-size="11" font-family="Consolas, monospace" fill="#ce9178">"CWE-841"</text>
+  <text x="250" y="318" font-size="11" font-family="Consolas, monospace" fill="#aaa">,</text>
+  <text x="270" y="318" font-size="11" font-family="Consolas, monospace" fill="#f39c12">"cwe_title"</text>
+  <text x="355" y="318" font-size="11" font-family="Consolas, monospace" fill="#aaa">:</text>
+  <text x="370" y="318" font-size="11" font-family="Consolas, monospace" fill="#ce9178">"Improper Enforcement..."</text>
+  <text x="550" y="318" font-size="11" font-family="Consolas, monospace" fill="#aaa">,</text>
+  
+  <text x="90" y="341" font-size="11" font-family="Consolas, monospace" fill="#3498db">"owasp_id"</text>
+  <text x="175" y="341" font-size="11" font-family="Consolas, monospace" fill="#aaa">:</text>
+  <text x="190" y="341" font-size="11" font-family="Consolas, monospace" fill="#ce9178">"SC06"</text>
+  <text x="240" y="341" font-size="11" font-family="Consolas, monospace" fill="#aaa">,</text>
+  <text x="260" y="341" font-size="11" font-family="Consolas, monospace" fill="#3498db">"owasp_title"</text>
+  <text x="365" y="341" font-size="11" font-family="Consolas, monospace" fill="#aaa">:</text>
+  <text x="380" y="341" font-size="11" font-family="Consolas, monospace" fill="#ce9178">"Reentrancy Attack"</text>
+  
+  <text x="70" y="365" font-size="11" font-family="Consolas, monospace" fill="#aaa">},</text>
+  
+  <!-- Detected by -->
+  <text x="70" y="390" font-size="11" font-family="Consolas, monospace" fill="#9cdcfe">"detected_by"</text>
+  <text x="165" y="390" font-size="11" font-family="Consolas, monospace" fill="#aaa">: [</text>
+  <text x="180" y="390" font-size="11" font-family="Consolas, monospace" fill="#27ae60">"slither"</text>
+  <text x="250" y="390" font-size="11" font-family="Consolas, monospace" fill="#aaa">,</text>
+  <text x="265" y="390" font-size="11" font-family="Consolas, monospace" fill="#9b59b6">"mythril"</text>
+  <text x="335" y="390" font-size="11" font-family="Consolas, monospace" fill="#aaa">,</text>
+  <text x="350" y="390" font-size="11" font-family="Consolas, monospace" fill="#e74c3c">"gptscan"</text>
+  <text x="420" y="390" font-size="11" font-family="Consolas, monospace" fill="#aaa">],</text>
+  
+  <text x="70" y="410" font-size="11" font-family="Consolas, monospace" fill="#9cdcfe">"first_detection"</text>
+  <text x="190" y="410" font-size="11" font-family="Consolas, monospace" fill="#aaa">:</text>
+  <text x="205" y="410" font-size="11" font-family="Consolas, monospace" fill="#27ae60">"slither"</text>
+  <text x="275" y="410" font-size="11" font-family="Consolas, monospace" fill="#aaa">,</text>
+  
+  <!-- Message -->
+  <text x="70" y="435" font-size="11" font-family="Consolas, monospace" fill="#9cdcfe">"message"</text>
+  <text x="140" y="435" font-size="11" font-family="Consolas, monospace" fill="#aaa">:</text>
+  <text x="155" y="435" font-size="11" font-family="Consolas, monospace" fill="#ce9178">"Reentrancy vulnerability in VulnerableBank.withdraw().</text>
+  <text x="90" y="455" font-size="11" font-family="Consolas, monospace" fill="#ce9178">External call at line 35 followed by state modification at line 39."</text>
+  <text x="565" y="455" font-size="11" font-family="Consolas, monospace" fill="#aaa">,</text>
+  
+  <!-- Recommendation -->
+  <text x="70" y="480" font-size="11" font-family="Consolas, monospace" fill="#9cdcfe">"recommendation"</text>
+  <text x="195" y="480" font-size="11" font-family="Consolas, monospace" fill="#aaa">:</text>
+  <text x="210" y="480" font-size="11" font-family="Consolas, monospace" fill="#ce9178">"Apply checks-effects-interactions pattern.</text>
+  <text x="90" y="500" font-size="11" font-family="Consolas, monospace" fill="#ce9178">Use ReentrancyGuard from OpenZeppelin."</text>
+  <text x="380" y="500" font-size="11" font-family="Consolas, monospace" fill="#aaa">,</text>
+  
+  <!-- References -->
+  <text x="70" y="525" font-size="11" font-family="Consolas, monospace" fill="#9cdcfe">"references"</text>
+  <text x="160" y="525" font-size="11" font-family="Consolas, monospace" fill="#aaa">: [</text>
+  <text x="90" y="545" font-size="10" font-family="Consolas, monospace" fill="#6a9955">"https://swcregistry.io/docs/SWC-107"</text>
+  <text x="350" y="545" font-size="11" font-family="Consolas, monospace" fill="#aaa">,</text>
+  <text x="90" y="560" font-size="10" font-family="Consolas, monospace" fill="#6a9955">"https://consensys.github.io/.../reentrancy/"</text>
+  <text x="380" y="560" font-size="11" font-family="Consolas, monospace" fill="#aaa">,</text>
+  <text x="90" y="575" font-size="10" font-family="Consolas, monospace" fill="#6a9955">"https://github.com/OpenZeppelin/.../ReentrancyGuard.sol"</text>
+  <text x="70" y="595" font-size="11" font-family="Consolas, monospace" fill="#aaa">],</text>
+  
+  <!-- Timestamp -->
+  <text x="70" y="620" font-size="11" font-family="Consolas, monospace" fill="#9cdcfe">"timestamp"</text>
+  <text x="155" y="620" font-size="11" font-family="Consolas, monospace" fill="#aaa">:</text>
+  <text x="170" y="620" font-size="11" font-family="Consolas, monospace" fill="#ce9178">"2024-11-29T15:42:31.847Z"</text>
+  
+  <text x="55" y="645" font-size="11" font-family="Consolas, monospace" fill="#aaa">}</text>
+  
+  <!-- Annotation labels -->
+  <rect x="620" y="105" width="180" height="20" fill="#3498db" rx="3"/>
+  <text x="710" y="119" text-anchor="middle" font-size="9" fill="#fff">① Identificador único</text>
+  
+  <rect x="620" y="270" width="180" height="20" fill="#e74c3c" rx="3"/>
+  <text x="710" y="284" text-anchor="middle" font-size="9" fill="#fff">② Triple clasificación</text>
+  
+  <rect x="500" y="380" width="180" height="20" fill="#9b59b6" rx="3"/>
+  <text x="590" y="394" text-anchor="middle" font-size="9" fill="#fff">③ Herramientas detectoras</text>
+  
+  <rect x="620" y="470" width="180" height="20" fill="#27ae60" rx="3"/>
+  <text x="710" y="484" text-anchor="middle" font-size="9" fill="#fff">④ Recomendación</text>
+  
+  <rect x="620" y="535" width="180" height="20" fill="#f39c12" rx="3"/>
+  <text x="710" y="549" text-anchor="middle" font-size="9" fill="#fff">⑤ Referencias externas</text>
+  
+  <!-- Observation box -->
+  <rect x="40" y="695" width="770" height="45" fill="#eaf2f8" rx="5" stroke="#3498db" stroke-width="1"/>
+  <text x="55" y="715" font-size="11" fill="#1a5276" font-weight="bold">Observación:</text>
+  <text x="140" y="715" font-size="11" fill="#1a5276">Estructura normalizada con: ① ID único, ② clasificación SWC/CWE/OWASP,</text>
+  <text x="55" y="732" font-size="11" fill="#1a5276">③ herramientas detectoras, ④ recomendación de remediación, ⑤ referencias externas.</text>
+</svg>

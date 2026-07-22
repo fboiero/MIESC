@@ -1,0 +1,2097 @@
+{
+  "contract": "/data/audit/AccessControlFlawed.sol",
+  "timestamp": "2026-07-09T20:37:20.563753",
+  "version": "5.4.1",
+  "success": true,
+  "summary": {
+    "CRITICAL": 9,
+    "HIGH": 10,
+    "MEDIUM": 11,
+    "LOW": 4,
+    "INFO": 0
+  },
+  "total_findings": 34,
+  "tools": [
+    "aderyn",
+    "frontier-anthropic",
+    "miesc-intelligence",
+    "slither",
+    "solhint"
+  ],
+  "tools_failed": [],
+  "findings": [
+    {
+      "type": "logic_error",
+      "title": "setOwner() Emits Incorrect Event \u2014 Old Owner Is Already Overwritten",
+      "severity": "Critical",
+      "tool": "frontier-anthropic-deep",
+      "confidence": 0.938,
+      "location": {
+        "file": "/data/audit/AccessControlFlawed.sol",
+        "line": 0,
+        "function": "unknown"
+      },
+      "description": "In `setOwner()`, the line `owner = newOwner` executes BEFORE `emit OwnershipTransferred(owner, newOwner)`. At emit time, `owner` already equals `newOwner`, so the event logs `(newOwner, newOwner)` instead of `(oldOwner, newOwner)`. Off-chain monitoring systems and indexers relying on this event for access control auditing will receive corrupted data, making it impossible to track the real ownership chain. This can mask unauthorized ownership takeovers.",
+      "message": "",
+      "recommendation": "Cache old owner before overwriting: `address oldOwner = owner; owner = newOwner; emit OwnershipTransferred(oldOwner, newOwner);`",
+      "exploit_scenario": [
+        "1. Attacker inspects the contract ABI and identifies a privileged function lacking an access modifier.",
+        "2. Attacker calls the unprotected function (e.g. setOwner, mint, pause) directly from any EOA.",
+        "3. Without an onlyOwner or role check, the call succeeds immediately.",
+        "4. Attacker takes ownership, mints unlimited tokens, or pauses the protocol at will.",
+        "5. Legitimate users lose access or funds; attacker drains or disables the contract."
+      ],
+      "swc_id": "",
+      "canonical_category": "access_control",
+      "confirming_tools": [
+        "frontier-anthropic-deep"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": false,
+      "cross_validated_llm": false,
+      "fp_suppressed": false,
+      "fix_code": "// Fix: Add onlyOwner modifier using OpenZeppelin Ownable\nimport \"@openzeppelin/contracts/access/Ownable.sol\";\n\ncontract SecureContract is Ownable {\n    uint256 public sensitiveValue;\n\n    // Restrict sensitive function to owner only\n    function setSensitiveValue(uint256 newValue) external onlyOwner {\n        sensitiveValue = newValue;\n    }\n\n    // For role-based access, use AccessControl instead:\n    // import \"@openzeppelin/contracts/access/AccessControl.sol\";\n    // bytes32 public constant ADMIN_ROLE = keccak256(\"ADMIN_ROLE\");\n    // function setSensitiveValue(uint256 v) external onlyRole(ADMIN_ROLE) { ... }\n}"
+    },
+    {
+      "type": "logic_error",
+      "title": "initialize() Has No Re-initialization Guard \u2014 Bypasses Constructor Access Control",
+      "severity": "Critical",
+      "tool": "frontier-anthropic-deep",
+      "confidence": 0.875,
+      "location": {
+        "file": "/data/audit/AccessControlFlawed.sol",
+        "line": 0,
+        "function": "unknown"
+      },
+      "description": "The `initialized` flag is set inside `initialize()` but there is no `require(!initialized)` check. Any attacker can call `initialize(attackerAddress)` at any time to overwrite `owner`. Combined with `addAdmin` being unprotected, an attacker can: (1) call `initialize(self)` to become owner, (2) call `addAdmin(self)` to become admin (already possible), then (3) call `destroy()` to selfdestruct the contract and steal all ETH. The `initialized` variable is declared AFTER other state variables, but this doesn't prevent re-initialization since the flag is never checked.",
+      "message": "",
+      "recommendation": "Add `require(!initialized, 'Already initialized');` as the first line of initialize().",
+      "exploit_scenario": "",
+      "swc_id": "",
+      "canonical_category": "other",
+      "confirming_tools": [
+        "frontier-anthropic-deep"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": false,
+      "cross_validated_llm": false,
+      "fp_suppressed": false
+    },
+    {
+      "type": "access_control",
+      "title": "tx.origin Used for Authorization - Phishing Attack Vector",
+      "severity": "Critical",
+      "tool": "frontier-anthropic",
+      "confidence": 0.5,
+      "location": {
+        "file": "/data/audit/AccessControlFlawed.sol",
+        "line": 38,
+        "function": "withdrawTreasury"
+      },
+      "description": "The withdrawTreasury() function uses tx.origin instead of msg.sender for authorization. tx.origin always refers to the original externally-owned account that initiated the transaction. If the legitimate owner is tricked into calling a malicious contract (PhishingAttacker), that malicious contract can call withdrawTreasury() and pass the tx.origin == owner check, while msg.sender is the malicious contract which receives the funds.",
+      "message": "The PhishingAttacker contract demonstrates this exact attack. If the owner calls claimReward() on PhishingAttacker, it relays the call to withdrawTreasury() with the full contract balance. The treasury is completely drained to the PhishingAttacker contract.",
+      "recommendation": "Replace tx.origin with msg.sender: require(msg.sender == owner, 'Not owner'); Never use tx.origin for authorization in any function that handles value.",
+      "exploit_scenario": [
+        "1. Attacker inspects the contract ABI and identifies a privileged function lacking an access modifier.",
+        "2. Attacker calls the unprotected function (e.g. setOwner, mint, pause) directly from any EOA.",
+        "3. Without an onlyOwner or role check, the call succeeds immediately.",
+        "4. Attacker takes ownership, mints unlimited tokens, or pauses the protocol at will.",
+        "5. Legitimate users lose access or funds; attacker drains or disables the contract."
+      ],
+      "swc_id": "",
+      "canonical_category": "access_control",
+      "confirming_tools": [
+        "frontier-anthropic"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": false,
+      "cross_validated_llm": false,
+      "fp_suppressed": false,
+      "fix_code": "// Fix: Add onlyOwner modifier using OpenZeppelin Ownable\nimport \"@openzeppelin/contracts/access/Ownable.sol\";\n\ncontract SecureContract is Ownable {\n    uint256 public sensitiveValue;\n\n    // Restrict sensitive function to owner only\n    function setSensitiveValue(uint256 newValue) external onlyOwner {\n        sensitiveValue = newValue;\n    }\n\n    // For role-based access, use AccessControl instead:\n    // import \"@openzeppelin/contracts/access/AccessControl.sol\";\n    // bytes32 public constant ADMIN_ROLE = keccak256(\"ADMIN_ROLE\");\n    // function setSensitiveValue(uint256 v) external onlyRole(ADMIN_ROLE) { ... }\n}"
+    },
+    {
+      "type": "access_control",
+      "title": "Missing Access Control on addAdmin - Anyone Can Become Admin",
+      "severity": "Critical",
+      "tool": "frontier-anthropic",
+      "confidence": 0.5,
+      "location": {
+        "file": "/data/audit/AccessControlFlawed.sol",
+        "line": 47,
+        "function": "addAdmin"
+      },
+      "description": "The addAdmin() function has no authorization check. Any external address can call this function to grant themselves admin privileges. Since the destroy() function only checks admins[msg.sender], an attacker can grant themselves admin status and then call selfdestruct.",
+      "message": "Any attacker can add themselves as admin, then call destroy() to selfdestruct the contract sending all ETH to themselves. This enables complete fund drainage.",
+      "recommendation": "Add authorization: require(msg.sender == owner, 'Not owner'); or require(admins[msg.sender], 'Not admin'); Only the owner should be able to grant admin roles.",
+      "exploit_scenario": "1. Attacker calls addAdmin(attackerAddress)\n2. admins[attackerAddress] = true\n3. Attacker calls destroy()\n4. selfdestruct(payable(attackerAddress)) sends all contract ETH to attacker",
+      "swc_id": "",
+      "canonical_category": "other",
+      "confirming_tools": [
+        "frontier-anthropic"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": false,
+      "cross_validated_llm": false,
+      "fp_suppressed": false
+    },
+    {
+      "type": "access_control",
+      "title": "Unprotected selfdestruct via Weak Admin Check",
+      "severity": "Critical",
+      "tool": "frontier-anthropic",
+      "confidence": 0.5,
+      "location": {
+        "file": "/data/audit/AccessControlFlawed.sol",
+        "line": 53,
+        "function": "destroy"
+      },
+      "description": "The destroy() function calls selfdestruct with only an admin check, not an owner check. Since addAdmin() is completely unprotected (see above), any attacker can first add themselves as admin and then destroy the contract. Even if addAdmin were fixed, any admin could destroy the contract unilaterally without owner approval.",
+      "message": "Complete destruction of the contract and theft of all ETH held by the contract (sent to msg.sender). All user balances tracked in userBalances are permanently lost.",
+      "recommendation": "Restrict destroy() to only the owner: require(msg.sender == owner, 'Not owner'); Consider removing selfdestruct entirely as it's deprecated in newer EVM versions and extremely dangerous. If needed, add a timelock and multi-sig requirement.",
+      "exploit_scenario": [
+        "1. Attacker inspects the contract ABI and identifies a privileged function lacking an access modifier.",
+        "2. Attacker calls the unprotected function (e.g. setOwner, mint, pause) directly from any EOA.",
+        "3. Without an onlyOwner or role check, the call succeeds immediately.",
+        "4. Attacker takes ownership, mints unlimited tokens, or pauses the protocol at will.",
+        "5. Legitimate users lose access or funds; attacker drains or disables the contract."
+      ],
+      "swc_id": "",
+      "canonical_category": "access_control",
+      "confirming_tools": [
+        "frontier-anthropic"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": false,
+      "cross_validated_llm": false,
+      "fp_suppressed": false,
+      "fix_code": "// Fix: Add onlyOwner modifier using OpenZeppelin Ownable\nimport \"@openzeppelin/contracts/access/Ownable.sol\";\n\ncontract SecureContract is Ownable {\n    uint256 public sensitiveValue;\n\n    // Restrict sensitive function to owner only\n    function setSensitiveValue(uint256 newValue) external onlyOwner {\n        sensitiveValue = newValue;\n    }\n\n    // For role-based access, use AccessControl instead:\n    // import \"@openzeppelin/contracts/access/AccessControl.sol\";\n    // bytes32 public constant ADMIN_ROLE = keccak256(\"ADMIN_ROLE\");\n    // function setSensitiveValue(uint256 v) external onlyRole(ADMIN_ROLE) { ... }\n}"
+    },
+    {
+      "type": "unprotected_selfdestruct",
+      "severity": "Critical",
+      "swc_id": "SWC-106",
+      "tool": "miesc-intelligence",
+      "confidence": 0.5,
+      "location": {
+        "file": "",
+        "line": 56,
+        "function": "unknown"
+      },
+      "message": "selfdestruct/suicide found \u2014 if reachable by unauthorized caller, contract can be permanently destroyed.",
+      "description": "selfdestruct/suicide found \u2014 if reachable by unauthorized caller, contract can be permanently destroyed.",
+      "recommendation": "selfdestruct/suicide found \u2014 if reachable by unauthorized caller, contract can be permanently destroyed.",
+      "canonical_category": "access_control",
+      "confirming_tools": [
+        "miesc-intelligence"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": false,
+      "cross_validated_llm": false,
+      "fp_suppressed": false,
+      "fix_code": "// Fix: Add onlyOwner modifier using OpenZeppelin Ownable\nimport \"@openzeppelin/contracts/access/Ownable.sol\";\n\ncontract SecureContract is Ownable {\n    uint256 public sensitiveValue;\n\n    // Restrict sensitive function to owner only\n    function setSensitiveValue(uint256 newValue) external onlyOwner {\n        sensitiveValue = newValue;\n    }\n\n    // For role-based access, use AccessControl instead:\n    // import \"@openzeppelin/contracts/access/AccessControl.sol\";\n    // bytes32 public constant ADMIN_ROLE = keccak256(\"ADMIN_ROLE\");\n    // function setSensitiveValue(uint256 v) external onlyRole(ADMIN_ROLE) { ... }\n}",
+      "exploit_scenario": [
+        "1. Attacker inspects the contract ABI and identifies a privileged function lacking an access modifier.",
+        "2. Attacker calls the unprotected function (e.g. setOwner, mint, pause) directly from any EOA.",
+        "3. Without an onlyOwner or role check, the call succeeds immediately.",
+        "4. Attacker takes ownership, mints unlimited tokens, or pauses the protocol at will.",
+        "5. Legitimate users lose access or funds; attacker drains or disables the contract."
+      ]
+    },
+    {
+      "type": "unprotected_initialize",
+      "severity": "Critical",
+      "swc_id": "SWC-118",
+      "tool": "miesc-intelligence",
+      "confidence": 0.5,
+      "location": {
+        "file": "",
+        "line": 68,
+        "function": "unknown"
+      },
+      "message": "Public initialize() without initializer modifier \u2014 can be called by anyone to take ownership. Use OpenZeppelin's Initializable.",
+      "description": "Public initialize() without initializer modifier \u2014 can be called by anyone to take ownership. Use OpenZeppelin's Initializable.",
+      "recommendation": "Public initialize() without initializer modifier \u2014 can be called by anyone to take ownership. Use OpenZeppelin's Initializable.",
+      "canonical_category": "access_control",
+      "confirming_tools": [
+        "miesc-intelligence"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": false,
+      "cross_validated_llm": false,
+      "fp_suppressed": false,
+      "fix_code": "// Fix: Add onlyOwner modifier using OpenZeppelin Ownable\nimport \"@openzeppelin/contracts/access/Ownable.sol\";\n\ncontract SecureContract is Ownable {\n    uint256 public sensitiveValue;\n\n    // Restrict sensitive function to owner only\n    function setSensitiveValue(uint256 newValue) external onlyOwner {\n        sensitiveValue = newValue;\n    }\n\n    // For role-based access, use AccessControl instead:\n    // import \"@openzeppelin/contracts/access/AccessControl.sol\";\n    // bytes32 public constant ADMIN_ROLE = keccak256(\"ADMIN_ROLE\");\n    // function setSensitiveValue(uint256 v) external onlyRole(ADMIN_ROLE) { ... }\n}",
+      "exploit_scenario": [
+        "1. Attacker inspects the contract ABI and identifies a privileged function lacking an access modifier.",
+        "2. Attacker calls the unprotected function (e.g. setOwner, mint, pause) directly from any EOA.",
+        "3. Without an onlyOwner or role check, the call succeeds immediately.",
+        "4. Attacker takes ownership, mints unlimited tokens, or pauses the protocol at will.",
+        "5. Legitimate users lose access or funds; attacker drains or disables the contract."
+      ]
+    },
+    {
+      "type": "access_control_initwallet",
+      "severity": "Critical",
+      "swc_id": "SWC-118",
+      "tool": "miesc-intelligence",
+      "confidence": 0.5,
+      "location": {
+        "file": "",
+        "line": 68,
+        "function": "unknown"
+      },
+      "message": "Public init/initialize function without access restriction \u2014 anyone can call and take ownership. Use initializer modifier or require(!initialized).",
+      "description": "Public init/initialize function without access restriction \u2014 anyone can call and take ownership. Use initializer modifier or require(!initialized).",
+      "recommendation": "Public init/initialize function without access restriction \u2014 anyone can call and take ownership. Use initializer modifier or require(!initialized).",
+      "canonical_category": "other",
+      "confirming_tools": [
+        "miesc-intelligence"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": false,
+      "cross_validated_llm": false,
+      "fp_suppressed": false
+    },
+    {
+      "type": "access_control_newowner_public",
+      "severity": "Critical",
+      "swc_id": "SWC-105",
+      "tool": "miesc-intelligence",
+      "confidence": 0.5,
+      "location": {
+        "file": "",
+        "line": 28,
+        "function": "unknown"
+      },
+      "message": "Public function to add/change owner without onlyOwner modifier \u2014 anyone can add themselves as owner.",
+      "description": "Public function to add/change owner without onlyOwner modifier \u2014 anyone can add themselves as owner.",
+      "recommendation": "Public function to add/change owner without onlyOwner modifier \u2014 anyone can add themselves as owner.",
+      "canonical_category": "access_control",
+      "confirming_tools": [
+        "miesc-intelligence"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": false,
+      "cross_validated_llm": false,
+      "fp_suppressed": false,
+      "fix_code": "// Fix: Add onlyOwner modifier using OpenZeppelin Ownable\nimport \"@openzeppelin/contracts/access/Ownable.sol\";\n\ncontract SecureContract is Ownable {\n    uint256 public sensitiveValue;\n\n    // Restrict sensitive function to owner only\n    function setSensitiveValue(uint256 newValue) external onlyOwner {\n        sensitiveValue = newValue;\n    }\n\n    // For role-based access, use AccessControl instead:\n    // import \"@openzeppelin/contracts/access/AccessControl.sol\";\n    // bytes32 public constant ADMIN_ROLE = keccak256(\"ADMIN_ROLE\");\n    // function setSensitiveValue(uint256 v) external onlyRole(ADMIN_ROLE) { ... }\n}",
+      "exploit_scenario": [
+        "1. Attacker inspects the contract ABI and identifies a privileged function lacking an access modifier.",
+        "2. Attacker calls the unprotected function (e.g. setOwner, mint, pause) directly from any EOA.",
+        "3. Without an onlyOwner or role check, the call succeeds immediately.",
+        "4. Attacker takes ownership, mints unlimited tokens, or pauses the protocol at will.",
+        "5. Legitimate users lose access or funds; attacker drains or disables the contract."
+      ]
+    },
+    {
+      "id": "slither-arbitrary-send-eth-0",
+      "type": "arbitrary-send-eth",
+      "severity": "High",
+      "confidence": 0.978,
+      "location": {
+        "file": "../data/audit/AccessControlFlawed.sol",
+        "line": 35,
+        "function": "withdrawTreasury"
+      },
+      "message": "AccessControlFlawed.withdrawTreasury(uint256) (../data/audit/AccessControlFlawed.sol#35-43) sends eth to arbitrary user",
+      "description": "[AccessControlFlawed.withdrawTreasury(uint256)](../data/audit/AccessControlFlawed.sol#L35-L43) sends eth to arbitrary user\n\tDangerous calls:\n\t- [address(msg.sender).transfer(amount)](../data/audit/AccessControlFlawed.sol#L41)\n",
+      "recommendation": "Add access control modifier (`onlyOwner`, `onlyRole`) or `require(msg.sender == owner)` check. Use OpenZeppelin's Ownable or AccessControl.",
+      "swc_id": "SWC-105",
+      "cwe_id": "CWE-284",
+      "owasp_category": null,
+      "_slither_detector": "arbitrary-send-eth",
+      "_slither_impact": "High",
+      "_slither_confidence": "Medium",
+      "tool": "slither",
+      "canonical_category": "access_control",
+      "confirming_tools": [
+        "slither"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": true,
+      "cross_validated_llm": false,
+      "fp_suppressed": false,
+      "fix_code": "// Fix: Add onlyOwner modifier using OpenZeppelin Ownable\nimport \"@openzeppelin/contracts/access/Ownable.sol\";\n\ncontract SecureContract is Ownable {\n    uint256 public sensitiveValue;\n\n    // Restrict sensitive function to owner only\n    function setSensitiveValue(uint256 newValue) external onlyOwner {\n        sensitiveValue = newValue;\n    }\n\n    // For role-based access, use AccessControl instead:\n    // import \"@openzeppelin/contracts/access/AccessControl.sol\";\n    // bytes32 public constant ADMIN_ROLE = keccak256(\"ADMIN_ROLE\");\n    // function setSensitiveValue(uint256 v) external onlyRole(ADMIN_ROLE) { ... }\n}",
+      "exploit_scenario": [
+        "1. Attacker inspects the contract ABI and identifies a privileged function lacking an access modifier.",
+        "2. Attacker calls the unprotected function (e.g. setOwner, mint, pause) directly from any EOA.",
+        "3. Without an onlyOwner or role check, the call succeeds immediately.",
+        "4. Attacker takes ownership, mints unlimited tokens, or pauses the protocol at will.",
+        "5. Legitimate users lose access or funds; attacker drains or disables the contract."
+      ]
+    },
+    {
+      "id": "aderyn-send-ether-no-checks-3-0",
+      "type": "send-ether-no-checks",
+      "severity": "High",
+      "confidence": 0.938,
+      "location": {
+        "file": "AccessControlFlawed.sol",
+        "line": 35,
+        "function": "unknown"
+      },
+      "message": "Sending native Eth is not protected from these functions.",
+      "description": "Introduce checks for `msg.sender` in the function",
+      "recommendation": "Add access control modifier (`onlyOwner`, `onlyRole`) or `require(msg.sender == owner)` check. Use OpenZeppelin's Ownable or AccessControl.",
+      "swc_id": "SWC-105",
+      "cwe_id": null,
+      "owasp_category": null,
+      "_aderyn_detector": "send-ether-no-checks",
+      "tool": "aderyn",
+      "canonical_category": "access_control",
+      "confirming_tools": [
+        "aderyn"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": true,
+      "cross_validated_llm": false,
+      "fp_suppressed": false,
+      "fix_code": "// Fix: Add onlyOwner modifier using OpenZeppelin Ownable\nimport \"@openzeppelin/contracts/access/Ownable.sol\";\n\ncontract SecureContract is Ownable {\n    uint256 public sensitiveValue;\n\n    // Restrict sensitive function to owner only\n    function setSensitiveValue(uint256 newValue) external onlyOwner {\n        sensitiveValue = newValue;\n    }\n\n    // For role-based access, use AccessControl instead:\n    // import \"@openzeppelin/contracts/access/AccessControl.sol\";\n    // bytes32 public constant ADMIN_ROLE = keccak256(\"ADMIN_ROLE\");\n    // function setSensitiveValue(uint256 v) external onlyRole(ADMIN_ROLE) { ... }\n}",
+      "exploit_scenario": [
+        "1. Attacker inspects the contract ABI and identifies a privileged function lacking an access modifier.",
+        "2. Attacker calls the unprotected function (e.g. setOwner, mint, pause) directly from any EOA.",
+        "3. Without an onlyOwner or role check, the call succeeds immediately.",
+        "4. Attacker takes ownership, mints unlimited tokens, or pauses the protocol at will.",
+        "5. Legitimate users lose access or funds; attacker drains or disables the contract."
+      ]
+    },
+    {
+      "id": "slither-suicidal-1",
+      "type": "suicidal",
+      "severity": "High",
+      "confidence": 0.85,
+      "location": {
+        "file": "../data/audit/AccessControlFlawed.sol",
+        "line": 53,
+        "function": "destroy"
+      },
+      "message": "AccessControlFlawed.destroy() (../data/audit/AccessControlFlawed.sol#53-57) allows anyone to destruct the contract",
+      "description": "[AccessControlFlawed.destroy()](../data/audit/AccessControlFlawed.sol#L53-L57) allows anyone to destruct the contract\n",
+      "recommendation": "Protect selfdestruct with proper access control",
+      "swc_id": "SWC-106",
+      "cwe_id": null,
+      "owasp_category": null,
+      "_slither_detector": "suicidal",
+      "_slither_impact": "High",
+      "_slither_confidence": "High",
+      "tool": "slither",
+      "canonical_category": "access_control",
+      "confirming_tools": [
+        "slither"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": true,
+      "cross_validated_llm": false,
+      "fp_suppressed": false,
+      "fix_code": "// Fix: Add onlyOwner modifier using OpenZeppelin Ownable\nimport \"@openzeppelin/contracts/access/Ownable.sol\";\n\ncontract SecureContract is Ownable {\n    uint256 public sensitiveValue;\n\n    // Restrict sensitive function to owner only\n    function setSensitiveValue(uint256 newValue) external onlyOwner {\n        sensitiveValue = newValue;\n    }\n\n    // For role-based access, use AccessControl instead:\n    // import \"@openzeppelin/contracts/access/AccessControl.sol\";\n    // bytes32 public constant ADMIN_ROLE = keccak256(\"ADMIN_ROLE\");\n    // function setSensitiveValue(uint256 v) external onlyRole(ADMIN_ROLE) { ... }\n}",
+      "exploit_scenario": [
+        "1. Attacker inspects the contract ABI and identifies a privileged function lacking an access modifier.",
+        "2. Attacker calls the unprotected function (e.g. setOwner, mint, pause) directly from any EOA.",
+        "3. Without an onlyOwner or role check, the call succeeds immediately.",
+        "4. Attacker takes ownership, mints unlimited tokens, or pauses the protocol at will.",
+        "5. Legitimate users lose access or funds; attacker drains or disables the contract."
+      ]
+    },
+    {
+      "id": "aderyn-unprotected-initializer-0-0",
+      "type": "unprotected-initializer",
+      "severity": "High",
+      "confidence": 0.75,
+      "location": {
+        "file": "AccessControlFlawed.sol",
+        "line": 68,
+        "function": "unknown"
+      },
+      "message": "Unprotected initializer",
+      "description": "Consider protecting the initializer functions with modifiers.",
+      "recommendation": "Add access control modifier (onlyOwner) or require(msg.sender == owner)",
+      "swc_id": "SWC-105",
+      "cwe_id": "CWE-284",
+      "owasp_category": null,
+      "_aderyn_detector": "unprotected-initializer",
+      "tool": "aderyn",
+      "canonical_category": "access_control",
+      "confirming_tools": [
+        "aderyn"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": true,
+      "cross_validated_llm": false,
+      "fp_suppressed": false,
+      "fix_code": "// Fix: Add onlyOwner modifier using OpenZeppelin Ownable\nimport \"@openzeppelin/contracts/access/Ownable.sol\";\n\ncontract SecureContract is Ownable {\n    uint256 public sensitiveValue;\n\n    // Restrict sensitive function to owner only\n    function setSensitiveValue(uint256 newValue) external onlyOwner {\n        sensitiveValue = newValue;\n    }\n\n    // For role-based access, use AccessControl instead:\n    // import \"@openzeppelin/contracts/access/AccessControl.sol\";\n    // bytes32 public constant ADMIN_ROLE = keccak256(\"ADMIN_ROLE\");\n    // function setSensitiveValue(uint256 v) external onlyRole(ADMIN_ROLE) { ... }\n}",
+      "exploit_scenario": [
+        "1. Attacker inspects the contract ABI and identifies a privileged function lacking an access modifier.",
+        "2. Attacker calls the unprotected function (e.g. setOwner, mint, pause) directly from any EOA.",
+        "3. Without an onlyOwner or role check, the call succeeds immediately.",
+        "4. Attacker takes ownership, mints unlimited tokens, or pauses the protocol at will.",
+        "5. Legitimate users lose access or funds; attacker drains or disables the contract."
+      ]
+    },
+    {
+      "id": "aderyn-selfdestruct-identifier-1-0",
+      "type": "selfdestruct-identifier",
+      "severity": "High",
+      "confidence": 0.75,
+      "location": {
+        "file": "AccessControlFlawed.sol",
+        "line": 56,
+        "function": "unknown"
+      },
+      "message": "Depracated EVM Instruction for `selfdestruct` should not be used.",
+      "description": "Depracated EVM Instruction for `selfdestruct` should not be used.",
+      "recommendation": "Add access control and consider removing selfdestruct",
+      "swc_id": "SWC-106",
+      "cwe_id": null,
+      "owasp_category": null,
+      "_aderyn_detector": "selfdestruct-identifier",
+      "tool": "aderyn",
+      "canonical_category": "access_control",
+      "confirming_tools": [
+        "aderyn"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": true,
+      "cross_validated_llm": false,
+      "fp_suppressed": false,
+      "fix_code": "// Fix: Add onlyOwner modifier using OpenZeppelin Ownable\nimport \"@openzeppelin/contracts/access/Ownable.sol\";\n\ncontract SecureContract is Ownable {\n    uint256 public sensitiveValue;\n\n    // Restrict sensitive function to owner only\n    function setSensitiveValue(uint256 newValue) external onlyOwner {\n        sensitiveValue = newValue;\n    }\n\n    // For role-based access, use AccessControl instead:\n    // import \"@openzeppelin/contracts/access/AccessControl.sol\";\n    // bytes32 public constant ADMIN_ROLE = keccak256(\"ADMIN_ROLE\");\n    // function setSensitiveValue(uint256 v) external onlyRole(ADMIN_ROLE) { ... }\n}",
+      "exploit_scenario": [
+        "1. Attacker inspects the contract ABI and identifies a privileged function lacking an access modifier.",
+        "2. Attacker calls the unprotected function (e.g. setOwner, mint, pause) directly from any EOA.",
+        "3. Without an onlyOwner or role check, the call succeeds immediately.",
+        "4. Attacker takes ownership, mints unlimited tokens, or pauses the protocol at will.",
+        "5. Legitimate users lose access or funds; attacker drains or disables the contract."
+      ]
+    },
+    {
+      "id": "aderyn-uninitialized-state-variable-2-0",
+      "type": "uninitialized-state-variable",
+      "severity": "High",
+      "confidence": 0.75,
+      "location": {
+        "file": "AccessControlFlawed.sol",
+        "line": 11,
+        "function": "unknown"
+      },
+      "message": "Uninitialized State Variables",
+      "description": "Solidity does initialize variables by default when you declare them, however it's good practice to explicitly declare an initial value. For example, if you transfer money to an address we must make sure that the address has been initialized.",
+      "recommendation": "Initialize all state variables in constructor",
+      "swc_id": "SWC-109",
+      "cwe_id": "CWE-457",
+      "owasp_category": "SC05: Uninitialized Storage",
+      "_aderyn_detector": "uninitialized-state-variable",
+      "tool": "aderyn",
+      "canonical_category": "initialization",
+      "confirming_tools": [
+        "aderyn"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": true,
+      "cross_validated_llm": false,
+      "fp_suppressed": false,
+      "fix_code": "// Fix: Use OpenZeppelin Initializable with initializer modifier\nimport \"@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol\";\nimport \"@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol\";\n\ncontract SecureProxy is Initializable, OwnableUpgradeable {\n    uint256 public protectedValue;\n\n    /// @custom:oz-upgrades-unsafe-allow constructor\n    constructor() {\n        // Prevent the implementation contract from being initialized directly\n        _disableInitializers();\n    }\n\n    // initializer modifier ensures this can only be called once\n    function initialize(address owner, uint256 initial) public initializer {\n        __Ownable_init(owner);\n        protectedValue = initial;\n    }\n\n    // If re-initialization is needed for upgrades, use reinitializer(version):\n    // function initializeV2(uint256 v) public reinitializer(2) { ... }\n}",
+      "exploit_scenario": [
+        "1. Upgradeable contract's initialize() function lacks the initializer modifier.",
+        "2. The implementation contract is deployed without calling initialize() (normal for proxy patterns).",
+        "3. Attacker calls initialize() directly on the implementation, setting themselves as owner.",
+        "4. Since the implementation is the logic target of a delegatecall-based proxy, attacker now controls admin functions.",
+        "5. Attacker calls selfdestruct on the implementation (if present), bricking the proxy permanently.",
+        "6. Alternatively, attacker upgrades to a malicious implementation and drains all proxy storage."
+      ]
+    },
+    {
+      "id": "aderyn-send-ether-no-checks-3-1",
+      "type": "send-ether-no-checks",
+      "severity": "High",
+      "confidence": 0.75,
+      "location": {
+        "file": "AccessControlFlawed.sol",
+        "line": 115,
+        "function": "unknown"
+      },
+      "message": "Sending native Eth is not protected from these functions.",
+      "description": "Introduce checks for `msg.sender` in the function",
+      "recommendation": "Add access control modifier (`onlyOwner`, `onlyRole`) or `require(msg.sender == owner)` check. Use OpenZeppelin's Ownable or AccessControl.",
+      "swc_id": "SWC-105",
+      "cwe_id": null,
+      "owasp_category": null,
+      "_aderyn_detector": "send-ether-no-checks",
+      "tool": "aderyn",
+      "canonical_category": "access_control",
+      "confirming_tools": [
+        "aderyn"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": true,
+      "cross_validated_llm": false,
+      "fp_suppressed": false,
+      "fix_code": "// Fix: Add onlyOwner modifier using OpenZeppelin Ownable\nimport \"@openzeppelin/contracts/access/Ownable.sol\";\n\ncontract SecureContract is Ownable {\n    uint256 public sensitiveValue;\n\n    // Restrict sensitive function to owner only\n    function setSensitiveValue(uint256 newValue) external onlyOwner {\n        sensitiveValue = newValue;\n    }\n\n    // For role-based access, use AccessControl instead:\n    // import \"@openzeppelin/contracts/access/AccessControl.sol\";\n    // bytes32 public constant ADMIN_ROLE = keccak256(\"ADMIN_ROLE\");\n    // function setSensitiveValue(uint256 v) external onlyRole(ADMIN_ROLE) { ... }\n}",
+      "exploit_scenario": [
+        "1. Attacker inspects the contract ABI and identifies a privileged function lacking an access modifier.",
+        "2. Attacker calls the unprotected function (e.g. setOwner, mint, pause) directly from any EOA.",
+        "3. Without an onlyOwner or role check, the call succeeds immediately.",
+        "4. Attacker takes ownership, mints unlimited tokens, or pauses the protocol at will.",
+        "5. Legitimate users lose access or funds; attacker drains or disables the contract."
+      ]
+    },
+    {
+      "type": "access_control",
+      "title": "Anyone Can Pause/Unpause Contract - Denial of Service",
+      "severity": "High",
+      "tool": "frontier-anthropic",
+      "confidence": 0.5,
+      "location": {
+        "file": "/data/audit/AccessControlFlawed.sol",
+        "line": 59,
+        "function": "togglePause"
+      },
+      "description": "The togglePause() function has no access control. Any address can call it to pause or unpause the contract. An attacker can permanently keep the contract paused, preventing all deposits and withdrawals. Combined with the fact that paused state blocks userWithdraw(), this effectively freezes all user funds.",
+      "message": "Attacker can freeze all user funds by keeping the contract in paused state. Users cannot withdraw their deposited ETH. This is a griefing/DoS attack that can be maintained indefinitely at minimal cost.",
+      "recommendation": "Add access control: require(msg.sender == owner || admins[msg.sender], 'Not authorized'); Only privileged accounts should be able to pause/unpause.",
+      "exploit_scenario": "1. Attacker calls togglePause() - contract is now paused\n2. Users cannot call deposit() or userWithdraw()\n3. Whenever owner unpauses, attacker immediately re-pauses\n4. User funds are effectively frozen indefinitely with minimal gas cost to attacker",
+      "swc_id": "",
+      "canonical_category": "other",
+      "confirming_tools": [
+        "frontier-anthropic"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": false,
+      "cross_validated_llm": false,
+      "fp_suppressed": false
+    },
+    {
+      "type": "logic_error",
+      "title": "Accounting Invariant Violation - Treasury Balance Can Exceed Contract ETH Balance",
+      "severity": "High",
+      "tool": "frontier-anthropic",
+      "confidence": 0.5,
+      "location": {
+        "file": "/data/audit/AccessControlFlawed.sol",
+        "line": 77,
+        "function": "deposit"
+      },
+      "description": "When a user deposits ETH, userBalances[msg.sender] += msg.value adds the full amount to user balance, AND treasuryBalance += msg.value / 10 adds 10% to treasury. This means the sum of all userBalances plus treasuryBalance = msg.value + msg.value/10 = 110% of deposited ETH. The contract only holds 100% of deposited ETH (msg.value), so total tracked balances exceed actual ETH held by 10%.",
+      "message": "The invariant 'sum of all user balances <= contract.balance' is violated. If all users attempt to withdraw their full balances AND the treasury is withdrawn, the contract will be insolvent by 10% of total deposits. The last users to withdraw will find insufficient ETH, causing failed withdrawals.",
+      "recommendation": "The fee should be deducted from userBalances: userBalances[msg.sender] += msg.value * 90 / 100; treasuryBalance += msg.value / 10; This ensures the sum of all user balances + treasuryBalance == contract.balance.",
+      "exploit_scenario": "1. User deposits 1 ETH\n2. userBalances[user] = 1 ETH, treasuryBalance = 0.1 ETH\n3. Total tracked = 1.1 ETH, but contract holds only 1 ETH\n4. User withdraws 1 ETH successfully\n5. Owner tries to withdrawTreasury(0.1 ETH) - FAILS, contract is empty\nOR:\n1. Multiple users deposit, treasuryBalance accumulates\n2. Owner withdraws treasury (0.1 ETH per deposit)\n3. Last users cannot withdraw full balances - contract is insolvent",
+      "swc_id": "",
+      "canonical_category": "other",
+      "confirming_tools": [
+        "frontier-anthropic"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": false,
+      "cross_validated_llm": false,
+      "fp_suppressed": false
+    },
+    {
+      "type": "tx_origin_auth",
+      "severity": "High",
+      "swc_id": "SWC-115",
+      "tool": "miesc-intelligence",
+      "confidence": 0.5,
+      "location": {
+        "file": "",
+        "line": 34,
+        "function": "unknown"
+      },
+      "message": "tx.origin used for authentication \u2014 vulnerable to phishing via intermediate contracts. Use msg.sender instead.",
+      "description": "tx.origin used for authentication \u2014 vulnerable to phishing via intermediate contracts. Use msg.sender instead.",
+      "recommendation": "tx.origin used for authentication \u2014 vulnerable to phishing via intermediate contracts. Use msg.sender instead.",
+      "canonical_category": "access_control",
+      "confirming_tools": [
+        "miesc-intelligence"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": false,
+      "cross_validated_llm": false,
+      "fp_suppressed": false,
+      "fix_code": "// Fix: Add onlyOwner modifier using OpenZeppelin Ownable\nimport \"@openzeppelin/contracts/access/Ownable.sol\";\n\ncontract SecureContract is Ownable {\n    uint256 public sensitiveValue;\n\n    // Restrict sensitive function to owner only\n    function setSensitiveValue(uint256 newValue) external onlyOwner {\n        sensitiveValue = newValue;\n    }\n\n    // For role-based access, use AccessControl instead:\n    // import \"@openzeppelin/contracts/access/AccessControl.sol\";\n    // bytes32 public constant ADMIN_ROLE = keccak256(\"ADMIN_ROLE\");\n    // function setSensitiveValue(uint256 v) external onlyRole(ADMIN_ROLE) { ... }\n}",
+      "exploit_scenario": [
+        "1. Attacker inspects the contract ABI and identifies a privileged function lacking an access modifier.",
+        "2. Attacker calls the unprotected function (e.g. setOwner, mint, pause) directly from any EOA.",
+        "3. Without an onlyOwner or role check, the call succeeds immediately.",
+        "4. Attacker takes ownership, mints unlimited tokens, or pauses the protocol at will.",
+        "5. Legitimate users lose access or funds; attacker drains or disables the contract."
+      ]
+    },
+    {
+      "id": "aderyn-unsafe-erc20-functions-5-0",
+      "type": "unsafe-erc20-functions",
+      "severity": "Medium",
+      "confidence": 0.984,
+      "location": {
+        "file": "AccessControlFlawed.sol",
+        "line": 41,
+        "function": "unknown"
+      },
+      "message": "Unsafe ERC20 Operations should not be used",
+      "description": "ERC20 functions may not behave as expected. For example: return values are not always meaningful. It is recommended to use OpenZeppelin's SafeERC20 library.",
+      "recommendation": "Review and fix the issue according to best practices",
+      "swc_id": null,
+      "cwe_id": null,
+      "owasp_category": null,
+      "_aderyn_detector": "unsafe-erc20-functions",
+      "tool": "aderyn",
+      "canonical_category": "other",
+      "confirming_tools": [
+        "aderyn"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": true,
+      "cross_validated_llm": false,
+      "fp_suppressed": false
+    },
+    {
+      "id": "aderyn-zero-address-check-7-1",
+      "type": "zero-address-check",
+      "severity": "Medium",
+      "confidence": 0.984,
+      "location": {
+        "file": "AccessControlFlawed.sol",
+        "line": 70,
+        "function": "unknown"
+      },
+      "message": "Missing checks for `address(0)` when assigning values to address state variables",
+      "description": "Check for `address(0)` when assigning values to address state variables.",
+      "recommendation": "Review and fix the issue according to best practices",
+      "swc_id": null,
+      "cwe_id": null,
+      "owasp_category": null,
+      "_aderyn_detector": "zero-address-check",
+      "tool": "aderyn",
+      "canonical_category": "other",
+      "confirming_tools": [
+        "aderyn"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": true,
+      "cross_validated_llm": false,
+      "fp_suppressed": false
+    },
+    {
+      "id": "aderyn-zero-address-check-7-2",
+      "type": "zero-address-check",
+      "severity": "Medium",
+      "confidence": 0.984,
+      "location": {
+        "file": "AccessControlFlawed.sol",
+        "line": 78,
+        "function": "unknown"
+      },
+      "message": "Missing checks for `address(0)` when assigning values to address state variables",
+      "description": "Check for `address(0)` when assigning values to address state variables.",
+      "recommendation": "Review and fix the issue according to best practices",
+      "swc_id": null,
+      "cwe_id": null,
+      "owasp_category": null,
+      "_aderyn_detector": "zero-address-check",
+      "tool": "aderyn",
+      "canonical_category": "other",
+      "confirming_tools": [
+        "aderyn"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": true,
+      "cross_validated_llm": false,
+      "fp_suppressed": false
+    },
+    {
+      "id": "aderyn-useless-public-function-8-0",
+      "type": "useless-public-function",
+      "severity": "Medium",
+      "confidence": 0.938,
+      "location": {
+        "file": "AccessControlFlawed.sol",
+        "line": 28,
+        "function": "unknown"
+      },
+      "message": "`public` functions not used internally could be marked `external`",
+      "description": "Instead of marking a function as `public`, consider marking it as `external` if it is not used internally.",
+      "recommendation": "Review and fix the issue according to best practices",
+      "swc_id": null,
+      "cwe_id": null,
+      "owasp_category": null,
+      "_aderyn_detector": "useless-public-function",
+      "tool": "aderyn",
+      "canonical_category": "other",
+      "confirming_tools": [
+        "aderyn"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": true,
+      "cross_validated_llm": false,
+      "fp_suppressed": false
+    },
+    {
+      "id": "aderyn-useless-public-function-8-2",
+      "type": "useless-public-function",
+      "severity": "Medium",
+      "confidence": 0.938,
+      "location": {
+        "file": "AccessControlFlawed.sol",
+        "line": 46,
+        "function": "unknown"
+      },
+      "message": "`public` functions not used internally could be marked `external`",
+      "description": "Instead of marking a function as `public`, consider marking it as `external` if it is not used internally.",
+      "recommendation": "Review and fix the issue according to best practices",
+      "swc_id": null,
+      "cwe_id": null,
+      "owasp_category": null,
+      "_aderyn_detector": "useless-public-function",
+      "tool": "aderyn",
+      "canonical_category": "other",
+      "confirming_tools": [
+        "aderyn"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": true,
+      "cross_validated_llm": false,
+      "fp_suppressed": false
+    },
+    {
+      "id": "slither-locked-ether-2",
+      "type": "locked-ether",
+      "severity": "Medium",
+      "confidence": 0.85,
+      "location": {
+        "file": "../data/audit/AccessControlFlawed.sol",
+        "line": 105,
+        "function": "PhishingAttacker"
+      },
+      "message": "Contract locking ether found:",
+      "description": "Contract locking ether found:\n\tContract [PhishingAttacker](../data/audit/AccessControlFlawed.sol#L105-L121) has payable functions:\n\t - [PhishingAttacker.receive()](../data/audit/AccessControlFlawed.sol#L120)\n\tBut does not have a function to withdraw the ether\n",
+      "recommendation": "Provide a withdrawal function or ensure contract is payable",
+      "swc_id": "SWC-132",
+      "cwe_id": "CWE-400",
+      "owasp_category": null,
+      "_slither_detector": "locked-ether",
+      "_slither_impact": "Medium",
+      "_slither_confidence": "High",
+      "tool": "slither",
+      "canonical_category": "other",
+      "confirming_tools": [
+        "slither"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": true,
+      "cross_validated_llm": false,
+      "fp_suppressed": false
+    },
+    {
+      "id": "aderyn-unsafe-erc20-functions-5-1",
+      "type": "unsafe-erc20-functions",
+      "severity": "Medium",
+      "confidence": 0.75,
+      "location": {
+        "file": "AccessControlFlawed.sol",
+        "line": 93,
+        "function": "unknown"
+      },
+      "message": "Unsafe ERC20 Operations should not be used",
+      "description": "ERC20 functions may not behave as expected. For example: return values are not always meaningful. It is recommended to use OpenZeppelin's SafeERC20 library.",
+      "recommendation": "Review and fix the issue according to best practices",
+      "swc_id": null,
+      "cwe_id": null,
+      "owasp_category": null,
+      "_aderyn_detector": "unsafe-erc20-functions",
+      "tool": "aderyn",
+      "canonical_category": "other",
+      "confirming_tools": [
+        "aderyn"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": true,
+      "cross_validated_llm": false,
+      "fp_suppressed": false
+    },
+    {
+      "id": "aderyn-zero-address-check-7-3",
+      "type": "zero-address-check",
+      "severity": "Medium",
+      "confidence": 0.75,
+      "location": {
+        "file": "AccessControlFlawed.sol",
+        "line": 110,
+        "function": "unknown"
+      },
+      "message": "Missing checks for `address(0)` when assigning values to address state variables",
+      "description": "Check for `address(0)` when assigning values to address state variables.",
+      "recommendation": "Review and fix the issue according to best practices",
+      "swc_id": null,
+      "cwe_id": null,
+      "owasp_category": null,
+      "_aderyn_detector": "zero-address-check",
+      "tool": "aderyn",
+      "canonical_category": "other",
+      "confirming_tools": [
+        "aderyn"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": true,
+      "cross_validated_llm": false,
+      "fp_suppressed": false
+    },
+    {
+      "type": "uninitialized_proxy",
+      "severity": "Medium",
+      "swc_id": "SWC-109",
+      "tool": "miesc-intelligence",
+      "confidence": 0.5,
+      "location": {
+        "file": "",
+        "line": 68,
+        "function": "unknown"
+      },
+      "message": "Initializer function detected \u2014 verify it cannot be called more than once (use OpenZeppelin's initializer modifier).",
+      "description": "Initializer function detected \u2014 verify it cannot be called more than once (use OpenZeppelin's initializer modifier).",
+      "recommendation": "Initializer function detected \u2014 verify it cannot be called more than once (use OpenZeppelin's initializer modifier).",
+      "canonical_category": "initialization",
+      "confirming_tools": [
+        "miesc-intelligence"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": false,
+      "cross_validated_llm": false,
+      "fp_suppressed": false,
+      "fix_code": "// Fix: Use OpenZeppelin Initializable with initializer modifier\nimport \"@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol\";\nimport \"@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol\";\n\ncontract SecureProxy is Initializable, OwnableUpgradeable {\n    uint256 public protectedValue;\n\n    /// @custom:oz-upgrades-unsafe-allow constructor\n    constructor() {\n        // Prevent the implementation contract from being initialized directly\n        _disableInitializers();\n    }\n\n    // initializer modifier ensures this can only be called once\n    function initialize(address owner, uint256 initial) public initializer {\n        __Ownable_init(owner);\n        protectedValue = initial;\n    }\n\n    // If re-initialization is needed for upgrades, use reinitializer(version):\n    // function initializeV2(uint256 v) public reinitializer(2) { ... }\n}",
+      "exploit_scenario": [
+        "1. Upgradeable contract's initialize() function lacks the initializer modifier.",
+        "2. The implementation contract is deployed without calling initialize() (normal for proxy patterns).",
+        "3. Attacker calls initialize() directly on the implementation, setting themselves as owner.",
+        "4. Since the implementation is the logic target of a delegatecall-based proxy, attacker now controls admin functions.",
+        "5. Attacker calls selfdestruct on the implementation (if present), bricking the proxy permanently.",
+        "6. Alternatively, attacker upgrades to a malicious implementation and drains all proxy storage."
+      ]
+    },
+    {
+      "type": "hardcoded_gas",
+      "severity": "Medium",
+      "swc_id": "SWC-134",
+      "tool": "miesc-intelligence",
+      "confidence": 0.5,
+      "location": {
+        "file": "",
+        "line": 41,
+        "function": "unknown"
+      },
+      "message": "transfer()/send() forwards only 2300 gas \u2014 will fail with contract recipients after EIP-1884. Use call{value:}() with reentrancy guard.",
+      "description": "transfer()/send() forwards only 2300 gas \u2014 will fail with contract recipients after EIP-1884. Use call{value:}() with reentrancy guard.",
+      "recommendation": "transfer()/send() forwards only 2300 gas \u2014 will fail with contract recipients after EIP-1884. Use call{value:}() with reentrancy guard.",
+      "canonical_category": "other",
+      "confirming_tools": [
+        "miesc-intelligence"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": false,
+      "cross_validated_llm": false,
+      "fp_suppressed": false
+    },
+    {
+      "type": "erc20_return_check",
+      "severity": "Medium",
+      "swc_id": "SWC-104",
+      "tool": "miesc-intelligence",
+      "confidence": 0.5,
+      "location": {
+        "file": "",
+        "line": 41,
+        "function": "unknown"
+      },
+      "message": "ERC20 transfer without return value check \u2014 some tokens (USDT) don't return bool. Use SafeERC20.",
+      "description": "ERC20 transfer without return value check \u2014 some tokens (USDT) don't return bool. Use SafeERC20.",
+      "recommendation": "ERC20 transfer without return value check \u2014 some tokens (USDT) don't return bool. Use SafeERC20.",
+      "canonical_category": "unchecked_call",
+      "confirming_tools": [
+        "miesc-intelligence"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": false,
+      "cross_validated_llm": false,
+      "fp_suppressed": false,
+      "fix_code": "// Fix: Use SafeERC20 for token transfers; require(success) for low-level calls\nimport \"@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol\";\nimport \"@openzeppelin/contracts/token/ERC20/IERC20.sol\";\n\ncontract SafeTransfer {\n    using SafeERC20 for IERC20;\n\n    function transferTokens(IERC20 token, address to, uint256 amount) external {\n        // SafeERC20 wraps transfer/transferFrom and reverts on failure\n        token.safeTransfer(to, amount);\n    }\n\n    function sendEther(address payable recipient, uint256 amount) external {\n        // Always check the return value of low-level calls\n        (bool success, ) = recipient.call{value: amount}(\"\");\n        require(success, \"ETH transfer failed\");\n    }\n}",
+      "exploit_scenario": [
+        "1. Contract calls an external address using .call() or .send() but does not check the boolean return value.",
+        "2. The external call silently fails (e.g. recipient is a contract that reverts, or gas stipend is exceeded).",
+        "3. Because the return value is ignored, the contract continues execution and marks the operation as successful.",
+        "4. Tokens or ETH are never delivered, but the contract's internal state (balances, flags) is updated as if they were.",
+        "5. Attacker exploits the accounting discrepancy to double-spend or claim funds they should not have."
+      ]
+    },
+    {
+      "id": "slither-missing-zero-check-4",
+      "type": "missing-zero-check",
+      "severity": "Low",
+      "confidence": 0.85,
+      "location": {
+        "file": "../data/audit/AccessControlFlawed.sol",
+        "line": 75,
+        "function": "newOwner"
+      },
+      "message": "AccessControlFlawed.transferOwnership(address).newOwner (../data/audit/AccessControlFlawed.sol#75) lacks a zero-check on :",
+      "description": "[AccessControlFlawed.transferOwnership(address).newOwner](../data/audit/AccessControlFlawed.sol#L75) lacks a zero-check on :\n\t\t- [owner = newOwner](../data/audit/AccessControlFlawed.sol#L78)\n",
+      "recommendation": "Review and fix the vulnerability",
+      "swc_id": null,
+      "cwe_id": null,
+      "owasp_category": null,
+      "_slither_detector": "missing-zero-check",
+      "_slither_impact": "Low",
+      "_slither_confidence": "Medium",
+      "tool": "slither",
+      "canonical_category": "other",
+      "confirming_tools": [
+        "slither"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": true,
+      "cross_validated_llm": false,
+      "fp_suppressed": false
+    },
+    {
+      "id": "slither-missing-zero-check-5",
+      "type": "missing-zero-check",
+      "severity": "Low",
+      "confidence": 0.85,
+      "location": {
+        "file": "../data/audit/AccessControlFlawed.sol",
+        "line": 68,
+        "function": "_owner"
+      },
+      "message": "AccessControlFlawed.initialize(address)._owner (../data/audit/AccessControlFlawed.sol#68) lacks a zero-check on :",
+      "description": "[AccessControlFlawed.initialize(address)._owner](../data/audit/AccessControlFlawed.sol#L68) lacks a zero-check on :\n\t\t- [owner = _owner](../data/audit/AccessControlFlawed.sol#L70)\n",
+      "recommendation": "Review and fix the vulnerability",
+      "swc_id": null,
+      "cwe_id": null,
+      "owasp_category": null,
+      "_slither_detector": "missing-zero-check",
+      "_slither_impact": "Low",
+      "_slither_confidence": "Medium",
+      "tool": "slither",
+      "canonical_category": "other",
+      "confirming_tools": [
+        "slither"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": true,
+      "cross_validated_llm": false,
+      "fp_suppressed": false
+    },
+    {
+      "id": "slither-missing-zero-check-6",
+      "type": "missing-zero-check",
+      "severity": "Low",
+      "confidence": 0.85,
+      "location": {
+        "file": "../data/audit/AccessControlFlawed.sol",
+        "line": 28,
+        "function": "newOwner"
+      },
+      "message": "AccessControlFlawed.setOwner(address).newOwner (../data/audit/AccessControlFlawed.sol#28) lacks a zero-check on :",
+      "description": "[AccessControlFlawed.setOwner(address).newOwner](../data/audit/AccessControlFlawed.sol#L28) lacks a zero-check on :\n\t\t- [owner = newOwner](../data/audit/AccessControlFlawed.sol#L30)\n",
+      "recommendation": "Review and fix the vulnerability",
+      "swc_id": null,
+      "cwe_id": null,
+      "owasp_category": null,
+      "_slither_detector": "missing-zero-check",
+      "_slither_impact": "Low",
+      "_slither_confidence": "Medium",
+      "tool": "slither",
+      "canonical_category": "other",
+      "confirming_tools": [
+        "slither"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": true,
+      "cross_validated_llm": false,
+      "fp_suppressed": false
+    },
+    {
+      "type": "missing_event_emission",
+      "severity": "Low",
+      "swc_id": "SWC-100",
+      "tool": "miesc-intelligence",
+      "confidence": 0.5,
+      "location": {
+        "file": "",
+        "line": 28,
+        "function": "unknown"
+      },
+      "message": "State-changing function without event emission \u2014 limits off-chain monitoring and indexing.",
+      "description": "State-changing function without event emission \u2014 limits off-chain monitoring and indexing.",
+      "recommendation": "State-changing function without event emission \u2014 limits off-chain monitoring and indexing.",
+      "canonical_category": "other",
+      "confirming_tools": [
+        "miesc-intelligence"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": false,
+      "cross_validated_llm": false,
+      "fp_suppressed": false
+    }
+  ],
+  "results": [
+    {
+      "tool": "aderyn",
+      "contract": "/data/audit/AccessControlFlawed.sol",
+      "status": "success",
+      "execution_time": 0.541755199432373,
+      "timestamp": "2026-07-09T20:36:02.461763",
+      "metadata": {
+        "contract_analyzed": "/data/audit/AccessControlFlawed.sol",
+        "output_file": "/tmp/aderyn_output.json",
+        "raw_findings_count": 0,
+        "normalized_findings_count": 23,
+        "aderyn_version": "unknown",
+        "analysis_timestamp": "unknown"
+      },
+      "error": null
+    },
+    {
+      "tool": "solhint",
+      "contract": "/data/audit/AccessControlFlawed.sol",
+      "status": "success",
+      "execution_time": 0.61,
+      "timestamp": "2026-07-09T20:36:02.635007",
+      "metadata": {},
+      "error": null
+    },
+    {
+      "tool": "slither",
+      "contract": "/data/audit/AccessControlFlawed.sol",
+      "status": "success",
+      "execution_time": 1.1187312602996826,
+      "timestamp": "2026-07-09T20:36:03.377614",
+      "metadata": {
+        "contract_analyzed": "/data/audit/AccessControlFlawed.sol",
+        "output_file": "/tmp/slither_output.json",
+        "raw_findings_count": 13,
+        "normalized_findings_count": 13,
+        "slither_version": true,
+        "excluded_detectors": []
+      },
+      "error": null
+    },
+    {
+      "tool": "frontier-anthropic",
+      "status": "success",
+      "execution_time": 39.076600551605225,
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-6",
+        "source_chars": 3808
+      }
+    },
+    {
+      "tool": "miesc-intelligence",
+      "status": "success",
+      "findings": [
+        {
+          "type": "logic_error",
+          "title": "setOwner() Emits Incorrect Event \u2014 Old Owner Is Already Overwritten",
+          "severity": "Critical",
+          "tool": "frontier-anthropic-deep",
+          "confidence": 0.938,
+          "location": {
+            "file": "/data/audit/AccessControlFlawed.sol",
+            "line": 0,
+            "function": "unknown"
+          },
+          "description": "In `setOwner()`, the line `owner = newOwner` executes BEFORE `emit OwnershipTransferred(owner, newOwner)`. At emit time, `owner` already equals `newOwner`, so the event logs `(newOwner, newOwner)` instead of `(oldOwner, newOwner)`. Off-chain monitoring systems and indexers relying on this event for access control auditing will receive corrupted data, making it impossible to track the real ownership chain. This can mask unauthorized ownership takeovers.",
+          "message": "",
+          "recommendation": "Cache old owner before overwriting: `address oldOwner = owner; owner = newOwner; emit OwnershipTransferred(oldOwner, newOwner);`",
+          "exploit_scenario": [
+            "1. Attacker inspects the contract ABI and identifies a privileged function lacking an access modifier.",
+            "2. Attacker calls the unprotected function (e.g. setOwner, mint, pause) directly from any EOA.",
+            "3. Without an onlyOwner or role check, the call succeeds immediately.",
+            "4. Attacker takes ownership, mints unlimited tokens, or pauses the protocol at will.",
+            "5. Legitimate users lose access or funds; attacker drains or disables the contract."
+          ],
+          "swc_id": "",
+          "canonical_category": "access_control",
+          "confirming_tools": [
+            "frontier-anthropic-deep"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": false,
+          "cross_validated_llm": false,
+          "fp_suppressed": false,
+          "fix_code": "// Fix: Add onlyOwner modifier using OpenZeppelin Ownable\nimport \"@openzeppelin/contracts/access/Ownable.sol\";\n\ncontract SecureContract is Ownable {\n    uint256 public sensitiveValue;\n\n    // Restrict sensitive function to owner only\n    function setSensitiveValue(uint256 newValue) external onlyOwner {\n        sensitiveValue = newValue;\n    }\n\n    // For role-based access, use AccessControl instead:\n    // import \"@openzeppelin/contracts/access/AccessControl.sol\";\n    // bytes32 public constant ADMIN_ROLE = keccak256(\"ADMIN_ROLE\");\n    // function setSensitiveValue(uint256 v) external onlyRole(ADMIN_ROLE) { ... }\n}"
+        },
+        {
+          "type": "logic_error",
+          "title": "initialize() Has No Re-initialization Guard \u2014 Bypasses Constructor Access Control",
+          "severity": "Critical",
+          "tool": "frontier-anthropic-deep",
+          "confidence": 0.875,
+          "location": {
+            "file": "/data/audit/AccessControlFlawed.sol",
+            "line": 0,
+            "function": "unknown"
+          },
+          "description": "The `initialized` flag is set inside `initialize()` but there is no `require(!initialized)` check. Any attacker can call `initialize(attackerAddress)` at any time to overwrite `owner`. Combined with `addAdmin` being unprotected, an attacker can: (1) call `initialize(self)` to become owner, (2) call `addAdmin(self)` to become admin (already possible), then (3) call `destroy()` to selfdestruct the contract and steal all ETH. The `initialized` variable is declared AFTER other state variables, but this doesn't prevent re-initialization since the flag is never checked.",
+          "message": "",
+          "recommendation": "Add `require(!initialized, 'Already initialized');` as the first line of initialize().",
+          "exploit_scenario": "",
+          "swc_id": "",
+          "canonical_category": "other",
+          "confirming_tools": [
+            "frontier-anthropic-deep"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": false,
+          "cross_validated_llm": false,
+          "fp_suppressed": false
+        },
+        {
+          "type": "access_control",
+          "title": "tx.origin Used for Authorization - Phishing Attack Vector",
+          "severity": "Critical",
+          "tool": "frontier-anthropic",
+          "confidence": 0.5,
+          "location": {
+            "file": "/data/audit/AccessControlFlawed.sol",
+            "line": 38,
+            "function": "withdrawTreasury"
+          },
+          "description": "The withdrawTreasury() function uses tx.origin instead of msg.sender for authorization. tx.origin always refers to the original externally-owned account that initiated the transaction. If the legitimate owner is tricked into calling a malicious contract (PhishingAttacker), that malicious contract can call withdrawTreasury() and pass the tx.origin == owner check, while msg.sender is the malicious contract which receives the funds.",
+          "message": "The PhishingAttacker contract demonstrates this exact attack. If the owner calls claimReward() on PhishingAttacker, it relays the call to withdrawTreasury() with the full contract balance. The treasury is completely drained to the PhishingAttacker contract.",
+          "recommendation": "Replace tx.origin with msg.sender: require(msg.sender == owner, 'Not owner'); Never use tx.origin for authorization in any function that handles value.",
+          "exploit_scenario": [
+            "1. Attacker inspects the contract ABI and identifies a privileged function lacking an access modifier.",
+            "2. Attacker calls the unprotected function (e.g. setOwner, mint, pause) directly from any EOA.",
+            "3. Without an onlyOwner or role check, the call succeeds immediately.",
+            "4. Attacker takes ownership, mints unlimited tokens, or pauses the protocol at will.",
+            "5. Legitimate users lose access or funds; attacker drains or disables the contract."
+          ],
+          "swc_id": "",
+          "canonical_category": "access_control",
+          "confirming_tools": [
+            "frontier-anthropic"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": false,
+          "cross_validated_llm": false,
+          "fp_suppressed": false,
+          "fix_code": "// Fix: Add onlyOwner modifier using OpenZeppelin Ownable\nimport \"@openzeppelin/contracts/access/Ownable.sol\";\n\ncontract SecureContract is Ownable {\n    uint256 public sensitiveValue;\n\n    // Restrict sensitive function to owner only\n    function setSensitiveValue(uint256 newValue) external onlyOwner {\n        sensitiveValue = newValue;\n    }\n\n    // For role-based access, use AccessControl instead:\n    // import \"@openzeppelin/contracts/access/AccessControl.sol\";\n    // bytes32 public constant ADMIN_ROLE = keccak256(\"ADMIN_ROLE\");\n    // function setSensitiveValue(uint256 v) external onlyRole(ADMIN_ROLE) { ... }\n}"
+        },
+        {
+          "type": "access_control",
+          "title": "Missing Access Control on addAdmin - Anyone Can Become Admin",
+          "severity": "Critical",
+          "tool": "frontier-anthropic",
+          "confidence": 0.5,
+          "location": {
+            "file": "/data/audit/AccessControlFlawed.sol",
+            "line": 47,
+            "function": "addAdmin"
+          },
+          "description": "The addAdmin() function has no authorization check. Any external address can call this function to grant themselves admin privileges. Since the destroy() function only checks admins[msg.sender], an attacker can grant themselves admin status and then call selfdestruct.",
+          "message": "Any attacker can add themselves as admin, then call destroy() to selfdestruct the contract sending all ETH to themselves. This enables complete fund drainage.",
+          "recommendation": "Add authorization: require(msg.sender == owner, 'Not owner'); or require(admins[msg.sender], 'Not admin'); Only the owner should be able to grant admin roles.",
+          "exploit_scenario": "1. Attacker calls addAdmin(attackerAddress)\n2. admins[attackerAddress] = true\n3. Attacker calls destroy()\n4. selfdestruct(payable(attackerAddress)) sends all contract ETH to attacker",
+          "swc_id": "",
+          "canonical_category": "other",
+          "confirming_tools": [
+            "frontier-anthropic"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": false,
+          "cross_validated_llm": false,
+          "fp_suppressed": false
+        },
+        {
+          "type": "access_control",
+          "title": "Unprotected selfdestruct via Weak Admin Check",
+          "severity": "Critical",
+          "tool": "frontier-anthropic",
+          "confidence": 0.5,
+          "location": {
+            "file": "/data/audit/AccessControlFlawed.sol",
+            "line": 53,
+            "function": "destroy"
+          },
+          "description": "The destroy() function calls selfdestruct with only an admin check, not an owner check. Since addAdmin() is completely unprotected (see above), any attacker can first add themselves as admin and then destroy the contract. Even if addAdmin were fixed, any admin could destroy the contract unilaterally without owner approval.",
+          "message": "Complete destruction of the contract and theft of all ETH held by the contract (sent to msg.sender). All user balances tracked in userBalances are permanently lost.",
+          "recommendation": "Restrict destroy() to only the owner: require(msg.sender == owner, 'Not owner'); Consider removing selfdestruct entirely as it's deprecated in newer EVM versions and extremely dangerous. If needed, add a timelock and multi-sig requirement.",
+          "exploit_scenario": [
+            "1. Attacker inspects the contract ABI and identifies a privileged function lacking an access modifier.",
+            "2. Attacker calls the unprotected function (e.g. setOwner, mint, pause) directly from any EOA.",
+            "3. Without an onlyOwner or role check, the call succeeds immediately.",
+            "4. Attacker takes ownership, mints unlimited tokens, or pauses the protocol at will.",
+            "5. Legitimate users lose access or funds; attacker drains or disables the contract."
+          ],
+          "swc_id": "",
+          "canonical_category": "access_control",
+          "confirming_tools": [
+            "frontier-anthropic"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": false,
+          "cross_validated_llm": false,
+          "fp_suppressed": false,
+          "fix_code": "// Fix: Add onlyOwner modifier using OpenZeppelin Ownable\nimport \"@openzeppelin/contracts/access/Ownable.sol\";\n\ncontract SecureContract is Ownable {\n    uint256 public sensitiveValue;\n\n    // Restrict sensitive function to owner only\n    function setSensitiveValue(uint256 newValue) external onlyOwner {\n        sensitiveValue = newValue;\n    }\n\n    // For role-based access, use AccessControl instead:\n    // import \"@openzeppelin/contracts/access/AccessControl.sol\";\n    // bytes32 public constant ADMIN_ROLE = keccak256(\"ADMIN_ROLE\");\n    // function setSensitiveValue(uint256 v) external onlyRole(ADMIN_ROLE) { ... }\n}"
+        },
+        {
+          "type": "unprotected_selfdestruct",
+          "severity": "Critical",
+          "swc_id": "SWC-106",
+          "tool": "miesc-intelligence",
+          "confidence": 0.5,
+          "location": {
+            "file": "",
+            "line": 56,
+            "function": "unknown"
+          },
+          "message": "selfdestruct/suicide found \u2014 if reachable by unauthorized caller, contract can be permanently destroyed.",
+          "description": "selfdestruct/suicide found \u2014 if reachable by unauthorized caller, contract can be permanently destroyed.",
+          "recommendation": "selfdestruct/suicide found \u2014 if reachable by unauthorized caller, contract can be permanently destroyed.",
+          "canonical_category": "access_control",
+          "confirming_tools": [
+            "miesc-intelligence"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": false,
+          "cross_validated_llm": false,
+          "fp_suppressed": false,
+          "fix_code": "// Fix: Add onlyOwner modifier using OpenZeppelin Ownable\nimport \"@openzeppelin/contracts/access/Ownable.sol\";\n\ncontract SecureContract is Ownable {\n    uint256 public sensitiveValue;\n\n    // Restrict sensitive function to owner only\n    function setSensitiveValue(uint256 newValue) external onlyOwner {\n        sensitiveValue = newValue;\n    }\n\n    // For role-based access, use AccessControl instead:\n    // import \"@openzeppelin/contracts/access/AccessControl.sol\";\n    // bytes32 public constant ADMIN_ROLE = keccak256(\"ADMIN_ROLE\");\n    // function setSensitiveValue(uint256 v) external onlyRole(ADMIN_ROLE) { ... }\n}",
+          "exploit_scenario": [
+            "1. Attacker inspects the contract ABI and identifies a privileged function lacking an access modifier.",
+            "2. Attacker calls the unprotected function (e.g. setOwner, mint, pause) directly from any EOA.",
+            "3. Without an onlyOwner or role check, the call succeeds immediately.",
+            "4. Attacker takes ownership, mints unlimited tokens, or pauses the protocol at will.",
+            "5. Legitimate users lose access or funds; attacker drains or disables the contract."
+          ]
+        },
+        {
+          "type": "unprotected_initialize",
+          "severity": "Critical",
+          "swc_id": "SWC-118",
+          "tool": "miesc-intelligence",
+          "confidence": 0.5,
+          "location": {
+            "file": "",
+            "line": 68,
+            "function": "unknown"
+          },
+          "message": "Public initialize() without initializer modifier \u2014 can be called by anyone to take ownership. Use OpenZeppelin's Initializable.",
+          "description": "Public initialize() without initializer modifier \u2014 can be called by anyone to take ownership. Use OpenZeppelin's Initializable.",
+          "recommendation": "Public initialize() without initializer modifier \u2014 can be called by anyone to take ownership. Use OpenZeppelin's Initializable.",
+          "canonical_category": "access_control",
+          "confirming_tools": [
+            "miesc-intelligence"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": false,
+          "cross_validated_llm": false,
+          "fp_suppressed": false,
+          "fix_code": "// Fix: Add onlyOwner modifier using OpenZeppelin Ownable\nimport \"@openzeppelin/contracts/access/Ownable.sol\";\n\ncontract SecureContract is Ownable {\n    uint256 public sensitiveValue;\n\n    // Restrict sensitive function to owner only\n    function setSensitiveValue(uint256 newValue) external onlyOwner {\n        sensitiveValue = newValue;\n    }\n\n    // For role-based access, use AccessControl instead:\n    // import \"@openzeppelin/contracts/access/AccessControl.sol\";\n    // bytes32 public constant ADMIN_ROLE = keccak256(\"ADMIN_ROLE\");\n    // function setSensitiveValue(uint256 v) external onlyRole(ADMIN_ROLE) { ... }\n}",
+          "exploit_scenario": [
+            "1. Attacker inspects the contract ABI and identifies a privileged function lacking an access modifier.",
+            "2. Attacker calls the unprotected function (e.g. setOwner, mint, pause) directly from any EOA.",
+            "3. Without an onlyOwner or role check, the call succeeds immediately.",
+            "4. Attacker takes ownership, mints unlimited tokens, or pauses the protocol at will.",
+            "5. Legitimate users lose access or funds; attacker drains or disables the contract."
+          ]
+        },
+        {
+          "type": "access_control_initwallet",
+          "severity": "Critical",
+          "swc_id": "SWC-118",
+          "tool": "miesc-intelligence",
+          "confidence": 0.5,
+          "location": {
+            "file": "",
+            "line": 68,
+            "function": "unknown"
+          },
+          "message": "Public init/initialize function without access restriction \u2014 anyone can call and take ownership. Use initializer modifier or require(!initialized).",
+          "description": "Public init/initialize function without access restriction \u2014 anyone can call and take ownership. Use initializer modifier or require(!initialized).",
+          "recommendation": "Public init/initialize function without access restriction \u2014 anyone can call and take ownership. Use initializer modifier or require(!initialized).",
+          "canonical_category": "other",
+          "confirming_tools": [
+            "miesc-intelligence"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": false,
+          "cross_validated_llm": false,
+          "fp_suppressed": false
+        },
+        {
+          "type": "access_control_newowner_public",
+          "severity": "Critical",
+          "swc_id": "SWC-105",
+          "tool": "miesc-intelligence",
+          "confidence": 0.5,
+          "location": {
+            "file": "",
+            "line": 28,
+            "function": "unknown"
+          },
+          "message": "Public function to add/change owner without onlyOwner modifier \u2014 anyone can add themselves as owner.",
+          "description": "Public function to add/change owner without onlyOwner modifier \u2014 anyone can add themselves as owner.",
+          "recommendation": "Public function to add/change owner without onlyOwner modifier \u2014 anyone can add themselves as owner.",
+          "canonical_category": "access_control",
+          "confirming_tools": [
+            "miesc-intelligence"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": false,
+          "cross_validated_llm": false,
+          "fp_suppressed": false,
+          "fix_code": "// Fix: Add onlyOwner modifier using OpenZeppelin Ownable\nimport \"@openzeppelin/contracts/access/Ownable.sol\";\n\ncontract SecureContract is Ownable {\n    uint256 public sensitiveValue;\n\n    // Restrict sensitive function to owner only\n    function setSensitiveValue(uint256 newValue) external onlyOwner {\n        sensitiveValue = newValue;\n    }\n\n    // For role-based access, use AccessControl instead:\n    // import \"@openzeppelin/contracts/access/AccessControl.sol\";\n    // bytes32 public constant ADMIN_ROLE = keccak256(\"ADMIN_ROLE\");\n    // function setSensitiveValue(uint256 v) external onlyRole(ADMIN_ROLE) { ... }\n}",
+          "exploit_scenario": [
+            "1. Attacker inspects the contract ABI and identifies a privileged function lacking an access modifier.",
+            "2. Attacker calls the unprotected function (e.g. setOwner, mint, pause) directly from any EOA.",
+            "3. Without an onlyOwner or role check, the call succeeds immediately.",
+            "4. Attacker takes ownership, mints unlimited tokens, or pauses the protocol at will.",
+            "5. Legitimate users lose access or funds; attacker drains or disables the contract."
+          ]
+        },
+        {
+          "id": "slither-arbitrary-send-eth-0",
+          "type": "arbitrary-send-eth",
+          "severity": "High",
+          "confidence": 0.978,
+          "location": {
+            "file": "../data/audit/AccessControlFlawed.sol",
+            "line": 35,
+            "function": "withdrawTreasury"
+          },
+          "message": "AccessControlFlawed.withdrawTreasury(uint256) (../data/audit/AccessControlFlawed.sol#35-43) sends eth to arbitrary user",
+          "description": "[AccessControlFlawed.withdrawTreasury(uint256)](../data/audit/AccessControlFlawed.sol#L35-L43) sends eth to arbitrary user\n\tDangerous calls:\n\t- [address(msg.sender).transfer(amount)](../data/audit/AccessControlFlawed.sol#L41)\n",
+          "recommendation": "Add access control modifier (`onlyOwner`, `onlyRole`) or `require(msg.sender == owner)` check. Use OpenZeppelin's Ownable or AccessControl.",
+          "swc_id": "SWC-105",
+          "cwe_id": "CWE-284",
+          "owasp_category": null,
+          "_slither_detector": "arbitrary-send-eth",
+          "_slither_impact": "High",
+          "_slither_confidence": "Medium",
+          "tool": "slither",
+          "canonical_category": "access_control",
+          "confirming_tools": [
+            "slither"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": true,
+          "cross_validated_llm": false,
+          "fp_suppressed": false,
+          "fix_code": "// Fix: Add onlyOwner modifier using OpenZeppelin Ownable\nimport \"@openzeppelin/contracts/access/Ownable.sol\";\n\ncontract SecureContract is Ownable {\n    uint256 public sensitiveValue;\n\n    // Restrict sensitive function to owner only\n    function setSensitiveValue(uint256 newValue) external onlyOwner {\n        sensitiveValue = newValue;\n    }\n\n    // For role-based access, use AccessControl instead:\n    // import \"@openzeppelin/contracts/access/AccessControl.sol\";\n    // bytes32 public constant ADMIN_ROLE = keccak256(\"ADMIN_ROLE\");\n    // function setSensitiveValue(uint256 v) external onlyRole(ADMIN_ROLE) { ... }\n}",
+          "exploit_scenario": [
+            "1. Attacker inspects the contract ABI and identifies a privileged function lacking an access modifier.",
+            "2. Attacker calls the unprotected function (e.g. setOwner, mint, pause) directly from any EOA.",
+            "3. Without an onlyOwner or role check, the call succeeds immediately.",
+            "4. Attacker takes ownership, mints unlimited tokens, or pauses the protocol at will.",
+            "5. Legitimate users lose access or funds; attacker drains or disables the contract."
+          ]
+        },
+        {
+          "id": "aderyn-send-ether-no-checks-3-0",
+          "type": "send-ether-no-checks",
+          "severity": "High",
+          "confidence": 0.938,
+          "location": {
+            "file": "AccessControlFlawed.sol",
+            "line": 35,
+            "function": "unknown"
+          },
+          "message": "Sending native Eth is not protected from these functions.",
+          "description": "Introduce checks for `msg.sender` in the function",
+          "recommendation": "Add access control modifier (`onlyOwner`, `onlyRole`) or `require(msg.sender == owner)` check. Use OpenZeppelin's Ownable or AccessControl.",
+          "swc_id": "SWC-105",
+          "cwe_id": null,
+          "owasp_category": null,
+          "_aderyn_detector": "send-ether-no-checks",
+          "tool": "aderyn",
+          "canonical_category": "access_control",
+          "confirming_tools": [
+            "aderyn"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": true,
+          "cross_validated_llm": false,
+          "fp_suppressed": false,
+          "fix_code": "// Fix: Add onlyOwner modifier using OpenZeppelin Ownable\nimport \"@openzeppelin/contracts/access/Ownable.sol\";\n\ncontract SecureContract is Ownable {\n    uint256 public sensitiveValue;\n\n    // Restrict sensitive function to owner only\n    function setSensitiveValue(uint256 newValue) external onlyOwner {\n        sensitiveValue = newValue;\n    }\n\n    // For role-based access, use AccessControl instead:\n    // import \"@openzeppelin/contracts/access/AccessControl.sol\";\n    // bytes32 public constant ADMIN_ROLE = keccak256(\"ADMIN_ROLE\");\n    // function setSensitiveValue(uint256 v) external onlyRole(ADMIN_ROLE) { ... }\n}",
+          "exploit_scenario": [
+            "1. Attacker inspects the contract ABI and identifies a privileged function lacking an access modifier.",
+            "2. Attacker calls the unprotected function (e.g. setOwner, mint, pause) directly from any EOA.",
+            "3. Without an onlyOwner or role check, the call succeeds immediately.",
+            "4. Attacker takes ownership, mints unlimited tokens, or pauses the protocol at will.",
+            "5. Legitimate users lose access or funds; attacker drains or disables the contract."
+          ]
+        },
+        {
+          "id": "slither-suicidal-1",
+          "type": "suicidal",
+          "severity": "High",
+          "confidence": 0.85,
+          "location": {
+            "file": "../data/audit/AccessControlFlawed.sol",
+            "line": 53,
+            "function": "destroy"
+          },
+          "message": "AccessControlFlawed.destroy() (../data/audit/AccessControlFlawed.sol#53-57) allows anyone to destruct the contract",
+          "description": "[AccessControlFlawed.destroy()](../data/audit/AccessControlFlawed.sol#L53-L57) allows anyone to destruct the contract\n",
+          "recommendation": "Protect selfdestruct with proper access control",
+          "swc_id": "SWC-106",
+          "cwe_id": null,
+          "owasp_category": null,
+          "_slither_detector": "suicidal",
+          "_slither_impact": "High",
+          "_slither_confidence": "High",
+          "tool": "slither",
+          "canonical_category": "access_control",
+          "confirming_tools": [
+            "slither"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": true,
+          "cross_validated_llm": false,
+          "fp_suppressed": false,
+          "fix_code": "// Fix: Add onlyOwner modifier using OpenZeppelin Ownable\nimport \"@openzeppelin/contracts/access/Ownable.sol\";\n\ncontract SecureContract is Ownable {\n    uint256 public sensitiveValue;\n\n    // Restrict sensitive function to owner only\n    function setSensitiveValue(uint256 newValue) external onlyOwner {\n        sensitiveValue = newValue;\n    }\n\n    // For role-based access, use AccessControl instead:\n    // import \"@openzeppelin/contracts/access/AccessControl.sol\";\n    // bytes32 public constant ADMIN_ROLE = keccak256(\"ADMIN_ROLE\");\n    // function setSensitiveValue(uint256 v) external onlyRole(ADMIN_ROLE) { ... }\n}",
+          "exploit_scenario": [
+            "1. Attacker inspects the contract ABI and identifies a privileged function lacking an access modifier.",
+            "2. Attacker calls the unprotected function (e.g. setOwner, mint, pause) directly from any EOA.",
+            "3. Without an onlyOwner or role check, the call succeeds immediately.",
+            "4. Attacker takes ownership, mints unlimited tokens, or pauses the protocol at will.",
+            "5. Legitimate users lose access or funds; attacker drains or disables the contract."
+          ]
+        },
+        {
+          "id": "aderyn-unprotected-initializer-0-0",
+          "type": "unprotected-initializer",
+          "severity": "High",
+          "confidence": 0.75,
+          "location": {
+            "file": "AccessControlFlawed.sol",
+            "line": 68,
+            "function": "unknown"
+          },
+          "message": "Unprotected initializer",
+          "description": "Consider protecting the initializer functions with modifiers.",
+          "recommendation": "Add access control modifier (onlyOwner) or require(msg.sender == owner)",
+          "swc_id": "SWC-105",
+          "cwe_id": "CWE-284",
+          "owasp_category": null,
+          "_aderyn_detector": "unprotected-initializer",
+          "tool": "aderyn",
+          "canonical_category": "access_control",
+          "confirming_tools": [
+            "aderyn"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": true,
+          "cross_validated_llm": false,
+          "fp_suppressed": false,
+          "fix_code": "// Fix: Add onlyOwner modifier using OpenZeppelin Ownable\nimport \"@openzeppelin/contracts/access/Ownable.sol\";\n\ncontract SecureContract is Ownable {\n    uint256 public sensitiveValue;\n\n    // Restrict sensitive function to owner only\n    function setSensitiveValue(uint256 newValue) external onlyOwner {\n        sensitiveValue = newValue;\n    }\n\n    // For role-based access, use AccessControl instead:\n    // import \"@openzeppelin/contracts/access/AccessControl.sol\";\n    // bytes32 public constant ADMIN_ROLE = keccak256(\"ADMIN_ROLE\");\n    // function setSensitiveValue(uint256 v) external onlyRole(ADMIN_ROLE) { ... }\n}",
+          "exploit_scenario": [
+            "1. Attacker inspects the contract ABI and identifies a privileged function lacking an access modifier.",
+            "2. Attacker calls the unprotected function (e.g. setOwner, mint, pause) directly from any EOA.",
+            "3. Without an onlyOwner or role check, the call succeeds immediately.",
+            "4. Attacker takes ownership, mints unlimited tokens, or pauses the protocol at will.",
+            "5. Legitimate users lose access or funds; attacker drains or disables the contract."
+          ]
+        },
+        {
+          "id": "aderyn-selfdestruct-identifier-1-0",
+          "type": "selfdestruct-identifier",
+          "severity": "High",
+          "confidence": 0.75,
+          "location": {
+            "file": "AccessControlFlawed.sol",
+            "line": 56,
+            "function": "unknown"
+          },
+          "message": "Depracated EVM Instruction for `selfdestruct` should not be used.",
+          "description": "Depracated EVM Instruction for `selfdestruct` should not be used.",
+          "recommendation": "Add access control and consider removing selfdestruct",
+          "swc_id": "SWC-106",
+          "cwe_id": null,
+          "owasp_category": null,
+          "_aderyn_detector": "selfdestruct-identifier",
+          "tool": "aderyn",
+          "canonical_category": "access_control",
+          "confirming_tools": [
+            "aderyn"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": true,
+          "cross_validated_llm": false,
+          "fp_suppressed": false,
+          "fix_code": "// Fix: Add onlyOwner modifier using OpenZeppelin Ownable\nimport \"@openzeppelin/contracts/access/Ownable.sol\";\n\ncontract SecureContract is Ownable {\n    uint256 public sensitiveValue;\n\n    // Restrict sensitive function to owner only\n    function setSensitiveValue(uint256 newValue) external onlyOwner {\n        sensitiveValue = newValue;\n    }\n\n    // For role-based access, use AccessControl instead:\n    // import \"@openzeppelin/contracts/access/AccessControl.sol\";\n    // bytes32 public constant ADMIN_ROLE = keccak256(\"ADMIN_ROLE\");\n    // function setSensitiveValue(uint256 v) external onlyRole(ADMIN_ROLE) { ... }\n}",
+          "exploit_scenario": [
+            "1. Attacker inspects the contract ABI and identifies a privileged function lacking an access modifier.",
+            "2. Attacker calls the unprotected function (e.g. setOwner, mint, pause) directly from any EOA.",
+            "3. Without an onlyOwner or role check, the call succeeds immediately.",
+            "4. Attacker takes ownership, mints unlimited tokens, or pauses the protocol at will.",
+            "5. Legitimate users lose access or funds; attacker drains or disables the contract."
+          ]
+        },
+        {
+          "id": "aderyn-uninitialized-state-variable-2-0",
+          "type": "uninitialized-state-variable",
+          "severity": "High",
+          "confidence": 0.75,
+          "location": {
+            "file": "AccessControlFlawed.sol",
+            "line": 11,
+            "function": "unknown"
+          },
+          "message": "Uninitialized State Variables",
+          "description": "Solidity does initialize variables by default when you declare them, however it's good practice to explicitly declare an initial value. For example, if you transfer money to an address we must make sure that the address has been initialized.",
+          "recommendation": "Initialize all state variables in constructor",
+          "swc_id": "SWC-109",
+          "cwe_id": "CWE-457",
+          "owasp_category": "SC05: Uninitialized Storage",
+          "_aderyn_detector": "uninitialized-state-variable",
+          "tool": "aderyn",
+          "canonical_category": "initialization",
+          "confirming_tools": [
+            "aderyn"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": true,
+          "cross_validated_llm": false,
+          "fp_suppressed": false,
+          "fix_code": "// Fix: Use OpenZeppelin Initializable with initializer modifier\nimport \"@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol\";\nimport \"@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol\";\n\ncontract SecureProxy is Initializable, OwnableUpgradeable {\n    uint256 public protectedValue;\n\n    /// @custom:oz-upgrades-unsafe-allow constructor\n    constructor() {\n        // Prevent the implementation contract from being initialized directly\n        _disableInitializers();\n    }\n\n    // initializer modifier ensures this can only be called once\n    function initialize(address owner, uint256 initial) public initializer {\n        __Ownable_init(owner);\n        protectedValue = initial;\n    }\n\n    // If re-initialization is needed for upgrades, use reinitializer(version):\n    // function initializeV2(uint256 v) public reinitializer(2) { ... }\n}",
+          "exploit_scenario": [
+            "1. Upgradeable contract's initialize() function lacks the initializer modifier.",
+            "2. The implementation contract is deployed without calling initialize() (normal for proxy patterns).",
+            "3. Attacker calls initialize() directly on the implementation, setting themselves as owner.",
+            "4. Since the implementation is the logic target of a delegatecall-based proxy, attacker now controls admin functions.",
+            "5. Attacker calls selfdestruct on the implementation (if present), bricking the proxy permanently.",
+            "6. Alternatively, attacker upgrades to a malicious implementation and drains all proxy storage."
+          ]
+        },
+        {
+          "id": "aderyn-send-ether-no-checks-3-1",
+          "type": "send-ether-no-checks",
+          "severity": "High",
+          "confidence": 0.75,
+          "location": {
+            "file": "AccessControlFlawed.sol",
+            "line": 115,
+            "function": "unknown"
+          },
+          "message": "Sending native Eth is not protected from these functions.",
+          "description": "Introduce checks for `msg.sender` in the function",
+          "recommendation": "Add access control modifier (`onlyOwner`, `onlyRole`) or `require(msg.sender == owner)` check. Use OpenZeppelin's Ownable or AccessControl.",
+          "swc_id": "SWC-105",
+          "cwe_id": null,
+          "owasp_category": null,
+          "_aderyn_detector": "send-ether-no-checks",
+          "tool": "aderyn",
+          "canonical_category": "access_control",
+          "confirming_tools": [
+            "aderyn"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": true,
+          "cross_validated_llm": false,
+          "fp_suppressed": false,
+          "fix_code": "// Fix: Add onlyOwner modifier using OpenZeppelin Ownable\nimport \"@openzeppelin/contracts/access/Ownable.sol\";\n\ncontract SecureContract is Ownable {\n    uint256 public sensitiveValue;\n\n    // Restrict sensitive function to owner only\n    function setSensitiveValue(uint256 newValue) external onlyOwner {\n        sensitiveValue = newValue;\n    }\n\n    // For role-based access, use AccessControl instead:\n    // import \"@openzeppelin/contracts/access/AccessControl.sol\";\n    // bytes32 public constant ADMIN_ROLE = keccak256(\"ADMIN_ROLE\");\n    // function setSensitiveValue(uint256 v) external onlyRole(ADMIN_ROLE) { ... }\n}",
+          "exploit_scenario": [
+            "1. Attacker inspects the contract ABI and identifies a privileged function lacking an access modifier.",
+            "2. Attacker calls the unprotected function (e.g. setOwner, mint, pause) directly from any EOA.",
+            "3. Without an onlyOwner or role check, the call succeeds immediately.",
+            "4. Attacker takes ownership, mints unlimited tokens, or pauses the protocol at will.",
+            "5. Legitimate users lose access or funds; attacker drains or disables the contract."
+          ]
+        },
+        {
+          "type": "access_control",
+          "title": "Anyone Can Pause/Unpause Contract - Denial of Service",
+          "severity": "High",
+          "tool": "frontier-anthropic",
+          "confidence": 0.5,
+          "location": {
+            "file": "/data/audit/AccessControlFlawed.sol",
+            "line": 59,
+            "function": "togglePause"
+          },
+          "description": "The togglePause() function has no access control. Any address can call it to pause or unpause the contract. An attacker can permanently keep the contract paused, preventing all deposits and withdrawals. Combined with the fact that paused state blocks userWithdraw(), this effectively freezes all user funds.",
+          "message": "Attacker can freeze all user funds by keeping the contract in paused state. Users cannot withdraw their deposited ETH. This is a griefing/DoS attack that can be maintained indefinitely at minimal cost.",
+          "recommendation": "Add access control: require(msg.sender == owner || admins[msg.sender], 'Not authorized'); Only privileged accounts should be able to pause/unpause.",
+          "exploit_scenario": "1. Attacker calls togglePause() - contract is now paused\n2. Users cannot call deposit() or userWithdraw()\n3. Whenever owner unpauses, attacker immediately re-pauses\n4. User funds are effectively frozen indefinitely with minimal gas cost to attacker",
+          "swc_id": "",
+          "canonical_category": "other",
+          "confirming_tools": [
+            "frontier-anthropic"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": false,
+          "cross_validated_llm": false,
+          "fp_suppressed": false
+        },
+        {
+          "type": "logic_error",
+          "title": "Accounting Invariant Violation - Treasury Balance Can Exceed Contract ETH Balance",
+          "severity": "High",
+          "tool": "frontier-anthropic",
+          "confidence": 0.5,
+          "location": {
+            "file": "/data/audit/AccessControlFlawed.sol",
+            "line": 77,
+            "function": "deposit"
+          },
+          "description": "When a user deposits ETH, userBalances[msg.sender] += msg.value adds the full amount to user balance, AND treasuryBalance += msg.value / 10 adds 10% to treasury. This means the sum of all userBalances plus treasuryBalance = msg.value + msg.value/10 = 110% of deposited ETH. The contract only holds 100% of deposited ETH (msg.value), so total tracked balances exceed actual ETH held by 10%.",
+          "message": "The invariant 'sum of all user balances <= contract.balance' is violated. If all users attempt to withdraw their full balances AND the treasury is withdrawn, the contract will be insolvent by 10% of total deposits. The last users to withdraw will find insufficient ETH, causing failed withdrawals.",
+          "recommendation": "The fee should be deducted from userBalances: userBalances[msg.sender] += msg.value * 90 / 100; treasuryBalance += msg.value / 10; This ensures the sum of all user balances + treasuryBalance == contract.balance.",
+          "exploit_scenario": "1. User deposits 1 ETH\n2. userBalances[user] = 1 ETH, treasuryBalance = 0.1 ETH\n3. Total tracked = 1.1 ETH, but contract holds only 1 ETH\n4. User withdraws 1 ETH successfully\n5. Owner tries to withdrawTreasury(0.1 ETH) - FAILS, contract is empty\nOR:\n1. Multiple users deposit, treasuryBalance accumulates\n2. Owner withdraws treasury (0.1 ETH per deposit)\n3. Last users cannot withdraw full balances - contract is insolvent",
+          "swc_id": "",
+          "canonical_category": "other",
+          "confirming_tools": [
+            "frontier-anthropic"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": false,
+          "cross_validated_llm": false,
+          "fp_suppressed": false
+        },
+        {
+          "type": "tx_origin_auth",
+          "severity": "High",
+          "swc_id": "SWC-115",
+          "tool": "miesc-intelligence",
+          "confidence": 0.5,
+          "location": {
+            "file": "",
+            "line": 34,
+            "function": "unknown"
+          },
+          "message": "tx.origin used for authentication \u2014 vulnerable to phishing via intermediate contracts. Use msg.sender instead.",
+          "description": "tx.origin used for authentication \u2014 vulnerable to phishing via intermediate contracts. Use msg.sender instead.",
+          "recommendation": "tx.origin used for authentication \u2014 vulnerable to phishing via intermediate contracts. Use msg.sender instead.",
+          "canonical_category": "access_control",
+          "confirming_tools": [
+            "miesc-intelligence"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": false,
+          "cross_validated_llm": false,
+          "fp_suppressed": false,
+          "fix_code": "// Fix: Add onlyOwner modifier using OpenZeppelin Ownable\nimport \"@openzeppelin/contracts/access/Ownable.sol\";\n\ncontract SecureContract is Ownable {\n    uint256 public sensitiveValue;\n\n    // Restrict sensitive function to owner only\n    function setSensitiveValue(uint256 newValue) external onlyOwner {\n        sensitiveValue = newValue;\n    }\n\n    // For role-based access, use AccessControl instead:\n    // import \"@openzeppelin/contracts/access/AccessControl.sol\";\n    // bytes32 public constant ADMIN_ROLE = keccak256(\"ADMIN_ROLE\");\n    // function setSensitiveValue(uint256 v) external onlyRole(ADMIN_ROLE) { ... }\n}",
+          "exploit_scenario": [
+            "1. Attacker inspects the contract ABI and identifies a privileged function lacking an access modifier.",
+            "2. Attacker calls the unprotected function (e.g. setOwner, mint, pause) directly from any EOA.",
+            "3. Without an onlyOwner or role check, the call succeeds immediately.",
+            "4. Attacker takes ownership, mints unlimited tokens, or pauses the protocol at will.",
+            "5. Legitimate users lose access or funds; attacker drains or disables the contract."
+          ]
+        },
+        {
+          "id": "aderyn-unsafe-erc20-functions-5-0",
+          "type": "unsafe-erc20-functions",
+          "severity": "Medium",
+          "confidence": 0.984,
+          "location": {
+            "file": "AccessControlFlawed.sol",
+            "line": 41,
+            "function": "unknown"
+          },
+          "message": "Unsafe ERC20 Operations should not be used",
+          "description": "ERC20 functions may not behave as expected. For example: return values are not always meaningful. It is recommended to use OpenZeppelin's SafeERC20 library.",
+          "recommendation": "Review and fix the issue according to best practices",
+          "swc_id": null,
+          "cwe_id": null,
+          "owasp_category": null,
+          "_aderyn_detector": "unsafe-erc20-functions",
+          "tool": "aderyn",
+          "canonical_category": "other",
+          "confirming_tools": [
+            "aderyn"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": true,
+          "cross_validated_llm": false,
+          "fp_suppressed": false
+        },
+        {
+          "id": "aderyn-zero-address-check-7-1",
+          "type": "zero-address-check",
+          "severity": "Medium",
+          "confidence": 0.984,
+          "location": {
+            "file": "AccessControlFlawed.sol",
+            "line": 70,
+            "function": "unknown"
+          },
+          "message": "Missing checks for `address(0)` when assigning values to address state variables",
+          "description": "Check for `address(0)` when assigning values to address state variables.",
+          "recommendation": "Review and fix the issue according to best practices",
+          "swc_id": null,
+          "cwe_id": null,
+          "owasp_category": null,
+          "_aderyn_detector": "zero-address-check",
+          "tool": "aderyn",
+          "canonical_category": "other",
+          "confirming_tools": [
+            "aderyn"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": true,
+          "cross_validated_llm": false,
+          "fp_suppressed": false
+        },
+        {
+          "id": "aderyn-zero-address-check-7-2",
+          "type": "zero-address-check",
+          "severity": "Medium",
+          "confidence": 0.984,
+          "location": {
+            "file": "AccessControlFlawed.sol",
+            "line": 78,
+            "function": "unknown"
+          },
+          "message": "Missing checks for `address(0)` when assigning values to address state variables",
+          "description": "Check for `address(0)` when assigning values to address state variables.",
+          "recommendation": "Review and fix the issue according to best practices",
+          "swc_id": null,
+          "cwe_id": null,
+          "owasp_category": null,
+          "_aderyn_detector": "zero-address-check",
+          "tool": "aderyn",
+          "canonical_category": "other",
+          "confirming_tools": [
+            "aderyn"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": true,
+          "cross_validated_llm": false,
+          "fp_suppressed": false
+        },
+        {
+          "id": "aderyn-useless-public-function-8-0",
+          "type": "useless-public-function",
+          "severity": "Medium",
+          "confidence": 0.938,
+          "location": {
+            "file": "AccessControlFlawed.sol",
+            "line": 28,
+            "function": "unknown"
+          },
+          "message": "`public` functions not used internally could be marked `external`",
+          "description": "Instead of marking a function as `public`, consider marking it as `external` if it is not used internally.",
+          "recommendation": "Review and fix the issue according to best practices",
+          "swc_id": null,
+          "cwe_id": null,
+          "owasp_category": null,
+          "_aderyn_detector": "useless-public-function",
+          "tool": "aderyn",
+          "canonical_category": "other",
+          "confirming_tools": [
+            "aderyn"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": true,
+          "cross_validated_llm": false,
+          "fp_suppressed": false
+        },
+        {
+          "id": "aderyn-useless-public-function-8-2",
+          "type": "useless-public-function",
+          "severity": "Medium",
+          "confidence": 0.938,
+          "location": {
+            "file": "AccessControlFlawed.sol",
+            "line": 46,
+            "function": "unknown"
+          },
+          "message": "`public` functions not used internally could be marked `external`",
+          "description": "Instead of marking a function as `public`, consider marking it as `external` if it is not used internally.",
+          "recommendation": "Review and fix the issue according to best practices",
+          "swc_id": null,
+          "cwe_id": null,
+          "owasp_category": null,
+          "_aderyn_detector": "useless-public-function",
+          "tool": "aderyn",
+          "canonical_category": "other",
+          "confirming_tools": [
+            "aderyn"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": true,
+          "cross_validated_llm": false,
+          "fp_suppressed": false
+        },
+        {
+          "id": "slither-locked-ether-2",
+          "type": "locked-ether",
+          "severity": "Medium",
+          "confidence": 0.85,
+          "location": {
+            "file": "../data/audit/AccessControlFlawed.sol",
+            "line": 105,
+            "function": "PhishingAttacker"
+          },
+          "message": "Contract locking ether found:",
+          "description": "Contract locking ether found:\n\tContract [PhishingAttacker](../data/audit/AccessControlFlawed.sol#L105-L121) has payable functions:\n\t - [PhishingAttacker.receive()](../data/audit/AccessControlFlawed.sol#L120)\n\tBut does not have a function to withdraw the ether\n",
+          "recommendation": "Provide a withdrawal function or ensure contract is payable",
+          "swc_id": "SWC-132",
+          "cwe_id": "CWE-400",
+          "owasp_category": null,
+          "_slither_detector": "locked-ether",
+          "_slither_impact": "Medium",
+          "_slither_confidence": "High",
+          "tool": "slither",
+          "canonical_category": "other",
+          "confirming_tools": [
+            "slither"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": true,
+          "cross_validated_llm": false,
+          "fp_suppressed": false
+        },
+        {
+          "id": "aderyn-unsafe-erc20-functions-5-1",
+          "type": "unsafe-erc20-functions",
+          "severity": "Medium",
+          "confidence": 0.75,
+          "location": {
+            "file": "AccessControlFlawed.sol",
+            "line": 93,
+            "function": "unknown"
+          },
+          "message": "Unsafe ERC20 Operations should not be used",
+          "description": "ERC20 functions may not behave as expected. For example: return values are not always meaningful. It is recommended to use OpenZeppelin's SafeERC20 library.",
+          "recommendation": "Review and fix the issue according to best practices",
+          "swc_id": null,
+          "cwe_id": null,
+          "owasp_category": null,
+          "_aderyn_detector": "unsafe-erc20-functions",
+          "tool": "aderyn",
+          "canonical_category": "other",
+          "confirming_tools": [
+            "aderyn"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": true,
+          "cross_validated_llm": false,
+          "fp_suppressed": false
+        },
+        {
+          "id": "aderyn-zero-address-check-7-3",
+          "type": "zero-address-check",
+          "severity": "Medium",
+          "confidence": 0.75,
+          "location": {
+            "file": "AccessControlFlawed.sol",
+            "line": 110,
+            "function": "unknown"
+          },
+          "message": "Missing checks for `address(0)` when assigning values to address state variables",
+          "description": "Check for `address(0)` when assigning values to address state variables.",
+          "recommendation": "Review and fix the issue according to best practices",
+          "swc_id": null,
+          "cwe_id": null,
+          "owasp_category": null,
+          "_aderyn_detector": "zero-address-check",
+          "tool": "aderyn",
+          "canonical_category": "other",
+          "confirming_tools": [
+            "aderyn"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": true,
+          "cross_validated_llm": false,
+          "fp_suppressed": false
+        },
+        {
+          "type": "uninitialized_proxy",
+          "severity": "Medium",
+          "swc_id": "SWC-109",
+          "tool": "miesc-intelligence",
+          "confidence": 0.5,
+          "location": {
+            "file": "",
+            "line": 68,
+            "function": "unknown"
+          },
+          "message": "Initializer function detected \u2014 verify it cannot be called more than once (use OpenZeppelin's initializer modifier).",
+          "description": "Initializer function detected \u2014 verify it cannot be called more than once (use OpenZeppelin's initializer modifier).",
+          "recommendation": "Initializer function detected \u2014 verify it cannot be called more than once (use OpenZeppelin's initializer modifier).",
+          "canonical_category": "initialization",
+          "confirming_tools": [
+            "miesc-intelligence"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": false,
+          "cross_validated_llm": false,
+          "fp_suppressed": false,
+          "fix_code": "// Fix: Use OpenZeppelin Initializable with initializer modifier\nimport \"@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol\";\nimport \"@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol\";\n\ncontract SecureProxy is Initializable, OwnableUpgradeable {\n    uint256 public protectedValue;\n\n    /// @custom:oz-upgrades-unsafe-allow constructor\n    constructor() {\n        // Prevent the implementation contract from being initialized directly\n        _disableInitializers();\n    }\n\n    // initializer modifier ensures this can only be called once\n    function initialize(address owner, uint256 initial) public initializer {\n        __Ownable_init(owner);\n        protectedValue = initial;\n    }\n\n    // If re-initialization is needed for upgrades, use reinitializer(version):\n    // function initializeV2(uint256 v) public reinitializer(2) { ... }\n}",
+          "exploit_scenario": [
+            "1. Upgradeable contract's initialize() function lacks the initializer modifier.",
+            "2. The implementation contract is deployed without calling initialize() (normal for proxy patterns).",
+            "3. Attacker calls initialize() directly on the implementation, setting themselves as owner.",
+            "4. Since the implementation is the logic target of a delegatecall-based proxy, attacker now controls admin functions.",
+            "5. Attacker calls selfdestruct on the implementation (if present), bricking the proxy permanently.",
+            "6. Alternatively, attacker upgrades to a malicious implementation and drains all proxy storage."
+          ]
+        },
+        {
+          "type": "hardcoded_gas",
+          "severity": "Medium",
+          "swc_id": "SWC-134",
+          "tool": "miesc-intelligence",
+          "confidence": 0.5,
+          "location": {
+            "file": "",
+            "line": 41,
+            "function": "unknown"
+          },
+          "message": "transfer()/send() forwards only 2300 gas \u2014 will fail with contract recipients after EIP-1884. Use call{value:}() with reentrancy guard.",
+          "description": "transfer()/send() forwards only 2300 gas \u2014 will fail with contract recipients after EIP-1884. Use call{value:}() with reentrancy guard.",
+          "recommendation": "transfer()/send() forwards only 2300 gas \u2014 will fail with contract recipients after EIP-1884. Use call{value:}() with reentrancy guard.",
+          "canonical_category": "other",
+          "confirming_tools": [
+            "miesc-intelligence"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": false,
+          "cross_validated_llm": false,
+          "fp_suppressed": false
+        },
+        {
+          "type": "erc20_return_check",
+          "severity": "Medium",
+          "swc_id": "SWC-104",
+          "tool": "miesc-intelligence",
+          "confidence": 0.5,
+          "location": {
+            "file": "",
+            "line": 41,
+            "function": "unknown"
+          },
+          "message": "ERC20 transfer without return value check \u2014 some tokens (USDT) don't return bool. Use SafeERC20.",
+          "description": "ERC20 transfer without return value check \u2014 some tokens (USDT) don't return bool. Use SafeERC20.",
+          "recommendation": "ERC20 transfer without return value check \u2014 some tokens (USDT) don't return bool. Use SafeERC20.",
+          "canonical_category": "unchecked_call",
+          "confirming_tools": [
+            "miesc-intelligence"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": false,
+          "cross_validated_llm": false,
+          "fp_suppressed": false,
+          "fix_code": "// Fix: Use SafeERC20 for token transfers; require(success) for low-level calls\nimport \"@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol\";\nimport \"@openzeppelin/contracts/token/ERC20/IERC20.sol\";\n\ncontract SafeTransfer {\n    using SafeERC20 for IERC20;\n\n    function transferTokens(IERC20 token, address to, uint256 amount) external {\n        // SafeERC20 wraps transfer/transferFrom and reverts on failure\n        token.safeTransfer(to, amount);\n    }\n\n    function sendEther(address payable recipient, uint256 amount) external {\n        // Always check the return value of low-level calls\n        (bool success, ) = recipient.call{value: amount}(\"\");\n        require(success, \"ETH transfer failed\");\n    }\n}",
+          "exploit_scenario": [
+            "1. Contract calls an external address using .call() or .send() but does not check the boolean return value.",
+            "2. The external call silently fails (e.g. recipient is a contract that reverts, or gas stipend is exceeded).",
+            "3. Because the return value is ignored, the contract continues execution and marks the operation as successful.",
+            "4. Tokens or ETH are never delivered, but the contract's internal state (balances, flags) is updated as if they were.",
+            "5. Attacker exploits the accounting discrepancy to double-spend or claim funds they should not have."
+          ]
+        },
+        {
+          "id": "slither-missing-zero-check-4",
+          "type": "missing-zero-check",
+          "severity": "Low",
+          "confidence": 0.85,
+          "location": {
+            "file": "../data/audit/AccessControlFlawed.sol",
+            "line": 75,
+            "function": "newOwner"
+          },
+          "message": "AccessControlFlawed.transferOwnership(address).newOwner (../data/audit/AccessControlFlawed.sol#75) lacks a zero-check on :",
+          "description": "[AccessControlFlawed.transferOwnership(address).newOwner](../data/audit/AccessControlFlawed.sol#L75) lacks a zero-check on :\n\t\t- [owner = newOwner](../data/audit/AccessControlFlawed.sol#L78)\n",
+          "recommendation": "Review and fix the vulnerability",
+          "swc_id": null,
+          "cwe_id": null,
+          "owasp_category": null,
+          "_slither_detector": "missing-zero-check",
+          "_slither_impact": "Low",
+          "_slither_confidence": "Medium",
+          "tool": "slither",
+          "canonical_category": "other",
+          "confirming_tools": [
+            "slither"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": true,
+          "cross_validated_llm": false,
+          "fp_suppressed": false
+        },
+        {
+          "id": "slither-missing-zero-check-5",
+          "type": "missing-zero-check",
+          "severity": "Low",
+          "confidence": 0.85,
+          "location": {
+            "file": "../data/audit/AccessControlFlawed.sol",
+            "line": 68,
+            "function": "_owner"
+          },
+          "message": "AccessControlFlawed.initialize(address)._owner (../data/audit/AccessControlFlawed.sol#68) lacks a zero-check on :",
+          "description": "[AccessControlFlawed.initialize(address)._owner](../data/audit/AccessControlFlawed.sol#L68) lacks a zero-check on :\n\t\t- [owner = _owner](../data/audit/AccessControlFlawed.sol#L70)\n",
+          "recommendation": "Review and fix the vulnerability",
+          "swc_id": null,
+          "cwe_id": null,
+          "owasp_category": null,
+          "_slither_detector": "missing-zero-check",
+          "_slither_impact": "Low",
+          "_slither_confidence": "Medium",
+          "tool": "slither",
+          "canonical_category": "other",
+          "confirming_tools": [
+            "slither"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": true,
+          "cross_validated_llm": false,
+          "fp_suppressed": false
+        },
+        {
+          "id": "slither-missing-zero-check-6",
+          "type": "missing-zero-check",
+          "severity": "Low",
+          "confidence": 0.85,
+          "location": {
+            "file": "../data/audit/AccessControlFlawed.sol",
+            "line": 28,
+            "function": "newOwner"
+          },
+          "message": "AccessControlFlawed.setOwner(address).newOwner (../data/audit/AccessControlFlawed.sol#28) lacks a zero-check on :",
+          "description": "[AccessControlFlawed.setOwner(address).newOwner](../data/audit/AccessControlFlawed.sol#L28) lacks a zero-check on :\n\t\t- [owner = newOwner](../data/audit/AccessControlFlawed.sol#L30)\n",
+          "recommendation": "Review and fix the vulnerability",
+          "swc_id": null,
+          "cwe_id": null,
+          "owasp_category": null,
+          "_slither_detector": "missing-zero-check",
+          "_slither_impact": "Low",
+          "_slither_confidence": "Medium",
+          "tool": "slither",
+          "canonical_category": "other",
+          "confirming_tools": [
+            "slither"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": true,
+          "cross_validated_llm": false,
+          "fp_suppressed": false
+        },
+        {
+          "type": "missing_event_emission",
+          "severity": "Low",
+          "swc_id": "SWC-100",
+          "tool": "miesc-intelligence",
+          "confidence": 0.5,
+          "location": {
+            "file": "",
+            "line": 28,
+            "function": "unknown"
+          },
+          "message": "State-changing function without event emission \u2014 limits off-chain monitoring and indexing.",
+          "description": "State-changing function without event emission \u2014 limits off-chain monitoring and indexing.",
+          "recommendation": "State-changing function without event emission \u2014 limits off-chain monitoring and indexing.",
+          "canonical_category": "other",
+          "confirming_tools": [
+            "miesc-intelligence"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": false,
+          "cross_validated_llm": false,
+          "fp_suppressed": false
+        }
+      ]
+    }
+  ]
+}

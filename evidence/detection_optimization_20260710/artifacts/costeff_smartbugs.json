@@ -1,0 +1,72 @@
+{
+  "n_contracts": 36,
+  "models": {
+    "qwen3-coder:30b": {
+      "provider": "ollama",
+      "n_runs": 2,
+      "n_contracts": 36,
+      "single_recalls": [
+        0.9167,
+        0.9167
+      ],
+      "ensemble_hits": 34,
+      "ensemble_recall": 0.9444,
+      "total_cost_usd": 0.0,
+      "recall_per_dollar": null,
+      "refusals": 0
+    },
+    "deepseek-reasoner": {
+      "provider": "deepseek",
+      "n_runs": 1,
+      "n_contracts": 36,
+      "single_recalls": [
+        0.8611
+      ],
+      "ensemble_hits": 31,
+      "ensemble_recall": 0.8611,
+      "total_cost_usd": 0.3182,
+      "recall_per_dollar": 2.706,
+      "refusals": 0
+    },
+    "claude-sonnet-4-6": {
+      "provider": "anthropic",
+      "n_runs": 2,
+      "n_contracts": 36,
+      "single_recalls": [
+        0.9444,
+        0.9722
+      ],
+      "ensemble_hits": 35,
+      "ensemble_recall": 0.9722,
+      "total_cost_usd": 0.6079,
+      "recall_per_dollar": 1.599,
+      "refusals": 0
+    },
+    "gpt-5": {
+      "provider": "openai",
+      "n_runs": 1,
+      "n_contracts": 36,
+      "single_recalls": [
+        0.9444
+      ],
+      "ensemble_hits": 34,
+      "ensemble_recall": 0.9444,
+      "total_cost_usd": 0.9425,
+      "recall_per_dollar": 1.002,
+      "refusals": 0
+    },
+    "gpt-4o": {
+      "provider": "openai",
+      "n_runs": 1,
+      "n_contracts": 36,
+      "single_recalls": [
+        0.9722
+      ],
+      "ensemble_hits": 35,
+      "ensemble_recall": 0.9722,
+      "total_cost_usd": 0.1103,
+      "recall_per_dollar": 8.812,
+      "refusals": 0
+    }
+  }
+}
