@@ -3174,6 +3174,8 @@ def _financial_math_unit_sources(
                 marker = _financial_math_summary_unit_marker(unit)
                 if marker:
                     units.append(f"scale:{marker}")
+                for extra_marker in _financial_math_summary_unit_extra_markers(unit):
+                    units.append(f"scale:{extra_marker}")
     for name, label in (
         ("amount", "amount:asset"),
         ("totalShares", "totalShares:shares"),
@@ -3258,6 +3260,7 @@ def _financial_math_scale_markers(
             marker = _financial_math_summary_unit_marker(unit)
             if marker:
                 markers.append(marker)
+            markers.extend(_financial_math_summary_unit_extra_markers(unit))
     for token, label in (
         ("1e27", "1e27"),
         ("ray", "ray"),
@@ -3321,6 +3324,15 @@ def _financial_math_summary_unit_marker(unit: str) -> str:
     if _has_any(unit_lower, ("decimals()", ".decimals", "dynamic decimals", "token decimals")):
         return "decimals()"
     return ""
+
+
+def _financial_math_summary_unit_extra_markers(unit: str) -> list[str]:
+    unit_lower = unit.lower()
+    if _has_any(unit_lower, ("basis", "bps")) and _has_any(
+        unit_lower, ("percent", "percentage", "pct")
+    ):
+        return ["basis_points", "percent"]
+    return []
 
 
 def _financial_math_has_percent_scale(source_lower: str) -> bool:
@@ -3450,6 +3462,7 @@ def _financial_math_precision_risks(
     scale_factor = _safe_metadata_text(surface.get("scale_factor"))
     rounding_direction = _safe_metadata_text(surface.get("rounding_direction"))
     helper = _safe_metadata_text(surface.get("library_or_helper"))
+    scale_markers = set(_financial_math_scale_markers(source_lower, math_summary))
 
     if operation_order == "division_before_multiplication":
         risks.append(
@@ -3515,7 +3528,7 @@ def _financial_math_precision_risks(
                 "operands with 6-decimal and 18-decimal units normalize before arithmetic",
             )
         )
-    if scale_factor == "10000 bps":
+    if scale_factor == "10000 bps" or "basis_points" in scale_markers:
         risks.append(
             _financial_math_precision_risk(
                 "basis_point_denominator_review",
@@ -3527,7 +3540,7 @@ def _financial_math_precision_risks(
                 "100 percent and one basis point rates produce expected values",
             )
         )
-    if "percent" in set(_financial_math_scale_markers(source_lower, math_summary)):
+    if "percent" in scale_markers:
         risks.append(
             _financial_math_precision_risk(
                 "percentage_denominator_review",

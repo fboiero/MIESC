@@ -2280,6 +2280,31 @@ def test_local_heuristic_provider_detects_financial_math_summary_basis_point_sca
     assert any(risk["category"] == "basis_point_denominator" for risk in plan["risks"])
 
 
+def test_local_heuristic_provider_detects_financial_math_basis_point_percent_conversion():
+    provider = LocalHeuristicReasoningProvider()
+    task = ReasoningTask(
+        capability=AgentCapability.FINANCIAL_MATH_PRECISION_HARDENING,
+        objective="build financial math precision hardening plans",
+        prompt="contract Wrapper { function convert(uint256 amount, uint256 fee) external {} }",
+        inputs={
+            "math_summary": {
+                "surfaces": ["fee conversion accounting"],
+                "units": ["fee basis points to percent"],
+            }
+        },
+    )
+
+    result = provider.complete_json(task)
+    plan = result.data["financial_math_precision_hardening_plans"][0]
+
+    assert plan["surfaces"][0]["scale_factor"] == "mixed scales"
+    assert "scale:basis_points" in plan["surfaces"][0]["unit_sources"]
+    assert "scale:percent" in plan["surfaces"][0]["unit_sources"]
+    assert any(risk["category"] == "scale_mismatch" for risk in plan["risks"])
+    assert any(risk["category"] == "basis_point_denominator" for risk in plan["risks"])
+    assert any(risk["category"] == "percentage_denominator" for risk in plan["risks"])
+
+
 def test_local_heuristic_provider_detects_financial_math_summary_decimals_scale():
     provider = LocalHeuristicReasoningProvider()
     task = ReasoningTask(
