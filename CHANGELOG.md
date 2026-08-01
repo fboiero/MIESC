@@ -7,6 +7,25 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Calibrated finding confidence.** Every finding now carries a `confidence`
+  (0-1) and `confidence_level` (high/medium/low), blending detector reliability
+  (reused from the correlation engine's tool weights), cross-tool agreement, and
+  the false-positive signal. `scan` and `audit full` gain `--min-confidence FLOAT`
+  to drop low-confidence noise, and the SARIF export fills the `rank` slot from the
+  calibrated confidence for triage in GitHub Code Scanning.
+- **Confidence-aware CI gate.** `--fail-on-confidence FLOAT` on `scan` and
+  `audit full` trips the `--ci`/`--fail-on` gate only on findings whose confidence
+  meets the threshold. The report still shows every finding — only the exit code
+  changes — so a noisy first run does not block the build on low-confidence issues.
+- **`min-confidence` GitHub Action input**, threaded into the `scan` and
+  `audit-full` runs so the confidence filter is available in CI, not just locally.
+- **`miesc score`** — a composite security score (0-100) and letter grade (A-F)
+  that weights findings by severity × calibrated confidence, plus a shareable badge
+  (`--badge svg|json|markdown`; the SVG is self-contained). Scores a contract path
+  or an existing scan/audit report; `--fail-under N` gates CI on the score.
+
 ## [6.0.0] - 2026-07-12
 
 MIESC v6.0 turns the analyzer into something a team can adopt in CI without a
