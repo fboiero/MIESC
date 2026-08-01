@@ -2280,6 +2280,28 @@ def test_local_heuristic_provider_detects_financial_math_summary_basis_point_sca
     assert any(risk["category"] == "basis_point_denominator" for risk in plan["risks"])
 
 
+def test_local_heuristic_provider_detects_financial_math_1e4_basis_point_scale():
+    provider = LocalHeuristicReasoningProvider()
+    task = ReasoningTask(
+        capability=AgentCapability.FINANCIAL_MATH_PRECISION_HARDENING,
+        objective="build financial math precision hardening plans",
+        prompt="""
+        contract Fees {
+            function charge(uint256 amount, uint256 feeBps) external pure returns (uint256) {
+                return amount * feeBps / 1e4;
+            }
+        }
+        """,
+    )
+
+    result = provider.complete_json(task)
+    plan = result.data["financial_math_precision_hardening_plans"][0]
+
+    assert plan["surfaces"][0]["scale_factor"] == "10000 bps"
+    assert "scale:basis_points" in plan["surfaces"][0]["unit_sources"]
+    assert any(risk["category"] == "basis_point_denominator" for risk in plan["risks"])
+
+
 def test_local_heuristic_provider_detects_financial_math_ppm_fee_scale():
     provider = LocalHeuristicReasoningProvider()
     task = ReasoningTask(

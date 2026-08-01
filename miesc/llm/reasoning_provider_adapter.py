@@ -3019,6 +3019,7 @@ def _extract_heuristic_financial_math_precision_plans(
             "1e18",
             "wad",
             "ray",
+            "1e4",
             "basis",
             "bps",
             "ppm",
@@ -3205,7 +3206,12 @@ def _financial_math_unit_sources(
         or re.search(r"\b10\s*\*\*\s*[a-z_][a-z0-9_]*decimals?\b", source_lower)
     ):
         units.append("scale:decimals()")
-    if "10000" in source_lower or "basis" in source_lower or "bps" in source_lower:
+    if (
+        "10000" in source_lower
+        or "1e4" in source_lower
+        or "basis" in source_lower
+        or "bps" in source_lower
+    ):
         units.append("scale:basis_points")
     if _financial_math_has_percent_scale(source_lower):
         units.append("scale:percent")
@@ -3249,7 +3255,12 @@ def _financial_math_scale_factor(
         return "1e8"
     if "1e12" in source_lower:
         return "1e12"
-    if "10000" in source_lower or "basis" in source_lower or "bps" in source_lower:
+    if (
+        "10000" in source_lower
+        or "1e4" in source_lower
+        or "basis" in source_lower
+        or "bps" in source_lower
+    ):
         return "10000 bps"
     if _financial_math_has_percent_scale(source_lower):
         return "100 percent"
@@ -3282,6 +3293,7 @@ def _financial_math_scale_markers(
         ("decimals()", "decimals()"),
         (".decimals(", "decimals()"),
         ("10000", "basis_points"),
+        ("1e4", "basis_points"),
         ("bps", "basis_points"),
         ("basis", "basis_points"),
         ("percent", "percent"),
@@ -3329,7 +3341,7 @@ def _financial_math_summary_unit_marker(unit: str) -> str:
         return "ppm"
     if _has_any(unit_lower, ("1e6", "6 decimals", ":6")):
         return "1e6"
-    if _has_any(unit_lower, ("10000", "basis_points", "basis", "bps")):
+    if _has_any(unit_lower, ("10000", "1e4", "basis_points", "basis", "bps")):
         return "basis_points"
     if _has_any(unit_lower, ("percent", "percentage", "pct", "1%")):
         return "percent"
@@ -3454,7 +3466,7 @@ def _financial_math_surface_evidence(
         evidence.append("financial formula with multiplication or division is present")
     if operation_order:
         evidence.append(f"{operation_order} operation order signal is present")
-    if _has_any(source_lower, ("1e18", "1e27", "wad", "ray", "1e6", "10000", "bps")):
+    if _has_any(source_lower, ("1e18", "1e27", "wad", "ray", "1e6", "10000", "1e4", "bps")):
         evidence.append("fixed-point or basis-point scale signal is present")
     if _financial_math_has_mixed_scales(source_lower, math_summary):
         evidence.append("mixed scale signal is present")
