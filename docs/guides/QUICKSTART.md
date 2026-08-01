@@ -75,6 +75,29 @@ miesc audit batch ./contracts/ -r -o report.json
 miesc audit batch ./contracts/ -j 4 -o report.json
 ```
 
+### Confidence & Security Score
+
+Every finding carries a **calibrated confidence** (0-1) blending detector
+reliability, cross-tool agreement, and the false-positive signal — so you can
+rank and filter by how much a finding is worth trusting.
+
+```bash
+# Drop low-confidence noise from the report
+miesc scan MyContract.sol --min-confidence 0.5
+
+# CI gate that fails ONLY on findings MIESC is confident about
+# (the report still shows everything; only the exit code changes)
+miesc scan MyContract.sol --ci --fail-on-confidence 0.7
+
+# A single security score (0-100) + grade (A-F), weighted by severity x confidence
+miesc score MyContract.sol
+miesc score full_audit.json                    # score an existing report
+
+# A shareable badge for your README, and a CI gate on the score
+miesc score full_audit.json --badge svg -o security-badge.svg
+miesc score full_audit.json --fail-under 80
+```
+
 ## 4. The 9 Defense Layers
 
 MIESC analyzes contracts through **9 specialized defense layers**:
