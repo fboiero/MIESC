@@ -3021,6 +3021,8 @@ def _extract_heuristic_financial_math_precision_plans(
             "ray",
             "basis",
             "bps",
+            "ppm",
+            "parts per million",
             "percent",
             "percentage",
             "reward",
@@ -3191,6 +3193,8 @@ def _financial_math_unit_sources(
         units.append("scale:1e18")
     if "1e6" in source_lower:
         units.append("scale:1e6")
+    if "ppm" in source_lower or "parts per million" in source_lower:
+        units.append("scale:ppm")
     if "1e8" in source_lower:
         units.append("scale:1e8")
     if "1e12" in source_lower:
@@ -3223,6 +3227,8 @@ def _financial_math_scale_factor(
                 return "1e27"
             if marker == "bps":
                 return "10000 bps"
+            if marker == "ppm":
+                return "1e6 ppm"
             if marker in {"1e18", "1e27", "1e12", "1e8", "1e6", "wad", "ray"}:
                 return marker
             if marker == "basis_points":
@@ -3235,6 +3241,8 @@ def _financial_math_scale_factor(
         return "1e27"
     if "1e18" in source_lower or "wad" in source_lower:
         return "1e18"
+    if "ppm" in source_lower or "parts per million" in source_lower:
+        return "1e6 ppm"
     if "1e6" in source_lower:
         return "1e6"
     if "1e8" in source_lower:
@@ -3269,6 +3277,8 @@ def _financial_math_scale_markers(
         ("1e12", "1e12"),
         ("1e8", "1e8"),
         ("1e6", "1e6"),
+        ("ppm", "ppm"),
+        ("parts per million", "ppm"),
         ("decimals()", "decimals()"),
         (".decimals(", "decimals()"),
         ("10000", "basis_points"),
@@ -3292,7 +3302,7 @@ def _financial_math_scale_markers(
 
 def _financial_math_summary_unit_marker(unit: str) -> str:
     unit_lower = unit.lower()
-    if unit_lower in {"wad", "ray", "bps"}:
+    if unit_lower in {"wad", "ray", "bps", "ppm"}:
         return unit_lower
     if _has_any(
         unit_lower,
@@ -3315,6 +3325,8 @@ def _financial_math_summary_unit_marker(unit: str) -> str:
         return "1e18"
     if _has_any(unit_lower, ("1e8", "8 decimals", ":8")):
         return "1e8"
+    if _has_any(unit_lower, ("ppm", "parts per million")):
+        return "ppm"
     if _has_any(unit_lower, ("1e6", "6 decimals", ":6")):
         return "1e6"
     if _has_any(unit_lower, ("10000", "basis_points", "basis", "bps")):
@@ -3365,6 +3377,8 @@ def _financial_math_equivalent_scale_marker(marker: str) -> str:
         return "1e27"
     if marker == "bps":
         return "basis_points"
+    if marker == "ppm":
+        return "1e6"
     return marker
 
 
@@ -3540,6 +3554,18 @@ def _financial_math_precision_risks(
                 "100 percent and one basis point rates produce expected values",
             )
         )
+    if scale_factor == "1e6 ppm" or "ppm" in scale_markers:
+        risks.append(
+            _financial_math_precision_risk(
+                "ppm_denominator_review",
+                "ppm_denominator",
+                surface_id,
+                "medium",
+                "parts-per-million fee or rate math depends on the expected 1e6 denominator",
+                "ppm scale signal is present",
+                "1 ppm and 100 percent ppm rates produce expected values",
+            )
+        )
     if "percent" in scale_markers:
         risks.append(
             _financial_math_precision_risk(
@@ -3630,6 +3656,7 @@ def _financial_math_precision_mitigations(
             "scale_mismatch",
             "unit_conversion_loss",
             "basis_point_denominator",
+            "ppm_denominator",
             "percentage_denominator",
         }
     ):
