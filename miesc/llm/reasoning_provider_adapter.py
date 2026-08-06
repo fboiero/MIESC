@@ -3016,9 +3016,11 @@ def _extract_heuristic_financial_math_precision_plans(
             "muldiv",
             "1e12",
             "1e8",
+            "1e5",
             "1e18",
             "wad",
             "ray",
+            "100000",
             "1e4",
             "basis",
             "bps",
@@ -3194,6 +3196,8 @@ def _financial_math_unit_sources(
         units.append("scale:1e18")
     if "1e6" in source_lower:
         units.append("scale:1e6")
+    if "1e5" in source_lower or "100000" in source_lower:
+        units.append("scale:1e5")
     if "ppm" in source_lower or "parts per million" in source_lower:
         units.append("scale:ppm")
     if "1e8" in source_lower:
@@ -3235,6 +3239,8 @@ def _financial_math_scale_factor(
                 return "10000 bps"
             if marker == "ppm":
                 return "1e6 ppm"
+            if marker == "1e5":
+                return "1e5 fee scale"
             if marker in {"1e18", "1e27", "1e12", "1e8", "1e6", "wad", "ray"}:
                 return marker
             if marker == "basis_points":
@@ -3251,6 +3257,8 @@ def _financial_math_scale_factor(
         return "1e6 ppm"
     if "1e6" in source_lower:
         return "1e6"
+    if "1e5" in source_lower or "100000" in source_lower:
+        return "1e5 fee scale"
     if "1e8" in source_lower:
         return "1e8"
     if "1e12" in source_lower:
@@ -3288,6 +3296,8 @@ def _financial_math_scale_markers(
         ("1e12", "1e12"),
         ("1e8", "1e8"),
         ("1e6", "1e6"),
+        ("1e5", "1e5"),
+        ("100000", "1e5"),
         ("ppm", "ppm"),
         ("parts per million", "ppm"),
         ("decimals()", "decimals()"),
@@ -3341,6 +3351,8 @@ def _financial_math_summary_unit_marker(unit: str) -> str:
         return "ppm"
     if _has_any(unit_lower, ("1e6", "6 decimals", ":6")):
         return "1e6"
+    if _has_any(unit_lower, ("1e5", "100000")):
+        return "1e5"
     if _has_any(unit_lower, ("10000", "1e4", "basis_points", "basis", "bps")):
         return "basis_points"
     if _has_any(unit_lower, ("percent", "percentage", "pct", "1%")):
@@ -3466,7 +3478,10 @@ def _financial_math_surface_evidence(
         evidence.append("financial formula with multiplication or division is present")
     if operation_order:
         evidence.append(f"{operation_order} operation order signal is present")
-    if _has_any(source_lower, ("1e18", "1e27", "wad", "ray", "1e6", "10000", "1e4", "bps")):
+    if _has_any(
+        source_lower,
+        ("1e18", "1e27", "wad", "ray", "1e6", "1e5", "100000", "10000", "1e4", "bps"),
+    ):
         evidence.append("fixed-point or basis-point scale signal is present")
     if _financial_math_has_mixed_scales(source_lower, math_summary):
         evidence.append("mixed scale signal is present")
@@ -3588,6 +3603,18 @@ def _financial_math_precision_risks(
                 "percentage fee or rate math depends on a 100 denominator rather than basis points or fixed-point scale",
                 "percentage scale signal is present",
                 "0 percent, 100 percent, and fractional-rate boundaries produce expected values",
+            )
+        )
+    if scale_factor == "1e5 fee scale" or "1e5" in scale_markers:
+        risks.append(
+            _financial_math_precision_risk(
+                "hundred_thousand_fee_denominator_review",
+                "percentage_denominator",
+                surface_id,
+                "medium",
+                "fee or rate math uses a 1e5 denominator that should be validated against the protocol's declared percentage scale",
+                "1e5 or 100000 fee scale signal is present",
+                "0 fee, maximum fee, and one-unit fee rates produce expected values",
             )
         )
     if "unchecked" in source_lower:
