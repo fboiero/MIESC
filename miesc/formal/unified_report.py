@@ -64,6 +64,22 @@ def normalize_status(raw_status: str) -> str:
 # ---------------------------------------------------------------------------
 
 
+def parse_assignments(text: str) -> List[Dict[str, str]]:
+    """Extract ``name = value`` bindings from a counterexample witness.
+
+    Handles both the single-line comma-separated form Halmos/Kontrol print
+    (``amount = 3, to = 0x0``) and the indented multi-line form SMTChecker/solc-mc
+    print. Each value keeps its raw representation (decimal, ``2**256 - 1``,
+    ``0x...``). Returns ``[{"name": ..., "value": ...}, ...]`` in first-seen order.
+    Best-effort: the raw ``text`` is always preserved separately, so a parse miss
+    loses nothing. This structured form is what a PoC generator consumes.
+    """
+    assignments: List[Dict[str, str]] = []
+    for match in re.finditer(r"([A-Za-z_]\w*)\s*=\s*([^,\n]+)", text):
+        assignments.append({"name": match.group(1).strip(), "value": match.group(2).strip()})
+    return assignments
+
+
 @dataclass
 class Counterexample:
     """A single counterexample / violation witness attributed to a prover."""
@@ -74,12 +90,21 @@ class Counterexample:
     source_line: Optional[int] = None
     #: id of the MIESC finding this counterexample was linked to (if any).
     linked_finding_id: Optional[str] = None
+    #: structured ``name = value`` bindings parsed from ``text`` (best-effort).
+    assignments: List[Dict[str, str]] = field(default_factory=list)
+
+    def __post_init__(self) -> None:
+        # Auto-parse the witness into structured bindings unless the caller already
+        # supplied them. The raw text is untouched, so this is purely additive.
+        if not self.assignments and self.text:
+            self.assignments = parse_assignments(self.text)
 
     def to_dict(self) -> Dict[str, Any]:
         return {
             "prover": self.prover,
             "property": self.property,
             "text": self.text,
+            "assignments": self.assignments,
             "source_line": self.source_line,
             "linked_finding_id": self.linked_finding_id,
         }
