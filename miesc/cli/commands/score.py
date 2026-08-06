@@ -76,6 +76,25 @@ from miesc.core.scoring import (
     "before scoring, so low-confidence noise does not drag the score down. Findings "
     "without a confidence score are always kept. Default 0.0 keeps everything.",
 )
+@click.option(
+    "--against",
+    type=click.Path(exists=True),
+    default=None,
+    help="Baseline to compare against: a prior results JSON or a score JSON "
+    "(from 'miesc score --json'). Shows the score delta; combine with "
+    "--fail-on-regression to gate CI on it.",
+)
+@click.option(
+    "--fail-on-regression",
+    is_flag=True,
+    help="CI gate: exit 1 if the score dropped versus --against (beyond --tolerance).",
+)
+@click.option(
+    "--tolerance",
+    type=int,
+    default=0,
+    help="Allowed score drop before --fail-on-regression trips (default 0).",
+)
 def score(
     input_path: str,
     badge: str | None,
@@ -83,6 +102,9 @@ def score(
     as_json: bool,
     fail_under: int,
     min_confidence: float,
+    against: str | None,
+    fail_on_regression: bool,
+    tolerance: int,
 ) -> None:
     """Composite security score (0-100 / A-F) and badge for a scan's findings.
 
@@ -98,8 +120,9 @@ def score(
       miesc score report.json --json
       miesc score report.json --badge svg -o security.svg
       miesc score report.json --badge markdown
-      miesc score contracts/ --fail-under 70          # CI gate
+      miesc score contracts/ --fail-under 70          # CI gate (absolute)
       miesc score report.json --min-confidence 0.4     # drop low-confidence noise
+      miesc score report.json --against prev.json --fail-on-regression  # gate on regression
     """
     results = _load_results(input_path)
     findings = extract_findings(results)
@@ -110,6 +133,7 @@ def score(
             info(f"min-confidence {min_confidence}: dropped {dropped} low-confidence finding(s)")
 
     result = compute_score(findings)
+    baseline_score = _load_baseline_score(against) if against else None
 
     # ------------------------------------------------------------------ badge
     if badge is not None:
@@ -119,7 +143,7 @@ def score(
             success(f"Badge written to {output}")
         else:
             click.echo(payload)
-        _apply_gate(result, fail_under)
+        _apply_gate(result, fail_under, baseline_score, fail_on_regression, tolerance)
         return
 
     # -------------------------------------------------------------- JSON result
@@ -128,16 +152,20 @@ def score(
         if output:
             Path(output).write_text(payload + "\n", encoding="utf-8")
         click.echo(payload)
-        _apply_gate(result, fail_under)
+        _apply_gate(result, fail_under, baseline_score, fail_on_regression, tolerance)
         return
 
     # ---------------------------------------------------------- human summary
     _print_human(result)
+    if baseline_score is not None:
+        delta = result.score - baseline_score
+        trend = "regression" if delta < 0 else "improved" if delta > 0 else "no change"
+        info(f"vs baseline {baseline_score}: {delta:+d} ({trend})")
     if output:
         Path(output).write_text(json.dumps(result.to_dict(), indent=2) + "\n", encoding="utf-8")
         success(f"Score written to {output}")
 
-    _apply_gate(result, fail_under)
+    _apply_gate(result, fail_under, baseline_score, fail_on_regression, tolerance)
 
 
 # =============================================================================
@@ -262,8 +290,37 @@ def _print_human(result: SecurityScore) -> None:
             print("score weighted by per-finding confidence")  # noqa: T201
 
 
-def _apply_gate(result: SecurityScore, fail_under: int) -> None:
-    """CI gate: exit 1 when the score is below ``fail_under``."""
+def _apply_gate(
+    result: SecurityScore,
+    fail_under: int,
+    baseline_score: int | None = None,
+    fail_on_regression: bool = False,
+    tolerance: int = 0,
+) -> None:
+    """CI gate: exit 1 when the score is below ``fail_under`` or (with
+    ``--fail-on-regression``) has dropped versus the baseline beyond ``tolerance``.
+    Both conditions are reported before exiting."""
+    reasons: list[str] = []
     if fail_under and result.score < fail_under:
-        error(f"Security score {result.score} is below the required {fail_under} (--fail-under).")
+        reasons.append(f"score {result.score} is below the required {fail_under} (--fail-under)")
+    if fail_on_regression and baseline_score is not None:
+        drop = baseline_score - result.score
+        if drop > tolerance:
+            reasons.append(
+                f"score regressed {baseline_score} -> {result.score} "
+                f"(drop {drop} > tolerance {tolerance})"
+            )
+    if reasons:
+        for reason in reasons:
+            error(f"Security {reason}.")
         sys.exit(1)
+
+
+def _load_baseline_score(path: str) -> int:
+    """Score of a baseline file: either a score JSON (a ``{"score": ...}`` object
+    from ``miesc score --json``) used directly, or a results JSON scored on the fly."""
+    with open(path, encoding="utf-8") as f:
+        data = json.load(f)
+    if isinstance(data, dict) and "score" in data:
+        return int(data["score"])
+    return compute_score(extract_findings(_results_from_data(data))).score
