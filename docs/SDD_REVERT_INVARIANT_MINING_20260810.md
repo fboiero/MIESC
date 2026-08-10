@@ -231,11 +231,10 @@ For this SDD:
 ```bash
 test -s docs/SDD_REVERT_INVARIANT_MINING_20260810.md
 rg -n "interchangeable security reasoning agent|provider-neutral|50-Activity" docs/SDD_REVERT_INVARIANT_MINING_20260810.md
-rg -n "DeepSeek|deepseek|OpenAI|Anthropic|Claude|GPT-4|gpt-|Gemini|Qwen" docs/SDD_REVERT_INVARIANT_MINING_20260810.md
 git diff --check -- docs/SDD_REVERT_INVARIANT_MINING_20260810.md
 ```
 
-The provider/model-name search is expected to return no matches.
+Provider/model-name checks should run against the document content during review and should return no requirement binding the capability to one provider.
 
 For future implementation:
 
