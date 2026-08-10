@@ -3025,6 +3025,7 @@ def _extract_heuristic_financial_math_precision_plans(
             "basis",
             "bps",
             "ppm",
+            "pips",
             "parts per million",
             "percent",
             "percentage",
@@ -3198,7 +3199,7 @@ def _financial_math_unit_sources(
         units.append("scale:1e6")
     if "1e5" in source_lower or "100000" in source_lower:
         units.append("scale:1e5")
-    if "ppm" in source_lower or "parts per million" in source_lower:
+    if "ppm" in source_lower or "pips" in source_lower or "parts per million" in source_lower:
         units.append("scale:ppm")
     if "1e8" in source_lower:
         units.append("scale:1e8")
@@ -3253,7 +3254,7 @@ def _financial_math_scale_factor(
         return "1e27"
     if "1e18" in source_lower or "wad" in source_lower:
         return "1e18"
-    if "ppm" in source_lower or "parts per million" in source_lower:
+    if "ppm" in source_lower or "pips" in source_lower or "parts per million" in source_lower:
         return "1e6 ppm"
     if "1e6" in source_lower:
         return "1e6"
@@ -3299,6 +3300,7 @@ def _financial_math_scale_markers(
         ("1e5", "1e5"),
         ("100000", "1e5"),
         ("ppm", "ppm"),
+        ("pips", "ppm"),
         ("parts per million", "ppm"),
         ("decimals()", "decimals()"),
         (".decimals(", "decimals()"),
@@ -3326,6 +3328,8 @@ def _financial_math_summary_unit_marker(unit: str) -> str:
     unit_lower = unit.lower()
     if unit_lower in {"wad", "ray", "bps", "ppm"}:
         return unit_lower
+    if unit_lower == "pips":
+        return "ppm"
     if _has_any(
         unit_lower,
         (
@@ -3347,7 +3351,7 @@ def _financial_math_summary_unit_marker(unit: str) -> str:
         return "1e18"
     if _has_any(unit_lower, ("1e8", "8 decimals", ":8")):
         return "1e8"
-    if _has_any(unit_lower, ("ppm", "parts per million")):
+    if _has_any(unit_lower, ("ppm", "pips", "parts per million")):
         return "ppm"
     if _has_any(unit_lower, ("1e6", "6 decimals", ":6")):
         return "1e6"
