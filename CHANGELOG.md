@@ -25,6 +25,14 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   that weights findings by severity × calibrated confidence, plus a shareable badge
   (`--badge svg|json|markdown`; the SVG is self-contained). Scores a contract path
   or an existing scan/audit report; `--fail-under N` gates CI on the score.
+- **Security-score regression gate.** `miesc score --against <baseline> --fail-on-regression`
+  (with `--tolerance`) fails CI when the score drops versus a prior results or score
+  JSON — a relative gate alongside the absolute `--fail-under`, the security analogue
+  of a coverage-regression gate.
+- **Structured formal counterexamples.** The unified verification report parses each
+  prover's counterexample witness into structured `name = value` bindings (raw text
+  preserved), so `miesc verify` output carries machine-usable inputs — the foundation
+  for turning a counterexample into an executable proof-of-concept.
 
 ## [6.0.0] - 2026-07-12
 
