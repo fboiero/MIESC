@@ -109,6 +109,17 @@ class Counterexample:
             "linked_finding_id": self.linked_finding_id,
         }
 
+    def to_foundry_scaffold(self, contract_name: str = "Target") -> str:
+        """Render a Foundry test scaffold that reproduces this counterexample.
+
+        Lays the parsed ``assignments`` into typed locals with their exact values
+        and marks the deploy/call/assert to complete. Imported lazily to avoid a
+        module cycle.
+        """
+        from miesc.formal.counterexample_poc import counterexample_to_foundry_test
+
+        return counterexample_to_foundry_test(self, contract_name=contract_name)
+
     @classmethod
     def from_text(cls, prover: str, text: str) -> "Counterexample":
         """Build a counterexample, best-effort parsing a source line from ``text``."""
