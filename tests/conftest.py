@@ -24,6 +24,33 @@ os.environ.setdefault(
 )
 
 
+@pytest.fixture(scope="session", autouse=True)
+def _prewarm_tool_discovery_singleton():
+    """Populate the global tool-discovery singleton once, before any test runs.
+
+    ``miesc.core.tool_discovery`` caches a process-wide singleton whose tool
+    availability is resolved the first time ``discover()`` is triggered and then
+    frozen for the rest of the session. Many unit tests legitimately mock
+    ``subprocess.run`` / ``shutil.which`` / adapter ``is_available`` while
+    exercising the orchestrator. Under ``pytest-randomly`` the shuffle can place
+    one of those mocking tests as the *first* consumer of the singleton, which
+    freezes real tools (slither, aderyn) as unavailable for the whole session.
+    Downstream pipeline e2e tests then see an empty tool set and get 0 findings.
+
+    Resolving the singleton here — before any test (and therefore any mock) runs
+    — locks in the real environment's availability, making the whole suite
+    order-independent without weakening any assertion. Best-effort: never let a
+    discovery hiccup break collection.
+    """
+    try:
+        from miesc.core.tool_discovery import get_tool_discovery
+
+        get_tool_discovery().discover()
+    except Exception:
+        pass
+    yield
+
+
 # Sample contracts for testing
 SIMPLE_CONTRACT = """
 // SPDX-License-Identifier: MIT
