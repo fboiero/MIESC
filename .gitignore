@@ -134,6 +134,7 @@ benchmarks/results/evmbench/*
 !benchmarks/results/v5.1.6_deep_audit_rekt_report.md
 !benchmarks/results/v5.1.6_fp_dataset_pilot.md
 !benchmarks/results/v5.1.7_gates_report.md
+!benchmarks/results/v6.0.0_benchmark_report_20260811.md
 !benchmarks/results/evmbench/evmbench_ensemble_40.json
 !benchmarks/results/evmbench/evmbench_static_40.json
 data/benchmark_history/
