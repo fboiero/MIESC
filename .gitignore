@@ -136,6 +136,8 @@ benchmarks/results/evmbench/*
 !benchmarks/results/v5.1.7_gates_report.md
 !benchmarks/results/v6.0.0_benchmark_report_20260811.md
 !benchmarks/results/v6.0.0_arena_defihacklabs_20260811.md
+!benchmarks/results/v6.0.0_arena_repaired_etherscan_20260811.md
+!benchmarks/results/arena_repaired_20260811.json
 !benchmarks/results/extended_exploit_eval_20260811_120407.json
 !benchmarks/results/evmbench/evmbench_ensemble_40.json
 !benchmarks/results/evmbench/evmbench_static_40.json
