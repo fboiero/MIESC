@@ -6,11 +6,29 @@ Status: Proposed SDD, not implemented, no benchmark claim
 
 ## Signal
 
-MIESC already detects classic access-control symptoms: missing guards on privileged functions, excessive owner power, governance flash-loan patterns, missing timelocks in some admin paths, upgrade/admin drift, and semantic graph gates over role nodes. That coverage is useful, but it is still mostly local: it asks whether a function is guarded or whether a timelock string appears nearby.
+MIESC already covers access-control detectors, upgrade-evolution analysis,
+delegatecall storage aliasing, signature-domain hardening, transaction ordering,
+semantic graph gating, SlithIR SSA summaries, and resource/liveness griefing.
+The remaining gap is not another `onlyOwner` matcher. The gap is a
+provider-neutral artifact that reasons about the **lifecycle of privileged
+authority**: how roles are created, delegated, queued, delayed, revoked,
+renounced, rotated, upgraded, paused, and used under emergency or compromised-key
+conditions.
 
-Modern Solidity systems rely on a lifecycle of authority rather than a single `onlyOwner` modifier. Ownership can transfer in one or two steps, roles can be administered by other roles, timelocks can own controlled contracts, proposers and executors can become unavailable, guardians can pause but not unpause, multisigs can hold high-blast-radius roles, and emergency paths can bypass normal governance. OWASP SC01:2026 explicitly frames access control as more than a single modifier, including governance contracts, multisigs, guardians, proxy admins, and cross-chain routers. OpenZeppelin's TimelockController documentation also highlights the lifecycle risk that role availability and self-administered timelocks can lock controlled contracts indefinitely.
+Smart-contract incidents often happen outside the single guarded function that a
+classic access-control detector sees. A function may be guarded, but the guard
+can be bypassed through an unsafe initializer, instant timelock execution,
+unbounded guardian powers, stale multisig assumptions, pause-only-without-unpause
+design, role admin self-grant paths, upgrade hooks, cross-chain governance
+messages, or governance actions that are valid individually but unsafe as a
+sequence.
 
-The technique to add is **Privileged Governance Lifecycle Hardening**: synthesize an authority graph, model role/admin/timelock transitions over time, classify lifecycle hazards, and generate provider-neutral validation obligations for unauthorized action, unavailable recovery, timelock bypass, overpowered emergency controls, and irreversible privilege loss.
+The technique to add is **Privileged Governance Lifecycle Hardening**: synthesize
+an authority graph and lifecycle plan, then generate validation obligations for
+role-transition sequences, delay invariants, emergency powers, upgrade powers,
+pause/recover flows, and cross-domain governance messages. Plans remain advisory
+until replay, symbolic execution, fuzzing, or human review confirms a reachable
+privilege escalation, governance bypass, or unavailable recovery path.
 
 ## Spec/Goal
 
@@ -29,21 +47,37 @@ privileged_governance_lifecycle_plans
 Suggested aliases:
 
 ```text
-authority_lifecycle_hardening
-governance_privilege_hardening
-role_timelock_lifecycle
-admin_blast_radius_hardening
+governance_lifecycle_hardening
+privileged_role_lifecycle_plans
+authority_graph_hardening
+admin_timelock_hardening
+emergency_power_hardening
 ```
 
-The capability must produce advisory lifecycle plans, not confirmed findings. It should promote a finding only after deterministic evidence, generated tests, symbolic counterexamples, or human review confirms that a privileged action can be abused, bypassed, locked forever, or recovered only through unsafe assumptions.
+The capability must produce advisory governance lifecycle plans, not confirmed
+findings. A plan becomes a finding only after deterministic replay, symbolic
+execution, fuzzing, local fixture validation, fork validation, or human review
+confirms the unsafe state transition or missing recovery path.
 
 Primary objectives:
 
-1. Extract privileged entrypoints: pause/unpause, mint/burn, set parameters, withdraw reserves, upgrade, grant/revoke roles, queue/execute/cancel proposals, emergency actions, and cross-chain admin relay.
-2. Build an authority graph of owners, roles, role admins, timelocks, governors, guardians, proxy admins, multisigs, and controlled contracts.
-3. Model lifecycle transitions: ownership transfer, role grant/revoke, timelock queue/execute/cancel, delay changes, pauser/unpauser separation, emergency bypass, upgrade admin handoff, and renounce/recovery paths.
-4. Generate validation obligations for unauthorized execution, timelock bypass, role escalation, dead-admin lockout, guardian overreach, impossible unpause, unsafe delay reduction, and high-blast-radius single key.
-5. Keep false-positive controls for intentionally centralized deployments, documented launch phases, bounded guardian powers, multisig/timelock controls, and explicit break-glass procedures.
+1. Identify privileged actors: owner, admin, guardian, governor, proposer,
+   executor, pauser, upgrader, bridge messenger, timelock, multisig, keeper, and
+   role-admin relationships.
+2. Identify privileged surfaces: upgrade, pause/unpause, mint/burn, treasury
+   movement, oracle setter, fee setter, parameter setter, role grant/revoke,
+   emergency withdrawal, bridge relay, proposal queue/execute/cancel, and
+   initializer/reinitializer functions.
+3. Build lifecycle transitions: bootstrap, initialization, delegation, role
+   rotation, timelock queue, timelock execute, cancellation, pause, unpause,
+   emergency recovery, upgrade, migration, decommission, and renounce.
+4. Infer governance invariants: no unprotected initializer, admin cannot
+   self-grant without delay, critical changes require timelock, emergency powers
+   are bounded, pause has a recovery path, upgrades preserve authority, and
+   cross-domain governance messages bind sender/domain/replay state.
+5. Generate validation obligations that exercise role-transition sequences and
+   reject false positives when controls are explicit, delayed, bounded, and
+   recoverable.
 
 ## Design/Contract
 
@@ -54,36 +88,54 @@ PrivilegedGovernanceLifecyclePlan = {
     "id": "string",
     "objective": "string",
     "authority_graph": {
-        "privileged_entrypoints": ["function"],
-        "authority_nodes": ["owner|role|role_admin|timelock|governor|guardian|proxy_admin|multisig|cross_chain_router|unknown"],
-        "controlled_contracts": ["string"],
+        "actors": [
+            {
+                "id": "string",
+                "kind": "owner|admin|guardian|governor|proposer|executor|pauser|upgrader|timelock|multisig|bridge_messenger|keeper|unknown",
+                "source": "storage|constant|constructor|initializer|role|external_contract|unknown",
+                "source_anchors": ["file:line"],
+            }
+        ],
+        "roles": [
+            {
+                "name": "string",
+                "admin_role": "string",
+                "holders": ["actor_id"],
+                "grant_functions": ["function"],
+                "revoke_functions": ["function"],
+            }
+        ],
         "edges": [
             {
-                "source": "string",
-                "target": "string",
-                "relation": "owns|administers|queues|executes|cancels|pauses|unpauses|upgrades|grants|revokes|relays",
-                "source_anchor": "file:line",
+                "source": "actor_or_role",
+                "target": "function_or_role",
+                "relation": "guards|grants|revokes|queues|executes|cancels|upgrades|pauses|recovers|delegates",
+                "evidence": ["string"],
             }
         ],
     },
     "lifecycle_hypothesis": {
-        "category": "unguarded_privilege|role_escalation|timelock_bypass|unsafe_delay_change|dead_admin_lockout|guardian_overreach|impossible_recovery|pause_deadlock|upgrade_admin_drift|single_key_high_blast_radius|cross_chain_admin_spoof",
-        "privileged_action": "string",
-        "actor_model": "string",
+        "category": "unprotected_initializer|role_admin_self_grant|missing_timelock|timelock_bypass|unbounded_emergency_power|pause_recovery_gap|unsafe_upgrade_authority|cross_domain_governance_replay|guardian_takeover|renounce_brick|parameter_rug|treasury_drain_path",
+        "attacker_or_fault_model": "string",
+        "unsafe_transition": "string",
+        "critical_surface": "string",
         "preconditions": ["string"],
         "negative_checks": ["string"],
-        "blast_radius": ["string"],
     },
-    "validation_obligations": [
-        {
-            "tool": "foundry|echidna|halmos|local_fixture|human_review",
-            "property": "string",
-            "sequence": ["call"],
-            "actors": ["attacker", "owner", "guardian", "governor", "proposer", "executor", "admin"],
-            "expected_failure_or_revert": "string",
-            "recovery_check": "string",
-        }
-    ],
+    "governance_oracle": {
+        "property": "string",
+        "expected_safe_transition": "string",
+        "forbidden_transition": "string",
+        "recovery_condition": "string",
+    },
+    "execution_plan": {
+        "recommended_tools": ["foundry", "halmos", "echidna", "slither", "openzeppelin-upgrades", "local_fixture", "human_review"],
+        "sequence": ["call"],
+        "actors": ["deployer", "admin", "attacker", "guardian", "governor", "executor", "user"],
+        "inputs_to_mutate": ["string"],
+        "delay_budget_hint": "string",
+        "fork_or_timewarp_hint": "string",
+    },
     "promotion": {
         "state": "hypothesis|test_generated|counterexample|replayed|rejected",
         "evidence": ["string"],
@@ -98,131 +150,164 @@ PrivilegedGovernanceLifecyclePlan = {
 
 The capability should compose existing MIESC pieces:
 
-- Classic access-control detectors remain first-pass signals for missing guards.
-- Governance and centralization detectors supply suspicious privileged surfaces.
-- `SemanticGraphGate` supplies role, modifier, event, external-call, and state anchors.
-- `SequenceOraclePlan` can validate multi-step queue/execute/cancel/grant/revoke lifecycles.
-- `Metamorphic Diff Testing` can validate pause/config/idempotence behavior.
-- `Upgrade Evolution Analysis` can supply admin handoff and proxy-admin drift context.
-- `Resource/Liveness Griefing Hardening` can consume pause deadlocks and dead-admin lockouts.
-- False-positive filtering must downgrade local `onlyOwner` findings when documented timelock, multisig, role segmentation, and recovery paths are present.
+- Access-control findings provide guard and missing-guard seeds.
+- `UpgradeEvolutionPlan` supplies storage-layout and upgrade-authority changes.
+- `DelegatecallStorageAliasingPlan` supplies privileged-slot corruption paths.
+- `SignatureDomainHardeningPlan` supplies off-chain authorization and replay
+  surfaces.
+- `CrossChainMessageHardeningPlan` supplies cross-domain sender/domain/replay
+  checks.
+- `SequenceOraclePlan` supplies role-transition ordering.
+- `SnapshotFuzzingPlan` supplies reusable governance states and delay/queue
+  waypoints.
+- `SemanticGraphGate` supplies authority graph anchors.
+- `SlithIR SSA + Interprocedural State/Taint Summary` supplies precise
+  role-variable writes and privileged call propagation.
+- `ResourceLivenessGriefingPlan` supplies pause/recover and keeper-liveness
+  recovery checks.
 
 ## Prompt Requirements
 
-Prompt and parser design must refer to an **interchangeable security reasoning agent**. No schema, parser, prompt, test, or SDD requirement may bind the capability to a specific vendor, hosted endpoint, product family, or model.
+Prompt and parser design must refer to an **interchangeable security reasoning agent**.
+No schema, parser, prompt, or test may bind the capability to a
+specific vendor, hosted endpoint, product family, or model.
 
 The reasoning agent must:
 
-- Separate observed authority edges from inferred lifecycle hazards.
-- Anchor every privileged entrypoint and authority edge to source lines.
-- Include negative checks for each lifecycle hypothesis.
-- Identify blast radius, not only access-control category.
-- Avoid confirmed-finding language until validation confirms abuse, bypass, lockout, or unrecoverable privilege loss.
-- Support deterministic local fallback based on modifiers, role constants, events, timelock functions, and ownership-transfer patterns.
+- Separate observed authority relationships from inferred governance risk.
+- Anchor each actor, role, privileged function, and lifecycle transition to
+  source lines when available.
+- Return at least one negative check for every hypothesis.
+- Prefer executable governance oracles over narrative severity.
+- Keep emergency controls and governance delays explicit.
+- Avoid confirmed-finding language until validation confirms reachability.
+- Support deterministic local fallback based on owner/admin/role/timelock/
+  upgrade/pause naming and Slither-derived state writes.
 
 ## False-Positive Controls
 
 The capability must avoid noisy governance findings:
 
-- A single owner during launch is not a finding unless the deployment phase is indistinguishable from production or the blast radius is unmanaged.
-- A guardian is not overpowered when it can pause only, cannot drain/upgrade, and unpause/recovery is governed.
-- A timelock is not protection unless privileged actions are actually routed through it and delay changes cannot be immediate.
-- Self-administered timelocks are not automatically unsafe, but role availability and recovery must be modeled.
-- Multisig references are advisory until signer threshold, owner path, and controlled action surface are known.
-- Role grants are not escalation findings when role admins are properly separated and recoverable.
+- A privileged function is not a finding when its authority is explicit,
+  expected, delayed, and documented.
+- Admin self-grant is not a finding when it is timelocked, quorum-controlled, or
+  bounded by a multisig/governor path with cancellation.
+- Emergency pause is not a finding when pause duration, unpause authority, and
+  recovery flow are bounded.
+- Upgrade authority is not a governance finding when upgrade authorization,
+  storage compatibility, initializer safety, and migration checks are enforced.
+- Renounce ownership is not a finding when a replacement owner/governor/recovery
+  path exists before renounce.
+- Cross-domain governance is not a finding when sender, chain/domain, nonce,
+  replay protection, and finality delay are verified.
+- Parameter changes are not findings without a critical economic, accounting,
+  oracle, fee, liquidation, mint/burn, treasury, or access-control consequence.
 - Provider output must be bounded and parser-validated before integration.
 
 Promotion rules:
 
 - `hypothesis`: authority graph and lifecycle risk only.
-- `test_generated`: a validation sequence exists but has no failing execution.
-- `counterexample`: symbolic/fuzz/local execution demonstrates bypass, escalation, lockout, or unsafe recovery.
-- `replayed`: deterministic local or fork replay demonstrates impact.
-- `rejected`: timelock routing, multisig controls, role separation, bounded emergency powers, and recovery paths disprove the risk.
+- `test_generated`: a governance oracle or role-transition harness exists but
+  has not failed.
+- `counterexample`: fuzzing or symbolic execution demonstrates an unsafe
+  transition.
+- `replayed`: deterministic local or fork replay demonstrates privilege
+  escalation, bypass, stuck recovery, or unauthorized critical action.
+- `rejected`: timelock, quorum, cancellation, bounded emergency power, safe
+  upgrade guard, or recovery path disproves the risk.
 
 ## Non-Goals
 
 - No replacement for classic access-control detectors.
-- No generic centralization score.
+- No claim that every centralized admin surface is a vulnerability.
 - No canonical benchmark update from this SDD alone.
-- No assumption that every admin key is a vulnerability.
+- No remote governance service dependency in the first implementation.
 - No provider-specific dependency.
-- No confirmed finding from a local modifier pattern alone.
+- No confirmed vulnerability without a reachable unsafe transition.
 
 ## Integration Plan
 
 Phase 0 is this SDD. Future work should land in small, testable steps:
 
 1. Add provider-neutral schema contracts and parser tests.
-2. Add local authority graph extraction for owners, roles, role admins, timelocks, governors, guardians, proxy admins, and cross-chain routers.
-3. Add lifecycle transition extraction for transfer, accept, grant, revoke, queue, execute, cancel, pause, unpause, delay change, upgrade, and emergency functions.
-4. Add local lifecycle hazard classifier with negative checks.
-5. Generate validation obligations for Foundry, Echidna, Halmos, local fixtures, and human review.
-6. Add fixtures with safe and unsafe variants for each lifecycle family.
-7. Run only non-canonical probes until benchmark promotion is explicitly approved.
+2. Add local authority-graph extraction for owners, roles, timelocks, governors,
+   guardians, pausers, upgraders, and bridge messengers.
+3. Add privileged-surface classifier for upgrade/pause/treasury/oracle/fee/
+   role/initializer/emergency paths.
+4. Add lifecycle hypothesis generator for unsafe initialization, role-admin
+   self-grant, missing timelock, timelock bypass, unbounded emergency power,
+   pause recovery gaps, unsafe upgrade authority, cross-domain replay, and
+   parameter rug paths.
+5. Generate governance oracles for Foundry/Halmos/Echidna/local fixtures.
+6. Add fixtures with safe and unsafe variants for role transition, timelock,
+   pause/unpause, upgrade, and cross-domain governance families.
+7. Run only non-canonical probes until benchmark promotion is explicitly
+   approved.
 
 ## 50-Activity Parallelization Map
 
 These activities can run across five lanes with disjoint file ownership.
 
 1. Inventory current access-control detector outputs.
-2. Inventory governance detector outputs.
-3. Inventory centralization detector outputs.
-4. Inventory upgrade/admin handoff outputs.
-5. Inventory semantic graph role/modifier nodes.
-6. Define `AuthorityNode` schema.
-7. Define `AuthorityEdge` schema.
-8. Define `PrivilegedEntrypoint` schema.
-9. Define `LifecycleTransition` schema.
+2. Inventory upgrade-evolution authority fields.
+3. Inventory delegatecall privileged-slot findings.
+4. Inventory signature-domain authority surfaces.
+5. Inventory cross-chain governance message checks.
+6. Define `GovernanceActor` schema.
+7. Define `GovernanceRole` schema.
+8. Define `AuthorityGraphEdge` schema.
+9. Define `LifecycleHypothesis` schema.
 10. Define `PrivilegedGovernanceLifecyclePlan` schema.
 11. Add parser for canonical output key.
-12. Add aliases for authority lifecycle plans.
+12. Add parser aliases for governance lifecycle plans.
 13. Add bounded text/list sanitization.
 14. Add no-provider-binding regression tests.
 15. Export public facade symbols.
-16. Detect Ownable ownership surfaces.
-17. Detect Ownable2Step transfer/accept paths.
-18. Detect AccessControl role constants.
-19. Detect role admin relationships.
-20. Detect TimelockController queue/execute/cancel paths.
-21. Detect Governor proposal execution paths.
-22. Detect guardian pause/unpause surfaces.
-23. Detect proxy admin/upgrade surfaces.
-24. Detect multisig references and threshold hints.
-25. Detect cross-chain admin relay surfaces.
-26. Detect unguarded privileged entrypoints.
-27. Detect role escalation via grant/revoke admin loops.
-28. Detect timelock bypass on privileged calls.
-29. Detect unsafe delay reduction.
-30. Detect dead-admin lockout risk.
-31. Detect guardian overreach.
-32. Detect impossible unpause/recovery paths.
-33. Detect pause deadlocks.
-34. Detect upgrade admin drift.
-35. Detect high-blast-radius single key.
-36. Add negative checks for timelock routing.
-37. Add negative checks for multisig/threshold controls.
-38. Add negative checks for role separation.
-39. Add negative checks for bounded guardian powers.
-40. Add negative checks for documented recovery paths.
-41. Generate Foundry authorization/lifecycle sequences.
-42. Generate Echidna privilege invariants.
-43. Generate Halmos assertion metadata.
-44. Bridge authority graph to semantic graph gates.
-45. Bridge pause deadlocks to liveness hardening.
-46. Bridge admin handoff to upgrade evolution.
-47. Add unsafe fixture for immediate delay reduction.
-48. Add safe fixture for timelocked delay update.
-49. Add unsafe fixture for guardian drain/upgrade.
-50. Add safe fixture for pause-only guardian and governed recovery.
+16. Detect owner/admin storage variables.
+17. Detect OpenZeppelin-style roles and role admins.
+18. Detect timelock controllers and queue/execute/cancel paths.
+19. Detect governor proposer/executor paths.
+20. Detect pauser/guardian/emergency roles.
+21. Detect upgrader and proxy admin paths.
+22. Detect initializer/reinitializer authority setup.
+23. Detect bridge messenger governance sources.
+24. Detect treasury and fee setter surfaces.
+25. Detect oracle and risk-parameter setter surfaces.
+26. Detect role grant/revoke functions.
+27. Detect renounce/transfer ownership transitions.
+28. Detect missing delay on critical transitions.
+29. Detect missing cancellation on queued actions.
+30. Detect missing unpause/recovery path.
+31. Add negative checks for explicit timelocks.
+32. Add negative checks for quorum and multisig paths.
+33. Add negative checks for bounded emergency powers.
+34. Add negative checks for safe initializer guards.
+35. Add negative checks for cross-domain replay protection.
+36. Generate Foundry role-transition property metadata.
+37. Generate Halmos authorization assertion metadata.
+38. Generate Echidna governance sequence metadata.
+39. Generate local fixture obligations.
+40. Bridge authority graph edges to semantic graph gates.
+41. Bridge role-transition sequences to sequence-oracle synthesis.
+42. Bridge delayed-state seeds to snapshot fuzzing.
+43. Bridge authority writes to SSA/taint summaries.
+44. Add fixture: unprotected initializer grants owner.
+45. Add fixture: safe initializer guard rejects second call.
+46. Add fixture: admin self-grant bypasses timelock.
+47. Add fixture: safe timelock queue/execute/cancel path.
+48. Add fixture: pause without recovery bricks withdrawal.
+49. Add fixture: safe guardian pause with governor unpause.
+50. Add runbook notes for comparing governance lifecycle plans with benchmark
+    findings.
 
 Parallel lanes:
 
 - Lane A: schemas, parser, exports, and provider-neutral tests.
-- Lane B: authority graph and lifecycle transition extraction.
-- Lane C: hazard classifiers and negative checks.
-- Lane D: validation obligations and bridges to existing plans.
-- Lane E: fixtures, non-canonical evidence, benchmark comparison, and runbook notes.
+- Lane B: authority graph and privileged surface extraction.
+- Lane C: lifecycle hypothesis generation and negative checks.
+- Lane D: governance-oracle generation and tool metadata bridges.
+- Lane E: fixtures, non-canonical evidence, benchmark comparison, and runbook
+  notes.
 
 ## Validation
 
@@ -234,23 +319,12 @@ rg -n "interchangeable security reasoning agent|provider-neutral|50-Activity" do
 git diff --check -- docs/SDD_PRIVILEGED_GOVERNANCE_LIFECYCLE_HARDENING_20260811.md
 ```
 
-Provider/model-name checks should run against the document content during review and should return no requirement binding the capability to one provider.
+Provider/model-name checks should run against the document content during review
+and should return no requirement binding the capability to one provider.
 
 For future implementation:
 
-- Unit tests for authority graph and lifecycle transition extraction.
+- Unit tests for authority graph extraction.
 - Parser tests for bounded provider-neutral output.
-- Fixture tests for unsafe and safe variants of each lifecycle family.
-- Integration tests proving local access-control findings stay advisory without lifecycle evidence.
-- Non-canonical benchmark probes before any claimed uplift.
-
-## References
-
-- OWASP SC01:2026 Access Control Vulnerabilities. https://scs.owasp.org/sctop10/SC01-AccessControlVulnerabilities/
-- OWASP SCWE-020: Absence of Time-Locked Functions. https://scs.owasp.org/SCWE/SCSVS-AUTH/SCWE-020/
-- OpenZeppelin Contracts Access Control. https://docs.openzeppelin.com/contracts/5.x/api/access
-- OpenZeppelin Contracts Governance and TimelockController. https://docs.openzeppelin.com/contracts/4.x/api/governance
-- OpenZeppelin Timelock role management guide. https://docs.openzeppelin.com/defender/guide/timelock-roles
-- Local reference: `docs/SDD_SEMANTIC_GRAPH_GATING_20260709.md`
-- Local reference: `docs/SDD_UPGRADE_EVOLUTION_ANALYSIS_20260711.md`
-- Local reference: `docs/SDD_RESOURCE_LIVENESS_GRIEFING_HARDENING_20260811.md`
+- Fixtures for unsafe and safe role-transition paths.
+- Local/fork replay tests only when the victim or governance source is present.
