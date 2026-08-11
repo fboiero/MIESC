@@ -68,6 +68,12 @@ def _find_foundry_root(start: Path) -> Optional[Path]:
     default=None,
     help="Write the unified verification report as SARIF 2.1.0 (GitHub code scanning).",
 )
+@click.option(
+    "--poc",
+    type=click.Path(),
+    default=None,
+    help="Write a Foundry PoC test scaffold per counterexample into this directory.",
+)
 @click.option("--quiet", "-q", is_flag=True, help="Minimal output")
 def verify(
     contract_path: str,
@@ -77,6 +83,7 @@ def verify(
     timeout: int,
     output: str | None,
     sarif: str | None,
+    poc: str | None,
     quiet: bool,
 ) -> None:
     """Run formal-verification provers against a contract.
@@ -238,6 +245,15 @@ def verify(
     if sarif:
         report.to_sarif(sarif)
         success(f"SARIF report written to {sarif}")
+
+    # Write a Foundry PoC test scaffold per counterexample
+    if poc:
+        scaffolds = report.foundry_scaffolds(contract_name)
+        poc_dir = Path(poc)
+        poc_dir.mkdir(parents=True, exist_ok=True)
+        for filename, solidity in scaffolds:
+            (poc_dir / filename).write_text(solidity, encoding="utf-8")
+        success(f"Wrote {len(scaffolds)} PoC scaffold(s) to {poc}")
 
     # Exit code: 1 if any prover reported failures
     any_failed = any(r.status == "failed" for r in results.values())
