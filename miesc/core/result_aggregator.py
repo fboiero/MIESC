@@ -64,6 +64,9 @@ class AggregatedFinding:
     tools: List[str]
     confirmations: int
     original_findings: List[Finding]
+    #: Confirmation threshold this finding was aggregated under, so ``cross_validated``
+    #: agrees with the aggregator's summary/list (which use the same threshold).
+    min_confirmations: int = 2
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -81,7 +84,7 @@ class AggregatedFinding:
             "confidence": round(self.confidence, 3),
             "confirmed_by": self.tools,
             "confirmations": self.confirmations,
-            "cross_validated": self.confirmations >= 2,
+            "cross_validated": self.confirmations >= self.min_confirmations,
         }
 
 
@@ -262,9 +265,14 @@ class ResultAggregator:
 
     @staticmethod
     def _safe_confidence(confidence: Any) -> float:
-        """Parse confidence defensively; default to 0.7 on unparseable input."""
+        """Parse confidence defensively, clamped to [0, 1]; default 0.7 on bad input.
+
+        Clamping stops a tool that emits a negative or percentage-style confidence
+        (e.g. ``-1`` or ``95``) from skewing the confidence-descending sort and the
+        reported values.
+        """
         try:
-            return float(confidence)
+            return max(0.0, min(1.0, float(confidence)))
         except (TypeError, ValueError):
             return 0.7
 
@@ -298,25 +306,37 @@ class ResultAggregator:
         return hashlib.md5(content.encode()).hexdigest()[:12]
 
     def _are_similar(self, f1: Finding, f2: Finding) -> bool:
-        """Determina si dos hallazgos son similares."""
-        # Mismo archivo y línea cercana
+        """Determina si dos hallazgos son el mismo issue.
+
+        Same-location + same-type is the strong signal. When a location is missing
+        (a tool that reported no file), we must NOT merge on type alone - two
+        unrelated findings of the default ``unknown`` type with empty files would
+        otherwise become one falsely cross-validated finding, dropping a real one.
+        In that case, and whenever the types differ, we require message similarity.
+        """
+        if f1.function and f2.function and f1.function != f2.function:
+            return False
+
+        same_type = self._normalize_type(f1.type) == self._normalize_type(f2.type)
+
+        # Both locations known: they must be the same file and close by.
         if f1.file and f2.file:
             if f1.file != f2.file:
                 return False
             if abs(f1.line - f2.line) > 5:  # Tolerancia de 5 líneas
                 return False
+            # Same file + close line: same type is enough; otherwise need messages.
+            return same_type or self._messages_similar(f1, f2)
 
-        # Tipo similar
-        type1_normalized = self._normalize_type(f1.type)
-        type2_normalized = self._normalize_type(f2.type)
+        # At least one location unknown: never merge on type alone.
+        return self._messages_similar(f1, f2)
 
-        if type1_normalized != type2_normalized:
-            # Verificar si los mensajes son similares
-            msg_similarity = SequenceMatcher(None, f1.message.lower(), f2.message.lower()).ratio()
-            if msg_similarity < self.similarity_threshold:
-                return False
-
-        return True
+    def _messages_similar(self, f1: Finding, f2: Finding) -> bool:
+        """True when the two messages are similar enough to be the same issue."""
+        ratio = SequenceMatcher(
+            None, (f1.message or "").lower(), (f2.message or "").lower()
+        ).ratio()
+        return ratio >= self.similarity_threshold
 
     def _normalize_type(self, finding_type: str) -> str:
         """Normaliza el tipo de vulnerabilidad."""
@@ -346,8 +366,12 @@ class ResultAggregator:
             group = [f1]
             used.add(i)
 
+            # Transitive grouping: a finding joins the group if it is similar to ANY
+            # member, not just the anchor f1. Otherwise the same issue reported at
+            # lines 10/13/16 (each within tolerance of its neighbour but not of the
+            # anchor) would split into duplicate groups and undercount confirmations.
             for j, f2 in enumerate(self._findings[i + 1 :], start=i + 1):
-                if j not in used and self._are_similar(f1, f2):
+                if j not in used and any(self._are_similar(member, f2) for member in group):
                     group.append(f2)
                     used.add(j)
 
@@ -387,7 +411,9 @@ class ResultAggregator:
         best_message = max((f.message for f in group), key=len, default=base.message)
 
         # Generar ID único para el grupo
-        group_id = hashlib.md5(f"{base.type}:{base.file}:{base.line}".encode()).hexdigest()[:8]
+        group_id = hashlib.md5(
+            f"{base.type}:{base.file}:{base.line}:{base.function}".encode()
+        ).hexdigest()[:8]
 
         return AggregatedFinding(
             id=f"AGG-{group_id}",
@@ -403,6 +429,7 @@ class ResultAggregator:
             tools=tools,
             confirmations=confirmations,
             original_findings=group,
+            min_confirmations=self.min_confirmations,
         )
 
     def get_statistics(self) -> Dict[str, Any]:
