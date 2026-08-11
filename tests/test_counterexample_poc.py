@@ -12,7 +12,11 @@ from miesc.formal.counterexample_poc import (
     _infer_type_and_name,
     counterexample_to_foundry_test,
 )
-from miesc.formal.unified_report import Counterexample
+from miesc.formal.unified_report import (
+    Counterexample,
+    ProverVerdict,
+    UnifiedVerificationReport,
+)
 
 
 class TestTypeInference(unittest.TestCase):
@@ -99,6 +103,38 @@ class TestCounterexampleMethod(unittest.TestCase):
         out = cx.to_foundry_scaffold(contract_name="Bank")
         self.assertIn("contract BankCounterexamplePoC is Test", out)
         self.assertIn("uint256 amount = 7;", out)
+
+
+class TestReportScaffolds(unittest.TestCase):
+    def _report(self, *counterexamples):
+        verdict = ProverVerdict(
+            prover="halmos", status="violated", counterexamples=list(counterexamples)
+        )
+        return UnifiedVerificationReport(contract="Vault.sol", provers=[verdict])
+
+    def test_one_scaffold_per_counterexample_unique_names(self):
+        report = self._report(
+            Counterexample(prover="halmos", text="p_a_uint256 = 1"),
+            Counterexample(prover="halmos", text="p_b_uint256 = 2"),
+        )
+        scaffolds = report.foundry_scaffolds(contract_name="Vault")
+        self.assertEqual(len(scaffolds), 2)
+        names = [f for f, _ in scaffolds]
+        self.assertEqual(len(set(names)), 2)  # unique filenames
+        self.assertTrue(all(f.endswith(".t.sol") for f in names))
+        self.assertIn("uint256 a = 1;", scaffolds[0][1])
+
+    def test_no_counterexamples_yields_no_scaffolds(self):
+        report = UnifiedVerificationReport(
+            contract="X.sol", provers=[ProverVerdict(prover="halmos", status="verified")]
+        )
+        self.assertEqual(report.foundry_scaffolds(), [])
+
+    def test_filename_sanitized_from_contract_name(self):
+        report = self._report(Counterexample(prover="halmos", text="x = 1"))
+        fname = report.foundry_scaffolds(contract_name="My/Weird Name.sol")[0][0]
+        self.assertNotIn("/", fname)
+        self.assertNotIn(" ", fname)
 
 
 if __name__ == "__main__":
