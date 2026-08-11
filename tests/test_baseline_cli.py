@@ -24,7 +24,7 @@ from miesc.cli.commands.baseline import (
     baseline,
     load_findings_from_results,
 )
-from miesc.core.baseline import generate_baseline
+from miesc.core.baseline import diff_against_baseline, fingerprint, generate_baseline
 
 # =============================================================================
 # Helpers
@@ -32,13 +32,17 @@ from miesc.core.baseline import generate_baseline
 
 
 def _finding(
-    rule="reentrancy", file="contracts/Bank.sol", line=15, message="Reentrancy in withdraw()"
+    rule="reentrancy",
+    file="contracts/Bank.sol",
+    line=15,
+    message="Reentrancy in withdraw()",
+    function="withdraw",
 ):
     return {
         "type": rule,
         "severity": "high",
         "message": message,
-        "location": {"file": file, "line": line},
+        "location": {"file": file, "line": line, "function": function},
         "tool": "slither",
     }
 
@@ -116,6 +120,30 @@ class TestGenerateCommand:
         assert result.exit_code == 0
         assert str(out) in result.output
 
+    def test_generate_records_1_1_symbol_scoped_fingerprints(self, tmp_path):
+        baseline_obj = generate_baseline(
+            [
+                _finding(message="Reentrancy risk", function="withdraw"),
+                _finding(message="Reentrancy risk", function="claim"),
+            ]
+        )
+
+        data = baseline_obj.to_dict()
+        assert data["version"] == "1.1"
+        assert data["count"] == 2
+        assert {entry["symbol"] for entry in data["fingerprints"].values()} == {
+            "claim",
+            "withdraw",
+        }
+
+    def test_fingerprint_ignores_embedded_line_references_but_keeps_symbol_scope(self):
+        old_line = _finding(message="Reentrancy in withdraw() (line 42)", function="withdraw")
+        new_line = _finding(message="Reentrancy in withdraw() (line 200)", function="withdraw")
+        other_function = _finding(message="Reentrancy in withdraw() (line 42)", function="claim")
+
+        assert fingerprint(old_line) == fingerprint(new_line)
+        assert fingerprint(old_line) != fingerprint(other_function)
+
 
 # =============================================================================
 # baseline diff
@@ -146,6 +174,19 @@ class TestDiffCommand:
         result = runner.invoke(baseline, ["diff", str(results), "--baseline", str(base)])
         assert "New:   0" in result.output
         assert "Known: 1" in result.output
+
+    def test_diff_embedded_message_line_shift_stays_known(self, tmp_path):
+        base = generate_baseline(
+            [_finding(message="Reentrancy in withdraw() at line 15", function="withdraw")]
+        )
+
+        result = diff_against_baseline(
+            [_finding(message="Reentrancy in withdraw() at line 200", function="withdraw")],
+            base,
+        )
+
+        assert result["new"] == []
+        assert len(result["known"]) == 1
 
     def test_fail_on_new_exits_1_when_new(self, tmp_path):
         runner = CliRunner()
