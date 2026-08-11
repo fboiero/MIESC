@@ -195,10 +195,34 @@ class SmartLLMAdapter(OllamaCallMixin, LLMCacheMixin, ToolAdapter):
                     # Check if we have a suitable model
                     data = json.loads(resp.read().decode())
                     models = [m.get("name", "") for m in data.get("models", [])]
-                    model_names = " ".join(models).lower()
+                    configured = self._model.lower()
+                    fallback = next(
+                        (
+                            model
+                            for model in models
+                            if any(
+                                family in model.lower()
+                                for family in (
+                                    "deepseek-coder",
+                                    "codellama",
+                                    "qwen2.5-coder",
+                                    "qwen3-coder",
+                                )
+                            )
+                        ),
+                        None,
+                    )
 
-                    if "deepseek-coder" in model_names or "codellama" in model_names:
+                    if configured in (model.lower() for model in models):
                         logger.info(f"SmartLLM: Ollama available at {ollama_host}")
+                        return ToolStatus.AVAILABLE
+                    if fallback:
+                        logger.warning(
+                            "SmartLLM: configured model %s is unavailable; using %s",
+                            self._model,
+                            fallback,
+                        )
+                        self._model = fallback
                         return ToolStatus.AVAILABLE
                     else:
                         logger.warning(

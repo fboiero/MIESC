@@ -351,6 +351,22 @@ class TestSmartLLMAdapter(TestAdapterBase):
         adapter = SmartLLMAdapter()
         assert adapter is not None
 
+    def test_available_coder_model_is_used_as_fallback(self):
+        from miesc.adapters.smartllm_adapter import SmartLLMAdapter
+        from miesc.core.tool_protocol import ToolStatus
+
+        response = MagicMock(status=200)
+        response.__enter__.return_value = response
+        response.read.return_value = json.dumps(
+            {"models": [{"name": "qwen2.5-coder:7b-16k"}]}
+        ).encode()
+        adapter = SmartLLMAdapter()
+        adapter._model = "qwen2.5-coder:14b"
+
+        with patch("urllib.request.urlopen", return_value=response):
+            assert adapter.is_available() == ToolStatus.AVAILABLE
+        assert adapter._model == "qwen2.5-coder:7b-16k"
+
 
 class TestThreatModelAdapter(TestAdapterBase):
     """Tests for ThreatModelAdapter."""
