@@ -201,6 +201,17 @@ if RICH_AVAILABLE:
     help="Only send --notify/--slack when at least one finding reaches this "
     "severity (default: low).",
 )
+@click.option(
+    "--acceptance-provider",
+    "acceptance_provider",
+    type=click.Choice(["none", "local", "bugbounty"], case_sensitive=False),
+    default="none",
+    help="Reorder findings by historical acceptance probability (how often a "
+    "finding of this class is accepted by human judges in competitive audits). "
+    "'local' uses the free offline table; 'bugbounty' uses an opt-in external "
+    "service (must be enabled + API key). Recall-safe: reorders only, never "
+    "drops (recall 1.0). Default: none.",
+)
 def scan(
     contract: str,
     output: str | None,
@@ -226,6 +237,7 @@ def scan(
     notify_url: str | None,
     slack_url: str | None,
     notify_min_severity: str,
+    acceptance_provider: str,
 ) -> None:
     """Quick vulnerability scan for a Solidity contract or directory.
 
@@ -336,6 +348,7 @@ def scan(
             verify_fp=verify_fp,
             verify_model=verify_model,
             rank=rank,
+            acceptance_provider=acceptance_provider,
             baseline_path=baseline_path,
             fail_on_new=fail_on_new,
             annotate=annotate,
@@ -364,6 +377,7 @@ def scan(
             verify_fp=verify_fp,
             verify_model=verify_model,
             rank=rank,
+            acceptance_provider=acceptance_provider,
             baseline_path=baseline_path,
             fail_on_new=fail_on_new,
             annotate=annotate,
@@ -556,6 +570,7 @@ def scan(
             verify_fp=verify_fp,
             verify_model=verify_model,
             rank=rank,
+            acceptance_provider=acceptance_provider,
             baseline_path=baseline_path,
             fail_on_new=fail_on_new,
             annotate=annotate,
@@ -869,6 +884,7 @@ def scan(
         verify_fp=verify_fp,
         verify_model=verify_model,
         rank=rank,
+        acceptance_provider=acceptance_provider,
         baseline_path=baseline_path,
         fail_on_new=fail_on_new,
         annotate=annotate,
@@ -960,6 +976,7 @@ def _run_agentic_scan_profile(
     verify_fp: bool = False,
     verify_model: str | None = None,
     rank: bool = False,
+    acceptance_provider: str = "none",
     baseline_path: str | None = None,
     fail_on_new: bool = False,
     annotate: str | None = None,
@@ -1005,6 +1022,7 @@ def _run_agentic_scan_profile(
         verify_fp=verify_fp,
         verify_model=verify_model,
         rank=rank,
+        acceptance_provider=acceptance_provider,
         baseline_path=baseline_path,
         fail_on_new=fail_on_new,
         annotate=annotate,
@@ -1092,6 +1110,47 @@ def _apply_triage_rank(all_results: list[dict[str, Any]], *, contract: str, quie
             )
 
 
+def _apply_acceptance_ordering(
+    all_results: list[dict[str, Any]], *, choice: str, quiet: bool
+) -> None:
+    """Reorder findings by historical acceptance probability — recall-safe.
+
+    Annotates ``finding['acceptance_prob']`` and orders higher-acceptance
+    findings first. Never drops a finding (recall 1.0) and never touches the
+    confidence/``--min-confidence`` path. ``choice`` selects the provider:
+    'local' (free, offline) or 'bugbounty' (opt-in external). No-ops gracefully
+    when the chosen provider is unavailable."""
+    try:
+        from miesc.core.acceptance_contracts import AcceptancePolicy
+        from miesc.core.acceptance_providers import (
+            BugBountyIntelligenceProvider,
+            LocalAcceptancePatternProvider,
+        )
+        from miesc.ml.triage_ranker import apply_acceptance_ordering
+    except Exception as e:  # noqa: BLE001
+        if not quiet:
+            info(f"acceptance ordering skipped: {e}")
+        return
+    if choice == "bugbounty":
+        provider: Any = BugBountyIntelligenceProvider(
+            config={"enabled": True}, policy=AcceptancePolicy(allow_remote=True)
+        )
+    else:
+        provider = LocalAcceptancePatternProvider()
+    total = apply_acceptance_ordering(all_results, provider=provider)
+    if not quiet:
+        if total < 0:
+            info(
+                f"acceptance ({choice}): provider unavailable — order unchanged "
+                "(recall-safe no-op)"
+            )
+        else:
+            info(
+                f"acceptance ({choice}): annotated + reordered {total} finding(s) by "
+                "acceptance probability — recall-safe (nothing dropped)"
+            )
+
+
 def _display_and_save(
     all_results: list[dict[str, Any]],
     *,
@@ -1105,6 +1164,7 @@ def _display_and_save(
     verify_fp: bool = False,
     verify_model: str | None = None,
     rank: bool = False,
+    acceptance_provider: str = "none",
     baseline_path: str | None = None,
     fail_on_new: bool = False,
     annotate: str | None = None,
@@ -1117,6 +1177,8 @@ def _display_and_save(
         _apply_verify_fp(all_results, contract=contract, model=verify_model, quiet=quiet)
     if rank:
         _apply_triage_rank(all_results, contract=contract, quiet=quiet)
+    if acceptance_provider and acceptance_provider.lower() != "none":
+        _apply_acceptance_ordering(all_results, choice=acceptance_provider.lower(), quiet=quiet)
 
     # Attach a calibrated confidence score to every scan finding (scan runs its own
     # adapter + FP-filter pipeline, so findings arrive un-annotated). Mirrors the ML
