@@ -196,6 +196,59 @@ def rank_results(all_results: list[dict[str, Any]], *, contract: str = "") -> in
     return total
 
 
+def apply_acceptance_ordering(
+    all_results: list[dict[str, Any]],
+    *,
+    provider: Any = None,
+) -> int:
+    """Annotate ``finding['acceptance_prob']`` and reorder findings by it — recall-safe.
+
+    The acceptance probability (how often human judges historically ACCEPT a
+    finding of this class in competitive audits) is a pure ORDERING signal:
+    higher-acceptance findings surface first. This NEVER drops a finding
+    (recall stays 1.0) and NEVER feeds the confidence/``--min-confidence`` path
+    — it only annotates and reorders. Findings whose class is unknown keep their
+    relative order and sink below scored ones, but remain fully visible.
+
+    Defaults to the offline local provider (free/safe). Returns the number of
+    findings annotated, or ``-1`` when no acceptance provider is available
+    (caller leaves order unchanged). Injectable ``provider`` keeps tests offline.
+    """
+    if provider is None:
+        from miesc.core.acceptance_providers import auto_acceptance_provider
+
+        provider = auto_acceptance_provider()
+    try:
+        if not provider.is_available():
+            return -1
+    except Exception:  # noqa: BLE001 — a broken provider must not abort a scan
+        return -1
+
+    total = 0
+    for result in all_results:
+        fs = result.get("findings") or []
+        if not fs:
+            continue
+        probs: dict[int, float] = {}
+        for idx, f in enumerate(fs):
+            try:
+                prob = provider.acceptance_probability(f)
+            except Exception:  # noqa: BLE001 — never let annotation break a scan
+                prob = None
+            if prob is not None:
+                f["acceptance_prob"] = round(float(prob), 4)
+                probs[idx] = float(prob)
+                total += 1
+        # Stable sort: known acceptance descending, unknown (default -1.0) keep
+        # original relative order at the bottom. Count in == count out (recall-safe).
+        order = sorted(
+            range(len(fs)),
+            key=lambda i: -probs.get(i, -1.0),
+        )
+        result["findings"] = [fs[i] for i in order]
+    return total
+
+
 def train(dataset_path: str, model_path: str = DEFAULT_MODEL_PATH) -> dict[str, Any]:
     """Train the GradientBoosting triage model on a labeled JSONL dataset
     ({"finding": {...}, "context": "...", "label": true/false}; True = real) and persist it.
