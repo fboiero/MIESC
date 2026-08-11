@@ -28,7 +28,11 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Mapping, Union
 
 # Version of the on-disk baseline schema. Bump on breaking format changes.
-BASELINE_FORMAT_VERSION = "1.0"
+# 1.1: fingerprint now includes the function/symbol and strips line references from
+#      the message, so co-located findings no longer collide (fail-open) and a
+#      message that embeds its line number stays stable under line shifts
+#      (fail-closed). Baselines written by 1.0 must be regenerated.
+BASELINE_FORMAT_VERSION = "1.1"
 
 # Default filename written by ``generate_baseline`` / the ``baseline generate``
 # command and consumed by the ``--baseline`` CLI flags.
@@ -40,6 +44,18 @@ FindingLike = Union[Mapping[str, Any], Any]
 
 _WHITESPACE_RE = re.compile(r"\s+")
 
+# Line/column references embedded in tool messages. Stripped before hashing so the
+# fingerprint stays stable when unrelated edits shift a finding's line number.
+# Conservative: only matches explicit line/col markers, never bare numbers (which
+# may be a legitimate part of the message, e.g. an SWC id or a numeric constant).
+_LINE_REF_RE = re.compile(
+    r"(?ix)"
+    r"\b(?:line|ln|row|col|column|position|offset)s?\s*[:#=]?\s*\d+(?:\s*[:,-]\s*\d+)?"
+    r"|(?<![\w.])[:@]\d+(?::\d+)?\b"
+    r"|\#\d+\b"
+    r"|\bL\d+\b"
+)
+
 
 @dataclass(frozen=True)
 class BaselineEntry:
@@ -48,6 +64,7 @@ class BaselineEntry:
     fingerprint: str
     rule_id: str
     file: str
+    symbol: str
     message_hash: str
     severity: str
 
@@ -55,6 +72,7 @@ class BaselineEntry:
         return {
             "rule_id": self.rule_id,
             "file": self.file,
+            "symbol": self.symbol,
             "message_hash": self.message_hash,
             "severity": self.severity,
         }
@@ -77,7 +95,7 @@ class Baseline:
         """Return a JSON-serializable, deterministically-ordered mapping."""
         return {
             "version": self.version,
-            "fingerprint_algorithm": "sha256-content-16",
+            "fingerprint_algorithm": "sha256-content-symbol-16",
             "count": len(self.entries),
             "fingerprints": {fp: self.entries[fp].to_dict() for fp in sorted(self.entries)},
         }
@@ -101,6 +119,7 @@ class Baseline:
                 fingerprint=fp,
                 rule_id=str(meta.get("rule_id", "")),
                 file=str(meta.get("file", "")),
+                symbol=str(meta.get("symbol", "")),
                 message_hash=str(meta.get("message_hash", "")),
                 severity=str(meta.get("severity", "")),
             )
@@ -138,6 +157,22 @@ def _extract_file(finding: FindingLike) -> str:
     return _normalize_path(_get(finding, "file", "file_path", "filename"))
 
 
+def _extract_symbol(finding: FindingLike) -> str:
+    """Resolve the narrowest function/symbol scope available for a finding."""
+    if isinstance(finding, Mapping):
+        loc = finding.get("location")
+        if isinstance(loc, Mapping):
+            symbol = (
+                loc.get("function")
+                or loc.get("function_name")
+                or loc.get("symbol")
+                or loc.get("contract")
+            )
+            if symbol:
+                return _normalize_symbol(str(symbol))
+    return _normalize_symbol(_get(finding, "function", "function_name", "symbol", "contract"))
+
+
 def _normalize_path(path: str) -> str:
     """Normalize a file path for stable cross-run / cross-machine matching.
 
@@ -159,9 +194,21 @@ def _normalize_path(path: str) -> str:
     return prefix + "/".join(parts)
 
 
+def _normalize_symbol(symbol: str) -> str:
+    """Normalize function/symbol scope without erasing meaningful overload text."""
+    return _WHITESPACE_RE.sub(" ", symbol).strip()
+
+
 def _normalize_message(message: str) -> str:
-    """Collapse whitespace so cosmetic reformatting does not change the hash."""
-    return _WHITESPACE_RE.sub(" ", message).strip()
+    """Canonicalize a finding message for hashing.
+
+    Collapses whitespace AND strips embedded line/column references, so a message
+    like ``"Reentrancy in withdraw() (line 42)"`` hashes the same after code above
+    it shifts the line number — otherwise a baselined finding would be re-flagged as
+    new on the next run (fail-closed).
+    """
+    stripped = _LINE_REF_RE.sub("", message)
+    return _WHITESPACE_RE.sub(" ", stripped).strip()
 
 
 def _message_hash(message: str) -> str:
@@ -172,11 +219,13 @@ def normalize_finding(finding: FindingLike) -> Dict[str, str]:
     """Reduce a heterogeneous finding to the canonical fields we fingerprint."""
     rule_id = _get(finding, "type", "rule_id", "check", "title", default="unknown")
     file = _extract_file(finding)
+    symbol = _extract_symbol(finding)
     message = _get(finding, "message", "description", "title", default="")
     severity = _get(finding, "severity", default="").lower()
     return {
         "rule_id": rule_id,
         "file": file,
+        "symbol": symbol,
         "message": message,
         "message_hash": _message_hash(message),
         "severity": severity,
@@ -186,7 +235,7 @@ def normalize_finding(finding: FindingLike) -> Dict[str, str]:
 def fingerprint(finding: FindingLike) -> str:
     """Return the content-based fingerprint for a finding (line-shift stable)."""
     norm = normalize_finding(finding)
-    content = f"{norm['rule_id']}|{norm['file']}|{norm['message_hash']}"
+    content = f"{norm['rule_id']}|{norm['file']}|{norm['symbol']}|{norm['message_hash']}"
     return hashlib.sha256(content.encode("utf-8")).hexdigest()[:16]
 
 
@@ -196,6 +245,7 @@ def _to_entry(finding: FindingLike) -> BaselineEntry:
         fingerprint=fingerprint(finding),
         rule_id=norm["rule_id"],
         file=norm["file"],
+        symbol=norm["symbol"],
         message_hash=norm["message_hash"],
         severity=norm["severity"],
     )

@@ -30,13 +30,20 @@ from miesc.core.baseline import (
 
 
 def _finding(
-    rule="reentrancy", file="contracts/Bank.sol", line=15, message="Reentrancy in withdraw()"
+    rule="reentrancy",
+    file="contracts/Bank.sol",
+    line=15,
+    message="Reentrancy in withdraw()",
+    function="",
 ):
+    location = {"file": file, "line": line}
+    if function:
+        location["function"] = function
     return {
         "type": rule,
         "severity": "high",
         "message": message,
-        "location": {"file": file, "line": line},
+        "location": location,
         "tool": "slither",
     }
 
@@ -73,6 +80,16 @@ class TestFingerprint:
         b = _finding(message="Reentrancy in withdraw()")
         assert fingerprint(a) == fingerprint(b)
 
+    def test_fingerprint_ignores_embedded_message_line_reference(self):
+        a = _finding(message="Reentrancy in withdraw() line 42")
+        b = _finding(message="Reentrancy in withdraw() line 137")
+        assert fingerprint(a) == fingerprint(b)
+
+    def test_fingerprint_changes_with_function_symbol(self):
+        a = _finding(message="Unchecked external call", function="withdraw")
+        b = _finding(message="Unchecked external call", function="claim")
+        assert fingerprint(a) != fingerprint(b)
+
     def test_normalized_path_equivalence(self):
         """./contracts/Bank.sol and contracts/Bank.sol match."""
         a = _finding(file="./contracts/Bank.sol")
@@ -91,9 +108,10 @@ class TestFingerprint:
         assert fingerprint(nested) == fingerprint(flat)
 
     def test_normalize_finding_fields(self):
-        norm = normalize_finding(_finding(rule="reentrancy", file="a/b.sol"))
+        norm = normalize_finding(_finding(rule="reentrancy", file="a/b.sol", function="withdraw"))
         assert norm["rule_id"] == "reentrancy"
         assert norm["file"] == "a/b.sol"
+        assert norm["symbol"] == "withdraw"
         assert norm["severity"] == "high"
         assert len(norm["message_hash"]) == 16
 
