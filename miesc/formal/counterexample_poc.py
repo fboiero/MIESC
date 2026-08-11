@@ -14,7 +14,7 @@ concrete inputs are already typed and in place.
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING, Dict, List, Tuple
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 
 if TYPE_CHECKING:
     from miesc.formal.unified_report import Counterexample
@@ -55,19 +55,51 @@ def _infer_type_and_name(raw_name: str) -> Tuple[str, str]:
     return sol_type, clean or "input"
 
 
-def _format_value(value: str, sol_type: str) -> str:
-    """Render a counterexample value as a Solidity literal for ``sol_type``."""
+_DECIMAL = re.compile(r"\d+")
+_SIGNED_DECIMAL = re.compile(r"-?\d+")
+_HEX = re.compile(r"0x[0-9a-fA-F]+")
+_HEX_OR_EMPTY = re.compile(r"0x[0-9a-fA-F]*")
+
+
+def _valid_literal(value: str, sol_type: str) -> Optional[str]:
+    """Return a compile-valid Solidity literal for ``value`` as ``sol_type``, or
+    ``None`` if the prover value is not a literal we can render safely (e.g. an
+    expression like ``2**256 - 1``, a negative for an unsigned type, or garbage)."""
     v = value.strip()
     if sol_type == "bool":
         return "false" if v in ("0", "false", "False", "") else "true"
     if sol_type == "address":
-        if v.startswith("0x"):
+        if _HEX.fullmatch(v):
             return f"address({v})"
-        return f"address(uint160({v}))"
-    if sol_type.startswith("bytes") and not v.startswith("0x"):
-        # a decimal for a bytes slot is unusual; keep it visible for the dev
-        return v
-    return v
+        if _DECIMAL.fullmatch(v):
+            return f"address(uint160({v}))"
+        return None
+    if sol_type.startswith("bytes"):
+        return v if _HEX_OR_EMPTY.fullmatch(v) else None
+    if sol_type.startswith("int"):
+        return v if _SIGNED_DECIMAL.fullmatch(v) or _HEX.fullmatch(v) else None
+    # uint*: reject negatives and expressions
+    return v if _DECIMAL.fullmatch(v) or _HEX.fullmatch(v) else None
+
+
+def _safe_default(sol_type: str) -> str:
+    """A guaranteed compile-valid zero literal for ``sol_type``."""
+    if sol_type == "bool":
+        return "false"
+    if sol_type == "address":
+        return "address(0)"
+    if sol_type == "bytes":
+        return 'hex""'
+    if sol_type.startswith("bytes"):
+        return f"{sol_type}(0)"
+    return "0"
+
+
+def _format_value(value: str, sol_type: str) -> str:
+    """Render a counterexample value as a compile-valid Solidity literal, falling
+    back to a safe zero when the value is not a renderable literal."""
+    literal = _valid_literal(value, sol_type)
+    return literal if literal is not None else _safe_default(sol_type)
 
 
 def _identifier(cx: "Counterexample", contract_name: str) -> str:
@@ -102,8 +134,16 @@ def counterexample_to_foundry_test(
                 ident = f"{clean}_{seen[ident]}"
             else:
                 seen[ident] = 0
-            value = _format_value(str(a.get("value", "0")), sol_type)
-            lines.append(f"        {sol_type} {ident} = {value}; // {raw}")
+            raw_value = str(a.get("value", "0"))
+            literal = _valid_literal(raw_value, sol_type)
+            if literal is None:
+                # keep the scaffold compile-valid, but preserve the prover's value
+                value = _safe_default(sol_type)
+                comment = f"{raw} (raw value not a literal: {raw_value})"
+            else:
+                value = literal
+                comment = raw
+            lines.append(f"        {sol_type} {ident} = {value}; // {comment}")
     else:
         for raw_line in (cx.text or "").splitlines() or [cx.text or ""]:
             if raw_line.strip():
