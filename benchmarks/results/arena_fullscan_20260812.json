@@ -1,0 +1,935 @@
+{
+ "summary": {
+  "benchmark": "MIESC v6.0.0 real-world arena \u2014 re-scored through FULL miesc scan pipeline",
+  "date": "2026-08-12",
+  "compares": "Slither-only static layer (arena_repaired_20260811.json) vs full  (tools + intelligence engine + access-control-semantic + fp-filter)",
+  "defihacklabs_clone_commit": "2c99b565ae24ea2006adf181da20c4419b3edc30",
+  "victim_set": "identical to repaired arena: 40 exploits, deterministic stride, Etherscan-V2 verified victim source + proxy implementations",
+  "unique_contracts_full_scanned": 202,
+  "scan_status_contract_level": {
+   "ok": 188,
+   "vyper-excluded": 11,
+   "not-verified": 3
+  },
+  "proxy_resolution": {
+   "verified_proxies_with_impl": 44,
+   "implementations_scanned_ok": 41
+  },
+  "tool_presence_across_ok_scans": {
+   "aderyn": 69,
+   "miesc-intelligence": 133,
+   "slither": 73,
+   "solhint": 188,
+   "access-control-semantic": 104
+  },
+  "in_scope_recall_slither_only": "1/4 = 0.25",
+  "in_scope_recall_full_scan": "4/4 = 1.00",
+  "access_control_slither_only": "0/3",
+  "access_control_full_scan": "3/3",
+  "reentrancy_full_scan": "1/1",
+  "economic_classes_full_scan": "still out-of-scope (0 oracle_manipulation / 0 flash_loan detections across 188 scanned contracts)"
+ },
+ "per_class_slither_only": {
+  "flash-loan": {
+   "out-of-scope": 7
+  },
+  "business-logic": {
+   "out-of-scope": 9
+  },
+  "price-oracle-manipulation": {
+   "out-of-scope": 11
+  },
+  "unknown": {
+   "unclassified": 9
+  },
+  "access-control": {
+   "missed": 3
+  },
+  "reentrancy": {
+   "caught": 1
+  }
+ },
+ "per_class_full_scan": {
+  "flash-loan": {
+   "out-of-scope": 7
+  },
+  "business-logic": {
+   "out-of-scope": 9
+  },
+  "price-oracle-manipulation": {
+   "out-of-scope": 11
+  },
+  "unknown": {
+   "unclassified": 9
+  },
+  "access-control": {
+   "caught": 3
+  },
+  "reentrancy": {
+   "caught": 1
+  }
+ },
+ "in_scope_transitions": [
+  {
+   "poc": "LocalTrader2_exp.sol",
+   "class": "access-control",
+   "slither_verdict": "missed",
+   "fullscan_verdict": "caught",
+   "fullscan_catch_types": [
+    "constructor_mismatch",
+    "incorrect_constructor_name",
+    "unchecked_mint_burn",
+    "unprotected_privileged_function"
+   ],
+   "catch_severity": {
+    "constructor_mismatch": "CRITICAL",
+    "incorrect_constructor_name": "CRITICAL",
+    "unchecked_mint_burn": "HIGH",
+    "unprotected_privileged_function": "HIGH"
+   }
+  },
+  {
+   "poc": "landNFT_exp.sol",
+   "class": "access-control",
+   "slither_verdict": "missed",
+   "fullscan_verdict": "caught",
+   "fullscan_catch_types": [
+    "access_control_newowner_public",
+    "delegatecall_to_untrusted",
+    "tx_origin_auth"
+   ],
+   "catch_severity": {
+    "access_control_newowner_public": "CRITICAL",
+    "delegatecall_to_untrusted": "HIGH",
+    "tx_origin_auth": "HIGH"
+   }
+  },
+  {
+   "poc": "DEPUSDT_LEVUSDC_exp.sol",
+   "class": "access-control",
+   "slither_verdict": "missed",
+   "fullscan_verdict": "caught",
+   "fullscan_catch_types": [
+    "uninitialized_proxy",
+    "unprotected_privileged_function"
+   ],
+   "catch_severity": {
+    "uninitialized_proxy": "MEDIUM",
+    "unprotected_privileged_function": "HIGH"
+   }
+  },
+  {
+   "poc": "GoodDollar_exp.sol",
+   "class": "reentrancy",
+   "slither_verdict": "caught",
+   "fullscan_verdict": "caught",
+   "fullscan_catch_types": [
+    "reentrancy_crossfunction",
+    "reentrancy_no_eth"
+   ],
+   "catch_severity": {
+    "reentrancy_crossfunction": "HIGH",
+    "reentrancy_no_eth": "MEDIUM"
+   }
+  }
+ ],
+ "catch_type_base_rates": {
+  "access_control_newowner_public": {
+   "contracts": 5,
+   "of": 188,
+   "pct": 2.7
+  },
+  "constructor_mismatch": {
+   "contracts": 1,
+   "of": 188,
+   "pct": 0.5
+  },
+  "incorrect_constructor_name": {
+   "contracts": 6,
+   "of": 188,
+   "pct": 3.2
+  },
+  "uninitialized_proxy": {
+   "contracts": 52,
+   "of": 188,
+   "pct": 27.7
+  },
+  "unprotected_privileged_function": {
+   "contracts": 98,
+   "of": 188,
+   "pct": 52.1
+  },
+  "tx_origin_auth": {
+   "contracts": 11,
+   "of": 188,
+   "pct": 5.9
+  },
+  "delegatecall_to_untrusted": {
+   "contracts": 9,
+   "of": 188,
+   "pct": 4.8
+  },
+  "reentrancy_no_eth": {
+   "contracts": 31,
+   "of": 188,
+   "pct": 16.5
+  },
+  "reentrancy_eth": {
+   "contracts": 5,
+   "of": 188,
+   "pct": 2.7
+  },
+  "reentrancy_crossfunction": {
+   "contracts": 21,
+   "of": 188,
+   "pct": 11.2
+  },
+  "unchecked_mint_burn": {
+   "contracts": 52,
+   "of": 188,
+   "pct": 27.7
+  },
+  "oracle_manipulation": {
+   "contracts": 0,
+   "of": 188,
+   "pct": 0.0
+  },
+  "price_oracle_stale": {
+   "contracts": 1,
+   "of": 188,
+   "pct": 0.5
+  },
+  "flash_loan": {
+   "contracts": 0,
+   "of": 188,
+   "pct": 0.0
+  },
+  "flash_loan_governance": {
+   "contracts": 0,
+   "of": 188,
+   "pct": 0.0
+  },
+  "arbitrary_send_eth": {
+   "contracts": 2,
+   "of": 188,
+   "pct": 1.1
+  },
+  "arbitrary_send_erc20": {
+   "contracts": 3,
+   "of": 188,
+   "pct": 1.6
+  },
+  "suicidal": {
+   "contracts": 0,
+   "of": 188,
+   "pct": 0.0
+  },
+  "unprotected_selfdestruct": {
+   "contracts": 0,
+   "of": 188,
+   "pct": 0.0
+  }
+ },
+ "economic_family_signals": [
+  {
+   "poc": "CS_exp.sol",
+   "class": "business-logic",
+   "family_signal_types": [
+    "front_running"
+   ]
+  },
+  {
+   "poc": "HeavensGate_exp.sol",
+   "class": "business-logic",
+   "family_signal_types": [
+    "front_running"
+   ]
+  },
+  {
+   "poc": "ZongZi_exp.sol",
+   "class": "business-logic",
+   "family_signal_types": [
+    "front_running"
+   ]
+  }
+ ],
+ "per_exploit_full_scan": [
+  {
+   "poc": "BEVO_exp.sol",
+   "class": "flash-loan",
+   "class_source": "inferred-keyword",
+   "chains": [
+    56
+   ],
+   "n_candidate_addrs": 8,
+   "n_verified_contracts": 3,
+   "n_proxy_impls": 0,
+   "n_scanned_ok": 3,
+   "catch_types_matched": [],
+   "catch_types_severity": {},
+   "family_signal_types": [],
+   "verdict": "out-of-scope"
+  },
+  {
+   "poc": "UFDao_exp.sol",
+   "class": "business-logic",
+   "class_source": "inferred-keyword",
+   "chains": [
+    56
+   ],
+   "n_candidate_addrs": 4,
+   "n_verified_contracts": 3,
+   "n_proxy_impls": 0,
+   "n_scanned_ok": 3,
+   "catch_types_matched": [],
+   "catch_types_severity": {},
+   "family_signal_types": [],
+   "verdict": "out-of-scope"
+  },
+  {
+   "poc": "Platypus_exp.sol",
+   "class": "flash-loan",
+   "class_source": "inferred-keyword",
+   "chains": [
+    43114
+   ],
+   "n_candidate_addrs": 13,
+   "n_verified_contracts": 12,
+   "n_proxy_impls": 9,
+   "n_scanned_ok": 21,
+   "catch_types_matched": [],
+   "catch_types_severity": {},
+   "family_signal_types": [],
+   "verdict": "out-of-scope"
+  },
+  {
+   "poc": "Euler_exp.sol",
+   "class": "price-oracle-manipulation",
+   "class_source": "inferred-keyword",
+   "chains": [
+    1
+   ],
+   "n_candidate_addrs": 6,
+   "n_verified_contracts": 5,
+   "n_proxy_impls": 2,
+   "n_scanned_ok": 7,
+   "catch_types_matched": [],
+   "catch_types_severity": {},
+   "family_signal_types": [],
+   "verdict": "out-of-scope"
+  },
+  {
+   "poc": "MetaPoint_exp.sol",
+   "class": "unknown",
+   "class_source": "inferred-keyword",
+   "chains": [
+    56
+   ],
+   "n_candidate_addrs": 15,
+   "n_verified_contracts": 2,
+   "n_proxy_impls": 0,
+   "n_scanned_ok": 2,
+   "catch_types_matched": [],
+   "catch_types_severity": {},
+   "family_signal_types": [],
+   "verdict": "unclassified"
+  },
+  {
+   "poc": "CS_exp.sol",
+   "class": "business-logic",
+   "class_source": "inferred-keyword",
+   "chains": [
+    56
+   ],
+   "n_candidate_addrs": 4,
+   "n_verified_contracts": 3,
+   "n_proxy_impls": 1,
+   "n_scanned_ok": 4,
+   "catch_types_matched": [],
+   "catch_types_severity": {},
+   "family_signal_types": [
+    "front_running"
+   ],
+   "verdict": "out-of-scope"
+  },
+  {
+   "poc": "LocalTrader2_exp.sol",
+   "class": "access-control",
+   "class_source": "poc-verified",
+   "chains": [
+    56
+   ],
+   "n_candidate_addrs": 8,
+   "n_verified_contracts": 4,
+   "n_proxy_impls": 1,
+   "n_scanned_ok": 4,
+   "catch_types_matched": [
+    "constructor_mismatch",
+    "incorrect_constructor_name",
+    "unchecked_mint_burn",
+    "unprotected_privileged_function"
+   ],
+   "catch_types_severity": {
+    "constructor_mismatch": "CRITICAL",
+    "incorrect_constructor_name": "CRITICAL",
+    "unchecked_mint_burn": "HIGH",
+    "unprotected_privileged_function": "HIGH"
+   },
+   "family_signal_types": [],
+   "verdict": "caught"
+  },
+  {
+   "poc": "landNFT_exp.sol",
+   "class": "access-control",
+   "class_source": "poc-verified",
+   "chains": [
+    56
+   ],
+   "n_candidate_addrs": 3,
+   "n_verified_contracts": 1,
+   "n_proxy_impls": 0,
+   "n_scanned_ok": 1,
+   "catch_types_matched": [
+    "access_control_newowner_public",
+    "delegatecall_to_untrusted",
+    "tx_origin_auth"
+   ],
+   "catch_types_severity": {
+    "access_control_newowner_public": "CRITICAL",
+    "delegatecall_to_untrusted": "HIGH",
+    "tx_origin_auth": "HIGH"
+   },
+   "family_signal_types": [],
+   "verdict": "caught"
+  },
+  {
+   "poc": "DEPUSDT_LEVUSDC_exp.sol",
+   "class": "access-control",
+   "class_source": "poc-verified",
+   "chains": [
+    1
+   ],
+   "n_candidate_addrs": 4,
+   "n_verified_contracts": 2,
+   "n_proxy_impls": 2,
+   "n_scanned_ok": 4,
+   "catch_types_matched": [
+    "uninitialized_proxy",
+    "unprotected_privileged_function"
+   ],
+   "catch_types_severity": {
+    "uninitialized_proxy": "MEDIUM",
+    "unprotected_privileged_function": "HIGH"
+   },
+   "family_signal_types": [],
+   "verdict": "caught"
+  },
+  {
+   "poc": "Themis_exp.sol",
+   "class": "price-oracle-manipulation",
+   "class_source": "inferred-keyword",
+   "chains": [
+    42161
+   ],
+   "n_candidate_addrs": 25,
+   "n_verified_contracts": 11,
+   "n_proxy_impls": 4,
+   "n_scanned_ok": 14,
+   "catch_types_matched": [],
+   "catch_types_severity": {},
+   "family_signal_types": [],
+   "verdict": "out-of-scope"
+  },
+  {
+   "poc": "CIVNFT_exp.sol",
+   "class": "business-logic",
+   "class_source": "inferred-keyword",
+   "chains": [
+    1
+   ],
+   "n_candidate_addrs": 6,
+   "n_verified_contracts": 2,
+   "n_proxy_impls": 1,
+   "n_scanned_ok": 2,
+   "catch_types_matched": [],
+   "catch_types_severity": {},
+   "family_signal_types": [],
+   "verdict": "out-of-scope"
+  },
+  {
+   "poc": "NewFi_exp.sol",
+   "class": "business-logic",
+   "class_source": "inferred-keyword",
+   "chains": [
+    56
+   ],
+   "n_candidate_addrs": 8,
+   "n_verified_contracts": 5,
+   "n_proxy_impls": 1,
+   "n_scanned_ok": 6,
+   "catch_types_matched": [],
+   "catch_types_severity": {},
+   "family_signal_types": [],
+   "verdict": "out-of-scope"
+  },
+  {
+   "poc": "CurveBurner_exp.sol",
+   "class": "price-oracle-manipulation",
+   "class_source": "inferred-keyword",
+   "chains": [
+    1
+   ],
+   "n_candidate_addrs": 12,
+   "n_verified_contracts": 9,
+   "n_proxy_impls": 4,
+   "n_scanned_ok": 10,
+   "catch_types_matched": [],
+   "catch_types_severity": {},
+   "family_signal_types": [],
+   "verdict": "out-of-scope"
+  },
+  {
+   "poc": "Zunami_exp.sol",
+   "class": "price-oracle-manipulation",
+   "class_source": "poc-verified",
+   "chains": [
+    1
+   ],
+   "n_candidate_addrs": 18,
+   "n_verified_contracts": 14,
+   "n_proxy_impls": 0,
+   "n_scanned_ok": 6,
+   "catch_types_matched": [],
+   "catch_types_severity": {},
+   "family_signal_types": [],
+   "verdict": "out-of-scope"
+  },
+  {
+   "poc": "HeavensGate_exp.sol",
+   "class": "business-logic",
+   "class_source": "inferred-keyword",
+   "chains": [
+    1
+   ],
+   "n_candidate_addrs": 9,
+   "n_verified_contracts": 4,
+   "n_proxy_impls": 0,
+   "n_scanned_ok": 4,
+   "catch_types_matched": [],
+   "catch_types_severity": {},
+   "family_signal_types": [
+    "front_running"
+   ],
+   "verdict": "out-of-scope"
+  },
+  {
+   "poc": "Hopelend_exp.sol",
+   "class": "price-oracle-manipulation",
+   "class_source": "inferred-keyword",
+   "chains": [
+    1
+   ],
+   "n_candidate_addrs": 16,
+   "n_verified_contracts": 13,
+   "n_proxy_impls": 9,
+   "n_scanned_ok": 22,
+   "catch_types_matched": [],
+   "catch_types_severity": {},
+   "family_signal_types": [],
+   "verdict": "out-of-scope"
+  },
+  {
+   "poc": "kTAF_exp.sol",
+   "class": "flash-loan",
+   "class_source": "inferred-keyword",
+   "chains": [
+    1
+   ],
+   "n_candidate_addrs": 8,
+   "n_verified_contracts": 4,
+   "n_proxy_impls": 1,
+   "n_scanned_ok": 5,
+   "catch_types_matched": [],
+   "catch_types_severity": {},
+   "family_signal_types": [],
+   "verdict": "out-of-scope"
+  },
+  {
+   "poc": "KR_exp.sol",
+   "class": "unknown",
+   "class_source": "inferred-keyword",
+   "chains": [
+    56
+   ],
+   "n_candidate_addrs": 5,
+   "n_verified_contracts": 2,
+   "n_proxy_impls": 0,
+   "n_scanned_ok": 2,
+   "catch_types_matched": [],
+   "catch_types_severity": {},
+   "family_signal_types": [],
+   "verdict": "unclassified"
+  },
+  {
+   "poc": "ShibaToken_exp.sol",
+   "class": "price-oracle-manipulation",
+   "class_source": "inferred-keyword",
+   "chains": [
+    56
+   ],
+   "n_candidate_addrs": 8,
+   "n_verified_contracts": 4,
+   "n_proxy_impls": 0,
+   "n_scanned_ok": 4,
+   "catch_types_matched": [],
+   "catch_types_severity": {},
+   "family_signal_types": [],
+   "verdict": "out-of-scope"
+  },
+  {
+   "poc": "BCT_exp.sol",
+   "class": "price-oracle-manipulation",
+   "class_source": "inferred-keyword",
+   "chains": [
+    56
+   ],
+   "n_candidate_addrs": 8,
+   "n_verified_contracts": 4,
+   "n_proxy_impls": 0,
+   "n_scanned_ok": 4,
+   "catch_types_matched": [],
+   "catch_types_severity": {},
+   "family_signal_types": [],
+   "verdict": "out-of-scope"
+  },
+  {
+   "poc": "GoodDollar_exp.sol",
+   "class": "reentrancy",
+   "class_source": "poc-verified",
+   "chains": [
+    1
+   ],
+   "n_candidate_addrs": 10,
+   "n_verified_contracts": 6,
+   "n_proxy_impls": 4,
+   "n_scanned_ok": 10,
+   "catch_types_matched": [
+    "reentrancy_crossfunction",
+    "reentrancy_no_eth"
+   ],
+   "catch_types_severity": {
+    "reentrancy_crossfunction": "HIGH",
+    "reentrancy_no_eth": "MEDIUM"
+   },
+   "family_signal_types": [],
+   "verdict": "caught"
+  },
+  {
+   "poc": "TransitFinance_exp.sol",
+   "class": "unknown",
+   "class_source": "inferred-keyword",
+   "chains": [
+    56
+   ],
+   "n_candidate_addrs": 3,
+   "n_verified_contracts": 2,
+   "n_proxy_impls": 0,
+   "n_scanned_ok": 2,
+   "catch_types_matched": [],
+   "catch_types_severity": {},
+   "family_signal_types": [],
+   "verdict": "unclassified"
+  },
+  {
+   "poc": "MIC_exp.sol",
+   "class": "flash-loan",
+   "class_source": "inferred-keyword",
+   "chains": [
+    56
+   ],
+   "n_candidate_addrs": 8,
+   "n_verified_contracts": 4,
+   "n_proxy_impls": 0,
+   "n_scanned_ok": 4,
+   "catch_types_matched": [],
+   "catch_types_severity": {},
+   "family_signal_types": [],
+   "verdict": "out-of-scope"
+  },
+  {
+   "poc": "XSIJ_exp.sol",
+   "class": "price-oracle-manipulation",
+   "class_source": "inferred-keyword",
+   "chains": [
+    56
+   ],
+   "n_candidate_addrs": 6,
+   "n_verified_contracts": 3,
+   "n_proxy_impls": 0,
+   "n_scanned_ok": 3,
+   "catch_types_matched": [],
+   "catch_types_severity": {},
+   "family_signal_types": [],
+   "verdict": "out-of-scope"
+  },
+  {
+   "poc": "EGGX_exp.sol",
+   "class": "business-logic",
+   "class_source": "inferred-keyword",
+   "chains": [
+    1
+   ],
+   "n_candidate_addrs": 3,
+   "n_verified_contracts": 2,
+   "n_proxy_impls": 0,
+   "n_scanned_ok": 2,
+   "catch_types_matched": [],
+   "catch_types_severity": {},
+   "family_signal_types": [],
+   "verdict": "out-of-scope"
+  },
+  {
+   "poc": "SwarmMarkets_exp.sol",
+   "class": "business-logic",
+   "class_source": "inferred-keyword",
+   "chains": [
+    1
+   ],
+   "n_candidate_addrs": 6,
+   "n_verified_contracts": 3,
+   "n_proxy_impls": 0,
+   "n_scanned_ok": 3,
+   "catch_types_matched": [],
+   "catch_types_severity": {},
+   "family_signal_types": [],
+   "verdict": "out-of-scope"
+  },
+  {
+   "poc": "Juice_exp.sol",
+   "class": "business-logic",
+   "class_source": "inferred-keyword",
+   "chains": [
+    1
+   ],
+   "n_candidate_addrs": 5,
+   "n_verified_contracts": 2,
+   "n_proxy_impls": 0,
+   "n_scanned_ok": 2,
+   "catch_types_matched": [],
+   "catch_types_severity": {},
+   "family_signal_types": [],
+   "verdict": "out-of-scope"
+  },
+  {
+   "poc": "ZongZi_exp.sol",
+   "class": "business-logic",
+   "class_source": "inferred-keyword",
+   "chains": [
+    56
+   ],
+   "n_candidate_addrs": 7,
+   "n_verified_contracts": 4,
+   "n_proxy_impls": 0,
+   "n_scanned_ok": 4,
+   "catch_types_matched": [],
+   "catch_types_severity": {},
+   "family_signal_types": [
+    "front_running"
+   ],
+   "verdict": "out-of-scope"
+  },
+  {
+   "poc": "HoppyFrogERC_exp.sol",
+   "class": "unknown",
+   "class_source": "inferred-keyword",
+   "chains": [
+    1
+   ],
+   "n_candidate_addrs": 5,
+   "n_verified_contracts": 2,
+   "n_proxy_impls": 0,
+   "n_scanned_ok": 2,
+   "catch_types_matched": [],
+   "catch_types_severity": {},
+   "family_signal_types": [],
+   "verdict": "unclassified"
+  },
+  {
+   "poc": "UnverifiedContr_0x00C409_exp.sol",
+   "class": "price-oracle-manipulation",
+   "class_source": "inferred-keyword",
+   "chains": [
+    1
+   ],
+   "n_candidate_addrs": 2,
+   "n_verified_contracts": 0,
+   "n_proxy_impls": 0,
+   "n_scanned_ok": 0,
+   "catch_types_matched": [],
+   "catch_types_severity": {},
+   "family_signal_types": [],
+   "verdict": "out-of-scope"
+  },
+  {
+   "poc": "Liquiditytokens_exp.sol",
+   "class": "price-oracle-manipulation",
+   "class_source": "inferred-keyword",
+   "chains": [
+    56
+   ],
+   "n_candidate_addrs": 13,
+   "n_verified_contracts": 7,
+   "n_proxy_impls": 0,
+   "n_scanned_ok": 7,
+   "catch_types_matched": [],
+   "catch_types_severity": {},
+   "family_signal_types": [],
+   "verdict": "out-of-scope"
+  },
+  {
+   "poc": "TCH_exp.sol",
+   "class": "price-oracle-manipulation",
+   "class_source": "inferred-keyword",
+   "chains": [
+    56
+   ],
+   "n_candidate_addrs": 8,
+   "n_verified_contracts": 3,
+   "n_proxy_impls": 0,
+   "n_scanned_ok": 3,
+   "catch_types_matched": [],
+   "catch_types_severity": {},
+   "family_signal_types": [],
+   "verdict": "out-of-scope"
+  },
+  {
+   "poc": "MineSTM_exp.sol",
+   "class": "unknown",
+   "class_source": "inferred-keyword",
+   "chains": [
+    56
+   ],
+   "n_candidate_addrs": 8,
+   "n_verified_contracts": 4,
+   "n_proxy_impls": 0,
+   "n_scanned_ok": 4,
+   "catch_types_matched": [],
+   "catch_types_severity": {},
+   "family_signal_types": [],
+   "verdict": "unclassified"
+  },
+  {
+   "poc": "DoughFina_exp.sol",
+   "class": "flash-loan",
+   "class_source": "inferred-keyword",
+   "chains": [
+    1
+   ],
+   "n_candidate_addrs": 6,
+   "n_verified_contracts": 3,
+   "n_proxy_impls": 1,
+   "n_scanned_ok": 4,
+   "catch_types_matched": [],
+   "catch_types_severity": {},
+   "family_signal_types": [],
+   "verdict": "out-of-scope"
+  },
+  {
+   "poc": "COCO_exp.sol",
+   "class": "unknown",
+   "class_source": "inferred-keyword",
+   "chains": [
+    56
+   ],
+   "n_candidate_addrs": 7,
+   "n_verified_contracts": 2,
+   "n_proxy_impls": 0,
+   "n_scanned_ok": 2,
+   "catch_types_matched": [],
+   "catch_types_severity": {},
+   "family_signal_types": [],
+   "verdict": "unclassified"
+  },
+  {
+   "poc": "Bankroll_exp.sol",
+   "class": "unknown",
+   "class_source": "inferred-keyword",
+   "chains": [
+    56
+   ],
+   "n_candidate_addrs": 6,
+   "n_verified_contracts": 2,
+   "n_proxy_impls": 0,
+   "n_scanned_ok": 2,
+   "catch_types_matched": [],
+   "catch_types_severity": {},
+   "family_signal_types": [],
+   "verdict": "unclassified"
+  },
+  {
+   "poc": "Penpiexyzio_exp.sol",
+   "class": "flash-loan",
+   "class_source": "inferred-keyword",
+   "chains": [
+    1
+   ],
+   "n_candidate_addrs": 14,
+   "n_verified_contracts": 12,
+   "n_proxy_impls": 7,
+   "n_scanned_ok": 19,
+   "catch_types_matched": [],
+   "catch_types_severity": {},
+   "family_signal_types": [],
+   "verdict": "out-of-scope"
+  },
+  {
+   "poc": "BUBAI_exp.sol",
+   "class": "unknown",
+   "class_source": "inferred-keyword",
+   "chains": [
+    1
+   ],
+   "n_candidate_addrs": 6,
+   "n_verified_contracts": 2,
+   "n_proxy_impls": 0,
+   "n_scanned_ok": 2,
+   "catch_types_matched": [],
+   "catch_types_severity": {},
+   "family_signal_types": [],
+   "verdict": "unclassified"
+  },
+  {
+   "poc": "ChiSale_exp.sol",
+   "class": "flash-loan",
+   "class_source": "inferred-keyword",
+   "chains": [
+    1,
+    56
+   ],
+   "n_candidate_addrs": 6,
+   "n_verified_contracts": 2,
+   "n_proxy_impls": 0,
+   "n_scanned_ok": 2,
+   "catch_types_matched": [],
+   "catch_types_severity": {},
+   "family_signal_types": [],
+   "verdict": "out-of-scope"
+  },
+  {
+   "poc": "proxy_b7e1_exp.sol",
+   "class": "unknown",
+   "class_source": "inferred-keyword",
+   "chains": [
+    56
+   ],
+   "n_candidate_addrs": 5,
+   "n_verified_contracts": 2,
+   "n_proxy_impls": 1,
+   "n_scanned_ok": 2,
+   "catch_types_matched": [],
+   "catch_types_severity": {},
+   "family_signal_types": [],
+   "verdict": "unclassified"
+  }
+ ]
+}
