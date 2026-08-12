@@ -25,6 +25,95 @@ def _find_foundry_root(start: Path) -> Optional[Path]:
     return None
 
 
+def _emit_economic_invariants(
+    contract_path: str,
+    out_dir: Optional[str],
+    quiet: bool,
+) -> Dict[str, Any]:
+    """Synthesize economic/business-logic invariants for a contract and emit them.
+
+    Contract-driven (not finding-driven): reads the source, matches economic
+    invariant templates (share-price inflation, solvency, flash-loan resistance,
+    supply conservation) and emits CVL + Echidna + Foundry artifacts.
+
+    Fully offline — requires no prover/fuzzer. When Ollama is available the
+    synthesizer additionally augments with LLM invariants, but that is optional.
+
+    Returns a summary dict: {count, names, files}.
+    """
+    from miesc.adapters.invariant_synthesizer import InvariantFormat, InvariantSynthesizer
+
+    synth = InvariantSynthesizer()
+    result = synth.synthesize(
+        contract_path=contract_path,
+        formats=[
+            InvariantFormat.CERTORA,
+            InvariantFormat.ECHIDNA,
+            InvariantFormat.FOUNDRY,
+        ],
+        include_economic=True,
+        use_cache=False,
+    )
+
+    economic_categories = {"economic", "solvency", "accounting"}
+    invariants = [
+        inv for inv in result.get("invariants", []) if inv.get("category") in economic_categories
+    ]
+
+    names = [inv.get("name", "unnamed") for inv in invariants]
+    files: list[str] = []
+
+    if out_dir and invariants:
+        out = Path(out_dir)
+        out.mkdir(parents=True, exist_ok=True)
+        stem = Path(contract_path).stem
+
+        import json as _json
+
+        json_path = out / f"{stem}.economic-invariants.json"
+        json_path.write_text(
+            _json.dumps({"contract": contract_path, "invariants": invariants}, indent=2),
+            encoding="utf-8",
+        )
+        files.append(str(json_path))
+
+        cvl = ["// Auto-generated economic invariants (CANDIDATES — bind protocol state).", ""]
+        ech = ["// Auto-generated economic Echidna properties (CANDIDATES).", ""]
+        fnd = ["// Auto-generated economic Foundry invariants (CANDIDATES).", ""]
+        for inv in invariants:
+            header = (
+                f"// [{inv.get('importance')}] {inv.get('name')}: {inv.get('natural_language')}"
+            )
+            if inv.get("certora_spec"):
+                cvl += [header, inv["certora_spec"], ""]
+            if inv.get("echidna_property"):
+                ech += [header, inv["echidna_property"], ""]
+            if inv.get("foundry_test"):
+                fnd += [header, inv["foundry_test"], ""]
+
+        cvl_path = out / f"{stem}.economic.spec"
+        ech_path = out / f"{stem}.economic.echidna.sol"
+        fnd_path = out / f"{stem}.economic.invariants.t.sol"
+        cvl_path.write_text("\n".join(cvl), encoding="utf-8")
+        ech_path.write_text("\n".join(ech), encoding="utf-8")
+        fnd_path.write_text("\n".join(fnd), encoding="utf-8")
+        files += [str(cvl_path), str(ech_path), str(fnd_path)]
+
+    if not quiet:
+        if invariants:
+            console.print(f"\n[bold]Economic invariants:[/bold] {len(invariants)} generated")
+            for inv in invariants:
+                console.print(f"  • [{inv.get('importance')}] {inv.get('name')}")
+            for f in files:
+                success(f"Wrote {f}")
+            if not out_dir:
+                info("Pass --invariants-out DIR to write CVL/Echidna/Foundry artifacts.")
+        else:
+            info("No economic invariant templates matched this contract.")
+
+    return {"count": len(invariants), "names": names, "files": files}
+
+
 @click.command()
 @click.argument("contract_path", type=click.Path(exists=True))
 @click.option(
@@ -80,6 +169,19 @@ def _find_foundry_root(start: Path) -> Optional[Path]:
     help="With --poc: run 'forge build' on each scaffold to confirm it compiles "
     "(best-effort; skipped when forge is not installed).",
 )
+@click.option(
+    "--economic-invariants",
+    is_flag=True,
+    help="Synthesize economic/business-logic invariants (ERC-4626 share-price "
+    "inflation, solvency, flash-loan resistance) from the contract and emit them. "
+    "Offline; no prover/fuzzer required.",
+)
+@click.option(
+    "--invariants-out",
+    type=click.Path(),
+    default=None,
+    help="With --economic-invariants: directory to write CVL/Echidna/Foundry artifacts.",
+)
 @click.option("--quiet", "-q", is_flag=True, help="Minimal output")
 def verify(
     contract_path: str,
@@ -91,6 +193,8 @@ def verify(
     sarif: str | None,
     poc: str | None,
     poc_check: bool,
+    economic_invariants: bool,
+    invariants_out: str | None,
     quiet: bool,
 ) -> None:
     """Run formal-verification provers against a contract.
@@ -109,6 +213,15 @@ def verify(
     """
     if not quiet:
         print_banner()
+
+    # Economic / business-logic invariant synthesis (offline, prover-independent).
+    econ_summary: Optional[Dict[str, Any]] = None
+    if economic_invariants:
+        try:
+            econ_summary = _emit_economic_invariants(contract_path, invariants_out, quiet)
+        except Exception as e:  # pragma: no cover - defensive
+            error(f"Economic invariant synthesis failed: {e}")
+            sys.exit(1)
 
     try:
         from miesc.formal import SpecRunner
@@ -203,6 +316,9 @@ def verify(
             sys.exit(1)
 
     if not results:
+        if econ_summary is not None:
+            # Economic invariant emission already did useful, prover-independent work.
+            sys.exit(0)
         warning("No provers were run (none installed for selected --tool).")
         sys.exit(0)
 

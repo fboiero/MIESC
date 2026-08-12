@@ -58,6 +58,7 @@ class InvariantCategory(Enum):
 
     ACCOUNTING = "accounting"  # Balance/supply consistency
     SOLVENCY = "solvency"  # Vault/protocol solvency
+    ECONOMIC = "economic"  # Price/share-value/flash-loan business logic
     ACCESS_CONTROL = "access_control"  # Permission invariants
     STATE_TRANSITION = "state_transition"  # Valid state transitions
     REENTRANCY = "reentrancy"  # Reentrancy guards
@@ -147,6 +148,7 @@ class InvariantSynthesizer:
         categories: Optional[List[InvariantCategory]] = None,
         max_invariants: int = 20,
         use_cache: bool = True,
+        include_economic: bool = True,
     ) -> Dict[str, Any]:
         """
         Synthesize invariants for a smart contract.
@@ -157,6 +159,10 @@ class InvariantSynthesizer:
             categories: Categories to focus on (default: all)
             max_invariants: Maximum number of invariants to generate
             use_cache: Whether to use cached results
+            include_economic: Also emit economic/business-logic invariant
+                templates (share-price inflation, solvency, flash-loan
+                resistance) for the relevant contract type. Offline,
+                no external tool required.
 
         Returns:
             Dictionary with synthesized invariants and metadata
@@ -180,7 +186,7 @@ class InvariantSynthesizer:
                 return self._error_result(f"Could not read contract: {contract_path}", start_time)
 
             # Check cache
-            cache_key = self._get_cache_key(contract_code, formats, categories)
+            cache_key = self._get_cache_key(contract_code, formats, categories, include_economic)
             if use_cache:
                 cached = self._get_cached_result(cache_key)
                 if cached:
@@ -189,18 +195,28 @@ class InvariantSynthesizer:
                     return cached
 
             # Stage 1: Static pattern-based invariants
-            logger.info("Stage 1/3: Pattern-based invariant detection")
+            logger.info("Stage 1/4: Pattern-based invariant detection")
             pattern_invariants = self._detect_pattern_invariants(contract_code)
 
-            # Stage 2: LLM-generated invariants
-            logger.info("Stage 2/3: LLM invariant synthesis")
+            # Stage 2: Economic / business-logic invariant templates (offline)
+            economic_invariants: List[SynthesizedInvariant] = []
+            if include_economic:
+                logger.info("Stage 2/4: Economic invariant templates")
+                economic_invariants = self._detect_economic_invariants(contract_code)
+
+            # Stage 3: LLM-generated invariants
+            logger.info("Stage 3/4: LLM invariant synthesis")
             llm_invariants = self._synthesize_with_llm(
                 contract_code, contract_path, categories, max_invariants
             )
 
-            # Stage 3: Merge and format
-            logger.info("Stage 3/3: Merging and formatting invariants")
-            all_invariants = self._merge_invariants(pattern_invariants, llm_invariants)
+            # Stage 4: Merge and format
+            logger.info("Stage 4/4: Merging and formatting invariants")
+            # Economic templates carry concrete, pre-populated backend bodies and
+            # take precedence over the generic pattern/LLM output.
+            all_invariants = self._merge_invariants(
+                economic_invariants + pattern_invariants, llm_invariants
+            )
 
             # Generate multi-format output
             formatted_invariants = self._format_invariants(all_invariants, formats)
@@ -218,6 +234,7 @@ class InvariantSynthesizer:
                 "metadata": {
                     "model": self._model,
                     "pattern_invariants": len(pattern_invariants),
+                    "economic_invariants": len(economic_invariants),
                     "llm_invariants": len(llm_invariants),
                     "rag_patterns_used": len(self._formal_invariants),
                 },
@@ -367,6 +384,42 @@ class InvariantSynthesizer:
             )
 
         logger.info(f"Pattern detection found {len(invariants)} invariants")
+        return invariants
+
+    def _detect_economic_invariants(self, contract_code: str) -> List[SynthesizedInvariant]:
+        """Build economic/business-logic invariants from the template library.
+
+        Offline and deterministic — no external tool required. Each template
+        carries concrete Certora/Echidna/Foundry bodies which are preserved
+        verbatim through the formatting stage (see `_format_invariants`).
+        """
+        from miesc.formal.economic_invariants import detect_economic_invariants
+
+        invariants: List[SynthesizedInvariant] = []
+        for tmpl in detect_economic_invariants(contract_code):
+            try:
+                category = InvariantCategory(tmpl.get("category", "economic"))
+            except ValueError:
+                category = InvariantCategory.ECONOMIC
+
+            invariants.append(
+                SynthesizedInvariant(
+                    name=tmpl["name"],
+                    description=tmpl["natural_language"],
+                    category=category,
+                    importance=tmpl.get("importance", "HIGH"),
+                    natural_language=tmpl["natural_language"],
+                    certora_spec=tmpl.get("certora_spec"),
+                    echidna_property=tmpl.get("echidna_property"),
+                    foundry_test=tmpl.get("foundry_test"),
+                    confidence=0.85,
+                    source="economic-template",
+                    related_vulnerabilities=tmpl.get("related_vulnerabilities", []),
+                    metadata={"auto_checkable": tmpl.get("auto_checkable", True)},
+                )
+            )
+
+        logger.info(f"Economic templates matched {len(invariants)} invariants")
         return invariants
 
     def _synthesize_with_llm(
@@ -601,21 +654,25 @@ IMPORTANT RULES:
         invariants: List[SynthesizedInvariant],
         formats: List[InvariantFormat],
     ) -> List[SynthesizedInvariant]:
-        """Generate multi-format output for invariants."""
+        """Generate multi-format output for invariants.
+
+        Pre-populated bodies (e.g. concrete economic templates) are preserved —
+        only empty fields are filled by the generic emitters.
+        """
         for inv in invariants:
-            if InvariantFormat.SOLIDITY in formats:
+            if InvariantFormat.SOLIDITY in formats and not inv.solidity_assertion:
                 inv.solidity_assertion = self._to_solidity(inv)
 
-            if InvariantFormat.CERTORA in formats:
+            if InvariantFormat.CERTORA in formats and not inv.certora_spec:
                 inv.certora_spec = self._to_certora(inv)
 
-            if InvariantFormat.ECHIDNA in formats:
+            if InvariantFormat.ECHIDNA in formats and not inv.echidna_property:
                 inv.echidna_property = self._to_echidna(inv)
 
-            if InvariantFormat.HALMOS in formats:
+            if InvariantFormat.HALMOS in formats and not inv.halmos_test:
                 inv.halmos_test = self._to_halmos(inv)
 
-            if InvariantFormat.FOUNDRY in formats:
+            if InvariantFormat.FOUNDRY in formats and not inv.foundry_test:
                 inv.foundry_test = self._to_foundry(inv)
 
         return invariants
@@ -865,10 +922,14 @@ function invariant_{name}() public {{
         contract_code: str,
         formats: List[InvariantFormat],
         categories: List[InvariantCategory],
+        include_economic: bool = True,
     ) -> str:
         """Generate cache key."""
         content = (
-            contract_code + str([f.value for f in formats]) + str([c.value for c in categories])
+            contract_code
+            + str([f.value for f in formats])
+            + str([c.value for c in categories])
+            + f"econ={include_economic}"
         )
         return hashlib.sha256(content.encode()).hexdigest()
 
