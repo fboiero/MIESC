@@ -154,6 +154,30 @@ class TestRunSolhint:
         assert findings[0]["line"] == 3
 
 
+class TestRunLocalAccessControl:
+    def test_detects_unprotected_privileged_function(self, scanner_all_available, tmp_path):
+        contract = tmp_path / "Vault.sol"
+        contract.write_text(
+            "pragma solidity ^0.8.0;\n"
+            "contract Vault {\n"
+            "  address public owner;\n"
+            "  function setOwner(address next) external {\n"
+            "    owner = next;\n"
+            "  }\n"
+            "}\n",
+            encoding="utf-8",
+        )
+
+        findings = scanner_all_available._run_local_access_control(str(contract))
+
+        assert any(f["type"] == "missing-access-control" for f in findings)
+        finding = next(f for f in findings if f["type"] == "missing-access-control")
+        assert finding["tool"] == "access-control-semantic-detector"
+        assert finding["severity"] == "medium"
+        assert finding["location"]["file"] == str(contract)
+        assert finding["location"]["function"] == "setOwner"
+
+
 class TestScan:
     def test_missing_contract_raises(self, scanner_all_available, tmp_path):
         with pytest.raises(FileNotFoundError):
@@ -190,6 +214,28 @@ class TestScan:
         result = scanner.scan(str(contract))
         assert result["tools_run"] == []
         assert result["summary"]["total_findings"] == 0
+
+    def test_scan_runs_local_access_control_without_external_tools(self, tmp_path):
+        contract = tmp_path / "Vault.sol"
+        contract.write_text(
+            "pragma solidity ^0.8.0;\n"
+            "contract Vault {\n"
+            "  address public owner;\n"
+            "  function setOwner(address next) external {\n"
+            "    owner = next;\n"
+            "  }\n"
+            "}\n",
+            encoding="utf-8",
+        )
+        with patch("subprocess.run", return_value=_proc(returncode=0)):
+            scanner = QuickScanner()
+        scanner.available_tools = {"slither": False, "aderyn": False, "solhint": False}
+
+        result = scanner.scan(str(contract))
+
+        assert result["tools_run"] == ["access-control-semantic-detector"]
+        assert result["summary"]["total_findings"] >= 1
+        assert "missing-access-control" in {f["type"] for f in result["findings"]}
 
     def test_scan_survives_tool_exception(self, tmp_path):
         contract = tmp_path / "C.sol"

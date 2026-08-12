@@ -99,6 +99,19 @@ class QuickScanner:
             except Exception as e:
                 logger.error(f"{tool} failed: {e}")
 
+        try:
+            local_findings = self._run_local_access_control(contract_path)
+            if local_findings:
+                results["tools_run"].append("access-control-semantic-detector")
+                results["findings"].extend(local_findings)
+                if verbose:
+                    logger.info(
+                        "access-control-semantic-detector: %d findings",
+                        len(local_findings),
+                    )
+        except Exception as e:
+            logger.error(f"access-control-semantic-detector failed: {e}")
+
         # Calculate summary
         results["execution_time"] = (datetime.now() - start_time).total_seconds()
         results["summary"] = self._calculate_summary(results["findings"])
@@ -114,6 +127,20 @@ class QuickScanner:
         elif tool == "solhint":
             return self._run_solhint(contract_path)
         return []
+
+    def _run_local_access_control(self, contract_path: str) -> List[Dict]:
+        """Run the built-in semantic access-control detector."""
+        from miesc.ml.classic_patterns import AccessControlSemanticDetector
+
+        source = Path(contract_path).read_text(encoding="utf-8")
+        detector = AccessControlSemanticDetector()
+        findings = detector.to_findings(detector.analyze(source))
+        for finding in findings:
+            finding["tool"] = "access-control-semantic-detector"
+            finding["severity"] = self._normalize_severity(finding.get("severity", ""))
+            location = finding.setdefault("location", {})
+            location["file"] = contract_path
+        return findings
 
     def _run_slither(self, contract_path: str) -> List[Dict]:
         """Run Slither static analyzer."""
