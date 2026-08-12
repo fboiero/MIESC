@@ -645,6 +645,14 @@ def scan(
                         }
                     )
 
+    # Source-level access-control safety net (single-file mode): fires even when
+    # Slither/Aderyn fail to compile the contract. Findings are reconciled by the
+    # intelligence engine (dedup + FP suppression) before reaching the report.
+    # Only surfaced when it actually contributes.
+    ac_result = run_access_control_semantic(contract)
+    if ac_result is not None and ac_result["findings"]:
+        all_results.append(ac_result)
+
     # Apply FP filter based on strictness (v5.1.2+)
     if fp_strictness.lower() != "off":
         try:
@@ -1032,6 +1040,57 @@ def _run_agentic_scan_profile(
     )
 
 
+# Minimum confidence for the source-level access-control detector's findings to
+# enter the scan pipeline. Drops the broad, noisy ``missing-access-control``
+# rule (0.65) while keeping the high-signal privileged-function/uninitialized-
+# owner rules (0.80/0.85) that carry the recall win.
+_SEMANTIC_MIN_CONFIDENCE = 0.75
+
+
+def run_access_control_semantic(contract: str) -> dict[str, Any] | None:
+    """Run the source-level semantic access-control detector as a scan tool.
+
+    This is a regex/source-level detector (it does not compile the contract), so
+    it still fires when Slither/Aderyn fail to parse a contract — old pragmas,
+    complex multi-owner proxies (e.g. the Parity wallet), etc. Its findings are
+    returned as a normal tool-result and flow through the intelligence engine's
+    semantic dedup + context-aware FP suppression + confidence path, so precision
+    stays guarded (recall-safe: nothing is force-added to the final report).
+
+    Returns a run_tool-compatible result dict, or ``None`` when the detector or
+    the contract source is unavailable.
+    """
+    try:
+        from miesc.ml.classic_patterns import AccessControlSemanticDetector
+    except Exception:
+        return None
+    try:
+        source = Path(contract).read_text(encoding="utf-8")
+    except Exception:
+        return None
+    try:
+        detector = AccessControlSemanticDetector()
+        raw = detector.to_findings(detector.analyze(source))
+    except Exception:
+        return None
+    # Precision guard: keep only high-confidence access-control signals.
+    # The broad ``missing-access-control`` rule (any external state-mutating
+    # function without a modifier, confidence 0.65) is noisy on token/refund
+    # helpers; the ``unprotected-privileged-function`` (0.80) and
+    # ``uninitialized-owner`` (0.85) rules carry the real recall (they still
+    # recover contracts the external tools fail to compile). Findings then flow
+    # through the intelligence engine's dedup + FP suppression as a second gate.
+    findings = [f for f in raw if float(f.get("confidence", 0.0)) >= _SEMANTIC_MIN_CONFIDENCE]
+    for finding in findings:
+        finding["tool"] = "access-control-semantic"
+    return {
+        "tool": "access-control-semantic",
+        "status": "success",
+        "findings": findings,
+        "execution_time": 0.0,
+    }
+
+
 def _scan_single_file(
     contract: str,
     all_results: list[dict[str, Any]],
@@ -1061,6 +1120,16 @@ def _scan_single_file(
                 result = {"tool": tool, "status": "error", "error": str(e), "findings": []}
             result["contract"] = contract
             all_results.append(result)
+
+    # Source-level access-control safety net: fires even when the external tools
+    # above fail to compile the contract. Findings are reconciled by the
+    # intelligence engine (dedup + FP suppression) before they reach the report.
+    # Only surfaced when it actually contributes, so scans with no access-control
+    # signal keep their existing tool set.
+    ac_result = run_access_control_semantic(contract)
+    if ac_result is not None and ac_result["findings"]:
+        ac_result["contract"] = contract
+        all_results.append(ac_result)
 
 
 def _apply_verify_fp(
