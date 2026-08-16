@@ -63,11 +63,20 @@ class ModelConfig:
     specialization: str  # What this model is best at
 
 
-# Default ensemble configuration (local Ollama models)
+# Default ensemble configuration (local Ollama models).
+#
+# Timeouts measured empirically (2026-08-15, MEJORAS2.md #5h) against a 7B
+# model over Ollama LAN with a real full-contract prompt: a genuine (not
+# fallback-to-pattern) completion took 132s. The original 90s/90s/60s here
+# predates that measurement and silently forced every run into the
+# fallback-to-empty path on this kind of backend - bumped with margin so the
+# ensemble's own per-model ceiling isn't the reason real reasoning never
+# finishes. Still bounded by whatever a caller passes as `timeout` (see
+# analyze()'s `per_adapter_timeout`), so a fast CI profile is unaffected.
 DEFAULT_ENSEMBLE = [
-    ModelConfig(name="deepseek-coder", weight=0.45, timeout=90, specialization="code_analysis"),
-    ModelConfig(name="codellama", weight=0.35, timeout=90, specialization="code_understanding"),
-    ModelConfig(name="mistral", weight=0.20, timeout=60, specialization="reasoning"),
+    ModelConfig(name="deepseek-coder", weight=0.45, timeout=180, specialization="code_analysis"),
+    ModelConfig(name="codellama", weight=0.35, timeout=180, specialization="code_understanding"),
+    ModelConfig(name="mistral", weight=0.20, timeout=150, specialization="reasoning"),
 ]
 
 # Vulnerability categories for consensus analysis
@@ -233,6 +242,48 @@ class LLMBugScannerAdapter(ToolAdapter):
                                 self._available_models.add(model.name)
                                 self._model_aliases[model.name] = available_model
                                 break
+
+                    if not self._available_models:
+                        # None of deepseek-coder/codellama/mistral are pulled -
+                        # this used to mean CONFIGURATION_ERROR unconditionally,
+                        # silently skipping the only Layer 9 tool that reads the
+                        # contract itself (not a second-opinion reviewer) in any
+                        # environment that pulled a different coding-model
+                        # family (e.g. qwen2.5-coder, already accepted as a
+                        # fallback by every other LLM adapter). Deliberately
+                        # narrower than select_ollama_model's own last-resort
+                        # "just grab whatever's installed" tier: a coding-model
+                        # family name must actually match, so an unrelated pull
+                        # (e.g. plain "llama2") still correctly reports
+                        # CONFIGURATION_ERROR rather than pretending it can
+                        # audit Solidity. Register the one real match under the
+                        # highest-weight role - the ensemble degrades to one
+                        # voter, which _aggregate_with_consensus already
+                        # handles (a lone voter trivially has 100% of the
+                        # available weight). Matched directly against `models`
+                        # (not via select_ollama_model) because that helper's
+                        # own last-resort tier grabs whatever is installed even
+                        # when nothing on the candidate list matches - exactly
+                        # the "llama2 doesn't make this a code-auditing tool"
+                        # case this fallback must still reject.
+                        fallback = ""
+                        for candidate in ("qwen2.5-coder", "codellama", "deepseek-coder", "codegemma"):
+                            for available_model in models:
+                                if candidate in available_model.lower():
+                                    fallback = available_model
+                                    break
+                            if fallback:
+                                break
+                        if fallback:
+                            primary = self._ensemble[0].name
+                            self._available_models.add(primary)
+                            self._model_aliases[primary] = fallback
+                            logger.info(
+                                "LLMBugScanner: no ensemble model pulled, falling back to "
+                                "single installed model '%s' under role '%s'",
+                                fallback,
+                                primary,
+                            )
 
                     if len(self._available_models) >= 1:
                         logger.info(

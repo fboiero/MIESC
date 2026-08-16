@@ -81,6 +81,38 @@ class TestIsAvailableNoModels:
         assert status == ToolStatus.CONFIGURATION_ERROR
 
 
+class TestIsAvailableFallbackModel:
+    def test_falls_back_to_installed_coding_model(self):
+        """None of deepseek-coder/codellama/mistral pulled, but a different
+        coding-model family (e.g. qwen2.5-coder) is - must still report
+        AVAILABLE with that model registered under the primary role, not
+        silently skip the only Layer 9 tool that reads the contract itself."""
+        adapter = _make_adapter()
+        resp = _make_http_response({"models": [{"name": "qwen2.5-coder:7b-16k"}]})
+
+        with patch("urllib.request.urlopen", return_value=resp):
+            status = adapter.is_available()
+
+        assert status == ToolStatus.AVAILABLE
+        primary = adapter._ensemble[0].name
+        assert adapter._model_aliases[primary] == "qwen2.5-coder:7b-16k"
+        assert adapter._available_models == {primary}
+
+    def test_unrelated_model_still_not_available(self):
+        """A pulled model with no coding-family match (llama2, per the
+        no-models test above) must not be grabbed as a fallback - the
+        fallback is deliberately narrower than a "pick anything installed"
+        default."""
+        adapter = _make_adapter()
+        resp = _make_http_response({"models": [{"name": "llama2"}]})
+
+        with patch("urllib.request.urlopen", return_value=resp):
+            status = adapter.is_available()
+
+        assert status == ToolStatus.CONFIGURATION_ERROR
+        assert not adapter._available_models
+
+
 # ---------------------------------------------------------------------------
 # 3. test_analyze_no_available
 # ---------------------------------------------------------------------------
