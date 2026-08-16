@@ -29,8 +29,9 @@ import subprocess
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple, cast
+from typing import Any, Dict, List, Optional, Set, Tuple
 
+from miesc.adapters._cache_mixin import LLMCacheMixin
 from miesc.core.llm_config import get_ollama_host
 from miesc.core.tool_protocol import (
     ToolAdapter,
@@ -136,7 +137,7 @@ VULNERABILITY_CATEGORIES = {
 }
 
 
-class LLMBugScannerAdapter(ToolAdapter):
+class LLMBugScannerAdapter(LLMCacheMixin, ToolAdapter):
     """
     Multi-LLM ensemble adapter for smart contract vulnerability detection.
 
@@ -146,8 +147,7 @@ class LLMBugScannerAdapter(ToolAdapter):
 
     def __init__(self, ensemble: Optional[List[ModelConfig]] = None):
         super().__init__()
-        self._cache_dir = Path.home() / ".miesc" / "llmbugscanner_cache"
-        self._cache_dir.mkdir(parents=True, exist_ok=True)
+        self._init_cache("llmbugscanner")
         self._ensemble = ensemble or DEFAULT_ENSEMBLE
         self._consensus_threshold = 0.35  # Minimum weighted consensus for a finding
         self._max_retries = 1
@@ -865,34 +865,7 @@ Respond with ONLY: VALID or FALSE_POSITIVE"""
             f"{contract_code}{models_str}{aliases_str}http-api-v2".encode()
         ).hexdigest()
 
-    def _get_cached_result(self, cache_key: str) -> Optional[Dict[str, Any]]:
-        """Retrieve cached result if available."""
-        cache_file = self._cache_dir / f"{cache_key}.json"
-
-        if not cache_file.exists():
-            return None
-
-        try:
-            age_seconds = time.time() - cache_file.stat().st_mtime
-            if age_seconds > 86400:  # 24 hours
-                cache_file.unlink()
-                return None
-
-            with open(cache_file, "r") as f:
-                return cast(dict[str, Any] | None, json.load(f))
-        except Exception as e:
-            logger.error(f"Error reading cache: {e}")
-            return None
-
-    def _cache_result(self, cache_key: str, result: Dict[str, Any]) -> None:
-        """Cache analysis result."""
-        cache_file = self._cache_dir / f"{cache_key}.json"
-
-        try:
-            with open(cache_file, "w") as f:
-                json.dump(result, f, indent=2)
-        except Exception as e:
-            logger.error(f"Error writing cache: {e}")
+    # _get_cached_result / _cache_result are provided by LLMCacheMixin.
 
 
 __all__ = ["LLMBugScannerAdapter", "ModelConfig", "DEFAULT_ENSEMBLE"]

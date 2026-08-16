@@ -526,3 +526,27 @@ class TestLLMBugScannerMetadata:
 
         assert adapter.normalize_findings("not a dict") == []
         assert adapter.normalize_findings({}) == []
+
+
+# ---------------------------------------------------------------------------
+# MEJORAS3.md item 6: llmbugscanner used to reimplement caching by hand
+# instead of the shared LLMCacheMixin, so it never checked MIESC_DISABLE_LLM_CACHE
+# — variance experiments (e.g. evaluate ablation --runs N) got a silent cache
+# hit on the 2nd+ run instead of a fresh model call.
+# ---------------------------------------------------------------------------
+class TestLLMBugScannerCacheDisable:
+    def test_respects_miesc_disable_llm_cache(self, monkeypatch, tmp_path):
+        monkeypatch.setenv("MIESC_DISABLE_LLM_CACHE", "1")
+        adapter = _make_adapter()
+        adapter._cache_dir = tmp_path
+
+        adapter._cache_result("key1", {"findings": ["should not persist"]})
+        assert adapter._get_cached_result("key1") is None
+
+    def test_caches_when_not_disabled(self, monkeypatch, tmp_path):
+        monkeypatch.delenv("MIESC_DISABLE_LLM_CACHE", raising=False)
+        adapter = _make_adapter()
+        adapter._cache_dir = tmp_path
+
+        adapter._cache_result("key1", {"findings": ["persisted"]})
+        assert adapter._get_cached_result("key1") == {"findings": ["persisted"]}
