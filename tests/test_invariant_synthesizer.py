@@ -198,13 +198,14 @@ class TestInvariantCategory:
     def test_all_categories(self):
         assert InvariantCategory.ACCOUNTING.value == "accounting"
         assert InvariantCategory.SOLVENCY.value == "solvency"
+        assert InvariantCategory.ECONOMIC.value == "economic"
         assert InvariantCategory.ACCESS_CONTROL.value == "access_control"
         assert InvariantCategory.STATE_TRANSITION.value == "state_transition"
         assert InvariantCategory.REENTRANCY.value == "reentrancy"
         assert InvariantCategory.OVERFLOW.value == "overflow"
         assert InvariantCategory.TEMPORAL.value == "temporal"
         assert InvariantCategory.CUSTOM.value == "custom"
-        assert len(InvariantCategory) == 8
+        assert len(InvariantCategory) == 9
 
     def test_category_from_value(self):
         assert InvariantCategory("accounting") == InvariantCategory.ACCOUNTING
@@ -1045,3 +1046,88 @@ class TestSynthesizeInvariantsConvenience:
                 ):
                     result = synthesize_invariants("/nonexistent/file.sol")
         assert result["status"] == "error"
+
+
+# ---------------------------------------------------------------------------
+# Economic invariant wiring (dead-code -> live)
+# ---------------------------------------------------------------------------
+
+ERC4626_VAULT_SRC = """
+pragma solidity ^0.8.0;
+contract Vault {
+    uint256 public totalSupply;
+    mapping(address => uint256) public balanceOf;
+    function totalAssets() public view returns (uint256) {}
+    function convertToShares(uint256 a) public view returns (uint256) {}
+    function convertToAssets(uint256 s) public view returns (uint256) {}
+    function deposit(uint256 a, address r) public returns (uint256) {}
+    function withdraw(uint256 a, address r, address o) public returns (uint256) {}
+}
+"""
+
+
+def _write_vault(tmp_path):
+    p = tmp_path / "Vault.sol"
+    p.write_text(ERC4626_VAULT_SRC)
+    return str(p)
+
+
+class TestEconomicInvariantWiring:
+    def _synth(self):
+        with (
+            patch(
+                "miesc.adapters.invariant_synthesizer.get_model", return_value="deepseek-coder:6.7b"
+            ),
+            patch(
+                "miesc.adapters.invariant_synthesizer.get_ollama_host",
+                return_value="http://localhost:11434",
+            ),
+            patch(
+                "miesc.adapters.invariant_synthesizer.get_retry_config",
+                return_value={"attempts": 1, "delay": 0},
+            ),
+            patch(
+                "miesc.adapters.invariant_synthesizer.InvariantSynthesizer._is_ollama_available",
+                return_value=False,
+            ),
+        ):
+            return InvariantSynthesizer()
+
+    def test_economic_invariants_generated_for_vault(self, tmp_path):
+        synth = self._synth()
+        result = synth.synthesize(
+            _write_vault(tmp_path),
+            formats=[InvariantFormat.CERTORA, InvariantFormat.ECHIDNA, InvariantFormat.FOUNDRY],
+            use_cache=False,
+        )
+        assert result["status"] == "success"
+        assert result["metadata"]["economic_invariants"] >= 3
+        econ = [i for i in result["invariants"] if i["source"] == "economic-template"]
+        names = {i["name"] for i in econ}
+        assert "vault_solvency" in names
+        assert "erc4626_share_price_non_decreasing" in names
+
+    def test_economic_bodies_are_concrete_not_placeholder(self, tmp_path):
+        """Economic templates carry real bodies that survive the format stage —
+        they must NOT be overwritten by the generic candidatePredicate() emitter."""
+        synth = self._synth()
+        result = synth.synthesize(
+            _write_vault(tmp_path),
+            formats=[InvariantFormat.CERTORA, InvariantFormat.ECHIDNA, InvariantFormat.FOUNDRY],
+            use_cache=False,
+        )
+        solvency = next(i for i in result["invariants"] if i["name"] == "vault_solvency")
+        assert "totalAssets() >= convertToAssets(totalSupply())" in solvency["certora_spec"]
+        assert "candidatePredicate" not in solvency["echidna_property"]
+        assert "assertGe" in solvency["foundry_test"]
+
+    def test_include_economic_false_disables_stage(self, tmp_path):
+        synth = self._synth()
+        result = synth.synthesize(
+            _write_vault(tmp_path),
+            formats=[InvariantFormat.CERTORA],
+            use_cache=False,
+            include_economic=False,
+        )
+        assert result["metadata"]["economic_invariants"] == 0
+        assert not any(i["source"] == "economic-template" for i in result["invariants"])

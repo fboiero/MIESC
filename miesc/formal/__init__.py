@@ -8,6 +8,11 @@ Bridges MIESC findings to formal verification tools:
   - Halmos (symbolic testing)
 """
 
+from miesc.formal.economic_invariants import (
+    ECONOMIC_INVARIANT_TEMPLATES,
+    EconomicInvariantTemplate,
+    detect_economic_invariants,
+)
 from miesc.formal.spec_generator import (
     GeneratedSpec,
     SpecFormat,
@@ -28,6 +33,8 @@ from miesc.formal.unified_report import (
 
 __all__ = [
     "Counterexample",
+    "ECONOMIC_INVARIANT_TEMPLATES",
+    "EconomicInvariantTemplate",
     "GeneratedSpec",
     "ProverVerdict",
     "SpecFormat",
@@ -36,6 +43,7 @@ __all__ = [
     "UNAVAILABLE",
     "UnifiedVerificationReport",
     "VerificationResult",
+    "detect_economic_invariants",
     "normalize_status",
     "run_all_available",
 ]

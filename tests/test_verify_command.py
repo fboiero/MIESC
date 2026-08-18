@@ -295,3 +295,86 @@ class TestExitCodeContract:
             instance.run_halmos.return_value = fake_result
             result = runner.invoke(verify, [contract, "--tool", "halmos", "--quiet"])
             assert result.exit_code == 0
+
+
+# ---------------------------------------------------------------------------
+# Economic invariant synthesis (--economic-invariants)
+# ---------------------------------------------------------------------------
+
+ERC4626_VAULT_SRC = """// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+contract Vault {
+    uint256 public totalSupply;
+    mapping(address => uint256) public balanceOf;
+    function totalAssets() public view returns (uint256) {}
+    function convertToShares(uint256 a) public view returns (uint256) {}
+    function convertToAssets(uint256 s) public view returns (uint256) {}
+    function deposit(uint256 a, address r) public returns (uint256) {}
+    function withdraw(uint256 a, address r, address o) public returns (uint256) {}
+}
+"""
+
+
+@pytest.fixture
+def vault_contract(tmp_path):
+    p = tmp_path / "Vault.sol"
+    p.write_text(ERC4626_VAULT_SRC)
+    return str(p)
+
+
+class TestEconomicInvariantsFlag:
+    def test_help_lists_economic_flag(self):
+        runner = CliRunner()
+        result = runner.invoke(verify, ["--help"])
+        assert result.exit_code == 0
+        assert "--economic-invariants" in result.output
+        assert "--invariants-out" in result.output
+
+    def test_economic_invariants_emitted_without_provers(self, vault_contract, tmp_path):
+        """Economic invariant synthesis must work with zero provers installed
+        (prover-independent path) and write CVL/Echidna/Foundry artifacts."""
+        out = tmp_path / "econ"
+        runner = CliRunner()
+        with patch("miesc.formal.SpecRunner") as SR:
+            SR.return_value.availability_report.return_value = {
+                "certora": False,
+                "halmos": False,
+                "smtchecker": False,
+                "scribble": False,
+                "kontrol": False,
+            }
+            result = runner.invoke(
+                verify,
+                [
+                    vault_contract,
+                    "--economic-invariants",
+                    "--invariants-out",
+                    str(out),
+                    "--quiet",
+                ],
+            )
+        assert result.exit_code == 0
+        assert (out / "Vault.economic-invariants.json").exists()
+        assert (out / "Vault.economic.spec").exists()
+        assert (out / "Vault.economic.echidna.sol").exists()
+        assert (out / "Vault.economic.invariants.t.sol").exists()
+        cvl = (out / "Vault.economic.spec").read_text()
+        assert "vaultSolvency" in cvl
+
+    def test_economic_only_is_offline_no_ollama_required(self, vault_contract):
+        """No --invariants-out, no provers, no Ollama — must still succeed."""
+        runner = CliRunner()
+        with patch("miesc.formal.SpecRunner") as SR:
+            SR.return_value.availability_report.return_value = {
+                "certora": False,
+                "halmos": False,
+                "smtchecker": False,
+                "scribble": False,
+                "kontrol": False,
+            }
+            with patch(
+                "miesc.adapters.invariant_synthesizer.InvariantSynthesizer._is_ollama_available",
+                return_value=False,
+            ):
+                result = runner.invoke(verify, [vault_contract, "--economic-invariants", "--quiet"])
+        assert result.exit_code == 0
