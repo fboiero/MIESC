@@ -514,12 +514,36 @@ End of report."""
         assert result.is_valid is False
 
     def test_lenient_mode_partial(self):
-        """Test lenient mode creates partial data."""
-        # Missing required fields but has some data
+        """A minimal-but-schema-valid input succeeds in lenient mode."""
+        # AnalysisResponse fills defaults, so this is actually valid.
         content = '{"summary": "Test summary"}'
         result = safe_parse_llm_json(content, AnalysisResponse, strict=False)
-        # Should succeed in lenient mode
         assert result.is_valid is True
+
+    def test_lenient_mode_does_not_fail_open_on_invalid_output(self):
+        """Security regression: LLM output that violates the schema must NOT come back
+        as valid in the default (lenient) mode. ``model_construct`` bypasses every
+        validator, so returning ``is_valid=True`` would let unvalidated, unsanitized
+        data flow downstream as if it had been checked (fail-open). The partial data
+        and the errors are still surfaced for inspection, but ``is_valid`` is False.
+        """
+        # risk_score out of range AND vulnerabilities is the wrong type -> invalid.
+        content = '{"summary": "x", "risk_score": 9999, "vulnerabilities": "NOT_A_LIST"}'
+        result = safe_parse_llm_json(content, AnalysisResponse, strict=False)
+        assert result.is_valid is False, "invalid LLM output must not be reported valid"
+        assert result.data is not None  # partial still available for inspection
+        assert result.errors  # the validation errors are surfaced
+
+    def test_lenient_mode_invalid_partial_is_not_trusted(self):
+        """Lenient mode may expose partial data, but must not fail open as valid."""
+        content = '{"vulnerabilities": "not_an_array", "summary": "Test summary"}'
+
+        result = safe_parse_llm_json(content, AnalysisResponse, strict=False)
+
+        assert result.is_valid is False
+        assert result.data is not None
+        assert result.errors
+        assert result.warnings
 
 
 class TestValidateVulnerabilityFinding:
