@@ -513,13 +513,38 @@ End of report."""
         result = safe_parse_llm_json(content, AnalysisResponse, strict=True)
         assert result.is_valid is False
 
-    def test_lenient_mode_partial(self):
-        """Test lenient mode creates partial data."""
-        # Missing required fields but has some data
-        content = '{"summary": "Test summary"}'
+    def test_lenient_mode_partial_data_is_not_valid(self):
+        """Lenient mode returns best-effort partial data, but is_valid is False.
+
+        ``model_construct`` bypasses every validator, so the data did NOT pass
+        validation; marking it valid would fail open. The partial data and the
+        validation errors are both surfaced for the caller to inspect.
+        """
+        content = '{"summary": "Test summary"}'  # missing required fields
         result = safe_parse_llm_json(content, AnalysisResponse, strict=False)
-        # Should succeed in lenient mode
-        assert result.is_valid is True
+        assert result.is_valid is False
+        assert result.data is not None  # partial still available for inspection
+        assert result.errors  # the validation errors are surfaced
+
+    def test_lenient_mode_does_not_fail_open_on_malicious_output(self):
+        """Security regression: invalid/malicious LLM output must never come back as
+        valid in the default (lenient) mode — otherwise unvalidated, unsanitized data
+        would flow downstream as if it had been checked."""
+        # A field that violates the schema (out-of-range / wrong type) must not pass.
+        content = '{"summary": "x", "risk_score": 9999, "vulnerabilities": "NOT_A_LIST"}'
+        result = safe_parse_llm_json(content, AnalysisResponse, strict=False)
+        assert result.is_valid is False, "invalid LLM output must not be reported valid"
+
+    def test_lenient_mode_invalid_partial_is_not_trusted(self):
+        """Lenient mode may expose partial data, but must not fail open as valid."""
+        content = '{"vulnerabilities": "not_an_array", "summary": "Test summary"}'
+
+        result = safe_parse_llm_json(content, AnalysisResponse, strict=False)
+
+        assert result.is_valid is False
+        assert result.data is not None
+        assert result.errors
+        assert result.warnings
 
 
 class TestValidateVulnerabilityFinding:
