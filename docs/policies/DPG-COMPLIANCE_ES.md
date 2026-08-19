@@ -313,7 +313,7 @@ MIESC mapea hallazgos a 12 estándares internacionales:
 |----------|----------------|
 | Control de Versiones | Git con commits firmados |
 | Revisión de Código | Pull request requerido |
-| Pruebas | 9130 pruebas pasando, 1 omitida en la última regresión local completa (v6.0.0); 81% de cobertura de líneas; 75% de mutation score en módulos core v6 — cifras conciliadas con el registro de validación de release en [POST_RELEASE_VALIDATION_2026-07-13.md](./POST_RELEASE_VALIDATION_2026-07-13.md) |
+| Pruebas | 9505 pruebas pasando, 1 omitida en la última regresión completa de main; 88% de cobertura de líneas (medido 2026-08-19); 75% de mutation score en módulos core v6. El release v6.0.0 se validó al 81% (ver [POST_RELEASE_VALIDATION_2026-07-13.md](./POST_RELEASE_VALIDATION_2026-07-13.md)); el hardening post-release subió la cobertura a 88% |
 | CI/CD | Pipeline de GitHub Actions |
 | Escaneo de Seguridad | Bandit, pip-audit, safety (dependencias); Trivy + carga SARIF a CodeQL (imagen Docker) — ver `.github/workflows/ci.yml` |
 | Documentación | MkDocs con versionado |
