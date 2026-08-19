@@ -164,15 +164,22 @@ Standard version cited (v1.1.6) is current (published 2024-09-04).
 | 5 | Documentation | Evidence VERIFIED ✓ | README EN/ES, `CONTRIBUTING.md`, `openapi.yaml` all resolve. Reconfirm the hosted site (`fboiero.github.io/MIESC`) renders live before filing — it could not be checked from the repo. |
 | 6 | Data extraction / portability | Evidence VERIFIED ✓ | Open export formats (JSON, SARIF 2.1, CSV, Markdown, HTML, PDF) documented in `DPG-COMPLIANCE.md` §6. |
 | 7 | Privacy & applicable laws | Evidence VERIFIED ✓ | `PRIVACY.md` present; local processing, no telemetry; GDPR/CCPA/Argentina Law 25.326 noted. |
-| 8 | Standards & best practices | Evidence VERIFIED ✓ | SARIF/OpenAPI/MCP/SWC/CWE + 12 standards + Contributor Covenant CoC. Security-scanner list corrected to match `ci.yml` (Bandit, pip-audit, safety, Trivy, CodeQL — Semgrep/Snyk were not actually wired in). The point-in-time test count in §8 should be re-run and refreshed against v6.0.0 before it is quoted to a reviewer. |
+| 8 | Standards & best practices | Evidence VERIFIED ✓ | SARIF/OpenAPI/MCP/SWC/CWE + 12 standards + Contributor Covenant CoC. Security-scanner list matches `ci.yml` (Bandit, pip-audit, safety, Trivy, CodeQL — Semgrep/Snyk were never wired in and are not claimed). Coverage/mutation figures in §8 reconciled to the release-validation record (`POST_RELEASE_VALIDATION_2026-07-13.md`): **81% line coverage** (was overstated as 88%), 75% mutation on core v6 modules. The 9130-test figure is a point-in-time local regression — re-run and refresh before quoting a fresh count. |
 | 9 | Do no harm by design | Evidence VERIFIED ✓ | `DO_NO_HARM.md` + `RESPONSIBLE_USE.md` + dual-use narrative; 9A/9B/9C answers in the responses CSV (no PII, no hosted content, CoC governs interactions). |
 
 **Bottom line.** All nine indicators resolve to real, current in-repo evidence;
-no broken links remain in this package or in `DPG-COMPLIANCE.md` (EN/ES). The
-verdict is a self-assessment supporting the DPGA's open review of application
-#13478 — it does not assert the DPGA has granted recognition. Two residual items
-are reviewer-facing rather than blocking: confirm the hosted docs site is live
-(indicator 5) and refresh the test count against v6.0.0 (indicator 8).
+no broken links remain in this package or in `DPG-COMPLIANCE.md` (EN/ES). During
+this filing-readiness pass, three broken evidence links in
+`DPGA_Application_Responses.csv` were corrected to their canonical `docs/` paths
+(`DPG-COMPLIANCE.md`, `CONTRIBUTORS.md`, `PRIVACY.md` live under `docs/` /
+`docs/policies/`, not the repository root), the stale Docker tag in that CSV was
+updated to `6.0.0`, and the line-coverage figure was reconciled from an
+overstated 88% down to the release-validated **81%**. The verdict is a
+self-assessment supporting the DPGA's open review of application #13478 — it does
+not assert the DPGA has granted recognition. Two residual items are
+reviewer-facing rather than blocking: confirm the hosted docs site is live
+(indicator 5) and re-run the suite to refresh the point-in-time test count
+against v6.0.0 (indicator 8).
 
 **Flagged in frozen files (not editable in this pass — for Fernando's attention).**
 The root `README.md` (a frozen paper artifact) states the project "is fully
