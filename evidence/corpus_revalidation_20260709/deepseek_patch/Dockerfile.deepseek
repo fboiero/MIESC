@@ -1,0 +1,3 @@
+FROM miesc:5.4.1-solc
+COPY miesc/cli/commands/scan.py /app/miesc/cli/commands/scan.py
+COPY src/adapters/frontier_llm_adapter.py /app/src/adapters/frontier_llm_adapter.py

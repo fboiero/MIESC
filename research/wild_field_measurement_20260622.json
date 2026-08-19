@@ -1,0 +1,43 @@
+{
+  "experiment": "wild_benign_context_field_measurement",
+  "date": "2026-06-22",
+  "additive": true,
+  "note": "Additive tool R&D — does not touch frozen paper evidence. First real-data field measurement of the recall-safe benign-context verifier (--verify-fp).",
+  "setup": {
+    "corpus": "fsalzano (real Ethereum contracts, manual human line-level labels)",
+    "corpus_subset_contracts": 60,
+    "scanner": "miesc (pure-python detect_zero_recall_categories, no solc)",
+    "ground_truth": "human labels anchored by category+line; zero circularity",
+    "verifier_model": "qwen2.5-coder:32b (local Ollama)",
+    "labeled_findings": 77,
+    "real": 21,
+    "benign_fp": 56
+  },
+  "configs": {
+    "rule_only_floor": {
+      "fp_dropped": 7, "fp_drop_rate": 0.125,
+      "real_kept": 21, "real_lost": 0, "recall_retained": 1.0, "anchored_recall": 1.0,
+      "precision_before": 0.2727, "precision_after": 0.30
+    },
+    "llm_drop_pre_fix": {
+      "fp_dropped": 11, "fp_drop_rate": 0.1964,
+      "real_kept": 18, "real_lost": 3, "recall_retained": 0.8571, "anchored_recall": 0.8571,
+      "precision_before": 0.2727, "precision_after": 0.2857,
+      "verdict": "RECALL-SAFETY VIOLATED — rejected"
+    },
+    "llm_advisory_post_fix": {
+      "fp_dropped": 7, "fp_drop_rate": 0.125,
+      "real_kept": 21, "real_lost": 0, "recall_retained": 1.0, "anchored_recall": 1.0,
+      "precision_before": 0.2727, "precision_after": 0.30,
+      "verdict": "recall-safe — shipped"
+    }
+  },
+  "real_vulns_dropped_by_llm_pre_fix": [
+    {"type": "unchecked_low_level_calls", "line": 83, "code": "lastContributor.send(this.balance);", "note": "unchecked low-level send"},
+    {"type": "unchecked_low_level_calls", "line": 16, "code": "owner.send(this.balance);", "note": "canonical unchecked-send in flush()"},
+    {"type": "time_manipulation", "line": 66, "code": "if (crowdsaleClosed||now<start||...) throw;", "note": "timestamp dependence on deadline"}
+  ],
+  "root_cause": "LLM reasoned genuine vulns away with defensible-sounding auditor judgments; detected lines sit exactly on vulnerable code (not a line-misalignment artifact).",
+  "fix": "src/ml/benign_context_verifier.py::verify — LLM is advisory-only (needs_review), can never drop; only the deterministic rule-based benign-pattern match drops. Locked by tests/test_benign_context_verifier.py::TestLLMNeverDrops.",
+  "takeaway": "A 'recall-safe' prompt is not recall-safe; recall-safety must be structural (remove LLM drop authority), not prompted. Controlled synthetic +28.6pp did not generalize to the field."
+}

@@ -1,0 +1,72 @@
+{
+  "issues": [
+    {
+      "engineId": "miesc",
+      "ruleId": "reentrancy",
+      "severity": "BLOCKER",
+      "type": "VULNERABILITY",
+      "primaryLocation": {
+        "message": "External call before state update allows reentrancy attack",
+        "filePath": "contracts/Vault.sol",
+        "textRange": {
+          "startLine": 42,
+          "endLine": 48,
+          "startColumn": 8,
+          "endColumn": 0
+        }
+      },
+      "effortMinutes": 120
+    },
+    {
+      "engineId": "miesc",
+      "ruleId": "overflow",
+      "severity": "CRITICAL",
+      "type": "VULNERABILITY",
+      "primaryLocation": {
+        "message": "Arithmetic operation may overflow",
+        "filePath": "contracts/Token.sol",
+        "textRange": {
+          "startLine": 156,
+          "endLine": 156,
+          "startColumn": 12,
+          "endColumn": 0
+        }
+      },
+      "effortMinutes": 60
+    },
+    {
+      "engineId": "miesc",
+      "ruleId": "unchecked_call",
+      "severity": "MAJOR",
+      "type": "VULNERABILITY",
+      "primaryLocation": {
+        "message": "Return value of low-level call not checked",
+        "filePath": "contracts/Utils.sol",
+        "textRange": {
+          "startLine": 78,
+          "endLine": 78,
+          "startColumn": 0,
+          "endColumn": 0
+        }
+      },
+      "effortMinutes": 30
+    },
+    {
+      "engineId": "miesc",
+      "ruleId": "gas",
+      "severity": "MINOR",
+      "type": "VULNERABILITY",
+      "primaryLocation": {
+        "message": "Loop can be optimized to save gas",
+        "filePath": "contracts/Staking.sol",
+        "textRange": {
+          "startLine": 234,
+          "endLine": 234,
+          "startColumn": 0,
+          "endColumn": 0
+        }
+      },
+      "effortMinutes": 15
+    }
+  ]
+}

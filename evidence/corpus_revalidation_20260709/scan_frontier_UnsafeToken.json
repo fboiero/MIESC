@@ -1,0 +1,1441 @@
+{
+  "contract": "/data/audit/UnsafeToken.sol",
+  "timestamp": "2026-07-09T20:29:20.575309",
+  "version": "5.4.1",
+  "success": true,
+  "summary": {
+    "CRITICAL": 3,
+    "HIGH": 13,
+    "MEDIUM": 7,
+    "LOW": 0,
+    "INFO": 0
+  },
+  "total_findings": 23,
+  "tools": [
+    "aderyn",
+    "frontier-anthropic",
+    "miesc-intelligence",
+    "slither",
+    "solhint"
+  ],
+  "tools_failed": [],
+  "findings": [
+    {
+      "type": "access_control",
+      "title": "Unrestricted Mint Function \u2014 Anyone Can Mint Tokens",
+      "severity": "Critical",
+      "tool": "frontier-anthropic",
+      "confidence": 0.5,
+      "location": {
+        "file": "/data/audit/UnsafeToken.sol",
+        "line": 68,
+        "function": "mint()"
+      },
+      "description": "The mint() function lacks any access control check. There is no require(msg.sender == owner) or similar restriction. Any externally owned account or contract can call mint() and credit themselves (or any address) with up to maxSupply tokens.",
+      "message": "An attacker can mint the full remaining supply (900,000 tokens) to their own address, inflating totalSupply to maxSupply and completely diluting all existing holders. This breaks the totalSupply invariant by allowing unauthorized inflation and renders all honest holders' tokens nearly worthless.",
+      "recommendation": "Add owner-only access control: require(msg.sender == owner, 'Not owner'); at the start of mint(). Consider using OpenZeppelin's Ownable pattern or a role-based access control system.",
+      "exploit_scenario": "1. Attacker calls mint(attackerAddress, 900000 * 10**18). 2. totalSupply becomes 1,000,000 * 10**18 (the maxSupply cap). 3. Attacker now holds 90% of all tokens. 4. If any DEX/AMM holds this token, attacker can dump and drain the paired asset.",
+      "swc_id": "",
+      "canonical_category": "other",
+      "confirming_tools": [
+        "frontier-anthropic"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": false,
+      "cross_validated_llm": false,
+      "fp_suppressed": false
+    },
+    {
+      "type": "access_control",
+      "title": "Unrestricted burnFrom \u2014 Any Caller Can Burn Any Account's Tokens",
+      "severity": "Critical",
+      "tool": "frontier-anthropic",
+      "confidence": 0.5,
+      "location": {
+        "file": "/data/audit/UnsafeToken.sol",
+        "line": 80,
+        "function": "burnFrom()"
+      },
+      "description": "burnFrom() allows any caller to burn tokens from ANY address without checking allowance or ownership. There is no require(msg.sender == from) and no allowance check. The only guard is that the target has sufficient balance.",
+      "message": "An attacker can destroy any holder's entire balance without authorization. This can be used to: (1) grief or sabotage specific users, (2) destroy the deployer/owner's tokens, (3) reduce totalSupply arbitrarily to manipulate token economics or price on AMMs.",
+      "recommendation": "Add proper authorization: either require(msg.sender == from, 'Not authorized') for self-burn, or check and decrement allowance: require(allowance[from][msg.sender] >= amount); allowance[from][msg.sender] -= amount;",
+      "exploit_scenario": "1. Attacker calls burnFrom(victimAddress, balanceOf[victim]). 2. victim's balance is set to 0 with no consent or allowance. 3. Attacker can repeat for all holders, destroying the entire token supply.",
+      "swc_id": "",
+      "canonical_category": "other",
+      "confirming_tools": [
+        "frontier-anthropic"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": false,
+      "cross_validated_llm": false,
+      "fp_suppressed": false
+    },
+    {
+      "type": "reentrancy",
+      "title": "Arbitrary External Call in transferWithCallback \u2014 Reentrancy and Code Execution",
+      "severity": "Critical",
+      "tool": "frontier-anthropic",
+      "confidence": 0.5,
+      "location": {
+        "file": "/data/audit/UnsafeToken.sol",
+        "line": 92,
+        "function": "transferWithCallback()"
+      },
+      "description": "After performing a transfer, transferWithCallback() executes an arbitrary call to the recipient address using caller-supplied data (to.call(data)). The return value of this call is not checked. More critically, this external call happens after state has been updated but allows the recipient contract to re-enter the token contract (e.g., calling transfer, transferWithCallback, or batchTransfer again). Since transfer() does not use a reentrancy guard, an attacker-controlled contract can re-enter and drain tokens.",
+      "message": "An attacker can deploy a malicious contract that, when called via the callback, re-enters transferWithCallback() or batchTransfer() to drain tokens from the caller. Additionally, arbitrary calldata means the attacker can use the token contract as a relay to call any other contract with any data, enabling phishing and approval exploits against third-party protocols.",
+      "recommendation": "Apply Checks-Effects-Interactions pattern: update state BEFORE external calls. Use OpenZeppelin's ReentrancyGuard (`nonReentrant` modifier).",
+      "exploit_scenario": [
+        "1. Attacker deploys a malicious contract with a fallback/receive function that calls back into the victim.",
+        "2. Attacker calls the victim's withdraw() function with a valid balance.",
+        "3. Victim sends ETH to attacker \u2014 attacker's fallback immediately calls withdraw() again before state is updated.",
+        "4. Re-entry loop drains the contract balance in a single transaction (no per-call state update blocks it).",
+        "5. Attack ends when gas runs out or balance is exhausted; attacker keeps all drained ETH."
+      ],
+      "swc_id": "",
+      "canonical_category": "reentrancy",
+      "confirming_tools": [
+        "frontier-anthropic"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": false,
+      "cross_validated_llm": false,
+      "fp_suppressed": false,
+      "fix_code": "// Fix: Apply Checks-Effects-Interactions (CEI) pattern + ReentrancyGuard\n// 1. Import OpenZeppelin's ReentrancyGuard\nimport \"@openzeppelin/contracts/security/ReentrancyGuard.sol\";\n\ncontract SafeVault is ReentrancyGuard {\n    mapping(address => uint256) private balances;\n\n    function withdraw(uint256 amount) external nonReentrant {\n        // CHECKS\n        require(balances[msg.sender] >= amount, \"Insufficient balance\");\n        // EFFECTS \u2014 update state BEFORE external call\n        balances[msg.sender] -= amount;\n        // INTERACTIONS \u2014 external call last\n        (bool success, ) = msg.sender.call{value: amount}(\"\");\n        require(success, \"Transfer failed\");\n    }\n}"
+    },
+    {
+      "id": "aderyn-weak-randomness-1-0",
+      "type": "weak-randomness",
+      "severity": "High",
+      "confidence": 0.938,
+      "location": {
+        "file": "UnsafeToken.sol",
+        "line": 112,
+        "function": "unknown"
+      },
+      "message": "Weak Randomness",
+      "description": "The use of keccak256 hash functions on predictable values like block.timestamp, block.number, or similar data, including modulo operations on these values, should be avoided for generating randomness, as they are easily predictable and manipulable. The `PREVRANDAO` opcode also should not be used as a source of randomness. Instead, utilize Chainlink VRF for cryptographically secure and provably random values to ensure protocol integrity.",
+      "recommendation": "Use Chainlink VRF or commit-reveal scheme for randomness",
+      "swc_id": "SWC-120",
+      "cwe_id": "CWE-330",
+      "owasp_category": null,
+      "_aderyn_detector": "weak-randomness",
+      "tool": "aderyn",
+      "canonical_category": "bad_randomness",
+      "confirming_tools": [
+        "aderyn"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": true,
+      "cross_validated_llm": false,
+      "fp_suppressed": false,
+      "fix_code": "// Fix: Use Chainlink VRF v2 for verifiable on-chain randomness\nimport \"@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol\";\nimport \"@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol\";\n\ncontract SecureRandom is VRFConsumerBaseV2 {\n    VRFCoordinatorV2Interface public immutable coordinator;\n    uint64 public immutable subscriptionId;\n    bytes32 public immutable keyHash;\n    uint256 public randomResult;\n\n    constructor(address _coord, uint64 _subId, bytes32 _keyHash)\n        VRFConsumerBaseV2(_coord)\n    {\n        coordinator = VRFCoordinatorV2Interface(_coord);\n        subscriptionId = _subId;\n        keyHash = _keyHash;\n    }\n\n    function requestRandom() external returns (uint256 requestId) {\n        return coordinator.requestRandomWords(keyHash, subscriptionId, 3, 100000, 1);\n    }\n\n    function fulfillRandomWords(uint256, uint256[] memory randomWords) internal override {\n        randomResult = randomWords[0];\n    }\n}",
+      "exploit_scenario": [
+        "1. Attacker inspects the on-chain randomness source (blockhash, block.timestamp, block.difficulty).",
+        "2. Before the target transaction is mined, attacker simulates possible block values to predict the 'random' outcome.",
+        "3. Attacker submits their exploit transaction in the same block as or immediately after the target, controlling the outcome.",
+        "4. For lottery contracts: attacker only submits when they know they will win; reverts otherwise (cost: only gas).",
+        "5. Attacker drains the prize pool repeatedly with a guaranteed-win strategy."
+      ]
+    },
+    {
+      "id": "slither-weak-prng-0",
+      "type": "weak-prng",
+      "severity": "High",
+      "confidence": 0.85,
+      "location": {
+        "file": "../data/audit/UnsafeToken.sol",
+        "line": 110,
+        "function": "timeLock"
+      },
+      "message": "UnsafeToken.timeLock() (../data/audit/UnsafeToken.sol#110-113) uses a weak PRNG: \"block.timestamp % 2 == 0 (../data/audit/UnsafeToken.sol#112)\" ",
+      "description": "[UnsafeToken.timeLock()](../data/audit/UnsafeToken.sol#L110-L113) uses a weak PRNG: \"[block.timestamp % 2 == 0](../data/audit/UnsafeToken.sol#L112)\" \n",
+      "recommendation": "Use Chainlink VRF for verifiable randomness. Never use `block.timestamp`, `blockhash`, or `block.difficulty` as entropy sources.",
+      "swc_id": "SWC-120",
+      "cwe_id": "CWE-330",
+      "owasp_category": null,
+      "_slither_detector": "weak-prng",
+      "_slither_impact": "High",
+      "_slither_confidence": "Medium",
+      "tool": "slither",
+      "canonical_category": "bad_randomness",
+      "confirming_tools": [
+        "slither"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": true,
+      "cross_validated_llm": false,
+      "fp_suppressed": false,
+      "fix_code": "// Fix: Use Chainlink VRF v2 for verifiable on-chain randomness\nimport \"@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol\";\nimport \"@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol\";\n\ncontract SecureRandom is VRFConsumerBaseV2 {\n    VRFCoordinatorV2Interface public immutable coordinator;\n    uint64 public immutable subscriptionId;\n    bytes32 public immutable keyHash;\n    uint256 public randomResult;\n\n    constructor(address _coord, uint64 _subId, bytes32 _keyHash)\n        VRFConsumerBaseV2(_coord)\n    {\n        coordinator = VRFCoordinatorV2Interface(_coord);\n        subscriptionId = _subId;\n        keyHash = _keyHash;\n    }\n\n    function requestRandom() external returns (uint256 requestId) {\n        return coordinator.requestRandomWords(keyHash, subscriptionId, 3, 100000, 1);\n    }\n\n    function fulfillRandomWords(uint256, uint256[] memory randomWords) internal override {\n        randomResult = randomWords[0];\n    }\n}",
+      "exploit_scenario": [
+        "1. Attacker inspects the on-chain randomness source (blockhash, block.timestamp, block.difficulty).",
+        "2. Before the target transaction is mined, attacker simulates possible block values to predict the 'random' outcome.",
+        "3. Attacker submits their exploit transaction in the same block as or immediately after the target, controlling the outcome.",
+        "4. For lottery contracts: attacker only submits when they know they will win; reverts otherwise (cost: only gas).",
+        "5. Attacker drains the prize pool repeatedly with a guaranteed-win strategy."
+      ]
+    },
+    {
+      "id": "slither-weak-prng-1",
+      "type": "weak-prng",
+      "severity": "High",
+      "confidence": 0.85,
+      "location": {
+        "file": "../data/audit/UnsafeToken.sol",
+        "line": 116,
+        "function": "lottery"
+      },
+      "message": "UnsafeToken.lottery(uint256) (../data/audit/UnsafeToken.sol#116-125) uses a weak PRNG: \"random = uint256(keccak256(bytes)(abi.encodePacked(block.timestamp,block.prevrandao,msg.sender))) % 100 (../data/audit/UnsafeToken.sol#118-122)\" ",
+      "description": "[UnsafeToken.lottery(uint256)](../data/audit/UnsafeToken.sol#L116-L125) uses a weak PRNG: \"[random = uint256(keccak256(bytes)(abi.encodePacked(block.timestamp,block.prevrandao,msg.sender))) % 100](../data/audit/UnsafeToken.sol#L118-L122)\" \n",
+      "recommendation": "Use Chainlink VRF for verifiable randomness. Never use `block.timestamp`, `blockhash`, or `block.difficulty` as entropy sources.",
+      "swc_id": "SWC-120",
+      "cwe_id": "CWE-330",
+      "owasp_category": null,
+      "_slither_detector": "weak-prng",
+      "_slither_impact": "High",
+      "_slither_confidence": "Medium",
+      "tool": "slither",
+      "canonical_category": "bad_randomness",
+      "confirming_tools": [
+        "slither"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": true,
+      "cross_validated_llm": false,
+      "fp_suppressed": false,
+      "fix_code": "// Fix: Use Chainlink VRF v2 for verifiable on-chain randomness\nimport \"@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol\";\nimport \"@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol\";\n\ncontract SecureRandom is VRFConsumerBaseV2 {\n    VRFCoordinatorV2Interface public immutable coordinator;\n    uint64 public immutable subscriptionId;\n    bytes32 public immutable keyHash;\n    uint256 public randomResult;\n\n    constructor(address _coord, uint64 _subId, bytes32 _keyHash)\n        VRFConsumerBaseV2(_coord)\n    {\n        coordinator = VRFCoordinatorV2Interface(_coord);\n        subscriptionId = _subId;\n        keyHash = _keyHash;\n    }\n\n    function requestRandom() external returns (uint256 requestId) {\n        return coordinator.requestRandomWords(keyHash, subscriptionId, 3, 100000, 1);\n    }\n\n    function fulfillRandomWords(uint256, uint256[] memory randomWords) internal override {\n        randomResult = randomWords[0];\n    }\n}",
+      "exploit_scenario": [
+        "1. Attacker inspects the on-chain randomness source (blockhash, block.timestamp, block.difficulty).",
+        "2. Before the target transaction is mined, attacker simulates possible block values to predict the 'random' outcome.",
+        "3. Attacker submits their exploit transaction in the same block as or immediately after the target, controlling the outcome.",
+        "4. For lottery contracts: attacker only submits when they know they will win; reverts otherwise (cost: only gas).",
+        "5. Attacker drains the prize pool repeatedly with a guaranteed-win strategy."
+      ]
+    },
+    {
+      "id": "aderyn-unchecked-return-0-0",
+      "type": "unchecked-return",
+      "severity": "High",
+      "confidence": 0.75,
+      "location": {
+        "file": "UnsafeToken.sol",
+        "line": 105,
+        "function": "unknown"
+      },
+      "message": "Return value of the function call is not checked.",
+      "description": "Function returns a value but it is ignored.",
+      "recommendation": "Always check return value of low-level calls or use SafeERC20",
+      "swc_id": "SWC-104",
+      "cwe_id": "CWE-252",
+      "owasp_category": null,
+      "_aderyn_detector": "unchecked-return",
+      "tool": "aderyn",
+      "canonical_category": "unchecked_call",
+      "confirming_tools": [
+        "aderyn"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": true,
+      "cross_validated_llm": false,
+      "fp_suppressed": false,
+      "fix_code": "// Fix: Use SafeERC20 for token transfers; require(success) for low-level calls\nimport \"@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol\";\nimport \"@openzeppelin/contracts/token/ERC20/IERC20.sol\";\n\ncontract SafeTransfer {\n    using SafeERC20 for IERC20;\n\n    function transferTokens(IERC20 token, address to, uint256 amount) external {\n        // SafeERC20 wraps transfer/transferFrom and reverts on failure\n        token.safeTransfer(to, amount);\n    }\n\n    function sendEther(address payable recipient, uint256 amount) external {\n        // Always check the return value of low-level calls\n        (bool success, ) = recipient.call{value: amount}(\"\");\n        require(success, \"ETH transfer failed\");\n    }\n}",
+      "exploit_scenario": [
+        "1. Contract calls an external address using .call() or .send() but does not check the boolean return value.",
+        "2. The external call silently fails (e.g. recipient is a contract that reverts, or gas stipend is exceeded).",
+        "3. Because the return value is ignored, the contract continues execution and marks the operation as successful.",
+        "4. Tokens or ETH are never delivered, but the contract's internal state (balances, flags) is updated as if they were.",
+        "5. Attacker exploits the accounting discrepancy to double-spend or claim funds they should not have."
+      ]
+    },
+    {
+      "id": "aderyn-weak-randomness-1-2",
+      "type": "weak-randomness",
+      "severity": "High",
+      "confidence": 0.75,
+      "location": {
+        "file": "UnsafeToken.sol",
+        "line": 120,
+        "function": "unknown"
+      },
+      "message": "Weak Randomness",
+      "description": "The use of keccak256 hash functions on predictable values like block.timestamp, block.number, or similar data, including modulo operations on these values, should be avoided for generating randomness, as they are easily predictable and manipulable. The `PREVRANDAO` opcode also should not be used as a source of randomness. Instead, utilize Chainlink VRF for cryptographically secure and provably random values to ensure protocol integrity.",
+      "recommendation": "Use Chainlink VRF or commit-reveal scheme for randomness",
+      "swc_id": "SWC-120",
+      "cwe_id": "CWE-330",
+      "owasp_category": null,
+      "_aderyn_detector": "weak-randomness",
+      "tool": "aderyn",
+      "canonical_category": "bad_randomness",
+      "confirming_tools": [
+        "aderyn"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": true,
+      "cross_validated_llm": false,
+      "fp_suppressed": false,
+      "fix_code": "// Fix: Use Chainlink VRF v2 for verifiable on-chain randomness\nimport \"@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol\";\nimport \"@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol\";\n\ncontract SecureRandom is VRFConsumerBaseV2 {\n    VRFCoordinatorV2Interface public immutable coordinator;\n    uint64 public immutable subscriptionId;\n    bytes32 public immutable keyHash;\n    uint256 public randomResult;\n\n    constructor(address _coord, uint64 _subId, bytes32 _keyHash)\n        VRFConsumerBaseV2(_coord)\n    {\n        coordinator = VRFCoordinatorV2Interface(_coord);\n        subscriptionId = _subId;\n        keyHash = _keyHash;\n    }\n\n    function requestRandom() external returns (uint256 requestId) {\n        return coordinator.requestRandomWords(keyHash, subscriptionId, 3, 100000, 1);\n    }\n\n    function fulfillRandomWords(uint256, uint256[] memory randomWords) internal override {\n        randomResult = randomWords[0];\n    }\n}",
+      "exploit_scenario": [
+        "1. Attacker inspects the on-chain randomness source (blockhash, block.timestamp, block.difficulty).",
+        "2. Before the target transaction is mined, attacker simulates possible block values to predict the 'random' outcome.",
+        "3. Attacker submits their exploit transaction in the same block as or immediately after the target, controlling the outcome.",
+        "4. For lottery contracts: attacker only submits when they know they will win; reverts otherwise (cost: only gas).",
+        "5. Attacker drains the prize pool repeatedly with a guaranteed-win strategy."
+      ]
+    },
+    {
+      "id": "aderyn-contract-locks-ether-2-0",
+      "type": "contract-locks-ether",
+      "severity": "High",
+      "confidence": 0.75,
+      "location": {
+        "file": "UnsafeToken.sol",
+        "line": 9,
+        "function": "unknown"
+      },
+      "message": "Contract locks Ether without a withdraw function.",
+      "description": "It appears that the contract includes a payable function to accept Ether but lacks a corresponding function to withdraw it, which leads to the Ether being locked in the contract. To resolve this issue, please implement a public or external function that allows for the withdrawal of Ether from the contract.",
+      "recommendation": "Review and fix the issue according to best practices",
+      "swc_id": null,
+      "cwe_id": null,
+      "owasp_category": null,
+      "_aderyn_detector": "contract-locks-ether",
+      "tool": "aderyn",
+      "canonical_category": "other",
+      "confirming_tools": [
+        "aderyn"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": true,
+      "cross_validated_llm": false,
+      "fp_suppressed": false
+    },
+    {
+      "type": "denial_of_service",
+      "title": "batchTransfer Unbounded Loop \u2014 Gas Griefing and DoS",
+      "severity": "High",
+      "tool": "frontier-anthropic",
+      "confidence": 0.5,
+      "location": {
+        "file": "/data/audit/UnsafeToken.sol",
+        "line": 101,
+        "function": "batchTransfer()"
+      },
+      "description": "batchTransfer() iterates over an unbounded array of recipients, calling transfer() for each. There is no limit on the length of the recipients array. An attacker or even a benign user can pass an extremely large array causing the transaction to exceed the block gas limit, making it revert. More critically, since each call to transfer() also reduces msg.sender's balance, a large array combined with a limited balance can cause all transfers after balance exhaustion to revert, wasting all gas.",
+      "message": "1. Any caller can submit a batchTransfer with a huge recipients array, consuming all block gas and potentially preventing other transactions from being included (block stuffing). 2. If this function is used in critical protocol logic (e.g., reward distribution), an attacker can make it permanently revert by front-running with a transfer that depletes the caller's balance.",
+      "recommendation": "Add a maximum batch size: require(recipients.length <= MAX_BATCH, 'Batch too large'); with MAX_BATCH set to a safe value (e.g., 200). Also add a check that msg.sender has sufficient balance for ALL transfers before any are executed: require(balanceOf[msg.sender] >= amount * recipients.length, 'Insufficient balance for batch');",
+      "exploit_scenario": "1. Attacker calls batchTransfer([addr1, addr2, ... 10000 addrs], 1). 2. Transaction runs out of gas at block gas limit. 3. All gas is consumed, transaction reverts. Alternatively: 4. If total amount > balance, transaction reverts partway through, wasting gas for all preceding transfers (though state reverts completely due to EVM atomicity).",
+      "swc_id": "",
+      "canonical_category": "other",
+      "confirming_tools": [
+        "frontier-anthropic"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": false,
+      "cross_validated_llm": false,
+      "fp_suppressed": false
+    },
+    {
+      "type": "logic_error",
+      "title": "Missing Zero Address Check in transfer() and transferFrom()",
+      "severity": "High",
+      "tool": "frontier-anthropic",
+      "confidence": 0.5,
+      "location": {
+        "file": "/data/audit/UnsafeToken.sol",
+        "line": 35,
+        "function": "transfer(), transferFrom()"
+      },
+      "description": "transfer() and transferFrom() do not check that the 'to' address is non-zero. Sending tokens to address(0) permanently destroys them from the sender's perspective but does NOT reduce totalSupply, breaking the invariant that totalSupply == sum(all balanceOf). Tokens accumulate in balanceOf[address(0)] and are irretrievably lost.",
+      "message": "Users who accidentally send tokens to address(0) lose them permanently. The invariant totalSupply == sum(balanceOf) is violated (since address(0) balance grows but totalSupply doesn't decrease), which can mislead integrations, analytics, and governance systems that rely on totalSupply for quorum or voting weight calculations.",
+      "recommendation": "Add require(to != address(0), 'Transfer to zero address'); at the start of both transfer() and transferFrom(). This is standard ERC20 practice as implemented in OpenZeppelin's ERC20.",
+      "exploit_scenario": "1. User calls transfer(address(0), 1000 * 10**18) by mistake. 2. balanceOf[address(0)] += 1000e18; totalSupply unchanged. 3. Tokens are permanently inaccessible. 4. totalSupply now overstates the circulating supply.",
+      "swc_id": "",
+      "canonical_category": "other",
+      "confirming_tools": [
+        "frontier-anthropic"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": false,
+      "cross_validated_llm": false,
+      "fp_suppressed": false
+    },
+    {
+      "type": "logic_error",
+      "title": "Approve Race Condition \u2014 Double-Spend Attack",
+      "severity": "High",
+      "tool": "frontier-anthropic",
+      "confidence": 0.5,
+      "location": {
+        "file": "/data/audit/UnsafeToken.sol",
+        "line": 47,
+        "function": "approve()"
+      },
+      "description": "The approve() function sets the allowance directly to the new value without first resetting it to zero. This enables the well-known ERC20 approval race condition: if an owner wants to change a spender's allowance from X to Y, a malicious spender can front-run the change transaction and spend the original X tokens, then spend Y tokens after the change is mined, effectively spending X+Y tokens instead of Y.",
+      "message": "A malicious approved spender can spend more than the owner intended. If an owner changes allowance from 1000 to 500, the spender can extract 1500 tokens total by front-running the approval change.",
+      "recommendation": "Use increaseAllowance()/decreaseAllowance() pattern instead of direct approve(). Alternatively, require the current allowance to be 0 before setting a non-zero value: require(amount == 0 || allowance[msg.sender][spender] == 0, 'Reset allowance to 0 first');",
+      "exploit_scenario": "1. Owner has approved Spender for 1000 tokens. 2. Owner submits approve(Spender, 500) to reduce allowance. 3. Spender sees this in the mempool and front-runs with transferFrom(owner, spender, 1000). 4. Spender's transferFrom executes first, spending 1000 tokens. 5. Owner's approve() executes, setting allowance to 500. 6. Spender calls transferFrom(owner, spender, 500) again, spending 500 more. 7. Total extracted: 1500 tokens instead of intended 500.",
+      "swc_id": "",
+      "canonical_category": "other",
+      "confirming_tools": [
+        "frontier-anthropic"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": false,
+      "cross_validated_llm": false,
+      "fp_suppressed": false
+    },
+    {
+      "type": "logic_error",
+      "title": "Ether Permanently Locked \u2014 No Withdrawal Function",
+      "severity": "High",
+      "tool": "frontier-anthropic",
+      "confidence": 0.5,
+      "location": {
+        "file": "/data/audit/UnsafeToken.sol",
+        "line": 131,
+        "function": "receive()"
+      },
+      "description": "The contract implements a receive() payable function that accepts ETH, but there is no corresponding withdraw or rescue function. Any ETH sent to this contract is permanently locked and unrecoverable by the owner or any other party.",
+      "message": "Any ETH sent to this contract (by mistake or by a third-party contract) is permanently lost. This includes ETH sent by users who confuse this with a payable token contract, and ETH sent as part of multi-call patterns.",
+      "recommendation": "Either remove the receive() function if ETH acceptance is not intended, or add an owner-only withdrawal function: function withdrawETH() external { require(msg.sender == owner); (bool success,) = owner.call{value: address(this).balance}(''); require(success); }",
+      "exploit_scenario": "1. User accidentally sends 1 ETH to the contract address. 2. receive() executes, ETH is credited to contract balance. 3. No function exists to withdraw it. 4. ETH is permanently locked.",
+      "swc_id": "",
+      "canonical_category": "other",
+      "confirming_tools": [
+        "frontier-anthropic"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": false,
+      "cross_validated_llm": false,
+      "fp_suppressed": false
+    },
+    {
+      "type": "access_control",
+      "title": "Missing pause Check in State-Changing Functions",
+      "severity": "High",
+      "tool": "frontier-anthropic",
+      "confidence": 0.5,
+      "location": {
+        "file": "/data/audit/UnsafeToken.sol",
+        "line": 0,
+        "function": "transfer(), transferFrom(), mint(), burnFrom(), transferWithCallback(), batchTransfer()"
+      },
+      "description": "The contract has a paused state variable and pause()/unpause() admin functions, but NONE of the state-changing functions (transfer, transferFrom, mint, burnFrom, transferWithCallback, batchTransfer) check the paused flag. The pause mechanism is completely ineffective and provides false security.",
+      "message": "If the contract is compromised or an exploit is detected, the owner cannot pause the contract to stop fund draining. This makes the pause/unpause mechanism entirely useless as an emergency stop, leaving the protocol without a critical safety valve during an active attack.",
+      "recommendation": "Add require(!paused, 'Contract is paused'); to all state-changing functions: transfer(), approve(), transferFrom(), mint(), burnFrom(), transferWithCallback(), and batchTransfer(). Consider using a modifier: modifier whenNotPaused() { require(!paused, 'Paused'); _; }",
+      "exploit_scenario": "1. An exploit is detected on the live contract. 2. Owner calls pause() \u2014 paused = true. 3. Attacker continues to call mint(), burnFrom(), transferWithCallback() unimpeded. 4. All funds are drained despite the pause.",
+      "swc_id": "",
+      "canonical_category": "other",
+      "confirming_tools": [
+        "frontier-anthropic"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": false,
+      "cross_validated_llm": false,
+      "fp_suppressed": false
+    },
+    {
+      "type": "bad_randomness",
+      "severity": "High",
+      "swc_id": "SWC-120",
+      "tool": "miesc-intelligence",
+      "confidence": 0.5,
+      "location": {
+        "file": "",
+        "line": 120,
+        "function": "unknown"
+      },
+      "message": "On-chain randomness source is predictable \u2014 use Chainlink VRF or commit-reveal.",
+      "description": "On-chain randomness source is predictable \u2014 use Chainlink VRF or commit-reveal.",
+      "recommendation": "On-chain randomness source is predictable \u2014 use Chainlink VRF or commit-reveal.",
+      "canonical_category": "bad_randomness",
+      "confirming_tools": [
+        "miesc-intelligence"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": false,
+      "cross_validated_llm": false,
+      "fp_suppressed": false,
+      "fix_code": "// Fix: Use Chainlink VRF v2 for verifiable on-chain randomness\nimport \"@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol\";\nimport \"@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol\";\n\ncontract SecureRandom is VRFConsumerBaseV2 {\n    VRFCoordinatorV2Interface public immutable coordinator;\n    uint64 public immutable subscriptionId;\n    bytes32 public immutable keyHash;\n    uint256 public randomResult;\n\n    constructor(address _coord, uint64 _subId, bytes32 _keyHash)\n        VRFConsumerBaseV2(_coord)\n    {\n        coordinator = VRFCoordinatorV2Interface(_coord);\n        subscriptionId = _subId;\n        keyHash = _keyHash;\n    }\n\n    function requestRandom() external returns (uint256 requestId) {\n        return coordinator.requestRandomWords(keyHash, subscriptionId, 3, 100000, 1);\n    }\n\n    function fulfillRandomWords(uint256, uint256[] memory randomWords) internal override {\n        randomResult = randomWords[0];\n    }\n}",
+      "exploit_scenario": [
+        "1. Attacker inspects the on-chain randomness source (blockhash, block.timestamp, block.difficulty).",
+        "2. Before the target transaction is mined, attacker simulates possible block values to predict the 'random' outcome.",
+        "3. Attacker submits their exploit transaction in the same block as or immediately after the target, controlling the outcome.",
+        "4. For lottery contracts: attacker only submits when they know they will win; reverts otherwise (cost: only gas).",
+        "5. Attacker drains the prize pool repeatedly with a guaranteed-win strategy."
+      ]
+    },
+    {
+      "type": "bad_randomness_block_vars",
+      "severity": "High",
+      "swc_id": "SWC-120",
+      "tool": "miesc-intelligence",
+      "confidence": 0.5,
+      "location": {
+        "file": "",
+        "line": 112,
+        "function": "unknown"
+      },
+      "message": "Block variable used as entropy source \u2014 predictable/manipulable by miners. Use Chainlink VRF.",
+      "description": "Block variable used as entropy source \u2014 predictable/manipulable by miners. Use Chainlink VRF.",
+      "recommendation": "Block variable used as entropy source \u2014 predictable/manipulable by miners. Use Chainlink VRF.",
+      "canonical_category": "bad_randomness",
+      "confirming_tools": [
+        "miesc-intelligence"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": false,
+      "cross_validated_llm": false,
+      "fp_suppressed": false,
+      "fix_code": "// Fix: Use Chainlink VRF v2 for verifiable on-chain randomness\nimport \"@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol\";\nimport \"@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol\";\n\ncontract SecureRandom is VRFConsumerBaseV2 {\n    VRFCoordinatorV2Interface public immutable coordinator;\n    uint64 public immutable subscriptionId;\n    bytes32 public immutable keyHash;\n    uint256 public randomResult;\n\n    constructor(address _coord, uint64 _subId, bytes32 _keyHash)\n        VRFConsumerBaseV2(_coord)\n    {\n        coordinator = VRFCoordinatorV2Interface(_coord);\n        subscriptionId = _subId;\n        keyHash = _keyHash;\n    }\n\n    function requestRandom() external returns (uint256 requestId) {\n        return coordinator.requestRandomWords(keyHash, subscriptionId, 3, 100000, 1);\n    }\n\n    function fulfillRandomWords(uint256, uint256[] memory randomWords) internal override {\n        randomResult = randomWords[0];\n    }\n}",
+      "exploit_scenario": [
+        "1. Attacker inspects the on-chain randomness source (blockhash, block.timestamp, block.difficulty).",
+        "2. Before the target transaction is mined, attacker simulates possible block values to predict the 'random' outcome.",
+        "3. Attacker submits their exploit transaction in the same block as or immediately after the target, controlling the outcome.",
+        "4. For lottery contracts: attacker only submits when they know they will win; reverts otherwise (cost: only gas).",
+        "5. Attacker drains the prize pool repeatedly with a guaranteed-win strategy."
+      ]
+    },
+    {
+      "id": "slither-incorrect-equality-2",
+      "type": "incorrect-equality",
+      "severity": "Medium",
+      "confidence": 0.85,
+      "location": {
+        "file": "../data/audit/UnsafeToken.sol",
+        "line": 116,
+        "function": "lottery"
+      },
+      "message": "UnsafeToken.lottery(uint256) (../data/audit/UnsafeToken.sol#116-125) uses a dangerous strict equality:",
+      "description": "[UnsafeToken.lottery(uint256)](../data/audit/UnsafeToken.sol#L116-L125) uses a dangerous strict equality:\n\t- [guess == random](../data/audit/UnsafeToken.sol#L124)\n",
+      "recommendation": "Review and fix the vulnerability",
+      "swc_id": null,
+      "cwe_id": null,
+      "owasp_category": null,
+      "_slither_detector": "incorrect-equality",
+      "_slither_impact": "Medium",
+      "_slither_confidence": "High",
+      "tool": "slither",
+      "canonical_category": "other",
+      "confirming_tools": [
+        "slither"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": true,
+      "cross_validated_llm": false,
+      "fp_suppressed": false
+    },
+    {
+      "id": "slither-incorrect-equality-3",
+      "type": "incorrect-equality",
+      "severity": "Medium",
+      "confidence": 0.85,
+      "location": {
+        "file": "../data/audit/UnsafeToken.sol",
+        "line": 110,
+        "function": "timeLock"
+      },
+      "message": "UnsafeToken.timeLock() (../data/audit/UnsafeToken.sol#110-113) uses a dangerous strict equality:",
+      "description": "[UnsafeToken.timeLock()](../data/audit/UnsafeToken.sol#L110-L113) uses a dangerous strict equality:\n\t- [block.timestamp % 2 == 0](../data/audit/UnsafeToken.sol#L112)\n",
+      "recommendation": "Review and fix the vulnerability",
+      "swc_id": null,
+      "cwe_id": null,
+      "owasp_category": null,
+      "_slither_detector": "incorrect-equality",
+      "_slither_impact": "Medium",
+      "_slither_confidence": "High",
+      "tool": "slither",
+      "canonical_category": "other",
+      "confirming_tools": [
+        "slither"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": true,
+      "cross_validated_llm": false,
+      "fp_suppressed": false
+    },
+    {
+      "id": "slither-locked-ether-4",
+      "type": "locked-ether",
+      "severity": "Medium",
+      "confidence": 0.85,
+      "location": {
+        "file": "../data/audit/UnsafeToken.sol",
+        "line": 9,
+        "function": "UnsafeToken"
+      },
+      "message": "Contract locking ether found:",
+      "description": "Contract locking ether found:\n\tContract [UnsafeToken](../data/audit/UnsafeToken.sol#L9-L142) has payable functions:\n\t - [UnsafeToken.receive()](../data/audit/UnsafeToken.sol#L139-L141)\n\tBut does not have a function to withdraw the ether\n",
+      "recommendation": "Provide a withdrawal function or ensure contract is payable",
+      "swc_id": "SWC-132",
+      "cwe_id": "CWE-400",
+      "owasp_category": null,
+      "_slither_detector": "locked-ether",
+      "_slither_impact": "Medium",
+      "_slither_confidence": "High",
+      "tool": "slither",
+      "canonical_category": "other",
+      "confirming_tools": [
+        "slither"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": true,
+      "cross_validated_llm": false,
+      "fp_suppressed": false
+    },
+    {
+      "type": "unchecked_return_value",
+      "severity": "Medium",
+      "swc_id": "SWC-104",
+      "tool": "miesc-intelligence",
+      "confidence": 0.75,
+      "location": {
+        "file": "",
+        "line": 94,
+        "function": "unknown"
+      },
+      "message": "Low-level call without explicit success check \u2014 use require(success) or SafeERC20.",
+      "description": "Low-level call without explicit success check \u2014 use require(success) or SafeERC20.",
+      "recommendation": "Low-level call without explicit success check \u2014 use require(success) or SafeERC20.",
+      "canonical_category": "unchecked_call",
+      "confirming_tools": [
+        "miesc-intelligence"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": false,
+      "cross_validated_llm": false,
+      "fp_suppressed": false,
+      "fix_code": "// Fix: Use SafeERC20 for token transfers; require(success) for low-level calls\nimport \"@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol\";\nimport \"@openzeppelin/contracts/token/ERC20/IERC20.sol\";\n\ncontract SafeTransfer {\n    using SafeERC20 for IERC20;\n\n    function transferTokens(IERC20 token, address to, uint256 amount) external {\n        // SafeERC20 wraps transfer/transferFrom and reverts on failure\n        token.safeTransfer(to, amount);\n    }\n\n    function sendEther(address payable recipient, uint256 amount) external {\n        // Always check the return value of low-level calls\n        (bool success, ) = recipient.call{value: amount}(\"\");\n        require(success, \"ETH transfer failed\");\n    }\n}",
+      "exploit_scenario": [
+        "1. Contract calls an external address using .call() or .send() but does not check the boolean return value.",
+        "2. The external call silently fails (e.g. recipient is a contract that reverts, or gas stipend is exceeded).",
+        "3. Because the return value is ignored, the contract continues execution and marks the operation as successful.",
+        "4. Tokens or ETH are never delivered, but the contract's internal state (balances, flags) is updated as if they were.",
+        "5. Attacker exploits the accounting discrepancy to double-spend or claim funds they should not have."
+      ]
+    },
+    {
+      "type": "dos_gas_limit",
+      "severity": "Medium",
+      "swc_id": "SWC-128",
+      "tool": "miesc-intelligence",
+      "confidence": 0.75,
+      "location": {
+        "file": "",
+        "line": 104,
+        "function": "unknown"
+      },
+      "message": "Loop bounded by dynamic array length \u2014 may exceed block gas limit on large arrays. Consider pagination.",
+      "description": "Loop bounded by dynamic array length \u2014 may exceed block gas limit on large arrays. Consider pagination.",
+      "recommendation": "Loop bounded by dynamic array length \u2014 may exceed block gas limit on large arrays. Consider pagination.",
+      "canonical_category": "denial_of_service",
+      "confirming_tools": [
+        "miesc-intelligence"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": false,
+      "cross_validated_llm": false,
+      "fp_suppressed": false
+    },
+    {
+      "type": "time_manipulation",
+      "severity": "Medium",
+      "swc_id": "SWC-116",
+      "tool": "miesc-intelligence",
+      "confidence": 0.5,
+      "location": {
+        "file": "",
+        "line": 112,
+        "function": "unknown"
+      },
+      "message": "Block timestamp/number used \u2014 manipulable by miners (\u00b115 seconds).",
+      "description": "Block timestamp/number used \u2014 manipulable by miners (\u00b115 seconds).",
+      "recommendation": "Block timestamp/number used \u2014 manipulable by miners (\u00b115 seconds).",
+      "canonical_category": "time_manipulation",
+      "confirming_tools": [
+        "miesc-intelligence"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": false,
+      "cross_validated_llm": false,
+      "fp_suppressed": false,
+      "fix_code": "// Fix: Replace block.timestamp with block.number for ordering-sensitive logic\n// block.number cannot be manipulated by miners beyond normal mining variance\n\ncontract TimeSafe {\n    uint256 public immutable deployBlock;\n    uint256 public constant LOCK_BLOCKS = 7200; // ~24 hours at 12s/block\n\n    constructor() {\n        deployBlock = block.number;\n    }\n\n    function isLockExpired() public view returns (bool) {\n        // Use block.number instead of block.timestamp for sequencing\n        return block.number >= deployBlock + LOCK_BLOCKS;\n    }\n\n    // If wall-clock time is truly required, document the \u00b115s miner tolerance:\n    // require(block.timestamp >= deadline, \"Too early\");  // acceptable for non-critical deadlines\n    // require(block.timestamp <= deadline + 15, \"Too late with tolerance\");\n}",
+      "exploit_scenario": [
+        "1. Contract uses block.timestamp to enforce a time lock or deadline (e.g. 'require(block.timestamp >= unlock)').",
+        "2. Miner (or validator in PoS) can adjust block.timestamp within the ~15-second tolerance window.",
+        "3. Attacker who is also a miner sets the timestamp slightly ahead to satisfy the time condition prematurely.",
+        "4. Attacker calls the time-locked function before the intended unlock time, bypassing the control.",
+        "5. For auctions or games: manipulating the timestamp extends or shortens windows to benefit the attacker."
+      ]
+    },
+    {
+      "type": "front_running",
+      "severity": "Medium",
+      "swc_id": "SWC-114",
+      "tool": "miesc-intelligence",
+      "confidence": 0.5,
+      "location": {
+        "file": "",
+        "line": 45,
+        "function": "unknown"
+      },
+      "message": "Approval pattern susceptible to front-running race condition. Consider increaseAllowance/decreaseAllowance.",
+      "description": "Approval pattern susceptible to front-running race condition. Consider increaseAllowance/decreaseAllowance.",
+      "recommendation": "Approval pattern susceptible to front-running race condition. Consider increaseAllowance/decreaseAllowance.",
+      "canonical_category": "front_running",
+      "confirming_tools": [
+        "miesc-intelligence"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": false,
+      "cross_validated_llm": false,
+      "fp_suppressed": false,
+      "fix_code": "// Fix: Use increaseAllowance/decreaseAllowance instead of approve\n// Prevents the ERC-20 approval race condition (SWC-114)\n\nimport \"@openzeppelin/contracts/token/ERC20/ERC20.sol\";\n\ncontract SafeToken is ERC20 {\n    constructor() ERC20(\"SafeToken\", \"STK\") {}\n\n    // Use increaseAllowance to avoid front-running on approve:\n    function safeIncreaseAllowance(address spender, uint256 addedValue) external {\n        _approve(msg.sender, spender, allowance(msg.sender, spender) + addedValue);\n    }\n\n    function safeDecreaseAllowance(address spender, uint256 subtractedValue) external {\n        uint256 current = allowance(msg.sender, spender);\n        require(current >= subtractedValue, \"Allowance below zero\");\n        _approve(msg.sender, spender, current - subtractedValue);\n    }\n    // NOTE: OpenZeppelin's ERC20 already includes increaseAllowance/decreaseAllowance\n}",
+      "exploit_scenario": [
+        "1. Victim calls token.approve(spender, 100) to change an existing approval from 50 to 100.",
+        "2. Attacker monitors the mempool and sees the approve transaction before it is mined.",
+        "3. Attacker front-runs by calling transferFrom(victim, attacker, 50) while the old allowance of 50 is still active.",
+        "4. After the victim's approve is mined, attacker calls transferFrom again using the new allowance of 100.",
+        "5. Attacker steals 150 tokens even though the victim intended to grant only 100.",
+        "6. Fix: use increaseAllowance/decreaseAllowance which are atomic and race-free."
+      ]
+    }
+  ],
+  "results": [
+    {
+      "tool": "aderyn",
+      "contract": "/data/audit/UnsafeToken.sol",
+      "status": "success",
+      "execution_time": 0.3110206127166748,
+      "timestamp": "2026-07-09T20:28:21.370084",
+      "metadata": {
+        "contract_analyzed": "/data/audit/UnsafeToken.sol",
+        "output_file": "/tmp/aderyn_output.json",
+        "raw_findings_count": 0,
+        "normalized_findings_count": 5,
+        "aderyn_version": "unknown",
+        "analysis_timestamp": "unknown"
+      },
+      "error": null
+    },
+    {
+      "tool": "slither",
+      "contract": "/data/audit/UnsafeToken.sol",
+      "status": "success",
+      "execution_time": 1.1767137050628662,
+      "timestamp": "2026-07-09T20:28:22.567073",
+      "metadata": {
+        "contract_analyzed": "/data/audit/UnsafeToken.sol",
+        "output_file": "/tmp/slither_output.json",
+        "raw_findings_count": 17,
+        "normalized_findings_count": 5,
+        "slither_version": true,
+        "excluded_detectors": []
+      },
+      "error": null
+    },
+    {
+      "tool": "solhint",
+      "contract": "/data/audit/UnsafeToken.sol",
+      "status": "success",
+      "execution_time": 1.85,
+      "timestamp": "2026-07-09T20:28:23.007254",
+      "metadata": {},
+      "error": null
+    },
+    {
+      "tool": "frontier-anthropic",
+      "status": "success",
+      "execution_time": 57.386038064956665,
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-6",
+        "source_chars": 4877
+      }
+    },
+    {
+      "tool": "miesc-intelligence",
+      "status": "success",
+      "findings": [
+        {
+          "type": "access_control",
+          "title": "Unrestricted Mint Function \u2014 Anyone Can Mint Tokens",
+          "severity": "Critical",
+          "tool": "frontier-anthropic",
+          "confidence": 0.5,
+          "location": {
+            "file": "/data/audit/UnsafeToken.sol",
+            "line": 68,
+            "function": "mint()"
+          },
+          "description": "The mint() function lacks any access control check. There is no require(msg.sender == owner) or similar restriction. Any externally owned account or contract can call mint() and credit themselves (or any address) with up to maxSupply tokens.",
+          "message": "An attacker can mint the full remaining supply (900,000 tokens) to their own address, inflating totalSupply to maxSupply and completely diluting all existing holders. This breaks the totalSupply invariant by allowing unauthorized inflation and renders all honest holders' tokens nearly worthless.",
+          "recommendation": "Add owner-only access control: require(msg.sender == owner, 'Not owner'); at the start of mint(). Consider using OpenZeppelin's Ownable pattern or a role-based access control system.",
+          "exploit_scenario": "1. Attacker calls mint(attackerAddress, 900000 * 10**18). 2. totalSupply becomes 1,000,000 * 10**18 (the maxSupply cap). 3. Attacker now holds 90% of all tokens. 4. If any DEX/AMM holds this token, attacker can dump and drain the paired asset.",
+          "swc_id": "",
+          "canonical_category": "other",
+          "confirming_tools": [
+            "frontier-anthropic"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": false,
+          "cross_validated_llm": false,
+          "fp_suppressed": false
+        },
+        {
+          "type": "access_control",
+          "title": "Unrestricted burnFrom \u2014 Any Caller Can Burn Any Account's Tokens",
+          "severity": "Critical",
+          "tool": "frontier-anthropic",
+          "confidence": 0.5,
+          "location": {
+            "file": "/data/audit/UnsafeToken.sol",
+            "line": 80,
+            "function": "burnFrom()"
+          },
+          "description": "burnFrom() allows any caller to burn tokens from ANY address without checking allowance or ownership. There is no require(msg.sender == from) and no allowance check. The only guard is that the target has sufficient balance.",
+          "message": "An attacker can destroy any holder's entire balance without authorization. This can be used to: (1) grief or sabotage specific users, (2) destroy the deployer/owner's tokens, (3) reduce totalSupply arbitrarily to manipulate token economics or price on AMMs.",
+          "recommendation": "Add proper authorization: either require(msg.sender == from, 'Not authorized') for self-burn, or check and decrement allowance: require(allowance[from][msg.sender] >= amount); allowance[from][msg.sender] -= amount;",
+          "exploit_scenario": "1. Attacker calls burnFrom(victimAddress, balanceOf[victim]). 2. victim's balance is set to 0 with no consent or allowance. 3. Attacker can repeat for all holders, destroying the entire token supply.",
+          "swc_id": "",
+          "canonical_category": "other",
+          "confirming_tools": [
+            "frontier-anthropic"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": false,
+          "cross_validated_llm": false,
+          "fp_suppressed": false
+        },
+        {
+          "type": "reentrancy",
+          "title": "Arbitrary External Call in transferWithCallback \u2014 Reentrancy and Code Execution",
+          "severity": "Critical",
+          "tool": "frontier-anthropic",
+          "confidence": 0.5,
+          "location": {
+            "file": "/data/audit/UnsafeToken.sol",
+            "line": 92,
+            "function": "transferWithCallback()"
+          },
+          "description": "After performing a transfer, transferWithCallback() executes an arbitrary call to the recipient address using caller-supplied data (to.call(data)). The return value of this call is not checked. More critically, this external call happens after state has been updated but allows the recipient contract to re-enter the token contract (e.g., calling transfer, transferWithCallback, or batchTransfer again). Since transfer() does not use a reentrancy guard, an attacker-controlled contract can re-enter and drain tokens.",
+          "message": "An attacker can deploy a malicious contract that, when called via the callback, re-enters transferWithCallback() or batchTransfer() to drain tokens from the caller. Additionally, arbitrary calldata means the attacker can use the token contract as a relay to call any other contract with any data, enabling phishing and approval exploits against third-party protocols.",
+          "recommendation": "Apply Checks-Effects-Interactions pattern: update state BEFORE external calls. Use OpenZeppelin's ReentrancyGuard (`nonReentrant` modifier).",
+          "exploit_scenario": [
+            "1. Attacker deploys a malicious contract with a fallback/receive function that calls back into the victim.",
+            "2. Attacker calls the victim's withdraw() function with a valid balance.",
+            "3. Victim sends ETH to attacker \u2014 attacker's fallback immediately calls withdraw() again before state is updated.",
+            "4. Re-entry loop drains the contract balance in a single transaction (no per-call state update blocks it).",
+            "5. Attack ends when gas runs out or balance is exhausted; attacker keeps all drained ETH."
+          ],
+          "swc_id": "",
+          "canonical_category": "reentrancy",
+          "confirming_tools": [
+            "frontier-anthropic"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": false,
+          "cross_validated_llm": false,
+          "fp_suppressed": false,
+          "fix_code": "// Fix: Apply Checks-Effects-Interactions (CEI) pattern + ReentrancyGuard\n// 1. Import OpenZeppelin's ReentrancyGuard\nimport \"@openzeppelin/contracts/security/ReentrancyGuard.sol\";\n\ncontract SafeVault is ReentrancyGuard {\n    mapping(address => uint256) private balances;\n\n    function withdraw(uint256 amount) external nonReentrant {\n        // CHECKS\n        require(balances[msg.sender] >= amount, \"Insufficient balance\");\n        // EFFECTS \u2014 update state BEFORE external call\n        balances[msg.sender] -= amount;\n        // INTERACTIONS \u2014 external call last\n        (bool success, ) = msg.sender.call{value: amount}(\"\");\n        require(success, \"Transfer failed\");\n    }\n}"
+        },
+        {
+          "id": "aderyn-weak-randomness-1-0",
+          "type": "weak-randomness",
+          "severity": "High",
+          "confidence": 0.938,
+          "location": {
+            "file": "UnsafeToken.sol",
+            "line": 112,
+            "function": "unknown"
+          },
+          "message": "Weak Randomness",
+          "description": "The use of keccak256 hash functions on predictable values like block.timestamp, block.number, or similar data, including modulo operations on these values, should be avoided for generating randomness, as they are easily predictable and manipulable. The `PREVRANDAO` opcode also should not be used as a source of randomness. Instead, utilize Chainlink VRF for cryptographically secure and provably random values to ensure protocol integrity.",
+          "recommendation": "Use Chainlink VRF or commit-reveal scheme for randomness",
+          "swc_id": "SWC-120",
+          "cwe_id": "CWE-330",
+          "owasp_category": null,
+          "_aderyn_detector": "weak-randomness",
+          "tool": "aderyn",
+          "canonical_category": "bad_randomness",
+          "confirming_tools": [
+            "aderyn"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": true,
+          "cross_validated_llm": false,
+          "fp_suppressed": false,
+          "fix_code": "// Fix: Use Chainlink VRF v2 for verifiable on-chain randomness\nimport \"@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol\";\nimport \"@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol\";\n\ncontract SecureRandom is VRFConsumerBaseV2 {\n    VRFCoordinatorV2Interface public immutable coordinator;\n    uint64 public immutable subscriptionId;\n    bytes32 public immutable keyHash;\n    uint256 public randomResult;\n\n    constructor(address _coord, uint64 _subId, bytes32 _keyHash)\n        VRFConsumerBaseV2(_coord)\n    {\n        coordinator = VRFCoordinatorV2Interface(_coord);\n        subscriptionId = _subId;\n        keyHash = _keyHash;\n    }\n\n    function requestRandom() external returns (uint256 requestId) {\n        return coordinator.requestRandomWords(keyHash, subscriptionId, 3, 100000, 1);\n    }\n\n    function fulfillRandomWords(uint256, uint256[] memory randomWords) internal override {\n        randomResult = randomWords[0];\n    }\n}",
+          "exploit_scenario": [
+            "1. Attacker inspects the on-chain randomness source (blockhash, block.timestamp, block.difficulty).",
+            "2. Before the target transaction is mined, attacker simulates possible block values to predict the 'random' outcome.",
+            "3. Attacker submits their exploit transaction in the same block as or immediately after the target, controlling the outcome.",
+            "4. For lottery contracts: attacker only submits when they know they will win; reverts otherwise (cost: only gas).",
+            "5. Attacker drains the prize pool repeatedly with a guaranteed-win strategy."
+          ]
+        },
+        {
+          "id": "slither-weak-prng-0",
+          "type": "weak-prng",
+          "severity": "High",
+          "confidence": 0.85,
+          "location": {
+            "file": "../data/audit/UnsafeToken.sol",
+            "line": 110,
+            "function": "timeLock"
+          },
+          "message": "UnsafeToken.timeLock() (../data/audit/UnsafeToken.sol#110-113) uses a weak PRNG: \"block.timestamp % 2 == 0 (../data/audit/UnsafeToken.sol#112)\" ",
+          "description": "[UnsafeToken.timeLock()](../data/audit/UnsafeToken.sol#L110-L113) uses a weak PRNG: \"[block.timestamp % 2 == 0](../data/audit/UnsafeToken.sol#L112)\" \n",
+          "recommendation": "Use Chainlink VRF for verifiable randomness. Never use `block.timestamp`, `blockhash`, or `block.difficulty` as entropy sources.",
+          "swc_id": "SWC-120",
+          "cwe_id": "CWE-330",
+          "owasp_category": null,
+          "_slither_detector": "weak-prng",
+          "_slither_impact": "High",
+          "_slither_confidence": "Medium",
+          "tool": "slither",
+          "canonical_category": "bad_randomness",
+          "confirming_tools": [
+            "slither"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": true,
+          "cross_validated_llm": false,
+          "fp_suppressed": false,
+          "fix_code": "// Fix: Use Chainlink VRF v2 for verifiable on-chain randomness\nimport \"@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol\";\nimport \"@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol\";\n\ncontract SecureRandom is VRFConsumerBaseV2 {\n    VRFCoordinatorV2Interface public immutable coordinator;\n    uint64 public immutable subscriptionId;\n    bytes32 public immutable keyHash;\n    uint256 public randomResult;\n\n    constructor(address _coord, uint64 _subId, bytes32 _keyHash)\n        VRFConsumerBaseV2(_coord)\n    {\n        coordinator = VRFCoordinatorV2Interface(_coord);\n        subscriptionId = _subId;\n        keyHash = _keyHash;\n    }\n\n    function requestRandom() external returns (uint256 requestId) {\n        return coordinator.requestRandomWords(keyHash, subscriptionId, 3, 100000, 1);\n    }\n\n    function fulfillRandomWords(uint256, uint256[] memory randomWords) internal override {\n        randomResult = randomWords[0];\n    }\n}",
+          "exploit_scenario": [
+            "1. Attacker inspects the on-chain randomness source (blockhash, block.timestamp, block.difficulty).",
+            "2. Before the target transaction is mined, attacker simulates possible block values to predict the 'random' outcome.",
+            "3. Attacker submits their exploit transaction in the same block as or immediately after the target, controlling the outcome.",
+            "4. For lottery contracts: attacker only submits when they know they will win; reverts otherwise (cost: only gas).",
+            "5. Attacker drains the prize pool repeatedly with a guaranteed-win strategy."
+          ]
+        },
+        {
+          "id": "slither-weak-prng-1",
+          "type": "weak-prng",
+          "severity": "High",
+          "confidence": 0.85,
+          "location": {
+            "file": "../data/audit/UnsafeToken.sol",
+            "line": 116,
+            "function": "lottery"
+          },
+          "message": "UnsafeToken.lottery(uint256) (../data/audit/UnsafeToken.sol#116-125) uses a weak PRNG: \"random = uint256(keccak256(bytes)(abi.encodePacked(block.timestamp,block.prevrandao,msg.sender))) % 100 (../data/audit/UnsafeToken.sol#118-122)\" ",
+          "description": "[UnsafeToken.lottery(uint256)](../data/audit/UnsafeToken.sol#L116-L125) uses a weak PRNG: \"[random = uint256(keccak256(bytes)(abi.encodePacked(block.timestamp,block.prevrandao,msg.sender))) % 100](../data/audit/UnsafeToken.sol#L118-L122)\" \n",
+          "recommendation": "Use Chainlink VRF for verifiable randomness. Never use `block.timestamp`, `blockhash`, or `block.difficulty` as entropy sources.",
+          "swc_id": "SWC-120",
+          "cwe_id": "CWE-330",
+          "owasp_category": null,
+          "_slither_detector": "weak-prng",
+          "_slither_impact": "High",
+          "_slither_confidence": "Medium",
+          "tool": "slither",
+          "canonical_category": "bad_randomness",
+          "confirming_tools": [
+            "slither"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": true,
+          "cross_validated_llm": false,
+          "fp_suppressed": false,
+          "fix_code": "// Fix: Use Chainlink VRF v2 for verifiable on-chain randomness\nimport \"@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol\";\nimport \"@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol\";\n\ncontract SecureRandom is VRFConsumerBaseV2 {\n    VRFCoordinatorV2Interface public immutable coordinator;\n    uint64 public immutable subscriptionId;\n    bytes32 public immutable keyHash;\n    uint256 public randomResult;\n\n    constructor(address _coord, uint64 _subId, bytes32 _keyHash)\n        VRFConsumerBaseV2(_coord)\n    {\n        coordinator = VRFCoordinatorV2Interface(_coord);\n        subscriptionId = _subId;\n        keyHash = _keyHash;\n    }\n\n    function requestRandom() external returns (uint256 requestId) {\n        return coordinator.requestRandomWords(keyHash, subscriptionId, 3, 100000, 1);\n    }\n\n    function fulfillRandomWords(uint256, uint256[] memory randomWords) internal override {\n        randomResult = randomWords[0];\n    }\n}",
+          "exploit_scenario": [
+            "1. Attacker inspects the on-chain randomness source (blockhash, block.timestamp, block.difficulty).",
+            "2. Before the target transaction is mined, attacker simulates possible block values to predict the 'random' outcome.",
+            "3. Attacker submits their exploit transaction in the same block as or immediately after the target, controlling the outcome.",
+            "4. For lottery contracts: attacker only submits when they know they will win; reverts otherwise (cost: only gas).",
+            "5. Attacker drains the prize pool repeatedly with a guaranteed-win strategy."
+          ]
+        },
+        {
+          "id": "aderyn-unchecked-return-0-0",
+          "type": "unchecked-return",
+          "severity": "High",
+          "confidence": 0.75,
+          "location": {
+            "file": "UnsafeToken.sol",
+            "line": 105,
+            "function": "unknown"
+          },
+          "message": "Return value of the function call is not checked.",
+          "description": "Function returns a value but it is ignored.",
+          "recommendation": "Always check return value of low-level calls or use SafeERC20",
+          "swc_id": "SWC-104",
+          "cwe_id": "CWE-252",
+          "owasp_category": null,
+          "_aderyn_detector": "unchecked-return",
+          "tool": "aderyn",
+          "canonical_category": "unchecked_call",
+          "confirming_tools": [
+            "aderyn"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": true,
+          "cross_validated_llm": false,
+          "fp_suppressed": false,
+          "fix_code": "// Fix: Use SafeERC20 for token transfers; require(success) for low-level calls\nimport \"@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol\";\nimport \"@openzeppelin/contracts/token/ERC20/IERC20.sol\";\n\ncontract SafeTransfer {\n    using SafeERC20 for IERC20;\n\n    function transferTokens(IERC20 token, address to, uint256 amount) external {\n        // SafeERC20 wraps transfer/transferFrom and reverts on failure\n        token.safeTransfer(to, amount);\n    }\n\n    function sendEther(address payable recipient, uint256 amount) external {\n        // Always check the return value of low-level calls\n        (bool success, ) = recipient.call{value: amount}(\"\");\n        require(success, \"ETH transfer failed\");\n    }\n}",
+          "exploit_scenario": [
+            "1. Contract calls an external address using .call() or .send() but does not check the boolean return value.",
+            "2. The external call silently fails (e.g. recipient is a contract that reverts, or gas stipend is exceeded).",
+            "3. Because the return value is ignored, the contract continues execution and marks the operation as successful.",
+            "4. Tokens or ETH are never delivered, but the contract's internal state (balances, flags) is updated as if they were.",
+            "5. Attacker exploits the accounting discrepancy to double-spend or claim funds they should not have."
+          ]
+        },
+        {
+          "id": "aderyn-weak-randomness-1-2",
+          "type": "weak-randomness",
+          "severity": "High",
+          "confidence": 0.75,
+          "location": {
+            "file": "UnsafeToken.sol",
+            "line": 120,
+            "function": "unknown"
+          },
+          "message": "Weak Randomness",
+          "description": "The use of keccak256 hash functions on predictable values like block.timestamp, block.number, or similar data, including modulo operations on these values, should be avoided for generating randomness, as they are easily predictable and manipulable. The `PREVRANDAO` opcode also should not be used as a source of randomness. Instead, utilize Chainlink VRF for cryptographically secure and provably random values to ensure protocol integrity.",
+          "recommendation": "Use Chainlink VRF or commit-reveal scheme for randomness",
+          "swc_id": "SWC-120",
+          "cwe_id": "CWE-330",
+          "owasp_category": null,
+          "_aderyn_detector": "weak-randomness",
+          "tool": "aderyn",
+          "canonical_category": "bad_randomness",
+          "confirming_tools": [
+            "aderyn"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": true,
+          "cross_validated_llm": false,
+          "fp_suppressed": false,
+          "fix_code": "// Fix: Use Chainlink VRF v2 for verifiable on-chain randomness\nimport \"@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol\";\nimport \"@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol\";\n\ncontract SecureRandom is VRFConsumerBaseV2 {\n    VRFCoordinatorV2Interface public immutable coordinator;\n    uint64 public immutable subscriptionId;\n    bytes32 public immutable keyHash;\n    uint256 public randomResult;\n\n    constructor(address _coord, uint64 _subId, bytes32 _keyHash)\n        VRFConsumerBaseV2(_coord)\n    {\n        coordinator = VRFCoordinatorV2Interface(_coord);\n        subscriptionId = _subId;\n        keyHash = _keyHash;\n    }\n\n    function requestRandom() external returns (uint256 requestId) {\n        return coordinator.requestRandomWords(keyHash, subscriptionId, 3, 100000, 1);\n    }\n\n    function fulfillRandomWords(uint256, uint256[] memory randomWords) internal override {\n        randomResult = randomWords[0];\n    }\n}",
+          "exploit_scenario": [
+            "1. Attacker inspects the on-chain randomness source (blockhash, block.timestamp, block.difficulty).",
+            "2. Before the target transaction is mined, attacker simulates possible block values to predict the 'random' outcome.",
+            "3. Attacker submits their exploit transaction in the same block as or immediately after the target, controlling the outcome.",
+            "4. For lottery contracts: attacker only submits when they know they will win; reverts otherwise (cost: only gas).",
+            "5. Attacker drains the prize pool repeatedly with a guaranteed-win strategy."
+          ]
+        },
+        {
+          "id": "aderyn-contract-locks-ether-2-0",
+          "type": "contract-locks-ether",
+          "severity": "High",
+          "confidence": 0.75,
+          "location": {
+            "file": "UnsafeToken.sol",
+            "line": 9,
+            "function": "unknown"
+          },
+          "message": "Contract locks Ether without a withdraw function.",
+          "description": "It appears that the contract includes a payable function to accept Ether but lacks a corresponding function to withdraw it, which leads to the Ether being locked in the contract. To resolve this issue, please implement a public or external function that allows for the withdrawal of Ether from the contract.",
+          "recommendation": "Review and fix the issue according to best practices",
+          "swc_id": null,
+          "cwe_id": null,
+          "owasp_category": null,
+          "_aderyn_detector": "contract-locks-ether",
+          "tool": "aderyn",
+          "canonical_category": "other",
+          "confirming_tools": [
+            "aderyn"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": true,
+          "cross_validated_llm": false,
+          "fp_suppressed": false
+        },
+        {
+          "type": "denial_of_service",
+          "title": "batchTransfer Unbounded Loop \u2014 Gas Griefing and DoS",
+          "severity": "High",
+          "tool": "frontier-anthropic",
+          "confidence": 0.5,
+          "location": {
+            "file": "/data/audit/UnsafeToken.sol",
+            "line": 101,
+            "function": "batchTransfer()"
+          },
+          "description": "batchTransfer() iterates over an unbounded array of recipients, calling transfer() for each. There is no limit on the length of the recipients array. An attacker or even a benign user can pass an extremely large array causing the transaction to exceed the block gas limit, making it revert. More critically, since each call to transfer() also reduces msg.sender's balance, a large array combined with a limited balance can cause all transfers after balance exhaustion to revert, wasting all gas.",
+          "message": "1. Any caller can submit a batchTransfer with a huge recipients array, consuming all block gas and potentially preventing other transactions from being included (block stuffing). 2. If this function is used in critical protocol logic (e.g., reward distribution), an attacker can make it permanently revert by front-running with a transfer that depletes the caller's balance.",
+          "recommendation": "Add a maximum batch size: require(recipients.length <= MAX_BATCH, 'Batch too large'); with MAX_BATCH set to a safe value (e.g., 200). Also add a check that msg.sender has sufficient balance for ALL transfers before any are executed: require(balanceOf[msg.sender] >= amount * recipients.length, 'Insufficient balance for batch');",
+          "exploit_scenario": "1. Attacker calls batchTransfer([addr1, addr2, ... 10000 addrs], 1). 2. Transaction runs out of gas at block gas limit. 3. All gas is consumed, transaction reverts. Alternatively: 4. If total amount > balance, transaction reverts partway through, wasting gas for all preceding transfers (though state reverts completely due to EVM atomicity).",
+          "swc_id": "",
+          "canonical_category": "other",
+          "confirming_tools": [
+            "frontier-anthropic"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": false,
+          "cross_validated_llm": false,
+          "fp_suppressed": false
+        },
+        {
+          "type": "logic_error",
+          "title": "Missing Zero Address Check in transfer() and transferFrom()",
+          "severity": "High",
+          "tool": "frontier-anthropic",
+          "confidence": 0.5,
+          "location": {
+            "file": "/data/audit/UnsafeToken.sol",
+            "line": 35,
+            "function": "transfer(), transferFrom()"
+          },
+          "description": "transfer() and transferFrom() do not check that the 'to' address is non-zero. Sending tokens to address(0) permanently destroys them from the sender's perspective but does NOT reduce totalSupply, breaking the invariant that totalSupply == sum(all balanceOf). Tokens accumulate in balanceOf[address(0)] and are irretrievably lost.",
+          "message": "Users who accidentally send tokens to address(0) lose them permanently. The invariant totalSupply == sum(balanceOf) is violated (since address(0) balance grows but totalSupply doesn't decrease), which can mislead integrations, analytics, and governance systems that rely on totalSupply for quorum or voting weight calculations.",
+          "recommendation": "Add require(to != address(0), 'Transfer to zero address'); at the start of both transfer() and transferFrom(). This is standard ERC20 practice as implemented in OpenZeppelin's ERC20.",
+          "exploit_scenario": "1. User calls transfer(address(0), 1000 * 10**18) by mistake. 2. balanceOf[address(0)] += 1000e18; totalSupply unchanged. 3. Tokens are permanently inaccessible. 4. totalSupply now overstates the circulating supply.",
+          "swc_id": "",
+          "canonical_category": "other",
+          "confirming_tools": [
+            "frontier-anthropic"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": false,
+          "cross_validated_llm": false,
+          "fp_suppressed": false
+        },
+        {
+          "type": "logic_error",
+          "title": "Approve Race Condition \u2014 Double-Spend Attack",
+          "severity": "High",
+          "tool": "frontier-anthropic",
+          "confidence": 0.5,
+          "location": {
+            "file": "/data/audit/UnsafeToken.sol",
+            "line": 47,
+            "function": "approve()"
+          },
+          "description": "The approve() function sets the allowance directly to the new value without first resetting it to zero. This enables the well-known ERC20 approval race condition: if an owner wants to change a spender's allowance from X to Y, a malicious spender can front-run the change transaction and spend the original X tokens, then spend Y tokens after the change is mined, effectively spending X+Y tokens instead of Y.",
+          "message": "A malicious approved spender can spend more than the owner intended. If an owner changes allowance from 1000 to 500, the spender can extract 1500 tokens total by front-running the approval change.",
+          "recommendation": "Use increaseAllowance()/decreaseAllowance() pattern instead of direct approve(). Alternatively, require the current allowance to be 0 before setting a non-zero value: require(amount == 0 || allowance[msg.sender][spender] == 0, 'Reset allowance to 0 first');",
+          "exploit_scenario": "1. Owner has approved Spender for 1000 tokens. 2. Owner submits approve(Spender, 500) to reduce allowance. 3. Spender sees this in the mempool and front-runs with transferFrom(owner, spender, 1000). 4. Spender's transferFrom executes first, spending 1000 tokens. 5. Owner's approve() executes, setting allowance to 500. 6. Spender calls transferFrom(owner, spender, 500) again, spending 500 more. 7. Total extracted: 1500 tokens instead of intended 500.",
+          "swc_id": "",
+          "canonical_category": "other",
+          "confirming_tools": [
+            "frontier-anthropic"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": false,
+          "cross_validated_llm": false,
+          "fp_suppressed": false
+        },
+        {
+          "type": "logic_error",
+          "title": "Ether Permanently Locked \u2014 No Withdrawal Function",
+          "severity": "High",
+          "tool": "frontier-anthropic",
+          "confidence": 0.5,
+          "location": {
+            "file": "/data/audit/UnsafeToken.sol",
+            "line": 131,
+            "function": "receive()"
+          },
+          "description": "The contract implements a receive() payable function that accepts ETH, but there is no corresponding withdraw or rescue function. Any ETH sent to this contract is permanently locked and unrecoverable by the owner or any other party.",
+          "message": "Any ETH sent to this contract (by mistake or by a third-party contract) is permanently lost. This includes ETH sent by users who confuse this with a payable token contract, and ETH sent as part of multi-call patterns.",
+          "recommendation": "Either remove the receive() function if ETH acceptance is not intended, or add an owner-only withdrawal function: function withdrawETH() external { require(msg.sender == owner); (bool success,) = owner.call{value: address(this).balance}(''); require(success); }",
+          "exploit_scenario": "1. User accidentally sends 1 ETH to the contract address. 2. receive() executes, ETH is credited to contract balance. 3. No function exists to withdraw it. 4. ETH is permanently locked.",
+          "swc_id": "",
+          "canonical_category": "other",
+          "confirming_tools": [
+            "frontier-anthropic"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": false,
+          "cross_validated_llm": false,
+          "fp_suppressed": false
+        },
+        {
+          "type": "access_control",
+          "title": "Missing pause Check in State-Changing Functions",
+          "severity": "High",
+          "tool": "frontier-anthropic",
+          "confidence": 0.5,
+          "location": {
+            "file": "/data/audit/UnsafeToken.sol",
+            "line": 0,
+            "function": "transfer(), transferFrom(), mint(), burnFrom(), transferWithCallback(), batchTransfer()"
+          },
+          "description": "The contract has a paused state variable and pause()/unpause() admin functions, but NONE of the state-changing functions (transfer, transferFrom, mint, burnFrom, transferWithCallback, batchTransfer) check the paused flag. The pause mechanism is completely ineffective and provides false security.",
+          "message": "If the contract is compromised or an exploit is detected, the owner cannot pause the contract to stop fund draining. This makes the pause/unpause mechanism entirely useless as an emergency stop, leaving the protocol without a critical safety valve during an active attack.",
+          "recommendation": "Add require(!paused, 'Contract is paused'); to all state-changing functions: transfer(), approve(), transferFrom(), mint(), burnFrom(), transferWithCallback(), and batchTransfer(). Consider using a modifier: modifier whenNotPaused() { require(!paused, 'Paused'); _; }",
+          "exploit_scenario": "1. An exploit is detected on the live contract. 2. Owner calls pause() \u2014 paused = true. 3. Attacker continues to call mint(), burnFrom(), transferWithCallback() unimpeded. 4. All funds are drained despite the pause.",
+          "swc_id": "",
+          "canonical_category": "other",
+          "confirming_tools": [
+            "frontier-anthropic"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": false,
+          "cross_validated_llm": false,
+          "fp_suppressed": false
+        },
+        {
+          "type": "bad_randomness",
+          "severity": "High",
+          "swc_id": "SWC-120",
+          "tool": "miesc-intelligence",
+          "confidence": 0.5,
+          "location": {
+            "file": "",
+            "line": 120,
+            "function": "unknown"
+          },
+          "message": "On-chain randomness source is predictable \u2014 use Chainlink VRF or commit-reveal.",
+          "description": "On-chain randomness source is predictable \u2014 use Chainlink VRF or commit-reveal.",
+          "recommendation": "On-chain randomness source is predictable \u2014 use Chainlink VRF or commit-reveal.",
+          "canonical_category": "bad_randomness",
+          "confirming_tools": [
+            "miesc-intelligence"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": false,
+          "cross_validated_llm": false,
+          "fp_suppressed": false,
+          "fix_code": "// Fix: Use Chainlink VRF v2 for verifiable on-chain randomness\nimport \"@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol\";\nimport \"@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol\";\n\ncontract SecureRandom is VRFConsumerBaseV2 {\n    VRFCoordinatorV2Interface public immutable coordinator;\n    uint64 public immutable subscriptionId;\n    bytes32 public immutable keyHash;\n    uint256 public randomResult;\n\n    constructor(address _coord, uint64 _subId, bytes32 _keyHash)\n        VRFConsumerBaseV2(_coord)\n    {\n        coordinator = VRFCoordinatorV2Interface(_coord);\n        subscriptionId = _subId;\n        keyHash = _keyHash;\n    }\n\n    function requestRandom() external returns (uint256 requestId) {\n        return coordinator.requestRandomWords(keyHash, subscriptionId, 3, 100000, 1);\n    }\n\n    function fulfillRandomWords(uint256, uint256[] memory randomWords) internal override {\n        randomResult = randomWords[0];\n    }\n}",
+          "exploit_scenario": [
+            "1. Attacker inspects the on-chain randomness source (blockhash, block.timestamp, block.difficulty).",
+            "2. Before the target transaction is mined, attacker simulates possible block values to predict the 'random' outcome.",
+            "3. Attacker submits their exploit transaction in the same block as or immediately after the target, controlling the outcome.",
+            "4. For lottery contracts: attacker only submits when they know they will win; reverts otherwise (cost: only gas).",
+            "5. Attacker drains the prize pool repeatedly with a guaranteed-win strategy."
+          ]
+        },
+        {
+          "type": "bad_randomness_block_vars",
+          "severity": "High",
+          "swc_id": "SWC-120",
+          "tool": "miesc-intelligence",
+          "confidence": 0.5,
+          "location": {
+            "file": "",
+            "line": 112,
+            "function": "unknown"
+          },
+          "message": "Block variable used as entropy source \u2014 predictable/manipulable by miners. Use Chainlink VRF.",
+          "description": "Block variable used as entropy source \u2014 predictable/manipulable by miners. Use Chainlink VRF.",
+          "recommendation": "Block variable used as entropy source \u2014 predictable/manipulable by miners. Use Chainlink VRF.",
+          "canonical_category": "bad_randomness",
+          "confirming_tools": [
+            "miesc-intelligence"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": false,
+          "cross_validated_llm": false,
+          "fp_suppressed": false,
+          "fix_code": "// Fix: Use Chainlink VRF v2 for verifiable on-chain randomness\nimport \"@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol\";\nimport \"@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol\";\n\ncontract SecureRandom is VRFConsumerBaseV2 {\n    VRFCoordinatorV2Interface public immutable coordinator;\n    uint64 public immutable subscriptionId;\n    bytes32 public immutable keyHash;\n    uint256 public randomResult;\n\n    constructor(address _coord, uint64 _subId, bytes32 _keyHash)\n        VRFConsumerBaseV2(_coord)\n    {\n        coordinator = VRFCoordinatorV2Interface(_coord);\n        subscriptionId = _subId;\n        keyHash = _keyHash;\n    }\n\n    function requestRandom() external returns (uint256 requestId) {\n        return coordinator.requestRandomWords(keyHash, subscriptionId, 3, 100000, 1);\n    }\n\n    function fulfillRandomWords(uint256, uint256[] memory randomWords) internal override {\n        randomResult = randomWords[0];\n    }\n}",
+          "exploit_scenario": [
+            "1. Attacker inspects the on-chain randomness source (blockhash, block.timestamp, block.difficulty).",
+            "2. Before the target transaction is mined, attacker simulates possible block values to predict the 'random' outcome.",
+            "3. Attacker submits their exploit transaction in the same block as or immediately after the target, controlling the outcome.",
+            "4. For lottery contracts: attacker only submits when they know they will win; reverts otherwise (cost: only gas).",
+            "5. Attacker drains the prize pool repeatedly with a guaranteed-win strategy."
+          ]
+        },
+        {
+          "id": "slither-incorrect-equality-2",
+          "type": "incorrect-equality",
+          "severity": "Medium",
+          "confidence": 0.85,
+          "location": {
+            "file": "../data/audit/UnsafeToken.sol",
+            "line": 116,
+            "function": "lottery"
+          },
+          "message": "UnsafeToken.lottery(uint256) (../data/audit/UnsafeToken.sol#116-125) uses a dangerous strict equality:",
+          "description": "[UnsafeToken.lottery(uint256)](../data/audit/UnsafeToken.sol#L116-L125) uses a dangerous strict equality:\n\t- [guess == random](../data/audit/UnsafeToken.sol#L124)\n",
+          "recommendation": "Review and fix the vulnerability",
+          "swc_id": null,
+          "cwe_id": null,
+          "owasp_category": null,
+          "_slither_detector": "incorrect-equality",
+          "_slither_impact": "Medium",
+          "_slither_confidence": "High",
+          "tool": "slither",
+          "canonical_category": "other",
+          "confirming_tools": [
+            "slither"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": true,
+          "cross_validated_llm": false,
+          "fp_suppressed": false
+        },
+        {
+          "id": "slither-incorrect-equality-3",
+          "type": "incorrect-equality",
+          "severity": "Medium",
+          "confidence": 0.85,
+          "location": {
+            "file": "../data/audit/UnsafeToken.sol",
+            "line": 110,
+            "function": "timeLock"
+          },
+          "message": "UnsafeToken.timeLock() (../data/audit/UnsafeToken.sol#110-113) uses a dangerous strict equality:",
+          "description": "[UnsafeToken.timeLock()](../data/audit/UnsafeToken.sol#L110-L113) uses a dangerous strict equality:\n\t- [block.timestamp % 2 == 0](../data/audit/UnsafeToken.sol#L112)\n",
+          "recommendation": "Review and fix the vulnerability",
+          "swc_id": null,
+          "cwe_id": null,
+          "owasp_category": null,
+          "_slither_detector": "incorrect-equality",
+          "_slither_impact": "Medium",
+          "_slither_confidence": "High",
+          "tool": "slither",
+          "canonical_category": "other",
+          "confirming_tools": [
+            "slither"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": true,
+          "cross_validated_llm": false,
+          "fp_suppressed": false
+        },
+        {
+          "id": "slither-locked-ether-4",
+          "type": "locked-ether",
+          "severity": "Medium",
+          "confidence": 0.85,
+          "location": {
+            "file": "../data/audit/UnsafeToken.sol",
+            "line": 9,
+            "function": "UnsafeToken"
+          },
+          "message": "Contract locking ether found:",
+          "description": "Contract locking ether found:\n\tContract [UnsafeToken](../data/audit/UnsafeToken.sol#L9-L142) has payable functions:\n\t - [UnsafeToken.receive()](../data/audit/UnsafeToken.sol#L139-L141)\n\tBut does not have a function to withdraw the ether\n",
+          "recommendation": "Provide a withdrawal function or ensure contract is payable",
+          "swc_id": "SWC-132",
+          "cwe_id": "CWE-400",
+          "owasp_category": null,
+          "_slither_detector": "locked-ether",
+          "_slither_impact": "Medium",
+          "_slither_confidence": "High",
+          "tool": "slither",
+          "canonical_category": "other",
+          "confirming_tools": [
+            "slither"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": true,
+          "cross_validated_llm": false,
+          "fp_suppressed": false
+        },
+        {
+          "type": "unchecked_return_value",
+          "severity": "Medium",
+          "swc_id": "SWC-104",
+          "tool": "miesc-intelligence",
+          "confidence": 0.75,
+          "location": {
+            "file": "",
+            "line": 94,
+            "function": "unknown"
+          },
+          "message": "Low-level call without explicit success check \u2014 use require(success) or SafeERC20.",
+          "description": "Low-level call without explicit success check \u2014 use require(success) or SafeERC20.",
+          "recommendation": "Low-level call without explicit success check \u2014 use require(success) or SafeERC20.",
+          "canonical_category": "unchecked_call",
+          "confirming_tools": [
+            "miesc-intelligence"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": false,
+          "cross_validated_llm": false,
+          "fp_suppressed": false,
+          "fix_code": "// Fix: Use SafeERC20 for token transfers; require(success) for low-level calls\nimport \"@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol\";\nimport \"@openzeppelin/contracts/token/ERC20/IERC20.sol\";\n\ncontract SafeTransfer {\n    using SafeERC20 for IERC20;\n\n    function transferTokens(IERC20 token, address to, uint256 amount) external {\n        // SafeERC20 wraps transfer/transferFrom and reverts on failure\n        token.safeTransfer(to, amount);\n    }\n\n    function sendEther(address payable recipient, uint256 amount) external {\n        // Always check the return value of low-level calls\n        (bool success, ) = recipient.call{value: amount}(\"\");\n        require(success, \"ETH transfer failed\");\n    }\n}",
+          "exploit_scenario": [
+            "1. Contract calls an external address using .call() or .send() but does not check the boolean return value.",
+            "2. The external call silently fails (e.g. recipient is a contract that reverts, or gas stipend is exceeded).",
+            "3. Because the return value is ignored, the contract continues execution and marks the operation as successful.",
+            "4. Tokens or ETH are never delivered, but the contract's internal state (balances, flags) is updated as if they were.",
+            "5. Attacker exploits the accounting discrepancy to double-spend or claim funds they should not have."
+          ]
+        },
+        {
+          "type": "dos_gas_limit",
+          "severity": "Medium",
+          "swc_id": "SWC-128",
+          "tool": "miesc-intelligence",
+          "confidence": 0.75,
+          "location": {
+            "file": "",
+            "line": 104,
+            "function": "unknown"
+          },
+          "message": "Loop bounded by dynamic array length \u2014 may exceed block gas limit on large arrays. Consider pagination.",
+          "description": "Loop bounded by dynamic array length \u2014 may exceed block gas limit on large arrays. Consider pagination.",
+          "recommendation": "Loop bounded by dynamic array length \u2014 may exceed block gas limit on large arrays. Consider pagination.",
+          "canonical_category": "denial_of_service",
+          "confirming_tools": [
+            "miesc-intelligence"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": false,
+          "cross_validated_llm": false,
+          "fp_suppressed": false
+        },
+        {
+          "type": "time_manipulation",
+          "severity": "Medium",
+          "swc_id": "SWC-116",
+          "tool": "miesc-intelligence",
+          "confidence": 0.5,
+          "location": {
+            "file": "",
+            "line": 112,
+            "function": "unknown"
+          },
+          "message": "Block timestamp/number used \u2014 manipulable by miners (\u00b115 seconds).",
+          "description": "Block timestamp/number used \u2014 manipulable by miners (\u00b115 seconds).",
+          "recommendation": "Block timestamp/number used \u2014 manipulable by miners (\u00b115 seconds).",
+          "canonical_category": "time_manipulation",
+          "confirming_tools": [
+            "miesc-intelligence"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": false,
+          "cross_validated_llm": false,
+          "fp_suppressed": false,
+          "fix_code": "// Fix: Replace block.timestamp with block.number for ordering-sensitive logic\n// block.number cannot be manipulated by miners beyond normal mining variance\n\ncontract TimeSafe {\n    uint256 public immutable deployBlock;\n    uint256 public constant LOCK_BLOCKS = 7200; // ~24 hours at 12s/block\n\n    constructor() {\n        deployBlock = block.number;\n    }\n\n    function isLockExpired() public view returns (bool) {\n        // Use block.number instead of block.timestamp for sequencing\n        return block.number >= deployBlock + LOCK_BLOCKS;\n    }\n\n    // If wall-clock time is truly required, document the \u00b115s miner tolerance:\n    // require(block.timestamp >= deadline, \"Too early\");  // acceptable for non-critical deadlines\n    // require(block.timestamp <= deadline + 15, \"Too late with tolerance\");\n}",
+          "exploit_scenario": [
+            "1. Contract uses block.timestamp to enforce a time lock or deadline (e.g. 'require(block.timestamp >= unlock)').",
+            "2. Miner (or validator in PoS) can adjust block.timestamp within the ~15-second tolerance window.",
+            "3. Attacker who is also a miner sets the timestamp slightly ahead to satisfy the time condition prematurely.",
+            "4. Attacker calls the time-locked function before the intended unlock time, bypassing the control.",
+            "5. For auctions or games: manipulating the timestamp extends or shortens windows to benefit the attacker."
+          ]
+        },
+        {
+          "type": "front_running",
+          "severity": "Medium",
+          "swc_id": "SWC-114",
+          "tool": "miesc-intelligence",
+          "confidence": 0.5,
+          "location": {
+            "file": "",
+            "line": 45,
+            "function": "unknown"
+          },
+          "message": "Approval pattern susceptible to front-running race condition. Consider increaseAllowance/decreaseAllowance.",
+          "description": "Approval pattern susceptible to front-running race condition. Consider increaseAllowance/decreaseAllowance.",
+          "recommendation": "Approval pattern susceptible to front-running race condition. Consider increaseAllowance/decreaseAllowance.",
+          "canonical_category": "front_running",
+          "confirming_tools": [
+            "miesc-intelligence"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": false,
+          "cross_validated_llm": false,
+          "fp_suppressed": false,
+          "fix_code": "// Fix: Use increaseAllowance/decreaseAllowance instead of approve\n// Prevents the ERC-20 approval race condition (SWC-114)\n\nimport \"@openzeppelin/contracts/token/ERC20/ERC20.sol\";\n\ncontract SafeToken is ERC20 {\n    constructor() ERC20(\"SafeToken\", \"STK\") {}\n\n    // Use increaseAllowance to avoid front-running on approve:\n    function safeIncreaseAllowance(address spender, uint256 addedValue) external {\n        _approve(msg.sender, spender, allowance(msg.sender, spender) + addedValue);\n    }\n\n    function safeDecreaseAllowance(address spender, uint256 subtractedValue) external {\n        uint256 current = allowance(msg.sender, spender);\n        require(current >= subtractedValue, \"Allowance below zero\");\n        _approve(msg.sender, spender, current - subtractedValue);\n    }\n    // NOTE: OpenZeppelin's ERC20 already includes increaseAllowance/decreaseAllowance\n}",
+          "exploit_scenario": [
+            "1. Victim calls token.approve(spender, 100) to change an existing approval from 50 to 100.",
+            "2. Attacker monitors the mempool and sees the approve transaction before it is mined.",
+            "3. Attacker front-runs by calling transferFrom(victim, attacker, 50) while the old allowance of 50 is still active.",
+            "4. After the victim's approve is mined, attacker calls transferFrom again using the new allowance of 100.",
+            "5. Attacker steals 150 tokens even though the victim intended to grant only 100.",
+            "6. Fix: use increaseAllowance/decreaseAllowance which are atomic and race-free."
+          ]
+        }
+      ]
+    }
+  ]
+}

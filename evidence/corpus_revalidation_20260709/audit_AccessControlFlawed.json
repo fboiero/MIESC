@@ -1,0 +1,5753 @@
+{
+  "contract_path": "/data/audit/AccessControlFlawed.sol",
+  "tools_run": [
+    "slither",
+    "aderyn",
+    "solhint",
+    "wake",
+    "semgrep",
+    "fouranalyzer",
+    "dagnn",
+    "smartbugs_ml",
+    "smartbugs_detector",
+    "smartguard",
+    "peculiar",
+    "threat_model",
+    "gas_analyzer",
+    "mev_detector",
+    "contract_clone_detector",
+    "defi",
+    "advanced_detector",
+    "upgradability_checker"
+  ],
+  "tools_success": [
+    "fouranalyzer",
+    "aderyn",
+    "smartbugs_ml",
+    "smartbugs_detector",
+    "peculiar",
+    "threat_model",
+    "gas_analyzer",
+    "mev_detector",
+    "contract_clone_detector",
+    "defi",
+    "advanced_detector",
+    "upgradability_checker",
+    "solhint",
+    "dagnn",
+    "slither"
+  ],
+  "tools_failed": [
+    "wake",
+    "semgrep",
+    "smartguard"
+  ],
+  "raw_findings": {
+    "total": 79,
+    "findings": [
+      {
+        "id": "4NALY-e680903984f8",
+        "type": "centralization_risk",
+        "severity": "Medium",
+        "confidence": 0.525,
+        "location": {
+          "file": "/data/audit/AccessControlFlawed.sol",
+          "line": 29,
+          "function": ""
+        },
+        "message": "Contract has centralization risk - single owner or admin can control critical functions: // Missing: require(msg.sender == owner, \"Not owner\");",
+        "description": "Contract has centralization risk - single owner or admin can control critical functions",
+        "recommendation": "Implement multi-sig or timelock for privileged operations",
+        "swc_id": "SWC-105",
+        "cwe_id": "CWE-284",
+        "tool": "fouranalyzer",
+        "_fp_analysis": {
+          "fp_probability": 0.3,
+          "is_likely_fp": false,
+          "confidence_adjustment": 0.7,
+          "reasons": [
+            "Known FP pattern 'centralization_risk': +0.15",
+            "Near require/assert: +0.15"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 1,
+            "context_analysis": null
+          }
+        }
+      },
+      {
+        "id": "4NALY-82f92b87452a",
+        "type": "centralization_risk",
+        "severity": "Medium",
+        "confidence": 0.525,
+        "location": {
+          "file": "/data/audit/AccessControlFlawed.sol",
+          "line": 76,
+          "function": ""
+        },
+        "message": "Contract has centralization risk - single owner or admin can control critical functions: require(msg.sender == owner, \"Not owner\");",
+        "description": "Contract has centralization risk - single owner or admin can control critical functions",
+        "recommendation": "Implement multi-sig or timelock for privileged operations",
+        "swc_id": "SWC-105",
+        "cwe_id": "CWE-284",
+        "tool": "fouranalyzer",
+        "_fp_analysis": {
+          "fp_probability": 0.3,
+          "is_likely_fp": false,
+          "confidence_adjustment": 0.7,
+          "reasons": [
+            "Known FP pattern 'centralization_risk': +0.15",
+            "Near require/assert: +0.15"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 1,
+            "context_analysis": null
+          }
+        }
+      },
+      {
+        "id": "4NALY-03008423f324",
+        "type": "unsafe_erc20_transfer",
+        "severity": "High",
+        "confidence": 0.8,
+        "location": {
+          "file": "/data/audit/AccessControlFlawed.sol",
+          "line": 41,
+          "function": ""
+        },
+        "message": "ERC20 transfer/transferFrom return value not checked - tokens may silently fail: payable(msg.sender).transfer(amount);",
+        "description": "ERC20 transfer/transferFrom return value not checked - tokens may silently fail",
+        "recommendation": "Use SafeERC20.safeTransfer() or check return value explicitly",
+        "swc_id": "SWC-104",
+        "cwe_id": "CWE-252",
+        "tool": "fouranalyzer",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (2 tools): -0.20"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 2,
+            "context_analysis": null
+          }
+        }
+      },
+      {
+        "id": "4NALY-f1e92158119e",
+        "type": "unsafe_erc20_transfer",
+        "severity": "High",
+        "confidence": 0.8,
+        "location": {
+          "file": "/data/audit/AccessControlFlawed.sol",
+          "line": 93,
+          "function": ""
+        },
+        "message": "ERC20 transfer/transferFrom return value not checked - tokens may silently fail: payable(msg.sender).transfer(amount);",
+        "description": "ERC20 transfer/transferFrom return value not checked - tokens may silently fail",
+        "recommendation": "Use SafeERC20.safeTransfer() or check return value explicitly",
+        "swc_id": "SWC-104",
+        "cwe_id": "CWE-252",
+        "tool": "fouranalyzer",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (2 tools): -0.20"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 2,
+            "context_analysis": null
+          }
+        }
+      },
+      {
+        "id": "4NALY-d746fe4c8850",
+        "type": "missing_zero_address_check",
+        "severity": "Low",
+        "confidence": 0.7,
+        "location": {
+          "file": "/data/audit/AccessControlFlawed.sol",
+          "line": 28,
+          "function": ""
+        },
+        "message": "Address parameter not validated against zero address: function setOwner(address newOwner) public {",
+        "description": "Address parameter not validated against zero address",
+        "recommendation": "Add require(addr != address(0)) check",
+        "swc_id": null,
+        "cwe_id": "CWE-20",
+        "tool": "fouranalyzer",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (2 tools): -0.20"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 2,
+            "context_analysis": null
+          }
+        }
+      },
+      {
+        "id": "4NALY-e1a03d2dccad",
+        "type": "missing_zero_address_check",
+        "severity": "Low",
+        "confidence": 0.7,
+        "location": {
+          "file": "/data/audit/AccessControlFlawed.sol",
+          "line": 46,
+          "function": ""
+        },
+        "message": "Address parameter not validated against zero address: function addAdmin(address admin) public {",
+        "description": "Address parameter not validated against zero address",
+        "recommendation": "Add require(addr != address(0)) check",
+        "swc_id": null,
+        "cwe_id": "CWE-20",
+        "tool": "fouranalyzer",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": false,
+            "near_modifier": false,
+            "confirmations": 1,
+            "context_analysis": null
+          }
+        }
+      },
+      {
+        "id": "4NALY-d4b89dcc08ef",
+        "type": "missing_zero_address_check",
+        "severity": "Low",
+        "confidence": 0.595,
+        "location": {
+          "file": "/data/audit/AccessControlFlawed.sol",
+          "line": 68,
+          "function": ""
+        },
+        "message": "Address parameter not validated against zero address: function initialize(address _owner) public {",
+        "description": "Address parameter not validated against zero address",
+        "recommendation": "Add require(addr != address(0)) check",
+        "swc_id": null,
+        "cwe_id": "CWE-20",
+        "tool": "fouranalyzer",
+        "_fp_analysis": {
+          "fp_probability": 0.15,
+          "is_likely_fp": false,
+          "confidence_adjustment": 0.85,
+          "reasons": [
+            "Near require/assert: +0.15"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 1,
+            "context_analysis": null
+          }
+        }
+      },
+      {
+        "id": "4NALY-718b1a34547a",
+        "type": "missing_zero_address_check",
+        "severity": "Low",
+        "confidence": 0.595,
+        "location": {
+          "file": "/data/audit/AccessControlFlawed.sol",
+          "line": 75,
+          "function": ""
+        },
+        "message": "Address parameter not validated against zero address: function transferOwnership(address newOwner) public {",
+        "description": "Address parameter not validated against zero address",
+        "recommendation": "Add require(addr != address(0)) check",
+        "swc_id": null,
+        "cwe_id": "CWE-20",
+        "tool": "fouranalyzer",
+        "_fp_analysis": {
+          "fp_probability": 0.15,
+          "is_likely_fp": false,
+          "confidence_adjustment": 0.85,
+          "reasons": [
+            "Near require/assert: +0.15"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 1,
+            "context_analysis": null
+          }
+        }
+      },
+      {
+        "id": "4NALY-5892c51fbefd",
+        "type": "missing_event_emission",
+        "severity": "Low",
+        "confidence": 0.566,
+        "location": {
+          "file": "/data/audit/AccessControlFlawed.sol",
+          "line": 28,
+          "function": ""
+        },
+        "message": "State-changing function does not emit an event for off-chain tracking: function setOwner(address newOwner) public {",
+        "description": "State-changing function does not emit an event for off-chain tracking",
+        "recommendation": "Emit events for all state-changing operations",
+        "swc_id": null,
+        "cwe_id": "CWE-778",
+        "tool": "fouranalyzer",
+        "_fp_analysis": {
+          "fp_probability": 0.13,
+          "is_likely_fp": false,
+          "confidence_adjustment": 0.87,
+          "reasons": [
+            "Known FP pattern 'missing_event_emission': +0.18",
+            "Near require/assert: +0.15",
+            "Cross-validated (2 tools): -0.20"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 2,
+            "context_analysis": null
+          }
+        }
+      },
+      {
+        "id": "4NALY-57e2b0ba11a3",
+        "type": "use_of_transfer_instead_of_call",
+        "severity": "Medium",
+        "confidence": 0.75,
+        "location": {
+          "file": "/data/audit/AccessControlFlawed.sol",
+          "line": 41,
+          "function": ""
+        },
+        "message": "Use of .transfer() or .send() with fixed gas stipend (2300) may fail with EIP-1884: payable(msg.sender).transfer(amount);",
+        "description": "Use of .transfer() or .send() with fixed gas stipend (2300) may fail with EIP-1884",
+        "recommendation": "Use .call{value: amount}('') with reentrancy guard instead",
+        "swc_id": "SWC-134",
+        "cwe_id": "CWE-400",
+        "tool": "fouranalyzer",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (2 tools): -0.20"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 2,
+            "context_analysis": null
+          }
+        }
+      },
+      {
+        "id": "4NALY-8f326e60a633",
+        "type": "use_of_transfer_instead_of_call",
+        "severity": "Medium",
+        "confidence": 0.75,
+        "location": {
+          "file": "/data/audit/AccessControlFlawed.sol",
+          "line": 93,
+          "function": ""
+        },
+        "message": "Use of .transfer() or .send() with fixed gas stipend (2300) may fail with EIP-1884: payable(msg.sender).transfer(amount);",
+        "description": "Use of .transfer() or .send() with fixed gas stipend (2300) may fail with EIP-1884",
+        "recommendation": "Use .call{value: amount}('') with reentrancy guard instead",
+        "swc_id": "SWC-134",
+        "cwe_id": "CWE-400",
+        "tool": "fouranalyzer",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (2 tools): -0.20"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 2,
+            "context_analysis": null
+          }
+        }
+      },
+      {
+        "id": "aderyn-unprotected-initializer-0-0",
+        "type": "unprotected-initializer",
+        "severity": "High",
+        "confidence": 0.9,
+        "location": {
+          "file": "AccessControlFlawed.sol",
+          "line": 68,
+          "function": "unknown"
+        },
+        "message": "Unprotected initializer",
+        "description": "Consider protecting the initializer functions with modifiers.",
+        "recommendation": "Add access control modifier (onlyOwner) or require(msg.sender == owner)",
+        "swc_id": "SWC-105",
+        "cwe_id": "CWE-284",
+        "owasp_category": null,
+        "_aderyn_detector": "unprotected-initializer",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (3 tools): -0.40"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 3,
+            "context_analysis": null
+          }
+        }
+      },
+      {
+        "id": "aderyn-selfdestruct-identifier-1-0",
+        "type": "selfdestruct-identifier",
+        "severity": "High",
+        "confidence": 0.9,
+        "location": {
+          "file": "AccessControlFlawed.sol",
+          "line": 56,
+          "function": "unknown"
+        },
+        "message": "Depracated EVM Instruction for `selfdestruct` should not be used.",
+        "description": "Depracated EVM Instruction for `selfdestruct` should not be used.",
+        "recommendation": "Add access control and consider removing selfdestruct",
+        "swc_id": "SWC-106",
+        "cwe_id": null,
+        "owasp_category": null,
+        "_aderyn_detector": "selfdestruct-identifier",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (2 tools): -0.20"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 2,
+            "context_analysis": null
+          }
+        }
+      },
+      {
+        "id": "aderyn-uninitialized-state-variable-2-0",
+        "type": "uninitialized-state-variable",
+        "severity": "High",
+        "confidence": 0.9,
+        "location": {
+          "file": "AccessControlFlawed.sol",
+          "line": 11,
+          "function": "unknown"
+        },
+        "message": "Uninitialized State Variables",
+        "description": "Solidity does initialize variables by default when you declare them, however it's good practice to explicitly declare an initial value. For example, if you transfer money to an address we must make sure that the address has been initialized.",
+        "recommendation": "Initialize all state variables in constructor",
+        "swc_id": "SWC-109",
+        "cwe_id": "CWE-457",
+        "owasp_category": "SC05: Uninitialized Storage",
+        "_aderyn_detector": "uninitialized-state-variable",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Cross-validated (2 tools): -0.20"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": false,
+            "near_modifier": false,
+            "confirmations": 2,
+            "context_analysis": null
+          }
+        }
+      },
+      {
+        "id": "aderyn-send-ether-no-checks-3-0",
+        "type": "send-ether-no-checks",
+        "severity": "High",
+        "confidence": 0.9,
+        "location": {
+          "file": "AccessControlFlawed.sol",
+          "line": 35,
+          "function": "unknown"
+        },
+        "message": "Sending native Eth is not protected from these functions.",
+        "description": "Introduce checks for `msg.sender` in the function",
+        "recommendation": "Review and fix the issue according to best practices",
+        "swc_id": "SWC-105",
+        "cwe_id": null,
+        "owasp_category": null,
+        "_aderyn_detector": "send-ether-no-checks",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (4 tools): -0.60"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 4,
+            "context_analysis": null
+          }
+        }
+      },
+      {
+        "id": "aderyn-send-ether-no-checks-3-1",
+        "type": "send-ether-no-checks",
+        "severity": "High",
+        "confidence": 0.9,
+        "location": {
+          "file": "AccessControlFlawed.sol",
+          "line": 115,
+          "function": "unknown"
+        },
+        "message": "Sending native Eth is not protected from these functions.",
+        "description": "Introduce checks for `msg.sender` in the function",
+        "recommendation": "Review and fix the issue according to best practices",
+        "swc_id": "SWC-105",
+        "cwe_id": null,
+        "owasp_category": null,
+        "_aderyn_detector": "send-ether-no-checks",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Cross-validated (4 tools): -0.60"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": false,
+            "near_modifier": false,
+            "confirmations": 4,
+            "context_analysis": null
+          }
+        }
+      },
+      {
+        "id": "aderyn-tx-origin-used-for-auth-4-0",
+        "type": "tx-origin-used-for-auth",
+        "severity": "High",
+        "confidence": 0.9,
+        "location": {
+          "file": "AccessControlFlawed.sol",
+          "line": 37,
+          "function": "unknown"
+        },
+        "message": "Potential use of `tx.origin` for authentication.",
+        "description": "Using `tx.origin` may lead to problems when users are interacting via smart contract with your protocol. It is recommended to use `msg.sender` for authentication.",
+        "recommendation": "Use msg.sender instead of tx.origin for authorization",
+        "swc_id": "SWC-115",
+        "cwe_id": "CWE-477",
+        "owasp_category": null,
+        "_aderyn_detector": "tx-origin-used-for-auth",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (3 tools): -0.40"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 3,
+            "context_analysis": null
+          }
+        }
+      },
+      {
+        "id": "aderyn-unsafe-erc20-functions-5-0",
+        "type": "unsafe-erc20-functions",
+        "severity": "Low",
+        "confidence": 0.637,
+        "location": {
+          "file": "AccessControlFlawed.sol",
+          "line": 41,
+          "function": "unknown"
+        },
+        "message": "Unsafe ERC20 Operations should not be used",
+        "description": "ERC20 functions may not behave as expected. For example: return values are not always meaningful. It is recommended to use OpenZeppelin's SafeERC20 library.",
+        "recommendation": "Review and fix the issue according to best practices",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "_aderyn_detector": "unsafe-erc20-functions",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.15,
+          "is_likely_fp": false,
+          "confidence_adjustment": 0.85,
+          "reasons": [
+            "Near require/assert: +0.15"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 1,
+            "context_analysis": null
+          }
+        }
+      },
+      {
+        "id": "aderyn-unsafe-erc20-functions-5-1",
+        "type": "unsafe-erc20-functions",
+        "severity": "Low",
+        "confidence": 0.637,
+        "location": {
+          "file": "AccessControlFlawed.sol",
+          "line": 93,
+          "function": "unknown"
+        },
+        "message": "Unsafe ERC20 Operations should not be used",
+        "description": "ERC20 functions may not behave as expected. For example: return values are not always meaningful. It is recommended to use OpenZeppelin's SafeERC20 library.",
+        "recommendation": "Review and fix the issue according to best practices",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "_aderyn_detector": "unsafe-erc20-functions",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.15,
+          "is_likely_fp": false,
+          "confidence_adjustment": 0.85,
+          "reasons": [
+            "Near require/assert: +0.15"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 1,
+            "context_analysis": null
+          }
+        }
+      },
+      {
+        "id": "aderyn-unspecific-solidity-pragma-6-0",
+        "type": "unspecific-solidity-pragma",
+        "severity": "Low",
+        "confidence": 0.75,
+        "location": {
+          "file": "AccessControlFlawed.sol",
+          "line": 2,
+          "function": "unknown"
+        },
+        "message": "Solidity pragma should be specific, not wide",
+        "description": "Consider using a specific version of Solidity in your contracts instead of a wide version. For example, instead of `pragma solidity ^0.8.0;`, use `pragma solidity 0.8.0;`",
+        "recommendation": "Review and fix the issue according to best practices",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "_aderyn_detector": "unspecific-solidity-pragma",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Cross-validated (2 tools): -0.20"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": false,
+            "near_modifier": false,
+            "confirmations": 2,
+            "context_analysis": null
+          }
+        }
+      }
+    ]
+  },
+  "ml_enhanced": {
+    "filtered_count": 82,
+    "findings": [
+      {
+        "id": "4NALY-e680903984f8",
+        "type": "centralization_risk",
+        "severity": "critical",
+        "confidence": 0.525,
+        "location": {
+          "file": "/data/audit/AccessControlFlawed.sol",
+          "line": 29,
+          "function": ""
+        },
+        "message": "Contract has centralization risk - single owner or admin can control critical functions: // Missing: require(msg.sender == owner, \"Not owner\");",
+        "description": "Contract has centralization risk - single owner or admin can control critical functions",
+        "recommendation": "Implement multi-sig or timelock for privileged operations",
+        "swc_id": "SWC-105",
+        "cwe_id": "CWE-284",
+        "tool": "fouranalyzer",
+        "_fp_analysis": {
+          "fp_probability": 0.3,
+          "is_likely_fp": false,
+          "confidence_adjustment": 0.7,
+          "reasons": [
+            "Known FP pattern 'centralization_risk': +0.15",
+            "Near require/assert: +0.15"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 1,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "medium",
+          "predicted": "critical",
+          "confidence": 0.8,
+          "reasons": [
+            "tx.origin authentication: +0.70",
+            "Sender validation: -0.15"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "4NALY-82f92b87452a",
+        "type": "centralization_risk",
+        "severity": "low",
+        "confidence": 0.525,
+        "location": {
+          "file": "/data/audit/AccessControlFlawed.sol",
+          "line": 76,
+          "function": ""
+        },
+        "message": "Contract has centralization risk - single owner or admin can control critical functions: require(msg.sender == owner, \"Not owner\");",
+        "description": "Contract has centralization risk - single owner or admin can control critical functions",
+        "recommendation": "Implement multi-sig or timelock for privileged operations",
+        "swc_id": "SWC-105",
+        "cwe_id": "CWE-284",
+        "tool": "fouranalyzer",
+        "_fp_analysis": {
+          "fp_probability": 0.3,
+          "is_likely_fp": false,
+          "confidence_adjustment": 0.7,
+          "reasons": [
+            "Known FP pattern 'centralization_risk': +0.15",
+            "Near require/assert: +0.15"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 1,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "medium",
+          "predicted": "low",
+          "confidence": 0.75,
+          "reasons": [
+            "Sender validation: -0.15"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "4NALY-03008423f324",
+        "type": "unsafe_erc20_transfer",
+        "severity": "critical",
+        "confidence": 0.8,
+        "location": {
+          "file": "/data/audit/AccessControlFlawed.sol",
+          "line": 41,
+          "function": ""
+        },
+        "message": "ERC20 transfer/transferFrom return value not checked - tokens may silently fail: payable(msg.sender).transfer(amount);",
+        "description": "ERC20 transfer/transferFrom return value not checked - tokens may silently fail",
+        "recommendation": "Use SafeERC20.safeTransfer() or check return value explicitly",
+        "swc_id": "SWC-104",
+        "cwe_id": "CWE-252",
+        "tool": "fouranalyzer",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (2 tools): -0.20"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 2,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "high",
+          "predicted": "critical",
+          "confidence": 0.75,
+          "reasons": [
+            "tx.origin authentication: +0.70"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "4NALY-f1e92158119e",
+        "type": "unsafe_erc20_transfer",
+        "severity": "low",
+        "confidence": 0.8,
+        "location": {
+          "file": "/data/audit/AccessControlFlawed.sol",
+          "line": 93,
+          "function": ""
+        },
+        "message": "ERC20 transfer/transferFrom return value not checked - tokens may silently fail: payable(msg.sender).transfer(amount);",
+        "description": "ERC20 transfer/transferFrom return value not checked - tokens may silently fail",
+        "recommendation": "Use SafeERC20.safeTransfer() or check return value explicitly",
+        "swc_id": "SWC-104",
+        "cwe_id": "CWE-252",
+        "tool": "fouranalyzer",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (2 tools): -0.20"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 2,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "high",
+          "predicted": "low",
+          "confidence": 0.75,
+          "reasons": [
+            "Sender validation: -0.15"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "4NALY-d746fe4c8850",
+        "type": "missing_zero_address_check",
+        "severity": "Low",
+        "confidence": 0.7,
+        "location": {
+          "file": "/data/audit/AccessControlFlawed.sol",
+          "line": 28,
+          "function": ""
+        },
+        "message": "Address parameter not validated against zero address: function setOwner(address newOwner) public {",
+        "description": "Address parameter not validated against zero address",
+        "recommendation": "Add require(addr != address(0)) check",
+        "swc_id": null,
+        "cwe_id": "CWE-20",
+        "tool": "fouranalyzer",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (2 tools): -0.20"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 2,
+            "context_analysis": null
+          }
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "4NALY-e1a03d2dccad",
+        "type": "missing_zero_address_check",
+        "severity": "medium",
+        "confidence": 0.7,
+        "location": {
+          "file": "/data/audit/AccessControlFlawed.sol",
+          "line": 46,
+          "function": ""
+        },
+        "message": "Address parameter not validated against zero address: function addAdmin(address admin) public {",
+        "description": "Address parameter not validated against zero address",
+        "recommendation": "Add require(addr != address(0)) check",
+        "swc_id": null,
+        "cwe_id": "CWE-20",
+        "tool": "fouranalyzer",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": false,
+            "near_modifier": false,
+            "confirmations": 1,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "low",
+          "predicted": "medium",
+          "confidence": 0.7,
+          "reasons": []
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "4NALY-d4b89dcc08ef",
+        "type": "missing_zero_address_check",
+        "severity": "medium",
+        "confidence": 0.595,
+        "location": {
+          "file": "/data/audit/AccessControlFlawed.sol",
+          "line": 68,
+          "function": ""
+        },
+        "message": "Address parameter not validated against zero address: function initialize(address _owner) public {",
+        "description": "Address parameter not validated against zero address",
+        "recommendation": "Add require(addr != address(0)) check",
+        "swc_id": null,
+        "cwe_id": "CWE-20",
+        "tool": "fouranalyzer",
+        "_fp_analysis": {
+          "fp_probability": 0.15,
+          "is_likely_fp": false,
+          "confidence_adjustment": 0.85,
+          "reasons": [
+            "Near require/assert: +0.15"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 1,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "low",
+          "predicted": "medium",
+          "confidence": 0.7,
+          "reasons": []
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "4NALY-718b1a34547a",
+        "type": "missing_zero_address_check",
+        "severity": "Low",
+        "confidence": 0.595,
+        "location": {
+          "file": "/data/audit/AccessControlFlawed.sol",
+          "line": 75,
+          "function": ""
+        },
+        "message": "Address parameter not validated against zero address: function transferOwnership(address newOwner) public {",
+        "description": "Address parameter not validated against zero address",
+        "recommendation": "Add require(addr != address(0)) check",
+        "swc_id": null,
+        "cwe_id": "CWE-20",
+        "tool": "fouranalyzer",
+        "_fp_analysis": {
+          "fp_probability": 0.15,
+          "is_likely_fp": false,
+          "confidence_adjustment": 0.85,
+          "reasons": [
+            "Near require/assert: +0.15"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 1,
+            "context_analysis": null
+          }
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "4NALY-5892c51fbefd",
+        "type": "missing_event_emission",
+        "severity": "Low",
+        "confidence": 0.566,
+        "location": {
+          "file": "/data/audit/AccessControlFlawed.sol",
+          "line": 28,
+          "function": ""
+        },
+        "message": "State-changing function does not emit an event for off-chain tracking: function setOwner(address newOwner) public {",
+        "description": "State-changing function does not emit an event for off-chain tracking",
+        "recommendation": "Emit events for all state-changing operations",
+        "swc_id": null,
+        "cwe_id": "CWE-778",
+        "tool": "fouranalyzer",
+        "_fp_analysis": {
+          "fp_probability": 0.13,
+          "is_likely_fp": false,
+          "confidence_adjustment": 0.87,
+          "reasons": [
+            "Known FP pattern 'missing_event_emission': +0.18",
+            "Near require/assert: +0.15",
+            "Cross-validated (2 tools): -0.20"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 2,
+            "context_analysis": null
+          }
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "4NALY-57e2b0ba11a3",
+        "type": "use_of_transfer_instead_of_call",
+        "severity": "critical",
+        "confidence": 0.75,
+        "location": {
+          "file": "/data/audit/AccessControlFlawed.sol",
+          "line": 41,
+          "function": ""
+        },
+        "message": "Use of .transfer() or .send() with fixed gas stipend (2300) may fail with EIP-1884: payable(msg.sender).transfer(amount);",
+        "description": "Use of .transfer() or .send() with fixed gas stipend (2300) may fail with EIP-1884",
+        "recommendation": "Use .call{value: amount}('') with reentrancy guard instead",
+        "swc_id": "SWC-134",
+        "cwe_id": "CWE-400",
+        "tool": "fouranalyzer",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (2 tools): -0.20"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 2,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "medium",
+          "predicted": "critical",
+          "confidence": 0.75,
+          "reasons": [
+            "tx.origin authentication: +0.70"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "4NALY-8f326e60a633",
+        "type": "use_of_transfer_instead_of_call",
+        "severity": "low",
+        "confidence": 0.75,
+        "location": {
+          "file": "/data/audit/AccessControlFlawed.sol",
+          "line": 93,
+          "function": ""
+        },
+        "message": "Use of .transfer() or .send() with fixed gas stipend (2300) may fail with EIP-1884: payable(msg.sender).transfer(amount);",
+        "description": "Use of .transfer() or .send() with fixed gas stipend (2300) may fail with EIP-1884",
+        "recommendation": "Use .call{value: amount}('') with reentrancy guard instead",
+        "swc_id": "SWC-134",
+        "cwe_id": "CWE-400",
+        "tool": "fouranalyzer",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (2 tools): -0.20"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 2,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "medium",
+          "predicted": "low",
+          "confidence": 0.75,
+          "reasons": [
+            "Sender validation: -0.15"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "aderyn-unprotected-initializer-0-0",
+        "type": "unprotected-initializer",
+        "severity": "medium",
+        "confidence": 0.9,
+        "location": {
+          "file": "AccessControlFlawed.sol",
+          "line": 68,
+          "function": "unknown"
+        },
+        "message": "Unprotected initializer",
+        "description": "Consider protecting the initializer functions with modifiers.",
+        "recommendation": "Add access control modifier (onlyOwner) or require(msg.sender == owner)",
+        "swc_id": "SWC-105",
+        "cwe_id": "CWE-284",
+        "owasp_category": null,
+        "_aderyn_detector": "unprotected-initializer",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (3 tools): -0.40"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 3,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "high",
+          "predicted": "medium",
+          "confidence": 0.7,
+          "reasons": []
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "aderyn-selfdestruct-identifier-1-0",
+        "type": "selfdestruct-identifier",
+        "severity": "critical",
+        "confidence": 0.9,
+        "location": {
+          "file": "AccessControlFlawed.sol",
+          "line": 56,
+          "function": "unknown"
+        },
+        "message": "Depracated EVM Instruction for `selfdestruct` should not be used.",
+        "description": "Depracated EVM Instruction for `selfdestruct` should not be used.",
+        "recommendation": "Add access control and consider removing selfdestruct",
+        "swc_id": "SWC-106",
+        "cwe_id": null,
+        "owasp_category": null,
+        "_aderyn_detector": "selfdestruct-identifier",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (2 tools): -0.20"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 2,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "high",
+          "predicted": "critical",
+          "confidence": 0.8,
+          "reasons": [
+            "Self-destruct capability: +0.90",
+            "Sender validation: -0.15"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "aderyn-uninitialized-state-variable-2-0",
+        "type": "uninitialized-state-variable",
+        "severity": "medium",
+        "confidence": 0.9,
+        "location": {
+          "file": "AccessControlFlawed.sol",
+          "line": 11,
+          "function": "unknown"
+        },
+        "message": "Uninitialized State Variables",
+        "description": "Solidity does initialize variables by default when you declare them, however it's good practice to explicitly declare an initial value. For example, if you transfer money to an address we must make sure that the address has been initialized.",
+        "recommendation": "Initialize all state variables in constructor",
+        "swc_id": "SWC-109",
+        "cwe_id": "CWE-457",
+        "owasp_category": "SC05: Uninitialized Storage",
+        "_aderyn_detector": "uninitialized-state-variable",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Cross-validated (2 tools): -0.20"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": false,
+            "near_modifier": false,
+            "confirmations": 2,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "high",
+          "predicted": "medium",
+          "confidence": 0.7,
+          "reasons": []
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "aderyn-send-ether-no-checks-3-0",
+        "type": "send-ether-no-checks",
+        "severity": "critical",
+        "confidence": 0.9,
+        "location": {
+          "file": "AccessControlFlawed.sol",
+          "line": 35,
+          "function": "unknown"
+        },
+        "message": "Sending native Eth is not protected from these functions.",
+        "description": "Introduce checks for `msg.sender` in the function",
+        "recommendation": "Review and fix the issue according to best practices",
+        "swc_id": "SWC-105",
+        "cwe_id": null,
+        "owasp_category": null,
+        "_aderyn_detector": "send-ether-no-checks",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (4 tools): -0.60"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 4,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "high",
+          "predicted": "critical",
+          "confidence": 0.75,
+          "reasons": [
+            "tx.origin authentication: +0.70"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "aderyn-send-ether-no-checks-3-1",
+        "type": "send-ether-no-checks",
+        "severity": "critical",
+        "confidence": 0.9,
+        "location": {
+          "file": "AccessControlFlawed.sol",
+          "line": 115,
+          "function": "unknown"
+        },
+        "message": "Sending native Eth is not protected from these functions.",
+        "description": "Introduce checks for `msg.sender` in the function",
+        "recommendation": "Review and fix the issue according to best practices",
+        "swc_id": "SWC-105",
+        "cwe_id": null,
+        "owasp_category": null,
+        "_aderyn_detector": "send-ether-no-checks",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Cross-validated (4 tools): -0.60"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": false,
+            "near_modifier": false,
+            "confirmations": 4,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "high",
+          "predicted": "critical",
+          "confidence": 0.75,
+          "reasons": [
+            "tx.origin authentication: +0.70"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "aderyn-tx-origin-used-for-auth-4-0",
+        "type": "tx-origin-used-for-auth",
+        "severity": "critical",
+        "confidence": 0.9,
+        "location": {
+          "file": "AccessControlFlawed.sol",
+          "line": 37,
+          "function": "unknown"
+        },
+        "message": "Potential use of `tx.origin` for authentication.",
+        "description": "Using `tx.origin` may lead to problems when users are interacting via smart contract with your protocol. It is recommended to use `msg.sender` for authentication.",
+        "recommendation": "Use msg.sender instead of tx.origin for authorization",
+        "swc_id": "SWC-115",
+        "cwe_id": "CWE-477",
+        "owasp_category": null,
+        "_aderyn_detector": "tx-origin-used-for-auth",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (3 tools): -0.40"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 3,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "high",
+          "predicted": "critical",
+          "confidence": 0.75,
+          "reasons": [
+            "tx.origin authentication: +0.70"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "aderyn-unsafe-erc20-functions-5-0",
+        "type": "unsafe-erc20-functions",
+        "severity": "critical",
+        "confidence": 0.637,
+        "location": {
+          "file": "AccessControlFlawed.sol",
+          "line": 41,
+          "function": "unknown"
+        },
+        "message": "Unsafe ERC20 Operations should not be used",
+        "description": "ERC20 functions may not behave as expected. For example: return values are not always meaningful. It is recommended to use OpenZeppelin's SafeERC20 library.",
+        "recommendation": "Review and fix the issue according to best practices",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "_aderyn_detector": "unsafe-erc20-functions",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.15,
+          "is_likely_fp": false,
+          "confidence_adjustment": 0.85,
+          "reasons": [
+            "Near require/assert: +0.15"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 1,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "low",
+          "predicted": "critical",
+          "confidence": 0.75,
+          "reasons": [
+            "tx.origin authentication: +0.70"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "aderyn-unsafe-erc20-functions-5-1",
+        "type": "unsafe-erc20-functions",
+        "severity": "Low",
+        "confidence": 0.637,
+        "location": {
+          "file": "AccessControlFlawed.sol",
+          "line": 93,
+          "function": "unknown"
+        },
+        "message": "Unsafe ERC20 Operations should not be used",
+        "description": "ERC20 functions may not behave as expected. For example: return values are not always meaningful. It is recommended to use OpenZeppelin's SafeERC20 library.",
+        "recommendation": "Review and fix the issue according to best practices",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "_aderyn_detector": "unsafe-erc20-functions",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.15,
+          "is_likely_fp": false,
+          "confidence_adjustment": 0.85,
+          "reasons": [
+            "Near require/assert: +0.15"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 1,
+            "context_analysis": null
+          }
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "aderyn-unspecific-solidity-pragma-6-0",
+        "type": "unspecific-solidity-pragma",
+        "severity": "medium",
+        "confidence": 0.75,
+        "location": {
+          "file": "AccessControlFlawed.sol",
+          "line": 2,
+          "function": "unknown"
+        },
+        "message": "Solidity pragma should be specific, not wide",
+        "description": "Consider using a specific version of Solidity in your contracts instead of a wide version. For example, instead of `pragma solidity ^0.8.0;`, use `pragma solidity 0.8.0;`",
+        "recommendation": "Review and fix the issue according to best practices",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "_aderyn_detector": "unspecific-solidity-pragma",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Cross-validated (2 tools): -0.20"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": false,
+            "near_modifier": false,
+            "confirmations": 2,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "low",
+          "predicted": "medium",
+          "confidence": 0.7,
+          "reasons": []
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "aderyn-zero-address-check-7-0",
+        "type": "zero-address-check",
+        "severity": "critical",
+        "confidence": 0.637,
+        "location": {
+          "file": "AccessControlFlawed.sol",
+          "line": 30,
+          "function": "unknown"
+        },
+        "message": "Missing checks for `address(0)` when assigning values to address state variables",
+        "description": "Check for `address(0)` when assigning values to address state variables.",
+        "recommendation": "Review and fix the issue according to best practices",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "_aderyn_detector": "zero-address-check",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.15,
+          "is_likely_fp": false,
+          "confidence_adjustment": 0.85,
+          "reasons": [
+            "Near require/assert: +0.15"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 1,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "low",
+          "predicted": "critical",
+          "confidence": 0.8,
+          "reasons": [
+            "tx.origin authentication: +0.70",
+            "Sender validation: -0.15"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "aderyn-zero-address-check-7-1",
+        "type": "zero-address-check",
+        "severity": "medium",
+        "confidence": 0.637,
+        "location": {
+          "file": "AccessControlFlawed.sol",
+          "line": 70,
+          "function": "unknown"
+        },
+        "message": "Missing checks for `address(0)` when assigning values to address state variables",
+        "description": "Check for `address(0)` when assigning values to address state variables.",
+        "recommendation": "Review and fix the issue according to best practices",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "_aderyn_detector": "zero-address-check",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.15,
+          "is_likely_fp": false,
+          "confidence_adjustment": 0.85,
+          "reasons": [
+            "Near require/assert: +0.15"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 1,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "low",
+          "predicted": "medium",
+          "confidence": 0.7,
+          "reasons": []
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "aderyn-zero-address-check-7-2",
+        "type": "zero-address-check",
+        "severity": "Low",
+        "confidence": 0.637,
+        "location": {
+          "file": "AccessControlFlawed.sol",
+          "line": 78,
+          "function": "unknown"
+        },
+        "message": "Missing checks for `address(0)` when assigning values to address state variables",
+        "description": "Check for `address(0)` when assigning values to address state variables.",
+        "recommendation": "Review and fix the issue according to best practices",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "_aderyn_detector": "zero-address-check",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.15,
+          "is_likely_fp": false,
+          "confidence_adjustment": 0.85,
+          "reasons": [
+            "Near require/assert: +0.15"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 1,
+            "context_analysis": null
+          }
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "aderyn-zero-address-check-7-3",
+        "type": "zero-address-check",
+        "severity": "critical",
+        "confidence": 0.75,
+        "location": {
+          "file": "AccessControlFlawed.sol",
+          "line": 110,
+          "function": "unknown"
+        },
+        "message": "Missing checks for `address(0)` when assigning values to address state variables",
+        "description": "Check for `address(0)` when assigning values to address state variables.",
+        "recommendation": "Review and fix the issue according to best practices",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "_aderyn_detector": "zero-address-check",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": false,
+            "near_modifier": false,
+            "confirmations": 1,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "low",
+          "predicted": "critical",
+          "confidence": 0.75,
+          "reasons": [
+            "tx.origin authentication: +0.70"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "aderyn-useless-public-function-8-0",
+        "type": "useless-public-function",
+        "severity": "Low",
+        "confidence": 0.75,
+        "location": {
+          "file": "AccessControlFlawed.sol",
+          "line": 28,
+          "function": "unknown"
+        },
+        "message": "`public` functions not used internally could be marked `external`",
+        "description": "Instead of marking a function as `public`, consider marking it as `external` if it is not used internally.",
+        "recommendation": "Review and fix the issue according to best practices",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "_aderyn_detector": "useless-public-function",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (3 tools): -0.40"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 3,
+            "context_analysis": null
+          }
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "aderyn-useless-public-function-8-1",
+        "type": "useless-public-function",
+        "severity": "critical",
+        "confidence": 0.75,
+        "location": {
+          "file": "AccessControlFlawed.sol",
+          "line": 35,
+          "function": "unknown"
+        },
+        "message": "`public` functions not used internally could be marked `external`",
+        "description": "Instead of marking a function as `public`, consider marking it as `external` if it is not used internally.",
+        "recommendation": "Review and fix the issue according to best practices",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "_aderyn_detector": "useless-public-function",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (4 tools): -0.60"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 4,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "low",
+          "predicted": "critical",
+          "confidence": 0.75,
+          "reasons": [
+            "tx.origin authentication: +0.70"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "aderyn-useless-public-function-8-2",
+        "type": "useless-public-function",
+        "severity": "medium",
+        "confidence": 0.75,
+        "location": {
+          "file": "AccessControlFlawed.sol",
+          "line": 46,
+          "function": "unknown"
+        },
+        "message": "`public` functions not used internally could be marked `external`",
+        "description": "Instead of marking a function as `public`, consider marking it as `external` if it is not used internally.",
+        "recommendation": "Review and fix the issue according to best practices",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "_aderyn_detector": "useless-public-function",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Cross-validated (2 tools): -0.20"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": false,
+            "near_modifier": false,
+            "confirmations": 2,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "low",
+          "predicted": "medium",
+          "confidence": 0.7,
+          "reasons": []
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "aderyn-useless-public-function-8-3",
+        "type": "useless-public-function",
+        "severity": "critical",
+        "confidence": 0.75,
+        "location": {
+          "file": "AccessControlFlawed.sol",
+          "line": 53,
+          "function": "unknown"
+        },
+        "message": "`public` functions not used internally could be marked `external`",
+        "description": "Instead of marking a function as `public`, consider marking it as `external` if it is not used internally.",
+        "recommendation": "Review and fix the issue according to best practices",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "_aderyn_detector": "useless-public-function",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (3 tools): -0.40"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 3,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "low",
+          "predicted": "critical",
+          "confidence": 0.8,
+          "reasons": [
+            "Self-destruct capability: +0.90",
+            "Sender validation: -0.15"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "aderyn-useless-public-function-8-4",
+        "type": "useless-public-function",
+        "severity": "critical",
+        "confidence": 0.75,
+        "location": {
+          "file": "AccessControlFlawed.sol",
+          "line": 60,
+          "function": "unknown"
+        },
+        "message": "`public` functions not used internally could be marked `external`",
+        "description": "Instead of marking a function as `public`, consider marking it as `external` if it is not used internally.",
+        "recommendation": "Review and fix the issue according to best practices",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "_aderyn_detector": "useless-public-function",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (3 tools): -0.40"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 3,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "low",
+          "predicted": "critical",
+          "confidence": 0.8,
+          "reasons": [
+            "Self-destruct capability: +0.90",
+            "Sender validation: -0.15"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "aderyn-useless-public-function-8-5",
+        "type": "useless-public-function",
+        "severity": "medium",
+        "confidence": 0.75,
+        "location": {
+          "file": "AccessControlFlawed.sol",
+          "line": 68,
+          "function": "unknown"
+        },
+        "message": "`public` functions not used internally could be marked `external`",
+        "description": "Instead of marking a function as `public`, consider marking it as `external` if it is not used internally.",
+        "recommendation": "Review and fix the issue according to best practices",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "_aderyn_detector": "useless-public-function",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (3 tools): -0.40"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 3,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "low",
+          "predicted": "medium",
+          "confidence": 0.7,
+          "reasons": []
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "aderyn-useless-public-function-8-6",
+        "type": "useless-public-function",
+        "severity": "Low",
+        "confidence": 0.75,
+        "location": {
+          "file": "AccessControlFlawed.sol",
+          "line": 75,
+          "function": "unknown"
+        },
+        "message": "`public` functions not used internally could be marked `external`",
+        "description": "Instead of marking a function as `public`, consider marking it as `external` if it is not used internally.",
+        "recommendation": "Review and fix the issue according to best practices",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "_aderyn_detector": "useless-public-function",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (2 tools): -0.20"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 2,
+            "context_analysis": null
+          }
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "aderyn-useless-public-function-8-7",
+        "type": "useless-public-function",
+        "severity": "Low",
+        "confidence": 0.75,
+        "location": {
+          "file": "AccessControlFlawed.sol",
+          "line": 89,
+          "function": "unknown"
+        },
+        "message": "`public` functions not used internally could be marked `external`",
+        "description": "Instead of marking a function as `public`, consider marking it as `external` if it is not used internally.",
+        "recommendation": "Review and fix the issue according to best practices",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "_aderyn_detector": "useless-public-function",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (3 tools): -0.40"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 3,
+            "context_analysis": null
+          }
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "aderyn-unindexed-events-9-0",
+        "type": "unindexed-events",
+        "severity": "medium",
+        "confidence": 0.75,
+        "location": {
+          "file": "AccessControlFlawed.sol",
+          "line": 20,
+          "function": "unknown"
+        },
+        "message": "Event is missing `indexed` fields",
+        "description": "Index event fields make the field more quickly accessible to off-chain tools that parse events. However, note that each index field costs extra gas during emission, so it's not necessarily best to index the maximum allowed per event (three fields). Each event should use three indexed fields if there are three or more fields, and gas usage is not particularly of concern for the events in question. If there are fewer than three fields, all of the fields should be indexed.",
+        "recommendation": "Review and fix the issue according to best practices",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "_aderyn_detector": "unindexed-events",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": false,
+            "near_modifier": false,
+            "confirmations": 1,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "low",
+          "predicted": "medium",
+          "confidence": 0.7,
+          "reasons": []
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "aderyn-push-zero-opcode-10-0",
+        "type": "push-zero-opcode",
+        "severity": "medium",
+        "confidence": 0.75,
+        "location": {
+          "file": "AccessControlFlawed.sol",
+          "line": 2,
+          "function": "unknown"
+        },
+        "message": "PUSH0 is not supported by all chains",
+        "description": "Solc compiler version 0.8.20 switches the default target EVM version to Shanghai, which means that the generated bytecode will include PUSH0 opcodes. Be sure to select the appropriate EVM version in case you intend to deploy on a chain other than mainnet like L2 chains that may not support PUSH0, otherwise deployment of your contracts will fail.",
+        "recommendation": "Review and fix the issue according to best practices",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "_aderyn_detector": "push-zero-opcode",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Cross-validated (2 tools): -0.20"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": false,
+            "near_modifier": false,
+            "confirmations": 2,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "low",
+          "predicted": "medium",
+          "confidence": 0.7,
+          "reasons": []
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "SB-ACCESS_CONTROL-1",
+        "title": "Missing Access Control",
+        "description": "Unprotected withdrawal function. Function 'withdraw' at line 35 has no access control.",
+        "severity": "critical",
+        "confidence": 0.722,
+        "category": "access_control",
+        "swc_id": "SWC-105",
+        "location": {
+          "file": "/data/audit/AccessControlFlawed.sol",
+          "line": 35,
+          "snippet": "function withdrawTreasury(uint256 amount) public {"
+        },
+        "tool": "smartbugs_detector",
+        "layer": 6,
+        "_fp_analysis": {
+          "fp_probability": 0.15,
+          "is_likely_fp": false,
+          "confidence_adjustment": 0.85,
+          "reasons": [
+            "Near require/assert: +0.15"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 1,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "high",
+          "predicted": "critical",
+          "confidence": 0.75,
+          "reasons": [
+            "tx.origin authentication: +0.70"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "SB-ACCESS_CONTROL-2",
+        "title": "tx.origin Authentication",
+        "description": "Using tx.origin for authentication at line 37. Use msg.sender instead.",
+        "severity": "critical",
+        "confidence": 0.722,
+        "category": "access_control",
+        "swc_id": "SWC-115",
+        "location": {
+          "file": "/data/audit/AccessControlFlawed.sol",
+          "line": 37,
+          "snippet": "require(tx.origin == owner, \"Not owner\");"
+        },
+        "tool": "smartbugs_detector",
+        "layer": 6,
+        "_fp_analysis": {
+          "fp_probability": 0.15,
+          "is_likely_fp": false,
+          "confidence_adjustment": 0.85,
+          "reasons": [
+            "Near require/assert: +0.15"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 1,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "high",
+          "predicted": "critical",
+          "confidence": 0.75,
+          "reasons": [
+            "tx.origin authentication: +0.70"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "PECULIAR-ACCESS_CONTROL-d57b8513-0000",
+        "type": "access_control",
+        "severity": "critical",
+        "confidence": 0.85,
+        "location": {
+          "file": "AccessControlFlawed.sol",
+          "line": 35,
+          "function": "withdrawTreasury"
+        },
+        "message": "Function withdrawTreasury() contains privileged operation 'withdraw' without access control modifier",
+        "description": "Missing or insufficient access control on privileged function",
+        "recommendation": "Add access control modifiers (onlyOwner, role-based) to sensitive functions. Use OpenZeppelin AccessControl or Ownable.",
+        "swc_id": "SWC-115",
+        "cwe_id": "CWE-284",
+        "owasp_category": "SC01:2025 - Access Control",
+        "code_snippet": "    // VULNERABILITY 2: tx.origin used for authorization\n    function withdrawTreasury(uint256 amount) public {\n        // VULNERABLE: tx.origin can be manipulated via phishing\n        require(tx.origin == owner, \"Not owner\");",
+        "detection_method": "pattern_analysis",
+        "ml_model": "Peculiar (ICSE 2023)",
+        "tool": "peculiar",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (4 tools): -0.60"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 4,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "high",
+          "predicted": "critical",
+          "confidence": 0.8,
+          "reasons": [
+            "tx.origin authentication: +0.70",
+            "Function visibility: +0.10"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "PECULIAR-ACCESS_CONTROL-d57b8513-0001",
+        "type": "access_control",
+        "severity": "critical",
+        "confidence": 0.85,
+        "location": {
+          "file": "AccessControlFlawed.sol",
+          "line": 53,
+          "function": "destroy"
+        },
+        "message": "Function destroy() contains privileged operation 'selfdestruct' without access control modifier",
+        "description": "Missing or insufficient access control on privileged function",
+        "recommendation": "Add access control modifiers (onlyOwner, role-based) to sensitive functions. Use OpenZeppelin AccessControl or Ownable.",
+        "swc_id": "SWC-115",
+        "cwe_id": "CWE-284",
+        "owasp_category": "SC01:2025 - Access Control",
+        "code_snippet": "    // VULNERABILITY 4: Self-destruct with weak access control\n    function destroy() public {\n        // Only checks if caller is \"an\" admin, not THE owner\n        require(admins[msg.sender], \"Not admin\");",
+        "detection_method": "pattern_analysis",
+        "ml_model": "Peculiar (ICSE 2023)",
+        "tool": "peculiar",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (3 tools): -0.40"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 3,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "high",
+          "predicted": "critical",
+          "confidence": 0.85,
+          "reasons": [
+            "Self-destruct capability: +0.90",
+            "Sender validation: -0.15",
+            "Function visibility: +0.10"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "PECULIAR-ACCESS_CONTROL-d57b8513-0002",
+        "type": "access_control",
+        "severity": "critical",
+        "confidence": 0.85,
+        "location": {
+          "file": "AccessControlFlawed.sol",
+          "line": 60,
+          "function": "togglePause"
+        },
+        "message": "Function togglePause() contains privileged operation 'pause' without access control modifier",
+        "description": "Missing or insufficient access control on privileged function",
+        "recommendation": "Add access control modifiers (onlyOwner, role-based) to sensitive functions. Use OpenZeppelin AccessControl or Ownable.",
+        "swc_id": "SWC-115",
+        "cwe_id": "CWE-284",
+        "owasp_category": "SC01:2025 - Access Control",
+        "code_snippet": "    // VULNERABILITY 5: Pause function without proper access control\n    function togglePause() public {\n        // Anyone can pause/unpause the contract!\n        paused = !paused;",
+        "detection_method": "pattern_analysis",
+        "ml_model": "Peculiar (ICSE 2023)",
+        "tool": "peculiar",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (3 tools): -0.40"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 3,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "high",
+          "predicted": "critical",
+          "confidence": 0.85,
+          "reasons": [
+            "Self-destruct capability: +0.90",
+            "Sender validation: -0.15",
+            "Function visibility: +0.10"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "PECULIAR-ACCESS_CONTROL-d57b8513-0003",
+        "type": "access_control",
+        "severity": "medium",
+        "confidence": 0.85,
+        "location": {
+          "file": "AccessControlFlawed.sol",
+          "line": 82,
+          "function": "deposit"
+        },
+        "message": "Function deposit() contains privileged operation 'pause' without access control modifier",
+        "description": "Missing or insufficient access control on privileged function",
+        "recommendation": "Add access control modifiers (onlyOwner, role-based) to sensitive functions. Use OpenZeppelin AccessControl or Ownable.",
+        "swc_id": "SWC-115",
+        "cwe_id": "CWE-284",
+        "owasp_category": "SC01:2025 - Access Control",
+        "code_snippet": "    // Deposit function\n    function deposit() public payable {\n        require(!paused, \"Contract paused\");\n        userBalances[msg.sender] += msg.value;",
+        "detection_method": "pattern_analysis",
+        "ml_model": "Peculiar (ICSE 2023)",
+        "tool": "peculiar",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (2 tools): -0.20"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 2,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "high",
+          "predicted": "medium",
+          "confidence": 0.75,
+          "reasons": [
+            "Function visibility: +0.10"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "PECULIAR-ACCESS_CONTROL-d57b8513-0004",
+        "type": "access_control",
+        "severity": "medium",
+        "confidence": 0.85,
+        "location": {
+          "file": "AccessControlFlawed.sol",
+          "line": 89,
+          "function": "userWithdraw"
+        },
+        "message": "Function userWithdraw() contains privileged operation 'pause' without access control modifier",
+        "description": "Missing or insufficient access control on privileged function",
+        "recommendation": "Add access control modifiers (onlyOwner, role-based) to sensitive functions. Use OpenZeppelin AccessControl or Ownable.",
+        "swc_id": "SWC-115",
+        "cwe_id": "CWE-284",
+        "owasp_category": "SC01:2025 - Access Control",
+        "code_snippet": "    // User withdrawal\n    function userWithdraw(uint256 amount) public {\n        require(!paused, \"Contract paused\");\n        require(userBalances[msg.sender] >= amount, \"Insufficient balance\");",
+        "detection_method": "pattern_analysis",
+        "ml_model": "Peculiar (ICSE 2023)",
+        "tool": "peculiar",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (3 tools): -0.40"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 3,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "high",
+          "predicted": "medium",
+          "confidence": 0.8,
+          "reasons": [
+            "Sender validation: -0.15",
+            "Function visibility: +0.10"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "PECULIAR-ACCESS_CONTROL-d57b8513-0005",
+        "type": "access_control",
+        "severity": "critical",
+        "confidence": 0.85,
+        "location": {
+          "file": "AccessControlFlawed.sol",
+          "line": 115,
+          "function": "claimReward"
+        },
+        "message": "Function claimReward() contains privileged operation 'withdraw' without access control modifier",
+        "description": "Missing or insufficient access control on privileged function",
+        "recommendation": "Add access control modifiers (onlyOwner, role-based) to sensitive functions. Use OpenZeppelin AccessControl or Ownable.",
+        "swc_id": "SWC-115",
+        "cwe_id": "CWE-284",
+        "owasp_category": "SC01:2025 - Access Control",
+        "code_snippet": "    // If owner calls this, tx.origin will be owner!\n    function claimReward() external {\n        // This calls withdrawTreasury with tx.origin = original caller (owner)\n        target.withdrawTreasury(address(target).balance);",
+        "detection_method": "pattern_analysis",
+        "ml_model": "Peculiar (ICSE 2023)",
+        "tool": "peculiar",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Cross-validated (4 tools): -0.60"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": false,
+            "near_modifier": false,
+            "confirmations": 4,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "high",
+          "predicted": "critical",
+          "confidence": 0.8,
+          "reasons": [
+            "tx.origin authentication: +0.70",
+            "Function visibility: +0.10"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "PECULIAR-TX_ORIGIN-d57b8513-0006",
+        "type": "tx_origin",
+        "severity": "critical",
+        "confidence": 0.75,
+        "location": {
+          "file": "AccessControlFlawed.sol",
+          "line": 37,
+          "function": "withdrawTreasury"
+        },
+        "message": "tx.origin used in withdrawTreasury(). This is vulnerable to phishing attacks via intermediary contracts.",
+        "description": "Use of tx.origin for authentication is vulnerable to phishing",
+        "recommendation": "Replace tx.origin with msg.sender for authentication. tx.origin can be manipulated through intermediary contracts.",
+        "swc_id": "SWC-115",
+        "cwe_id": "CWE-284",
+        "owasp_category": "SC01:2025 - Access Control",
+        "code_snippet": "        // VULNERABLE: tx.origin can be manipulated via phishing\n        require(tx.origin == owner, \"Not owner\");\n        require(amount <= treasuryBalance, \"Insufficient treasury\");\n",
+        "detection_method": "pattern_analysis",
+        "ml_model": "Peculiar (ICSE 2023)",
+        "tool": "peculiar",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (3 tools): -0.40"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 3,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "high",
+          "predicted": "critical",
+          "confidence": 0.8,
+          "reasons": [
+            "tx.origin authentication: +0.70",
+            "Function visibility: +0.10"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "PECULIAR-TX_ORIGIN-d57b8513-0007",
+        "type": "tx_origin",
+        "severity": "critical",
+        "confidence": 0.748,
+        "location": {
+          "file": "AccessControlFlawed.sol",
+          "line": 38,
+          "function": "withdrawTreasury"
+        },
+        "message": "tx.origin used in withdrawTreasury(). This is vulnerable to phishing attacks via intermediary contracts.",
+        "description": "Use of tx.origin for authentication is vulnerable to phishing",
+        "recommendation": "Replace tx.origin with msg.sender for authentication. tx.origin can be manipulated through intermediary contracts.",
+        "swc_id": "SWC-115",
+        "cwe_id": "CWE-284",
+        "owasp_category": "SC01:2025 - Access Control",
+        "code_snippet": "        require(tx.origin == owner, \"Not owner\");\n        require(amount <= treasuryBalance, \"Insufficient treasury\");\n\n        treasuryBalance -= amount;",
+        "detection_method": "pattern_analysis",
+        "ml_model": "Peculiar (ICSE 2023)",
+        "tool": "peculiar",
+        "_fp_analysis": {
+          "fp_probability": 0.15,
+          "is_likely_fp": false,
+          "confidence_adjustment": 0.85,
+          "reasons": [
+            "Near require/assert: +0.15"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 1,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "high",
+          "predicted": "critical",
+          "confidence": 0.8,
+          "reasons": [
+            "tx.origin authentication: +0.70",
+            "Function visibility: +0.10"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "PECULIAR-TX_ORIGIN-d57b8513-0008",
+        "type": "tx_origin",
+        "severity": "critical",
+        "confidence": 0.75,
+        "location": {
+          "file": "AccessControlFlawed.sol",
+          "line": 117,
+          "function": "claimReward"
+        },
+        "message": "tx.origin used in claimReward(). This is vulnerable to phishing attacks via intermediary contracts.",
+        "description": "Use of tx.origin for authentication is vulnerable to phishing",
+        "recommendation": "Replace tx.origin with msg.sender for authentication. tx.origin can be manipulated through intermediary contracts.",
+        "swc_id": "SWC-115",
+        "cwe_id": "CWE-284",
+        "owasp_category": "SC01:2025 - Access Control",
+        "code_snippet": "        // This calls withdrawTreasury with tx.origin = original caller (owner)\n        target.withdrawTreasury(address(target).balance);\n    }\n",
+        "detection_method": "pattern_analysis",
+        "ml_model": "Peculiar (ICSE 2023)",
+        "tool": "peculiar",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": false,
+            "near_modifier": false,
+            "confirmations": 1,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "high",
+          "predicted": "critical",
+          "confidence": 0.8,
+          "reasons": [
+            "tx.origin authentication: +0.70",
+            "Function visibility: +0.10"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "THREAT-SPOOFING-37",
+        "type": "threat_model",
+        "severity": "critical",
+        "confidence": 0.75,
+        "location": {
+          "file": "AccessControlFlawed.sol",
+          "line": 37,
+          "column": 16,
+          "code_snippet": "require(tx.origin == owner, \"Not owner\");"
+        },
+        "message": "[Spoofing] tx.origin can be spoofed via phishing attack",
+        "description": "Threat identified via STRIDE analysis:\nCategory: Spoofing\nThreat: tx.origin can be spoofed via phishing attack\nImpact: Attacker can impersonate authorized user",
+        "recommendation": "Use msg.sender instead of tx.origin for authorization",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": "A04:2021-Insecure Design",
+        "stride_category": "Spoofing",
+        "dread_score": 7.6,
+        "dread_breakdown": {
+          "damage": 8,
+          "reproducibility": 9,
+          "exploitability": 7,
+          "affected_users": 8,
+          "discoverability": 6
+        },
+        "impact": "Attacker can impersonate authorized user",
+        "tool": "threat_model",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (3 tools): -0.40"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 3,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "high",
+          "predicted": "critical",
+          "confidence": 0.75,
+          "reasons": [
+            "tx.origin authentication: +0.70"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "THREAT-SPOOFING-115",
+        "type": "threat_model",
+        "severity": "Critical",
+        "confidence": 0.75,
+        "location": {
+          "file": "AccessControlFlawed.sol",
+          "line": 115,
+          "column": 4,
+          "code_snippet": "function claimReward() external {"
+        },
+        "message": "[Spoofing] External function without authentication",
+        "description": "Threat identified via STRIDE analysis:\nCategory: Spoofing\nThreat: External function without authentication\nImpact: Anyone can call privileged function",
+        "recommendation": "Add access control modifiers (onlyOwner, onlyRole, etc.)",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": "A04:2021-Insecure Design",
+        "stride_category": "Spoofing",
+        "dread_score": 9.6,
+        "dread_breakdown": {
+          "damage": 9,
+          "reproducibility": 10,
+          "exploitability": 10,
+          "affected_users": 10,
+          "discoverability": 9
+        },
+        "impact": "Anyone can call privileged function",
+        "tool": "threat_model",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Cross-validated (4 tools): -0.60"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": false,
+            "near_modifier": false,
+            "confirmations": 4,
+            "context_analysis": null
+          }
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "THREAT-TAMPERING-10",
+        "type": "threat_model",
+        "severity": "medium",
+        "confidence": 0.75,
+        "location": {
+          "file": "AccessControlFlawed.sol",
+          "line": 10,
+          "column": 4,
+          "code_snippet": "address public owner;"
+        },
+        "message": "[Tampering] Public state variable without setter protection",
+        "description": "Threat identified via STRIDE analysis:\nCategory: Tampering\nThreat: Public state variable without setter protection\nImpact: State can be read by attackers for manipulation timing",
+        "recommendation": "Use internal/private visibility and controlled setters",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": "A04:2021-Insecure Design",
+        "stride_category": "Tampering",
+        "dread_score": 7.6,
+        "dread_breakdown": {
+          "damage": 6,
+          "reproducibility": 10,
+          "exploitability": 5,
+          "affected_users": 7,
+          "discoverability": 10
+        },
+        "impact": "State can be read by attackers for manipulation timing",
+        "tool": "threat_model",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": false,
+            "near_modifier": false,
+            "confirmations": 1,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "high",
+          "predicted": "medium",
+          "confidence": 0.7,
+          "reasons": []
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "THREAT-TAMPERING-11",
+        "type": "threat_model",
+        "severity": "medium",
+        "confidence": 0.75,
+        "location": {
+          "file": "AccessControlFlawed.sol",
+          "line": 11,
+          "column": 4,
+          "code_snippet": "address public pendingOwner;"
+        },
+        "message": "[Tampering] Public state variable without setter protection",
+        "description": "Threat identified via STRIDE analysis:\nCategory: Tampering\nThreat: Public state variable without setter protection\nImpact: State can be read by attackers for manipulation timing",
+        "recommendation": "Use internal/private visibility and controlled setters",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": "A04:2021-Insecure Design",
+        "stride_category": "Tampering",
+        "dread_score": 7.6,
+        "dread_breakdown": {
+          "damage": 6,
+          "reproducibility": 10,
+          "exploitability": 5,
+          "affected_users": 7,
+          "discoverability": 10
+        },
+        "impact": "State can be read by attackers for manipulation timing",
+        "tool": "threat_model",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Cross-validated (2 tools): -0.20"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": false,
+            "near_modifier": false,
+            "confirmations": 2,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "high",
+          "predicted": "medium",
+          "confidence": 0.7,
+          "reasons": []
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "THREAT-TAMPERING-16",
+        "type": "threat_model",
+        "severity": "medium",
+        "confidence": 0.75,
+        "location": {
+          "file": "AccessControlFlawed.sol",
+          "line": 16,
+          "column": 4,
+          "code_snippet": "bool public paused;"
+        },
+        "message": "[Tampering] Public state variable without setter protection",
+        "description": "Threat identified via STRIDE analysis:\nCategory: Tampering\nThreat: Public state variable without setter protection\nImpact: State can be read by attackers for manipulation timing",
+        "recommendation": "Use internal/private visibility and controlled setters",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": "A04:2021-Insecure Design",
+        "stride_category": "Tampering",
+        "dread_score": 7.6,
+        "dread_breakdown": {
+          "damage": 6,
+          "reproducibility": 10,
+          "exploitability": 5,
+          "affected_users": 7,
+          "discoverability": 10
+        },
+        "impact": "State can be read by attackers for manipulation timing",
+        "tool": "threat_model",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": false,
+            "near_modifier": false,
+            "confirmations": 1,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "high",
+          "predicted": "medium",
+          "confidence": 0.7,
+          "reasons": []
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "THREAT-TAMPERING-107",
+        "type": "threat_model",
+        "severity": "critical",
+        "confidence": 0.75,
+        "location": {
+          "file": "AccessControlFlawed.sol",
+          "line": 107,
+          "column": 4,
+          "code_snippet": "address public attacker;"
+        },
+        "message": "[Tampering] Public state variable without setter protection",
+        "description": "Threat identified via STRIDE analysis:\nCategory: Tampering\nThreat: Public state variable without setter protection\nImpact: State can be read by attackers for manipulation timing",
+        "recommendation": "Use internal/private visibility and controlled setters",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": "A04:2021-Insecure Design",
+        "stride_category": "Tampering",
+        "dread_score": 7.6,
+        "dread_breakdown": {
+          "damage": 6,
+          "reproducibility": 10,
+          "exploitability": 5,
+          "affected_users": 7,
+          "discoverability": 10
+        },
+        "impact": "State can be read by attackers for manipulation timing",
+        "tool": "threat_model",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": false,
+            "near_modifier": false,
+            "confirmations": 1,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "high",
+          "predicted": "critical",
+          "confidence": 0.75,
+          "reasons": [
+            "tx.origin authentication: +0.70"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "THREAT-TAMPERING-28",
+        "type": "threat_model",
+        "severity": "low",
+        "confidence": 0.75,
+        "location": {
+          "file": "AccessControlFlawed.sol",
+          "line": 28,
+          "column": 4,
+          "code_snippet": "function setOwner(address newOwner) public {"
+        },
+        "message": "[Tampering] Setter function without input validation",
+        "description": "Threat identified via STRIDE analysis:\nCategory: Tampering\nThreat: Setter function without input validation\nImpact: Invalid data can corrupt contract state",
+        "recommendation": "Add require() statements to validate inputs",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": "A04:2021-Insecure Design",
+        "stride_category": "Tampering",
+        "dread_score": 7.8,
+        "dread_breakdown": {
+          "damage": 7,
+          "reproducibility": 9,
+          "exploitability": 8,
+          "affected_users": 8,
+          "discoverability": 7
+        },
+        "impact": "Invalid data can corrupt contract state",
+        "tool": "threat_model",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (3 tools): -0.40"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 3,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "high",
+          "predicted": "low",
+          "confidence": 0.75,
+          "reasons": [
+            "Sender validation: -0.15"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "THREAT-REPUDIATION-115",
+        "type": "threat_model",
+        "severity": "critical",
+        "confidence": 0.75,
+        "location": {
+          "file": "AccessControlFlawed.sol",
+          "line": 115,
+          "column": 4,
+          "code_snippet": "function claimReward() external {"
+        },
+        "message": "[Repudiation] State-changing function without event emission",
+        "description": "Threat identified via STRIDE analysis:\nCategory: Repudiation\nThreat: State-changing function without event emission\nImpact: Actions cannot be audited or proven",
+        "recommendation": "Emit events for all state changes",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": "A04:2021-Insecure Design",
+        "stride_category": "Repudiation",
+        "dread_score": 6.4,
+        "dread_breakdown": {
+          "damage": 5,
+          "reproducibility": 10,
+          "exploitability": 3,
+          "affected_users": 6,
+          "discoverability": 8
+        },
+        "impact": "Actions cannot be audited or proven",
+        "tool": "threat_model",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Cross-validated (4 tools): -0.60"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": false,
+            "near_modifier": false,
+            "confirmations": 4,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "medium",
+          "predicted": "critical",
+          "confidence": 0.75,
+          "reasons": [
+            "tx.origin authentication: +0.70"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "THREAT-ELEVATION OF PRIVILEGE-56",
+        "type": "threat_model",
+        "severity": "Critical",
+        "confidence": 0.75,
+        "location": {
+          "file": "AccessControlFlawed.sol",
+          "line": 56,
+          "column": 8,
+          "code_snippet": "selfdestruct(payable(msg.sender));"
+        },
+        "message": "[Elevation of Privilege] Selfdestruct without proper authorization",
+        "description": "Threat identified via STRIDE analysis:\nCategory: Elevation of Privilege\nThreat: Selfdestruct without proper authorization\nImpact: Contract and funds can be destroyed",
+        "recommendation": "Add multi-sig or timelock for selfdestruct",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": "A04:2021-Insecure Design",
+        "stride_category": "Elevation of Privilege",
+        "dread_score": 9.0,
+        "dread_breakdown": {
+          "damage": 10,
+          "reproducibility": 8,
+          "exploitability": 9,
+          "affected_users": 10,
+          "discoverability": 8
+        },
+        "impact": "Contract and funds can be destroyed",
+        "tool": "threat_model",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (2 tools): -0.20"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 2,
+            "context_analysis": null
+          }
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "GAS-PUBLIC_NOT_EXTERNAL-28",
+        "type": "gas_optimization",
+        "severity": "Low",
+        "confidence": 0.85,
+        "location": {
+          "file": "AccessControlFlawed.sol",
+          "line": 28,
+          "column": 4,
+          "code_snippet": "function setOwner(address newOwner) public {"
+        },
+        "message": "Public function that could be external",
+        "description": "Gas optimization opportunity detected: Public function that could be external",
+        "recommendation": "Change 'public' to 'external' if not called internally",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "gas_saved": 200,
+        "pattern": "public_not_external",
+        "tool": "gas_analyzer",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (3 tools): -0.40"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 3,
+            "context_analysis": null
+          }
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "GAS-PUBLIC_NOT_EXTERNAL-35",
+        "type": "gas_optimization",
+        "severity": "critical",
+        "confidence": 0.85,
+        "location": {
+          "file": "AccessControlFlawed.sol",
+          "line": 35,
+          "column": 4,
+          "code_snippet": "function withdrawTreasury(uint256 amount) public {"
+        },
+        "message": "Public function that could be external",
+        "description": "Gas optimization opportunity detected: Public function that could be external",
+        "recommendation": "Change 'public' to 'external' if not called internally",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "gas_saved": 200,
+        "pattern": "public_not_external",
+        "tool": "gas_analyzer",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (4 tools): -0.60"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 4,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "low",
+          "predicted": "critical",
+          "confidence": 0.75,
+          "reasons": [
+            "tx.origin authentication: +0.70"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "GAS-PUBLIC_NOT_EXTERNAL-46",
+        "type": "gas_optimization",
+        "severity": "medium",
+        "confidence": 0.85,
+        "location": {
+          "file": "AccessControlFlawed.sol",
+          "line": 46,
+          "column": 4,
+          "code_snippet": "function addAdmin(address admin) public {"
+        },
+        "message": "Public function that could be external",
+        "description": "Gas optimization opportunity detected: Public function that could be external",
+        "recommendation": "Change 'public' to 'external' if not called internally",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "gas_saved": 200,
+        "pattern": "public_not_external",
+        "tool": "gas_analyzer",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Cross-validated (2 tools): -0.20"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": false,
+            "near_modifier": false,
+            "confirmations": 2,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "low",
+          "predicted": "medium",
+          "confidence": 0.7,
+          "reasons": []
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "GAS-PUBLIC_NOT_EXTERNAL-53",
+        "type": "gas_optimization",
+        "severity": "critical",
+        "confidence": 0.85,
+        "location": {
+          "file": "AccessControlFlawed.sol",
+          "line": 53,
+          "column": 4,
+          "code_snippet": "function destroy() public {"
+        },
+        "message": "Public function that could be external",
+        "description": "Gas optimization opportunity detected: Public function that could be external",
+        "recommendation": "Change 'public' to 'external' if not called internally",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "gas_saved": 200,
+        "pattern": "public_not_external",
+        "tool": "gas_analyzer",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (3 tools): -0.40"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 3,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "low",
+          "predicted": "critical",
+          "confidence": 0.8,
+          "reasons": [
+            "Self-destruct capability: +0.90",
+            "Sender validation: -0.15"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "GAS-PUBLIC_NOT_EXTERNAL-60",
+        "type": "gas_optimization",
+        "severity": "critical",
+        "confidence": 0.85,
+        "location": {
+          "file": "AccessControlFlawed.sol",
+          "line": 60,
+          "column": 4,
+          "code_snippet": "function togglePause() public {"
+        },
+        "message": "Public function that could be external",
+        "description": "Gas optimization opportunity detected: Public function that could be external",
+        "recommendation": "Change 'public' to 'external' if not called internally",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "gas_saved": 200,
+        "pattern": "public_not_external",
+        "tool": "gas_analyzer",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (3 tools): -0.40"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 3,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "low",
+          "predicted": "critical",
+          "confidence": 0.8,
+          "reasons": [
+            "Self-destruct capability: +0.90",
+            "Sender validation: -0.15"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "GAS-PUBLIC_NOT_EXTERNAL-68",
+        "type": "gas_optimization",
+        "severity": "medium",
+        "confidence": 0.85,
+        "location": {
+          "file": "AccessControlFlawed.sol",
+          "line": 68,
+          "column": 4,
+          "code_snippet": "function initialize(address _owner) public {"
+        },
+        "message": "Public function that could be external",
+        "description": "Gas optimization opportunity detected: Public function that could be external",
+        "recommendation": "Change 'public' to 'external' if not called internally",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "gas_saved": 200,
+        "pattern": "public_not_external",
+        "tool": "gas_analyzer",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (3 tools): -0.40"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 3,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "low",
+          "predicted": "medium",
+          "confidence": 0.7,
+          "reasons": []
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "GAS-PUBLIC_NOT_EXTERNAL-75",
+        "type": "gas_optimization",
+        "severity": "Low",
+        "confidence": 0.85,
+        "location": {
+          "file": "AccessControlFlawed.sol",
+          "line": 75,
+          "column": 4,
+          "code_snippet": "function transferOwnership(address newOwner) public {"
+        },
+        "message": "Public function that could be external",
+        "description": "Gas optimization opportunity detected: Public function that could be external",
+        "recommendation": "Change 'public' to 'external' if not called internally",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "gas_saved": 200,
+        "pattern": "public_not_external",
+        "tool": "gas_analyzer",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (2 tools): -0.20"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 2,
+            "context_analysis": null
+          }
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "GAS-PUBLIC_NOT_EXTERNAL-82",
+        "type": "gas_optimization",
+        "severity": "medium",
+        "confidence": 0.85,
+        "location": {
+          "file": "AccessControlFlawed.sol",
+          "line": 82,
+          "column": 4,
+          "code_snippet": "function deposit() public payable {"
+        },
+        "message": "Public function that could be external",
+        "description": "Gas optimization opportunity detected: Public function that could be external",
+        "recommendation": "Change 'public' to 'external' if not called internally",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "gas_saved": 200,
+        "pattern": "public_not_external",
+        "tool": "gas_analyzer",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (2 tools): -0.20"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 2,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "low",
+          "predicted": "medium",
+          "confidence": 0.7,
+          "reasons": []
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "GAS-PUBLIC_NOT_EXTERNAL-89",
+        "type": "gas_optimization",
+        "severity": "Low",
+        "confidence": 0.85,
+        "location": {
+          "file": "AccessControlFlawed.sol",
+          "line": 89,
+          "column": 4,
+          "code_snippet": "function userWithdraw(uint256 amount) public {"
+        },
+        "message": "Public function that could be external",
+        "description": "Gas optimization opportunity detected: Public function that could be external",
+        "recommendation": "Change 'public' to 'external' if not called internally",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "gas_saved": 200,
+        "pattern": "public_not_external",
+        "tool": "gas_analyzer",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (3 tools): -0.40"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 3,
+            "context_analysis": null
+          }
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "DEFI-MEV_EXPOSURE-1",
+        "title": "MEV Exposure Detected",
+        "description": "Public withdrawal - can be front-run. Found at line 89.",
+        "severity": "High",
+        "confidence": 0.722,
+        "category": "mev_exposure",
+        "swc_id": "SWC-114",
+        "location": {
+          "file": "/data/audit/AccessControlFlawed.sol",
+          "line": 89,
+          "snippet": "function userWithdraw(uint256 amount) public {"
+        },
+        "recommendation": "Consider using private mempools (Flashbots Protect), MEV-aware DEXs, or commit-reveal schemes.",
+        "references": [
+          "https://www.flashbots.net/",
+          "https://docs.cow.fi/overview/mev-protection"
+        ],
+        "tool": "defi",
+        "layer": 8,
+        "_fp_analysis": {
+          "fp_probability": 0.15,
+          "is_likely_fp": false,
+          "confidence_adjustment": 0.85,
+          "reasons": [
+            "Near require/assert: +0.15"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 1,
+            "context_analysis": null
+          }
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "DAGNN-UNPROTECTED_ETHER-2b03e345",
+        "type": "ml_detected_vulnerability",
+        "vulnerability_class": "unprotected_ether",
+        "severity": "medium",
+        "confidence": 0.91,
+        "location": {
+          "file": "AccessControlFlawed.sol",
+          "line": 0,
+          "code_snippet": ""
+        },
+        "message": "DA-GNN detected potential unprotected ether",
+        "description": "Unprotected ether withdrawal",
+        "swc_id": "SWC-105",
+        "recommendation": "Add access control modifiers (e.g., onlyOwner) to ether withdrawal functions",
+        "ml_model": "DA-GNN (Computer Networks 2024)",
+        "detection_method": "graph_neural_network",
+        "tool": "dagnn",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Cross-validated (2 tools): -0.20"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": false,
+            "near_modifier": false,
+            "confirmations": 2,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "critical",
+          "predicted": "medium",
+          "confidence": 0.7,
+          "reasons": []
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "DAGNN-ACCESS_CONTROL-2b03e345",
+        "type": "ml_detected_vulnerability",
+        "vulnerability_class": "access_control",
+        "severity": "medium",
+        "confidence": 0.83,
+        "location": {
+          "file": "AccessControlFlawed.sol",
+          "line": 0,
+          "code_snippet": ""
+        },
+        "message": "DA-GNN detected potential access control",
+        "description": "Missing or inadequate access control",
+        "swc_id": "SWC-115",
+        "recommendation": "Implement proper access control using modifiers or OpenZeppelin AccessControl",
+        "ml_model": "DA-GNN (Computer Networks 2024)",
+        "detection_method": "graph_neural_network",
+        "tool": "dagnn",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Cross-validated (2 tools): -0.20"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": false,
+            "near_modifier": false,
+            "confirmations": 2,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "high",
+          "predicted": "medium",
+          "confidence": 0.7,
+          "reasons": []
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "slither-arbitrary-send-eth-0",
+        "type": "arbitrary-send-eth",
+        "severity": "critical",
+        "confidence": 0.75,
+        "location": {
+          "file": "../data/audit/AccessControlFlawed.sol",
+          "line": 35,
+          "function": "withdrawTreasury"
+        },
+        "message": "AccessControlFlawed.withdrawTreasury(uint256) (../data/audit/AccessControlFlawed.sol#35-43) sends eth to arbitrary user",
+        "description": "[AccessControlFlawed.withdrawTreasury(uint256)](../data/audit/AccessControlFlawed.sol#L35-L43) sends eth to arbitrary user\n\tDangerous calls:\n\t- [address(msg.sender).transfer(amount)](../data/audit/AccessControlFlawed.sol#L41)\n",
+        "recommendation": "Review and fix the vulnerability",
+        "swc_id": "SWC-105",
+        "cwe_id": "CWE-284",
+        "owasp_category": null,
+        "_slither_detector": "arbitrary-send-eth",
+        "_slither_impact": "High",
+        "_slither_confidence": "Medium",
+        "tool": "slither",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Known FP pattern 'arbitrary-send-eth': +0.12",
+            "Near require/assert: +0.15",
+            "Cross-validated (3 tools): -0.40"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 3,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "high",
+          "predicted": "critical",
+          "confidence": 0.8,
+          "reasons": [
+            "tx.origin authentication: +0.70",
+            "Function visibility: +0.10"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "slither-suicidal-1",
+        "type": "suicidal",
+        "severity": "critical",
+        "confidence": 0.45,
+        "location": {
+          "file": "../data/audit/AccessControlFlawed.sol",
+          "line": 53,
+          "function": "destroy"
+        },
+        "message": "AccessControlFlawed.destroy() (../data/audit/AccessControlFlawed.sol#53-57) allows anyone to destruct the contract",
+        "description": "[AccessControlFlawed.destroy()](../data/audit/AccessControlFlawed.sol#L53-L57) allows anyone to destruct the contract\n",
+        "recommendation": "Protect selfdestruct with proper access control",
+        "swc_id": "SWC-106",
+        "cwe_id": null,
+        "owasp_category": null,
+        "_slither_detector": "suicidal",
+        "_slither_impact": "High",
+        "_slither_confidence": "High",
+        "tool": "slither",
+        "_fp_analysis": {
+          "fp_probability": 0.5,
+          "is_likely_fp": false,
+          "confidence_adjustment": 0.5,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Critical pattern 'suicidal' without cross-validation: +0.35"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 1,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "high",
+          "predicted": "critical",
+          "confidence": 0.85,
+          "reasons": [
+            "Self-destruct capability: +0.90",
+            "Sender validation: -0.15",
+            "Function visibility: +0.10"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "slither-locked-ether-2",
+        "type": "locked-ether",
+        "severity": "critical",
+        "confidence": 0.9,
+        "location": {
+          "file": "../data/audit/AccessControlFlawed.sol",
+          "line": 105,
+          "function": "PhishingAttacker"
+        },
+        "message": "Contract locking ether found:",
+        "description": "Contract locking ether found:\n\tContract [PhishingAttacker](../data/audit/AccessControlFlawed.sol#L105-L121) has payable functions:\n\t - [PhishingAttacker.receive()](../data/audit/AccessControlFlawed.sol#L120)\n\tBut does not have a function to withdraw the ether\n",
+        "recommendation": "Provide a withdrawal function or ensure contract is payable",
+        "swc_id": "SWC-132",
+        "cwe_id": "CWE-400",
+        "owasp_category": null,
+        "_slither_detector": "locked-ether",
+        "_slither_impact": "Medium",
+        "_slither_confidence": "High",
+        "tool": "slither",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": false,
+            "near_modifier": false,
+            "confirmations": 1,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "medium",
+          "predicted": "critical",
+          "confidence": 0.75,
+          "reasons": [
+            "tx.origin authentication: +0.70"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "slither-tx-origin-3",
+        "type": "tx-origin",
+        "severity": "critical",
+        "confidence": 0.75,
+        "location": {
+          "file": "../data/audit/AccessControlFlawed.sol",
+          "line": 35,
+          "function": "withdrawTreasury"
+        },
+        "message": "AccessControlFlawed.withdrawTreasury(uint256) (../data/audit/AccessControlFlawed.sol#35-43) uses tx.origin for authorization: require(bool,string)(tx.origin == owner,Not owner) (../data/audit/AccessControlFlawed.sol#37)",
+        "description": "[AccessControlFlawed.withdrawTreasury(uint256)](../data/audit/AccessControlFlawed.sol#L35-L43) uses tx.origin for authorization: [require(bool,string)(tx.origin == owner,Not owner)](../data/audit/AccessControlFlawed.sol#L37)\n",
+        "recommendation": "Use msg.sender instead of tx.origin for authentication",
+        "swc_id": "SWC-115",
+        "cwe_id": "CWE-477",
+        "owasp_category": "SC08: Bad Randomness / Front-Running",
+        "_slither_detector": "tx-origin",
+        "_slither_impact": "Medium",
+        "_slither_confidence": "Medium",
+        "tool": "slither",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (3 tools): -0.40"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 3,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "medium",
+          "predicted": "critical",
+          "confidence": 0.8,
+          "reasons": [
+            "tx.origin authentication: +0.70",
+            "Function visibility: +0.10"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "slither-missing-zero-check-4",
+        "type": "missing-zero-check",
+        "severity": "Low",
+        "confidence": 0.536,
+        "location": {
+          "file": "../data/audit/AccessControlFlawed.sol",
+          "line": 75,
+          "function": "newOwner"
+        },
+        "message": "AccessControlFlawed.transferOwnership(address).newOwner (../data/audit/AccessControlFlawed.sol#75) lacks a zero-check on :",
+        "description": "[AccessControlFlawed.transferOwnership(address).newOwner](../data/audit/AccessControlFlawed.sol#L75) lacks a zero-check on :\n\t\t- [owner = newOwner](../data/audit/AccessControlFlawed.sol#L78)\n",
+        "recommendation": "Review and fix the vulnerability",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "_slither_detector": "missing-zero-check",
+        "_slither_impact": "Low",
+        "_slither_confidence": "Medium",
+        "tool": "slither",
+        "_fp_analysis": {
+          "fp_probability": 0.285,
+          "is_likely_fp": false,
+          "confidence_adjustment": 0.715,
+          "reasons": [
+            "Known FP pattern 'missing-zero-check': +0.14",
+            "Near require/assert: +0.15"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 1,
+            "context_analysis": null
+          }
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "slither-missing-zero-check-5",
+        "type": "missing-zero-check",
+        "severity": "medium",
+        "confidence": 0.686,
+        "location": {
+          "file": "../data/audit/AccessControlFlawed.sol",
+          "line": 68,
+          "function": "_owner"
+        },
+        "message": "AccessControlFlawed.initialize(address)._owner (../data/audit/AccessControlFlawed.sol#68) lacks a zero-check on :",
+        "description": "[AccessControlFlawed.initialize(address)._owner](../data/audit/AccessControlFlawed.sol#L68) lacks a zero-check on :\n\t\t- [owner = _owner](../data/audit/AccessControlFlawed.sol#L70)\n",
+        "recommendation": "Review and fix the vulnerability",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "_slither_detector": "missing-zero-check",
+        "_slither_impact": "Low",
+        "_slither_confidence": "Medium",
+        "tool": "slither",
+        "_fp_analysis": {
+          "fp_probability": 0.085,
+          "is_likely_fp": false,
+          "confidence_adjustment": 0.915,
+          "reasons": [
+            "Known FP pattern 'missing-zero-check': +0.14",
+            "Near require/assert: +0.15",
+            "Cross-validated (2 tools): -0.20"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 2,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "low",
+          "predicted": "medium",
+          "confidence": 0.7,
+          "reasons": []
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "slither-missing-zero-check-6",
+        "type": "missing-zero-check",
+        "severity": "Low",
+        "confidence": 0.536,
+        "location": {
+          "file": "../data/audit/AccessControlFlawed.sol",
+          "line": 28,
+          "function": "newOwner"
+        },
+        "message": "AccessControlFlawed.setOwner(address).newOwner (../data/audit/AccessControlFlawed.sol#28) lacks a zero-check on :",
+        "description": "[AccessControlFlawed.setOwner(address).newOwner](../data/audit/AccessControlFlawed.sol#L28) lacks a zero-check on :\n\t\t- [owner = newOwner](../data/audit/AccessControlFlawed.sol#L30)\n",
+        "recommendation": "Review and fix the vulnerability",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "_slither_detector": "missing-zero-check",
+        "_slither_impact": "Low",
+        "_slither_confidence": "Medium",
+        "tool": "slither",
+        "_fp_analysis": {
+          "fp_probability": 0.285,
+          "is_likely_fp": false,
+          "confidence_adjustment": 0.715,
+          "reasons": [
+            "Known FP pattern 'missing-zero-check': +0.14",
+            "Near require/assert: +0.15"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 1,
+            "context_analysis": null
+          }
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "slither-solc-version-7",
+        "type": "solc-version",
+        "severity": "medium",
+        "confidence": 0.698,
+        "location": {
+          "file": "../data/audit/AccessControlFlawed.sol",
+          "line": 2,
+          "function": "^0.8.19"
+        },
+        "message": "Version constraint ^0.8.19 contains known severe issues (https://solidity.readthedocs.io/en/latest/bugs.html)",
+        "description": "Version constraint ^0.8.19 contains known severe issues (https://solidity.readthedocs.io/en/latest/bugs.html)\n\t- VerbatimInvalidDeduplication\n\t- FullInlinerNonExpressionSplitArgumentEvaluationOrder\n\t- MissingSideEffectsOnSelectorAccess.\nIt is used by:\n\t- [^0.8.19](../data/audit/AccessControlFlawed.sol#L2)\n",
+        "recommendation": "Review and fix the vulnerability",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "_slither_detector": "solc-version",
+        "_slither_impact": "Informational",
+        "_slither_confidence": "High",
+        "tool": "slither",
+        "_fp_analysis": {
+          "fp_probability": 0.225,
+          "is_likely_fp": false,
+          "confidence_adjustment": 0.775,
+          "reasons": [
+            "Known FP pattern 'solc-version': +0.22"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": false,
+            "near_modifier": false,
+            "confirmations": 1,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "info",
+          "predicted": "medium",
+          "confidence": 0.7,
+          "reasons": []
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "slither-naming-convention-8",
+        "type": "naming-convention",
+        "severity": "medium",
+        "confidence": 0.716,
+        "location": {
+          "file": "../data/audit/AccessControlFlawed.sol",
+          "line": 68,
+          "function": "_owner"
+        },
+        "message": "Parameter AccessControlFlawed.initialize(address)._owner (../data/audit/AccessControlFlawed.sol#68) is not in mixedCase",
+        "description": "Parameter [AccessControlFlawed.initialize(address)._owner](../data/audit/AccessControlFlawed.sol#L68) is not in mixedCase\n",
+        "recommendation": "Review and fix the vulnerability",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "_slither_detector": "naming-convention",
+        "_slither_impact": "Informational",
+        "_slither_confidence": "High",
+        "tool": "slither",
+        "_fp_analysis": {
+          "fp_probability": 0.205,
+          "is_likely_fp": false,
+          "confidence_adjustment": 0.795,
+          "reasons": [
+            "Known FP pattern 'naming-convention': +0.26",
+            "Near require/assert: +0.15",
+            "Cross-validated (2 tools): -0.20"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 2,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "info",
+          "predicted": "medium",
+          "confidence": 0.7,
+          "reasons": []
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "slither-reentrancy-unlimited-gas-9",
+        "type": "reentrancy-unlimited-gas",
+        "severity": "critical",
+        "confidence": 0.75,
+        "location": {
+          "file": "../data/audit/AccessControlFlawed.sol",
+          "line": 35,
+          "function": "withdrawTreasury"
+        },
+        "message": "Reentrancy in AccessControlFlawed.withdrawTreasury(uint256) (../data/audit/AccessControlFlawed.sol#35-43):",
+        "description": "Reentrancy in [AccessControlFlawed.withdrawTreasury(uint256)](../data/audit/AccessControlFlawed.sol#L35-L43):\n\tExternal calls:\n\t- [address(msg.sender).transfer(amount)](../data/audit/AccessControlFlawed.sol#L41)\n\tEvent emitted after the call(s):\n\t- [FundsWithdrawn(msg.sender,amount)](../data/audit/AccessControlFlawed.sol#L42)\n",
+        "recommendation": "Review and fix the vulnerability",
+        "swc_id": "SWC-107",
+        "cwe_id": "CWE-841",
+        "owasp_category": "SC01: Reentrancy",
+        "_slither_detector": "reentrancy-unlimited-gas",
+        "_slither_impact": "Informational",
+        "_slither_confidence": "Medium",
+        "tool": "slither",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Known FP pattern 'reentrancy-unlimited-gas': +0.18",
+            "Near require/assert: +0.15",
+            "Cross-validated (3 tools): -0.40"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 3,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "info",
+          "predicted": "critical",
+          "confidence": 0.85,
+          "reasons": [
+            "tx.origin authentication: +0.70",
+            "Reentrancy pattern: +0.80",
+            "Function visibility: +0.10"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "slither-constable-states-10",
+        "type": "constable-states",
+        "severity": "medium",
+        "confidence": 0.711,
+        "location": {
+          "file": "../data/audit/AccessControlFlawed.sol",
+          "line": 11,
+          "function": "pendingOwner"
+        },
+        "message": "AccessControlFlawed.pendingOwner (../data/audit/AccessControlFlawed.sol#11) should be constant ",
+        "description": "[AccessControlFlawed.pendingOwner](../data/audit/AccessControlFlawed.sol#L11) should be constant \n",
+        "recommendation": "Review and fix the vulnerability",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "_slither_detector": "constable-states",
+        "_slither_impact": "Optimization",
+        "_slither_confidence": "High",
+        "tool": "slither",
+        "_fp_analysis": {
+          "fp_probability": 0.21,
+          "is_likely_fp": false,
+          "confidence_adjustment": 0.79,
+          "reasons": [
+            "Known FP pattern 'constable-states': +0.21"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": false,
+            "near_modifier": false,
+            "confirmations": 1,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "info",
+          "predicted": "medium",
+          "confidence": 0.7,
+          "reasons": []
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "slither-immutable-states-11",
+        "type": "immutable-states",
+        "severity": "critical",
+        "confidence": 0.725,
+        "location": {
+          "file": "../data/audit/AccessControlFlawed.sol",
+          "line": 107,
+          "function": "attacker"
+        },
+        "message": "PhishingAttacker.attacker (../data/audit/AccessControlFlawed.sol#107) should be immutable ",
+        "description": "[PhishingAttacker.attacker](../data/audit/AccessControlFlawed.sol#L107) should be immutable \n",
+        "recommendation": "Review and fix the vulnerability",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "_slither_detector": "immutable-states",
+        "_slither_impact": "Optimization",
+        "_slither_confidence": "High",
+        "tool": "slither",
+        "_fp_analysis": {
+          "fp_probability": 0.195,
+          "is_likely_fp": false,
+          "confidence_adjustment": 0.805,
+          "reasons": [
+            "Known FP pattern 'immutable-states': +0.20"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": false,
+            "near_modifier": false,
+            "confirmations": 1,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "info",
+          "predicted": "critical",
+          "confidence": 0.75,
+          "reasons": [
+            "tx.origin authentication: +0.70"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "slither-immutable-states-12",
+        "type": "immutable-states",
+        "severity": "critical",
+        "confidence": 0.725,
+        "location": {
+          "file": "../data/audit/AccessControlFlawed.sol",
+          "line": 106,
+          "function": "target"
+        },
+        "message": "PhishingAttacker.target (../data/audit/AccessControlFlawed.sol#106) should be immutable ",
+        "description": "[PhishingAttacker.target](../data/audit/AccessControlFlawed.sol#L106) should be immutable \n",
+        "recommendation": "Review and fix the vulnerability",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "_slither_detector": "immutable-states",
+        "_slither_impact": "Optimization",
+        "_slither_confidence": "High",
+        "tool": "slither",
+        "_fp_analysis": {
+          "fp_probability": 0.195,
+          "is_likely_fp": false,
+          "confidence_adjustment": 0.805,
+          "reasons": [
+            "Known FP pattern 'immutable-states': +0.20"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": false,
+            "near_modifier": false,
+            "confirmations": 1,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "info",
+          "predicted": "critical",
+          "confidence": 0.75,
+          "reasons": [
+            "tx.origin authentication: +0.70"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "pattern-access_control-23",
+        "type": "access_control",
+        "severity": "medium",
+        "confidence": 0.7,
+        "location": {
+          "file": "contract.sol",
+          "line": 23
+        },
+        "message": "Missing or insufficient access controls",
+        "description": "Missing or insufficient access controls",
+        "recommendation": "Add onlyOwner/onlyRole modifiers or require(msg.sender == owner)",
+        "swc_id": "SWC-105",
+        "tool": "classic-pattern-detector",
+        "_pattern_match": true,
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": false,
+            "near_modifier": false,
+            "confirmations": 1,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "critical",
+          "predicted": "medium",
+          "confidence": 0.7,
+          "reasons": []
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "pattern-arithmetic-61",
+        "type": "arithmetic",
+        "severity": "medium",
+        "confidence": 0.7,
+        "location": {
+          "file": "contract.sol",
+          "line": 61
+        },
+        "message": "Integer overflow or underflow",
+        "description": "Integer overflow or underflow",
+        "recommendation": "Use Solidity 0.8+ or SafeMath library",
+        "swc_id": "SWC-101",
+        "tool": "classic-pattern-detector",
+        "_pattern_match": true,
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": false,
+            "near_modifier": false,
+            "confirmations": 1,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "high",
+          "predicted": "medium",
+          "confidence": 0.7,
+          "reasons": []
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "pattern-access_control-103",
+        "type": "access_control",
+        "severity": "medium",
+        "confidence": 0.7,
+        "location": {
+          "file": "contract.sol",
+          "line": 103
+        },
+        "message": "Missing or insufficient access controls",
+        "description": "Missing or insufficient access controls",
+        "recommendation": "Add onlyOwner/onlyRole modifiers or require(msg.sender == owner)",
+        "swc_id": "SWC-105",
+        "tool": "classic-pattern-detector",
+        "_pattern_match": true,
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": false,
+            "near_modifier": false,
+            "confirmations": 1,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "critical",
+          "predicted": "medium",
+          "confidence": 0.7,
+          "reasons": []
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      }
+    ],
+    "false_positives_removed": 0,
+    "severity_adjustments": 66,
+    "top_findings": [
+      {
+        "id": "4NALY-e680903984f8",
+        "type": "centralization_risk",
+        "severity": "critical",
+        "confidence": 0.525,
+        "location": {
+          "file": "/data/audit/AccessControlFlawed.sol",
+          "line": 29,
+          "function": ""
+        },
+        "message": "Contract has centralization risk - single owner or admin can control critical functions: // Missing: require(msg.sender == owner, \"Not owner\");",
+        "description": "Contract has centralization risk - single owner or admin can control critical functions",
+        "recommendation": "Implement multi-sig or timelock for privileged operations",
+        "swc_id": "SWC-105",
+        "cwe_id": "CWE-284",
+        "tool": "fouranalyzer",
+        "_fp_analysis": {
+          "fp_probability": 0.3,
+          "is_likely_fp": false,
+          "confidence_adjustment": 0.7,
+          "reasons": [
+            "Known FP pattern 'centralization_risk': +0.15",
+            "Near require/assert: +0.15"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 1,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "medium",
+          "predicted": "critical",
+          "confidence": 0.8,
+          "reasons": [
+            "tx.origin authentication: +0.70",
+            "Sender validation: -0.15"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "4NALY-82f92b87452a",
+        "type": "centralization_risk",
+        "severity": "low",
+        "confidence": 0.525,
+        "location": {
+          "file": "/data/audit/AccessControlFlawed.sol",
+          "line": 76,
+          "function": ""
+        },
+        "message": "Contract has centralization risk - single owner or admin can control critical functions: require(msg.sender == owner, \"Not owner\");",
+        "description": "Contract has centralization risk - single owner or admin can control critical functions",
+        "recommendation": "Implement multi-sig or timelock for privileged operations",
+        "swc_id": "SWC-105",
+        "cwe_id": "CWE-284",
+        "tool": "fouranalyzer",
+        "_fp_analysis": {
+          "fp_probability": 0.3,
+          "is_likely_fp": false,
+          "confidence_adjustment": 0.7,
+          "reasons": [
+            "Known FP pattern 'centralization_risk': +0.15",
+            "Near require/assert: +0.15"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 1,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "medium",
+          "predicted": "low",
+          "confidence": 0.75,
+          "reasons": [
+            "Sender validation: -0.15"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "4NALY-03008423f324",
+        "type": "unsafe_erc20_transfer",
+        "severity": "critical",
+        "confidence": 0.8,
+        "location": {
+          "file": "/data/audit/AccessControlFlawed.sol",
+          "line": 41,
+          "function": ""
+        },
+        "message": "ERC20 transfer/transferFrom return value not checked - tokens may silently fail: payable(msg.sender).transfer(amount);",
+        "description": "ERC20 transfer/transferFrom return value not checked - tokens may silently fail",
+        "recommendation": "Use SafeERC20.safeTransfer() or check return value explicitly",
+        "swc_id": "SWC-104",
+        "cwe_id": "CWE-252",
+        "tool": "fouranalyzer",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (2 tools): -0.20"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 2,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "high",
+          "predicted": "critical",
+          "confidence": 0.75,
+          "reasons": [
+            "tx.origin authentication: +0.70"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "4NALY-f1e92158119e",
+        "type": "unsafe_erc20_transfer",
+        "severity": "low",
+        "confidence": 0.8,
+        "location": {
+          "file": "/data/audit/AccessControlFlawed.sol",
+          "line": 93,
+          "function": ""
+        },
+        "message": "ERC20 transfer/transferFrom return value not checked - tokens may silently fail: payable(msg.sender).transfer(amount);",
+        "description": "ERC20 transfer/transferFrom return value not checked - tokens may silently fail",
+        "recommendation": "Use SafeERC20.safeTransfer() or check return value explicitly",
+        "swc_id": "SWC-104",
+        "cwe_id": "CWE-252",
+        "tool": "fouranalyzer",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (2 tools): -0.20"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 2,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "high",
+          "predicted": "low",
+          "confidence": 0.75,
+          "reasons": [
+            "Sender validation: -0.15"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "4NALY-d746fe4c8850",
+        "type": "missing_zero_address_check",
+        "severity": "Low",
+        "confidence": 0.7,
+        "location": {
+          "file": "/data/audit/AccessControlFlawed.sol",
+          "line": 28,
+          "function": ""
+        },
+        "message": "Address parameter not validated against zero address: function setOwner(address newOwner) public {",
+        "description": "Address parameter not validated against zero address",
+        "recommendation": "Add require(addr != address(0)) check",
+        "swc_id": null,
+        "cwe_id": "CWE-20",
+        "tool": "fouranalyzer",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (2 tools): -0.20"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 2,
+            "context_analysis": null
+          }
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "4NALY-e1a03d2dccad",
+        "type": "missing_zero_address_check",
+        "severity": "medium",
+        "confidence": 0.7,
+        "location": {
+          "file": "/data/audit/AccessControlFlawed.sol",
+          "line": 46,
+          "function": ""
+        },
+        "message": "Address parameter not validated against zero address: function addAdmin(address admin) public {",
+        "description": "Address parameter not validated against zero address",
+        "recommendation": "Add require(addr != address(0)) check",
+        "swc_id": null,
+        "cwe_id": "CWE-20",
+        "tool": "fouranalyzer",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": false,
+            "near_modifier": false,
+            "confirmations": 1,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "low",
+          "predicted": "medium",
+          "confidence": 0.7,
+          "reasons": []
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "4NALY-d4b89dcc08ef",
+        "type": "missing_zero_address_check",
+        "severity": "medium",
+        "confidence": 0.595,
+        "location": {
+          "file": "/data/audit/AccessControlFlawed.sol",
+          "line": 68,
+          "function": ""
+        },
+        "message": "Address parameter not validated against zero address: function initialize(address _owner) public {",
+        "description": "Address parameter not validated against zero address",
+        "recommendation": "Add require(addr != address(0)) check",
+        "swc_id": null,
+        "cwe_id": "CWE-20",
+        "tool": "fouranalyzer",
+        "_fp_analysis": {
+          "fp_probability": 0.15,
+          "is_likely_fp": false,
+          "confidence_adjustment": 0.85,
+          "reasons": [
+            "Near require/assert: +0.15"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 1,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "low",
+          "predicted": "medium",
+          "confidence": 0.7,
+          "reasons": []
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "4NALY-718b1a34547a",
+        "type": "missing_zero_address_check",
+        "severity": "Low",
+        "confidence": 0.595,
+        "location": {
+          "file": "/data/audit/AccessControlFlawed.sol",
+          "line": 75,
+          "function": ""
+        },
+        "message": "Address parameter not validated against zero address: function transferOwnership(address newOwner) public {",
+        "description": "Address parameter not validated against zero address",
+        "recommendation": "Add require(addr != address(0)) check",
+        "swc_id": null,
+        "cwe_id": "CWE-20",
+        "tool": "fouranalyzer",
+        "_fp_analysis": {
+          "fp_probability": 0.15,
+          "is_likely_fp": false,
+          "confidence_adjustment": 0.85,
+          "reasons": [
+            "Near require/assert: +0.15"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 1,
+            "context_analysis": null
+          }
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "4NALY-5892c51fbefd",
+        "type": "missing_event_emission",
+        "severity": "Low",
+        "confidence": 0.566,
+        "location": {
+          "file": "/data/audit/AccessControlFlawed.sol",
+          "line": 28,
+          "function": ""
+        },
+        "message": "State-changing function does not emit an event for off-chain tracking: function setOwner(address newOwner) public {",
+        "description": "State-changing function does not emit an event for off-chain tracking",
+        "recommendation": "Emit events for all state-changing operations",
+        "swc_id": null,
+        "cwe_id": "CWE-778",
+        "tool": "fouranalyzer",
+        "_fp_analysis": {
+          "fp_probability": 0.13,
+          "is_likely_fp": false,
+          "confidence_adjustment": 0.87,
+          "reasons": [
+            "Known FP pattern 'missing_event_emission': +0.18",
+            "Near require/assert: +0.15",
+            "Cross-validated (2 tools): -0.20"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 2,
+            "context_analysis": null
+          }
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      },
+      {
+        "id": "4NALY-57e2b0ba11a3",
+        "type": "use_of_transfer_instead_of_call",
+        "severity": "critical",
+        "confidence": 0.75,
+        "location": {
+          "file": "/data/audit/AccessControlFlawed.sol",
+          "line": 41,
+          "function": ""
+        },
+        "message": "Use of .transfer() or .send() with fixed gas stipend (2300) may fail with EIP-1884: payable(msg.sender).transfer(amount);",
+        "description": "Use of .transfer() or .send() with fixed gas stipend (2300) may fail with EIP-1884",
+        "recommendation": "Use .call{value: amount}('') with reentrancy guard instead",
+        "swc_id": "SWC-134",
+        "cwe_id": "CWE-400",
+        "tool": "fouranalyzer",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (2 tools): -0.20"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 2,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "medium",
+          "predicted": "critical",
+          "confidence": 0.75,
+          "reasons": [
+            "tx.origin authentication: +0.70"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0
+      }
+    ]
+  },
+  "clusters": {
+    "count": 35,
+    "clusters": [
+      {
+        "id": "CLUSTER-c8e4355c",
+        "category": "input_validation",
+        "root_cause": "Missing or insufficient input validation",
+        "severity": "critical",
+        "finding_count": 2,
+        "affected_functions": [],
+        "affected_files": [
+          "/data/audit/AccessControlFlawed.sol"
+        ],
+        "common_patterns": [
+          "centralization_risk",
+          "owner",
+          "contract",
+          "centralization",
+          "risk",
+          "single"
+        ],
+        "remediation": "Add require statements to validate all external inputs",
+        "confidence": 0.553
+      },
+      {
+        "id": "CLUSTER-a1cdbe9c",
+        "category": "uncategorized",
+        "root_cause": "Unknown root cause",
+        "severity": "critical",
+        "finding_count": 2,
+        "affected_functions": [],
+        "affected_files": [
+          "/data/audit/AccessControlFlawed.sol"
+        ],
+        "common_patterns": [
+          "unsafe_erc20_transfer",
+          "transfer",
+          "transferfrom",
+          "return",
+          "value",
+          "checked"
+        ],
+        "remediation": "Manual review required",
+        "confidence": 0.553
+      },
+      {
+        "id": "CLUSTER-dc966438",
+        "category": "uncategorized",
+        "root_cause": "Unknown root cause",
+        "severity": "critical",
+        "finding_count": 1,
+        "affected_functions": [
+          "unknown"
+        ],
+        "affected_files": [
+          "AccessControlFlawed.sol"
+        ],
+        "common_patterns": [
+          "selfdestruct-identifier",
+          "depracated",
+          "instruction",
+          "selfdestruct",
+          "used"
+        ],
+        "remediation": "Manual review required",
+        "confidence": 0.493
+      },
+      {
+        "id": "CLUSTER-0bc133d0",
+        "category": "uncategorized",
+        "root_cause": "Unknown root cause",
+        "severity": "critical",
+        "finding_count": 2,
+        "affected_functions": [
+          "unknown"
+        ],
+        "affected_files": [
+          "AccessControlFlawed.sol"
+        ],
+        "common_patterns": [
+          "send-ether-no-checks",
+          "sending",
+          "native",
+          "protected",
+          "these",
+          "functions"
+        ],
+        "remediation": "Manual review required",
+        "confidence": 0.553
+      },
+      {
+        "id": "CLUSTER-ab6aa944",
+        "category": "uncategorized",
+        "root_cause": "Unknown root cause",
+        "severity": "critical",
+        "finding_count": 2,
+        "affected_functions": [
+          "unknown"
+        ],
+        "affected_files": [
+          "AccessControlFlawed.sol"
+        ],
+        "common_patterns": [
+          "unsafe-erc20-functions",
+          "unsafe",
+          "operations",
+          "used"
+        ],
+        "remediation": "Manual review required",
+        "confidence": 0.553
+      },
+      {
+        "id": "CLUSTER-1b69da0b",
+        "category": "uncategorized",
+        "root_cause": "Unknown root cause",
+        "severity": "critical",
+        "finding_count": 4,
+        "affected_functions": [
+          "unknown"
+        ],
+        "affected_files": [
+          "AccessControlFlawed.sol"
+        ],
+        "common_patterns": [
+          "zero-address-check",
+          "address",
+          "missing",
+          "checks",
+          "when",
+          "assigning"
+        ],
+        "remediation": "Manual review required",
+        "confidence": 0.673
+      },
+      {
+        "id": "CLUSTER-2b3d5585",
+        "category": "uncategorized",
+        "root_cause": "Unknown root cause",
+        "severity": "critical",
+        "finding_count": 8,
+        "affected_functions": [
+          "unknown"
+        ],
+        "affected_files": [
+          "AccessControlFlawed.sol"
+        ],
+        "common_patterns": [
+          "useless-public-function",
+          "public",
+          "functions",
+          "used",
+          "internally",
+          "marked"
+        ],
+        "remediation": "Manual review required",
+        "confidence": 0.733
+      },
+      {
+        "id": "CLUSTER-ff51a285",
+        "category": "uncategorized",
+        "root_cause": "Unknown root cause",
+        "severity": "critical",
+        "finding_count": 3,
+        "affected_functions": [],
+        "affected_files": [
+          "/data/audit/AccessControlFlawed.sol"
+        ],
+        "common_patterns": [],
+        "remediation": "Manual review required",
+        "confidence": 0.747
+      },
+      {
+        "id": "CLUSTER-55afd4bd",
+        "category": "uncategorized",
+        "root_cause": "Unknown root cause",
+        "severity": "critical",
+        "finding_count": 6,
+        "affected_functions": [
+          "userWithdraw",
+          "claimReward",
+          "deposit",
+          "togglePause",
+          "withdrawTreasury",
+          "destroy"
+        ],
+        "affected_files": [
+          "AccessControlFlawed.sol"
+        ],
+        "common_patterns": [
+          "access_control",
+          "function",
+          "contains",
+          "privileged",
+          "operation",
+          "without"
+        ],
+        "remediation": "Manual review required",
+        "confidence": 0.733
+      },
+      {
+        "id": "CLUSTER-d9bffd15",
+        "category": "uncategorized",
+        "root_cause": "Unknown root cause",
+        "severity": "critical",
+        "finding_count": 7,
+        "affected_functions": [],
+        "affected_files": [
+          "AccessControlFlawed.sol"
+        ],
+        "common_patterns": [
+          "threat_model",
+          "without",
+          "state",
+          "tampering",
+          "public",
+          "variable"
+        ],
+        "remediation": "Manual review required",
+        "confidence": 0.733
+      },
+      {
+        "id": "CLUSTER-dd490236",
+        "category": "uncategorized",
+        "root_cause": "Unknown root cause",
+        "severity": "critical",
+        "finding_count": 1,
+        "affected_functions": [
+          "PhishingAttacker"
+        ],
+        "affected_files": [
+          "../data/audit/AccessControlFlawed.sol"
+        ],
+        "common_patterns": [
+          "locked-ether",
+          "contract",
+          "locking",
+          "ether",
+          "found"
+        ],
+        "remediation": "Manual review required",
+        "confidence": 0.493
+      },
+      {
+        "id": "CLUSTER-43a40621",
+        "category": "denial_of_service",
+        "root_cause": "Operations that can exhaust gas or block execution",
+        "severity": "critical",
+        "finding_count": 2,
+        "affected_functions": [],
+        "affected_files": [
+          "/data/audit/AccessControlFlawed.sol"
+        ],
+        "common_patterns": [
+          "use_of_transfer_instead_of_call",
+          "transfer",
+          "send",
+          "fixed",
+          "stipend",
+          "fail"
+        ],
+        "remediation": "Limit loop iterations, use pull over push patterns",
+        "confidence": 0.553
+      },
+      {
+        "id": "CLUSTER-a723fbe5",
+        "category": "denial_of_service",
+        "root_cause": "Operations that can exhaust gas or block execution",
+        "severity": "critical",
+        "finding_count": 9,
+        "affected_functions": [],
+        "affected_files": [
+          "AccessControlFlawed.sol"
+        ],
+        "common_patterns": [
+          "gas_optimization",
+          "public",
+          "function",
+          "external"
+        ],
+        "remediation": "Limit loop iterations, use pull over push patterns",
+        "confidence": 0.733
+      },
+      {
+        "id": "CLUSTER-480cb10b",
+        "category": "access_control",
+        "root_cause": "Missing or incorrect access restrictions",
+        "severity": "critical",
+        "finding_count": 1,
+        "affected_functions": [
+          "unknown"
+        ],
+        "affected_files": [
+          "AccessControlFlawed.sol"
+        ],
+        "common_patterns": [
+          "tx-origin-used-for-auth",
+          "potential",
+          "origin",
+          "authentication"
+        ],
+        "remediation": "Implement proper access control modifiers (onlyOwner, role-based)",
+        "confidence": 0.493
+      },
+      {
+        "id": "CLUSTER-8f718379",
+        "category": "access_control",
+        "root_cause": "Missing or incorrect access restrictions",
+        "severity": "critical",
+        "finding_count": 3,
+        "affected_functions": [
+          "claimReward",
+          "withdrawTreasury"
+        ],
+        "affected_files": [
+          "AccessControlFlawed.sol"
+        ],
+        "common_patterns": [
+          "tx_origin",
+          "origin",
+          "used",
+          "vulnerable",
+          "phishing",
+          "attacks"
+        ],
+        "remediation": "Implement proper access control modifiers (onlyOwner, role-based)",
+        "confidence": 0.613
+      },
+      {
+        "id": "CLUSTER-a65d15c8",
+        "category": "access_control",
+        "root_cause": "Missing or incorrect access restrictions",
+        "severity": "critical",
+        "finding_count": 1,
+        "affected_functions": [],
+        "affected_files": [
+          "AccessControlFlawed.sol"
+        ],
+        "common_patterns": [
+          "threat_model",
+          "spoofing",
+          "origin",
+          "spoofed",
+          "phishing",
+          "attack"
+        ],
+        "remediation": "Implement proper access control modifiers (onlyOwner, role-based)",
+        "confidence": 0.493
+      },
+      {
+        "id": "CLUSTER-fd792538",
+        "category": "access_control",
+        "root_cause": "Missing or incorrect access restrictions",
+        "severity": "critical",
+        "finding_count": 1,
+        "affected_functions": [
+          "withdrawTreasury"
+        ],
+        "affected_files": [
+          "../data/audit/AccessControlFlawed.sol"
+        ],
+        "common_patterns": [
+          "tx-origin",
+          "accesscontrolflawed",
+          "data",
+          "audit",
+          "origin",
+          "owner"
+        ],
+        "remediation": "Implement proper access control modifiers (onlyOwner, role-based)",
+        "confidence": 0.493
+      },
+      {
+        "id": "CLUSTER-dc4488c1",
+        "category": "logic_errors",
+        "root_cause": "Flawed business logic implementation",
+        "severity": "critical",
+        "finding_count": 1,
+        "affected_functions": [
+          "withdrawTreasury"
+        ],
+        "affected_files": [
+          "../data/audit/AccessControlFlawed.sol"
+        ],
+        "common_patterns": [
+          "arbitrary-send-eth",
+          "accesscontrolflawed",
+          "withdrawtreasury",
+          "data",
+          "audit",
+          "sends"
+        ],
+        "remediation": "Review and test business logic thoroughly",
+        "confidence": 0.493
+      },
+      {
+        "id": "CLUSTER-6a5e4550",
+        "category": "logic_errors",
+        "root_cause": "Flawed business logic implementation",
+        "severity": "critical",
+        "finding_count": 1,
+        "affected_functions": [
+          "destroy"
+        ],
+        "affected_files": [
+          "../data/audit/AccessControlFlawed.sol"
+        ],
+        "common_patterns": [
+          "suicidal",
+          "accesscontrolflawed",
+          "destroy",
+          "data",
+          "audit",
+          "allows"
+        ],
+        "remediation": "Review and test business logic thoroughly",
+        "confidence": 0.493
+      },
+      {
+        "id": "CLUSTER-d2ca0a8d",
+        "category": "logic_errors",
+        "root_cause": "Flawed business logic implementation",
+        "severity": "critical",
+        "finding_count": 3,
+        "affected_functions": [
+          "pendingOwner",
+          "target",
+          "attacker"
+        ],
+        "affected_files": [
+          "../data/audit/AccessControlFlawed.sol"
+        ],
+        "common_patterns": [
+          "immutable-states",
+          "constable-states",
+          "accesscontrolflawed",
+          "data",
+          "audit",
+          "phishingattacker",
+          "immutable"
+        ],
+        "remediation": "Review and test business logic thoroughly",
+        "confidence": 0.613
+      },
+      {
+        "id": "CLUSTER-866de2f4",
+        "category": "reentrancy",
+        "root_cause": "State changes after external calls",
+        "severity": "critical",
+        "finding_count": 1,
+        "affected_functions": [
+          "withdrawTreasury"
+        ],
+        "affected_files": [
+          "../data/audit/AccessControlFlawed.sol"
+        ],
+        "common_patterns": [
+          "reentrancy-unlimited-gas",
+          "accesscontrolflawed",
+          "reentrancy",
+          "withdrawtreasury",
+          "data",
+          "audit"
+        ],
+        "remediation": "Use checks-effects-interactions pattern or ReentrancyGuard",
+        "confidence": 0.493
+      },
+      {
+        "id": "CLUSTER-b30953fe",
+        "category": "uncategorized",
+        "root_cause": "Unknown root cause",
+        "severity": "medium",
+        "finding_count": 5,
+        "affected_functions": [],
+        "affected_files": [
+          "/data/audit/AccessControlFlawed.sol"
+        ],
+        "common_patterns": [
+          "missing_event_emission",
+          "missing_zero_address_check",
+          "address",
+          "function",
+          "public",
+          "parameter",
+          "validated"
+        ],
+        "remediation": "Manual review required",
+        "confidence": 0.633
+      },
+      {
+        "id": "CLUSTER-fa17681e",
+        "category": "uncategorized",
+        "root_cause": "Unknown root cause",
+        "severity": "medium",
+        "finding_count": 1,
+        "affected_functions": [
+          "unknown"
+        ],
+        "affected_files": [
+          "AccessControlFlawed.sol"
+        ],
+        "common_patterns": [
+          "uninitialized-state-variable",
+          "uninitialized",
+          "state",
+          "variables"
+        ],
+        "remediation": "Manual review required",
+        "confidence": 0.393
+      },
+      {
+        "id": "CLUSTER-b0cc38b2",
+        "category": "uncategorized",
+        "root_cause": "Unknown root cause",
+        "severity": "medium",
+        "finding_count": 1,
+        "affected_functions": [
+          "unknown"
+        ],
+        "affected_files": [
+          "AccessControlFlawed.sol"
+        ],
+        "common_patterns": [
+          "unspecific-solidity-pragma",
+          "solidity",
+          "pragma",
+          "specific",
+          "wide"
+        ],
+        "remediation": "Manual review required",
+        "confidence": 0.393
+      },
+      {
+        "id": "CLUSTER-94cfa59d",
+        "category": "uncategorized",
+        "root_cause": "Unknown root cause",
+        "severity": "medium",
+        "finding_count": 1,
+        "affected_functions": [
+          "unknown"
+        ],
+        "affected_files": [
+          "AccessControlFlawed.sol"
+        ],
+        "common_patterns": [
+          "unindexed-events",
+          "event",
+          "missing",
+          "indexed",
+          "fields"
+        ],
+        "remediation": "Manual review required",
+        "confidence": 0.393
+      },
+      {
+        "id": "CLUSTER-0c5195bf",
+        "category": "uncategorized",
+        "root_cause": "Unknown root cause",
+        "severity": "medium",
+        "finding_count": 1,
+        "affected_functions": [
+          "unknown"
+        ],
+        "affected_files": [
+          "AccessControlFlawed.sol"
+        ],
+        "common_patterns": [
+          "push-zero-opcode",
+          "supported",
+          "chains"
+        ],
+        "remediation": "Manual review required",
+        "confidence": 0.393
+      },
+      {
+        "id": "CLUSTER-781b847a",
+        "category": "uncategorized",
+        "root_cause": "Unknown root cause",
+        "severity": "medium",
+        "finding_count": 1,
+        "affected_functions": [],
+        "affected_files": [
+          "AccessControlFlawed.sol"
+        ],
+        "common_patterns": [
+          "ml_detected_vulnerability",
+          "detected",
+          "potential",
+          "access",
+          "control"
+        ],
+        "remediation": "Manual review required",
+        "confidence": 0.393
+      },
+      {
+        "id": "CLUSTER-3255d1a9",
+        "category": "uncategorized",
+        "root_cause": "Unknown root cause",
+        "severity": "medium",
+        "finding_count": 2,
+        "affected_functions": [],
+        "affected_files": [
+          "contract.sol"
+        ],
+        "common_patterns": [
+          "access_control",
+          "missing",
+          "insufficient",
+          "access",
+          "controls"
+        ],
+        "remediation": "Manual review required",
+        "confidence": 0.453
+      },
+      {
+        "id": "CLUSTER-abcb99ab",
+        "category": "access_control",
+        "root_cause": "Missing or incorrect access restrictions",
+        "severity": "medium",
+        "finding_count": 1,
+        "affected_functions": [
+          "unknown"
+        ],
+        "affected_files": [
+          "AccessControlFlawed.sol"
+        ],
+        "common_patterns": [
+          "unprotected-initializer",
+          "unprotected",
+          "initializer"
+        ],
+        "remediation": "Implement proper access control modifiers (onlyOwner, role-based)",
+        "confidence": 0.393
+      },
+      {
+        "id": "CLUSTER-57ec9529",
+        "category": "access_control",
+        "root_cause": "Missing or incorrect access restrictions",
+        "severity": "medium",
+        "finding_count": 1,
+        "affected_functions": [],
+        "affected_files": [
+          "AccessControlFlawed.sol"
+        ],
+        "common_patterns": [
+          "ml_detected_vulnerability",
+          "detected",
+          "potential",
+          "unprotected",
+          "ether"
+        ],
+        "remediation": "Implement proper access control modifiers (onlyOwner, role-based)",
+        "confidence": 0.393
+      },
+      {
+        "id": "CLUSTER-c61a3715",
+        "category": "logic_errors",
+        "root_cause": "Flawed business logic implementation",
+        "severity": "medium",
+        "finding_count": 3,
+        "affected_functions": [
+          "_owner",
+          "newOwner"
+        ],
+        "affected_files": [
+          "../data/audit/AccessControlFlawed.sol"
+        ],
+        "common_patterns": [
+          "missing-zero-check",
+          "accesscontrolflawed",
+          "address",
+          "data",
+          "audit",
+          "lacks"
+        ],
+        "remediation": "Review and test business logic thoroughly",
+        "confidence": 0.513
+      },
+      {
+        "id": "CLUSTER-1217a648",
+        "category": "logic_errors",
+        "root_cause": "Flawed business logic implementation",
+        "severity": "medium",
+        "finding_count": 1,
+        "affected_functions": [
+          "^0.8.19"
+        ],
+        "affected_files": [
+          "../data/audit/AccessControlFlawed.sol"
+        ],
+        "common_patterns": [
+          "solc-version",
+          "version",
+          "constraint",
+          "contains",
+          "known",
+          "severe"
+        ],
+        "remediation": "Review and test business logic thoroughly",
+        "confidence": 0.393
+      },
+      {
+        "id": "CLUSTER-8352c5de",
+        "category": "code_quality",
+        "root_cause": "Poor code quality and maintainability",
+        "severity": "medium",
+        "finding_count": 1,
+        "affected_functions": [
+          "_owner"
+        ],
+        "affected_files": [
+          "../data/audit/AccessControlFlawed.sol"
+        ],
+        "common_patterns": [
+          "naming-convention",
+          "accesscontrolflawed",
+          "parameter",
+          "initialize",
+          "address",
+          "data"
+        ],
+        "remediation": "Follow Solidity style guide and best practices",
+        "confidence": 0.393
+      },
+      {
+        "id": "CLUSTER-45a7b221",
+        "category": "arithmetic",
+        "root_cause": "Unsafe arithmetic operations",
+        "severity": "medium",
+        "finding_count": 1,
+        "affected_functions": [],
+        "affected_files": [
+          "contract.sol"
+        ],
+        "common_patterns": [
+          "arithmetic",
+          "integer",
+          "overflow",
+          "underflow"
+        ],
+        "remediation": "Use SafeMath or Solidity 0.8+ with built-in overflow checks",
+        "confidence": 0.393
+      },
+      {
+        "id": "CLUSTER-cb739803",
+        "category": "input_validation",
+        "root_cause": "Missing or insufficient input validation",
+        "severity": "low",
+        "finding_count": 1,
+        "affected_functions": [],
+        "affected_files": [
+          "AccessControlFlawed.sol"
+        ],
+        "common_patterns": [
+          "threat_model",
+          "tampering",
+          "setter",
+          "function",
+          "without",
+          "input"
+        ],
+        "remediation": "Add require statements to validate all external inputs",
+        "confidence": 0.293
+      }
+    ]
+  },
+  "remediation_plan": [
+    {
+      "priority": 1,
+      "cluster_id": "CLUSTER-c8e4355c",
+      "category": "input_validation",
+      "severity": "critical",
+      "finding_count": 2,
+      "affected_files": [
+        "/data/audit/AccessControlFlawed.sol"
+      ],
+      "root_cause": "Missing or insufficient input validation",
+      "remediation": "Add require statements to validate all external inputs",
+      "estimated_effort": "Low (< 1 hour)"
+    },
+    {
+      "priority": 2,
+      "cluster_id": "CLUSTER-a1cdbe9c",
+      "category": "uncategorized",
+      "severity": "critical",
+      "finding_count": 2,
+      "affected_files": [
+        "/data/audit/AccessControlFlawed.sol"
+      ],
+      "root_cause": "Unknown root cause",
+      "remediation": "Manual review required",
+      "estimated_effort": "Low (< 1 hour)"
+    },
+    {
+      "priority": 3,
+      "cluster_id": "CLUSTER-dc966438",
+      "category": "uncategorized",
+      "severity": "critical",
+      "finding_count": 1,
+      "affected_files": [
+        "AccessControlFlawed.sol"
+      ],
+      "root_cause": "Unknown root cause",
+      "remediation": "Manual review required",
+      "estimated_effort": "Low (< 1 hour)"
+    },
+    {
+      "priority": 4,
+      "cluster_id": "CLUSTER-0bc133d0",
+      "category": "uncategorized",
+      "severity": "critical",
+      "finding_count": 2,
+      "affected_files": [
+        "AccessControlFlawed.sol"
+      ],
+      "root_cause": "Unknown root cause",
+      "remediation": "Manual review required",
+      "estimated_effort": "Low (< 1 hour)"
+    },
+    {
+      "priority": 5,
+      "cluster_id": "CLUSTER-ab6aa944",
+      "category": "uncategorized",
+      "severity": "critical",
+      "finding_count": 2,
+      "affected_files": [
+        "AccessControlFlawed.sol"
+      ],
+      "root_cause": "Unknown root cause",
+      "remediation": "Manual review required",
+      "estimated_effort": "Low (< 1 hour)"
+    },
+    {
+      "priority": 6,
+      "cluster_id": "CLUSTER-1b69da0b",
+      "category": "uncategorized",
+      "severity": "critical",
+      "finding_count": 4,
+      "affected_files": [
+        "AccessControlFlawed.sol"
+      ],
+      "root_cause": "Unknown root cause",
+      "remediation": "Manual review required",
+      "estimated_effort": "Medium (1-4 hours)"
+    },
+    {
+      "priority": 7,
+      "cluster_id": "CLUSTER-2b3d5585",
+      "category": "uncategorized",
+      "severity": "critical",
+      "finding_count": 8,
+      "affected_files": [
+        "AccessControlFlawed.sol"
+      ],
+      "root_cause": "Unknown root cause",
+      "remediation": "Manual review required",
+      "estimated_effort": "High (4-8 hours)"
+    },
+    {
+      "priority": 8,
+      "cluster_id": "CLUSTER-ff51a285",
+      "category": "uncategorized",
+      "severity": "critical",
+      "finding_count": 3,
+      "affected_files": [
+        "/data/audit/AccessControlFlawed.sol"
+      ],
+      "root_cause": "Unknown root cause",
+      "remediation": "Manual review required",
+      "estimated_effort": "Medium (1-4 hours)"
+    },
+    {
+      "priority": 9,
+      "cluster_id": "CLUSTER-55afd4bd",
+      "category": "uncategorized",
+      "severity": "critical",
+      "finding_count": 6,
+      "affected_files": [
+        "AccessControlFlawed.sol"
+      ],
+      "root_cause": "Unknown root cause",
+      "remediation": "Manual review required",
+      "estimated_effort": "High (4-8 hours)"
+    },
+    {
+      "priority": 10,
+      "cluster_id": "CLUSTER-d9bffd15",
+      "category": "uncategorized",
+      "severity": "critical",
+      "finding_count": 7,
+      "affected_files": [
+        "AccessControlFlawed.sol"
+      ],
+      "root_cause": "Unknown root cause",
+      "remediation": "Manual review required",
+      "estimated_effort": "High (4-8 hours)"
+    }
+  ],
+  "pattern_matches": [
+    {
+      "vulnerability_type": "tx_origin",
+      "similarity": 0.592,
+      "confidence": 0.71
+    }
+  ],
+  "metrics": {
+    "severity_distribution": {
+      "critical": 37,
+      "high": 1,
+      "medium": 27,
+      "low": 17,
+      "informational": 0
+    },
+    "cross_validated": 49,
+    "execution_time_ms": 3711.48,
+    "ml_processing_time_ms": 45.84
+  },
+  "timestamp": "2026-07-09T19:44:26.171772"
+}

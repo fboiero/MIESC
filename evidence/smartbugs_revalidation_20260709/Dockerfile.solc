@@ -1,0 +1,15 @@
+# Derived from the canonical MIESC v5.4.1 image, adding the legacy solc
+# compilers the SmartBugs-curated corpus requires (0.4.x / 0.5.0). On arm64
+# these run as x86_64 binaries via Docker Desktop's binfmt/qemu emulation;
+# Slither and the rest of the layer-1/6/7 stack stay arm64-native.
+FROM ghcr.io/fboiero/miesc:5.4.1
+
+ENV PATH=/home/miesc/.local/bin:$PATH
+
+# Versions taken directly from the corpus pragma scan (plus 0.4.26 as a safety).
+RUN set -e; for v in \
+      0.4.0 0.4.2 0.4.9 0.4.10 0.4.11 0.4.13 0.4.15 0.4.16 \
+      0.4.18 0.4.19 0.4.21 0.4.22 0.4.23 0.4.24 0.4.25 0.4.26 0.5.0; do \
+      echo "installing solc $v"; solc-select install "$v"; \
+    done; \
+    solc-select use 0.8.35

@@ -1,0 +1,88 @@
+{
+  "findings": [
+    {
+      "id": "MIESC-001",
+      "type": "reentrancy",
+      "severity": "critical",
+      "title": "Reentrancy Vulnerability",
+      "description": "External call before state update allows reentrancy attack",
+      "file_path": "contracts/Vault.sol",
+      "line_start": 42,
+      "line_end": 48,
+      "column_start": 8,
+      "column_end": null,
+      "tool": "slither",
+      "layer": 1,
+      "cwe": "CWE-841",
+      "swc": "SWC-107",
+      "confidence": 0.95,
+      "remediation": "Use ReentrancyGuard or checks-effects-interactions pattern"
+    },
+    {
+      "id": "MIESC-002",
+      "type": "overflow",
+      "severity": "high",
+      "title": "Integer Overflow",
+      "description": "Arithmetic operation may overflow",
+      "file_path": "contracts/Token.sol",
+      "line_start": 156,
+      "line_end": null,
+      "column_start": 12,
+      "column_end": null,
+      "tool": "mythril",
+      "layer": 3,
+      "cwe": "CWE-190",
+      "swc": null,
+      "confidence": 0.88,
+      "remediation": "Use SafeMath or Solidity 0.8.x built-in overflow checks"
+    },
+    {
+      "id": "MIESC-003",
+      "type": "unchecked_call",
+      "severity": "medium",
+      "title": "Unchecked Return Value",
+      "description": "Return value of low-level call not checked",
+      "file_path": "contracts/Utils.sol",
+      "line_start": 78,
+      "line_end": null,
+      "column_start": null,
+      "column_end": null,
+      "tool": "slither",
+      "layer": 1,
+      "cwe": "CWE-252",
+      "swc": null,
+      "confidence": 0.82,
+      "remediation": "Check return value or use require()"
+    },
+    {
+      "id": "MIESC-004",
+      "type": "gas",
+      "severity": "low",
+      "title": "Gas Optimization",
+      "description": "Loop can be optimized to save gas",
+      "file_path": "contracts/Staking.sol",
+      "line_start": 234,
+      "line_end": null,
+      "column_start": null,
+      "column_end": null,
+      "tool": "aderyn",
+      "layer": 1,
+      "cwe": null,
+      "swc": null,
+      "confidence": 0.75,
+      "remediation": "Cache array length outside loop"
+    }
+  ],
+  "metadata": {
+    "tool": "MIESC",
+    "version": "4.1.0",
+    "generated_at": "2025-12-13T21:38:35.812694Z",
+    "total_findings": 4,
+    "severity_counts": {
+      "critical": 1,
+      "high": 1,
+      "medium": 1,
+      "low": 1
+    }
+  }
+}

@@ -1,0 +1,112 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" font-family="Consolas, Monaco, monospace">
+  <!-- Background -->
+  <rect width="900" height="500" fill="#f8f9fa"/>
+  
+  <!-- Title -->
+  <text x="450" y="35" text-anchor="middle" font-size="18" font-weight="bold" fill="#333">
+    Figura 2.2. Ejecución Simbólica vs Concreta
+  </text>
+  
+  <!-- Dividing lines -->
+  <line x1="300" y1="50" x2="300" y2="480" stroke="#ccc" stroke-width="1" stroke-dasharray="5,5"/>
+  <line x1="600" y1="50" x2="600" y2="480" stroke="#ccc" stroke-width="1" stroke-dasharray="5,5"/>
+  
+  <!-- Column Headers -->
+  <text x="150" y="75" text-anchor="middle" font-size="14" font-weight="bold" fill="#2c3e50">CÓDIGO</text>
+  <text x="450" y="75" text-anchor="middle" font-size="14" font-weight="bold" fill="#2c3e50">EJECUCIÓN CONCRETA</text>
+  <text x="750" y="75" text-anchor="middle" font-size="14" font-weight="bold" fill="#2c3e50">EJECUCIÓN SIMBÓLICA</text>
+  
+  <!-- Code Section -->
+  <rect x="30" y="100" width="240" height="150" fill="#2d3436" rx="8"/>
+  <text x="45" y="130" font-size="12" fill="#74b9ff">function</text>
+  <text x="105" y="130" font-size="12" fill="#ffeaa7">f</text>
+  <text x="115" y="130" font-size="12" fill="#dfe6e9">(x) {</text>
+  <text x="55" y="155" font-size="12" fill="#e17055">if</text>
+  <text x="75" y="155" font-size="12" fill="#dfe6e9">(x > 10)</text>
+  <text x="65" y="180" font-size="12" fill="#dfe6e9">...</text>
+  <text x="55" y="205" font-size="12" fill="#e17055">else</text>
+  <text x="65" y="230" font-size="12" fill="#dfe6e9">...</text>
+  <text x="45" y="245" font-size="12" fill="#dfe6e9">}</text>
+  
+  <!-- Concrete Execution -->
+  <rect x="380" y="100" width="140" height="40" fill="#3498db" rx="6"/>
+  <text x="450" y="125" text-anchor="middle" font-size="14" fill="white" font-weight="bold">f(5)</text>
+  
+  <!-- Arrow down -->
+  <line x1="450" y1="140" x2="450" y2="180" stroke="#333" stroke-width="2"/>
+  <polygon points="450,190 445,180 455,180" fill="#333"/>
+  
+  <!-- Condition box concrete -->
+  <rect x="380" y="195" width="140" height="40" fill="#f39c12" rx="6"/>
+  <text x="450" y="220" text-anchor="middle" font-size="13" fill="white">5 > 10 → FALSE</text>
+  
+  <!-- Arrow down -->
+  <line x1="450" y1="235" x2="450" y2="275" stroke="#333" stroke-width="2"/>
+  <polygon points="450,285 445,275 455,275" fill="#333"/>
+  
+  <!-- Else branch concrete -->
+  <rect x="380" y="290" width="140" height="40" fill="#27ae60" rx="6"/>
+  <text x="450" y="315" text-anchor="middle" font-size="13" fill="white">else branch</text>
+  
+  <!-- Arrow down -->
+  <line x1="450" y1="330" x2="450" y2="370" stroke="#333" stroke-width="2"/>
+  <polygon points="450,380 445,370 455,370" fill="#333"/>
+  
+  <!-- Result concrete -->
+  <rect x="400" y="385" width="100" height="30" fill="#95a5a6" rx="4"/>
+  <text x="450" y="405" text-anchor="middle" font-size="12" fill="white">...</text>
+  
+  <!-- Single path label -->
+  <text x="450" y="440" text-anchor="middle" font-size="11" fill="#7f8c8d" font-style="italic">Un solo camino</text>
+  
+  <!-- Symbolic Execution -->
+  <rect x="680" y="100" width="140" height="40" fill="#9b59b6" rx="6"/>
+  <text x="750" y="120" text-anchor="middle" font-size="14" fill="white" font-weight="bold">f(X)</text>
+  <text x="750" y="135" text-anchor="middle" font-size="10" fill="#e8daef">X es símbolo</text>
+  
+  <!-- Arrow down -->
+  <line x1="750" y1="140" x2="750" y2="180" stroke="#333" stroke-width="2"/>
+  <polygon points="750,190 745,180 755,180" fill="#333"/>
+  
+  <!-- Condition box symbolic -->
+  <rect x="680" y="195" width="140" height="40" fill="#e74c3c" rx="6"/>
+  <text x="750" y="220" text-anchor="middle" font-size="13" fill="white">X > 10 ?</text>
+  
+  <!-- Fork arrows -->
+  <line x1="750" y1="235" x2="750" y2="260" stroke="#333" stroke-width="2"/>
+  <line x1="750" y1="260" x2="680" y2="290" stroke="#333" stroke-width="2"/>
+  <line x1="750" y1="260" x2="820" y2="290" stroke="#333" stroke-width="2"/>
+  <polygon points="680,290 688,283 683,278" fill="#333"/>
+  <polygon points="820,290 812,283 817,278" fill="#333"/>
+  
+  <!-- TRUE branch -->
+  <rect x="620" y="295" width="100" height="50" fill="#27ae60" rx="6"/>
+  <text x="670" y="318" text-anchor="middle" font-size="12" fill="white" font-weight="bold">TRUE</text>
+  <text x="670" y="335" text-anchor="middle" font-size="10" fill="#d5f5e3">X > 10</text>
+  
+  <!-- FALSE branch -->
+  <rect x="780" y="295" width="100" height="50" fill="#e74c3c" rx="6"/>
+  <text x="830" y="318" text-anchor="middle" font-size="12" fill="white" font-weight="bold">FALSE</text>
+  <text x="830" y="335" text-anchor="middle" font-size="10" fill="#fadbd8">X ≤ 10</text>
+  
+  <!-- Arrows down from branches -->
+  <line x1="670" y1="345" x2="670" y2="385" stroke="#333" stroke-width="2"/>
+  <polygon points="670,395 665,385 675,385" fill="#333"/>
+  <line x1="830" y1="345" x2="830" y2="385" stroke="#333" stroke-width="2"/>
+  <polygon points="830,395 825,385 835,385" fill="#333"/>
+  
+  <!-- Results symbolic -->
+  <rect x="635" y="400" width="70" height="25" fill="#95a5a6" rx="4"/>
+  <text x="670" y="417" text-anchor="middle" font-size="11" fill="white">...</text>
+  <rect x="795" y="400" width="70" height="25" fill="#95a5a6" rx="4"/>
+  <text x="830" y="417" text-anchor="middle" font-size="11" fill="white">...</text>
+  
+  <!-- Multiple paths label -->
+  <text x="750" y="455" text-anchor="middle" font-size="11" fill="#7f8c8d" font-style="italic">Todos los caminos</text>
+  
+  <!-- Bottom summary -->
+  <rect x="30" y="465" width="840" height="25" fill="#ecf0f1" rx="4"/>
+  <text x="450" y="482" text-anchor="middle" font-size="11" fill="#2c3e50">
+    Concreta: explora 1 camino (input fijo) │ Simbólica: explora N caminos (árbol de ejecución)
+  </text>
+</svg>

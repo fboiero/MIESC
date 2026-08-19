@@ -1,0 +1,216 @@
+{
+  "miesc_version": "4.2.2",
+  "audit_timestamp": "2025-12-30T17:54:30.680115",
+  "project": {
+    "name": "Compound V3 (Comet) Core",
+    "description": "Protocolo de préstamos DeFi - Versión simplificada para análisis de seguridad",
+    "source": "https://github.com/compound-finance/comet",
+    "contract_file": "benchmarks/real_projects/compound_v3/CometCore.sol",
+    "contract_size_bytes": 8563,
+    "solidity_version": "^0.8.0",
+    "analysis_date": "2025-12-29"
+  },
+  "executive_summary": {
+    "total_findings": 20,
+    "critical": 1,
+    "high": 5,
+    "medium": 3,
+    "low": 2,
+    "informational": 9,
+    "risk_score": 8.5,
+    "risk_level": "HIGH",
+    "recommendation": "NO DESPLEGAR sin corregir hallazgos Critical y High"
+  },
+  "findings": [
+    {
+      "id": "COMET-001",
+      "title": "Unchecked ERC20 Transfer Return Values",
+      "severity": "Critical",
+      "confidence": "High",
+      "swc_id": "SWC-104",
+      "cwe_id": "CWE-252",
+      "owasp_id": "A5:2017-Broken Access Control",
+      "cvss_score": 9.1,
+      "description": {
+        "summary": "Las funciones transfer() y transferFrom() de ERC20 no verifican el valor de retorno booleano.",
+        "technical": "Algunos tokens ERC20 (como USDT en ciertas versiones) retornan false en lugar de revertir cuando una transferencia falla. El contrato asume que todas las transferencias exitosas revierten en caso de error, lo cual no es cierto para todos los tokens.",
+        "root_cause": "Falta de validación del valor de retorno de llamadas externas a contratos ERC20."
+      },
+      "location": {
+        "file": "CometCore.sol",
+        "functions": [
+          "supply",
+          "supplyCollateral",
+          "withdraw",
+          "withdrawCollateral",
+          "borrowInternal"
+        ],
+        "lines": [
+          104,
+          125,
+          148,
+          163,
+          184
+        ]
+      },
+      "vulnerable_code": "// Línea 104 - supply()\nIERC20(asset).transferFrom(msg.sender, address(this), amount);\n// El valor de retorno bool es ignorado\n\n// Línea 148 - withdraw()\nIERC20(asset).transfer(msg.sender, amount);\n// El valor de retorno bool es ignorado",
+      "impact": {
+        "financial": "Pérdida total de fondos del protocolo",
+        "operational": "Desincronización entre balances internos y tokens reales",
+        "description": "Un atacante puede depositar tokens que fallan silenciosamente, recibir crédito en el protocolo, y luego retirar tokens reales. Esto permite drenar todos los fondos del contrato."
+      },
+      "exploitation_scenario": {
+        "preconditions": [
+          "El protocolo acepta tokens que retornan false en transferencias fallidas",
+          "El atacante tiene tokens maliciosos o tokens con comportamiento no estándar"
+        ],
+        "steps": [
+          "1. Atacante despliega token malicioso que retorna false en transferFrom",
+          "2. Atacante llama supply() con su token malicioso",
+          "3. La transferencia falla silenciosamente pero el estado se actualiza",
+          "4. Atacante retira tokens legítimos del protocolo",
+          "5. Repetir hasta drenar el protocolo"
+        ],
+        "difficulty": "Low",
+        "likelihood": "High"
+      },
+      "validation": {
+        "manual_review": [
+          "Verificar que todas las llamadas a transfer/transferFrom capturan el retorno",
+          "Buscar patrones: IERC20(x).transfer( sin require() o if()"
+        ],
+        "automated_detection": "slither --detect unchecked-transfer",
+        "test_case": "// Test en Foundry/Hardhat\ncontract MaliciousToken {\n    function transferFrom(address,address,uint256) external returns (bool) {\n        return false; // Falla silenciosamente\n    }\n}\n// Llamar supply() con MaliciousToken y verificar que el estado NO cambia"
+      },
+      "remediation": {
+        "recommendation": "Usar la librería SafeERC20 de OpenZeppelin que maneja correctamente tokens no estándar.",
+        "corrected_code": "// ANTES (vulnerable):\nIERC20(asset).transferFrom(msg.sender, address(this), amount);\n\n// DESPUÉS (seguro):\nimport \"@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol\";\nusing SafeERC20 for IERC20;\n\nIERC20(asset).safeTransferFrom(msg.sender, address(this), amount);",
+        "alternative_solution": "// Si no se puede usar SafeERC20:\nbool success = IERC20(asset).transferFrom(msg.sender, address(this), amount);\nrequire(success, \"TRANSFER_FAILED\");",
+        "effort": "Low",
+        "breaking_changes": false
+      },
+      "references": [
+        "https://swcregistry.io/docs/SWC-104",
+        "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/utils/SafeERC20.sol",
+        "https://consensys.github.io/smart-contract-best-practices/development-recommendations/token-specific/non-standard-erc20/"
+      ]
+    },
+    {
+      "id": "COMET-002",
+      "title": "Reentrancy Vulnerability in supplyCollateral",
+      "severity": "High",
+      "confidence": "High",
+      "swc_id": "SWC-107",
+      "cwe_id": "CWE-841",
+      "cvss_score": 8.6,
+      "description": {
+        "summary": "La función supplyCollateral actualiza el estado después de una llamada externa, permitiendo ataques de reentrancia.",
+        "technical": "El patrón de interacción viola el principio Checks-Effects-Interactions. La llamada externa a transferFrom ocurre antes de actualizar userCollateral, permitiendo que un token malicioso reingrese al contrato.",
+        "root_cause": "Violación del patrón CEI (Checks-Effects-Interactions) sin protección de reentrancia."
+      },
+      "location": {
+        "file": "CometCore.sol",
+        "function": "supplyCollateral",
+        "lines": [
+          120,
+          129
+        ]
+      },
+      "vulnerable_code": "function supplyCollateral(address asset, uint256 amount) internal {\n    AssetConfig memory config = assetConfigs[asset];\n    require(config.asset != address(0), \"ASSET_NOT_SUPPORTED\");\n    require(amount <= config.supplyCap - userCollateral[msg.sender][asset].balance, \"SUPPLY_CAP_EXCEEDED\");\n    \n    // LLAMADA EXTERNA (punto de reentrancia)\n    IERC20(asset).transferFrom(msg.sender, address(this), amount);\n    \n    // ESCRITURA DE ESTADO DESPUÉS de llamada externa\n    userCollateral[msg.sender][asset].balance += uint128(amount);\n    \n    emit SupplyCollateral(msg.sender, msg.sender, asset, amount);\n}",
+      "impact": {
+        "financial": "Manipulación de balances de colateral, posible extracción de fondos",
+        "operational": "Bypass de límites de supply cap",
+        "description": "Un atacante puede crear un token ERC20 con un hook en transferFrom que reingresa a supplyCollateral antes de que se actualice el balance, potencialmente duplicando su colateral registrado."
+      },
+      "exploitation_scenario": {
+        "preconditions": [
+          "El atacante puede registrar un token malicioso como colateral aceptado",
+          "O el protocolo acepta tokens con callbacks (ERC777, tokens con hooks)"
+        ],
+        "steps": [
+          "1. Atacante crea token con hook en transferFrom",
+          "2. En el hook, llama nuevamente a supplyCollateral",
+          "3. Como userCollateral aún no se actualizó, pasa la validación de cap",
+          "4. Al finalizar, el atacante tiene más colateral registrado que depositado",
+          "5. Usa el colateral inflado para pedir préstamos"
+        ],
+        "difficulty": "Medium",
+        "likelihood": "Medium"
+      },
+      "validation": {
+        "manual_review": [
+          "Verificar orden de operaciones en funciones con llamadas externas",
+          "Identificar si escrituras de estado ocurren después de external calls"
+        ],
+        "automated_detection": "slither --detect reentrancy-eth,reentrancy-no-eth",
+        "test_case": "// Contrato de ataque\ncontract ReentrancyAttack {\n    CometCore target;\n    uint256 attackCount;\n    \n    function attack() external {\n        target.supply(address(this), 100);\n    }\n    \n    function transferFrom(address,address,uint256) external returns (bool) {\n        if (attackCount < 5) {\n            attackCount++;\n            target.supply(address(this), 100);\n        }\n        return true;\n    }\n}"
+      },
+      "remediation": {
+        "recommendation": "Implementar el patrón Checks-Effects-Interactions y/o usar ReentrancyGuard.",
+        "corrected_code": "// Opción 1: Reordenar (CEI pattern)\nfunction supplyCollateral(address asset, uint256 amount) internal {\n    AssetConfig memory config = assetConfigs[asset];\n    require(config.asset != address(0), \"ASSET_NOT_SUPPORTED\");\n    require(amount <= config.supplyCap - userCollateral[msg.sender][asset].balance, \"SUPPLY_CAP_EXCEEDED\");\n    \n    // EFFECTS: Actualizar estado ANTES de llamada externa\n    userCollateral[msg.sender][asset].balance += uint128(amount);\n    \n    // INTERACTIONS: Llamada externa al final\n    IERC20(asset).safeTransferFrom(msg.sender, address(this), amount);\n    \n    emit SupplyCollateral(msg.sender, msg.sender, asset, amount);\n}\n\n// Opción 2: Agregar ReentrancyGuard\nimport \"@openzeppelin/contracts/security/ReentrancyGuard.sol\";\n\ncontract CometCore is ReentrancyGuard {\n    function supplyCollateral(...) internal nonReentrant {\n        // ...\n    }\n}",
+        "effort": "Low",
+        "breaking_changes": false
+      },
+      "references": [
+        "https://swcregistry.io/docs/SWC-107",
+        "https://fravoll.github.io/solidity-patterns/checks_effects_interactions.html",
+        "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/security/ReentrancyGuard.sol"
+      ]
+    },
+    {
+      "id": "COMET-003",
+      "title": "Missing Zero Address Validation in Constructor",
+      "severity": "Medium",
+      "confidence": "High",
+      "swc_id": "SWC-106",
+      "cwe_id": "CWE-20",
+      "cvss_score": 5.3,
+      "description": {
+        "summary": "El constructor no valida que baseToken y priceFeed no sean address(0).",
+        "technical": "Si se despliega el contrato con direcciones cero, el contrato quedará permanentemente inutilizable sin posibilidad de recuperación."
+      },
+      "location": {
+        "file": "CometCore.sol",
+        "function": "constructor",
+        "lines": [
+          64,
+          67
+        ]
+      },
+      "vulnerable_code": "constructor(address _baseToken, address _priceFeed) {\n    governor = msg.sender;\n    baseToken = _baseToken;           // Sin validación\n    baseTokenPriceFeed = _priceFeed;  // Sin validación\n    lastAccrualTime = uint64(block.timestamp);\n    baseSupplyIndex = 1e15;\n    baseBorrowIndex = 1e15;\n}",
+      "impact": {
+        "financial": "Pérdida del contrato desplegado y gas gastado",
+        "operational": "Necesidad de redesplegar con parámetros correctos"
+      },
+      "validation": {
+        "manual_review": [
+          "Verificar validaciones de parámetros en constructors"
+        ],
+        "automated_detection": "slither --detect missing-zero-check"
+      },
+      "remediation": {
+        "recommendation": "Agregar require() para validar direcciones no nulas.",
+        "corrected_code": "constructor(address _baseToken, address _priceFeed) {\n    require(_baseToken != address(0), \"ZERO_BASE_TOKEN\");\n    require(_priceFeed != address(0), \"ZERO_PRICE_FEED\");\n    \n    governor = msg.sender;\n    baseToken = _baseToken;\n    baseTokenPriceFeed = _priceFeed;\n    lastAccrualTime = uint64(block.timestamp);\n    baseSupplyIndex = 1e15;\n    baseBorrowIndex = 1e15;\n}",
+        "effort": "Low"
+      }
+    }
+  ],
+  "gas_optimizations": [
+    {
+      "id": "GAS-001",
+      "title": "State Variables Could Be Immutable",
+      "description": "governor, baseToken, baseTokenPriceFeed se asignan solo en constructor",
+      "savings": "~2100 gas por lectura",
+      "fix": "Declarar como immutable: address public immutable baseToken;"
+    }
+  ],
+  "methodology": {
+    "tools_used": [
+      "Slither v0.10.0",
+      "MIESC v4.2.2"
+    ],
+    "analysis_type": "Static Analysis (Layer 1)",
+    "detectors_run": 100,
+    "manual_review": true
+  }
+}

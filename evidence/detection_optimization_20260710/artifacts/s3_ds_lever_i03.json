@@ -1,0 +1,213 @@
+{
+  "variant": "lever",
+  "model": "deepseek-reasoner",
+  "type_aware_recall": 0.6552,
+  "detected": 19,
+  "total": 29,
+  "per_contract": {
+    "VulnerableBank.sol": {
+      "hit": 2,
+      "total": 2,
+      "findings": 3
+    },
+    "UnsafeToken.sol": {
+      "hit": 7,
+      "total": 10,
+      "findings": 11
+    },
+    "AccessControlFlawed.sol": {
+      "hit": 7,
+      "total": 7,
+      "findings": 8
+    },
+    "FlashLoanVault.sol": {
+      "hit": 3,
+      "total": 10,
+      "findings": 5
+    }
+  },
+  "raw": {
+    "VulnerableBank.sol": {
+      "n_findings": 3,
+      "findings": [
+        {
+          "line": 35,
+          "type": "reentrancy",
+          "swc": "SWC-107",
+          "severity": "critical"
+        },
+        {
+          "line": 52,
+          "type": "reentrancy",
+          "swc": "SWC-107",
+          "severity": "critical"
+        },
+        {
+          "line": 66,
+          "type": "cross-function-reentrancy",
+          "swc": "SWC-107",
+          "severity": "critical"
+        }
+      ]
+    },
+    "UnsafeToken.sol": {
+      "n_findings": 11,
+      "findings": [
+        {
+          "line": 28,
+          "type": "missing-event",
+          "swc": "SWC-124",
+          "severity": "medium"
+        },
+        {
+          "line": 33,
+          "type": "missing-zero-address-check",
+          "swc": "",
+          "severity": "medium"
+        },
+        {
+          "line": 45,
+          "type": "race-condition",
+          "swc": "SWC-114",
+          "severity": "high"
+        },
+        {
+          "line": 67,
+          "type": "missing-access-control",
+          "swc": "SWC-105",
+          "severity": "critical"
+        },
+        {
+          "line": 78,
+          "type": "missing-authorization",
+          "swc": "SWC-105",
+          "severity": "critical"
+        },
+        {
+          "line": 94,
+          "type": "unchecked-external-call",
+          "swc": "SWC-107",
+          "severity": "high"
+        },
+        {
+          "line": 104,
+          "type": "gas-limit-dos",
+          "swc": "SWC-128",
+          "severity": "medium"
+        },
+        {
+          "line": 112,
+          "type": "timestamp-dependency",
+          "swc": "SWC-116",
+          "severity": "low"
+        },
+        {
+          "line": 118,
+          "type": "weak-randomness",
+          "swc": "SWC-120",
+          "severity": "low"
+        },
+        {
+          "line": 139,
+          "type": "locked-ether",
+          "swc": "",
+          "severity": "medium"
+        },
+        {
+          "line": 128,
+          "type": "useless-function",
+          "swc": "",
+          "severity": "low"
+        }
+      ]
+    },
+    "AccessControlFlawed.sol": {
+      "n_findings": 8,
+      "findings": [
+        {
+          "line": 28,
+          "type": "missing access control",
+          "swc": "SWC-111",
+          "severity": "critical"
+        },
+        {
+          "line": 35,
+          "type": "tx.origin dependence",
+          "swc": "SWC-115",
+          "severity": "high"
+        },
+        {
+          "line": 46,
+          "type": "missing access control",
+          "swc": "SWC-111",
+          "severity": "high"
+        },
+        {
+          "line": 53,
+          "type": "unprotected selfdestruct",
+          "swc": "SWC-106",
+          "severity": "critical"
+        },
+        {
+          "line": 60,
+          "type": "missing access control",
+          "swc": "SWC-111",
+          "severity": "medium"
+        },
+        {
+          "line": 68,
+          "type": "reinitialization",
+          "swc": "SWC-111",
+          "severity": "high"
+        },
+        {
+          "line": 75,
+          "type": "front-running vulnerable",
+          "swc": "SWC-113",
+          "severity": "medium"
+        },
+        {
+          "line": 89,
+          "type": "state before external call",
+          "swc": "SWC-134",
+          "severity": "critical"
+        }
+      ]
+    },
+    "FlashLoanVault.sol": {
+      "n_findings": 5,
+      "findings": [
+        {
+          "line": 54,
+          "type": "Oracle Manipulation",
+          "swc": "",
+          "severity": "high"
+        },
+        {
+          "line": 70,
+          "type": "Unchecked External Call",
+          "swc": "SWC-104",
+          "severity": "high"
+        },
+        {
+          "line": 139,
+          "type": "Cross-function Reentrancy",
+          "swc": "SWC-107",
+          "severity": "high"
+        },
+        {
+          "line": 103,
+          "type": "Missing Slippage Protection",
+          "swc": "",
+          "severity": "high"
+        },
+        {
+          "line": 162,
+          "type": "Missing Timelock",
+          "swc": "SWC-115",
+          "severity": "high"
+        }
+      ]
+    }
+  }
+}
