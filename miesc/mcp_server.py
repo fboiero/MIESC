@@ -427,14 +427,15 @@ async def miesc_correlate(
         return json.dumps({"error": "Invalid JSON input for findings_map"})
 
     try:
-        from miesc.core.correlation_api import SmartCorrelationEngine
+        from miesc.core.correlation_api import MIESCCorrelationAPI
 
-        engine = SmartCorrelationEngine()
-        correlated = engine.correlate(
-            findings_map,
-            min_confirmations=min_tools,
+        engine = MIESCCorrelationAPI(
+            min_tools_for_validation=min_tools,
             confidence_threshold=confidence_threshold,
         )
+        for tool_name, tool_findings in (findings_map or {}).items():
+            engine.add_tool_results(tool_name, tool_findings)
+        correlated = engine.analyze()
         return json.dumps(correlated, indent=2, default=str)
     except ImportError:
         return json.dumps(
@@ -461,7 +462,7 @@ async def miesc_filter_fp(findings_json: str, threshold: float = 0.50) -> str:
         from miesc.ml.false_positive_filter import FalsePositiveFilter
 
         fp_filter = FalsePositiveFilter()
-        filtered = fp_filter.filter_findings(findings, fp_threshold=threshold)
+        filtered = fp_filter.filter_findings(findings, threshold=threshold)
         return json.dumps(
             {
                 "original_count": len(findings) if isinstance(findings, list) else 0,
@@ -635,9 +636,35 @@ async def miesc_map_compliance(findings_json: str, frameworks: Optional[str] = N
         from miesc.security.compliance_mapper import ComplianceMapper
 
         mapper = ComplianceMapper()
-        framework_list = frameworks.split(",") if frameworks else None
-        mapping = mapper.map_findings(findings, frameworks=framework_list)
-        return json.dumps(mapping, indent=2, default=str)
+        # Optional framework filter: keep only the requested framework keys.
+        framework_keys = {
+            "iso27001": "iso27001_controls",
+            "nist": "nist_csf_functions",
+            "owasp": "owasp_sc_categories",
+            "cwe": "cwe_ids",
+            "swc": "swc_id",
+            "mitre": "mitre_techniques",
+        }
+        requested = (
+            {
+                framework_keys[f.strip().lower()]
+                for f in frameworks.split(",")
+                if f.strip().lower() in framework_keys
+            }
+            if frameworks
+            else None
+        )
+        result = []
+        for finding, mapping in mapper.map_findings(findings):
+            entry = mapping.to_dict()
+            if requested is not None:
+                entry = {
+                    k: v
+                    for k, v in entry.items()
+                    if k in requested or k in ("swc_title", "compliance_score")
+                }
+            result.append({"finding": finding, "compliance": entry})
+        return json.dumps(result, indent=2, default=str)
     except ImportError:
         return json.dumps({"error": "ComplianceMapper not available"})
 
@@ -658,8 +685,8 @@ async def miesc_remediate(findings_json: str, contract_name: str = "") -> str:
         from miesc.security.remediation_engine import RemediationEngine
 
         engine = RemediationEngine()
-        remediated = engine.enrich_findings(findings, contract_name=contract_name)
-        return json.dumps(remediated, indent=2, default=str)
+        remediated = engine.enrich_findings(findings)
+        return json.dumps([ef.to_dict() for ef in remediated], indent=2, default=str)
     except ImportError:
         # Fallback: basic remediation from finding data
         for f in (findings if isinstance(findings, list) else []):
