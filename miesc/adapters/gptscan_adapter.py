@@ -489,15 +489,25 @@ Respond ONLY with valid JSON. Report ONLY vulnerabilities you are CONFIDENT abou
             if json_str:
                 parsed = json.loads(repair_common_json_errors(json_str))
 
-                # Extract findings from parsed JSON
-                vulnerabilities = parsed.get("vulnerabilities", [])
+                # Extract findings from parsed JSON. Guard against hostile/atypical
+                # LLM output where ``parsed`` is not a dict or ``vulnerabilities`` is
+                # not a list of dicts — otherwise iteration / .get() / .upper() would
+                # crash into the broad except below and mask the parse failure as a
+                # clean (zero-finding) scan.
+                vulnerabilities = (
+                    parsed.get("vulnerabilities", []) if isinstance(parsed, dict) else []
+                )
+                if not isinstance(vulnerabilities, list):
+                    vulnerabilities = []
 
                 for idx, vuln in enumerate(vulnerabilities):
+                    if not isinstance(vuln, dict):
+                        continue
                     finding = {
                         "id": f"gptscan-{idx+1}",
                         "title": vuln.get("title", "AI-detected vulnerability"),
                         "description": vuln.get("description", ""),
-                        "severity": vuln.get("severity", "MEDIUM").upper(),
+                        "severity": str(vuln.get("severity", "MEDIUM")).upper(),
                         "confidence": vuln.get("confidence", 0.75),
                         "category": vuln.get("type", "ai_detected_pattern"),
                         "location": {
