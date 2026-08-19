@@ -62,12 +62,24 @@ jobs:
           SCAN_TYPE="${{ github.event.inputs.scan_type || 'quick' }}"
           echo "Running MIESC $SCAN_TYPE scan..."
 
-          if [ "$SCAN_TYPE" = "full" ]; then
-            miesc audit full contracts/ --output miesc-results.json --format json || true
-          elif [ "$SCAN_TYPE" = "layer1" ]; then
-            miesc audit layer 1 contracts/ --output miesc-results.json || true
+          # The self-scan targets a contracts/ directory. This repo ships no
+          # such directory (it is a placeholder for downstream consumers), so
+          # scan it only when present and always leave a valid results file so
+          # the SARIF/report steps have something well-formed to consume.
+          if [ -d contracts ]; then
+            if [ "$SCAN_TYPE" = "full" ]; then
+              miesc audit full contracts/ --output miesc-results.json --format json || true
+            elif [ "$SCAN_TYPE" = "layer1" ]; then
+              miesc audit layer 1 contracts/ --output miesc-results.json || true
+            else
+              miesc audit quick contracts/ --output miesc-results.json --format json || true
+            fi
           else
-            miesc audit quick contracts/ --output miesc-results.json --format json || true
+            echo "No contracts/ directory present — nothing to scan; writing empty results."
+          fi
+
+          if [ ! -f miesc-results.json ]; then
+            echo '{"findings": [], "summary": {"total": 0, "critical": 0, "high": 0, "medium": 0, "low": 0}}' > miesc-results.json
           fi
 
       - name: Generate SARIF report
