@@ -191,7 +191,9 @@ refreshed — do not edit it ad hoc while it is frozen.
 
 ## Submission checklist
 
-Practical items to complete before (or while) filing with the DPGA:
+A crisp, reviewer-facing pre-flight also lives in
+[`FILING_CHECKLIST.md`](./FILING_CHECKLIST.md). Practical items to complete
+before (or while) filing with the DPGA:
 
 - [ ] **Confirm the application id and GID.** Re-open the DPGA portal and verify
       that application **#13478** and **GID0092948** are current and refer to
