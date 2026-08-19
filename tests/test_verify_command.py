@@ -378,3 +378,96 @@ class TestEconomicInvariantsFlag:
             ):
                 result = runner.invoke(verify, [vault_contract, "--economic-invariants", "--quiet"])
         assert result.exit_code == 0
+
+
+class TestEconomicFuzzFlag:
+    def test_help_lists_fuzz_flag(self):
+        runner = CliRunner()
+        result = runner.invoke(verify, ["--help"])
+        assert result.exit_code == 0
+        assert "--fuzz" in result.output
+        assert "--fuzz-test-limit" in result.output
+
+    def test_fuzz_without_economic_invariants_warns(self, contract):
+        runner = CliRunner()
+        with patch("miesc.formal.SpecRunner") as SR:
+            SR.return_value.availability_report.return_value = {
+                "certora": False,
+                "halmos": False,
+                "smtchecker": False,
+                "scribble": False,
+                "kontrol": False,
+            }
+            result = runner.invoke(verify, [contract, "--fuzz", "--quiet"])
+        assert "no effect" in result.output.lower()
+
+    def test_fuzz_detected_bug_sets_exit_one(self, vault_contract):
+        """A fuzz-detected economic bug must drive exit code 1 (real failure)."""
+        runner = CliRunner()
+        detected = {
+            "status": "detected",
+            "properties": ["echidna_deposit_mints_nonzero_shares"],
+            "findings": [
+                {
+                    "severity": "critical",
+                    "invariant": "erc4626_first_deposit_guard",
+                    "property": "echidna_deposit_mints_nonzero_shares",
+                    "description": "share price inflated",
+                    "call_sequence": ["h_donate(1000)", "h_deposit(0)"],
+                }
+            ],
+        }
+        with patch("miesc.formal.SpecRunner") as SR:
+            SR.return_value.availability_report.return_value = {
+                "certora": False,
+                "halmos": False,
+                "smtchecker": False,
+                "scribble": False,
+                "kontrol": False,
+            }
+            with patch(
+                "miesc.formal.economic_harness.run_economic_fuzz", return_value=detected
+            ) as rf:
+                result = runner.invoke(
+                    verify, [vault_contract, "--economic-invariants", "--fuzz", "--quiet"]
+                )
+                assert rf.called
+        assert result.exit_code == 1
+
+    def test_fuzz_clean_keeps_exit_zero(self, vault_contract):
+        runner = CliRunner()
+        clean = {
+            "status": "clean",
+            "properties": ["echidna_vault_solvent"],
+            "findings": [],
+        }
+        with patch("miesc.formal.SpecRunner") as SR:
+            SR.return_value.availability_report.return_value = {
+                "certora": False,
+                "halmos": False,
+                "smtchecker": False,
+                "scribble": False,
+                "kontrol": False,
+            }
+            with patch("miesc.formal.economic_harness.run_economic_fuzz", return_value=clean):
+                result = runner.invoke(
+                    verify, [vault_contract, "--economic-invariants", "--fuzz", "--quiet"]
+                )
+        assert result.exit_code == 0
+
+    def test_fuzz_skipped_when_echidna_absent(self, vault_contract):
+        runner = CliRunner()
+        skipped = {"status": "skipped", "reason": "Echidna not installed", "findings": []}
+        with patch("miesc.formal.SpecRunner") as SR:
+            SR.return_value.availability_report.return_value = {
+                "certora": False,
+                "halmos": False,
+                "smtchecker": False,
+                "scribble": False,
+                "kontrol": False,
+            }
+            with patch("miesc.formal.economic_harness.run_economic_fuzz", return_value=skipped):
+                result = runner.invoke(
+                    verify, [vault_contract, "--economic-invariants", "--fuzz", "--quiet"]
+                )
+        assert result.exit_code == 0
