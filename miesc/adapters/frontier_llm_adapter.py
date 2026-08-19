@@ -452,14 +452,19 @@ class FrontierLLMAdapter(ToolAdapter):
         # Normalize findings — handle diverse key names from different LLM responses
         normalized = []
         for f in findings:
-            title = (
+            # LLM output is untrusted: a hostile/atypical response may include a
+            # non-dict entry or a non-string ``type``. Guard both so normalization
+            # never raises (a crash here aborts the whole scan).
+            if not isinstance(f, dict):
+                continue
+            title = str(
                 f.get("title")
                 or f.get("vulnerability")
                 or f.get("name")
                 or f.get("type")
                 or "Unknown"
             )
-            ftype = (
+            ftype = str(
                 f.get("type") or f.get("category") or f.get("vulnerability_type") or "logic_error"
             )
             severity = f.get("severity") or "Medium"
