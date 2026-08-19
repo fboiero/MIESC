@@ -590,7 +590,10 @@ class MythrilAdapter(ToolAdapter):
 
             # Find matching Mythril finding
             for mythril_finding in result.get("findings", []):
-                swc = mythril_finding.get("swc_id", "").replace("SWC-", "")
+                # ``swc_id`` is normalized to ``None`` (not "") when Mythril emits
+                # an issue without an SWC id, so ``.get(..., "")`` still yields None
+                # for a present-but-None key. Coerce with ``or ""`` before .replace.
+                swc = (mythril_finding.get("swc_id") or "").replace("SWC-", "")
                 if swc in expected_swcs:
                     return True, mythril_finding
 
