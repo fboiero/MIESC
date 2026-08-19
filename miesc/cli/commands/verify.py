@@ -114,6 +114,68 @@ def _emit_economic_invariants(
     return {"count": len(invariants), "names": names, "files": files}
 
 
+def _fuzz_economic_invariants(
+    contract_path: str,
+    invariant_names: list[str],
+    test_limit: int,
+    timeout: int,
+    quiet: bool,
+) -> Dict[str, Any]:
+    """Run the selected economic invariants through Echidna end-to-end.
+
+    Generates a runnable harness (mock asset + driver functions + property),
+    runs Echidna, and maps falsified properties to MIESC findings. Gated behind
+    Echidna availability — gracefully skips (never fabricates) when absent.
+    """
+    from miesc.formal.economic_harness import run_economic_fuzz, supported_invariants
+
+    runnable = [n for n in invariant_names if n in supported_invariants()]
+    if not runnable:
+        if not quiet:
+            info(
+                "No fuzzable economic invariants for this contract "
+                f"(supported: {sorted(supported_invariants())})."
+            )
+        return {"status": "skipped", "findings": []}
+
+    if not quiet:
+        info(f"Fuzzing {len(runnable)} economic invariant(s) with Echidna...")
+
+    result = run_economic_fuzz(
+        contract_path,
+        runnable,
+        test_limit=test_limit,
+        timeout=timeout,
+    )
+
+    if not quiet:
+        status = result.get("status")
+        if status == "skipped":
+            warning(result.get("reason", "Economic fuzzing skipped."))
+        elif status == "error":
+            error(f"Economic fuzzing error: {result.get('reason')}")
+        elif status == "clean":
+            success(
+                "Economic invariants held under fuzzing "
+                f"({', '.join(result.get('properties', []))}) — no violations."
+            )
+        elif status == "detected":
+            console.print(
+                f"\n[bold red]Economic bug(s) detected via fuzzing:[/bold red] "
+                f"{len(result['findings'])}"
+            )
+            for f in result["findings"]:
+                console.print(
+                    f"  • [{f['severity']}] {f.get('invariant', f.get('property'))}: "
+                    f"{f.get('description', '')[:100]}"
+                )
+                seq = f.get("call_sequence") or []
+                for call in seq[:6]:
+                    console.print(f"      ↳ {call}")
+
+    return result
+
+
 @click.command()
 @click.argument("contract_path", type=click.Path(exists=True))
 @click.option(
@@ -182,6 +244,19 @@ def _emit_economic_invariants(
     default=None,
     help="With --economic-invariants: directory to write CVL/Echidna/Foundry artifacts.",
 )
+@click.option(
+    "--fuzz",
+    is_flag=True,
+    help="With --economic-invariants: run the generated economic invariants through "
+    "Echidna end-to-end (generate a harness, fuzz, report violations as findings). "
+    "Requires Echidna; gracefully skipped when absent.",
+)
+@click.option(
+    "--fuzz-test-limit",
+    type=int,
+    default=30000,
+    help="With --fuzz: Echidna test limit (default: 30000, ~1-3 min).",
+)
 @click.option("--quiet", "-q", is_flag=True, help="Minimal output")
 def verify(
     contract_path: str,
@@ -195,6 +270,8 @@ def verify(
     poc_check: bool,
     economic_invariants: bool,
     invariants_out: str | None,
+    fuzz: bool,
+    fuzz_test_limit: int,
     quiet: bool,
 ) -> None:
     """Run formal-verification provers against a contract.
@@ -216,12 +293,29 @@ def verify(
 
     # Economic / business-logic invariant synthesis (offline, prover-independent).
     econ_summary: Optional[Dict[str, Any]] = None
+    econ_fuzz: Optional[Dict[str, Any]] = None
     if economic_invariants:
         try:
             econ_summary = _emit_economic_invariants(contract_path, invariants_out, quiet)
         except Exception as e:  # pragma: no cover - defensive
             error(f"Economic invariant synthesis failed: {e}")
             sys.exit(1)
+
+        # End-to-end: run the generated economic invariants through Echidna.
+        if fuzz:
+            try:
+                econ_fuzz = _fuzz_economic_invariants(
+                    contract_path,
+                    econ_summary.get("names", []),
+                    fuzz_test_limit,
+                    timeout,
+                    quiet,
+                )
+            except Exception as e:  # pragma: no cover - defensive
+                error(f"Economic fuzzing failed: {e}")
+                sys.exit(1)
+    elif fuzz:
+        warning("--fuzz has no effect without --economic-invariants.")
 
     try:
         from miesc.formal import SpecRunner
@@ -315,10 +409,13 @@ def verify(
             error("kontrol not installed; " "see https://docs.runtimeverification.com/kontrol")
             sys.exit(1)
 
+    # A fuzz-detected economic bug is a real failure.
+    econ_bug = bool(econ_fuzz and econ_fuzz.get("status") == "detected")
+
     if not results:
         if econ_summary is not None:
             # Economic invariant emission already did useful, prover-independent work.
-            sys.exit(0)
+            sys.exit(1 if econ_bug else 0)
         warning("No provers were run (none installed for selected --tool).")
         sys.exit(0)
 
@@ -390,6 +487,6 @@ def verify(
     elif poc_check:
         info("--poc-check has no effect without --poc.")
 
-    # Exit code: 1 if any prover reported failures
+    # Exit code: 1 if any prover reported failures or a fuzzed economic bug hit.
     any_failed = any(r.status == "failed" for r in results.values())
-    sys.exit(1 if any_failed else 0)
+    sys.exit(1 if (any_failed or econ_bug) else 0)
