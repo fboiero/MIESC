@@ -603,6 +603,22 @@ class TestCallGraphBuilder:
             assert func.has_access_control is True
             assert func.has_reentrancy_guard is True
 
+    def test_contract_line_ranges_for_multiple_contracts(self, builder):
+        """MEJORAS.md #5b: line ranges let a finding's line be attributed to
+        the right contract when a file declares several."""
+        source = (
+            "pragma solidity ^0.8.0;\n"
+            "contract A {\n"
+            "    function foo() external {}\n"
+            "}\n"
+            "contract B is A {\n"
+            "    function bar() external {}\n"
+            "}\n"
+        )
+        graph = builder.build_from_source(source)
+        assert graph.contract_line_ranges["A"] == (2, 4)
+        assert graph.contract_line_ranges["B"] == (5, 7)
+
     def test_build_from_slither_empty(self, builder):
         """Test building from empty Slither output."""
         slither_output = {}
@@ -761,6 +777,42 @@ class TestEdgeCases:
 
         assert reachable_a == {"a"}
         assert reachable_b == {"b"}
+
+    def test_parameterized_modifiers_do_not_hang(self):
+        # MEJORAS2.md backlog (Cross-Contract Reasoning vs. real protocols):
+        # FUNCTION_PATTERN's modifier group used to be bare-word-only
+        # (`(?:\w+\s*)*?`) — a custom modifier taking arguments left an
+        # unconsumed "(" the group couldn't cross, and the surrounding
+        # optional groups triggered catastrophic backtracking. Confirmed
+        # hang >120s on a real 452-line contract (Y2K Finance's Vault.sol);
+        # this is the minimal real-shaped repro (multi-line signature,
+        # parameterized modifiers, a trailing `returns (...)`).
+        import time
+
+        source = """
+        function withdraw(
+            uint256 id,
+            uint256 assets,
+            address receiver,
+            address owner
+        )
+            external
+            override
+            epochHasEnded(id)
+            marketExists(id)
+            returns (uint256 shares)
+        {
+            return assets;
+        }
+        """
+        start = time.monotonic()
+        nodes = CallGraphBuilder().build_from_source(source, "Vault.sol").nodes
+        elapsed = time.monotonic() - start
+
+        assert (
+            elapsed < 2.0
+        ), f"FUNCTION_PATTERN took {elapsed:.1f}s — regression to catastrophic backtracking"
+        assert "withdraw" in nodes
 
     def test_max_depth_limiting(self):
         """Test that max_depth limits path search."""

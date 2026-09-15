@@ -1,8 +1,11 @@
 """
-SmartBugs-ML Adapter - Layer 6: ML-Based Detection
+SmartBugs-ML Adapter - Layer 6: Heuristic Detection (rule-based, no ML model loaded)
 
-Provides machine learning-based vulnerability detection using pattern recognition
-trained on historical smart contract vulnerabilities.
+No pre-trained model ships with MIESC: `_run_ml_inference()` runs
+rule-based inference and says so in its own log line
+("pre-trained ML models not loaded, results are approximate"). Despite the
+module name, this is pattern recognition, not a trained classifier, until
+real model weights are wired in.
 
 Author: Fernando Boiero
 License: AGPL-3.0

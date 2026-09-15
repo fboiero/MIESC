@@ -24,7 +24,7 @@ import logging
 import math
 import os
 import re
-from dataclasses import dataclass, fields, replace
+from dataclasses import dataclass, field, fields, replace
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urlparse
@@ -41,6 +41,13 @@ logger = logging.getLogger(__name__)
 MAX_VALIDATION_RESPONSE_CHARS = 50_000
 MAX_VALIDATION_JSON_KEYS = 100
 MAX_VALIDATOR_TEXT_CHARS = 100_000
+# Code snippet budget per prompt. 1500 was cutting single-contract files
+# under ~2000 chars in half (confirmed against examples/contracts/
+# ParityMultisig.sol: the real vulnerable ParityWalletLibrary contract fell
+# entirely past the cut). 6000 chars (~1500 tokens) covers most small/medium
+# files while leaving headroom in a 4096-token default Ollama context window
+# (prompt boilerplate + this snippet + num_predict response budget).
+MAX_CODE_CONTEXT_CHARS = 6_000
 MAX_BATCH_FINDINGS = 500
 MAX_AVAILABLE_MODELS = 200
 MAX_VALIDATOR_MODEL_NAME_CHARS = 128
@@ -153,6 +160,9 @@ class LLMValidation:
     code_context_analysis: Optional[str] = None
     remediation_hint: Optional[str] = None
     validation_time_ms: int = 0
+    # Gates 0/2/3/4 (MEJORAS.md #3) — advisory only, never affects the
+    # kept/filtered_out decision (only `result` above, Gate 1, does that).
+    gate_results: Dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -167,6 +177,12 @@ class ValidatorConfig:
     min_severity_to_validate: str = "medium"  # Only validate >= this severity
     batch_size: int = 5
     enabled: bool = True
+    # provider: "ollama" (default, local), "claude_code", or "codex_cli"
+    # (subscription auth via CLI subprocess, same as frontier_llm_adapter.py —
+    # opt-in only, never selected automatically).
+    provider: str = "ollama"
+    cli_model: Optional[str] = None  # model name for claude_code/codex_cli providers
+    confirm_false_positives: bool = True  # run a 2nd independent pass before discarding
 
 
 class LLMFindingValidator:
@@ -214,6 +230,58 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
     "reasoning": "Brief explanation of your analysis (1-2 sentences)",
     "suggested_severity": "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "INFO" | null,
     "remediation_hint": "Brief fix suggestion if valid" or null
+}}"""
+
+    # Second, independent pass before actually discarding a FALSE_POSITIVE
+    # verdict — deliberately a different prompt/role than VALIDATION_PROMPT
+    # above (detection vs. confirmation), same principle open-kritt uses for
+    # its post-scripts (AGPL-3.0): verification is a separate call, not the
+    # same prompt reused.
+    CONFIRMATION_PROMPT = """A first-pass reviewer flagged this security finding as a FALSE POSITIVE. You are a second, independent reviewer — your job is specifically to catch cases where the first reviewer was wrong. Do NOT simply agree; actively look for a reason this could still be a real, exploitable vulnerability.
+
+## Finding
+- Type: {finding_type}
+- Location: {file}:{line}
+- Message: {message}
+
+## Code Context
+```solidity
+{code_snippet}
+```
+
+## First reviewer's reasoning for false positive
+{first_reasoning}
+
+## Your Task
+Respond ONLY with a valid JSON object (no markdown, no extra text):
+{{
+    "confirms_false_positive": true or false,
+    "confidence": 0.0 to 1.0,
+    "reasoning": "Brief explanation (1-2 sentences)"
+}}"""
+
+    # Gates 0/3/4 (Bounty Viability / Trigger / Impact) — bundled into one call,
+    # run only for findings Gate 1 (refutation, above) didn't confirm as a false
+    # positive. Advisory: these never cause a finding to be discarded.
+    ENRICHMENT_PROMPT = """You are triaging this smart contract finding the way a bug-bounty/audit-contest judge would, after it already passed an initial refutation check. Answer three specific questions.
+
+## Finding
+- Type: {finding_type}
+- Severity: {severity}
+- Location: {file}:{line}
+- Message: {message}
+
+## Code Context
+```solidity
+{code_snippet}
+```
+
+## Your Task
+Respond ONLY with a valid JSON object (no markdown, no extra text):
+{{
+    "bounty_viability": "would_be_accepted" | "informational_only" | "unclear",
+    "trigger_conditions": "concrete preconditions/parameters needed to trigger this, or null if not applicable",
+    "impact": "concrete consequence if triggered (funds at risk / control loss / denial of service / none), or null if not applicable"
 }}"""
 
     # Severity order for filtering
@@ -278,6 +346,13 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
             self.config.batch_size = default_config.batch_size
         if not isinstance(self.config.enabled, bool):
             self.config.enabled = default_config.enabled
+        if not isinstance(self.config.confirm_false_positives, bool):
+            self.config.confirm_false_positives = default_config.confirm_false_positives
+        provider = self._config_text(self.config, "provider", default_config.provider).lower()
+        self.config.provider = (
+            provider if provider in {"ollama", "claude_code", "codex_cli"} else "ollama"
+        )
+        self.config.cli_model = self._safe_model_name(self.config.cli_model) or None
         if isinstance(self.config.min_severity_to_validate, str):
             min_severity = self.config.min_severity_to_validate.strip().lower()
         else:
@@ -290,9 +365,13 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
         self._session: Optional[aiohttp.ClientSession] = None
         self._validated_count = 0
         self._fp_detected_count = 0
+        self.filtered_out_findings: List[Dict[str, Any]] = []
 
         logger.info(
-            f"LLM Validator initialized: model={self.config.model}, host={self.config.ollama_host}"
+            "LLM Validator initialized: provider=%s, model=%s, host=%s",
+            self.config.provider,
+            self.config.cli_model or self.config.model,
+            self.config.ollama_host,
         )
 
     async def _get_session(self) -> aiohttp.ClientSession:
@@ -310,7 +389,17 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
             await self._session.close()
 
     async def is_available(self) -> bool:
-        """Check if Ollama is available and the model is loaded."""
+        """Check whether the configured provider is available."""
+        if self.config.provider == "claude_code":
+            from miesc.llm.cli_subscription import check_claude_cli
+
+            return check_claude_cli()
+        if self.config.provider == "codex_cli":
+            from miesc.llm.cli_subscription import check_codex_cli
+
+            return check_codex_cli()
+
+        # Default: Ollama, check it's running and the model is loaded
         try:
             session = await self._get_session()
             async with session.get(f"{self._safe_ollama_host()}/api/tags") as resp:
@@ -342,7 +431,7 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
             logger.debug("Ollama not available: %s", self._exception_reason(e))
             return False
 
-    def should_validate(self, finding: Any) -> bool:
+    def should_validate(self, finding: Dict[str, Any]) -> bool:
         """
         Determine if a finding should be validated by LLM.
 
@@ -405,7 +494,9 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
                 _safe_mapping_get(safe_finding, "message"),
                 self._parse_text(_safe_mapping_get(safe_finding, "description"), "No message"),
             )
-            code_snippet = self._prompt_text(code_context, limit=1500) or "Not available"
+            code_snippet = (
+                self._prompt_text(code_context, limit=MAX_CODE_CONTEXT_CHARS) or "Not available"
+            )
             contract_snippet = self._prompt_text(contract_context, limit=500) or "Not available"
 
             # Build prompt
@@ -420,11 +511,38 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
                 contract_context=contract_snippet,
             )
 
-            # Call Ollama API
-            response = await self._call_ollama(prompt)
+            response = await self._call_llm(prompt)
 
             # Parse response
             validation = self._parse_response(response, finding_id)
+            # A FALSE_POSITIVE verdict is the risky one — it makes the finding
+            # disappear from the report. Before trusting it, run an independent
+            # second pass that's explicitly told to look for a reason the first
+            # pass was wrong (see CONFIRMATION_PROMPT).
+            if (
+                validation.result == ValidationResult.FALSE_POSITIVE
+                and self.config.confirm_false_positives
+            ):
+                validation = await self._confirm_false_positive(
+                    safe_finding, validation, code_snippet
+                )
+
+            # Gate 2 (Reachability): cheap, deterministic, runs regardless of the
+            # Gate 1 verdict — advisory signal only, see _gate2_reachability.
+            # (Confidence adjustment on "unreachable" happens in _apply_validation,
+            # which owns the finding's final confidence value.)
+            validation.gate_results["gate2_reachability"] = self._gate2_reachability(
+                safe_finding, code_snippet
+            )
+
+            # Gates 0/3/4 (bounty viability / trigger / impact): one extra LLM call,
+            # only for findings Gate 1 didn't already confirm as a false positive —
+            # no point enriching something that's already being filtered out.
+            if validation.result != ValidationResult.FALSE_POSITIVE:
+                validation.gate_results.update(
+                    await self._gate_034_enrichment(safe_finding, code_snippet)
+                )
+
             validation.validation_time_ms = self._parse_nonnegative_int(
                 int((time.time() - start_time) * 1000)
             )
@@ -452,6 +570,191 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
                     int((time.time() - start_time) * 1000)
                 ),
             )
+
+    async def _call_llm(self, prompt: str) -> str:
+        """Dispatch validation to Ollama or a subscription-authenticated CLI."""
+        if self.config.provider == "claude_code":
+            from miesc.llm.cli_subscription import call_claude_cli
+
+            return await asyncio.to_thread(
+                call_claude_cli,
+                prompt,
+                model=self.config.cli_model or "sonnet",
+                timeout=int(self.config.timeout_seconds),
+            )
+        if self.config.provider == "codex_cli":
+            from miesc.llm.cli_subscription import call_codex_cli
+
+            return await asyncio.to_thread(
+                call_codex_cli,
+                prompt,
+                model=self.config.cli_model,
+                timeout=int(self.config.timeout_seconds),
+            )
+        return await self._call_ollama(prompt)
+
+    async def _confirm_false_positive(
+        self,
+        finding: Dict[str, Any],
+        first_validation: LLMValidation,
+        code_context: str,
+    ) -> LLMValidation:
+        """Require a second independent pass before filtering a finding."""
+        location = _safe_mapping_get(finding, "location", {})
+        if not isinstance(location, dict):
+            location = {}
+        prompt = self.CONFIRMATION_PROMPT.format(
+            finding_type=self._parse_text(_safe_mapping_get(finding, "type"), "unknown"),
+            file=self._parse_text(_safe_mapping_get(location, "file"), "unknown"),
+            line=self._parse_location_line(_safe_mapping_get(location, "line")),
+            message=self._parse_text(
+                _safe_mapping_get(finding, "message"),
+                self._parse_text(_safe_mapping_get(finding, "description"), "No message"),
+            ),
+            code_snippet=self._prompt_text(code_context, limit=MAX_CODE_CONTEXT_CHARS)
+            or "Not available",
+            first_reasoning=first_validation.reasoning,
+        )
+
+        try:
+            response = await self._call_llm(prompt)
+            json_text = extract_json_from_text(response)
+            if not json_text:
+                raise ValueError("No JSON found in confirmation response")
+            data = json.loads(repair_common_json_errors(json_text))
+            if not isinstance(data, dict):
+                raise ValueError("Confirmation response must be an object")
+            confirms = _safe_mapping_get(data, "confirms_false_positive")
+            if not isinstance(confirms, bool):
+                raise ValueError("confirms_false_positive must be boolean")
+            confidence = self._parse_confidence(
+                _safe_mapping_get(data, "confidence"), first_validation.confidence
+            )
+            second_reasoning = self._parse_text(
+                _safe_mapping_get(data, "reasoning"), "No reasoning provided"
+            )
+        except VALIDATOR_RUNTIME_ERRORS as exc:
+            reason = self._exception_reason(exc)
+            logger.warning("FP confirmation failed for %s: %s", first_validation.finding_id, reason)
+            return replace(
+                first_validation,
+                result=ValidationResult.LIKELY_FP,
+                confidence=first_validation.confidence * 0.7,
+                reasoning=(
+                    f"{first_validation.reasoning} | Second pass failed ({reason}); "
+                    "not confirmed"
+                ),
+            )
+
+        result = ValidationResult.FALSE_POSITIVE if confirms else ValidationResult.LIKELY_FP
+        return replace(
+            first_validation,
+            result=result,
+            confidence=(
+                min(confidence, first_validation.confidence) if confirms else confidence * 0.6
+            ),
+            reasoning=f"{first_validation.reasoning} | Second pass: {second_reasoning}",
+        )
+
+    def _extract_function_name(self, finding: Dict[str, Any]) -> Optional[str]:
+        """Best-effort function name from a finding's location, for Gate 2."""
+        loc = _safe_mapping_get(finding, "location", {})
+        if isinstance(loc, dict):
+            func = _safe_mapping_get(loc, "function", "")
+            if func and func != "unknown":
+                return func
+        m = re.search(r"function\s+(\w+)", str(loc))
+        return m.group(1) if m else None
+
+    def _gate2_reachability(self, finding: Dict[str, Any], code_context: str) -> Dict[str, Any]:
+        """Gate 2 (Reachability): is the finding's function reachable from an
+        entry point in a single-file call graph? Heuristic signal (regex-based
+        call graph, see miesc/ml/call_graph.py) — not proof, so it's advisory:
+        the caller reduces confidence on "unreachable" but never discards on
+        this alone (see validate_finding).
+        """
+        if not code_context:
+            return {"verdict": "unknown", "reason": "no code context available"}
+
+        func_name = self._extract_function_name(finding)
+        if not func_name:
+            return {
+                "verdict": "unknown",
+                "reason": "could not determine function from finding location",
+            }
+
+        try:
+            from miesc.ml.call_graph import CallGraphBuilder
+
+            graph = CallGraphBuilder().build_from_source(code_context)
+        except Exception as e:
+            return {"verdict": "unknown", "reason": f"call graph build failed: {e}"}
+
+        if func_name not in graph.nodes:
+            return {
+                "verdict": "unknown",
+                "reason": f"function '{func_name}' not found in call graph",
+            }
+
+        entry_points = {f.name for f in graph.get_entry_points()}
+        if func_name in entry_points:
+            return {"verdict": "reachable", "reason": f"'{func_name}' is itself an entry point"}
+
+        for entry in entry_points:
+            if graph.can_reach(entry, func_name):
+                return {"verdict": "reachable", "reason": f"reachable from entry point '{entry}'"}
+
+        return {
+            "verdict": "unreachable",
+            "reason": "no entry point reaches this function in the single-file call graph",
+        }
+
+    async def _gate_034_enrichment(
+        self, finding: Dict[str, Any], code_context: str
+    ) -> Dict[str, Any]:
+        """Gates 0/3/4 (Bounty Viability / Trigger / Impact), one LLM call.
+
+        Always advisory — a missing/malformed response degrades to "unclear"/
+        null fields, never raises, never affects the kept/filtered decision.
+        """
+        loc = _safe_mapping_get(finding, "location", {})
+        if not isinstance(loc, dict):
+            loc = {}
+        default = {
+            "gate0_bounty_viability": "unclear",
+            "gate3_trigger_conditions": None,
+            "gate4_impact": None,
+        }
+        try:
+            prompt = self.ENRICHMENT_PROMPT.format(
+                finding_type=_safe_mapping_get(finding, "type", "unknown"),
+                severity=_safe_mapping_get(finding, "severity", "unknown"),
+                file=_safe_mapping_get(loc, "file", "unknown"),
+                line=_safe_mapping_get(loc, "line", 0),
+                message=_safe_mapping_get(
+                    finding, "message", _safe_mapping_get(finding, "description", "No message")
+                ),
+                code_snippet=(
+                    code_context[:MAX_CODE_CONTEXT_CHARS] if code_context else "Not available"
+                ),
+            )
+            response = await self._call_llm(prompt)
+            match = re.search(r"\{[^{}]*\}", response, re.DOTALL)
+            if not match:
+                return default
+            data = json.loads(match.group())
+            if not isinstance(data, dict):
+                return default
+            return {
+                "gate0_bounty_viability": data.get("bounty_viability", "unclear"),
+                "gate3_trigger_conditions": data.get("trigger_conditions"),
+                "gate4_impact": data.get("impact"),
+            }
+        except Exception as e:
+            logger.debug(
+                f"Gate 0/3/4 enrichment failed for {_safe_mapping_get(finding, 'id')}: {e}"
+            )
+            return default
 
     async def _call_ollama(self, prompt: str) -> str:
         """Call Ollama API and return response."""
@@ -551,13 +854,24 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
             if isinstance(is_valid, bool) and result_str not in result_map:
                 result = ValidationResult.VALID if is_valid else ValidationResult.LIKELY_FP
 
+            reasoning = self._parse_text(_safe_mapping_get(data, "reasoning"), "")
+            if result == ValidationResult.FALSE_POSITIVE and not reasoning:
+                logger.warning(
+                    "LLM verdict for %s has no reasoning; treating it as uncertain",
+                    finding_id,
+                )
+                result = ValidationResult.UNCERTAIN
+                reasoning = (
+                    "Malformed verdict: false_positive with no reasoning, treated as uncertain"
+                )
+            elif not reasoning:
+                reasoning = "No reasoning provided"
+
             return LLMValidation(
                 finding_id=finding_id,
                 result=result,
                 confidence=self._parse_confidence(_safe_mapping_get(data, "confidence", 0.5)),
-                reasoning=self._parse_text(
-                    _safe_mapping_get(data, "reasoning"), "No reasoning provided"
-                )[:2000],
+                reasoning=reasoning[:2000],
                 suggested_severity=self._parse_suggested_severity(
                     _safe_mapping_get(data, "suggested_severity")
                 ),
@@ -810,8 +1124,13 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
             code_contexts: Optional dict mapping file paths to code content
 
         Returns:
-            Tuple of (validated_findings, validations)
+            Tuple of (validated_findings, validations). Confirmed false
+            positives are tagged status="filtered_fp" (see _apply_validation)
+            and land in self.filtered_out_findings, not in validated_findings
+            — never silently dropped, so callers can show them in an audit
+            trail instead of losing them.
         """
+        self.filtered_out_findings = []
         if not self._config_enabled(self.config):
             return findings, []
         if not isinstance(findings, list):
@@ -838,7 +1157,7 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
             logger.info("No findings require LLM validation")
             return findings, []
 
-        logger.info(f"Validating {len(to_validate)} findings with LLM...")
+        logger.info(f"Validating {len(to_validate)} findings with LLM ({self.config.provider})...")
 
         validations = []
         validated_findings = []
@@ -861,9 +1180,9 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
                 if isinstance(code_contexts, dict) and file_path:
                     code_context = self._parse_text(
                         _safe_mapping_get(code_contexts, file_path), ""
-                    )[:1500]
+                    )[:MAX_CODE_CONTEXT_CHARS]
                 elif snippet:
-                    code_context = snippet[:1500]
+                    code_context = snippet[:MAX_CODE_CONTEXT_CHARS]
 
                 tasks.append(self.validate_finding(finding, code_context))
 
@@ -882,13 +1201,14 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
                             reasoning=self._exception_reason(validation),
                         )
                     )
-                    validated_findings.append(finding)
+                    validated_findings.append(finding)  # fail-safe: keep on exception
                 else:
                     validations.append(validation)
 
-                    # Update finding based on validation
                     updated_finding = self._apply_validation(finding, validation)
-                    if updated_finding:  # None means filtered out
+                    if updated_finding.get("status") == "filtered_fp":
+                        self.filtered_out_findings.append(updated_finding)
+                    else:
                         validated_findings.append(updated_finding)
 
         # Add findings that didn't need validation
@@ -918,11 +1238,11 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
         self,
         finding: Dict[str, Any],
         validation: LLMValidation,
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Dict[str, Any]:
         """
         Apply validation result to finding.
 
-        Returns None if finding should be filtered out.
+        Confirmed false positives remain available with ``status=filtered_fp``.
         """
         result = self._safe_getattr(validation, "result", ValidationResult.UNCERTAIN)
         if not isinstance(result, ValidationResult):
@@ -939,11 +1259,6 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
             self._safe_getattr(validation, "validation_time_ms", 0)
         )
 
-        # Filter out confirmed false positives
-        if result == ValidationResult.FALSE_POSITIVE:
-            logger.debug("Filtering FP: %s", _safe_mapping_get(finding, "id"))
-            return None
-
         # Create updated finding
         try:
             updated = finding.copy() if isinstance(finding, dict) else {}
@@ -958,6 +1273,25 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
             "suggested_severity": suggested_severity,
             "validation_time_ms": validation_time_ms,
         }
+
+        # 5 Validation Gates (MEJORAS.md #3) — only gate1_refutation (above,
+        # same data as _llm_validation) has discard authority. The rest are
+        # always advisory, attached here so nothing is lost even when a
+        # finding is filtered out.
+        updated["_gate_results"] = {
+            "gate1_refutation": {
+                "result": result.value,
+                "confidence": confidence,
+                "reasoning": reasoning,
+            },
+            **self._safe_getattr(validation, "gate_results", {}),
+        }
+
+        if result == ValidationResult.FALSE_POSITIVE:
+            logger.debug("Filtering FP: %s — %s", _safe_mapping_get(finding, "id"), reasoning)
+            updated["status"] = "filtered_fp"
+            updated["confidence"] = confidence
+            return updated
 
         # Adjust confidence based on validation
         original_confidence = self._parse_confidence(
@@ -976,6 +1310,14 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
         elif result == ValidationResult.UNCERTAIN:
             # Keep original confidence
             pass
+
+        # Gate 2 (Reachability): "unreachable" is a heuristic signal from a
+        # regex-based call graph, not proof — lightly discount confidence,
+        # never move the finding to filtered_out on this alone.
+        gate_results = self._safe_getattr(validation, "gate_results", {})
+        gate2 = _safe_mapping_get(gate_results, "gate2_reachability", {})
+        if _safe_mapping_get(gate2, "verdict") == "unreachable":
+            updated["confidence"] = updated.get("confidence", original_confidence) * 0.85
 
         # Apply severity suggestion if provided and different
         if suggested_severity:
@@ -1058,7 +1400,9 @@ def validate_findings_sync(
         config: Optional validator configuration
 
     Returns:
-        Tuple of (validated_findings, validations)
+        Tuple of (validated_findings, validations). See
+        LLMFindingValidator.validate_findings_batch — confirmed false
+        positives land in validator.filtered_out_findings, not here.
     """
     if not isinstance(findings, list):
         logger.warning("Skipping malformed findings container for synchronous LLM validation")

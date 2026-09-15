@@ -21,6 +21,7 @@ Version: 4.2.3
 """
 
 import copy
+import logging
 import math
 import os
 from collections.abc import Mapping
@@ -40,6 +41,8 @@ MIN_CONTEXT_TOKENS = 256
 MAX_CONTEXT_TOKENS = 200_000
 MIN_PREDICT_TOKENS = 1
 MAX_PREDICT_TOKENS = 100_000
+
+logger = logging.getLogger(__name__)
 
 # Default configuration (used if YAML not available)
 DEFAULT_CONFIG = {
@@ -93,8 +96,8 @@ def _load_config() -> Dict[str, Any]:
             merged = copy.deepcopy(DEFAULT_CONFIG)
             _deep_merge(merged, llm_config)
             return merged
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning(f"Failed to load LLM config from miesc.yaml, using defaults: {e}")
     return copy.deepcopy(DEFAULT_CONFIG)
 
 

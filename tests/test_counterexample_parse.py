@@ -35,6 +35,9 @@ class TestParseAssignments(unittest.TestCase):
         val = "115792089237316195423570985008687907853269984665640564039457584007913129639935"
         self.assertEqual(parse_assignments(f"amount = {val}"), [{"name": "amount", "value": val}])
 
+    def test_uppercase_leading_char_in_name(self):
+        self.assertEqual(parse_assignments("Owner = 0x1"), [{"name": "Owner", "value": "0x1"}])
+
     def test_no_assignment_returns_empty(self):
         self.assertEqual(parse_assignments("property violated somewhere"), [])
 

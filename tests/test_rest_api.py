@@ -5,6 +5,7 @@ Author: Fernando Boiero
 License: AGPL-3.0
 """
 
+import os
 import subprocess
 import sys
 from unittest.mock import Mock, patch
@@ -504,6 +505,145 @@ class TestCLIOutputHelpers:
         assert "# MIESC Security Audit Report" in md
         assert "Test.sol" in md
         assert "SLITHER" in md
+
+
+class TestResolveContractPath:
+    """Test _resolve_contract_path (path-traversal guard for /remediate and analyze/*)."""
+
+    def test_relative_path_inside_root_is_allowed(self, tmp_path, monkeypatch):
+        from miesc.api.rest import _resolve_contract_path
+
+        monkeypatch.setenv("MIESC_REST_ROOT", str(tmp_path))
+        resolved = _resolve_contract_path("Contract.sol")
+        assert resolved == str((tmp_path / "Contract.sol").resolve())
+
+    def test_nested_relative_path_inside_root_is_allowed(self, tmp_path, monkeypatch):
+        from miesc.api.rest import _resolve_contract_path
+
+        monkeypatch.setenv("MIESC_REST_ROOT", str(tmp_path))
+        resolved = _resolve_contract_path("contracts/Vault.sol")
+        assert resolved == str((tmp_path / "contracts" / "Vault.sol").resolve())
+
+    def test_dotdot_traversal_outside_root_is_rejected(self, tmp_path, monkeypatch):
+        from miesc.api.rest import PathTraversalError, _resolve_contract_path
+
+        monkeypatch.setenv("MIESC_REST_ROOT", str(tmp_path))
+        with pytest.raises(PathTraversalError):
+            _resolve_contract_path("../../../etc/passwd")
+
+    def test_absolute_path_outside_root_is_rejected(self, tmp_path, monkeypatch):
+        from miesc.api.rest import PathTraversalError, _resolve_contract_path
+
+        monkeypatch.setenv("MIESC_REST_ROOT", str(tmp_path))
+        with pytest.raises(PathTraversalError):
+            _resolve_contract_path("/etc/passwd")
+
+    def test_absolute_path_inside_root_is_allowed(self, tmp_path, monkeypatch):
+        from miesc.api.rest import _resolve_contract_path
+
+        monkeypatch.setenv("MIESC_REST_ROOT", str(tmp_path))
+        inside = tmp_path / "Contract.sol"
+        assert _resolve_contract_path(str(inside)) == str(inside.resolve())
+
+    def test_root_itself_is_allowed(self, tmp_path, monkeypatch):
+        from miesc.api.rest import _resolve_contract_path
+
+        monkeypatch.setenv("MIESC_REST_ROOT", str(tmp_path))
+        assert _resolve_contract_path(".") == str(tmp_path.resolve())
+
+
+class TestGetApiKey:
+    """Test _get_api_key (the auth secret for RequireApiKey)."""
+
+    def _fresh_module(self, monkeypatch):
+        """Reimport miesc.api.rest with a clean _api_key_cache."""
+        import miesc.api.rest as rest_module
+
+        monkeypatch.setattr(rest_module, "_api_key_cache", [])
+        return rest_module
+
+    def test_pinned_key_from_env_is_used(self, monkeypatch):
+        rest_module = self._fresh_module(monkeypatch)
+        monkeypatch.setenv("MIESC_API_KEY", "pinned-test-key")
+        assert rest_module._get_api_key() == "pinned-test-key"
+
+    def test_generated_key_is_cached_across_calls(self, monkeypatch):
+        rest_module = self._fresh_module(monkeypatch)
+        monkeypatch.delenv("MIESC_API_KEY", raising=False)
+        first = rest_module._get_api_key()
+        second = rest_module._get_api_key()
+        assert first == second
+        assert len(first) > 20  # secrets.token_urlsafe(32) output
+
+
+class TestRestApiAuthAndPathGuardEndToEnd:
+    """End-to-end proof (real Django test client, fresh subprocess) that
+    RequireApiKey and _resolve_contract_path are actually wired into the live
+    views -- not just correct in isolation. Runs in a subprocess so Django
+    settings start unconfigured, same reason as
+    test_import_with_drf_before_settings_configured above.
+    """
+
+    def test_permission_and_path_guard_wired_into_real_requests(self, tmp_path):
+        pytest.importorskip("django")
+        pytest.importorskip("rest_framework")
+
+        code = """
+from django.conf import settings
+assert not settings.configured
+from miesc.api import rest
+from django.test import Client
+
+client = Client()
+key = rest._get_api_key()
+
+# 1. No API key -> analyze/quick is blocked
+r = client.post("/api/v1/analyze/quick/", data={}, content_type="application/json")
+assert r.status_code == 403, r.status_code
+
+# 2. Wrong API key -> still blocked
+r = client.post(
+    "/api/v1/analyze/quick/", data={}, content_type="application/json",
+    HTTP_X_API_KEY="wrong-key",
+)
+assert r.status_code == 403, r.status_code
+
+# 3. Correct API key, missing body fields -> gets past auth, hits validation (400)
+r = client.post(
+    "/api/v1/analyze/quick/", data={}, content_type="application/json",
+    HTTP_X_API_KEY=key,
+)
+assert r.status_code == 400, r.status_code
+
+# 4. Correct API key, path-traversal attempt -> rejected by the path guard, not a 500
+r = client.post(
+    "/api/v1/analyze/quick/",
+    data={"contract_path": "../../../etc/passwd"},
+    content_type="application/json",
+    HTTP_X_API_KEY=key,
+)
+assert r.status_code == 400, r.status_code
+assert "outside the allowed root" in r.json()["error"], r.json()
+
+# 5. Read-only endpoint stays open without a key
+r = client.get("/api/v1/health/")
+assert r.status_code == 200, r.status_code
+
+print("OK")
+"""
+        env = dict(os.environ)
+        env["MIESC_API_KEY"] = "test-fixed-key-for-e2e"
+        env["MIESC_REST_ROOT"] = str(tmp_path)
+        result = subprocess.run(
+            [sys.executable, "-c", code],
+            capture_output=True,
+            text=True,
+            check=False,
+            env=env,
+            timeout=60,
+        )
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert "OK" in result.stdout
 
 
 class TestApiPackageInit:

@@ -1,0 +1,994 @@
+{
+  "experiment_card": {
+    "tool": "MIESC",
+    "version": "6.0.0",
+    "timestamp": "2026-08-15T01:19:46.631572",
+    "corpus": "/home/alva/Proyectos/MIESC/benchmarks/datasets/solodit-real",
+    "corpus_size": 10,
+    "layers_evaluated": [
+      1,
+      3,
+      5,
+      7,
+      9
+    ],
+    "layer_names": {
+      "1": "Static Analysis",
+      "3": "Symbolic Execution",
+      "5": "AI Analysis",
+      "7": "Specialized Analysis",
+      "9": "Advanced AI Ensemble"
+    },
+    "timeout_per_tool_s": 60,
+    "skip_unavailable": false,
+    "total_duration_s": 691.9,
+    "python_version": "3.14.6",
+    "platform": "linux"
+  },
+  "reproducibility": {
+    "command": "miesc evaluate /home/alva/Proyectos/MIESC/benchmarks/datasets/solodit-real --layers 1,3,5,7,9 --timeout 60",
+    "seed": "not_set",
+    "llm_provider": "not_set",
+    "llm_model": "not_set"
+  },
+  "aggregate": {
+    "tp": 10,
+    "fp": 17,
+    "fn": 20,
+    "precision": 0.3704,
+    "recall": 0.3333,
+    "f1": 0.3509,
+    "contracts_evaluated": 10,
+    "total_time_s": 691.9,
+    "avg_time_per_contract_s": 69.19,
+    "hit_rate": 0.7
+  },
+  "per_category": {
+    "access_control": {
+      "tp": 1,
+      "fp": 5,
+      "fn": 2,
+      "precision": 0.1667,
+      "recall": 0.3333,
+      "f1": 0.2222
+    },
+    "bad_randomness": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 2,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "business_logic": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 6,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "denial_of_service": {
+      "tp": 3,
+      "fp": 1,
+      "fn": 2,
+      "precision": 0.75,
+      "recall": 0.6,
+      "f1": 0.6667
+    },
+    "erc4626": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 2,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "fee_on_transfer": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 2,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "front_running": {
+      "tp": 0,
+      "fp": 2,
+      "fn": 0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "oracle": {
+      "tp": 2,
+      "fp": 0,
+      "fn": 1,
+      "precision": 1.0,
+      "recall": 0.6667,
+      "f1": 0.8
+    },
+    "reentrancy": {
+      "tp": 1,
+      "fp": 3,
+      "fn": 0,
+      "precision": 0.25,
+      "recall": 1.0,
+      "f1": 0.4
+    },
+    "rounding": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 3,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "time_manipulation": {
+      "tp": 0,
+      "fp": 5,
+      "fn": 0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "unchecked_low_level_calls": {
+      "tp": 3,
+      "fp": 1,
+      "fn": 0,
+      "precision": 0.75,
+      "recall": 1.0,
+      "f1": 0.8571
+    }
+  },
+  "per_contract": [
+    {
+      "contract": "/home/alva/Proyectos/MIESC/benchmarks/datasets/solodit-real/nextgen/MinterContract.sol",
+      "ground_truth": [
+        "rounding",
+        "reentrancy",
+        "unchecked_low_level_calls",
+        "denial_of_service",
+        "business_logic"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 31,
+          "detected_categories": [
+            "time_manipulation"
+          ],
+          "tools_run": 6,
+          "time_seconds": 2.242
+        },
+        "3": {
+          "findings_count": 13,
+          "detected_categories": [
+            "time_manipulation",
+            "access_control"
+          ],
+          "tools_run": 5,
+          "time_seconds": 0.573
+        },
+        "5": {
+          "findings_count": 0,
+          "detected_categories": [],
+          "tools_run": 7,
+          "time_seconds": 65.007
+        },
+        "7": {
+          "findings_count": 108,
+          "detected_categories": [
+            "time_manipulation",
+            "front_running",
+            "access_control",
+            "denial_of_service"
+          ],
+          "tools_run": 7,
+          "time_seconds": 0.063
+        },
+        "9": {
+          "findings_count": 0,
+          "detected_categories": [],
+          "tools_run": 5,
+          "time_seconds": 0.025
+        },
+        "intelligence": {
+          "findings_count": 64,
+          "detected_categories": [
+            "reentrancy",
+            "access_control",
+            "front_running",
+            "time_manipulation",
+            "unchecked_low_level_calls",
+            "denial_of_service"
+          ],
+          "new_categories": [
+            "unchecked_low_level_calls",
+            "reentrancy"
+          ],
+          "suppressed": 2,
+          "time_seconds": 0.275
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "reentrancy",
+          "access_control",
+          "front_running",
+          "time_manipulation",
+          "unchecked_low_level_calls",
+          "denial_of_service"
+        ],
+        "findings_count": 152
+      },
+      "timing": {
+        "layer_1": 2.242,
+        "layer_3": 0.573,
+        "layer_5": 65.007,
+        "layer_7": 0.063,
+        "layer_9": 0.025,
+        "intelligence": 0.275
+      },
+      "match": {
+        "tp": [
+          "unchecked_low_level_calls",
+          "reentrancy",
+          "denial_of_service"
+        ],
+        "fp": [
+          "time_manipulation",
+          "access_control",
+          "front_running"
+        ],
+        "fn": [
+          "business_logic",
+          "rounding"
+        ],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/home/alva/Proyectos/MIESC/benchmarks/datasets/solodit-real/nextgen/AuctionDemo.sol",
+      "ground_truth": [
+        "business_logic",
+        "unchecked_low_level_calls",
+        "denial_of_service"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 4,
+          "detected_categories": [
+            "time_manipulation"
+          ],
+          "tools_run": 6,
+          "time_seconds": 1.278
+        },
+        "3": {
+          "findings_count": 6,
+          "detected_categories": [
+            "time_manipulation",
+            "access_control"
+          ],
+          "tools_run": 5,
+          "time_seconds": 0.568
+        },
+        "5": {
+          "findings_count": 0,
+          "detected_categories": [],
+          "tools_run": 7,
+          "time_seconds": 65.006
+        },
+        "7": {
+          "findings_count": 25,
+          "detected_categories": [
+            "time_manipulation"
+          ],
+          "tools_run": 7,
+          "time_seconds": 0.023
+        },
+        "9": {
+          "findings_count": 0,
+          "detected_categories": [],
+          "tools_run": 5,
+          "time_seconds": 0.018
+        },
+        "intelligence": {
+          "findings_count": 19,
+          "detected_categories": [
+            "reentrancy",
+            "access_control",
+            "time_manipulation",
+            "unchecked_low_level_calls",
+            "denial_of_service"
+          ],
+          "new_categories": [
+            "unchecked_low_level_calls",
+            "reentrancy",
+            "denial_of_service"
+          ],
+          "suppressed": 0,
+          "time_seconds": 0.02
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "reentrancy",
+          "access_control",
+          "time_manipulation",
+          "unchecked_low_level_calls",
+          "denial_of_service"
+        ],
+        "findings_count": 35
+      },
+      "timing": {
+        "layer_1": 1.278,
+        "layer_3": 0.568,
+        "layer_5": 65.006,
+        "layer_7": 0.023,
+        "layer_9": 0.018,
+        "intelligence": 0.02
+      },
+      "match": {
+        "tp": [
+          "unchecked_low_level_calls",
+          "denial_of_service"
+        ],
+        "fp": [
+          "time_manipulation",
+          "reentrancy",
+          "access_control"
+        ],
+        "fn": [
+          "business_logic"
+        ],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/home/alva/Proyectos/MIESC/benchmarks/datasets/solodit-real/nextgen/RandomizerVRF.sol",
+      "ground_truth": [
+        "bad_randomness"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 6,
+          "detected_categories": [],
+          "tools_run": 6,
+          "time_seconds": 1.301
+        },
+        "3": {
+          "findings_count": 1,
+          "detected_categories": [],
+          "tools_run": 5,
+          "time_seconds": 0.564
+        },
+        "5": {
+          "findings_count": 0,
+          "detected_categories": [],
+          "tools_run": 7,
+          "time_seconds": 65.006
+        },
+        "7": {
+          "findings_count": 9,
+          "detected_categories": [],
+          "tools_run": 7,
+          "time_seconds": 0.016
+        },
+        "9": {
+          "findings_count": 0,
+          "detected_categories": [],
+          "tools_run": 5,
+          "time_seconds": 0.019
+        },
+        "intelligence": {
+          "findings_count": 9,
+          "detected_categories": [],
+          "new_categories": [],
+          "suppressed": 0,
+          "time_seconds": 0.013
+        }
+      },
+      "aggregate": {
+        "detected_categories": [],
+        "findings_count": 16
+      },
+      "timing": {
+        "layer_1": 1.301,
+        "layer_3": 0.564,
+        "layer_5": 65.006,
+        "layer_7": 0.016,
+        "layer_9": 0.019,
+        "intelligence": 0.013
+      },
+      "match": {
+        "tp": [],
+        "fp": [],
+        "fn": [
+          "bad_randomness"
+        ],
+        "hit": false
+      }
+    },
+    {
+      "contract": "/home/alva/Proyectos/MIESC/benchmarks/datasets/solodit-real/nextgen/RandomizerRNG.sol",
+      "ground_truth": [
+        "bad_randomness",
+        "unchecked_low_level_calls"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 5,
+          "detected_categories": [],
+          "tools_run": 6,
+          "time_seconds": 1.287
+        },
+        "3": {
+          "findings_count": 2,
+          "detected_categories": [
+            "access_control"
+          ],
+          "tools_run": 5,
+          "time_seconds": 0.569
+        },
+        "5": {
+          "findings_count": 0,
+          "detected_categories": [],
+          "tools_run": 7,
+          "time_seconds": 65.006
+        },
+        "7": {
+          "findings_count": 11,
+          "detected_categories": [
+            "front_running"
+          ],
+          "tools_run": 7,
+          "time_seconds": 0.016
+        },
+        "9": {
+          "findings_count": 0,
+          "detected_categories": [],
+          "tools_run": 5,
+          "time_seconds": 0.018
+        },
+        "intelligence": {
+          "findings_count": 11,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "reentrancy",
+            "access_control",
+            "front_running"
+          ],
+          "new_categories": [
+            "unchecked_low_level_calls",
+            "reentrancy"
+          ],
+          "suppressed": 0,
+          "time_seconds": 0.012
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "reentrancy",
+          "access_control",
+          "front_running"
+        ],
+        "findings_count": 18
+      },
+      "timing": {
+        "layer_1": 1.287,
+        "layer_3": 0.569,
+        "layer_5": 65.006,
+        "layer_7": 0.016,
+        "layer_9": 0.018,
+        "intelligence": 0.012
+      },
+      "match": {
+        "tp": [
+          "unchecked_low_level_calls"
+        ],
+        "fp": [
+          "reentrancy",
+          "access_control",
+          "front_running"
+        ],
+        "fn": [
+          "bad_randomness"
+        ],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/home/alva/Proyectos/MIESC/benchmarks/datasets/solodit-real/nextgen/NextGenCore.sol",
+      "ground_truth": [
+        "business_logic",
+        "access_control"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 24,
+          "detected_categories": [
+            "time_manipulation"
+          ],
+          "tools_run": 6,
+          "time_seconds": 1.332
+        },
+        "3": {
+          "findings_count": 3,
+          "detected_categories": [
+            "time_manipulation"
+          ],
+          "tools_run": 5,
+          "time_seconds": 0.563
+        },
+        "5": {
+          "findings_count": 0,
+          "detected_categories": [],
+          "tools_run": 7,
+          "time_seconds": 65.007
+        },
+        "7": {
+          "findings_count": 77,
+          "detected_categories": [
+            "access_control",
+            "denial_of_service"
+          ],
+          "tools_run": 7,
+          "time_seconds": 0.05
+        },
+        "9": {
+          "findings_count": 0,
+          "detected_categories": [],
+          "tools_run": 5,
+          "time_seconds": 0.018
+        },
+        "intelligence": {
+          "findings_count": 50,
+          "detected_categories": [
+            "time_manipulation",
+            "access_control",
+            "denial_of_service"
+          ],
+          "new_categories": [],
+          "suppressed": 1,
+          "time_seconds": 0.222
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "time_manipulation",
+          "access_control",
+          "denial_of_service"
+        ],
+        "findings_count": 104
+      },
+      "timing": {
+        "layer_1": 1.332,
+        "layer_3": 0.563,
+        "layer_5": 65.007,
+        "layer_7": 0.05,
+        "layer_9": 0.018,
+        "intelligence": 0.222
+      },
+      "match": {
+        "tp": [
+          "access_control"
+        ],
+        "fp": [
+          "time_manipulation",
+          "denial_of_service"
+        ],
+        "fn": [
+          "business_logic"
+        ],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/home/alva/Proyectos/MIESC/benchmarks/datasets/solodit-real/y2k-finance/src/oracles/PegOracle.sol",
+      "ground_truth": [
+        "oracle",
+        "rounding"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 2,
+          "detected_categories": [],
+          "tools_run": 6,
+          "time_seconds": 1.525
+        },
+        "3": {
+          "findings_count": 0,
+          "detected_categories": [],
+          "tools_run": 5,
+          "time_seconds": 0.566
+        },
+        "5": {
+          "findings_count": 0,
+          "detected_categories": [],
+          "tools_run": 7,
+          "time_seconds": 65.005
+        },
+        "7": {
+          "findings_count": 10,
+          "detected_categories": [
+            "oracle"
+          ],
+          "tools_run": 7,
+          "time_seconds": 0.021
+        },
+        "9": {
+          "findings_count": 0,
+          "detected_categories": [],
+          "tools_run": 5,
+          "time_seconds": 0.018
+        },
+        "intelligence": {
+          "findings_count": 8,
+          "detected_categories": [
+            "oracle"
+          ],
+          "new_categories": [],
+          "suppressed": 1,
+          "time_seconds": 0.01
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "oracle"
+        ],
+        "findings_count": 12
+      },
+      "timing": {
+        "layer_1": 1.525,
+        "layer_3": 0.566,
+        "layer_5": 65.005,
+        "layer_7": 0.021,
+        "layer_9": 0.018,
+        "intelligence": 0.01
+      },
+      "match": {
+        "tp": [
+          "oracle"
+        ],
+        "fp": [],
+        "fn": [
+          "rounding"
+        ],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/home/alva/Proyectos/MIESC/benchmarks/datasets/solodit-real/y2k-finance/src/Controller.sol",
+      "ground_truth": [
+        "access_control",
+        "fee_on_transfer",
+        "oracle",
+        "denial_of_service",
+        "business_logic"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 7,
+          "detected_categories": [
+            "time_manipulation"
+          ],
+          "tools_run": 6,
+          "time_seconds": 1.324
+        },
+        "3": {
+          "findings_count": 6,
+          "detected_categories": [
+            "time_manipulation"
+          ],
+          "tools_run": 5,
+          "time_seconds": 0.559
+        },
+        "5": {
+          "findings_count": 0,
+          "detected_categories": [],
+          "tools_run": 7,
+          "time_seconds": 65.006
+        },
+        "7": {
+          "findings_count": 10,
+          "detected_categories": [
+            "oracle"
+          ],
+          "tools_run": 7,
+          "time_seconds": 0.031
+        },
+        "9": {
+          "findings_count": 0,
+          "detected_categories": [],
+          "tools_run": 5,
+          "time_seconds": 0.018
+        },
+        "intelligence": {
+          "findings_count": 15,
+          "detected_categories": [
+            "oracle",
+            "time_manipulation"
+          ],
+          "new_categories": [],
+          "suppressed": 0,
+          "time_seconds": 0.045
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "oracle",
+          "time_manipulation"
+        ],
+        "findings_count": 23
+      },
+      "timing": {
+        "layer_1": 1.324,
+        "layer_3": 0.559,
+        "layer_5": 65.006,
+        "layer_7": 0.031,
+        "layer_9": 0.018,
+        "intelligence": 0.045
+      },
+      "match": {
+        "tp": [
+          "oracle"
+        ],
+        "fp": [
+          "time_manipulation"
+        ],
+        "fn": [
+          "business_logic",
+          "fee_on_transfer",
+          "access_control",
+          "denial_of_service"
+        ],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/home/alva/Proyectos/MIESC/benchmarks/datasets/solodit-real/y2k-finance/src/Vault.sol",
+      "ground_truth": [
+        "business_logic",
+        "erc4626",
+        "rounding",
+        "denial_of_service"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 10,
+          "detected_categories": [
+            "time_manipulation",
+            "unchecked_low_level_calls"
+          ],
+          "tools_run": 6,
+          "time_seconds": 11.658
+        },
+        "3": {
+          "findings_count": 7,
+          "detected_categories": [
+            "time_manipulation",
+            "access_control"
+          ],
+          "tools_run": 5,
+          "time_seconds": 0.563
+        },
+        "5": {
+          "findings_count": 0,
+          "detected_categories": [],
+          "tools_run": 7,
+          "time_seconds": 65.005
+        },
+        "7": {
+          "findings_count": 9,
+          "detected_categories": [],
+          "tools_run": 7,
+          "time_seconds": 0.035
+        },
+        "9": {
+          "findings_count": 0,
+          "detected_categories": [],
+          "tools_run": 5,
+          "time_seconds": 0.018
+        },
+        "intelligence": {
+          "findings_count": 23,
+          "detected_categories": [
+            "reentrancy",
+            "access_control",
+            "time_manipulation",
+            "unchecked_low_level_calls",
+            "denial_of_service"
+          ],
+          "new_categories": [
+            "reentrancy",
+            "denial_of_service"
+          ],
+          "suppressed": 2,
+          "time_seconds": 0.099
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "reentrancy",
+          "access_control",
+          "time_manipulation",
+          "unchecked_low_level_calls",
+          "denial_of_service"
+        ],
+        "findings_count": 26
+      },
+      "timing": {
+        "layer_1": 11.658,
+        "layer_3": 0.563,
+        "layer_5": 65.005,
+        "layer_7": 0.035,
+        "layer_9": 0.018,
+        "intelligence": 0.099
+      },
+      "match": {
+        "tp": [
+          "denial_of_service"
+        ],
+        "fp": [
+          "time_manipulation",
+          "unchecked_low_level_calls",
+          "reentrancy",
+          "access_control"
+        ],
+        "fn": [
+          "business_logic",
+          "erc4626",
+          "rounding"
+        ],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/home/alva/Proyectos/MIESC/benchmarks/datasets/solodit-real/y2k-finance/src/SemiFungibleVault.sol",
+      "ground_truth": [
+        "business_logic",
+        "erc4626",
+        "fee_on_transfer"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 0,
+          "detected_categories": [],
+          "tools_run": 6,
+          "time_seconds": 11.418
+        },
+        "3": {
+          "findings_count": 3,
+          "detected_categories": [],
+          "tools_run": 5,
+          "time_seconds": 0.563
+        },
+        "5": {
+          "findings_count": 0,
+          "detected_categories": [],
+          "tools_run": 7,
+          "time_seconds": 65.006
+        },
+        "7": {
+          "findings_count": 4,
+          "detected_categories": [
+            "access_control"
+          ],
+          "tools_run": 7,
+          "time_seconds": 0.026
+        },
+        "9": {
+          "findings_count": 0,
+          "detected_categories": [],
+          "tools_run": 5,
+          "time_seconds": 0.017
+        },
+        "intelligence": {
+          "findings_count": 8,
+          "detected_categories": [
+            "access_control"
+          ],
+          "new_categories": [],
+          "suppressed": 0,
+          "time_seconds": 0.027
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "access_control"
+        ],
+        "findings_count": 7
+      },
+      "timing": {
+        "layer_1": 11.418,
+        "layer_3": 0.563,
+        "layer_5": 65.006,
+        "layer_7": 0.026,
+        "layer_9": 0.017,
+        "intelligence": 0.027
+      },
+      "match": {
+        "tp": [],
+        "fp": [
+          "access_control"
+        ],
+        "fn": [
+          "business_logic",
+          "erc4626",
+          "fee_on_transfer"
+        ],
+        "hit": false
+      }
+    },
+    {
+      "contract": "/home/alva/Proyectos/MIESC/benchmarks/datasets/solodit-real/y2k-finance/src/VaultFactory.sol",
+      "ground_truth": [
+        "oracle",
+        "access_control",
+        "denial_of_service"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 10,
+          "detected_categories": [],
+          "tools_run": 6,
+          "time_seconds": 1.52
+        },
+        "3": {
+          "findings_count": 2,
+          "detected_categories": [],
+          "tools_run": 5,
+          "time_seconds": 0.563
+        },
+        "5": {
+          "findings_count": 0,
+          "detected_categories": [],
+          "tools_run": 7,
+          "time_seconds": 65.006
+        },
+        "7": {
+          "findings_count": 10,
+          "detected_categories": [],
+          "tools_run": 7,
+          "time_seconds": 0.031
+        },
+        "9": {
+          "findings_count": 0,
+          "detected_categories": [],
+          "tools_run": 5,
+          "time_seconds": 0.018
+        },
+        "intelligence": {
+          "findings_count": 16,
+          "detected_categories": [],
+          "new_categories": [],
+          "suppressed": 1,
+          "time_seconds": 0.073
+        }
+      },
+      "aggregate": {
+        "detected_categories": [],
+        "findings_count": 22
+      },
+      "timing": {
+        "layer_1": 1.52,
+        "layer_3": 0.563,
+        "layer_5": 65.006,
+        "layer_7": 0.031,
+        "layer_9": 0.018,
+        "intelligence": 0.073
+      },
+      "match": {
+        "tp": [],
+        "fp": [],
+        "fn": [
+          "oracle",
+          "access_control",
+          "denial_of_service"
+        ],
+        "hit": false
+      }
+    }
+  ]
+}

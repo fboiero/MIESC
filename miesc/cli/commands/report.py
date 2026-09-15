@@ -18,6 +18,7 @@ from typing import Any, Dict, Match, cast
 import click
 
 from miesc import __version__ as VERSION
+from miesc.cli.constants import REPORT_TEMPLATES
 from miesc.cli.utils import (
     RICH_AVAILABLE,
     console,
@@ -76,6 +77,33 @@ def _get_impact_description(severity: str, category: str = "") -> str:
     return severity_impacts.get(severity, "Impact assessment pending.")
 
 
+def _get_happy_path(category: str, function_name: str = "") -> str:
+    """Describe the intended (non-exploited) execution flow, for contrast with Attack Scenario."""
+    cat = category.lower().replace("-", " ").replace("_", " ") if category else ""
+    fn = function_name or "the function"
+    happy_paths = {
+        "reentrancy": f"A legitimate caller invokes {fn}; the contract validates the request, updates its internal state, and only then transfers funds -- state is fully settled before any external call, so a second call from the same transaction has nothing left to exploit.",
+        "selfdestruct": f"An authorized administrator, following an on-chain governance or migration process, is the only party ever expected to trigger the destruction logic in {fn}.",
+        "uninitialized state": f"{fn} reads state variables that were set to sane, non-zero values during construction, so every downstream check and transfer operates on real data.",
+        "unchecked send": f"{fn} performs a low-level call and immediately inspects its return value, only advancing contract state when the transfer actually succeeded.",
+        "weak randomness": f"{fn} is meant to produce an outcome no participant -- including miners or validators -- can predict or influence in advance.",
+        "tx origin": f"{fn} is meant to authorize only its direct caller (msg.sender), regardless of which contract further up the call chain originated the transaction.",
+        "access control": f"Only an authorized role (owner, admin, or a specifically granted permission) is expected to successfully call {fn}; every other caller's transaction should revert.",
+        "integer overflow": f"{fn} performs arithmetic that is expected to stay within the bounds of its numeric type -- balances only move by amounts the contract's own logic already validated.",
+        "front running": f"{fn} is expected to execute based only on the caller's own inputs, with an outcome that doesn't depend on what else is pending in the mempool.",
+        "oracle": f"{fn} is expected to price assets using a source that reflects real market conditions and can't be moved within a single transaction.",
+        "flash loan": f"{fn} is expected to remain safe even when a caller temporarily commands a very large balance for the duration of one transaction.",
+    }
+    for key, desc in happy_paths.items():
+        if key in cat:
+            return desc
+    return (
+        f"{fn} is expected to execute exactly as its access controls and validation "
+        "checks describe, with no path for an unauthorized caller or unexpected input "
+        "to alter contract state."
+    )
+
+
 def _get_recommendation(category: str, severity: str = "") -> str:
     """Get specific recommendation based on vulnerability category."""
     cat = category.lower().replace("-", " ").replace("_", " ") if category else ""
@@ -125,7 +153,7 @@ def _extract_remediations(findings: list[dict[str, Any]]) -> list[dict[str, Any]
         if fix and len(fix) > 20:
             remediations.append(
                 {
-                    "finding": f.get("type", "Unknown"),
+                    "title": f.get("type", "Unknown"),
                     "severity": f.get("severity", "Medium"),
                     "fix": fix,
                     "canonical_category": f.get("canonical_category", ""),
@@ -192,12 +220,12 @@ def _get_swc_references(category: str, swc_id: str = "") -> list[str]:
     return refs
 
 
-def _extract_source_code(
+def _find_source_lines(
     contract_path: str, line_number: int, context: int = 5, base_dir: str = ""
-) -> str:
-    """Extract actual source code lines from the contract file."""
+) -> list[str] | None:
+    """Locate the contract file and return the raw (unmarked) lines around line_number."""
     if not contract_path or contract_path == "unknown" or not line_number:
-        return ""
+        return None
     try:
         path = Path(contract_path)
         if not path.exists():
@@ -216,17 +244,48 @@ def _extract_source_code(
                     path = candidate
                     break
             else:
-                return ""
+                return None
         lines = path.read_text(encoding="utf-8").splitlines()
         start = max(0, line_number - context - 1)
         end = min(len(lines), line_number + context)
-        snippet_lines = []
-        for i in range(start, end):
-            marker = " >> " if i == line_number - 1 else "    "
-            snippet_lines.append(f"{marker}{i + 1:4d} | {lines[i]}")
-        return "\n".join(snippet_lines)
+        return lines[start:end]
     except Exception:
+        return None
+
+
+def _extract_source_code(
+    contract_path: str, line_number: int, context: int = 5, base_dir: str = ""
+) -> str:
+    """Extract actual source code lines from the contract file, annotated for display."""
+    lines = _find_source_lines(contract_path, line_number, context, base_dir)
+    if not lines:
         return ""
+    start = max(0, line_number - context - 1)
+    snippet_lines = []
+    for offset, line in enumerate(lines):
+        i = start + offset
+        marker = " >> " if i == line_number - 1 else "    "
+        snippet_lines.append(f"{marker}{i + 1:4d} | {line}")
+    return "\n".join(snippet_lines)
+
+
+def _build_fix_diff(before_lines: list[str] | None, fix_code: str) -> str:
+    """Render a unified diff between the vulnerable line(s) and the suggested fix.
+
+    Falls back to the raw fix code (no diff markers) when the original line
+    couldn't be located -- a diff against nothing would be misleading.
+    """
+    if not before_lines or not fix_code:
+        return fix_code
+    import difflib
+
+    after_lines = fix_code.splitlines()
+    diff_lines = list(
+        difflib.unified_diff(
+            before_lines, after_lines, fromfile="before", tofile="after", lineterm=""
+        )
+    )
+    return "\n".join(diff_lines) if diff_lines else fix_code
 
 
 def _interactive_wizard(variables: dict[str, Any], console: Any) -> dict[str, Any]:
@@ -390,7 +449,7 @@ def _markdown_to_html(markdown: str, title: str, use_premium_css: bool = True) -
     # Try to load premium CSS
     css_content = ""
     if use_premium_css:
-        css_path = ROOT_DIR / "docs" / "templates" / "reports" / "profesional.css"
+        css_path = get_data_path("templates", "reports", "profesional.css")
         if css_path.exists():
             css_content = css_path.read_text(encoding="utf-8")
 
@@ -466,9 +525,7 @@ def _enhance_html_severity(html: str) -> str:
 @click.option(
     "--template",
     "-t",
-    type=click.Choice(
-        ["professional", "executive", "technical", "github-pr", "simple", "profesional", "premium"]
-    ),
+    type=click.Choice(REPORT_TEMPLATES),
     default="simple",
     help="Report template to use (premium/profesional include CVSS scores, attack scenarios, and deployment recommendations)",
 )
@@ -568,7 +625,7 @@ def report(
         template_file = get_data_path("docs", "templates", "reports", f"{template}.md")
     if not template_file.exists():
         error(f"Template not found: {template_file}")
-        info("Available templates: professional, executive, technical, github-pr, simple, premium")
+        info(f"Available templates: {', '.join(REPORT_TEMPLATES)}")
         sys.exit(1)
 
     # Load template
@@ -815,6 +872,7 @@ def report(
         "business_impact": "Medium",
         "confidence_level": _extract_confidence_level(findings),
         "value_at_risk": None,
+        "threat_model": None,
         "out_of_scope": [],
         "engagement_type": "Security Audit",
         "target_network": network,
@@ -1755,6 +1813,23 @@ def report(
             warning(f"Profesional report processing failed: {e}")
 
     # =========================================================================
+    # Threat Model (X-Ray reconnaissance: protocol type, risk profile, entry points)
+    # =========================================================================
+    if template in ("profesional", "premium"):
+        try:
+            from miesc.agents.xray_agent import run_xray
+
+            xray_path = detected_contract_full_path
+            if xray_path and xray_path != "Unknown" and Path(xray_path).exists():
+                xray_report = run_xray([xray_path])
+                if xray_report.get("files"):
+                    variables["threat_model"] = xray_report["files"][0]
+        except ImportError as e:
+            warning(f"X-Ray reconnaissance not available: {e}")
+        except Exception as e:
+            warning(f"Threat model reconnaissance failed: {e}")
+
+    # =========================================================================
     # Proof of Concept Generation (for Critical/High findings)
     # =========================================================================
     if template in ("profesional", "premium"):
@@ -1867,8 +1942,10 @@ def report(
         attack_steps = []
         for scenario in variables.get("attack_scenarios", []):
             if scenario.get("title") == title_field:
-                attack_scenario = scenario.get("scenario_description")
                 attack_steps = scenario.get("attack_steps", scenario.get("steps", []))
+                attack_scenario = scenario.get("scenario_description") or (
+                    attack_steps[0] if attack_steps else None
+                )
                 break
         # v5.2.0: fallback to intelligence engine's exploit_scenario field
         if not attack_steps and finding.get("exploit_scenario"):
@@ -1881,7 +1958,7 @@ def report(
         fix_time = None
         for remediation in variables.get("code_remediations", []):
             if remediation.get("title") == title_field:
-                remediation_code = remediation.get("diff")
+                remediation_code = remediation.get("fix")
                 remediation_effort = remediation.get("effort")
                 fix_time = remediation.get("fix_time")
                 break
@@ -1926,6 +2003,31 @@ def report(
         else:
             status_display = raw_status
 
+        # Resolve the finding's file/line once, reused for the display snippet and the diff
+        if isinstance(location, dict):
+            loc_file = location.get("file", "")
+            loc_line = location.get("line", 0)
+            loc_function = location.get("function", "")
+        else:
+            loc_function = ""
+            loc_str_parts = str(location or "")
+            loc_file = loc_str_parts.split(":")[0]
+            loc_line = (
+                int(loc_str_parts.split(":")[-1].split(" ")[0] or 0) if ":" in loc_str_parts else 0
+            )
+
+        vulnerable_code = finding.get("vulnerable_code") or _extract_source_code(
+            loc_file, loc_line, base_dir=detected_contract_full_path
+        )
+
+        # Render the suggested fix as a real unified diff against the flagged line,
+        # not just the bare replacement code (the template renders it in a ```diff fence).
+        if remediation_code:
+            before_lines = _find_source_lines(
+                loc_file, loc_line, context=0, base_dir=detected_contract_full_path
+            )
+            remediation_code = _build_fix_diff(before_lines, remediation_code)
+
         formatted_findings.append(
             {
                 "id": f"F-{i:03d}",
@@ -1952,24 +2054,7 @@ def report(
                     else finding["impact"]
                 ),
                 "poc": finding.get("poc", ""),
-                "vulnerable_code": finding.get("vulnerable_code")
-                or _extract_source_code(
-                    (
-                        finding.get("location", {}).get("file", "")
-                        if isinstance(finding.get("location"), dict)
-                        else str(finding.get("location", "")).split(":")[0]
-                    ),
-                    (
-                        finding.get("location", {}).get("line", 0)
-                        if isinstance(finding.get("location"), dict)
-                        else (
-                            int(str(finding.get("location", "0")).split(":")[-1].split(" ")[0] or 0)
-                            if ":" in str(finding.get("location", ""))
-                            else 0
-                        )
-                    ),
-                    base_dir=detected_contract_full_path,
-                )
+                "vulnerable_code": vulnerable_code
                 or "// Source code not available for this finding",
                 "references": finding.get("references")
                 or _get_swc_references(
@@ -1977,6 +2062,7 @@ def report(
                 ),
                 # Premium fields
                 "cvss_score": cvss_score,
+                "happy_path": _get_happy_path(category, loc_function),
                 "attack_scenario": attack_scenario,
                 "attack_steps": attack_steps,
                 "remediation_code": remediation_code,
@@ -2034,7 +2120,7 @@ def report(
                 font_config = FontConfiguration()
 
                 # Load premium CSS if available
-                css_path = ROOT_DIR / "docs" / "templates" / "reports" / "profesional.css"
+                css_path = get_data_path("templates", "reports", "profesional.css")
                 if css_path.exists():
                     css_content = css_path.read_text(encoding="utf-8")
                     css = CSS(string=css_content, font_config=font_config)

@@ -13,6 +13,7 @@ import logging
 import os
 import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import TimeoutError as FuturesTimeoutError
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, cast
@@ -429,6 +430,23 @@ def run_tool(tool: str, contract: str, timeout: int = 0, **kwargs: Any) -> Dict[
         }
 
     try:
+        # Skip tools that don't apply to this file type (e.g. Solidity-only
+        # tools against a .vy file) before spending time on availability
+        # checks or a doomed analyze() call. can_analyze defaults to .sol-only
+        # (ToolAdapter.can_analyze) or is omitted entirely by duck-typed
+        # adapters that accept anything — both are treated as "applies".
+        can_analyze = getattr(adapter, "can_analyze", None)
+        if callable(can_analyze) and not can_analyze(contract):
+            return {
+                "tool": tool,
+                "contract": contract,
+                "status": "skipped",
+                "findings": [],
+                "execution_time": 0,
+                "timestamp": datetime.now().isoformat(),
+                "error": f"{tool} does not support this file type",
+            }
+
         # Check if tool is available
         from miesc.core.tool_protocol import ToolStatus
 
@@ -475,6 +493,13 @@ def run_tool(tool: str, contract: str, timeout: int = 0, **kwargs: Any) -> Dict[
         }
 
 
+# Safety margin added on top of the requested timeout before run_layer gives up
+# waiting on an adapter, regardless of whether that adapter honors `timeout`
+# itself (root cause: many adapters don't propagate it to their subprocess/network
+# call — see MEJORAS2.md #3).
+_LAYER_TIMEOUT_SAFETY_MARGIN = 5
+
+
 def run_layer(layer: int, contract: str, timeout: int = 300) -> List[Dict[str, Any]]:
     """Run all tools in a specific layer."""
     if layer not in LAYERS:
@@ -484,38 +509,58 @@ def run_layer(layer: int, contract: str, timeout: int = 300) -> List[Dict[str, A
     tools = list(layer_info["tools"])
     max_workers = min(max(get_max_workers(default=4), 1), len(tools) or 1)
 
-    if max_workers == 1 or len(tools) <= 1:
-        results: List[Dict[str, Any]] = []
-        for tool in tools:
-            info(f"Running {tool}...")
-            result = run_tool(tool, contract, timeout)
-            results.append(result)
-            _print_tool_result(tool, result)
-        return results
-
     for tool in tools:
         info(f"Running {tool}...")
 
     results_by_index: Dict[int, Dict[str, Any]] = {}
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+    # ponytail: no `with` here — ThreadPoolExecutor.__exit__ always calls
+    # shutdown(wait=True), which would block on a stuck adapter's thread and
+    # defeat this exact safety net. shutdown(wait=False) below lets run_layer
+    # return on time; a non-compliant adapter's thread may still linger until
+    # it finishes or the process exits (Python can't force-kill a blocked sync
+    # call). Upgrade path if that matters: run adapters as subprocesses instead
+    # of threads, so they can be killed outright.
+    executor = ThreadPoolExecutor(max_workers=max_workers)
+    try:
         futures = {
             executor.submit(run_tool, tool, contract, timeout): (index, tool)
             for index, tool in enumerate(tools)
         }
-        for future in as_completed(futures):
-            index, tool = futures[future]
-            try:
-                results_by_index[index] = future.result()
-            except Exception as e:
+        try:
+            for future in as_completed(futures, timeout=timeout + _LAYER_TIMEOUT_SAFETY_MARGIN):
+                index, tool = futures[future]
+                try:
+                    results_by_index[index] = future.result()
+                except Exception as e:
+                    results_by_index[index] = {
+                        "tool": tool,
+                        "contract": contract,
+                        "status": "error",
+                        "findings": [],
+                        "execution_time": 0,
+                        "timestamp": datetime.now().isoformat(),
+                        "error": str(e),
+                    }
+        except FuturesTimeoutError:
+            pass  # any tool still missing below exceeded the safety-net timeout
+
+        for index, tool in futures.values():
+            if index not in results_by_index:
                 results_by_index[index] = {
                     "tool": tool,
                     "contract": contract,
-                    "status": "error",
+                    "status": "timeout",
                     "findings": [],
-                    "execution_time": 0,
+                    "execution_time": timeout + _LAYER_TIMEOUT_SAFETY_MARGIN,
                     "timestamp": datetime.now().isoformat(),
-                    "error": str(e),
+                    "error": (
+                        f"{tool} exceeded top-level safety timeout "
+                        f"({timeout + _LAYER_TIMEOUT_SAFETY_MARGIN}s) without "
+                        "honoring the requested timeout"
+                    ),
                 }
+    finally:
+        executor.shutdown(wait=False)
 
     results = [results_by_index[index] for index in range(len(tools))]
     for tool, result in zip(tools, results, strict=True):
@@ -530,6 +575,10 @@ def _print_tool_result(tool: str, result: Dict[str, Any]) -> None:
         success(f"{tool}: {findings_count} findings in {result.get('execution_time', 0):.1f}s")
     elif result["status"] == "not_available":
         warning(f"{tool}: not installed")
+    elif result["status"] == "skipped":
+        # Doesn't apply to this file type (e.g. a Solidity-only tool against
+        # a .vy file) — routine, not worth a print line on every run.
+        pass
     else:
         warning(f"{tool}: {result.get('error', 'Unknown error')}")
 

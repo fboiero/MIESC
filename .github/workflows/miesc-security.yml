@@ -28,6 +28,10 @@ jobs:
   security-audit:
     name: MIESC Security Scan
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      security-events: write
 
     steps:
       - name: Checkout repository
@@ -156,6 +160,7 @@ jobs:
     steps:
       - name: Download results
         uses: actions/download-artifact@v8
+        continue-on-error: true
         with:
           name: miesc-security-report
 

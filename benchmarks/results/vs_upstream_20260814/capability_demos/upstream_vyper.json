@@ -1,0 +1,60 @@
+{
+  "contract": "/tmp/claude-1000/-home-alva-Proyectos-MIESC/d843e3d8-c19d-4ff0-aee7-9e56ec0b157f/scratchpad/Vault.vy",
+  "timestamp": "2026-08-14T17:10:07.554439",
+  "version": "6.0.0",
+  "success": true,
+  "summary": {
+    "CRITICAL": 0,
+    "HIGH": 0,
+    "MEDIUM": 0,
+    "LOW": 0,
+    "INFO": 0
+  },
+  "total_findings": 0,
+  "tools": [
+    "solhint"
+  ],
+  "tools_failed": [
+    "aderyn",
+    "slither"
+  ],
+  "findings": [],
+  "results": [
+    {
+      "tool": "aderyn",
+      "contract": "/tmp/claude-1000/-home-alva-Proyectos-MIESC/d843e3d8-c19d-4ff0-aee7-9e56ec0b157f/scratchpad/Vault.vy",
+      "status": "error",
+      "findings": [],
+      "execution_time": 0.010473489761352539,
+      "timestamp": "2026-08-14T17:10:06.227833",
+      "metadata": {
+        "exit_code": 1,
+        "stderr": "No solidity files found in given scope!\nError making context: No solidity files found in given scope!\n"
+      },
+      "error": "Aderyn analysis failed (exit code 1)"
+    },
+    {
+      "tool": "slither",
+      "contract": "/tmp/claude-1000/-home-alva-Proyectos-MIESC/d843e3d8-c19d-4ff0-aee7-9e56ec0b157f/scratchpad/Vault.vy",
+      "status": "error",
+      "findings": [],
+      "execution_time": 0.9035437107086182,
+      "timestamp": "2026-08-14T17:10:07.441373",
+      "metadata": {
+        "exit_code": 1,
+        "stderr": "Traceback (most recent call last):\n  File \"/home/alva/.local/bin/slither\", line 8, in <module>\n    sys.exit(main())\n             ~~~~^^\n  File \"/home/alva/.local/lib/python3.14/site-packages/slither/__main__.py\", line 760, in main\n    main_impl(all_detector_classes=detectors, all_printer_classes=printers)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/alva/.local/lib/python3.14/site-packages/slither/__main__.py\", line 865, in main_impl\n    ) = process_all(filename, args, detector_classes, printer_classes)\n        ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/alva/.local/lib/python3.14/site-packages/slither/__main__.py\", line 95, in process_all\n    compilations = compile_all(target, **vars(args))\n  File \"/home/alva/.local/lib/python3.14/site-packages/crytic_compile/crytic_compile.py\", line 722, in compile_all\n    compilations.append(CryticCompile(target, **kwargs))\n                        ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^\n  File \"/home/alva/.local/lib/python3.14/site-packages/crytic_compile/crytic_compile.py\", line 211, in __init__\n    self._compile(**kwargs)\n    ~~~~~~~~~~~~~^^^^^^^^^^\n  File \"/home/alva/.local/lib/python3.14/site-packages/crytic_compile/crytic_compile.py\", line 633, in _compile\n    self._platform.compile(self, **kwargs)\n    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^\n  File \"/home/alva/.local/lib/python3.14/site-packages/crytic_compile/platform/solc.py\", line 150, in compile\n    targets_json = _get_targets_json(compilation_unit, self._target, **kwargs)\n  File \"/home/alva/.local/lib/python3.14/site-packages/crytic_compile/platform/solc.py\", line 267, in _get_targets_json\n    return _run_solcs_env(\n        compilation_unit,\n    ...<7 lines>...\n        force_legacy_json=force_legacy_json,\n    )\n  File \"/home/alva/.local/lib/python3.14/site-packages/crytic_compile/platform/solc.py\", line 756, in _run_solcs_env\n    raise InvalidCompilation(\n    ...<2 lines>...\n    )\ncrytic_compile.platform.exceptions.InvalidCompilation: Invalid solc compilation, none of the solc versions provided worked:\n0.8.20: /tmp/claude-1000/-home-alva-Proyectos-MIESC/d843e3d8-c19d-4ff0-aee7-9e56ec0b157f/scratchpad/Vault.vy is not the expected format '.sol'\n"
+      },
+      "error": "Slither analysis failed (exit code 1)"
+    },
+    {
+      "tool": "solhint",
+      "contract": "/tmp/claude-1000/-home-alva-Proyectos-MIESC/d843e3d8-c19d-4ff0-aee7-9e56ec0b157f/scratchpad/Vault.vy",
+      "status": "success",
+      "findings": [],
+      "execution_time": 1.0,
+      "timestamp": "2026-08-14T17:10:07.537725",
+      "metadata": {},
+      "error": null
+    }
+  ]
+}

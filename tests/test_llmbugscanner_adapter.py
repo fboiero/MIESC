@@ -81,6 +81,38 @@ class TestIsAvailableNoModels:
         assert status == ToolStatus.CONFIGURATION_ERROR
 
 
+class TestIsAvailableFallbackModel:
+    def test_falls_back_to_installed_coding_model(self):
+        """None of deepseek-coder/codellama/mistral pulled, but a different
+        coding-model family (e.g. qwen2.5-coder) is - must still report
+        AVAILABLE with that model registered under the primary role, not
+        silently skip the only Layer 9 tool that reads the contract itself."""
+        adapter = _make_adapter()
+        resp = _make_http_response({"models": [{"name": "qwen2.5-coder:7b-16k"}]})
+
+        with patch("urllib.request.urlopen", return_value=resp):
+            status = adapter.is_available()
+
+        assert status == ToolStatus.AVAILABLE
+        primary = adapter._ensemble[0].name
+        assert adapter._model_aliases[primary] == "qwen2.5-coder:7b-16k"
+        assert adapter._available_models == {primary}
+
+    def test_unrelated_model_still_not_available(self):
+        """A pulled model with no coding-family match (llama2, per the
+        no-models test above) must not be grabbed as a fallback - the
+        fallback is deliberately narrower than a "pick anything installed"
+        default."""
+        adapter = _make_adapter()
+        resp = _make_http_response({"models": [{"name": "llama2"}]})
+
+        with patch("urllib.request.urlopen", return_value=resp):
+            status = adapter.is_available()
+
+        assert status == ToolStatus.CONFIGURATION_ERROR
+        assert not adapter._available_models
+
+
 # ---------------------------------------------------------------------------
 # 3. test_analyze_no_available
 # ---------------------------------------------------------------------------
@@ -494,3 +526,27 @@ class TestLLMBugScannerMetadata:
 
         assert adapter.normalize_findings("not a dict") == []
         assert adapter.normalize_findings({}) == []
+
+
+# ---------------------------------------------------------------------------
+# MEJORAS3.md item 6: llmbugscanner used to reimplement caching by hand
+# instead of the shared LLMCacheMixin, so it never checked MIESC_DISABLE_LLM_CACHE
+# — variance experiments (e.g. evaluate ablation --runs N) got a silent cache
+# hit on the 2nd+ run instead of a fresh model call.
+# ---------------------------------------------------------------------------
+class TestLLMBugScannerCacheDisable:
+    def test_respects_miesc_disable_llm_cache(self, monkeypatch, tmp_path):
+        monkeypatch.setenv("MIESC_DISABLE_LLM_CACHE", "1")
+        adapter = _make_adapter()
+        adapter._cache_dir = tmp_path
+
+        adapter._cache_result("key1", {"findings": ["should not persist"]})
+        assert adapter._get_cached_result("key1") is None
+
+    def test_caches_when_not_disabled(self, monkeypatch, tmp_path):
+        monkeypatch.delenv("MIESC_DISABLE_LLM_CACHE", raising=False)
+        adapter = _make_adapter()
+        adapter._cache_dir = tmp_path
+
+        adapter._cache_result("key1", {"findings": ["persisted"]})
+        assert adapter._get_cached_result("key1") == {"findings": ["persisted"]}

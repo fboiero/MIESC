@@ -6,11 +6,21 @@ schema is shared with `miesc remediate`, `benchmarks/fix_eval.py`, and the Paper
 
 ## REST API
 
+`/api/v1/remediate/` and `/api/v1/validate-remediation/` require the `X-API-Key`
+header (as do all `/api/v1/analyze/*` endpoints). Set `MIESC_API_KEY` before
+starting the server to pin a stable key; otherwise the server generates one
+per run and logs it at startup. `contract_path`/`output_path` must resolve
+inside the server's working directory (or `MIESC_REST_ROOT` if set) -- both
+are rejected otherwise, so the endpoint can't be used to read or write files
+elsewhere on the server's filesystem. See `docs/openapi.yaml`'s `apiKeyAuth`
+security scheme for the full contract.
+
 Apply patch candidates without validation:
 
 ```bash
 curl -sS -X POST http://localhost:8000/api/v1/remediate/ \
   -H 'Content-Type: application/json' \
+  -H "X-API-Key: $MIESC_API_KEY" \
   -d '{
     "results_json": "results.json",
     "contract_path": "contracts/Vulnerable.sol",
@@ -23,6 +33,7 @@ Apply patch candidates with compile and re-scan validation:
 ```bash
 curl -sS -X POST http://localhost:8000/api/v1/validate-remediation/ \
   -H 'Content-Type: application/json' \
+  -H "X-API-Key: $MIESC_API_KEY" \
   -d '{
     "results_json": "results.json",
     "contract_path": "contracts/Vulnerable.sol",

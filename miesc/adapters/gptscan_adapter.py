@@ -20,6 +20,7 @@ from typing import Any, Dict, List, Optional
 from miesc.adapters._cache_mixin import LLMCacheMixin
 from miesc.adapters._ollama_mixin import OllamaCallMixin
 from miesc.core.llm_config import get_ollama_host
+from miesc.core.ollama_models import select_ollama_model
 from miesc.core.tool_protocol import (
     ToolAdapter,
     ToolCapability,
@@ -388,45 +389,27 @@ Respond ONLY with valid JSON. Report ONLY vulnerabilities you are CONFIDENT abou
             return None
 
     def _detect_best_model(self) -> str:
-        """Detect the best available Ollama model for security analysis via HTTP API."""
-        import os
-        import urllib.error
-        import urllib.request
+        """Detect the best available Ollama model for security analysis via HTTP API.
 
-        # An explicit MIESC_LLM_MODEL override wins over the availability heuristic
-        # (e.g. pinning a benchmark to 14B for tractability / to avoid model thrash).
-        env_model = os.environ.get("MIESC_LLM_MODEL")
-        if env_model:
-            return env_model
-
-        try:
-            ollama_host = get_ollama_host()
-            tags_url = f"{ollama_host}/api/tags"
-
-            req = urllib.request.Request(tags_url, method="GET")
-            with urllib.request.urlopen(req, timeout=5) as resp:
-                if resp.status == 200:
-                    data = json.loads(resp.read().decode())
-                    models = " ".join([m.get("name", "") for m in data.get("models", [])]).lower()
-
-                    # Priority order for security analysis
-                    model_priority = [
-                        ("qwen2.5-coder:32b", "qwen2.5-coder:32b"),
-                        ("qwen2.5-coder:14b", "qwen2.5-coder:14b"),
-                        ("qwen2.5-coder", "qwen2.5-coder:14b"),
-                        ("deepseek-coder:33b", "deepseek-coder:33b"),
-                        ("deepseek-coder", "deepseek-coder:6.7b"),
-                        ("codellama:13b", "codellama:13b"),
-                        ("codellama", "codellama:7b"),
-                    ]
-
-                    for keyword, full_name in model_priority:
-                        if keyword in models:
-                            return full_name
-
-            return "qwen2.5-coder:14b"  # Default fallback
-        except Exception:
-            return "qwen2.5-coder:14b"
+        Used to hardcode a full tag (e.g. "qwen2.5-coder:14b") whenever it
+        merely saw the *family* name "qwen2.5-coder" among installed models -
+        so a host with only qwen2.5-coder:7b installed (no :14b) would still
+        get told to request ":14b", which Ollama's /api/generate 404s on.
+        select_ollama_model() (already proven in gptlens/smartguard/
+        llamaaudit) returns the actual installed tag instead.
+        """
+        return select_ollama_model(
+            [
+                "qwen2.5-coder:32b",
+                "qwen2.5-coder:14b",
+                "qwen2.5-coder",
+                "deepseek-coder:33b",
+                "deepseek-coder",
+                "codellama:13b",
+                "codellama",
+            ],
+            fallback="qwen2.5-coder:14b",
+        )
 
     def _run_ollama_analysis(
         self, contract_code: str, model: str = "qwen2.5-coder:14b", timeout: int = 120

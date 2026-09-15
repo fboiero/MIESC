@@ -834,6 +834,12 @@ def factory():
     return APIRequestFactory()
 
 
+# analyze/* and remediate/* require RequireApiKey (see miesc/api/rest.py); the
+# read-only views (api_root, tools_*, layers_list, health_check, reports_list)
+# stay AllowAny and don't need this header.
+_API_KEY_HEADER = {"HTTP_X_API_KEY": rest._get_api_key()}
+
+
 class TestRestPureFunctions:
     def test_run_tool_no_adapter(self):
         with patch.object(rest.AdapterLoader, "get_adapter", return_value=None):
@@ -934,14 +940,20 @@ class TestRestViews:
         assert resp.data["service"] == "MIESC REST API"
 
     def test_analyze_quick_missing_body(self, factory):
-        resp = rest.analyze_quick(factory.post("/", {}, format="json"))
+        resp = rest.analyze_quick(factory.post("/", {}, format="json", **_API_KEY_HEADER))
         assert resp.status_code == 400
+
+    def test_analyze_quick_missing_api_key(self, factory):
+        resp = rest.analyze_quick(factory.post("/", {}, format="json"))
+        assert resp.status_code == 403
 
     def test_analyze_quick_with_code(self, factory):
         canned = {"tool": "slither", "findings": [{"severity": "HIGH"}], "status": "success"}
         with patch.object(rest, "run_tool", return_value=canned):
             resp = rest.analyze_quick(
-                factory.post("/", {"contract_code": "contract C {}"}, format="json")
+                factory.post(
+                    "/", {"contract_code": "contract C {}"}, format="json", **_API_KEY_HEADER
+                )
             )
         assert resp.status_code == 200
         assert resp.data["audit_type"] == "quick"
@@ -952,59 +964,79 @@ class TestRestViews:
         with patch.object(rest, "run_tool", return_value=canned):
             resp = rest.analyze_quick(
                 factory.post(
-                    "/", {"contract_code": "contract C {}", "format": "sarif"}, format="json"
+                    "/",
+                    {"contract_code": "contract C {}", "format": "sarif"},
+                    format="json",
+                    **_API_KEY_HEADER,
                 )
             )
         assert resp.status_code == 200
         assert resp.data["version"] == "2.1.0"
 
     def test_analyze_full_missing_body(self, factory):
-        resp = rest.analyze_full(factory.post("/", {}, format="json"))
+        resp = rest.analyze_full(factory.post("/", {}, format="json", **_API_KEY_HEADER))
         assert resp.status_code == 400
 
     def test_analyze_full_invalid_layers(self, factory):
         resp = rest.analyze_full(
-            factory.post("/", {"contract_code": "x", "layers": [99]}, format="json")
+            factory.post(
+                "/", {"contract_code": "x", "layers": [99]}, format="json", **_API_KEY_HEADER
+            )
         )
         assert resp.status_code == 400
 
     def test_analyze_full_valid(self, factory):
         with patch.object(rest, "run_tool", return_value={"tool": "t", "findings": []}):
             resp = rest.analyze_full(
-                factory.post("/", {"contract_code": "contract C {}", "layers": [1]}, format="json")
+                factory.post(
+                    "/",
+                    {"contract_code": "contract C {}", "layers": [1]},
+                    format="json",
+                    **_API_KEY_HEADER,
+                )
             )
         assert resp.status_code == 200
         assert "audit_id" in resp.data
 
     def test_analyze_layer_invalid(self, factory):
-        resp = rest.analyze_layer(factory.post("/", {"contract_code": "x"}, format="json"), 99)
+        resp = rest.analyze_layer(
+            factory.post("/", {"contract_code": "x"}, format="json", **_API_KEY_HEADER), 99
+        )
         assert resp.status_code == 400
 
     def test_analyze_layer_missing_body(self, factory):
-        resp = rest.analyze_layer(factory.post("/", {}, format="json"), 1)
+        resp = rest.analyze_layer(factory.post("/", {}, format="json", **_API_KEY_HEADER), 1)
         assert resp.status_code == 400
 
     def test_analyze_layer_valid(self, factory):
         with patch.object(rest, "run_tool", return_value={"tool": "t", "findings": []}):
             resp = rest.analyze_layer(
-                factory.post("/", {"contract_code": "contract C {}"}, format="json"), 1
+                factory.post(
+                    "/", {"contract_code": "contract C {}"}, format="json", **_API_KEY_HEADER
+                ),
+                1,
             )
         assert resp.status_code == 200
         assert resp.data["layer"] == 1
 
     def test_analyze_tool_unknown(self, factory):
-        resp = rest.analyze_tool(factory.post("/", {"contract_code": "x"}, format="json"), "ghost")
+        resp = rest.analyze_tool(
+            factory.post("/", {"contract_code": "x"}, format="json", **_API_KEY_HEADER), "ghost"
+        )
         assert resp.status_code == 400
 
     def test_analyze_tool_missing_body(self, factory):
-        resp = rest.analyze_tool(factory.post("/", {}, format="json"), "slither")
+        resp = rest.analyze_tool(factory.post("/", {}, format="json", **_API_KEY_HEADER), "slither")
         assert resp.status_code == 400
 
     def test_analyze_tool_valid(self, factory):
         canned = {"tool": "slither", "findings": [], "status": "success"}
         with patch.object(rest, "run_tool", return_value=canned):
             resp = rest.analyze_tool(
-                factory.post("/", {"contract_code": "contract C {}"}, format="json"), "slither"
+                factory.post(
+                    "/", {"contract_code": "contract C {}"}, format="json", **_API_KEY_HEADER
+                ),
+                "slither",
             )
         assert resp.status_code == 200
         assert resp.data["tool"] == "slither"
@@ -1085,9 +1117,19 @@ class TestRestViews:
 
     def test_remediate_missing_results(self, factory):
         resp = rest.remediate_contract_view(
-            factory.post("/", {"contract_code": "x"}, format="json")
+            factory.post("/", {"contract_code": "x"}, format="json", **_API_KEY_HEADER)
         )
         assert resp.status_code == 400
+
+    def test_remediate_missing_api_key(self, factory):
+        resp = rest.remediate_contract_view(
+            factory.post(
+                "/",
+                {"results": {"findings": []}, "contract_code": "contract C {}"},
+                format="json",
+            )
+        )
+        assert resp.status_code == 403
 
     def test_remediate_success(self, factory):
         evidence = Mock()
@@ -1099,6 +1141,7 @@ class TestRestViews:
                     "/",
                     {"results": {"findings": []}, "contract_code": "contract C {}"},
                     format="json",
+                    **_API_KEY_HEADER,
                 )
             )
         assert resp.status_code == 200

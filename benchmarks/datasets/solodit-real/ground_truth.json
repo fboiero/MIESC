@@ -1,0 +1,602 @@
+{
+  "_meta": {
+    "source": "Solodit MCP (Code4rena real audit reports) — MEJORAS2.md #1/#2",
+    "built": "2026-08-14",
+    "protocols": [
+      {
+        "source": "Code4rena contest, protocol=NextGen",
+        "solodit_query": "search_findings(protocol=\"NextGen\", firms=[\"Code4rena\"])",
+        "repo": "https://github.com/code-423n4/2023-10-nextgen",
+        "findings_total": 23,
+        "findings_used": 18,
+        "excluded": "5 GAS findings (G-01..G-06 minus overlap) - not security vulnerabilities",
+        "completeness_check": "sequential numbering H-01..H-05, M-01..M-12, G-01..G-06 with zero gaps"
+      },
+      {
+        "source": "Code4rena contest, protocol=Y2K Finance",
+        "solodit_query": "search_findings(protocol=\"Y2k Finance\", firms=[\"Code4rena\"])",
+        "repo": "https://github.com/code-423n4/2022-09-y2k-finance",
+        "findings_total": 30,
+        "findings_used": 25,
+        "excluded": "5 GAS findings (G-01..G-05) - not security vulnerabilities",
+        "completeness_check": "sequential numbering H-01..H-09, M-01..M-16, G-01..G-05 with zero gaps"
+      },
+      {
+        "source": "Code4rena contest, protocol=Sequence (2025-10)",
+        "solodit_query": "search_findings(protocol=\"Sequence\", firms=[\"Code4rena\"])",
+        "repo": "https://github.com/code-423n4/2025-10-sequence",
+        "audited_commit": "b0e5fb15bf6735ec9aaba02f5eca28a7882d815d",
+        "commit_note": "Two commits are cited across the 6 findings (b0e5fb15... and an earlier ccc328be..., which is an ancestor of b0e5fb15). Verified by reading the actual file content that all 6 findings' buggy code patterns are present at b0e5fb15, so a single commit was used for the whole corpus instead of mixing two.",
+        "findings_total": 25,
+        "findings_used": 6,
+        "excluded": "19 LOW findings (a separate, non-sequentially-numbered QA batch, [01]..[19]) - not security vulnerabilities at the HIGH/MEDIUM bar this corpus uses",
+        "completeness_check": "sequential numbering H-01..H-02, M-01..M-04 with zero gaps",
+        "added_by": "fresh validation exercise (2026-08-17), not part of MEJORAS3.md's own roadmap - built to answer \"can MIESC find findings from a real report it has never seen\" on a protocol not already in any corpus",
+        "dependency_note": "src/ (49 files) has zero vendor/package imports - fully self-contained, no lib/ vendoring needed for this one, unlike y2k-finance",
+        "measured_result": "Isolated run (--layers 1,7, this protocol only): precision 25.0%, recall 16.7%, F1 20.0%, TP/FP/FN 1/3/5. The 1 nominal TP (BaseAuth.sol, denial_of_service, matching M-03) was checked by hand, not taken at face value: it comes from threat_model's generic 'external function without authentication' STRIDE template, not from anything that read or understood the real bug (recoverSapientSignature returning a hardcoded constant instead of the real image hash). Same file, same category, coincidental, not a real detection of the root cause - the honest read is closer to 0/6 genuine detections on findings MIESC had never seen before. All 3 access_control/front_running findings (signature/session logic bugs) were missed outright; this protocol's bugs are almost entirely multi-step signature/session-flow logic, a harder class than the vault/oracle bugs the other 2 protocols are mostly made of."
+      },
+      {
+        "source": "Sherlock contest, protocol=Napier (2024-01)",
+        "solodit_query": "search_findings(protocol=\"Napier\", firms=[\"Sherlock\"], severity=[\"HIGH\",\"MEDIUM\"])",
+        "repo": "https://github.com/sherlock-audit/2024-01-napier",
+        "audited_commit": "6313f34110b0d12677b389f0ecb3197038211e12",
+        "commit_note": "Monorepo containing two subprojects (napier-v1/, v1-pool/). This is the exact commit cited directly in M-13's finding links, and matches the repo's current HEAD (git ls-remote). Verified by reading actual file content that all sampled findings' buggy code (Tranche.sol issue/withdraw, PoolMath.sol N_COINS, BaseLSTAdapter.sol, NapierPool.sol setFeeParameter, NapierRouter.sol _verifyCallback) is present at this commit.",
+        "findings_total": 17,
+        "findings_used": 17,
+        "excluded": "none - all HIGH/MEDIUM findings from the original 2024-01-napier round used. A separate, later 2024-05-napier-update ('LST/LRT Integrations') contest exists under the same protocol name on Solodit and was deliberately excluded to avoid mixing two different audit rounds/codebases.",
+        "completeness_check": "sequential numbering H-1..H-4, M-1..M-13 with zero gaps",
+        "added_by": "fresh validation exercise (2026-08-17), second protocol after Sequence - chosen deliberately as a DeFi-flavored Solidity protocol (yield tranching/AMM), not a wallet/signature protocol, since that is closer to where MIESC's detector set is meant to specialize",
+        "dependency_note": "napier-v1/src and v1-pool/src import OpenZeppelin 4.9.3, prb-math, and (v1-pool only) napier-v1 itself via @napier/napier-v1 remapping. Copied as napier-v1-src/ and v1-pool-src/ without vendoring lib/ - MIESC's layer 1/7 detectors here are regex/AST-pattern based and do not require successful solc compilation, unlike a full Slither/Foundry run.",
+        "measured_result": "Isolated run (--layers 1,7, this protocol only): precision 37.5%, recall 25.0%, F1 30.0%, TP/FP/FN 3/5/9 (only 6 of 74 files have ground-truth findings, so only those 6 were scored). All 3 nominal TPs were traced by hand via direct run_layer(7,...) calls and checked against the generic pattern that actually fired, not taken at face value: (1) access_control on NapierRouter.sol (matching M-12) is advanced_detector's generic rug_pull template 'Mint function detected - check for access control' at an unrelated mint call - M-12's real bug is a CREATE2 address-collision flaw in _verifyCallback, never touched. (2) and (3) front_running on NapierPool.sol and SFrxETHAdapter.sol (matching M-1 and M-2) both come from intelligence.py's zero-recall 'front_running' regex, which fires on any bare '.approve(' call (SWC-114 approve-then-transferFrom race) - it hit constructor-time infinite-approval calls (NapierPool.sol L137-139, SFrxETHAdapter.sol L49-50), not the real bugs (M-1: owner front-running fee changes at L544; M-2: front-running withdrawal requests to shift losses). All 3 are coincidental same-file/same-category matches, not genuine detections - the honest read is 0/17 genuine detections on findings MIESC had never seen before, the same conclusion as Sequence. This protocol's bugs are almost entirely multi-step economic/admin-trust logic (LST adapters, redemption queues, fee/rounding interactions) - a class none of MIESC's pattern-based layer 1/7 detectors reason about; only rounding (H-4, M-6, M-9) and denial_of_service (M-5, M-7, M-8, M-10, M-11, M-13, the biggest category here) were missed outright with zero nominal hits at all."
+      }
+    ],
+    "note": "Ground truth = real HIGH/MEDIUM findings from complete, verified audit reports (sequential finding IDs, no gaps), not curated subsets. Categories include MODERN_CATEGORIES (business_logic, oracle, rounding, fee_on_transfer, erc4626) alongside SmartBugs categories.",
+    "known_issues": "rewards/StakingRewards.sol removed from this corpus: the peculiar adapter hangs indefinitely on it (confirmed 2x, --timeout not honored) — logged as a MEJORAS2.md finding, not fixed here."
+  },
+  "findings": [
+    {
+      "id": "H-01",
+      "file": "nextgen/MinterContract.sol",
+      "category": "reentrancy",
+      "severity": "HIGH",
+      "title": "Attacker can reenter to mint all the collection supply",
+      "protocol": "NextGen"
+    },
+    {
+      "id": "H-02",
+      "file": "nextgen/AuctionDemo.sol",
+      "category": "business_logic",
+      "severity": "HIGH",
+      "title": "Attacker can drain all ETH from AuctionDemo when block.timestamp == auctionEndTime",
+      "protocol": "NextGen"
+    },
+    {
+      "id": "H-03",
+      "file": "nextgen/AuctionDemo.sol",
+      "category": "denial_of_service",
+      "severity": "HIGH",
+      "title": "Adversary can block claimAuction() due to push-strategy",
+      "protocol": "NextGen"
+    },
+    {
+      "id": "H-04",
+      "file": "nextgen/MinterContract.sol",
+      "category": "denial_of_service",
+      "severity": "HIGH",
+      "title": "Multiple mints can brick any form of salesOption 3 mintings",
+      "protocol": "NextGen"
+    },
+    {
+      "id": "H-05",
+      "file": "nextgen/AuctionDemo.sol",
+      "category": "denial_of_service",
+      "severity": "HIGH",
+      "title": "Permanent DoS due to non-shrinking array usage in an unbounded loop",
+      "protocol": "NextGen"
+    },
+    {
+      "id": "M-01",
+      "file": "nextgen/MinterContract.sol",
+      "category": "business_logic",
+      "severity": "MEDIUM",
+      "title": "MinterContract::payArtist can result in double the intended payout",
+      "protocol": "NextGen"
+    },
+    {
+      "id": "M-02",
+      "file": "nextgen/RandomizerVRF.sol",
+      "category": "bad_randomness",
+      "severity": "MEDIUM",
+      "title": "The RandomizerVRF and RandomizerRNG do not produce hash value",
+      "protocol": "NextGen"
+    },
+    {
+      "id": "M-02",
+      "file": "nextgen/RandomizerRNG.sol",
+      "category": "bad_randomness",
+      "severity": "MEDIUM",
+      "title": "The RandomizerVRF and RandomizerRNG do not produce hash value",
+      "protocol": "NextGen"
+    },
+    {
+      "id": "M-03",
+      "file": "nextgen/NextGenCore.sol",
+      "category": "business_logic",
+      "severity": "MEDIUM",
+      "title": "Vulnerability in burnToMint function allows double use of NFT",
+      "protocol": "NextGen"
+    },
+    {
+      "id": "M-04",
+      "file": "nextgen/MinterContract.sol",
+      "category": "business_logic",
+      "severity": "MEDIUM",
+      "title": "User that mints on last block.timestamp mints at unexpected price",
+      "protocol": "NextGen"
+    },
+    {
+      "id": "M-05",
+      "file": "nextgen/AuctionDemo.sol",
+      "category": "business_logic",
+      "severity": "MEDIUM",
+      "title": "Auction payout goes to AuctionDemo contract owner, not the token owner",
+      "protocol": "NextGen"
+    },
+    {
+      "id": "M-06",
+      "file": "nextgen/NextGenCore.sol",
+      "category": "access_control",
+      "severity": "MEDIUM",
+      "title": "Artist signatures can be forged to impersonate the artist behind a collection",
+      "protocol": "NextGen"
+    },
+    {
+      "id": "M-07",
+      "file": "nextgen/AuctionDemo.sol",
+      "category": "denial_of_service",
+      "severity": "MEDIUM",
+      "title": "Auction winner can prevent payments via safeTransferFrom callback",
+      "protocol": "NextGen"
+    },
+    {
+      "id": "M-08",
+      "file": "nextgen/MinterContract.sol",
+      "category": "business_logic",
+      "severity": "MEDIUM",
+      "title": "If an airdrop happens before a mint the price could skyrocket",
+      "protocol": "NextGen"
+    },
+    {
+      "id": "M-09",
+      "file": "nextgen/MinterContract.sol",
+      "category": "rounding",
+      "severity": "MEDIUM",
+      "title": "getPrice salesOption 2 can round down to the lower barrier",
+      "protocol": "NextGen"
+    },
+    {
+      "id": "M-10",
+      "file": "nextgen/AuctionDemo.sol",
+      "category": "denial_of_service",
+      "severity": "MEDIUM",
+      "title": "Bidder Funds Can Become Unrecoverable Due to 1 second Overlap",
+      "protocol": "NextGen"
+    },
+    {
+      "id": "M-11",
+      "file": "nextgen/AuctionDemo.sol",
+      "category": "unchecked_low_level_calls",
+      "severity": "MEDIUM",
+      "title": "Unchecked return value of low-level call()/delegatecall()",
+      "protocol": "NextGen"
+    },
+    {
+      "id": "M-11",
+      "file": "nextgen/MinterContract.sol",
+      "category": "unchecked_low_level_calls",
+      "severity": "MEDIUM",
+      "title": "Unchecked return value of low-level call()/delegatecall()",
+      "protocol": "NextGen"
+    },
+    {
+      "id": "M-11",
+      "file": "nextgen/RandomizerRNG.sol",
+      "category": "unchecked_low_level_calls",
+      "severity": "MEDIUM",
+      "title": "Unchecked return value of low-level call()/delegatecall()",
+      "protocol": "NextGen"
+    },
+    {
+      "id": "M-12",
+      "file": "nextgen/MinterContract.sol",
+      "category": "business_logic",
+      "severity": "MEDIUM",
+      "title": "User funds sent in excess are not refunded",
+      "protocol": "NextGen"
+    },
+    {
+      "id": "H-01",
+      "file": "y2k-finance/src/oracles/PegOracle.sol",
+      "category": "oracle",
+      "severity": "HIGH",
+      "title": "Incorrect handling of pricefeed.decimals()",
+      "protocol": "Y2K Finance"
+    },
+    {
+      "id": "H-01",
+      "file": "y2k-finance/src/Controller.sol",
+      "category": "oracle",
+      "severity": "HIGH",
+      "title": "Incorrect handling of pricefeed.decimals()",
+      "protocol": "Y2K Finance"
+    },
+    {
+      "id": "H-02",
+      "file": "y2k-finance/src/Controller.sol",
+      "category": "denial_of_service",
+      "severity": "HIGH",
+      "title": "End epoch cannot be triggered preventing winners to withdraw",
+      "protocol": "Y2K Finance"
+    },
+    {
+      "id": "H-03",
+      "file": "y2k-finance/src/oracles/PegOracle.sol",
+      "category": "oracle",
+      "severity": "HIGH",
+      "title": "A design flaw in the case of using 2 oracles (aka PegOracle)",
+      "protocol": "Y2K Finance"
+    },
+    {
+      "id": "H-04",
+      "file": "y2k-finance/src/Controller.sol",
+      "category": "business_logic",
+      "severity": "HIGH",
+      "title": "Users who deposit in one vault can lose all deposits when counterparty vault has no deposits",
+      "protocol": "Y2K Finance"
+    },
+    {
+      "id": "H-04",
+      "file": "y2k-finance/src/Vault.sol",
+      "category": "business_logic",
+      "severity": "HIGH",
+      "title": "Users who deposit in one vault can lose all deposits when counterparty vault has no deposits",
+      "protocol": "Y2K Finance"
+    },
+    {
+      "id": "H-05",
+      "file": "y2k-finance/src/oracles/PegOracle.sol",
+      "category": "rounding",
+      "severity": "HIGH",
+      "title": "LOSS OF PRECISION RESULTING IN WRONG VALUE FOR PRICE RATIO",
+      "protocol": "Y2K Finance"
+    },
+    {
+      "id": "H-06",
+      "file": "y2k-finance/src/SemiFungibleVault.sol",
+      "category": "business_logic",
+      "severity": "HIGH",
+      "title": "Griefing attack on the Vaults is possible, withdrawing the winning side stakes",
+      "protocol": "Y2K Finance"
+    },
+    {
+      "id": "H-06",
+      "file": "y2k-finance/src/Vault.sol",
+      "category": "business_logic",
+      "severity": "HIGH",
+      "title": "Griefing attack on the Vaults is possible, withdrawing the winning side stakes",
+      "protocol": "Y2K Finance"
+    },
+    {
+      "id": "H-08",
+      "file": "y2k-finance/src/Vault.sol",
+      "category": "erc4626",
+      "severity": "HIGH",
+      "title": "Vault.sol is not EIP-4626 compliant",
+      "protocol": "Y2K Finance"
+    },
+    {
+      "id": "H-08",
+      "file": "y2k-finance/src/SemiFungibleVault.sol",
+      "category": "erc4626",
+      "severity": "HIGH",
+      "title": "Vault.sol is not EIP-4626 compliant",
+      "protocol": "Y2K Finance"
+    },
+    {
+      "id": "H-09",
+      "file": "y2k-finance/src/Controller.sol",
+      "category": "oracle",
+      "severity": "HIGH",
+      "title": "Depeg event can happen at incorrect price",
+      "protocol": "Y2K Finance"
+    },
+    {
+      "id": "M-01",
+      "file": "y2k-finance/src/VaultFactory.sol",
+      "category": "oracle",
+      "severity": "MEDIUM",
+      "title": "Oracle is tracked per token instead of per pair, leading to surprise results",
+      "protocol": "Y2K Finance"
+    },
+    {
+      "id": "M-02",
+      "file": "y2k-finance/src/SemiFungibleVault.sol",
+      "category": "fee_on_transfer",
+      "severity": "MEDIUM",
+      "title": "Fee-on-Transfer tokens cause problems in multiple places",
+      "protocol": "Y2K Finance"
+    },
+    {
+      "id": "M-02",
+      "file": "y2k-finance/src/Controller.sol",
+      "category": "fee_on_transfer",
+      "severity": "MEDIUM",
+      "title": "Fee-on-Transfer tokens cause problems in multiple places",
+      "protocol": "Y2K Finance"
+    },
+    {
+      "id": "M-04",
+      "file": "y2k-finance/src/Vault.sol",
+      "category": "rounding",
+      "severity": "MEDIUM",
+      "title": "receiver and treasury can receive nothing due to division before multiplication",
+      "protocol": "Y2K Finance"
+    },
+    {
+      "id": "M-06",
+      "file": "y2k-finance/src/Vault.sol",
+      "category": "business_logic",
+      "severity": "MEDIUM",
+      "title": "Fees are taken on risk collateral",
+      "protocol": "Y2K Finance"
+    },
+    {
+      "id": "M-07",
+      "file": "y2k-finance/src/Vault.sol",
+      "category": "denial_of_service",
+      "severity": "MEDIUM",
+      "title": "User funds lost because they can't withdraw funds before epoch startTime",
+      "protocol": "Y2K Finance"
+    },
+    {
+      "id": "M-08",
+      "file": "y2k-finance/src/Vault.sol",
+      "category": "denial_of_service",
+      "severity": "MEDIUM",
+      "title": "timewindow can be changed unexpectedly that blocks users from calling deposit",
+      "protocol": "Y2K Finance"
+    },
+    {
+      "id": "M-08",
+      "file": "y2k-finance/src/VaultFactory.sol",
+      "category": "denial_of_service",
+      "severity": "MEDIUM",
+      "title": "timewindow can be changed unexpectedly that blocks users from calling deposit",
+      "protocol": "Y2K Finance"
+    },
+    {
+      "id": "M-13",
+      "file": "y2k-finance/src/oracles/PegOracle.sol",
+      "category": "oracle",
+      "severity": "MEDIUM",
+      "title": "Different Oracle issues can return outdated prices",
+      "protocol": "Y2K Finance"
+    },
+    {
+      "id": "M-13",
+      "file": "y2k-finance/src/Controller.sol",
+      "category": "oracle",
+      "severity": "MEDIUM",
+      "title": "Different Oracle issues can return outdated prices",
+      "protocol": "Y2K Finance"
+    },
+    {
+      "id": "M-14",
+      "file": "y2k-finance/src/VaultFactory.sol",
+      "category": "access_control",
+      "severity": "MEDIUM",
+      "title": "It's possible to change for Vault and lost control on it",
+      "protocol": "Y2K Finance"
+    },
+    {
+      "id": "M-14",
+      "file": "y2k-finance/src/Controller.sol",
+      "category": "access_control",
+      "severity": "MEDIUM",
+      "title": "It's possible to change for Vault and lost control on it",
+      "protocol": "Y2K Finance"
+    },
+    {
+      "id": "M-16",
+      "file": "y2k-finance/src/VaultFactory.sol",
+      "category": "access_control",
+      "severity": "MEDIUM",
+      "title": "function changeController() has rug potential",
+      "protocol": "Y2K Finance"
+    },
+    {
+      "id": "H-01",
+      "file": "sequence/src/modules/auth/BaseSig.sol",
+      "category": "access_control",
+      "severity": "HIGH",
+      "title": "Chained signature with checkpoint usage disabled can bypass all checkpointer validation",
+      "protocol": "Sequence"
+    },
+    {
+      "id": "H-02",
+      "file": "sequence/src/modules/Calls.sol",
+      "category": "front_running",
+      "severity": "HIGH",
+      "title": "Partial signature replay/frontrunning attack on session calls",
+      "protocol": "Sequence"
+    },
+    {
+      "id": "M-01",
+      "file": "sequence/src/extensions/sessions/SessionSig.sol",
+      "category": "access_control",
+      "severity": "MEDIUM",
+      "title": "Session signatures replay across wallets due to missing wallet binding",
+      "protocol": "Sequence"
+    },
+    {
+      "id": "M-02",
+      "file": "sequence/src/modules/ERC4337v07.sol",
+      "category": "denial_of_service",
+      "severity": "MEDIUM",
+      "title": "Static signatures bound to caller revert under ERC-4337, causing DoS",
+      "protocol": "Sequence"
+    },
+    {
+      "id": "M-03",
+      "file": "sequence/src/modules/auth/BaseAuth.sol",
+      "category": "denial_of_service",
+      "severity": "MEDIUM",
+      "title": "BaseAuth.recoverSapientSignature returns a constant instead of signer image hash, breaking sapient signer flows",
+      "protocol": "Sequence"
+    },
+    {
+      "id": "M-04",
+      "file": "sequence/src/Factory.sol",
+      "category": "denial_of_service",
+      "severity": "MEDIUM",
+      "title": "Factory deploy reverts instead of returning address when account already exists",
+      "protocol": "Sequence"
+    },
+    {
+      "id": "H-1",
+      "file": "napier/napier-v1-src/Tranche.sol",
+      "category": "business_logic",
+      "severity": "HIGH",
+      "title": "Allowance abuse in redeemWithYT allows draining other users' accrued yield",
+      "protocol": "Napier"
+    },
+    {
+      "id": "H-2",
+      "file": "napier/napier-v1-src/Tranche.sol",
+      "category": "business_logic",
+      "severity": "HIGH",
+      "title": "Max scale manipulation can permanently prevent YT holders from claiming interest",
+      "protocol": "Napier"
+    },
+    {
+      "id": "H-3",
+      "file": "napier/v1-pool-src/libs/PoolMath.sol",
+      "category": "business_logic",
+      "severity": "HIGH",
+      "title": "Hardcoded N_COINS=3 assumption causes incorrect LP token valuation",
+      "protocol": "Napier"
+    },
+    {
+      "id": "H-4",
+      "file": "napier/napier-v1-src/adapters/BaseLSTAdapter.sol",
+      "category": "rounding",
+      "severity": "HIGH",
+      "title": "First-depositor share-inflation attack via rounding in prefundedDeposit",
+      "protocol": "Napier"
+    },
+    {
+      "id": "M-1",
+      "file": "napier/v1-pool-src/NapierPool.sol",
+      "category": "front_running",
+      "severity": "MEDIUM",
+      "title": "Pool owner can front-run swaps by changing fee parameters",
+      "protocol": "Napier"
+    },
+    {
+      "id": "M-2",
+      "file": "napier/napier-v1-src/adapters/frax/SFrxETHAdapter.sol",
+      "category": "front_running",
+      "severity": "MEDIUM",
+      "title": "Malicious sfrxETH holders can front-run withdrawal requests to shift pro-rated losses",
+      "protocol": "Napier"
+    },
+    {
+      "id": "M-3",
+      "file": "napier/napier-v1-src/Tranche.sol",
+      "category": "business_logic",
+      "severity": "MEDIUM",
+      "title": "Permissionless issue() lets anyone force-convert another user's unclaimed yield",
+      "protocol": "Napier"
+    },
+    {
+      "id": "M-4",
+      "file": "napier/napier-v1-src/Tranche.sol",
+      "category": "front_running",
+      "severity": "MEDIUM",
+      "title": "issue() lacks slippage control on minted PT/YT",
+      "protocol": "Napier"
+    },
+    {
+      "id": "M-5",
+      "file": "napier/napier-v1-src/adapters/frax/SFrxETHAdapter.sol",
+      "category": "denial_of_service",
+      "severity": "MEDIUM",
+      "title": "FRAX admin can drain redemption queue ETH via recoverEther, blocking adapter withdrawals",
+      "protocol": "Napier"
+    },
+    {
+      "id": "M-6",
+      "file": "napier/napier-v1-src/Tranche.sol",
+      "category": "rounding",
+      "severity": "MEDIUM",
+      "title": "withdraw() rounds down shares, violating ERC5095's exact-underlying-amount requirement",
+      "protocol": "Napier"
+    },
+    {
+      "id": "M-7",
+      "file": "napier/napier-v1-src/Tranche.sol",
+      "category": "denial_of_service",
+      "severity": "MEDIUM",
+      "title": "Admin pause blocks users from collecting already-earned yield",
+      "protocol": "Napier"
+    },
+    {
+      "id": "M-8",
+      "file": "napier/napier-v1-src/adapters/BaseLSTAdapter.sol",
+      "category": "denial_of_service",
+      "severity": "MEDIUM",
+      "title": "Permissioned rebalancer functions can be abused by admin to permanently block withdrawals",
+      "protocol": "Napier"
+    },
+    {
+      "id": "M-9",
+      "file": "napier/v1-pool-src/NapierRouter.sol",
+      "category": "rounding",
+      "severity": "MEDIUM",
+      "title": "swapUnderlyingForYt reverts due to an insufficient rounding buffer in uDeposit calculation",
+      "protocol": "Napier"
+    },
+    {
+      "id": "M-10",
+      "file": "napier/napier-v1-src/adapters/BaseLSTAdapter.sol",
+      "category": "denial_of_service",
+      "severity": "MEDIUM",
+      "title": "Zero stakeAmount reverts prefundedDeposit under low ETH-buffer conditions",
+      "protocol": "Napier"
+    },
+    {
+      "id": "M-11",
+      "file": "napier/napier-v1-src/adapters/frax/SFrxETHAdapter.sol",
+      "category": "denial_of_service",
+      "severity": "MEDIUM",
+      "title": "FRAX admin can set a 100% redemption fee, blocking adapter withdrawals",
+      "protocol": "Napier"
+    },
+    {
+      "id": "M-12",
+      "file": "napier/v1-pool-src/NapierRouter.sol",
+      "category": "access_control",
+      "severity": "MEDIUM",
+      "title": "Callback pool verification via CREATE2 address comparison is vulnerable to address collision",
+      "protocol": "Napier"
+    },
+    {
+      "id": "M-13",
+      "file": "napier/napier-v1-src/adapters/frax/SFrxETHAdapter.sol",
+      "category": "denial_of_service",
+      "severity": "MEDIUM",
+      "title": "Long FRAX redemption queue wait period can drain the ETH buffer to zero, DoSing redemptions",
+      "protocol": "Napier"
+    }
+  ]
+}

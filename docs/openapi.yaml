@@ -111,6 +111,8 @@ paths:
       tags: [Analysis]
       summary: Run quick analysis
       operationId: analyzeQuick
+      security:
+        - apiKeyAuth: []
       requestBody:
         required: true
         content:
@@ -126,13 +128,17 @@ paths:
                 type: object
                 additionalProperties: true
         "400":
-          description: Invalid request
+          description: Invalid request (also returned for a contract_path/output_path that resolves outside MIESC_REST_ROOT)
+        "403":
+          description: Missing or invalid X-API-Key
 
   /api/v1/analyze/full/:
     post:
       tags: [Analysis]
       summary: Run full multi-layer audit
       operationId: analyzeFull
+      security:
+        - apiKeyAuth: []
       requestBody:
         required: true
         content:
@@ -148,13 +154,17 @@ paths:
                 type: object
                 additionalProperties: true
         "400":
-          description: Invalid request
+          description: Invalid request (also returned for a contract_path/output_path that resolves outside MIESC_REST_ROOT)
+        "403":
+          description: Missing or invalid X-API-Key
 
   /api/v1/analyze/layer/{layer_num}/:
     post:
       tags: [Analysis]
       summary: Run one analysis layer
       operationId: analyzeLayer
+      security:
+        - apiKeyAuth: []
       parameters:
         - name: layer_num
           in: path
@@ -172,13 +182,17 @@ paths:
         "200":
           description: Layer analysis result
         "400":
-          description: Invalid request
+          description: Invalid request (also returned for a contract_path/output_path that resolves outside MIESC_REST_ROOT)
+        "403":
+          description: Missing or invalid X-API-Key
 
   /api/v1/analyze/tool/{tool_name}/:
     post:
       tags: [Analysis]
       summary: Run one tool
       operationId: analyzeTool
+      security:
+        - apiKeyAuth: []
       parameters:
         - name: tool_name
           in: path
@@ -195,13 +209,17 @@ paths:
         "200":
           description: Tool analysis result
         "400":
-          description: Invalid request
+          description: Invalid request (also returned for a contract_path/output_path that resolves outside MIESC_REST_ROOT)
+        "403":
+          description: Missing or invalid X-API-Key
 
   /api/v1/remediate/:
     post:
       tags: [Remediation]
       summary: Generate remediation guidance
       operationId: remediateContract
+      security:
+        - apiKeyAuth: []
       requestBody:
         required: true
         content:
@@ -212,12 +230,18 @@ paths:
       responses:
         "200":
           description: Remediation result
+        "400":
+          description: Invalid request (also returned for a contract_path/output_path that resolves outside MIESC_REST_ROOT)
+        "403":
+          description: Missing or invalid X-API-Key
 
   /api/v1/validate-remediation/:
     post:
       tags: [Remediation]
       summary: Validate remediation changes
       operationId: validateRemediation
+      security:
+        - apiKeyAuth: []
       requestBody:
         required: true
         content:
@@ -228,6 +252,10 @@ paths:
       responses:
         "200":
           description: Validation result
+        "400":
+          description: Invalid request (also returned for a contract_path/output_path that resolves outside MIESC_REST_ROOT)
+        "403":
+          description: Missing or invalid X-API-Key
 
   /api/v1/reports/:
     get:
@@ -255,6 +283,16 @@ paths:
           description: Invalid request
 
 components:
+  securitySchemes:
+    apiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: |
+        Required for analyze/*, remediate, and validate-remediation. Set
+        MIESC_API_KEY before starting the server to pin a stable key;
+        otherwise one is generated per run and logged at startup. Read-only
+        endpoints (root, tools, layers, health, reports) do not require it.
   schemas:
     RootResponse:
       type: object

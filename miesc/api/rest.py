@@ -14,10 +14,12 @@ Institution: UNDEF - IUA Cordoba
 License: AGPL-3.0
 """
 
+import hmac
 import importlib
 import json
 import logging
 import os
+import secrets
 import sys
 import tempfile
 import uuid
@@ -55,6 +57,13 @@ def _django_settings_kwargs() -> Dict[str, Any]:
         "CORS_ALLOW_ALL_ORIGINS": True,
         "CORS_ALLOW_CREDENTIALS": True,
         "REST_FRAMEWORK": {
+            # NOTE: this can't default to RequireApiKey -- DRF resolves
+            # DEFAULT_PERMISSION_CLASSES eagerly while rest_framework.views is
+            # being imported below, which happens while this very module is
+            # still mid-import (before RequireApiKey is defined later in the
+            # file), causing a self-referential ImportError. Each
+            # state-changing view instead sets @permission_classes([RequireApiKey])
+            # explicitly; see "Auth + path sandboxing" below.
             "DEFAULT_PERMISSION_CLASSES": [
                 "rest_framework.permissions.AllowAny",
             ],
@@ -95,7 +104,7 @@ except ImportError:
 try:
     from rest_framework import status
     from rest_framework.decorators import api_view, permission_classes
-    from rest_framework.permissions import AllowAny
+    from rest_framework.permissions import AllowAny, BasePermission
     from rest_framework.request import Request
     from rest_framework.response import Response
 
@@ -342,6 +351,21 @@ def run_tool(tool: str, contract_path: str, timeout: int = 300, **kwargs: Any) -
         }
 
     try:
+        # Skip tools that don't apply to this file type (e.g. Solidity-only
+        # tools against a .vy file, or vice versa) — see miesc/cli/utils.py's
+        # run_tool for the same gate and why it's needed (MEJORAS3.md item 7).
+        can_analyze = getattr(adapter, "can_analyze", None)
+        if callable(can_analyze) and not can_analyze(contract_path):
+            return {
+                "tool": tool,
+                "contract": contract_path,
+                "status": "skipped",
+                "findings": [],
+                "execution_time": 0,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "error": f"{tool} does not support this file type",
+            }
+
         from miesc.core.tool_protocol import ToolStatus
 
         tool_status = adapter.is_available()
@@ -545,6 +569,79 @@ def custom_exception_handler(exc: Exception, context: Dict[str, Any]) -> Any:
 
 
 # ============================================================================
+# Auth + path sandboxing
+#
+# There is no database configured (DATABASES = {}), so django.contrib.auth
+# cannot back a real user/session model here. The API key check below is the
+# minimal fail-closed alternative for a local-first CLI tool that also
+# exposes a network server (default bind is 0.0.0.0, not just localhost).
+# ============================================================================
+
+_api_key_cache: List[str] = []
+
+
+def _get_api_key() -> str:
+    """Return the API key requests must present, generating one if unset.
+
+    Set ``MIESC_API_KEY`` to pin a stable key (e.g. for CI). If unset, a
+    random key is generated once per process and logged at WARNING level so
+    an operator starting the server interactively can read it off the
+    console; it is never written to disk.
+    """
+    if _api_key_cache:
+        return _api_key_cache[0]
+    key = os.environ.get("MIESC_API_KEY")
+    if not key:
+        key = secrets.token_urlsafe(32)
+        logger.warning(
+            "MIESC_API_KEY not set -- generated a one-time API key for this run: %s "
+            "(set MIESC_API_KEY to pin a stable key). Send it as the X-API-Key header.",
+            key,
+        )
+    _api_key_cache.append(key)
+    return key
+
+
+if DRF_AVAILABLE:
+
+    class RequireApiKey(BasePermission):
+        """Require the ``X-API-Key`` header to match the configured/generated key.
+
+        Applied to every endpoint that executes tools or writes files
+        (analyze/*, remediate, validate-remediation) -- not to the read-only,
+        no-side-effect endpoints (root, tools list/info, layers, health,
+        reports), which stay open so an operator can probe the server without
+        the key.
+        """
+
+        def has_permission(self, request: "Request", view: Any) -> bool:
+            provided = request.headers.get("X-API-Key", "")
+            return hmac.compare_digest(provided, _get_api_key())
+
+
+class PathTraversalError(ValueError):
+    """Raised when a request-supplied contract/output path escapes the allowed root."""
+
+
+def _resolve_contract_path(raw_path: str) -> str:
+    """Resolve a user-supplied contract/output path, confined to a fixed root.
+
+    Without this, ``contract_path``/``output_path`` from the (now
+    authenticated, but still untrusted) request body would let any caller
+    read or write arbitrary files on the server's filesystem -- ``../../etc``
+    traversal and absolute paths like ``/etc/passwd`` both resolve outside
+    the root and are rejected. Root defaults to the server's working
+    directory; override with ``MIESC_REST_ROOT`` (e.g. to point at a
+    dedicated scan workspace).
+    """
+    root = Path(os.environ.get("MIESC_REST_ROOT", os.getcwd())).resolve()
+    candidate = (root / raw_path).resolve()
+    if candidate != root and root not in candidate.parents:
+        raise PathTraversalError(f"Path outside the allowed root ({root}): {raw_path!r}")
+    return str(candidate)
+
+
+# ============================================================================
 # API Views (Django REST Framework)
 # ============================================================================
 
@@ -581,7 +678,7 @@ if DRF_AVAILABLE:
         )
 
     @api_view(["POST"])
-    @permission_classes([AllowAny])
+    @permission_classes([RequireApiKey])
     def analyze_quick(request: Request) -> Response:
         """
         Run a quick 4-tool scan (slither, aderyn, solhint, mythril).
@@ -602,6 +699,12 @@ if DRF_AVAILABLE:
                 {"error": "Either contract_code or contract_path is required"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+        if contract_path:
+            try:
+                contract_path = _resolve_contract_path(contract_path)
+            except PathTraversalError as e:
+                return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         # If code is provided, save to temp file
         if contract_code:
@@ -641,7 +744,7 @@ if DRF_AVAILABLE:
                 os.unlink(contract_path)
 
     @api_view(["POST"])
-    @permission_classes([AllowAny])
+    @permission_classes([RequireApiKey])
     def analyze_full(request: Request) -> Response:
         """
         Run a complete configured multi-layer audit.
@@ -664,6 +767,12 @@ if DRF_AVAILABLE:
                 {"error": "Either contract_code or contract_path is required"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+        if contract_path:
+            try:
+                contract_path = _resolve_contract_path(contract_path)
+            except PathTraversalError as e:
+                return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         # Validate layers
         valid_layers = [l for l in layers if l in LAYERS]
@@ -695,7 +804,7 @@ if DRF_AVAILABLE:
                 os.unlink(contract_path)
 
     @api_view(["POST"])
-    @permission_classes([AllowAny])
+    @permission_classes([RequireApiKey])
     def analyze_layer(request: Request, layer_num: int) -> Response:
         """
         Run all tools in a specific configured layer.
@@ -715,6 +824,12 @@ if DRF_AVAILABLE:
                 {"error": "Either contract_code or contract_path is required"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+        if contract_path:
+            try:
+                contract_path = _resolve_contract_path(contract_path)
+            except PathTraversalError as e:
+                return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         if contract_code:
             with tempfile.NamedTemporaryFile(mode="w", suffix=".sol", delete=False) as f:
@@ -780,6 +895,14 @@ if DRF_AVAILABLE:
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        try:
+            if contract_path:
+                contract_path = _resolve_contract_path(contract_path)
+            if output_path:
+                output_path = _resolve_contract_path(output_path)
+        except PathTraversalError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
         temp_dir = tempfile.TemporaryDirectory()
         temp_path = Path(temp_dir.name)
         created_temp_contract = False
@@ -824,7 +947,7 @@ if DRF_AVAILABLE:
             temp_dir.cleanup()
 
     @api_view(["POST"])
-    @permission_classes([AllowAny])
+    @permission_classes([RequireApiKey])
     def remediate_contract_view(request: Request) -> Response:
         """
         Apply fixes and return a Paper 2-style remediation evidence bundle.
@@ -842,13 +965,13 @@ if DRF_AVAILABLE:
         return _remediate_request(request, default_validate=False)
 
     @api_view(["POST"])
-    @permission_classes([AllowAny])
+    @permission_classes([RequireApiKey])
     def validate_remediation_view(request: Request) -> Response:
         """Alias for remediation evidence generation with validation flags enabled."""
         return _remediate_request(request, default_validate=True)
 
     @api_view(["POST"])
-    @permission_classes([AllowAny])
+    @permission_classes([RequireApiKey])
     def analyze_tool(request: Request, tool_name: str) -> Response:
         """
         Run a single security tool.
@@ -871,6 +994,12 @@ if DRF_AVAILABLE:
                 {"error": "Either contract_code or contract_path is required"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+        if contract_path:
+            try:
+                contract_path = _resolve_contract_path(contract_path)
+            except PathTraversalError as e:
+                return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         if contract_code:
             with tempfile.NamedTemporaryFile(mode="w", suffix=".sol", delete=False) as f:
@@ -1255,6 +1384,7 @@ def run_server(host: str = "0.0.0.0", port: int = 5001, debug: bool = False) -> 
 
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "miesc.api.rest")
     create_app()
+    _get_api_key()  # log/generate the key now, before the first request arrives
 
     sys.argv = ["manage.py", "runserver", f"{host}:{port}"]
     if not debug:

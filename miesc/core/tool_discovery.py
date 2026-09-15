@@ -5,9 +5,12 @@ Descubre y carga dinámicamente todos los adaptadores disponibles.
 
 import importlib
 import inspect
+import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -143,9 +146,10 @@ class ToolDiscovery:
                 tool_info = self._load_adapter_info(py_file)
                 if tool_info:
                     self._tools[tool_info.name] = tool_info
-            except Exception:
-                # Silenciosamente ignorar adaptadores que no se pueden cargar
-                pass
+            except Exception as e:
+                # A broken adapter (syntax error, bad import) looks identical to
+                # "not installed" without this — log it so the two are distinguishable.
+                logger.warning(f"Could not load adapter {py_file.name}: {e}")
 
         self._discovered = True
         return self._tools

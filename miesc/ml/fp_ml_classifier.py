@@ -49,6 +49,7 @@ import json
 import logging
 import pickle
 import re
+import zlib
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -148,9 +149,15 @@ def extract_features(
         if t in tool:
             f.tool_onehot[i] = 1
 
-    # Vuln type (hashed int for bag-of-words-like signal)
+    # Vuln type (hashed int for bag-of-words-like signal). MEJORAS2.md #5b:
+    # must be a stable hash — builtin hash() is salted per-process
+    # (PYTHONHASHSEED) for security, so a model trained in one process and
+    # loaded via pickle in another (the only way this is ever used) would
+    # recompute a completely different bucket for the same type string,
+    # turning this feature (40%+ of the trained model's importance) into
+    # noise at prediction time. zlib.crc32 is deterministic across runs.
     vuln_type = str(finding.get("type", finding.get("check", ""))).lower()
-    f.vuln_type_hash = hash(vuln_type) & 0xFFFFFF
+    f.vuln_type_hash = zlib.crc32(vuln_type.encode()) & 0xFFFFFF
 
     # Code context features
     ctx = code_context.lower()

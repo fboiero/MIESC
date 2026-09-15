@@ -168,3 +168,100 @@ def test_price_calc_reserve_ratio():
     out = _a().analyze_source(src)
     assert out["success"] is True
     assert out["findings"]  # reserve-ratio price manipulation flagged
+
+
+# --------------------------------------------------------------------------- #
+# MEJORAS3.md item 2: rounding (divide-before-multiply library chains) and
+# fee-on-transfer (missing balance-before/after) detectors.
+# --------------------------------------------------------------------------- #
+def test_divide_before_multiply_library_chain_flagged():
+    # Real pattern from y2k-finance/src/Vault.sol (M-04, ground truth
+    # category "rounding"): a solmate-style divWadDown() chained straight
+    # into mulDivDown() truncates in the division before the multiply runs.
+    src = (
+        "contract Vault {\n"
+        "  function withdraw(uint256 amount, uint256 total) public returns (uint256) {\n"
+        "    return amount.divWadDown(total).mulDivDown(1e18, 1);\n"
+        "  }\n"
+        "}\n"
+    )
+    out = _a().analyze_source(src)
+    assert out["success"] is True
+    findings = [f for f in out["findings"] if f["category"] == "rounding"]
+    assert findings
+    assert findings[0]["type"] == "rounding"
+
+
+def test_single_muldivdown_call_not_flagged_as_rounding():
+    # mulDivDown(a, b, c) alone is the *correct* safe pattern (multiply
+    # before dividing) — must not be flagged.
+    src = (
+        "contract Vault {\n"
+        "  function withdraw(uint256 amount, uint256 total) public returns (uint256) {\n"
+        "    return amount.mulDivDown(1e18, total);\n"
+        "  }\n"
+        "}\n"
+    )
+    out = _a().analyze_source(src)
+    assert not [f for f in out["findings"] if f["category"] == "rounding"]
+
+
+def test_fee_on_transfer_missing_balance_check_flagged():
+    # Real pattern from y2k-finance/src/SemiFungibleVault.sol (M-02):
+    # shares are computed from the requested amount before transferFrom
+    # runs, never validated against the actual balance received.
+    src = (
+        "contract Vault {\n"
+        "  function deposit(uint256 assets) public returns (uint256 shares) {\n"
+        "    shares = previewDeposit(assets);\n"
+        "    asset.safeTransferFrom(msg.sender, address(this), assets);\n"
+        "    _mint(msg.sender, shares);\n"
+        "  }\n"
+        "}\n"
+    )
+    out = _a().analyze_source(src)
+    findings = [f for f in out["findings"] if f["category"] == "fee_on_transfer"]
+    assert findings
+    assert findings[0]["type"] == "fee_on_transfer"
+
+
+def test_fee_on_transfer_not_flagged_when_balance_checked():
+    src = (
+        "contract Vault {\n"
+        "  function deposit(uint256 assets) public returns (uint256 shares) {\n"
+        "    uint256 before = token.balanceOf(address(this));\n"
+        "    asset.safeTransferFrom(msg.sender, address(this), assets);\n"
+        "    shares = token.balanceOf(address(this)) - before;\n"
+        "    _mint(msg.sender, shares);\n"
+        "  }\n"
+        "}\n"
+    )
+    out = _a().analyze_source(src)
+    assert not [f for f in out["findings"] if f["category"] == "fee_on_transfer"]
+
+
+def test_fee_on_transfer_ignores_nft_safe_transfer_from():
+    # ERC721/ERC1155 safeTransferFrom moves a tokenId, not an amount —
+    # fee-on-transfer is an ERC20-only concept.
+    src = (
+        "contract Auction {\n"
+        "  function settle(address token, address winner, uint256 tokenId) public {\n"
+        "    IERC721(token).safeTransferFrom(address(this), winner, tokenId);\n"
+        "  }\n"
+        "}\n"
+    )
+    out = _a().analyze_source(src)
+    assert not [f for f in out["findings"] if f["category"] == "fee_on_transfer"]
+
+
+def test_all_findings_carry_a_type_field_matching_category():
+    # Regression: DeFiAdapter used to omit "type", so evaluate.py's
+    # _normalize_category (which reads f.get("type") first) fell back to
+    # fuzzy title/description keyword matching — which could collide with
+    # an unrelated category's alias (e.g. a "rounding" finding whose title
+    # mentions "divide-before-multiply" was misclassified as "arithmetic",
+    # since that's an existing alias for a *different* canonical category).
+    out = _a().analyze_source(DEFI)
+    assert out["findings"]
+    for f in out["findings"]:
+        assert f["type"] == f["category"]

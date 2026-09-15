@@ -95,7 +95,16 @@ class RugPullDetector:
     # Hidden mint patterns
     HIDDEN_MINT_PATTERNS = [
         (
-            r"function\s+\w*[Mm]int\w*\s*\([^)]*\)\s*(?:external|public|internal)[^{]*(?!view|pure)",
+            # (?![a-z]) is scoped case-sensitive ((?-i:...)) so it only blocks
+            # a lowercase continuation of the word itself (Minting, Minter -
+            # not mint functions), not any letter - under re.IGNORECASE a
+            # bare (?![a-z]) would (wrongly) also reject "mintTo"/"MintBatch".
+            # The trailing (?:(?!\bview\b|\bpure\b)[^{;])*(?:\{|;) replaces a
+            # dead (?!view|pure) lookahead that ran *after* a greedy [^{]*
+            # had already consumed the whole modifier list, so it never
+            # actually excluded view/pure functions.
+            r"function\s+\w*[Mm]int(?-i:(?![a-z]))\w*\s*\([^)]*\)\s*"
+            r"(?:external|public|internal)(?:(?!\bview\b|\bpure\b)[^{;])*(?:\{|;)",
             "Mint function detected - check for access control",
         ),
         (r"_mint\s*\(\s*\w+\s*,\s*\d{10,}", "Large mint amount hardcoded - inflation risk"),

@@ -163,11 +163,11 @@ This audit employed MIESC's 9-layer defense-in-depth methodology:
 | 2 | Dynamic Testing | {{ layer2_tools }} |
 | 3 | Symbolic Execution | {{ layer3_tools }} |
 | 4 | Formal Verification | {{ layer4_tools }} |
-| 5 | Property Testing | {{ layer5_tools }} |
-| 6 | AI/LLM Analysis | {{ layer6_tools }} |
-| 7 | Pattern Recognition | {{ layer7_tools }} |
-| 8 | DeFi Security | {{ layer8_tools }} |
-| 9 | Advanced Detection | {{ layer9_tools }} |
+| 5 | AI Analysis | {{ layer5_tools }} |
+| 6 | ML Detection | {{ layer6_tools }} |
+| 7 | Specialized Analysis | {{ layer7_tools }} |
+| 8 | Cross-Chain & ZK Security | {{ layer8_tools }} |
+| 9 | Advanced AI Ensemble | {{ layer9_tools }} |
 
 ### Audit Process
 

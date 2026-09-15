@@ -1,20 +1,25 @@
 """
-DA-GNN Adapter - Layer 6: ML-Based Vulnerability Detection
-===========================================================
+DA-GNN Adapter - Layer 6: Heuristic Vulnerability Detection (GNN fallback)
+===========================================================================
 
-Deep Attention Graph Neural Network for smart contract vulnerability detection.
-Based on Computer Networks (ScienceDirect, February 2024) research achieving
-95.7% accuracy on vulnerability classification.
+Inspired by the Deep Attention Graph Neural Network approach in Computer
+Networks (ScienceDirect, February 2024), which reports 95.7% accuracy for
+its own trained model on its own dataset. That figure describes the paper,
+not this adapter: no pre-trained weights ship with MIESC, and
+`_run_pretrained_model()` never runs real inference even when a model file
+is present (the torch forward pass is commented out) — every call falls
+back to `_run_heuristic_prediction()`, a regex/substring pattern matcher
+with hand-picked confidence scores. Treat this as a heuristic detector, not
+a benchmarked ML classifier, until real weights are trained/loaded.
 
-Uses graph-based deep learning to represent contracts as CFG+DFG and apply
-GNN with attention mechanism for pattern recognition.
+Uses graph-based feature extraction (CFG+DFG) to describe the contract, but
+the current classification step is pattern-based, not a GNN forward pass.
 
 Key Features:
-- 95.7% detection accuracy (state-of-the-art)
 - Graph-based representation (CFG + DFG)
-- Attention mechanism for vulnerability patterns
+- Heuristic pattern matching over that graph (no trained model loaded)
 - Multi-class vulnerability detection
-- Local model (no external API)
+- Local, no external API
 
 Author: Fernando Boiero <fboiero@frvm.utn.edu.ar>
 Date: 2025-01-13

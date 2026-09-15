@@ -17,6 +17,9 @@ import json
 
 from miesc.core.baseline import (
     Baseline,
+    _get,
+    _normalize_message,
+    _normalize_symbol,
     diff_against_baseline,
     fingerprint,
     generate_baseline,
@@ -46,6 +49,14 @@ def _finding(
         "location": location,
         "tool": "slither",
     }
+
+
+class _AttrFinding:
+    """Attribute-based finding shape (e.g. a dataclass), as opposed to a dict."""
+
+    def __init__(self, **kwargs):
+        for key, value in kwargs.items():
+            setattr(self, key, value)
 
 
 # =============================================================================
@@ -114,6 +125,153 @@ class TestFingerprint:
         assert norm["symbol"] == "withdraw"
         assert norm["severity"] == "high"
         assert len(norm["message_hash"]) == 16
+
+
+# =============================================================================
+# Attribute-based findings (non-dict FindingLike shape)
+# =============================================================================
+
+
+class TestAttributeBasedFindings:
+    def test_reads_fields_from_attributes(self):
+        f = _AttrFinding(type="reentrancy", message="Reentrancy in withdraw()", severity="HIGH")
+        norm = normalize_finding(f)
+        assert norm["rule_id"] == "reentrancy"
+        assert norm["message"] == "Reentrancy in withdraw()"
+        assert norm["severity"] == "high"
+
+    def test_defaults_when_no_attributes_present(self):
+        norm = normalize_finding(_AttrFinding())
+        assert norm["rule_id"] == "unknown"
+        assert norm["message"] == ""
+        assert norm["file"] == ""
+        assert norm["symbol"] == ""
+        assert norm["severity"] == ""
+
+    def test_falls_back_through_attribute_key_order(self):
+        # No "function" attribute -> falls through to "function_name".
+        norm = normalize_finding(_AttrFinding(function_name="claim"))
+        assert norm["symbol"] == "claim"
+
+
+# =============================================================================
+# Field fallback keys (rule_id / message / file / symbol resolution order)
+# =============================================================================
+
+
+class TestFieldFallbackKeys:
+    def test_rule_id_falls_back_to_rule_id_key(self):
+        assert normalize_finding({"rule_id": "unchecked-call"})["rule_id"] == "unchecked-call"
+
+    def test_rule_id_falls_back_to_check_key(self):
+        assert normalize_finding({"check": "unchecked-call"})["rule_id"] == "unchecked-call"
+
+    def test_rule_id_falls_back_to_title_key(self):
+        assert normalize_finding({"title": "Unchecked Call"})["rule_id"] == "Unchecked Call"
+
+    def test_message_falls_back_to_description_key(self):
+        norm = normalize_finding({"description": "External call is unchecked"})
+        assert norm["message"] == "External call is unchecked"
+
+    def test_message_falls_back_to_title_key(self):
+        norm = normalize_finding({"title": "Unchecked Call"})
+        assert norm["message"] == "Unchecked Call"
+
+    def test_severity_is_lowercased(self):
+        assert normalize_finding({"severity": "HIGH"})["severity"] == "high"
+
+    def test_extract_file_falls_back_to_file_path_key_in_location(self):
+        f = {"location": {"file_path": "contracts/Bank.sol"}}
+        assert normalize_finding(f)["file"] == "contracts/Bank.sol"
+
+    def test_extract_file_falls_back_to_filename_key_in_location(self):
+        f = {"location": {"filename": "contracts/Bank.sol"}}
+        assert normalize_finding(f)["file"] == "contracts/Bank.sol"
+
+    def test_extract_file_falls_back_to_flat_file_path_key(self):
+        assert (
+            normalize_finding({"file_path": "contracts/Bank.sol"})["file"] == "contracts/Bank.sol"
+        )
+
+    def test_extract_file_falls_back_to_flat_filename_key(self):
+        assert normalize_finding({"filename": "contracts/Bank.sol"})["file"] == "contracts/Bank.sol"
+
+    def test_extract_symbol_falls_back_to_function_name_key_in_location(self):
+        f = {"location": {"function_name": "withdraw"}}
+        assert normalize_finding(f)["symbol"] == "withdraw"
+
+    def test_extract_symbol_falls_back_to_symbol_key_in_location(self):
+        f = {"location": {"symbol": "withdraw"}}
+        assert normalize_finding(f)["symbol"] == "withdraw"
+
+    def test_extract_symbol_falls_back_to_contract_key_in_location(self):
+        f = {"location": {"contract": "Bank"}}
+        assert normalize_finding(f)["symbol"] == "Bank"
+
+    def test_extract_symbol_falls_back_to_flat_function_name_key(self):
+        assert normalize_finding({"function_name": "withdraw"})["symbol"] == "withdraw"
+
+    def test_extract_symbol_falls_back_to_flat_symbol_key(self):
+        assert normalize_finding({"symbol": "withdraw"})["symbol"] == "withdraw"
+
+    def test_extract_symbol_falls_back_to_flat_contract_key(self):
+        assert normalize_finding({"contract": "Bank"})["symbol"] == "Bank"
+
+    def test_extract_symbol_prefers_function_over_function_name(self):
+        f = {"function": "withdraw", "function_name": "other"}
+        assert normalize_finding(f)["symbol"] == "withdraw"
+
+
+# =============================================================================
+# Private normalization helpers: normalize_finding()/fingerprint() only expose
+# a one-way message_hash, not the normalized string, so whitespace-collapse
+# and line-ref-stripping behavior can only be pinned by testing the private
+# helpers directly.
+# =============================================================================
+
+
+class TestPrivateNormalizationHelpers:
+    def test_get_treats_empty_string_dict_value_as_missing(self):
+        assert _get({"message": "", "title": "fallback"}, "message", "title") == "fallback"
+
+    def test_get_treats_empty_string_attribute_value_as_missing(self):
+        f = _AttrFinding(message="", title="fallback")
+        assert _get(f, "message", "title") == "fallback"
+
+    def test_normalize_symbol_collapses_whitespace_to_single_space(self):
+        assert _normalize_symbol("with   draw") == "with draw"
+
+    def test_normalize_message_strips_line_reference_entirely(self):
+        assert _normalize_message("Reentrancy (line 42)") == "Reentrancy ()"
+
+    def test_normalize_message_collapses_whitespace_to_single_space(self):
+        assert _normalize_message("a   b") == "a b"
+
+    def test_fingerprint_is_16_hex_chars(self):
+        assert len(fingerprint(_finding())) == 16
+
+
+# =============================================================================
+# _normalize_path edge cases (via normalize_finding()["file"])
+# =============================================================================
+
+
+class TestNormalizePathEdgeCases:
+    def test_empty_path_stays_empty(self):
+        assert normalize_finding({"file": ""})["file"] == ""
+
+    def test_backslashes_become_forward_slashes(self):
+        assert normalize_finding({"file": "contracts\\Bank.sol"})["file"] == "contracts/Bank.sol"
+
+    def test_absolute_path_prefix_preserved(self):
+        assert normalize_finding({"file": "/contracts/Bank.sol"})["file"] == "/contracts/Bank.sol"
+
+    def test_double_slashes_collapse(self):
+        assert normalize_finding({"file": "contracts//Bank.sol"})["file"] == "contracts/Bank.sol"
+
+    def test_mid_path_dot_segment_collapses(self):
+        f = {"file": "contracts/./Bank.sol"}
+        assert normalize_finding(f)["file"] == "contracts/Bank.sol"
 
 
 # =============================================================================

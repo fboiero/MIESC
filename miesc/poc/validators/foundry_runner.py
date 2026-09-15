@@ -34,6 +34,8 @@ FOUNDRY_RUNTIME_ERRORS = (OSError, RuntimeError, subprocess.SubprocessError)
 FOUNDRY_PARSE_ERRORS = (AttributeError, TypeError, ValueError)
 MAX_RAW_OUTPUT_CHARS = 200_000
 MAX_JSON_OUTPUT_LINE_CHARS = 50_000
+# Current Forge JSON embeds invariant traces and bytecode in a single line.
+MAX_TEST_JSON_OUTPUT_LINE_CHARS = 1_000_000
 MAX_ERROR_CHARS = 500
 MAX_GAS_VALUE = 10_000_000_000
 MAX_TIMEOUT_SECONDS = 86_400
@@ -204,6 +206,7 @@ class TestResult:
     gas_used: Optional[int] = None
     duration_ms: float = 0
     error_message: Optional[str] = None
+    counterexample: Optional[Any] = None
     traces: Optional[str] = None
     logs: List[str] = field(default_factory=list)
 
@@ -633,7 +636,7 @@ class FoundryRunner:
             json_candidates = 0
             for line in stdout.split("\n"):
                 line = line.strip()
-                if len(line) > MAX_JSON_OUTPUT_LINE_CHARS:
+                if len(line) > MAX_TEST_JSON_OUTPUT_LINE_CHARS:
                     continue
                 if line.startswith("{"):
                     json_candidates += 1
@@ -722,12 +725,21 @@ class FoundryRunner:
         if not isinstance(data, dict):
             return tests
 
-        # Handle different JSON formats from forge
+        # Forge <=1.4 wrapped every contract under ``test_results``. Newer
+        # versions put contracts at the top level and nest ``test_results``
+        # inside each contract payload.
         test_results = _safe_mapping_get(data, "test_results")
+        contract_results: List[tuple[Any, Any]] = []
         if isinstance(test_results, Mapping):
-            for contract, results in _bounded_mapping_items(
-                test_results, MAX_JSON_CONTRACT_RESULTS
-            ):
+            contract_results = _bounded_mapping_items(test_results, MAX_JSON_CONTRACT_RESULTS)
+        else:
+            for contract, payload in _bounded_mapping_items(data, MAX_JSON_CONTRACT_RESULTS):
+                nested = _safe_mapping_get(payload, "test_results")
+                if isinstance(nested, Mapping):
+                    contract_results.append((contract, nested))
+
+        if contract_results:
+            for contract, results in contract_results:
                 contract_name = self._normalize_test_name(contract)
                 if contract_name is None:
                     continue
@@ -739,15 +751,28 @@ class FoundryRunner:
                     if not isinstance(result, Mapping):
                         continue
                     test_name = self._normalize_test_name(test_name)
-                    status = self._normalize_success_status(_safe_mapping_get(result, "success"))
+                    status = self._normalize_success_status(
+                        _safe_mapping_get(
+                            result,
+                            "success",
+                            _safe_mapping_get(result, "status"),
+                        )
+                    )
                     if test_name is None or status is None:
                         continue
                     logs = self._normalize_logs(_safe_mapping_get(result, "logs"))
+                    reason = _safe_text(
+                        _safe_mapping_get(result, "reason"),
+                        limit=MAX_ERROR_CHARS,
+                        allow_multiline=True,
+                    )
                     tests.append(
                         TestResult(
                             name=f"{contract_name}::{test_name}",
                             status=status,
                             gas_used=self._normalize_gas_value(_safe_mapping_get(result, "gas")),
+                            error_message=reason,
+                            counterexample=_safe_mapping_get(result, "counterexample"),
                             logs=logs,
                         )
                     )

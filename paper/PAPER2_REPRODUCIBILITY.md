@@ -163,6 +163,21 @@ inline de guardas. Por lo tanto, esta metrica no prueba equivalencia funcional
 completa; prueba que el fix no incrementa materialmente el perfil de hallazgos
 de seguridad bajo el mismo pipeline.
 
+La generalizacion del patcher fuera del corpus es mas limitada de lo que sugiere
+`123/143`. De las funciones que aplican el patron checks-effects-interactions para
+reentrancy (`miesc/cli/commands/fix.py`), 3 (`_apply_lc_open_timeout_delete_before_transfer`,
+`_apply_byzantine_close_channel_cei`, `_apply_fiftyflip_wager_cei`) son templates
+curve-fit a un contrato puntual de SmartBugs-curated cada una: matchean por nombre de
+funcion exacto (`LCOpenTimeout`, `byzantineCloseChannel`, `wager`) mas variables y campos
+literales del contrato original, y no disparan en ningun contrato fuera de esos 3. Las
+otras 2 (`_apply_legacy_call_value_cei`, `_apply_indirect_boolean_claim_cei`, con sus
+variantes `_any_function`) detectan por forma estructural (regex sobre el patron, no
+sobre nombres de contrato) y si generalizan a codigo fuera del benchmark. En terminos
+del headline `123/143`, hasta 3 de esos fixes exitosos dependen de codigo que fue escrito
+mirando el contrato exacto del benchmark, no de deteccion general del patron CEI — relevante
+para no leer `123/143` como evidencia de que el patcher generaliza a contratos nuevos en esa
+misma proporcion.
+
 ## Relacion con Paper 1
 
 Paper 2 usa Paper 1 solo como etapa de deteccion. La claim de deteccion que debe

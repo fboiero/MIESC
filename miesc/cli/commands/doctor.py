@@ -9,6 +9,7 @@ License: AGPL-3.0
 
 import asyncio
 import os
+import shutil
 import subprocess
 
 import click
@@ -169,10 +170,13 @@ def doctor(verbose: bool) -> None:
         llm_table.add_column("Details", width=40)
 
         # Ollama
+        from miesc.core.llm_config import get_ollama_host
+
+        ollama_host = get_ollama_host()
         try:
             import urllib.request
 
-            req = urllib.request.Request("http://localhost:11434/api/tags")
+            req = urllib.request.Request(f"{ollama_host}/api/tags")
             resp = urllib.request.urlopen(req, timeout=3)
             import json as _json
 
@@ -181,13 +185,13 @@ def doctor(verbose: bool) -> None:
             llm_table.add_row(
                 "Ollama",
                 "[green]running[/green]",
-                f"{len(models)} models ({', '.join(coder_models[:3])})",
+                f"{len(models)} models ({', '.join(coder_models[:3])}) @ {ollama_host}",
             )
         except Exception:
             llm_table.add_row(
                 "Ollama",
                 "[yellow]offline[/yellow]",
-                "Install: https://ollama.com + ollama pull qwen2.5-coder:14b",
+                f"Checked {ollama_host} — install: https://ollama.com + ollama pull qwen2.5-coder:14b",
             )
 
         # Anthropic
@@ -205,6 +209,32 @@ def doctor(verbose: bool) -> None:
         # DeepSeek
         deepseek_status, deepseek_details = _deepseek_doctor_status()
         llm_table.add_row("DeepSeek", deepseek_status, deepseek_details)
+
+        if shutil.which("claude"):
+            llm_table.add_row(
+                "Claude Code",
+                "[green]installed[/green]",
+                "Uses the Claude CLI subscription login — --model claude-code",
+            )
+        else:
+            llm_table.add_row(
+                "Claude Code",
+                "[dim]not found[/dim]",
+                "Install: https://claude.com/claude-code",
+            )
+
+        if shutil.which("codex"):
+            llm_table.add_row(
+                "Codex CLI",
+                "[green]installed[/green]",
+                "Uses the Codex CLI subscription login — --model codex",
+            )
+        else:
+            llm_table.add_row(
+                "Codex CLI",
+                "[dim]not found[/dim]",
+                "Install: https://github.com/openai/codex",
+            )
 
         console.print(llm_table)
 

@@ -1,10 +1,13 @@
 """
-Peculiar Adapter - Layer 6: ML-Based Vulnerability Detection
-=============================================================
+Peculiar Adapter - Layer 6: Heuristic Vulnerability Detection (GNN-capable)
+=============================================================================
 
-Heterogeneous Graph Neural Network for smart contract vulnerability detection.
-Based on Peculiar (ICSE 2023) research that constructs a heterogeneous code
-property graph combining AST, CFG, and DFG for GNN-based inference.
+Inspired by Peculiar (ICSE 2023), which constructs a heterogeneous code
+property graph (AST+CFG+DFG) for GNN-based inference. No pre-trained
+`peculiar_weights.pt` ships with MIESC, so unlike DA-GNN this adapter CAN
+run real GNN inference if you drop weight files into `self.model_dir` —
+but out of the box, every analysis uses the pattern-based fallback
+(`analysis_mode="pattern_fallback"`), not a trained model.
 
 Key Features:
 - Heterogeneous code graph (AST + CFG + DFG)

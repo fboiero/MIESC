@@ -1,0 +1,304 @@
+{
+  "generated_at": "2026-08-14T16:22:42.878516",
+  "benchmark": {
+    "layers": "1,6,7",
+    "corpus": "smartbugs-curated (143 contracts)",
+    "fork": {
+      "tp": 143,
+      "fp": 517,
+      "fn": 0,
+      "precision": 0.2167,
+      "recall": 1.0,
+      "f1": 0.3562,
+      "contracts_evaluated": 143,
+      "total_time_s": 298.4,
+      "avg_time_per_contract_s": 2.09,
+      "hit_rate": 1.0
+    },
+    "upstream": {
+      "tp": 143,
+      "fp": 523,
+      "fn": 0,
+      "precision": 0.2147,
+      "recall": 1.0,
+      "f1": 0.3535,
+      "contracts_evaluated": 143,
+      "total_time_s": 6077.7,
+      "avg_time_per_contract_s": 42.5,
+      "hit_rate": 1.0
+    },
+    "fork_per_category": {
+      "access_control": {
+        "tp": 18,
+        "fp": 67,
+        "fn": 0,
+        "precision": 0.2118,
+        "recall": 1.0,
+        "f1": 0.3495
+      },
+      "arithmetic": {
+        "tp": 15,
+        "fp": 119,
+        "fn": 0,
+        "precision": 0.1119,
+        "recall": 1.0,
+        "f1": 0.2013
+      },
+      "bad_randomness": {
+        "tp": 8,
+        "fp": 22,
+        "fn": 0,
+        "precision": 0.2667,
+        "recall": 1.0,
+        "f1": 0.4211
+      },
+      "denial_of_service": {
+        "tp": 6,
+        "fp": 46,
+        "fn": 0,
+        "precision": 0.1154,
+        "recall": 1.0,
+        "f1": 0.2069
+      },
+      "front_running": {
+        "tp": 4,
+        "fp": 43,
+        "fn": 0,
+        "precision": 0.0851,
+        "recall": 1.0,
+        "f1": 0.1569
+      },
+      "other": {
+        "tp": 3,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "reentrancy": {
+        "tp": 31,
+        "fp": 75,
+        "fn": 0,
+        "precision": 0.2925,
+        "recall": 1.0,
+        "f1": 0.4526
+      },
+      "short_addresses": {
+        "tp": 1,
+        "fp": 42,
+        "fn": 0,
+        "precision": 0.0233,
+        "recall": 1.0,
+        "f1": 0.0455
+      },
+      "time_manipulation": {
+        "tp": 5,
+        "fp": 43,
+        "fn": 0,
+        "precision": 0.1042,
+        "recall": 1.0,
+        "f1": 0.1887
+      },
+      "unchecked_low_level_calls": {
+        "tp": 52,
+        "fp": 60,
+        "fn": 0,
+        "precision": 0.4643,
+        "recall": 1.0,
+        "f1": 0.6341
+      }
+    },
+    "upstream_per_category": {
+      "access_control": {
+        "tp": 18,
+        "fp": 68,
+        "fn": 0,
+        "precision": 0.2093,
+        "recall": 1.0,
+        "f1": 0.3462
+      },
+      "arithmetic": {
+        "tp": 15,
+        "fp": 119,
+        "fn": 0,
+        "precision": 0.1119,
+        "recall": 1.0,
+        "f1": 0.2013
+      },
+      "bad_randomness": {
+        "tp": 8,
+        "fp": 22,
+        "fn": 0,
+        "precision": 0.2667,
+        "recall": 1.0,
+        "f1": 0.4211
+      },
+      "denial_of_service": {
+        "tp": 6,
+        "fp": 48,
+        "fn": 0,
+        "precision": 0.1111,
+        "recall": 1.0,
+        "f1": 0.2
+      },
+      "front_running": {
+        "tp": 4,
+        "fp": 43,
+        "fn": 0,
+        "precision": 0.0851,
+        "recall": 1.0,
+        "f1": 0.1569
+      },
+      "other": {
+        "tp": 3,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "reentrancy": {
+        "tp": 31,
+        "fp": 77,
+        "fn": 0,
+        "precision": 0.287,
+        "recall": 1.0,
+        "f1": 0.446
+      },
+      "short_addresses": {
+        "tp": 1,
+        "fp": 42,
+        "fn": 0,
+        "precision": 0.0233,
+        "recall": 1.0,
+        "f1": 0.0455
+      },
+      "time_manipulation": {
+        "tp": 5,
+        "fp": 44,
+        "fn": 0,
+        "precision": 0.102,
+        "recall": 1.0,
+        "f1": 0.1852
+      },
+      "unchecked_low_level_calls": {
+        "tp": 52,
+        "fp": 60,
+        "fn": 0,
+        "precision": 0.4643,
+        "recall": 1.0,
+        "f1": 0.6341
+      }
+    }
+  },
+  "features": {
+    "commits_behind_upstream": 0,
+    "commits_ahead_of_upstream": 56,
+    "diffstat": "100 files changed, 6360 insertions(+), 2759 deletions(-)",
+    "fork_test_files": 260,
+    "upstream_test_files": 247,
+    "merged_prs": [
+      {
+        "mergedAt": "2026-08-11T18:55:02Z",
+        "number": 1,
+        "title": "Run Foundry proactively with evidence-backed fuzzing results"
+      },
+      {
+        "mergedAt": "2026-08-11T20:09:06Z",
+        "number": 2,
+        "title": "Generate and validate Foundry invariant harnesses"
+      },
+      {
+        "mergedAt": "2026-08-11T21:05:58Z",
+        "number": 3,
+        "title": "Add validated Foundry harness export"
+      },
+      {
+        "mergedAt": "2026-08-12T19:35:24Z",
+        "number": 4,
+        "title": "fix(llm): require explicit opt-in before auto-routing to a cloud LLM (#18)"
+      },
+      {
+        "mergedAt": "2026-08-12T19:35:34Z",
+        "number": 5,
+        "title": "docs: stop overclaiming ML capabilities, show real benchmark numbers"
+      },
+      {
+        "mergedAt": "2026-08-12T19:35:41Z",
+        "number": 6,
+        "title": "feat: X-Ray pre-audit recon + cross-contract exploit chain detection"
+      },
+      {
+        "mergedAt": "2026-08-12T19:35:48Z",
+        "number": 7,
+        "title": "feat(llm): add reachability + bounty-viability gates to finding validation"
+      },
+      {
+        "mergedAt": "2026-08-12T19:35:54Z",
+        "number": 8,
+        "title": "feat: standalone script to diff two benchmark run JSON files"
+      },
+      {
+        "mergedAt": "2026-08-12T19:36:02Z",
+        "number": 9,
+        "title": "fix(core): stop silently swallowing exceptions and stale src.* imports"
+      },
+      {
+        "mergedAt": "2026-08-12T21:05:04Z",
+        "number": 10,
+        "title": "fix(llm): apply LLM validation enrichment even when nothing is filtered"
+      },
+      {
+        "mergedAt": "2026-08-13T16:45:23Z",
+        "number": 11,
+        "title": "Quality + security hardening: mutation testing, SSRF guard tests, REST API auth/path-traversal fix"
+      },
+      {
+        "mergedAt": "2026-08-13T17:11:04Z",
+        "number": 12,
+        "title": "Deduplicate report templates, fix stale layer-8 name, unify template list (#23/#24)"
+      },
+      {
+        "mergedAt": "2026-08-13T17:29:26Z",
+        "number": 13,
+        "title": "Premium report: real fix diffs, Happy Path, Threat Model section (#2)"
+      },
+      {
+        "mergedAt": "2026-08-14T12:49:44Z",
+        "number": 14,
+        "title": "docs(fix): document curve-fit reentrancy templates vs general CEI detection"
+      },
+      {
+        "mergedAt": "2026-08-14T12:56:42Z",
+        "number": 15,
+        "title": "docs: document real CLI reachability of the 7 non-EVM adapters"
+      },
+      {
+        "mergedAt": "2026-08-14T13:01:54Z",
+        "number": 16,
+        "title": "docs: sync README/CONTRIBUTING with the completed src/ -> miesc/ unification"
+      },
+      {
+        "mergedAt": "2026-08-14T13:17:15Z",
+        "number": 17,
+        "title": "feat(llm): expose o1 as a selectable --model choice"
+      },
+      {
+        "mergedAt": "2026-08-14T13:29:03Z",
+        "number": 18,
+        "title": "feat(audit): add checkpoint/resume to miesc audit batch"
+      },
+      {
+        "mergedAt": "2026-08-14T14:34:48Z",
+        "number": 19,
+        "title": "feat(adapters): add a pattern-based Vyper analyzer, wire it into miesc analyze"
+      },
+      {
+        "mergedAt": "2026-08-14T17:17:07Z",
+        "number": 20,
+        "title": "feat(orchestrator): run Layer 9 second-opinion tools with real findings"
+      }
+    ]
+  }
+}

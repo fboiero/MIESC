@@ -29,11 +29,13 @@ def server_rest(port: int, host: str, debug: bool) -> None:
     print_banner()
     info(f"Starting Django REST API on http://{host}:{port}")
     info("Endpoints:")
-    info("  - POST /api/v1/analyze/quick/  - Quick 4-tool scan")
-    info("  - POST /api/v1/analyze/full/   - Complete 9-layer audit")
+    info("  - POST /api/v1/analyze/quick/  - Quick 4-tool scan (requires X-API-Key)")
+    info("  - POST /api/v1/analyze/full/   - Complete 9-layer audit (requires X-API-Key)")
+    info("  - POST /api/v1/remediate/      - Apply fixes (requires X-API-Key)")
     info("  - GET  /api/v1/tools/          - List available tools")
     info("  - GET  /api/v1/layers/         - Layer information")
     info("  - GET  /api/v1/health/         - System health check")
+    info("Set MIESC_API_KEY to pin a stable key; otherwise one is generated and logged below.")
 
     try:
         from miesc.api.rest import run_server

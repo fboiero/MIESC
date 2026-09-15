@@ -55,6 +55,7 @@ from miesc.cli.commands.testgen import testgen as testgen_cmd  # noqa: E402
 from miesc.cli.commands.tools import tools as tools_group  # noqa: E402
 from miesc.cli.commands.verify import verify as verify_cmd  # noqa: E402
 from miesc.cli.commands.watch import watch as watch_cmd  # noqa: E402
+from miesc.cli.commands.xray import xray as xray_cmd  # noqa: E402
 
 # Import utilities needed for CLI setup
 from miesc.cli.utils import configure_logging, print_banner  # noqa: E402
@@ -138,6 +139,7 @@ cli.add_command(testgen_cmd, name="test-gen")
 cli.add_command(tools_group, name="tools")
 cli.add_command(verify_cmd, name="verify")
 cli.add_command(watch_cmd, name="watch")
+cli.add_command(xray_cmd, name="xray")
 
 
 # ============================================================================

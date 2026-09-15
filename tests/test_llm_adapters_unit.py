@@ -434,3 +434,36 @@ class TestSmartLLMTimeout:
             result = adapter.analyze(str(contract))
         assert result["status"] == "timeout"
         assert result.get("metadata", {}).get("timed_out") is True
+
+
+class TestSmartLLMStructuredOutput:
+    @pytest.fixture
+    def adapter(self):
+        from miesc.adapters.smartllm_adapter import SmartLLMAdapter
+
+        instance = SmartLLMAdapter()
+        instance._use_verificator = False
+        return instance
+
+    def test_invalid_output_is_retried_once_with_json_format(self, adapter, tmp_path):
+        contract = tmp_path / "C.sol"
+        contract.write_text("pragma solidity ^0.8.0;\ncontract C {}\n")
+        valid = (
+            '{"findings":[{"type":"logic_error","severity":"high",'
+            '"title":"Missing invariant check"}]}'
+        )
+
+        with (
+            patch.object(adapter, "is_available", return_value=ToolStatus.AVAILABLE),
+            patch.object(adapter, "_get_cached_result", return_value=None),
+            patch.object(adapter, "_cache_result"),
+            patch.object(adapter, "_generate_analysis_prompt", return_value="audit"),
+            patch.object(adapter, "_ollama_generate", side_effect=["{broken", valid]) as generate,
+        ):
+            result = adapter.analyze(str(contract))
+
+        assert generate.call_count == 2
+        assert generate.call_args.kwargs["response_format"] == "json"
+        assert result["findings"][0]["title"] == "Missing invariant check"
+        assert result["metadata"]["structured_output_valid"] is True
+        assert result["metadata"]["structured_output_retried"] is True

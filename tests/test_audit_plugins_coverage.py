@@ -442,6 +442,7 @@ class TestAuditSmart:
         with patch(f"{AUDIT}.get_ml_orchestrator", return_value=orch):
             result = runner.invoke(audit, ["smart", str(contract), "-o", str(out)])
         assert result.exit_code == 0
+        assert "smartllm" in orch.analyze.call_args.kwargs["tools"]
         data = json.loads(out.read_text())
         assert data["llm_validated"] is False
 
@@ -468,6 +469,47 @@ class TestAuditSmart:
         ):
             result = runner.invoke(audit, ["smart", str(contract), "--llm-validate"])
         assert result.exit_code == 0
+
+    def test_smart_llm_validate_keeps_enrichment_when_nothing_filtered(self, runner, tmp_path):
+        """Regression guard: a validator run that confirms everything as
+        valid (0 false positives, e.g. its 2-pass confirmation declined to
+        discard anything) must still apply its confidence adjustments and
+        _llm_validation reasoning to the report — that used to be silently
+        thrown away whenever filtered_out ended up empty."""
+        contract = tmp_path / "C.sol"
+        contract.write_text("contract C {}")
+        orch = MagicMock()
+        fake_result = _fake_ml_result()
+        orch.analyze.return_value = fake_result
+        validator = MagicMock()
+        validator.filtered_out_findings = []
+
+        enriched = [_finding(_llm_validation={"reasoning": "confirmed valid"}, confidence=0.99)]
+
+        async def _batch(findings, code_contexts=None):
+            return enriched, ["validation-1"]
+
+        validator.validate_findings_batch.side_effect = _batch
+
+        async def _close():
+            return None
+
+        validator.close.side_effect = _close
+        with (
+            patch(f"{AUDIT}.get_ml_orchestrator", return_value=orch),
+            patch("miesc.llm.finding_validator.LLMFindingValidator", return_value=validator),
+            patch("miesc.llm.finding_validator.ValidatorConfig", MagicMock()),
+        ):
+            result = runner.invoke(audit, ["smart", str(contract), "--llm-validate"])
+        assert result.exit_code == 0
+        # The validator kept everything (0 confirmed FPs) but still enriched
+        # it with confidence/_llm_validation — that must reach the result,
+        # not just the local `validated_findings` variable inside audit.py.
+        assert fake_result.ml_filtered_findings == enriched
+        assert (
+            fake_result.ml_filtered_findings[0]["_llm_validation"]["reasoning"] == "confirmed valid"
+        )
+        assert getattr(fake_result, "ml_filtered_out", []) == []
 
 
 class TestAuditProfile:

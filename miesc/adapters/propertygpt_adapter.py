@@ -21,11 +21,15 @@ Version: 1.0.0
 Paper: NDSS Symposium 2025, arXiv:2405.02580
 """
 
+import hashlib
 import json
 import logging
 import os
 import re
+import shutil
+import subprocess
 import time
+from pathlib import Path
 from typing import Any, Dict, List, Optional, cast
 
 from miesc.core.llm_config import get_ollama_host
@@ -98,6 +102,8 @@ class PropertyGPTAdapter(ToolAdapter):
                 - max_properties: Maximum properties to generate (default: 10)
                 - min_confidence: Minimum confidence threshold (default: 0.7)
                 - enable_validation: Validate generated CVL syntax (default: True)
+                - enable_foundry_validation: Generate and run a Foundry harness (default: True)
+                - foundry_fuzz_runs: Stateful campaign runs (default: 256)
         """
         super().__init__()
         self.config = config or {}
@@ -106,6 +112,8 @@ class PropertyGPTAdapter(ToolAdapter):
         self.max_properties = self.config.get("max_properties", 10)
         self.min_confidence = self.config.get("min_confidence", 0.7)
         self.enable_validation = self.config.get("enable_validation", True)
+        self.enable_foundry_validation = self.config.get("enable_foundry_validation", True)
+        self.foundry_fuzz_runs = self.config.get("foundry_fuzz_runs", 256)
 
         # Initialize EmbeddingRAG if available
         self._embedding_rag = None
@@ -142,7 +150,13 @@ class PropertyGPTAdapter(ToolAdapter):
                         "access_control_properties",
                         "economic_properties",
                     ],
-                )
+                ),
+                ToolCapability(
+                    name="stateful_invariant_fuzzing",
+                    description="Generate, compile, execute and measure Foundry invariant tests",
+                    supported_languages=["solidity"],
+                    detection_types=["invariant_violations", "transaction_sequences"],
+                ),
             ],
             cost=0.0,  # Using local Ollama by default
             requires_api_key=False,  # Optional for cloud LLMs
@@ -282,6 +296,24 @@ class PropertyGPTAdapter(ToolAdapter):
                     f.write(cvl_spec)
                 logger.info(f"CVL specification saved to {output_file}")
 
+            findings = self.normalize_findings({"properties": high_confidence_properties})
+            foundry_campaign = None
+            if (
+                self.enable_foundry_validation
+                and high_confidence_properties
+                and self._is_foundry_project(contract_path)
+            ):
+                foundry_campaign = self._run_foundry_campaign(
+                    Path(contract_path),
+                    contract_source,
+                    contract_info,
+                    high_confidence_properties,
+                    timeout=timeout,
+                )
+                if findings:
+                    findings[0]["foundry_campaign"] = foundry_campaign
+                findings.extend(foundry_campaign.pop("findings", []))
+
             execution_time = time.time() - start_time
 
             result = {
@@ -289,6 +321,7 @@ class PropertyGPTAdapter(ToolAdapter):
                 "version": "1.0.0",
                 "status": "success",
                 "properties": high_confidence_properties,
+                "findings": findings,
                 "cvl_spec": cvl_spec,
                 "metadata": {
                     "contract_name": contract_info.get("name", "Unknown"),
@@ -297,6 +330,7 @@ class PropertyGPTAdapter(ToolAdapter):
                     "properties_generated": len(high_confidence_properties),
                     "llm_backend": self.llm_backend,
                     "validation": validation_result,
+                    "foundry_campaign": foundry_campaign,
                 },
                 "execution_time": round(execution_time, 2),
             }
@@ -472,6 +506,21 @@ Output: JSON array. Only generate properties relevant to THIS contract's logic.
 
     def _generate_with_ollama(self, prompt: str, timeout: int = 120) -> List[Dict[str, Any]]:
         """Generate properties using local Ollama HTTP API."""
+        response_text = self._ollama_completion(prompt, timeout)
+        if not response_text:
+            return self._generate_fallback_properties()
+
+        try:
+            json_match = re.search(r"\[.*\]", response_text, re.DOTALL)
+            if json_match:
+                return cast(List[Dict[str, Any]], json.loads(json_match.group(0)))
+            logger.warning("Could not parse Ollama response as JSON")
+        except (json.JSONDecodeError, TypeError) as e:
+            logger.error(f"Ollama property generation failed: {e}")
+        return self._generate_fallback_properties()
+
+    def _ollama_completion(self, prompt: str, timeout: int = 120) -> str:
+        """Return one plain Ollama completion, or an empty string on failure."""
         import urllib.error
         import urllib.request
 
@@ -507,26 +556,431 @@ Output: JSON array. Only generate properties relevant to THIS contract's logic.
             with urllib.request.urlopen(req, timeout=timeout) as resp:
                 if resp.status == 200:
                     data = json.loads(resp.read().decode())
-                    response_text = data.get("response", "").strip()
-
-                    # Extract JSON array (may be embedded in markdown)
-                    json_match = re.search(r"\[.*\]", response_text, re.DOTALL)
-                    if json_match:
-                        properties = json.loads(json_match.group(0))
-                        return cast(List[Dict[str, Any]], properties)
-                    else:
-                        logger.warning("Could not parse Ollama response as JSON")
-                        return self._generate_fallback_properties()
-                else:
-                    logger.error(f"Ollama returned status {resp.status}")
-                    return self._generate_fallback_properties()
+                    return str(data.get("response", "")).strip()
+                logger.error(f"Ollama returned status {resp.status}")
 
         except urllib.error.URLError as e:
             logger.error(f"Ollama API error: {e}")
-            return self._generate_fallback_properties()
         except Exception as e:
-            logger.error(f"Ollama property generation failed: {e}")
-            return self._generate_fallback_properties()
+            logger.error(f"Ollama completion failed: {e}")
+        return ""
+
+    def _run_foundry_campaign(
+        self,
+        contract_file: Path,
+        contract_source: str,
+        contract_info: Dict[str, Any],
+        properties: List[Dict[str, Any]],
+        timeout: int,
+    ) -> Dict[str, Any]:
+        """Generate, compile and fuzz one stateful Foundry harness."""
+        from miesc.adapters.foundry_adapter import FoundryAdapter
+        from miesc.poc.foundry_scaffold import REPO_REMAP_PREFIX, scaffold_foundry_project
+
+        base = {
+            "status": "skipped",
+            "compiled": False,
+            "repairs_used": 0,
+            "tests_run": 0,
+            "calls_executed": 0,
+            "seed": "0x" + hashlib.sha256(contract_source.encode()).hexdigest(),
+            "harness": None,
+            "counterexamples": [],
+            "coverage": {"status": "not_run"},
+            "findings": [],
+        }
+        if self.llm_backend != "ollama" or shutil.which("forge") is None:
+            return base
+
+        root = Path(FoundryAdapter()._find_project_root(str(contract_file))).resolve()
+        project = scaffold_foundry_project(root, contract_file)
+        if project is None:
+            return base
+
+        project = Path(project)
+        test_path = project / "test" / "MIESCGeneratedInvariant.t.sol"
+        try:
+            try:
+                relative_contract = contract_file.resolve().relative_to(root)
+            except ValueError:
+                relative_contract = Path(contract_file.name)
+            contract_import = f"{REPO_REMAP_PREFIX}{relative_contract.as_posix()}"
+
+            feedback = ""
+            for attempt in range(2):
+                harness = (
+                    self._repair_foundry_harness(feedback, timeout)
+                    if feedback
+                    else self._generate_foundry_harness(
+                        contract_source,
+                        contract_info,
+                        properties,
+                        contract_import,
+                        timeout,
+                    )
+                )
+                base["harness"] = harness or None
+                validation_error = self._validate_foundry_harness(harness)
+                if validation_error:
+                    feedback = f"{validation_error}\nPrevious harness:\n{harness[:12000]}"
+                    if attempt == 0:
+                        base["repairs_used"] = 1
+                    continue
+
+                test_path.write_text(harness, encoding="utf-8")
+                compiled, compiler_output = self._compile_foundry(project, timeout)
+                base["compiled"] = compiled
+                if not compiled:
+                    feedback = (
+                        "Fix only these forge build errors; preserve the test's intent:\n"
+                        + compiler_output[:4000]
+                        + "\nPrevious harness:\n"
+                        + harness[:12000]
+                    )
+                    if attempt == 0:
+                        base["repairs_used"] = 1
+                    continue
+
+                runner = FoundryAdapter(
+                    {
+                        "fuzz_runs": self.foundry_fuzz_runs,
+                        "fuzz_seed": base["seed"],
+                        "invariant_depth": 50,
+                        "gas_report": False,
+                        "timeout": timeout,
+                    }
+                )
+                run = runner.analyze(
+                    str(project),
+                    match_path="test/MIESCGeneratedInvariant.t.sol",
+                    verbosity=3,
+                )
+                coverage = self._run_foundry_coverage(project, test_path, base["seed"], timeout)
+                counterexamples = [
+                    finding.get("counterexample")
+                    for finding in run.get("findings", [])
+                    if finding.get("counterexample")
+                ]
+                base.update(
+                    {
+                        "tests_run": run.get("tests_run", 0),
+                        "tests_passed": run.get("tests_passed", 0),
+                        "tests_failed": run.get("tests_failed", 0),
+                        "calls_executed": run.get("calls_executed", 0),
+                        "counterexamples": counterexamples,
+                        "coverage": coverage,
+                    }
+                )
+                real_calls = int(base["calls_executed"] or 0) or sum(
+                    self._counterexample_call_count(item) for item in counterexamples
+                )
+                base["calls_executed"] = real_calls
+                has_evidence = bool(
+                    base["tests_run"]
+                    and real_calls
+                    and (not base["tests_failed"] or counterexamples)
+                )
+                if has_evidence:
+                    base["status"] = "counterexample" if base["tests_failed"] else "passed"
+                    base["findings"] = [
+                        {
+                            **finding,
+                            "type": "generated_invariant_violation",
+                            "tool": "propertygpt_foundry",
+                            "evidence_status": "counterexample",
+                            "harness": harness,
+                            "fuzz_seed": base["seed"],
+                            "calls_executed": real_calls,
+                            "coverage": coverage,
+                        }
+                        for finding in run.get("findings", [])
+                        if finding.get("counterexample")
+                    ]
+                    return base
+
+                feedback = (
+                    "The campaign was inconclusive: it executed no real handler calls. "
+                    "Create a StdInvariant handler with at least two public state-changing "
+                    "actions and targetContract(address(handler)). Coverage output:\n"
+                    f"{coverage.get('summary', '')}"
+                    f"\nPrevious harness:\n{harness[:12000]}"
+                )
+                if attempt == 0:
+                    base["repairs_used"] = 1
+
+            base["status"] = "no_compile" if not base["compiled"] else "inconclusive"
+            base["error"] = feedback[-4000:]
+            return base
+        except Exception as e:
+            logger.warning("PropertyGPT Foundry campaign skipped: %s", e)
+            base["error"] = str(e)
+            return base
+        finally:
+            shutil.rmtree(project, ignore_errors=True)
+
+    def _generate_foundry_harness(
+        self,
+        contract_source: str,
+        contract_info: Dict[str, Any],
+        properties: List[Dict[str, Any]],
+        contract_import: str,
+        timeout: int,
+    ) -> str:
+        """Ask the configured local model for one complete stateful harness."""
+        contract_name = contract_info.get("name", "Target")
+        known_harness = self._known_foundry_harness(
+            contract_source, contract_name, contract_import, properties
+        )
+        if known_harness:
+            return known_harness
+        prompt = f"""Write one complete Foundry stateful invariant test for a defensive audit.
+Output ONLY Solidity, without markdown fences.
+
+Target contract: {contract_name}
+Import exactly: {contract_import}
+Implement exactly this property and no additional invariants:
+{json.dumps(min(properties, key=self._fuzz_property_priority), ensure_ascii=False)[:4000]}
+
+Requirements:
+- import forge-std/Test.sol and forge-std/StdInvariant.sol;
+- deploy the REAL target contract in setUp (never replace it with a mock);
+- define a contract whose name ends in Handler with at least two public actions that call it;
+- register that handler with targetContract(address(handler));
+- expose at least one function named invariant_* with a meaningful assertion;
+- bound fuzzed values and provision actors/funds when needed;
+- prefer a handler ghost flag for a successful forbidden transition, then assert it is false;
+- never iterate over all addresses or try to sum a mapping;
+- make actions reach valid state (fund actors, deposit before withdrawal) instead of only reverting;
+- use no FFI, filesystem, environment variables, URLs or fork RPC.
+
+Keep this structure and inheritance order; adapt constructor arguments,
+action bodies and assertions:
+pragma solidity ^0.8.20;
+import {{Test}} from "forge-std/Test.sol";
+import {{StdInvariant}} from "forge-std/StdInvariant.sol";
+import {{{contract_name}}} from "{contract_import}";
+contract {contract_name}Handler is Test {{
+    {contract_name} public target;
+    constructor({contract_name} target_) {{ target = target_; }}
+    function actionOne(uint256 value) public {{ /* call target */ }}
+    function actionTwo(uint256 value) public {{ /* call target */ }}
+}}
+contract {contract_name}Invariant is StdInvariant, Test {{
+    {contract_name} public target;
+    {contract_name}Handler public handler;
+    function setUp() public {{
+        target = new {contract_name}();
+        handler = new {contract_name}Handler(target);
+        targetContract(address(handler));
+    }}
+    function invariant_meaningfulProperty() public view {{ /* assert protocol state */ }}
+}}
+
+Contract source:
+{contract_source[:24000]}
+"""
+        return self._strip_solidity_fences(self._ollama_completion(prompt, timeout))
+
+    @staticmethod
+    def _known_foundry_harness(
+        source: str,
+        contract_name: str,
+        contract_import: str,
+        properties: List[Dict[str, Any]],
+    ) -> str:
+        """Build the common vault-delay harness without asking an LLM to write syntax."""
+        property_text = json.dumps(properties).lower()
+        required = (
+            "delay" in property_text,
+            bool(re.search(r"function\s+deposit\s*\(\s*\).*?payable", source, re.DOTALL)),
+            bool(re.search(r"function\s+withdraw\s*\(\s*uint(?:256)?\b", source)),
+            bool(re.search(r"function\s+isWithdrawAllowed\s*\(\s*address\b", source)),
+            bool(
+                re.search(
+                    r"mapping\s*\(\s*address\s*=>\s*uint(?:256)?\s*\)\s+public\s+deposits",
+                    source,
+                )
+            ),
+        )
+        if not all(required) or not re.fullmatch(r"[A-Za-z_]\w*", contract_name):
+            return ""
+        return f"""// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+import {{Test}} from "forge-std/Test.sol";
+import {{StdInvariant}} from "forge-std/StdInvariant.sol";
+import {{{contract_name}}} from "{contract_import}";
+
+contract {contract_name}Handler is Test {{
+    {contract_name} public target;
+    address internal actor = address(0xBEEF);
+    bool public withdrewDuringDelay;
+
+    constructor({contract_name} target_) {{ target = target_; }}
+
+    function deposit(uint96 amount) public {{
+        amount = uint96(bound(amount, 1, 100 ether));
+        vm.deal(actor, amount);
+        vm.prank(actor);
+        target.deposit{{value: amount}}();
+    }}
+
+    function withdraw(uint96 amount) public {{
+        uint256 balance = target.deposits(actor);
+        if (balance == 0) return;
+        amount = uint96(bound(amount, 1, balance));
+        bool allowed = target.isWithdrawAllowed(actor);
+        vm.prank(actor);
+        target.withdraw(amount);
+        if (!allowed) withdrewDuringDelay = true;
+    }}
+}}
+
+contract {contract_name}Invariant is StdInvariant, Test {{
+    {contract_name} internal target;
+    {contract_name}Handler internal handler;
+
+    function setUp() public {{
+        target = new {contract_name}();
+        handler = new {contract_name}Handler(target);
+        targetContract(address(handler));
+    }}
+
+    function invariant_withdrawDelayIsEnforced() public view {{
+        assertFalse(handler.withdrewDuringDelay(), "withdraw succeeded during delay");
+    }}
+}}
+"""
+
+    def _repair_foundry_harness(self, feedback: str, timeout: int) -> str:
+        prompt = f"""Repair the Solidity harness below using the reported compiler or
+execution feedback.
+Output ONLY the complete corrected Solidity. Preserve its security property and structure.
+Do not add new invariants, imports, actors or loops unless the feedback explicitly requires them.
+
+{feedback}
+"""
+        return self._strip_solidity_fences(self._ollama_completion(prompt, timeout))
+
+    @staticmethod
+    def _fuzz_property_priority(prop: Dict[str, Any]) -> int:
+        text = f"{prop.get('name', '')} {prop.get('description', '')}".lower()
+        if any(word in text for word in ("delay", "timelock", "cooldown")):
+            return 0
+        if any(word in text for word in ("access", "transition", "withdraw")):
+            return 1
+        return 2
+
+    @staticmethod
+    def _is_foundry_project(contract_path: str) -> bool:
+        try:
+            from miesc.core.framework_detector import is_foundry_project
+
+            return is_foundry_project(contract_path)
+        except Exception:
+            return False
+
+    @staticmethod
+    def _strip_solidity_fences(text: str) -> str:
+        text = text.strip()
+        if not text.startswith("```"):
+            return text
+        lines = text.splitlines()[1:]
+        if lines and lines[-1].strip().startswith("```"):
+            lines.pop()
+        return "\n".join(lines).strip()
+
+    @staticmethod
+    def _validate_foundry_harness(harness: str) -> Optional[str]:
+        """Reject non-harness output and dangerous Foundry cheatcodes."""
+        if not harness:
+            return "The response was empty. Return a complete Solidity test."
+        lowered = harness.lower()
+        forbidden = ("vm.ffi", "readfile(", "writefile(", "envstring(", "http://", "https://")
+        if any(token in lowered for token in forbidden):
+            return "The harness used forbidden external I/O. Remove it."
+        imports = re.findall(r'import\s+(?:\{[^}]+\}\s+from\s+)?["\']([^"\']+)["\']', harness)
+        if any(not path.startswith(("forge-std/", "@repo/")) for path in imports):
+            return "Imports must use only forge-std/ and @repo/."
+        if not any(path.startswith("@repo/") for path in imports):
+            return "The harness must import the real target through @repo/."
+        if "function invariant_" not in lowered:
+            return "The harness must define at least one invariant_* function."
+        if not re.search(r"contract\s+\w*Handler\b", harness):
+            return "The harness must define a contract whose name ends in Handler."
+        if "targetcontract(address(" not in re.sub(r"\s+", "", lowered):
+            return "The harness must register its handler with targetContract(address(handler))."
+        return None
+
+    @staticmethod
+    def _compile_foundry(project: Path, timeout: int) -> tuple[bool, str]:
+        try:
+            result = subprocess.run(
+                ["forge", "build"],
+                cwd=project,
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+            )
+        except (OSError, subprocess.SubprocessError) as e:
+            return False, str(e)
+        return result.returncode == 0, (result.stdout or "") + (result.stderr or "")
+
+    def _run_foundry_coverage(
+        self, project: Path, test_path: Path, seed: str, timeout: int
+    ) -> Dict[str, Any]:
+        try:
+            result = subprocess.run(
+                [
+                    "forge",
+                    "coverage",
+                    "--report",
+                    "summary",
+                    "--match-path",
+                    str(test_path.relative_to(project)),
+                    "--fuzz-runs",
+                    str(self.foundry_fuzz_runs),
+                    "--fuzz-seed",
+                    seed,
+                ],
+                cwd=project,
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+                env={
+                    **os.environ,
+                    "FOUNDRY_INVARIANT_RUNS": str(min(self.foundry_fuzz_runs, 64)),
+                    "FOUNDRY_INVARIANT_DEPTH": "50",
+                },
+            )
+        except (OSError, subprocess.SubprocessError) as e:
+            return {"status": "error", "summary": str(e)}
+        output = ((result.stdout or "") + (result.stderr or ""))[-8000:]
+        totals = re.search(
+            r"\|\s*Total\s*\|\s*([\d.]+)%.*?\|\s*([\d.]+)%.*?\|\s*([\d.]+)%.*?\|\s*([\d.]+)%",
+            output,
+        )
+        coverage = {"status": "success" if totals else "error", "summary": output}
+        if totals:
+            coverage["percent"] = {
+                name: float(value)
+                for name, value in zip(
+                    ("lines", "statements", "branches", "functions"),
+                    totals.groups(),
+                    strict=True,
+                )
+            }
+        return coverage
+
+    @staticmethod
+    def _counterexample_call_count(counterexample: Any) -> int:
+        if not isinstance(counterexample, dict):
+            return 0
+        sequence = counterexample.get("Sequence") or counterexample.get("sequence")
+        if not isinstance(sequence, list):
+            return 0
+        if len(sequence) == 2 and isinstance(sequence[1], list):
+            return len(sequence[1])
+        return len(sequence)
 
     def _generate_with_openai(self, prompt: str) -> List[Dict[str, Any]]:
         """Generate properties using OpenAI GPT-4."""
@@ -659,6 +1113,8 @@ Output: JSON array. Only generate properties relevant to THIS contract's logic.
             "max_properties": 10,
             "min_confidence": 0.7,
             "enable_validation": True,
+            "enable_foundry_validation": True,
+            "foundry_fuzz_runs": 256,
         }
 
 

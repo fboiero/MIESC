@@ -1,0 +1,946 @@
+{
+  "experiment_card": {
+    "tool": "MIESC",
+    "version": "6.0.0",
+    "timestamp": "2026-08-14T19:28:39.661206",
+    "corpus": "/home/alva/Proyectos/MIESC/benchmarks/datasets/solodit-real",
+    "corpus_size": 10,
+    "layers_evaluated": [
+      1,
+      6,
+      7
+    ],
+    "layer_names": {
+      "1": "Static Analysis",
+      "6": "Heuristic & Pattern Detection",
+      "7": "Specialized Analysis"
+    },
+    "timeout_per_tool_s": 120,
+    "skip_unavailable": true,
+    "total_duration_s": 63.6,
+    "python_version": "3.14.6",
+    "platform": "linux"
+  },
+  "reproducibility": {
+    "command": "miesc evaluate /home/alva/Proyectos/MIESC/benchmarks/datasets/solodit-real --layers 1,6,7 --timeout 120",
+    "seed": "not_set",
+    "llm_provider": "not_set",
+    "llm_model": "not_set"
+  },
+  "aggregate": {
+    "tp": 11,
+    "fp": 32,
+    "fn": 19,
+    "precision": 0.2558,
+    "recall": 0.3667,
+    "f1": 0.3014,
+    "contracts_evaluated": 10,
+    "total_time_s": 63.6,
+    "avg_time_per_contract_s": 6.36,
+    "hit_rate": 0.8
+  },
+  "per_category": {
+    "access_control": {
+      "tp": 2,
+      "fp": 5,
+      "fn": 1,
+      "precision": 0.2857,
+      "recall": 0.6667,
+      "f1": 0.4
+    },
+    "arithmetic": {
+      "tp": 0,
+      "fp": 4,
+      "fn": 0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "bad_randomness": {
+      "tp": 0,
+      "fp": 3,
+      "fn": 2,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "business_logic": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 6,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "denial_of_service": {
+      "tp": 3,
+      "fp": 1,
+      "fn": 2,
+      "precision": 0.75,
+      "recall": 0.6,
+      "f1": 0.6667
+    },
+    "erc4626": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 2,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "fee_on_transfer": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 2,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "front_running": {
+      "tp": 0,
+      "fp": 4,
+      "fn": 0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "oracle": {
+      "tp": 2,
+      "fp": 0,
+      "fn": 1,
+      "precision": 1.0,
+      "recall": 0.6667,
+      "f1": 0.8
+    },
+    "reentrancy": {
+      "tp": 1,
+      "fp": 5,
+      "fn": 0,
+      "precision": 0.1667,
+      "recall": 1.0,
+      "f1": 0.2857
+    },
+    "rounding": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 3,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "short_addresses": {
+      "tp": 0,
+      "fp": 3,
+      "fn": 0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "time_manipulation": {
+      "tp": 0,
+      "fp": 5,
+      "fn": 0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "unchecked_low_level_calls": {
+      "tp": 3,
+      "fp": 2,
+      "fn": 0,
+      "precision": 0.6,
+      "recall": 1.0,
+      "f1": 0.75
+    }
+  },
+  "per_contract": [
+    {
+      "contract": "/home/alva/Proyectos/MIESC/benchmarks/datasets/solodit-real/nextgen/MinterContract.sol",
+      "ground_truth": [
+        "reentrancy",
+        "rounding",
+        "unchecked_low_level_calls",
+        "denial_of_service",
+        "business_logic"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 192,
+          "detected_categories": [
+            "arithmetic",
+            "reentrancy",
+            "unchecked_low_level_calls",
+            "access_control",
+            "time_manipulation",
+            "bad_randomness"
+          ],
+          "tools_run": 6,
+          "time_seconds": 6.856
+        },
+        "6": {
+          "findings_count": 48,
+          "detected_categories": [
+            "front_running",
+            "reentrancy",
+            "unchecked_low_level_calls",
+            "access_control",
+            "time_manipulation",
+            "bad_randomness",
+            "short_addresses"
+          ],
+          "tools_run": 4,
+          "time_seconds": 0.275
+        },
+        "7": {
+          "findings_count": 108,
+          "detected_categories": [
+            "time_manipulation",
+            "denial_of_service",
+            "access_control",
+            "front_running"
+          ],
+          "tools_run": 7,
+          "time_seconds": 0.055
+        },
+        "intelligence": {
+          "findings_count": 232,
+          "detected_categories": [
+            "front_running",
+            "bad_randomness",
+            "reentrancy",
+            "unchecked_low_level_calls",
+            "access_control",
+            "time_manipulation",
+            "denial_of_service",
+            "short_addresses"
+          ],
+          "new_categories": [],
+          "suppressed": 2,
+          "time_seconds": 0.066
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "denial_of_service",
+          "arithmetic",
+          "front_running",
+          "reentrancy",
+          "unchecked_low_level_calls",
+          "access_control",
+          "time_manipulation",
+          "bad_randomness",
+          "short_addresses"
+        ],
+        "findings_count": 348
+      },
+      "timing": {
+        "layer_1": 6.856,
+        "layer_6": 0.275,
+        "layer_7": 0.055,
+        "intelligence": 0.066
+      },
+      "match": {
+        "tp": [
+          "unchecked_low_level_calls",
+          "denial_of_service",
+          "reentrancy"
+        ],
+        "fp": [
+          "arithmetic",
+          "front_running",
+          "access_control",
+          "time_manipulation",
+          "bad_randomness",
+          "short_addresses"
+        ],
+        "fn": [
+          "business_logic",
+          "rounding"
+        ],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/home/alva/Proyectos/MIESC/benchmarks/datasets/solodit-real/nextgen/AuctionDemo.sol",
+      "ground_truth": [
+        "unchecked_low_level_calls",
+        "denial_of_service",
+        "business_logic"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 50,
+          "detected_categories": [
+            "arithmetic",
+            "reentrancy",
+            "unchecked_low_level_calls",
+            "time_manipulation",
+            "bad_randomness"
+          ],
+          "tools_run": 6,
+          "time_seconds": 2.263
+        },
+        "6": {
+          "findings_count": 18,
+          "detected_categories": [
+            "bad_randomness",
+            "reentrancy",
+            "unchecked_low_level_calls",
+            "access_control",
+            "time_manipulation",
+            "denial_of_service"
+          ],
+          "tools_run": 4,
+          "time_seconds": 0.021
+        },
+        "7": {
+          "findings_count": 25,
+          "detected_categories": [
+            "time_manipulation"
+          ],
+          "tools_run": 7,
+          "time_seconds": 0.017
+        },
+        "intelligence": {
+          "findings_count": 68,
+          "detected_categories": [
+            "arithmetic",
+            "bad_randomness",
+            "reentrancy",
+            "unchecked_low_level_calls",
+            "access_control",
+            "time_manipulation",
+            "denial_of_service"
+          ],
+          "new_categories": [],
+          "suppressed": 0,
+          "time_seconds": 0.011
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "denial_of_service",
+          "arithmetic",
+          "reentrancy",
+          "unchecked_low_level_calls",
+          "access_control",
+          "time_manipulation",
+          "bad_randomness"
+        ],
+        "findings_count": 93
+      },
+      "timing": {
+        "layer_1": 2.263,
+        "layer_6": 0.021,
+        "layer_7": 0.017,
+        "intelligence": 0.011
+      },
+      "match": {
+        "tp": [
+          "unchecked_low_level_calls",
+          "denial_of_service"
+        ],
+        "fp": [
+          "arithmetic",
+          "reentrancy",
+          "access_control",
+          "time_manipulation",
+          "bad_randomness"
+        ],
+        "fn": [
+          "business_logic"
+        ],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/home/alva/Proyectos/MIESC/benchmarks/datasets/solodit-real/nextgen/RandomizerVRF.sol",
+      "ground_truth": [
+        "bad_randomness"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 36,
+          "detected_categories": [
+            "arithmetic",
+            "reentrancy"
+          ],
+          "tools_run": 6,
+          "time_seconds": 1.375
+        },
+        "6": {
+          "findings_count": 0,
+          "detected_categories": [],
+          "tools_run": 4,
+          "time_seconds": 0.012
+        },
+        "7": {
+          "findings_count": 9,
+          "detected_categories": [],
+          "tools_run": 7,
+          "time_seconds": 0.015
+        },
+        "intelligence": {
+          "findings_count": 32,
+          "detected_categories": [
+            "arithmetic",
+            "reentrancy"
+          ],
+          "new_categories": [],
+          "suppressed": 0,
+          "time_seconds": 0.009
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "arithmetic",
+          "reentrancy"
+        ],
+        "findings_count": 45
+      },
+      "timing": {
+        "layer_1": 1.375,
+        "layer_6": 0.012,
+        "layer_7": 0.015,
+        "intelligence": 0.009
+      },
+      "match": {
+        "tp": [],
+        "fp": [
+          "arithmetic",
+          "reentrancy"
+        ],
+        "fn": [
+          "bad_randomness"
+        ],
+        "hit": false
+      }
+    },
+    {
+      "contract": "/home/alva/Proyectos/MIESC/benchmarks/datasets/solodit-real/nextgen/RandomizerRNG.sol",
+      "ground_truth": [
+        "unchecked_low_level_calls",
+        "bad_randomness"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 5,
+          "detected_categories": [],
+          "tools_run": 6,
+          "time_seconds": 1.272
+        },
+        "6": {
+          "findings_count": 3,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "access_control",
+            "reentrancy"
+          ],
+          "tools_run": 4,
+          "time_seconds": 0.012
+        },
+        "7": {
+          "findings_count": 11,
+          "detected_categories": [
+            "front_running"
+          ],
+          "tools_run": 7,
+          "time_seconds": 0.012
+        },
+        "intelligence": {
+          "findings_count": 12,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "access_control",
+            "reentrancy",
+            "front_running"
+          ],
+          "new_categories": [],
+          "suppressed": 0,
+          "time_seconds": 0.005
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "front_running",
+          "reentrancy",
+          "unchecked_low_level_calls",
+          "access_control"
+        ],
+        "findings_count": 19
+      },
+      "timing": {
+        "layer_1": 1.272,
+        "layer_6": 0.012,
+        "layer_7": 0.012,
+        "intelligence": 0.005
+      },
+      "match": {
+        "tp": [
+          "unchecked_low_level_calls"
+        ],
+        "fp": [
+          "reentrancy",
+          "access_control",
+          "front_running"
+        ],
+        "fn": [
+          "bad_randomness"
+        ],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/home/alva/Proyectos/MIESC/benchmarks/datasets/solodit-real/nextgen/NextGenCore.sol",
+      "ground_truth": [
+        "access_control",
+        "business_logic"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 169,
+          "detected_categories": [
+            "arithmetic",
+            "reentrancy",
+            "unchecked_low_level_calls",
+            "time_manipulation",
+            "bad_randomness"
+          ],
+          "tools_run": 6,
+          "time_seconds": 4.08
+        },
+        "6": {
+          "findings_count": 20,
+          "detected_categories": [
+            "time_manipulation",
+            "bad_randomness",
+            "access_control",
+            "short_addresses"
+          ],
+          "tools_run": 4,
+          "time_seconds": 0.072
+        },
+        "7": {
+          "findings_count": 77,
+          "detected_categories": [
+            "denial_of_service",
+            "access_control"
+          ],
+          "tools_run": 7,
+          "time_seconds": 0.053
+        },
+        "intelligence": {
+          "findings_count": 178,
+          "detected_categories": [
+            "arithmetic",
+            "bad_randomness",
+            "reentrancy",
+            "unchecked_low_level_calls",
+            "access_control",
+            "time_manipulation",
+            "denial_of_service",
+            "short_addresses"
+          ],
+          "new_categories": [],
+          "suppressed": 2,
+          "time_seconds": 0.047
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "denial_of_service",
+          "arithmetic",
+          "reentrancy",
+          "unchecked_low_level_calls",
+          "access_control",
+          "time_manipulation",
+          "bad_randomness",
+          "short_addresses"
+        ],
+        "findings_count": 266
+      },
+      "timing": {
+        "layer_1": 4.08,
+        "layer_6": 0.072,
+        "layer_7": 0.053,
+        "intelligence": 0.047
+      },
+      "match": {
+        "tp": [
+          "access_control"
+        ],
+        "fp": [
+          "denial_of_service",
+          "arithmetic",
+          "reentrancy",
+          "unchecked_low_level_calls",
+          "time_manipulation",
+          "bad_randomness",
+          "short_addresses"
+        ],
+        "fn": [
+          "business_logic"
+        ],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/home/alva/Proyectos/MIESC/benchmarks/datasets/solodit-real/y2k-finance/src/oracles/PegOracle.sol",
+      "ground_truth": [
+        "rounding",
+        "oracle"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 2,
+          "detected_categories": [],
+          "tools_run": 6,
+          "time_seconds": 6.634
+        },
+        "6": {
+          "findings_count": 0,
+          "detected_categories": [],
+          "tools_run": 4,
+          "time_seconds": 0.015
+        },
+        "7": {
+          "findings_count": 10,
+          "detected_categories": [
+            "oracle"
+          ],
+          "tools_run": 7,
+          "time_seconds": 0.014
+        },
+        "intelligence": {
+          "findings_count": 9,
+          "detected_categories": [
+            "oracle"
+          ],
+          "new_categories": [],
+          "suppressed": 0,
+          "time_seconds": 0.006
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "oracle"
+        ],
+        "findings_count": 12
+      },
+      "timing": {
+        "layer_1": 6.634,
+        "layer_6": 0.015,
+        "layer_7": 0.014,
+        "intelligence": 0.006
+      },
+      "match": {
+        "tp": [
+          "oracle"
+        ],
+        "fp": [],
+        "fn": [
+          "rounding"
+        ],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/home/alva/Proyectos/MIESC/benchmarks/datasets/solodit-real/y2k-finance/src/Controller.sol",
+      "ground_truth": [
+        "fee_on_transfer",
+        "access_control",
+        "oracle",
+        "denial_of_service",
+        "business_logic"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 7,
+          "detected_categories": [
+            "time_manipulation"
+          ],
+          "tools_run": 6,
+          "time_seconds": 5.165
+        },
+        "6": {
+          "findings_count": 1,
+          "detected_categories": [
+            "time_manipulation"
+          ],
+          "tools_run": 4,
+          "time_seconds": 0.023
+        },
+        "7": {
+          "findings_count": 10,
+          "detected_categories": [
+            "oracle"
+          ],
+          "tools_run": 7,
+          "time_seconds": 0.026
+        },
+        "intelligence": {
+          "findings_count": 16,
+          "detected_categories": [
+            "time_manipulation",
+            "oracle"
+          ],
+          "new_categories": [],
+          "suppressed": 0,
+          "time_seconds": 0.014
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "time_manipulation",
+          "oracle"
+        ],
+        "findings_count": 18
+      },
+      "timing": {
+        "layer_1": 5.165,
+        "layer_6": 0.023,
+        "layer_7": 0.026,
+        "intelligence": 0.014
+      },
+      "match": {
+        "tp": [
+          "oracle"
+        ],
+        "fp": [
+          "time_manipulation"
+        ],
+        "fn": [
+          "denial_of_service",
+          "business_logic",
+          "fee_on_transfer",
+          "access_control"
+        ],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/home/alva/Proyectos/MIESC/benchmarks/datasets/solodit-real/y2k-finance/src/Vault.sol",
+      "ground_truth": [
+        "denial_of_service",
+        "business_logic",
+        "rounding",
+        "erc4626"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 10,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "time_manipulation"
+          ],
+          "tools_run": 6,
+          "time_seconds": 13.313
+        },
+        "6": {
+          "findings_count": 9,
+          "detected_categories": [
+            "time_manipulation",
+            "access_control",
+            "front_running"
+          ],
+          "tools_run": 4,
+          "time_seconds": 0.027
+        },
+        "7": {
+          "findings_count": 9,
+          "detected_categories": [],
+          "tools_run": 7,
+          "time_seconds": 0.033
+        },
+        "intelligence": {
+          "findings_count": 28,
+          "detected_categories": [
+            "front_running",
+            "reentrancy",
+            "unchecked_low_level_calls",
+            "access_control",
+            "time_manipulation",
+            "denial_of_service"
+          ],
+          "new_categories": [
+            "denial_of_service",
+            "reentrancy"
+          ],
+          "suppressed": 0,
+          "time_seconds": 0.02
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "front_running",
+          "reentrancy",
+          "unchecked_low_level_calls",
+          "access_control",
+          "time_manipulation",
+          "denial_of_service"
+        ],
+        "findings_count": 28
+      },
+      "timing": {
+        "layer_1": 13.313,
+        "layer_6": 0.027,
+        "layer_7": 0.033,
+        "intelligence": 0.02
+      },
+      "match": {
+        "tp": [
+          "denial_of_service"
+        ],
+        "fp": [
+          "front_running",
+          "reentrancy",
+          "unchecked_low_level_calls",
+          "access_control",
+          "time_manipulation"
+        ],
+        "fn": [
+          "erc4626",
+          "business_logic",
+          "rounding"
+        ],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/home/alva/Proyectos/MIESC/benchmarks/datasets/solodit-real/y2k-finance/src/SemiFungibleVault.sol",
+      "ground_truth": [
+        "fee_on_transfer",
+        "business_logic",
+        "erc4626"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 0,
+          "detected_categories": [],
+          "tools_run": 6,
+          "time_seconds": 12.249
+        },
+        "6": {
+          "findings_count": 7,
+          "detected_categories": [
+            "access_control"
+          ],
+          "tools_run": 4,
+          "time_seconds": 7.865
+        },
+        "7": {
+          "findings_count": 4,
+          "detected_categories": [
+            "access_control"
+          ],
+          "tools_run": 7,
+          "time_seconds": 0.023
+        },
+        "intelligence": {
+          "findings_count": 11,
+          "detected_categories": [
+            "access_control"
+          ],
+          "new_categories": [],
+          "suppressed": 1,
+          "time_seconds": 0.012
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "access_control"
+        ],
+        "findings_count": 11
+      },
+      "timing": {
+        "layer_1": 12.249,
+        "layer_6": 7.865,
+        "layer_7": 0.023,
+        "intelligence": 0.012
+      },
+      "match": {
+        "tp": [],
+        "fp": [
+          "access_control"
+        ],
+        "fn": [
+          "fee_on_transfer",
+          "business_logic",
+          "erc4626"
+        ],
+        "hit": false
+      }
+    },
+    {
+      "contract": "/home/alva/Proyectos/MIESC/benchmarks/datasets/solodit-real/y2k-finance/src/VaultFactory.sol",
+      "ground_truth": [
+        "denial_of_service",
+        "access_control",
+        "oracle"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 10,
+          "detected_categories": [],
+          "tools_run": 6,
+          "time_seconds": 1.276
+        },
+        "6": {
+          "findings_count": 3,
+          "detected_categories": [
+            "short_addresses",
+            "access_control",
+            "front_running"
+          ],
+          "tools_run": 4,
+          "time_seconds": 0.27
+        },
+        "7": {
+          "findings_count": 10,
+          "detected_categories": [],
+          "tools_run": 7,
+          "time_seconds": 0.027
+        },
+        "intelligence": {
+          "findings_count": 18,
+          "detected_categories": [
+            "short_addresses",
+            "access_control",
+            "front_running"
+          ],
+          "new_categories": [],
+          "suppressed": 1,
+          "time_seconds": 0.018
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "access_control",
+          "front_running",
+          "short_addresses"
+        ],
+        "findings_count": 23
+      },
+      "timing": {
+        "layer_1": 1.276,
+        "layer_6": 0.27,
+        "layer_7": 0.027,
+        "intelligence": 0.018
+      },
+      "match": {
+        "tp": [
+          "access_control"
+        ],
+        "fp": [
+          "front_running",
+          "short_addresses"
+        ],
+        "fn": [
+          "denial_of_service",
+          "oracle"
+        ],
+        "hit": true
+      }
+    }
+  ]
+}

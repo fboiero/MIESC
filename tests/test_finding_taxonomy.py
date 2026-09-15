@@ -46,6 +46,33 @@ class TestDirectMatches:
         assert normalize_finding_type(raw) is expected
 
 
+class TestSeparatorInsensitiveMatch:
+    """MEJORAS2.md backlog follow-up: _DIRECT_MAP keys are a mix of
+    separator conventions (mostly hyphens, some dots) matched via plain
+    exact/lowercase comparison — so the equally natural underscore form
+    (the convention evaluate.py's own SmartBugs/MODERN_CATEGORIES taxonomy
+    uses throughout the rest of the codebase) used to silently fail to
+    match at all. Found as a real regression while reusing this module
+    from protocol_graph.py."""
+
+    @pytest.mark.parametrize(
+        "raw,expected",
+        [
+            ("access_control", CanonicalCategory.ACCESS_CONTROL),
+            ("ACCESS_CONTROL", CanonicalCategory.ACCESS_CONTROL),
+            ("reentrancy_eth", CanonicalCategory.REENTRANCY),
+            ("msg_value_loop", CanonicalCategory.DENIAL_OF_SERVICE),
+        ],
+    )
+    def test_underscore_form_matches_hyphenated_direct_map_key(self, raw, expected):
+        assert normalize_finding_type(raw) is expected
+
+    def test_dotted_key_unaffected(self):
+        # "tx.origin" has no hyphen/underscore/space to normalize — must
+        # keep matching exactly as before.
+        assert normalize_finding_type("tx.origin") is CanonicalCategory.ACCESS_CONTROL
+
+
 class TestSubstringFallback:
     """Fuzzy fallbacks for detector names we haven't mapped explicitly."""
 

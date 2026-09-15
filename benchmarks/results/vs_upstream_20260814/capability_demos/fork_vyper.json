@@ -1,0 +1,148 @@
+{
+  "contract": "/tmp/claude-1000/-home-alva-Proyectos-MIESC/d843e3d8-c19d-4ff0-aee7-9e56ec0b157f/scratchpad/Vault.vy",
+  "timestamp": "2026-08-14T17:09:59.335279",
+  "version": "6.0.0",
+  "chain": "vyper",
+  "success": true,
+  "summary": {
+    "CRITICAL": 0,
+    "HIGH": 2,
+    "MEDIUM": 1,
+    "LOW": 0,
+    "INFO": 0
+  },
+  "total_findings": 3,
+  "tools": [
+    "miesc-vyper"
+  ],
+  "findings": [
+    {
+      "id": "ethereum-missing_reentrancy_guard-15",
+      "type": "missing_reentrancy_guard",
+      "original_type": "missing_reentrancy_guard",
+      "severity": "High",
+      "confidence": 0.65,
+      "location": {
+        "file": "/tmp/claude-1000/-home-alva-Proyectos-MIESC/d843e3d8-c19d-4ff0-aee7-9e56ec0b157f/scratchpad/Vault.vy",
+        "line": 15,
+        "column": 0,
+        "end_line": null,
+        "end_column": null
+      },
+      "message": "'withdraw' writes state and makes an external call without @nonreentrant",
+      "description": "Function: withdraw\nDecorators: ['external']",
+      "recommendation": "Add the @nonreentrant decorator, or apply checks-effects-interactions (update state before the external call).",
+      "chain_type": "ethereum",
+      "language": "vyper",
+      "chain": "vyper"
+    },
+    {
+      "id": "ethereum-selfdestruct_usage-22",
+      "type": "selfdestruct_usage",
+      "original_type": "selfdestruct_usage",
+      "severity": "High",
+      "confidence": 0.7,
+      "location": {
+        "file": "/tmp/claude-1000/-home-alva-Proyectos-MIESC/d843e3d8-c19d-4ff0-aee7-9e56ec0b157f/scratchpad/Vault.vy",
+        "line": 22,
+        "column": 0,
+        "end_line": null,
+        "end_column": null
+      },
+      "message": "Use of selfdestruct()",
+      "description": "Use of selfdestruct()\nCode: selfdestruct(self.owner)",
+      "recommendation": "selfdestruct is deprecated since Vyper 0.3.10 and destroys the contract irrecoverably; avoid it, and if kept, gate it behind strict access control.",
+      "chain_type": "ethereum",
+      "language": "vyper",
+      "chain": "vyper"
+    },
+    {
+      "id": "ethereum-missing_access_control-11",
+      "type": "missing_access_control",
+      "original_type": "missing_access_control",
+      "severity": "Medium",
+      "confidence": 0.4,
+      "location": {
+        "file": "/tmp/claude-1000/-home-alva-Proyectos-MIESC/d843e3d8-c19d-4ff0-aee7-9e56ec0b157f/scratchpad/Vault.vy",
+        "line": 11,
+        "column": 0,
+        "end_line": null,
+        "end_column": null
+      },
+      "message": "'deposit' is external, writes state, and has no visible msg.sender / owner() check",
+      "description": "Function: deposit",
+      "recommendation": "Add an explicit assert msg.sender == <authorized address> (or equivalent) if this function should be access-restricted; ignore if it's intentionally open (e.g., deposit()).",
+      "chain_type": "ethereum",
+      "language": "vyper",
+      "chain": "vyper"
+    }
+  ],
+  "results": [
+    {
+      "tool": "miesc-vyper",
+      "status": "success",
+      "findings": [
+        {
+          "id": "ethereum-missing_reentrancy_guard-15",
+          "type": "missing_reentrancy_guard",
+          "original_type": "missing_reentrancy_guard",
+          "severity": "High",
+          "confidence": 0.65,
+          "location": {
+            "file": "/tmp/claude-1000/-home-alva-Proyectos-MIESC/d843e3d8-c19d-4ff0-aee7-9e56ec0b157f/scratchpad/Vault.vy",
+            "line": 15,
+            "column": 0,
+            "end_line": null,
+            "end_column": null
+          },
+          "message": "'withdraw' writes state and makes an external call without @nonreentrant",
+          "description": "Function: withdraw\nDecorators: ['external']",
+          "recommendation": "Add the @nonreentrant decorator, or apply checks-effects-interactions (update state before the external call).",
+          "chain_type": "ethereum",
+          "language": "vyper",
+          "chain": "vyper"
+        },
+        {
+          "id": "ethereum-selfdestruct_usage-22",
+          "type": "selfdestruct_usage",
+          "original_type": "selfdestruct_usage",
+          "severity": "High",
+          "confidence": 0.7,
+          "location": {
+            "file": "/tmp/claude-1000/-home-alva-Proyectos-MIESC/d843e3d8-c19d-4ff0-aee7-9e56ec0b157f/scratchpad/Vault.vy",
+            "line": 22,
+            "column": 0,
+            "end_line": null,
+            "end_column": null
+          },
+          "message": "Use of selfdestruct()",
+          "description": "Use of selfdestruct()\nCode: selfdestruct(self.owner)",
+          "recommendation": "selfdestruct is deprecated since Vyper 0.3.10 and destroys the contract irrecoverably; avoid it, and if kept, gate it behind strict access control.",
+          "chain_type": "ethereum",
+          "language": "vyper",
+          "chain": "vyper"
+        },
+        {
+          "id": "ethereum-missing_access_control-11",
+          "type": "missing_access_control",
+          "original_type": "missing_access_control",
+          "severity": "Medium",
+          "confidence": 0.4,
+          "location": {
+            "file": "/tmp/claude-1000/-home-alva-Proyectos-MIESC/d843e3d8-c19d-4ff0-aee7-9e56ec0b157f/scratchpad/Vault.vy",
+            "line": 11,
+            "column": 0,
+            "end_line": null,
+            "end_column": null
+          },
+          "message": "'deposit' is external, writes state, and has no visible msg.sender / owner() check",
+          "description": "Function: deposit",
+          "recommendation": "Add an explicit assert msg.sender == <authorized address> (or equivalent) if this function should be access-restricted; ignore if it's intentionally open (e.g., deposit()).",
+          "chain_type": "ethereum",
+          "language": "vyper",
+          "chain": "vyper"
+        }
+      ]
+    }
+  ]
+}

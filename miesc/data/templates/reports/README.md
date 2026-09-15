@@ -215,17 +215,17 @@ jobs:
   miesc:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
       - run: pip install miesc
       - run: miesc audit quick ./contracts --format sarif -o results.sarif
-      - uses: github/codeql-action/upload-sarif@v3
+      - uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: results.sarif
 ```
 
 ## See Also
 
-- [Custom Detectors](../../../../docs/CUSTOM_DETECTORS.md)
+- [Custom Detectors](../../CUSTOM_DETECTORS.md)

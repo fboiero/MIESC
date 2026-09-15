@@ -731,6 +731,14 @@ def _apply_legacy_call_value_cei_any_function(source: str) -> tuple[str, bool]:
     return source, False
 
 
+# MIESC ítem #20: las 3 funciones que siguen (LCOpenTimeout, byzantineCloseChannel,
+# FiftyFlip wager) son templates curve-fit a un contrato puntual de SmartBugs-curated
+# cada una: matchean por nombre de función exacto + variables/campos literales del
+# contrato original, así que nunca disparan fuera de esos 3 contratos del benchmark.
+# No generalizan el patrón CEI — a diferencia de _apply_legacy_call_value_cei y
+# _apply_indirect_boolean_claim_cei, que sí detectan por forma estructural y corren
+# sobre cualquier nombre de función. Ver paper/PAPER2_REPRODUCIBILITY.md para el
+# impacto de esto en la cifra "123/143 fixes applied".
 def _apply_lc_open_timeout_delete_before_transfer(
     source: str,
     function_name: str,

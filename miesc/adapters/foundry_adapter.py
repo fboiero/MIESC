@@ -21,6 +21,7 @@ Version: 1.0.0
 
 import json
 import logging
+import os
 import re
 import subprocess
 import time
@@ -85,6 +86,8 @@ class FoundryAdapter(ToolAdapter):
         self.config = config or {}
         self.test_pattern = self.config.get("test_pattern", "test/**/*.sol")
         self.fuzz_runs = self.config.get("fuzz_runs", 256)
+        self.fuzz_seed = self.config.get("fuzz_seed")
+        self.invariant_depth = self.config.get("invariant_depth", 100)
         self.gas_report = self.config.get("gas_report", True)
         self.coverage = self.config.get("coverage", False)
         self.timeout = self.config.get("timeout", 300)
@@ -192,6 +195,8 @@ class FoundryAdapter(ToolAdapter):
 
             # Add fuzz runs
             cmd.extend(["--fuzz-runs", str(self.fuzz_runs)])
+            if self.fuzz_seed:
+                cmd.extend(["--fuzz-seed", str(self.fuzz_seed)])
 
             # Add gas reporting
             if self.gas_report:
@@ -223,7 +228,16 @@ class FoundryAdapter(ToolAdapter):
 
             # Run forge test
             result = subprocess.run(
-                cmd, capture_output=True, timeout=self.timeout, text=True, cwd=project_root
+                cmd,
+                capture_output=True,
+                timeout=self.timeout,
+                text=True,
+                cwd=project_root,
+                env={
+                    **os.environ,
+                    "FOUNDRY_INVARIANT_RUNS": str(self.fuzz_runs),
+                    "FOUNDRY_INVARIANT_DEPTH": str(self.invariant_depth),
+                },
             )
 
             duration = time.time() - start_time
@@ -244,19 +258,45 @@ class FoundryAdapter(ToolAdapter):
             # Extract gas report if available
             gas_report = self._extract_gas_report(result.stdout, result.stderr)
 
-            return {
+            status = "success"
+            error = None
+            if test_stats.get("errors", 0):
+                status = "error"
+                error = "Foundry setup or test discovery failed"
+            elif test_stats.get("total", 0) == 0:
+                status = "inconclusive"
+                error = "Foundry executed no tests; no security conclusion can be drawn"
+            elif result.returncode != 0 and not findings:
+                status = "error"
+                error = (result.stderr or "Foundry execution failed").strip()
+
+            has_counterexample = any(f.get("counterexample") for f in findings)
+            evidence_status = (
+                "counterexample"
+                if findings and (test_stats.get("calls", 0) > 0 or has_counterexample)
+                else "executed" if test_stats.get("total", 0) > 0 else "inconclusive"
+            )
+
+            response = {
                 "tool": "foundry",
                 "version": "1.0.0",
-                "status": "success",
+                "status": status,
                 "findings": findings,
                 "execution_time": round(duration, 2),
                 "tests_run": test_stats.get("total", 0),
                 "tests_passed": test_stats.get("passed", 0),
                 "tests_failed": test_stats.get("failed", 0),
+                "calls_executed": test_stats.get("calls", 0),
+                "evidence_status": evidence_status,
                 "gas_report": gas_report,
                 "fuzz_runs": self.fuzz_runs,
+                "fuzz_seed": self.fuzz_seed,
+                "invariant_depth": self.invariant_depth,
                 "dpga_compliant": True,
             }
+            if error:
+                response["error"] = error
+            return response
 
         except subprocess.TimeoutExpired:
             logger.error(f"Foundry timeout after {self.timeout}s")
@@ -333,7 +373,7 @@ class FoundryAdapter(ToolAdapter):
         }
         """
         findings = []
-        test_stats = {"total": 0, "passed": 0, "failed": 0}
+        test_stats = {"total": 0, "passed": 0, "failed": 0, "calls": 0, "errors": 0}
 
         # Try to parse JSON output first
         try:
@@ -342,8 +382,8 @@ class FoundryAdapter(ToolAdapter):
                 if line.strip().startswith("{"):
                     try:
                         data = json.loads(line)
-                        if "test_results" in data:
-                            findings, test_stats = self._parse_json_results(data)
+                        findings, test_stats = self._parse_json_results(data)
+                        if test_stats.get("total", 0):
                             return findings, test_stats
                     except json.JSONDecodeError:
                         continue
@@ -358,19 +398,59 @@ class FoundryAdapter(ToolAdapter):
     def _parse_json_results(self, data: Dict[str, Any]) -> tuple:
         """Parse JSON test results from Foundry"""
         findings = []
-        test_stats = {"total": 0, "passed": 0, "failed": 0}
+        test_stats = {"total": 0, "passed": 0, "failed": 0, "calls": 0, "errors": 0}
 
-        test_results = data.get("test_results", {})
+        test_results = data.get("test_results")
+        if isinstance(test_results, dict):
+            contract_results = test_results.items()
+        else:
+            contract_results = (
+                (contract_name, payload.get("test_results", {}))
+                for contract_name, payload in data.items()
+                if isinstance(payload, dict) and isinstance(payload.get("test_results"), dict)
+            )
 
-        for contract_name, tests in test_results.items():
+        for contract_name, tests in contract_results:
+            if not isinstance(tests, dict):
+                continue
             for test_name, result in tests.items():
+                if not isinstance(result, dict):
+                    continue
+
+                raw_status = str(result.get("status", "")).lower()
+                success = result.get("success")
+                if not isinstance(success, bool):
+                    if raw_status in {"success", "pass", "passed"}:
+                        success = True
+                    elif raw_status in {"failure", "fail", "failed"}:
+                        success = False
+                    else:
+                        continue
                 test_stats["total"] += 1
 
-                success = result.get("success", True)
+                kind = result.get("kind", {})
+                invariant = kind.get("Invariant", {}) if isinstance(kind, dict) else {}
+                metrics = invariant.get("metrics", {}) if isinstance(invariant, dict) else {}
+                if isinstance(metrics, dict):
+                    metric_calls = sum(
+                        metric.get("calls", 0)
+                        for metric in metrics.values()
+                        if isinstance(metric, dict) and isinstance(metric.get("calls", 0), int)
+                    )
+                    test_stats["calls"] += metric_calls or (
+                        invariant.get("calls", 0)
+                        if isinstance(invariant.get("calls", 0), int)
+                        else 0
+                    )
+
                 if success:
                     test_stats["passed"] += 1
                 else:
                     test_stats["failed"] += 1
+
+                    if str(test_name).split("(", 1)[0].lower() == "setup":
+                        test_stats["errors"] += 1
+                        continue
 
                     # Create finding for failed test
                     reason = result.get("reason", "Test failed")
@@ -392,7 +472,7 @@ class FoundryAdapter(ToolAdapter):
     def _parse_text_output(self, stdout: str, stderr: str) -> tuple:
         """Parse text output from Foundry (fallback)"""
         findings = []
-        test_stats = {"total": 0, "passed": 0, "failed": 0}
+        test_stats = {"total": 0, "passed": 0, "failed": 0, "calls": 0, "errors": 0}
 
         lines = stdout.split("\n")
 
@@ -518,6 +598,8 @@ class FoundryAdapter(ToolAdapter):
         return {
             "test_pattern": "test/**/*.sol",
             "fuzz_runs": 256,
+            "fuzz_seed": None,
+            "invariant_depth": 100,
             "gas_report": True,
             "coverage": False,
             "timeout": 300,

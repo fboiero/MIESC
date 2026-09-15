@@ -11,6 +11,8 @@ import concurrent.futures
 import glob as glob_module
 import json
 import logging
+import os
+import re
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -48,6 +50,72 @@ if RICH_AVAILABLE:
 logger = logging.getLogger(__name__)
 
 
+def _save_foundry_harness(
+    result: Any, contract: str, destination: Path
+) -> tuple[Path, Path] | None:
+    """Export a validated PropertyGPT harness and its replay metadata."""
+    campaign = next(
+        (
+            finding.get("foundry_campaign")
+            for finding in result.raw_findings
+            if isinstance(finding.get("foundry_campaign"), dict)
+        ),
+        None,
+    )
+    if not campaign or campaign.get("status") not in {"passed", "counterexample"}:
+        warning("No validated Foundry harness was produced")
+        return None
+
+    harness = campaign.get("harness")
+    if not isinstance(harness, str) or not harness.strip():
+        warning("No validated Foundry harness was produced")
+        return None
+
+    destination.mkdir(parents=True, exist_ok=True)
+    harness_path = destination / "MIESCGeneratedInvariant.t.sol"
+    metadata_path = destination / "MIESCGeneratedInvariant.json"
+    existing = [path.name for path in (harness_path, metadata_path) if path.exists()]
+    if existing:
+        raise click.ClickException(f"Refusing to overwrite: {', '.join(existing)}")
+
+    relative_contract = Path(os.path.relpath(Path(contract).resolve(), destination.resolve()))
+    contract_import = relative_contract.as_posix()
+    if not contract_import.startswith("."):
+        contract_import = f"./{contract_import}"
+    exported_harness, replacements = re.subn(
+        r'(?<=["\'])@repo/[^"\']+(?=["\'])', contract_import, harness, count=1
+    )
+    if replacements != 1:
+        raise click.ClickException("Generated harness has no @repo contract import")
+
+    metadata = {
+        key: campaign.get(key)
+        for key in (
+            "status",
+            "compiled",
+            "repairs_used",
+            "tests_run",
+            "tests_passed",
+            "tests_failed",
+            "calls_executed",
+            "seed",
+            "counterexamples",
+            "coverage",
+        )
+    }
+    metadata.update(
+        {
+            "contract": contract_import,
+            "harness": harness_path.name,
+        }
+    )
+    harness_path.write_text(exported_harness, encoding="utf-8")
+    metadata_path.write_text(json.dumps(metadata, indent=2, default=str) + "\n", encoding="utf-8")
+    success(f"Foundry harness saved to {harness_path}")
+    success(f"Replay metadata saved to {metadata_path}")
+    return harness_path, metadata_path
+
+
 def _apply_deep_profile_config(config: Any, profile_name: str | None) -> tuple[Any, Dict[str, Any]]:
     """Apply profile settings that are safe for agentic deep audit."""
     if not profile_name:
@@ -77,6 +145,19 @@ def _apply_deep_profile_config(config: Any, profile_name: str | None) -> tuple[A
 def _profile_uses_agentic_path(profile: Dict[str, Any]) -> bool:
     """Return True for profiles that require agentic audit semantics."""
     return bool(profile.get("agentic_ensemble") or profile.get("enable_agentic_invariants"))
+
+
+def _smart_audit_tools(contract: str) -> List[str]:
+    """Add dynamic testing when the target is already a Foundry project."""
+    tools = ["slither", "aderyn", "mythril", "solhint", "smartllm", "propertygpt"]
+    try:
+        from miesc.core.framework_detector import is_foundry_project
+
+        if is_foundry_project(contract):
+            tools.append("foundry")
+    except Exception:
+        pass
+    return tools
 
 
 def _run_agentic_audit_profile(
@@ -452,6 +533,7 @@ def _run_full_audit_with_ml(
     fail_on_confidence: float = 0.0,
     baseline_path: str | None = None,
     fail_on_new: bool = False,
+    confirm_exploits: bool = False,
 ) -> None:
     """Run full audit using ML Orchestrator."""
     # Determine tools from layers
@@ -475,6 +557,7 @@ def _run_full_audit_with_ml(
             timeout=timeout,
             progress_callback=progress_callback if RICH_AVAILABLE else None,
             fp_strictness=fp_strictness,
+            confirm_exploits=confirm_exploits,
         )
 
         # Recall-safe benign-context verifier (opt-in) over the ML-filtered findings
@@ -855,8 +938,8 @@ def _run_full_audit_basic(
             deduped = len(all_findings_flat) - len(enhanced)
             if deduped > 0:
                 info(f"Intelligence engine: merged {deduped} duplicate findings across tools")
-    except Exception:
-        pass  # graceful degradation
+    except Exception as e:
+        info(f"Intelligence engine skipped: {e}")
 
     # Recall-safe benign-context verifier (opt-in)
     if verify_fp:
@@ -1129,8 +1212,8 @@ def audit_quick(
             deduped = len(all_findings_flat) - len(enhanced)
             if deduped > 0:
                 info(f"Intelligence engine: merged {deduped} duplicate findings across tools")
-    except Exception:
-        pass  # graceful degradation
+    except Exception as e:
+        info(f"Intelligence engine skipped: {e}")
 
     # Recall-safe benign-context verifier (opt-in)
     if verify_fp:
@@ -1309,6 +1392,16 @@ def audit_quick(
     is_flag=True,
     help="With --baseline: exit non-zero ONLY if there are findings not in the baseline.",
 )
+@click.option(
+    "--confirm-exploits",
+    "confirm_exploits",
+    is_flag=True,
+    help="MEJORAS3.md item 3. Opt-in: actually compile+run exploit_synthesizer's "
+    "generated PoCs with Foundry (Layer 9), so findings can be marked genuinely "
+    "CONFIRMED/NOT_CONFIRMED instead of always POC_GENERATED. Adds real latency "
+    "(network on first use per contract, then a real forge test per finding) - "
+    "off by default, same opt-in-for-real-cost pattern as cloud LLM adapters.",
+)
 def audit_full(
     contract: str,
     output: str | None,
@@ -1327,6 +1420,7 @@ def audit_full(
     fail_on_confidence: float,
     baseline_path: str | None,
     fail_on_new: bool,
+    confirm_exploits: bool,
 ) -> None:
     """Complete 9-layer security audit with the configured layer tools.
 
@@ -1371,6 +1465,7 @@ def audit_full(
             fail_on_confidence=fail_on_confidence,
             baseline_path=baseline_path,
             fail_on_new=fail_on_new,
+            confirm_exploits=confirm_exploits,
         )
         return
 
@@ -1461,17 +1556,34 @@ def audit_layer(layer_num: int, contract: str, output: str | None, timeout: int)
 @audit.command("smart")
 @click.argument("contract", type=click.Path(exists=True))
 @click.option("--output", "-o", type=click.Path(), help="Output file path")
+@click.option(
+    "--save-harness",
+    type=click.Path(file_okay=False, path_type=Path),
+    help="Save the validated Foundry harness and replay metadata in this directory",
+)
 @click.option("--format", "-f", "fmt", type=click.Choice(["json", "markdown"]), default="json")
 @click.option("--timeout", "-t", type=int, default=300, help="Timeout per tool in seconds")
 @click.option(
     "--llm-validate/--no-llm-validate", default=False, help="Use LLM to validate findings"
 )
+@click.option(
+    "--validator-model",
+    type=click.Choice(["ollama", "claude-code", "codex"], case_sensitive=False),
+    default="ollama",
+    help=(
+        "LLM used for --llm-validate. ollama (default) runs fully local. "
+        "claude-code/codex use your existing Claude Code/Codex CLI subscription login "
+        "(opt-in, no API key) instead of the local model."
+    ),
+)
 def audit_smart(
     contract: str,
     output: str | None,
+    save_harness: Path | None,
     fmt: str,
     timeout: int,
     llm_validate: bool,
+    validator_model: str,
 ) -> None:
     """Smart audit with ML filtering, correlation, and optional LLM validation.
 
@@ -1486,6 +1598,7 @@ def audit_smart(
         miesc audit smart contract.sol                    # Smart audit
         miesc audit smart contract.sol --llm-validate    # With LLM validation
         miesc audit smart contract.sol -o report.json    # Save report
+        miesc audit smart contract.sol --save-harness test/generated
     """
     print_banner()
     info(f"Smart audit of {contract}")
@@ -1498,6 +1611,8 @@ def audit_smart(
         info("Falling back to basic audit...")
         # Fall back to basic
         _run_full_audit_basic(contract, output, fmt, [1, 2, 3], timeout)
+        if save_harness:
+            warning("No validated Foundry harness was produced")
         return
 
     if RICH_AVAILABLE:
@@ -1507,7 +1622,7 @@ def audit_smart(
             console.print("[magenta]LLM validation[/magenta] enabled")
 
     # Define smart tool selection (core reliable tools)
-    smart_tools = ["slither", "aderyn", "mythril", "solhint"]
+    smart_tools = _smart_audit_tools(contract)
 
     info(f"Tools: {', '.join(smart_tools)}")
 
@@ -1539,33 +1654,61 @@ def audit_smart(
 
     # Optional LLM validation
     if llm_validate and result.ml_filtered_findings:
-        info("Running LLM validation on findings...")
+        provider = {
+            "ollama": "ollama",
+            "claude-code": "claude_code",
+            "codex": "codex_cli",
+        }[validator_model.lower()]
+        info(f"Running LLM validation on findings ({validator_model})...")
         try:
             from miesc.llm.finding_validator import LLMFindingValidator, ValidatorConfig
 
             validator_config = ValidatorConfig(
                 min_severity_to_validate="medium",
                 timeout_seconds=60,
+                provider=provider,
             )
             validator = LLMFindingValidator(validator_config)
+            llm_candidates = list(result.ml_filtered_findings)
 
             import asyncio
 
+            try:
+                code_contexts = {contract: Path(contract).read_text()}
+            except OSError:
+                code_contexts = {}
+
             async def validate() -> tuple[list[dict[str, Any]], list[Any]]:
-                validated, validations = await validator.validate_findings_batch(
-                    result.ml_filtered_findings
+                kept, validations = await validator.validate_findings_batch(
+                    result.ml_filtered_findings, code_contexts
                 )
                 await validator.close()
-                return validated, validations
+                return kept, validations
 
             validated_findings, validations = asyncio.run(validate())
+            filtered_out = getattr(validator, "filtered_out_findings", None)
+            if not isinstance(filtered_out, list):
+                filtered_out = [
+                    finding for finding in llm_candidates if finding not in validated_findings
+                ]
 
-            # Update result with LLM validation
-            llm_fp_count = len(result.ml_filtered_findings) - len(validated_findings)
-            if llm_fp_count > 0:
-                info(f"LLM filtered {llm_fp_count} additional false positives")
-                result.ml_filtered_findings = validated_findings
-                result.false_positives_removed += llm_fp_count
+            # Update result with LLM validation. validated_findings carries
+            # confidence adjustments and _llm_validation reasoning even for
+            # findings the validator kept (e.g. its 2-pass confirmation
+            # declined to discard anything) — that enrichment must survive
+            # regardless of whether anything was actually filtered out, or
+            # every successful validation run with 0 confirmed FPs silently
+            # throws away its own output. Findings confirmed as false
+            # positives additionally go into ml_filtered_out (same field the
+            # ML pattern-based filter already uses) instead of disappearing.
+            result.ml_filtered_findings = validated_findings
+            if filtered_out:
+                info(f"LLM filtered {len(filtered_out)} additional false positives")
+                result.ml_filtered_out = [
+                    *getattr(result, "ml_filtered_out", []),
+                    *filtered_out,
+                ]
+                result.false_positives_removed += len(filtered_out)
 
         except Exception as e:
             warning(f"LLM validation failed: {e}")
@@ -1617,12 +1760,30 @@ def audit_smart(
                 console.print(
                     f"  [{color}][{sev}][/{color}] {vtype} - {loc.get('file', '')}:{loc.get('line', 0)}"
                 )
+
+        # Discarded findings — visible with their reasoning instead of
+        # silently disappearing (see ml_filtered_out / status="filtered_fp")
+        discarded = getattr(result, "ml_filtered_out", [])
+        if discarded:
+            console.print(f"\n[dim]Discarded ({len(discarded)}):[/dim]")
+            for finding in discarded[:5]:
+                finding_type = finding.get("type", finding.get("title", "unknown"))
+                reason = finding.get("_llm_validation", {}).get("reasoning", "")[:100]
+                console.print(f"  [dim]· {finding_type} — {reason}[/dim]")
+            if len(discarded) > 5:
+                console.print(f"  [dim]... and {len(discarded) - 5} more (see JSON output)[/dim]")
     else:
         print("\n=== Smart Audit Results ===")
         print(f"Risk Level: {summary['risk_level']}")
         print(f"Total: {summary['total_findings']}")
         print(f"Critical: {summary['critical']}, High: {summary['high']}")
         print(f"FPs removed: {result.false_positives_removed}")
+        discarded = getattr(result, "ml_filtered_out", [])
+        if discarded:
+            print(f"Discarded: {len(discarded)} (see JSON output for reasoning)")
+
+    if save_harness:
+        _save_foundry_harness(result, contract, save_harness)
 
     # Save output
     if output:
@@ -1782,8 +1943,8 @@ def audit_profile(
             deduped = len(all_findings_flat) - len(enhanced)
             if deduped > 0:
                 info(f"Intelligence engine: merged {deduped} duplicate findings across tools")
-    except Exception:
-        pass  # graceful degradation
+    except Exception as e:
+        info(f"Intelligence engine skipped: {e}")
 
     summary = summarize_findings(all_results)
     total = sum(summary.values())
@@ -1914,6 +2075,17 @@ def audit_single(tool: str, contract: str, output: str | None, timeout: int) -> 
 @click.option(
     "--fail-on", type=str, default="", help="Fail on severity (comma-separated: critical,high)"
 )
+@click.option(
+    "--checkpoint",
+    type=click.Path(),
+    default=None,
+    help="Write progress to this file after each contract completes",
+)
+@click.option(
+    "--resume",
+    is_flag=True,
+    help="Skip contracts already completed in --checkpoint and continue from there",
+)
 def audit_batch(
     path: str,
     output: str | None,
@@ -1923,6 +2095,8 @@ def audit_batch(
     recursive: bool,
     pattern: str,
     fail_on: str,
+    checkpoint: str | None,
+    resume: bool,
 ) -> None:
     """Batch analysis of multiple contracts.
 
@@ -1934,6 +2108,8 @@ def audit_batch(
       miesc audit batch ./src -r --profile balanced    # Recursive with balanced profile
       miesc audit batch . -j 8 -o report.json          # 8 parallel workers
       miesc audit batch ./contracts --fail-on critical,high  # CI mode
+      miesc audit batch ./contracts --checkpoint state.json           # Save progress
+      miesc audit batch ./contracts --checkpoint state.json --resume  # Continue after a crash
     """
     print_banner()
 
@@ -1974,6 +2150,37 @@ def audit_batch(
     aggregated_summary = {"CRITICAL": 0, "HIGH": 0, "MEDIUM": 0, "LOW": 0, "INFO": 0}
     failed_contracts = []
     start_time = datetime.now()
+
+    checkpoint_path = Path(checkpoint) if checkpoint else None
+    if resume and checkpoint_path and checkpoint_path.exists():
+        try:
+            ckpt_data = json.loads(checkpoint_path.read_text())
+            all_contract_results = ckpt_data.get("contracts", [])
+            for r in all_contract_results:
+                for sev, count in r["summary"].items():
+                    aggregated_summary[sev] += count
+            done = {r["contract"] for r in all_contract_results}
+            before = len(sol_files)
+            sol_files = [f for f in sol_files if f not in done]
+            info(
+                f"Resumed from {checkpoint_path}: {before - len(sol_files)} contracts already done, {len(sol_files)} left"
+            )
+        except Exception as e:
+            warning(f"Could not load checkpoint {checkpoint_path}: {e} — starting fresh")
+
+    def _write_checkpoint() -> None:
+        if not checkpoint_path:
+            return
+        try:
+            checkpoint_path.write_text(
+                json.dumps(
+                    {"contracts": all_contract_results, "failed": failed_contracts},
+                    indent=2,
+                    default=str,
+                )
+            )
+        except Exception as e:
+            logger.debug(f"Checkpoint write failed: {e}")
 
     def analyze_contract(contract_path: str) -> Dict[str, Any]:
         """Analyze a single contract with all tools."""
@@ -2034,6 +2241,7 @@ def audit_batch(
                         failed_contracts.append({"contract": contract, "error": str(e)})
                         console.print(f"  [red]{Path(contract).name}[/red]: error - {e}")
 
+                    _write_checkpoint()
                     progress.advance(task)
     else:
         with concurrent.futures.ThreadPoolExecutor(max_workers=parallel) as executor:
@@ -2056,8 +2264,32 @@ def audit_batch(
                     failed_contracts.append({"contract": contract, "error": str(e)})
                     print(f"  Error: {e}")
 
+                _write_checkpoint()
+
     elapsed = (datetime.now() - start_time).total_seconds()
     total_findings = sum(aggregated_summary.values())
+
+    # Cross-contract exploit chains (MEJORAS.md #5b) — only meaningful with >1 file.
+    cross_contract_chains: list[Dict[str, Any]] = []
+    if len(sol_files) > 1:
+        try:
+            from miesc.ml.protocol_graph import (
+                build_protocol_graph,
+                find_cross_contract_chains,
+                resolve_finding_contract,
+            )
+
+            protocol_graph = build_protocol_graph(sol_files)
+            findings_by_contract: Dict[str, list[Dict[str, Any]]] = {}
+            for contract_data in all_contract_results:
+                for tool_result in contract_data.get("results", []):
+                    for finding in tool_result.get("findings", []):
+                        contract = resolve_finding_contract(finding, protocol_graph)
+                        if contract:
+                            findings_by_contract.setdefault(contract, []).append(finding)
+            cross_contract_chains = find_cross_contract_chains(findings_by_contract, protocol_graph)
+        except Exception as e:
+            logger.debug(f"Cross-contract chain detection skipped: {e}")
 
     # Display summary
     if RICH_AVAILABLE:
@@ -2100,6 +2332,18 @@ def audit_batch(
                         f"C:{result['summary']['CRITICAL']} H:{result['summary']['HIGH']} "
                         f"M:{result['summary']['MEDIUM']} L:{result['summary']['LOW']}"
                     )
+
+        if cross_contract_chains:
+            console.print("\n")
+            chain_table = Table(title="Cross-Contract Exploit Chains", box=box.ROUNDED)
+            chain_table.add_column("Caller")
+            chain_table.add_column("Callee")
+            chain_table.add_column("Category")
+            chain_table.add_column("Reason")
+            for chain in cross_contract_chains:
+                caller, callee = chain["contracts"]
+                chain_table.add_row(caller, callee, chain["category"], chain["reason"])
+            console.print(chain_table)
     else:
         print("\n=== Batch Analysis Summary ===")
         print(f"Contracts: {len(all_contract_results)}")
@@ -2121,6 +2365,7 @@ def audit_batch(
         "contracts_failed": len(failed_contracts),
         "aggregated_summary": aggregated_summary,
         "total_findings": total_findings,
+        "cross_contract_chains": cross_contract_chains,
         "contracts": all_contract_results,
         "failed": failed_contracts,
     }
@@ -2248,6 +2493,27 @@ def audit_batch(
     help="LLM provider: auto (local-first with cloud fallback), ollama, anthropic, openai",
 )
 @click.option("--ci", is_flag=True, help="CI mode: exit 1 if critical/high issues")
+@click.option(
+    "--deep-reasoning",
+    is_flag=True,
+    help=(
+        "Opt-in second-opinion pass over the whole protocol via Claude Code CLI "
+        "(your subscription, not an API key) — reads the repo with Read/Grep/Glob "
+        "to confirm findings and surface cross-file bugs static tools miss. "
+        "Directory targets only. Requires the `claude` CLI on PATH and logged in."
+    ),
+)
+@click.option(
+    "--deep-reasoning-timeout",
+    type=int,
+    default=1200,
+    help=(
+        "Max seconds for the --deep-reasoning pass itself (default 1200). "
+        "Also capped by whatever remains of --timeout after per-file analysis - "
+        "raise both together for large protocols (dozens of files need more "
+        "than a single small contract does)."
+    ),
+)
 def audit_deep(
     contract: str,
     output: str | None,
@@ -2259,6 +2525,8 @@ def audit_deep(
     no_rag: bool,
     llm_provider: str,
     ci: bool,
+    deep_reasoning: bool,
+    deep_reasoning_timeout: int,
 ) -> None:
     """Agentic deep audit with iterative analysis and cross-layer correlation.
 
@@ -2272,12 +2540,23 @@ def audit_deep(
     - Generates LLM narrative (local Ollama, optional)
     - 100% local execution, DPGA compliant
 
+    CONTRACT may be a directory: every .sol file under it is analyzed as one
+    protocol (shared cross-file call/inheritance graph, cross-contract exploit
+    chains), not as unrelated single-file reports.
+
+    --deep-reasoning (directory targets only) adds an opt-in second-opinion
+    pass via the Claude Code CLI (your subscription, no API key/DPGA cloud
+    call): it reads the protocol directory with Read/Grep/Glob to confirm or
+    reject existing findings and surface cross-file bugs static tools miss.
+
     \b
     Examples:
         miesc audit deep contract.sol
         miesc audit deep contract.sol --no-llm
         miesc audit deep contract.sol -t 300
         miesc audit deep contract.sol -o report.json --ci
+        miesc audit deep ./src
+        miesc audit deep ./src --deep-reasoning
     """
     print_banner()
 
@@ -2289,9 +2568,14 @@ def audit_deep(
         enable_llm=not no_llm,
         llm_provider=llm_provider,
         enable_rag=not no_rag,
+        enable_deep_reasoning=deep_reasoning,
+        deep_reasoning_timeout=deep_reasoning_timeout,
     )
     profile_config: Dict[str, Any]
     config, profile_config = _apply_deep_profile_config(config, profile)
+
+    if deep_reasoning and not Path(contract).is_dir():
+        warning("--deep-reasoning only runs on a directory target (protocol-level); ignoring it")
 
     agent = DeepAuditAgent(config=config)
 
@@ -2299,7 +2583,8 @@ def audit_deep(
     llm_status = f"{config.llm_provider}" if config.enable_llm else "disabled"
     info(
         f"Timeout: {config.timeout_seconds}s | Max iterations: {config.max_iterations} | "
-        f"LLM: {llm_status} | RAG: {config.enable_rag}"
+        f"LLM: {llm_status} | RAG: {config.enable_rag} | "
+        f"Deep reasoning: {config.enable_deep_reasoning}"
     )
     if profile:
         info(f"Profile: {profile} | {profile_config.get('description', '')}")
@@ -2321,6 +2606,25 @@ def audit_deep(
     # Display results
     summary = result.get("summary", {})
     phases = result.get("phases", {})
+    is_directory = "files" in result
+
+    if is_directory:
+        cross_chains = result.get("cross_contract_chains", [])
+        info(
+            f"Protocol: {result['metadata'].get('files_analyzed', 0)}/"
+            f"{result['metadata'].get('files_total', 0)} files analyzed, "
+            f"{len(result.get('protocol', {}).get('contracts', []))} contracts, "
+            f"{len(cross_chains)} cross-contract exposure chains"
+        )
+        for chain in cross_chains[:10]:
+            info(f"  {chain['reason']}")
+
+        deep_reasoning_result = result.get("deep_reasoning", {})
+        if deep_reasoning_result.get("enabled"):
+            if deep_reasoning_result.get("error"):
+                warning(f"Deep reasoning pass failed: {deep_reasoning_result['error']}")
+            else:
+                info(f"Deep reasoning pass: {deep_reasoning_result.get('count', 0)} finding(s)")
 
     if RICH_AVAILABLE:
         from rich.panel import Panel
@@ -2389,3 +2693,97 @@ def audit_deep(
         if critical > 0 or high > 0:
             error(f"CI check failed: {critical} critical, {high} high issues")
             sys.exit(1)
+
+
+@audit.command("address")
+@click.argument("address")
+@click.option(
+    "--chain",
+    type=click.Choice(["ethereum", "polygon", "arbitrum", "optimism", "bsc", "avalanche"]),
+    default="ethereum",
+    help="Chain the address lives on (default: ethereum)",
+)
+@click.option(
+    "--api-key",
+    help=(
+        "Etherscan API key (V2: one key works for every --chain via chainid). "
+        "Falls back to the ETHERSCAN_API_KEY env var - never bundled, opt-in only."
+    ),
+)
+@click.option("--output", "-o", type=click.Path(), help="Output file path")
+@click.option("--timeout", "-t", type=int, default=600, help="Max total audit time in seconds")
+@click.option(
+    "--deep-reasoning",
+    is_flag=True,
+    help="Also run the --deep-reasoning second-opinion pass (see `miesc audit deep --help`)",
+)
+@click.option("--ci", is_flag=True, help="CI mode: exit 1 if critical/high issues")
+@click.pass_context
+def audit_address(
+    ctx: click.Context,
+    address: str,
+    chain: str,
+    api_key: str | None,
+    output: str | None,
+    timeout: int,
+    deep_reasoning: bool,
+    ci: bool,
+) -> None:
+    """Audit a deployed contract by address - no local .sol file needed.
+
+    Fetches the address's verified source from its chain's block explorer
+    (Etherscan-compatible API, requires your own API key), then runs the
+    same agentic deep audit as `miesc audit deep` against it.
+
+    Solidity only for now: block explorers verify Vyper far less
+    consistently. An address with no verified source (or on an unsupported
+    chain) fails clearly instead of silently producing an empty report.
+
+    \b
+    Examples:
+        miesc audit address 0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984
+        miesc audit address 0x... --chain arbitrum --deep-reasoning
+    """
+    print_banner()
+
+    from miesc.core.block_explorer import (
+        BlockExplorerError,
+        NotVerifiedError,
+        fetch_verified_source,
+        write_contract_to_dir,
+    )
+    from miesc.core.chain_abstraction import ChainType
+
+    info(f"Fetching verified source for {address} on {chain}...")
+    try:
+        contract = fetch_verified_source(address, chain=ChainType(chain), api_key=api_key)
+    except NotVerifiedError as e:
+        error(str(e))
+        sys.exit(1)
+    except BlockExplorerError as e:
+        error(f"Could not fetch source: {e}")
+        sys.exit(1)
+
+    success(
+        f"Fetched {contract.contract_name} ({len(contract.files)} file(s), solc {contract.compiler_version})"
+    )
+
+    import tempfile
+
+    with tempfile.TemporaryDirectory(prefix="miesc_address_") as tmp:
+        target_dir = write_contract_to_dir(contract, Path(tmp) / contract.contract_name)
+        ctx.invoke(
+            audit_deep,
+            contract=str(target_dir),
+            output=output,
+            fmt="json",
+            timeout=timeout,
+            max_iterations=5,
+            profile=None,
+            no_llm=False,
+            no_rag=False,
+            llm_provider="auto",
+            ci=ci,
+            deep_reasoning=deep_reasoning,
+            deep_reasoning_timeout=1200,
+        )

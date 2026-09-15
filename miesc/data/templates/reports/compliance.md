@@ -129,7 +129,7 @@ MIESC 9-layer defense-in-depth analysis coverage.
 | 5 | Formal Verification | {{ layer5_tools }} | {{ layer5_count }} |
 | 6 | ML Detection | {{ layer6_tools }} | {{ layer6_count }} |
 | 7 | LLM Analysis | {{ layer7_tools }} | {{ layer7_count }} |
-| 8 | DeFi Security | {{ layer8_tools }} | {{ layer8_count }} |
+| 8 | Cross-Chain & ZK Security | {{ layer8_tools }} | {{ layer8_count }} |
 | 9 | Dependency Audit | {{ layer9_tools }} | {{ layer9_count }} |
 
 ---

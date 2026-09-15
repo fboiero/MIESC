@@ -125,6 +125,27 @@ class TestToolDiscoveryDiscover:
         # Should be new dict
         assert tools1 is not tools2
 
+    def test_broken_adapter_logs_a_warning_instead_of_vanishing_silently(self, tmp_path, caplog):
+        """Regression guard: a broken adapter used to be indistinguishable from
+        one that's simply not installed (bare `except Exception: pass`, zero
+        logging). A genuine SyntaxError during import (not the already-handled
+        ImportError case) should now log a warning naming the file.
+        """
+        import logging
+        from unittest.mock import patch
+
+        (tmp_path / "broken_adapter.py").write_text("# placeholder, import is mocked below")
+        broken_discovery = ToolDiscovery(adapters_path=str(tmp_path))
+
+        with (
+            caplog.at_level(logging.WARNING, logger="miesc.core.tool_discovery"),
+            patch("importlib.import_module", side_effect=SyntaxError("bad syntax")),
+        ):
+            tools = broken_discovery.discover()
+
+        assert tools == {}
+        assert any("broken_adapter.py" in r.message for r in caplog.records)
+
 
 class TestToolDiscoveryGetTools:
     """Test tool retrieval methods."""

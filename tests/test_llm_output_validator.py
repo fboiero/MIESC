@@ -486,6 +486,15 @@ class TestSafeParseLlmJson:
         assert result.is_valid is True
         assert result.data is not None
 
+    def test_valid_json_preserves_apostrophes(self):
+        content = (
+            '{"findings":[{"type":"logic_error","severity":"high",'
+            '"title":"Missing check","description":"The user\'s deposit is unsafe"}]}'
+        )
+        result = safe_parse_llm_json(content, AnalysisResponse, strict=True)
+        assert result.is_valid is True
+        assert result.data.findings[0].description == "The user's deposit is unsafe"
+
     def test_json_in_text(self):
         """Test extracting JSON from surrounding text."""
         content = """Analysis complete.

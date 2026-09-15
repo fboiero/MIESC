@@ -23,8 +23,9 @@ import subprocess
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, cast
+from typing import Any, Dict, List, Optional, Tuple
 
+from miesc.adapters._cache_mixin import LLMCacheMixin
 from miesc.core.llm_config import get_default_model
 from miesc.core.ollama_models import select_ollama_model
 from miesc.core.tool_protocol import (
@@ -195,7 +196,7 @@ Conclusion: HIGH severity DoS. Use pull-over-push pattern for withdrawals.
 ]
 
 
-class SmartGuardAdapter(ToolAdapter):
+class SmartGuardAdapter(LLMCacheMixin, ToolAdapter):
     """
     SmartGuard: LLM-enhanced vulnerability detection with RAG + Chain-of-Thought.
 
@@ -210,8 +211,7 @@ class SmartGuardAdapter(ToolAdapter):
 
     def __init__(self) -> None:
         super().__init__()
-        self._cache_dir = Path.home() / ".miesc" / "smartguard_cache"
-        self._cache_dir.mkdir(parents=True, exist_ok=True)
+        self._init_cache("smartguard")
         self._model = select_ollama_model(
             get_default_model(),
             fallback=[
@@ -317,7 +317,7 @@ class SmartGuardAdapter(ToolAdapter):
             # Check cache
             cache_payload = f"smartguard-v6|{self._model}|{contract_code}"
             cache_key = hashlib.sha256(cache_payload.encode()).hexdigest()
-            cached = self._get_cached(cache_key)
+            cached = self._get_cached_result(cache_key)
             if cached:
                 cached["from_cache"] = True
                 cached["execution_time"] = time.time() - start_time
@@ -650,33 +650,7 @@ Fix: {vuln.fix_suggestion}
             "execution_time": time.time() - start_time,
         }
 
-    def _get_cached(self, cache_key: str) -> Optional[Dict[str, Any]]:
-        """Get cached result."""
-        cache_file = self._cache_dir / f"{cache_key}.json"
-
-        if not cache_file.exists():
-            return None
-
-        try:
-            age = time.time() - cache_file.stat().st_mtime
-            if age > 86400:  # 24 hours
-                cache_file.unlink()
-                return None
-
-            with open(cache_file, "r") as f:
-                return cast(Optional[Dict[str, Any]], json.load(f))
-        except Exception:
-            return None
-
-    def _cache_result(self, cache_key: str, result: Dict[str, Any]) -> None:
-        """Cache analysis result."""
-        cache_file = self._cache_dir / f"{cache_key}.json"
-
-        try:
-            with open(cache_file, "w") as f:
-                json.dump(result, f, indent=2)
-        except Exception as e:
-            logger.error(f"Cache write error: {e}")
+    # _get_cached_result / _cache_result are provided by LLMCacheMixin.
 
     def normalize_findings(self, raw_output: Any) -> List[Dict[str, Any]]:
         """Normalize findings."""

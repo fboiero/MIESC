@@ -31,6 +31,8 @@ from miesc.cli.commands.fix import (
 from miesc.core.code_actions import (
     CODE_ACTION_KIND_QUICKFIX,
     FixEdit,
+    _common_suffix_len,
+    _position_at,
     compute_text_edits,
     to_code_actions,
 )
@@ -162,6 +164,48 @@ class TestComputeTextEdits:
         )
         assert first_end <= second_start
 
+    def test_multi_line_hunk_end_position_reflects_all_deleted_lines(self):
+        """A hunk that replaces >1 original line must join them without a separator.
+
+        Regression for a hunk where the *original* (deleted) side spans more than
+        one line: the end position is derived from the joined ``old_text``, so
+        joining with anything other than "" shifts the reported column.
+        """
+        original = "a\nOLD1\nOLD2\nb\n"
+        patched = "a\nNEW\nb\n"
+        edits = compute_text_edits(original, patched)
+        assert len(edits) == 1
+        assert edits[0]["range"] == {
+            "start": {"line": 1, "character": 0},
+            "end": {"line": 2, "character": 4},
+        }
+        assert edits[0]["newText"] == "NEW"
+
+
+# ---------------------------------------------------------------------------
+# _position_at / _common_suffix_len (private helpers)
+# ---------------------------------------------------------------------------
+
+
+class TestPositionAt:
+    def test_single_newline_in_prefix(self):
+        assert _position_at(0, "ab\ncd", 4) == {"line": 1, "character": 1}
+
+    def test_multiple_newlines_use_the_last_one_not_the_first(self):
+        """rfind, not find: the column resets from the LAST newline in the prefix."""
+        assert _position_at(0, "ab\ncd\nef", 7) == {"line": 2, "character": 1}
+
+    def test_no_newline_stays_on_base_line(self):
+        assert _position_at(3, "abc", 2) == {"line": 3, "character": 2}
+
+
+class TestCommonSuffixLen:
+    def test_bounded_by_the_shorter_string_when_a_is_shorter(self):
+        assert _common_suffix_len("ab", "xab", 10) == 2
+
+    def test_bounded_by_the_shorter_string_when_b_is_shorter(self):
+        assert _common_suffix_len("xab", "ab", 10) == 2
+
 
 # ---------------------------------------------------------------------------
 # to_code_actions
@@ -190,6 +234,12 @@ class TestToCodeActions:
     def test_drops_no_op_fixes(self):
         fx = FixEdit("id", "title", "f.sol", "same\n", "same\n")
         assert to_code_actions([fx]) == []
+
+    def test_no_op_fix_does_not_stop_processing_later_fixes(self):
+        noop = FixEdit("id1", "t1", "f.sol", "same\n", "same\n")
+        real = FixEdit("id2", "t2", "f.sol", "x\n", "y\n")
+        actions = to_code_actions([noop, real])
+        assert [a["finding_id"] for a in actions] == ["id2"]
 
     def test_json_serializable_and_stable(self):
         fx = FixEdit("id:1", "t", "f.sol", "a\n", "b\n")

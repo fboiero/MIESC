@@ -1,0 +1,136 @@
+{
+  "experiment_card": {
+    "experiment_card": {
+      "tool": "MIESC",
+      "version": "6.0.0",
+      "timestamp": "2026-08-15T00:38:16.855048",
+      "corpus": "/home/alva/Proyectos/MIESC/benchmarks/datasets/solodit-real",
+      "corpus_size": 10,
+      "layers_evaluated": [
+        1,
+        3,
+        5,
+        7,
+        9
+      ],
+      "layer_names": {
+        "1": "Static Analysis",
+        "3": "Symbolic Execution",
+        "5": "AI Analysis",
+        "7": "Specialized Analysis",
+        "9": "Advanced AI Ensemble"
+      },
+      "timeout_per_tool_s": 60,
+      "skip_unavailable": false,
+      "total_duration_s": 1388.3,
+      "python_version": "3.14.6",
+      "platform": "linux"
+    },
+    "reproducibility": {
+      "command": "miesc evaluate /home/alva/Proyectos/MIESC/benchmarks/datasets/solodit-real --layers 1,3,5,7,9 --timeout 60",
+      "seed": "not_set",
+      "llm_provider": "not_set",
+      "llm_model": "not_set"
+    }
+  },
+  "ablation": {
+    "per_layer": {
+      "1": {
+        "name": "Static Analysis",
+        "tp": 10,
+        "fp": 13,
+        "fn": 20,
+        "precision": 0.4348,
+        "recall": 0.3333,
+        "f1": 0.3774,
+        "avg_time_s": 3.885,
+        "total_time_s": 38.854
+      },
+      "3": {
+        "name": "Symbolic Execution",
+        "tp": 10,
+        "fp": 15,
+        "fn": 20,
+        "precision": 0.4,
+        "recall": 0.3333,
+        "f1": 0.3636,
+        "avg_time_s": 0.566,
+        "total_time_s": 5.661
+      },
+      "5": {
+        "name": "AI Analysis",
+        "tp": 10,
+        "fp": 14,
+        "fn": 20,
+        "precision": 0.4167,
+        "recall": 0.3333,
+        "f1": 0.3704,
+        "avg_time_s": 65.007,
+        "total_time_s": 650.069
+      },
+      "7": {
+        "name": "Specialized Analysis",
+        "tp": 10,
+        "fp": 14,
+        "fn": 20,
+        "precision": 0.4167,
+        "recall": 0.3333,
+        "f1": 0.3704,
+        "avg_time_s": 0.026,
+        "total_time_s": 0.255
+      },
+      "9": {
+        "name": "Advanced AI Ensemble",
+        "tp": 10,
+        "fp": 12,
+        "fn": 20,
+        "precision": 0.4545,
+        "recall": 0.3333,
+        "f1": 0.3846,
+        "avg_time_s": 0.018,
+        "total_time_s": 0.18
+      }
+    },
+    "combined": {
+      "tp": 12,
+      "fp": 35,
+      "fn": 18,
+      "precision": 0.2553,
+      "recall": 0.4,
+      "f1": 0.3117,
+      "avg_time_s": 69.238,
+      "total_time_s": 692.376
+    },
+    "layer_contributions": {
+      "1": {
+        "standalone_recall": 0.3333,
+        "combined_recall": 0.4,
+        "is_redundant": false
+      },
+      "3": {
+        "standalone_recall": 0.3333,
+        "combined_recall": 0.4,
+        "is_redundant": false
+      },
+      "5": {
+        "standalone_recall": 0.3333,
+        "combined_recall": 0.4,
+        "is_redundant": false
+      },
+      "7": {
+        "standalone_recall": 0.3333,
+        "combined_recall": 0.4,
+        "is_redundant": false
+      },
+      "9": {
+        "standalone_recall": 0.3333,
+        "combined_recall": 0.4,
+        "is_redundant": false
+      }
+    }
+  },
+  "_caveats": {
+    "llm_cache_contamination": "Layer 5 adapters (SmartLLM, GPTScan, GPTLens) are file-backed-cached by contract source hash at ~/.miesc/*_cache/ (24h TTL, see miesc/adapters/_cache_mixin.py). This run reused cached results for a subset of contracts (touched by an earlier --limit 2 smoke test run minutes before, and possibly by the original 2026-08-14 investigation of AuctionDemo.sol for item #5). Three subsequent attempts to reproduce this run with MIESC_DISABLE_LLM_CACHE=1 for a fully fresh measurement were killed by the environment (background execution instability unrelated to the workload - Ollama and system load were verified healthy) before completing. Effect on these numbers: avg_time_s for layer 5 (65.007s) is likely an UNDERESTIMATE of true per-contract cost (cache hits return in 0.0s, pulling the average down); TP/FP counts are not fabricated by the cache (it replays a genuine prior real output for the same source hash), so detection outcomes are still real, just not independently re-verified fresh in this exact run. Layers 1, 3, 7, and 9 do not use this cache (no LLM calls, or - for layer 9 - no upstream findings to act on in standalone ablation mode) and are unaffected.",
+    "layer5_fallback_dominance": "Log evidence (see ablation_run_20260815.log) shows the bulk of layer 5's per-contract evaluations did NOT complete real LLM inference within the 60s timeout: LlamaAudit fell back to pattern-based analysis on 20/20 contract-evaluations (100%), iAudit's planner fell back to pattern analysis on 20/20 (100%), LLM-SmartAudit used text-parsing fallback on 18/20, and GPTScan/GPTLens mixed fallback and cache hits. This means layer 5's reported precision/recall substantially reflects the SAME kind of pattern-based heuristic detection as layer 1, not genuine LLM reasoning - which is the direct explanation for why layer 5's true-positive set is byte-identical to layer 1's and layer 9's (see MEJORAS2.md #5c). A fair measurement of AI's real marginal value would need a larger timeout, a faster/local model, or a cloud LLM budget - none of which this environment (Ollama over LAN at 192.168.0.197, qwen2.5-coder:7b-16k) supports within a 60s-per-tool budget."
+  }
+}

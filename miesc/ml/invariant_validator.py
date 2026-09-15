@@ -51,7 +51,7 @@ class InvariantTestResult:
     gas_used: Optional[int] = None
     execution_time_ms: float = 0
     error_message: Optional[str] = None
-    counterexample: Optional[str] = None
+    counterexample: Optional[Any] = None
     fuzzing_runs: int = 0
     traces: Optional[str] = None
 
@@ -536,6 +536,7 @@ class InvariantValidator:
                             gas_used=test.gas_used,
                             execution_time_ms=test.duration_ms,
                             error_message=test.error_message,
+                            counterexample=test.counterexample,
                             fuzzing_runs=self.fuzzing_runs,
                         )
                     )
@@ -614,6 +615,7 @@ class InvariantValidator:
                         gas_used=test.gas_used,
                         execution_time_ms=test.duration_ms,
                         error_message=test.error_message,
+                        counterexample=test.counterexample,
                         traces=test.traces,
                         fuzzing_runs=self.fuzzing_runs,
                     )

@@ -32,10 +32,14 @@ MIESC is feature-complete and in active maintenance. Highlights of the 5.x line:
   standalone-Slither clean of HIGH, 88/123 eliminate on re-scan) and lean further on
   independent verification (Slither/SMTChecker/Foundry on patched contracts) to remove
   re-scan circularity. Standalone compilation is already 123/123 in v2.
-- **Reproducibility**: the benchmark harness reports external-tool crash counts per run;
-  document the unloaded-machine measurement protocol.
-- **Quality**: 88% line coverage, 75% mutation score on core v6 modules, and a
-  deterministic order-independent suite; ongoing robustness hardening toward higher coverage.
+- **Reproducibility (done)**: the benchmark harness reports external-tool crash counts per
+  run (`scripts/precision_check.py`); the unloaded-machine measurement protocol is now
+  documented in [`docs/guides/BENCHMARK_REPRODUCIBILITY.md`](guides/BENCHMARK_REPRODUCIBILITY.md).
+- **Quality**: 88% line coverage, **97.8% mutation score** on the `[tool.mutmut]` scope
+  (`core/baseline.py`, `core/code_actions.py`, `formal/unified_report.py` — up from 75%,
+  see [`docs/roadmap/MUTATION_STATUS_20260712.md`](roadmap/MUTATION_STATUS_20260712.md)),
+  and a deterministic order-independent suite; ongoing robustness hardening toward wider
+  mutation-testing coverage beyond this scope.
 
 ## Medium-term
 

@@ -54,6 +54,7 @@ class OllamaCallMixin:
         max_attempts: int = 1,
         retry_delay: float = 2.0,
         log_prefix: str = "Ollama",
+        response_format: Optional[Any] = None,
     ) -> Optional[str]:
         """POST ``prompt`` to Ollama and return the response text, or ``None``.
 
@@ -61,14 +62,15 @@ class OllamaCallMixin:
         ``self._timed_out = True``. A timeout on an attempt that a later retry
         recovers from does NOT flag the run.
         """
-        payload = json.dumps(
-            {
-                "model": model,
-                "prompt": prompt,
-                "stream": False,
-                "options": options or dict(_DEFAULT_OPTIONS),
-            }
-        ).encode("utf-8")
+        payload_data = {
+            "model": model,
+            "prompt": prompt,
+            "stream": False,
+            "options": options or dict(_DEFAULT_OPTIONS),
+        }
+        if response_format is not None:
+            payload_data["format"] = response_format
+        payload = json.dumps(payload_data).encode("utf-8")
 
         # Only a FINAL timeout failure marks the run as timed out.
         last_error_timeout = False

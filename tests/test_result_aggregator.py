@@ -294,6 +294,41 @@ class TestResultAggregatorNormalize:
         finding = aggregator._normalize_finding("tool", raw)
         assert finding.confidence == 0.9
 
+    def test_normalize_finding_category_field(self, aggregator):
+        """Adapters like smartllm/advanced_detector/halmos/certora key their
+        per-finding taxonomy as "category", not "type" — must not fall through
+        to "unknown"."""
+        raw = {
+            "category": "access_control",
+            "severity": "high",
+            "description": "Missing access control on admin function",
+            "location": {"file": "Vault.sol", "line": 42},
+        }
+        finding = aggregator._normalize_finding("smartllm", raw)
+
+        assert finding is not None
+        assert finding.type == "access_control"
+        assert finding.message == "Missing access control on admin function"
+
+    def test_normalize_finding_type_takes_precedence_over_category(self, aggregator):
+        """When both are present, "type" wins over "category"."""
+        raw = {"type": "reentrancy", "category": "dynamic-testing", "severity": "high"}
+        finding = aggregator._normalize_finding("tool", raw)
+        assert finding.type == "reentrancy"
+
+    def test_normalize_finding_explicit_none_type_falls_back_to_category(self, aggregator):
+        """Real smartllm cache payload shape: "type" key present but None,
+        alongside a populated "category" — must not stop at the None and
+        report "unknown" (reproduces the Napier deep-reasoning finding)."""
+        raw = {
+            "type": None,
+            "category": "state_consistency",
+            "severity": "HIGH",
+            "description": "updates mappings without ensuring consistency",
+        }
+        finding = aggregator._normalize_finding("smartllm", raw)
+        assert finding.type == "state_consistency"
+
 
 class TestResultAggregatorSimilarity:
     """Test similarity detection."""

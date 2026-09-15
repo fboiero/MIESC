@@ -1,0 +1,270 @@
+{
+  "_meta": {
+    "source": "Solodit MCP (Sherlock real audit reports) — MEJORAS2.md backlog #1 (Vyper adapter depth), MEJORAS3.md item 8 (Ronda 3: corpus expansion to decide whether 0%-recall categories need new detectors)",
+    "built": "2026-08-15",
+    "expanded": "2026-08-17 (MEJORAS3.md item 8): added Yield Basis and Unstoppable, bringing the corpus from 1 to 3 real audited Vyper protocols.",
+    "protocols": [
+      {
+        "source": "Sherlock contest, protocol=Fair Funding by Alchemix & Unstoppable",
+        "solodit_query": "search_findings(protocol=\"Fair Funding\")",
+        "repo": "https://github.com/sherlock-audit/2023-02-fair-funding",
+        "judging_repo": "https://github.com/sherlock-audit/2023-02-fair-funding-judging",
+        "findings_total": 5,
+        "findings_used": 5,
+        "excluded": "none — all 5 HIGH/MEDIUM findings used",
+        "completeness_check": "sequential numbering H-1..H-2, M-1..M-3 with zero gaps"
+      },
+      {
+        "source": "Sherlock contest, protocol=Yield Basis (2025-08)",
+        "solodit_query": "search_findings(protocol=\"Yield Basis\", firms=[\"Sherlock\"])",
+        "repo": "https://github.com/yield-basis/yb-core",
+        "judging_repo": "https://github.com/sherlock-audit/2025-08-yield-basis-judging",
+        "audited_commit": "0bf971586a4951049239ba3f28eb8f56194b1066 (yb-core, branch hybrid_vaults — parent of the earliest known Sherlock fix commit 43157a9; the yb-core repo has moved on since the contest, so files were pulled at this reconstructed pre-fix commit, not HEAD)",
+        "commit_reconstruction_note": "yb-core's live repo no longer matches the audited snapshot. For each finding used, the buggy code was independently re-verified by reading the file at audited_commit and confirming it matches the finding's quoted code exactly (not assumed from commit ordering alone) — see per-finding verification in the session that built this expansion.",
+        "findings_total": 7,
+        "findings_used": 6,
+        "excluded": "M-6 (LiquidityGauge EIP-4626 maxWithdraw/maxRedeem MIN_SHARES noncompliance) — the vulnerable maxWithdraw/maxRedeem functions live in an imported shared module (erc4626.vy), not in LiquidityGauge.vy itself, so the finding can't be cleanly attributed to a single reviewable file the same way the other 6 can. Excluded from ground truth rather than mis-attributed.",
+        "completeness_check": "sequential numbering H-1, M-1..M-6 with zero gaps (7 total, 6 used)"
+      },
+      {
+        "source": "Sherlock contest, protocol=Unstoppable (2023-06, margin-dex + spot-dex)",
+        "solodit_query": "search_findings(protocol=\"Unstoppable\", firms=[\"Sherlock\"])",
+        "repo": "https://github.com/sherlock-audit/2023-06-unstoppable",
+        "judging_repo": "https://github.com/sherlock-audit/2023-06-unstoppable-judging",
+        "audited_commit": "94a68e49971bc6942c75da76720f7170d46c0150 (contest repo HEAD — dedicated audit repo, never diverged post-contest, so no reconstruction needed)",
+        "findings_total": 17,
+        "findings_used": 17,
+        "excluded": "none — all 8 HIGH + 9 MEDIUM findings used",
+        "completeness_check": "sequential numbering H-1..H-8, M-1..M-9 with zero gaps"
+      }
+    ],
+    "note": "First real-audit ground truth for miesc/adapters/vyper_adapter.py (MEJORAS2.md #6, PR #19) — the adapter was validated only against synthetic fixtures until now (confirmed not to crash, never confirmed to find anything real). Scope per each contest's own README: only files with an attributed HIGH/MEDIUM finding are included per protocol (not the full audited scope) — see MEJORAS3.md item 8 for why (corpus-expansion research, not a full re-scope).",
+    "known_issues": "Yield Basis file contents are reconstructed at a specific historical commit on a branch that has since moved on (see commit_reconstruction_note above) rather than pulled from a still-public contest snapshot repo (the Sherlock contest code repo for this protocol is private/unreachable post-contest) — each finding's buggy code was read and confirmed to match, not assumed."
+  },
+  "findings": [
+    {
+      "id": "FF-H-1",
+      "file": "fair-funding/Vault.vy",
+      "category": "business_logic",
+      "severity": "HIGH",
+      "title": "amount_claimable_per_share accounting is broken and will result in vault insolvency",
+      "protocol": "Fair Funding"
+    },
+    {
+      "id": "FF-H-2",
+      "file": "fair-funding/Vault.vy",
+      "category": "denial_of_service",
+      "severity": "HIGH",
+      "title": "Incorrect shares accounting cause liquidations to fail in some cases",
+      "protocol": "Fair Funding"
+    },
+    {
+      "id": "FF-M-1",
+      "file": "fair-funding/Vault.vy",
+      "category": "access_control",
+      "severity": "MEDIUM",
+      "title": "Migrator contract lacks sufficient permissions over vault positions",
+      "protocol": "Fair Funding"
+    },
+    {
+      "id": "FF-M-2",
+      "file": "fair-funding/Vault.vy",
+      "category": "access_control",
+      "severity": "MEDIUM",
+      "title": "Broken Operator Mechanism: Just 1 malicious / compromised operator can permanently break functionality",
+      "protocol": "Fair Funding"
+    },
+    {
+      "id": "FF-M-3",
+      "file": "fair-funding/AuctionHouse.vy",
+      "category": "time_manipulation",
+      "severity": "MEDIUM",
+      "title": "Starting timestamp can be bypassed by calling settle",
+      "protocol": "Fair Funding"
+    },
+    {
+      "id": "YB-H-1",
+      "file": "yield-basis/LT.vy",
+      "category": "business_logic",
+      "severity": "HIGH",
+      "title": "Staker Balance Rebase Vulnerability in LT Contract",
+      "protocol": "Yield Basis"
+    },
+    {
+      "id": "YB-M-1",
+      "file": "yield-basis/InflationaryVest.vy",
+      "category": "business_logic",
+      "severity": "MEDIUM",
+      "title": "InflationaryVest.vy: Missing update of self.claimed allows infinite multiple claims by the recipient",
+      "protocol": "Yield Basis"
+    },
+    {
+      "id": "YB-M-2",
+      "file": "yield-basis/Factory.vy",
+      "category": "denial_of_service",
+      "severity": "MEDIUM",
+      "title": "Logical Flaw in set_gauge_controller Permanently Disables Critical Governance Function",
+      "protocol": "Yield Basis"
+    },
+    {
+      "id": "YB-M-3",
+      "file": "yield-basis/LT.vy",
+      "category": "business_logic",
+      "severity": "MEDIUM",
+      "title": "Emergency withdrawal fails to update the gauge when the contract is not killed",
+      "protocol": "Yield Basis"
+    },
+    {
+      "id": "YB-M-4",
+      "file": "yield-basis/LT.vy",
+      "category": "rounding",
+      "severity": "MEDIUM",
+      "title": "Stakers Could Not Withdraw Their Assets (staked-1 token_reduction precision loss)",
+      "protocol": "Yield Basis"
+    },
+    {
+      "id": "YB-M-5",
+      "file": "yield-basis/GaugeController.vy",
+      "category": "business_logic",
+      "severity": "MEDIUM",
+      "title": "Incorrect initialize of specific_emissions_per_gauge in GaugeController::add_gauge()",
+      "protocol": "Yield Basis"
+    },
+    {
+      "id": "UN-H-1",
+      "file": "unstoppable/Vault.vy",
+      "category": "business_logic",
+      "severity": "HIGH",
+      "title": "Wrong accounting of the storage balances results for the protocol to be in debt even when the bad debt is repaid",
+      "protocol": "Unstoppable"
+    },
+    {
+      "id": "UN-H-2",
+      "file": "unstoppable/Vault.vy",
+      "category": "business_logic",
+      "severity": "HIGH",
+      "title": "reduce_margin_by_amount in Vault.reduce_position is wrongly calculated",
+      "protocol": "Unstoppable"
+    },
+    {
+      "id": "UN-H-3",
+      "file": "unstoppable/Vault.vy",
+      "category": "front_running",
+      "severity": "HIGH",
+      "title": "Vault: attacker can sandwich attack himself on swaps in open_position/close_position/reduce_position to make a bad debt",
+      "protocol": "Unstoppable"
+    },
+    {
+      "id": "UN-H-4",
+      "file": "unstoppable/Vault.vy",
+      "category": "business_logic",
+      "severity": "HIGH",
+      "title": "reduce_position doesn't update margin mapping correctly",
+      "protocol": "Unstoppable"
+    },
+    {
+      "id": "UN-H-5",
+      "file": "unstoppable/Vault.vy",
+      "category": "business_logic",
+      "severity": "HIGH",
+      "title": "Leverage calculation is wrong",
+      "protocol": "Unstoppable"
+    },
+    {
+      "id": "UN-H-6",
+      "file": "unstoppable/Vault.vy",
+      "category": "business_logic",
+      "severity": "HIGH",
+      "title": "Vault: _update_debt does not accrue interest",
+      "protocol": "Unstoppable"
+    },
+    {
+      "id": "UN-H-7",
+      "file": "unstoppable/Dca.vy",
+      "category": "front_running",
+      "severity": "HIGH",
+      "title": "Adversary manipulates the middle path when calling execute_dca_order, resulting in user loss",
+      "protocol": "Unstoppable"
+    },
+    {
+      "id": "UN-H-8",
+      "file": "unstoppable/Vault.vy",
+      "category": "rounding",
+      "severity": "HIGH",
+      "title": "Interest calculated is amplified by a multiple of 1000 in _debt_interest_since_last_update",
+      "protocol": "Unstoppable"
+    },
+    {
+      "id": "UN-M-1",
+      "file": "unstoppable/Vault.vy",
+      "category": "business_logic",
+      "severity": "MEDIUM",
+      "title": "Debt is not updated when removing margin from a position",
+      "protocol": "Unstoppable"
+    },
+    {
+      "id": "UN-M-2",
+      "file": "unstoppable/Vault.vy",
+      "category": "rounding",
+      "severity": "MEDIUM",
+      "title": "_account_for_withdraw_liquidity rounding in the wrong direction will run out of the vault",
+      "protocol": "Unstoppable"
+    },
+    {
+      "id": "UN-M-3",
+      "file": "unstoppable/Dca.vy",
+      "category": "fee_on_transfer",
+      "severity": "MEDIUM",
+      "title": "Spot dex can't handle fee-on-transfer tokens (Dca.vy, LimitOrder.vy, TrailingStopDex.vy)",
+      "protocol": "Unstoppable"
+    },
+    {
+      "id": "UN-M-4",
+      "file": "unstoppable/Vault.vy",
+      "category": "business_logic",
+      "severity": "MEDIUM",
+      "title": "Vault._amount_per_base_lp_share should also consider bad debt when safety_module_lp_total_amount is not enough",
+      "protocol": "Unstoppable"
+    },
+    {
+      "id": "UN-M-5",
+      "file": "unstoppable/Vault.vy",
+      "category": "business_logic",
+      "severity": "MEDIUM",
+      "title": "Vault._update_debt() should be executed before admin sets new interest rate via set_variable_interest_parameters()",
+      "protocol": "Unstoppable"
+    },
+    {
+      "id": "UN-M-6",
+      "file": "unstoppable/Vault.vy",
+      "category": "oracle",
+      "severity": "MEDIUM",
+      "title": "Vault._to_usd_oracle_price() uses the same ORACLE_FRESHNESS_THRESHOLD for all token price feeds, which is incorrect",
+      "protocol": "Unstoppable"
+    },
+    {
+      "id": "UN-M-7",
+      "file": "unstoppable/SwapRouter.vy",
+      "category": "denial_of_service",
+      "severity": "MEDIUM",
+      "title": "Vault multihop swaps for any token pair will fail in one direction",
+      "protocol": "Unstoppable"
+    },
+    {
+      "id": "UN-M-8",
+      "file": "unstoppable/MarginDex.vy",
+      "category": "denial_of_service",
+      "severity": "MEDIUM",
+      "title": "MarginDex::execute_limit_order will always revert",
+      "protocol": "Unstoppable"
+    },
+    {
+      "id": "UN-M-9",
+      "file": "unstoppable/Vault.vy",
+      "category": "denial_of_service",
+      "severity": "MEDIUM",
+      "title": "Users trying to reduce their positions with market orders will always revert",
+      "protocol": "Unstoppable"
+    }
+  ]
+}

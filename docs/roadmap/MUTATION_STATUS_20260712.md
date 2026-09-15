@@ -96,9 +96,70 @@ Per-module breakdown:
 | `formal/unified_report.py`| 6       | 0        | 100.0%  |
 
 Every module individually clears 60%. `unified_report.py` kills every mutant;
-`baseline.py` is the weakest and is where test-hardening would pay off next —
-most of its survivors are in `normalize_finding` / `_normalize_path`, i.e.
-normalization edge cases the current assertions do not pin down.
+`baseline.py` was the weakest, with most survivors in `normalize_finding` /
+`_normalize_path` — normalization edge cases the assertions at the time did
+not pin down.
+
+## 2026-08-13 update: baseline.py hardening
+
+Re-ran with **mutmut 3.7.0** (newer patch release, more mutant variants
+generated than 3.6.0's run above — the 376-mutant baseline above is not
+directly comparable to the counts below).
+
+Before adding targeted tests: **319 killed + 2 timeout / 455 total = 70.5%**,
+with **104 of 134 survivors in `baseline.py`** — concentrated in exactly the
+gap the note above called out: every existing test drove `normalize_finding`
+through one dict shape (`location.file` / `location.function`), leaving
+untested: the attribute-based (non-dict) `FindingLike` branch of `_get`,
+every rule_id/message/file/symbol fallback key beyond the first, the
+`"unknown"` default, empty-string-as-missing handling, and `_normalize_path`
+edge cases (backslashes, absolute paths, dot segments).
+
+`tests/test_baseline.py` gained targeted tests for each of those gaps (see
+`TestAttributeBasedFindings`, `TestFieldFallbackKeys`,
+`TestNormalizePathEdgeCases`, `TestPrivateNormalizationHelpers`). Result:
+**415 killed + 2 timeout / 455 total = 91.6%**; `baseline.py` survivors
+dropped from 104 to 16.
+
+The remaining `baseline.py` survivors are, on inspection, genuinely
+equivalent mutants: encoding-name casing (`"utf-8"` vs `"UTF-8"` — Python's
+codec lookup is case-insensitive) and a mutated `if normalized.startswith("./")`
+check whose effect is fully subsumed by the dot-segment filter two lines
+later (`[p for p in normalized.split("/") if p not in ("", ".")]` strips a
+leading `.` either way). Not worth chasing further.
+
+## 2026-08-13 update: code_actions.py hardening + a scope bug
+
+Same pass extended to `code_actions.py`. `_position_at`'s multiline branch
+(`newlines > 0`) had no direct test asserting an exact `{line, character}`
+result — the only test that exercised a multiline hunk
+(`test_multi_line_insertion_range_and_newtext`) checked `newText` only, never
+the range. `_common_suffix_len`'s three-way `min(len(a), len(b), cap)` bound
+was never tested with mismatched-length inputs where dropping either
+`len(a)` or `len(b)` changes the result. And no test replaced more than one
+contiguous *original* line, the only case where `compute_text_edits`' silent
+`"".join(...)` (vs any other separator) on the deleted-lines hunk is
+observable. Added direct tests for all three, plus a `to_code_actions` case
+with a no-op fix *followed by* a real one (the existing test only ever
+passed a single no-op fix, so a `continue`→`break` mutation went undetected).
+
+Separately, `unified_report.parse_assignments` showed 9 survivors despite
+already having a solid dedicated suite
+(`tests/test_counterexample_parse.py`) — that file was simply missing from
+`[tool.mutmut] pytest_add_cli_args_test_selection`, so mutmut never ran it.
+Fixed the scope list instead of writing tests that already existed. Doing so
+surfaced one real gap the missing scope had been hiding: every test used a
+lowercase-leading variable name, so a mutant narrowing the name regex from
+`[A-Za-z_]` to `[a-z_]` survived; added one uppercase-leading-name test to
+close it.
+
+Combined result: **443 killed + 2 timeout / 455 total = 97.8%**, up from
+70.5% before this round of hardening. The 10 remaining survivors are
+equivalent mutants (encoding-name casing, the redundant `./`-strip above,
+`_get`'s keyword-default removal — which falls back to the same default the
+function already has — and `difflib.SequenceMatcher(autojunk=...)`, whose
+effect only differs on inputs with 200+ lines including one repeated past a
+1%-of-length threshold; not representative of this codebase's fix hunks).
 
 ## Reproducing it
 

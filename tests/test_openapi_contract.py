@@ -22,7 +22,7 @@ def _implemented_openapi_routes() -> dict[str, set[str]]:
         }
         for match in re.finditer(
             r"@api_view\(\[(?P<methods>[^\]]+)\]\)\s*"
-            r"(?:@permission_classes\(\[AllowAny\]\)\s*)?"
+            r"(?:@permission_classes\(\[\w+\]\)\s*)?"
             r"def (?P<view>\w+)\(",
             rest_source,
         )

@@ -1,0 +1,3108 @@
+{
+  "contract_path": "examples/contracts/EtherStore.sol",
+  "tools_run": [
+    "slither",
+    "aderyn",
+    "solhint",
+    "wake",
+    "semgrep",
+    "fouranalyzer",
+    "llmbugscanner",
+    "audit_consensus",
+    "exploit_synthesizer",
+    "vuln_verifier",
+    "remediation_validator"
+  ],
+  "tools_success": [
+    "fouranalyzer",
+    "remediation_validator",
+    "aderyn",
+    "slither",
+    "solhint",
+    "audit_consensus",
+    "exploit_synthesizer",
+    "vuln_verifier"
+  ],
+  "tools_failed": [
+    "wake",
+    "semgrep",
+    "llmbugscanner"
+  ],
+  "raw_findings": {
+    "total": 38,
+    "findings": [
+      {
+        "id": "aderyn-eth-send-unchecked-address-0-0",
+        "type": "eth-send-unchecked-address",
+        "severity": "High",
+        "confidence": 0.9,
+        "location": {
+          "file": "EtherStore.sol",
+          "line": 17,
+          "function": "unknown"
+        },
+        "message": "ETH transferred without address checks",
+        "description": "Consider introducing checks for `msg.sender` to ensure the recipient of the money is as intended.",
+        "recommendation": "Always check return value of low-level calls or use SafeERC20",
+        "swc_id": "SWC-104",
+        "cwe_id": "CWE-252",
+        "owasp_category": null,
+        "_aderyn_detector": "eth-send-unchecked-address",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (3 tools): -0.40"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 3,
+            "context_analysis": null
+          }
+        }
+      },
+      {
+        "id": "aderyn-eth-send-unchecked-address-0-1",
+        "type": "eth-send-unchecked-address",
+        "severity": "High",
+        "confidence": 0.9,
+        "location": {
+          "file": "EtherStore.sol",
+          "line": 53,
+          "function": "unknown"
+        },
+        "message": "ETH transferred without address checks",
+        "description": "Consider introducing checks for `msg.sender` to ensure the recipient of the money is as intended.",
+        "recommendation": "Always check return value of low-level calls or use SafeERC20",
+        "swc_id": "SWC-104",
+        "cwe_id": "CWE-252",
+        "owasp_category": null,
+        "_aderyn_detector": "eth-send-unchecked-address",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (3 tools): -0.40"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 3,
+            "context_analysis": null
+          }
+        }
+      },
+      {
+        "id": "aderyn-reentrancy-state-change-1-0",
+        "type": "reentrancy-state-change",
+        "severity": "High",
+        "confidence": 0.45,
+        "location": {
+          "file": "EtherStore.sol",
+          "line": 22,
+          "function": "unknown"
+        },
+        "message": "Reentrancy: State change after external call",
+        "description": "Changing state after an external call can lead to re-entrancy attacks.Use the checks-effects-interactions pattern to avoid this issue.",
+        "recommendation": "Use ReentrancyGuard or checks-effects-interactions pattern",
+        "swc_id": "SWC-107",
+        "cwe_id": "CWE-841",
+        "owasp_category": "SC01: Reentrancy",
+        "_aderyn_detector": "reentrancy-state-change",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.5,
+          "is_likely_fp": false,
+          "confidence_adjustment": 0.5,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Critical pattern 'reentrancy-state-change' without cross-validation: +0.35"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 1,
+            "context_analysis": null
+          }
+        }
+      },
+      {
+        "id": "aderyn-modifier-used-only-once-2-0",
+        "type": "modifier-used-only-once",
+        "severity": "Low",
+        "confidence": 0.562,
+        "location": {
+          "file": "EtherStore.sol",
+          "line": 41,
+          "function": "unknown"
+        },
+        "message": "Modifier Invoked Only Once",
+        "description": "Consider removing the modifier or inlining the logic into the calling function.",
+        "recommendation": "Review and fix the issue according to best practices",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "_aderyn_detector": "modifier-used-only-once",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.25,
+          "is_likely_fp": false,
+          "confidence_adjustment": 0.75,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Has security modifier: +0.10"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": true,
+            "confirmations": 1,
+            "context_analysis": null
+          }
+        }
+      },
+      {
+        "id": "aderyn-push-zero-opcode-3-0",
+        "type": "push-zero-opcode",
+        "severity": "Low",
+        "confidence": 0.75,
+        "location": {
+          "file": "EtherStore.sol",
+          "line": 2,
+          "function": "unknown"
+        },
+        "message": "PUSH0 Opcode",
+        "description": "Solc compiler version 0.8.20 switches the default target EVM version to Shanghai, which means that the generated bytecode will include PUSH0 opcodes. Be sure to select the appropriate EVM version in case you intend to deploy on a chain other than mainnet like L2 chains that may not support PUSH0, otherwise deployment of your contracts will fail.",
+        "recommendation": "Review and fix the issue according to best practices",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "_aderyn_detector": "push-zero-opcode",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Cross-validated (2 tools): -0.20"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": false,
+            "near_modifier": false,
+            "confirmations": 2,
+            "context_analysis": null
+          }
+        }
+      },
+      {
+        "id": "aderyn-state-change-without-event-4-0",
+        "type": "state-change-without-event",
+        "severity": "Low",
+        "confidence": 0.75,
+        "location": {
+          "file": "EtherStore.sol",
+          "line": 12,
+          "function": "unknown"
+        },
+        "message": "State Change Without Event",
+        "description": "There are state variable changes in this function but no event is emitted. Consider emitting an event to enable offchain indexers to track the changes.",
+        "recommendation": "Review and fix the issue according to best practices",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "_aderyn_detector": "state-change-without-event",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Cross-validated (2 tools): -0.20"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": false,
+            "near_modifier": false,
+            "confirmations": 2,
+            "context_analysis": null
+          }
+        }
+      },
+      {
+        "id": "aderyn-state-change-without-event-4-1",
+        "type": "state-change-without-event",
+        "severity": "Low",
+        "confidence": 0.75,
+        "location": {
+          "file": "EtherStore.sol",
+          "line": 17,
+          "function": "unknown"
+        },
+        "message": "State Change Without Event",
+        "description": "There are state variable changes in this function but no event is emitted. Consider emitting an event to enable offchain indexers to track the changes.",
+        "recommendation": "Review and fix the issue according to best practices",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "_aderyn_detector": "state-change-without-event",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (3 tools): -0.40"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 3,
+            "context_analysis": null
+          }
+        }
+      },
+      {
+        "id": "aderyn-state-change-without-event-4-2",
+        "type": "state-change-without-event",
+        "severity": "Low",
+        "confidence": 0.75,
+        "location": {
+          "file": "EtherStore.sol",
+          "line": 48,
+          "function": "unknown"
+        },
+        "message": "State Change Without Event",
+        "description": "There are state variable changes in this function but no event is emitted. Consider emitting an event to enable offchain indexers to track the changes.",
+        "recommendation": "Review and fix the issue according to best practices",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "_aderyn_detector": "state-change-without-event",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Cross-validated (2 tools): -0.20"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": false,
+            "near_modifier": false,
+            "confirmations": 2,
+            "context_analysis": null
+          }
+        }
+      },
+      {
+        "id": "aderyn-state-change-without-event-4-3",
+        "type": "state-change-without-event",
+        "severity": "Low",
+        "confidence": 0.75,
+        "location": {
+          "file": "EtherStore.sol",
+          "line": 53,
+          "function": "unknown"
+        },
+        "message": "State Change Without Event",
+        "description": "There are state variable changes in this function but no event is emitted. Consider emitting an event to enable offchain indexers to track the changes.",
+        "recommendation": "Review and fix the issue according to best practices",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "_aderyn_detector": "state-change-without-event",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (3 tools): -0.40"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 3,
+            "context_analysis": null
+          }
+        }
+      },
+      {
+        "id": "aderyn-unspecific-solidity-pragma-5-0",
+        "type": "unspecific-solidity-pragma",
+        "severity": "Low",
+        "confidence": 0.75,
+        "location": {
+          "file": "EtherStore.sol",
+          "line": 2,
+          "function": "unknown"
+        },
+        "message": "Unspecific Solidity Pragma",
+        "description": "Consider using a specific version of Solidity in your contracts instead of a wide version. For example, instead of `pragma solidity ^0.8.0;`, use `pragma solidity 0.8.0;`",
+        "recommendation": "Review and fix the issue according to best practices",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "_aderyn_detector": "unspecific-solidity-pragma",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Cross-validated (2 tools): -0.20"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": false,
+            "near_modifier": false,
+            "confirmations": 2,
+            "context_analysis": null
+          }
+        }
+      },
+      {
+        "id": "aderyn-unused-public-function-6-0",
+        "type": "unused-public-function",
+        "severity": "Low",
+        "confidence": 0.75,
+        "location": {
+          "file": "EtherStore.sol",
+          "line": 12,
+          "function": "unknown"
+        },
+        "message": "Public Function Not Used Internally",
+        "description": "If a function is marked public but is not used internally, consider marking it as `external`.",
+        "recommendation": "Remove unused code to reduce attack surface and gas costs",
+        "swc_id": "SWC-131",
+        "cwe_id": null,
+        "owasp_category": null,
+        "_aderyn_detector": "unused-public-function",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Cross-validated (2 tools): -0.20"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": false,
+            "near_modifier": false,
+            "confirmations": 2,
+            "context_analysis": null
+          }
+        }
+      },
+      {
+        "id": "aderyn-unused-public-function-6-1",
+        "type": "unused-public-function",
+        "severity": "Low",
+        "confidence": 0.75,
+        "location": {
+          "file": "EtherStore.sol",
+          "line": 17,
+          "function": "unknown"
+        },
+        "message": "Public Function Not Used Internally",
+        "description": "If a function is marked public but is not used internally, consider marking it as `external`.",
+        "recommendation": "Remove unused code to reduce attack surface and gas costs",
+        "swc_id": "SWC-131",
+        "cwe_id": null,
+        "owasp_category": null,
+        "_aderyn_detector": "unused-public-function",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (3 tools): -0.40"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 3,
+            "context_analysis": null
+          }
+        }
+      },
+      {
+        "id": "aderyn-unused-public-function-6-2",
+        "type": "unused-public-function",
+        "severity": "Low",
+        "confidence": 0.75,
+        "location": {
+          "file": "EtherStore.sol",
+          "line": 29,
+          "function": "unknown"
+        },
+        "message": "Public Function Not Used Internally",
+        "description": "If a function is marked public but is not used internally, consider marking it as `external`.",
+        "recommendation": "Remove unused code to reduce attack surface and gas costs",
+        "swc_id": "SWC-131",
+        "cwe_id": null,
+        "owasp_category": null,
+        "_aderyn_detector": "unused-public-function",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": false,
+            "near_modifier": false,
+            "confirmations": 1,
+            "context_analysis": null
+          }
+        }
+      },
+      {
+        "id": "aderyn-unused-public-function-6-3",
+        "type": "unused-public-function",
+        "severity": "Low",
+        "confidence": 0.75,
+        "location": {
+          "file": "EtherStore.sol",
+          "line": 48,
+          "function": "unknown"
+        },
+        "message": "Public Function Not Used Internally",
+        "description": "If a function is marked public but is not used internally, consider marking it as `external`.",
+        "recommendation": "Remove unused code to reduce attack surface and gas costs",
+        "swc_id": "SWC-131",
+        "cwe_id": null,
+        "owasp_category": null,
+        "_aderyn_detector": "unused-public-function",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Cross-validated (2 tools): -0.20"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": false,
+            "near_modifier": false,
+            "confirmations": 2,
+            "context_analysis": null
+          }
+        }
+      },
+      {
+        "id": "aderyn-unused-public-function-6-4",
+        "type": "unused-public-function",
+        "severity": "Low",
+        "confidence": 0.75,
+        "location": {
+          "file": "EtherStore.sol",
+          "line": 53,
+          "function": "unknown"
+        },
+        "message": "Public Function Not Used Internally",
+        "description": "If a function is marked public but is not used internally, consider marking it as `external`.",
+        "recommendation": "Remove unused code to reduce attack surface and gas costs",
+        "swc_id": "SWC-131",
+        "cwe_id": null,
+        "owasp_category": null,
+        "_aderyn_detector": "unused-public-function",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (3 tools): -0.40"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 3,
+            "context_analysis": null
+          }
+        }
+      },
+      {
+        "id": "slither-reentrancy-eth-0",
+        "type": "reentrancy-eth",
+        "severity": "High",
+        "confidence": 0.75,
+        "location": {
+          "file": "examples/contracts/EtherStore.sol",
+          "line": 17,
+          "function": "withdraw"
+        },
+        "message": "Reentrancy in EtherStore.withdraw() (examples/contracts/EtherStore.sol#17-27):",
+        "description": "Reentrancy in [EtherStore.withdraw()](examples/contracts/EtherStore.sol#L17-L27):\n\tExternal calls:\n\t- [(sent,None) = msg.sender.call{value: bal}()](examples/contracts/EtherStore.sol#L22)\n\tState variables written after the call(s):\n\t- [balances[msg.sender] = 0](examples/contracts/EtherStore.sol#L26)\n\t[EtherStore.balances](examples/contracts/EtherStore.sol#L10) can be used in cross function reentrancies:\n\t- [EtherStore.balances](examples/contracts/EtherStore.sol#L10)\n\t- [EtherStore.deposit()](examples/contracts/EtherStore.sol#L12-L14)\n\t- [EtherStore.withdraw()](examples/contracts/EtherStore.sol#L17-L27)\n",
+        "recommendation": "Review and fix the vulnerability",
+        "swc_id": "SWC-107",
+        "cwe_id": "CWE-841",
+        "owasp_category": "SC01: Reentrancy",
+        "_slither_detector": "reentrancy-eth",
+        "_slither_impact": "High",
+        "_slither_confidence": "Medium",
+        "tool": "slither",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (2 tools): -0.20"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 2,
+            "context_analysis": null
+          }
+        }
+      },
+      {
+        "id": "slither-solc-version-1",
+        "type": "solc-version",
+        "severity": "Info",
+        "confidence": 0.698,
+        "location": {
+          "file": "examples/contracts/EtherStore.sol",
+          "line": 2,
+          "function": "^0.8.0"
+        },
+        "message": "Version constraint ^0.8.0 contains known severe issues (https://solidity.readthedocs.io/en/latest/bugs.html)",
+        "description": "Version constraint ^0.8.0 contains known severe issues (https://solidity.readthedocs.io/en/latest/bugs.html)\n\t- FullInlinerNonExpressionSplitArgumentEvaluationOrder\n\t- MissingSideEffectsOnSelectorAccess\n\t- AbiReencodingHeadOverflowWithStaticArrayCleanup\n\t- DirtyBytesArrayToStorage\n\t- DataLocationChangeInInternalOverride\n\t- NestedCalldataArrayAbiReencodingSizeValidation\n\t- SignedImmutables\n\t- ABIDecodeTwoDimensionalArrayMemory\n\t- KeccakCaching.\nIt is used by:\n\t- [^0.8.0](examples/contracts/EtherStore.sol#L2)\n",
+        "recommendation": "Review and fix the vulnerability",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "_slither_detector": "solc-version",
+        "_slither_impact": "Informational",
+        "_slither_confidence": "High",
+        "tool": "slither",
+        "_fp_analysis": {
+          "fp_probability": 0.225,
+          "is_likely_fp": false,
+          "confidence_adjustment": 0.775,
+          "reasons": [
+            "Known FP pattern 'solc-version': +0.22"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": false,
+            "near_modifier": false,
+            "confirmations": 1,
+            "context_analysis": null
+          }
+        }
+      },
+      {
+        "id": "slither-low-level-calls-2",
+        "type": "low-level-calls",
+        "severity": "Info",
+        "confidence": 0.81,
+        "location": {
+          "file": "examples/contracts/EtherStore.sol",
+          "line": 17,
+          "function": "withdraw"
+        },
+        "message": "Low level call in EtherStore.withdraw() (examples/contracts/EtherStore.sol#17-27):",
+        "description": "Low level call in [EtherStore.withdraw()](examples/contracts/EtherStore.sol#L17-L27):\n\t- [(sent,None) = msg.sender.call{value: bal}()](examples/contracts/EtherStore.sol#L22)\n",
+        "recommendation": "Review and fix the vulnerability",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "_slither_detector": "low-level-calls",
+        "_slither_impact": "Informational",
+        "_slither_confidence": "High",
+        "tool": "slither",
+        "_fp_analysis": {
+          "fp_probability": 0.1,
+          "is_likely_fp": false,
+          "confidence_adjustment": 0.9,
+          "reasons": [
+            "Known FP pattern 'low-level-calls': +0.15",
+            "Near require/assert: +0.15",
+            "Cross-validated (2 tools): -0.20"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 2,
+            "context_analysis": null
+          }
+        }
+      },
+      {
+        "id": "slither-low-level-calls-3",
+        "type": "low-level-calls",
+        "severity": "Info",
+        "confidence": 0.63,
+        "location": {
+          "file": "examples/contracts/EtherStore.sol",
+          "line": 53,
+          "function": "withdraw"
+        },
+        "message": "Low level call in EtherStoreSecure.withdraw() (examples/contracts/EtherStore.sol#53-62):",
+        "description": "Low level call in [EtherStoreSecure.withdraw()](examples/contracts/EtherStore.sol#L53-L62):\n\t- [(sent,None) = msg.sender.call{value: bal}()](examples/contracts/EtherStore.sol#L60)\n",
+        "recommendation": "Review and fix the vulnerability",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "_slither_detector": "low-level-calls",
+        "_slither_impact": "Informational",
+        "_slither_confidence": "High",
+        "tool": "slither",
+        "_fp_analysis": {
+          "fp_probability": 0.3,
+          "is_likely_fp": false,
+          "confidence_adjustment": 0.7,
+          "reasons": [
+            "Known FP pattern 'low-level-calls': +0.15",
+            "Near require/assert: +0.15"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 1,
+            "context_analysis": null
+          }
+        }
+      },
+      {
+        "id": "CON-ad66625e1aff",
+        "type": "consensus_reentrancy",
+        "severity": "High",
+        "confidence": 0.5,
+        "location": {
+          "file": "examples/contracts/EtherStore.sol",
+          "line": 17,
+          "function": "withdraw"
+        },
+        "message": "Consensus finding (1 tools, 1 layers): Reentrancy in EtherStore.withdraw() (examples/contracts/EtherStore.sol#17-27):",
+        "description": "Bayesian consensus (posterior=0.50) confirmed by: slither",
+        "recommendation": "Review and fix the vulnerability",
+        "swc_id": "SWC-107",
+        "cwe_id": "CWE-841",
+        "tool": "audit_consensus"
+      }
+    ]
+  },
+  "ml_enhanced": {
+    "filtered_count": 42,
+    "findings": [
+      {
+        "id": "aderyn-eth-send-unchecked-address-0-0",
+        "type": "eth-send-unchecked-address",
+        "severity": "critical",
+        "confidence": 0.54,
+        "location": {
+          "file": "EtherStore.sol",
+          "line": 17,
+          "function": "unknown"
+        },
+        "message": "ETH transferred without address checks",
+        "description": "Consider introducing checks for `msg.sender` to ensure the recipient of the money is as intended.",
+        "recommendation": "Always check return value of low-level calls or use SafeERC20",
+        "swc_id": "SWC-104",
+        "cwe_id": "CWE-252",
+        "owasp_category": null,
+        "_aderyn_detector": "eth-send-unchecked-address",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (3 tools): -0.40"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 3,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "high",
+          "predicted": "critical",
+          "confidence": 0.8,
+          "reasons": [
+            "Low-level call with value: +0.75",
+            "Reentrancy pattern: +0.80"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0,
+        "tools": [
+          "aderyn"
+        ],
+        "confidence_level": "medium"
+      },
+      {
+        "id": "aderyn-eth-send-unchecked-address-0-1",
+        "type": "eth-send-unchecked-address",
+        "severity": "critical",
+        "confidence": 0.54,
+        "location": {
+          "file": "EtherStore.sol",
+          "line": 53,
+          "function": "unknown"
+        },
+        "message": "ETH transferred without address checks",
+        "description": "Consider introducing checks for `msg.sender` to ensure the recipient of the money is as intended.",
+        "recommendation": "Always check return value of low-level calls or use SafeERC20",
+        "swc_id": "SWC-104",
+        "cwe_id": "CWE-252",
+        "owasp_category": null,
+        "_aderyn_detector": "eth-send-unchecked-address",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (3 tools): -0.40"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 3,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "high",
+          "predicted": "critical",
+          "confidence": 0.75,
+          "reasons": [
+            "Reentrancy pattern: +0.80"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0,
+        "tools": [
+          "aderyn"
+        ],
+        "confidence_level": "medium"
+      },
+      {
+        "id": "aderyn-reentrancy-state-change-1-0",
+        "type": "reentrancy-state-change",
+        "severity": "critical",
+        "confidence": 0.54,
+        "location": {
+          "file": "EtherStore.sol",
+          "line": 22,
+          "function": "unknown"
+        },
+        "message": "Reentrancy: State change after external call",
+        "description": "Changing state after an external call can lead to re-entrancy attacks.Use the checks-effects-interactions pattern to avoid this issue.",
+        "recommendation": "Use ReentrancyGuard or checks-effects-interactions pattern",
+        "swc_id": "SWC-107",
+        "cwe_id": "CWE-841",
+        "owasp_category": "SC01: Reentrancy",
+        "_aderyn_detector": "reentrancy-state-change",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.5,
+          "is_likely_fp": false,
+          "confidence_adjustment": 0.5,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Critical pattern 'reentrancy-state-change' without cross-validation: +0.35"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 1,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "high",
+          "predicted": "critical",
+          "confidence": 0.8,
+          "reasons": [
+            "Low-level call with value: +0.75",
+            "Reentrancy pattern: +0.80"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0,
+        "tools": [
+          "aderyn"
+        ],
+        "confidence_level": "medium"
+      },
+      {
+        "id": "aderyn-modifier-used-only-once-2-0",
+        "type": "modifier-used-only-once",
+        "severity": "critical",
+        "confidence": 0.54,
+        "location": {
+          "file": "EtherStore.sol",
+          "line": 41,
+          "function": "unknown"
+        },
+        "message": "Modifier Invoked Only Once",
+        "description": "Consider removing the modifier or inlining the logic into the calling function.",
+        "recommendation": "Review and fix the issue according to best practices",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "_aderyn_detector": "modifier-used-only-once",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.25,
+          "is_likely_fp": false,
+          "confidence_adjustment": 0.75,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Has security modifier: +0.10"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": true,
+            "confirmations": 1,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "low",
+          "predicted": "critical",
+          "confidence": 0.75,
+          "reasons": [
+            "Reentrancy pattern: +0.80"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0,
+        "tools": [
+          "aderyn"
+        ],
+        "confidence_level": "medium"
+      },
+      {
+        "id": "aderyn-push-zero-opcode-3-0",
+        "type": "push-zero-opcode",
+        "severity": "critical",
+        "confidence": 0.33,
+        "location": {
+          "file": "EtherStore.sol",
+          "line": 2,
+          "function": "unknown"
+        },
+        "message": "PUSH0 Opcode",
+        "description": "Solc compiler version 0.8.20 switches the default target EVM version to Shanghai, which means that the generated bytecode will include PUSH0 opcodes. Be sure to select the appropriate EVM version in case you intend to deploy on a chain other than mainnet like L2 chains that may not support PUSH0, otherwise deployment of your contracts will fail.",
+        "recommendation": "Review and fix the issue according to best practices",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "_aderyn_detector": "push-zero-opcode",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Cross-validated (2 tools): -0.20"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": false,
+            "near_modifier": false,
+            "confirmations": 2,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "low",
+          "predicted": "critical",
+          "confidence": 0.75,
+          "reasons": [
+            "Reentrancy pattern: +0.80"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0,
+        "tools": [
+          "aderyn"
+        ],
+        "confidence_level": "low"
+      },
+      {
+        "id": "aderyn-state-change-without-event-4-0",
+        "type": "state-change-without-event",
+        "severity": "critical",
+        "confidence": 0.54,
+        "location": {
+          "file": "EtherStore.sol",
+          "line": 12,
+          "function": "unknown"
+        },
+        "message": "State Change Without Event",
+        "description": "There are state variable changes in this function but no event is emitted. Consider emitting an event to enable offchain indexers to track the changes.",
+        "recommendation": "Review and fix the issue according to best practices",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "_aderyn_detector": "state-change-without-event",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Cross-validated (2 tools): -0.20"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": false,
+            "near_modifier": false,
+            "confirmations": 2,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "low",
+          "predicted": "critical",
+          "confidence": 0.75,
+          "reasons": [
+            "Reentrancy pattern: +0.80"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0,
+        "tools": [
+          "aderyn"
+        ],
+        "confidence_level": "medium"
+      },
+      {
+        "id": "aderyn-state-change-without-event-4-1",
+        "type": "state-change-without-event",
+        "severity": "critical",
+        "confidence": 0.54,
+        "location": {
+          "file": "EtherStore.sol",
+          "line": 17,
+          "function": "unknown"
+        },
+        "message": "State Change Without Event",
+        "description": "There are state variable changes in this function but no event is emitted. Consider emitting an event to enable offchain indexers to track the changes.",
+        "recommendation": "Review and fix the issue according to best practices",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "_aderyn_detector": "state-change-without-event",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (3 tools): -0.40"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 3,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "low",
+          "predicted": "critical",
+          "confidence": 0.8,
+          "reasons": [
+            "Low-level call with value: +0.75",
+            "Reentrancy pattern: +0.80"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0,
+        "tools": [
+          "aderyn"
+        ],
+        "confidence_level": "medium"
+      },
+      {
+        "id": "aderyn-state-change-without-event-4-2",
+        "type": "state-change-without-event",
+        "severity": "critical",
+        "confidence": 0.54,
+        "location": {
+          "file": "EtherStore.sol",
+          "line": 48,
+          "function": "unknown"
+        },
+        "message": "State Change Without Event",
+        "description": "There are state variable changes in this function but no event is emitted. Consider emitting an event to enable offchain indexers to track the changes.",
+        "recommendation": "Review and fix the issue according to best practices",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "_aderyn_detector": "state-change-without-event",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Cross-validated (2 tools): -0.20"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": false,
+            "near_modifier": false,
+            "confirmations": 2,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "low",
+          "predicted": "critical",
+          "confidence": 0.75,
+          "reasons": [
+            "Reentrancy pattern: +0.80"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0,
+        "tools": [
+          "aderyn"
+        ],
+        "confidence_level": "medium"
+      },
+      {
+        "id": "aderyn-state-change-without-event-4-3",
+        "type": "state-change-without-event",
+        "severity": "critical",
+        "confidence": 0.54,
+        "location": {
+          "file": "EtherStore.sol",
+          "line": 53,
+          "function": "unknown"
+        },
+        "message": "State Change Without Event",
+        "description": "There are state variable changes in this function but no event is emitted. Consider emitting an event to enable offchain indexers to track the changes.",
+        "recommendation": "Review and fix the issue according to best practices",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "_aderyn_detector": "state-change-without-event",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (3 tools): -0.40"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 3,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "low",
+          "predicted": "critical",
+          "confidence": 0.75,
+          "reasons": [
+            "Reentrancy pattern: +0.80"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0,
+        "tools": [
+          "aderyn"
+        ],
+        "confidence_level": "medium"
+      },
+      {
+        "id": "aderyn-unspecific-solidity-pragma-5-0",
+        "type": "unspecific-solidity-pragma",
+        "severity": "critical",
+        "confidence": 0.33,
+        "location": {
+          "file": "EtherStore.sol",
+          "line": 2,
+          "function": "unknown"
+        },
+        "message": "Unspecific Solidity Pragma",
+        "description": "Consider using a specific version of Solidity in your contracts instead of a wide version. For example, instead of `pragma solidity ^0.8.0;`, use `pragma solidity 0.8.0;`",
+        "recommendation": "Review and fix the issue according to best practices",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "_aderyn_detector": "unspecific-solidity-pragma",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Cross-validated (2 tools): -0.20"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": false,
+            "near_modifier": false,
+            "confirmations": 2,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "low",
+          "predicted": "critical",
+          "confidence": 0.75,
+          "reasons": [
+            "Reentrancy pattern: +0.80"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0,
+        "tools": [
+          "aderyn"
+        ],
+        "confidence_level": "low"
+      },
+      {
+        "id": "aderyn-unused-public-function-6-0",
+        "type": "unused-public-function",
+        "severity": "critical",
+        "confidence": 0.54,
+        "location": {
+          "file": "EtherStore.sol",
+          "line": 12,
+          "function": "unknown"
+        },
+        "message": "Public Function Not Used Internally",
+        "description": "If a function is marked public but is not used internally, consider marking it as `external`.",
+        "recommendation": "Remove unused code to reduce attack surface and gas costs",
+        "swc_id": "SWC-131",
+        "cwe_id": null,
+        "owasp_category": null,
+        "_aderyn_detector": "unused-public-function",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Cross-validated (2 tools): -0.20"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": false,
+            "near_modifier": false,
+            "confirmations": 2,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "low",
+          "predicted": "critical",
+          "confidence": 0.75,
+          "reasons": [
+            "Reentrancy pattern: +0.80"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0,
+        "tools": [
+          "aderyn"
+        ],
+        "confidence_level": "medium"
+      },
+      {
+        "id": "aderyn-unused-public-function-6-1",
+        "type": "unused-public-function",
+        "severity": "critical",
+        "confidence": 0.54,
+        "location": {
+          "file": "EtherStore.sol",
+          "line": 17,
+          "function": "unknown"
+        },
+        "message": "Public Function Not Used Internally",
+        "description": "If a function is marked public but is not used internally, consider marking it as `external`.",
+        "recommendation": "Remove unused code to reduce attack surface and gas costs",
+        "swc_id": "SWC-131",
+        "cwe_id": null,
+        "owasp_category": null,
+        "_aderyn_detector": "unused-public-function",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (3 tools): -0.40"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 3,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "low",
+          "predicted": "critical",
+          "confidence": 0.8,
+          "reasons": [
+            "Low-level call with value: +0.75",
+            "Reentrancy pattern: +0.80"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0,
+        "tools": [
+          "aderyn"
+        ],
+        "confidence_level": "medium"
+      },
+      {
+        "id": "aderyn-unused-public-function-6-2",
+        "type": "unused-public-function",
+        "severity": "medium",
+        "confidence": 0.54,
+        "location": {
+          "file": "EtherStore.sol",
+          "line": 29,
+          "function": "unknown"
+        },
+        "message": "Public Function Not Used Internally",
+        "description": "If a function is marked public but is not used internally, consider marking it as `external`.",
+        "recommendation": "Remove unused code to reduce attack surface and gas costs",
+        "swc_id": "SWC-131",
+        "cwe_id": null,
+        "owasp_category": null,
+        "_aderyn_detector": "unused-public-function",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": false,
+            "near_modifier": false,
+            "confirmations": 1,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "low",
+          "predicted": "medium",
+          "confidence": 0.7,
+          "reasons": []
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0,
+        "tools": [
+          "aderyn"
+        ],
+        "confidence_level": "medium"
+      },
+      {
+        "id": "aderyn-unused-public-function-6-3",
+        "type": "unused-public-function",
+        "severity": "critical",
+        "confidence": 0.54,
+        "location": {
+          "file": "EtherStore.sol",
+          "line": 48,
+          "function": "unknown"
+        },
+        "message": "Public Function Not Used Internally",
+        "description": "If a function is marked public but is not used internally, consider marking it as `external`.",
+        "recommendation": "Remove unused code to reduce attack surface and gas costs",
+        "swc_id": "SWC-131",
+        "cwe_id": null,
+        "owasp_category": null,
+        "_aderyn_detector": "unused-public-function",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Cross-validated (2 tools): -0.20"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": false,
+            "near_modifier": false,
+            "confirmations": 2,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "low",
+          "predicted": "critical",
+          "confidence": 0.75,
+          "reasons": [
+            "Reentrancy pattern: +0.80"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0,
+        "tools": [
+          "aderyn"
+        ],
+        "confidence_level": "medium"
+      },
+      {
+        "id": "aderyn-unused-public-function-6-4",
+        "type": "unused-public-function",
+        "severity": "critical",
+        "confidence": 0.54,
+        "location": {
+          "file": "EtherStore.sol",
+          "line": 53,
+          "function": "unknown"
+        },
+        "message": "Public Function Not Used Internally",
+        "description": "If a function is marked public but is not used internally, consider marking it as `external`.",
+        "recommendation": "Remove unused code to reduce attack surface and gas costs",
+        "swc_id": "SWC-131",
+        "cwe_id": null,
+        "owasp_category": null,
+        "_aderyn_detector": "unused-public-function",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (3 tools): -0.40"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 3,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "low",
+          "predicted": "critical",
+          "confidence": 0.75,
+          "reasons": [
+            "Reentrancy pattern: +0.80"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0,
+        "tools": [
+          "aderyn"
+        ],
+        "confidence_level": "medium"
+      },
+      {
+        "id": "slither-reentrancy-eth-0",
+        "type": "reentrancy-eth",
+        "severity": "critical",
+        "confidence": 0.57,
+        "location": {
+          "file": "examples/contracts/EtherStore.sol",
+          "line": 17,
+          "function": "withdraw"
+        },
+        "message": "Reentrancy in EtherStore.withdraw() (examples/contracts/EtherStore.sol#17-27):",
+        "description": "Reentrancy in [EtherStore.withdraw()](examples/contracts/EtherStore.sol#L17-L27):\n\tExternal calls:\n\t- [(sent,None) = msg.sender.call{value: bal}()](examples/contracts/EtherStore.sol#L22)\n\tState variables written after the call(s):\n\t- [balances[msg.sender] = 0](examples/contracts/EtherStore.sol#L26)\n\t[EtherStore.balances](examples/contracts/EtherStore.sol#L10) can be used in cross function reentrancies:\n\t- [EtherStore.balances](examples/contracts/EtherStore.sol#L10)\n\t- [EtherStore.deposit()](examples/contracts/EtherStore.sol#L12-L14)\n\t- [EtherStore.withdraw()](examples/contracts/EtherStore.sol#L17-L27)\n",
+        "recommendation": "Review and fix the vulnerability",
+        "swc_id": "SWC-107",
+        "cwe_id": "CWE-841",
+        "owasp_category": "SC01: Reentrancy",
+        "_slither_detector": "reentrancy-eth",
+        "_slither_impact": "High",
+        "_slither_confidence": "Medium",
+        "tool": "slither",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (2 tools): -0.20"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 2,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "high",
+          "predicted": "critical",
+          "confidence": 0.85,
+          "reasons": [
+            "Low-level call with value: +0.75",
+            "Reentrancy pattern: +0.80",
+            "Function visibility: +0.10"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0,
+        "tools": [
+          "slither"
+        ],
+        "confidence_level": "medium"
+      },
+      {
+        "id": "slither-solc-version-1",
+        "type": "solc-version",
+        "severity": "critical",
+        "confidence": 0.35,
+        "location": {
+          "file": "examples/contracts/EtherStore.sol",
+          "line": 2,
+          "function": "^0.8.0"
+        },
+        "message": "Version constraint ^0.8.0 contains known severe issues (https://solidity.readthedocs.io/en/latest/bugs.html)",
+        "description": "Version constraint ^0.8.0 contains known severe issues (https://solidity.readthedocs.io/en/latest/bugs.html)\n\t- FullInlinerNonExpressionSplitArgumentEvaluationOrder\n\t- MissingSideEffectsOnSelectorAccess\n\t- AbiReencodingHeadOverflowWithStaticArrayCleanup\n\t- DirtyBytesArrayToStorage\n\t- DataLocationChangeInInternalOverride\n\t- NestedCalldataArrayAbiReencodingSizeValidation\n\t- SignedImmutables\n\t- ABIDecodeTwoDimensionalArrayMemory\n\t- KeccakCaching.\nIt is used by:\n\t- [^0.8.0](examples/contracts/EtherStore.sol#L2)\n",
+        "recommendation": "Review and fix the vulnerability",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "_slither_detector": "solc-version",
+        "_slither_impact": "Informational",
+        "_slither_confidence": "High",
+        "tool": "slither",
+        "_fp_analysis": {
+          "fp_probability": 0.225,
+          "is_likely_fp": false,
+          "confidence_adjustment": 0.775,
+          "reasons": [
+            "Known FP pattern 'solc-version': +0.22"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": false,
+            "near_modifier": false,
+            "confirmations": 1,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "info",
+          "predicted": "critical",
+          "confidence": 0.75,
+          "reasons": [
+            "Reentrancy pattern: +0.80"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0,
+        "tools": [
+          "slither"
+        ],
+        "confidence_level": "low"
+      },
+      {
+        "id": "slither-low-level-calls-2",
+        "type": "low-level-calls",
+        "severity": "critical",
+        "confidence": 0.57,
+        "location": {
+          "file": "examples/contracts/EtherStore.sol",
+          "line": 17,
+          "function": "withdraw"
+        },
+        "message": "Low level call in EtherStore.withdraw() (examples/contracts/EtherStore.sol#17-27):",
+        "description": "Low level call in [EtherStore.withdraw()](examples/contracts/EtherStore.sol#L17-L27):\n\t- [(sent,None) = msg.sender.call{value: bal}()](examples/contracts/EtherStore.sol#L22)\n",
+        "recommendation": "Review and fix the vulnerability",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "_slither_detector": "low-level-calls",
+        "_slither_impact": "Informational",
+        "_slither_confidence": "High",
+        "tool": "slither",
+        "_fp_analysis": {
+          "fp_probability": 0.1,
+          "is_likely_fp": false,
+          "confidence_adjustment": 0.9,
+          "reasons": [
+            "Known FP pattern 'low-level-calls': +0.15",
+            "Near require/assert: +0.15",
+            "Cross-validated (2 tools): -0.20"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 2,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "info",
+          "predicted": "critical",
+          "confidence": 0.85,
+          "reasons": [
+            "Low-level call with value: +0.75",
+            "Reentrancy pattern: +0.80",
+            "Function visibility: +0.10"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0,
+        "tools": [
+          "slither"
+        ],
+        "confidence_level": "medium"
+      },
+      {
+        "id": "slither-low-level-calls-3",
+        "type": "low-level-calls",
+        "severity": "critical",
+        "confidence": 0.57,
+        "location": {
+          "file": "examples/contracts/EtherStore.sol",
+          "line": 53,
+          "function": "withdraw"
+        },
+        "message": "Low level call in EtherStoreSecure.withdraw() (examples/contracts/EtherStore.sol#53-62):",
+        "description": "Low level call in [EtherStoreSecure.withdraw()](examples/contracts/EtherStore.sol#L53-L62):\n\t- [(sent,None) = msg.sender.call{value: bal}()](examples/contracts/EtherStore.sol#L60)\n",
+        "recommendation": "Review and fix the vulnerability",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "_slither_detector": "low-level-calls",
+        "_slither_impact": "Informational",
+        "_slither_confidence": "High",
+        "tool": "slither",
+        "_fp_analysis": {
+          "fp_probability": 0.3,
+          "is_likely_fp": false,
+          "confidence_adjustment": 0.7,
+          "reasons": [
+            "Known FP pattern 'low-level-calls': +0.15",
+            "Near require/assert: +0.15"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 1,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "info",
+          "predicted": "critical",
+          "confidence": 0.8,
+          "reasons": [
+            "Reentrancy pattern: +0.80",
+            "Function visibility: +0.10"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0,
+        "tools": [
+          "slither"
+        ],
+        "confidence_level": "medium"
+      },
+      {
+        "id": "pattern-access_control-12",
+        "type": "access_control",
+        "severity": "medium",
+        "confidence": 0.34,
+        "location": {
+          "file": "contract.sol",
+          "line": 12
+        },
+        "message": "Missing or insufficient access controls",
+        "description": "Missing or insufficient access controls",
+        "recommendation": "Add onlyOwner/onlyRole modifiers or require(msg.sender == owner)",
+        "swc_id": "SWC-105",
+        "tool": "classic-pattern-detector",
+        "_pattern_match": true,
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": false,
+            "near_modifier": false,
+            "confirmations": 1,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "critical",
+          "predicted": "medium",
+          "confidence": 0.7,
+          "reasons": []
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0,
+        "tools": [
+          "classic-pattern-detector"
+        ],
+        "confidence_level": "low"
+      },
+      {
+        "id": "pattern-access_control-29",
+        "type": "access_control",
+        "severity": "medium",
+        "confidence": 0.34,
+        "location": {
+          "file": "contract.sol",
+          "line": 29
+        },
+        "message": "Missing or insufficient access controls",
+        "description": "Missing or insufficient access controls",
+        "recommendation": "Add onlyOwner/onlyRole modifiers or require(msg.sender == owner)",
+        "swc_id": "SWC-105",
+        "tool": "classic-pattern-detector",
+        "_pattern_match": true,
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": false,
+            "near_modifier": false,
+            "confirmations": 1,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "critical",
+          "predicted": "medium",
+          "confidence": 0.7,
+          "reasons": []
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0,
+        "tools": [
+          "classic-pattern-detector"
+        ],
+        "confidence_level": "low"
+      },
+      {
+        "id": "pattern-access_control-48",
+        "type": "access_control",
+        "severity": "medium",
+        "confidence": 0.34,
+        "location": {
+          "file": "contract.sol",
+          "line": 48
+        },
+        "message": "Missing or insufficient access controls",
+        "description": "Missing or insufficient access controls",
+        "recommendation": "Add onlyOwner/onlyRole modifiers or require(msg.sender == owner)",
+        "swc_id": "SWC-105",
+        "tool": "classic-pattern-detector",
+        "_pattern_match": true,
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": false,
+            "near_modifier": false,
+            "confirmations": 1,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "critical",
+          "predicted": "medium",
+          "confidence": 0.7,
+          "reasons": []
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0,
+        "tools": [
+          "classic-pattern-detector"
+        ],
+        "confidence_level": "low"
+      },
+      {
+        "id": "pattern-arithmetic-49",
+        "type": "arithmetic",
+        "severity": "medium",
+        "confidence": 0.13,
+        "location": {
+          "file": "contract.sol",
+          "line": 49
+        },
+        "message": "Integer overflow or underflow",
+        "description": "Integer overflow or underflow",
+        "recommendation": "Use Solidity 0.8+ or SafeMath library",
+        "swc_id": "SWC-101",
+        "tool": "classic-pattern-detector",
+        "_pattern_match": true,
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": false,
+            "near_modifier": false,
+            "confirmations": 1,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "high",
+          "predicted": "medium",
+          "confidence": 0.7,
+          "reasons": []
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0,
+        "tools": [
+          "classic-pattern-detector"
+        ],
+        "confidence_level": "low"
+      },
+      {
+        "id": "CON-ad66625e1aff",
+        "type": "consensus_reentrancy",
+        "severity": "High",
+        "confidence": 0.5,
+        "location": {
+          "file": "examples/contracts/EtherStore.sol",
+          "line": 17,
+          "function": "withdraw"
+        },
+        "message": "Consensus finding (1 tools, 1 layers): Reentrancy in EtherStore.withdraw() (examples/contracts/EtherStore.sol#17-27):",
+        "description": "Bayesian consensus (posterior=0.50) confirmed by: slither",
+        "recommendation": "Review and fix the vulnerability",
+        "swc_id": "SWC-107",
+        "cwe_id": "CWE-841",
+        "tool": "audit_consensus"
+      },
+      {
+        "id": "CON-192e8ae406fa",
+        "type": "consensus_solc_version",
+        "severity": "Info",
+        "confidence": 0.5,
+        "location": {
+          "file": "examples/contracts/EtherStore.sol",
+          "line": 2,
+          "function": "^0.8.0"
+        },
+        "message": "Consensus finding (1 tools, 1 layers): Version constraint ^0.8.0 contains known severe issues (https://solidity.readthedocs.io/en/latest/bugs.html)",
+        "description": "Bayesian consensus (posterior=0.50) confirmed by: slither",
+        "recommendation": "Review and fix the vulnerability",
+        "swc_id": null,
+        "cwe_id": null,
+        "tool": "audit_consensus"
+      },
+      {
+        "id": "CON-86d8dfea51ab",
+        "type": "consensus_low_level_calls",
+        "severity": "Info",
+        "confidence": 0.5,
+        "location": {
+          "file": "examples/contracts/EtherStore.sol",
+          "line": 17,
+          "function": "withdraw"
+        },
+        "message": "Consensus finding (1 tools, 1 layers): Low level call in EtherStore.withdraw() (examples/contracts/EtherStore.sol#17-27):",
+        "description": "Bayesian consensus (posterior=0.50) confirmed by: slither",
+        "recommendation": "Review and fix the vulnerability",
+        "swc_id": null,
+        "cwe_id": null,
+        "tool": "audit_consensus"
+      },
+      {
+        "id": "CON-977f29559622",
+        "type": "consensus_low_level_calls",
+        "severity": "Info",
+        "confidence": 0.5,
+        "location": {
+          "file": "examples/contracts/EtherStore.sol",
+          "line": 53,
+          "function": "withdraw"
+        },
+        "message": "Consensus finding (1 tools, 1 layers): Low level call in EtherStoreSecure.withdraw() (examples/contracts/EtherStore.sol#53-62):",
+        "description": "Bayesian consensus (posterior=0.50) confirmed by: slither",
+        "recommendation": "Review and fix the vulnerability",
+        "swc_id": null,
+        "cwe_id": null,
+        "tool": "audit_consensus"
+      },
+      {
+        "id": "EXP-bfa411a9d3b9",
+        "type": "exploit_poc_generated",
+        "severity": "critical",
+        "confidence": 0.54,
+        "location": {
+          "file": "EtherStore.sol",
+          "line": 17,
+          "function": "unknown"
+        },
+        "message": "[POC_GENERATED] ETH transferred without address checks",
+        "description": "PoC synthesis result: POC_GENERATED. Consider introducing checks for `msg.sender` to ensure the recipient of the money is as intended.",
+        "recommendation": "Always check return value of low-level calls or use SafeERC20",
+        "swc_id": "SWC-104",
+        "cwe_id": "CWE-252",
+        "tool": "exploit_synthesizer"
+      },
+      {
+        "id": "EXP-3d08b3675c4e",
+        "type": "exploit_poc_generated",
+        "severity": "critical",
+        "confidence": 0.54,
+        "location": {
+          "file": "EtherStore.sol",
+          "line": 53,
+          "function": "unknown"
+        },
+        "message": "[POC_GENERATED] ETH transferred without address checks",
+        "description": "PoC synthesis result: POC_GENERATED. Consider introducing checks for `msg.sender` to ensure the recipient of the money is as intended.",
+        "recommendation": "Always check return value of low-level calls or use SafeERC20",
+        "swc_id": "SWC-104",
+        "cwe_id": "CWE-252",
+        "tool": "exploit_synthesizer"
+      },
+      {
+        "id": "EXP-4513c4528bc8",
+        "type": "exploit_poc_generated",
+        "severity": "critical",
+        "confidence": 0.54,
+        "location": {
+          "file": "EtherStore.sol",
+          "line": 22,
+          "function": "unknown"
+        },
+        "message": "[POC_GENERATED] Reentrancy: State change after external call",
+        "description": "PoC synthesis result: POC_GENERATED. Changing state after an external call can lead to re-entrancy attacks.Use the checks-effects-interactions pattern to avoid this issue.",
+        "recommendation": "Use ReentrancyGuard or checks-effects-interactions pattern",
+        "swc_id": "SWC-107",
+        "cwe_id": "CWE-841",
+        "tool": "exploit_synthesizer"
+      },
+      {
+        "id": "EXP-8ee1e1823733",
+        "type": "exploit_poc_generated",
+        "severity": "critical",
+        "confidence": 0.54,
+        "location": {
+          "file": "EtherStore.sol",
+          "line": 41,
+          "function": "unknown"
+        },
+        "message": "[POC_GENERATED] Modifier Invoked Only Once",
+        "description": "PoC synthesis result: POC_GENERATED. Consider removing the modifier or inlining the logic into the calling function.",
+        "recommendation": "Review and fix the issue according to best practices",
+        "swc_id": null,
+        "cwe_id": null,
+        "tool": "exploit_synthesizer"
+      },
+      {
+        "id": "EXP-1b1ad2089a2b",
+        "type": "exploit_poc_generated",
+        "severity": "critical",
+        "confidence": 0.33,
+        "location": {
+          "file": "EtherStore.sol",
+          "line": 2,
+          "function": "unknown"
+        },
+        "message": "[POC_GENERATED] PUSH0 Opcode",
+        "description": "PoC synthesis result: POC_GENERATED. Solc compiler version 0.8.20 switches the default target EVM version to Shanghai, which means that the generated bytecode will include PUSH0 opcodes. Be sure to select the appropriate EVM version in case you intend to deploy on a chain other than mainnet like L2 chains that may not support PUSH0, otherwise deployment of your contracts will fail.",
+        "recommendation": "Review and fix the issue according to best practices",
+        "swc_id": null,
+        "cwe_id": null,
+        "tool": "exploit_synthesizer"
+      },
+      {
+        "id": "VRF-8198c1fa277f",
+        "type": "unverified_state_manipulation",
+        "severity": "critical",
+        "confidence": 0.324,
+        "location": {
+          "file": "/home/alva/Proyectos/MIESC/examples/contracts/EtherStore.sol",
+          "line": 17,
+          "function": "unknown"
+        },
+        "message": "[UNKNOWN] ETH transferred without address checks",
+        "description": "Z3 verification: Single guard detected - partial protection",
+        "recommendation": "Always check return value of low-level calls or use SafeERC20",
+        "swc_id": "SWC-104",
+        "cwe_id": "CWE-252",
+        "tool": "vuln_verifier"
+      },
+      {
+        "id": "VRF-b337536e4084",
+        "type": "unverified_state_manipulation",
+        "severity": "critical",
+        "confidence": 0.324,
+        "location": {
+          "file": "/home/alva/Proyectos/MIESC/examples/contracts/EtherStore.sol",
+          "line": 53,
+          "function": "unknown"
+        },
+        "message": "[UNKNOWN] ETH transferred without address checks",
+        "description": "Z3 verification: Single guard detected - partial protection",
+        "recommendation": "Always check return value of low-level calls or use SafeERC20",
+        "swc_id": "SWC-104",
+        "cwe_id": "CWE-252",
+        "tool": "vuln_verifier"
+      },
+      {
+        "id": "VRF-2b50183ba4e5",
+        "type": "unverified_reentrancy",
+        "severity": "critical",
+        "confidence": 0.324,
+        "location": {
+          "file": "/home/alva/Proyectos/MIESC/examples/contracts/EtherStore.sol",
+          "line": 22,
+          "function": "unknown"
+        },
+        "message": "[UNKNOWN] Reentrancy: State change after external call",
+        "description": "Z3 verification: Single guard detected - partial protection",
+        "recommendation": "Use ReentrancyGuard or checks-effects-interactions pattern",
+        "swc_id": "SWC-107",
+        "cwe_id": "CWE-841",
+        "tool": "vuln_verifier"
+      },
+      {
+        "id": "VRF-a6e64a2625de",
+        "type": "unverified_state_manipulation",
+        "severity": "critical",
+        "confidence": 0.324,
+        "location": {
+          "file": "/home/alva/Proyectos/MIESC/examples/contracts/EtherStore.sol",
+          "line": 41,
+          "function": "unknown"
+        },
+        "message": "[UNKNOWN] Modifier Invoked Only Once",
+        "description": "Z3 verification: Single guard detected - partial protection",
+        "recommendation": "Review and fix the issue according to best practices",
+        "swc_id": null,
+        "cwe_id": null,
+        "tool": "vuln_verifier"
+      },
+      {
+        "id": "VRF-ec2398362fab",
+        "type": "verified_state_manipulation",
+        "severity": "High",
+        "confidence": 0.396,
+        "location": {
+          "file": "/home/alva/Proyectos/MIESC/examples/contracts/EtherStore.sol",
+          "line": 2,
+          "function": "unknown"
+        },
+        "message": "[VERIFIED] PUSH0 Opcode",
+        "description": "Z3 verification: No guards detected in vulnerable code context",
+        "recommendation": "Review and fix the issue according to best practices",
+        "swc_id": null,
+        "cwe_id": null,
+        "tool": "vuln_verifier"
+      },
+      {
+        "id": "VRF-f2fa47df00ff",
+        "type": "unverified_state_manipulation",
+        "severity": "critical",
+        "confidence": 0.324,
+        "location": {
+          "file": "/home/alva/Proyectos/MIESC/examples/contracts/EtherStore.sol",
+          "line": 12,
+          "function": "unknown"
+        },
+        "message": "[UNKNOWN] State Change Without Event",
+        "description": "Z3 verification: Single guard detected - partial protection",
+        "recommendation": "Review and fix the issue according to best practices",
+        "swc_id": null,
+        "cwe_id": null,
+        "tool": "vuln_verifier"
+      },
+      {
+        "id": "VRF-8198c1fa277f",
+        "type": "unverified_state_manipulation",
+        "severity": "critical",
+        "confidence": 0.324,
+        "location": {
+          "file": "/home/alva/Proyectos/MIESC/examples/contracts/EtherStore.sol",
+          "line": 17,
+          "function": "unknown"
+        },
+        "message": "[UNKNOWN] State Change Without Event",
+        "description": "Z3 verification: Single guard detected - partial protection",
+        "recommendation": "Review and fix the issue according to best practices",
+        "swc_id": null,
+        "cwe_id": null,
+        "tool": "vuln_verifier"
+      },
+      {
+        "id": "VRF-fc38782edc37",
+        "type": "unverified_state_manipulation",
+        "severity": "critical",
+        "confidence": 0.324,
+        "location": {
+          "file": "/home/alva/Proyectos/MIESC/examples/contracts/EtherStore.sol",
+          "line": 48,
+          "function": "unknown"
+        },
+        "message": "[UNKNOWN] State Change Without Event",
+        "description": "Z3 verification: Single guard detected - partial protection",
+        "recommendation": "Review and fix the issue according to best practices",
+        "swc_id": null,
+        "cwe_id": null,
+        "tool": "vuln_verifier"
+      },
+      {
+        "id": "VRF-b337536e4084",
+        "type": "unverified_state_manipulation",
+        "severity": "critical",
+        "confidence": 0.324,
+        "location": {
+          "file": "/home/alva/Proyectos/MIESC/examples/contracts/EtherStore.sol",
+          "line": 53,
+          "function": "unknown"
+        },
+        "message": "[UNKNOWN] State Change Without Event",
+        "description": "Z3 verification: Single guard detected - partial protection",
+        "recommendation": "Review and fix the issue according to best practices",
+        "swc_id": null,
+        "cwe_id": null,
+        "tool": "vuln_verifier"
+      },
+      {
+        "id": "VRF-ec2398362fab",
+        "type": "verified_state_manipulation",
+        "severity": "High",
+        "confidence": 0.396,
+        "location": {
+          "file": "/home/alva/Proyectos/MIESC/examples/contracts/EtherStore.sol",
+          "line": 2,
+          "function": "unknown"
+        },
+        "message": "[VERIFIED] Unspecific Solidity Pragma",
+        "description": "Z3 verification: No guards detected in vulnerable code context",
+        "recommendation": "Review and fix the issue according to best practices",
+        "swc_id": null,
+        "cwe_id": null,
+        "tool": "vuln_verifier"
+      }
+    ],
+    "false_positives_removed": 0,
+    "severity_adjustments": 23,
+    "top_findings": [
+      {
+        "id": "aderyn-eth-send-unchecked-address-0-0",
+        "type": "eth-send-unchecked-address",
+        "severity": "critical",
+        "confidence": 0.54,
+        "location": {
+          "file": "EtherStore.sol",
+          "line": 17,
+          "function": "unknown"
+        },
+        "message": "ETH transferred without address checks",
+        "description": "Consider introducing checks for `msg.sender` to ensure the recipient of the money is as intended.",
+        "recommendation": "Always check return value of low-level calls or use SafeERC20",
+        "swc_id": "SWC-104",
+        "cwe_id": "CWE-252",
+        "owasp_category": null,
+        "_aderyn_detector": "eth-send-unchecked-address",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (3 tools): -0.40"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 3,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "high",
+          "predicted": "critical",
+          "confidence": 0.8,
+          "reasons": [
+            "Low-level call with value: +0.75",
+            "Reentrancy pattern: +0.80"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0,
+        "tools": [
+          "aderyn"
+        ],
+        "confidence_level": "medium"
+      },
+      {
+        "id": "aderyn-eth-send-unchecked-address-0-1",
+        "type": "eth-send-unchecked-address",
+        "severity": "critical",
+        "confidence": 0.54,
+        "location": {
+          "file": "EtherStore.sol",
+          "line": 53,
+          "function": "unknown"
+        },
+        "message": "ETH transferred without address checks",
+        "description": "Consider introducing checks for `msg.sender` to ensure the recipient of the money is as intended.",
+        "recommendation": "Always check return value of low-level calls or use SafeERC20",
+        "swc_id": "SWC-104",
+        "cwe_id": "CWE-252",
+        "owasp_category": null,
+        "_aderyn_detector": "eth-send-unchecked-address",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (3 tools): -0.40"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 3,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "high",
+          "predicted": "critical",
+          "confidence": 0.75,
+          "reasons": [
+            "Reentrancy pattern: +0.80"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0,
+        "tools": [
+          "aderyn"
+        ],
+        "confidence_level": "medium"
+      },
+      {
+        "id": "aderyn-reentrancy-state-change-1-0",
+        "type": "reentrancy-state-change",
+        "severity": "critical",
+        "confidence": 0.54,
+        "location": {
+          "file": "EtherStore.sol",
+          "line": 22,
+          "function": "unknown"
+        },
+        "message": "Reentrancy: State change after external call",
+        "description": "Changing state after an external call can lead to re-entrancy attacks.Use the checks-effects-interactions pattern to avoid this issue.",
+        "recommendation": "Use ReentrancyGuard or checks-effects-interactions pattern",
+        "swc_id": "SWC-107",
+        "cwe_id": "CWE-841",
+        "owasp_category": "SC01: Reentrancy",
+        "_aderyn_detector": "reentrancy-state-change",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.5,
+          "is_likely_fp": false,
+          "confidence_adjustment": 0.5,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Critical pattern 'reentrancy-state-change' without cross-validation: +0.35"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 1,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "high",
+          "predicted": "critical",
+          "confidence": 0.8,
+          "reasons": [
+            "Low-level call with value: +0.75",
+            "Reentrancy pattern: +0.80"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0,
+        "tools": [
+          "aderyn"
+        ],
+        "confidence_level": "medium"
+      },
+      {
+        "id": "aderyn-modifier-used-only-once-2-0",
+        "type": "modifier-used-only-once",
+        "severity": "critical",
+        "confidence": 0.54,
+        "location": {
+          "file": "EtherStore.sol",
+          "line": 41,
+          "function": "unknown"
+        },
+        "message": "Modifier Invoked Only Once",
+        "description": "Consider removing the modifier or inlining the logic into the calling function.",
+        "recommendation": "Review and fix the issue according to best practices",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "_aderyn_detector": "modifier-used-only-once",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.25,
+          "is_likely_fp": false,
+          "confidence_adjustment": 0.75,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Has security modifier: +0.10"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": true,
+            "confirmations": 1,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "low",
+          "predicted": "critical",
+          "confidence": 0.75,
+          "reasons": [
+            "Reentrancy pattern: +0.80"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0,
+        "tools": [
+          "aderyn"
+        ],
+        "confidence_level": "medium"
+      },
+      {
+        "id": "aderyn-push-zero-opcode-3-0",
+        "type": "push-zero-opcode",
+        "severity": "critical",
+        "confidence": 0.33,
+        "location": {
+          "file": "EtherStore.sol",
+          "line": 2,
+          "function": "unknown"
+        },
+        "message": "PUSH0 Opcode",
+        "description": "Solc compiler version 0.8.20 switches the default target EVM version to Shanghai, which means that the generated bytecode will include PUSH0 opcodes. Be sure to select the appropriate EVM version in case you intend to deploy on a chain other than mainnet like L2 chains that may not support PUSH0, otherwise deployment of your contracts will fail.",
+        "recommendation": "Review and fix the issue according to best practices",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "_aderyn_detector": "push-zero-opcode",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Cross-validated (2 tools): -0.20"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": false,
+            "near_modifier": false,
+            "confirmations": 2,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "low",
+          "predicted": "critical",
+          "confidence": 0.75,
+          "reasons": [
+            "Reentrancy pattern: +0.80"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0,
+        "tools": [
+          "aderyn"
+        ],
+        "confidence_level": "low"
+      },
+      {
+        "id": "aderyn-state-change-without-event-4-0",
+        "type": "state-change-without-event",
+        "severity": "critical",
+        "confidence": 0.54,
+        "location": {
+          "file": "EtherStore.sol",
+          "line": 12,
+          "function": "unknown"
+        },
+        "message": "State Change Without Event",
+        "description": "There are state variable changes in this function but no event is emitted. Consider emitting an event to enable offchain indexers to track the changes.",
+        "recommendation": "Review and fix the issue according to best practices",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "_aderyn_detector": "state-change-without-event",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Cross-validated (2 tools): -0.20"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": false,
+            "near_modifier": false,
+            "confirmations": 2,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "low",
+          "predicted": "critical",
+          "confidence": 0.75,
+          "reasons": [
+            "Reentrancy pattern: +0.80"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0,
+        "tools": [
+          "aderyn"
+        ],
+        "confidence_level": "medium"
+      },
+      {
+        "id": "aderyn-state-change-without-event-4-1",
+        "type": "state-change-without-event",
+        "severity": "critical",
+        "confidence": 0.54,
+        "location": {
+          "file": "EtherStore.sol",
+          "line": 17,
+          "function": "unknown"
+        },
+        "message": "State Change Without Event",
+        "description": "There are state variable changes in this function but no event is emitted. Consider emitting an event to enable offchain indexers to track the changes.",
+        "recommendation": "Review and fix the issue according to best practices",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "_aderyn_detector": "state-change-without-event",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (3 tools): -0.40"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 3,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "low",
+          "predicted": "critical",
+          "confidence": 0.8,
+          "reasons": [
+            "Low-level call with value: +0.75",
+            "Reentrancy pattern: +0.80"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0,
+        "tools": [
+          "aderyn"
+        ],
+        "confidence_level": "medium"
+      },
+      {
+        "id": "aderyn-state-change-without-event-4-2",
+        "type": "state-change-without-event",
+        "severity": "critical",
+        "confidence": 0.54,
+        "location": {
+          "file": "EtherStore.sol",
+          "line": 48,
+          "function": "unknown"
+        },
+        "message": "State Change Without Event",
+        "description": "There are state variable changes in this function but no event is emitted. Consider emitting an event to enable offchain indexers to track the changes.",
+        "recommendation": "Review and fix the issue according to best practices",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "_aderyn_detector": "state-change-without-event",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Cross-validated (2 tools): -0.20"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": false,
+            "near_modifier": false,
+            "confirmations": 2,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "low",
+          "predicted": "critical",
+          "confidence": 0.75,
+          "reasons": [
+            "Reentrancy pattern: +0.80"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0,
+        "tools": [
+          "aderyn"
+        ],
+        "confidence_level": "medium"
+      },
+      {
+        "id": "aderyn-state-change-without-event-4-3",
+        "type": "state-change-without-event",
+        "severity": "critical",
+        "confidence": 0.54,
+        "location": {
+          "file": "EtherStore.sol",
+          "line": 53,
+          "function": "unknown"
+        },
+        "message": "State Change Without Event",
+        "description": "There are state variable changes in this function but no event is emitted. Consider emitting an event to enable offchain indexers to track the changes.",
+        "recommendation": "Review and fix the issue according to best practices",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "_aderyn_detector": "state-change-without-event",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Near require/assert: +0.15",
+            "Cross-validated (3 tools): -0.40"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": true,
+            "near_modifier": false,
+            "confirmations": 3,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "low",
+          "predicted": "critical",
+          "confidence": 0.75,
+          "reasons": [
+            "Reentrancy pattern: +0.80"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0,
+        "tools": [
+          "aderyn"
+        ],
+        "confidence_level": "medium"
+      },
+      {
+        "id": "aderyn-unspecific-solidity-pragma-5-0",
+        "type": "unspecific-solidity-pragma",
+        "severity": "critical",
+        "confidence": 0.33,
+        "location": {
+          "file": "EtherStore.sol",
+          "line": 2,
+          "function": "unknown"
+        },
+        "message": "Unspecific Solidity Pragma",
+        "description": "Consider using a specific version of Solidity in your contracts instead of a wide version. For example, instead of `pragma solidity ^0.8.0;`, use `pragma solidity 0.8.0;`",
+        "recommendation": "Review and fix the issue according to best practices",
+        "swc_id": null,
+        "cwe_id": null,
+        "owasp_category": null,
+        "_aderyn_detector": "unspecific-solidity-pragma",
+        "tool": "aderyn",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [
+            "Cross-validated (2 tools): -0.20"
+          ],
+          "features": {
+            "in_test": false,
+            "in_library": false,
+            "near_require": false,
+            "near_modifier": false,
+            "confirmations": 2,
+            "context_analysis": null
+          }
+        },
+        "_severity_prediction": {
+          "original": "low",
+          "predicted": "critical",
+          "confidence": 0.75,
+          "reasons": [
+            "Reentrancy pattern: +0.80"
+          ]
+        },
+        "_confidence_adjusted": true,
+        "_adjustment": 0.0,
+        "tools": [
+          "aderyn"
+        ],
+        "confidence_level": "low"
+      }
+    ],
+    "filtered_out": []
+  },
+  "clusters": {
+    "count": 12,
+    "clusters": [
+      {
+        "id": "CLUSTER-c8e4355c",
+        "category": "input_validation",
+        "root_cause": "Missing or insufficient input validation",
+        "severity": "critical",
+        "finding_count": 2,
+        "affected_functions": [
+          "unknown"
+        ],
+        "affected_files": [
+          "EtherStore.sol"
+        ],
+        "common_patterns": [
+          "eth-send-unchecked-address",
+          "transferred",
+          "without",
+          "address",
+          "checks"
+        ],
+        "remediation": "Add require statements to validate all external inputs",
+        "confidence": 0.553
+      },
+      {
+        "id": "CLUSTER-00312c4b",
+        "category": "reentrancy",
+        "root_cause": "State changes after external calls",
+        "severity": "critical",
+        "finding_count": 1,
+        "affected_functions": [
+          "unknown"
+        ],
+        "affected_files": [
+          "EtherStore.sol"
+        ],
+        "common_patterns": [
+          "reentrancy-state-change",
+          "reentrancy",
+          "state",
+          "change",
+          "after",
+          "external"
+        ],
+        "remediation": "Use checks-effects-interactions pattern or ReentrancyGuard",
+        "confidence": 0.493
+      },
+      {
+        "id": "CLUSTER-c4adb25b",
+        "category": "reentrancy",
+        "root_cause": "State changes after external calls",
+        "severity": "critical",
+        "finding_count": 1,
+        "affected_functions": [
+          "withdraw"
+        ],
+        "affected_files": [
+          "examples/contracts/EtherStore.sol"
+        ],
+        "common_patterns": [
+          "reentrancy-eth",
+          "etherstore",
+          "reentrancy",
+          "withdraw",
+          "examples",
+          "contracts"
+        ],
+        "remediation": "Use checks-effects-interactions pattern or ReentrancyGuard",
+        "confidence": 0.493
+      },
+      {
+        "id": "CLUSTER-b30953fe",
+        "category": "uncategorized",
+        "root_cause": "Unknown root cause",
+        "severity": "critical",
+        "finding_count": 1,
+        "affected_functions": [
+          "unknown"
+        ],
+        "affected_files": [
+          "EtherStore.sol"
+        ],
+        "common_patterns": [
+          "modifier-used-only-once",
+          "modifier",
+          "invoked",
+          "only",
+          "once"
+        ],
+        "remediation": "Manual review required",
+        "confidence": 0.493
+      },
+      {
+        "id": "CLUSTER-dc966438",
+        "category": "uncategorized",
+        "root_cause": "Unknown root cause",
+        "severity": "critical",
+        "finding_count": 1,
+        "affected_functions": [
+          "unknown"
+        ],
+        "affected_files": [
+          "EtherStore.sol"
+        ],
+        "common_patterns": [
+          "push-zero-opcode",
+          "opcode"
+        ],
+        "remediation": "Manual review required",
+        "confidence": 0.493
+      },
+      {
+        "id": "CLUSTER-fa17681e",
+        "category": "uncategorized",
+        "root_cause": "Unknown root cause",
+        "severity": "critical",
+        "finding_count": 4,
+        "affected_functions": [
+          "unknown"
+        ],
+        "affected_files": [
+          "EtherStore.sol"
+        ],
+        "common_patterns": [
+          "state-change-without-event",
+          "state",
+          "change",
+          "without",
+          "event"
+        ],
+        "remediation": "Manual review required",
+        "confidence": 0.673
+      },
+      {
+        "id": "CLUSTER-0bc133d0",
+        "category": "uncategorized",
+        "root_cause": "Unknown root cause",
+        "severity": "critical",
+        "finding_count": 1,
+        "affected_functions": [
+          "unknown"
+        ],
+        "affected_files": [
+          "EtherStore.sol"
+        ],
+        "common_patterns": [
+          "unspecific-solidity-pragma",
+          "unspecific",
+          "solidity",
+          "pragma"
+        ],
+        "remediation": "Manual review required",
+        "confidence": 0.493
+      },
+      {
+        "id": "CLUSTER-ab6aa944",
+        "category": "uncategorized",
+        "root_cause": "Unknown root cause",
+        "severity": "critical",
+        "finding_count": 2,
+        "affected_functions": [
+          "withdraw"
+        ],
+        "affected_files": [
+          "examples/contracts/EtherStore.sol"
+        ],
+        "common_patterns": [
+          "low-level-calls",
+          "etherstore",
+          "level",
+          "call",
+          "withdraw",
+          "examples"
+        ],
+        "remediation": "Manual review required",
+        "confidence": 0.553
+      },
+      {
+        "id": "CLUSTER-5f419813",
+        "category": "code_quality",
+        "root_cause": "Poor code quality and maintainability",
+        "severity": "critical",
+        "finding_count": 5,
+        "affected_functions": [
+          "unknown"
+        ],
+        "affected_files": [
+          "EtherStore.sol"
+        ],
+        "common_patterns": [
+          "unused-public-function",
+          "public",
+          "function",
+          "used",
+          "internally"
+        ],
+        "remediation": "Follow Solidity style guide and best practices",
+        "confidence": 0.733
+      },
+      {
+        "id": "CLUSTER-e6823e88",
+        "category": "logic_errors",
+        "root_cause": "Flawed business logic implementation",
+        "severity": "critical",
+        "finding_count": 1,
+        "affected_functions": [
+          "^0.8.0"
+        ],
+        "affected_files": [
+          "examples/contracts/EtherStore.sol"
+        ],
+        "common_patterns": [
+          "solc-version",
+          "version",
+          "constraint",
+          "contains",
+          "known",
+          "severe"
+        ],
+        "remediation": "Review and test business logic thoroughly",
+        "confidence": 0.493
+      },
+      {
+        "id": "CLUSTER-b0cc38b2",
+        "category": "uncategorized",
+        "root_cause": "Unknown root cause",
+        "severity": "medium",
+        "finding_count": 3,
+        "affected_functions": [],
+        "affected_files": [
+          "contract.sol"
+        ],
+        "common_patterns": [
+          "access_control",
+          "missing",
+          "insufficient",
+          "access",
+          "controls"
+        ],
+        "remediation": "Manual review required",
+        "confidence": 0.513
+      },
+      {
+        "id": "CLUSTER-c8897672",
+        "category": "arithmetic",
+        "root_cause": "Unsafe arithmetic operations",
+        "severity": "medium",
+        "finding_count": 1,
+        "affected_functions": [],
+        "affected_files": [
+          "contract.sol"
+        ],
+        "common_patterns": [
+          "arithmetic",
+          "integer",
+          "overflow",
+          "underflow"
+        ],
+        "remediation": "Use SafeMath or Solidity 0.8+ with built-in overflow checks",
+        "confidence": 0.393
+      }
+    ]
+  },
+  "remediation_plan": [
+    {
+      "priority": 1,
+      "cluster_id": "CLUSTER-c8e4355c",
+      "category": "input_validation",
+      "severity": "critical",
+      "finding_count": 2,
+      "affected_files": [
+        "EtherStore.sol"
+      ],
+      "root_cause": "Missing or insufficient input validation",
+      "remediation": "Add require statements to validate all external inputs",
+      "estimated_effort": "Low (< 1 hour)"
+    },
+    {
+      "priority": 2,
+      "cluster_id": "CLUSTER-00312c4b",
+      "category": "reentrancy",
+      "severity": "critical",
+      "finding_count": 1,
+      "affected_files": [
+        "EtherStore.sol"
+      ],
+      "root_cause": "State changes after external calls",
+      "remediation": "Use checks-effects-interactions pattern or ReentrancyGuard",
+      "estimated_effort": "Low (< 1 hour)"
+    },
+    {
+      "priority": 3,
+      "cluster_id": "CLUSTER-c4adb25b",
+      "category": "reentrancy",
+      "severity": "critical",
+      "finding_count": 1,
+      "affected_files": [
+        "examples/contracts/EtherStore.sol"
+      ],
+      "root_cause": "State changes after external calls",
+      "remediation": "Use checks-effects-interactions pattern or ReentrancyGuard",
+      "estimated_effort": "Low (< 1 hour)"
+    },
+    {
+      "priority": 4,
+      "cluster_id": "CLUSTER-b30953fe",
+      "category": "uncategorized",
+      "severity": "critical",
+      "finding_count": 1,
+      "affected_files": [
+        "EtherStore.sol"
+      ],
+      "root_cause": "Unknown root cause",
+      "remediation": "Manual review required",
+      "estimated_effort": "Low (< 1 hour)"
+    },
+    {
+      "priority": 5,
+      "cluster_id": "CLUSTER-dc966438",
+      "category": "uncategorized",
+      "severity": "critical",
+      "finding_count": 1,
+      "affected_files": [
+        "EtherStore.sol"
+      ],
+      "root_cause": "Unknown root cause",
+      "remediation": "Manual review required",
+      "estimated_effort": "Low (< 1 hour)"
+    },
+    {
+      "priority": 6,
+      "cluster_id": "CLUSTER-fa17681e",
+      "category": "uncategorized",
+      "severity": "critical",
+      "finding_count": 4,
+      "affected_files": [
+        "EtherStore.sol"
+      ],
+      "root_cause": "Unknown root cause",
+      "remediation": "Manual review required",
+      "estimated_effort": "Medium (1-4 hours)"
+    },
+    {
+      "priority": 7,
+      "cluster_id": "CLUSTER-0bc133d0",
+      "category": "uncategorized",
+      "severity": "critical",
+      "finding_count": 1,
+      "affected_files": [
+        "EtherStore.sol"
+      ],
+      "root_cause": "Unknown root cause",
+      "remediation": "Manual review required",
+      "estimated_effort": "Low (< 1 hour)"
+    },
+    {
+      "priority": 8,
+      "cluster_id": "CLUSTER-ab6aa944",
+      "category": "uncategorized",
+      "severity": "critical",
+      "finding_count": 2,
+      "affected_files": [
+        "examples/contracts/EtherStore.sol"
+      ],
+      "root_cause": "Unknown root cause",
+      "remediation": "Manual review required",
+      "estimated_effort": "Low (< 1 hour)"
+    },
+    {
+      "priority": 9,
+      "cluster_id": "CLUSTER-5f419813",
+      "category": "code_quality",
+      "severity": "critical",
+      "finding_count": 5,
+      "affected_files": [
+        "EtherStore.sol"
+      ],
+      "root_cause": "Poor code quality and maintainability",
+      "remediation": "Follow Solidity style guide and best practices",
+      "estimated_effort": "Medium (1-4 hours)"
+    },
+    {
+      "priority": 10,
+      "cluster_id": "CLUSTER-e6823e88",
+      "category": "logic_errors",
+      "severity": "critical",
+      "finding_count": 1,
+      "affected_files": [
+        "examples/contracts/EtherStore.sol"
+      ],
+      "root_cause": "Flawed business logic implementation",
+      "remediation": "Review and test business logic thoroughly",
+      "estimated_effort": "Low (< 1 hour)"
+    }
+  ],
+  "pattern_matches": [
+    {
+      "vulnerability_type": "reentrancy",
+      "similarity": 0.691,
+      "confidence": 0.829
+    }
+  ],
+  "metrics": {
+    "severity_distribution": {
+      "critical": 31,
+      "high": 3,
+      "medium": 5,
+      "low": 0,
+      "informational": 3
+    },
+    "cross_validated": 23,
+    "execution_time_ms": 5649.08,
+    "ml_processing_time_ms": 19.09
+  },
+  "timestamp": "2026-08-14T17:09:26.830346"
+}

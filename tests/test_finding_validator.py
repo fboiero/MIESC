@@ -2,6 +2,7 @@ import aiohttp
 import pytest
 
 from miesc.llm.finding_validator import (
+    MAX_CODE_CONTEXT_CHARS,
     MAX_VALIDATION_JSON_KEYS,
     MAX_VALIDATION_RESPONSE_CHARS,
     LLMFindingValidator,
@@ -255,7 +256,7 @@ async def test_validate_finding_defaults_malformed_code_context(monkeypatch):
     captured = {}
 
     async def fake_call(prompt):
-        captured["prompt"] = prompt
+        captured.setdefault("prompt", prompt)  # keep first call (validation, not gate enrichment)
         return '{"result": "valid", "confidence": 0.8, "reasoning": "Confirmed."}'
 
     monkeypatch.setattr(validator, "_call_ollama", fake_call)
@@ -273,10 +274,10 @@ async def test_validate_finding_defaults_malformed_code_context(monkeypatch):
 async def test_validate_finding_bounds_code_context_and_allows_multiline(monkeypatch):
     validator = LLMFindingValidator(ValidatorConfig())
     captured = {}
-    code_context = "contract Vault {\n" + ("x" * 1600) + "\n}"
+    code_context = "contract Vault {\n" + ("x" * (MAX_CODE_CONTEXT_CHARS + 100)) + "\n}"
 
     async def fake_call(prompt):
-        captured["prompt"] = prompt
+        captured.setdefault("prompt", prompt)  # keep first call (validation, not gate enrichment)
         return '{"result": "valid", "confidence": 0.8, "reasoning": "Confirmed."}'
 
     monkeypatch.setattr(validator, "_call_ollama", fake_call)
@@ -287,7 +288,10 @@ async def test_validate_finding_bounds_code_context_and_allows_multiline(monkeyp
     )
 
     assert "contract Vault {\n" in captured["prompt"]
-    assert len(captured["prompt"].split("```solidity\n", 1)[1].split("\n```", 1)[0]) == 1500
+    assert (
+        len(captured["prompt"].split("```solidity\n", 1)[1].split("\n```", 1)[0])
+        == MAX_CODE_CONTEXT_CHARS
+    )
 
 
 @pytest.mark.asyncio
@@ -296,7 +300,7 @@ async def test_validate_finding_defaults_control_char_contexts(monkeypatch):
     captured = {}
 
     async def fake_call(prompt):
-        captured["prompt"] = prompt
+        captured.setdefault("prompt", prompt)  # keep first call (validation, not gate enrichment)
         return '{"result": "valid", "confidence": 0.8, "reasoning": "Confirmed."}'
 
     monkeypatch.setattr(validator, "_call_ollama", fake_call)
@@ -363,7 +367,7 @@ async def test_validate_finding_uses_defaults_for_malformed_location(monkeypatch
     }
 
     async def fake_call(prompt):
-        captured["prompt"] = prompt
+        captured.setdefault("prompt", prompt)  # keep first call (validation, not gate enrichment)
         return '{"result": "valid", "confidence": 0.8, "reasoning": "Confirmed."}'
 
     monkeypatch.setattr(validator, "_call_ollama", fake_call)
@@ -390,7 +394,7 @@ async def test_validate_finding_defaults_malformed_prompt_scalar_fields(monkeypa
     }
 
     async def fake_call(prompt):
-        captured["prompt"] = prompt
+        captured.setdefault("prompt", prompt)  # keep first call (validation, not gate enrichment)
         return '{"result": "valid", "confidence": 0.8, "reasoning": "Confirmed."}'
 
     monkeypatch.setattr(validator, "_call_ollama", fake_call)
@@ -414,7 +418,7 @@ async def test_validate_finding_uses_valid_description_when_message_missing(monk
     captured = {}
 
     async def fake_call(prompt):
-        captured["prompt"] = prompt
+        captured.setdefault("prompt", prompt)  # keep first call (validation, not gate enrichment)
         return '{"result": "valid", "confidence": 0.8, "reasoning": "Confirmed."}'
 
     monkeypatch.setattr(validator, "_call_ollama", fake_call)
@@ -439,7 +443,7 @@ async def test_validate_finding_defaults_malformed_contract_context(monkeypatch)
     captured = {}
 
     async def fake_call(prompt):
-        captured["prompt"] = prompt
+        captured.setdefault("prompt", prompt)  # keep first call (validation, not gate enrichment)
         return '{"result": "valid", "confidence": 0.8, "reasoning": "Confirmed."}'
 
     monkeypatch.setattr(validator, "_call_ollama", fake_call)
@@ -1007,7 +1011,8 @@ def test_apply_validation_updates_or_filters_findings(
     updated = validator._apply_validation(finding, validation)
 
     if filtered:
-        assert updated is None
+        assert updated["status"] == "filtered_fp"
+        assert updated["_llm_validation"]["reasoning"] == validation.reasoning
         return
 
     assert updated is not finding
@@ -1224,7 +1229,7 @@ async def test_validate_finding_defaults_prompt_line_for_non_numeric_string(monk
     captured = {}
 
     async def fake_call(prompt):
-        captured["prompt"] = prompt
+        captured.setdefault("prompt", prompt)  # keep first call (validation, not gate enrichment)
         return '{"result": "valid", "confidence": 0.8, "reasoning": "Confirmed."}'
 
     monkeypatch.setattr(validator, "_call_ollama", fake_call)
@@ -1295,7 +1300,7 @@ def test_get_statistics_defaults_malformed_counter_state():
 
 @pytest.mark.asyncio
 async def test_validate_finding_success_updates_counters(monkeypatch):
-    validator = LLMFindingValidator(ValidatorConfig())
+    validator = LLMFindingValidator(ValidatorConfig(confirm_false_positives=False))
 
     async def fake_call(prompt):
         assert "External call before state update" in prompt
@@ -1406,6 +1411,7 @@ async def test_validate_findings_batch_applies_results_and_preserves_unvalidated
     assert seen_contexts == [("A", "contract A {}"), ("B", "contract B {}")]
     assert [validation.finding_id for validation in validations] == ["A", "B"]
     assert [finding["id"] for finding in validated] == ["A", "C"]
+    assert [finding["id"] for finding in validator.filtered_out_findings] == ["B"]
     assert validated[0]["confidence"] == pytest.approx(0.75)
     assert validated[0]["_llm_validation"]["result"] == "valid"
 
@@ -1564,9 +1570,11 @@ async def test_validate_findings_batch_bounds_code_context_values(monkeypatch):
 
     monkeypatch.setattr(validator, "validate_finding", fake_validate)
 
-    await validator.validate_findings_batch(findings, code_contexts={"A.sol": "x" * 2000})
+    await validator.validate_findings_batch(
+        findings, code_contexts={"A.sol": "x" * (MAX_CODE_CONTEXT_CHARS + 500)}
+    )
 
-    assert seen_contexts == [("A", "x" * 1500)]
+    assert seen_contexts == [("A", "x" * MAX_CODE_CONTEXT_CHARS)]
 
 
 @pytest.mark.asyncio

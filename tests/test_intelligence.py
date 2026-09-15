@@ -11,6 +11,8 @@ Tests for miesc.core.intelligence — the 6-improvement intelligence engine.
 
 from __future__ import annotations
 
+import pytest
+
 from miesc.core.intelligence import (
     MergedFinding,
     _passes_zero_recall_context_filter,
@@ -423,6 +425,54 @@ class TestContextAwareFP:
         assert is_fp is True
         assert "nonReentrant" in reason
 
+    # MEJORAS2.md #5d — Rule 7: timestamp/time-manipulation findings from
+    # adapters whose raw `type` never made it into the canonical taxonomy
+    # (oyente's "time_dependency", mev_detector's overloaded
+    # "mev_vulnerability") still get suppressed via the finding's own text,
+    # as long as every timestamp usage in the file is a deadline guard.
+    def test_oyente_time_dependency_suppressed_on_deadline_guard(self):
+        code = "function f() { require(block.timestamp <= auction.endTime); }"
+        finding = {"type": "time_dependency", "severity": "Medium", "location": {}}
+        is_fp, reason = context_aware_fp_check(finding, code)
+        assert is_fp is True
+        assert "deadline/window-guard" in reason
+
+    def test_mev_vulnerability_timestamp_message_suppressed_on_deadline_guard(self):
+        code = "function f() { if (block.timestamp <= auction.endTime) { bid(); } }"
+        finding = {
+            "type": "mev_vulnerability",
+            "message": "Logic depends on block.timestamp (miner manipulable)",
+            "description": "MEV vulnerability detected: Logic depends on block.timestamp (miner manipulable)",
+            "severity": "Medium",
+            "location": {},
+        }
+        is_fp, reason = context_aware_fp_check(finding, code)
+        assert is_fp is True
+
+    def test_mev_vulnerability_non_timestamp_pattern_not_suppressed(self):
+        # mev_detector reuses "mev_vulnerability" for 17 unrelated pattern
+        # types (front-running, slippage, oracle freshness, ...) — Rule 7
+        # must not fire just because the type string matches; it needs the
+        # finding's own text to actually mention a timestamp.
+        code = "function swap() external { _swap(amountIn); }"
+        finding = {
+            "type": "mev_vulnerability",
+            "message": "Swap function without slippage protection",
+            "description": "MEV vulnerability detected: Swap function without slippage protection",
+            "severity": "Medium",
+            "location": {},
+        }
+        is_fp, _ = context_aware_fp_check(finding, code)
+        assert is_fp is False
+
+    def test_timestamp_finding_not_suppressed_when_used_for_randomness(self):
+        code = (
+            "function f() { require(block.timestamp <= deadline); uint r = block.timestamp % 100; }"
+        )
+        finding = {"type": "use_of_block_timestamp", "severity": "Medium", "location": {}}
+        is_fp, _ = context_aware_fp_check(finding, code)
+        assert is_fp is False
+
 
 # ---------------------------------------------------------------------------
 # 5. Cross-validation tagging
@@ -464,6 +514,17 @@ class TestCrossValidation:
         tag_cross_validation(m)
         assert m.cross_validated_by_static is False
         assert m.cross_validated_by_llm is True
+        assert m.confidence == pytest.approx(0.45)
+
+    def test_llm_only_penalty_floors_at_0_05(self):
+        m = MergedFinding(
+            canonical_category="access_control",
+            representative={},
+            confirming_tools=["gptscan"],
+            confidence=0.10,
+        )
+        tag_cross_validation(m)
+        assert m.confidence == 0.05
 
 
 # ---------------------------------------------------------------------------
@@ -917,6 +978,30 @@ class TestZeroRecallContextFilter:
             is True
         )
 
+    # MEJORAS2.md #5d — real FPs from Solodit-real: deadline guards written as
+    # `if (...)` instead of `require(...)`, with an unrelated nested call
+    # earlier in the same condition, and elapsed-time arithmetic against a
+    # stored deadline. All three are the same safe idiom as a plain
+    # `require(block.timestamp > deadline)`.
+    def test_if_guard_is_suppressed(self):
+        src = "function f() { if (block.timestamp >= s.startTime && block.timestamp <= s.endTime) { mint(); } }"
+        assert _passes_zero_recall_context_filter("non_timelock_timestamp", src, src) is False
+
+    def test_if_guard_with_earlier_nested_call_is_suppressed(self):
+        src = (
+            "function f() { require(msg.value > bid(_id) && "
+            "block.timestamp <= end(_id) && open(_id) == true); }"
+        )
+        assert _passes_zero_recall_context_filter("non_timelock_timestamp", src, src) is False
+
+    def test_elapsed_time_arithmetic_is_suppressed(self):
+        src = "function f() { uint tDiff = (block.timestamp - s.startTime) / s.period; }"
+        assert _passes_zero_recall_context_filter("non_timelock_timestamp", src, src) is False
+
+    def test_timestamp_used_outside_guard_on_same_line_still_fires(self):
+        src = "function f() { if (block.timestamp > deadline) { seed = block.timestamp; } }"
+        assert _passes_zero_recall_context_filter("non_timelock_timestamp", src, src) is True
+
 
 class TestContextAwareFpCheckExtra:
     """Extra context_aware_fp_check rules: guarded selfdestruct, proxy, SafeERC20."""
@@ -950,3 +1035,113 @@ class TestContextAwareFpCheckExtra:
         is_fp, reason = context_aware_fp_check(finding, src)
         assert is_fp is True
         assert "SafeERC20" in reason
+
+
+class TestReentrancyToolNoiseRules:
+    """Rules 8-10 (MEJORAS3.md item 1 precision comparison, 2026-08-16):
+    unblinding Slither/Aderyn on previously-uncompilable files surfaced their
+    own reentrancy-detector noise, not real findings. Confirmed empirically
+    against benchmarks/datasets/solodit-real/y2k-finance/ before writing
+    these: 6 new reentrancy FPs, none in ground truth, none exploitable."""
+
+    def test_slither_reentrancy_events_suppressed(self):
+        # Slither's OWN classification (its docs): only event-emission
+        # variables affected after the call, no business-logic state.
+        finding = {"type": "reentrancy-events", "severity": "Low", "location": {}}
+        is_fp, reason = context_aware_fp_check(finding, "contract C {}")
+        assert is_fp is True
+        assert "self-labeled" in reason
+
+    def test_slither_reentrancy_benign_suppressed(self):
+        finding = {"type": "reentrancy-benign", "severity": "Low", "location": {}}
+        is_fp, reason = context_aware_fp_check(finding, "contract C {}")
+        assert is_fp is True
+
+    def test_slither_reentrancy_eth_not_suppressed(self):
+        # High-confidence label — Slither's own classification for
+        # potentially-real exploitable reentrancy. Must NOT be suppressed by
+        # rule 8 (only -events/-benign are self-labeled non-exploitable).
+        finding = {"type": "reentrancy-eth", "severity": "High", "location": {}}
+        is_fp, _ = context_aware_fp_check(finding, "contract C {}")
+        assert is_fp is False
+
+    def test_aderyn_state_change_on_view_function_suppressed(self):
+        # A view/pure function cannot write storage at all - the compiler
+        # guarantees it, so any "state change after external call" here is
+        # necessarily a local/named-return variable, not real state.
+        src = """
+        function getPrice() public view returns (int256 price) {
+            price = oracle.latestAnswer();
+        }
+        """
+        finding = {
+            "type": "reentrancy-state-change",
+            "severity": "High",
+            "location": {"function": "getPrice"},
+        }
+        is_fp, reason = context_aware_fp_check(finding, src)
+        assert is_fp is True
+        assert "view/pure" in reason
+
+    def test_aderyn_state_change_on_mutating_function_not_suppressed(self):
+        # A genuinely state-mutating function - rule 9 must not apply here,
+        # and rule 10 shouldn't either (the call isn't a known view-only one).
+        src = """
+        function withdraw(uint256 amount) external {
+            balances[msg.sender] -= amount;
+            (bool ok, ) = msg.sender.call{value: amount}("");
+        }
+        """
+        finding = {
+            "type": "reentrancy-state-change",
+            "severity": "High",
+            "location": {"function": "withdraw", "line": 3},
+        }
+        is_fp, _ = context_aware_fp_check(finding, src)
+        assert is_fp is False
+
+    def test_view_only_interface_call_near_finding_suppressed(self):
+        # Aderyn never populates location.function (always "unknown"), so
+        # rule 9 alone can't reach a case like this (a constructor calling a
+        # Chainlink view function before writing its own storage) - rule 10
+        # covers it via the finding's line number instead. A call to a
+        # view-typed interface member compiles to a STATICCALL, which by EVM
+        # design cannot write state anywhere in its own call subtree.
+        src = "\n".join(
+            [
+                "constructor(address _oracle) {",  # line 1
+                "    priceFeed = AggregatorV3Interface(_oracle);",  # line 2
+                "    decimals = priceFeed.decimals();",  # line 3
+                "    owner = msg.sender;",  # line 4
+                "}",  # line 5
+            ]
+        )
+        finding = {
+            "type": "reentrancy-state-change",
+            "severity": "High",
+            "location": {"function": "unknown", "line": 3},
+        }
+        is_fp, reason = context_aware_fp_check(finding, src)
+        assert is_fp is True
+        assert "STATICCALL" in reason
+
+    def test_dangerous_call_near_finding_not_suppressed_by_rule_10(self):
+        # A genuinely dangerous external call (.call{value:...}) anywhere in
+        # the window must keep rule 10 from firing, even if a view-only call
+        # also appears nearby.
+        src = "\n".join(
+            [
+                "function sweep() external {",  # line 1
+                "    uint256 d = token.decimals();",  # line 2
+                "    (bool ok, ) = msg.sender.call{value: address(this).balance}('');",  # line 3
+                "    paid = true;",  # line 4
+                "}",  # line 5
+            ]
+        )
+        finding = {
+            "type": "reentrancy-state-change",
+            "severity": "High",
+            "location": {"function": "unknown", "line": 4},
+        }
+        is_fp, _ = context_aware_fp_check(finding, src)
+        assert is_fp is False

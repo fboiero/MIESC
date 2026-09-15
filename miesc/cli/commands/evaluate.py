@@ -15,6 +15,7 @@ License: AGPL-3.0
 
 import json
 import os
+import re
 import statistics
 import sys
 import time
@@ -62,20 +63,31 @@ SMARTBUGS_CATEGORIES = {
     "other": "other",
 }
 
+# MEJORAS2.md #2: modern DeFi vulnerability classes that dominate real 2024-2026
+# audits (per Solodit's tag frequency across 43k+ real findings) but have no
+# equivalent in SmartBugs-curated's ~2018-2020 taxonomy above. Only used by the
+# Solodit-sourced corpus (ground_truth.json), never by SmartBugs-curated corpora
+# (folder-based _load_ground_truth never produces these).
+MODERN_CATEGORIES = {
+    "business_logic": "business_logic",
+    "oracle": "oracle",
+    "rounding": "rounding",
+    "fee_on_transfer": "fee_on_transfer",
+    "erc4626": "erc4626",
+}
+
 # Category aliases (tools report different names for same vuln class)
 CATEGORY_ALIASES = {
     "reentrancy": {
         "reentrancy",
         "reentrancy-eth",
         "reentrancy-no-eth",
-        "reentrancy-benign",
-        "reentrancy-events",
+        # reentrancy-benign / reentrancy-events excluded on purpose - see
+        # _NOISE_CHECK_TYPES above, Slither's own no-security-impact checks.
         "reentrancy-unlimited-gas",
         "reentrant",
         "reentrancy_eth",
         "reentrancy_no_eth",
-        "reentrancy_benign",
-        "reentrancy_events",
         "reentrancy_unlimited_gas",
         "controlled-delegatecall",
         "delegatecall-loop",
@@ -138,7 +150,14 @@ CATEGORY_ALIASES = {
         "weak-randomness",
         "weak-prng",
         "blockhash",
-        "block.timestamp",
+        # MEJORAS2.md #4: NOT "block.timestamp" — that normalizes to
+        # "block_timestamp", and the substring check below (`alias in
+        # finding_lower`) matched Slither's own "timestamp" detector type
+        # (SWC-116, unambiguously time_manipulation) as bad_randomness
+        # before time_manipulation's own exact "timestamp" alias was ever
+        # checked. Found measuring the #4 corpus-completion fix: once
+        # Slither could actually compile a multi-file contract, this alias
+        # started misclassifying its "timestamp" findings for real.
     },
     "front_running": {"front_running", "front-running", "frontrunning", "transaction-ordering"},
     "short_addresses": {"short_addresses", "short-addresses", "short-address"},
@@ -149,7 +168,151 @@ CATEGORY_ALIASES = {
         "block-timestamp",
         "timestamp",
     },
-    "other": {"other", "unknown", "unclassified", "uninitialized_storage_pointer"},
+    # "unknown" deliberately excluded: it's the failure-sentinel several
+    # adapters (llamaaudit, oyente, peculiar, ...) default "type"/"category"
+    # to when LLM output has neither - a parsing failure with no real
+    # content (empty description, generic title), not a genuine "other"
+    # vulnerability. Aliasing it here silently promoted pure noise into a
+    # matchable category with zero ground-truth support in solodit-real.
+    "other": {"other", "unclassified", "uninitialized_storage_pointer"},
+    # MEJORAS2.md #2 — see MODERN_CATEGORIES above.
+    "business_logic": {
+        "business_logic",
+        "business-logic",
+        "logic_error",
+        "logic-error",
+        "invariant_violation",
+        "invariant-violation",
+        "griefing",
+    },
+    "oracle": {
+        "oracle",
+        "oracle_manipulation",
+        "oracle-manipulation",
+        "price_manipulation",
+        "price-manipulation",
+        "stale_price",
+        "stale-price",
+        "chainlink",
+        "price_feed",
+        "price-feed",
+    },
+    "rounding": {
+        "rounding",
+        "rounding_error",
+        "rounding-error",
+        "precision_loss",
+        "precision-loss",
+        "loss_of_precision",
+        "division_before_multiplication",
+    },
+    "fee_on_transfer": {
+        "fee_on_transfer",
+        "fee-on-transfer",
+        "deflationary_token",
+        "rebasing_token",
+    },
+    "erc4626": {
+        "erc4626",
+        "erc-4626",
+        "eip4626",
+        "eip-4626",
+        "vault_accounting",
+        "share_price_manipulation",
+        "inflation_attack",
+    },
+}
+
+
+# MEJORAS2.md #5b: found while building the ML-classifier training set —
+# tool descriptions commonly embed the analyzed file's own path as a markdown
+# location link, e.g. Slither's "Variable [Foo.bar](benchmarks/datasets/
+# smartbugs-curated/dataset/bad_randomness/blackjack.sol#L51) is not in
+# mixedCase". SmartBugs-curated's corpus_dir/category_name/*.sol layout means
+# that path contains the ground-truth category name itself — so the keyword
+# fallback below matched "bad_randomness" (via "randomness" as a substring of
+# the *folder name* in the path) on findings with nothing to do with
+# randomness (a naming-convention lint). Left unstripped, this leaks ground
+# truth into "detection" for any category whose keyword is a substring of a
+# SmartBugs-curated folder name (confirmed also affects "reentrancy" via
+# "reentran" and "unchecked_low_level_calls" via "unchecked").
+_MARKDOWN_LOCATION_LINK_RE = re.compile(r"\[([^\]]*)\]\([^)]*\)")
+_BARE_FILE_PATH_RE = re.compile(r"\S*/\S*\.\w+(?:#L?\d+(?:-L?\d+)?)?")
+
+
+def _strip_location_paths(text: str) -> str:
+    """Remove embedded file-path references from a finding's own text.
+
+    Keeps the human-readable part of markdown location links (e.g. the
+    flagged symbol name) but drops the path, so a corpus directory name
+    (like a SmartBugs-curated category folder) can't leak into keyword
+    matching.
+    """
+    text = _MARKDOWN_LOCATION_LINK_RE.sub(r"\1", text)
+    text = _BARE_FILE_PATH_RE.sub("", text)
+    return text
+
+
+# MEJORAS2.md #5b follow-up: found while sanity-checking the smartbugs-curated
+# closing benchmark — Slither's "solc-version" check emits a fixed reference
+# list of "known severe issues by name" as routine compiler-upgrade advice
+# (e.g. "MemoryArrayCreationOverflow", a *compiler bug name*, nothing to do
+# with the contract's own arithmetic). The keyword fallback below searched
+# that boilerplate text and matched "overflow" as a substring, miscategorizing
+# ~50% of all solc-version findings (measured on a 40-contract sample) as
+# "arithmetic". These check types are lints about the toolchain/style, never
+# a vulnerability category by construction, regardless of what their advice
+# text happens to mention — so skip keyword matching entirely for them,
+# rather than trying to strip specific boilerplate phrases (fragile, and
+# Slither's reference list changes with the compiler version range). Same
+# denylist fp_filter.py already uses to mark these as non-security noise.
+# MEJORAS2.md #5j: categories exploit_synthesizer's POC_TEMPLATES can build a
+# real (non-generic) PoC for. Restricting hypothesis verification to these
+# three is the "narrow but reliable" scope - a candidate outside them would
+# only ever get the weak generic template, which is not a meaningful PoC
+# either way.
+_POC_VERIFIED_CATEGORIES = {"reentrancy", "access_control", "integer_overflow"}
+
+_FUNCTION_DEF_RE = re.compile(r"\bfunction\s+(\w+)\s*\(")
+_WORD_RE = re.compile(r"\b[a-zA-Z_]\w*\b")
+
+
+def _extract_function_hint(text: str, source_code: str) -> str:
+    """Best-effort: find a real function name (defined in source_code) mentioned
+    in an LLM finding's free text.
+
+    llmbugscanner's findings carry no structured location.function field (only
+    a free-text title/description) - exploit_synthesizer's PoC templates need
+    a real function name to target. Cross-referencing free text against the
+    contract's own function defs is the cheapest bridge between the two shapes.
+    """
+    defined = set(_FUNCTION_DEF_RE.findall(source_code))
+    for word in _WORD_RE.findall(text):
+        if word in defined:
+            return word
+    return ""
+
+
+_NOISE_CHECK_TYPES = {
+    "solc-version",
+    "pragma",
+    "naming-convention",
+    "visibility",
+    "dead-code",
+    "constable-states",
+    "immutable-states",
+    "push-zero",
+    "experimental",
+    # Slither's own docs classify these as informational/no-security-impact,
+    # distinct from reentrancy-eth (the real, exploitable one): an event
+    # emitted after an external call, or a state write with no read-before-
+    # call path an attacker can exploit. Found via solodit-real's expanded
+    # corpus - one file (VaultFactory.sol) alone contributed 5 of these as
+    # "reentrancy" false positives with zero real reentrancy in its ground
+    # truth. The bare "reentrancy" alias's substring match would otherwise
+    # still catch these even if just removed from CATEGORY_ALIASES below.
+    "reentrancy-benign",
+    "reentrancy-events",
 }
 
 
@@ -159,6 +322,8 @@ def _normalize_category(finding_type: str, title: str = "", description: str = "
     Checks type field first, then falls back to keyword matching on title/description.
     """
     finding_lower = finding_type.lower().replace(" ", "_").replace("-", "_")
+    if finding_lower.replace("_", "-") in _NOISE_CHECK_TYPES:
+        return None
     for canonical, aliases in CATEGORY_ALIASES.items():
         normalized_aliases = {a.lower().replace(" ", "_").replace("-", "_") for a in aliases}
         if finding_lower in normalized_aliases:
@@ -169,7 +334,7 @@ def _normalize_category(finding_type: str, title: str = "", description: str = "
                 return canonical
 
     # Fallback: keyword search in title and description
-    combined_text = f"{title} {description}".lower()
+    combined_text = _strip_location_paths(f"{title} {description}").lower()
     keyword_map = {
         "reentrancy": ["reentran", "re-entran", "re_entran"],
         "access_control": [
@@ -214,6 +379,18 @@ def _normalize_category(finding_type: str, title: str = "", description: str = "
         ],
         "front_running": ["front-run", "front run", "frontrun", "transaction order"],
         "time_manipulation": ["timestamp", "block.timestamp", "now)", "time manipul"],
+        # MEJORAS2.md #2 — modern categories, checked after the classic ones above
+        # so e.g. a genuine timestamp-manipulation finding isn't reclassified.
+        "oracle": ["oracle", "price feed", "chainlink", "stale price", "depeg"],
+        "rounding": ["rounding", "precision loss", "loss of precision", "round down", "round up"],
+        "fee_on_transfer": [
+            "fee-on-transfer",
+            "fee on transfer",
+            "deflationary token",
+            "rebasing token",
+        ],
+        "erc4626": ["erc4626", "eip-4626", "eip 4626", "share price", "inflation attack"],
+        "business_logic": ["business logic", "invariant", "griefing"],
     }
     for canonical, keywords in keyword_map.items():
         for kw in keywords:
@@ -223,11 +400,34 @@ def _normalize_category(finding_type: str, title: str = "", description: str = "
     return None
 
 
+def _load_ground_truth_json(manifest_path: Path, corpus_dir: Path) -> Dict[str, Set[str]]:
+    """Load ground truth from a Solodit-sourced manifest (MEJORAS2.md #1/#2).
+
+    Unlike _load_ground_truth's one-category-per-folder inference, this reads a
+    per-finding list (each with an explicit file + category, sourced from a real
+    audit report) and aggregates it into the same {contract_path: {categories}}
+    shape everything downstream already expects — so _evaluate_contract's TP/FP/FN
+    logic needs no changes, only richer ground truth per file.
+    """
+    manifest = json.loads(manifest_path.read_text())
+    ground_truth: Dict[str, Set[str]] = {}
+    for finding in manifest.get("findings", []):
+        rel_path = finding["file"]
+        if not (corpus_dir / rel_path).exists():
+            continue
+        ground_truth.setdefault(rel_path, set()).add(finding["category"])
+    return ground_truth
+
+
 def _load_ground_truth(corpus_dir: Path) -> Dict[str, Set[str]]:
     """Load ground truth from SmartBugs-curated directory structure.
 
     Returns: {contract_path: {category1, category2, ...}}
     """
+    manifest_path = corpus_dir / "ground_truth.json"
+    if manifest_path.exists():
+        return _load_ground_truth_json(manifest_path, corpus_dir)
+
     ground_truth: Dict[str, Set[str]] = {}
     for category_dir in corpus_dir.iterdir():
         if not category_dir.is_dir():
@@ -275,6 +475,7 @@ def _evaluate_contract(
     timeout: int,
     skip_unavailable: bool,
     use_intelligence: bool = True,
+    fp_strictness: str = "medium",
 ) -> Dict[str, Any]:
     """Evaluate a single contract against ground truth.
 
@@ -287,6 +488,13 @@ def _evaluate_contract(
         "aggregate": {"detected_categories": set(), "all_findings": []},
         "timing": {},
     }
+
+    # Raw, unfiltered categories - used as a fallback if intelligence/FP
+    # filtering below doesn't run (use_intelligence=False or unreadable
+    # source). Kept separate from result["aggregate"]["detected_categories"]
+    # so that set can be replaced (not just unioned into) by the filtered
+    # view once it's available.
+    raw_detected_categories: Set[str] = set()
 
     for layer_num in layers:
         layer_start = time.perf_counter()
@@ -313,7 +521,7 @@ def _evaluate_contract(
         layer_detected = set()
         for f in layer_findings:
             cat = _normalize_category(
-                f.get("type", "") or f.get("title", ""),
+                f.get("type", "") or f.get("category", "") or f.get("title", ""),
                 title=f.get("title", ""),
                 description=f.get("description", f.get("message", "")),
             )
@@ -327,8 +535,14 @@ def _evaluate_contract(
             "time_seconds": round(layer_elapsed, 3),
         }
 
-        result["aggregate"]["detected_categories"].update(layer_detected)
+        raw_detected_categories.update(layer_detected)
         result["aggregate"]["all_findings"].extend(layer_findings)
+
+    # None means intelligence/FP-filtering never actually ran (disabled,
+    # unreadable source, or an exception) - fall back to raw categories in
+    # that case. An empty set OTOH is a legitimate "ran and filtered
+    # everything out" result and must not be overridden by the fallback.
+    filtered_detected_categories: Optional[Set[str]] = None
 
     # Intelligence engine: zero-recall pattern detection, cross-tool scoring,
     # FP suppression. This is what pushes recall from ~50% to 95.8%.
@@ -355,13 +569,43 @@ def _evaluate_contract(
                     file_path=str(contract_path),
                 )
 
-                # Extract categories from enhanced findings (includes zero-recall patterns)
+                # FalsePositiveFilter: 270+ curated patterns (safe-library
+                # provenance - OpenZeppelin/Solmate/Solady -, safe code
+                # patterns, test/interface/mock context). Already wired into
+                # scan/audit full via MLOrchestrator, never into the
+                # evaluation path - so precision here was always measured
+                # pre-filter. Runs only on findings that survived
+                # intelligence's own 6-rule check; reuses the fp_suppressed
+                # flag so the category extraction below needs no new logic.
+                # Calls filter_finding() directly (not the batch
+                # filter_findings()) so code_context is always source_code:
+                # filter_findings() would instead look it up per-finding via
+                # finding["location"]["file"], which isn't guaranteed to
+                # match contract_path's exact string across ~20+ adapters -
+                # every finding here is for this one contract regardless.
+                try:
+                    from miesc.ml.fp_filter import FalsePositiveFilter
+
+                    fp_filter = FalsePositiveFilter(strictness=fp_strictness, use_rag=False)
+                    for f in enhanced:
+                        if f.get("fp_suppressed"):
+                            continue
+                        fp_result = fp_filter.filter_finding(
+                            f, code_context=source_code, file_path=str(contract_path)
+                        )
+                        if not fp_result.should_report:
+                            f["fp_suppressed"] = True
+                except ImportError:
+                    pass  # FP filter not available
+
+                # Extract categories from enhanced, FP-filtered findings
+                # (includes zero-recall patterns)
                 intel_detected = set()
                 for f in enhanced:
                     if f.get("fp_suppressed"):
                         continue
                     cat = _normalize_category(
-                        f.get("type", "") or f.get("title", ""),
+                        f.get("type", "") or f.get("category", "") or f.get("title", ""),
                         title=f.get("title", ""),
                         description=f.get("description", f.get("message", "")),
                     )
@@ -372,7 +616,7 @@ def _evaluate_contract(
                 result["timing"]["intelligence"] = round(intel_elapsed, 3)
 
                 # Record intelligence layer results
-                new_categories = intel_detected - result["aggregate"]["detected_categories"]
+                new_categories = intel_detected - raw_detected_categories
                 result["layers"]["intelligence"] = {
                     "findings_count": len([f for f in enhanced if not f.get("fp_suppressed")]),
                     "detected_categories": list(intel_detected),
@@ -381,11 +625,128 @@ def _evaluate_contract(
                     "time_seconds": round(intel_elapsed, 3),
                 }
 
-                result["aggregate"]["detected_categories"].update(intel_detected)
+                # Replace (not union) the raw per-layer categories: a
+                # category only counts toward precision/recall if a finding
+                # for it survives both FP filters. enhance_findings()
+                # reprocesses the full raw finding set (plus zero-recall
+                # additions), so intel_detected is a strict superset of
+                # raw_detected_categories minus whatever got suppressed.
+                filtered_detected_categories = intel_detected
         except ImportError:
             pass  # Intelligence engine not available
-        except Exception:
-            pass  # Graceful degradation
+        except Exception as e:
+            warning(f"Intelligence engine failed for {contract_path}: {e}")
+
+    # MEJORAS2.md #5j: PoC-verified hypotheses. llmbugscanner (Layer 9, the
+    # only tool there that reads the contract from scratch rather than
+    # reviewing prior findings) is real but non-deterministic - 5i showed
+    # aggregate recall unmoved across a full corpus run because what it finds
+    # shuffles between runs, not because it finds nothing. Narrow-but-reliable
+    # scope: for its findings in the 3 categories exploit_synthesizer has a
+    # real (non-generic) PoC template for, actually run the PoC (run_poc=True,
+    # off by default in production - see ml_orchestrator.py) and only count a
+    # category if a real forge test confirms it. This is independent of the
+    # intelligence/FP-filter path above (a different verification mechanism -
+    # real code execution, not heuristics tuned for pattern-based tool
+    # output), so it unions in regardless of whether that path ran.
+    poc_verified_categories: Set[str] = set()
+    if 9 in layers:
+        llmbugscanner_candidates = [
+            f
+            for f in result["aggregate"]["all_findings"]
+            if f.get("_source_tool") == "llmbugscanner"
+            and f.get("category") in _POC_VERIFIED_CATEGORIES
+        ]
+        if llmbugscanner_candidates:
+            try:
+                source_code = contract_path.read_text(encoding="utf-8", errors="ignore")
+            except Exception:
+                source_code = ""
+            if source_code:
+                try:
+                    from miesc.adapters.exploit_synthesizer_adapter import (
+                        ExploitSynthesizerAdapter,
+                    )
+
+                    poc_input = [
+                        {
+                            "type": f.get("category"),
+                            "severity": f.get("severity", "Medium"),
+                            "confidence": f.get("confidence", 0.7),
+                            "description": f.get("description", f.get("title", "")),
+                            "location": {
+                                "file": str(contract_path),
+                                "function": _extract_function_hint(
+                                    f"{f.get('title', '')} {f.get('description', '')}",
+                                    source_code,
+                                ),
+                                "line": 0,
+                            },
+                        }
+                        for f in llmbugscanner_candidates
+                    ]
+                    # normalize_findings() doesn't carry the category through
+                    # to its output (only id/message/description survive) -
+                    # match a confirmed PoC back to the category it was
+                    # generated for via the function name, the one field that
+                    # does round-trip (through original_finding.location).
+                    function_to_category = {
+                        item["location"]["function"]: item["type"]
+                        for item in poc_input
+                        if item["location"]["function"]
+                    }
+                    synth_result = ExploitSynthesizerAdapter().analyze(
+                        str(contract_path), findings=poc_input, run_poc=True
+                    )
+                    for verified in synth_result.get("findings", []):
+                        if verified.get("type") != "exploit_confirmed":
+                            continue
+                        func = verified.get("location", {}).get("function", "")
+                        cat = function_to_category.get(func)
+                        if cat:
+                            poc_verified_categories.add(cat)
+                except ImportError:
+                    pass  # exploit_synthesizer not available
+                except Exception as e:
+                    warning(f"PoC verification failed for {contract_path}: {e}")
+
+    base_detected = (
+        filtered_detected_categories
+        if filtered_detected_categories is not None
+        else raw_detected_categories
+    )
+
+    # Gate, don't just add: a target category is only as trustworthy as its
+    # weakest source. If the ONLY tool that flagged one of the 3
+    # PoC-verifiable categories was llmbugscanner (no other tool
+    # independently agreed), an unconfirmed PoC means don't count it - an
+    # unverified LLM guess must not silently ride along inside the raw/
+    # intelligence-filtered set. A category any other tool also flagged is
+    # left untouched regardless of PoC status (independent corroboration
+    # already exists).
+    categories_from_other_tools: Set[str] = set()
+    for f in result["aggregate"]["all_findings"]:
+        if f.get("_source_tool") == "llmbugscanner":
+            continue
+        cat = _normalize_category(
+            f.get("type", "") or f.get("category", "") or f.get("title", ""),
+            title=f.get("title", ""),
+            description=f.get("description", f.get("message", "")),
+        )
+        if cat:
+            categories_from_other_tools.add(cat)
+
+    final_detected: Set[str] = set()
+    for cat in base_detected:
+        if cat in _POC_VERIFIED_CATEGORIES and cat not in categories_from_other_tools:
+            if cat in poc_verified_categories:
+                final_detected.add(cat)
+            # else: llmbugscanner-only claim, not PoC-confirmed - drop it.
+        else:
+            final_detected.add(cat)
+    final_detected |= poc_verified_categories
+
+    result["aggregate"]["detected_categories"] = final_detected
 
     # Convert set to list for serialization
     result["aggregate"]["detected_categories"] = list(result["aggregate"]["detected_categories"])
@@ -632,6 +993,12 @@ def evaluate() -> None:
     default=None,
     help="Run LLM on missed contracts (e.g., --with-llm ollama or --with-llm claude)",
 )
+@click.option(
+    "--fp-strictness",
+    type=click.Choice(["off", "low", "medium", "high"]),
+    default="medium",
+    help="FalsePositiveFilter strictness for this run (default: medium)",
+)
 def evaluate_corpus(
     directory: str,
     layers: str,
@@ -644,6 +1011,7 @@ def evaluate_corpus(
     config: str | None,
     no_intelligence: bool,
     with_llm: str | None,
+    fp_strictness: str,
 ) -> None:
     """Evaluate MIESC against an annotated benchmark corpus.
 
@@ -759,6 +1127,7 @@ def evaluate_corpus(
                     timeout,
                     skip_unavailable,
                     use_intelligence=not no_intelligence,
+                    fp_strictness=fp_strictness,
                 )
                 all_results.append(eval_result)
 
@@ -810,6 +1179,7 @@ def evaluate_corpus(
                 timeout,
                 skip_unavailable,
                 use_intelligence=not no_intelligence,
+                fp_strictness=fp_strictness,
             )
             all_results.append(eval_result)
 

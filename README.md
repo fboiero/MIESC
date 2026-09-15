@@ -62,7 +62,7 @@ miesc scan contract.sol --verify-fp                # Recall-safe FP filter: drop
 
 The intelligence engine automatically:
 - **Deduplicates** cross-tool findings (Slither + Aderyn report same bug → 1 finding)
-- **Scores confidence** via Bayesian multi-tool agreement (2 tools = 85%, 3 = 95%)
+- **Scores confidence** via a Bayesian-inspired noisy-OR combiner across agreeing tools (hand-set per-tool weights, not fit from data — e.g. 2 tools agreeing can reach ~85%, 3 tools ~95%, depending on which tools)
 - **Generates fix code** — copy-pasteable Solidity patches for 10 vulnerability categories
 - **Reduces false positives** — drops only type-deterministic benign (Solidity 0.8+, checked call/SafeERC20, informational lint); contextual guards (onlyOwner, nonReentrant) are flagged for review, never dropped (recall 1.0)
 - **Calibrates severity** across tools (Aderyn LOW → Medium when warranted)
@@ -129,8 +129,11 @@ Report saved to results.json
 | Precision | 8.3% | 6.1% | **22.1%** | Full SmartBugs-curated corpus |
 | F1-Score | 13.9% | 10.0% | **35.9%** | Full SmartBugs-curated corpus |
 
-The full-corpus SmartBugs result is the reproducible Paper 1 profile. A local
-Ollama follow-up on the remaining misses is reported in Paper 1 as 140/143
+The full-corpus SmartBugs result is the reproducible Paper 1 profile. It was
+produced with layers 1, 6, and 7 (static analysis + heuristic/pattern detection +
+specialized analysis) — not the full "50 tools, 9 layers" stack: no symbolic
+execution (Mythril/Halmos), no dynamic fuzzing (Echidna/Foundry), no LLM layer. A
+local Ollama follow-up on the remaining misses is reported in Paper 1 as 140/143
 (97.9%) and should be treated as a secondary follow-up claim until its own
 machine-readable lift artifact is published. The 9-layer run is reported
 separately as an end-to-end integration smoke run, not as a corpus-wide claim.
@@ -156,7 +159,7 @@ MIESC has two linked research tracks. Paper 1 evaluates detection and multi-laye
 
 | Paper | Focus | Main reproducible evidence | Artifacts |
 |-------|-------|----------------------------|-----------|
-| [Paper 1](./paper/miesc-paper.pdf) | Multi-layer smart contract security evaluation | SmartBugs: 95.8% recall on 143 contracts, with a local Ollama follow-up reported at 97.9%; DeFi exploits: 81.8% recall on 11 incidents; EVMBench ensemble: 111/120 high-severity findings, 92.5% recall | [Reproducibility](./paper/PAPER1_REPRODUCIBILITY.md), [claims matrix](./benchmarks/results/paper1_claims_matrix.json) |
+| [Paper 1](./paper/miesc-paper.pdf) | Multi-layer smart contract security evaluation | SmartBugs: 95.8% recall on 143 contracts, with a local Ollama follow-up reported at 97.9%; DeFi exploits: 81.8% recall on 11 incidents; EVMBench ensemble: 111/120 high-severity findings, 92.5% recall (the "120" is MIESC's own local high-severity extraction, not EVMBench's official 117-vulnerability count — see [Reproducibility](./paper/PAPER1_REPRODUCIBILITY.md) for the methodology note) | [Reproducibility](./paper/PAPER1_REPRODUCIBILITY.md), [claims matrix](./benchmarks/results/paper1_claims_matrix.json) |
 | [Paper 2](./paper/paper2-remediation.pdf) | Verifiable remediation artifacts | 123/143 fixes applied; 123/123 patched contracts compile standalone; 88/123 eliminate the original finding by re-scan; 121/123 pass bounded no-regression; 70/123 clean-HIGH under external Slither | [Reproducibility](./paper/PAPER2_REPRODUCIBILITY.md), [claims matrix](./benchmarks/results/paper2_claims_matrix.json), [experiment audit](./benchmarks/results/paper2_experiment_audit.json) |
 
 For research citation and review, the canonical current claims are the two paper PDFs, their reproducibility notes, and the `benchmarks/results/paper*_claims_matrix.json` files. The platform alignment plan maps these paper results into CLI, API, MCP, RAG, and remediation workflow requirements: [Paper learnings and platform alignment](./docs/roadmap/PAPER_LEARNINGS_PLATFORM_ALIGNMENT.md). RAG source selection and weighting are governed by the [RAG source policy](./docs/guides/RAG_SOURCE_POLICY.md). Older release notes, thesis drafts, and roadmap documents are kept for project history and may contain previous benchmark runs or version-specific metrics.
@@ -282,9 +285,10 @@ See [Researcher Packaging Guide](./docs/guides/RESEARCHER_PACKAGING.md) for the 
 ## Multi-Chain Support
 
 ```bash
-miesc analyze Token.sol           # EVM (Solidity/Vyper) — production
-# Non-EVM (Cairo/Solana/Move/NEAR/Stellar/Algorand/Cardano) is on the ROADMAP:
-# experimental adapter code exists but is not production-validated yet.
+miesc analyze Token.sol           # Solidity — production (routes to miesc scan)
+# Vyper/Cairo/Solana/Move are wired via `miesc analyze --chain` — experimental,
+# pattern-based, not production-validated. NEAR/Stellar/Algorand/Cardano adapter
+# code exists but has no CLI wiring at all yet. See docs/MULTICHAIN.md.
 ```
 
 **77 vulnerability types** across 4 ecosystems, informed by real 2024-2026 exploits (zkLend $9.6M, Braavos, Wormhole $320M, Ronin $624M).
@@ -563,7 +567,7 @@ report = run_full_audit("contract.sol")
 ```bash
 pip install "miesc[django]"
 python -m miesc.api.rest --host 127.0.0.1 --port 8000
-python -m src.utils.web_dashboard --results analysis/results --output analysis/dashboard
+python -m miesc.utils.web_dashboard --results analysis/results --output analysis/dashboard
 ```
 
 The open core exposes local REST/MCP automation and static report generation.
@@ -576,17 +580,21 @@ clients now live in the platform layer.
 
 | Chain | Status | Languages |
 |-------|--------|-----------|
-| **EVM** (Ethereum, Polygon, BSC, Arbitrum, etc.) | **Production** | Solidity, Vyper |
-| Solana | Roadmap | Rust/Anchor |
-| NEAR | Roadmap | Rust |
-| Move (Sui, Aptos) | Roadmap | Move |
-| Stellar/Soroban | Roadmap | Rust |
-| Algorand | Roadmap | TEAL, PyTeal |
-| Cardano | Roadmap | Plutus, Aiken |
-| Starknet/Cairo | Roadmap | Cairo |
+| **EVM** (Ethereum, Polygon, BSC, Arbitrum, etc.) | **Production** | Solidity |
+| Vyper (EVM) | Roadmap — wired via `miesc analyze` | Vyper |
+| Solana | Roadmap — wired via `miesc analyze` | Rust/Anchor |
+| Move (Sui, Aptos) | Roadmap — wired via `miesc analyze` | Move |
+| Starknet/Cairo | Roadmap — wired via `miesc analyze` | Cairo |
+| NEAR | Roadmap — not wired, no CLI command reaches it | Rust |
+| Stellar/Soroban | Roadmap — not wired, no CLI command reaches it | Rust |
+| Algorand | Roadmap — not wired, no CLI command reaches it | TEAL, PyTeal |
+| Cardano | Roadmap — not wired, no CLI command reaches it | Plutus, Aiken |
 
-> **EVM analysis (50 tools, 9 layers) is production-ready.** Non-EVM chains are on the
-> roadmap: early adapter code exists but is experimental and not yet production-validated.
+> **Solidity analysis (50 tools, 9 layers) is production-ready.** Vyper and non-EVM chains
+> are on the roadmap: Vyper/Solana/Move/Starknet have experimental, pattern-based adapter
+> code reachable via `miesc analyze` (not production-validated — `miesc scan`'s tools reject
+> anything that isn't `.sol`); NEAR/Stellar/Algorand/Cardano have adapter code with no CLI
+> wiring at all — see [docs/MULTICHAIN.md](./docs/MULTICHAIN.md) for exact command support.
 
 ---
 
@@ -616,9 +624,9 @@ Contract.sol
  Report Generator --> JSON / SARIF / PDF / HTML / Markdown
 ```
 
-MIESC uses a dual-package architecture:
-- `miesc/` - Public API (stable, pip-installable)
-- `src/` - Internal implementation (35 analysis modules, ML pipeline, RAG, report generation)
+As of v6.0.0, MIESC ships as a single `miesc/` package — CLI, API, tool adapters, agents,
+ML pipeline, and report generation all live under one import root (the earlier `miesc/`
+façade + internal `src/` split was removed in the v6.0.0 unification).
 
 See [ARCHITECTURE.md](./docs/ARCHITECTURE.md) for the full technical design with Mermaid diagrams.
 
@@ -631,8 +639,8 @@ MIESC was developed as a Master's thesis in Cyberdefense at [UNDEF-IUA](https://
 - **143 contracts**, 207 ground-truth vulnerabilities, 10 categories
 - **95.8% recall** on the latest full-corpus reproducible local SmartBugs profile; Slither alone baseline: 43.2%
 - Paper 1 reports a local Ollama follow-up on the residual SmartBugs misses at 140/143 (97.9%); the reproducible corpus artifact remains the 95.8% JSON profile.
-- Paper 1 now treats EVMBench as the primary business-logic benchmark: static-only reaches 22/120 (18.3%), while the reproducible four-provider ensemble reaches 111/120 (92.5%)
-- Paper 2 evaluates remediation artifacts: 123/143 fixes applied, 123/123 patched contracts compile standalone, 88/123 eliminate the original finding by re-scan, 121/123 pass bounded no-regression, and 70/123 are clean-HIGH under external Slither
+- Paper 1 now treats EVMBench as the primary business-logic benchmark: static-only reaches 22/120 (18.3%), while the reproducible four-provider ensemble reaches 111/120 (92.5%) — "120" is MIESC's own local high-severity extraction, not EVMBench's official 117-vulnerability denominator (see [Paper 1 reproducibility](./paper/PAPER1_REPRODUCIBILITY.md))
+- Paper 2 evaluates remediation artifacts: 123/143 fixes applied, 123/123 patched contracts compile standalone, 88/123 eliminate the original finding by re-scan, 121/123 pass bounded no-regression, and 70/123 are clean-HIGH under external Slither — up to 3 of those successful fixes come from single-contract templates curve-fit to specific SmartBugs-curated contracts rather than general CEI-pattern detection (see [Paper 2 reproducibility](./paper/PAPER2_REPRODUCIBILITY.md#interpretacion))
 - Reproducible SmartBugs profile runs in 737.0s total (~5.15 sec/contract)
 - Canonical results: [Paper 1 reproducibility](./paper/PAPER1_REPRODUCIBILITY.md), [Paper 2 reproducibility](./paper/PAPER2_REPRODUCIBILITY.md), [Paper 1 claims matrix](./benchmarks/results/paper1_claims_matrix.json), [Paper 2 claims matrix](./benchmarks/results/paper2_claims_matrix.json)
 

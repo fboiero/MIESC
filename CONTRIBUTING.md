@@ -115,20 +115,24 @@ python scripts/verify_installation.py
 
 ### Project Structure
 
+As of v6.0.0, MIESC ships as a single `miesc/` package — there is no separate `src/`
+implementation package anymore (see [ARCHITECTURE.md](./docs/ARCHITECTURE.md)).
+
 ```
 MIESC/
-├── src/                    # Main source code
-│   ├── adapters/          # Tool adapters
-│   ├── core/              # Core framework
-│   ├── ml/                # Machine learning components
-│   └── mcp/               # MCP protocol implementation
-├── tests/                  # Test suite
-│   ├── unit/              # Unit tests
-│   ├── integration/       # Integration tests
-│   └── fixtures/          # Test data
-├── docs/                   # Documentation
-├── examples/               # Example scripts
-└── contracts/              # Test contracts
+├── miesc/                   # The whole package (installed via pip)
+│   ├── cli/                # Command-line interface (Click) + commands/
+│   ├── api/                # Python API + local REST API
+│   ├── core/               # Core abstractions and framework
+│   ├── adapters/           # Tool adapters (Slither, Mythril, Echidna, …)
+│   ├── agents/             # Analysis agents
+│   ├── llm/                # LLM integration, RAG, ensemble
+│   ├── ml/                 # ML pipeline (FP filter, embeddings, call graph)
+│   └── mcp_core/           # MCP protocol implementation
+├── tests/                   # Test suite (flat, test_*.py per module + fixtures/)
+├── docs/                    # Documentation
+├── examples/                # Example scripts
+└── contracts/               # Test contracts
 ```
 
 ---
@@ -150,16 +154,16 @@ We follow [PEP 8](https://peps.python.org/pep-0008/) with these additions:
 
 ```bash
 # Format code
-black src/ tests/
+black miesc/ tests/
 
 # Sort imports
-isort src/ tests/
+isort miesc/ tests/
 
 # Lint code
-ruff check src/ tests/
+ruff check miesc/ tests/
 
 # Type check
-mypy src/
+mypy miesc/
 ```
 
 ### Example Code Style
@@ -324,16 +328,16 @@ For detailed instructions, see [Mutation Testing Guide](docs/guides/MUTATION_TES
 3. **Run checks locally**
    ```bash
    # Format code
-   black src/ tests/
+   black miesc/ tests/
 
    # Run linter
-   ruff check src/ tests/
+   ruff check miesc/ tests/
 
    # Run tests
    pytest tests/
 
    # Check types
-   mypy src/
+   mypy miesc/
    ```
 
 4. **Commit with clear messages**

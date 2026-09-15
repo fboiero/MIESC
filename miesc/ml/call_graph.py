@@ -62,6 +62,7 @@ class FunctionNode:
     name: str
     visibility: Visibility
     mutability: Mutability = Mutability.NONPAYABLE
+    contract: str = ""
     modifiers: List[str] = field(default_factory=list)
     parameters: List[str] = field(default_factory=list)
     returns: List[str] = field(default_factory=list)
@@ -218,10 +219,19 @@ class CallGraph:
         self.edges: List[CallEdge] = []
         self._adjacency: Dict[str, List[str]] = defaultdict(list)
         self._reverse_adjacency: Dict[str, List[str]] = defaultdict(list)
+        # Multi-contract-safe indices (a single file can declare several
+        # contracts with same-named functions — `nodes` above is flat and
+        # collides on that; these never do).
+        self.contracts: List[str] = []
+        self.inheritance: Dict[str, List[str]] = {}
+        self.nodes_by_contract: Dict[str, Dict[str, FunctionNode]] = {}
+        self.contract_line_ranges: Dict[str, Tuple[int, int]] = {}
 
     def add_function(self, func: FunctionNode) -> None:
         """Add a function node to the graph."""
         self.nodes[func.name] = func
+        if func.contract:
+            self.nodes_by_contract.setdefault(func.contract, {})[func.name] = func
 
     def add_edge(self, edge: CallEdge) -> None:
         """Add a call edge to the graph."""
@@ -452,11 +462,21 @@ class CallGraphBuilder:
     """
 
     # Regex patterns for source code parsing
+    # MEJORAS2.md backlog (Cross-Contract Reasoning vs. real protocols): the
+    # Modifiers group used to be `(?:\w+\s*)*?` — bare words only. Any custom
+    # modifier taking arguments (`epochHasEnded(id)`, `marketExists(id)` —
+    # common in real Solidity, e.g. Y2K Finance's Vault.sol) leaves an
+    # unconsumed "(" the group can't cross, and the regex engine catastrophically
+    # backtracks trying every possible split with the surrounding optional
+    # groups before giving up: real, reproducible hang (confirmed >120s on a
+    # 452-line file) that no synthetic fixture ever exercised (they only ever
+    # used bare-word modifiers like `nonReentrant`). Now consumes an optional
+    # single-level `(...)` argument list as part of the same token.
     FUNCTION_PATTERN = re.compile(
         r"function\s+(\w+)\s*\(([^)]*)\)\s*"
         r"((?:public|external|internal|private)\s*)?"
         r"((?:view|pure|payable)\s*)?"
-        r"((?:\w+\s*)*?)"  # Modifiers
+        r"((?:\w+(?:\([^()]*\))?\s*)*?)"  # Modifiers, optionally with args
         r"(?:returns\s*\([^)]*\))?\s*\{",
         re.MULTILINE,
     )
@@ -473,23 +493,43 @@ class CallGraphBuilder:
         """Initialize the call graph builder."""
         pass
 
-    def build_from_source(
+    # `contract X is Y, Z(...) {` — same pattern proven in
+    # frontier_llm_adapter.py::_preprocess_codebase for contract-hierarchy extraction.
+    CONTRACT_PATTERN = re.compile(r"contract\s+(\w+)(?:\s+is\s+([^{]+))?\s*\{")
+
+    def _find_contract_blocks(self, source_code: str) -> List[Tuple[str, List[str], int, int]]:
+        """Find (name, base_names, block_start, block_end) for each `contract` declaration."""
+        blocks = []
+        for match in self.CONTRACT_PATTERN.finditer(source_code):
+            name = match.group(1)
+            bases_str = match.group(2) or ""
+            bases = [b.strip().split("(")[0].strip() for b in bases_str.split(",") if b.strip()]
+
+            brace_start = match.end() - 1  # position of the opening '{'
+            depth = 0
+            end = len(source_code)
+            for i in range(brace_start, len(source_code)):
+                if source_code[i] == "{":
+                    depth += 1
+                elif source_code[i] == "}":
+                    depth -= 1
+                    if depth == 0:
+                        end = i + 1
+                        break
+            blocks.append((name, bases, match.start(), end))
+        return blocks
+
+    def _extract_functions(
         self,
+        block_text: str,
         source_code: str,
-        contract_name: str = "Contract",
-    ) -> CallGraph:
-        """
-        Build call graph from Solidity source code.
-
-        Note: This is a simplified parser. For accurate results,
-        use build_from_slither() with Slither's JSON output.
-        """
-        graph = CallGraph(contract_name)
-
-        # Extract functions
-        for match in self.FUNCTION_PATTERN.finditer(source_code):
+        offset: int,
+        graph: CallGraph,
+        contract: str,
+    ) -> None:
+        """Extract functions from `block_text` (a slice of `source_code` starting at `offset`)."""
+        for match in self.FUNCTION_PATTERN.finditer(block_text):
             func_name = match.group(1)
-            match.group(2)
             visibility_str = (match.group(3) or "public").strip()
             mutability_str = (match.group(4) or "").strip()
             modifiers_str = match.group(5) or ""
@@ -523,13 +563,43 @@ class CallGraphBuilder:
                 name=func_name,
                 visibility=visibility,
                 mutability=mutability,
+                contract=contract,
                 modifiers=modifiers,
                 has_reentrancy_guard=has_reentrancy_guard,
                 has_access_control=has_access_control,
-                start_line=source_code[: match.start()].count("\n") + 1,
+                start_line=source_code[: offset + match.start()].count("\n") + 1,
             )
 
             graph.add_function(func)
+
+    def build_from_source(
+        self,
+        source_code: str,
+        contract_name: str = "Contract",
+    ) -> CallGraph:
+        """
+        Build call graph from Solidity source code.
+
+        Note: This is a simplified parser. For accurate results,
+        use build_from_slither() with Slither's JSON output.
+        """
+        graph = CallGraph(contract_name)
+        blocks = self._find_contract_blocks(source_code)
+
+        if not blocks:
+            # No `contract { }` found (e.g. a snippet/interface-only file) —
+            # fall back to the old whole-file behavior.
+            graph.contracts = [contract_name]
+            self._extract_functions(source_code, source_code, 0, graph, contract_name)
+        else:
+            graph.contracts = [name for name, _, _, _ in blocks]
+            for name, bases, start, end in blocks:
+                graph.inheritance[name] = bases
+                graph.contract_line_ranges[name] = (
+                    source_code[:start].count("\n") + 1,
+                    source_code[:end].count("\n") + 1,
+                )
+                self._extract_functions(source_code[start:end], source_code, start, graph, name)
 
         # Extract calls (simplified)
         self._extract_calls_from_source(source_code, graph)

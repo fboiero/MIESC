@@ -103,6 +103,12 @@ llm = [
     "anthropic>=0.18.0",
     "httpx>=0.25.0",
 ]
+# MEJORAS2.md #5b: AuditorTrainedFPClassifier.train() already told users to
+# `pip install miesc[ml]` (fp_ml_classifier.py error message) but this extra
+# never existed.
+ml = [
+    "scikit-learn>=1.3.0",
+]
 # RAG with embeddings and vector database
 rag = [
     "chromadb>=0.4.0",
@@ -468,6 +474,7 @@ pytest_add_cli_args_test_selection = [
     "tests/test_baseline.py",
     "tests/test_code_actions.py",
     "tests/test_unified_report.py",
+    "tests/test_counterexample_parse.py",
 ]
 pytest_add_cli_args = ["--no-cov", "-p", "no:cacheprovider"]
 timeout_multiplier = 2.0

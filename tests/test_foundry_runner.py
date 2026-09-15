@@ -964,6 +964,28 @@ class TestParseOutput:
         assert len(passed) == 2
         assert len(failed) == 1
 
+    def test_parse_current_forge_json_with_counterexample(self, runner):
+        """Current Forge nests test_results below each contract."""
+        tests = runner._parse_test_results(
+            {
+                "test/Vault.t.sol:VaultInvariantTest": {
+                    "test_results": {
+                        "invariant_delay()": {
+                            "status": "Failure",
+                            "reason": "panic: assertion failed",
+                            "counterexample": {"Sequence": [2, []]},
+                            "kind": {"Invariant": {"runs": 1, "calls": 2}},
+                        }
+                    }
+                }
+            }
+        )
+
+        assert len(tests) == 1
+        assert tests[0].status == TestStatus.FAILED
+        assert tests[0].error_message == "panic: assertion failed"
+        assert tests[0].counterexample == {"Sequence": [2, []]}
+
     def test_parse_flat_json_test_result(self, runner):
         """Test parsing a single flat JSON test result."""
         tests = runner._parse_test_results(

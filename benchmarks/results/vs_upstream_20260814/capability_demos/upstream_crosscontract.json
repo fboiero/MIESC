@@ -1,0 +1,307 @@
+{
+  "version": "6.0.0",
+  "timestamp": "2026-08-14T17:12:54.971649",
+  "execution_time": 3.668026,
+  "profile": "quick",
+  "path": "/tmp/claude-1000/-home-alva-Proyectos-MIESC/d843e3d8-c19d-4ff0-aee7-9e56ec0b157f/scratchpad/cross_contract_fixture",
+  "contracts_analyzed": 3,
+  "contracts_failed": 0,
+  "aggregated_summary": {
+    "CRITICAL": 0,
+    "HIGH": 0,
+    "MEDIUM": 3,
+    "LOW": 0,
+    "INFO": 3
+  },
+  "total_findings": 6,
+  "contracts": [
+    {
+      "contract": "/tmp/claude-1000/-home-alva-Proyectos-MIESC/d843e3d8-c19d-4ff0-aee7-9e56ec0b157f/scratchpad/cross_contract_fixture/Derived.sol",
+      "results": [
+        {
+          "tool": "slither",
+          "contract": "/tmp/claude-1000/-home-alva-Proyectos-MIESC/d843e3d8-c19d-4ff0-aee7-9e56ec0b157f/scratchpad/cross_contract_fixture/Derived.sol",
+          "status": "success",
+          "findings": [
+            {
+              "id": "slither-locked-ether-0",
+              "type": "locked-ether",
+              "severity": "Medium",
+              "confidence": 0.9,
+              "location": {
+                "file": "../cross_contract_fixture/Base.sol",
+                "line": 3,
+                "function": "Base"
+              },
+              "message": "Contract locking ether found:",
+              "description": "Contract locking ether found:\n\tContract [Base](../cross_contract_fixture/Base.sol#L3-L8) has payable functions:\n\t - [Base.deposit()](../cross_contract_fixture/Base.sol#L5-L7)\n\tBut does not have a function to withdraw the ether\n",
+              "recommendation": "Provide a withdrawal function or ensure contract is payable",
+              "swc_id": "SWC-132",
+              "cwe_id": "CWE-400",
+              "owasp_category": null,
+              "_slither_detector": "locked-ether",
+              "_slither_impact": "Medium",
+              "_slither_confidence": "High"
+            },
+            {
+              "id": "slither-solc-version-1",
+              "type": "solc-version",
+              "severity": "Info",
+              "confidence": 0.9,
+              "location": {
+                "file": "../cross_contract_fixture/Base.sol",
+                "line": 1,
+                "function": "^0.8.0"
+              },
+              "message": "Version constraint ^0.8.0 contains known severe issues (https://solidity.readthedocs.io/en/latest/bugs.html)",
+              "description": "Version constraint ^0.8.0 contains known severe issues (https://solidity.readthedocs.io/en/latest/bugs.html)\n\t- FullInlinerNonExpressionSplitArgumentEvaluationOrder\n\t- MissingSideEffectsOnSelectorAccess\n\t- AbiReencodingHeadOverflowWithStaticArrayCleanup\n\t- DirtyBytesArrayToStorage\n\t- DataLocationChangeInInternalOverride\n\t- NestedCalldataArrayAbiReencodingSizeValidation\n\t- SignedImmutables\n\t- ABIDecodeTwoDimensionalArrayMemory\n\t- KeccakCaching.\nIt is used by:\n\t- [^0.8.0](../cross_contract_fixture/Base.sol#L1)\n",
+              "recommendation": "Review and fix the vulnerability",
+              "swc_id": null,
+              "cwe_id": null,
+              "owasp_category": null,
+              "_slither_detector": "solc-version",
+              "_slither_impact": "Informational",
+              "_slither_confidence": "High"
+            }
+          ],
+          "execution_time": 0.9209411144256592,
+          "timestamp": "2026-08-14T17:12:53.234778",
+          "metadata": {
+            "contract_analyzed": "/tmp/claude-1000/-home-alva-Proyectos-MIESC/d843e3d8-c19d-4ff0-aee7-9e56ec0b157f/scratchpad/cross_contract_fixture/Derived.sol",
+            "output_file": "/tmp/slither_output.json",
+            "raw_findings_count": 2,
+            "normalized_findings_count": 2,
+            "slither_version": true,
+            "excluded_detectors": [],
+            "analysis_incomplete": false,
+            "incomplete_functions": []
+          },
+          "error": null
+        },
+        {
+          "tool": "aderyn",
+          "contract": "/tmp/claude-1000/-home-alva-Proyectos-MIESC/d843e3d8-c19d-4ff0-aee7-9e56ec0b157f/scratchpad/cross_contract_fixture/Derived.sol",
+          "status": "error",
+          "findings": [],
+          "execution_time": 0.01334071159362793,
+          "timestamp": "2026-08-14T17:12:53.251310",
+          "metadata": {
+            "exit_code": 1,
+            "stderr": "Compilation Error: \u001b[1;31mError (6275)\u001b[0m\u001b[1;37m: Source \"Base.sol\" not found: File not found. Searched the following locations: \"\".\u001b[0m\nParserError: Source \"Base.sol\" not found: File not found. Searched the following locations: \"\".\n --> Derived.sol:2:1:\n\u001b[34m  |\u001b[0m\n\u001b[34m2 |\u001b[0m import \"./Base.sol\";\n  | ^^^^^^^^^^^^^^^^^^^^\n\n"
+          },
+          "error": "Aderyn analysis failed (exit code 1)"
+        },
+        {
+          "tool": "solhint",
+          "contract": "/tmp/claude-1000/-home-alva-Proyectos-MIESC/d843e3d8-c19d-4ff0-aee7-9e56ec0b157f/scratchpad/cross_contract_fixture/Derived.sol",
+          "status": "success",
+          "findings": [],
+          "execution_time": 1.03,
+          "timestamp": "2026-08-14T17:12:54.618608",
+          "metadata": {},
+          "error": null
+        }
+      ],
+      "summary": {
+        "CRITICAL": 0,
+        "HIGH": 0,
+        "MEDIUM": 1,
+        "LOW": 0,
+        "INFO": 1
+      },
+      "total_findings": 2
+    },
+    {
+      "contract": "/tmp/claude-1000/-home-alva-Proyectos-MIESC/d843e3d8-c19d-4ff0-aee7-9e56ec0b157f/scratchpad/cross_contract_fixture/Router.sol",
+      "results": [
+        {
+          "tool": "slither",
+          "contract": "/tmp/claude-1000/-home-alva-Proyectos-MIESC/d843e3d8-c19d-4ff0-aee7-9e56ec0b157f/scratchpad/cross_contract_fixture/Router.sol",
+          "status": "success",
+          "findings": [
+            {
+              "id": "slither-locked-ether-0",
+              "type": "locked-ether",
+              "severity": "Medium",
+              "confidence": 0.9,
+              "location": {
+                "file": "../cross_contract_fixture/Base.sol",
+                "line": 3,
+                "function": "Base"
+              },
+              "message": "Contract locking ether found:",
+              "description": "Contract locking ether found:\n\tContract [Base](../cross_contract_fixture/Base.sol#L3-L8) has payable functions:\n\t - [Base.deposit()](../cross_contract_fixture/Base.sol#L5-L7)\n\tBut does not have a function to withdraw the ether\n",
+              "recommendation": "Provide a withdrawal function or ensure contract is payable",
+              "swc_id": "SWC-132",
+              "cwe_id": "CWE-400",
+              "owasp_category": null,
+              "_slither_detector": "locked-ether",
+              "_slither_impact": "Medium",
+              "_slither_confidence": "High"
+            },
+            {
+              "id": "slither-solc-version-1",
+              "type": "solc-version",
+              "severity": "Info",
+              "confidence": 0.9,
+              "location": {
+                "file": "../cross_contract_fixture/Base.sol",
+                "line": 1,
+                "function": "^0.8.0"
+              },
+              "message": "Version constraint ^0.8.0 contains known severe issues (https://solidity.readthedocs.io/en/latest/bugs.html)",
+              "description": "Version constraint ^0.8.0 contains known severe issues (https://solidity.readthedocs.io/en/latest/bugs.html)\n\t- FullInlinerNonExpressionSplitArgumentEvaluationOrder\n\t- MissingSideEffectsOnSelectorAccess\n\t- AbiReencodingHeadOverflowWithStaticArrayCleanup\n\t- DirtyBytesArrayToStorage\n\t- DataLocationChangeInInternalOverride\n\t- NestedCalldataArrayAbiReencodingSizeValidation\n\t- SignedImmutables\n\t- ABIDecodeTwoDimensionalArrayMemory\n\t- KeccakCaching.\nIt is used by:\n\t- [^0.8.0](../cross_contract_fixture/Base.sol#L1)\n",
+              "recommendation": "Review and fix the vulnerability",
+              "swc_id": null,
+              "cwe_id": null,
+              "owasp_category": null,
+              "_slither_detector": "solc-version",
+              "_slither_impact": "Informational",
+              "_slither_confidence": "High"
+            }
+          ],
+          "execution_time": 0.9515125751495361,
+          "timestamp": "2026-08-14T17:12:53.265819",
+          "metadata": {
+            "contract_analyzed": "/tmp/claude-1000/-home-alva-Proyectos-MIESC/d843e3d8-c19d-4ff0-aee7-9e56ec0b157f/scratchpad/cross_contract_fixture/Router.sol",
+            "output_file": "/tmp/slither_output.json",
+            "raw_findings_count": 2,
+            "normalized_findings_count": 2,
+            "slither_version": true,
+            "excluded_detectors": [],
+            "analysis_incomplete": false,
+            "incomplete_functions": []
+          },
+          "error": null
+        },
+        {
+          "tool": "aderyn",
+          "contract": "/tmp/claude-1000/-home-alva-Proyectos-MIESC/d843e3d8-c19d-4ff0-aee7-9e56ec0b157f/scratchpad/cross_contract_fixture/Router.sol",
+          "status": "error",
+          "findings": [],
+          "execution_time": 0.013673067092895508,
+          "timestamp": "2026-08-14T17:12:53.282211",
+          "metadata": {
+            "exit_code": 1,
+            "stderr": "Compilation Error: \u001b[1;31mError (6275)\u001b[0m\u001b[1;37m: Source \"Derived.sol\" not found: File not found. Searched the following locations: \"\".\u001b[0m\nParserError: Source \"Derived.sol\" not found: File not found. Searched the following locations: \"\".\n --> Router.sol:2:1:\n\u001b[34m  |\u001b[0m\n\u001b[34m2 |\u001b[0m import \"./Derived.sol\";\n  | ^^^^^^^^^^^^^^^^^^^^^^^\n\n"
+          },
+          "error": "Aderyn analysis failed (exit code 1)"
+        },
+        {
+          "tool": "solhint",
+          "contract": "/tmp/claude-1000/-home-alva-Proyectos-MIESC/d843e3d8-c19d-4ff0-aee7-9e56ec0b157f/scratchpad/cross_contract_fixture/Router.sol",
+          "status": "success",
+          "findings": [],
+          "execution_time": 1.05,
+          "timestamp": "2026-08-14T17:12:54.673248",
+          "metadata": {},
+          "error": null
+        }
+      ],
+      "summary": {
+        "CRITICAL": 0,
+        "HIGH": 0,
+        "MEDIUM": 1,
+        "LOW": 0,
+        "INFO": 1
+      },
+      "total_findings": 2
+    },
+    {
+      "contract": "/tmp/claude-1000/-home-alva-Proyectos-MIESC/d843e3d8-c19d-4ff0-aee7-9e56ec0b157f/scratchpad/cross_contract_fixture/Base.sol",
+      "results": [
+        {
+          "tool": "slither",
+          "contract": "/tmp/claude-1000/-home-alva-Proyectos-MIESC/d843e3d8-c19d-4ff0-aee7-9e56ec0b157f/scratchpad/cross_contract_fixture/Base.sol",
+          "status": "success",
+          "findings": [
+            {
+              "id": "slither-locked-ether-0",
+              "type": "locked-ether",
+              "severity": "Medium",
+              "confidence": 0.9,
+              "location": {
+                "file": "../cross_contract_fixture/Base.sol",
+                "line": 3,
+                "function": "Base"
+              },
+              "message": "Contract locking ether found:",
+              "description": "Contract locking ether found:\n\tContract [Base](../cross_contract_fixture/Base.sol#L3-L8) has payable functions:\n\t - [Base.deposit()](../cross_contract_fixture/Base.sol#L5-L7)\n\tBut does not have a function to withdraw the ether\n",
+              "recommendation": "Provide a withdrawal function or ensure contract is payable",
+              "swc_id": "SWC-132",
+              "cwe_id": "CWE-400",
+              "owasp_category": null,
+              "_slither_detector": "locked-ether",
+              "_slither_impact": "Medium",
+              "_slither_confidence": "High"
+            },
+            {
+              "id": "slither-solc-version-1",
+              "type": "solc-version",
+              "severity": "Info",
+              "confidence": 0.9,
+              "location": {
+                "file": "../cross_contract_fixture/Base.sol",
+                "line": 1,
+                "function": "^0.8.0"
+              },
+              "message": "Version constraint ^0.8.0 contains known severe issues (https://solidity.readthedocs.io/en/latest/bugs.html)",
+              "description": "Version constraint ^0.8.0 contains known severe issues (https://solidity.readthedocs.io/en/latest/bugs.html)\n\t- FullInlinerNonExpressionSplitArgumentEvaluationOrder\n\t- MissingSideEffectsOnSelectorAccess\n\t- AbiReencodingHeadOverflowWithStaticArrayCleanup\n\t- DirtyBytesArrayToStorage\n\t- DataLocationChangeInInternalOverride\n\t- NestedCalldataArrayAbiReencodingSizeValidation\n\t- SignedImmutables\n\t- ABIDecodeTwoDimensionalArrayMemory\n\t- KeccakCaching.\nIt is used by:\n\t- [^0.8.0](../cross_contract_fixture/Base.sol#L1)\n",
+              "recommendation": "Review and fix the vulnerability",
+              "swc_id": null,
+              "cwe_id": null,
+              "owasp_category": null,
+              "_slither_detector": "solc-version",
+              "_slither_impact": "Informational",
+              "_slither_confidence": "High"
+            }
+          ],
+          "execution_time": 0.9379627704620361,
+          "timestamp": "2026-08-14T17:12:53.204718",
+          "metadata": {
+            "contract_analyzed": "/tmp/claude-1000/-home-alva-Proyectos-MIESC/d843e3d8-c19d-4ff0-aee7-9e56ec0b157f/scratchpad/cross_contract_fixture/Base.sol",
+            "output_file": "/tmp/slither_output.json",
+            "raw_findings_count": 2,
+            "normalized_findings_count": 2,
+            "slither_version": true,
+            "excluded_detectors": [],
+            "analysis_incomplete": false,
+            "incomplete_functions": []
+          },
+          "error": null
+        },
+        {
+          "tool": "aderyn",
+          "contract": "/tmp/claude-1000/-home-alva-Proyectos-MIESC/d843e3d8-c19d-4ff0-aee7-9e56ec0b157f/scratchpad/cross_contract_fixture/Base.sol",
+          "status": "error",
+          "findings": [],
+          "execution_time": 0.35578107833862305,
+          "timestamp": "2026-08-14T17:12:53.564583",
+          "metadata": {
+            "expected_output": "/tmp/aderyn_output.json"
+          },
+          "error": "Output file not found: /tmp/aderyn_output.json"
+        },
+        {
+          "tool": "solhint",
+          "contract": "/tmp/claude-1000/-home-alva-Proyectos-MIESC/d843e3d8-c19d-4ff0-aee7-9e56ec0b157f/scratchpad/cross_contract_fixture/Base.sol",
+          "status": "success",
+          "findings": [],
+          "execution_time": 1.05,
+          "timestamp": "2026-08-14T17:12:54.966560",
+          "metadata": {},
+          "error": null
+        }
+      ],
+      "summary": {
+        "CRITICAL": 0,
+        "HIGH": 0,
+        "MEDIUM": 1,
+        "LOW": 0,
+        "INFO": 1
+      },
+      "total_findings": 2
+    }
+  ],
+  "failed": []
+}

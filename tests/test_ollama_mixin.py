@@ -49,6 +49,20 @@ def test_success_does_not_flag_timeout():
     assert host._timed_out is False
 
 
+def test_response_format_is_sent_to_ollama():
+    host = _Host()
+    schema = {"type": "object", "properties": {"findings": {"type": "array"}}}
+    with patch("urllib.request.urlopen", return_value=_ok_response()) as urlopen:
+        host._ollama_generate(
+            "p",
+            url="http://x/api/generate",
+            model="m",
+            timeout=10,
+            response_format=schema,
+        )
+    assert json.loads(urlopen.call_args.args[0].data)["format"] == schema
+
+
 def test_recovered_retry_does_not_flag_timeout():
     host = _Host()
     # First attempt times out, second succeeds -> NOT flagged as timed out.

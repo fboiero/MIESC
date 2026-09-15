@@ -133,6 +133,13 @@ subsequent runs can be accelerated by caching those repositories.
 
 ## SmartBugs
 
+Antes de reproducir una corrida de SmartBugs para reportar un numero
+canonico, seguir el protocolo de maquina descargada en
+[`docs/guides/BENCHMARK_REPRODUCIBILITY.md`](../docs/guides/BENCHMARK_REPRODUCIBILITY.md):
+`aderyn` y `slither` crashean bajo carga de CPU, lo que baja el recall medido
+sin que sea un cambio real en los detectores (0.993 limpio vs 0.972 bajo
+carga concurrente, ver `paper1_vnext_evidence_20260621.md` §5).
+
 El artefacto local completo mas reciente es:
 
 ```text

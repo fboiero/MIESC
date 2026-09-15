@@ -327,6 +327,7 @@ class TestTargetedScan:
         tools = agent._select_tools(recon)
         assert "slither" in tools
         assert "aderyn" in tools
+        assert "smartllm" in tools
         assert "mythril" in tools  # has_external_calls + has_selfdestruct
 
     def test_tool_selection_defi(self, agent):
@@ -344,6 +345,11 @@ class TestTargetedScan:
         tools = agent._select_tools(recon)
         assert "defi" in tools
         assert "mev_detector" in tools
+
+    def test_tool_selection_foundry_project(self, agent):
+        recon = ReconResult(risk_profile={"primary": "general"}, framework="foundry")
+
+        assert "foundry" in agent._select_tools(recon)
 
     def test_tool_selection_proxy(self, agent):
         recon = ReconResult(
@@ -1139,7 +1145,7 @@ class TestTargetedTaintForFunction:
 class TestFindAttackPaths:
     def test_success(self, agent):
         mock_cg = MagicMock()
-        mock_cg.paths_to_sink.return_value = [["entry", "mid", "withdraw"]]
+        mock_cg.paths_to_sink.return_value = [MagicMock(nodes=["entry", "mid", "withdraw"])]
         paths = agent._find_attack_paths(mock_cg, "withdraw")
         assert len(paths) == 1
         assert "withdraw" in paths[0]
@@ -1162,14 +1168,29 @@ class TestFindAttackPaths:
     def test_multiple_paths_truncated(self, agent):
         mock_cg = MagicMock()
         mock_cg.paths_to_sink.return_value = [
-            ["a", "b", "c", "d", "e", "f"],
-            ["x", "y"],
-            ["p", "q", "r"],
-            ["should", "be", "skipped"],
+            MagicMock(nodes=["a", "b", "c", "d", "e", "f"]),
+            MagicMock(nodes=["x", "y"]),
+            MagicMock(nodes=["p", "q", "r"]),
+            MagicMock(nodes=["should", "be", "skipped"]),
         ]
         paths = agent._find_attack_paths(mock_cg, "target")
         assert len(paths) == 3  # Max 3 paths
         assert len(paths[0].split(" -> ")) <= 5  # Max 5 nodes per path
+
+    def test_reachable_sink_regression_real_call_graph(self, agent):
+        # Regression guard for the chain[:2]-style bug (CallPath isn't
+        # subscriptable) — exercise the real CallGraph, not a mock, so a
+        # future p[:5] slip would be caught here too.
+        src = (
+            "pragma solidity ^0.8.0;\n"
+            "contract C {\n"
+            "    function withdraw() external { _unsafe(); }\n"
+            '    function _unsafe() internal { msg.sender.call{value: 1}(""); }\n'
+            "}\n"
+        )
+        cg, _, _ = agent._build_call_graph(src)
+        paths = agent._find_attack_paths(cg, "withdraw")
+        assert paths != []
 
 
 # ---------------------------------------------------------------------------
@@ -1222,7 +1243,7 @@ class TestCorrelateFindings:
     def test_success(self, agent):
         mock_mod = MagicMock()
         mock_mod.correlate_findings.return_value = {
-            "findings": [{"title": "correlated", "severity": "high"}]
+            "filtered_findings": [{"title": "correlated", "severity": "high"}]
         }
         with patch.dict("sys.modules", {"miesc.ml.correlation_engine": mock_mod}):
             result = agent._correlate_findings([{"title": "raw"}])
@@ -1241,6 +1262,68 @@ class TestCorrelateFindings:
         with patch.dict("sys.modules", {"miesc.ml.correlation_engine": None}):
             result = agent._correlate_findings(findings)
             assert result == findings
+
+
+class TestCorrelateAndChainsRealCorrelationEngine:
+    """Regression guard against the real bug this session: both
+    _correlate_findings and _detect_exploit_chains used to pass a flat list
+    where correlate_findings()/ExploitChainAnalyzer expected {tool: [findings]},
+    raising AttributeError swallowed by a bare except — real findings never
+    got correlated and exploit_chains was always []. Uses the real
+    miesc.ml.correlation_engine module (no mocking) so a regression here
+    would actually fail, unlike the mocked tests above which encode the
+    fixed shape.
+    """
+
+    def test_correlate_findings_actually_deduplicates(self, agent):
+        findings = [
+            {
+                "id": "f1",
+                "tool": "slither",
+                "type": "reentrancy",
+                "severity": "high",
+                "location": {"file": "C.sol", "line": 10, "function": "withdraw"},
+                "message": "reentrancy in withdraw",
+                "confidence": 0.8,
+            },
+            {
+                "id": "f2",
+                "tool": "aderyn",
+                "type": "reentrancy",
+                "severity": "high",
+                "location": {"file": "C.sol", "line": 10, "function": "withdraw"},
+                "message": "reentrancy in withdraw",
+                "confidence": 0.75,
+            },
+        ]
+        result = agent._correlate_findings(findings)
+        # Two tools reporting the same bug at the same location get merged into one.
+        assert len(result) == 1
+
+    def test_detect_exploit_chains_finds_known_pattern(self, agent):
+        findings = [
+            {
+                "id": "f1",
+                "tool": "slither",
+                "type": "reentrancy",
+                "severity": "high",
+                "location": {"file": "C.sol", "line": 10, "function": "withdraw"},
+                "message": "reentrancy in withdraw",
+                "confidence": 0.8,
+            },
+            {
+                "id": "f2",
+                "tool": "mythril",
+                "type": "unchecked-call",
+                "severity": "medium",
+                "location": {"file": "C.sol", "line": 40, "function": "transferOut"},
+                "message": "unchecked low level call",
+                "confidence": 0.7,
+            },
+        ]
+        chains = agent._detect_exploit_chains(findings)
+        assert len(chains) == 1
+        assert "drain" in chains[0]["name"].lower() or "reentrancy" in chains[0]["name"].lower()
 
 
 # ---------------------------------------------------------------------------
@@ -2062,3 +2145,182 @@ class TestPhase3FindingDrivenIntegration:
         assert enriched["investigation"]["llm_confirmed"] is True
         assert enriched["confidence"] == 0.90  # 0.70 + 0.20
         assert enriched.get("needs_manual_review") is not True
+
+
+# ---------------------------------------------------------------------------
+# Directory support (MEJORAS3.md item 11) - cross-file protocol reasoning
+# ---------------------------------------------------------------------------
+
+VAULT_SOL = """// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+contract Vault {
+    mapping(address => uint256) public balances;
+
+    function withdraw(uint256 amount) external {
+        (bool success, ) = msg.sender.call{value: amount}("");
+        require(success);
+        balances[msg.sender] -= amount;
+    }
+}
+"""
+
+CONTROLLER_SOL = """// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+import "./Vault.sol";
+
+contract Controller {
+    function callWithdraw(address vaultAddr, uint256 amount) external {
+        Vault vault = Vault(vaultAddr);
+        vault.withdraw(amount);
+    }
+}
+"""
+
+
+@pytest.fixture
+def tmp_protocol_dir(tmp_path):
+    """Two files: Controller calls into Vault (protocol_graph.py's own
+    TYPED_LOCAL_ASSIGNMENT_PATTERN/LOCAL_VAR_CALL_PATTERN shape)."""
+    (tmp_path / "Vault.sol").write_text(VAULT_SOL)
+    (tmp_path / "Controller.sol").write_text(CONTROLLER_SOL)
+    return tmp_path
+
+
+class TestDirectoryAnalysis:
+    """analyze() on a directory used to crash with IsADirectoryError."""
+
+    @patch("miesc.mcp_core.context_bus.get_context_bus")
+    @patch("miesc.agents.deep_audit_agent.DeepAuditAgent._get_ml_orchestrator")
+    def test_directory_no_longer_crashes(self, mock_orch, mock_bus, tmp_protocol_dir):
+        mock_bus.return_value = MagicMock()
+        mock_ml = MagicMock()
+        mock_ml.analyze.return_value = MagicMock(
+            raw_findings=[], ml_filtered_findings=[], tools_success=["slither"]
+        )
+        mock_orch.return_value = mock_ml
+
+        config = DeepAuditConfig(
+            timeout_seconds=60,
+            enable_llm=False,
+            enable_rag=False,
+            enable_taint=False,
+            enable_git_activity=False,
+        )
+        agent = DeepAuditAgent(config=config)
+        agent.bus = MagicMock()
+
+        result = agent.analyze(str(tmp_protocol_dir))
+
+        assert result["contract"] == str(tmp_protocol_dir)
+        assert len(result["files"]) == 2
+        assert set(result["protocol"]["contracts"]) == {"Vault", "Controller"}
+
+    def test_vendor_dirs_excluded_from_discovery(self, tmp_protocol_dir):
+        """Pointing at a project root must not sweep in lib/ (OpenZeppelin,
+        forge-std, ...) or out/ (build artifacts) as if they were the
+        protocol's own source."""
+        (tmp_protocol_dir / "lib" / "forge-std" / "src").mkdir(parents=True)
+        (tmp_protocol_dir / "lib" / "forge-std" / "src" / "Vendored.sol").write_text(
+            "contract Vendored {}"
+        )
+        (tmp_protocol_dir / "out" / "Vault.sol").mkdir(parents=True)
+        (tmp_protocol_dir / "out" / "Vault.sol" / "Vault.json").write_text("{}")
+
+        config = DeepAuditConfig(timeout_seconds=0, enable_llm=False)
+        agent = DeepAuditAgent(config=config)
+        # timeout_seconds=0 stops before running tools - only checking discovery.
+        result = agent.analyze(str(tmp_protocol_dir))
+
+        assert result["metadata"]["files_total"] == 2
+
+    @patch("miesc.mcp_core.context_bus.get_context_bus")
+    @patch("miesc.agents.deep_audit_agent.DeepAuditAgent._get_ml_orchestrator")
+    def test_cross_contract_chain_detected(self, mock_orch, mock_bus, tmp_protocol_dir):
+        """Controller calls Vault, which has a real finding - the merged,
+        directory-level pass (not visible to either file analyzed alone)
+        must surface that exposure."""
+        mock_bus.return_value = MagicMock()
+
+        def fake_analyze(contract_path=None, **kw):
+            if contract_path and "Vault.sol" in contract_path:
+                findings = [
+                    {
+                        "id": "v1",
+                        "title": "Unchecked call result",
+                        "type": "unchecked_call",
+                        "severity": "High",
+                        "description": "Unchecked low-level call return value",
+                        "tool": "slither",
+                        "location": {"file": contract_path, "line": 8},
+                    }
+                ]
+            else:
+                findings = []
+            return MagicMock(
+                raw_findings=findings, ml_filtered_findings=findings, tools_success=["slither"]
+            )
+
+        mock_ml = MagicMock()
+        mock_ml.analyze.side_effect = fake_analyze
+        mock_orch.return_value = mock_ml
+
+        config = DeepAuditConfig(
+            timeout_seconds=60,
+            enable_llm=False,
+            enable_rag=False,
+            enable_taint=False,
+            enable_git_activity=False,
+        )
+        agent = DeepAuditAgent(config=config)
+        agent.bus = MagicMock()
+
+        result = agent.analyze(str(tmp_protocol_dir))
+
+        assert ("Controller", "Vault") in result["protocol"]["call_edges"]
+        chains = result["cross_contract_chains"]
+        assert any(c["contracts"] == ["Controller", "Vault"] for c in chains)
+
+    def test_summary_counts_findings_from_a_file_that_hit_its_own_timeout(self, tmp_protocol_dir):
+        """Regression (found on a real, non-mocked run against y2k-finance):
+        a per-file analyze() that hits its own (shrunk) timeout mid-Phase-2/3
+        returns real findings but never reaches _phase_synthesis, so it has no
+        `summary` key at all. The directory-level summary must still count
+        those findings instead of silently reading them as zero."""
+        timed_out_report = {
+            "contract": "Vault.sol",
+            "findings": [{"id": "v1", "severity": "High"}, {"id": "v2", "severity": "Critical"}],
+            "exploit_chains": [],
+            "metadata": {"timed_out_in": "deep_investigation"},
+            # no "summary" key - matches the real early-return shape.
+        }
+        config = DeepAuditConfig(timeout_seconds=60, enable_llm=False)
+        agent = DeepAuditAgent(config=config)
+
+        with patch.object(DeepAuditAgent, "analyze", return_value=timed_out_report):
+            result = agent._analyze_directory(tmp_protocol_dir)
+
+        assert result["summary"]["HIGH"] == 2
+        assert result["summary"]["CRITICAL"] == 2
+        assert result["summary"]["total"] == 4
+
+    def test_empty_directory_no_crash(self, tmp_path):
+        config = DeepAuditConfig(timeout_seconds=30, enable_llm=False)
+        agent = DeepAuditAgent(config=config)
+        result = agent.analyze(str(tmp_path))
+        assert result["files"] == []
+        assert "error" in result["metadata"]
+
+    def test_directory_timeout_budget_shared_not_multiplied(self, tmp_protocol_dir):
+        """Each file must not get a fresh full timeout - the directory-level
+        budget is checked before each file starts, so an already-exhausted
+        overall timeout stops before the first file instead of running every
+        file to its own full timeout."""
+        config = DeepAuditConfig(timeout_seconds=0, enable_llm=False)
+        agent = DeepAuditAgent(config=config)
+
+        result = agent.analyze(str(tmp_protocol_dir))
+
+        assert result["metadata"]["timed_out"] is True
+        assert len(result["files"]) == 0

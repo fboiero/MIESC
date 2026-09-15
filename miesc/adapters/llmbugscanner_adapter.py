@@ -29,8 +29,9 @@ import subprocess
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple, cast
+from typing import Any, Dict, List, Optional, Set, Tuple
 
+from miesc.adapters._cache_mixin import LLMCacheMixin
 from miesc.core.llm_config import get_ollama_host
 from miesc.core.tool_protocol import (
     ToolAdapter,
@@ -66,11 +67,20 @@ class ModelConfig:
     specialization: str  # What this model is best at
 
 
-# Default ensemble configuration (local Ollama models)
+# Default ensemble configuration (local Ollama models).
+#
+# Timeouts measured empirically (2026-08-15, MEJORAS2.md #5h) against a 7B
+# model over Ollama LAN with a real full-contract prompt: a genuine (not
+# fallback-to-pattern) completion took 132s. The original 90s/90s/60s here
+# predates that measurement and silently forced every run into the
+# fallback-to-empty path on this kind of backend - bumped with margin so the
+# ensemble's own per-model ceiling isn't the reason real reasoning never
+# finishes. Still bounded by whatever a caller passes as `timeout` (see
+# analyze()'s `per_adapter_timeout`), so a fast CI profile is unaffected.
 DEFAULT_ENSEMBLE = [
-    ModelConfig(name="deepseek-coder", weight=0.45, timeout=90, specialization="code_analysis"),
-    ModelConfig(name="codellama", weight=0.35, timeout=90, specialization="code_understanding"),
-    ModelConfig(name="mistral", weight=0.20, timeout=60, specialization="reasoning"),
+    ModelConfig(name="deepseek-coder", weight=0.45, timeout=180, specialization="code_analysis"),
+    ModelConfig(name="codellama", weight=0.35, timeout=180, specialization="code_understanding"),
+    ModelConfig(name="mistral", weight=0.20, timeout=150, specialization="reasoning"),
 ]
 
 # Vulnerability categories for consensus analysis
@@ -130,7 +140,7 @@ VULNERABILITY_CATEGORIES = {
 }
 
 
-class LLMBugScannerAdapter(ToolAdapter):
+class LLMBugScannerAdapter(LLMCacheMixin, ToolAdapter):
     """
     Multi-LLM ensemble adapter for smart contract vulnerability detection.
 
@@ -140,8 +150,7 @@ class LLMBugScannerAdapter(ToolAdapter):
 
     def __init__(self, ensemble: Optional[List[ModelConfig]] = None):
         super().__init__()
-        self._cache_dir = Path.home() / ".miesc" / "llmbugscanner_cache"
-        self._cache_dir.mkdir(parents=True, exist_ok=True)
+        self._init_cache("llmbugscanner")
         self._ensemble = ensemble or DEFAULT_ENSEMBLE
         self._consensus_threshold = 0.35  # Minimum weighted consensus for a finding
         self._max_retries = 1
@@ -235,6 +244,53 @@ class LLMBugScannerAdapter(ToolAdapter):
                                 self._available_models.add(model.name)
                                 self._model_aliases[model.name] = available_model
                                 break
+
+                    if not self._available_models:
+                        # None of deepseek-coder/codellama/mistral are pulled -
+                        # this used to mean CONFIGURATION_ERROR unconditionally,
+                        # silently skipping the only Layer 9 tool that reads the
+                        # contract itself (not a second-opinion reviewer) in any
+                        # environment that pulled a different coding-model
+                        # family (e.g. qwen2.5-coder, already accepted as a
+                        # fallback by every other LLM adapter). Deliberately
+                        # narrower than select_ollama_model's own last-resort
+                        # "just grab whatever's installed" tier: a coding-model
+                        # family name must actually match, so an unrelated pull
+                        # (e.g. plain "llama2") still correctly reports
+                        # CONFIGURATION_ERROR rather than pretending it can
+                        # audit Solidity. Register the one real match under the
+                        # highest-weight role - the ensemble degrades to one
+                        # voter, which _aggregate_with_consensus already
+                        # handles (a lone voter trivially has 100% of the
+                        # available weight). Matched directly against `models`
+                        # (not via select_ollama_model) because that helper's
+                        # own last-resort tier grabs whatever is installed even
+                        # when nothing on the candidate list matches - exactly
+                        # the "llama2 doesn't make this a code-auditing tool"
+                        # case this fallback must still reject.
+                        fallback = ""
+                        for candidate in (
+                            "qwen2.5-coder",
+                            "codellama",
+                            "deepseek-coder",
+                            "codegemma",
+                        ):
+                            for available_model in models:
+                                if candidate in available_model.lower():
+                                    fallback = available_model
+                                    break
+                            if fallback:
+                                break
+                        if fallback:
+                            primary = self._ensemble[0].name
+                            self._available_models.add(primary)
+                            self._model_aliases[primary] = fallback
+                            logger.info(
+                                "LLMBugScanner: no ensemble model pulled, falling back to "
+                                "single installed model '%s' under role '%s'",
+                                fallback,
+                                primary,
+                            )
 
                     if len(self._available_models) >= 1:
                         logger.info(
@@ -806,34 +862,7 @@ Respond with ONLY: VALID or FALSE_POSITIVE"""
             f"{contract_code}{models_str}{aliases_str}http-api-v2".encode()
         ).hexdigest()
 
-    def _get_cached_result(self, cache_key: str) -> Optional[Dict[str, Any]]:
-        """Retrieve cached result if available."""
-        cache_file = self._cache_dir / f"{cache_key}.json"
-
-        if not cache_file.exists():
-            return None
-
-        try:
-            age_seconds = time.time() - cache_file.stat().st_mtime
-            if age_seconds > 86400:  # 24 hours
-                cache_file.unlink()
-                return None
-
-            with open(cache_file, "r") as f:
-                return cast(dict[str, Any] | None, json.load(f))
-        except Exception as e:
-            logger.error(f"Error reading cache: {e}")
-            return None
-
-    def _cache_result(self, cache_key: str, result: Dict[str, Any]) -> None:
-        """Cache analysis result."""
-        cache_file = self._cache_dir / f"{cache_key}.json"
-
-        try:
-            with open(cache_file, "w") as f:
-                json.dump(result, f, indent=2)
-        except Exception as e:
-            logger.error(f"Error writing cache: {e}")
+    # _get_cached_result / _cache_result are provided by LLMCacheMixin.
 
 
 __all__ = ["LLMBugScannerAdapter", "ModelConfig", "DEFAULT_ENSEMBLE"]

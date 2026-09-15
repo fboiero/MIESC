@@ -205,19 +205,29 @@ class ResultAggregator:
     def _normalize_finding(self, tool: str, raw: Dict[str, Any]) -> Optional[Finding]:
         """Normaliza un hallazgo raw a formato estándar."""
         try:
-            # Extraer campos con fallbacks
-            severity = self._normalize_severity(raw.get("severity", raw.get("impact", "medium")))
+            # Extraer campos con fallbacks. Encadenado con `or`, no `.get(k, default)`
+            # anidado: un adapter puede tener la clave presente con valor None/""
+            # (ej. smartllm emite {"type": None, "category": "reentrancy"}), y
+            # `.get(k, default)` solo usa el default cuando la clave falta, no
+            # cuando está en None — eso hacía perder la categoría en silencio.
+            severity = self._normalize_severity(
+                raw.get("severity") or raw.get("impact") or "medium"
+            )
 
             finding_type = (
-                raw.get("type", raw.get("check", raw.get("name", "unknown"))) or "unknown"
+                raw.get("type")
+                or raw.get("category")
+                or raw.get("check")
+                or raw.get("name")
+                or "unknown"
             )
-            message = raw.get("message", raw.get("description", raw.get("title", ""))) or ""
+            message = raw.get("message") or raw.get("description") or raw.get("title") or ""
 
             # Ubicación
-            location = raw.get("location", {})
-            file = location.get("file", raw.get("filename", raw.get("file", "")))
-            line = location.get("line", raw.get("lineno", raw.get("line", 0)))
-            function = location.get("function", raw.get("function", ""))
+            location = raw.get("location") or {}
+            file = location.get("file") or raw.get("filename") or raw.get("file") or ""
+            line = location.get("line") or raw.get("lineno") or raw.get("line") or 0
+            function = location.get("function") or raw.get("function") or ""
 
             # IDs de vulnerabilidad
             swc_id = raw.get("swc_id", raw.get("swc", None))

@@ -16,13 +16,23 @@ from miesc.core.tool_protocol import ToolStatus
 class TestProviderDetection:
     def test_detect_anthropic(self):
         a = FrontierLLMAdapter()
-        with patch.dict("os.environ", {"ANTHROPIC_API_KEY": "x"}, clear=True):
+        with patch.dict(
+            "os.environ", {"MIESC_ALLOW_CLOUD_LLM": "1", "ANTHROPIC_API_KEY": "x"}, clear=True
+        ):
             assert a._detect_provider() == "anthropic"
 
     def test_detect_openai(self):
         a = FrontierLLMAdapter()
-        with patch.dict("os.environ", {"OPENAI_API_KEY": "x"}, clear=True):
+        with patch.dict(
+            "os.environ", {"MIESC_ALLOW_CLOUD_LLM": "1", "OPENAI_API_KEY": "x"}, clear=True
+        ):
             assert a._detect_provider() == "openai"
+
+    def test_detect_anthropic_ignored_without_cloud_opt_in(self):
+        """Item #18: an ambient API key alone must never auto-route to cloud."""
+        a = FrontierLLMAdapter()
+        with patch.dict("os.environ", {"ANTHROPIC_API_KEY": "x"}, clear=True):
+            assert a._detect_provider() is None
 
     def test_detect_none(self):
         a = FrontierLLMAdapter()

@@ -85,12 +85,20 @@ Generated CVL specs can be fed directly to Certora Prover via `certora_adapter.p
 
 ---
 
-## ✅ COMPLETED: DA-GNN Integration (Layer 6)
+## COMPLETED: DA-GNN Integration (Layer 6)
 
-**Status**: ✅ **IMPLEMENTED** - Commit `c7ea116`
+> **Correction (2026-08-12):** the 95.7% figure below is the *cited paper's* result on
+> its own dataset/model, not a measured result of this adapter. The real GNN forward pass
+> (`torch.no_grad(): predictions = model(data)`) is commented out in
+> `src/adapters/dagnn_adapter.py` and was never wired up — every call falls back to
+> `_run_heuristic_prediction()`, a regex/substring pattern matcher. "Status: IMPLEMENTED"
+> below means the adapter/pipeline integration shipped, not that the cited accuracy was
+> achieved. See `MEJORAS.md` item #11 for the fix status.
+
+**Status**: **INTEGRATED (heuristic fallback only, no trained model loaded)** - Commit `c7ea116`
 
 **Paper**: Computer Networks (ScienceDirect, February 2024)
-**Achievement**: 95.7% accuracy on vulnerability detection
+**Paper's reported result** (not MIESC's): 95.7% accuracy on vulnerability detection
 
 ### What It Will Do
 

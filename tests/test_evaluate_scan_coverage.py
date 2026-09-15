@@ -209,17 +209,23 @@ class TestEvaluateContract:
         contract = tmp_path / "Foo.sol"
         contract.write_text(_PRAGMA_SOL)
 
+        # Not "arithmetic": MEJORAS2.md #5a wired FalsePositiveFilter into
+        # this same path, and it has a real, deliberate rule that flags
+        # arithmetic-overflow findings as FP on Solidity 0.8+ (built-in
+        # overflow checks) - which _PRAGMA_SOL's pragma is. Using an
+        # unrelated category keeps this test about intelligence's category
+        # merging, not about the FP filter's Solidity-version rule.
         def fake_enhance(findings, source_code="", file_path=""):
-            return findings + [{"type": "arithmetic", "severity": "HIGH"}]
+            return findings + [{"type": "front_running", "severity": "HIGH"}]
 
         with (
             patch.object(ev, "run_layer", return_value=_layer_result([])),
             patch("miesc.core.intelligence.enhance_findings", side_effect=fake_enhance),
         ):
             res = ev._evaluate_contract(
-                contract, {"arithmetic"}, [1], 10, True, use_intelligence=True
+                contract, {"front_running"}, [1], 10, True, use_intelligence=True
             )
-        assert "arithmetic" in res["match"]["tp"]
+        assert "front_running" in res["match"]["tp"]
         assert "intelligence" in res["layers"]
 
 

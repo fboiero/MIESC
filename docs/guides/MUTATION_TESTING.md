@@ -72,10 +72,12 @@ mutmut run
 # View summary
 mutmut results
 
-# Example output (mutmut 3.x):
-# core/baseline.py: 146/218 killed
-# core/code_actions.py: 130/152 killed
-# formal/unified_report.py: 6/6 killed
+# Illustrative format only -- exact per-module mutant counts shift with the
+# mutmut point release (3.6.0 generated 376 total across the scope, 3.7.0
+# generates 455). See "Current Recorded Score" below for the real number.
+# core/baseline.py: <killed>/<total> killed
+# core/code_actions.py: <killed>/<total> killed
+# formal/unified_report.py: <killed>/<total> killed
 ```
 
 ### Changing the Scope
@@ -176,18 +178,15 @@ mutmut applies various mutation operators:
 
 ### Current Recorded Score
 
-The current scoped run scores **75.0% (282/376 mutants killed)**, which clears
-the 60% gate. Per-module breakdown:
-
-| Module | Score |
-|--------|-------|
-| `miesc/core/baseline.py` | 67.0% |
-| `miesc/core/code_actions.py` | 85.5% |
-| `miesc/formal/unified_report.py` | 100.0% |
+The current scoped run scores **97.8% (443+2 timeout / 455 mutants killed)**, which
+clears the 60% gate with room to spare. The remaining 10 survivors are documented
+equivalent mutants (encoding-name casing, a redundant `./`-strip, a keyword-default
+removal that falls back to the same default, and `difflib.SequenceMatcher(autojunk=...)`,
+which only differs on 200+-line inputs not representative of this codebase's fix hunks).
 
 See [../roadmap/MUTATION_STATUS_20260712.md](../roadmap/MUTATION_STATUS_20260712.md)
-for the full record, including the mutmut 2.x → 3.x toolchain fix that unblocked
-these numbers.
+for the full record, including the mutmut 2.x → 3.x toolchain fix and the 2026-08-13
+hardening pass that raised the score from 70.5% to 97.8%.
 
 ### Surviving Mutants
 

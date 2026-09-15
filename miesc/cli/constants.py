@@ -24,7 +24,7 @@ LAYERS: Dict[int, Dict[str, Any]] = {
     1: {
         "name": "Static Analysis",
         "description": "Pattern-based code analysis",
-        "tools": ["slither", "aderyn", "solhint", "wake", "semgrep", "fouranalyzer"],
+        "tools": ["slither", "aderyn", "solhint", "wake", "semgrep", "fouranalyzer", "vyper"],
     },
     2: {
         "name": "Dynamic Testing",
@@ -44,12 +44,25 @@ LAYERS: Dict[int, Dict[str, Any]] = {
     5: {
         "name": "AI Analysis",
         "description": "LLM-powered vulnerability detection",
-        "tools": ["smartllm", "gptscan", "llmsmartaudit", "gptlens", "llamaaudit", "iaudit"],
+        "tools": [
+            "smartllm",
+            "gptscan",
+            "llmsmartaudit",
+            "gptlens",
+            "llamaaudit",
+            "iaudit",
+            "smartguard",
+        ],
     },
     6: {
-        "name": "ML Detection",
-        "description": "Machine learning classifiers",
-        "tools": ["dagnn", "smartbugs_ml", "smartbugs_detector", "smartguard", "peculiar"],
+        "name": "Heuristic & Pattern Detection",
+        "description": (
+            "Regex/rule-based pattern matching and graph-structure heuristics. "
+            "No trained ML model weights are shipped or loaded today: dagnn/"
+            "peculiar/smartbugs_ml fall back to heuristics when GNN weights "
+            "are absent, and smartbugs_detector is pure regex."
+        ),
+        "tools": ["dagnn", "smartbugs_ml", "smartbugs_detector", "peculiar"],
     },
     7: {
         "name": "Specialized Analysis",
@@ -66,12 +79,33 @@ LAYERS: Dict[int, Dict[str, Any]] = {
     },
     8: {
         "name": "Cross-Chain & ZK Security",
-        "description": "Bridge security and zero-knowledge circuit analysis",
+        "description": (
+            "Bridge security and zero-knowledge circuit analysis. zk_circuit/l2_validator "
+            "are now proactively selected by `audit deep`/`audit smart` via "
+            "DeepAuditAgent._classify_risk_profile's is_zk/is_l2 flags (keyword patterns "
+            "on the Solidity source). circom_analyzer still only runs when this layer is "
+            "invoked directly (`audit layer 8`, `audit full`): detecting it needs a "
+            "sibling .circom file on disk, not a signal in the .sol source text, so there "
+            "is no is_circom flag."
+        ),
         "tools": ["crosschain", "zk_circuit", "bridge_monitor", "l2_validator", "circom_analyzer"],
     },
     9: {
         "name": "Advanced AI Ensemble",
-        "description": "Multi-LLM ensemble with consensus-based detection",
+        "description": (
+            "Multi-LLM ensemble with consensus-based detection. Only llmbugscanner "
+            "reads the contract on its own; audit_consensus/exploit_synthesizer/"
+            "vuln_verifier are second-opinion reviewers over layers 1-8's findings — "
+            "MLOrchestrator.analyze() runs them in a second pass (after layers 1-8 "
+            "produce findings, feeding findings_map/findings), so `audit full` and "
+            "any other command that goes through MLOrchestrator now gets real Layer 9 "
+            "output instead of an always-empty findings list. remediation_validator "
+            "is deliberately excluded from that pass: it compares original vs. "
+            "patched source to verify a fix, a job `miesc remediate --compile "
+            "--rescan` already does natively and more rigorously (a real compile "
+            "check) — there's no original/patched distinction in a single audit "
+            "pass to feed it, so it still returns an empty findings list there."
+        ),
         "tools": [
             "llmbugscanner",
             "audit_consensus",
@@ -96,6 +130,7 @@ ADAPTER_MAP: Dict[str, str] = {
     "wake": "WakeAdapter",
     "semgrep": "SemgrepAdapter",
     "fouranalyzer": "FourAnalyzerAdapter",
+    "vyper": "VyperAdapter",
     # Layer 2: Dynamic Testing
     "echidna": "EchidnaAdapter",
     "medusa": "MedusaAdapter",
@@ -172,5 +207,15 @@ DEFAULT_TIMEOUT: int = 300
 # Output format options
 OUTPUT_FORMATS: List[str] = ["json", "sarif", "html", "pdf", "markdown"]
 
-# Report templates
-REPORT_TEMPLATES: List[str] = ["standard", "premium", "executive", "technical", "ci"]
+# Report templates. Single source of truth for `miesc report --template` (both the
+# click.Choice and its error message) -- keep in sync with the .md files actually
+# shipped in miesc/data/templates/reports/.
+REPORT_TEMPLATES: List[str] = [
+    "professional",
+    "executive",
+    "technical",
+    "github-pr",
+    "simple",
+    "profesional",
+    "premium",
+]

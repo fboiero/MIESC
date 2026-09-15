@@ -79,6 +79,7 @@ class MLAnalysisResult:
                 "false_positives_removed": self.false_positives_removed,
                 "severity_adjustments": self.severity_adjustments,
                 "top_findings": self.ml_filtered_findings[:10],
+                "filtered_out": self.ml_filtered_out,
             },
             "clusters": {
                 "count": self.cluster_count,
@@ -152,6 +153,17 @@ class MLOrchestrator:
         print(f"FPs removed: {result.false_positives_removed}")
     """
 
+    # Layer 9 "second opinion" tools (MEJORAS.md #30a): these don't read the
+    # contract from scratch, they review the findings layers 1-8 already
+    # produced. Run them in a second pass, after those findings exist, instead
+    # of in the same parallel batch (where they'd always get an empty
+    # findings_map/findings and silently return nothing). remediation_validator
+    # is deliberately excluded: it compares original vs. patched source to
+    # verify a fix, which `miesc remediate --compile --rescan` already does
+    # natively (and more rigorously, via a real compile check) — there's no
+    # original/patched distinction in a single `audit full` pass to feed it.
+    SECOND_OPINION_TOOLS = {"audit_consensus", "exploit_synthesizer", "vuln_verifier"}
+
     def __init__(
         self,
         config: Optional[MIESCConfig] = None,
@@ -223,10 +235,17 @@ class MLOrchestrator:
         tool_name: str,
         contract_path: str,
         timeout: int = 120,
+        **extra_kwargs: Any,
     ) -> Dict[str, Any]:
-        """Ejecuta una herramienta individual."""
-        # Check cache
-        if self.cache:
+        """Ejecuta una herramienta individual.
+
+        extra_kwargs (e.g. findings_map/findings for the Layer 9 second-opinion
+        tools) are never cached — those depend on the rest of the analysis run,
+        not just the contract, so caching them by (tool, contract_path) alone
+        would return stale results from an unrelated run.
+        """
+        cacheable = not extra_kwargs
+        if cacheable and self.cache:
             cached = self.cache.get(tool_name, contract_path)
             if cached:
                 logger.info(f"Cache hit for {tool_name}")
@@ -237,9 +256,9 @@ class MLOrchestrator:
             adapter_config = self.config.get_adapter_config(tool_name)
             effective_timeout = adapter_config.timeout or timeout
 
-            result = adapter.analyze(contract_path, timeout=effective_timeout)
+            result = adapter.analyze(contract_path, timeout=effective_timeout, **extra_kwargs)
 
-            if self.cache and result.get("status") != "error":
+            if cacheable and self.cache and result.get("status") != "error":
                 self.cache.set(tool_name, contract_path, result)
 
             return cast(dict[str, Any], result)
@@ -260,6 +279,7 @@ class MLOrchestrator:
         timeout: int = 120,
         progress_callback: Optional[Callable[[str, str, float], None]] = None,
         fp_strictness: str = "off",
+        confirm_exploits: bool = False,
     ) -> MLAnalysisResult:
         """
         Ejecuta análisis completo con mejoras ML.
@@ -270,6 +290,12 @@ class MLOrchestrator:
             layers: Capas a ejecutar
             timeout: Timeout por herramienta
             progress_callback: Callback(stage, message, progress)
+            confirm_exploits: MEJORAS3.md item 3 — opt-in. When exploit_synthesizer
+                runs (Layer 9), actually compile+run each generated PoC with
+                Foundry instead of just generating it, so findings can be
+                marked genuinely CONFIRMED/NOT_CONFIRMED rather than always
+                POC_GENERATED. Off by default: real latency (network +
+                compile) that most interactive scans shouldn't pay silently.
 
         Returns:
             MLAnalysisResult con hallazgos mejorados
@@ -285,8 +311,14 @@ class MLOrchestrator:
         if not tools_to_run:
             return self._empty_result(contract_path, contract_source)
 
+        # Layer 9 second-opinion tools need layers 1-8's findings as input, so
+        # they can't run in the same parallel batch — split them into a second
+        # pass, after pass1_tools' findings exist (see SECOND_OPINION_TOOLS).
+        pass1_tools = [t for t in tools_to_run if t not in self.SECOND_OPINION_TOOLS]
+        pass2_tools = [t for t in tools_to_run if t in self.SECOND_OPINION_TOOLS]
+
         if progress_callback:
-            progress_callback("init", f"Running {len(tools_to_run)} tools", 0.0)
+            progress_callback("init", f"Running {len(pass1_tools)} tools", 0.0)
 
         # Execute tools in parallel
         raw_results: Dict[str, Dict[str, Any]] = {}
@@ -297,7 +329,7 @@ class MLOrchestrator:
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
             future_to_tool = {
                 executor.submit(self._run_tool, tool, contract_path, timeout): tool
-                for tool in tools_to_run
+                for tool in pass1_tools
             }
 
             completed = 0
@@ -319,7 +351,7 @@ class MLOrchestrator:
                             all_findings.append(finding)
 
                     if progress_callback:
-                        progress = completed / len(tools_to_run) * 0.5
+                        progress = completed / max(len(pass1_tools), 1) * 0.5
                         progress_callback("tools", f"Completed {tool}", progress)
 
                 except Exception as e:
@@ -414,6 +446,44 @@ class MLOrchestrator:
         # cross-tool agreement + FP signal), so consumers can rank and filter by
         # trust. Runs on the default path, not only under --correlate.
         self._annotate_confidence(ml_filtered_findings, contract_source, contract_path)
+
+        # Layer 9 second pass (MEJORAS.md #30a): now that pass1's findings
+        # exist, give each second-opinion tool what it actually needs.
+        if pass2_tools:
+            if progress_callback:
+                progress_callback("layer9", f"Running {len(pass2_tools)} second-opinion tools", 0.9)
+
+            findings_map = {tool: res.get("findings", []) for tool, res in raw_results.items()}
+            pass2_kwargs = {
+                "audit_consensus": {"findings_map": findings_map},
+                "exploit_synthesizer": {
+                    "findings": ml_filtered_findings,
+                    "run_poc": confirm_exploits,
+                },
+                "vuln_verifier": {"findings": ml_filtered_findings},
+            }
+            for tool in pass2_tools:
+                try:
+                    result = self._run_tool(
+                        tool, contract_path, timeout, **pass2_kwargs.get(tool, {})
+                    )
+                    raw_results[tool] = result
+                    if result.get("status") == "error":
+                        tools_failed.append(tool)
+                    else:
+                        tools_success.append(tool)
+                        for finding in result.get("findings", []):
+                            finding["tool"] = tool
+                            all_findings.append(finding)
+                            ml_filtered_findings.append(finding)
+                except Exception as e:
+                    tools_failed.append(tool)
+                    raw_results[tool] = {
+                        "tool": tool,
+                        "status": "error",
+                        "error": str(e),
+                        "findings": [],
+                    }
 
         # Calculate severity distribution
         severity_dist = self._calculate_severity_distribution(ml_filtered_findings)

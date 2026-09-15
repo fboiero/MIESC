@@ -194,6 +194,19 @@ _SUBSTRING_FALLBACKS: list = [
     ("owner", CanonicalCategory.ACCESS_CONTROL),  # weakest signal, last
 ]
 
+# MEJORAS2.md backlog follow-up: _DIRECT_MAP keys are a mix of separator
+# conventions (mostly hyphens like "access-control", some dots like
+# "tx.origin"), matched via plain exact/lowercase comparison — so a caller
+# using the equally natural underscore form ("access_control", the
+# convention evaluate.py's own SmartBugs/MODERN_CATEGORIES taxonomy uses
+# throughout the rest of this codebase) silently fails to match at all.
+# Confirmed real regression while reusing this module from
+# protocol_graph.py. Precompute a separator-insensitive index once rather
+# than re-normalizing _DIRECT_MAP on every call.
+_DIRECT_MAP_NORMALIZED: Dict[str, CanonicalCategory] = {
+    k.lower().replace(" ", "_").replace("-", "_"): v for k, v in _DIRECT_MAP.items()
+}
+
 
 def normalize_finding_type(
     finding_or_type: Any,
@@ -231,6 +244,9 @@ def normalize_finding_type(
         lower = key.lower()
         if lower in _DIRECT_MAP:
             return _DIRECT_MAP[lower]
+        normalized = lower.replace(" ", "_").replace("-", "_")
+        if normalized in _DIRECT_MAP_NORMALIZED:
+            return _DIRECT_MAP_NORMALIZED[normalized]
 
     # 2) Substring fallbacks against the concatenated text blob
     blob = " ".join(str(c) for c in candidates).lower()

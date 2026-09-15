@@ -87,6 +87,29 @@ class TestExtractFeatures:
         # 7 scalar features + len(KNOWN_TOOLS) one-hot
         assert len(v1) == 7 + len(KNOWN_TOOLS)
 
+    def test_vuln_type_hash_is_stable_across_processes(self):
+        # MEJORAS2.md #5b: was builtin hash(), which is salted per-process
+        # (PYTHONHASHSEED) — a model trained in one process would get a
+        # different bucket for the same type string when loaded (via
+        # pickle) in a later process, silently corrupting predictions.
+        # Spawn a fresh interpreter so hash-randomization would actually
+        # differ if this regressed.
+        import subprocess
+        import sys
+
+        script = (
+            "import sys; sys.path.insert(0, '.'); "
+            "from miesc.ml.fp_ml_classifier import extract_features; "
+            "print(extract_features({'type': 'reentrancy-eth'}).vuln_type_hash)"
+        )
+        results = {
+            subprocess.run(
+                [sys.executable, "-c", script], capture_output=True, text=True, check=True
+            ).stdout.strip()
+            for _ in range(2)
+        }
+        assert len(results) == 1, f"vuln_type_hash differs across processes: {results}"
+
 
 # ---------------------------------------------------------------------------
 # Heuristic fallback

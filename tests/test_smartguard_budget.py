@@ -19,7 +19,7 @@ def _patched(adapter, tmp_path):
         adapter,
         is_available=lambda: ToolStatus.AVAILABLE,
         _read_contract=lambda p: code,
-        _get_cached=lambda k: None,
+        _get_cached_result=lambda k: None,
         _extract_functions=lambda c: [("a", "function a(){}"), ("b", "function b(){}")],
         _retrieve_similar_vulnerabilities=lambda fc: [{"vuln": "x"}],
         _analyze_with_cot=lambda fn, fc, sv, cp: [{"id": fn, "severity": "LOW", "title": "t"}],
@@ -42,3 +42,15 @@ def test_normal_run_completes_and_caches(tmp_path):
     assert r["metadata"]["partial"] is False
     assert r["metadata"]["functions_analyzed"] == 2
     assert list(tmp_path.glob("*.json"))  # complete result cached
+
+
+# MEJORAS3.md item 6: smartguard had the same hand-rolled cache as
+# llmbugscanner (reimplemented instead of using LLMCacheMixin), so it never
+# checked MIESC_DISABLE_LLM_CACHE either.
+def test_respects_miesc_disable_llm_cache(monkeypatch, tmp_path):
+    monkeypatch.setenv("MIESC_DISABLE_LLM_CACHE", "1")
+    a = SmartGuardAdapter()
+    a._cache_dir = tmp_path
+
+    a._cache_result("key1", {"findings": ["should not persist"]})
+    assert a._get_cached_result("key1") is None

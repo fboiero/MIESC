@@ -16,6 +16,7 @@ License: AGPL-3.0
 from __future__ import annotations
 
 import json
+import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
@@ -176,6 +177,34 @@ class TestEvaluateContract:
         assert result["aggregate"]["findings_count"] == 1
         assert "layer_1" in result["timing"]
 
+    def test_category_only_finding_still_counts(self, corpus):
+        # smartllm/gptscan (and ~26 other adapters) key their per-finding
+        # taxonomy as "category", never "type" - a finding missing "type"
+        # entirely must not be dropped just because its title/description
+        # don't happen to contain a matching keyword.
+        contract = corpus / "reentrancy" / "vuln.sol"
+
+        def _fake(layer_num, contract_path, timeout):
+            return [
+                {
+                    "tool": "smartllm",
+                    "status": "ok",
+                    "findings": [{"category": "reentrancy", "title": "LLM-detected issue"}],
+                }
+            ]
+
+        with patch("miesc.cli.commands.evaluate.run_layer", side_effect=_fake):
+            result = _evaluate_contract(
+                contract,
+                {"reentrancy"},
+                [1],
+                timeout=1,
+                skip_unavailable=True,
+                use_intelligence=False,
+            )
+        assert result["match"]["hit"] is True
+        assert "reentrancy" in result["match"]["tp"]
+
     def test_false_negative_when_nothing_detected(self, corpus):
         contract = corpus / "reentrancy" / "vuln.sol"
         with patch(
@@ -227,6 +256,245 @@ class TestEvaluateContract:
                 use_intelligence=False,
             )
         assert result["aggregate"]["findings_count"] == 0
+
+    def _isolated_contract(self) -> Path:
+        """A contract path outside pytest's tmp_path tree.
+
+        tmp_path-based fixtures (like `corpus`) live under
+        .../pytest-of-<user>/pytest-N/test_<name>0/... - and "pytest"
+        itself contains "test", which trips FalsePositiveFilter's
+        test/mock-file heuristic regardless of the actual finding. That's
+        the filter working as designed, just colliding with pytest's own
+        naming - so these two tests need a path it won't misread.
+        """
+        root = Path(tempfile.mkdtemp()) / "reentrancy"
+        root.mkdir(parents=True)
+        contract = root / "vuln.sol"
+        contract.write_text(
+            "pragma solidity ^0.4.24;\ncontract A { function f() public {} }\n",
+            encoding="utf-8",
+        )
+        return contract
+
+    def test_fp_filter_suppresses_informational_finding(self):
+        """MEJORAS2.md #5a: the 270+-pattern FalsePositiveFilter, previously
+        wired into scan/audit full but not evaluate_corpus/ablation, must now
+        actually remove a category from the match set - not just get computed
+        and ignored. Uses severity=info, which FalsePositiveFilter's medium
+        preset always treats as a FP (filter_informational=True) - a
+        deterministic trigger that doesn't depend on regex/confidence
+        arithmetic.
+        """
+        contract = self._isolated_contract()
+
+        def _fake(layer_num, contract_path, timeout):
+            return [
+                {
+                    "tool": "tool_1",
+                    "status": "ok",
+                    "findings": [{"type": "reentrancy-eth", "description": "", "severity": "info"}],
+                }
+            ]
+
+        with patch("miesc.cli.commands.evaluate.run_layer", side_effect=_fake):
+            result = _evaluate_contract(
+                contract,
+                {"reentrancy"},
+                [1],
+                timeout=1,
+                skip_unavailable=True,
+                use_intelligence=True,
+            )
+        assert "reentrancy" not in result["match"]["tp"]
+        assert result["match"]["fn"] == ["reentrancy"]
+
+    def test_fp_strictness_off_keeps_informational_finding(self):
+        """fp_strictness is threaded through to FalsePositiveFilter, not just
+        accepted and ignored: "off" never filters (fp_threshold=1.1, always
+        > any real score), so the same informational finding that "medium"
+        suppresses above must survive here."""
+        contract = self._isolated_contract()
+
+        def _fake(layer_num, contract_path, timeout):
+            return [
+                {
+                    "tool": "tool_1",
+                    "status": "ok",
+                    "findings": [{"type": "reentrancy-eth", "description": "", "severity": "info"}],
+                }
+            ]
+
+        with patch("miesc.cli.commands.evaluate.run_layer", side_effect=_fake):
+            result = _evaluate_contract(
+                contract,
+                {"reentrancy"},
+                [1],
+                timeout=1,
+                skip_unavailable=True,
+                use_intelligence=True,
+                fp_strictness="off",
+            )
+        assert "reentrancy" in result["match"]["tp"]
+
+    def test_fp_filter_keeps_real_finding(self):
+        """Recall-safety companion to the suppression test above: a
+        medium-severity finding with no safe-library/safe-pattern signal must
+        survive the new filter untouched."""
+        contract = self._isolated_contract()
+
+        with patch(
+            "miesc.cli.commands.evaluate.run_layer",
+            side_effect=_layer_returning("reentrancy-eth"),
+        ):
+            result = _evaluate_contract(
+                contract,
+                {"reentrancy"},
+                [1],
+                timeout=1,
+                skip_unavailable=True,
+                use_intelligence=True,
+            )
+        assert "reentrancy" in result["match"]["tp"]
+
+
+def _layer9_llmbugscanner(category: str, title: str):
+    """Fake run_layer emitting one llmbugscanner-shaped Layer 9 finding.
+
+    Matches llmbugscanner's real output shape (category, not type; no
+    structured location.function - only free text), not the generic
+    ``_layer_returning`` shape other tests use.
+    """
+
+    def _fake(layer_num, contract, timeout):
+        if layer_num != 9:
+            return []
+        return [
+            {
+                "tool": "llmbugscanner",
+                "status": "success",
+                "findings": [
+                    {
+                        "category": category,
+                        "title": title,
+                        "description": "",
+                        "severity": "Medium",
+                        "confidence": 0.9,
+                    }
+                ],
+            }
+        ]
+
+    return _fake
+
+
+class TestPocVerification:
+    """MEJORAS2.md #5j: llmbugscanner candidates in the 3 categories
+    exploit_synthesizer has a real PoC template for get verified with
+    run_poc=True before counting - narrow but reliable, per the chosen scope.
+    """
+
+    def test_confirmed_poc_counts_as_tp(self, corpus):
+        # reentrancy/vuln.sol has `function f() public {}` - "f" is the
+        # function _extract_function_hint must recover from free text.
+        contract = corpus / "reentrancy" / "vuln.sol"
+        fake_run_layer = _layer9_llmbugscanner(
+            "access_control", "Potential access control issue in f"
+        )
+
+        def _fake_analyze(self, contract_path, **kwargs):
+            findings = kwargs.get("findings", [])
+            assert kwargs.get("run_poc") is True
+            func = findings[0]["location"]["function"]
+            assert func == "f"  # hint extraction actually worked
+            return {
+                "tool": "exploit_synthesizer",
+                "status": "success",
+                "findings": [
+                    {
+                        "type": "exploit_confirmed",
+                        "location": {"file": contract_path, "line": 0, "function": func},
+                    }
+                ],
+            }
+
+        with (
+            patch("miesc.cli.commands.evaluate.run_layer", side_effect=fake_run_layer),
+            patch(
+                "miesc.adapters.exploit_synthesizer_adapter.ExploitSynthesizerAdapter.analyze",
+                _fake_analyze,
+            ),
+        ):
+            result = _evaluate_contract(
+                contract,
+                {"access_control"},
+                [9],
+                timeout=1,
+                skip_unavailable=True,
+                use_intelligence=False,
+            )
+        assert "access_control" in result["match"]["tp"]
+
+    def test_unconfirmed_poc_does_not_count(self, corpus):
+        contract = corpus / "reentrancy" / "vuln.sol"
+        fake_run_layer = _layer9_llmbugscanner(
+            "access_control", "Potential access control issue in f"
+        )
+
+        def _fake_analyze(self, contract_path, **kwargs):
+            return {
+                "tool": "exploit_synthesizer",
+                "status": "success",
+                "findings": [
+                    {
+                        "type": "exploit_not_confirmed",
+                        "location": {"file": contract_path, "line": 0, "function": "f"},
+                    }
+                ],
+            }
+
+        with (
+            patch("miesc.cli.commands.evaluate.run_layer", side_effect=fake_run_layer),
+            patch(
+                "miesc.adapters.exploit_synthesizer_adapter.ExploitSynthesizerAdapter.analyze",
+                _fake_analyze,
+            ),
+        ):
+            result = _evaluate_contract(
+                contract,
+                {"access_control"},
+                [9],
+                timeout=1,
+                skip_unavailable=True,
+                use_intelligence=False,
+            )
+        assert "access_control" in result["match"]["fn"]
+
+    def test_out_of_scope_category_never_sent_to_synthesizer(self, corpus):
+        """oracle isn't one of the 3 categories with a real PoC template -
+        must never even reach exploit_synthesizer, not just fail to confirm."""
+        contract = corpus / "reentrancy" / "vuln.sol"
+        fake_run_layer = _layer9_llmbugscanner("oracle", "Potential oracle manipulation in f")
+
+        with (
+            patch("miesc.cli.commands.evaluate.run_layer", side_effect=fake_run_layer),
+            patch(
+                "miesc.adapters.exploit_synthesizer_adapter.ExploitSynthesizerAdapter.analyze"
+            ) as mock_analyze,
+        ):
+            result = _evaluate_contract(
+                contract,
+                {"oracle"},
+                [9],
+                timeout=1,
+                skip_unavailable=True,
+                use_intelligence=False,
+            )
+        mock_analyze.assert_not_called()
+        # oracle isn't gated (only the 3 PoC-verifiable categories are), so
+        # it's still counted via the pre-existing raw-detection path - the
+        # point of this test is that it got there without ever calling
+        # exploit_synthesizer, not that it's excluded.
+        assert "oracle" in result["match"]["tp"]
 
 
 class TestRunAblation:
