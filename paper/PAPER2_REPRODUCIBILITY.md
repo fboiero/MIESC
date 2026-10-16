@@ -13,7 +13,7 @@ pre/post HIGH-finding counts).
 ## Environment
 
 Same toolchain as Paper 1 (see `PAPER1_REPRODUCIBILITY.md`): MIESC v5.4.1
-(tag `09ef10f`), Slither 0.11.6 pinned, solc selected per `pragma` via
+(tag `09ef10f`), Slither 0.11.5 pinned, solc selected per `pragma` via
 `solc-select`, Foundry 1.3.5. Generators honour `SOURCE_DATE_EPOCH`; the
 camera-ready matrices were regenerated with `SOURCE_DATE_EPOCH` = 2026-10-16.
 The remediation experiment adds standalone `solc` compilation of each patched

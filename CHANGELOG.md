@@ -7,6 +7,37 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [5.5.0] - 2026-10-16 — RIBCi–CYTED 2026 camera-ready
+
+### Added
+- `benchmarks/verify_paper_claims.py`: recomputes every Paper 1 and Paper 2
+  figure from its backing JSON, anchors each to the camera-ready `.tex`, and
+  checks the Data Availability artifacts exist (exits non-zero on mismatch).
+- Camera-ready benchmark scripts and artifacts: EVMBench same-run multi-protocol
+  scorer (`evmbench_same_run_protocols.py`), null-control matcher
+  (`evmbench_matcher_null_control.py`), Paper 1 ablation summary
+  (`paper1_ablation_summary.py`), Paper 2 pre-patch Slither baseline
+  (`paper2_prepatch_slither_baseline.py`), SmartBugs FP-filter effect, and the
+  EVMBench same-run results under `benchmarks/results/evmbench/same_run_claude_20261016/`.
+- `benchmarks/README.md` script index (canonical/supporting/exploratory/legacy)
+  and the `<paper>_<experiment>_<YYYYMMDD>.json` result-naming convention.
+- `paper/ribci-cyted-2026/ERRATA.md` documenting paper↔repo discrepancies
+  (E-1 SmartBugs 481 vs 480 FP, E-2 Paper 2 pre/post counts, E-3 `references.bib`
+  vs camera-ready `.bbl`).
+
+### Changed
+- Claims matrices regenerated (deterministic, `SOURCE_DATE_EPOCH=2026-10-16`) to
+  include the new artifacts with `source_file`/`command`/`date`.
+- Reproducibility docs rewritten in English for the camera-ready, with an
+  artifact→claim→command table and a known-limitations section.
+- README "Academic Validation" uses only JSON-sourced figures (drops the
+  unsourced "Slither alone 43.2%" comparison and the "eliminate the original
+  finding" phrasing) and links the camera-ready PDFs.
+- `CITATION.cff` preferred-citation is now the two RIBCi–CYTED 2026 papers
+  (Boiero, Mussetta, Cena); the thesis becomes a secondary reference.
+- Development logs moved to `docs/internal/`; `paper/` keeps only sources, PDFs,
+  `.bib`, reproducibility docs and `ribci-cyted-2026/`.
+
 ## [5.4.3] - 2026-05-16
 
 ### Documentation

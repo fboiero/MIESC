@@ -22,7 +22,7 @@ listed in `paper/ribci-cyted-2026/ERRATA.md`.
 | OS | macOS ARM64 (Apple Silicon, 48 GB) for the canonical runs; Linux/Docker for the revalidation and the ablation |
 | MIESC | v5.4.1, tag `09ef10f` |
 | Python | 3.14.4 for the original SmartBugs runs (2026-05-06…09); 3.12.6 for the 2026-10 regeneration and verification |
-| Slither | 0.11.6 (pinned in `requirements-lock.txt`; the 2026-10 workstation had 0.11.5 — a patch behind, which does not affect the regenerated artifacts, none of which re-run Slither) |
+| Slither | 0.11.5 (pinned in `requirements-lock.txt`; the regenerated camera-ready artifacts do not re-run Slither, so the exact patch version does not affect them) |
 | solc | selected per-contract `pragma` via `solc-select` (e.g. `^0.4.x → solc-0.4.26`) |
 | Foundry | 1.3.5 |
 | Determinism | all generators honour `SOURCE_DATE_EPOCH`; the camera-ready artifacts were regenerated with `SOURCE_DATE_EPOCH` = 2026-10-16 |
