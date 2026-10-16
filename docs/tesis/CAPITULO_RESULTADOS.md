@@ -521,7 +521,7 @@ Si combinar herramientas estáticas no mejora la detección (§5.3.3), ¿qué s�
 
 Solo **4 vulnerabilidades no son detectadas por ningún modelo**: un *unchecked return value* en `transferFrom` y tres de lógica DeFi en `FlashLoanVault` (oracle manipulation, rounding en el cálculo de shares, y una aritmética que en Solidity 0.8.x revierte automáticamente). Constituyen la frontera abierta del análisis automatizado de smart contracts.
 
-**Trade-off recall/precisión.** El ensemble maximiza el recall (86%) pero une los falsos positivos de todos los modelos, degradando la precisión; es una configuración de triage de máxima cobertura, no de reporte de alta precisión. MIESC expone esta capacidad mediante la opción `--ensemble`. Evidencia por-vulnerabilidad en `docs/evidence/corpus_revalidation_20260709/` (§16).
+**Trade-off recall/precisión.** El ensemble maximiza el recall (86%) pero une los falsos positivos de todos los modelos, degradando la precisión; es una configuración de triage de máxima cobertura, no de reporte de alta precisión. MIESC expone esta capacidad mediante la opción `--ensemble`. Evidencia por-vulnerabilidad en `docs/evidence/corpus_revalidation_20260709/`.
 
 ### 5.3.5 Validación cruzada en EVMBench (40 auditorías)
 

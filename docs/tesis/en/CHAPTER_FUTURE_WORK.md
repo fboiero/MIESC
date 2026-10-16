@@ -1,16 +1,16 @@
-# Chapter 6: Conclusions and Future Work
+# Chapter 8: Conclusions and Future Work
 
 ## MIESC: Final Reflections and Research Lines
 
 ---
 
-## 6.1 Conclusions
+## 8.1 Conclusions
 
-### 6.1.1 Synthesis of the Work Performed
+### 8.1.1 Synthesis of the Work Performed
 
 This thesis has presented MIESC (Multi-layer Integration for Ethereum Smart Contract Security), an open-source framework that implements a defense-in-depth architecture for automated smart contract auditing. The development of MIESC represents a significant contribution to the field of smart contract security, addressing the gaps identified in the state of the art.
 
-### 6.1.2 Objectives Achieved
+### 8.1.2 Objectives Achieved
 
 **Table 6.1.** Evaluation of objective fulfillment
 
@@ -24,7 +24,7 @@ This thesis has presented MIESC (Multi-layer Integration for Ethereum Smart Cont
 | Reduce duplicates | Deduplication >40% | 68% deduplication (385→123) | Exceeded |
 | Integrate with AI assistants | MCP Server operational | Implemented | Achieved |
 
-### 6.1.3 Main Contributions
+### 8.1.3 Main Contributions
 
 1. **7-Layer Architecture:** First documented implementation of defense-in-depth applied specifically to smart contract auditing, combining static, dynamic, symbolic, formal, and AI analysis.
 
@@ -38,9 +38,9 @@ This thesis has presented MIESC (Multi-layer Integration for Ethereum Smart Cont
 
 6. **Legacy Tool Rescue:** Documented patches for Manticore (Python 3.11) and Oyente (Docker image), preserving analysis capabilities.
 
-7. **Sovereignty as a requirement, empirically validated:** The thesis that control over the tool — open weights, auditable execution — is a first-order requirement of security analysis, not a preference; grounded doctrinally, scientifically, epistemically, and philosophically (§6.6.3), and empirically validated: an open-weight model obtains the best precision (88.5%) and F1 (78.7%) in the EVMBench comparison at ~$0.08 per audit (15–69× less than the frontier providers), showing that the sovereign choice no longer requires sacrificing capability.
+7. **Sovereignty as a requirement, empirically validated:** The thesis that control over the tool — open weights, auditable execution — is a first-order requirement of security analysis, not a preference; grounded doctrinally, scientifically, epistemically, and philosophically (Ch. 6, §6.6.3), and empirically validated: an open-weight model obtains the best precision (88.5%) and F1 (78.7%) in the EVMBench comparison at ~$0.08 per audit (15–69× less than the frontier providers), showing that the sovereign choice no longer requires sacrificing capability.
 
-### 6.1.4 Hypothesis Validation
+### 8.1.4 Hypothesis Validation
 
 **Original hypothesis:** "The combination of multiple analysis techniques in a layered architecture improves vulnerability detection compared to individual tools."
 
@@ -48,9 +48,9 @@ This thesis has presented MIESC (Multi-layer Integration for Ethereum Smart Cont
 
 ---
 
-## 6.2 Work Limitations
+## 8.2 Work Limitations
 
-### 6.2.1 Technical Limitations
+### 8.2.1 Technical Limitations
 
 1. **Scalability:** Analysis of very large contracts (>1000 LOC) may require times exceeding 5 minutes, particularly in the symbolic execution layer (Mythril, Manticore).
 
@@ -60,7 +60,7 @@ This thesis has presented MIESC (Multi-layer Integration for Ethereum Smart Cont
 
 4. **Cross-Chain Compatibility:** MIESC is optimized for Ethereum and EVM-compatible chains. Other blockchains (Solana, Cosmos) would require specific adapters.
 
-### 6.2.2 Methodological Limitations
+### 8.2.2 Methodological Limitations
 
 1. **Limited Test Corpus:** Validation was performed with 4 contracts (614 LOC) and 29 documented vulnerabilities. According to Durieux et al. (2020), this may overestimate effectiveness.
 
@@ -70,13 +70,13 @@ This thesis has presented MIESC (Multi-layer Integration for Ethereum Smart Cont
 
 ---
 
-## 6.3 Future Work
+## 8.3 Future Work
 
 Several of the lines outlined in this section **were already started and published
 after the defense**, in the papers derived from this thesis. Those advances are
 summarized first, then the lines that remain open.
 
-### 6.3.0 Derived publications and lines already started (post-defense)
+### 8.3.1 Derived publications and lines already started (post-defense)
 
 This thesis gave rise to two papers presented at the IV International Symposium on
 Blockchain and Cybersecurity (RIBCi–CYTED 2026, IEEE, double-blind review):
@@ -107,7 +107,7 @@ two priorities Paper 1 flags as immediate future work.
 
 ---
 
-### 6.3.1 Line 1: Vulnerability Coverage Extension
+### 8.3.2 Line 1: Vulnerability Coverage Extension
 
 **Objective:** Expand detection to emerging vulnerabilities in the DeFi ecosystem.
 
@@ -130,7 +130,7 @@ two priorities Paper 1 flags as immediate future work.
 
 ---
 
-### 6.3.2 Line 2: AI Model Improvement
+### 8.3.3 Line 2: AI Model Improvement
 
 **Objective:** Increase Layer 7 precision through fine-tuning specialized models.
 
@@ -168,7 +168,7 @@ class SoliditySecurityFineTuner:
 
 ---
 
-### 6.3.3 Line 3: Multi-Chain Support
+### 8.3.4 Line 3: Multi-Chain Support
 
 **Objective:** Extend MIESC to other blockchains with smart contracts.
 
@@ -192,7 +192,7 @@ class SoliditySecurityFineTuner:
 
 ---
 
-### 6.3.4 Line 4: Advanced Formal Verification
+### 8.3.5 Line 4: Advanced Formal Verification
 
 **Objective:** Deepen formal verification capabilities with automatic specifications.
 
@@ -216,7 +216,7 @@ class SoliditySecurityFineTuner:
 
 ---
 
-### 6.3.5 Line 5: Development Ecosystem Integration
+### 8.3.6 Line 5: Development Ecosystem Integration
 
 **Objective:** Integrate MIESC into the smart contract development lifecycle.
 
@@ -250,7 +250,7 @@ jobs:
 
 ---
 
-### 6.3.6 Line 6: Continuous Production Auditing
+### 8.3.7 Line 6: Continuous Production Auditing
 
 **Objective:** Extend MIESC for post-deployment monitoring.
 
@@ -272,9 +272,9 @@ jobs:
 
 ---
 
-## 6.4 Expected Impact
+## 8.4 Expected Impact
 
-### 6.4.1 Academic Impact
+### 8.4.1 Academic Impact
 
 1. **Derived publications (realized):**
    - **RIBCi–CYTED 2026 (IEEE, double-blind)** — Paper 1 (detection) and Paper 2
@@ -288,7 +288,7 @@ jobs:
    - Reproducible framework for research
    - Normalized vulnerability dataset
 
-### 6.4.2 Industrial Impact
+### 8.4.2 Industrial Impact
 
 1. **Expected adoption:**
    - Independent developers: access to free auditing
@@ -299,7 +299,7 @@ jobs:
    - Early detection: prevention of post-deployment exploits
    - Conservative estimate: prevention of $10M+ in potential losses
 
-### 6.4.3 Social Impact
+### 8.4.3 Social Impact
 
 1. **Security democratization:**
    - Free and open-source tool
@@ -313,7 +313,7 @@ jobs:
 
 ---
 
-## 6.5 Final Reflections
+## 8.5 Final Reflections
 
 The development of MIESC represents a significant step towards democratizing smart contract security. In an ecosystem where vulnerability losses exceed billions of dollars annually, the availability of accessible and effective auditing tools is fundamental.
 
@@ -329,7 +329,7 @@ MIESC embodies this philosophy, providing not just a tool, but an extensible fra
 
 ---
 
-## 6.6 Chapter References
+## 8.6 Chapter References
 
 Boiero, F., Mussetta, S. N., & Cena, N. G. (2026a). MIESC: A multi-layer framework for automated smart contract security evaluation. In *Livros de Atas — IV International Symposium on Blockchain and Cybersecurity (RIBCi–CYTED 2026)*.
 

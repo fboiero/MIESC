@@ -1,16 +1,16 @@
-# Capítulo 6: Conclusiones y Trabajos Futuros
+# Capítulo 8: Conclusiones y Trabajos Futuros
 
 ## MIESC: Reflexiones Finales y Líneas de Investigación
 
 ---
 
-## 6.1 Conclusiones
+## 8.1 Conclusiones
 
-### 6.1.1 Síntesis del Trabajo Realizado
+### 8.1.1 Síntesis del Trabajo Realizado
 
 El presente trabajo de tesis ha presentado MIESC (Marco Integrado de Seguridad para Contratos Ethereum), un framework de código abierto que implementa una arquitectura de defensa en profundidad para la auditoría automatizada de contratos inteligentes. El desarrollo de MIESC representa una contribución significativa al campo de la seguridad de smart contracts, abordando las brechas identificadas en el estado del arte.
 
-### 6.1.2 Objetivos Alcanzados
+### 8.1.2 Objetivos Alcanzados
 
 **Tabla 8.1.** Evaluación del cumplimiento de objetivos
 
@@ -24,7 +24,7 @@ El presente trabajo de tesis ha presentado MIESC (Marco Integrado de Seguridad p
 | Reducir duplicados | Deduplicación >40% | 68% deduplicación (385→123) | Superado |
 | Integrar con asistentes IA | MCP Server operativo | Implementado | Cumplido |
 
-### 6.1.3 Contribuciones Principales
+### 8.1.3 Contribuciones Principales
 
 1. **Arquitectura de 7 Capas:** Primera implementación documentada de defensa en profundidad aplicada específicamente a auditoría de smart contracts, combinando análisis estático, dinámico, simbólico, formal e IA.
 
@@ -38,9 +38,9 @@ El presente trabajo de tesis ha presentado MIESC (Marco Integrado de Seguridad p
 
 6. **Rescate de Herramientas Legacy:** Parches documentados para Manticore (Python 3.11) y Oyente (Docker image), preservando capacidades de análisis.
 
-7. **Soberanía como requisito, con validación empírica:** La tesis de que el control sobre la herramienta —pesos abiertos, ejecución auditable— es un requisito de primer orden del análisis de seguridad, y no una preferencia; fundamentada doctrinal, científica, epistemológica y filosóficamente (§6.6.3), y validada empíricamente: un modelo de pesos abiertos obtiene la mejor precisión (88.5%) y F1 (78.7%) de la comparación de EVMBench a ~$0.08 por auditoría (15–69× menos que los proveedores frontier), demostrando que la elección soberana ya no exige sacrificar capacidad.
+7. **Soberanía como requisito, con validación empírica:** La tesis de que el control sobre la herramienta —pesos abiertos, ejecución auditable— es un requisito de primer orden del análisis de seguridad, y no una preferencia; fundamentada doctrinal, científica, epistemológica y filosóficamente (Cap. 6, §6.6.3), y validada empíricamente: un modelo de pesos abiertos obtiene la mejor precisión (88.5%) y F1 (78.7%) de la comparación de EVMBench a ~$0.08 por auditoría (15–69× menos que los proveedores frontier), demostrando que la elección soberana ya no exige sacrificar capacidad.
 
-### 6.1.4 Validación de Hipótesis
+### 8.1.4 Validación de Hipótesis
 
 **Hipótesis original:** "La combinación de múltiples técnicas de análisis en una arquitectura de capas mejora la detección de vulnerabilidades respecto a herramientas individuales."
 
@@ -48,9 +48,9 @@ El presente trabajo de tesis ha presentado MIESC (Marco Integrado de Seguridad p
 
 ---
 
-## 6.2 Limitaciones del Trabajo
+## 8.2 Limitaciones del Trabajo
 
-### 6.2.1 Limitaciones Técnicas
+### 8.2.1 Limitaciones Técnicas
 
 1. **Escalabilidad:** El análisis de contratos muy grandes (>1000 LOC) puede requerir tiempos superiores a 5 minutos, particularmente en la capa de ejecución simbólica (Mythril, Manticore).
 
@@ -60,7 +60,7 @@ El presente trabajo de tesis ha presentado MIESC (Marco Integrado de Seguridad p
 
 4. **Compatibilidad Cross-Chain:** MIESC está optimizado para Ethereum y EVMs compatibles. Otras blockchains (Solana, Cosmos) requerirían adaptadores específicos.
 
-### 6.2.2 Limitaciones Metodológicas
+### 8.2.2 Limitaciones Metodológicas
 
 1. **Corpus de Prueba Limitado:** La validación se realizó con 4 contratos (614 LOC) y 29 vulnerabilidades documentadas. Según Durieux et al. (2020), esto puede sobreestimar la efectividad.
 
@@ -70,13 +70,13 @@ El presente trabajo de tesis ha presentado MIESC (Marco Integrado de Seguridad p
 
 ---
 
-## 6.3 Trabajos Futuros
+## 8.3 Trabajos Futuros
 
 Varias de las líneas trazadas en esta sección **ya fueron iniciadas y publicadas con
 posterioridad a la defensa**, en las publicaciones derivadas de esta tesis. Se resumen
 primero esos avances y luego las líneas que permanecen abiertas.
 
-### 6.3.0 Publicaciones derivadas y líneas ya iniciadas (post-defensa)
+### 8.3.1 Publicaciones derivadas y líneas ya iniciadas (post-defensa)
 
 El trabajo de esta tesis dio lugar a dos artículos presentados en el IV Simposio
 Internacional de Blockchain y Ciberseguridad (RIBCi–CYTED 2026, IEEE, revisión doble
@@ -109,7 +109,7 @@ inmediato.
 
 ---
 
-### 6.3.1 Línea 1: Extensión de Cobertura de Vulnerabilidades
+### 8.3.2 Línea 1: Extensión de Cobertura de Vulnerabilidades
 
 **Objetivo:** Ampliar la detección a vulnerabilidades emergentes del ecosistema DeFi.
 
@@ -132,7 +132,7 @@ inmediato.
 
 ---
 
-### 6.3.2 Línea 2: Mejora de Modelos de IA
+### 8.3.3 Línea 2: Mejora de Modelos de IA
 
 **Objetivo:** Incrementar precisión de la capa 7 mediante fine-tuning de modelos especializados.
 
@@ -170,7 +170,7 @@ class SoliditySecurityFineTuner:
 
 ---
 
-### 6.3.3 Línea 3: Soporte Multi-Chain
+### 8.3.4 Línea 3: Soporte Multi-Chain
 
 **Objetivo:** Extender MIESC a otras blockchains con smart contracts.
 
@@ -194,7 +194,7 @@ class SoliditySecurityFineTuner:
 
 ---
 
-### 6.3.4 Línea 4: Verificación Formal Avanzada
+### 8.3.5 Línea 4: Verificación Formal Avanzada
 
 **Objetivo:** Profundizar capacidades de verificación formal con especificaciones automáticas.
 
@@ -218,7 +218,7 @@ class SoliditySecurityFineTuner:
 
 ---
 
-### 6.3.5 Línea 5: Integración con Ecosistema de Desarrollo
+### 8.3.6 Línea 5: Integración con Ecosistema de Desarrollo
 
 **Objetivo:** Integrar MIESC en el ciclo de vida de desarrollo de smart contracts.
 
@@ -303,7 +303,7 @@ async with websockets.connect("ws://localhost:8765") as ws:
 
 ---
 
-### 6.3.6 Línea 6: Auditoría Continua en Producción
+### 8.3.7 Línea 6: Auditoría Continua en Producción
 
 **Objetivo:** Extender MIESC para monitoreo post-deployment.
 
@@ -325,9 +325,9 @@ async with websockets.connect("ws://localhost:8765") as ws:
 
 ---
 
-## 6.4 Impacto Esperado
+## 8.4 Impacto Esperado
 
-### 6.4.1 Impacto Académico
+### 8.4.1 Impacto Académico
 
 1. **Publicaciones derivadas (realizadas):**
    - **RIBCi–CYTED 2026 (IEEE, doble ciego)** — Paper 1 (detección) y Paper 2
@@ -341,7 +341,7 @@ async with websockets.connect("ws://localhost:8765") as ws:
    - Framework reproducible para investigación
    - Dataset de vulnerabilidades normalizadas
 
-### 6.4.2 Impacto Industrial
+### 8.4.2 Impacto Industrial
 
 1. **Adopción esperada:**
    - Desarrolladores independientes: acceso a auditoría gratuita
@@ -352,7 +352,7 @@ async with websockets.connect("ws://localhost:8765") as ws:
    - Detección temprana: prevención de exploits post-deployment
    - Estimación conservadora: prevención de $10M+ en pérdidas potenciales
 
-### 6.4.3 Impacto Social
+### 8.4.3 Impacto Social
 
 1. **Democratización de seguridad:**
    - Herramienta gratuita y de código abierto
@@ -366,7 +366,7 @@ async with websockets.connect("ws://localhost:8765") as ws:
 
 ---
 
-## 6.5 Reflexiones Finales
+## 8.5 Reflexiones Finales
 
 El desarrollo de MIESC representa un paso significativo hacia la democratización de la seguridad en smart contracts. En un ecosistema donde las pérdidas por vulnerabilidades superan los miles de millones de dólares anuales, la disponibilidad de herramientas de auditoría accesibles y efectivas es fundamental.
 
@@ -382,7 +382,7 @@ MIESC encarna esta filosofía, proporcionando no solo una herramienta, sino un m
 
 ---
 
-## 6.6 Referencias del Capítulo
+## 8.6 Referencias del Capítulo
 
 Boiero, F., Mussetta, S. N., & Cena, N. G. (2026a). MIESC: A multi-layer framework for automated smart contract security evaluation. En *Livros de Atas — IV Simposio Internacional de Blockchain y Ciberseguridad (RIBCi–CYTED 2026)*.
 
