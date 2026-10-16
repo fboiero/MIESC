@@ -308,7 +308,7 @@ jobs:
 
 2. **Contribution to Digital Public Goods:**
    - DPGA standards compliance
-   - Permissive MIT license
+   - AGPL-3.0 license (open-source copyleft, OSI-approved)
    - Guaranteed portability
 
 ---

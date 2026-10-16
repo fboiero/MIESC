@@ -16,7 +16,7 @@
 | API REST | SI | NO | NO | SI |
 | MCP Server | SI | NO | NO | NO |
 | Dashboard HTML | SI | NO | SI | SI |
-| Open Source | SI (MIT) | SI | SI | NO |
+| Open Source | SI (AGPL-3.0) | SI | SI | NO |
 | Mantenimiento activo | 2025 | 2023 | 2024 | Descontinuado |
 
 ---

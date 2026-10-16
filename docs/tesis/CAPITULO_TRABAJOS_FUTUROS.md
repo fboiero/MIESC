@@ -361,7 +361,7 @@ async with websockets.connect("ws://localhost:8765") as ws:
 
 2. **Contribución a Digital Public Goods:**
    - Cumplimiento de estándares DPGA
-   - Licencia MIT permisiva
+   - Licencia AGPL-3.0 (código abierto copyleft, aprobada por la OSI)
    - Portabilidad garantizada
 
 ---
