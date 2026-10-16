@@ -39,7 +39,7 @@ Cada uno de estos pasos introduce riesgos:
 
 3. **Retención:** Las políticas de retención de OpenAI (30 días para API), Anthropic (30 días), y Google (variable) implican que el código permanece accesible en sus sistemas mucho después del análisis.
 
-4. **Memorización:** Carlini et al. (2023) demostraron que los LLMs pueden memorizar y reproducir fragmentos de sus datos de entrenamiento. Aunque las APIs comerciales tienen políticas de no entrenar con datos de API, la posibilidad técnica existe.
+4. **Memorización:** Carlini et al. (2021) demostraron que los LLMs pueden memorizar y reproducir fragmentos de sus datos de entrenamiento. Aunque las APIs comerciales tienen políticas de no entrenar con datos de API, la posibilidad técnica existe.
 
 ### 6.1.3 Cuantificación del Riesgo
 
@@ -78,7 +78,7 @@ El personal de OpenAI, Anthropic, o Google con acceso a logs de API puede potenc
 
 **3. Memorización y extracción de modelos**
 
-Carlini et al. (2023) demostraron la "memorization attack": mediante prompts cuidadosamente diseñados, es posible extraer fragmentos de datos de entrenamiento de LLMs. Si un modelo fuera entrenado (inadvertidamente o no) con código de clientes, ese código podría ser extraído posteriormente por terceros.
+Carlini et al. (2021) demostraron la "memorization attack": mediante prompts cuidadosamente diseñados, es posible extraer fragmentos de datos de entrenamiento de LLMs. Si un modelo fuera entrenado (inadvertidamente o no) con código de clientes, ese código podría ser extraído posteriormente por terceros.
 
 **Figura 21.** Superficie de ataque en análisis con API comercial
 
@@ -895,7 +895,7 @@ Las limitaciones de capacidad respecto a modelos comerciales se mitigan mediante
 
 ## 6.8 Referencias del Capítulo
 
-Carlini, N., et al. (2023). Extracting Training Data from Large Language Models. *USENIX Security Symposium*.
+Carlini, N., Tramèr, F., Wallace, E., Jagielski, M., Herbert-Voss, A., Lee, K., Roberts, A., Brown, T., Song, D., Erlingsson, Ú., Oprea, A., & Raffel, C. (2021). Extracting training data from large language models. En *Proceedings of the 30th USENIX Security Symposium* (pp. 2633-2650). USENIX Association. https://www.usenix.org/conference/usenixsecurity21/presentation/carlini-extracting
 
 Digital Public Goods Alliance. (2023). *Digital Public Goods Standard*. https://digitalpublicgoods.net/standard/
 
@@ -917,7 +917,7 @@ República Federativa do Brasil. (2018). Lei Geral de Proteção de Dados (LGPD)
 
 Stallman, R. M. (2002). *Free software, free society: Selected essays of Richard M. Stallman*. GNU Press.
 
-Sun, Y., Wu, D., Xue, Y., Liu, H., Wang, H., Xu, Z., Xie, X., & Liu, Y. (2024). GPTScan: Detecting logic vulnerabilities in smart contracts by combining GPT with program analysis. *Proceedings of the 46th International Conference on Software Engineering (ICSE)*, Article 166. https://doi.org/10.1145/3597503.3623318
+Sun, Y., Wu, D., Xue, Y., Liu, H., Wang, H., Xu, Z., Xie, X., & Liu, Y. (2024). GPTScan: Detecting logic vulnerabilities in smart contracts by combining GPT with program analysis. En *Proceedings of the IEEE/ACM 46th International Conference on Software Engineering (ICSE '24)* (pp. 1-13). ACM. https://doi.org/10.1145/3597503.3639117
 
 Winner, L. (1980). Do artifacts have politics? *Daedalus, 109*(1), 121-136.
 

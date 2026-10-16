@@ -82,7 +82,7 @@ El trabajo de esta tesis dio lugar a dos artículos presentados en el IV Simposi
 Internacional de Blockchain y Ciberseguridad (RIBCi–CYTED 2026, IEEE, revisión doble
 ciego):
 
-- **Paper 1 — Detección** (Boiero, Mussetta y Cena, 2026a): consolida la evaluación de
+- **Paper 1 — Detección** (Boiero et al., 2026a): consolida la evaluación de
   detección y aporta evidencia que no formaba parte del corpus defendido:
   - **Exploits reales:** 9/11 detectados (81.8% de recall; IC Wilson 95% [52%, 95%])
     sobre USD 1.59B en pérdidas evaluadas —un primer paso de la Línea 1.
@@ -95,7 +95,7 @@ ciego):
     protocolo y el juez utilizados.
   - **Filtro de falsos positivos:** reduce 207 de 1.263 FP (16%) sin perder verdaderos
     positivos, elevando la precisión a nivel de finding de 13.3% a 15.5%.
-- **Paper 2 — Remediación** (Boiero, Mussetta y Cena, 2026b): aplica y verifica
+- **Paper 2 — Remediación** (Boiero et al., 2026b): aplica y verifica
   reparaciones automáticas (123/143 contratos parcheados, 123/123 compilan, 88/123
   eliminan el hallazgo HIGH/CRITICAL, 121/123 sin regresión) —realización de la Línea 5
   (integración con el ecosistema de desarrollo). No reclama equivalencia semántica ni
@@ -208,7 +208,7 @@ class SoliditySecurityFineTuner:
 | TF-4.4 | Verificación de upgradeability patterns | Media | Alto |
 | TF-4.5 | Pruebas de equivalencia pre/post upgrade | Alta | Alto |
 
-**Fundamentación:** Lahav et al. (2022) demuestran que la verificación formal detecta 100% de vulnerabilidades de estado, pero requiere especificaciones manuales costosas.
+**Fundamentación:** La verificación formal permite demostrar propiedades sobre el estado del contrato de manera exhaustiva dentro del alcance de la especificación (Certora, 2024), pero requiere especificaciones manuales costosas.
 
 **Propuesta de síntesis de invariantes:**
 
@@ -331,7 +331,7 @@ async with websockets.connect("ws://localhost:8765") as ws:
 
 1. **Publicaciones derivadas (realizadas):**
    - **RIBCi–CYTED 2026 (IEEE, doble ciego)** — Paper 1 (detección) y Paper 2
-     (remediación), derivados directos de esta tesis (Boiero, Mussetta y Cena, 2026a,
+     (remediación), derivados directos de esta tesis (Boiero et al., 2026a,
      2026b).
    - Líneas futuras de difusión: journal con la evaluación empírica extendida (p. ej.
      TSE/TOSEM) y workshops de seguridad DeFi.
@@ -392,7 +392,6 @@ DeFiLlama. (2024). *DeFi TVL by Chain*. https://defillama.com/chains
 
 Durieux, T., Ferreira, J. F., Abreu, R., & Cruz, P. (2020). Empirical review of automated analysis tools on 47,587 Ethereum smart contracts. *ICSE 2020*, 530-541.
 
-Lahav, O., Grumberg, O., & Shoham, S. (2022). Automated verification of smart contracts with Certora Prover. *ICSE-SEIP 2022*, 45-54.
 
 Qin, K., Zhou, L., Livshits, B., & Gervais, A. (2021). Attacking the DeFi ecosystem with flash loans. *FC 2021*, 3-32.
 

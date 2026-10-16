@@ -32,7 +32,7 @@
 | Tabla | Título | Descripción | Pág. |
 |-------|--------|-------------|------|
 | 3.1 | Incidentes de seguridad históricos en contratos inteligentes | Incidentes documentados con pérdida, vulnerabilidad y referencia | 65 |
-| 3.2 | Distribución de vulnerabilidades en contratos Ethereum (Zhou et al., 2023) | Frecuencia por SWC-ID sobre 47.587 contratos desplegados | 68 |
+| 3.2 | Distribución de vulnerabilidades en contratos Ethereum (Durieux et al., 2020) | Frecuencia por SWC-ID sobre 47.587 contratos desplegados | 68 |
 | 3.3 | Comparativa de herramientas según Durieux et al. (2020) | Recall por herramienta individual sobre corpus estandarizado | 74 |
 | 3.4 | Brechas identificadas y soluciones de MIESC | Gaps del estado del arte y la solución implementada por MIESC | 96 |
 

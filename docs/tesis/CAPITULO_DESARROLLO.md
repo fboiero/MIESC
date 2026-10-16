@@ -58,7 +58,7 @@ El índice de mantenibilidad de 72.3 supera el umbral de 65 propuesto por Oman y
 > versión **v4.0.0** (7 capas de defensa, 25 herramientas integradas), que es la
 > defendida. Las versiones posteriores —la línea **v5.x**, usada para la validación
 > cruzada en EVMBench (§5.3.5), y la **línea actual v6.1.0**, descrita en los papers
-> asociados (RIBCi-CYTED 2026) y publicada en PyPI bajo AGPL-3.0— ampliaron el
+> asociados (Boiero et al., 2026a, 2026b) y publicada en PyPI bajo AGPL-3.0— ampliaron el
 > pipeline a **9 capas y 35 módulos** (13 externos + 22 internos), incorporando
 > capas de razonamiento con LLM y filtrado de falsos positivos. Los resultados de
 > detección de esta tesis corresponden a la arquitectura v4.0.0 documentada, salvo
@@ -71,7 +71,7 @@ El índice de mantenibilidad de 72.3 supera el umbral de 65 propuesto por Oman y
 
 ### 4.2.1 El Principio de Defensa en Profundidad: Fundamentos y Aplicación
 
-La arquitectura de MIESC se fundamenta en el principio de defensa en profundidad (*Defense-in-Depth*, DiD), un concepto originado en doctrina militar que fue adaptado a la seguridad de sistemas de información durante la década de 1990. El Department of Defense (1996) formalizó este principio como "la aplicación de múltiples medidas de protección en serie, de modo que un adversario deba superar o evitar cada medida sucesivamente para comprometer el sistema protegido" (p. 3-12).
+La arquitectura de MIESC se fundamenta en el principio de defensa en profundidad (*Defense-in-Depth*, DiD), un concepto originado en doctrina militar que fue adaptado a la seguridad de sistemas de información durante la década de 1990. El National Security Agency (s.f.) formalizó este principio como "la aplicación de múltiples medidas de protección en serie, de modo que un adversario deba superar o evitar cada medida sucesivamente para comprometer el sistema protegido" (p. 3-12).
 
 La aplicación de este principio al análisis de contratos inteligentes es una contribución original de este trabajo. La justificación teórica se fundamenta en la observación empírica de que diferentes técnicas de análisis tienen fortalezas y debilidades complementarias:
 
@@ -81,7 +81,7 @@ La aplicación de este principio al análisis de contratos inteligentes es una c
 
 **Fuzzing:** Genera entradas aleatorias o guiadas para descubrir comportamientos inesperados, particularmente efectivo para encontrar casos límite no contemplados por el desarrollador. Miller et al. (1990) establecieron esta técnica, que Grieco et al. (2020) adaptaron específicamente para contratos inteligentes con Echidna.
 
-**Verificación formal:** Demuestra matemáticamente propiedades del código mediante sistemas de prueba automatizados. Clarke et al. (2018) describen los fundamentos teóricos, mientras que Lahav et al. (2022) documentan su aplicación práctica en Certora Prover.
+**Verificación formal:** Demuestra matemáticamente propiedades del código mediante sistemas de prueba automatizados. Clarke et al. (2018) describen los fundamentos teóricos, mientras que Certora (2024) documentan su aplicación práctica en Certora Prover.
 
 **Análisis con IA:** Modelos de lenguaje capaces de detectar vulnerabilidades de lógica de negocio que requieren comprensión semántica del código. Sun et al. (2024) demuestran que GPTScan detecta el 90.2% de vulnerabilidades de lógica que escapan a herramientas tradicionales.
 
@@ -1111,11 +1111,10 @@ Claessen, K., & Hughes, J. (2000). QuickCheck: A lightweight tool for random tes
 
 ConsenSys. (2023). *Smart contract best practices*. https://consensys.github.io/smart-contract-best-practices/
 
-Sun, Y., Wu, D., Xue, Y., Liu, H., Wang, H., Xu, Z., Xie, X., & Liu, Y. (2024). GPTScan: Detecting logic vulnerabilities in smart contracts by combining GPT with program analysis. *Proceedings of the 46th International Conference on Software Engineering (ICSE)*, Article 166. https://doi.org/10.1145/3597503.3623318
+Sun, Y., Wu, D., Xue, Y., Liu, H., Wang, H., Xu, Z., Xie, X., & Liu, Y. (2024). GPTScan: Detecting logic vulnerabilities in smart contracts by combining GPT with program analysis. En *Proceedings of the IEEE/ACM 46th International Conference on Software Engineering (ICSE '24)* (pp. 1-13). ACM. https://doi.org/10.1145/3597503.3639117
 
 de Moura, L., & Bjørner, N. (2008). Z3: An efficient SMT solver. *TACAS 2008*, 337-340.
 
-Department of Defense. (1996). *MIL-HDBK-217F: Reliability prediction of electronic equipment*.
 
 Dijkstra, E. W. (1982). On the role of scientific thought. *Selected Writings on Computing*, 60-66.
 
@@ -1143,7 +1142,6 @@ Hohpe, G., & Woolf, B. (2003). *Enterprise integration patterns*. Addison-Wesley
 
 King, J. C. (1976). Symbolic execution and program testing. *Communications of the ACM, 19*(7), 385-394.
 
-Lahav, O., Grumberg, O., & Shoham, S. (2022). Automated verification of smart contracts with Certora Prover. *ICSE-SEIP 2022*, 45-54.
 
 Linux Foundation. (2024). *SPDX License List*. https://spdx.org/licenses/
 

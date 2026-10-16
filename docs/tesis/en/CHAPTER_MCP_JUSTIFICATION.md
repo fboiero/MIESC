@@ -19,7 +19,7 @@ Consider the typical workflow of a developer who wants to verify the security of
 5. Investigate each finding to determine if it represents a real vulnerability
 6. Decide and apply the appropriate remediation
 
-This process assumes specialized technical knowledge that exceeds the typical competencies of an application developer. The result, documented by Beller et al. (2016), is that "static analysis tools are underutilized in industrial practice due to usage friction and difficulty in interpreting results" (p. 12).
+This process assumes specialized technical knowledge that exceeds the typical competencies of an application developer. The result, documented by Beller et al. (2016) in their large-scale evaluation of open-source projects, is that static analysis tools remain underused in practice because of usage friction and the difficulty of interpreting their results.
 
 ### 7.1.2 The Emergence of Conversational Interfaces
 
@@ -806,7 +806,7 @@ Anthropic. (2024). Model Context Protocol Specification. https://github.com/anth
 
 Anthropic. (2024). MCP Servers Documentation. https://modelcontextprotocol.io/
 
-Beller, M., Gousios, G., Panichella, A., & Zaidman, A. (2016). When, how, and why developers (do not) test in their IDEs. *ESEC/FSE 2016*, 179-190.
+Beller, M., Bholanath, R., McIntosh, S., & Zaidman, A. (2016). Analyzing the state of static analysis: A large-scale evaluation in open source software. In *2016 IEEE 23rd International Conference on Software Analysis, Evolution, and Reengineering (SANER)* (pp. 470-481). IEEE. https://doi.org/10.1109/SANER.2016.105
 
 OWASP. (2023). Smart Contract Security Testing Guide. https://owasp.org/
 

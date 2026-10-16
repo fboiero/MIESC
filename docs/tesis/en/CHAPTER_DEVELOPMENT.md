@@ -58,7 +58,7 @@ The maintainability index of 72.3 exceeds the threshold of 65 proposed by Oman a
 > **v4.0.0** (7 defense layers, 25 integrated tools), which is the one defended.
 > Later releases — the **v5.x** line, used for the EVMBench cross-validation
 > (§5.3.5), and the **current v6.1.0 line**, described in the associated papers
-> (RIBCi-CYTED 2026) and published on PyPI under AGPL-3.0 — expanded the pipeline to
+> (Boiero et al., 2026a, 2026b) and published on PyPI under AGPL-3.0 — expanded the pipeline to
 > **9 layers and 35 modules** (13 external + 22 internal), adding LLM-reasoning
 > layers and false-positive filtering. The detection results in this thesis
 > correspond to the documented v4.0.0 architecture, except the EVMBench validation
@@ -66,7 +66,7 @@ The maintainability index of 72.3 exceeds the threshold of 65 proposed by Oman a
 
 ### 4.2.1 The Defense-in-Depth Principle: Foundations and Application
 
-MIESC's architecture is founded on the Defense-in-Depth (DiD) principle, a concept originated in military doctrine that was adapted to information systems security during the 1990s. The Department of Defense (1996) formalized this principle as "the application of multiple protective measures in series, so that an adversary must overcome or avoid each measure successively to compromise the protected system" (p. 3-12).
+MIESC's architecture is founded on the Defense-in-Depth (DiD) principle, a concept originated in military doctrine that was adapted to information systems security during the 1990s. The National Security Agency (n.d.) formalized this principle as "the application of multiple protective measures in series, so that an adversary must overcome or avoid each measure successively to compromise the protected system" (p. 3-12).
 
 The application of this principle to smart contract analysis is an original contribution of this work. The theoretical justification is based on the empirical observation that different analysis techniques have complementary strengths and weaknesses:
 
@@ -76,7 +76,7 @@ The application of this principle to smart contract analysis is an original cont
 
 **Fuzzing:** Generates random or guided inputs to discover unexpected behaviors, particularly effective for finding edge cases not contemplated by the developer. Miller et al. (1990) established this technique, which Grieco et al. (2020) adapted specifically for smart contracts with Echidna.
 
-**Formal verification:** Mathematically proves code properties through automated proof systems. Clarke et al. (2018) describe the theoretical foundations, while Lahav et al. (2022) document its practical application in Certora Prover.
+**Formal verification:** Mathematically proves code properties through automated proof systems. Clarke et al. (2018) describe the theoretical foundations, while Certora (2024) document its practical application in Certora Prover.
 
 **AI analysis:** Language models capable of detecting business logic vulnerabilities that require semantic understanding of code. Sun et al. (2024) demonstrate that GPTScan detects 90.2% of logic vulnerabilities that escape traditional tools.
 
@@ -512,7 +512,6 @@ Clarke, E. M., Henzinger, T. A., Veith, H., & Bloem, R. (Eds.). (2018). *Handboo
 
 ConsenSys. (2023). *Smart contract best practices*. https://consensys.github.io/smart-contract-best-practices/
 
-Department of Defense. (1996). *MIL-HDBK-217F: Reliability prediction of electronic equipment*.
 
 Dijkstra, E. W. (1982). On the role of scientific thought. *Selected Writings on Computing*, 60-66.
 
@@ -532,7 +531,6 @@ Hohpe, G., & Woolf, B. (2003). *Enterprise integration patterns*. Addison-Wesley
 
 King, J. C. (1976). Symbolic execution and program testing. *Communications of the ACM, 19*(7), 385-394.
 
-Lahav, O., Grumberg, O., & Shoham, S. (2022). Automated verification of smart contracts with Certora Prover. *ICSE-SEIP 2022*, 45-54.
 
 Martin, R. C. (2017). *Clean architecture: A craftsman's guide to software structure and design*. Prentice Hall.
 

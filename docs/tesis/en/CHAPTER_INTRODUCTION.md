@@ -18,7 +18,7 @@ Blockchain technology, initially conceived as infrastructure for decentralized p
 - **Electronic Voting:** Democratic processes and citizen consultations
 - **Real Asset Tokenization:** Regulated financial infrastructure
 
-According to Di Pietro et al. (2024), these systems constitute potential critical infrastructure whose security has direct implications for national sovereignty and security.
+According to Govea et al. (2024), these systems constitute potential critical infrastructure whose security has direct implications for national sovereignty and security.
 
 ### 1.1.2 The Threat to Smart Contracts
 
@@ -67,7 +67,7 @@ The field of smart contract security has seen the development of numerous specia
 
 ### 1.1.4 The Need for Data Sovereignty
 
-In the context of cyber defense, the confidentiality of audited code is critical. According to Zhang et al. (2024), the use of cloud AI services for code analysis presents risks:
+In the context of cyber defense, the confidentiality of audited code is critical. According to Zhang et al. (2025), the use of cloud AI services for code analysis presents risks:
 
 1. **Intellectual property exposure:** Source code sent to third parties
 2. **External service dependency:** Loss of operational capability if the service is unavailable
@@ -282,7 +282,6 @@ Chainalysis. (2024). *The 2024 Crypto Crime Report*. Chainalysis Inc.
 
 Ivanov, N., Li, C., Yan, Q., Sun, Z., Cao, Z., & Luo, X. (2023). Security defense for smart contracts: A comprehensive survey. *arXiv preprint arXiv:2302.07347*. https://arxiv.org/abs/2302.07347
 
-Di Pietro, R., Ferretti, S., & Verde, N. V. (2024). Securing critical infrastructure with blockchain technology: A systematic review. *MDPI Electronics, 13*(1), 1-24. https://doi.org/10.3390/electronics13010001
 
 Durieux, T., Ferreira, J. F., Abreu, R., & Cruz, P. (2020). Empirical review of automated analysis tools on 47,587 Ethereum smart contracts. In *Proceedings of the ACM/IEEE 42nd International Conference on Software Engineering* (pp. 530-541). ACM. https://doi.org/10.1145/3377811.3380364
 
@@ -294,7 +293,7 @@ Nakamoto, S. (2008). Bitcoin: A peer-to-peer electronic cash system. https://bit
 
 Szabo, N. (1996). Smart contracts: Building blocks for digital markets. *Extropy, 16*(16), 1-10.
 
-Zhang, Q., Zhang, C., & Li, J. (2024). When LLMs meet cybersecurity: A systematic literature review. *Computers & Security*. https://doi.org/10.1016/j.cose.2024.104099
+Zhang, J., Bu, H., Wen, H., Liu, Y., Fei, H., Xi, R., Li, L., Yang, Y., Zhu, H., & Meng, D. (2025). When LLMs meet cybersecurity: A systematic literature review. *Cybersecurity, 8*(1), Article 55. https://doi.org/10.1186/s42400-025-00361-w
 
 ---
 

@@ -19,7 +19,7 @@ Considérese el flujo de trabajo típico de un desarrollador que desea verificar
 5. Investigar cada hallazgo para determinar si representa una vulnerabilidad real
 6. Decidir y aplicar la remediación apropiada
 
-Este proceso asume conocimiento técnico especializado que excede las competencias típicas de un desarrollador de aplicaciones. El resultado, documentado por Beller et al. (2016), es que "las herramientas de análisis estático son subutilizadas en la práctica industrial debido a la fricción de uso y la dificultad de interpretación de resultados" (p. 12).
+Este proceso asume conocimiento técnico especializado que excede las competencias típicas de un desarrollador de aplicaciones. El resultado, documentado por Beller et al. (2016) en su evaluación a gran escala sobre proyectos de código abierto, es que las herramientas de análisis estático quedan subutilizadas en la práctica por la fricción de uso y la dificultad de interpretar sus resultados.
 
 ### 7.1.2 La Emergencia de Interfaces Conversacionales
 
@@ -807,7 +807,7 @@ Anthropic. (2024). Model Context Protocol Specification. https://github.com/anth
 
 Anthropic. (2024). MCP Servers Documentation. https://modelcontextprotocol.io/
 
-Beller, M., Gousios, G., Panichella, A., & Zaidman, A. (2016). When, how, and why developers (do not) test in their IDEs. *ESEC/FSE 2016*, 179-190.
+Beller, M., Bholanath, R., McIntosh, S., & Zaidman, A. (2016). Analyzing the state of static analysis: A large-scale evaluation in open source software. En *2016 IEEE 23rd International Conference on Software Analysis, Evolution, and Reengineering (SANER)* (pp. 470-481). IEEE. https://doi.org/10.1109/SANER.2016.105
 
 OWASP. (2023). Smart Contract Security Testing Guide. https://owasp.org/
 

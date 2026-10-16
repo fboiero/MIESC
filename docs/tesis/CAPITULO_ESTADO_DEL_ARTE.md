@@ -6,7 +6,7 @@
 
 ## 3.1 Introducción
 
-La seguridad de los contratos inteligentes representa uno de los desafíos más significativos en el ecosistema blockchain contemporáneo. Según Atzei et al. (2017), los contratos inteligentes son "programas que se ejecutan en una blockchain y que, una vez desplegados, son inmutables y públicamente verificables" (p. 164). Esta inmutabilidad, si bien garantiza la integridad del código, implica que cualquier vulnerabilidad presente en el momento del despliegue permanecerá explotable indefinidamente, a menos que se implementen mecanismos de actualización específicos (Chen et al., 2020).
+La seguridad de los contratos inteligentes representa uno de los desafíos más significativos en el ecosistema blockchain contemporáneo. Según Atzei et al. (2017), los contratos inteligentes son "programas que se ejecutan en una blockchain y que, una vez desplegados, son inmutables y públicamente verificables" (p. 164). Esta inmutabilidad, si bien garantiza la integridad del código, implica que cualquier vulnerabilidad presente en el momento del despliegue permanecerá explotable indefinidamente, a menos que se implementen mecanismos de actualización específicos (Chen et al.,2017).
 
 El presente capítulo realiza una revisión sistemática del estado del arte en herramientas y metodologías de análisis de seguridad para contratos inteligentes, siguiendo las directrices metodológicas propuestas por Kitchenham y Charters (2007) para revisiones sistemáticas en ingeniería de software. Se identifican las principales brechas existentes que fundamentan el desarrollo de MIESC como contribución al campo.
 
@@ -24,11 +24,11 @@ Las vulnerabilidades en contratos inteligentes han ocasionado pérdidas económi
 |-----|-----------|---------------|----------------|------------|
 | 2016 | The DAO | $60M | Reentrancy | Mehar et al. (2019) |
 | 2017 | Parity Wallet | $150M | Access Control | Destefanis et al. (2018) |
-| 2018 | Beauty Chain | $900M | Integer Overflow | Chen et al. (2020) |
+| 2018 | Beauty Chain | $900M | Integer Overflow | Chen et al. (2017) |
 | 2020 | bZx Protocol | $350K | Flash Loan | Qin et al. (2021) |
 | 2021 | Poly Network | $610M | Cross-chain | Zhou et al. (2023) |
 | 2022 | Ronin Bridge | $625M | Key Compromise | Chainalysis (2024) |
-| 2023 | Euler Finance | $197M | Flash Loan + Logic | Werner et al. (2024) |
+| 2023 | Euler Finance | $197M | Flash Loan + Logic | Chainalysis (2024) |
 
 Estos incidentes evidencian la necesidad crítica de herramientas automatizadas de detección de vulnerabilidades, dado que las auditorías manuales, aunque exhaustivas, presentan limitaciones de escalabilidad y costo (Durieux et al., 2020).
 
@@ -43,9 +43,9 @@ Perez y Livshits (2021) proponen una clasificación basada en el origen de las v
 3. **Vulnerabilidades a nivel de blockchain**: Asociadas a la naturaleza distribuida del sistema
 4. **Vulnerabilidades de lógica de negocio**: Errores en la implementación de la lógica del protocolo
 
-La Tabla 3.2 presenta la distribución de frecuencia de vulnerabilidades según el estudio empírico de Zhou et al. (2023) sobre 47,587 contratos desplegados en Ethereum mainnet.
+La Tabla 3.2 presenta la distribución de frecuencia de vulnerabilidades según el estudio empírico de Durieux et al. (2020) sobre 47,587 contratos desplegados en Ethereum mainnet.
 
-**Tabla 3.2.** Distribución de vulnerabilidades en contratos Ethereum (Zhou et al., 2023)
+**Tabla 3.2.** Distribución de vulnerabilidades en contratos Ethereum (Durieux et al., 2020)
 
 | SWC-ID | Vulnerabilidad | Frecuencia | Impacto Potencial |
 |--------|----------------|------------|-------------------|
@@ -141,7 +141,7 @@ La verificación formal proporciona garantías matemáticas sobre el comportamie
 
 **Herramientas representativas:**
 
-*Certora Prover* (Lahav et al., 2022): Herramienta comercial que utiliza el lenguaje CVL (Certora Verification Language) para especificaciones formales. Empleada por protocolos de alto valor como Aave y Compound.
+*Certora Prover* (Certora, 2024): Herramienta comercial que utiliza el lenguaje CVL (Certora Verification Language) para especificaciones formales. Empleada por protocolos de alto valor como Aave y Compound.
 
 *SMTChecker* (Alt & Reitwiessner, 2018): Verificador integrado en el compilador de Solidity que utiliza bounded model checking para verificar aserciones.
 
@@ -196,7 +196,7 @@ A partir de la revisión sistemática realizada, se identifican las siguientes b
 
 **Impacto:** Vulnerabilidades detectables únicamente mediante combinación de técnicas permanecen sin identificar.
 
-**Fundamentación de la solución:** El modelo de defensa en profundidad (*Defense-in-Depth*), originado en doctrina militar y adaptado a seguridad informática por el NIST (Ross et al., 2016a), propone múltiples capas de controles independientes. Schneier (2000) argumenta que "la seguridad es un proceso, no un producto" (p. 12), fundamentando la necesidad de enfoques multi-capa.
+**Fundamentación de la solución:** El modelo de defensa en profundidad (*Defense-in-Depth*), originado en doctrina militar y adaptado a seguridad informática por el NIST (Ross et al.,2016), propone múltiples capas de controles independientes. Schneier (2000) argumenta que "la seguridad es un proceso, no un producto" (p. 12), fundamentando la necesidad de enfoques multi-capa.
 
 ### 3.5.3 Brecha 3: Falta de Normalización
 
@@ -249,7 +249,7 @@ La Tabla 3.4 sintetiza las brechas identificadas y las soluciones propuestas por
 | # | Brecha | Solución MIESC | Fundamentación |
 |---|--------|----------------|----------------|
 | 1 | Fragmentación | Protocolo ToolAdapter | Gamma et al. (1994) |
-| 2 | Mono-técnica | Arquitectura 7 capas | Ross et al. (2016a) |
+| 2 | Mono-técnica | Arquitectura 7 capas | Ross et al. (2016) |
 | 3 | Sin normalización | Mapeo SWC/CWE/OWASP | SCSVS (2023) |
 | 4 | Costo APIs | Backend Ollama local | DPGA (2023) |
 | 5 | Obsolescencia | Docker + parches | Parnas (1972), Merkel (2014) |
@@ -259,7 +259,7 @@ La Tabla 3.4 sintetiza las brechas identificadas y las soluciones propuestas por
 
 ## 3.7 Referencias del Capítulo
 
-Alt, L., & Reitwiessner, C. (2018). SMT-based verification of Solidity smart contracts. *Lecture Notes in Computer Science, 10998*, 376-388. https://doi.org/10.1007/978-3-319-94111-0_22
+Alt, L., & Reitwiessner, C. (2018). SMT-based verification of Solidity smart contracts. En T. Margaria & B. Steffen (Eds.), *Leveraging applications of formal methods, verification and validation. Industrial practice (ISoLA 2018)* (Lecture Notes in Computer Science, Vol. 11247, pp. 376-388). Springer. https://doi.org/10.1007/978-3-030-03427-6_28
 
 Atzei, N., Bartoletti, M., & Cimoli, T. (2017). A survey of attacks on Ethereum smart contracts (SoK). *Lecture Notes in Computer Science, 10204*, 164-186. https://doi.org/10.1007/978-3-662-54455-6_8
 
@@ -269,13 +269,13 @@ Bhargavan, K., Delignat-Lavaud, A., Fournet, C., Gollamudi, A., Gonthier, G., Ko
 
 Chainalysis. (2024). *The 2024 Crypto Crime Report*. https://www.chainalysis.com/reports/
 
-Chen, T., Li, X., Luo, X., & Zhang, X. (2020). Under-optimized smart contracts devour your money. *Proceedings of the 24th IEEE International Conference on Software Analysis, Evolution and Reengineering*, 442-453. https://doi.org/10.1109/SANER.2020.9045642
+Chen, T., Li, X., Luo, X., & Zhang, X. (2017). Under-optimized smart contracts devour your money. En *2017 IEEE 24th International Conference on Software Analysis, Evolution and Reengineering (SANER)* (pp. 442-446). IEEE. https://doi.org/10.1109/SANER.2017.7884650
 
 De Baets, C., Suleiman, B., Chitizadeh, A., & Razzak, I. (2024). Vulnerability detection in smart contracts: A comprehensive survey. *arXiv preprint arXiv:2407.07922*. https://arxiv.org/abs/2407.07922
 
 Clarke, E. M., Henzinger, T. A., Veith, H., & Bloem, R. (Eds.). (2018). *Handbook of model checking*. Springer. https://doi.org/10.1007/978-3-319-10575-8
 
-Sun, Y., Wu, D., Xue, Y., Liu, H., Wang, H., Xu, Z., Xie, X., & Liu, Y. (2024). GPTScan: Detecting logic vulnerabilities in smart contracts by combining GPT with program analysis. *Proceedings of the 46th International Conference on Software Engineering (ICSE)*, Article 166. https://doi.org/10.1145/3597503.3623318
+Sun, Y., Wu, D., Xue, Y., Liu, H., Wang, H., Xu, Z., Xie, X., & Liu, Y. (2024). GPTScan: Detecting logic vulnerabilities in smart contracts by combining GPT with program analysis. En *Proceedings of the IEEE/ACM 46th International Conference on Software Engineering (ICSE '24)* (pp. 1-13). ACM. https://doi.org/10.1145/3597503.3639117
 
 Destefanis, G., Marchesi, M., Ortu, M., Tonelli, R., Bracciali, A., & Hierons, R. (2018). Smart contracts vulnerabilities: A call for blockchain software engineering? *Proceedings of the International Workshop on Blockchain Oriented Software Engineering*, 19-25. https://doi.org/10.1109/IWBOSE.2018.8327567
 
@@ -303,7 +303,6 @@ King, J. C. (1976). Symbolic execution and program testing. *Communications of t
 
 Kitchenham, B., & Charters, S. (2007). *Guidelines for performing systematic literature reviews in software engineering* (Technical Report EBSE-2007-01). Keele University.
 
-Lahav, O., Grumberg, O., & Shoham, S. (2022). Automated verification of smart contracts with Certora Prover. *Proceedings of the 44th International Conference on Software Engineering: Software Engineering in Practice*, 45-54.
 
 Luu, L., Chu, D. H., Olickel, H., Saxena, P., & Hobor, A. (2016). Making smart contracts smarter. *Proceedings of the 2016 ACM SIGSAC Conference on Computer and Communications Security*, 254-269. https://doi.org/10.1145/2976749.2978309
 
@@ -337,7 +336,7 @@ Qin, K., Zhou, L., Livshits, B., & Gervais, A. (2021). Attacking the DeFi ecosys
 
 Rameder, H., Di Angelo, M., & Salzer, G. (2022). Review of automated vulnerability analysis of smart contracts on Ethereum. *Frontiers in Blockchain, 5*, 814977. https://doi.org/10.3389/fbloc.2022.814977
 
-Ross, R., McEvilley, M., & Oren, J. C. (2016a). *Systems security engineering: Considerations for a multidisciplinary approach in the engineering of trustworthy secure systems* (NIST Special Publication 800-160, Vol. 1). National Institute of Standards and Technology. https://doi.org/10.6028/NIST.SP.800-160v1
+Ross, R., McEvilley, M., & Oren, J. C. (2016). *Systems security engineering: Considerations for a multidisciplinary approach in the engineering of trustworthy secure systems* (NIST Special Publication 800-160, Vol. 1). National Institute of Standards and Technology. https://doi.org/10.6028/NIST.SP.800-160v1
 
 Schneier, B. (2000). *Secrets and lies: Digital security in a networked world*. John Wiley & Sons.
 
@@ -345,9 +344,9 @@ SCSVS. (2023). *Smart Contract Security Verification Standard*. https://github.c
 
 Tsankov, P., Dan, A., Drachsler-Cohen, D., Gervais, A., Bünzli, F., & Vechev, M. (2018). Securify: Practical security analysis of smart contracts. *Proceedings of the 2018 ACM SIGSAC Conference on Computer and Communications Security*, 67-82. https://doi.org/10.1145/3243734.3243780
 
-Werner, S. M., Perez, D., Gudgeon, L., Klages-Mundt, A., Harz, D., & Knottenbelt, W. J. (2024). SoK: Decentralized finance (DeFi) attacks. *Proceedings of the 45th IEEE Symposium on Security and Privacy*, 1-18.
+Werner, S., Perez, D., Gudgeon, L., Klages-Mundt, A., Harz, D., & Knottenbelt, W. (2022). SoK: Decentralized finance (DeFi). En *Proceedings of the 4th ACM Conference on Advances in Financial Technologies (AFT '22)* (pp. 30-46). ACM. https://doi.org/10.1145/3558535.3559780
 
-Zhou, L., Xiong, X., Ernstberger, J., Chaliasos, S., Wang, Z., Wang, Y., ... & Gervais, A. (2023). SoK: Decentralized finance (DeFi) incidents. *Proceedings of the 44th IEEE Symposium on Security and Privacy*, 2444-2461. https://doi.org/10.1109/SP46215.2023.10179435
+Zhou, L., Xiong, X., Ernstberger, J., Chaliasos, S., Wang, Z., Wang, Y., Qin, K., Wattenhofer, R., Song, D., & Gervais, A. (2023). SoK: Decentralized finance (DeFi) attacks. En *2023 IEEE Symposium on Security and Privacy (SP)* (pp. 2444-2461). IEEE. https://doi.org/10.1109/SP46215.2023.10179435
 
 ---
 
