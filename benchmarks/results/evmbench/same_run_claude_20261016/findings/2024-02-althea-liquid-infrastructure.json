@@ -1,0 +1,192 @@
+[
+ {
+  "type": "logic_error",
+  "title": "Holders Array Not Cleaned Up on Disapproval Leading to Incorrect Distribution",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-02-althea-liquid-infrastructure_02kntzmt/repo/liquid-infrastructure/contracts/LiquidInfrastructureERC20.sol",
+   "line": 0,
+   "function": "_beforeTokenTransfer"
+  },
+  "description": "The `holders` array tracks all current holders for distribution purposes. When `disapproveHolder()` is called for an address that still holds tokens, that address remains in the `holders` array. During distribution, `isApprovedHolder(recipient)` is checked, so disapproved holders won't receive rewards. However, they still count toward `holders.length`, meaning distributions may be considered 'complete' when `nextDistributionRecipient == holders.length`, yet some holders who were previously approved (and now disapproved but still hold tokens) are skipped. More critically, if a disapproved holder transfers their tokens to someone else, `_afterTokenTransfer` removes them from `holders`, but the new holder is added fresh. However if they transfer to address(0) (burn), the zero address gets pushed into `holders` array in `_beforeTokenTransfer` before burn check - actually the check `if (!(to == address(0)))` prevents the approved holder check but still runs `_beforeMintOrBurn()`. The zero address is NOT added to `holders` because `exists = (this.balanceOf(to) != 0)` and balanceOf(address(0)) is 0 before burn completes - so address(0) gets pushed to `holders`. This means address(0) will be permanently in the `holders` array with a balance of 0 after any burn.",
+  "message": "address(0) is permanently added to the `holders` array after every burn operation. Over time this bloats the holders array, increases gas costs for distribution, and since `balanceOf(address(0))` is always 0, the entitlement calculation `erc20EntitlementPerUnit[j] * this.balanceOf(recipient)` yields 0 - meaning zero tokens are transferred to address(0) (which would revert anyway on most ERC20 tokens). This can cause distributions to fail if the ERC20.transfer to address(0) reverts.",
+  "recommendation": "Add a check in `_beforeTokenTransfer` to not add address(0) to the holders array: `if (to != address(0)) { bool exists = (this.balanceOf(to) != 0); if (!exists) { holders.push(to); } }`",
+  "exploit_scenario": "1. Deploy contract\n2. Approve holder Alice\n3. Mint tokens to Alice\n4. Alice calls burn(amount) - _beforeTokenTransfer is called with to=address(0)\n5. The check `if (!(to == address(0)))` skips the approved holder check\n6. `_beforeMintOrBurn()` is called (OK)\n7. `bool exists = (this.balanceOf(address(0)) != 0)` \u2192 false\n8. `holders.push(address(0))` is executed\n9. address(0) is now permanently in `holders`\n10. Future distributions will attempt to transfer to address(0), which may revert",
+  "swc_id": "",
+  "file": "LiquidInfrastructureERC20.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Rounding Error in entitlement Calculation Causes Undistributed Funds to Be Locked",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-02-althea-liquid-infrastructure_02kntzmt/repo/liquid-infrastructure/contracts/LiquidInfrastructureERC20.sol",
+   "line": 0,
+   "function": "_beginDistribution"
+  },
+  "description": "In `_beginDistribution()`, the entitlement per unit is calculated as `balance / supply` using integer division. This truncates the remainder. When distribution occurs, each holder receives `erc20EntitlementPerUnit[j] * balanceOf(holder)`. The sum of all distributions will be less than the actual balance by up to `supply - 1` tokens per distributable ERC20. These remainder tokens are permanently stuck in the contract, never distributed, and will be included in the next distribution's balance calculation - but the same rounding error recurs. While not directly exploitable by an attacker, this causes systematic fund leakage/locking.",
+  "message": "Undistributed reward tokens accumulate in the contract permanently. Over many distribution cycles, significant value can be locked. With high token supply and many distributable ERC20s, rounding losses compound.",
+  "recommendation": "After distributing to all holders, send the remaining balance (balance % supply) to a designated treasury address or track undistributed amounts. Alternatively use a more precise accounting mechanism like reward-per-token-stored pattern.",
+  "exploit_scenario": "1. 1000 tokens in supply, 999 reward tokens available\n2. entitlement = 999 / 1000 = 0 per unit\n3. All holders receive 0 reward tokens\n4. 999 reward tokens are stuck in contract\n5. Next distribution includes these 999 tokens plus new rewards\n6. If supply stays 1000 and total is 1998: entitlement = 1998/1000 = 1 per unit\n7. 1000 tokens distributed, 998 still stuck\n8. Pattern continues with funds never fully distributed",
+  "swc_id": "",
+  "file": "LiquidInfrastructureERC20.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Distribution Can Be Griefed by Token Transfer During Active Distribution",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-02-althea-liquid-infrastructure_02kntzmt/repo/liquid-infrastructure/contracts/LiquidInfrastructureERC20.sol",
+   "line": 0,
+   "function": "distribute"
+  },
+  "description": "When a distribution is in progress (`LockedForDistribution = true`), `_beforeTokenTransfer` requires `!LockedForDistribution` which prevents transfers. However, `erc20EntitlementPerUnit` is calculated at the START of distribution based on the snapshot of balances at `_beginDistribution()`. The `holders` array and individual balances can change between `_beginDistribution()` and the actual distribution calls because distribution happens in chunks (multiple `distribute()` calls). But wait - `LockedForDistribution` prevents transfers, mints, and burns. HOWEVER, the actual holder balance used for entitlement calculation is `this.balanceOf(recipient)` at TIME OF DISTRIBUTION, not at time of snapshot. If a holder's balance changes between when entitlements were calculated and when they receive their distribution (which is prevented by the lock), this is actually protected. BUT if a holder was at index 5 and gets processed, they could potentially receive more than their fair share because `erc20EntitlementPerUnit` was calculated based on totalSupply but individual balances are read at distribution time.",
+  "message": "The entitlement per unit is calculated once but balances are read per-holder at distribution time. Since transfers are locked, this is partially mitigated, but the design is fragile.",
+  "recommendation": "Snapshot holder balances at distribution start rather than reading live balances during distribution to ensure consistency.",
+  "exploit_scenario": "The design appears to handle this with the lock, so this is more of a design concern than an active exploit vector given the lock.",
+  "swc_id": "",
+  "file": "LiquidInfrastructureERC20.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "withdrawFromManagedNFTs nextWithdrawal Reset Logic Allows Double-Withdrawal",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-02-althea-liquid-infrastructure_02kntzmt/repo/liquid-infrastructure/contracts/LiquidInfrastructureERC20.sol",
+   "line": 0,
+   "function": "withdrawFromManagedNFTs"
+  },
+  "description": "The `nextWithdrawal` variable tracks progress through the `ManagedNFTs` array during multi-transaction withdrawal. It is reset to 0 only when `nextWithdrawal == ManagedNFTs.length`. If `addManagedNFT()` or `releaseManagedNFT()` is called while a withdrawal is in progress (i.e., `nextWithdrawal > 0` but `< ManagedNFTs.length`), the state becomes inconsistent. Specifically, if `releaseManagedNFT()` removes an NFT that hasn't been withdrawn yet, and this causes `ManagedNFTs.length` to equal `nextWithdrawal`, the withdrawal loop will think it's complete and reset `nextWithdrawal = 0`, potentially skipping some NFTs or causing double-withdrawal on the next cycle.",
+  "message": "NFTs could be skipped during withdrawal, causing their accumulated rewards to not be transferred to the ERC20 contract. This results in holders receiving fewer rewards than they are entitled to. Owner can also be blocked from adding/removing NFTs during partial withdrawal, or state becomes inconsistent leading to potential double-withdrawal.",
+  "recommendation": "Prevent addManagedNFT and releaseManagedNFT from being called while a withdrawal is in progress (nextWithdrawal > 0). Add a modifier: `require(nextWithdrawal == 0, 'withdrawal in progress')`.",
+  "exploit_scenario": "1. Contract has 5 ManagedNFTs\n2. withdrawFromManagedNFTs(3) is called \u2192 nextWithdrawal = 3\n3. Owner calls releaseManagedNFT() removing the NFT at index 4 (last one)\n4. ManagedNFTs.length is now 4, nextWithdrawal = 3\n5. withdrawFromManagedNFTs(1) is called \u2192 withdraws index 3, nextWithdrawal = 4\n6. nextWithdrawal == ManagedNFTs.length \u2192 reset to 0\n7. NFT that was at position 3 (which got moved during release) may have been double-processed or skipped",
+  "swc_id": "",
+  "file": "LiquidInfrastructureERC20.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "releaseManagedNFT Missing Require Assertion Always Passes",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-02-althea-liquid-infrastructure_02kntzmt/repo/liquid-infrastructure/contracts/LiquidInfrastructureERC20.sol",
+   "line": 0,
+   "function": "releaseManagedNFT"
+  },
+  "description": "In `releaseManagedNFT()`, after the loop that searches for and removes the NFT from `ManagedNFTs`, there is a `require(true, 'unable to find released NFT in ManagedNFTs')`. This require statement ALWAYS passes because the condition is hardcoded to `true`. The intended behavior was to require that the NFT was found in the array and removed. However, if `nftContract` is not in `ManagedNFTs`, the loop completes without removing anything, but the function doesn't revert. The NFT is still transferred out via `nft.transferFrom()`, but the `ManagedNFTs` array is not updated. This means the contract still thinks it manages the NFT even though it no longer owns it.",
+  "message": "An owner can call `releaseManagedNFT()` with any NFT contract address (even one not in ManagedNFTs). More critically, if a legitimate NFT is released but the require was supposed to catch the case where it's not in the array, subsequent calls to `withdrawFromAllManagedNFTs()` will try to call `withdrawBalancesTo()` on the released NFT that the contract no longer owns, causing a revert and potentially permanently blocking withdrawals.",
+  "recommendation": "Replace `require(true, ...)` with a proper boolean flag: `bool found = false; for (...) { if (managed == nftContract) { ... found = true; break; } } require(found, 'unable to find released NFT in ManagedNFTs');`",
+  "exploit_scenario": "1. Contract manages NFT_A (in ManagedNFTs[0])\n2. Owner calls releaseManagedNFT(NFT_B, owner) where NFT_B is not in ManagedNFTs but owner has previously transferred it to the contract\n3. nft.transferFrom() succeeds, NFT_B is transferred out\n4. Loop finds no match, ManagedNFTs unchanged\n5. require(true) passes\n6. No event is emitted correctly, no state change\n7. If NFT_A is released similarly and somehow ends up in ManagedNFTs still, future withdrawals will fail",
+  "swc_id": "",
+  "file": "LiquidInfrastructureERC20.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "unchecked_return_value",
+  "title": "ERC20 Transfer Return Value Not Checked in distribute()",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-02-althea-liquid-infrastructure_02kntzmt/repo/liquid-infrastructure/contracts/LiquidInfrastructureERC20.sol",
+   "line": 0,
+   "function": "distribute"
+  },
+  "description": "In `distribute()`, the code uses `if (toDistribute.transfer(recipient, entitlement))` which checks the return value. However, the IERC20 interface specifies that `transfer` returns a bool. Some non-standard ERC20 tokens (USDT, etc.) don't return a value at all, causing the call to revert when using the standard IERC20 interface. More critically, if transfer returns false (indicating failure), the distribution marks `receipts[j] = 0` but continues to the next token. The distribution is considered COMPLETE even though some recipients didn't receive their tokens. The `_endDistribution()` is called regardless, locking users out of the distribution they didn't receive. The distributed tokens are NOT tracked as undistributed - they remain in the contract but `erc20EntitlementPerUnit` is deleted, so they'll just be included in the next distribution.",
+  "message": "If a transfer fails (returns false) for some holders, those holders don't receive their rewards, but the distribution is marked complete. On the next distribution, those tokens are included again and redistributed. This means early failing holders effectively subsidize later holders who successfully receive.",
+  "recommendation": "Use OpenZeppelin's SafeERC20 library with `safeTransfer()` to ensure failed transfers revert rather than silently fail. Track undistributed amounts properly.",
+  "exploit_scenario": "1. Distribution begins for holders [Alice, Bob]\n2. Alice's transfer fails (e.g., she's blacklisted in the reward token)\n3. receipts[0] = 0 for Alice's distribution record\n4. Distribution continues to Bob successfully\n5. _endDistribution() is called, erc20EntitlementPerUnit deleted\n6. Alice's tokens remain in contract\n7. Next distribution: Alice's tokens are redistributed to all holders including Bob\n8. Bob gets effectively extra rewards at Alice's expense",
+  "swc_id": "",
+  "file": "LiquidInfrastructureERC20.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "access_control",
+  "title": "Disapproved Holders Can Receive Tokens Via Approved Holder Transfer Attack",
+  "severity": "Medium",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-02-althea-liquid-infrastructure_02kntzmt/repo/liquid-infrastructure/contracts/LiquidInfrastructureERC20.sol",
+   "line": 0,
+   "function": "_beforeTokenTransfer"
+  },
+  "description": "When `disapproveHolder()` is called for an address that currently holds tokens, that address keeps their tokens. The `disapproveHolder()` function only sets `HolderAllowlist[holder] = false` but doesn't force a transfer or burn. The disapproved holder cannot receive MORE tokens, but they keep their existing balance and continue to appear in the `holders` array. During distribution, the check `if (isApprovedHolder(recipient))` prevents them from receiving distribution rewards. However, their token balance still affects the `totalSupply()` used to calculate `erc20EntitlementPerUnit = balance / supply`, meaning the disapproved holder's tokens dilute rewards for approved holders without the disapproved holder receiving anything - causing permanently locked reward tokens.",
+  "message": "Disapproved holders who retain tokens cause reward dilution. Their share of rewards (calculated as entitlement * balance) is never distributed (since they're skipped), but the entitlement was calculated assuming their tokens would receive rewards. This causes reward tokens to be permanently locked in the contract equal to `erc20EntitlementPerUnit * disapprovedHolderBalance` per distribution cycle.",
+  "recommendation": "When disapproving a holder, either force them to transfer their tokens first, or implement a mechanism to handle the distribution of their share to remaining approved holders. Alternatively, calculate entitlement based only on approved holders' total supply.",
+  "exploit_scenario": "1. Alice (approved) holds 500 tokens, Bob (approved) holds 500 tokens, total supply = 1000\n2. 1000 USDC reward tokens in contract\n3. Owner calls disapproveHolder(Bob)\n4. Distribution begins: entitlement = 1000/1000 = 1 USDC per token\n5. Alice receives 500 USDC (500 * 1)\n6. Bob is skipped (not approved)\n7. Bob's 500 USDC remains stuck in contract\n8. Repeats each distribution cycle",
+  "swc_id": "",
+  "file": "LiquidInfrastructureERC20.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "reentrancy",
+  "title": "Reentrancy in _withdrawBalancesTo via Malicious ERC20 Token",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-02-althea-liquid-infrastructure_02kntzmt/repo/liquid-infrastructure/contracts/LiquidInfrastructureNFT.sol",
+   "line": 0,
+   "function": "_withdrawBalancesTo"
+  },
+  "description": "The _withdrawBalancesTo function calls IERC20(erc20).transfer(destination, balance) on arbitrary ERC20 addresses passed in by the caller. If a malicious or compromised ERC20 token's transfer() function re-enters withdrawBalances() or withdrawBalancesTo(), it can drain funds multiple times. The balance is read before the transfer but there is no reentrancy guard, and the same token could appear multiple times in the erc20s array. Additionally, since balanceOf is called and then transfer is called without any state update in between, a reentrant call would see the same (or updated) balance and could transfer again.",
+  "message": "An approved operator or owner who controls or interacts with a malicious ERC20 can trigger reentrancy. More practically, since the erc20s array is caller-supplied and can contain duplicates, a caller can list the same ERC20 address multiple times \u2014 the first transfer() succeeds and transfers the full balance, subsequent calls to the same token will simply transfer 0 (since balanceOf returns 0), so this specific duplicate vector is benign. However, a truly malicious ERC20 with a callback-based transfer (e.g., ERC777-compatible token with a tokensReceived hook on the destination) could reenter and double-withdraw if the destination is a contract that re-triggers withdrawal.",
+  "recommendation": "Add a reentrancy guard (e.g., OpenZeppelin's ReentrancyGuard) to withdrawBalances() and withdrawBalancesTo(). Also follow the checks-effects-interactions pattern by recording amounts before making external calls. Example: add `nonReentrant` modifier from ReentrancyGuard to both public withdrawal functions.",
+  "exploit_scenario": "1. Deploy a malicious ERC20 whose transfer() calls back into withdrawBalancesTo() before returning. 2. Fund the LiquidInfrastructureNFT with this token. 3. Call withdrawBalancesTo([maliciousToken], attackerContract). 4. maliciousToken.transfer() triggers attacker's receive(), which calls withdrawBalancesTo([maliciousToken], attackerContract) again. 5. On the reentrant call, balanceOf still returns the original balance (transfer hasn't completed), so balance > 0 triggers another transfer attempt. 6. Depending on ERC20 implementation, funds could be double-spent.",
+  "swc_id": "",
+  "file": "LiquidInfrastructureNFT.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "access_control",
+  "title": "Arbitrary ERC20 Address Acceptance Enables Token Theft via Malicious Contract",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-02-althea-liquid-infrastructure_02kntzmt/repo/liquid-infrastructure/contracts/LiquidInfrastructureNFT.sol",
+   "line": 0,
+   "function": "withdrawBalancesTo"
+  },
+  "description": "withdrawBalancesTo() allows any approved operator (not just the owner) to specify both an arbitrary list of ERC20 tokens AND an arbitrary destination address. An approved operator could specify a destination address they control, effectively draining all ERC20 balances held by the NFT contract to themselves rather than to the NFT owner. The access control only checks _isApprovedOrOwner but does not restrict the destination \u2014 it should likely enforce that destination is the owner.",
+  "message": "An approved operator (e.g., a marketplace contract that received approval for trading the NFT) can call withdrawBalancesTo() with their own address as destination, stealing all ERC20 revenue accumulated in the contract without the owner's consent. This is a significant privilege escalation \u2014 ERC721 approval is typically granted for transfer purposes, not for draining associated revenue.",
+  "recommendation": "Either (a) remove withdrawBalancesTo() and only allow withdrawal to ownerOf(AccountId), or (b) restrict withdrawBalancesTo() to onlyOwner(AccountId) rather than onlyOwnerOrApproved, since specifying an arbitrary destination is a privileged operation. Code: change the require check to `onlyOwner(AccountId)` modifier or add `require(destination == ownerOf(AccountId) || _msgSender() == ownerOf(AccountId), 'unauthorized destination')`.",
+  "exploit_scenario": "1. NFT owner Alice lists the NFT on a marketplace, granting the marketplace contract approval via ERC721's approve(). 2. Marketplace contract (or anyone who obtained approval) calls withdrawBalancesTo([token1, token2, ...], attackerAddress). 3. All accumulated ERC20 balances are sent to attackerAddress instead of Alice. 4. Alice loses all accumulated revenue.",
+  "swc_id": "",
+  "file": "LiquidInfrastructureNFT.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "No Validation of ERC20 Addresses in setThresholds \u2014 Zero Address or Non-Contract Addresses Accepted",
+  "severity": "Medium",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-02-althea-liquid-infrastructure_02kntzmt/repo/liquid-infrastructure/contracts/LiquidInfrastructureNFT.sol",
+   "line": 0,
+   "function": "setThresholds"
+  },
+  "description": "setThresholds() accepts arbitrary addresses including address(0) and EOAs as ERC20 threshold addresses. While this is primarily a configuration issue, if zero address or a non-ERC20 address is added and later used in _withdrawBalancesTo (though note that withdrawBalances uses a separate caller-supplied list), it creates confusion. More critically, there's no deduplication check \u2014 duplicate ERC20 addresses in thresholds could mislead the x/microtx module about intended behavior.",
+  "message": "Misconfigured thresholds could cause incorrect behavior in the Cosmos x/microtx module integration, potentially leading to unintended token transfers or failures in the off-chain recovery mechanism.",
+  "recommendation": "Add validation: require(newErc20s[i] != address(0)) and optionally check that the address contains code (isContract check). Also consider adding duplicate detection.",
+  "exploit_scenario": "Owner calls setThresholds([address(0), legitimateToken], [100, 200]). The zero address threshold is stored and sent to x/microtx module, causing undefined behavior.",
+  "swc_id": "",
+  "file": "LiquidInfrastructureNFT.sol",
+  "backend": "claude"
+ }
+]
