@@ -194,7 +194,3 @@ El software MIESC (Multi-layer Integration for Ethereum Smart Contract Security)
 
 **Copyright:** (c) 2025 Fernando Boiero
 
----
-
-*Documento actualizado: 2025-11-29*
-*MIESC v4.0.0 - 25 herramientas en 7 capas Defense-in-Depth*

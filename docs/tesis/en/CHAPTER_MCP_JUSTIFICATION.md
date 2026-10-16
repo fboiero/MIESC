@@ -143,9 +143,9 @@ The MIESC MCP server acts as a bridge between Claude's conversational world and 
 
 3. **Maintain session state:** The server preserves context from previous analyses, enabling iterative refinement.
 
-**Figure 23.** MCP integration architecture
+**Figure 7.1.** MCP integration architecture
 
-![Figure 23 - MCP integration architecture](../figures/Figura%2023.%20Arquitectura%20de%20integración%20MCP.svg)
+![Figure 7.1 - MCP integration architecture](../figures/Figura%2023.%20Arquitectura%20de%20integración%20MCP.svg)
 
 *Interaction flow between User, Claude Desktop and MIESC MCP Server*
 
@@ -270,9 +270,9 @@ class MIESCResourceHandler:
 
 The following sequence diagram illustrates the complete flow of a typical interaction:
 
-**Figure 24.** MCP interaction sequence
+**Figure 7.2.** MCP interaction sequence
 
-![Figure 24 - MCP interaction sequence](../figures/Figura%2024.%20Secuencia%20de%20interacción%20MCP.svg)
+![Figure 7.2 - MCP interaction sequence](../figures/Figura%2024.%20Secuencia%20de%20interacción%20MCP.svg)
 
 ```
 User             Claude              MCP Client           MIESC Server          Slither
@@ -802,7 +802,7 @@ This value proposition is unique in the blockchain security ecosystem, where alt
 
 ## 7.9 Chapter References
 
-Anthropic. (2024). Model Context Protocol Specification. https://github.com/anthropics/mcp
+Anthropic. (2024). Model Context Protocol Specification. https://modelcontextprotocol.io/
 
 Anthropic. (2024). MCP Servers Documentation. https://modelcontextprotocol.io/
 

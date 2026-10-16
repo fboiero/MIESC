@@ -16,7 +16,7 @@ El presente capítulo realiza una revisión sistemática del estado del arte en 
 
 ### 3.2.1 Impacto Económico de las Vulnerabilidades
 
-Las vulnerabilidades en contratos inteligentes han ocasionado pérdidas económicas sustanciales en el ecosistema de finanzas descentralizadas (DeFi). Según el informe de Chainalysis (2024), las pérdidas acumuladas por exploits en protocolos DeFi superaron los $3.8 billones de dólares estadounidenses entre 2020 y 2023. La Tabla 3.1 presenta los incidentes más significativos documentados en la literatura.
+Las vulnerabilidades en contratos inteligentes han ocasionado pérdidas económicas sustanciales en el ecosistema de finanzas descentralizadas (DeFi). Según el informe de Chainalysis (2024), las pérdidas acumuladas por exploits en protocolos DeFi superaron los 3.800 millones de dólares estadounidenses entre 2020 y 2023. La Tabla 3.1 presenta los incidentes más significativos documentados en la literatura.
 
 **Tabla 3.1.** Incidentes de seguridad históricos en contratos inteligentes
 

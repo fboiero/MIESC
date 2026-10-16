@@ -188,9 +188,9 @@ class SoliditySecurityFineTuner:
 
 **Arquitectura propuesta:**
 
-**Figura 28.** Arquitectura Multi-Chain propuesta para MIESC
+**Figura 8.1.** Arquitectura Multi-Chain propuesta para MIESC
 
-![Figura 28 - Arquitectura Multi-Chain propuesta para MIESC](figures/Figura%2028%20Multichain%20arquitectura%20propuesta..svg)
+![Figura 8.1 - Arquitectura Multi-Chain propuesta para MIESC](figures/Figura%2028%20Multichain%20arquitectura%20propuesta..svg)
 
 ---
 
@@ -212,9 +212,9 @@ class SoliditySecurityFineTuner:
 
 **Propuesta de síntesis de invariantes:**
 
-**Figura 29.** Propuesta de síntesis de invariantes con IA
+**Figura 8.2.** Propuesta de síntesis de invariantes con IA
 
-![Figura 29 - Propuesta de síntesis de invariantes con IA](figures/Figura%2029%20Propuesta%20de%20síntesis%20de%20invariantes.svg)
+![Figura 8.2 - Propuesta de síntesis de invariantes con IA](figures/Figura%2029%20Propuesta%20de%20síntesis%20de%20invariantes.svg)
 
 ---
 
@@ -319,9 +319,9 @@ async with websockets.connect("ws://localhost:8765") as ws:
 
 **Arquitectura propuesta:**
 
-**Figura 30.** Arquitectura de Auditoría Continua en Producción
+**Figura 8.3.** Arquitectura de Auditoría Continua en Producción
 
-![Figura 30 - Arquitectura de Auditoría Continua en Producción](figures/Figura%2030%20Auditoría%20Continua%20en%20Producción.svg)
+![Figura 8.3 - Arquitectura de Auditoría Continua en Producción](figures/Figura%2030%20Auditoría%20Continua%20en%20Producción.svg)
 
 ---
 

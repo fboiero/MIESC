@@ -1439,7 +1439,7 @@ Certora Prover v6.3.1
 [INFO] Uploading to Certora cloud...
 [INFO] Running verification...
 
-Job URL: https://prover.certora.com/output/12345
+Job URL: https://prover.certora.com/output/<job-id>
 
 ================================================================================
 SPECIFICATION: VulnerableBank.spec
@@ -1491,7 +1491,7 @@ Time: 45.2 seconds
   "version": "6.3.1",
   "status": "completed",
   "execution_time_ms": 45200,
-  "job_url": "https://prover.certora.com/output/12345",
+  "job_url": "https://prover.certora.com/output/<job-id>",
   "verification": {
     "total_rules": 3,
     "verified": 2,

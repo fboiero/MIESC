@@ -46,9 +46,9 @@ La protección de infraestructuras basadas en blockchain tiene implicaciones dir
 3. **Hacktivismo:** Ataques con motivación política a protocolos DeFi
 4. **Amenazas internas:** Desarrolladores maliciosos o negligentes
 
-**Figura 1.** Taxonomía de amenazas a sistemas blockchain
+**Figura 2.1.** Taxonomía de amenazas a sistemas blockchain
 
-![Figura 1 - Taxonomia de amenazas a sistemas blockchain](figures/Figura%201.%20Taxonomía%20de%20amenazas%20a%20sistemas%20blockchain.svg)
+![Figura 2.1 - Taxonomia de amenazas a sistemas blockchain](figures/Figura%201.%20Taxonomía%20de%20amenazas%20a%20sistemas%20blockchain.svg)
 
 ---
 
@@ -183,9 +183,9 @@ El fuzzing genera entradas aleatorias o semi-dirigidas para descubrir comportami
 
 La ejecución simbólica trata las entradas como símbolos y explora caminos de ejecución (King, 1976). Según Mossberg et al. (2019), es particularmente efectiva para:
 
-**Figura 3.** Ejecución concreta vs ejecución simbólica
+**Figura 2.2.** Ejecución concreta vs ejecución simbólica
 
-![Figura 3 - Ejecución concreta vs ejecución simbólica](figures/Figura%203%20Ejecución%20concreta%20vs%20ejecución%20simbólica.svg)
+![Figura 2.2 - Ejecución concreta vs ejecución simbólica](figures/Figura%203%20Ejecución%20concreta%20vs%20ejecución%20simbólica.svg)
 
 **Herramientas:** Mythril (Mueller, 2018), Manticore (Mossberg et al., 2019), Oyente (Luu et al., 2016)
 
@@ -224,9 +224,9 @@ La verificación formal utiliza métodos matemáticos para probar propiedades de
 
 El patrón Adapter convierte la interfaz de una clase en otra esperada por los clientes. MIESC utiliza este patrón para integrar herramientas heterogéneas:
 
-**Figura 3.1.** Patrón Adapter en MIESC
+**Figura 2.3.** Patrón Adapter en MIESC
 
-![Figura 3.1 - Patron Adapter en MIESC](figures/Figura%203.1.%20Patron%20Adapter%20en%20MIESC.svg)
+![Figura 2.3 - Patron Adapter en MIESC](figures/Figura%203.1.%20Patron%20Adapter%20en%20MIESC.svg)
 
 ### 2.5.2 Principios SOLID
 
@@ -248,9 +248,9 @@ Defense in Depth es una estrategia de seguridad que emplea múltiples capas de c
 
 Durieux et al. (2020) muestran empíricamente que ninguna herramienta individual detecta todas las clases de vulnerabilidades y que combinar herramientas complementarias aumenta la cobertura de detección, evidencia que sustenta el enfoque defense-in-depth.
 
-**Figura 4.** Arquitectura Defense-in-Depth de MIESC
+**Figura 2.4.** Arquitectura Defense-in-Depth de MIESC
 
-![Figura 4 - Arquitectura Defense-in-Depth de MIESC](figures/Figura%204%20Arquitectura%20Defense-in-Depth%20de%20MIESC.svg)
+![Figura 2.4 - Arquitectura Defense-in-Depth de MIESC](figures/Figura%204%20Arquitectura%20Defense-in-Depth%20de%20MIESC.svg)
 
 **Principio:** Cada capa proporciona protección complementaria. Si una capa falla en detectar una vulnerabilidad, las siguientes ofrecen oportunidades adicionales de detección.
 
@@ -277,9 +277,9 @@ Sun et al. (2024) reportan que GPT-4 alcanza precisión del 78% en detección de
 
 RAG combina LLMs con bases de conocimiento externas (Lewis et al., 2020). En MIESC, SmartLLM implementa RAG con una base de conocimiento de vulnerabilidades SWC:
 
-**Figura 5.** Arquitectura RAG en SmartLLM
+**Figura 2.5.** Arquitectura RAG en SmartLLM
 
-![Figura 5 - Arquitectura RAG en SmartLLM](figures/Figura%205.%20Arquitectura%20RAG%20en%20SmartLLM.svg)
+![Figura 2.5 - Arquitectura RAG en SmartLLM](figures/Figura%205.%20Arquitectura%20RAG%20en%20SmartLLM.svg)
 
 ### 2.6.3 Model Context Protocol (MCP)
 
@@ -424,4 +424,4 @@ Zhang, J., Bu, H., Wen, H., Liu, Y., Fei, H., Xi, R., Li, L., Yang, Y., Zhu, H.,
 
 ---
 
-*Las referencias siguen el formato APA 7ma edición. Todas las URLs fueron verificadas en noviembre 2024.*
+*Las referencias siguen el formato APA 7ma edición.*

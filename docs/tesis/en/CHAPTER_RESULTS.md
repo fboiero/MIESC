@@ -144,9 +144,9 @@ Table 5.4 documents the problems encountered during integration and their soluti
 
 Below are the actual execution outputs of the main tools integrated in MIESC, demonstrating the framework's operability.
 
-**Figure 13.** Slither Output (Layer 1 - Static Analysis)
+**Figure 5.1.** Slither Output (Layer 1 - Static Analysis)
 
-![Figure 13 - Slither Output Layer 1 - Static Analysis](../figures/Figura%2013%20Salida%20de%20Slither%20Capa%201%20-%20Análisis%20Estático.svg)
+![Figure 5.1 - Slither Output Layer 1 - Static Analysis](../figures/Figura%2013%20Salida%20de%20Slither%20Capa%201%20-%20Análisis%20Estático.svg)
 
 ```
 $ slither contracts/audit/VulnerableBank.sol
@@ -189,9 +189,9 @@ INFO:Slither:contracts/audit/VulnerableBank.sol analyzed (2 contracts with 100 d
 
 ---
 
-**Figure 14.** Mythril Output (Layer 3 - Symbolic Execution)
+**Figure 5.2.** Mythril Output (Layer 3 - Symbolic Execution)
 
-![Figure 14 - Mythril Output Layer 3 - Symbolic Execution](../figures/Figura%2014%20Salida%20de%20Mythril%20Capa%203%20-%20Ejecución%20Simbólica.svg)
+![Figure 5.2 - Mythril Output Layer 3 - Symbolic Execution](../figures/Figura%2014%20Salida%20de%20Mythril%20Capa%203%20-%20Ejecución%20Simbólica.svg)
 
 ```
 $ myth analyze contracts/audit/VulnerableBank.sol --execution-timeout 90
@@ -234,9 +234,9 @@ target.withdraw()
 
 ---
 
-**Figure 15.** SMTChecker Output (Layer 5 - Formal Verification)
+**Figure 5.3.** SMTChecker Output (Layer 5 - Formal Verification)
 
-![Figure 15 - SMTChecker Output Layer 5 - Formal Verification](../figures/Figura%2015%20Salida%20de%20SMTChecker%20Capa%205%20-%20Verificación%20Formal.svg)
+![Figure 5.3 - SMTChecker Output Layer 5 - Formal Verification](../figures/Figura%2015%20Salida%20de%20SMTChecker%20Capa%205%20-%20Verificación%20Formal.svg)
 
 ```
 $ solc --model-checker-engine chc --model-checker-targets all contracts/audit/VulnerableBank.sol
@@ -251,9 +251,9 @@ increasing the timeout per query.
 
 ---
 
-**Figure 16.** Complete MIESC Pipeline Output
+**Figure 5.4.** Complete MIESC Pipeline Output
 
-![Figure 16 - Complete MIESC Pipeline Output](../figures/Figura%2016%20Salida%20del%20Pipeline%20Completo%20de%20MIESC.svg)
+![Figure 5.4 - Complete MIESC Pipeline Output](../figures/Figura%2016%20Salida%20del%20Pipeline%20Completo%20de%20MIESC.svg)
 
 ```
 $ miesc audit full contracts/audit/VulnerableBank.sol
@@ -319,9 +319,9 @@ Status: COMPLETED
 
 ---
 
-**Figure 17.** Normalized Finding Structure (JSON)
+**Figure 5.5.** Normalized Finding Structure (JSON)
 
-![Figure 17 - Normalized Finding Structure JSON](../figures/Figura%2017%20Estructura%20de%20Hallazgo%20Normalizado%20JSON.svg)
+![Figure 5.5 - Normalized Finding Structure JSON](../figures/Figura%2017%20Estructura%20de%20Hallazgo%20Normalizado%20JSON.svg)
 
 The following fragment shows the structure of an individual finding normalized by MIESC, demonstrating the integration of SWC, CWE, and OWASP classifications:
 
@@ -352,8 +352,8 @@ The following fragment shows the structure of an individual finding normalized b
   "recommendation": "Apply checks-effects-interactions pattern. Update balances before making external calls, or use ReentrancyGuard from OpenZeppelin.",
   "references": [
     "https://swcregistry.io/docs/SWC-107",
-    "https://consensys.github.io/smart-contract-best-practices/attacks/reentrancy/",
-    "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/security/ReentrancyGuard.sol"
+    "https://consensysdiligence.github.io/smart-contract-best-practices/attacks/reentrancy/",
+    "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/ReentrancyGuard.sol"
   ],
   "timestamp": "2024-11-29T15:42:31.847Z"
 }
@@ -363,9 +363,9 @@ The following fragment shows the structure of an individual finding normalized b
 
 ---
 
-**Figure 18.** REST API Response
+**Figure 5.6.** REST API Response
 
-![Figure 18 - REST API Response](../figures/Figura%2018%20Respuesta%20de%20API%20REST.svg)
+![Figure 5.6 - REST API Response](../figures/Figura%2018%20Respuesta%20de%20API%20REST.svg)
 
 The following capture shows the MIESC REST API response after analyzing a contract:
 

@@ -46,9 +46,9 @@ The protection of blockchain-based infrastructure has direct implications for na
 3. **Hacktivism:** Politically motivated attacks on DeFi protocols
 4. **Insider threats:** Malicious or negligent developers
 
-**Figure 1.** Taxonomy of threats to blockchain systems
+**Figure 2.1.** Taxonomy of threats to blockchain systems
 
-![Figure 1 - Taxonomy of threats to blockchain systems](../figures/Figura%201.%20Taxonomía%20de%20amenazas%20a%20sistemas%20blockchain.svg)
+![Figure 2.1 - Taxonomy of threats to blockchain systems](../figures/Figura%201.%20Taxonomía%20de%20amenazas%20a%20sistemas%20blockchain.svg)
 
 ---
 
@@ -183,9 +183,9 @@ Fuzzing generates random or semi-directed inputs to discover anomalous behaviors
 
 Symbolic execution treats inputs as symbols and explores execution paths (King, 1976). According to Mossberg et al. (2019), it is particularly effective for:
 
-**Figure 3.** Concrete execution vs symbolic execution
+**Figure 2.2.** Concrete execution vs symbolic execution
 
-![Figure 3 - Concrete execution vs symbolic execution](../figures/Figura%203%20Ejecución%20concreta%20vs%20ejecución%20simbólica.svg)
+![Figure 2.2 - Concrete execution vs symbolic execution](../figures/Figura%203%20Ejecución%20concreta%20vs%20ejecución%20simbólica.svg)
 
 **Tools:** Mythril (Mueller, 2018), Manticore (Mossberg et al., 2019), Oyente (Luu et al., 2016)
 
@@ -224,9 +224,9 @@ Formal verification uses mathematical methods to prove program properties (Hoare
 
 The Adapter pattern converts the interface of a class into another expected by clients. MIESC uses this pattern to integrate heterogeneous tools:
 
-**Figure 3.1.** Adapter Pattern in MIESC
+**Figure 2.3.** Adapter Pattern in MIESC
 
-![Figure 3.1 - Adapter Pattern in MIESC](../figures/Figura%203.1.%20Patron%20Adapter%20en%20MIESC.svg)
+![Figure 2.3 - Adapter Pattern in MIESC](../figures/Figura%203.1.%20Patron%20Adapter%20en%20MIESC.svg)
 
 ### 2.5.2 SOLID Principles
 
@@ -248,9 +248,9 @@ Defense in Depth is a security strategy that employs multiple layers of controls
 
 Durieux et al. (2020) show empirically that no single tool detects all vulnerability classes and that combining complementary tools increases detection coverage, evidence that supports the defense-in-depth approach.
 
-**Figure 4.** MIESC Defense-in-Depth Architecture
+**Figure 2.4.** MIESC Defense-in-Depth Architecture
 
-![Figure 4 - MIESC Defense-in-Depth Architecture](../figures/Figura%204%20Arquitectura%20Defense-in-Depth%20de%20MIESC.svg)
+![Figure 2.4 - MIESC Defense-in-Depth Architecture](../figures/Figura%204%20Arquitectura%20Defense-in-Depth%20de%20MIESC.svg)
 
 **Principle:** Each layer provides complementary protection. If one layer fails to detect a vulnerability, subsequent layers offer additional detection opportunities.
 
@@ -277,9 +277,9 @@ Sun et al. (2024) report that GPT-4 achieves 78% precision in smart contract vul
 
 RAG combines LLMs with external knowledge bases (Lewis et al., 2020). In MIESC, SmartLLM implements RAG with a knowledge base of SWC vulnerabilities:
 
-**Figure 5.** RAG Architecture in SmartLLM
+**Figure 2.5.** RAG Architecture in SmartLLM
 
-![Figure 5 - RAG Architecture in SmartLLM](../figures/Figura%205.%20Arquitectura%20RAG%20en%20SmartLLM.svg)
+![Figure 2.5 - RAG Architecture in SmartLLM](../figures/Figura%205.%20Arquitectura%20RAG%20en%20SmartLLM.svg)
 
 ### 2.6.3 Model Context Protocol (MCP)
 

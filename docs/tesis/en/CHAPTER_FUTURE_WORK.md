@@ -186,9 +186,9 @@ class SoliditySecurityFineTuner:
 
 **Proposed architecture:**
 
-**Figure 28.** Proposed Multi-Chain Architecture for MIESC
+**Figure 8.1.** Proposed Multi-Chain Architecture for MIESC
 
-![Figure 28 - Multi-Chain Architecture Proposed for MIESC](../figures/Figura%2028%20Multichain%20arquitectura%20propuesta..svg)
+![Figure 8.1 - Multi-Chain Architecture Proposed for MIESC](../figures/Figura%2028%20Multichain%20arquitectura%20propuesta..svg)
 
 ---
 
@@ -210,9 +210,9 @@ class SoliditySecurityFineTuner:
 
 **Invariant synthesis proposal:**
 
-**Figure 29.** Proposal for AI-based Invariant Synthesis
+**Figure 8.2.** Proposal for AI-based Invariant Synthesis
 
-![Figure 29 - Proposal for AI-based Invariant Synthesis](../figures/Figura%2029%20Propuesta%20de%20síntesis%20de%20invariantes.svg)
+![Figure 8.2 - Proposal for AI-based Invariant Synthesis](../figures/Figura%2029%20Propuesta%20de%20síntesis%20de%20invariantes.svg)
 
 ---
 
@@ -266,9 +266,9 @@ jobs:
 
 **Proposed architecture:**
 
-**Figure 30.** Continuous Production Auditing Architecture
+**Figure 8.3.** Continuous Production Auditing Architecture
 
-![Figure 30 - Continuous Production Auditing Architecture](../figures/Figura%2030%20Auditoría%20Continua%20en%20Producción.svg)
+![Figure 8.3 - Continuous Production Auditing Architecture](../figures/Figura%2030%20Auditoría%20Continua%20en%20Producción.svg)
 
 ---
 

@@ -80,9 +80,9 @@ El personal de OpenAI, Anthropic, o Google con acceso a logs de API puede potenc
 
 Carlini et al. (2021) demostraron la "memorization attack": mediante prompts cuidadosamente diseñados, es posible extraer fragmentos de datos de entrenamiento de LLMs. Si un modelo fuera entrenado (inadvertidamente o no) con código de clientes, ese código podría ser extraído posteriormente por terceros.
 
-**Figura 21.** Superficie de ataque en análisis con API comercial
+**Figura 6.1.** Superficie de ataque en análisis con API comercial
 
-![Figura 21 - Superficie de ataque análisis en API comercial](figures/Figura%2021%20Superficie%20de%20ataque%20análisis%20en%20API%20comercial.svg)
+![Figura 6.1 - Superficie de ataque análisis en API comercial](figures/Figura%2021%20Superficie%20de%20ataque%20análisis%20en%20API%20comercial.svg)
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
@@ -276,9 +276,9 @@ A diferencia de servicios comerciales, Ollama no incluye código de telemetría.
 
 ### 6.3.3 Arquitectura de MIESC con LLM Soberano
 
-**Figura 22.** Arquitectura de análisis con LLM soberano
+**Figura 6.2.** Arquitectura de análisis con LLM soberano
 
-![Figura 22 - Arquitectura de análisis con LLM soberano](figures/Figura%2022.%20Arquitectura%20de%20análisis%20con%20LLM%20soberano.svg)
+![Figura 6.2 - Arquitectura de análisis con LLM soberano](figures/Figura%2022.%20Arquitectura%20de%20análisis%20con%20LLM%20soberano.svg)
 
 *Infraestructura 100% local con cero tráfico externo*
 
@@ -905,7 +905,7 @@ Floridi, L. (2020). The fight for digital sovereignty: What it is, and why it ma
 
 Illich, I. (1973). *Tools for conviviality*. Harper & Row.
 
-Meta AI. (2024). Llama 3 Model Card. https://ai.meta.com/llama/
+Meta AI. (2024). Llama 3 Model Card. https://github.com/meta-llama/llama3/blob/main/MODEL_CARD.md
 
 Ollama. (2024). Ollama Documentation. https://ollama.ai/
 

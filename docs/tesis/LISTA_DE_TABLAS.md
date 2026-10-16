@@ -63,6 +63,7 @@
 | 5.7 | MIESC vs Slither sobre el corpus real (29 vulnerabilidades) | Comparativa de detección type-aware MIESC frente a Slither | 185 |
 | 5.8 | Detección type-aware por modelo y ensemble (unión) | Recall type-aware por modelo LLM y ensemble por unión | 188 |
 | 5.8b | Recall en EVMBench por configuración (40 auditorías) | Frontier / open-weight / local / ensemble con recall, precisión, F1 y costo | 192 |
+| 5.8c | Detección sobre SmartBugs Curated (validación post-defensa, línea v5.x) | 143 contratos: recall 95.8% (137/143), precisión 22.2%, F1 0.360; re-validación 97.9% | — |
 | 5.9 | Análisis de hallazgos duplicados | Estadísticas de deduplicación: total raw, únicos, tasa de reducción | 196 |
 | 5.10 | Validación de mapeo taxonómico | Accuracy del mapeo automático SWC→CWE validado manualmente | 198 |
 | 5.11 | Tiempos de ejecución por capa (promedio de 10 ejecuciones) | Media, mediana, p95 y máximo para cada capa en segundos | 202 |

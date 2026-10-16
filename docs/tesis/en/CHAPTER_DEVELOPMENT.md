@@ -111,9 +111,9 @@ Table 4.2 presents the complementarity analysis that grounded the final selectio
 
 ### 4.2.3 Definitive Layer Model
 
-**Figure 7.** MIESC Defense-in-Depth Architecture
+**Figure 4.1.** MIESC Defense-in-Depth Architecture
 
-![Figure 7 - MIESC Defense-in-Depth Architecture](../figures/Figura%207%20Arquitectura%20de%20defensa%20en%20profundidad%20de%20MIESC.svg)
+![Figure 4.1 - MIESC Defense-in-Depth Architecture](../figures/Figura%207%20Arquitectura%20de%20defensa%20en%20profundidad%20de%20MIESC.svg)
 
 Layer numbering reflects the typical execution order during an audit: faster techniques with lower computational cost (static analysis) execute first, allowing identification of obvious problems before investing resources in more expensive techniques (symbolic execution, formal verification).
 
@@ -177,9 +177,9 @@ The adopted solution combines the Adapter pattern, documented by Gamma et al. (1
 
 **Dependency Inversion Principle (DIP):** MIESC's core depends on the `ToolAdapter` abstraction, not on concrete implementations like `SlitherAdapter` or `MythrilAdapter`.
 
-**Figure 8.** Class diagram of the Adapter pattern in MIESC
+**Figure 4.2.** Class diagram of the Adapter pattern in MIESC
 
-![Figure 8 - Class diagram of the Adapter pattern in MIESC](../figures/Figura%208%20Diagrama%20de%20clases%20del%20patrón%20Adapter%20en%20MIESC.svg)
+![Figure 4.2 - Class diagram of the Adapter pattern in MIESC](../figures/Figura%208%20Diagrama%20de%20clases%20del%20patrón%20Adapter%20en%20MIESC.svg)
 
 ### 4.3.3 Base Interface Implementation
 
@@ -336,7 +336,7 @@ The normalized finding format was designed following the SARIF (Static Analysis 
   "detected_by": ["slither", "mythril", "gptscan"],
   "references": [
     "https://swcregistry.io/docs/SWC-107",
-    "https://consensys.github.io/smart-contract-best-practices/attacks/reentrancy/"
+    "https://consensysdiligence.github.io/smart-contract-best-practices/attacks/reentrancy/"
   ],
   "metadata": {
     "first_detected": "2024-11-29T14:30:00Z",

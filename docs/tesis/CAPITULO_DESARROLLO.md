@@ -116,9 +116,9 @@ La Tabla 4.2 presenta el análisis de complementariedad que fundamentó la selec
 
 ### 4.2.3 Modelo de Capas Definitivo
 
-**Figura 7.** Arquitectura de defensa en profundidad de MIESC
+**Figura 4.1.** Arquitectura de defensa en profundidad de MIESC
 
-![Figura 7 - Arquitectura de defensa en profundidad de MIESC](figures/Figura%207%20Arquitectura%20de%20defensa%20en%20profundidad%20de%20MIESC.svg)
+![Figura 4.1 - Arquitectura de defensa en profundidad de MIESC](figures/Figura%207%20Arquitectura%20de%20defensa%20en%20profundidad%20de%20MIESC.svg)
 
 La numeración de capas refleja el orden típico de ejecución durante una auditoría: las técnicas más rápidas y con menor costo computacional (análisis estático) se ejecutan primero, permitiendo identificar problemas evidentes antes de invertir recursos en técnicas más costosas (ejecución simbólica, verificación formal).
 
@@ -182,9 +182,9 @@ La solución adoptada combina el patrón Adapter, documentado por Gamma et al. (
 
 **Principio de Inversión de Dependencias (DIP):** El núcleo de MIESC depende de la abstracción `ToolAdapter`, no de implementaciones concretas como `SlitherAdapter` o `MythrilAdapter`.
 
-**Figura 8.** Diagrama de clases del patrón Adapter en MIESC
+**Figura 4.2.** Diagrama de clases del patrón Adapter en MIESC
 
-![Figura 8 - Diagrama de clases del patrón Adapter en MIESC](figures/Figura%208%20Diagrama%20de%20clases%20del%20patrón%20Adapter%20en%20MIESC.svg)
+![Figura 4.2 - Diagrama de clases del patrón Adapter en MIESC](figures/Figura%208%20Diagrama%20de%20clases%20del%20patrón%20Adapter%20en%20MIESC.svg)
 
 ### 4.3.3 Implementación de la Interfaz Base
 
@@ -371,7 +371,7 @@ El formato de hallazgo normalizado se diseñó siguiendo el estándar SARIF (Sta
   "detected_by": ["slither", "mythril", "gptscan"],
   "references": [
     "https://swcregistry.io/docs/SWC-107",
-    "https://consensys.github.io/smart-contract-best-practices/attacks/reentrancy/"
+    "https://consensysdiligence.github.io/smart-contract-best-practices/attacks/reentrancy/"
   ],
   "metadata": {
     "first_detected": "2024-11-29T14:30:00Z",
@@ -1201,4 +1201,4 @@ van Rossum, G., et al. (2019). PEP 585 – Type hinting generics in standard col
 
 ---
 
-*Nota: Las referencias siguen el formato APA 7ma edición. Documento actualizado: 2025-11-29*
+*Nota: Las referencias siguen el formato APA 7ma edición.*
