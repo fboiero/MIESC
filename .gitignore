@@ -377,3 +377,6 @@ paper/ribci-cyted-2026/arxiv/*.tar.gz
 # Local archive of superseded/temporary working files (never tracked)
 _archive/
 !benchmarks/results/smartbugs_fp_filter_effect_20260710.json
+
+# Thesis delivery PDF build artifacts
+docs/tesis/build/

@@ -1,0 +1,204 @@
+#!/usr/bin/env python3
+"""Render the thesis delivery PDF with the DD 047/20 Art. 24 format.
+
+Assembles docs/tesis/*.md (ES) in reglamento order and runs pandoc -> XeLaTeX:
+A4, Arial 12 pt, 1.5 line spacing, margins left 3 cm / top-right-bottom 2 cm,
+arabic page numbers bottom-centre from the 2nd page (cover unnumbered), a table of
+contents, and SVG figures embedded via rsvg-convert.
+
+Usage: python scripts/render_thesis_pdf.py [--lang es]
+Output: docs/tesis/build/tesis_miesc_es.pdf
+"""
+from __future__ import annotations
+
+import argparse
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+TESIS = ROOT / "docs" / "tesis"
+BUILD = TESIS / "build"
+
+# Reglamento order (Art. 17): cover, index, abstract + front matter, chapters,
+# appendices, references, glossary. The cover comes first and stays unnumbered;
+# the table of contents is injected right after it.
+FRONT_MATTER = [
+    "SECCION_PRELIMINAR.md",
+    "LISTA_DE_ACRONIMOS.md",
+    "LISTA_DE_FIGURAS.md",
+    "LISTA_DE_TABLAS.md",
+]
+CHAPTERS = [
+    "CAPITULO_INTRODUCCION.md",
+    "CAPITULO_MARCO_TEORICO.md",
+    "CAPITULO_ESTADO_DEL_ARTE.md",
+    "CAPITULO_DESARROLLO.md",
+    "CAPITULO_RESULTADOS.md",
+    "CAPITULO_JUSTIFICACION_IA_LLM_SOBERANO.md",
+    "CAPITULO_JUSTIFICACION_MCP.md",
+    "CAPITULO_TRABAJOS_FUTUROS.md",
+]
+APPENDICES = [
+    "APENDICE_SALIDAS_HERRAMIENTAS.md",
+    "APENDICE_CODIGO_FUENTE.md",
+    "APENDICE_TECNICAS_ANALISIS.md",
+]
+BACK_MATTER = [
+    "REFERENCIAS_BIBLIOGRAFICAS.md",
+    "GLOSARIO.md",
+]
+
+HEADER_TEX = r"""
+\usepackage{fontspec}
+\setmainfont{Arial}
+% Monospace font with box-drawing glyphs (fixes CLI-output tables in appendices).
+\setmonofont{Menlo}
+\usepackage[a4paper,left=3cm,top=2cm,right=2cm,bottom=2cm]{geometry}
+\usepackage{setspace}
+\onehalfspacing
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0pt}
+% Headings already carry manual numbers in the text -> disable LaTeX auto-numbering.
+\setcounter{secnumdepth}{-1}
+\setcounter{tocdepth}{2}
+% Cover (page 1) unnumbered; arabic numbering shows from page 2 (Art. 24.4).
+\AtBeginDocument{\thispagestyle{empty}}
+\usepackage{graphicx}
+% Art. 24.6: figure captions below, table captions above.
+\usepackage{caption}
+\captionsetup[figure]{position=below}
+\captionsetup[table]{position=above}
+% Note: box-drawing glyphs inside code blocks are covered by \setmonofont{Menlo};
+% rare diagonal glyphs in prose may still be absent if the main font lacks them.
+% Tolerate over-wide code/tables instead of failing the build.
+\setlength{\emergencystretch}{3em}
+\usepackage{float}
+"""
+
+RAW_NEWPAGE = "\n\n```{=latex}\n\\newpage\n```\n\n"
+RAW_TOC = "\n\n```{=latex}\n\\tableofcontents\n\\newpage\n```\n\n"
+
+# Glyphs that Arial (main font) lacks and that appear in prose/tables (e.g. the
+# Ch.6 sovereignty scorecard ✓/✗/◑). Mapped to font-independent LaTeX so they
+# render; applied only OUTSIDE fenced code blocks (box-drawing chars inside code
+# are handled by \setmonofont{Menlo} and must stay literal).
+SYMBOL_MAP = {
+    "✓": r"$\checkmark$",
+    "✗": r"$\times$",
+    "◑": r"$\circ$",
+    "∈": r"$\in$",
+    "⁻": r"$^{-}$",
+    "ⱼ": r"$_{j}$",
+    "╲": r"\textbackslash{}",
+}
+
+
+def _replace_symbols_outside_code(md: str) -> str:
+    out: list[str] = []
+    in_fence = False
+    for line in md.split("\n"):
+        if line.lstrip().startswith("```"):
+            in_fence = not in_fence
+            out.append(line)
+            continue
+        if in_fence:
+            out.append(line)
+            continue
+        for src, dst in SYMBOL_MAP.items():
+            if src in line:
+                line = line.replace(src, dst)
+        out.append(line)
+    return "\n".join(out)
+
+
+# Lists whose "Pág." column holds stale, manually-estimated page numbers that cannot
+# be auto-regenerated (the figures are described in tables, not LaTeX floats). Drop
+# that column so the delivery PDF shows no wrong numbers, and drop the note that
+# claims the numbers regenerate automatically.
+PAGE_COLUMN_LISTS = {"LISTA_DE_FIGURAS.md", "LISTA_DE_TABLAS.md"}
+
+
+def _drop_last_table_column(md: str) -> str:
+    out: list[str] = []
+    for line in md.split("\n"):
+        s = line.rstrip()
+        stripped = s.strip()
+        if stripped.startswith("|") and stripped.endswith("|") and stripped.count("|") >= 3:
+            cells = stripped.split("|")
+            del cells[-2]  # remove the last data cell (the "Pág." column)
+            out.append("|".join(cells))
+        else:
+            out.append(line)
+    return "\n".join(out)
+
+
+def _drop_blockquote_note(md: str) -> str:
+    return "\n".join(ln for ln in md.split("\n") if not ln.lstrip().startswith(">"))
+
+
+def read(name: str) -> str:
+    p = TESIS / name
+    if not p.exists():
+        print(f"  WARN missing: {name}", file=sys.stderr)
+        return ""
+    text = p.read_text(encoding="utf-8")
+    if name in PAGE_COLUMN_LISTS:
+        text = _drop_last_table_column(_drop_blockquote_note(text))
+    return text
+
+
+def assemble() -> str:
+    parts: list[str] = []
+    parts.append(read("PORTADA_TESIS.md"))
+    parts.append(RAW_TOC)
+    for group in (FRONT_MATTER, CHAPTERS, APPENDICES, BACK_MATTER):
+        for name in group:
+            body = read(name)
+            if body:
+                parts.append(body)
+                parts.append(RAW_NEWPAGE)
+    return _replace_symbols_outside_code("\n\n".join(parts))
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--lang", default="es")
+    args = ap.parse_args()
+
+    for tool in ("pandoc", "xelatex", "rsvg-convert"):
+        if not shutil.which(tool):
+            print(f"ERROR: required tool not found: {tool}", file=sys.stderr)
+            return 2
+
+    BUILD.mkdir(parents=True, exist_ok=True)
+    combined = BUILD / f"tesis_combined_{args.lang}.md"
+    header = BUILD / "header_art24.tex"
+    out_pdf = BUILD / f"tesis_miesc_{args.lang}.pdf"
+
+    combined.write_text(assemble(), encoding="utf-8")
+    header.write_text(HEADER_TEX, encoding="utf-8")
+
+    cmd = [
+        "pandoc",
+        str(combined),
+        "-f", "markdown+raw_tex",
+        "--pdf-engine=xelatex",
+        f"--include-in-header={header}",
+        f"--resource-path={TESIS}",
+        "-V", "lang=es",
+        "-o", str(out_pdf),
+    ]
+    print("  " + " ".join(cmd))
+    r = subprocess.run(cmd, cwd=ROOT)
+    if r.returncode == 0:
+        print(f"OK -> {out_pdf}")
+    return r.returncode
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
