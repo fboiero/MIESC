@@ -62,3 +62,81 @@ unchanged. The paper's own category breakdown sums to 480.
 **Decision pending (Fernando):** accept 481↔480 as a one-unit rounding-neutral
 discrepancy (recommended; 22.2 % unchanged), or issue an erratum changing "481"
 to "480" in a post-camera-ready version.
+
+---
+
+## E-2 — Paper 2: pre-/post-patch HIGH-finding counts
+
+**Where in the paper (Paper 2, `paper2-camera-ready.tex`):** the remediation
+before/after table (reported as 141→60 total HIGH findings, 35→69 clean, and
+per-category rows such as reentrancy-eth 33→3 and 28/29→0).
+
+**What verified cleanly:** the **"before" total of 141** HIGH checks reproduces
+exactly from `benchmarks/results/paper2_prepatch_slither_baseline.json`
+(`sum(pre_high_checks) = 141` over the 143 contracts).
+
+**What did not reproduce from a single field:**
+- The **"after" total** computes to **61** post-patch HIGH checks
+  (`sum(post_high_checks) = 61`), whereas the paper states **60** — a one-unit
+  difference analogous to E-1.
+- The finer figures (**35→69 clean**, **reentrancy-eth 33→3**, **28/29→0**) do
+  not reproduce from an obvious field of the pre-patch baseline artifact. The
+  per-contract `pre_ok` / clean counts over all 143 are 57→90, not 35→69, so the
+  paper's 35→69 is measured on a different scope (e.g. a specific detector set or
+  the 123 patched-compiling subset) that is not recorded as a single scalar.
+
+**Impact:** the main remediation claims verified by `verify_paper_claims.py`
+(123/143 applied, 123/123 compile, 88/123 eliminate, 121/123 no-regression,
+70/123 Slither-clean) are unaffected. This entry concerns only the narrative
+before/after table.
+
+**Resolution in the repo:** the pre-patch baseline is published and traced in
+`paper2_claims_matrix.json` (claim `prepatch_slither_baseline`) with the
+transparent aggregates above. No frozen value is edited.
+
+**Decision pending (Fernando):** confirm the exact scope/definition behind the
+141→60, 35→69 and per-category before/after figures so they can be re-derived
+and checked by `verify_paper_claims.py`, or provide the artifact they were
+computed from.
+
+---
+
+## E-3 — `references.bib` does not reproduce the camera-ready `.bbl` (citations differ)
+
+**Check:** regenerating the bibliographies from the repo's `paper/references.bib`
+(`pdflatex` → `bibtex`, IEEEtran) and diffing against the committed camera-ready
+`.bbl` files (the published bibliography).
+
+**Finding:** they do **not** match, and the committed camera-ready `.bbl` is the
+more correct/complete version. The current `references.bib` regenerates several
+entries with **wrong authors, venues or years**. Key Paper 2 divergences
+(`<` = regenerated from current `references.bib`; `>` = published camera-ready `.bbl`):
+
+- **"Smart contract repair" (TOSEM 2020):**
+  `< X. Yu, H. Zhao, B. Hou, Z. Ying, B. Shi` (incorrect) vs
+  `> X. L. Yu, O. Al-Bataineh, D. Lo, A. Roychoudhury` (correct).
+- **"Elysium" (2022):**
+  `< M. Rodler, W. Li, G. O. Karame, L. Davi` (incorrect) vs
+  `> C. Ferreira Torres, H. Jonker, R. State` (correct; RAID 2022).
+- **"SCPatcher":** author list, title and year differ (`< ...2025` vs `> ...2026`).
+- **Zhou (IEEE TSE):** `< vol. 50, no. 7, 1837–1853, 2024` vs `> vol. 51, no. 9, 2512–2532, 2025`.
+- **Lin 2021:** page range present in the regenerated version, absent in the published one.
+- **Companion MIESC paper:** `< arXiv preprint, 2026` vs `> full RIBCi–CYTED 2026 citation`.
+
+Paper 1 divergences are minor/cosmetic (the EVMBench entry gains a `\url{}` and
+interword-spacing macros; Livros de Atas accent encoding).
+
+**Interpretation:** the `references.bib` currently in the repo is **not** the
+version from which the camera-ready bibliography was built; it regenerates
+partly incorrect citations. Per the plan's rule ("fix the `.bib`, never the
+`.bbl`"), `references.bib` must be corrected so that a rebuild reproduces the
+published `.bbl`.
+
+**Not done automatically.** Reconstructing `references.bib` entries from the
+authoritative camera-ready `.bbl` is a bibliographic edit with correctness
+implications, so it is left for Fernando to confirm before changing any entry.
+
+**Decision pending (Fernando):** confirm the camera-ready `.bbl` is the
+authoritative bibliography (then `references.bib` is corrected to match it,
+entry by entry, and this check re-run until the diff is empty), or supply the
+`references.bib` version actually used to build the camera-ready.

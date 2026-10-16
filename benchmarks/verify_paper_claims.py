@@ -304,6 +304,52 @@ def build_claims():
     return claims
 
 
+def check_data_availability(tex_sources):
+    """Every artifact named in the papers (\\texttt{...}/\\nolinkurl{...} tokens
+    ending in .json/.md/.py/.sol or containing a path) must exist in the repo.
+    External URLs and the unbundled DeFiHackLabs dataset are skipped."""
+    import re
+
+    skip = {"PAPER1_REPRODUCIBILITY.md", "PAPER2_REPRODUCIBILITY.md"}  # created in Phase 3
+
+    def availability_regions(tex):
+        # Only scan the Data Availability / Reproducibility sections, so file names
+        # used illustratively in the prose (e.g. AuditTarget.sol) are not treated
+        # as released artifacts.
+        regions = []
+        for m in re.finditer(r"(Data Availability|\\textbf\{Reproducibility\})", tex):
+            start = m.start()
+            nxt = re.search(r"\\(?:subsection\*?|section)\{", tex[start + 10 :])
+            end = start + 10 + nxt.start() if nxt else len(tex)
+            regions.append(tex[start:end])
+        return "\n".join(regions)
+
+    found, missing = [], []
+    seen = set()
+    for tex in tex_sources.values():
+        tokens = re.findall(
+            r"\\(?:texttt|nolinkurl|path|url)\{([^}]*)\}", availability_regions(tex)
+        )
+        for tok in tokens:
+            name = tok.replace("\\_", "_").replace("\\%", "%").replace("{}", "").strip()
+            # keep only artifact-looking references
+            if not re.search(r"\.(json|md|py|sol|jsonl|yaml|cff)$", name) and "/" not in name:
+                continue
+            if name.startswith(("http", "https", "www.", "github.com")):
+                continue
+            if name in seen:
+                continue
+            seen.add(name)
+            base = name.split("/")[-1]
+            if base in skip:
+                continue
+            # resolve: explicit repo-relative path, else search by basename
+            cand = ROOT / name
+            exists = cand.exists() or any(ROOT.rglob(base)) if base else cand.exists()
+            (found if exists else missing).append(name)
+    return found, missing
+
+
 def main():
     tex1 = TEX1.read_text(encoding="utf-8") if TEX1.exists() else ""
     tex2 = TEX2.read_text(encoding="utf-8") if TEX2.exists() else ""
@@ -351,10 +397,23 @@ def main():
         )
 
     print("-" * (width + 50))
-    if failures:
-        print(f"\n{failures} MISMATCH(es) — investigate before release.")
+
+    # Data Availability: every named artifact must exist in the repo.
+    found, da_missing = check_data_availability(tex_src)
+    print(f"\nData Availability: {len(found)} named artifacts found, {len(da_missing)} missing.")
+    for m in da_missing:
+        print(f"  MISSING: {m}")
+
+    if failures or da_missing:
+        print(
+            f"\n{failures} claim MISMATCH(es), {len(da_missing)} missing artifact(s) "
+            "— investigate before release."
+        )
         return 1
-    print("\nAll claims recomputed match the paper (documented items in ERRATA.md marked DOC).")
+    print(
+        "\nAll claims recomputed match the paper (documented items in ERRATA.md marked DOC), "
+        "and every named artifact exists."
+    )
     return 0
 
 
