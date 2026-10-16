@@ -328,3 +328,27 @@ analysis/
 /reports/
 CLAUDE.md
 apik.sh
+
+# -----------------------------------------------------------------------------
+# RIBCi-CYTED 2026 camera-ready artifacts (tracked; see ribci-cyted-2026/PLAN_PRE_CONGRESO.md)
+# -----------------------------------------------------------------------------
+# New canonical benchmark results referenced by the camera-ready papers.
+!benchmarks/results/paper1_ablation_20261015_README.md
+!benchmarks/results/paper1_ablation_l1_raw_20261015.json
+!benchmarks/results/paper1_ablation_l167_intel_20261015.json
+!benchmarks/results/paper1_ablation_l167_raw_20261015.json
+!benchmarks/results/paper2_prepatch_slither_baseline.json
+!benchmarks/results/evmbench/same_run_claude_20261016/
+!benchmarks/results/evmbench/same_run_claude_20261016/**
+!benchmarks/results/evmbench/same_run_claude_20261016.log
+!benchmarks/results/evmbench/ENTREGABLE_run2_20261016.md
+
+# Discarded victim-code downloads (Etherscan sources); keep only victims/README.md
+data/datasets/rekt_exploits/victims/REKT-*/
+
+# Camera-ready Word versions sent to the editors (override the global *.docx ignore)
+!paper/ribci-cyted-2026/paper1-camera-ready.docx
+!paper/ribci-cyted-2026/paper2-camera-ready.docx
+
+# Local archive of superseded/temporary paper working files (never tracked)
+_archive/
