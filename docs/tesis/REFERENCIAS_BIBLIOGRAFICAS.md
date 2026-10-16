@@ -32,6 +32,10 @@ Bhargavan, K., Delignat-Lavaud, A., Fournet, C., Gollamudi, A., Gonthier, G., Ko
 
 Chainalysis. (2024). *The 2024 crypto crime report*. Chainalysis Inc. https://www.chainalysis.com/reports/
 
+Boiero, F., Mussetta, S. N., & Cena, N. G. (2026a). MIESC: A multi-layer framework for automated smart contract security evaluation. En *Livros de Atas — IV Simposio Internacional de Blockchain y Ciberseguridad (RIBCi–CYTED 2026)*.
+
+Boiero, F., Mussetta, S. N., & Cena, N. G. (2026b). From findings to verifiable remediation artifacts: A smart contract security pipeline. En *Livros de Atas — IV Simposio Internacional de Blockchain y Ciberseguridad (RIBCi–CYTED 2026)*.
+
 Chen, T., Li, X., Luo, X., & Zhang, X. (2020). Under-optimized smart contracts devour your money. *Proceedings of the 24th IEEE International Conference on Software Analysis, Evolution and Reengineering (SANER)*, 442-453. https://doi.org/10.1109/SANER.2020.9045642
 
 Claessen, K., & Hughes, J. (2000). QuickCheck: A lightweight tool for random testing of Haskell programs. *ACM SIGPLAN Notices, 35*(9), 268-279. https://doi.org/10.1145/351240.351266

@@ -55,13 +55,14 @@ Table 4.1 presents project metrics in version 4.0.0, measured using standard cod
 The maintainability index of 72.3 exceeds the threshold of 65 proposed by Oman and Hagemeister (1992) for "highly maintainable" code, which validates design decisions oriented toward extensibility.
 
 > **Version note.** This thesis documents the MIESC architecture at version
-> **v4.0.0** (7 defense layers, 25 integrated tools). Later releases in the
-> **v5.x** line — used for the EVMBench cross-validation (§5.3.5) and described in
-> the associated papers — expanded the pipeline to **9 layers and 35 modules**
-> (13 external + 22 internal), adding LLM-reasoning layers and false-positive
-> filtering. The detection results in this thesis correspond to the documented
-> architecture, except the EVMBench validation section, which is explicitly noted
-> as run on the v5.x line.
+> **v4.0.0** (7 defense layers, 25 integrated tools), which is the one defended.
+> Later releases — the **v5.x** line, used for the EVMBench cross-validation
+> (§5.3.5), and the **current v6.1.0 line**, described in the associated papers
+> (RIBCi-CYTED 2026) and published on PyPI under AGPL-3.0 — expanded the pipeline to
+> **9 layers and 35 modules** (13 external + 22 internal), adding LLM-reasoning
+> layers and false-positive filtering. The detection results in this thesis
+> correspond to the documented v4.0.0 architecture, except the EVMBench validation
+> section, which is explicitly noted as run on the v5.x line.
 
 ### 4.2.1 The Defense-in-Depth Principle: Foundations and Application
 

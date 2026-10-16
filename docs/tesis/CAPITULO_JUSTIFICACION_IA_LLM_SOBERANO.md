@@ -171,9 +171,12 @@ nivel intermedio que es clave para el argumento económico. Separando la **licen
 de los pesos** del **método de acceso**, el espacio de modelos se ordena en tres
 niveles:
 
-**Tabla 6.2b.** Niveles de apertura de modelos y su desempeño medido en EVMBench
+**Tabla 6.2b.** Niveles de apertura de modelos y su desempeño en EVMBench
 (40 auditorías DeFi reales, 120 vulnerabilidades HIGH; corrida única por modelo,
-mismo pipeline y matcher).
+mismo pipeline y **matcher laxo**, es decir una **estimación optimista**). Bajo el
+juez oficial de EVMBench las mismas detecciones rinden sustancialmente menos; por
+eso esta tabla compara **viabilidad**, no un ranking definitivo de proveedores
+(ver "Límites honestos" más abajo y el Paper 1).
 
 | Nivel | Ejemplo | Licencia de pesos | Acceso | Costo/aud. | Recall | Precisión | F1 |
 |-------|---------|-------------------|--------|-----------|--------|-----------|-----|
@@ -181,20 +184,26 @@ mismo pipeline y matcher).
 | **Open-weight hosteado** | **DeepSeek-R1 (MIT)** | **abierta (MIT)** | **API hosteada** | **~$0.08** | **70.8%** | **88.5%** | **78.7%** |
 | Open-weight local | qwen2.5-coder:32b | abierta (Apache 2.0) | self-host (GPU propia) | $0 | 59.2% | 30.1% | 39.9% |
 
-El hallazgo central para este capítulo: el modelo **open-weight** (DeepSeek-R1, con
-pesos MIT) obtiene la **mejor precisión (88.5%) y el mejor F1 (78.7%)** de toda la
-comparación, a un costo estimado de **~$0.08 por auditoría — entre 15 y 69 veces más
-barato** que los proveedores frontier. Su recall en una sola pasada (70.8%) queda por
-debajo de los frontier, pero un auto-ensemble de tres pasadas (≈$0.24/auditoría) lo
-eleva a 81.7%, dentro del rango de los frontier de una sola pasada. El ~$0.08 es
-**costo de hosting de conveniencia, no un peaje de licencia**: cualquiera con GPU
-suficiente puede correr los mismos pesos a costo marginal cero.
+El hallazgo central para este capítulo es de **viabilidad, no de ranking**: bajo este
+protocolo (matcher laxo, corrida única), el modelo **open-weight** (DeepSeek-R1, con
+pesos MIT) se ubica **dentro del rango de los proveedores frontier** en precisión y F1,
+a un costo estimado de **~$0.08 por auditoría — entre 15 y 69 veces más barato**. Su
+recall en una sola pasada (70.8%) queda por debajo de los frontier, pero un
+auto-ensemble de tres pasadas (≈$0.24/auditoría) lo eleva a 81.7%, dentro del rango de
+los frontier de una sola pasada. El ~$0.08 es **costo de hosting de conveniencia, no un
+peaje de licencia**: cualquiera con GPU suficiente puede correr los mismos pesos a costo
+marginal cero.
 
-La conclusión económica no es "gratis o carísimo", sino un **espectro**: pagar precio
-frontier no compra una ventaja de precisión/F1 sobre un modelo de pesos abiertos, y la
-soberanía total (nivel local, $0) está disponible con una caída de recall cuantificada,
-no asumida. El detalle metodológico y las fuentes reproducibles de estos números están
-en `docs/methodology/DATASETS.md` y en el Paper 1.
+Estas cifras provienen del **matcher laxo** y de una corrida única, por lo que son una
+**estimación optimista**: bajo el juez oficial de EVMBench las mismas detecciones rinden
+sustancialmente menos, y un control agnóstico del contrato alcanza ~50% con ese matcher.
+Por eso el Paper 1 (camera-ready) **no establece un ranking de proveedores** y defiere
+esa comparación —bajo el juez oficial— a trabajo futuro. La lectura defendible aquí no
+es que el modelo abierto sea "el mejor", sino que **la soberanía no cuesta capacidad
+competitiva**: pagar precio frontier no compra una ventaja demostrable de precisión/F1
+bajo este protocolo, y la soberanía total (nivel local, $0) está disponible con una
+caída de recall cuantificada, no asumida. El detalle metodológico y las fuentes
+reproducibles de estos números están en `docs/methodology/DATASETS.md` y en el Paper 1.
 
 ---
 
@@ -247,12 +256,13 @@ Ollama soporta modelos cuyos pesos son públicos y auditables:
 | Qwen2.5-Coder:32b | 32B | 24 GB | Apache 2.0 | Excelente (local, $0) |
 | Mistral:7b | 7B | 8 GB | Apache 2.0 | Muy buena |
 | DeepSeek-Coder:6.7b | 6.7B | 8 GB | MIT | Excelente (código) |
-| DeepSeek-R1 (reasoner) | ~671B | API hosteada | MIT | Mejor precisión/F1 medida (§6.2.4) |
+| DeepSeek-R1 (reasoner) | ~671B | API hosteada | MIT | Precisión/F1 dentro del rango frontier bajo matcher laxo (§6.2.4; ranking no concluyente) |
 
 El último renglón corresponde al nivel **open-weight hosteado**: pesos abiertos (MIT)
 demasiado grandes para el hardware de prueba, accedidos por API hosteada a costo muy
-bajo (~$0.08/auditoría). Es el modelo de pesos abiertos con mejor precisión y F1 en la
-comparación de EVMBench (Tabla 6.2b).
+bajo (~$0.08/auditoría). Bajo el matcher laxo de EVMBench se ubica dentro del rango de
+los frontier en precisión y F1 (Tabla 6.2b); es una estimación optimista, no un ranking
+concluyente.
 
 **3. Sin telemetría**
 
@@ -808,16 +818,18 @@ universal —incluidos investigadores, instituciones educativas y desarrolladore
 economías con moneda débil— que un servicio comercial excluye por costo.
 
 **6. Paridad empírica.** El argumento anterior sería idealista si la soberanía
-costara capacidad. La evidencia de este trabajo demuestra que no la cuesta: en la
-evaluación de EVMBench (§6.2.4, Tabla 6.2b), el modelo de pesos abiertos DeepSeek-R1
-obtiene la **mejor precisión (88.5%) y F1 (78.7%)** de toda la comparación —por
-encima de los proveedores frontier— a un costo de **~$0.08 por auditoría (15–69×
-menor)**. La elección soberana dejó de ser un sacrificio y pasó a ser, en las
-métricas que importan para el triage, una elección dominante.
+costara capacidad. La evidencia de este trabajo indica que no la cuesta: en la
+evaluación de EVMBench (§6.2.4, Tabla 6.2b), bajo el matcher laxo y en una corrida
+única, el modelo de pesos abiertos DeepSeek-R1 se ubica **dentro del rango de los
+proveedores frontier** en precisión y F1, a un costo de **~$0.08 por auditoría
+(15–69× menor)**. Esa comparación es una estimación optimista —bajo el juez oficial
+de EVMBench las cifras bajan y el Paper 1 difiere el ranking de proveedores a trabajo
+futuro—, de modo que lo que la evidencia sostiene no es una superioridad del modelo
+abierto, sino que la elección soberana **dejó de ser un sacrificio de capacidad**.
 
 La Tabla 6.6 sintetiza el argumento en un scorecard: el nivel local gana en todas
 las dimensiones de soberanía, el open-weight hosteado es el punto de equilibrio
-(soberanía casi total, mejor precisión/F1 y costo mínimo), y el frontier solo
+(soberanía casi total, precisión/F1 competitiva y costo mínimo), y el frontier solo
 conserva ventaja en el recall de una sola pasada.
 
 **Tabla 6.6.** Scorecard de soberanía por nivel de acceso (✓ pleno · ◑ parcial · ✗ ausente)
@@ -831,7 +843,7 @@ conserva ventaja en el recall de una sola pasada.
 | Ejecución sin salida de datos | ✗ | ✗ (API hosteada) | ✓ (100% local) |
 | Costo por auditoría | $1.20–5.50 | ~$0.08 | $0 |
 | Recall (una sola pasada) | 73.7–82.5% | 70.8% | 59.2% |
-| Precisión / F1 (medidos en EVMBench) | 20–43% / 32–55% | **88.5% / 78.7%** | 30% / 40% |
+| Precisión / F1 (EVMBench, matcher laxo; estimación optimista) | 20–43% / 32–55% | **88.5% / 78.7%** | 30% / 40% |
 
 **Límites honestos.** El argumento no es un absoluto sino un espectro, y su fuerza
 depende de reconocerlo. El mejor resultado de pesos abiertos (DeepSeek-R1, ~671B
@@ -859,9 +871,9 @@ La decisión de implementar LLMs soberanos en MIESC responde a un análisis rigu
 
 2. **Las APIs comerciales de LLM introducen vectores de riesgo inaceptables** para código de alto valor: transmisión a jurisdicciones extranjeras, retención por períodos extendidos, posible memorización en modelos.
 
-3. **Los modelos de pesos abiertos proporcionan capacidad suficiente** para el caso de uso de análisis de seguridad, especialmente dentro de una arquitectura de múltiples capas. Esto ya no es solo una expectativa: en la evaluación de EVMBench (§6.2.4), el modelo open-weight DeepSeek-R1 obtiene la **mejor precisión (88.5%) y F1 (78.7%)** de toda la comparación, por encima de los proveedores frontier; y un modelo local de 32B alcanza 59.2% de recall sin ninguna llamada externa.
+3. **Los modelos de pesos abiertos proporcionan capacidad suficiente** para el caso de uso de análisis de seguridad, especialmente dentro de una arquitectura de múltiples capas. Esto ya no es solo una expectativa: en la evaluación de EVMBench (§6.2.4), bajo el matcher laxo, el modelo open-weight DeepSeek-R1 se ubica **dentro del rango de los proveedores frontier** en precisión y F1 —una estimación optimista; el Paper 1 difiere el ranking de proveedores al juez oficial como trabajo futuro—; y un modelo local de 32B alcanza 59.2% de recall sin ninguna llamada externa.
 
-4. **El costo total de propiedad de LLMs soberanos es inferior** al de APIs comerciales para organizaciones que realizan auditorías regularmente. Medido en EVMBench, el nivel open-weight cuesta **~$0.08 por auditoría (15–69× menos que los frontier)** y el nivel local $0, sin sacrificar precisión de detección.
+4. **El costo total de propiedad de LLMs soberanos es inferior** al de APIs comerciales para organizaciones que realizan auditorías regularmente. Medido en EVMBench, el nivel open-weight cuesta **~$0.08 por auditoría (15–69× menos que los frontier)** y el nivel local $0, con capacidad de detección competitiva bajo el protocolo evaluado.
 
 5. **La ejecución local garantiza cumplimiento regulatorio automático** con GDPR, LGPD, LFPDPPP y regulaciones sectoriales.
 

@@ -72,6 +72,43 @@ El presente trabajo de tesis ha presentado MIESC (Marco Integrado de Seguridad p
 
 ## 6.3 Trabajos Futuros
 
+Varias de las líneas trazadas en esta sección **ya fueron iniciadas y publicadas con
+posterioridad a la defensa**, en las publicaciones derivadas de esta tesis. Se resumen
+primero esos avances y luego las líneas que permanecen abiertas.
+
+### 6.3.0 Publicaciones derivadas y líneas ya iniciadas (post-defensa)
+
+El trabajo de esta tesis dio lugar a dos artículos presentados en el IV Simposio
+Internacional de Blockchain y Ciberseguridad (RIBCi–CYTED 2026, IEEE, revisión doble
+ciego):
+
+- **Paper 1 — Detección** (Boiero, Mussetta y Cena, 2026a): consolida la evaluación de
+  detección y aporta evidencia que no formaba parte del corpus defendido:
+  - **Exploits reales:** 9/11 detectados (81.8% de recall; IC Wilson 95% [52%, 95%])
+    sobre USD 1.59B en pérdidas evaluadas —un primer paso de la Línea 1.
+  - **Ablación sin LLM:** estático 82.5% → +detectores propios 93.0% → +inteligencia
+    97.9% sobre los 143 contratos de SmartBugs (cada etapa suma contratos sin perder
+    ninguno; significancia por prueba de McNemar) —cuantifica el aporte de la Línea 2.
+  - **EVMBench honesto (triple):** una misma corrida medida bajo tres protocolos
+    —matcher laxo (92.5% unión / 88.3% una corrida), control nulo, y juez oficial de
+    EVMBench con GPT-5 (27.4%)—, mostrando que todo score de EVMBench debe reportar el
+    protocolo y el juez utilizados.
+  - **Filtro de falsos positivos:** reduce 207 de 1.263 FP (16%) sin perder verdaderos
+    positivos, elevando la precisión a nivel de finding de 13.3% a 15.5%.
+- **Paper 2 — Remediación** (Boiero, Mussetta y Cena, 2026b): aplica y verifica
+  reparaciones automáticas (123/143 contratos parcheados, 123/123 compilan, 88/123
+  eliminan el hallazgo HIGH/CRITICAL, 121/123 sin regresión) —realización de la Línea 5
+  (integración con el ecosistema de desarrollo). No reclama equivalencia semántica ni
+  prueba formal corpus-wide: ambas siguen abiertas (Línea 4).
+
+Las líneas que permanecen abiertas se detallan a continuación. En particular, el
+**ranking de proveedores de LLM bajo el juez oficial** de EVMBench (no concluido con el
+matcher laxo; ver Cap. 6) y un **loop de detección agéntico** para vulnerabilidades de
+lógica de negocio son las dos prioridades que el Paper 1 señala como trabajo futuro
+inmediato.
+
+---
+
 ### 6.3.1 Línea 1: Extensión de Cobertura de Vulnerabilidades
 
 **Objetivo:** Ampliar la detección a vulnerabilidades emergentes del ecosistema DeFi.
@@ -292,10 +329,12 @@ async with websockets.connect("ws://localhost:8765") as ws:
 
 ### 6.4.1 Impacto Académico
 
-1. **Publicaciones potenciales:**
-   - Conferencia: ICSE, ASE, o ISSTA (metodología de defensa en profundidad)
-   - Journal: TSE o TOSEM (evaluación empírica extendida)
-   - Workshop: DeFi Security Workshop (integración con ecosistema)
+1. **Publicaciones derivadas (realizadas):**
+   - **RIBCi–CYTED 2026 (IEEE, doble ciego)** — Paper 1 (detección) y Paper 2
+     (remediación), derivados directos de esta tesis (Boiero, Mussetta y Cena, 2026a,
+     2026b).
+   - Líneas futuras de difusión: journal con la evaluación empírica extendida (p. ej.
+     TSE/TOSEM) y workshops de seguridad DeFi.
 
 2. **Contribución al conocimiento:**
    - Validación empírica de complementariedad de técnicas
@@ -322,7 +361,7 @@ async with websockets.connect("ws://localhost:8765") as ws:
 
 2. **Contribución a Digital Public Goods:**
    - Cumplimiento de estándares DPGA
-   - Licencia MIT permisiva
+   - Licencia AGPL-3.0 (código abierto copyleft, aprobada por la OSI)
    - Portabilidad garantizada
 
 ---
@@ -344,6 +383,10 @@ MIESC encarna esta filosofía, proporcionando no solo una herramienta, sino un m
 ---
 
 ## 6.6 Referencias del Capítulo
+
+Boiero, F., Mussetta, S. N., & Cena, N. G. (2026a). MIESC: A multi-layer framework for automated smart contract security evaluation. En *Livros de Atas — IV Simposio Internacional de Blockchain y Ciberseguridad (RIBCi–CYTED 2026)*.
+
+Boiero, F., Mussetta, S. N., & Cena, N. G. (2026b). From findings to verifiable remediation artifacts: A smart contract security pipeline. En *Livros de Atas — IV Simposio Internacional de Blockchain y Ciberseguridad (RIBCi–CYTED 2026)*.
 
 DeFiLlama. (2024). *DeFi TVL by Chain*. https://defillama.com/chains
 

@@ -55,13 +55,15 @@ La Tabla 4.1 presenta las métricas del proyecto en su versión 4.0.0, medidas m
 El índice de mantenibilidad de 72.3 supera el umbral de 65 propuesto por Oman y Hagemeister (1992) para código "altamente mantenible", lo cual valida las decisiones de diseño orientadas a la extensibilidad.
 
 > **Nota sobre versiones.** Esta tesis documenta la arquitectura de MIESC en su
-> versión **v4.0.0** (7 capas de defensa, 25 herramientas integradas). Las
-> versiones posteriores de la línea **v5.x** —usadas para la validación cruzada en
-> EVMBench (§5.3.5) y descritas en los papers asociados— ampliaron el pipeline a
-> **9 capas y 35 módulos** (13 externos + 22 internos), incorporando capas de
-> razonamiento con LLM y filtrado de falsos positivos. Los resultados de detección
-> de esta tesis corresponden a la arquitectura documentada, salvo la sección de
-> validación EVMBench, que se indica explícitamente como corrida en la línea v5.x.
+> versión **v4.0.0** (7 capas de defensa, 25 herramientas integradas), que es la
+> defendida. Las versiones posteriores —la línea **v5.x**, usada para la validación
+> cruzada en EVMBench (§5.3.5), y la **línea actual v6.1.0**, descrita en los papers
+> asociados (RIBCi-CYTED 2026) y publicada en PyPI bajo AGPL-3.0— ampliaron el
+> pipeline a **9 capas y 35 módulos** (13 externos + 22 internos), incorporando
+> capas de razonamiento con LLM y filtrado de falsos positivos. Los resultados de
+> detección de esta tesis corresponden a la arquitectura v4.0.0 documentada, salvo
+> la sección de validación EVMBench, indicada explícitamente como corrida en la
+> línea v5.x.
 
 ---
 

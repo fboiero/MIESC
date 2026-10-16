@@ -72,6 +72,41 @@ This thesis has presented MIESC (Multi-layer Integration for Ethereum Smart Cont
 
 ## 6.3 Future Work
 
+Several of the lines outlined in this section **were already started and published
+after the defense**, in the papers derived from this thesis. Those advances are
+summarized first, then the lines that remain open.
+
+### 6.3.0 Derived publications and lines already started (post-defense)
+
+This thesis gave rise to two papers presented at the IV International Symposium on
+Blockchain and Cybersecurity (RIBCi–CYTED 2026, IEEE, double-blind review):
+
+- **Paper 1 — Detection** (Boiero, Mussetta & Cena, 2026a): consolidates the detection
+  evaluation and contributes evidence that was not part of the defended corpus:
+  - **Real-world exploits:** 9/11 detected (81.8% recall; 95% Wilson CI [52%, 95%]) over
+    USD 1.59B in evaluated losses — a first step of Line 1.
+  - **LLM-free ablation:** static 82.5% → +own detectors 93.0% → +intelligence 97.9%
+    over the 143 SmartBugs contracts (each stage gains contracts without losing any;
+    significance by McNemar's test) — quantifying the contribution of Line 2.
+  - **Honest EVMBench (triple):** a single run measured under three protocols — lenient
+    matcher (92.5% union / 88.3% single run), null control, and EVMBench's official
+    judge with GPT-5 (27.4%) — showing that every EVMBench score must report the
+    protocol and judge used.
+  - **False-positive filter:** removes 207 of 1,263 FPs (16%) without losing true
+    positives, raising finding-level precision from 13.3% to 15.5%.
+- **Paper 2 — Remediation** (Boiero, Mussetta & Cena, 2026b): applies and verifies
+  automated repairs (123/143 contracts patched, 123/123 compile, 88/123 eliminate the
+  HIGH/CRITICAL finding, 121/123 with no regression) — a realization of Line 5
+  (development-ecosystem integration). It does not claim semantic equivalence or
+  corpus-wide formal proof: both remain open (Line 4).
+
+The lines that remain open are detailed below. In particular, the **provider ranking
+under the official judge** of EVMBench (not concluded with the lenient matcher; see
+Chapter 6) and an **agentic detection loop** for business-logic vulnerabilities are the
+two priorities Paper 1 flags as immediate future work.
+
+---
+
 ### 6.3.1 Line 1: Vulnerability Coverage Extension
 
 **Objective:** Expand detection to emerging vulnerabilities in the DeFi ecosystem.
@@ -241,10 +276,12 @@ jobs:
 
 ### 6.4.1 Academic Impact
 
-1. **Potential publications:**
-   - Conference: ICSE, ASE, or ISSTA (defense-in-depth methodology)
-   - Journal: TSE or TOSEM (extended empirical evaluation)
-   - Workshop: DeFi Security Workshop (ecosystem integration)
+1. **Derived publications (realized):**
+   - **RIBCi–CYTED 2026 (IEEE, double-blind)** — Paper 1 (detection) and Paper 2
+     (remediation), direct derivatives of this thesis (Boiero, Mussetta & Cena, 2026a,
+     2026b).
+   - Future dissemination lines: a journal with the extended empirical evaluation
+     (e.g. TSE/TOSEM) and DeFi security workshops.
 
 2. **Contribution to knowledge:**
    - Empirical validation of technique complementarity
@@ -271,7 +308,7 @@ jobs:
 
 2. **Contribution to Digital Public Goods:**
    - DPGA standards compliance
-   - Permissive MIT license
+   - AGPL-3.0 license (open-source copyleft, OSI-approved)
    - Guaranteed portability
 
 ---
@@ -293,6 +330,10 @@ MIESC embodies this philosophy, providing not just a tool, but an extensible fra
 ---
 
 ## 6.6 Chapter References
+
+Boiero, F., Mussetta, S. N., & Cena, N. G. (2026a). MIESC: A multi-layer framework for automated smart contract security evaluation. In *Livros de Atas — IV International Symposium on Blockchain and Cybersecurity (RIBCi–CYTED 2026)*.
+
+Boiero, F., Mussetta, S. N., & Cena, N. G. (2026b). From findings to verifiable remediation artifacts: A smart contract security pipeline. In *Livros de Atas — IV International Symposium on Blockchain and Cybersecurity (RIBCi–CYTED 2026)*.
 
 DeFiLlama. (2024). *DeFi TVL by Chain*. https://defillama.com/chains
 

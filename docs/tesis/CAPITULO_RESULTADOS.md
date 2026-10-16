@@ -547,12 +547,44 @@ Paper 1).
 **Resultado.** EVMBench reproduce el patrón del corpus de 29 vulnerabilidades: la
 unión de razonadores frontier (92.5%) supera ampliamente a cualquiera individual,
 confirmando la complementariedad al nivel de razonadores sobre un corpus 4× mayor.
-Además aporta el eje **económico**: el modelo de pesos abiertos (DeepSeek-R1, MIT)
-obtiene la **mejor precisión (88.5%) y F1 (78.7%)** de toda la comparación —por
-encima de los frontier— a **~$0.08 por auditoría (15–69× más barato)**; su menor
-recall de una sola pasada (70.8%) se recupera con un auto-ensemble de bajo costo.
+**Ese 92.5% corresponde al matcher laxo**: bajo el juez oficial de EVMBench las mismas
+detecciones rinden mucho menos (p. ej. 27.4% para una corrida única con el juez
+GPT-5), de modo que las cifras laxa y estricta acotan la misma corrida. El Paper 1
+reporta el triple completo (matcher laxo / control nulo / juez oficial) y recomienda
+informar siempre el protocolo y el juez junto con cualquier score de EVMBench.
+Además aporta el eje **económico**: bajo el matcher laxo, el modelo de pesos abiertos
+(DeepSeek-R1, MIT) se ubica **dentro del rango de los frontier** en precisión y F1, a
+**~$0.08 por auditoría (15–69× más barato)**; su menor recall de una sola pasada
+(70.8%) se recupera con un auto-ensemble de bajo costo. Estas cifras son una
+estimación optimista (matcher laxo, corrida única): el Paper 1 difiere el ranking de
+proveedores —bajo el juez oficial de EVMBench— a trabajo futuro.
 La taxonomía de tres niveles de apertura y el análisis económico completo están en
 el Capítulo 6 (Tabla 6.2b).
+
+### 5.3.6 Validación post-defensa en SmartBugs (143 contratos)
+
+Con posterioridad a la defensa, la detección se validó sobre el benchmark público
+**SmartBugs Curated** (143 contratos), ampliando la evaluación más allá del corpus
+interno de 29 vulnerabilidades. El perfil es **recall-first**, coherente con el
+propósito de *triage pre-auditoría*:
+
+**Tabla 5.8c.** Detección sobre SmartBugs Curated (validación post-defensa, línea v5.x).
+
+| Métrica | Valor |
+|---------|-------|
+| Contratos | 143 |
+| Recall | **95.8% (137/143)** |
+| Precisión | 22.2% |
+| F1 | 0.360 |
+
+La baja precisión refleja un conjunto grande de falsos positivos —el trade-off
+consciente de una herramienta de triage—; el filtro de producción los reduce sin
+perder verdaderos positivos (Trabajos Futuros, Cap. 8, y Paper 1). El resultado se
+**re-validó de forma independiente el 2026-07-09** en un entorno Docker pineado
+(`miesc:5.4.1-solc`, `qwen2.5-coder:14b`): precisión 19.9%, recall 97.9% sobre n=143.
+La evidencia peritable (comando exacto, digests de imagen, hashes de artefactos y
+versiones de `solc`) está en `docs/evidence/smartbugs_revalidation_20260709/` y en el
+apéndice de estadísticas; el detalle metodológico, en el Paper 1.
 
 ---
 
@@ -641,8 +673,9 @@ El único error de mapeo en GPTScan correspondió a una clasificación ambigua d
 
 *Nota: Costos estimados basados en precios públicos de noviembre 2024. El nivel
 open-weight hosteado (pesos MIT accedidos por API, ~$0.08/auditoría) es 15–69×
-más barato que las APIs frontier y obtiene la mejor precisión/F1 medida en
-EVMBench (véase §5.3.5 y el Capítulo 6, Tabla 6.2b).*
+más barato que las APIs frontier y, bajo el matcher laxo de EVMBench, se ubica
+dentro del rango de los frontier en precisión/F1 —estimación optimista, no un
+ranking concluyente— (véase §5.3.5 y el Capítulo 6, Tabla 6.2b).*
 
 **Resultado RQ4:** MIESC es viable para producción con:
 - **Tiempo:** ~1 minuto para auditoría completa (ejecución paralela)

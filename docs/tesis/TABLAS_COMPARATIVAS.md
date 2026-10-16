@@ -16,7 +16,7 @@
 | API REST | SI | NO | NO | SI |
 | MCP Server | SI | NO | NO | NO |
 | Dashboard HTML | SI | NO | SI | SI |
-| Open Source | SI (MIT) | SI | SI | NO |
+| Open Source | SI (AGPL-3.0) | SI | SI | NO |
 | Mantenimiento activo | 2025 | 2023 | 2024 | Descontinuado |
 
 ---
@@ -109,16 +109,16 @@
 | 4 | Halmos | Symbolic Testing | a][ | AGPL-3.0 | Disponible |
 | 5 | SMTChecker | Formal Verification | Solidity | GPL-3.0 | Disponible |
 | 5 | Certora | Formal (CVL) | Certora | Comercial | Disponible |
-| 6 | PropertyGPT | AI Properties | MIESC | MIT | Disponible |
+| 6 | PropertyGPT | AI Properties | MIESC | AGPL-3.0 | Disponible |
 | 6 | Aderyn | Rust Analysis | Cyfrin | MIT | Disponible |
 | 6 | Wake | Python Testing | Ackee | MIT | Disponible |
 | 7 | GPTScan | LLM Analysis | ICSE 2024 | MIT | Disponible |
-| 7 | SmartLLM | Local LLM | MIESC | MIT | Disponible |
+| 7 | SmartLLM | Local LLM | MIESC | AGPL-3.0 | Disponible |
 | 7 | LLMSmartAudit | LLM Audit | Smart-Audit | MIT | Disponible |
-| 7 | ThreatModel | AI Threats | MIESC | MIT | Disponible |
-| 7 | GasGauge | Gas Analysis | MIESC | MIT | Disponible |
-| 7 | UpgradeGuard | Proxy Security | MIESC | MIT | Disponible |
-| 7 | BestPractices | Rule-based | MIESC | MIT | Disponible |
+| 7 | ThreatModel | AI Threats | MIESC | AGPL-3.0 | Disponible |
+| 7 | GasGauge | Gas Analysis | MIESC | AGPL-3.0 | Disponible |
+| 7 | UpgradeGuard | Proxy Security | MIESC | AGPL-3.0 | Disponible |
+| 7 | BestPractices | Rule-based | MIESC | AGPL-3.0 | Disponible |
 
 **Total: 25 herramientas, 25 disponibles (100%)**
 
