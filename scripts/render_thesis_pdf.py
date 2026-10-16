@@ -9,6 +9,7 @@ contents, and SVG figures embedded via rsvg-convert.
 Usage: python scripts/render_thesis_pdf.py [--lang es]
 Output: docs/tesis/build/tesis_miesc_es.pdf
 """
+
 from __future__ import annotations
 
 import argparse
@@ -69,6 +70,9 @@ HEADER_TEX = r"""
 % Cover (page 1) unnumbered; arabic numbering shows from page 2 (Art. 24.4).
 \AtBeginDocument{\thispagestyle{empty}}
 \usepackage{graphicx}
+% Cover border frame (reglamento Anexo 1).
+\usepackage{tikz}
+\usetikzlibrary{calc}
 % Art. 24.6: figure captions below, table captions above.
 \usepackage{caption}
 \captionsetup[figure]{position=below}
@@ -82,6 +86,43 @@ HEADER_TEX = r"""
 
 RAW_NEWPAGE = "\n\n```{=latex}\n\\newpage\n```\n\n"
 RAW_TOC = "\n\n```{=latex}\n\\tableofcontents\n\\newpage\n```\n\n"
+
+# Cover built per reglamento DD 047/20 Anexo N° 1 (exact font sizes): Maestría 20,
+# Trabajo Final / Tesis de Posgrado 18, title 16, subtitle 14, author 14, director 13,
+# place/date 12. Replaces PORTADA_TESIS.md (whose Resumen/Abstract/Datos duplicate
+# SECCION_PRELIMINAR). titlepage env keeps page 1 unnumbered.
+TITLEPAGE_TEX = r"""
+
+```{=latex}
+\begin{titlepage}
+\begin{tikzpicture}[remember picture,overlay]
+  \draw[line width=0.5pt]
+    ($(current page.north west)+(2cm,-2cm)$) rectangle
+    ($(current page.south east)+(-2cm,2cm)$);
+\end{tikzpicture}
+\centering
+\vspace*{1.1cm}
+\noindent\hspace{0.3cm}\includegraphics[height=2.7cm]{logo_cruc_iua.png}\hfill\includegraphics[height=2.4cm]{logo_undef.png}\hspace{0.3cm}
+\par
+\vspace{2.6cm}
+{\fontsize{20}{24}\selectfont\textbf{MAESTRÍA EN CIBERDEFENSA}\par}
+\vspace{1.0cm}
+{\fontsize{18}{22}\selectfont Trabajo Final de Maestría\par}
+\vspace{2.6cm}
+{\fontsize{16}{20}\selectfont\textbf{MIESC: Framework Multi-capa de Integración de Herramientas para Seguridad de Smart Contracts}\par}
+\vspace{0.6cm}
+{\fontsize{14}{18}\selectfont\textit{Multi-layer Integration Framework for Smart Contract Security}\par}
+\vspace{2.6cm}
+{\fontsize{14}{18}\selectfont Ing. Fernando Boiero\par}
+\vspace{0.5cm}
+{\fontsize{13}{16}\selectfont Director: Mg. Eduardo Casanovas\par}
+\vfill
+{\fontsize{12}{15}\selectfont Córdoba, Provincia de Córdoba, Argentina — Noviembre 2024\par}
+\vspace{1.2cm}
+\end{titlepage}
+```
+
+"""
 
 # Glyphs that Arial (main font) lacks and that appear in prose/tables (e.g. the
 # Ch.6 sovereignty scorecard ✓/✗/◑). Mapped to font-independent LaTeX so they
@@ -154,7 +195,9 @@ def read(name: str) -> str:
 
 def assemble() -> str:
     parts: list[str] = []
-    parts.append(read("PORTADA_TESIS.md"))
+    # Cover = reglamento Anexo 1 titlepage (replaces PORTADA_TESIS.md, whose
+    # Resumen/Abstract/Datos are already in SECCION_PRELIMINAR).
+    parts.append(TITLEPAGE_TEX)
     parts.append(RAW_TOC)
     for group in (FRONT_MATTER, CHAPTERS, APPENDICES, BACK_MATTER):
         for name in group:
@@ -181,17 +224,22 @@ def main() -> int:
     out_pdf = BUILD / f"tesis_miesc_{args.lang}.pdf"
 
     combined.write_text(assemble(), encoding="utf-8")
-    header.write_text(HEADER_TEX, encoding="utf-8")
+    # Let raw-LaTeX \includegraphics (e.g. the cover logo) resolve relative paths
+    # against docs/tesis, since pandoc runs xelatex in a temp directory.
+    header.write_text(HEADER_TEX + "\n\\graphicspath{{" + str(TESIS) + "/}}\n", encoding="utf-8")
 
     cmd = [
         "pandoc",
         str(combined),
-        "-f", "markdown+raw_tex",
+        "-f",
+        "markdown+raw_tex",
         "--pdf-engine=xelatex",
         f"--include-in-header={header}",
         f"--resource-path={TESIS}",
-        "-V", "lang=es",
-        "-o", str(out_pdf),
+        "-V",
+        "lang=es",
+        "-o",
+        str(out_pdf),
     ]
     print("  " + " ".join(cmd))
     r = subprocess.run(cmd, cwd=ROOT)
