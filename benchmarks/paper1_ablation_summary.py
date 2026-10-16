@@ -17,6 +17,7 @@ Usage:
         benchmarks/results/paper1_ablation_l167_raw_20261015.json \
         benchmarks/results/paper1_ablation_l167_intel_20261015.json
 """
+
 import json
 import sys
 from math import comb, sqrt
@@ -43,17 +44,23 @@ def mcnemar(x, y):
     b = sum(1 for k in x if x[k] and not y[k])
     c = sum(1 for k in x if y[k] and not x[k])
     n = b + c
-    p = min(1.0, 2 * sum(comb(n, i) for i in range(min(b, c) + 1)) / 2 ** n) if n else 1.0
+    p = min(1.0, 2 * sum(comb(n, i) for i in range(min(b, c) + 1)) / 2**n) if n else 1.0
     return b, c, p
 
 
-names = ["Layer 1 static, no intelligence", "Layers 1+6+7, no intelligence", "Layers 1+6+7 + intelligence"]
+names = [
+    "Layer 1 static, no intelligence",
+    "Layers 1+6+7, no intelligence",
+    "Layers 1+6+7 + intelligence",
+]
 runs = [hits(p) for p in sys.argv[1:4]]
-for name, (h, agg) in zip(names, runs):
+for name, (h, agg) in zip(names, runs, strict=False):
     k, n = sum(h.values()), len(h)
     lo, hi = wilson(k, n)
-    print(f"{name:34s} recall {k}/{n} = {100 * k / n:.1f}% [{lo:.1f}, {hi:.1f}]  "
-          f"precision {100 * agg['precision']:.1f}%  (TP {agg['tp']}, FP {agg['fp']})")
-for (i, j) in ((0, 1), (1, 2), (0, 2)):
+    print(
+        f"{name:34s} recall {k}/{n} = {100 * k / n:.1f}% [{lo:.1f}, {hi:.1f}]  "
+        f"precision {100 * agg['precision']:.1f}%  (TP {agg['tp']}, FP {agg['fp']})"
+    )
+for i, j in ((0, 1), (1, 2), (0, 2)):
     lost, gained, p = mcnemar(runs[i][0], runs[j][0])
     print(f"{names[i]} -> {names[j]}: gained {gained}, lost {lost}, exact McNemar p = {p:.2g}")

@@ -13,6 +13,7 @@ by the identical `not fr.is_likely_fp` rule scan.py uses.
 
 Writes a NEW dated result file. Does NOT touch any frozen paper artifact.
 """
+
 import json
 import sys
 import time
@@ -26,8 +27,8 @@ sys.path.insert(0, str(PROJECT_ROOT / "src"))
 sys.path.insert(0, str(PROJECT_ROOT / "benchmarks"))
 
 import smartbugs_evaluation as sbe  # noqa: E402
-from src.ml.fp_filter import FalsePositiveFilter  # noqa: E402
 
+from src.ml.fp_filter import FalsePositiveFilter  # noqa: E402
 
 _CONFIDENCE_LEVELS = {"high": 0.9, "medium": 0.7, "low": 0.4, "informational": 0.2}
 

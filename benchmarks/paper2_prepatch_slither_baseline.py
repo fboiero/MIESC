@@ -12,6 +12,7 @@ Usage (from the repository root, Slither 0.11.6 as pinned in requirements-lock.t
         benchmarks/results/paper2_compile_failure_taxonomy.json . \
         ~/.solc-select/artifacts benchmarks/results/paper2_prepatch_slither_baseline.json
 """
+
 import ast
 import json
 import re
@@ -49,16 +50,23 @@ def solc_for(rec):
 def high_checks(sol, solc):
     with tempfile.TemporaryDirectory() as tmp:
         out = Path(tmp) / "s.json"
-        r = subprocess.run(["slither", str(sol), "--solc", solc, "--json", str(out)],
-                           capture_output=True, text=True, timeout=180)
+        r = subprocess.run(
+            ["slither", str(sol), "--solc", solc, "--json", str(out)],
+            capture_output=True,
+            text=True,
+            timeout=180,
+        )
         try:
             payload = json.loads(out.read_text()) if out.exists() else {}
         except json.JSONDecodeError:
             payload = {}
     dets = payload.get("results", {}).get("detectors", [])
     ok = bool(payload.get("success")) or bool(dets)
-    checks = Counter(str(d.get("check")) for d in dets
-                     if str(d.get("impact", "")).lower() in {"high", "critical"})
+    checks = Counter(
+        str(d.get("check"))
+        for d in dets
+        if str(d.get("impact", "")).lower() in {"high", "critical"}
+    )
     return ok, dict(checks), r.returncode
 
 
