@@ -52,7 +52,7 @@ the commercial platform/workflow layer.
 | `miesc/cli/commands/server.py` | Keep commands that expose the local core; move SaaS or tenant-aware commands. |
 | `src/core/websocket_api.py` | Keep only if used by local researcher workflows; otherwise export to platform. |
 | `docs/evidence/web/` | Preserve paper/research evidence in core; move product demo evidence to platform. |
-| `paper/INSTRUCCIONES_RELEASE.md` | Update only if it references deployment of moved product UI; do not alter paper claims. |
+| `docs/internal/INSTRUCCIONES_RELEASE.md` | Update only if it references deployment of moved product UI; do not alter paper claims. |
 
 ## Non-Impact Rule For Papers
 

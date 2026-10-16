@@ -351,5 +351,9 @@ data/datasets/rekt_exploits/victims/REKT-*/
 !paper/ribci-cyted-2026/paper1-camera-ready.docx
 !paper/ribci-cyted-2026/paper2-camera-ready.docx
 
+# LaTeX build intermediates and preview scratch under the camera-ready dir
+paper/ribci-cyted-2026/figs/*.aux
+paper/ribci-cyted-2026/preview/
+
 # Local archive of superseded/temporary paper working files (never tracked)
 _archive/
