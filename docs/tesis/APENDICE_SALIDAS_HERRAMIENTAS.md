@@ -2724,6 +2724,5 @@ subconjunto que Durieux et al. (2020) evaluó de forma independiente.
 
 ---
 
-*Documento generado como parte de la documentación de tesis de MIESC v4.0.0*
 *Fecha: 2024-11-29*
 *Autor: Fernando Boiero*

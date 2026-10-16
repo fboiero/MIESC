@@ -768,6 +768,3 @@ Mueller, B. (2018). Smashing Ethereum smart contracts. *HITB Security Conference
 
 Sun, Y., et al. (2024). GPTScan: Detecting logic vulnerabilities. *ICSE 2024*.
 
----
-
-*Documento generado para MIESC v4.0.0 - Noviembre 2024*

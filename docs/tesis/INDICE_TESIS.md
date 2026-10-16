@@ -502,6 +502,5 @@
 
 ---
 
-*Documento actualizado: 2025-11-29*
 *MIESC v4.0.0*
 *Maestría en Ciberdefensa - UNDEF/IUA*

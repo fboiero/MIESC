@@ -243,6 +243,5 @@ Las referencias siguen el formato de la American Psychological Association (APA)
 
 ---
 
-*Documento generado para: Tesis de Maestria en Ciberdefensa - MIESC v4.0.0*
 *Universidad de la Defensa Nacional (UNDEF) - IUA*
 *Fecha: Octubre 2026*

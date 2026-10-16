@@ -925,4 +925,4 @@ Touvron, H., et al. (2023). LLaMA: Open and efficient foundation language models
 
 ---
 
-*Nota: Las referencias siguen el formato APA 7ma edición. Documento actualizado: 2025-11-29*
+*Nota: Las referencias siguen el formato APA 7ma edición.*

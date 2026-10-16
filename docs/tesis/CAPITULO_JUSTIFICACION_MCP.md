@@ -815,4 +815,4 @@ Ross, R., et al. (2016). Guide to Industrial Control Systems (ICS) Security. *NI
 
 ---
 
-*Nota: Las referencias siguen el formato APA 7ma edición. Documento actualizado: 2025-11-29*
+*Nota: Las referencias siguen el formato APA 7ma edición.*

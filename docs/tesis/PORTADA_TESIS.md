@@ -95,6 +95,5 @@ El contenido de este trabajo es resultado de mi investigación, excepto donde se
 
 ---
 
-*Documento generado como parte del Trabajo Final de Maestría en Ciberdefensa*
 *UNDEF - IUA - CRU Córdoba*
 *2024*
