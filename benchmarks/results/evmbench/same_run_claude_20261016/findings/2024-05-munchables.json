@@ -1,0 +1,648 @@
+[
+ {
+  "type": "unchecked_return_value",
+  "title": "ERC20 transfer() Return Value Not Checked in unlock()",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-05-munchables_z18629kh/repo/src/managers/LockManager.sol",
+   "line": 0,
+   "function": "unlock"
+  },
+  "description": "In `unlock()`, the ERC20 `token.transfer(msg.sender, _quantity)` call does not check the return value. Some ERC20 tokens (e.g., USDT, non-standard tokens) return `false` instead of reverting on failure. The state variable `lockedToken.quantity -= _quantity` is decremented BEFORE the transfer is attempted. If the transfer fails silently, the user loses their tracked balance while receiving no tokens.",
+  "message": "Users could lose their locked token balance if a non-standard ERC20 token fails silently on transfer. Additionally, the protocol's locked balance accounting becomes permanently incorrect.",
+  "recommendation": "Use OpenZeppelin's `SafeERC20.safeTransfer()` instead of `token.transfer()`. Replace: `token.transfer(msg.sender, _quantity)` with `SafeERC20.safeTransfer(token, msg.sender, _quantity)`. Also apply the same fix to any other token transfers. Apply checks-effects-interactions pattern where the external call should be the last operation (which it already is, but safeTransfer adds the revert guarantee).",
+  "exploit_scenario": "1. Configure a non-standard ERC20 token that returns false on transfer failure. 2. User locks tokens normally. 3. User calls unlock(). 4. `lockedToken.quantity -= _quantity` executes, reducing balance. 5. `token.transfer()` fails silently (returns false). 6. User has lost their on-chain balance record but received no tokens. Alternatively, in a scenario where the contract has insufficient token balance due to a bug, the accounting deducts but tokens are never sent.",
+  "swc_id": "",
+  "file": "LockManager.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "unchecked_return_value",
+  "title": "ERC20 transferFrom() Return Value Not Checked in _lock()",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-05-munchables_z18629kh/repo/src/managers/LockManager.sol",
+   "line": 0,
+   "function": "_lock"
+  },
+  "description": "In `_lock()`, the call `token.transferFrom(_tokenOwner, address(this), _quantity)` does not check the return value. The locked token accounting (`lockedToken.quantity += _quantity`, `lockedToken.remainder = remainder`) is updated regardless of whether the transfer actually succeeded. For non-standard ERC20 tokens that return false instead of reverting, an attacker can lock tokens without actually transferring them, gaining NFT minting rights and locked balance credit for free.",
+  "message": "An attacker using a non-compliant ERC20 token can: 1) Get NFTs minted for free via `nftOverlord.addReveal()`, 2) Build up a fake `lockedToken.quantity`, 3) Later call `unlock()` to drain real tokens deposited by other users of that token.",
+  "recommendation": "Use OpenZeppelin's `SafeERC20.safeTransferFrom()` instead. Add `using SafeERC20 for IERC20;` to the contract. Replace `token.transferFrom(_tokenOwner, address(this), _quantity)` with `token.safeTransferFrom(_tokenOwner, address(this), _quantity)`.",
+  "exploit_scenario": "1. Admin configures a non-standard token that returns false on transferFrom. 2. Attacker calls lock() with a large _quantity without having approved the contract. 3. transferFrom returns false silently. 4. lockedToken.quantity += _quantity increments attacker's balance. 5. NFTs are minted for attacker via nftOverlord.addReveal(). 6. Attacker calls unlock() to drain any legitimate deposits of that token from other users. 7. Since unlock() also doesn't check transfer return value, legitimate users' tokens are sent to attacker while their balances are zeroed.",
+  "swc_id": "",
+  "file": "LockManager.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "setLockDuration() Incorrectly Calculates unlockTime Using lastLockTime Instead of Current Time",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-05-munchables_z18629kh/repo/src/managers/LockManager.sol",
+   "line": 0,
+   "function": "setLockDuration"
+  },
+  "description": "In `setLockDuration()`, when updating existing locks, the new `unlockTime` is computed as `lastLockTime + uint32(_duration)`. The `lastLockTime` is the timestamp when the token was last locked, which could be far in the past. This means a user can set a new duration that results in an `unlockTime` in the past (or sooner than expected), bypassing the lock period. The check `uint32(block.timestamp) + uint32(_duration) < lockedTokens[msg.sender][tokenContract].unlockTime` is meant to prevent reducing lock time, but it compares `now + newDuration` against the OLD `unlockTime`, not against `lastLockTime + newDuration`. If `lastLockTime` is old enough, the new `unlockTime` could be in the past even though `now + duration` appears valid.",
+  "message": "A user who locked tokens long ago with a short duration can call setLockDuration() with a new duration such that `lastLockTime + newDuration` is still in the past or very near present, effectively immediately unlocking their tokens and bypassing the intended lock period.",
+  "recommendation": "Calculate unlockTime based on `block.timestamp` not `lastLockTime`: `lockedTokens[msg.sender][tokenContract].unlockTime = uint32(block.timestamp) + uint32(_duration);` This ensures the new unlock time is always in the future relative to when setLockDuration is called.",
+  "exploit_scenario": "1. User locks tokens at T=1000 with lockDuration=100, so unlockTime=1100. 2. Time passes to T=2000. The lock is already expired but the user hasn't called unlock() yet. 3. User calls setLockDuration(50). 4. Check: block.timestamp(2000) + 50 = 2050 < unlockTime(1100)? No, so check passes. 5. New unlockTime = lastLockTime(1000) + 50 = 1050. 6. 1050 is in the past, so unlock() is now callable even if the user had re-locked and expected a 50-second lock from now. More critically, if a user's lock expired and they re-lock (lastLockTime resets), but during the lockdrop somehow lastLockTime gets a value far in the past, the unlockTime could be backdated.",
+  "swc_id": "",
+  "file": "LockManager.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "access_control",
+  "title": "Proposer Can Disapprove Their Own Proposal to Grief or Reset",
+  "severity": "Medium",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-05-munchables_z18629kh/repo/src/managers/LockManager.sol",
+   "line": 0,
+   "function": "disapproveUSDPrice"
+  },
+  "description": "In `disapproveUSDPrice()`, there is no check preventing the proposer from disapproving their own proposal. While `approveUSDPrice()` has `if (usdUpdateProposal.proposer == msg.sender) revert ProposerCannotApproveError()`, no equivalent check exists in `disapproveUSDPrice()`. This means the proposer (who already auto-approved in `proposeUSDPrice()`) could also disapprove, contributing to the disapproval threshold and potentially canceling their own proposal. With DISAPPROVE_THRESHOLD=3, if 3 out of 5 price feed roles are controlled by one entity, they could propose and then disapprove to grief legitimate proposals. Additionally, the proposer's approval from `proposeUSDPrice` + additional approvals might race against a proposer-initiated disapproval.",
+  "message": "A malicious or compromised price feed role holder can repeatedly propose and disapprove USD price updates, permanently blocking price updates and freezing NFT cost calculations at stale values. This affects `getLockedWeightedValue()` which underpins schnibble harvest rates.",
+  "recommendation": "Add a check in `disapproveUSDPrice()` to prevent the proposer from disapproving their own proposal: `if (usdUpdateProposal.proposer == msg.sender) revert ProposerCannotDisapproveError();`",
+  "exploit_scenario": "1. PriceFeed_1 calls proposeUSDPrice(newPrice, contracts). Auto-approves (approvalsCount=1). 2. PriceFeed_1 calls disapproveUSDPrice(newPrice). disapprovalsCount=1. 3. PriceFeed_1 cannot do more since their disapproval is recorded. But with 5 roles and collusion, 3 roles can disapprove. 4. Legitimate price updates are perpetually blocked.",
+  "swc_id": "",
+  "file": "LockManager.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Lock Remainder Accumulates Across Lockdrop Periods Enabling Unearned NFT Mints",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-05-munchables_z18629kh/repo/src/managers/LockManager.sol",
+   "line": 0,
+   "function": "_lock"
+  },
+  "description": "In `_lock()`, `quantity = _quantity + lockedToken.remainder` carries over the previous lock's remainder into the new lock's NFT calculation. This remainder could have been accumulated outside the lockdrop period (when NFTs were not minted). When the lockdrop is active, the old remainder is included in the NFT calculation: `remainder = quantity % configuredToken.nftCost; numberNFTs = (quantity - remainder) / configuredToken.nftCost`. This means tokens that were deposited before the lockdrop (and didn't earn NFTs at deposit time) now contribute to NFT minting during the lockdrop without any additional token deposit.",
+  "message": "Users who deposited tokens outside a lockdrop period accumulate a remainder that is then used during the next lockdrop to mint NFTs without depositing any new tokens. Depending on nftCost values, a user could call lock() with _quantity=0 (if that's allowed) or minimal amounts during a lockdrop to trigger NFT minting using their pre-lockdrop remainder balance.",
+  "recommendation": "Reset the remainder to 0 when transitioning between lockdrop periods, or only accumulate remainder within the same lockdrop period. Add a `lockdropId` or `lastLockdropEnd` timestamp to `LockedToken` struct and reset remainder if the last lock was outside the current lockdrop: `if (lockedToken.lastLockTime < lockdrop.start) { lockedToken.remainder = 0; }`",
+  "exploit_scenario": "1. Outside lockdrop: User locks 900 tokens. nftCost=1000. No NFTs minted (not in lockdrop). remainder=900 stored. 2. Lockdrop begins. 3. User calls lock() with _quantity=1. quantity = 1 + 900 = 901. Still no NFT (901 < 1000). remainder=901. 4. User calls lock() with _quantity=99. quantity = 99 + 901 = 1000. numberNFTs=1. User gets 1 NFT minted using 900 tokens deposited before the lockdrop. 5. Only 100 tokens were deposited DURING the lockdrop but user gets full NFT credit for 1000 tokens.",
+  "swc_id": "",
+  "file": "LockManager.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "reentrancy",
+  "title": "Reentrancy in reveal() \u2014 revealQueue decremented after external mint call",
+  "severity": "Critical",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-05-munchables_z18629kh/repo/src/overlords/NFTOverlord.sol",
+   "line": 0,
+   "function": "reveal"
+  },
+  "description": "In reveal(), the sequence is: (1) createWithImmutable sets attributes, (2) IMunchNFT(munchNFT).mint(player) is called which triggers onERC721Received callback on recipient if they are a contract, (3) AFTER mint returns, revealQueue[player]-- is executed. During the callback in step 2, revealQueue[player] has NOT been decremented yet. If the callback re-enters reveal() (e.g., via the RNG proxy being called again or through a crafted flow), it would pass the `revealQueue[player] == 0` check and mint another token. The same issue exists in revealFromPrimordial().",
+  "message": "A malicious player (contract account) could drain the NFT supply by minting multiple NFTs per queued reveal, bypassing the queue accounting.",
+  "recommendation": "Apply checks-effects-interactions: decrement revealQueue[player] BEFORE calling mint(). Move `--revealQueue[player]` to before the IMunchNFT(munchNFT).mint(player) call. Add a nonReentrant modifier as defense-in-depth.",
+  "exploit_scenario": "1. Attacker is a contract with onERC721Received. 2. Attacker accumulates unrevealedNFTs and calls startReveal(). 3. RNG proxy calls reveal() for attacker. 4. reveal() calls mint(attacker). 5. onERC721Received callback fires \u2014 attacker's revealQueue is still 1. 6. Attacker triggers another reveal() call (e.g., by having pre-arranged another RNG request). 7. Second reveal() passes the queue check and mints another NFT. 8. Both calls then decrement revealQueue, causing underflow or incorrect state.",
+  "swc_id": "",
+  "file": "NFTOverlord.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "reentrancy",
+  "title": "Reentrancy in revealFromPrimordial() \u2014 same pattern as reveal()",
+  "severity": "Critical",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-05-munchables_z18629kh/repo/src/overlords/NFTOverlord.sol",
+   "line": 0,
+   "function": "revealFromPrimordial"
+  },
+  "description": "revealFromPrimordial() has the identical reentrancy vulnerability as reveal(): revealQueue[player] is decremented AFTER IMunchNFT(munchNFT).mint(player) is called. The mint triggers onERC721Received on the recipient, which can re-enter while revealQueue is still non-zero.",
+  "message": "Attacker can mint multiple Rare NFTs per single primordial reveal request.",
+  "recommendation": "Decrement revealQueue[player] before the mint() call. Add ReentrancyGuard from OpenZeppelin.",
+  "exploit_scenario": "1. Attacker contract is registered as a player. 2. PrimordialManager calls mintFromPrimordial(attacker). 3. RNG proxy calls revealFromPrimordial(attacker_uint). 4. mint(player) triggers attacker's onERC721Received. 5. At this point revealQueue[player] == 1, attacker can trigger another reveal path. 6. Multiple NFTs minted for a single queue slot.",
+  "swc_id": "",
+  "file": "NFTOverlord.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "realmLookup array grows unboundedly on every reconfigure()",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-05-munchables_z18629kh/repo/src/overlords/NFTOverlord.sol",
+   "line": 0,
+   "function": "_populateDefaultRealmLookup"
+  },
+  "description": "_populateDefaultRealmLookup() uses realmLookup.push() to append entries but never clears the existing array first. Every call to _reconfigure() (triggered by configUpdated()) appends duplicate entries to realmLookup. After N reconfigures, realmLookup has N times the correct entries. Since realmLookup is indexed by speciesId in _createWithEntropy, the array will contain repeated realm mappings, corrupting species-to-realm lookups and making many previously-invalid speciesIds now valid.",
+  "message": "Protocol misconfiguration on every config update. Species/realm mapping becomes corrupted, causing wrong realm assignments. After enough updates the array grows so large that operations run out of gas or produce wrong results. Could also be used to manipulate which realm is assigned to newly minted NFTs.",
+  "recommendation": "Clear the array before repopulating: `delete realmLookup;` at the start of _populateDefaultRealmLookup(). Similarly audit _populateDefaultProbabilities() for the same issue with mintProbabilities (though mappings don't grow, they do get overwritten which is acceptable).",
+  "exploit_scenario": "1. Contract deployed, realmLookup has [0,1,2,...,N] (correct). 2. Admin calls configUpdated(). 3. _reconfigure() calls _populateDefaultRealmLookup() which pushes again: realmLookup now has [0,1,2,...,N,0,1,2,...,N]. 4. Species X now maps to realm[X] on first lookup but realm[X+originalLength] would be a duplicate. 5. After 10 reconfigures, array has 10x entries.",
+  "swc_id": "",
+  "file": "NFTOverlord.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "mintFromPrimordial uses non-unique RNG seed \u2014 same player always gets same seed",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-05-munchables_z18629kh/repo/src/overlords/NFTOverlord.sol",
+   "line": 0,
+   "function": "mintFromPrimordial"
+  },
+  "description": "mintFromPrimordial() calls rngProxy.requestRandom() with seed = uint256(uint160(_player)), which is constant for a given player. Unlike startReveal() which XORs in a revealNonce to ensure unique seeds per request, mintFromPrimordial always uses the same seed for the same player. If the RNG proxy uses this seed in its entropy generation, multiple primordial mints for the same player could produce identical or correlated randomness, leading to predictable NFT attributes.",
+  "message": "Predictable NFT generation for primordial mints. If the RNG is seed-deterministic, an attacker can predict the outcome and selectively choose when to mint based on favorable conditions. Multiple mints for same player produce correlated results.",
+  "recommendation": "Add a nonce for primordial mints similar to startReveal(): store a primordialNonce[player] and encode it into the seed: `uint256(uint160(_player)) | (uint256(primordialNonce[_player]++) << 160)`.",
+  "exploit_scenario": "1. Player calls mintFromPrimordial() multiple times (with MAX_REVEAL_QUEUE > 1). 2. All requests use identical seed uint256(uint160(player)). 3. RNG proxy generates same or correlated random bytes. 4. All primordial NFTs for this player have identical or highly correlated attributes/rarity.",
+  "swc_id": "",
+  "file": "NFTOverlord.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "levelUpRequests overwrite \u2014 concurrent level-up requests for same tokenId",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-05-munchables_z18629kh/repo/src/overlords/NFTOverlord.sol",
+   "line": 0,
+   "function": "munchableFed"
+  },
+  "description": "munchableFed() writes to levelUpRequests[_tokenId] without checking if a request already exists for that tokenId. If munchableFed() is called for the same tokenId while a previous levelUp RNG request is still pending (hasn't been fulfilled yet), the existing levelUpRequest is silently overwritten. The first RNG response will then use the new (overwritten) request data, and the second RNG response will find levelUpRequests[_tokenId] already deleted (by the first response's `delete`) and revert with InvalidLevelUpRequest.",
+  "message": "Loss of RNG gas fees for the second request. More critically, the first levelUp execution uses potentially wrong fromLevel/toLevel from the overwritten request, potentially skipping levels or applying incorrect level transitions. Owner field may also be set incorrectly.",
+  "recommendation": "Check if a level-up request already exists before creating a new one: `if (levelUpRequests[_tokenId].owner != address(0)) revert LevelUpAlreadyPendingError();`",
+  "exploit_scenario": "1. Token at level 5 gets fed, munchableFed stores {owner, from:5, to:7}, requests RNG. 2. Before RNG fulfills, token gets fed again (level changes), munchableFed overwrites with {owner, from:7, to:9}. 3. First RNG fulfills: checks attributes.level != fromLevel(7) \u2014 may revert with InvalidLevelUpRequest. 4. Second RNG fulfills: levelUpRequests[tokenId] already deleted, reverts.",
+  "swc_id": "",
+  "file": "NFTOverlord.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "nextTokenId() called before mint() \u2014 tokenId mismatch if external state changes",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-05-munchables_z18629kh/repo/src/overlords/NFTOverlord.sol",
+   "line": 0,
+   "function": "reveal"
+  },
+  "description": "In reveal(), revealFromPrimordial(), and mintForMigration(), the pattern is: (1) call nextTokenId() to get expected token ID, (2) set attributes for that ID in nftAttributesManager, (3) call mint() which actually mints. If between step 1 and step 3, another mint occurs (e.g., via a different code path or reentrancy), the actual minted tokenId from mint() will differ from the tokenId used to set attributes. The attributes are set on a tokenId that doesn't correspond to the minted token, or a future token gets someone else's attributes.",
+  "message": "NFT minted with wrong attributes, or attributes set on wrong tokenId. Attributes for the correct tokenId could be overwritten by a subsequent mint that correctly predicts the new nextTokenId. This is especially dangerous if mint() itself can be reentered.",
+  "recommendation": "The mint() function should return the actual tokenId minted and use that for attribute setting. Alternatively, set attributes after mint and use the returned tokenId. Better yet, have mint() atomically set attributes, or ensure reveal() is non-reentrant.",
+  "exploit_scenario": "1. reveal() calls nextTokenId() \u2192 returns 100, sets attributes for tokenId 100. 2. Before mint() executes, another reveal callback executes (reentrancy or async), minting tokenId 100 with different attributes. 3. Original reveal() mints tokenId 101, but attributes for 101 haven't been set \u2014 they were set for 100. 4. TokenId 101 has no attributes; tokenId 100 has attributes from the original reveal but got minted with different attributes in step 2.",
+  "swc_id": "",
+  "file": "NFTOverlord.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "migratePurchasedNFTs: NFTs minted and burned before payment validation",
+  "severity": "Critical",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-05-munchables_z18629kh/repo/src/managers/MigrationManager.sol",
+   "line": 0,
+   "function": "migratePurchasedNFTs"
+  },
+  "description": "In `migratePurchasedNFTs`, the function calls `_migrateNFTs(msg.sender, address(0), tokenIds)` BEFORE checking `if (msg.value != (quantity * discountFactor) / 10e12) revert InvalidMigrationAmountError()`. This means NFTs are minted to the user and old NFTs are burned before payment is validated. If the payment check fails, the transaction reverts \u2014 but critically, the logic order means a carefully crafted call can observe state mid-execution. More importantly, if `quantity` is 0 (all snapshots skipped due to `snapshot.claimed` being true or `tokenIds` being empty after filtering), `msg.value` can be 0 and the check passes trivially even though no meaningful migration occurred. Additionally, the `quantity` variable computed in the loop only counts non-claimed tokens, but `_migrateNFTs` independently re-checks and processes them \u2014 creating a potential mismatch between what the outer function computed and what was actually processed.",
+  "message": "An attacker could potentially send 0 ETH and pass the payment check if all tokenIds resolve to already-claimed or zero snapshots, while still triggering the NFT minting path in `_migrateNFTs` for unclaimed NFTs. More broadly, the architectural flaw of validating payment after state changes violates the checks-effects-interactions pattern.",
+  "recommendation": "Move the payment calculation and validation BEFORE calling `_migrateNFTs`. Calculate `quantity` first, validate `msg.value`, then call `_migrateNFTs`. Use checks-effects-interactions pattern: validate all inputs first, then make state changes.",
+  "exploit_scenario": "1. Attacker has purchased NFTs in snapshot (lockAmount=0, token=address(0)). 2. Attacker calls `migratePurchasedNFTs([tokenId1, tokenId2])` with 0 ETH. 3. `_migrateNFTs` executes: mints new NFTs, burns old NFTs, calls lockManager. 4. Payment check runs: if quantity=0 due to snapshot filtering edge case, check passes. 5. Attacker receives migrated NFTs for free.",
+  "swc_id": "",
+  "file": "MigrationManager.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "lockFundsForAllMigration collects full amount but _migrateNFTs sends only discounted amount \u2014 ETH/ERC20 permanently locked in contract",
+  "severity": "Critical",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-05-munchables_z18629kh/repo/src/managers/MigrationManager.sol",
+   "line": 0,
+   "function": "lockFundsForAllMigration"
+  },
+  "description": "In `lockFundsForAllMigration`, the user sends `totalLockAmount` (the full amount from `getUserMigrateQuantityAll`, which already applies `discountFactor`). However, in `_migrateNFTs`, the code computes `quantity = (totalLockAmount * discountFactor) / 10e12` and sends THAT to the lockManager. This means the discount is applied TWICE. First, `getUserMigrateQuantityAll` returns `(_userLockedAmounts[_user].totalLockedAmount * discountFactor) / 10e12` \u2014 this is already discounted. Then `_migrateNFTs` takes this discounted value and discounts it again by `discountFactor / 10e12`. The user pays the discounted amount, but only a fraction of it reaches the lockManager. The remainder stays stuck in MigrationManager with no withdrawal function.",
+  "message": "1. User funds (ETH or ERC20) are permanently locked in MigrationManager with no recovery mechanism. 2. The double-discount means far less value is locked in LockManager than intended, breaking the protocol's economic model. 3. If discountFactor is, e.g., 0.5e12 (50%), users pay 50% of original but only 25% reaches LockManager.",
+  "recommendation": "In `_migrateNFTs`, when called from `migrateAllNFTs` (full migration path), send the full collected amount to LockManager without re-applying discount. Alternatively, track how much was collected in `lockFundsForAllMigration` and use that exact amount in `_migrateNFTs`. Add a separate admin withdrawal function for accidentally stuck funds.",
+  "exploit_scenario": "1. User has totalLockedAmount = 10 ETH in snapshot, discountFactor = 5e12 (50%). 2. `getUserMigrateQuantityAll` returns totalLockAmount = (10e18 * 5e12) / 10e12 = 5 ETH. 3. User calls `lockFundsForAllMigration` sending 5 ETH. 4. `migrateAllNFTs` calls `_migrateNFTs`. 5. In `_migrateNFTs`, totalLockAmount = 5 ETH (the original lock amounts), quantity = (5e18 * 5e12) / 10e12 = 2.5 ETH sent to LockManager. 6. 2.5 ETH remains stuck in MigrationManager forever.",
+  "swc_id": "",
+  "file": "MigrationManager.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "uint8 loop counter in _migrateNFTs causes silent overflow for arrays with >255 elements",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-05-munchables_z18629kh/repo/src/managers/MigrationManager.sol",
+   "line": 0,
+   "function": "_migrateNFTs"
+  },
+  "description": "In `_migrateNFTs`, the loop counter `i` is declared as `uint8`: `uint8 i; for (; i < tokenIds.length; i++)`. Since `uint8` has a maximum value of 255, if `tokenIds.length > 255`, the counter will overflow back to 0 and loop infinitely (or until gas runs out) or skip processing elements beyond index 255. In Solidity 0.8.x, arithmetic overflow reverts by default for regular operations, but since `i` is `uint8` and `tokenIds.length` is `uint256`, the comparison `i < tokenIds.length` will always be true after overflow (255 + 1 = 0 in uint8, 0 < length), causing the loop to restart from index 0 and re-process already-claimed snapshots.",
+  "message": "If a user has more than 255 NFTs, the migration will either run out of gas in an infinite loop, or in edge cases re-process already-claimed NFTs (though the `snapshot.claimed` check should prevent double-minting). The primary impact is denial of service \u2014 users with >255 NFTs cannot migrate.",
+  "recommendation": "Change `uint8 i` to `uint256 i` in the `_migrateNFTs` loop: `for (uint256 i = 0; i < tokenIds.length; i++)`.",
+  "exploit_scenario": "1. User has 256+ NFTs loaded in snapshot. 2. `migrateAllNFTs` called with appropriate skip. 3. `_migrateNFTs` receives tokenIds array of length 256+. 4. Loop counter overflows: at i=255, i++ wraps to 0. 5. Transaction runs out of gas (DoS) or behaves unexpectedly.",
+  "swc_id": "",
+  "file": "MigrationManager.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "access_control",
+  "title": "burnNFTs and burnRemainingPurchasedNFTs can be called by anyone once user's action is set",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-05-munchables_z18629kh/repo/src/managers/MigrationManager.sol",
+   "line": 0,
+   "function": "burnNFTs"
+  },
+  "description": "In `burnNFTs`, the authorization check is: `if (_user != msg.sender && _userLockedAction[_user] == UserLockedChoice.NONE) revert SelfNeedsToChooseError()`. This means: (a) if caller is the user, always allowed; (b) if caller is NOT the user AND action is NONE, revert. BUT if action is already set to `LOCKED_BURN` (or any non-NONE value), ANY third party can call `burnNFTs` on behalf of ANY user. This is problematic because after a user has started the burn process, anyone can continue burning their NFTs (processing batches) on their behalf without permission. Similarly in `burnRemainingPurchasedNFTs`: `if (_user != msg.sender && _userPurchasedAction[_user] == UserLockedChoice.NONE) revert SelfNeedsToChooseError()`. The action is set to LOCKED_BURN at the START of the function, so on the first call by user, action is set; subsequent calls by anyone are allowed.",
+  "message": "After a user initiates burning (first batch), anyone can force-burn the remaining NFTs in subsequent batches on behalf of the user. While the NFTs would be burned to the user's benefit (points go to the user), it removes user agency and could be used to grief users or front-run their choices.",
+  "recommendation": "Require that only the user themselves can call batch-continuation functions, or add an explicit whitelist/approval mechanism. The simplest fix: `if (_user != msg.sender) revert Unauthorized()`.",
+  "exploit_scenario": "1. User calls `burnNFTs(userAddress, 0)` \u2014 processes first 5 NFTs, sets action to LOCKED_BURN. 2. Attacker immediately calls `burnNFTs(userAddress, 5)`, `burnNFTs(userAddress, 10)` etc. 3. All remaining NFTs are burned without user's continued consent.",
+  "swc_id": "",
+  "file": "MigrationManager.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "unchecked_return_value",
+  "title": "ERC20 transferFrom return value not checked in lockFundsForAllMigration",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-05-munchables_z18629kh/repo/src/managers/MigrationManager.sol",
+   "line": 0,
+   "function": "lockFundsForAllMigration"
+  },
+  "description": "In `lockFundsForAllMigration`, the ERC20 transfer is performed as `IERC20(tokenContract).transferFrom(msg.sender, address(this), totalLockAmount)` without checking the return value. Some ERC20 tokens (e.g., USDT on certain chains) return `false` instead of reverting on failure. If the transfer fails silently, `_userLockedAction[msg.sender]` is set to `LOCKED_FULL_MIGRATION` without any funds being collected. The user can then call `migrateAllNFTs` to receive migrated NFTs for free, and the `_migrateNFTs` function will attempt to send tokens to `_lockManager` that MigrationManager doesn't have.",
+  "message": "If a non-reverting ERC20 token is used (USDB or WETH on some deployments), a user could get their NFTs migrated to the new system for free. The subsequent `_migrateNFTs` call would also fail when trying to approve/send tokens to lockManager, but the user's action state is permanently set and cannot be reset.",
+  "recommendation": "Use OpenZeppelin's `SafeERC20.safeTransferFrom` instead of raw `transferFrom`: `SafeERC20.safeTransferFrom(IERC20(tokenContract), msg.sender, address(this), totalLockAmount)`.",
+  "exploit_scenario": "1. USDB is configured as a non-reverting ERC20. 2. Attacker calls `lockFundsForAllMigration` with 0 approval. 3. `transferFrom` returns false (no revert). 4. `_userLockedAction` is set to LOCKED_FULL_MIGRATION. 5. Attacker calls `migrateAllNFTs` \u2014 `_migrateNFTs` runs, mints NFTs, then tries to send USDB to lockManager (which may revert or succeed from contract balance).",
+  "swc_id": "",
+  "file": "MigrationManager.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "access_control",
+  "title": "migrateAllNFTs has no access control \u2014 anyone can trigger migration for any user with LOCKED_FULL_MIGRATION status",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-05-munchables_z18629kh/repo/src/managers/MigrationManager.sol",
+   "line": 0,
+   "function": "migrateAllNFTs"
+  },
+  "description": "The `migrateAllNFTs` function has no access control whatsoever \u2014 any address can call it for any `_user` as long as `_userLockedAction[_user] == LOCKED_FULL_MIGRATION`. While the migration itself goes to the correct user, this allows third parties to force migrations at any time, potentially at unfavorable block timestamps (since `hatchedDate = uint32(block.timestamp)` is set during migration). The lack of control means users cannot delay their migration timing.",
+  "message": "Anyone can force-complete migrations for other users, setting hatchedDate to the current block timestamp which may affect game mechanics. Users lose control over timing of their migration completion.",
+  "recommendation": "Add authorization check: `if (_user != msg.sender) revert Unauthorized()`, or implement a delegated execution pattern where users can optionally allow third-party execution.",
+  "exploit_scenario": "1. User calls `lockFundsForAllMigration` and pays funds. 2. User waits for a favorable time to complete migration. 3. Attacker calls `migrateAllNFTs(userAddress, 0)` forcing migration at current timestamp. 4. User's hatchedDate is set to attacker-chosen block time.",
+  "swc_id": "",
+  "file": "MigrationManager.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Duplicate Player Check Array Never Reset Between Calls - Stale State",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-05-munchables_z18629kh/repo/src/managers/AccountManager.sol",
+   "line": 128,
+   "function": "spraySchnibblesPropose"
+  },
+  "description": "The `_tempSprayPlayerCheck` mapping is used to prevent duplicate players in a spray proposal. Before setting entries, the function resets them with `_tempSprayPlayerCheck[_players[i]] = false`. However, this only resets the entries for the CURRENT call's player list. If a previous proposal was submitted and the entries were set to `true`, then deleted (via `delete sprayProposals[proposer]`), the `_tempSprayPlayerCheck` entries remain `true`. More critically, the reset loop sets values to `false` BEFORE checking for duplicates in the same call, which means a different Social role user submitting a proposal with the same player address that was previously sprayed would have stale `true` values from a prior proposal (since `_tempSprayPlayerCheck` is never properly cleaned up on `execSprayProposal` or `removeSprayProposal`). Additionally, the current call's reset loop runs BEFORE the proposal existence check is cleared \u2014 but the deeper issue is that `_tempSprayPlayerCheck` is a persistent storage mapping shared across all calls, meaning leftover `true` values from previous proposals (after exec/remove clears the proposal but NOT the temp mapping) will cause legitimate players to be incorrectly flagged as duplicates.",
+  "message": "A player address that appeared in a previously executed or removed spray proposal will permanently have `_tempSprayPlayerCheck[player] = true`. Future proposals including that player will revert with `DuplicateSprayerError`, preventing social rewards from being distributed to previously-sprayed players. This is a permanent DoS on specific player addresses.",
+  "recommendation": "Use a local in-memory approach or increment a nonce to invalidate old entries. Better: use a local mapping via assembly or a temporary array with a nonce pattern. Simplest fix: after executing or removing a proposal, iterate through the squirts and reset `_tempSprayPlayerCheck` for each player. Or use a nonce-based check: `mapping(address => uint256) _tempSprayNonce` and compare against a global nonce.",
+  "exploit_scenario": "1. Social role user calls `spraySchnibblesPropose([alice], [100])` \u2014 sets `_tempSprayPlayerCheck[alice] = true`.\n2. SocialApproval role user calls `execSprayProposal(social)` \u2014 deletes `sprayProposals[social]` but `_tempSprayPlayerCheck[alice]` remains `true`.\n3. Social role user calls `spraySchnibblesPropose([alice], [200])` \u2014 reset loop sets `_tempSprayPlayerCheck[alice] = false`, then sets it to `true` in the main loop. Actually on re-examination, the reset loop DOES cover the current list. But if two different Social users spray alice, social1 sets `_tempSprayPlayerCheck[alice] = true`, exec clears proposal but not the mapping, then social2 tries to spray [alice, bob] \u2014 reset sets alice=false, bob=false, then checks: alice gets set to true (no revert since it was reset). So the cleanup is incomplete but the intra-call check works. The real issue is cross-user contamination is not possible here due to reset. However the mapping is wasteful and the reset approach is fragile.",
+  "swc_id": "",
+  "file": "AccountManager.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "forceHarvest Does Not Check if Player is Registered",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-05-munchables_z18629kh/repo/src/managers/AccountManager.sol",
+   "line": 142,
+   "function": "forceHarvest"
+  },
+  "description": "The `forceHarvest` function calls `_harvest(_player)` without verifying that `_player` is a registered player. `_harvest` directly accesses `players[_caller].lastHarvestDate` and `players[_caller].unfedSchnibbles`. For an unregistered player, `registrationDate` is 0, and `lastHarvestDate` is also 0. This means `secondsToClaim = block.timestamp - 0 = block.timestamp`, which is approximately the Unix timestamp at the time of the call (e.g., ~1.7 billion seconds). This causes a massive, incorrect schnibble amount to be credited to `players[unregistered].unfedSchnibbles` and emits a `Harvested` event. Furthermore, since the player is unregistered, `players[_player].registrationDate` remains 0, so subsequent harvest calls would again use `lastHarvestDate = 0` until `lastHarvestDate` is updated \u2014 but it IS updated by `_harvest`. However, an unregistered player has no registered state, so the written schnibbles to `players[_player].unfedSchnibbles` could be read by external contracts.",
+  "message": "LockManager or MunchadexManager (trusted contracts) can accidentally or maliciously trigger harvest for an unregistered address, crediting them with an astronomically large schnibble amount proportional to the current Unix timestamp. If that address later registers, they inherit these schnibbles. This could break game economy.",
+  "recommendation": "Add a registration check in `forceHarvest`: `if (players[_player].registrationDate == 0) revert PlayerNotRegisteredError();` Or only harvest if the player is registered: `if (players[_player].registrationDate != 0) { _harvest(_player); }`",
+  "exploit_scenario": "1. LockManager calls `forceHarvest(unregisteredAddress)`.\n2. `_harvest(unregisteredAddress)` runs: `lastHarvestDate = 0`, so `secondsToClaim = block.timestamp \u2248 1,700,000,000`.\n3. If `dailySchnibbles > 0` (e.g., the address has locked tokens), they receive `dailySchnibbles * 1,700,000,000 / 86400` schnibbles.\n4. `players[unregisteredAddress].lastHarvestDate` is set to `block.timestamp`.\n5. Address registers later, inheriting the massively inflated `unfedSchnibbles`.",
+  "swc_id": "",
+  "file": "AccountManager.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "access_control",
+  "title": "updatePlayer Allows Arbitrary Player Data Overwrite Without Validation",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-05-munchables_z18629kh/repo/src/managers/AccountManager.sol",
+   "line": 249,
+   "function": "updatePlayer"
+  },
+  "description": "The `updatePlayer` function allows SnuggeryManager or PrimordialManager to completely overwrite a player's entire struct, including critical fields like `registrationDate`, `lastHarvestDate`, `unfedSchnibbles`, `referrer`, `maxSnuggerySize`, and `snuggeryRealm`. While access is restricted to two configured contracts, if either of those contracts has a vulnerability or is compromised/misconfigured, an attacker can set arbitrary values. Specifically: setting `lastHarvestDate = 0` would allow the player to claim schnibbles from epoch 0 on next harvest; setting `unfedSchnibbles` to max uint256 would give unlimited resources; setting `registrationDate = 0` would make the player appear unregistered while still having data.",
+  "message": "A compromised SnuggeryManager or PrimordialManager can set any player's data to arbitrary values, enabling unlimited schnibble minting, bypassing registration checks, or corrupting player state across the protocol.",
+  "recommendation": "Validate critical immutable fields in `updatePlayer`: ensure `registrationDate` cannot be changed, `lastHarvestDate` cannot be set to 0 for an active player, and add bounds checking on `unfedSchnibbles`. Consider using a more granular update pattern instead of full struct replacement.",
+  "exploit_scenario": "1. Attacker compromises SnuggeryManager (or PrimordialManager).\n2. Calls `updatePlayer(victim, Player{lastHarvestDate: 0, unfedSchnibbles: type(uint256).max, ...})`.\n3. Victim's account is corrupted; `harvest()` would give astronomical returns due to `lastHarvestDate = 0`.",
+  "swc_id": "",
+  "file": "AccountManager.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "register() Allows Re-registration After Becoming a Sub-Account, Inheriting Old Sub-Account Mapping",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-05-munchables_z18629kh/repo/src/managers/AccountManager.sol",
+   "line": 101,
+   "function": "register"
+  },
+  "description": "In `register()`, if `mainAccounts[msg.sender] != address(0)`, the function calls `_removeSubAccount(mainAccounts[msg.sender], msg.sender)`. This correctly removes the sub-account relationship. However, `onlyUnregistered(msg.sender)` only checks `players[account].registrationDate != 0`. A previously registered player who had their registration cleared (if possible via `updatePlayer` setting registrationDate=0) could re-register. More critically: a user can be BOTH a sub-account AND previously registered if the state is manipulated. The `register` function doesn't clear `subAccounts[msg.sender]` \u2014 if the registering address itself has sub-accounts from a previous registration cycle, those relationships persist. Combined with `updatePlayer` resetting `registrationDate=0`, a player could re-register while retaining their old sub-accounts.",
+  "message": "State inconsistency where sub-account relationships from a previous registration persist after re-registration, potentially allowing one address to have both a main account relationship and existing sub-accounts simultaneously.",
+  "recommendation": "In `register()`, also clear any existing `subAccounts[msg.sender]` entries and their corresponding `mainAccounts` mappings. Add: `for (uint i = 0; i < subAccounts[msg.sender].length; i++) { delete mainAccounts[subAccounts[msg.sender][i]]; } delete subAccounts[msg.sender];`",
+  "exploit_scenario": "1. Alice registers as main account with sub-accounts [bob, carol].\n2. SnuggeryManager calls `updatePlayer(alice, Player{registrationDate: 0, ...})` (clears registration).\n3. Alice calls `register()` \u2014 passes `onlyUnregistered` since `registrationDate = 0`.\n4. Alice is re-registered but `subAccounts[alice]` still contains [bob, carol] \u2014 orphaned sub-account relationships.",
+  "swc_id": "",
+  "file": "AccountManager.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "getSubAccounts Returns Wrong Indexed Data - Off-by-One in Result Array",
+  "severity": "Medium",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-05-munchables_z18629kh/repo/src/managers/AccountManager.sol",
+   "line": 275,
+   "function": "getSubAccounts"
+  },
+  "description": "In `getSubAccounts`, the result array `_subAccounts` is indexed by `i` (the global index), not by `i - _start` (the local index). When `_start > 0`, the first `_start` elements of the returned array will be `address(0)`, and the actual data will be placed at positions `_start` to `_start + count - 1` instead of `0` to `count - 1`. This means callers receiving paginated results will get malformed data with leading zero addresses.",
+  "message": "Off-chain clients reading paginated sub-account data will receive incorrect results with empty leading entries, potentially causing incorrect display or logic errors in dependent systems.",
+  "recommendation": "Use a local index: `_subAccounts[i - _start] = subAccounts[_player][i];`",
+  "exploit_scenario": "1. Player has sub-accounts [A, B, C, D, E, F].\n2. Call `getSubAccounts(player, 3)` \u2014 expects [D, E, F, 0, ...].\n3. Actual result: [0, 0, 0, D, E, F, 0, ...] \u2014 wrong indexing.",
+  "swc_id": "",
+  "file": "AccountManager.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "NFT Transfer Before State Validation in exportMunchable",
+  "severity": "Critical",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-05-munchables_z18629kh/repo/src/managers/SnuggeryManager.sol",
+   "line": 93,
+   "function": "exportMunchable"
+  },
+  "description": "In exportMunchable(), the NFT is transferred back to the caller BEFORE checking if the token actually belongs to the caller's snuggery. The ownership check `erc721Token.ownerOf(_tokenId) != address(this)` only verifies the contract holds the token, but doesn't verify it belongs to THIS caller's snuggery. Any registered player can export any NFT held by the contract (belonging to any other player) by calling exportMunchable with any tokenId the contract holds, since the snuggery check happens after the transfer.",
+  "message": "Any registered user can steal NFTs belonging to other users that are currently deposited in the snuggery. An attacker can drain all NFTs held by the contract.",
+  "recommendation": "Perform the _findSnuggeryIndex check BEFORE the NFT transfer. Move the ownership/snuggery validation before transferFrom. Additionally, remove the snuggery entry before transferring to prevent any reentrancy via onERC721Received callbacks.",
+  "exploit_scenario": "1. Alice imports tokenId=1 (her NFT) into her snuggery. Contract now holds tokenId=1.\n2. Bob (any registered user) calls exportMunchable(1).\n3. The contract checks ownerOf(1) == address(this) \u2014 TRUE.\n4. Contract transfers tokenId=1 to Bob.\n5. _findSnuggeryIndex(Bob, 1) returns (false, 0) \u2192 revert MunchableNotInSnuggeryError.\n6. BUT the transfer already happened \u2014 WAIT: in Solidity, if the function reverts after the transfer, the transfer is also reverted. However, if the NFT contract does NOT revert on the transferFrom (which standard ERC721 does atomically), the entire transaction reverts. So this specific issue actually self-protects via revert. BUT: the order still creates a reentrancy window.",
+  "swc_id": "",
+  "file": "SnuggeryManager.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "reentrancy",
+  "title": "Reentrancy in exportMunchable via ERC721 transferFrom Callback",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-05-munchables_z18629kh/repo/src/managers/SnuggeryManager.sol",
+   "line": 93,
+   "function": "exportMunchable"
+  },
+  "description": "exportMunchable() transfers the NFT to the caller before updating the snuggery state (removing the token from snuggeries[_caller]). If the caller is a contract, and the NFT contract calls onERC721Received during the transfer, the attacker can re-enter exportMunchable before the snuggery array is updated, potentially exporting the same NFT twice. The chonkUpdated modifier runs before and after the function body, but state cleanup of the snuggery array happens AFTER the external call.",
+  "message": "A malicious contract could potentially re-enter and double-export NFTs, causing inconsistent state even if the second transfer fails (since the NFT is already moved).",
+  "recommendation": "Apply checks-effects-interactions pattern: validate, update state (remove from snuggery array), then transfer. Add a reentrancy guard (nonReentrant modifier) to all state-changing functions.",
+  "exploit_scenario": "1. Attacker imports tokenId=1 into their snuggery.\n2. Attacker calls exportMunchable(1) from a malicious contract.\n3. During transferFrom callback (onERC721Received), attacker re-enters exportMunchable(1).\n4. Re-entrant call: ownerOf(1) check \u2014 at this point NFT ownership depends on timing. Standard ERC721 safeTransferFrom calls onERC721Received after state update, so ownerOf would be attacker. This would fail the 'ownerOf != address(this)' check.\n5. However, state inconsistency in snuggery array could be exploited depending on the NFT implementation.",
+  "swc_id": "",
+  "file": "SnuggeryManager.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Double-Precision Multiplication Error in pet() Schnibbles Calculation",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-05-munchables_z18629kh/repo/src/managers/SnuggeryManager.sol",
+   "line": 185,
+   "function": "pet"
+  },
+  "description": "In the pet() function, schnibbles amounts are calculated as: `petterSchnibbles = ((totalSchnibbles * 5) / 11) * 1e18` and `pettedSchnibbles = ((totalSchnibbles * 6) / 11) * 1e18`. However, PET_TOTAL_SCHNIBBLES is already configured as `10e18 / 72` (already scaled by 1e18). Multiplying by 1e18 again inflates the schnibbles by a factor of 1e18, giving players astronomically large unfedSchnibbles values. This breaks the economic model entirely.",
+  "message": "Every pet interaction grants players 1e18x more schnibbles than intended, allowing unlimited feeding and breaking the entire game economy. Players with petted schnibbles can feed their NFTs to astronomical chonk levels, distorting all reward calculations.",
+  "recommendation": "Remove the `* 1e18` multiplications. The calculation should be: `uint256 petterSchnibbles = (totalSchnibbles * 5) / 11;` and `uint256 pettedSchnibbles = (totalSchnibbles * 6) / 11;`",
+  "exploit_scenario": "1. PET_TOTAL_SCHNIBBLES = 10e18 / 72 \u2248 1.38e17 (already 18 decimal scaled).\n2. totalSchnibbles \u2248 1.38e17 (with no bonus).\n3. petterSchnibbles = ((1.38e17 * 5) / 11) * 1e18 \u2248 6.27e34.\n4. This is 6.27e34 units of schnibbles added to unfedSchnibbles \u2014 completely breaking the economy.\n5. Any pair of accounts can pet each other every 10 minutes to accumulate unlimited schnibbles.",
+  "swc_id": "",
+  "file": "SnuggeryManager.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Negative bonusPercent Causes Underflow/Incorrect Chonk Calculation in feed()",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-05-munchables_z18629kh/repo/src/managers/SnuggeryManager.sol",
+   "line": 121,
+   "function": "feed"
+  },
+  "description": "In feed(), bonusPercent is declared as int256 and obtained from bonusManager.getFeedBonus(). bonusSchnibbles is calculated as `(int256(_schnibbles) * bonusPercent) / 1e18`. Then the result is cast: `currentAttributes.chonks += uint256(int256(_schnibbles) + bonusSchnibbles)`. If bonusPercent is sufficiently negative (less than -1e18), then `int256(_schnibbles) + bonusSchnibbles` becomes negative, and casting a negative int256 to uint256 produces a massive positive number (due to two's complement), adding an astronomically large value to chonks.",
+  "message": "A malicious or misconfigured bonusManager returning a large negative bonus could cause chonks to overflow to near-uint256-max values, corrupting the chonk accounting and potentially breaking global reward calculations.",
+  "recommendation": "Add a check to ensure the result is non-negative before casting: `int256 totalChonkDelta = int256(_schnibbles) + bonusSchnibbles; require(totalChonkDelta >= 0, 'Negative chonk delta'); currentAttributes.chonks += uint256(totalChonkDelta);`. Alternatively, clamp at zero.",
+  "exploit_scenario": "1. bonusManager.getFeedBonus() returns -2e18 (bonus of -200%).\n2. _schnibbles = 100e18.\n3. bonusSchnibbles = (100e18 * -2e18) / 1e18 = -200e18.\n4. int256(_schnibbles) + bonusSchnibbles = 100e18 + (-200e18) = -100e18.\n5. uint256(-100e18) = 2^256 - 100e18 \u2248 very large number added to chonks.",
+  "swc_id": "",
+  "file": "SnuggeryManager.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "access_control",
+  "title": "pet() Allows Petting via Sub-Account with No Main Account Check for Petter",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-05-munchables_z18629kh/repo/src/managers/SnuggeryManager.sol",
+   "line": 154,
+   "function": "pet"
+  },
+  "description": "The pet() function checks `if (_pettedMainAccount != _pettedOwner) revert PettedIsSubAccount()` \u2014 meaning the petted must be a main account. However, there is NO equivalent check that the petter (msg.sender) is a main account. A sub-account can pet, and the schnibbles/rewards are credited to the main account of the sub-account. Combined with the 10-minute cooldown being on `_petterPlayer.lastPetMunchable`, multiple sub-accounts of the same main account could each have separate cooldowns, allowing a single main account to effectively bypass the 10-minute pet cooldown by rotating through sub-accounts.",
+  "message": "A player with multiple sub-accounts can bypass the 10-minute pet cooldown entirely, accumulating schnibbles at N times the intended rate where N is the number of sub-accounts. This breaks game economy.",
+  "recommendation": "Add a check `if (_petterMainAccount != msg.sender) revert PetterIsSubAccount();` to require the petter to also be a main account, consistent with the petted check. Or verify that sub-accounts share the same lastPetMunchable as their main account.",
+  "exploit_scenario": "1. Alice creates sub-accounts: sub1, sub2, sub3, ... subN.\n2. Alice (via sub1) pets Bob at time T \u2014 10 min cooldown recorded on Alice's main account via sub1's lookup.\n3. Wait: actually _petterPlayer is loaded for _petterMainAccount. The lastPetMunchable is on the main account struct, shared across all sub-accounts.\n4. However: if the protocol allows multiple sub-accounts per main account, and each sub-account maps to the same main account, the cooldown IS shared. But if sub-accounts are tracked independently in accountManager, each sub-account could have its own player struct with its own lastPetMunchable.\n5. This requires verification of accountManager.getPlayer behavior, but represents a potential bypass.",
+  "swc_id": "",
+  "file": "SnuggeryManager.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "importMunchable Snuggery Size Check After NFT Transfer",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-05-munchables_z18629kh/repo/src/managers/SnuggeryManager.sol",
+   "line": 72,
+   "function": "importMunchable"
+  },
+  "description": "In importMunchable(), the NFT is transferred from the caller to the contract BEFORE checking if the snuggery has space (`snuggeries[_caller].length >= _player.maxSnuggerySize`). If the snuggery is full, the function reverts with SnuggeryFullError, but the transferFrom has already executed. However, since the revert occurs in the same transaction, the transfer IS reverted atomically. The primary concern is that a reentrancy attack via the transfer could manipulate the snuggery size check. More critically: the chonkUpdated modifier calls claimManager.forceClaimPoints BEFORE the size check, and _recalculateChonks AFTER. If the snuggery is full and reverts, forceClaimPoints was already called with side effects that may not revert if they involve external state changes in claimManager.",
+  "message": "If claimManager.forceClaimPoints has non-reverting side effects (e.g., emitting events, updating state in ways the revert doesn't undo across contracts \u2014 though in EVM all state changes revert), this is low risk in practice. However the ordering is poor practice and creates unnecessary external calls on failure paths.",
+  "recommendation": "Move the snuggery size check BEFORE the NFT transfer: check `if (snuggeries[_caller].length >= _player.maxSnuggerySize) revert SnuggeryFullError();` at the top of the function, before the transferFrom call. This saves gas and follows checks-effects-interactions.",
+  "exploit_scenario": "",
+  "swc_id": "",
+  "file": "SnuggeryManager.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "getSnuggery View Function Has Off-by-One / Incorrect Array Indexing",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-05-munchables_z18629kh/repo/src/managers/SnuggeryManager.sol",
+   "line": 210,
+   "function": "getSnuggery"
+  },
+  "description": "In getSnuggery(), the returned array `_snuggery` is allocated with size `maxSize` (capped at 10), but the loop fills positions using index `i` relative to the full array: `_snuggery[i].tokenId = ...`. When `_start > 0`, `i` starts at `_start` (e.g., 10), but `_snuggery` only has indices 0..9. Accessing `_snuggery[i]` when `i >= maxSize` will cause an out-of-bounds array access and revert. This makes pagination completely broken for any `_start > 0` when maxSize < 10.",
+  "message": "The getSnuggery view function is broken for any non-zero _start value, making it impossible to paginate through large snuggeries. While this is a view function and doesn't affect funds directly, it breaks off-chain tooling and any contracts that depend on this view for state checks.",
+  "recommendation": "Fix the indexing: use a separate counter for the output array. `uint256 outIdx = 0; for (uint256 i = _start; i < maxSize + _start && i < _snuggerySize; i++) { _snuggery[outIdx] = snuggeries[_player][i]; outIdx++; }`",
+  "exploit_scenario": "1. Player has 15 NFTs in snuggery. _snuggerySize=15, maxSize=10.\n2. Call getSnuggery(player, 5). _start=5, maxSize=10.\n3. _snuggery allocated with size 10 (indices 0-9).\n4. Loop: i starts at 5, goes to 14 (maxSize + _start = 15).\n5. When i=10, _snuggery[10] is accessed \u2014 out of bounds on a 10-element array \u2192 revert.",
+  "swc_id": "",
+  "file": "SnuggeryManager.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "reentrancy",
+  "title": "Reentrancy via notify() during state-changing operations",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-05-munchables_z18629kh/repo/src/config/ConfigStorage.sol",
+   "line": 0,
+   "function": "notify() / all setter functions with _notify=true"
+  },
+  "description": "The internal notify() function makes external calls to all registered notifiable addresses via IConfigNotifiable.configUpdated(). This call is made AFTER state is written, but the called contracts can re-enter any public function on ConfigStorage. Since all setters are onlyOwner, direct re-entrant exploitation is limited \u2014 however, if a malicious or compromised notifiable contract calls back into ConfigStorage during configUpdated(), it could observe inconsistent intermediate state or trigger cascading config updates. More critically, manualNotifyAddress() calls an arbitrary address supplied by the owner, which has no validation that the address is in the notifiable list \u2014 a malicious contract at that address could be used to re-enter. Additionally, the notify() loop iterates over notifiableAddresses, and if a configUpdated() callback causes addNotifiableAddress or removeNotifiableAddress to be called (e.g., via owner multicall or governance), the array length changes mid-iteration, causing skipped or double notifications, or even out-of-bounds access.",
+  "message": "If a notifiable contract is malicious or compromised, it can re-enter ConfigStorage during config updates, potentially causing inconsistent configuration state across the protocol or triggering unintended cascading updates. The dynamic array mutation during notify() iteration could cause missed/duplicate notifications.",
+  "recommendation": "1. Apply checks-effects-interactions pattern by caching the notifiableAddresses array before iteration: `address[] memory cached = notifiableAddresses;` and iterate over cached. 2. Add a reentrancy guard (nonReentrant modifier from OpenZeppelin) to the notify() function or all setter functions. 3. Consider using a pull-based notification pattern instead of push.",
+  "exploit_scenario": "1. Owner adds a malicious contract M to notifiableAddresses. 2. Owner calls setUint(key, value, true). 3. notify() is called, which calls M.configUpdated(). 4. M re-enters ConfigStorage \u2014 while onlyOwner protects setters, if owner is a multisig/governance that processes queued txs, or M triggers other side effects. 5. For the array mutation bug: M.configUpdated() calls back owner, which calls addNotifiableAddress() \u2014 notifiableAddresses grows during iteration, causing some new addresses to also receive notifications unexpectedly.",
+  "swc_id": "",
+  "file": "ConfigStorage.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Unbounded notifiableAddresses array causes DoS in notify()",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-05-munchables_z18629kh/repo/src/config/ConfigStorage.sol",
+   "line": 0,
+   "function": "notify() / addNotifiableAddress() / addNotifiableAddresses()"
+  },
+  "description": "The notifiableAddresses array is unbounded and can grow arbitrarily large. The notify() function iterates over ALL addresses in the array on every configuration update. There is no cap on the number of notifiable addresses. As the array grows, notify() will consume increasingly more gas until it exceeds the block gas limit, causing all configuration updates with _notify=true to permanently revert (DoS). Since notify() is called internally from all setter functions when _notify=true, this would make it impossible to update any configuration parameter.",
+  "message": "If enough notifiable addresses are added (even by owner, e.g., by mistake or due to missing deduplication), all setter functions with _notify=true will permanently revert, bricking configuration updates. The protocol would be unable to update any configuration parameters.",
+  "recommendation": "1. Add a maximum cap on the notifiableAddresses array length (e.g., max 50 addresses). 2. Add deduplication check in addNotifiableAddress() to prevent the same address being added multiple times. 3. The existing manualNotify() with pagination is a good pattern \u2014 consider making direct notify() calls optional or replacing the push pattern. Code: `uint256 constant MAX_NOTIFIABLE = 50; require(notifiableAddresses.length < MAX_NOTIFIABLE, 'Too many');`",
+  "exploit_scenario": "1. Owner calls addNotifiableAddresses() with a large array of addresses. 2. notifiableAddresses grows to hundreds or thousands of entries. 3. Owner tries to call setUint(key, value, true). 4. notify() iterates over all addresses, each making an external call. 5. Gas consumption exceeds block limit, transaction reverts. 6. All future config updates with notify=true are permanently blocked.",
+  "swc_id": "",
+  "file": "ConfigStorage.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Missing input validation in setAddresses() - array length mismatch",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-05-munchables_z18629kh/repo/src/config/ConfigStorage.sol",
+   "line": 0,
+   "function": "setAddresses()"
+  },
+  "description": "The setAddresses() function takes two parallel arrays _keys and _values but does not validate that they have equal lengths. If _keys.length > _values.length, the loop `for (uint8 i; i < _keys.length; i++)` will attempt to access _values[i] beyond its bounds. In Solidity ^0.8.0, this will revert with an out-of-bounds panic. However, if _values.length > _keys.length, the extra values are silently ignored. More importantly, the loop uses uint8 for the index, meaning if _keys.length > 255, the cast `uint8(i)` would overflow and wrap around, causing an infinite loop or incorrect behavior \u2014 though the loop condition uses _keys.length (uint256), so it would actually iterate correctly but the uint8 index would overflow silently in 0.8.x... Actually in 0.8.x, uint8 i++ would overflow and revert. But the fundamental issue is the missing length equality check.",
+  "message": "Mismatched array lengths cause transaction reverts, wasting gas and potentially causing incorrect partial state if the function were to not revert. The uint8 loop index also means arrays longer than 255 elements will cause overflow/revert.",
+  "recommendation": "Add length validation: `require(_keys.length == _values.length, 'Length mismatch'); require(_keys.length <= 255, 'Array too long');` and change the loop counter to uint256.",
+  "exploit_scenario": "1. Owner calls setAddresses([key1, key2, key3], [addr1, addr2], true). 2. On i=2, _values[2] access reverts with array out-of-bounds panic. 3. No state is updated. Alternatively: owner calls setAddresses with >255 keys, causing uint8 overflow.",
+  "swc_id": "",
+  "file": "ConfigStorage.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "access_control",
+  "title": "manualNotifyAddress() calls arbitrary contract without validation",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-05-munchables_z18629kh/repo/src/config/ConfigStorage.sol",
+   "line": 0,
+   "function": "manualNotifyAddress()"
+  },
+  "description": "The manualNotifyAddress() function allows the owner to call configUpdated() on ANY arbitrary address, not just addresses in the notifiableAddresses list. While this is onlyOwner, if ownership is transferred to a governance contract or multisig that can be manipulated, this becomes a vector to call arbitrary contracts' functions. More concretely, if the owner is compromised or acts maliciously, this function can be used to call any contract's configUpdated() function (if it exists), potentially triggering unintended behavior in contracts that implement that interface but are not intended to receive config notifications.",
+  "message": "Owner can trigger configUpdated() on any contract in the ecosystem that implements IConfigNotifiable, even those not registered as notifiable addresses. This could cause unintended state changes in those contracts.",
+  "recommendation": "Validate that the address is in the notifiableAddresses list before calling, or document and accept this as intentional owner behavior. Consider: `require(isNotifiable[_contract], 'Not registered');` using an additional mapping for O(1) lookup.",
+  "exploit_scenario": "1. A contract C implements IConfigNotifiable with a configUpdated() function that performs privileged operations when called by trusted sources. 2. Malicious/compromised owner calls manualNotifyAddress(C). 3. C.configUpdated() is triggered unexpectedly, causing unintended state changes in C.",
+  "swc_id": "",
+  "file": "ConfigStorage.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Duplicate notifiable addresses cause multiple redundant external calls",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-05-munchables_z18629kh/repo/src/config/ConfigStorage.sol",
+   "line": 0,
+   "function": "addNotifiableAddress() / addNotifiableAddresses()"
+  },
+  "description": "There is no check to prevent the same address from being added to notifiableAddresses multiple times. An address added N times will receive N configUpdated() calls on every notify(). This amplifies the gas cost of notify() and could cause double-processing of config updates in the notified contracts, leading to incorrect state in those contracts if configUpdated() is not idempotent. Additionally, removeNotifiableAddress() only removes the first occurrence, leaving duplicates in the array.",
+  "message": "Notifiable contracts may process configuration updates multiple times, potentially causing incorrect state. Gas costs for notify() are amplified. removeNotifiableAddress() fails to fully remove an address that was added multiple times.",
+  "recommendation": "Add deduplication check in addNotifiableAddress(): `for (uint i = 0; i < notifiableAddresses.length; i++) { require(notifiableAddresses[i] != _addr, 'Already registered'); }` Or use a mapping to track registered addresses: `mapping(address => bool) private isNotifiable;`",
+  "exploit_scenario": "1. Owner accidentally calls addNotifiableAddress(contractA) twice. 2. Owner calls setUint(key, value, true). 3. notify() calls contractA.configUpdated() twice. 4. If contractA uses the config update to recalculate something (e.g., rebalance), it does so twice causing incorrect state. 5. Owner calls removeNotifiableAddress(contractA) \u2014 only one occurrence removed, contractA still notified once per update.",
+  "swc_id": "",
+  "file": "ConfigStorage.sol",
+  "backend": "claude"
+ }
+]

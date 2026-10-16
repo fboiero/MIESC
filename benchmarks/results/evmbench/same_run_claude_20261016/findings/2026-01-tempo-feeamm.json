@@ -1,0 +1,116 @@
+[
+ {
+  "type": "unchecked_return_value",
+  "title": "Unchecked ERC20 Return Values",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2026-01-tempo-feeamm_23lkj0vt/repo/contracts/FeeAMM.sol",
+   "line": 0,
+   "function": "executeFeeSwap, rebalanceSwap, mint, burn"
+  },
+  "description": "All ERC20 transfer() and transferFrom() calls do not check return values. While the interface uses IERC20 which has void return types in some implementations, non-standard ERC20 tokens (e.g., USDT) return a bool that is silently ignored. If a transfer fails but returns false instead of reverting, the contract will update its internal accounting (reserves, liquidity) as if the transfer succeeded, leading to a desync between actual token balances and recorded reserves.",
+  "message": "An attacker using a non-reverting ERC20 token that returns false can drain the pool by triggering failed transfers that still update reserve accounting. LP providers could also lose funds if burn() transfers fail silently.",
+  "recommendation": "Use OpenZeppelin's SafeERC20 library and replace all transfer()/transferFrom() calls with safeTransfer()/safeTransferFrom(). Example: import '@openzeppelin/contracts/token/ERC20/SafeERC20.sol'; using SafeERC20 for IERC20;",
+  "exploit_scenario": "1. Deploy a non-standard ERC20 that returns false on transfer instead of reverting. 2. Create a pool with this token. 3. Call executeFeeSwap() - the transferFrom succeeds (attacker sends tokens), but the validatorToken.transfer() returns false without reverting. 4. Reserve state is updated (reserveUserToken increased, reserveValidatorToken decreased) but no validatorToken was sent. 5. Repeat until reserveValidatorToken reaches 0 in accounting while actual balance remains. 6. LP providers can no longer withdraw their fair share.",
+  "swc_id": "",
+  "file": "FeeAMM.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "reentrancy",
+  "title": "Reentrancy in burn() - State Updated After External Calls",
+  "severity": "Critical",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2026-01-tempo-feeamm_23lkj0vt/repo/contracts/FeeAMM.sol",
+   "line": 0,
+   "function": "burn"
+  },
+  "description": "In the burn() function, IERC20(userToken).transfer() and IERC20(validatorToken).transfer() are called BEFORE the state updates (liquidityBalances, totalSupply, pool reserves are decremented). If either token implements a callback mechanism (e.g., ERC777 tokensReceived hook, or any non-standard token with transfer hooks), an attacker can re-enter burn() before the balance is decremented, draining the pool multiple times with the same liquidity tokens.",
+  "message": "An attacker with liquidity tokens can re-enter burn() repeatedly, draining all reserves (both userToken and validatorToken) from the pool while only burning their liquidity balance once.",
+  "recommendation": "Apply the Checks-Effects-Interactions pattern: move all state updates (liquidityBalances decrement, totalSupply decrement, reserve decrements) BEFORE the external transfer calls. Additionally, add a ReentrancyGuard (nonReentrant modifier from OpenZeppelin). Example fix - reorder burn() to: 1) Check balance, 2) Calculate amounts, 3) Update all state variables, 4) Then perform transfers.",
+  "exploit_scenario": "1. Attacker provides liquidity and receives liquidity tokens. 2. Attacker calls burn() with their liquidity balance. 3. burn() calls IERC20(userToken).transfer(to, amountUserToken) where 'to' is attacker's malicious contract. 4. The malicious contract's receive/fallback or ERC777 hook re-enters burn() with the same liquidity amount (since liquidityBalances[poolId][msg.sender] hasn't been decremented yet). 5. The re-entered call passes the balance check, transfers tokens again, and updates state. 6. This repeats until pool is drained. 7. Original call then decrements the balance, but pool is already empty.",
+  "swc_id": "",
+  "file": "FeeAMM.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "reentrancy",
+  "title": "Reentrancy in executeFeeSwap() - Reserves Updated Between External Calls",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2026-01-tempo-feeamm_23lkj0vt/repo/contracts/FeeAMM.sol",
+   "line": 0,
+   "function": "executeFeeSwap"
+  },
+  "description": "In executeFeeSwap(), the sequence is: (1) transferFrom user to contract, (2) update reserves, (3) transfer to user. With ERC777 or hook-enabled tokens as userToken, the transferFrom hook fires before reserves are updated. However, more critically, if validatorToken has a callback on transfer, the attacker receives tokens and can re-enter executeFeeSwap() or rebalanceSwap() while pool state is partially updated (reserveUserToken already increased but no additional checks prevent a second swap).",
+  "message": "With callback-enabled tokens, an attacker may be able to manipulate pool state mid-transaction or extract excess value through careful re-entry.",
+  "recommendation": "Apply ReentrancyGuard (nonReentrant modifier) to all external state-changing functions, and follow Checks-Effects-Interactions pattern throughout.",
+  "exploit_scenario": "1. Use an ERC777 validatorToken with tokensReceived hook. 2. Call executeFeeSwap(). 3. Contract calls validatorToken.transfer(msg.sender, amountOut). 4. tokensReceived fires in attacker contract. 5. Attacker re-enters executeFeeSwap() - reserves already show increased userToken and decreased validatorToken, potentially enabling additional swaps or draining remaining reserves. 6. Original call completes with stale state assumptions.",
+  "swc_id": "",
+  "file": "FeeAMM.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "First Depositor LP Token Inflation Attack",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2026-01-tempo-feeamm_23lkj0vt/repo/contracts/FeeAMM.sol",
+   "line": 0,
+   "function": "mint"
+  },
+  "description": "The mint() function only accepts validatorToken deposits and does NOT require a proportional userToken deposit. For subsequent deposits (when pool already has reserves), liquidity is calculated as: liquidity = (amountValidatorToken * _totalSupply) / denom, where denom = reserveValidatorToken + (N * reserveUserToken / SCALE). The first depositor gets liquidity = amountValidatorToken/2 - MIN_LIQUIDITY. A first depositor can manipulate the pool ratio by: depositing minimal validatorToken, then sending userToken directly to the contract (not through mint), which inflates reserveUserToken... BUT wait - mint() never reads actual token balances, only pool.reserve* values. However, the one-sided liquidity provision (only validatorToken in mint) means that executeFeeSwap() deposits userToken into the pool without minting liquidity, creating an asymmetric accumulation that can be exploited.",
+  "message": "The asymmetric mint (validatorToken only) combined with swaps that add userToken reserves without issuing new liquidity means accumulated userToken fees can be extracted disproportionately by later large LP providers who can calculate optimal entry points.",
+  "recommendation": "Reconsider the single-sided liquidity model. If intentional, carefully verify that the denom formula correctly prices the effective value of userToken reserves. Add economic analysis to ensure LPs cannot extract disproportionate fees accumulated by other users' swaps.",
+  "exploit_scenario": "1. Pool has large reserveUserToken from fee swaps, small reserveValidatorToken. 2. Attacker calculates denom = reserveValidatorToken + (N * reserveUserToken / SCALE) which is large due to userToken accumulation. 3. Attacker mints with large amountValidatorToken, gets liquidity proportional to their share. 4. Burns liquidity to extract both userToken (fees accumulated by others) and their validatorToken back. 5. The denom formula may undervalue the minted liquidity relative to the userToken balance extractable.",
+  "swc_id": "",
+  "file": "FeeAMM.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "mev",
+  "title": "No Slippage Protection in executeFeeSwap and rebalanceSwap",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2026-01-tempo-feeamm_23lkj0vt/repo/contracts/FeeAMM.sol",
+   "line": 0,
+   "function": "executeFeeSwap, rebalanceSwap"
+  },
+  "description": "Neither executeFeeSwap() nor rebalanceSwap() has a minAmountOut or maxAmountIn parameter. The swap ratio (M/SCALE = 99.7% and N/SCALE = 99.85%) is fixed, so technically slippage from ratio change is impossible. However, the lack of deadline/expiry means transactions can be held in the mempool and executed at any time. More critically, the fixed ratio means MEV bots can sandwich by manipulating reserves through rebalanceSwap before and after a victim's executeFeeSwap, though with fixed ratios this is limited. The primary risk is lack of deadline - stale transactions may execute at undesired times.",
+  "message": "Transactions can be held in mempool indefinitely and executed at an unfavorable time. MEV bots can front-run large swaps though impact is limited by fixed ratios.",
+  "recommendation": "Add a deadline parameter to executeFeeSwap() and rebalanceSwap(): require(block.timestamp <= deadline, 'EXPIRED'). For rebalanceSwap, add a maxAmountIn parameter so callers can bound their cost.",
+  "exploit_scenario": "1. User submits executeFeeSwap() transaction with low gas. 2. Transaction sits in mempool. 3. Pool conditions change (e.g., reserve depleted by others). 4. Transaction executes but INSUFFICIENT_LIQUIDITY check reverts, or more subtly, succeeds at a moment the user did not intend.",
+  "swc_id": "",
+  "file": "FeeAMM.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Inconsistent Reserve Accounting - Reserves Not Validated Against Actual Balances",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2026-01-tempo-feeamm_23lkj0vt/repo/contracts/FeeAMM.sol",
+   "line": 0,
+   "function": "executeFeeSwap, mint, burn"
+  },
+  "description": "The pool reserves (pool.reserveUserToken, pool.reserveValidatorToken) are tracked internally and updated by contract functions, but they are never reconciled against actual ERC20 balances held by the contract. If tokens are sent directly to the contract (not through mint/swap functions), or if any transfer fails silently (see unchecked return values issue), the reserves will diverge from actual balances. The burn() function pays out based on reserve ratios, so if actual balance < reserves, burn() will revert for last withdrawers even though accounting shows they should receive funds.",
+  "message": "Last LPs to withdraw will find the contract cannot fulfill their withdrawal because actual token balance < reserve accounting indicates. This effectively traps the last LP's funds.",
+  "recommendation": "Implement SafeERC20 (fixes silent failure). Additionally, consider sync() function that reconciles reserves with actual balances, similar to Uniswap V2's design. Or at minimum, verify actual token balance in burn() before attempting transfers.",
+  "exploit_scenario": "1. Pool has reserves: reserveUserToken=1000, reserveValidatorToken=1000. 2. Silent transfer failure in any function desync reserves from actual balance. OR: someone calls a failed transferFrom that returns false. 3. Reserves show 1000 but actual balance is 900. 4. First 90% of LPs withdraw fine. 5. Last LP's burn() calls IERC20.transfer(to, amount) which fails because contract doesn't have sufficient balance. 6. Last LP's funds are permanently locked.",
+  "swc_id": "",
+  "file": "FeeAMM.sol",
+  "backend": "claude"
+ }
+]

@@ -123,11 +123,19 @@ Report saved to results.json
 
 **SmartBugs-curated** (143 contracts, 207 ground-truth vulnerabilities):
 
-| Metric | Slither alone | Mythril alone | MIESC Paper 1 reproducible profile | Evidence scope |
-|--------|:------------:|:-------------:|:---------------------------------:|:--------------|
-| Recall | 43.2% | 27.4% | **95.8%** | Full SmartBugs-curated corpus |
-| Precision | 8.3% | 6.1% | **22.1%** | Full SmartBugs-curated corpus |
-| F1-Score | 13.9% | 10.0% | **35.9%** | Full SmartBugs-curated corpus |
+A controlled, LLM-free ablation shows where the recall comes from — each layer
+adds detected contracts without losing any (all figures recomputed by
+`benchmarks/verify_paper_claims.py`):
+
+| Profile (LLM-free) | Recall | Contracts | Source artifact |
+|--------|:------:|:---------:|-----------------|
+| Static layer only | 82.5% | 118/143 | `paper1_ablation_l1_raw_20261015.json` |
+| + MIESC detectors | 93.0% | 133/143 | `paper1_ablation_l167_raw_20261015.json` |
+| + intelligence engine | 97.9% | 140/143 | `paper1_ablation_l167_intel_20261015.json` |
+| Reproducible profile (macOS) | **95.8%** | 137/143 | `paper1_smartbugs_eval_layers_1_6_7.json` |
+
+Precision on this legacy corpus is **22.2%** (36.0% F1) — the expected trade-off
+for a recall-first pre-audit triage tool.
 
 The full-corpus SmartBugs result is the reproducible Paper 1 profile. A local
 Ollama follow-up on the remaining misses is reported in Paper 1 as 140/143
@@ -156,8 +164,8 @@ MIESC has two linked research tracks. Paper 1 evaluates detection and multi-laye
 
 | Paper | Focus | Main reproducible evidence | Artifacts |
 |-------|-------|----------------------------|-----------|
-| [Paper 1](./paper/miesc-paper.pdf) | Multi-layer smart contract security evaluation | SmartBugs: 95.8% recall on 143 contracts, with a local Ollama follow-up reported at 97.9%; DeFi exploits: 81.8% recall on 11 incidents; EVMBench ensemble: 111/120 high-severity findings, 92.5% recall | [Reproducibility](./paper/PAPER1_REPRODUCIBILITY.md), [claims matrix](./benchmarks/results/paper1_claims_matrix.json) |
-| [Paper 2](./paper/paper2-remediation.pdf) | Verifiable remediation artifacts | 123/143 fixes applied; 123/123 patched contracts compile standalone; 88/123 eliminate the original finding by re-scan; 121/123 pass bounded no-regression; 70/123 clean-HIGH under external Slither | [Reproducibility](./paper/PAPER2_REPRODUCIBILITY.md), [claims matrix](./benchmarks/results/paper2_claims_matrix.json), [experiment audit](./benchmarks/results/paper2_experiment_audit.json) |
+| [Paper 1](./paper/ribci-cyted-2026/paper1-camera-ready.pdf) | Multi-layer smart contract security evaluation | SmartBugs: 95.8% recall on 143 contracts, with a local Ollama follow-up reported at 97.9%; DeFi exploits: 81.8% recall on 11 incidents; EVMBench ensemble: 111/120 high-severity findings, 92.5% recall | [Reproducibility](./paper/PAPER1_REPRODUCIBILITY.md), [claims matrix](./benchmarks/results/paper1_claims_matrix.json) |
+| [Paper 2](./paper/ribci-cyted-2026/paper2-camera-ready.pdf) | Verifiable remediation artifacts | 123/143 fixes applied; 123/123 patched contracts compile standalone; 88/123 report fewer HIGH findings on re-scan; 121/123 pass bounded no-regression; 70/123 clean-HIGH under external Slither | [Reproducibility](./paper/PAPER2_REPRODUCIBILITY.md), [claims matrix](./benchmarks/results/paper2_claims_matrix.json), [experiment audit](./benchmarks/results/paper2_experiment_audit.json) |
 
 For research citation and review, the canonical current claims are the two paper PDFs, their reproducibility notes, and the `benchmarks/results/paper*_claims_matrix.json` files. The platform alignment plan maps these paper results into CLI, API, MCP, RAG, and remediation workflow requirements: [Paper learnings and platform alignment](./docs/roadmap/PAPER_LEARNINGS_PLATFORM_ALIGNMENT.md). RAG source selection and weighting are governed by the [RAG source policy](./docs/guides/RAG_SOURCE_POLICY.md). Older release notes, thesis drafts, and roadmap documents are kept for project history and may contain previous benchmark runs or version-specific metrics.
 
@@ -626,19 +634,65 @@ See [ARCHITECTURE.md](./docs/ARCHITECTURE.md) for the full technical design with
 
 ## Academic Validation
 
-MIESC was developed as a Master's thesis in Cyberdefense at [UNDEF-IUA](https://www.iua.edu.ar/) (Argentina). The current research claims are consolidated in [Paper 1](./paper/miesc-paper.pdf), [Paper 2](./paper/paper2-remediation.pdf), and their reproducibility artifacts:
+MIESC's research claims are consolidated in two companion papers for the IV
+Simposio Internacional de Blockchain y Ciberseguridad (RIBCi–CYTED 2026) and
+their reproducibility artifacts. MIESC began as a Master's thesis in Cyberdefense
+at [UNDEF-IUA](https://www.iua.edu.ar/) (Argentina), which remains a secondary
+reference. The figures below are the camera-ready paper's evidence (MIESC
+v5.4.1, tag `09ef10f`); each is recomputed from a repository JSON by
+`benchmarks/verify_paper_claims.py`.
 
-- **143 contracts**, 207 ground-truth vulnerabilities, 10 categories
-- **95.8% recall** on the latest full-corpus reproducible local SmartBugs profile; Slither alone baseline: 43.2%
-- Paper 1 reports a local Ollama follow-up on the residual SmartBugs misses at 140/143 (97.9%); the reproducible corpus artifact remains the 95.8% JSON profile.
-- Paper 1 now treats EVMBench as the primary business-logic benchmark: static-only reaches 22/120 (18.3%), while the reproducible four-provider ensemble reaches 111/120 (92.5%)
-- Paper 2 evaluates remediation artifacts: 123/143 fixes applied, 123/123 patched contracts compile standalone, 88/123 eliminate the original finding by re-scan, 121/123 pass bounded no-regression, and 70/123 are clean-HIGH under external Slither
-- Reproducible SmartBugs profile runs in 737.0s total (~5.15 sec/contract)
-- Canonical results: [Paper 1 reproducibility](./paper/PAPER1_REPRODUCIBILITY.md), [Paper 2 reproducibility](./paper/PAPER2_REPRODUCIBILITY.md), [Paper 1 claims matrix](./benchmarks/results/paper1_claims_matrix.json), [Paper 2 claims matrix](./benchmarks/results/paper2_claims_matrix.json)
+- **143 contracts**, 10 vulnerability categories (SmartBugs-curated).
+- **95.8% recall (137/143)** on the reproducible, LLM-free SmartBugs profile;
+  **22.2% precision**, 36.0% F1. A controlled LLM-free ablation attributes the
+  recall to MIESC's own layers: static **82.5%** (118/143) → +own detectors
+  **93.0%** (133/143) → +intelligence engine **97.9%** (140/143), each step
+  gaining contracts without losing any.
+- **Business-logic (EVMBench)**: the score depends on the matching protocol, so
+  both are reported. In one Claude run scored under every protocol, a lenient
+  keyword matcher credits **88.3%** (106/120) while EVMBench's official GPT-5
+  judge confirms **27.4%** (32/117); a contract-agnostic null control credits
+  **50%** (60/120), so custom-matcher numbers need a control to be interpretable.
+  The union of four provider runs reaches **92.5%** (111/120) under the lenient
+  matcher.
+- **Real-world exploits**: **9/11** (81.8%, 95% Wilson CI [52%, 95%]) on
+  DeFiHackLabs attack reproductions (a case study on attack code, not victims).
+- **Remediation (Paper 2)**: 123/143 fixes applied, **123/123** patched
+  contracts compile standalone, **88/123** report fewer HIGH findings on re-scan,
+  121/123 pass bounded no-regression, and **70/123** are clean-HIGH under
+  external Slither.
+- Canonical sources: [Paper 1 (camera-ready)](./paper/ribci-cyted-2026/paper1-camera-ready.pdf),
+  [Paper 2 (camera-ready)](./paper/ribci-cyted-2026/paper2-camera-ready.pdf),
+  [Paper 1 reproducibility](./paper/PAPER1_REPRODUCIBILITY.md),
+  [Paper 2 reproducibility](./paper/PAPER2_REPRODUCIBILITY.md),
+  [Paper 1 claims matrix](./benchmarks/results/paper1_claims_matrix.json),
+  [Paper 2 claims matrix](./benchmarks/results/paper2_claims_matrix.json).
+  Re-check everything with `python benchmarks/verify_paper_claims.py`.
 
-If you use MIESC in research, please cite:
+If you use MIESC in research, please cite the two RIBCi–CYTED 2026 papers (the
+thesis is a secondary reference):
 
 ```bibtex
+@inproceedings{boiero2026miesc,
+  title={{MIESC}: A Multi-layer Framework for Automated Smart Contract Security Evaluation},
+  author={Boiero, Fernando and Mussetta, Sebastian Norberto and Cena, Norberto Gaspar},
+  booktitle={IV Simposio Internacional de Blockchain y Ciberseguridad (RIBCi--CYTED 2026)},
+  series={Livros de Atas},
+  publisher={Edi{\c{c}}{\~o}es CEOS.PP, ISCAP},
+  address={Porto, Portugal},
+  year={2026}
+}
+
+@inproceedings{boiero2026remediation,
+  title={From Findings to Verifiable Remediation Artifacts: A Smart Contract Security Pipeline},
+  author={Boiero, Fernando and Mussetta, Sebastian Norberto and Cena, Norberto Gaspar},
+  booktitle={IV Simposio Internacional de Blockchain y Ciberseguridad (RIBCi--CYTED 2026)},
+  series={Livros de Atas},
+  publisher={Edi{\c{c}}{\~o}es CEOS.PP, ISCAP},
+  address={Porto, Portugal},
+  year={2026}
+}
+
 @mastersthesis{boiero2025miesc,
   title={Integrated Security Assessment Framework for Smart Contracts:
          A Defense-in-Depth Approach to Cyberdefense},

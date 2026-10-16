@@ -1,6 +1,6 @@
 {
   "artifact": "paper2_claims_matrix",
-  "generated_at": "2026-07-02T02:06:00+00:00",
+  "generated_at": "2026-10-16T00:00:00+00:00",
   "purpose": "Trace Paper 2 remediation claims to local artifacts.",
   "paper1_compatibility_rule": "Paper 2 may inherit Paper 1 detection claims but must not regenerate or change Paper 1 detection evidence.",
   "claims": [
@@ -392,6 +392,24 @@
       "paper1_dependency": null,
       "unit": "limitation",
       "value": null
+    },
+    {
+      "claim_id": "prepatch_slither_baseline",
+      "paper_claim": "Pre-patch Slither baseline over the 143 SmartBugs contracts: the before/after HIGH-finding counts underlying Paper 2's remediation table.",
+      "source_artifact": "benchmarks/results/paper2_prepatch_slither_baseline.json",
+      "command": "python benchmarks/paper2_prepatch_slither_baseline.py",
+      "date": "2026-10-16",
+      "status": "supported",
+      "scope": "corpus_wide",
+      "unit": "Slither HIGH checks",
+      "value": {
+        "contracts": 143,
+        "total_pre_high_checks": 141,
+        "total_post_high_checks": 61,
+        "contracts_with_pre_high": 86,
+        "contracts_with_post_high": 53
+      },
+      "notes": "Pre-patch total HIGH checks = 141 (matches the paper's 'before' figure); post = 61 (paper states 60; see ERRATA E-2). The finer per-category before/after figures are recorded per contract in the artifact."
     }
   ]
 }

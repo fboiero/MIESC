@@ -53,6 +53,7 @@ def test_generate_paper2_artifacts_preserves_claim_schema(monkeypatch, tmp_path:
     monkeypatch.setattr(paper2, "COMPILE_FAILURES_OUT", compile_failures)
     monkeypatch.setattr(paper2, "COMPILE_TAXONOMY", results_dir / "missing_taxonomy.json")
     monkeypatch.setattr(paper2, "EXPERIMENT_AUDIT", results_dir / "missing_audit.json")
+    monkeypatch.setattr(paper2, "PREPATCH_BASELINE", results_dir / "missing_prepatch.json")
 
     paper2.main()
 

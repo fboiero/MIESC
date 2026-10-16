@@ -1,0 +1,116 @@
+[
+ {
+  "type": "logic_error",
+  "title": "ETH Contract Balance Used Instead of Tracked Balance in _claim(), Enabling Theft",
+  "severity": "Critical",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-05-loop_x8p745dh/repo/src/PrelaunchPoints.sol",
+   "line": 0,
+   "function": "_claim"
+  },
+  "description": "In the `_claim` function, when processing non-ETH tokens, after calling `_fillQuote` to swap the token to ETH, the contract uses `address(this).balance` as `claimedAmount` and deposits ALL ETH currently in the contract into lpETH. If any ETH was previously in the contract (sent directly, or from prior swaps), that ETH is included in the lpETH minted for the current caller. More critically, if multiple users claim non-ETH tokens in the same block, the first claimer receives all ETH including amounts that belong to subsequent claimers. Additionally, the `receive()` function accepts ETH with no tracking, so any ETH donated to the contract gets distributed to the first claimer.",
+  "message": "Users claiming non-ETH tokens can steal ETH belonging to other users or receive more lpETH than their fair share. An attacker could donate 1 wei of ETH to inflate the balance and in certain scenarios claim lpETH backed by ETH they did not lock.",
+  "recommendation": "Track ETH balance before and after the swap precisely: `uint256 ethBefore = address(this).balance; _fillQuote(...); uint256 ethGained = address(this).balance - ethBefore; claimedAmount = ethGained; lpETH.deposit{value: claimedAmount}(_receiver);` \u2014 only deposit the ETH gained from this specific swap, not the entire contract balance.",
+  "exploit_scenario": "1. User A locks 100 WBTC. User B locks 100 WBTC. convertAllETH() is called. startClaimDate passes. 2. User A calls claim() with 100% for WBTC. _fillQuote swaps 100 WBTC \u2192 ETH, say 1 ETH lands in contract. claimedAmount = address(this).balance (includes any residual ETH). lpETH.deposit{value: claimedAmount} sends ALL ETH to lpETH. 3. Now User B calls claim() with 100% WBTC \u2192 swaps to 1 ETH. But address(this).balance might also include leftover from User A's swap if _fillQuote returned slightly more, or User B simply gets only their 1 ETH. The core issue: if any ETH is in the contract before the swap (e.g., from lockETH users who withdrew), User A steals it.",
+  "swc_id": "",
+  "file": "PrelaunchPoints.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "reentrancy",
+  "title": "Reentrancy in withdraw() via ETH Transfer Before State Reset (Partial)",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-05-loop_x8p745dh/repo/src/PrelaunchPoints.sol",
+   "line": 0,
+   "function": "withdraw"
+  },
+  "description": "In `withdraw()`, while `balances[msg.sender][_token] = 0` is set before the external call (good for ERC20 tokens), for ETH withdrawals the `totalSupply` decrement happens before the call but the reentrancy protection relies on the balance being zeroed. However, `msg.sender.call{value: lockedAmount}('')` makes an external call after state changes for ETH. For ERC20 tokens, `IERC20(_token).safeTransfer(msg.sender, lockedAmount)` is called after zeroing the balance \u2014 if the token has a callback (ERC777 or similar), the attacker's fallback could call `withdraw` again. Since `balances[msg.sender][_token]` is already 0, a second call would revert with `CannotWithdrawZero`. This specific path is protected by CEI. However, the broader concern is with `_claim` where no CEI pattern is enforced for the external swap call.",
+  "message": "Limited for standard ERC20 in withdraw(). More concerning in _claim() where the token balance is set before _fillQuote but _fillQuote makes an external call to exchangeProxy which could reenter claim().",
+  "recommendation": "Add a nonReentrant modifier to claim(), claimAndStake(), and withdraw() functions. Use OpenZeppelin's ReentrancyGuard.",
+  "exploit_scenario": "1. Attacker deploys malicious ERC20 with transfer hook. 2. Attacker locks tokens. 3. startClaimDate passes. 4. Attacker calls claim() \u2014 balance zeroed partially, _fillQuote called, exchangeProxy (controlled) calls back into claim() or withdraw() before lpETH.deposit completes. 5. Due to partial state (balance zeroed) the reentrant call fails, but the ETH from the swap sits undeposited.",
+  "swc_id": "",
+  "file": "PrelaunchPoints.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "oracle_manipulation",
+  "title": "No Slippage Protection in _fillQuote \u2014 MEV/Sandwich Attack",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-05-loop_x8p745dh/repo/src/PrelaunchPoints.sol",
+   "line": 0,
+   "function": "_fillQuote"
+  },
+  "description": "The `_fillQuote` function passes arbitrary `_swapCallData` from user input directly to the 0x exchange proxy with no minimum output amount enforced by the contract itself. While `_validateData` checks input token and amount, it does NOT verify that `minBuyAmount` in the swap data is reasonable. A user (or MEV bot) can craft swap data with `minBuyAmount = 0`, allowing sandwich attacks that result in near-zero ETH received from the swap. The contract then mints lpETH proportional to whatever ETH was received, meaning users can receive far less lpETH than their tokens are worth.",
+  "message": "Users claiming non-ETH tokens can be sandwiched, receiving nearly zero lpETH for their locked tokens. MEV bots can systematically extract value from every claim transaction.",
+  "recommendation": "Validate that the minBuyAmount encoded in _swapCallData meets a minimum threshold, or compute an expected output using an on-chain oracle and enforce a minimum via contract logic. At minimum, document this risk prominently.",
+  "exploit_scenario": "1. User A has 1 ETH worth of WBTC locked. 2. User A calls claim() with swap data where minBuyAmount = 0. 3. MEV bot front-runs with large WBTC->ETH swap, back-runs to restore price. 4. User A's swap executes at a terrible price, receiving 0.01 ETH instead of 1 ETH. 5. User A gets lpETH worth 0.01 ETH instead of 1 ETH.",
+  "swc_id": "",
+  "file": "PrelaunchPoints.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "convertAllETH() Uses address(this).balance Including Non-ETH Token Swaps' Residuals",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-05-loop_x8p745dh/repo/src/PrelaunchPoints.sol",
+   "line": 0,
+   "function": "convertAllETH"
+  },
+  "description": "The `convertAllETH()` function deposits `address(this).balance` (total ETH in contract) into lpETH. This should equal `totalSupply` (sum of all ETH locked). However, if any ERC20 token swaps happened to leave residual ETH (from _fillQuote calls prior to convertAllETH), or if someone directly sent ETH to the contract (which gets permanently locked per the comment but still affects balance), then `totalLpETH` will not equal `totalSupply`. Specifically, if `address(this).balance > totalSupply`, then the sum of all user claims (each computed as `userStake.mulDiv(totalLpETH, totalSupply)`) will exceed `totalLpETH` for the last claimers if `totalLpETH > lpETH balance` after early claimers take more. Conversely if balance < totalSupply, some users can't claim.",
+  "message": "Discrepancy between totalSupply and actual ETH balance causes either over-distribution (protocol loss) or under-distribution (last users cannot claim) of lpETH.",
+  "recommendation": "Use `totalSupply` as the deposit amount rather than `address(this).balance` to ensure accounting consistency: `lpETH.deposit{value: totalSupply}(address(this))`. Handle any dust separately.",
+  "exploit_scenario": "1. Users lock 10 ETH total \u2192 totalSupply = 10 ETH. 2. Someone sends 1 ETH directly to contract. 3. Owner calls convertAllETH() \u2192 deposits 11 ETH, gets 11 lpETH back. 4. totalLpETH = 11, totalSupply = 10. 5. Users collectively claim 11 lpETH but only deposited 10 ETH worth of value \u2014 the extra 1 lpETH comes from the donated ETH, but this is a windfall, not a loss. Reverse: if ETH is somehow less than totalSupply (shouldn't happen normally but edge cases exist), last claimers get 0.",
+  "swc_id": "",
+  "file": "PrelaunchPoints.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "access_control",
+  "title": "Arbitrary _swapCallData Passed to exchangeProxy with Only approve() Check",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-05-loop_x8p745dh/repo/src/PrelaunchPoints.sol",
+   "line": 0,
+   "function": "_fillQuote"
+  },
+  "description": "The `_fillQuote` function approves `exchangeProxy` for `_amount` of `_sellToken` then calls `exchangeProxy` with arbitrary `_swapCallData`. The `_validateData` function validates the selector, input/output tokens, and amount in the calldata \u2014 but this validation is against the calldata fields, not against what the exchangeProxy will actually execute. A malicious or compromised exchangeProxy could ignore the calldata and transfer approved tokens elsewhere. Furthermore, the `require(_sellToken.approve(exchangeProxy, _amount))` leaves an approval that, if the call partially fails or if the exchangeProxy is upgraded/compromised, could be used to drain tokens.",
+  "message": "If the exchangeProxy is compromised or if there's a vulnerability in the 0x protocol, all locked ERC20 tokens can be drained during the claim period by crafting malicious swap data.",
+  "recommendation": "Reset approval to 0 after the swap call: `_sellToken.approve(exchangeProxy, 0)`. Use `safeApprove` or `forceApprove`. Check that ETH balance actually increased after the swap.",
+  "exploit_scenario": "1. 0x exchangeProxy is compromised or a malicious proxy is set (though exchangeProxy is immutable, so this requires a 0x-level compromise). 2. User calls claim() with crafted _data. 3. _fillQuote approves exchangeProxy for user's full token balance. 4. exchangeProxy uses the approval to transfer tokens to attacker rather than swapping. 5. claimedAmount = address(this).balance (unchanged) \u2192 lpETH.deposit{value: 0} \u2192 user gets 0 lpETH. 6. Attacker has the tokens.",
+  "swc_id": "",
+  "file": "PrelaunchPoints.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Emergency Withdraw Bypasses startClaimDate Check for ETH \u2014 UseClaimInstead Check is Unreachable",
+  "severity": "Medium",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-05-loop_x8p745dh/repo/src/PrelaunchPoints.sol",
+   "line": 0,
+   "function": "withdraw"
+  },
+  "description": "In `withdraw()`, when `emergencyMode` is true, the initial time checks are skipped. However, inside the ETH withdrawal branch, there is still a check: `if (block.timestamp >= startClaimDate) { revert UseClaimInstead(); }`. This means in emergency mode, users who locked ETH cannot withdraw if startClaimDate has passed \u2014 they're told to use claim instead. But claim requires lpETH to be set up and convertAllETH to have been called. If emergency mode is activated after convertAllETH but claim is broken/lpETH is compromised, ETH lockers are stuck. This is an inconsistency in the emergency mode design.",
+  "message": "In emergency mode after startClaimDate, ETH lockers cannot withdraw their ETH \u2014 the emergency mode doesn't fully protect them. Their funds could be permanently locked if the claim mechanism is also broken.",
+  "recommendation": "In emergency mode, allow ETH withdrawal regardless of startClaimDate. Either move the UseClaimInstead check inside the !emergencyMode block, or restructure the ETH withdrawal logic to always allow emergency withdrawals.",
+  "exploit_scenario": "1. Normal operation: convertAllETH() called, startClaimDate set. 2. lpETH contract is compromised/paused. 3. Owner activates emergencyMode. 4. ETH lockers call withdraw(ETH) \u2014 reverts with UseClaimInstead. 5. claim() also fails because lpETH is broken. 6. ETH lockers have no recourse.",
+  "swc_id": "",
+  "file": "PrelaunchPoints.sol",
+  "backend": "claude"
+ }
+]

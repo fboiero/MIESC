@@ -1,0 +1,325 @@
+[
+ {
+  "type": "signature_validation",
+  "title": "ecrecover Returns address(0) On Invalid Signature - Forged Authentication",
+  "severity": "Critical",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2025-10-sequence_vfgh6fo9/repo/src/modules/auth/BaseSig.sol",
+   "line": 0,
+   "function": "recoverBranch"
+  },
+  "description": "In both FLAG_SIGNATURE_HASH and FLAG_SIGNATURE_ETH_SIGN branches, ecrecover() is called but the return value is never checked for address(0). When ecrecover fails due to an invalid signature (e.g., s=0, r=0, or any invalid (r,s,v) tuple), it returns address(0). The code then proceeds to: (1) add addrWeight to the cumulative weight, (2) compute _leafForAddressAndWeight(address(0), addrWeight), and (3) include this leaf in the merkle root. Any wallet configuration that legitimately includes address(0) as a signer (which is possible via FLAG_ADDRESS with addr=address(0)) would match this forged leaf. More critically, an attacker who knows a configuration includes address(0) can submit a garbage signature to accumulate the weight of that signer without any valid key.",
+  "message": "An attacker can forge signatures to accumulate weight for the address(0) signer. If any wallet configuration contains address(0) as a signer (even with weight 1), an attacker can pass threshold checks by submitting invalid signatures that ecrecover maps to address(0), potentially authorizing arbitrary transactions.",
+  "recommendation": "Add a zero-address check after ecrecover: `address addr = ecrecover(_opHash, v, r, s); require(addr != address(0), 'Invalid signature');` Apply this check in both FLAG_SIGNATURE_HASH and FLAG_SIGNATURE_ETH_SIGN branches.",
+  "exploit_scenario": "1. Deploy a wallet with config: [address(0) with weight=2, threshold=2]. 2. Craft a signature with FLAG_SIGNATURE_HASH flag, addrWeight=2, and r=0, s=0, v=27 (or any invalid ECDSA params). 3. ecrecover(opHash, 27, 0, 0) returns address(0). 4. weight += 2 (now weight=2 >= threshold=2). 5. _leafForAddressAndWeight(address(0), 2) matches the config leaf. 6. imageHash is reconstructed correctly, signature passes. Alternatively, even without address(0) in config: if an attacker can create a config where address(0) is a signer, they can always satisfy that signer's weight with a garbage signature.",
+  "swc_id": "",
+  "file": "BaseSig.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "arithmetic_overflow",
+  "title": "Weight Overflow in unchecked Block Allows Threshold Bypass",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2025-10-sequence_vfgh6fo9/repo/src/modules/auth/BaseSig.sol",
+   "line": 0,
+   "function": "recoverBranch"
+  },
+  "description": "The entire recoverBranch function executes within an `unchecked` block. Multiple weight additions occur: `weight += addrWeight`, `weight += nweight` (from branches), `weight += externalWeight` (from nested). Since addrWeight is uint8 and weight is uint256, direct overflow of weight itself is difficult. However, `weight = type(uint256).max` is set for FLAG_SUBDIGEST matches, and then subsequent `weight += addrWeight` would overflow back to a small number (e.g., type(uint256).max + 1 = 0), potentially causing the accumulated weight to drop below threshold after a valid subdigest match. More critically, in FLAG_BRANCH, `weight += nweight` where nweight could itself be type(uint256).max from a nested subdigest match, and adding further weight overflows to 0.",
+  "message": "If a signature contains a valid FLAG_SUBDIGEST (setting weight to max) followed by additional signers, the weight overflows to a small value, potentially causing the weight check to fail and denying valid transactions. Conversely, crafted signatures could manipulate weight calculations to pass threshold checks they shouldn't.",
+  "recommendation": "Remove the `unchecked` block from recoverBranch, or add explicit guards: after setting `weight = type(uint256).max` for subdigest matches, skip all further weight additions (e.g., `if (weight != type(uint256).max) weight += addrWeight;`).",
+  "exploit_scenario": "1. Construct a signature with FLAG_SUBDIGEST matching opHash (sets weight = type(uint256).max). 2. Append any FLAG_SIGNATURE_HASH entry with addrWeight=1. 3. In unchecked block: type(uint256).max + 1 = 0. 4. Final weight = 0, which may be less than threshold. 5. Valid operation is now rejected. Or in reverse: weight overflows to pass a threshold it shouldn't meet.",
+  "swc_id": "",
+  "file": "BaseSig.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Checkpointer Always Ignored in Chained Signatures - Snapshot Validation Bypass",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2025-10-sequence_vfgh6fo9/repo/src/modules/auth/BaseSig.sol",
+   "line": 0,
+   "function": "recoverChained"
+  },
+  "description": "In recoverChained(), all recursive calls to recover() pass `_ignoreCheckpointer = true`. This means that even if individual chained signature segments contain embedded checkpointer data (flag bit 0x40 set), the ICheckpointer.snapshotFor() is never called for any segment in a chained signature. The snapshot validation logic (UnusedSnapshot check) in the outer recover() function is thus bypassed for all intermediate segments. The snapshot is only partially validated at the end of recoverChained() by checking `checkpoint <= _snapshot.checkpoint`, but the imageHash-based snapshot validation that would catch invalid configuration transitions is skipped.",
+  "message": "An attacker crafting a chained signature can bypass checkpointer-enforced constraints on configuration transitions. If the checkpointer is meant to validate that configuration updates follow certain rules (e.g., minimum checkpoint increments, valid state transitions), those rules are entirely skipped for chained signatures.",
+  "recommendation": "Evaluate whether checkpointer validation should be applied to intermediate segments in chained signatures. If so, pass _ignoreCheckpointer=false for at least the final (oldest) segment, or pass the snapshot through to individual recover() calls.",
+  "exploit_scenario": "1. A wallet uses a checkpointer that enforces configuration upgrade rules. 2. Attacker constructs a chained signature where each segment has the checkpointer flag (0x40) set. 3. recoverChained calls recover() with _ignoreCheckpointer=true for all segments. 4. No checkpointer validation occurs for any segment. 5. Invalid configuration transitions pass validation.",
+  "swc_id": "",
+  "file": "BaseSig.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "reentrancy",
+  "title": "ERC1271 and Sapient External Calls With No Reentrancy Protection on Calling Contract",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2025-10-sequence_vfgh6fo9/repo/src/modules/auth/BaseSig.sol",
+   "line": 0,
+   "function": "recoverBranch"
+  },
+  "description": "recoverBranch() makes external calls to arbitrary contract addresses via IERC1271(addr).isValidSignature(), ISapient(addr).recoverSapientSignature(), and ISapientCompact(addr).recoverSapientSignatureCompact(). The `addr` is read directly from the signature bytes and is attacker-controlled. While this is a library and has no state itself, the calling contract (the wallet) has state, and these external calls occur mid-execution before the full signature validation is complete. A malicious ERC1271/Sapient contract at an attacker-controlled address could reenter the wallet contract during signature verification. Since the wallet's state (nonce, configuration) has not yet been updated at the point of signature verification, this could lead to replay attacks or state corruption in the calling wallet contract.",
+  "message": "A malicious signer contract can reenter the wallet during signature validation. If the wallet processes transactions based on signature validity before updating nonces/state, the malicious contract could trigger the same transaction multiple times, drain funds, or manipulate wallet state.",
+  "recommendation": "The calling wallet contract must implement reentrancy guards (e.g., OpenZeppelin ReentrancyGuard) at the transaction execution entry points, ensuring nonces are consumed BEFORE signature validation or that reentrancy is prevented during the entire execution flow.",
+  "exploit_scenario": "1. Attacker controls a contract at address X implementing IERC1271. 2. Wallet config includes X as an ERC1271 signer with sufficient weight. 3. When wallet validates a transaction signature, recoverBranch calls X.isValidSignature(). 4. X.isValidSignature() reenters the wallet to execute another transaction before nonce is incremented. 5. If wallet doesn't have reentrancy guard at the outer level, the same nonce/signature can be replayed.",
+  "swc_id": "",
+  "file": "BaseSig.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Incorrect length calculation in tryEncodeAuthCompact inflates result by 32 bytes",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2025-10-sequence_vfgh6fo9/repo/src/utils/WebAuthn.sol",
+   "line": 0,
+   "function": "tryEncodeAuthCompact"
+  },
+  "description": "In `tryEncodeAuthCompact`, the length stored in the result bytes object is computed as `sub(add(o, 0x24), result)` where `result` is the pointer to the ABI bytes object (pointing at the length field). For a Solidity `bytes` object, the stored length should represent only the data length (bytes after the length slot), i.e., it should be `sub(add(o, 0x24), add(result, 0x20))`. Since `result` points to the length slot itself (not the data start), the stored length is inflated by 32 (0x20) bytes. This means anyone decoding the result will read 32 extra bytes of garbage/uninitialized memory as part of the payload.",
+  "message": "Any consumer of `tryEncodeAuthCompact` that trusts the returned length will receive a bytes object with length inflated by 32. When passed to `tryDecodeAuthCompact`, this shifts all field offsets by 32 bytes, causing `authenticatorData`, `clientDataJSON`, `r`, `s`, `challengeIndex`, and `typeIndex` to be decoded incorrectly. The verification will fail or (worse) succeed against a malformed/attacker-controlled payload if the garbage trailing bytes happen to align with expected parsing boundaries. This breaks the round-trip encode/decode invariant.",
+  "recommendation": "Change the length storage line from:\n`mstore(result, sub(add(o, 0x24), result))`\nto:\n`mstore(result, sub(add(o, 0x44), add(result, 0x20)))`\nor equivalently:\n`mstore(result, sub(add(o, 0x24), add(result, 0x20)))`\nThis correctly stores the number of data bytes (excluding the 32-byte length prefix slot). Also verify the free memory pointer update `mstore(0x40, add(o, 0x64))` accounts for the correct end of allocated memory including the zeroing slot.",
+  "exploit_scenario": "1. Create a valid WebAuthnAuth struct with authenticatorData of length L. 2. Call tryEncodeAuthCompact(auth) \u2192 result. 3. Check mload(result): it will equal (actual_data_length + 32) instead of actual_data_length. 4. Pass result to tryDecodeAuthCompact: the `j = sub(e, 0x44)` calculation now uses inflated `n`, shifting `c` (start of clientDataJSON) forward by 32, causing all field reads to be off by 32 bytes. 5. The decoded struct fields (r, s, indices) will be wrong, and verify() called with this decoded struct may return false for valid signatures or (in adversarial input cases) true for invalid ones.",
+  "swc_id": "",
+  "file": "WebAuthn.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Array Out-of-Bounds Write When Merging Branch Permissions",
+  "severity": "Critical",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2025-10-sequence_vfgh6fo9/repo/src/extensions/sessions/SessionSig.sol",
+   "line": 0,
+   "function": "recoverConfiguration"
+  },
+  "description": "When processing FLAG_BRANCH nodes, the code copies all branch session permissions into the parent's `sig.sessionPermissions` array using `sig.sessionPermissions[permissionsCount++] = branchSig.sessionPermissions[i]`. The parent array is allocated with `maxPermissionsSize = encoded.length / MIN_ENCODED_PERMISSION_SIZE` slots. However, a branch can itself contain branches (recursive), and the branch's permissions array is allocated similarly based on its sub-slice length. The total number of permissions across all branches can exceed the parent's pre-allocated array size. In Solidity, writing past the end of a memory array does not revert \u2014 it corrupts adjacent memory. This can corrupt the `sig.imageHash`, `sig.identitySigner`, or other adjacent memory fields, leading to incorrect signature verification.",
+  "message": "An attacker crafting a malicious encoded signature with deeply nested branches containing many permissions can corrupt the `imageHash` computation, potentially bypassing session configuration validation. This could allow unauthorized session signers to be accepted, compromising wallet security.",
+  "recommendation": "Track the total permissions count before allocation, or dynamically resize the array. A safer approach: use a two-pass decode (first count, then allocate), or use a dynamic array structure. At minimum, add a bounds check: `require(permissionsCount < sig.sessionPermissions.length, 'Too many permissions')` before each write, and pre-allocate based on total encoded size including branches.",
+  "exploit_scenario": "1. Craft an encoded signature where the top-level has a small `encoded.length` (so `maxPermissionsSize` is small, e.g., 1). 2. Include a FLAG_BRANCH node that itself contains multiple FLAG_PERMISSIONS entries. 3. The branch returns multiple permissions in `branchSig.sessionPermissions`. 4. The parent tries to write all of them into its 1-slot array, writing past the array bounds in memory. 5. Adjacent memory (imageHash, identitySigner) gets corrupted, potentially making `sig.imageHash` match an attacker-controlled value.",
+  "swc_id": "",
+  "file": "SessionSig.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Cross-Chain Replay Attack via noChainId Flag",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2025-10-sequence_vfgh6fo9/repo/src/extensions/sessions/SessionSig.sol",
+   "line": 0,
+   "function": "hashCallWithReplayProtection"
+  },
+  "description": "When `payload.noChainId` is true, the chain ID is encoded as 0 in the call hash used for replay protection: `payload.noChainId ? 0 : block.chainid`. A signature created on one chain with `noChainId=true` produces a hash with chainId=0, which is identical across ALL EVM chains. Any session signature with this flag set can be replayed on any chain where the same wallet and session configuration exists.",
+  "message": "An attacker who observes a signed transaction on chain A (e.g., a low-value transfer) can replay the exact same signature on chain B, C, D, etc., executing the same call on all chains where the victim's wallet is deployed. This could drain funds across multiple chains from a single signed payload.",
+  "recommendation": "Carefully gate the `noChainId` flag. Either: (a) require explicit user acknowledgment that cross-chain replay is intentional, (b) include a list of allowed chain IDs when `noChainId` is used, or (c) remove the flag entirely. If the flag must exist, document the risk prominently and ensure callers validate its use.",
+  "exploit_scenario": "1. Victim signs a payload with `noChainId=true` on Ethereum mainnet. 2. Attacker captures the encoded signature. 3. Attacker submits the same signature to the victim's wallet on Polygon, Arbitrum, Base, etc. 4. The call is executed on all chains because the hash is identical (chainId=0 everywhere). 5. Nonce replay is prevented within one chain but not across chains.",
+  "swc_id": "",
+  "file": "SessionSig.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "No Bounds Check on Session Permission Index in Call Signatures",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2025-10-sequence_vfgh6fo9/repo/src/extensions/sessions/SessionSig.sol",
+   "line": 0,
+   "function": "recoverSignature"
+  },
+  "description": "For explicit calls (non-implicit), the session permission index is read from the call flag byte: `callSignature.sessionPermission = flag` where flag can be 0x00-0x7F (7 bits). This index is stored in `callSignature.sessionPermission` as a `uint8` but is NEVER validated against the actual length of `sig.sessionPermissions`. A caller that uses this index to look up permissions from `sig.sessionPermissions[callSignature.sessionPermission]` without bounds checking will access out-of-bounds memory or revert. However, if the caller does perform bounds checking, an attacker can specify an arbitrary index to claim permissions from any slot in the array.",
+  "message": "If callers of this library don't independently validate the session permission index, an attacker can reference session permissions belonging to a different signer. This could allow a session signer with limited permissions to claim the permissions of a signer with broader access (e.g., higher value limits, more allowed contracts).",
+  "recommendation": "Add bounds validation in `recoverSignature`: `if (callSignature.sessionPermission >= sig.sessionPermissions.length) revert SessionErrors.InvalidSessionPermission()`. Additionally, verify that the recovered `callSignature.sessionSigner` matches `sig.sessionPermissions[callSignature.sessionPermission].signer`.",
+  "exploit_scenario": "1. Wallet has two session signers: Signer A (index 0, limited permissions) and Signer B (index 1, high-value permissions). 2. Attacker controls Signer A's key. 3. Attacker crafts a call signature with `sessionPermission = 1` (pointing to Signer B's permissions). 4. `recoverSignature` stores index 1 in `callSignature.sessionPermission` without validation. 5. If the caller naively looks up `sig.sessionPermissions[callSignature.sessionPermission]`, it retrieves Signer B's permissions for Signer A's signature. 6. Attacker executes high-value transactions beyond their permitted limit.",
+  "swc_id": "",
+  "file": "SessionSig.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "KIND_DIGEST and KIND_MESSAGE share the same EIP-712 typehash enabling hash collision",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2025-10-sequence_vfgh6fo9/repo/src/modules/Payload.sol",
+   "line": 0,
+   "function": "toEIP712"
+  },
+  "description": "In `toEIP712`, both `KIND_MESSAGE` and `KIND_DIGEST` use `MESSAGE_TYPEHASH` to construct their EIP-712 struct hash. For `KIND_MESSAGE`, the struct hash is `keccak256(abi.encode(MESSAGE_TYPEHASH, keccak256(message), walletsHash))`. For `KIND_DIGEST`, it is `keccak256(abi.encode(MESSAGE_TYPEHASH, digest, walletsHash))`. If an attacker can choose a message `m` such that `keccak256(m) == digest`, both produce identical struct hashes and therefore identical final hashes. Since `digest` is an arbitrary `bytes32` and `keccak256(message)` is also a `bytes32`, the two types are structurally indistinguishable at the EIP-712 level. A signature obtained for a `KIND_DIGEST` payload can be submitted as a `KIND_MESSAGE` payload (with a crafted message whose keccak equals the digest) and vice versa, if the consuming contract does not separately enforce the kind.",
+  "message": "A signature authorized for one payload kind (e.g., an arbitrary digest for EIP-1271 validation) may be replayed as a different payload kind (e.g., a message validation), potentially bypassing intent-specific authorization checks in the consuming wallet contract. This can lead to unauthorized operations being approved.",
+  "recommendation": "Define a distinct typehash for KIND_DIGEST, e.g., `bytes32 private constant DIGEST_TYPEHASH = keccak256('Digest(bytes32 digest,address[] wallets)')` and use it exclusively for the KIND_DIGEST branch. Never share typehashes across different payload kinds.",
+  "exploit_scenario": "1. Attacker observes a valid signature S over a KIND_DIGEST payload where digest = D and parentWallets = W. 2. Attacker finds (or constructs) a message M such that keccak256(M) == D. 3. Attacker constructs a KIND_MESSAGE payload with message=M, parentWallets=W. 4. Both payloads produce the same toEIP712() output and the same final hash(). 5. Signature S is valid for the KIND_MESSAGE payload, allowing the attacker to replay it in a different context.",
+  "swc_id": "",
+  "file": "Payload.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Cross-chain signature replay when noChainId=true uses chainId=0 in domain separator",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2025-10-sequence_vfgh6fo9/repo/src/modules/Payload.sol",
+   "line": 0,
+   "function": "domainSeparator"
+  },
+  "description": "When `_noChainId` is true, the domain separator is computed with `chainId = 0`. This is likely intentional for cross-chain wallet configurations, but it means any signature produced with this domain is valid on ALL EVM chains that use the same wallet address. If the wallet is deployed at the same address on multiple chains (common with CREATE2/factory deployments), a signature obtained on one chain is fully replayable on every other chain. The domain separator only includes the wallet address, not the chain ID, so there is no per-chain binding.",
+  "message": "An attacker who obtains a valid no-chain-ID signature (e.g., for a config update or transaction batch) on one chain can replay it on any other chain where the wallet exists at the same address, executing arbitrary transactions or config changes without the owner's per-chain consent.",
+  "recommendation": "Carefully document and restrict where noChainId=true is used. Consider whether cross-chain signatures should require explicit multi-chain authorization rather than being universally replayable. At minimum, add strong documentation and consumer-level guards ensuring KIND with noChainId=true is only accepted for specifically designated cross-chain operations.",
+  "exploit_scenario": "1. User signs a KIND_CONFIG_UPDATE payload with noChainId=true on Ethereum mainnet to update their config. 2. The wallet is also deployed at the same address on Polygon (via CREATE2). 3. Attacker submits the same signature on Polygon. 4. The domain separator on Polygon also uses chainId=0 and the same wallet address, producing the same hash. 5. The signature is accepted and the config update executes on Polygon without the user's explicit Polygon approval.",
+  "swc_id": "",
+  "file": "Payload.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "fromPackedCalls does not validate pointer stays within bounds, allowing silent out-of-bounds reads",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2025-10-sequence_vfgh6fo9/repo/src/modules/Payload.sol",
+   "line": 0,
+   "function": "fromPackedCalls"
+  },
+  "description": "The `fromPackedCalls` function parses a tightly-packed `bytes calldata packed` using a manual pointer. While Solidity 0.8 will revert on out-of-bounds array access for individual byte reads, the function computes `_decoded.calls[i].data = packed[pointer:pointer + calldataSize]` where `calldataSize` is a 3-byte value read from the input (up to 16,777,215 bytes). If a malicious or malformed `packed` input provides a large `calldataSize` that extends beyond the actual length of `packed`, this slice operation will revert. However, more critically, there is no validation that `pointer + calldataSize <= packed.length` before performing the slice, and no final check that `pointer == packed.length` after parsing all calls. Extra trailing bytes are silently ignored, meaning two different byte sequences (one with garbage appended) produce the same `Decoded` struct and the same hash, violating the injectivity expected of a canonical encoding.",
+  "message": "Two distinct byte strings can decode to identical `Decoded` structs and produce the same EIP-712 hash. If signatures are cached or deduplicated by their input bytes rather than their decoded hash, this could be exploited to bypass replay protection. Additionally, crafted inputs with excessively large calldataSize values will cause unnecessary reverts consuming caller gas.",
+  "recommendation": "After the parsing loop completes, add a check `require(pointer == packed.length, 'Trailing bytes in packed payload')` to enforce canonical encoding. Also validate `pointer + calldataSize <= packed.length` before performing the data slice.",
+  "exploit_scenario": "",
+  "swc_id": "",
+  "file": "Payload.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "reentrancy",
+  "title": "Reentrancy via ERC1271 callback allows duplicate payload queuing",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2025-10-sequence_vfgh6fo9/repo/src/extensions/recovery/Recovery.sol",
+   "line": 0,
+   "function": "queuePayload"
+  },
+  "description": "In queuePayload(), isValidSignature() is called before state is written. When _signer is a contract, isValidSignature() makes an external call to IERC1271(_signer).isValidSignature(). A malicious contract implementing ERC1271 can reenter queuePayload() during this external call. Since timestampForQueuedPayload[_wallet][_signer][payloadHash] is still 0 at this point, the AlreadyQueued check passes, and the payload gets queued multiple times \u2014 once in the reentrant call and once in the original call. This results in the same payloadHash being pushed to queuedPayloadHashes[_wallet][_signer] multiple times, and timestampForQueuedPayload being set twice with potentially different block.timestamps (though in the same block they'd be equal). The array corruption is the real impact: the payload hash appears multiple times in the array.",
+  "message": "An attacker controlling a malicious ERC1271 signer contract can queue the same payload multiple times, corrupting the queuedPayloadHashes array. While the timestamp mapping will end up with the same value (same block), the array will have duplicate entries. More critically, if the reentrant call queues payloads for different parameters, state inconsistency arises. The duplicate array entries could cause issues in off-chain indexing or future contract logic relying on the array length.",
+  "recommendation": "Apply checks-effects-interactions pattern: set timestampForQueuedPayload and push to queuedPayloadHashes BEFORE calling isValidSignature(). Alternatively, add a reentrancy guard (nonReentrant modifier) to queuePayload().",
+  "exploit_scenario": "1. Attacker deploys MaliciousSigner contract that implements ERC1271. 2. MaliciousSigner.isValidSignature() reenters queuePayload() with the same parameters. 3. First reentrant call: timestampForQueuedPayload is 0, passes AlreadyQueued check, sets timestamp, pushes hash to array. 4. Returns to outer isValidSignature() call which completes. 5. Outer queuePayload() then checks timestampForQueuedPayload \u2014 now it's non-zero from step 3, so it reverts with AlreadyQueued. Wait \u2014 actually the reentrant call sets the state first, then outer call reverts. Net effect: one successful queue but via the reentrant path. However, if attacker makes the reentrant call with different _signer or _wallet parameters, they get genuinely duplicate queuing across different slots.",
+  "swc_id": "",
+  "file": "Recovery.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "signature_validation",
+  "title": "ecrecover returns address(0) not validated \u2014 zero-address signer bypass",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2025-10-sequence_vfgh6fo9/repo/src/extensions/recovery/Recovery.sol",
+   "line": 0,
+   "function": "isValidSignature"
+  },
+  "description": "In isValidSignature(), after calling ecrecover(), the result is compared directly to _signer without checking if it returned address(0). ecrecover() returns address(0) for invalid/malformed signatures. If _signer is passed as address(0) to queuePayload(), a crafted 64-byte signature that causes ecrecover to return address(0) will satisfy `addr == _signer` and return true, successfully queueing an unauthorized payload.",
+  "message": "An attacker can queue arbitrary payloads for any wallet with _signer=address(0) using a malformed ECDSA signature. When recoverSapientSignatureCompact is called, it checks the merkle root \u2014 so this only matters if address(0) is a valid leaf in the wallet's recovery tree. However, address(0) being a recovery signer represents a protocol misconfiguration that this contract fails to protect against, amplifying the risk.",
+  "recommendation": "Add explicit check: `require(addr != address(0), 'Invalid signature');` before comparing addr to _signer. Change to: `address addr = ecrecover(rPayloadHash, v, r, s); if (addr != address(0) && addr == _signer) { return true; }`",
+  "exploit_scenario": "1. Attacker calls queuePayload(targetWallet, address(0), payload, malformedSig) where malformedSig is a 64-byte signature that causes ecrecover to return address(0). 2. isValidSignature() calls ecrecover() which returns address(0). 3. addr == _signer evaluates as address(0) == address(0) = true. 4. isValidSignature returns true. 5. Payload is queued for (targetWallet, address(0), payloadHash). 6. If the wallet's recovery tree includes address(0) as a signer (misconfigured), recovery proceeds after the time delay.",
+  "swc_id": "",
+  "file": "Recovery.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "access_control",
+  "title": "Unbounded payload queuing by arbitrary callers enables griefing/DoS",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2025-10-sequence_vfgh6fo9/repo/src/extensions/recovery/Recovery.sol",
+   "line": 0,
+   "function": "queuePayload"
+  },
+  "description": "queuePayload() is permissionless \u2014 any address can call it for any _wallet and _signer combination. While signature validation prevents unauthorized signers from queuing payloads they didn't sign, there is no check that the _signer is a legitimate recovery signer for _wallet. An attacker who obtains a valid signature from any signer (even one not in the wallet's recovery tree) can queue that payload. Additionally, a legitimate signer's key can be used to spam-queue many different payloads (with different payload contents) for any wallet, filling the queuedPayloadHashes array unboundedly. Since queuedPayloadHashes is an unbounded array, this creates a storage bloat DoS.",
+  "message": "1. Storage bloat: attacker can fill queuedPayloadHashes with arbitrary entries for any wallet/signer pair, increasing gas costs for any iteration over this array. 2. Front-running: an attacker who sees a legitimate signature in the mempool can front-run and queue it themselves (though this has limited impact since the result is the same queuing). 3. Legitimate recovery signers' valid signatures can be replayed by anyone who observes them to queue payloads without the signer's current intent.",
+  "recommendation": "Consider adding a size limit to queuedPayloadHashes per wallet/signer pair. Alternatively, only allow the wallet itself or the signer to queue payloads. Add: `require(msg.sender == _wallet || msg.sender == _signer, 'Unauthorized');`",
+  "exploit_scenario": "1. Attacker obtains a legitimate signed payload from signer S for wallet W (e.g., from a previous transaction or off-chain communication). 2. Attacker crafts many different Payload.Decoded structs, each with slightly different content, and obtains signatures for them. 3. Attacker calls queuePayload(W, S, payload_i, sig_i) for each payload variant. 4. queuedPayloadHashes[W][S] grows unboundedly. 5. Any off-chain or on-chain code iterating this array faces exponential gas costs.",
+  "swc_id": "",
+  "file": "Recovery.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "signature_replay",
+  "title": "Signature replay across chains when noChainId flag is set",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2025-10-sequence_vfgh6fo9/repo/src/extensions/recovery/Recovery.sol",
+   "line": 0,
+   "function": "queuePayload / recoveryPayloadHash"
+  },
+  "description": "The domainSeparator() function uses chainId=0 when _payload.noChainId is true. A signature created with noChainId=true for wallet W on chain A is valid on any other chain where wallet W exists with the same recovery configuration. Since the Recovery contract is a shared infrastructure contract (not per-wallet), the same Recovery contract address could exist on multiple chains. An attacker can take a noChainId signature from chain A and replay it on chain B to queue the same payload on chain B, potentially triggering recovery on a chain the signer never intended.",
+  "message": "Cross-chain signature replay: if a wallet exists on multiple chains (common for smart contract wallets deployed with CREATE2 at the same address), a recovery payload signed with noChainId on one chain can be replayed on all other chains where that wallet is deployed. This could trigger unintended recovery operations on chains the user didn't authorize.",
+  "recommendation": "Clearly document the risks of noChainId=true. Consider whether noChainId should be allowed in the recovery context at all. If kept, add additional authentication or require that only the wallet or signer can submit noChainId payloads. At minimum, add a warning in the interface.",
+  "exploit_scenario": "1. User has wallet W on Ethereum and Polygon (same address via CREATE2). 2. User signs a recovery payload with noChainId=true for legitimate recovery on Ethereum. 3. Attacker observes the transaction on Ethereum. 4. Attacker calls queuePayload on Polygon with the same wallet, signer, payload (noChainId=true), and signature. 5. Recovery is now queued on Polygon without the user's intent. 6. After the time delay, the recovery executes on Polygon.",
+  "swc_id": "",
+  "file": "Recovery.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "access_control",
+  "title": "incrementUsageLimit allows arbitrary self-inflation of usage limits, bypassing rate limiting",
+  "severity": "Critical",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2025-10-sequence_vfgh6fo9/repo/src/extensions/sessions/explicit/ExplicitSessionManager.sol",
+   "line": 21,
+   "function": "incrementUsageLimit"
+  },
+  "description": "The `incrementUsageLimit` function is `external` with no access control beyond setting `wallet = msg.sender`. It only checks that the new `usageAmount` is not less than the current stored value (`limits[i].usageAmount < getLimitUsage(wallet, limits[i].usageHash)`), but places NO upper bound on the value that can be set. Any address can call this function directly (outside of the session validation flow) to set their own wallet's usage limit counters to `type(uint256).max` or any arbitrarily large value. Since `validatePermission` uses these usage counters to enforce rate limits (e.g., per-call token transfer limits, value limits), inflating them bypasses all per-permission rate limiting entirely. The session validation flow in `_validateLimitUsageIncrement` is meant to ensure increments are bounded by actual usage, but this function is callable directly by anyone at any time.",
+  "message": "A session key holder can directly call `incrementUsageLimit` to set their own wallet's usage counters to maximum values, completely bypassing all rate/usage limits configured by the wallet owner for that session. This allows the session key to drain funds beyond configured limits, exceeding per-call, per-session, or aggregate value caps set by the wallet owner.",
+  "recommendation": "Add strict access control so only the session validation contract itself (via the trusted execution path) can call `incrementUsageLimit`. The function should only be callable via the validated transaction flow, not directly. One approach:\n\nmodifier onlySelf() {\n    require(msg.sender == address(this), 'Only callable via session execution');\n    _;\n}\nfunction incrementUsageLimit(UsageLimit[] calldata limits) external onlySelf {\n    ...\n}\n\nAlternatively, if direct calls must be allowed, add an upper-bound check: the new `usageAmount` must not exceed the maximum permitted by the session permissions. This requires passing or storing the session permissions' max limits on-chain.",
+  "exploit_scenario": "1. Wallet owner creates a session with a permission allowing at most 1 ETH total transfer (valueLimit = 1 ETH) and per-call limits enforced via usageHash counters.\n2. Session signer (attacker) directly calls `incrementUsageLimit([{usageHash: keccak256(abi.encode(sessionSigner, VALUE_TRACKING_ADDRESS)), usageAmount: type(uint256).max - 1}])` with `msg.sender = wallet`.\n   Wait \u2014 `msg.sender` IS the wallet here. The attacker must BE the wallet or control the wallet.\n   Actually: `wallet = msg.sender`, so the attacker sets limits for THEIR OWN wallet address as `msg.sender`.\n3. When session validation later calls `getLimitUsage(wallet, usageHash)` to check remaining allowance, the already-inflated counter makes it appear the session has 'already used' enormous amounts, OR if the counter represents cumulative allowed usage, it bypasses the cap.\n4. More specifically: if usage counters represent 'amount used so far' and permissions check `currentUsage + newAmount <= maxAllowed`, then a bloated counter causes the check to REVERT legitimate operations. But if an attacker controls a wallet and session key, they can manipulate the counter to match exactly the value that passes the permission check for a larger transfer than allowed.",
+  "swc_id": "",
+  "file": "ExplicitSessionManager.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Unrestricted direct call to incrementUsageLimit allows usage counter manipulation outside validated transaction flow",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2025-10-sequence_vfgh6fo9/repo/src/extensions/sessions/explicit/ExplicitSessionManager.sol",
+   "line": 21,
+   "function": "incrementUsageLimit"
+  },
+  "description": "The design intent is that `incrementUsageLimit` is called as the FIRST call in a session-validated payload, with the call data verified by `_validateLimitUsageIncrement` to match exactly the computed usage increments. However, `incrementUsageLimit` is also directly callable externally by any address (setting limits for `msg.sender` as the wallet). This creates a discrepancy: the `_validateLimitUsageIncrement` path ensures increments are bounded by actual in-transaction usage, but the direct path has no such constraint. If a wallet and session signer are the same entity (or collude), they can pre-inflate counters. More critically, if the usage counter is used to track 'how much has been used' and permissions enforce `newUsage <= maxAllowed`, pre-inflating makes legitimate future calls revert (griefing), OR if counters track 'remaining allowance' in inverse, pre-inflation bypasses limits.",
+  "message": "Depending on the implementation of `validatePermission` and `getLimitUsage`/`setLimitUsage` (not shown), this could allow bypass of configured spending limits or griefing of session keys by inflating their usage counters, rendering them unable to execute permitted operations.",
+  "recommendation": "Restrict `incrementUsageLimit` to only be callable via `address(this)` (i.e., through the validated session execution path). The `_validateLimitUsageIncrement` function already verifies the call is to `address(this)` as the first call, so making the function only callable via `delegatecall` or via self-call with validated data would close this vector. Add: `require(msg.sender == address(this), 'Unauthorized');` at the start of `incrementUsageLimit`.",
+  "exploit_scenario": "1. Alice configures a session key for Bob with a daily transfer limit of 100 USDC (enforced via usageHash counters).\n2. Mallory (any address, or Bob himself) calls `incrementUsageLimit` directly with `usageAmount = 100` for the relevant usageHash, setting Bob's apparent usage to 100 (the max).\n3. Now Bob's session key cannot transfer ANY USDC because the counter already reads 100 = maxAllowed.\n4. This is a griefing attack requiring no funds.",
+  "swc_id": "",
+  "file": "ExplicitSessionManager.sol",
+  "backend": "claude"
+ }
+]

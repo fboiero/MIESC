@@ -1,10 +1,18 @@
 # arXiv Submission — Two MIESC Papers
 
-Two ready-to-submit bundles. Submit as separate arXiv preprints — they cross-reference each other.
+Two ready-to-submit bundles, built from the **RIBCi–CYTED 2026 camera-ready**
+sources. Submit as separate arXiv preprints — they cross-reference each other.
+
+> **Status (2026-10-16):** the source bundles are prepared under
+> `paper/ribci-cyted-2026/arxiv/` (`paper1-camera-ready.arxiv.tar.gz`,
+> `paper2-camera-ready.arxiv.tar.gz`), each containing the camera-ready
+> `.tex` + `.bbl` + `figs/`. **Not uploaded.** Uploading preprints depends on
+> the RIBCi–CYTED / Edições CEOS.PP publisher policy — confirm with the Editing
+> Lab before posting.
 
 ---
 
-## Paper 1: Detection (miesc-arxiv.tar.gz)
+## Paper 1: Detection (arxiv/paper1-camera-ready.arxiv.tar.gz)
 
 ### Title
 ```
@@ -23,7 +31,7 @@ Norberto Gaspar Cena
 - **ORCID**: Fernando Boiero — 0009-0005-7935-2758; Sebastian Norberto Mussetta — 0009-0007-8025-9846; Norberto Gaspar Cena — not provided
 
 ### Abstract
-*(copy verbatim from `miesc-paper.tex`)*
+*(copy verbatim from `ribci-cyted-2026/paper1-camera-ready.tex`)*
 
 ### Subjects
 - `cs.CR` — Cryptography and Security (PRIMARY)
@@ -48,7 +56,7 @@ Norberto Gaspar Cena
 
 ---
 
-## Paper 2: Verifiable Remediation Artifacts (paper2-arxiv.tar.gz)
+## Paper 2: Verifiable Remediation Artifacts (arxiv/paper2-camera-ready.arxiv.tar.gz)
 
 ### Title
 ```
@@ -67,7 +75,7 @@ Norberto Gaspar Cena
 - **ORCID**: Fernando Boiero — 0009-0005-7935-2758; Sebastian Norberto Mussetta — 0009-0007-8025-9846; Norberto Gaspar Cena — not provided
 
 ### Abstract
-*(copy verbatim from `paper2-remediation.tex`)*
+*(copy verbatim from `ribci-cyted-2026/paper2-camera-ready.tex`)*
 
 ### Subjects
 - `cs.CR` — Cryptography and Security (PRIMARY)
@@ -102,8 +110,8 @@ Norberto Gaspar Cena
 1. Go to https://arxiv.org/submit
 2. Log in (UTN email accepted as institutional)
 3. **Start new submission**, category `cs.CR`
-4. Upload `paper/miesc-arxiv.tar.gz`
-5. arXiv compiles the PDF — verify it matches `paper/miesc-paper.pdf`
+4. Upload `paper/ribci-cyted-2026/arxiv/paper1-camera-ready.arxiv.tar.gz`
+5. arXiv compiles the PDF — verify it matches `paper/ribci-cyted-2026/paper1-camera-ready.pdf`
 6. Fill metadata from Paper 1 section above
 7. Submit. Preprint lands within 24 hours.
 8. Note the arXiv ID: `arXiv:2604.XXXXX`
@@ -111,7 +119,7 @@ Norberto Gaspar Cena
 ### Step 2: Submit Paper 2
 
 1. Start new submission at https://arxiv.org/submit
-2. Upload `paper/paper2-arxiv.tar.gz`
+2. Upload `paper/arxiv/paper2-camera-ready.arxiv.tar.gz`
 3. In **Comments**, replace `[Paper 1 arXiv ID]` with the actual ID from Step 1
 4. Fill metadata from Paper 2 section above
 5. Submit.

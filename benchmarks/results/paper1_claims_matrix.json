@@ -220,8 +220,150 @@
         ],
         "wilson_ci_note": "n=11; reported as indicative, not definitive, given the small sample."
       }
+    },
+    {
+      "claim_id": "ablation_llm_free",
+      "command": "python benchmarks/paper1_ablation_summary.py",
+      "date": "2026-10-16",
+      "paper_claim": "LLM-free ablation: static 82.5% (118/143), +own detectors 93.0% (133/143), +intelligence 97.9% (140/143); each step gains contracts without losing any.",
+      "source_artifact": [
+        "benchmarks/results/paper1_ablation_l1_raw_20261015.json",
+        "benchmarks/results/paper1_ablation_l167_raw_20261015.json",
+        "benchmarks/results/paper1_ablation_l167_intel_20261015.json"
+      ],
+      "status": "supported",
+      "unit": "recall over 143 contracts",
+      "value": {
+        "l1_6_7": {
+          "avg_time_per_contract_s": 1.48,
+          "contracts_evaluated": 143,
+          "f1": 0.3446,
+          "fn": 10,
+          "fp": 496,
+          "hit_rate": 0.9301,
+          "precision": 0.2114,
+          "recall": 0.9301,
+          "total_time_s": 211.8,
+          "tp": 133
+        },
+        "l1_6_7_intel": {
+          "avg_time_per_contract_s": 1.55,
+          "contracts_evaluated": 143,
+          "f1": 0.329,
+          "fn": 3,
+          "fp": 568,
+          "hit_rate": 0.979,
+          "precision": 0.1977,
+          "recall": 0.979,
+          "total_time_s": 222.0,
+          "tp": 140
+        },
+        "l1_static": {
+          "avg_time_per_contract_s": 1.36,
+          "contracts_evaluated": 143,
+          "f1": 0.433,
+          "fn": 25,
+          "fp": 284,
+          "hit_rate": 0.8252,
+          "precision": 0.2935,
+          "recall": 0.8252,
+          "total_time_s": 194.1,
+          "tp": 118
+        }
+      }
+    },
+    {
+      "claim_id": "evmbench_null_control",
+      "command": "python benchmarks/evmbench_matcher_null_control.py benchmarks/results/evmbench/evmbench_claude46_40_FINAL.json --ensemble benchmarks/results/evmbench/evmbench_ensemble_40.json",
+      "date": "2026-10-16",
+      "notes": "Computed, not stored: the 4 generic findings match 60/120 vulns.",
+      "paper_claim": "A contract-agnostic null control credits 50% (60/120) under the lenient matcher; the control-resistant subset is 60 vulnerabilities.",
+      "source_artifact": [
+        "benchmarks/evmbench_matcher_null_control.py",
+        "benchmarks/results/evmbench/evmbench_claude46_40_FINAL.json"
+      ],
+      "status": "supported",
+      "unit": "lenient-matched vulnerabilities",
+      "value": {
+        "control_resistant_subset": 60,
+        "credited": 60,
+        "pct": 0.5,
+        "total": 120
+      }
+    },
+    {
+      "claim_id": "evmbench_same_run_protocols",
+      "command": "python benchmarks/evmbench_same_run_protocols.py --model claude --judges gpt-4o,gpt-5 --out benchmarks/results/evmbench/same_run_claude_20261016",
+      "date": "2026-10-16",
+      "paper_claim": "One Claude run scored under every protocol: lenient 88.3% (106/120), control-resistant 78.3% (47/60); official judge GPT-4o 21.4% (25/117) and GPT-5 27.4% (32/117); judge agreement 104/117; of 32 GPT-5-detected vulns, 30 are also credited by the lenient matcher.",
+      "source_artifact": [
+        "benchmarks/results/evmbench/same_run_claude_20261016/summary.json",
+        "benchmarks/results/evmbench/same_run_claude_20261016/verdicts.json"
+      ],
+      "status": "supported",
+      "unit": "mixed protocols",
+      "value": {
+        "audits": 40,
+        "gpt5_lenient_cross": "30/32",
+        "judge_agreement": [
+          104,
+          117
+        ],
+        "lenient_all": [
+          106,
+          120
+        ],
+        "lenient_control_resistant": [
+          47,
+          60
+        ],
+        "model": "claude",
+        "official": {
+          "gpt-4o": [
+            25,
+            117
+          ],
+          "gpt-5": [
+            32,
+            117
+          ]
+        }
+      }
+    },
+    {
+      "claim_id": "fp_filter_effect",
+      "command": "python benchmarks/smartbugs_fp_filter_effect_20260710.py",
+      "date": "2026-10-16",
+      "paper_claim": "The production FP filter removes 207 of 1,263 false positives (16%) with no true-positive loss, raising finding-level precision from 13.3% to 15.5%.",
+      "source_artifact": "benchmarks/results/smartbugs_fp_filter_effect_20260710.json",
+      "status": "supported",
+      "unit": "finding-level false positives",
+      "value": {
+        "delta": {
+          "fps_removed": 207,
+          "precision_gain": 0.0219,
+          "recall_change": 0.0,
+          "tps_lost": 0
+        },
+        "filtered_production": {
+          "f1": 0.2606,
+          "fn": 39,
+          "fp": 1056,
+          "precision": 0.1545,
+          "recall": 0.8319,
+          "tp": 193
+        },
+        "raw_baseline": {
+          "f1": 0.2287,
+          "fn": 39,
+          "fp": 1263,
+          "precision": 0.1326,
+          "recall": 0.8319,
+          "tp": 193
+        }
+      }
     }
   ],
-  "generated_at": "1970-01-01T00:00:00+00:00",
+  "generated_at": "2026-10-16T00:00:00+00:00",
   "purpose": "Trace Paper 1 quantitative claims to local artifacts or external sources."
 }

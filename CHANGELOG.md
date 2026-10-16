@@ -40,6 +40,29 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `--poc-check` optionally runs `forge build` on each scaffold to confirm it compiles
   (strictly best-effort; skipped when forge is unavailable, so CI is never affected).
 
+## [6.1.0] - 2026-10-16 — RIBCi–CYTED 2026 camera-ready
+
+### Added
+- `benchmarks/verify_paper_claims.py`: recomputes every Paper 1 & 2 figure from
+  its backing JSON, anchors each to the camera-ready `.tex`, and checks the Data
+  Availability artifacts exist (exits non-zero on mismatch).
+- Camera-ready benchmark scripts and artifacts: EVMBench same-run multi-protocol
+  scorer, null-control matcher, Paper 1 ablation summary, Paper 2 pre-patch
+  Slither baseline, SmartBugs FP-filter effect, and the EVMBench same-run results
+  under `benchmarks/results/evmbench/same_run_claude_20261016/`.
+- `benchmarks/README.md` script index and `paper/ribci-cyted-2026/ERRATA.md`
+  (paper↔repo discrepancies E-1/E-2/E-3).
+
+### Changed
+- Claims matrices regenerated deterministically (`SOURCE_DATE_EPOCH=2026-10-16`)
+  with the new artifacts; evidence JSONs unchanged so figures are unchanged.
+- Reproducibility docs rewritten in English; README "Academic Validation" uses
+  only JSON-sourced figures (drops the unsourced "Slither alone 43.2%" comparison
+  and the "eliminate the original finding" phrasing) and links the camera-ready
+  PDFs; `CITATION.cff` preferred-citation is the two RIBCi–CYTED 2026 papers
+  (thesis secondary); `references.bib` reproduces the camera-ready bibliography.
+- Development logs moved to `docs/internal/`.
+
 ## [6.0.0] - 2026-07-12
 
 MIESC v6.0 turns the analyzer into something a team can adopt in CI without a

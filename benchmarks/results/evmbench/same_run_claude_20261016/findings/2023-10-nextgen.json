@@ -1,0 +1,857 @@
+[
+ {
+  "type": "access_control",
+  "title": "Unrestricted Use Case Counter Allows Bypassing Use Case Validation",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-10-nextgen_ps62m9no/repo/smart-contracts/NFTdelegation.sol",
+   "line": 0,
+   "function": "updateUseCaseCounter"
+  },
+  "description": "The updateUseCaseCounter() function is callable by ANY address with no access control. It only increments useCaseCounter by 1. Since the constructor sets useCaseCounter = 999 (USE_CASE_CONSOLIDATION), and registerDelegationAddress requires _useCase <= useCaseCounter, anyone can freely increment the counter to allow arbitrary use case IDs. While this doesn't directly break delegation logic, it defeats the purpose of the counter as a governance-controlled boundary and allows registrations for undefined/future use cases that the protocol hasn't authorized yet.",
+  "message": "Any user can register delegations under use case IDs that haven't been officially approved, potentially conflicting with future use case assignments or causing protocol consumers that check for specific use case ranges to behave unexpectedly.",
+  "recommendation": "Add access control (onlyOwner or similar) to updateUseCaseCounter(). Introduce an owner/admin state variable set in the constructor: `address public owner; constructor() { owner = msg.sender; useCaseCounter = 999; }` and require `msg.sender == owner` in updateUseCaseCounter().",
+  "exploit_scenario": "1. Protocol intends to add use case 1000 in the future with specific semantics. 2. Attacker calls updateUseCaseCounter() once to set useCaseCounter = 1000. 3. Attacker registers delegations under use case 1000 before the protocol assigns meaning to it. 4. When the protocol officially enables use case 1000, attacker already has delegations registered under it.",
+  "swc_id": "",
+  "file": "NFTdelegation.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Swap-and-Pop Removal Corrupts Array When Multiple Indices Reference Same Last Element",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-10-nextgen_ps62m9no/repo/smart-contracts/NFTdelegation.sol",
+   "line": 0,
+   "function": "revokeDelegationAddress"
+  },
+  "description": "The revocation logic collects all indices where the target address appears in the array, then iterates them in reverse order using swap-and-pop. However, when count > 1 (multiple delegations to the same address exist), the swap-and-pop approach corrupts the array: after the first swap-and-pop removes index at position `delegationsPerUser[length-1-0]`, the element that was at the last position is now at that index. But subsequent iterations remove `delegationsPerUser[length-1-1]` (the second-to-last collected index), which may now point to the swapped-in element (which is a DIFFERENT address that was moved there), causing it to be incorrectly deleted. This means legitimate delegations to OTHER addresses can be silently deleted from the array.",
+  "message": "When a delegator has registered the same delegation address multiple times (which the contract allows since there's no uniqueness check), revoking causes incorrect deletion of OTHER delegation addresses from the delegatorHashes array. Legitimate delegations to third parties are silently lost without the delegator intending to revoke them.",
+  "recommendation": "Instead of collecting indices upfront and doing multiple swap-and-pops, rebuild the array by filtering out all instances of the target address: create a new array with only non-matching elements and replace the storage array. Alternatively, enforce that each (delegator, collection, useCase, delegationAddress) combination can only be registered once.",
+  "exploit_scenario": "1. Alice registers delegation to Bob (index 0), Charlie (index 1), Bob again (index 2). delegatorHashes = [Bob, Charlie, Bob]. 2. Alice calls revokeDelegationAddress for Bob. count=2, delegationsPerUser=[0,2]. 3. First iteration (j=0): temp1=delegationsPerUser[1]=2, swap index 2 with last (index 2 itself), pop. Array becomes [Bob, Charlie]. 4. Second iteration (j=1): temp1=delegationsPerUser[0]=0, temp2=1 (last), swap: array[0]=Charlie, pop. Array becomes [Charlie]. Wait - Bob at index 0 is removed but so is the swap. Actually Charlie (at index 1) gets moved to index 0. But the original Bob at index 0 should have been removed - that works. HOWEVER: if delegationsPerUser=[0,2] and array is [Bob,Charlie,Bob]: j=0 processes index 2 (last Bob), j=1 processes index 0 (first Bob). After j=0: array=[Bob,Charlie] (last Bob removed). After j=1: swap array[0] with array[1]=Charlie, pop: array=[Charlie]. This removes Charlie from Alice's delegations, even though Alice never revoked Charlie.",
+  "swc_id": "",
+  "file": "NFTdelegation.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "No Uniqueness Enforcement Allows Duplicate Delegation Registrations Bloating Arrays Unboundedly",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-10-nextgen_ps62m9no/repo/smart-contracts/NFTdelegation.sol",
+   "line": 0,
+   "function": "registerDelegationAddress"
+  },
+  "description": "There is no check preventing a delegator from registering the same delegation address for the same collection and use case multiple times. Each call pushes a new entry to delegatorHashes, delegationAddressHashes, and globalDelegationHashes. This allows: (1) unbounded array growth causing DoS on view functions and revocation logic; (2) the swap-and-pop corruption bug to be triggered (see related finding); (3) globalDelegationHashes accumulating multiple entries for the same relationship, causing retrieveActiveDelegations and similar functions to return duplicates or incorrect results.",
+  "message": "An attacker or user can bloat arrays to cause out-of-gas errors in view functions that iterate over delegations. Revocation becomes unreliable. Protocol consumers may see inflated delegation counts or double-counting of delegations.",
+  "recommendation": "Add a check before registering: require that the delegation address is not already present for the given hash. Alternatively, use a mapping to track existence: `mapping(bytes32 => bool) public delegationExists;` keyed by the globalHash, and require it to be false before registering.",
+  "exploit_scenario": "1. Alice calls registerDelegationAddress(collection, Bob, expiry, useCase, true, 0) 1000 times. 2. delegatorHashes[hash] now has 1000 entries of Bob. 3. Any view function that iterates this array (retrieveActiveDelegations, retrieveDelegationAddressesTokensIDsandExpiredDates, etc.) will run out of gas. 4. revokeDelegationAddress becomes extremely expensive or OOG, effectively locking Alice's delegations.",
+  "swc_id": "",
+  "file": "NFTdelegation.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Subdelegation Verification Uses retrieveDelegators Which Returns Active AND Inactive Delegators",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-10-nextgen_ps62m9no/repo/smart-contracts/NFTdelegation.sol",
+   "line": 0,
+   "function": "registerDelegationAddressUsingSubDelegation"
+  },
+  "description": "The subdelegation rights check in registerDelegationAddressUsingSubDelegation and revokeDelegationAddressUsingSubdelegation calls retrieveDelegators(), which returns ALL delegators including those whose delegations have EXPIRED (the function comment explicitly states it returns 'active AND inactive'). This means a subdelegation right that has expired (past its expiryDate) is still honored by the contract, allowing an expired subdelegator to continue registering/revoking delegations on behalf of the delegator indefinitely.",
+  "message": "Once a subdelegation right is granted (even temporarily), the subdelegator retains the ability to register or revoke delegations on behalf of the delegator even after the subdelegation has expired. This violates the expected time-bounded nature of delegations and can allow a malicious ex-subdelegator to continue manipulating the delegator's delegations.",
+  "recommendation": "Replace the call to retrieveDelegators with retrieveActiveDelegators in both registerDelegationAddressUsingSubDelegation and revokeDelegationAddressUsingSubdelegation, passing block.timestamp as the date parameter to filter out expired delegations.",
+  "exploit_scenario": "1. Alice grants Bob subdelegation rights for collection X, use case 998, expiring at timestamp T. 2. Time passes, T is reached, the delegation expires. 3. Bob can still call registerDelegationAddressUsingSubDelegation(_delegatorAddress=Alice, ...) because retrieveDelegators returns all delegators including expired ones. 4. Bob registers malicious delegation addresses on behalf of Alice indefinitely.",
+  "swc_id": "",
+  "file": "NFTdelegation.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Array Index Out-of-Bounds in retrieveDelegationAddressesTokensIDsandExpiredDates and Similar Functions",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-10-nextgen_ps62m9no/repo/smart-contracts/NFTdelegation.sol",
+   "line": 0,
+   "function": "retrieveDelegationAddressesTokensIDsandExpiredDates"
+  },
+  "description": "In retrieveDelegationAddressesTokensIDsandExpiredDates, retrieveActiveDelegations, retrieveMostRecentDelegation, and their delegator counterparts, the code computes `k` as the total number of GlobalData entries across all hashes, then declares arrays of size k. It then iterates `for (uint256 y = 0; y < k; )` but uses `allGlobalHashes[y]` as the index into allGlobalHashes array. The allGlobalHashes array has length equal to allDelegations.length (number of delegation addresses), but `k` can be much larger (sum of GlobalData entries). When k > allDelegations.length, the loop accesses allGlobalHashes[y] at indices beyond the array length, causing an out-of-bounds revert.",
+  "message": "Any delegator who has registered multiple delegations to the same delegate (which creates multiple globalDelegationHashes entries), causing k > number of unique delegation addresses, will cause all retrieval functions to permanently revert with out-of-bounds access. This effectively bricks the read interface for such delegators.",
+  "recommendation": "Fix the iteration logic: iterate over allGlobalHashes (not 0 to k) to populate the local arrays, keeping a separate counter for total entries. Separate the hash-collection loop from the entry-expansion loop properly: first collect all GlobalData entries into a flat array, then process that flat array.",
+  "exploit_scenario": "1. Alice registers delegation to Bob twice (same collection, use case). allDelegations=[Bob,Bob], k=2 (one GlobalData entry per registration), allGlobalHashes has length 2. 2. After deduplication loop removes allGlobalHashes[0] (sets to 0x0), allGlobalHashes=[0x0, hash_bob]. 3. k = globalDelegationHashes[0x0].length + globalDelegationHashes[hash_bob].length = 0 + 2 = 2. 4. Loop: y=0, allGlobalHashes[0]=0x0, length check passes but data is empty. y=1, allGlobalHashes[1]=hash_bob, works. But arrays allDelegationAddresses[0..1] filled with 2 items. Actually this case works. The bug triggers when: allDelegations has 1 element but globalDelegationHashes[hash] has 3 entries. Then k=3 but allGlobalHashes.length=1. Loop at y=1 accesses allGlobalHashes[1] which is OOB.",
+  "swc_id": "",
+  "file": "NFTdelegation.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "access_control",
+  "title": "Unrestricted useCaseCounter Increment Allows Bypassing Use Case Validation",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-10-nextgen_ps62m9no/repo/hardhat/smart-contracts/NFTdelegation.sol",
+   "line": 0,
+   "function": "updateUseCaseCounter"
+  },
+  "description": "The updateUseCaseCounter() function has no access control whatsoever \u2014 any arbitrary address can call it to increment useCaseCounter. The constructor sets useCaseCounter = 999 (matching USE_CASE_CONSOLIDATION), and registerDelegationAddress() requires _useCase <= useCaseCounter. Since anyone can increment the counter, this is not itself a direct exploit, but combined with the fact that use cases 998 (SUB_DELEGATION) and 999 (CONSOLIDATION) are semantically special, an attacker could register delegations with arbitrarily high use case numbers that were never intended to exist, potentially polluting the delegation state and causing unexpected behavior in consuming contracts.",
+  "message": "Any user can create delegations for non-existent use cases, potentially interfering with off-chain systems or other contracts that rely on use case integrity. More critically, this function is completely ungated \u2014 if the protocol intends only authorized parties to add use cases, this is a complete access control failure.",
+  "recommendation": "Add access control to updateUseCaseCounter(), e.g., only allow a designated owner/admin to call it. Add an `address public owner` state variable, set it in the constructor, and add `require(msg.sender == owner)` to updateUseCaseCounter().",
+  "exploit_scenario": "1. Call updateUseCaseCounter() from any EOA repeatedly to set useCaseCounter to any value. 2. Register delegations with arbitrary _useCase values that were never intended to be valid. 3. These delegations appear valid on-chain and pass all checks.",
+  "swc_id": "",
+  "file": "NFTdelegation.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Swap-and-Pop Deletion Logic Corrupts Array When Multiple Entries Exist",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-10-nextgen_ps62m9no/repo/hardhat/smart-contracts/NFTdelegation.sol",
+   "line": 0,
+   "function": "revokeDelegationAddress"
+  },
+  "description": "The revokeDelegationAddress function collects all indices of _delegationAddress in delegatorHashes[delegatorHash], then iterates them in REVERSE order (delegationsPerUser.length - 1 - j), swapping each with the last element and popping. However, this approach is fundamentally broken when there are multiple matching entries. After the first swap-and-pop, the array length decreases by 1, but the previously stored indices in delegationsPerUser[] are now stale \u2014 they may point to wrong positions, and critically, the element that was moved from the end (via the swap) may itself be a target that should be deleted, but was never added to delegationsPerUser because it was at a different index during the initial scan. Additionally, if two indices are stored as [i1, i2] where i2 > i1, and we delete in reverse (i2 first, then i1), after deleting i2 the element that was at the last position is now at i2. But if i1 is also a target, the element swapped into i2's old spot might also be a target that gets missed.",
+  "message": "When a delegator has registered multiple delegations to the same address under the same use case (which the contract allows via push), revoking can leave stale entries in the arrays \u2014 effectively failing to fully revoke the delegation. This breaks the core security guarantee of the revocation mechanism.",
+  "recommendation": "Instead of collecting indices first, iterate the array in a single backward pass: for (uint i = array.length; i > 0; i--) { if (array[i-1] == target) { array[i-1] = array[array.length-1]; array.pop(); } }. This cleanly handles multiple occurrences without index staleness.",
+  "exploit_scenario": "1. Call registerDelegationAddress() twice with the same _collectionAddress, _delegationAddress, _useCase (from same msg.sender). This pushes _delegationAddress twice into delegatorHashes[delegatorHash]. 2. Call revokeDelegationAddress() \u2014 the deletion loop may miss one of the two entries due to the index staleness issue after the first pop. 3. Call retrieveDelegationAddresses() to verify the address is still present.",
+  "swc_id": "",
+  "file": "NFTdelegation.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Self-Delegation Allowed \u2014 Delegator Can Delegate to Themselves",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-10-nextgen_ps62m9no/repo/hardhat/smart-contracts/NFTdelegation.sol",
+   "line": 0,
+   "function": "registerDelegationAddress"
+  },
+  "description": "There is no check preventing msg.sender from setting _delegationAddress == msg.sender. A user can delegate to themselves for any use case, including USE_CASE_SUB_DELEGATION (998) and USE_CASE_CONSOLIDATION (999). For consolidation, checkConsolidationStatus() requires mutual delegation between wallet1 and wallet2. If wallet1 delegates to itself for USE_CASE_CONSOLIDATION, it can create a false consolidation record. More critically, for subdelegation: a user can grant themselves subdelegation rights, then use registerDelegationAddressUsingSubDelegation to register delegations on behalf of any address that has ever delegated to them (with _delegatorAddress spoofed).",
+  "message": "A malicious actor can register spurious consolidation records or manipulate subdelegation checks to impersonate delegators.",
+  "recommendation": "Add `require(_delegationAddress != msg.sender, 'Cannot delegate to self')` in registerDelegationAddress() and check `_delegationAddress != _delegatorAddress` in registerDelegationAddressUsingSubDelegation().",
+  "exploit_scenario": "1. AttackerA calls registerDelegationAddress(collectionAddr, AttackerA, expiryDate, USE_CASE_CONSOLIDATION, true, 0) \u2014 self-delegation for consolidation. 2. If VictimB has also delegated to AttackerA with USE_CASE_CONSOLIDATION (e.g., for legitimate use), checkConsolidationStatus(AttackerA, VictimB, collection) may return unexpected results.",
+  "swc_id": "",
+  "file": "NFTdelegation.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Subdelegation Rights Not Validated Against Active/Non-Expired Delegations",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-10-nextgen_ps62m9no/repo/hardhat/smart-contracts/NFTdelegation.sol",
+   "line": 0,
+   "function": "registerDelegationAddressUsingSubDelegation"
+  },
+  "description": "The subdelegation rights check in registerDelegationAddressUsingSubDelegation() calls retrieveDelegators(msg.sender, _collectionAddress, USE_CASE_SUB_DELEGATION) which returns ALL delegators (active AND inactive \u2014 including expired and revoked). If a delegation was expired (block.timestamp > expiryDate) but not yet removed from storage, or if it was previously revoked but a bug left stale data, the function still grants subdelegation rights. The retrieveDelegators function explicitly returns 'active AND inactive' delegations per the NatSpec comments. This means expired subdelegation grants are still honored.",
+  "message": "An actor whose subdelegation rights have expired can still exercise those rights to register delegations on behalf of a delegator. Similarly, if revocation has a bug (see swap-and-pop issue), revoked subdelegation rights may still be valid.",
+  "recommendation": "Use retrieveActiveDelegators() instead of retrieveDelegators() when checking subdelegation rights in both registerDelegationAddressUsingSubDelegation() and revokeDelegationAddressUsingSubdelegation(). Pass block.timestamp as the _date parameter.",
+  "exploit_scenario": "1. DelegatorA grants msg.sender USE_CASE_SUB_DELEGATION with expiryDate = block.timestamp + 1 hour. 2. After expiry, msg.sender calls registerDelegationAddressUsingSubDelegation(DelegatorA, ...) \u2014 the check passes because retrieveDelegators returns all delegators including expired ones. 3. msg.sender successfully registers a delegation on behalf of DelegatorA after their rights should have expired.",
+  "swc_id": "",
+  "file": "NFTdelegation.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "retrieveActiveDelegations Array Indexing Bug Causes Out-of-Bounds or Wrong Results",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-10-nextgen_ps62m9no/repo/hardhat/smart-contracts/NFTdelegation.sol",
+   "line": 0,
+   "function": "retrieveActiveDelegations"
+  },
+  "description": "In retrieveActiveDelegations(), after the duplicate-removal loop, the code computes `k` as the total count of global delegation entries. Then it uses `k` as the loop bound for filling allDelegationAddresses/allExpirations. However, the outer loop `for (uint256 y = 0; y < k; )` uses `y` as an index into `allGlobalHashes[y]` \u2014 but allGlobalHashes has length equal to allDelegations.length (number of delegation addresses), NOT k (total number of global data entries). When k > allDelegations.length (i.e., when any delegation address has multiple entries in globalDelegationHashes), the loop will access allGlobalHashes[y] at indices beyond the array's length, causing an out-of-bounds panic/revert. The same bug exists in retrieveDelegationAddressesTokensIDsandExpiredDates, retrieveActiveDelegators, retrieveDelegatorsTokensIDsandExpiredDates, retrieveMostRecentDelegation, and retrieveMostRecentDelegator.",
+  "message": "Any delegator who has registered more GlobalData entries than unique delegation addresses (e.g., by registering the same delegation twice, or registering multiple different delegations) will experience permanent revert on all retrieval functions, bricking their delegation state queries permanently.",
+  "recommendation": "Fix the loop structure: use a separate index for iterating allGlobalHashes vs counting total k entries. Use a nested loop properly: `for (uint y = 0; y < allGlobalHashes.length; y++) { for (uint w = 0; w < globalDelegationHashes[allGlobalHashes[y]].length; w++) { /* fill arrays */ } }`.",
+  "exploit_scenario": "1. DelegatorA calls registerDelegationAddress(collection, hotWallet1, ...) \u2192 allDelegations length = 1, but globalDelegationHashes entry gets 1 item \u2192 k=1, works fine. 2. DelegatorA calls registerDelegationAddress(collection, hotWallet1, ...) again (same params) \u2192 allDelegations length = 2 (hotWallet1 pushed twice), allGlobalHashes length = 2, but both hashes are the same \u2192 after dedup one is deleted (set to 0x00), k = globalDelegationHashes[0x00].length (which could be non-zero if address(0) has entries) + globalDelegationHashes[realHash].length. The y loop going up to k can exceed allGlobalHashes bounds.",
+  "swc_id": "",
+  "file": "NFTdelegation.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "access_control",
+  "title": "Anyone Can Register Delegations On Behalf of Any Delegator via SubDelegation With Zero Verification of msg.sender Rights",
+  "severity": "Critical",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-10-nextgen_ps62m9no/repo/hardhat/smart-contracts/NFTdelegation.sol",
+   "line": 0,
+   "function": "registerDelegationAddressUsingSubDelegation"
+  },
+  "description": "The subdelegation check verifies that _delegatorAddress exists in the list of delegators for msg.sender with USE_CASE_SUB_DELEGATION. The check calls retrieveDelegators(msg.sender, _collectionAddress, USE_CASE_SUB_DELEGATION) which returns addresses stored in delegationAddressHashes[keccak256(msg.sender, collection, 998)]. This means: for the check to pass, _delegatorAddress must have delegated USE_CASE_SUB_DELEGATION to msg.sender. However, since retrieveDelegators returns ALL (active and inactive/expired) delegations, and since anyone can self-delegate (no self-delegation check), an attacker can: (1) register themselves as their own subdelegator, then (2) call registerDelegationAddressUsingSubDelegation with _delegatorAddress = themselves. More dangerously, combined with the expired delegation issue, once someone has ever granted subdelegation rights to an address (even if revoked or expired), that address retains subdelegation power forever.",
+  "message": "After subdelegation rights expire or are revoked, the former subdelegator can still register new delegations on behalf of the original delegator. This permanently compromises the delegator's ability to control their delegation state.",
+  "recommendation": "1. Use retrieveActiveDelegators() with block.timestamp instead of retrieveDelegators() for subdelegation checks. 2. Add self-delegation prevention. 3. Fix the revocation swap-and-pop bug to ensure stale entries are fully removed.",
+  "exploit_scenario": "1. VictimA grants AttackerB USE_CASE_SUB_DELEGATION for 1 hour. 2. After 1 hour, VictimA revokes the subdelegation. 3. Due to the swap-and-pop bug, if revocation partially fails, OR even if it succeeds \u2014 4. AttackerB calls retrieveDelegators(AttackerB, collection, 998), which (if stale data exists) still shows VictimA. 5. AttackerB calls registerDelegationAddressUsingSubDelegation(VictimA, collection, AttackerB_controlled_addr, ...) and succeeds, registering unauthorized delegations for VictimA.",
+  "swc_id": "",
+  "file": "NFTdelegation.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "ETH Locked in Contract - payArtist Rounding Loss",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-10-nextgen_ps62m9no/repo/smart-contracts/MinterContract.sol",
+   "line": 0,
+   "function": "payArtist"
+  },
+  "description": "The payArtist function distributes ETH using integer division: artistRoyalties1 = royalties * add1Percentage / 100, etc. Due to integer division truncation, the sum of all payments will almost always be less than the total royalties. The remainder (royalties - sum_of_payments) stays locked in the contract forever. For example, if royalties = 1 wei and percentages split to 5 addresses, most divisions result in 0. Over many collections, significant ETH can be permanently locked.",
+  "message": "ETH is permanently locked in the contract, never recoverable (emergencyWithdraw only helps if an admin calls it, but that bypasses the intended distribution).",
+  "recommendation": "Track the remaining balance and send it to the last recipient. Use a pull-payment pattern or calculate the last payment as (royalties - sum_of_previous_payments).",
+  "exploit_scenario": "1. Collection raises 101 wei. artistPercentage=90, teamPercentage=10. add1=45%, add2=45%, add3=0%. team1=5%, team2=5%. artistRoyalties1 = 101*45/100 = 45, artistRoyalties2=45, teamRoyalties1=5, teamRoyalties2=5. Total paid = 100 wei. 1 wei stuck forever.",
+  "swc_id": "",
+  "file": "MinterContract.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "reentrancy",
+  "title": "Reentrancy in burnOrSwapExternalToMint via safeTransferFrom Callback",
+  "severity": "Critical",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-10-nextgen_ps62m9no/repo/smart-contracts/MinterContract.sol",
+   "line": 0,
+   "function": "burnOrSwapExternalToMint"
+  },
+  "description": "The function calls IERC721(_erc721Collection).safeTransferFrom(ownerOfToken, burnOrSwapAddress[externalCol], _tokenId) BEFORE minting the new token. The safeTransferFrom triggers onERC721Received on the burnOrSwapAddress. If burnOrSwapAddress is a malicious contract, it can call back into burnOrSwapExternalToMint or mint. More critically, the supply check (collectionTokenMintIndex <= viewTokensIndexMax) and the actual mint happen AFTER the external call, so a reentrant call could see stale supply state and mint multiple tokens for the same burned token. Additionally, collectionTotalAmount is updated after the external call.",
+  "message": "Attacker can potentially mint multiple NFTs for a single burned token, or manipulate state during the callback.",
+  "recommendation": "Apply checks-effects-interactions pattern: update all state before external calls. Use ReentrancyGuard. Perform the safeTransferFrom after verifying supply and ideally after minting, or use a nonReentrant modifier.",
+  "exploit_scenario": "1. Deploy malicious contract at burnOrSwapAddress that implements onERC721Received. 2. Call burnOrSwapExternalToMint. 3. During safeTransferFrom, onERC721Received is triggered on burnOrSwapAddress. 4. Reentrant call to burnOrSwapExternalToMint again with same parameters (if token ownership check can be bypassed or different token). 5. Both calls proceed to mint since circulating supply hasn't been updated yet in gencore.",
+  "swc_id": "",
+  "file": "MinterContract.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "access_control",
+  "title": "payArtist Accepts Admin-Controlled Team Addresses and Percentages - No Validation",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-10-nextgen_ps62m9no/repo/smart-contracts/MinterContract.sol",
+   "line": 0,
+   "function": "payArtist"
+  },
+  "description": "The payArtist function accepts _team1, _team2, _teamperc1, _teamperc2 as parameters from the calling admin. A malicious or compromised admin can set _team1 = attacker_address, _teamperc1 = 100 - artistPercentage, _teamperc2 = 0 to steal the team's share of funds. The only check is that artistPercentage + _teamperc1 + _teamperc2 == 100. This means an admin can redirect all team funds to any address.",
+  "message": "Compromised admin can steal all team royalties by setting team addresses to attacker-controlled addresses.",
+  "recommendation": "Store team addresses and percentages on-chain via a separate proposal/acceptance mechanism similar to artist addresses, rather than passing them as function parameters.",
+  "exploit_scenario": "1. Admin calls payArtist(_collectionID, attacker_address, zero_address, 90, 0) where artistPercentage=10. 2. This passes the 10+90+0=100 check. 3. 90% of all collected ETH goes to attacker_address.",
+  "swc_id": "",
+  "file": "MinterContract.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "unchecked_return_value",
+  "title": "Unchecked Return Values in payArtist ETH Transfers",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-10-nextgen_ps62m9no/repo/smart-contracts/MinterContract.sol",
+   "line": 0,
+   "function": "payArtist"
+  },
+  "description": "The payArtist function makes 5 ETH transfers using .call{value:}() but only emits events with success/failure - it never reverts if a transfer fails. If primaryAdd1, primaryAdd2, primaryAdd3, _team1, or _team2 is a contract that reverts or has no receive function, the ETH for that recipient is silently lost. The function has already set collectionTotalAmount[_collectionID] = 0 before attempting transfers, so the funds are permanently lost with no retry mechanism.",
+  "message": "If any recipient address cannot receive ETH, those funds are permanently lost. No retry is possible since collectionTotalAmount is zeroed before transfers.",
+  "recommendation": "Revert if any transfer fails, or implement a pull payment pattern where each recipient calls withdraw() themselves. At minimum, require(success1 && success2 && success3 && success4 && success5).",
+  "exploit_scenario": "1. Artist sets primaryAdd1 to a contract that doesn't accept ETH. 2. Admin calls payArtist. 3. collectionTotalAmount is set to 0. 4. Transfer to primaryAdd1 fails silently (success1 = false). 5. Those funds are permanently lost.",
+  "swc_id": "",
+  "file": "MinterContract.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Sales Option 3 Time Period Can Be Zero Causing Division by Zero",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-10-nextgen_ps62m9no/repo/smart-contracts/MinterContract.sol",
+   "line": 0,
+   "function": "getPrice / mint / mintAndAuction"
+  },
+  "description": "In setCollectionCosts, there is no validation that _timePeriod > 0 when _salesOption == 3. If timePeriod is set to 0, the getPrice function for salesOption==3 performs division: (collectionMintCost / rate) * cirSupply which is fine, but in mint() the line tDiff = (block.timestamp - timeOfLastMint) / collectionPhases[col].timePeriod causes division by zero, reverting all mints. Similarly mintAndAuction computes tDiff with division by timePeriod.",
+  "message": "Collection with salesOption=3 and timePeriod=0 becomes permanently broken - no minting possible.",
+  "recommendation": "Add require(_timePeriod > 0) when _salesOption == 3 in setCollectionCosts, and similarly validate _rate for salesOption==2.",
+  "exploit_scenario": "1. Admin calls setCollectionCosts with _salesOption=3 and _timePeriod=0. 2. Any call to mint() for this collection reverts with division by zero in tDiff calculation.",
+  "swc_id": "",
+  "file": "MinterContract.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "mint() Supply Check Uses Pre-Mint cirSupply But Loop Doesn't Recheck",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-10-nextgen_ps62m9no/repo/smart-contracts/MinterContract.sol",
+   "line": 0,
+   "function": "mint"
+  },
+  "description": "The supply check calculates collectionTokenMintIndex = viewTokensIndexMin(col) + viewCirSupply(col) + _numberOfTokens - 1 once before the mint loop. However, viewCirSupply is read from gencore at the start. If multiple transactions are in the same block and gencore.viewCirSupply is updated during the loop (each gencore.mint increments supply), the final check could pass while an intermediate state allows minting beyond maxSupply. More specifically, if two transactions arrive simultaneously both checking supply before either updates it, both could pass the supply check and together mint more than allowed.",
+  "message": "Race condition could allow minting beyond collection's maximum supply.",
+  "recommendation": "Move the supply check inside the mint loop, or enforce the supply check atomically within gencore.mint().",
+  "exploit_scenario": "1. Collection has 1 token left. 2. Two users simultaneously call mint() with _numberOfTokens=1. 3. Both read cirSupply=N before either updates it. 4. Both pass the supply check (N+1 <= max). 5. Both mint, resulting in N+2 total supply exceeding max.",
+  "swc_id": "",
+  "file": "MinterContract.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "burnOrSwapExternalToMint Merkle Node Does Not Include Minting Address - Proof Reuse",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-10-nextgen_ps62m9no/repo/smart-contracts/MinterContract.sol",
+   "line": 0,
+   "function": "burnOrSwapExternalToMint"
+  },
+  "description": "In burnOrSwapExternalToMint, the merkle proof node is computed as keccak256(abi.encodePacked(_tokenId, tokData)) - it does NOT include the minting address (ownerOfToken) or msg.sender. This means a valid merkle proof for one (_tokenId, tokData) pair can be reused by anyone who can burn ANY token with that id. Furthermore, since _tokenId is part of the proof but not the minting address, an attacker who knows a valid proof can use it as long as they hold or are delegated any token with that ID.",
+  "message": "Merkle proof can be replayed by different users for different tokens of the same ID, potentially bypassing allowlist restrictions.",
+  "recommendation": "Include ownerOfToken or msg.sender in the merkle node: keccak256(abi.encodePacked(ownerOfToken, _tokenId, tokData)).",
+  "exploit_scenario": "1. Alice gets a valid merkle proof for tokenId=5, tokData='data'. 2. Bob observes Alice's proof on-chain. 3. Bob acquires a different NFT with tokenId=5 from same external collection. 4. Bob calls burnOrSwapExternalToMint with Alice's proof, burning his token to mint.",
+  "swc_id": "",
+  "file": "MinterContract.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "proposePrimaryAddressesAndPercentages Can Be Called After Payment Approval Reset",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-10-nextgen_ps62m9no/repo/smart-contracts/MinterContract.sol",
+   "line": 0,
+   "function": "proposePrimaryAddressesAndPercentages / acceptAddressesAndPercentages"
+  },
+  "description": "The acceptAddressesAndPercentages function can set status to false (via _statusPrimary=false), which re-allows proposePrimaryAddressesAndPercentages to be called again. An artist could wait until after payArtist has been called (setting collectionTotalAmount=0), then re-propose addresses for the next payment cycle. However the more critical issue is: an admin can call acceptAddressesAndPercentages(_collectionID, false, false) at any time to reset approval status, then re-approve a different proposal. This allows mid-cycle manipulation of payment addresses.",
+  "message": "Admin can reset approval and re-approve different payment addresses between when funds are collected and when payArtist is called.",
+  "recommendation": "Once approved and payArtist has been called, the status should auto-reset. Alternatively, prevent admin from changing approved addresses; only allow artist to revise before approval.",
+  "exploit_scenario": "1. Artist proposes addresses. Admin approves (status=true). 2. Admin calls acceptAddressesAndPercentages(_collectionID, false, false) resetting status. 3. Admin submits new proposal with attacker addresses. 4. Admin calls acceptAddressesAndPercentages(_collectionID, true, true). 5. payArtist sends funds to attacker.",
+  "swc_id": "",
+  "file": "MinterContract.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "getPrice salesOption==2 Division by Zero When timePeriod is Zero",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-10-nextgen_ps62m9no/repo/smart-contracts/MinterContract.sol",
+   "line": 0,
+   "function": "getPrice"
+  },
+  "description": "In getPrice for salesOption==2, the code computes tDiff = (block.timestamp - allowlistStartTime) / timePeriod. If timePeriod is 0, this causes a division by zero revert, making all mints impossible. No validation of timePeriod > 0 exists in setCollectionCosts.",
+  "message": "Collection with salesOption=2 and timePeriod=0 is permanently broken for minting.",
+  "recommendation": "Require timePeriod > 0 in setCollectionCosts when salesOption is 2 or 3.",
+  "exploit_scenario": "1. Admin sets salesOption=2, timePeriod=0. 2. Any call to mint() calls getPrice() which divides by timePeriod=0 and reverts.",
+  "swc_id": "",
+  "file": "MinterContract.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "mintAndAuction Mints Before Checking Time Constraint - Token Minted Then Blocked",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-10-nextgen_ps62m9no/repo/smart-contracts/MinterContract.sol",
+   "line": 0,
+   "function": "mintAndAuction"
+  },
+  "description": "In mintAndAuction, the token is minted via gencore.airDropTokens(mintIndex, ...) BEFORE checking if the time period constraint is satisfied (tDiff >= 1). If the time constraint is not met, the function reverts AFTER the mint has already occurred. However since gencore.airDropTokens presumably also increments supply in gencore, if the revert happens after the external call to gencore, it depends on whether gencore's state is rolled back. In Solidity, all state changes in a transaction are reverted if the transaction reverts, so this is actually safe for the gencore state. BUT the issue is: the mint happens then tDiff check fails and reverts - this means the function always reverts when time constraint isn't met, burning gas but not causing fund loss. However if timePeriod=0, tDiff calculation fails with division by zero even before the require, after the mint call - though EVM would revert the whole tx.",
+  "message": "Wasted gas but no fund loss; however the ordering is poor practice and could cause issues if gencore has side effects.",
+  "recommendation": "Perform all checks before state-changing external calls. Move the tDiff check and require before the gencore.airDropTokens call.",
+  "exploit_scenario": "Admin calls mintAndAuction when timePeriod=0; division by zero causes revert after mint call (though EVM reverts everything).",
+  "swc_id": "",
+  "file": "MinterContract.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "ETH Payment Lost Due to Rounding in payArtist - Funds Permanently Locked",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-10-nextgen_ps62m9no/repo/hardhat/smart-contracts/MinterContract.sol",
+   "line": 0,
+   "function": "payArtist"
+  },
+  "description": "In payArtist(), the royalty amounts are calculated as: artistRoyalties1 = royalties * add1Percentage / 100, artistRoyalties2 = royalties * add2Percentage / 100, artistRoyalties3 = royalties * add3Percentage / 100, teamRoyalties1 = royalties * _teamperc1 / 100, teamRoyalties2 = royalties * _teamperc2 / 100. Due to integer division rounding down, the sum of all payments will almost always be less than `royalties`, leaving residual ETH permanently locked in the contract (since collectionTotalAmount is zeroed before payments). The emergencyWithdraw function can recover it but requires admin action every time.",
+  "message": "Small amounts of ETH are permanently lost per payArtist call due to rounding. Over many collections, this accumulates.",
+  "recommendation": "Calculate the last payment as `royalties - sum_of_all_other_payments` to ensure all ETH is distributed. Zero out collectionTotalAmount only after all transfers succeed.",
+  "exploit_scenario": "1. Collection raises 1 ETH (1000000000000000000 wei). 2. artistPercentage=33, _teamperc1=33, _teamperc2=34. 3. artistRoyalties1 = 1e18*33/100 = 330000000000000000. 4. teamRoyalties1 = 1e18*33/100 = 330000000000000000. 5. teamRoyalties2 = 1e18*34/100 = 340000000000000000. 6. Sum = 1000000000000000000, but if add1+add2+add3 percentages have rounding, dust is lost.",
+  "swc_id": "",
+  "file": "MinterContract.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "unchecked_return_value",
+  "title": "payArtist Does Not Check Transfer Success - Silent Failures",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-10-nextgen_ps62m9no/repo/hardhat/smart-contracts/MinterContract.sol",
+   "line": 0,
+   "function": "payArtist"
+  },
+  "description": "The payArtist function makes 5 low-level .call{value:} transfers and captures success booleans (success1-success5), but never reverts if any of them fail. If any recipient is a contract that reverts, or a non-payable address, the ETH for that recipient is lost since collectionTotalAmount[_collectionID] has already been set to 0 before the transfers are made. The failed payment amount is permanently locked in the contract.",
+  "message": "If any payment recipient cannot receive ETH (e.g., contract without receive function), those funds are permanently locked in the contract. Since collectionTotalAmount is zeroed before transfers, there is no way to retry without admin intervention via emergencyWithdraw.",
+  "recommendation": "Check all return values and revert if any payment fails, OR implement a pull payment pattern where each recipient can withdraw their share. Move the zeroing of collectionTotalAmount to after all payments succeed. Use: require(success1 && success2 && success3 && success4 && success5, 'Payment failed');",
+  "exploit_scenario": "1. Artist sets primaryAdd1 to a contract without a receive() function. 2. Admin calls payArtist(). 3. collectionTotalAmount is set to 0. 4. Call to primaryAdd1 fails silently (success1 = false). 5. artistRoyalties1 amount is permanently locked in contract. 6. Event is emitted with success=false but execution continues.",
+  "swc_id": "",
+  "file": "MinterContract.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "reentrancy",
+  "title": "Reentrancy in burnOrSwapExternalToMint via safeTransferFrom Callback",
+  "severity": "Critical",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-10-nextgen_ps62m9no/repo/hardhat/smart-contracts/MinterContract.sol",
+   "line": 0,
+   "function": "burnOrSwapExternalToMint"
+  },
+  "description": "In burnOrSwapExternalToMint(), the function calls IERC721(_erc721Collection).safeTransferFrom(ownerOfToken, burnOrSwapAddress[externalCol], _tokenId) BEFORE minting the new token and BEFORE updating collectionTotalAmount. The safeTransferFrom triggers an onERC721Received callback on the burnOrSwapAddress recipient. If burnOrSwapAddress is a malicious contract, it can re-enter burnOrSwapExternalToMint (since the external token has already been transferred but the mint hasn't happened yet) or other functions. More critically, since the token is already transferred, the ownerOf check at the start will fail for the re-entered call, but other attack vectors remain open. Additionally, if _erc721Collection is a malicious ERC721, the safeTransferFrom call itself can trigger arbitrary reentrancy before state updates.",
+  "message": "A malicious ERC721 contract or burnOrSwapAddress recipient could re-enter the minter to perform unauthorized operations. At minimum, state inconsistency can occur.",
+  "recommendation": "Apply the checks-effects-interactions pattern. Move all state updates before external calls. Add a reentrancy guard (nonReentrant modifier from OpenZeppelin) to all payable/state-changing functions.",
+  "exploit_scenario": "1. Attacker deploys malicious ERC721 that overrides safeTransferFrom to call back into NextGenMinterContract. 2. Attacker calls burnOrSwapExternalToMint with the malicious ERC721. 3. During safeTransferFrom, the malicious contract re-enters mint() or other payable functions. 4. Since collectionTotalAmount hasn't been updated yet and supply checks use gencore state, this can cause inconsistencies.",
+  "swc_id": "",
+  "file": "MinterContract.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Mint Supply Check Uses Pre-Loop Supply - Multiple Tokens Can Exceed Max Supply",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-10-nextgen_ps62m9no/repo/hardhat/smart-contracts/MinterContract.sol",
+   "line": 0,
+   "function": "mint"
+  },
+  "description": "In mint(), the supply check is: collectionTokenMintIndex = gencore.viewTokensIndexMin(col) + gencore.viewCirSupply(col) + _numberOfTokens - 1; require(collectionTokenMintIndex <= gencore.viewTokensIndexMax(col)). This check happens once before the mint loop. However, gencore.viewCirSupply() is read once before minting begins. If multiple concurrent transactions are in the mempool, both could pass the supply check with the same cirSupply value and both mint up to _numberOfTokens tokens, potentially exceeding maxSupply. The per-iteration mintIndex also reads gencore.viewCirSupply(col) which should update after each mint in gencore, but the pre-loop check is done with a stale value if gencore.viewCirSupply() reflects the true state.",
+  "message": "In a race condition scenario (multiple transactions in same block), more tokens than maxSupply could be minted, violating the collection's supply invariant.",
+  "recommendation": "Ensure the gencore.mint() function enforces supply limits atomically. Add a final supply check after each mint in the loop, or use a locking mechanism. Verify that gencore's mint function enforces the max supply cap.",
+  "exploit_scenario": "1. Collection has 1 token remaining. 2. Two attackers both call mint() with _numberOfTokens=1 in the same block. 3. Both read cirSupply=N, both compute collectionTokenMintIndex=N+0 <= maxIndex, both pass. 4. First tx mints token N (cirSupply becomes N+1). 5. Second tx also tries to mint - depends on gencore's enforcement. 6. If gencore doesn't have its own supply check, both succeed, minting past maxSupply.",
+  "swc_id": "",
+  "file": "MinterContract.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "airDropTokens Supply Check is Incorrect - Off-by-One Allows Exceeding Max Supply",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-10-nextgen_ps62m9no/repo/hardhat/smart-contracts/MinterContract.sol",
+   "line": 0,
+   "function": "airDropTokens"
+  },
+  "description": "In airDropTokens(), the supply check is: collectionTokenMintIndex = gencore.viewTokensIndexMin(_collectionID) + gencore.viewCirSupply(_collectionID) + _numberOfTokens[y] - 1; require(collectionTokenMintIndex <= gencore.viewTokensIndexMax(_collectionID)). This check happens OUTSIDE the inner loop, using the current cirSupply. But the inner loop calls gencore.airDropTokens() multiple times, each time reading viewCirSupply() fresh. However, the outer loop iterates over multiple recipients, and for each recipient, cirSupply is re-read for the index check but NOT for the supply validation check (which still uses the stale cirSupply from the start of each outer iteration). If recipient[0] gets N tokens minted, when recipient[1] is processed, the collectionTokenMintIndex check uses the updated cirSupply, so this is partially safe. However, the critical issue is that the check uses viewCirSupply() + _numberOfTokens[y] - 1, but after the inner loop completes, viewCirSupply() has increased by _numberOfTokens[y]. For the next iteration, if viewCirSupply() has increased correctly, the check should be safe. The real bug is that the check and the minting use separate reads from gencore, which could be manipulated if gencore is a malicious contract.",
+  "message": "Medium risk - if gencore does not enforce supply caps, the airdrop could exceed max supply.",
+  "recommendation": "Add supply validation inside the inner loop, or ensure gencore enforces the cap atomically on every mint call.",
+  "exploit_scenario": "The inner loop reads viewCirSupply() fresh each iteration for mintIndex, so each token gets a sequential index. But if two airDropTokens transactions execute concurrently, both could pass the outer supply check with the same stale cirSupply value, then both mint, exceeding max supply.",
+  "swc_id": "",
+  "file": "MinterContract.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Sales Option 3 Mint Allows Price Manipulation via timePeriod Division by Zero",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-10-nextgen_ps62m9no/repo/hardhat/smart-contracts/MinterContract.sol",
+   "line": 0,
+   "function": "getPrice"
+  },
+  "description": "In getPrice(), for salesOption == 2, if collectionPhases[_collectionId].timePeriod == 0, the expression tDiff = (block.timestamp - collectionPhases[_collectionId].allowlistStartTime) / collectionPhases[_collectionId].timePeriod will cause a division by zero panic, reverting all mint transactions. Similarly in mint() for salesOption 3, the lastMintDate calculation uses timePeriod in division: tDiff = (block.timestamp - timeOfLastMint) / collectionPhases[col].timePeriod. Additionally in mintAndAuction(), the same pattern exists. If an admin accidentally sets timePeriod=0 for salesOption 2 or 3, all minting is permanently DoS'd for that collection.",
+  "message": "If timePeriod is set to 0 for salesOption 2 or 3, all mint operations for that collection will revert with division by zero, permanently DoS-ing the collection minting.",
+  "recommendation": "Add require(_timePeriod > 0, 'timePeriod cannot be zero') in setCollectionCosts when salesOption is 2 or 3. Add defensive checks in getPrice() and mint() for timePeriod > 0 before division.",
+  "exploit_scenario": "1. Admin calls setCollectionCosts with _salesOption=2 and _timePeriod=0. 2. Users try to mint, getPrice() is called. 3. tDiff = (block.timestamp - allowlistStartTime) / 0 \u2192 panic revert. 4. Collection is permanently bricked.",
+  "swc_id": "",
+  "file": "MinterContract.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "access_control",
+  "title": "payArtist Team Percentage Parameters Are Not Validated Against teamPercentage Split",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-10-nextgen_ps62m9no/repo/hardhat/smart-contracts/MinterContract.sol",
+   "line": 0,
+   "function": "payArtist"
+  },
+  "description": "In payArtist(), the check is: require(collectionRoyaltiesPrimarySplits[_collectionID].artistPercentage + _teamperc1 + _teamperc2 == 100). However, _team1, _team2, _teamperc1, and _teamperc2 are arbitrary parameters passed by the function admin at call time. There is no validation that _teamperc1 + _teamperc2 == collectionRoyaltiesPrimarySplits[_collectionID].teamPercentage. A malicious function admin could pass _team1=attacker_address, _teamperc1=100-artistPercentage, _teamperc2=0, team2=zero_address, effectively routing all team funds to themselves. The function admin role should not have this level of fund redirection capability.",
+  "message": "A malicious or compromised function admin can redirect all team royalty payments to arbitrary addresses, stealing team funds.",
+  "recommendation": "Pre-set and lock the team addresses and percentages similar to artist addresses (propose + accept flow). Do not allow arbitrary address/percentage parameters in payArtist. Store team addresses and percentages in the contract state with proper approval flow.",
+  "exploit_scenario": "1. Artist percentage = 30%. Expected team gets 70% split between official addresses. 2. Malicious admin calls payArtist(_collectionID, attackerAddress, zeroAddress, 70, 0). 3. Check: 30 + 70 + 0 == 100 passes. 4. All 70% of team funds go to attackerAddress. 5. Official team addresses receive nothing.",
+  "swc_id": "",
+  "file": "MinterContract.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "mintAndAuction Mints Token Before Period Check - Token Minted Even If Period Not Passed",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-10-nextgen_ps62m9no/repo/hardhat/smart-contracts/MinterContract.sol",
+   "line": 0,
+   "function": "mintAndAuction"
+  },
+  "description": "In mintAndAuction(), the function calls gencore.airDropTokens(mintIndex, ...) to mint the token BEFORE checking if the required time period has passed (the tDiff >= 1 check). If the period check fails (tDiff < 1), the transaction reverts BUT the token has already been minted by gencore.airDropTokens(). Since revert undoes all state changes (including those in gencore if it's a separate contract that uses CALL semantics), this would actually be safe IF gencore properly reverts. However, if gencore.airDropTokens() has any side effects that don't revert (e.g., events are always rolled back, but external state changes to other contracts might not be), this is risky. More importantly, this is a clear logic error: validation should happen before state-changing operations.",
+  "message": "If the period check fails after minting has occurred in gencore, the entire transaction reverts (EVM guarantees atomicity), so no permanent damage in the normal case. However, it wastes gas and represents poor defensive programming that could cause issues if gencore has non-reverting side effects.",
+  "recommendation": "Move all validation checks (including tDiff >= 1) BEFORE any external calls that change state. Apply checks-effects-interactions pattern.",
+  "exploit_scenario": "1. Admin calls mintAndAuction() before the required period has passed. 2. gencore.airDropTokens() is called and succeeds (token minted in gencore state). 3. tDiff < 1 check fails. 4. Transaction reverts, rolling back gencore state. 5. No permanent harm but gas wasted and logic is incorrect.",
+  "swc_id": "",
+  "file": "MinterContract.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "burnOrSwapExternalToMint Lacks Per-Address Minting Limit - Unlimited Minting Possible",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-10-nextgen_ps62m9no/repo/hardhat/smart-contracts/MinterContract.sol",
+   "line": 0,
+   "function": "burnOrSwapExternalToMint"
+  },
+  "description": "The burnOrSwapExternalToMint() function has no per-address minting limit check. Any address holding (or delegated to) external NFTs in the valid range can call this function repeatedly (once per token they own in range) without any per-address limit validation. While each call burns one token, if a whale holds many tokens in the range, they can mint an unlimited number of collection tokens (up to supply). In contrast, the regular mint() function checks retrieveTokensMintedPublicPerAddress against viewMaxAllowance. This inconsistency allows external burn users to bypass per-address minting limits.",
+  "message": "An owner of many external NFTs in the allowed range can mint far more tokens than the intended per-address limit, bypassing the maxAllowance restriction that applies to regular minting.",
+  "recommendation": "Add per-address minting limit checks in burnOrSwapExternalToMint, similar to those in mint(). Track tokens minted per address via external burn and enforce a maximum allowance.",
+  "exploit_scenario": "1. External collection has token IDs 1-1000 in allowed range. 2. Attacker acquires 100 tokens from the external collection. 3. Attacker calls burnOrSwapExternalToMint 100 times. 4. No per-address limit is enforced, attacker mints 100 tokens. 5. Regular mint users are limited to viewMaxAllowance (e.g., 5 tokens).",
+  "swc_id": "",
+  "file": "MinterContract.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Supply Cap Bypass: collectionCirculationSupply Incremented Before Mint Check",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-10-nextgen_ps62m9no/repo/smart-contracts/NextGenCore.sol",
+   "line": 0,
+   "function": "airDropTokens, mint, burnToMint"
+  },
+  "description": "In airDropTokens(), mint(), and burnToMint(), the collectionCirculationSupply is incremented BEFORE the check `collectionAdditionalData[_collectionID].collectionTotalSupply >= collectionAdditionalData[_collectionID].collectionCirculationSupply`. When the supply is at max, the increment still occurs (wasting a supply slot silently), and because the check uses >= after increment, the final mint will succeed when circulationSupply == totalSupply, but subsequent calls will increment circulationSupply beyond totalSupply without minting. This means collectionCirculationSupply can exceed collectionTotalSupply, corrupting totalSupplyOfCollection() which computes circulationSupply - burnAmount. More critically, the minting logic is inside an `if` block \u2014 not a `require` \u2014 so when supply is exhausted, the function silently succeeds without minting while still incrementing supply counter and emitting no revert. The minterContract can call mint() repeatedly past the cap, inflating circulationSupply, which breaks totalSupplyOfCollection() and could allow setFinalSupply() to set a wrong final supply.",
+  "message": "collectionCirculationSupply can be inflated beyond collectionTotalSupply, corrupting supply accounting. totalSupplyOfCollection() returns wrong values. setFinalSupply() would set wrong total supply. Silent mint failures where the minter contract believes it minted a token but none was actually created.",
+  "recommendation": "Use require() instead of if() for the supply check, and increment after the check: `require(collectionAdditionalData[_collectionID].collectionCirculationSupply < collectionAdditionalData[_collectionID].collectionTotalSupply, 'Max supply reached'); collectionAdditionalData[_collectionID].collectionCirculationSupply += 1;`",
+  "exploit_scenario": "1. Collection with totalSupply=5 is created. 2. 5 tokens are minted successfully. 3. Minter contract calls mint() a 6th time. 4. circulationSupply becomes 6, check (5 >= 6) fails, no token is minted, but the function returns successfully. 5. circulationSupply is now 6 > totalSupply=5. 6. totalSupplyOfCollection() returns 6 - 0 = 6 instead of 5. 7. Calling setFinalSupply() would set totalSupply=6 and reservedMaxTokensIndex incorrectly.",
+  "swc_id": "",
+  "file": "NextGenCore.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "reentrancy",
+  "title": "Reentrancy in _mintProcessing via onERC721Received Callback",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-10-nextgen_ps62m9no/repo/smart-contracts/NextGenCore.sol",
+   "line": 0,
+   "function": "_mintProcessing / burnToMint"
+  },
+  "description": "In burnToMint(), the _mintProcessing() call (which calls _safeMint internally) occurs BEFORE the _burn() of the original token. _safeMint triggers the onERC721Received callback on the recipient if it's a contract. During this callback, a malicious recipient contract could call back into burnToMint() or mint() again before the source token is burned. Since the source token still exists during the callback (burn hasn't happened yet), _isApprovedOrOwner check passes again, allowing double minting from a single token burn. Additionally in _mintProcessing, calculateTokenHash is called on an external randomizer contract before _safeMint - if the randomizer is malicious or compromised, it could reenter.",
+  "message": "An attacker can mint multiple new tokens by burning a single token, effectively creating tokens out of thin air and violating collection supply invariants.",
+  "recommendation": "Follow checks-effects-interactions pattern: burn the token BEFORE calling _mintProcessing. Move `_burn(_tokenId)` and `burnAmount` increment before the `_mintProcessing` call in burnToMint().",
+  "exploit_scenario": "1. Attacker owns token X from burnCollection. 2. Attacker creates malicious contract implementing onERC721Received. 3. Attacker calls minter's burnToMint with recipient = malicious contract. 4. burnToMint calls _mintProcessing which calls _safeMint. 5. _safeMint triggers onERC721Received on malicious contract. 6. Malicious onERC721Received calls minter's burnToMint again with same token X (still not burned). 7. Second burnToMint succeeds, minting another token. 8. After callback unwinds, original token X is burned. 9. Net result: 2 new tokens minted from 1 burned token.",
+  "swc_id": "",
+  "file": "NextGenCore.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "access_control",
+  "title": "Unchecked mintIndex: Minter Can Mint to Arbitrary Token IDs Outside Collection Range",
+  "severity": "Critical",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-10-nextgen_ps62m9no/repo/smart-contracts/NextGenCore.sol",
+   "line": 0,
+   "function": "mint, airDropTokens, burnToMint"
+  },
+  "description": "The mintIndex parameter in mint(), airDropTokens(), and burnToMint() is passed directly from the minterContract without any validation in NextGenCore that the mintIndex falls within the collection's reservedMinTokensIndex and reservedMaxTokensIndex. While the minterContract is expected to compute valid indices, there is no on-chain enforcement in NextGenCore. If the minterContract is compromised, upgraded to a malicious version, or has a bug, it could pass arbitrary mintIndex values, allowing minting of token IDs that belong to other collections or outside any valid range, overwriting tokenIdsToCollectionIds, tokenData, and tokenToHash mappings for existing tokens.",
+  "message": "A malicious or buggy minter contract can mint tokens with IDs belonging to other collections, overwrite existing token metadata, corrupt collection accounting, and potentially mint token ID 0 or other reserved IDs.",
+  "recommendation": "Add validation in mint(), airDropTokens(), and burnToMint(): `require(mintIndex >= collectionAdditionalData[_collectionID].reservedMinTokensIndex && mintIndex <= collectionAdditionalData[_collectionID].reservedMaxTokensIndex, 'Invalid mint index');`",
+  "exploit_scenario": "1. Minter contract is upgraded or compromised. 2. Malicious minter calls NextGenCore.mint() with mintIndex belonging to collection 2 while specifying collectionID=1. 3. tokenIdsToCollectionIds[mintIndex] is set to collection 1. 4. The token is minted in collection 2's ID space but tracked as collection 1. 5. All collection-based queries for that token return wrong data.",
+  "swc_id": "",
+  "file": "NextGenCore.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "setTokenHash Can Be Called with Zero Hash After Initial Set Check Bypass",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-10-nextgen_ps62m9no/repo/smart-contracts/NextGenCore.sol",
+   "line": 0,
+   "function": "setTokenHash"
+  },
+  "description": "setTokenHash() checks that tokenToHash[_mintIndex] == 0x0 before setting the hash, which is meant to prevent overwriting. However, the function does not validate that _hash != 0x0. A compromised or malicious randomizer contract could call setTokenHash with _hash = 0x0000...0000, which would pass the require check (current value is 0x0) and 'set' the hash to 0x0 again. Subsequent calls would also pass (since the stored value is still 0x0), allowing the randomizer to call setTokenHash multiple times and eventually set a different hash \u2014 effectively overwriting the hash. This breaks the immutability guarantee of token hashes.",
+  "message": "A compromised randomizer contract can repeatedly call setTokenHash (since the zero check always passes when hash is 0x0), and can ultimately set or change a token's hash, breaking the generative art determinism and potentially allowing manipulation of rare trait generation.",
+  "recommendation": "Add validation: `require(_hash != 0x0000000000000000000000000000000000000000000000000000000000000000, 'Invalid hash');` Also consider adding a `_collectionID` validation to ensure the mintIndex belongs to the specified collection.",
+  "exploit_scenario": "1. Token is minted, _mintProcessing calls randomizer.calculateTokenHash(). 2. Malicious randomizer calls setTokenHash(collectionID, mintIndex, 0x0) \u2014 passes check since stored value is 0x0. 3. Hash is 'set' to 0x0 (unchanged). 4. Malicious randomizer calls setTokenHash again with actual desired hash. 5. This also passes since stored value is still 0x0. 6. Randomizer has now set an arbitrary hash without proper deterministic computation.",
+  "swc_id": "",
+  "file": "NextGenCore.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "updateCollectionInfo Script Index Out-of-Bounds Write",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-10-nextgen_ps62m9no/repo/smart-contracts/NextGenCore.sol",
+   "line": 0,
+   "function": "updateCollectionInfo"
+  },
+  "description": "In updateCollectionInfo(), when _index is neither 1000 nor 999, it executes `collectionInfo[_collectionID].collectionScript[_index] = _newCollectionScript[0]`. There is no bounds check on _index against the actual length of collectionScript array. If _index >= collectionScript.length, this will revert with an array out-of-bounds panic. However, more critically, if _newCollectionScript is an empty array, accessing _newCollectionScript[0] will also revert, causing a DoS. Additionally, there's no check that _newCollectionScript has at least one element when _index is a valid script index.",
+  "message": "Passing an out-of-range _index causes a revert/panic. Passing empty _newCollectionScript array causes revert. These could be used to DoS legitimate admin operations or the function could behave unexpectedly near boundaries.",
+  "recommendation": "Add bounds checking: `require(_index < collectionInfo[_collectionID].collectionScript.length, 'Index out of bounds'); require(_newCollectionScript.length > 0, 'Empty script');`",
+  "exploit_scenario": "1. Admin calls updateCollectionInfo with _index=5 but collectionScript only has 3 elements. 2. Transaction reverts with panic (array out of bounds). 3. Admin calls updateCollectionInfo with _index=0 and _newCollectionScript=[]. 4. Transaction reverts when accessing _newCollectionScript[0].",
+  "swc_id": "",
+  "file": "NextGenCore.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "access_control",
+  "title": "Minter Contract Can Be Set to Zero Address Breaking All Minting",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-10-nextgen_ps62m9no/repo/smart-contracts/NextGenCore.sol",
+   "line": 0,
+   "function": "addMinterContract"
+  },
+  "description": "addMinterContract() calls IMinterContract(_minterContract).isMinterContract() to validate the address. However, if _minterContract is address(0), this external call will revert (no code at address 0), but the real concern is that a malicious function admin could set minterContract to a contract that returns true for isMinterContract() but implements malicious mint/airdrop logic. Since minterContract controls who can call mint(), airDropTokens(), and burnToMint(), replacing it with a malicious contract gives full control over token minting. There is also no timelock or multi-sig requirement for this critical operation.",
+  "message": "A compromised function admin can instantly replace the minter contract with a malicious one, gaining ability to mint unlimited tokens to any address, drain collection supplies, and manipulate all mint-related accounting.",
+  "recommendation": "Implement a timelock on minterContract changes, require multi-sig approval, or at minimum emit an event with sufficient notice. Consider a two-step process where the change is proposed and then executed after a delay.",
+  "exploit_scenario": "1. Function admin is compromised (phished, private key stolen). 2. Attacker deploys malicious contract implementing isMinterContract() returning true. 3. Attacker calls addMinterContract(maliciousContract). 4. Malicious contract now has full minting authority. 5. Attacker mints any token IDs to any addresses without restriction.",
+  "swc_id": "",
+  "file": "NextGenCore.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "totalSupplyOfCollection Arithmetic Underflow When burnAmount Exceeds circulationSupply",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-10-nextgen_ps62m9no/repo/smart-contracts/NextGenCore.sol",
+   "line": 0,
+   "function": "totalSupplyOfCollection"
+  },
+  "description": "totalSupplyOfCollection() computes `collectionCirculationSupply - burnAmount`. While Solidity 0.8+ has built-in overflow protection, if burnAmount somehow exceeds collectionCirculationSupply (due to the supply cap bypass vulnerability where circulationSupply is not properly tracked, or due to a bug in burn accounting), this subtraction will revert with an underflow panic, making the function permanently unusable for that collection. Additionally, since circulationSupply is incremented even when mints fail (the silent failure bug), while burnAmount is only incremented on successful burns, the invariant circulationSupply >= burnAmount could be violated in edge cases.",
+  "message": "totalSupplyOfCollection() becomes permanently unusable for a collection, breaking any protocol integrations that rely on it. Combined with the circulationSupply inflation bug, this could be triggered by an attacker.",
+  "recommendation": "Add a safety check: `return collectionAdditionalData[_collectionID].collectionCirculationSupply > burnAmount[_collectionID] ? collectionAdditionalData[_collectionID].collectionCirculationSupply - burnAmount[_collectionID] : 0;`",
+  "exploit_scenario": "1. Through the supply cap bypass, circulationSupply is inflated without actual mints. 2. Tokens that were actually minted are burned, incrementing burnAmount. 3. burnAmount could approach actual minted count while circulationSupply is the inflated count \u2014 normally fine. 4. However if circulationSupply reset or underaccounted somehow, burnAmount > circulationSupply causes permanent revert.",
+  "swc_id": "",
+  "file": "NextGenCore.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Supply Cap Bypass: collectionCirculationSupply Incremented Before Mint Check",
+  "severity": "Critical",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-10-nextgen_ps62m9no/repo/hardhat/smart-contracts/NextGenCore.sol",
+   "line": 0,
+   "function": "airDropTokens, mint, burnToMint"
+  },
+  "description": "In airDropTokens(), mint(), and burnToMint(), collectionCirculationSupply is incremented BEFORE the check `collectionTotalSupply >= collectionCirculationSupply`. If the check fails (supply exceeded), the circulation supply has already been permanently incremented but no token was minted. This causes the counter to drift, effectively reducing the remaining mintable supply by 1 each time the check fails. More critically, the actual minting is inside an `if` block with no revert \u2014 meaning the transaction succeeds silently, the minterContract can keep calling mint(), and each failed attempt permanently corrupts the circulation supply counter. Additionally, since the function doesn't revert when supply is exceeded, the minterContract may believe the mint succeeded.",
+  "message": "Permanent desynchronization of collectionCirculationSupply counter. Each over-limit mint attempt permanently inflates the counter, reducing future mintable supply. The minter contract receives no error signal (no revert), making it believe minting succeeded when it didn't. Over time this can prevent all future minting even when tokens remain available.",
+  "recommendation": "Revert instead of using an if-check, and increment supply only after successful validation: `require(collectionAdditionalData[_collectionID].collectionCirculationSupply < collectionAdditionalData[_collectionID].collectionTotalSupply, 'Max supply reached'); collectionAdditionalData[_collectionID].collectionCirculationSupply++;`",
+  "exploit_scenario": "1. Collection has totalSupply=100, circulationSupply=99. 2. MinterContract calls mint() twice concurrently or sequentially. 3. First call: circulationSupply becomes 100, check passes (100>=100), token minted. 4. Second call: circulationSupply becomes 101, check fails (100>=101 is false), no mint occurs BUT transaction doesn't revert. 5. circulationSupply is now 101 while only 100 tokens exist. 6. setFinalSupply() will now set totalSupply=101, creating an off-by-one in reservedMaxTokensIndex.",
+  "swc_id": "",
+  "file": "NextGenCore.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "reentrancy",
+  "title": "Reentrancy in burnToMint: Token Burned After Mint, Owner Check Uses Stale State",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-10-nextgen_ps62m9no/repo/hardhat/smart-contracts/NextGenCore.sol",
+   "line": 0,
+   "function": "burnToMint"
+  },
+  "description": "In burnToMint(), _mintProcessing() is called BEFORE _burn(_tokenId). _mintProcessing calls _safeMint() which triggers onERC721Received callback on the recipient if it's a contract. During this callback, the burn token still exists and is still owned by the original owner. A malicious recipient contract could re-enter burnToMint() or other functions. Furthermore, the new token is minted to ownerOf(_tokenId) \u2014 but if the recipient is a contract with onERC721Received, it could transfer the burn token away during the callback before _burn executes, potentially allowing the burn token to survive (though _burn would still execute after the callback returns). The checks-effects-interactions pattern is violated.",
+  "message": "A malicious contract receiving the newly minted token could re-enter the protocol during onERC721Received. The burn token survives until after the reentrancy window. Depending on other contract state, this could allow double-minting or other state corruption.",
+  "recommendation": "Follow checks-effects-interactions: burn the token BEFORE minting. Move `_burn(_tokenId)` and `burnAmount` update before `_mintProcessing()`. Also consider adding a reentrancy guard.",
+  "exploit_scenario": "1. Attacker owns token X in burnCollection. 2. Attacker calls minterContract.burnToMint() targeting a malicious recipient contract. 3. burnToMint() increments circulationSupply, calls _mintProcessing() which calls _safeMint(). 4. _safeMint triggers onERC721Received on attacker contract. 5. During callback, token X still exists (not burned yet). 6. Attacker re-enters burnToMint() with same tokenId (still owner). 7. Second mint goes through, then both _burn calls execute.",
+  "swc_id": "",
+  "file": "NextGenCore.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "setTokenHash Can Be Called With Zero Hash After Initial Set Due to Incorrect Zero Check",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-10-nextgen_ps62m9no/repo/hardhat/smart-contracts/NextGenCore.sol",
+   "line": 0,
+   "function": "setTokenHash"
+  },
+  "description": "The setTokenHash function checks `tokenToHash[_mintIndex] == bytes32(0)` to prevent overwriting an existing hash. However, if a randomizer contract is compromised or buggy and calls setTokenHash with a zero hash (bytes32(0)), the check passes (0==0 is true) and stores zero, but future calls will also see zero and can overwrite it again. The hash immutability guarantee is broken for zero hashes.",
+  "message": "If a randomizer calls setTokenHash with bytes32(0), the token hash remains permanently settable/overwritable, allowing hash manipulation for any token that received a zero hash. This could affect generative art output.",
+  "recommendation": "Additionally require that the new hash is non-zero: `require(_hash != bytes32(0), 'Invalid hash'); require(tokenToHash[_mintIndex] == bytes32(0), 'Hash already set');`",
+  "exploit_scenario": "1. Randomizer (buggy or malicious) calls setTokenHash(collectionID, mintIndex, bytes32(0)). 2. tokenToHash[mintIndex] = 0, check was 0==0 so it passed. 3. Any subsequent call to setTokenHash for same mintIndex also passes the zero check. 4. Hash can be freely manipulated.",
+  "swc_id": "",
+  "file": "NextGenCore.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "updateCollectionInfo Array Index Out of Bounds",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-10-nextgen_ps62m9no/repo/hardhat/smart-contracts/NextGenCore.sol",
+   "line": 0,
+   "function": "updateCollectionInfo"
+  },
+  "description": "When _index is not 999 or 1000, the function executes `collectionInfo[_collectionID].collectionScript[_index] = _newCollectionScript[0]`. If _index >= collectionScript.length, this will revert with an out-of-bounds panic. More critically, if _newCollectionScript is empty (length 0), accessing _newCollectionScript[0] will also revert. An admin could accidentally pass an invalid index or empty script array, causing a revert. Additionally, _index values close to 999/1000 (like 998) would incorrectly try to update script entries rather than the intended behavior.",
+  "message": "If collectionScript array has fewer elements than _index, the transaction reverts. This is a DoS vector for script updates. An admin passing wrong parameters cannot update scripts at specific indices if the array hasn't been pre-populated.",
+  "recommendation": "Add bounds checking: `require(_index < collectionInfo[_collectionID].collectionScript.length, 'Index out of bounds'); require(_newCollectionScript.length > 0, 'Empty script');`",
+  "exploit_scenario": "1. Admin wants to add script at index 5 but collectionScript only has 3 elements. 2. Calls updateCollectionInfo with _index=5. 3. Transaction reverts due to array out of bounds. 4. There's no way to append to collectionScript array without using _index=1000 which overwrites the entire array.",
+  "swc_id": "",
+  "file": "NextGenCore.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "access_control",
+  "title": "Minter Contract Address Can Be Replaced Mid-Mint, Breaking In-Flight Operations",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-10-nextgen_ps62m9no/repo/hardhat/smart-contracts/NextGenCore.sol",
+   "line": 0,
+   "function": "addMinterContract"
+  },
+  "description": "The addMinterContract() function replaces the minterContract address with no timelock or migration period. If a function admin calls addMinterContract() while minting is in progress, any pending transactions from the old minter will fail (caller != minterContract). More critically, collectionCirculationSupply may have been pre-incremented by the old minter for in-flight mints that never complete, permanently corrupting the supply counter. The new minter starts with a corrupt state.",
+  "message": "Mid-mint replacement of minterContract causes: (1) in-flight mints from old contract revert after supply was pre-incremented; (2) supply counter corruption; (3) users' funds may be locked in old minter if it sent ETH expecting mint to succeed.",
+  "recommendation": "Implement a two-step minter update with a timelock, or ensure the old minter is paused before updating. At minimum, emit an event and add a delay mechanism.",
+  "exploit_scenario": "1. Alice sends tx to old minterContract which calls mint() on NextGenCore. 2. Admin calls addMinterContract() with new address in same block (miners can order). 3. Alice's mint tx executes after: msg.sender != minterContract, reverts. 4. But if supply was already incremented by old minter before Alice's call... actually supply is incremented inside mint() so this specific scenario requires same-block ordering, but the general issue of hot-swapping the minter is dangerous.",
+  "swc_id": "",
+  "file": "NextGenCore.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "burnToMint Mints to ownerOf(_tokenId) But Burns Based on burner Permission",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-10-nextgen_ps62m9no/repo/hardhat/smart-contracts/NextGenCore.sol",
+   "line": 0,
+   "function": "burnToMint"
+  },
+  "description": "In burnToMint(), the function checks `_isApprovedOrOwner(burner, _tokenId)` - so `burner` (passed by minterContract) must be approved or owner. However, the new token is minted to `ownerOf(_tokenId)`, not to `burner`. If `burner` is an approved operator (not the owner), the token is burned from the owner but the new token goes to the original owner, not the operator who initiated the burn. This is likely unintended - an approved operator burning a token on behalf of an owner should presumably control where the new token goes. More problematically, the minterContract passes `burner` as a separate parameter which could be manipulated.",
+  "message": "An approved operator can burn someone else's token (with permission) but the new token always goes to the original token owner. This could be exploited if the operator expected to receive the new token. While this may be intended behavior, it creates confusion and potential griefing.",
+  "recommendation": "Clarify intended behavior. If new token should go to burner: `_mintProcessing(mintIndex, burner, ...)`. If it should go to owner: document this clearly. Also validate that the burner parameter from minterContract matches msg.sender at the minter level.",
+  "exploit_scenario": "1. Alice approves Bob for her token X. 2. Bob calls minterContract's burnToMint function expecting to receive a new token. 3. burnToMint checks _isApprovedOrOwner(Bob, tokenX) - passes. 4. New token minted to ownerOf(tokenX) = Alice. 5. Bob's token X is burned but Alice gets the new token.",
+  "swc_id": "",
+  "file": "NextGenCore.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "setFinalSupply Can Set Total Supply to Zero If No Tokens Minted",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-10-nextgen_ps62m9no/repo/hardhat/smart-contracts/NextGenCore.sol",
+   "line": 0,
+   "function": "setFinalSupply"
+  },
+  "description": "setFinalSupply() sets `collectionTotalSupply = collectionCirculationSupply`. If circulationSupply is 0 (no tokens minted), totalSupply becomes 0. Then `reservedMaxTokensIndex = (_collectionID * 10000000000) + 0 - 1` causes an underflow. In Solidity 0.8+, this would revert... actually `collectionTotalSupply - 1` where totalSupply=0 would underflow and revert. But the primary issue is: if circulationSupply equals 0, setting totalSupply to 0 would prevent any future minting even if the admin wants to reopen.",
+  "message": "If setFinalSupply is called when circulationSupply=0, it sets totalSupply=0 and causes underflow in reservedMaxTokensIndex calculation (revert). If circulationSupply > 0, the supply is permanently locked. Once called, totalSupply cannot be increased again since setCollectionData checks `collectionTotalSupply == 0` to allow initial setup.",
+  "recommendation": "Add `require(collectionAdditionalData[_collectionID].collectionCirculationSupply > 0, 'No tokens minted')` before setting final supply. Also add `require(collectionAdditionalData[_collectionID].collectionTotalSupply > collectionAdditionalData[_collectionID].collectionCirculationSupply, 'Already at final supply')` to prevent unnecessary calls.",
+  "exploit_scenario": "1. Collection created with totalSupply=1000, no mints yet (circulationSupply=0). 2. Minting period ends per getEndTime(). 3. Admin calls setFinalSupply(). 4. collectionTotalSupply = 0. 5. reservedMaxTokensIndex = (collectionID * 10000000000) + 0 - 1 = underflow -> revert. 6. But totalSupply is already set to 0 (state was written before the underflow? No - both in same tx so revert rolls back). Actually the underflow in 0.8+ reverts the entire tx, so state stays. But if circulationSupply=1: totalSupply=1, maxIndex = base+0 = base, which is correct for 1 token.",
+  "swc_id": "",
+  "file": "NextGenCore.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "access_control",
+  "title": "Centralized Admin Contract Update Allows Complete Protocol Takeover",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-10-nextgen_ps62m9no/repo/hardhat/smart-contracts/NextGenCore.sol",
+   "line": 0,
+   "function": "updateAdminContract"
+  },
+  "description": "The updateAdminContract() function allows replacing the entire admin system with a new contract. A compromised function admin can point the contract to a malicious admin contract that grants themselves global admin privileges. Since all other privileged functions check the adminsContract, replacing it effectively gives the attacker full control over the entire protocol - they could freeze collections, change token data, update minter contracts, and modify royalties.",
+  "message": "Complete protocol takeover. A single compromised function admin key can replace the admin contract with a malicious one, gaining control over all other privileged functions including minting, metadata, royalties, and collection management.",
+  "recommendation": "Restrict updateAdminContract to only the contract owner (Ownable), not function admins. Add a timelock and multi-sig requirement for admin contract changes.",
+  "exploit_scenario": "1. Attacker compromises a function admin key that has updateAdminContract selector. 2. Deploys MaliciousAdmin contract that returns true for all admin checks for attacker address. 3. Calls updateAdminContract(maliciousAdmin). 4. Now attacker is global admin, can call any privileged function: changeTokenData, addMinterContract with malicious minter, setDefaultRoyalties to steal royalties, etc.",
+  "swc_id": "",
+  "file": "NextGenCore.sol",
+  "backend": "claude"
+ }
+]
