@@ -1,0 +1,158 @@
+# Errata — RIBCi-CYTED 2026 camera-ready (repo ↔ paper discrepancies)
+
+This file records discrepancies found between the camera-ready papers and the
+repository artifacts during the pre-congress reproducibility verification
+(`benchmarks/verify_paper_claims.py`). The camera-ready `.tex`/`.docx` were
+already sent to the editors and are **not** modified here; each item is left for
+Fernando Boiero to decide (accept as-is, publish an erratum, or correct in a
+future version).
+
+Date opened: 2026-10-16
+
+---
+
+## E-1 — Paper 1: SmartBugs false-positive count 481 vs 480
+
+**Where in the paper (Paper 1, `paper1-camera-ready.tex`):**
+- Abstract and §V: "137 TP, **481** FP, 6 misses" (line ~251).
+- §V: "arithmetic (128 of the **481** false-positive pairs), reentrancy (109) and
+  unchecked low-level calls (64)" (line ~253).
+- §VII: "reports **481** false-positive contract–category pairs" (line ~401).
+
+**Discrepancy:** the repository artifact
+`benchmarks/results/paper1_smartbugs_eval_layers_1_6_7.json` stores
+`aggregate.fp = 481`, but:
+- the sum of `per_category[*].fp` is **480**
+  (access_control 47, arithmetic 128, unchecked_low_level_calls 64, reentrancy
+  109, denial_of_service 46, bad_randomness 46, time_manipulation 35,
+  front_running/other/short_addresses 0 for fp → 480 total);
+- the stored `aggregate.precision = 0.2219` is consistent with **fp = 480**
+  (137 / (137 + 480) = 0.2220), not with 481 (137 / 618 = 0.2217).
+
+So the internally consistent value is **480**; the scalar `aggregate.fp = 481`
+is an off-by-one outlier.
+
+**Root cause:** in `benchmarks/smartbugs_evaluation.py` the global aggregate
+(`metrics.false_positives += result.false_positives`, line 526) and the
+per-category tally (`category_stats[cat]["fp"] += result.false_positives`,
+line 532) are accumulated from the **same `result` in the same loop iteration**
+(lines 519–534), so the code *forces* `aggregate.fp == sum(per_category.fp)`.
+A run of this code cannot produce 481 global with 480 by category. The stored
+481 is therefore an out-of-band scalar edit to the JSON that did not propagate to
+`precision` or to the category breakdown; it is not reproducible from the script.
+
+**Impact:** negligible, and it does not change the paper's main claim. Precision
+rounds to **22.2 %** for both 480 (0.2220) and 481 (0.2217); recall is **95.8 %**
+(137/143) either way. The only rounded figure that moves is F1: it is **36.0 %**
+at fp = 481 (the value printed in the paper) and **36.1 %** at fp = 480. So the
+artifact is internally mixed — the category breakdown and `precision` point to
+480, while `aggregate.fp` and the reported F1 point to 481 — but the
+disagreement is a single false-positive pair and leaves precision and recall
+unchanged. The paper's own category breakdown sums to 480.
+
+**Resolution in the repo (this cleanup):**
+- The frozen artifact `paper1_smartbugs_eval_layers_1_6_7.json` is left
+  **unchanged** as the record of the paper's run.
+- A corrected, dated, internally consistent copy is published as
+  `benchmarks/results/paper1_smartbugs_eval_layers_1_6_7_corrected_20261016.json`
+  with `aggregate.fp = 480` and `precision` recomputed, plus a `correction`
+  block pointing here.
+- `benchmarks/verify_paper_claims.py` recomputes from the corrected artifact and
+  flags the paper's 481 against the recomputed 480, referencing this entry.
+
+**Decision pending (Fernando):** accept 481↔480 as a one-unit rounding-neutral
+discrepancy (recommended; 22.2 % unchanged), or issue an erratum changing "481"
+to "480" in a post-camera-ready version.
+
+---
+
+## E-2 — Paper 2: pre-/post-patch HIGH-finding counts
+
+**Where in the paper (Paper 2, `paper2-camera-ready.tex`):** the remediation
+before/after table (reported as 141→60 total HIGH findings, 35→69 clean, and
+per-category rows such as reentrancy-eth 33→3 and 28/29→0).
+
+**What verified cleanly:** the **"before" total of 141** HIGH checks reproduces
+exactly from `benchmarks/results/paper2_prepatch_slither_baseline.json`
+(`sum(pre_high_checks) = 141` over the 143 contracts).
+
+**What did not reproduce from a single field:**
+- The **"after" total** computes to **61** post-patch HIGH checks
+  (`sum(post_high_checks) = 61`), whereas the paper states **60** — a one-unit
+  difference analogous to E-1.
+- The finer figures (**35→69 clean**, **reentrancy-eth 33→3**, **28/29→0**) do
+  not reproduce from an obvious field of the pre-patch baseline artifact. The
+  per-contract `pre_ok` / clean counts over all 143 are 57→90, not 35→69, so the
+  paper's 35→69 is measured on a different scope (e.g. a specific detector set or
+  the 123 patched-compiling subset) that is not recorded as a single scalar.
+
+**Impact:** the main remediation claims verified by `verify_paper_claims.py`
+(123/143 applied, 123/123 compile, 88/123 eliminate, 121/123 no-regression,
+70/123 Slither-clean) are unaffected. This entry concerns only the narrative
+before/after table.
+
+**Resolution in the repo:** the pre-patch baseline is published and traced in
+`paper2_claims_matrix.json` (claim `prepatch_slither_baseline`) with the
+transparent aggregates above. No frozen value is edited.
+
+**Decision pending (Fernando):** confirm the exact scope/definition behind the
+141→60, 35→69 and per-category before/after figures so they can be re-derived
+and checked by `verify_paper_claims.py`, or provide the artifact they were
+computed from.
+
+---
+
+## E-3 — `references.bib` does not reproduce the camera-ready `.bbl` (citations differ)
+
+**Check:** regenerating the bibliographies from the repo's `paper/references.bib`
+(`pdflatex` → `bibtex`, IEEEtran) and diffing against the committed camera-ready
+`.bbl` files (the published bibliography).
+
+**Finding:** they do **not** match, and the committed camera-ready `.bbl` is the
+more correct/complete version. The current `references.bib` regenerates several
+entries with **wrong authors, venues or years**. Key Paper 2 divergences
+(`<` = regenerated from current `references.bib`; `>` = published camera-ready `.bbl`):
+
+- **"Smart contract repair" (TOSEM 2020):**
+  `< X. Yu, H. Zhao, B. Hou, Z. Ying, B. Shi` (incorrect) vs
+  `> X. L. Yu, O. Al-Bataineh, D. Lo, A. Roychoudhury` (correct).
+- **"Elysium" (2022):**
+  `< M. Rodler, W. Li, G. O. Karame, L. Davi` (incorrect) vs
+  `> C. Ferreira Torres, H. Jonker, R. State` (correct; RAID 2022).
+- **"SCPatcher":** author list, title and year differ (`< ...2025` vs `> ...2026`).
+- **Zhou (IEEE TSE):** `< vol. 50, no. 7, 1837–1853, 2024` vs `> vol. 51, no. 9, 2512–2532, 2025`.
+- **Lin 2021:** page range present in the regenerated version, absent in the published one.
+- **Companion MIESC paper:** `< arXiv preprint, 2026` vs `> full RIBCi–CYTED 2026 citation`.
+
+Paper 1 divergences are minor/cosmetic (the EVMBench entry gains a `\url{}` and
+interword-spacing macros; Livros de Atas accent encoding).
+
+**Interpretation:** the `references.bib` currently in the repo is **not** the
+version from which the camera-ready bibliography was built; it regenerates
+partly incorrect citations. Per the plan's rule ("fix the `.bib`, never the
+`.bbl`"), `references.bib` must be corrected so that a rebuild reproduces the
+published `.bbl`.
+
+**Not done automatically.** Reconstructing `references.bib` entries from the
+authoritative camera-ready `.bbl` is a bibliographic edit with correctness
+implications, so it is left for Fernando to confirm before changing any entry.
+
+**Resolution (2026-10-16):** `references.bib` was corrected entry by entry
+against the authoritative camera-ready `.bbl`. Fixed: `screpair2020` authors
+(Yu, Al-Bataineh, Lo, Roychoudhury), `elysium2022` authors and venue
+(Ferreira Torres, Jonker, State; RAID 2022), `acfix2024` volume/issue/pages/year
+(51/9/2512–2532/2025), `scpatcher2025` authors/title/year, `harvey2020` venue
+(ESEC/FSE Industry Track 2020), `nguyen2021sguard` pages removed, `evmbench2026`
+URL removed, `boiero2025miesc` promoted to the full RIBCi–CYTED 2026 companion
+citation, and the missing `solidity_smtchecker` entry added. After these fixes a
+`pdflatex`→`bibtex` rebuild reproduces the camera-ready `.bbl` **in content** —
+every author, title, venue, year and the entry set now match.
+
+**Residual (cosmetic, not data):** two hunks remain that are IEEEtran rendering
+artifacts, not citation differences: an inter-element `\hskip ... \relax` vs a
+plain period before the RIBCi publisher block, and one line-wrap position in the
+SCPatcher entry. These come from a minor IEEEtran/bibtex version difference
+between the original camera-ready build and the current TeX Live 2026 toolchain;
+they do not change any citation's content or the rendered PDF. Byte-identity is
+not pursued further, since it would require matching the exact original `.bst`
+version rather than the bibliographic data.

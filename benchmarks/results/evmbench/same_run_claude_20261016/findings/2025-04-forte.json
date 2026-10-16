@@ -1,0 +1,97 @@
+[
+ {
+  "type": "logic_error",
+  "title": "le() and ge() comparison functions return incorrect results for mathematically equal numbers with different encodings",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2025-04-forte_d6v69xp1/repo/src/Float128.sol",
+   "line": 0,
+   "function": "le, ge"
+  },
+  "description": "The `le` (less-than-or-equal) and `ge` (greater-than-or-equal) functions only handle exact bit-for-bit equality at the Solidity level. However, two mathematically equal floating-point numbers can have different packed representations: one in M format (38 digits) and one in L format (72 digits). For example, the same value encoded differently would not be caught by the `packedFloat.unwrap(a) == packedFloat.unwrap(b)` check. In the assembly block, when aExp != bExp after the M-to-L normalization, the code only checks `lt`/`gt` on the adjusted exponents and mantissas but never returns `true` for the equal case in the cross-format path. Additionally, `le` is internally identical to `lt` \u2014 both use `lt(aMan, bMan)` and `lt(aExp, bExp)` for positive numbers, never setting retVal=true for the equal subcase in the non-trivial path.",
+  "message": "Any protocol logic relying on `le` or `ge` for boundary checks (e.g., collateral ratio >= minimum, price <= cap) could make incorrect decisions, potentially allowing undercollateralized positions or blocking valid operations. This is a correctness issue that can lead to financial loss in protocols using this library.",
+  "recommendation": "In the assembly blocks for `le` and `ge`, change the equal-exponent case for positive numbers from `retVal := lt(aMan, bMan)` to `retVal := or(lt(aMan, bMan), eq(aMan, bMan))` for `le`, and for `ge` from `retVal := lt(bMan, aMan)` to `retVal := or(lt(bMan, aMan), eq(aMan, bMan))`. Similarly fix the negative number cases. Also add an early-exit check at the top of the assembly block for mathematically equal M vs L representations.",
+  "exploit_scenario": "1. Encode value X as M-format: packedFloat a = toPackedFloat(1e37, 1) \n2. Encode same value X as L-format (mathematically equal): packedFloat b = ... \n3. Call le(a, b) \u2014 expects true since a==b mathematically \n4. The bit representations differ, so the Solidity equality check fails \n5. In assembly, after normalization, aExp==bExp and aMan==bMan \n6. The code reaches `if eq(aExp, bExp)` \u2192 `retVal := lt(aMan, bMan)` which returns false since they're equal \n7. le() returns false even though a <= b (they're equal) \u2014 WRONG",
+  "swc_id": "",
+  "file": "Float128.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Signed division (sdiv) incorrectly applied to unsigned mantissa values causing wrong arithmetic results",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2025-04-forte_d6v69xp1/repo/src/Float128.sol",
+   "line": 0,
+   "function": "add, sub"
+  },
+  "description": "In the `add` and `sub` functions, the assembly code uses `sdiv` to scale mantissas: `bMan := sdiv(bMan, exp(BASE, adj))`. The `sdiv` opcode performs signed 256-bit integer division. Since mantissa values can be up to 76 digits (\u2248 2^252), their MSB (bit 255) can be set. When the MSB is set, `sdiv` treats the value as a large negative two's-complement number, producing a completely wrong quotient. The regular `div` opcode should be used instead, as mantissas are always non-negative unsigned integers (the sign is stored separately in MANTISSA_SIGN_MASK bit 240). MAX_L_DIGIT_NUMBER = 999...9 (72 nines) \u2248 10^72 \u2248 2^239, so L-format mantissas fit within 240 bits and won't trigger this. However, the intermediate expanded mantissas (multiplied by BASE_TO_THE_DIFF_76_L = 10000 or BASE_TO_THE_MAX_DIGITS_M = 10^38) during add/sub can reach 76+ digits \u2248 10^76 \u2248 2^252, which can set the MSB.",
+  "message": "When adding or subtracting floating-point numbers with significantly different exponents where the intermediate expanded mantissa exceeds 2^255, `sdiv` produces a wrong sign result, leading to catastrophically incorrect floating-point computation results. Any financial calculation (interest rates, prices, balances) using this library could produce completely wrong values.",
+  "recommendation": "Replace all instances of `sdiv` in the mantissa scaling operations within `add` and `sub` with `div`. The `sdiv` opcode should only be used when values are intended to be treated as signed integers. Since mantissas are always non-negative (sign is stored in MANTISSA_SIGN_MASK), use unsigned `div`: change `bMan := sdiv(bMan, exp(BASE, adj))` to `bMan := div(bMan, exp(BASE, adj))` in all four occurrences in both `add` and `sub`.",
+  "exploit_scenario": "1. Create two packedFloat values in L-format where aExp >> bExp by a large margin \n2. In the add() assembly block, the code computes: `bMan := sdiv(bMan, exp(BASE, adj))` \n3. After `aMan := mul(aMan, BASE_TO_THE_DIFF_76_L)`, aMan is the original L mantissa * 10000, which can be ~10^76 > 2^252, setting bit 255 \n4. When this expanded aMan is later used in sdiv context (or bMan gets expanded similarly), the signed interpretation flips the value \n5. The resulting `addition` variable is completely wrong \n6. All downstream calculations using this result are corrupted",
+  "swc_id": "",
+  "file": "Float128.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Exponent field overflow corrupts mantissa bits when computed exponent exceeds 14-bit field",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2025-04-forte_d6v69xp1/repo/src/Float128.sol",
+   "line": 0,
+   "function": "mul, div, add, sub"
+  },
+  "description": "The exponent is stored in bits 242-255 (14 bits, values 0-16383 with ZERO_OFFSET=8192). In `mul`, the result exponent is computed as `rExp = (aExp + bExp) - ZERO_OFFSET`. If both inputs have large positive exponents (e.g., aExp = bExp = 16383, meaning actual exponent = 8191), then rExp = 16383 + 16383 - 8192 = 24574. When this is packed via `shl(EXPONENT_BIT, rExp)` where EXPONENT_BIT=242, the value 24574 << 242 overflows 256 bits entirely and wraps to 0, or corrupts adjacent bits. Similarly in `div`, if `aExp` is large and `bExp` is small (or negative actual exponent), the computed rExp can overflow. In `add`/`sub`, when `r := sub(aExp, shl(EXPONENT_BIT, MAX_DIGITS_M))` is computed, if aExp's field value is less than MAX_DIGITS_M (38), this underflows to a huge number corrupting the result.",
+  "message": "Arithmetic with very large or very small floating-point values (near the exponent limits) produces completely corrupted results where the exponent bits overflow into undefined territory or wrap around. This could cause a protocol to compute astronomically wrong prices or rates, enabling draining of funds.",
+  "recommendation": "Add explicit bounds checking on the computed exponent before encoding the result. Before `shl(EXPONENT_BIT, rExp)`, verify that `rExp <= 16383` (max 14-bit value). Add overflow guards: `require(rExp <= 16383 && rExp >= 0, 'float128: exponent overflow')`. Similarly, guard against underflow in subtraction operations on the exponent field. Consider using saturating arithmetic or reverting on out-of-range exponents.",
+  "exploit_scenario": "1. Create packedFloat a with maximum actual exponent: toPackedFloat(1e37, 8191) \n2. Create packedFloat b with maximum actual exponent: toPackedFloat(1e37, 8191) \n3. Call mul(a, b) \n4. rExp = (16383 + 16383) - 8192 = 24574 in the assembly \n5. `shl(EXPONENT_BIT, rExp)` = 24574 << 242 which is 24574 * 2^242 \n6. 24574 requires 15 bits, but only 14 are available in the exponent field \n7. Bit 256 overflows, wrapping in 256-bit arithmetic \n8. Result has completely wrong exponent and potentially corrupted mantissa/sign bits",
+  "swc_id": "",
+  "file": "Float128.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Unsafe cast from uint256 to int256 causing silent overflow in intermediateTermAddition",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2025-04-forte_d6v69xp1/repo/src/Ln.sol",
+   "line": 0,
+   "function": "intermediateTermAddition"
+  },
+  "description": "In `intermediateTermAddition`, the expression `int z_int = 10 ** 76 - int(mantissa)` casts a uint256 `mantissa` directly to int256. If `mantissa` exceeds `type(int256).max` (approximately 5.79 * 10^76), the cast silently wraps to a negative value in Solidity ^0.8.24 \u2014 actually in 0.8.x this would revert on overflow for checked arithmetic. However, the deeper issue is that `mantissa` can legitimately exceed 10^76: after `calculateQ1/Q2/Q3` apply their multipliers to a value near `10^75`, the result can reach ~1.1 * 10^76 or higher. When `int(mantissa)` is computed with mantissa > 10^76, `10**76 - int(mantissa)` becomes negative. Subsequently, `uint(z_int)` is called on this negative value which in Solidity 0.8 would revert due to the explicit conversion of negative int to uint not being allowed... but if `z_int == 0` check passes it through. More critically, if mantissa slightly exceeds 10^76, z_int is a small negative number, and `uint(z_int)` produces a near-maximum uint256 (two's complement), causing `findNumberOfDigits` to receive a nonsensical input, producing a completely wrong logarithm result without reverting.",
+  "message": "Protocols using this library for financial calculations (AMMs, lending protocols, options pricing) would receive severely incorrect logarithm values for certain inputs, leading to incorrect price calculations, miscalculated interest rates, or wrong option premiums. This could be exploited by a sophisticated attacker who crafts inputs that trigger the corrupted code path, extracting value from protocols that rely on ln() for correct pricing.",
+  "recommendation": "Add a guard before computing z_int: require(mantissa <= 10**76, 'mantissa overflow'); or clamp/normalize mantissa to be within [0, 10^76] before the subtraction. Also add an explicit check: require(mantissa <= uint(type(int256).max), 'unsafe cast') before int(mantissa). Consider using a safe normalization step after calculateQ3 returns to ensure uMantissa is always in the expected range [10^75, 10^76].",
+  "exploit_scenario": "1. Find an input float128 value x where, after mantissa normalization and the multiplier_k step in ln_helper, mantissa * multiplier_k slightly exceeds 10^76 (e.g., mantissa = 5.2 * 10^75, multiplier_k = 2, giving 1.04 * 10^76). 2. After calculateQ1/Q2/Q3 apply their own multipliers, uMantissa can exceed 10^76. 3. In intermediateTermAddition: `z_int = 10^76 - int(uMantissa)` where uMantissa > 10^76 makes z_int negative. 4. `uint(z_int)` on a negative int256 in Solidity 0.8 reverts \u2014 so this triggers a DoS revert for valid inputs rather than returning a result. Alternatively for values just at the boundary, precision loss in the multiplier approximations may allow mantissa values slightly above 10^76 to reach this point, causing unexpected reverts for valid ln() inputs.",
+  "swc_id": "",
+  "file": "Ln.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Unbounded recursion in ln() can cause stack overflow for specific inputs",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2025-04-forte_d6v69xp1/repo/src/Ln.sol",
+   "line": 0,
+   "function": "ln"
+  },
+  "description": "The `ln()` function calls `ln_helper()`, which in its first branch (when the exponent indicates a small number close to zero) calls `ln()` recursively on `1/x`. The intent is that the recursive call always falls into the second (`else`) branch of `ln_helper`. However, if `one_over_arguments_76` after normalization produces a packed float whose exponent again satisfies the first branch condition, a second recursive call to `ln()` occurs. If this chain continues, it consumes call stack frames until an EVM stack overflow (at ~1024 frames depth) occurs with an out-of-gas or invalid opcode error. The condition for entering the first branch is `positiveExp < MAX_DIGITS_L` or `positiveExp < MAX_DIGITS_M`. The recursive call uses exponent `0 - int(m76)` where m76 is 37-38. This means exp = -37 or -38 for the recursive call. If MAX_DIGITS_M = 38, then positiveExp = 37 or 38, which is NOT less than MAX_DIGITS_M (38), so it enters the else branch \u2014 recursion terminates. But if MAX_DIGITS_M > 38 or if rounding makes m76 < 37, the recursion could repeat. This is a latent risk dependent on Float128 constants.",
+  "message": "For edge-case inputs, ln() reverts with out-of-gas or stack overflow, causing DoS for any protocol function that calls ln() with those inputs. In an AMM or lending protocol, this could lock certain operations.",
+  "recommendation": "Convert the recursive call to an iterative approach, or add a recursion depth parameter and revert if depth > 1. Since the mathematical intent is clear (ln(x) = -ln(1/x)), restructure to avoid recursion: compute ln(1/x) using only the else-branch logic directly, then negate.",
+  "exploit_scenario": "1. Craft an input packedFloat representing a very small positive number (exponent << 0) such that positiveExp < MAX_DIGITS_M. 2. The function computes 1/x and calls ln(1/x) recursively. 3. If the normalization of 1/x produces another small-exponent float, a second recursion occurs. 4. Repeat until stack overflow. The exact trigger depends on Float128 constants not shown, but the structural recursion without depth tracking is the vulnerability.",
+  "swc_id": "",
+  "file": "Ln.sol",
+  "backend": "claude"
+ }
+]

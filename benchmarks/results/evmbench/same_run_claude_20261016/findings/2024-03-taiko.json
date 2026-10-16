@@ -1,0 +1,192 @@
+[
+ {
+  "type": "logic_error",
+  "title": "Arbitrary calldata to contracts silently fails, permanently locking message value",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-03-taiko_1n12gs_1/repo/packages/protocol/contracts/bridge/Bridge.sol",
+   "line": 0,
+   "function": "_invokeMessageCall"
+  },
+  "description": "The condition in _invokeMessageCall checks: if data.length >= 4 AND selector != onMessageInvocation.selector AND target is a contract, then success_ = false without making any call. This means any message targeting a contract with arbitrary calldata (e.g., ERC20 transfer, any DApp call) that doesn't use the onMessageInvocation selector will silently fail. The message transitions to RETRIABLE status, but retryMessage calls _invokeMessageCall with the same logic, so retries also fail. The message value becomes permanently locked in the bridge contract because the message can never reach DONE or FAILED status via retry (destOwner must call retryMessage with _isLastAttempt=true to mark it FAILED and trigger a failure signal, then recall it - but this requires cross-chain proof).",
+  "message": "User funds (message.value) permanently locked in bridge if message targets a contract with non-onMessageInvocation calldata. All cross-chain contract calls with arbitrary calldata are broken unless the target implements IMessageInvocable.",
+  "recommendation": "The logic appears inverted or incorrect. The intent seems to be to ONLY allow calls using the onMessageInvocation selector for contract targets to prevent reentrancy, but this breaks all standard contract interactions. Consider: (1) Remove this restriction and rely on ExcessivelySafeCall for safety, or (2) If the restriction is intentional, clearly document it and provide a different mechanism for arbitrary contract calls. The condition should probably be: if data uses onMessageInvocation selector OR target is not a contract, then proceed with the call.",
+  "exploit_scenario": "1. Alice sends a message with value=1 ETH, to=USDC_contract, data=transfer(bob, 100e6). 2. On destination, processMessage is called. _invokeMessageCall checks: data.length >= 4 (yes), bytes4(data) != onMessageInvocation.selector (yes, it's transfer selector), _message.to.isContract() (yes). 3. success_ = false, no call is made, status = RETRIABLE, 1 ETH stays in bridge. 4. retryMessage is called repeatedly, same result. 5. destOwner must call retryMessage with _isLastAttempt=true to set status=FAILED. 6. This emits a failure signal. 7. Alice must prove failure on source chain via recallMessage to get value back. 8. But even then, the fee is lost.",
+  "swc_id": "",
+  "file": "Bridge.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Fee not refunded to sender on recallMessage",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-03-taiko_1n12gs_1/repo/packages/protocol/contracts/bridge/Bridge.sol",
+   "line": 0,
+   "function": "recallMessage"
+  },
+  "description": "When a message is recalled via recallMessage(), only _message.value is returned to the srcOwner (or the IRecallableSender callback). The _message.fee that was also deposited into the bridge during sendMessage() is never refunded. The fee becomes permanently stuck in the bridge contract since the message status moves to RECALLED and can never be processed again.",
+  "message": "Message senders permanently lose the fee they paid when sending a cross-chain message that gets recalled. For high-fee messages, this could be a significant loss. Over time, unclaimed fees accumulate in the bridge.",
+  "recommendation": "In recallMessage(), refund both value and fee to the srcOwner. Change the sendEther call to: `_message.srcOwner.sendEther(_message.value + _message.fee)` and similarly handle the fee in the IRecallableSender callback path. For the IRecallableSender path, either pass fee+value or separately refund the fee to srcOwner after the callback.",
+  "exploit_scenario": "1. Alice calls sendMessage() with value=1 ETH and fee=0.1 ETH, depositing 1.1 ETH total. 2. Message fails on destination chain (generates failure signal). 3. Alice calls recallMessage() with proof of failure. 4. After invocation delay, Alice receives only 1 ETH (_message.value). 5. 0.1 ETH (_message.fee) remains permanently locked in bridge. 6. messageStatus[msgHash] = RECALLED, so no other function can process it.",
+  "swc_id": "",
+  "file": "Bridge.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "processMessage: message value permanently locked when invocationDelay=0 and proof not stored",
+  "severity": "Medium",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-03-taiko_1n12gs_1/repo/packages/protocol/contracts/bridge/Bridge.sol",
+   "line": 0,
+   "function": "processMessage"
+  },
+  "description": "When invocationDelay == 0 (L2 chains), the proofReceipt is never written to storage. If the message call fails (_invokeMessageCall returns false), status becomes RETRIABLE. However, since no proofReceipt was stored, the preferredExecutor logic is bypassed in retries. This is actually functional but creates an inconsistency where on L2, anyone can retry, while on L1 only the preferredExecutor can retry within the extra delay window. More importantly, if a message with gasLimit=0 fails on L2, retryMessage requires destOwner to set _isLastAttempt=true, but the FAILED status requires a cross-chain proof for recall, creating a cumbersome recovery path.",
+  "message": "On L2, failed messages with gasLimit=0 require the destOwner to manually mark them as FAILED, then the srcOwner must go through the full cross-chain recall process to recover funds.",
+  "recommendation": "Consider adding a direct refund path for L2 chains when a message fails and there is no invocation delay, or provide a simpler recovery mechanism for gasLimit=0 messages.",
+  "exploit_scenario": "1. Message sent with gasLimit=0, value=1 ETH to L2. 2. processMessage called, invocationDelay=0, call fails. 3. Status=RETRIABLE. 4. Only destOwner can call retryMessage (gasLimit=0 check). 5. destOwner calls retryMessage with _isLastAttempt=true \u2192 FAILED. 6. srcOwner must prove failure on source chain to recall. 7. Complex recovery for what should be a simple refund.",
+  "swc_id": "",
+  "file": "Bridge.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "TCB_UNRECOGNIZED Status Incorrectly Passes Verification Check",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-03-taiko_1n12gs_1/repo/packages/protocol/contracts/automata-attestation/AutomataDcapV3Attestation.sol",
+   "line": 0,
+   "function": "_checkTcbLevels"
+  },
+  "description": "When no TCB level matches in _checkTcbLevels, the function returns (true, TCBInfoStruct.TCBStatus.TCB_UNRECOGNIZED). The 'true' return value means tcbVerified=true in _verifyParsedQuote, allowing execution to continue past Step 6. While _attestationTcbIsValid() ultimately returns false for TCB_UNRECOGNIZED, the semantic is dangerous: unrecognized/unknown TCB configurations pass the tcbVerified gate. If _attestationTcbIsValid is overridden in a derived contract (it is marked virtual) and the override adds TCB_UNRECOGNIZED to valid statuses (perhaps by mistake or to handle edge cases), quotes from completely unrecognized/untrusted hardware would be accepted as valid attestations. The base contract's design conflates 'no matching level found' with 'verified but unrecognized'.",
+  "message": "In derived contracts that override _attestationTcbIsValid(), hardware with completely unrecognized TCB configurations could be accepted as valid. This would allow attestations from potentially compromised or outdated hardware to pass verification.",
+  "recommendation": "Return (false, TCBInfoStruct.TCBStatus.TCB_UNRECOGNIZED) when no matching TCB level is found, to clearly signal failure: `return (false, TCBInfoStruct.TCBStatus.TCB_UNRECOGNIZED);`. This makes the semantics unambiguous and prevents derived contracts from accidentally accepting unrecognized TCB states.",
+  "exploit_scenario": "1. Deploy a contract inheriting AutomataDcapV3Attestation\n2. Override _attestationTcbIsValid() to also accept TCB_UNRECOGNIZED (e.g., for broader compatibility)\n3. Submit a quote where the PCK cert's CPUSVN/PCESVN values don't match any configured TCB level\n4. _checkTcbLevels returns (true, TCB_UNRECOGNIZED)\n5. tcbVerified is true, execution continues\n6. _attestationTcbIsValid(TCB_UNRECOGNIZED) returns true in the overriding contract\n7. Quote is accepted despite coming from hardware with no recognized security level",
+  "swc_id": "",
+  "file": "AutomataDcapV3Attestation.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "access_control",
+  "title": "Unbounded Index in addRevokedCertSerialNum Allows Bypassing Revocation Checks",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-03-taiko_1n12gs_1/repo/packages/protocol/contracts/automata-attestation/AutomataDcapV3Attestation.sol",
+   "line": 0,
+   "function": "addRevokedCertSerialNum"
+  },
+  "description": "The addRevokedCertSerialNum and removeRevokedCertSerialNum functions accept any uint256 index without validation. The _verifyCertChain function only checks revocation at index uint256(IPEMCertChainLib.CRL.ROOT) and uint256(IPEMCertChainLib.CRL.PCK). If the owner (or a compromised owner) calls addRevokedCertSerialNum with any index other than 0 or 1, the revocation entry is stored but never checked. This means a certificate can appear 'revoked' in storage but the revocation check in _verifyCertChain will never see it because it only queries indices 0 and 1. Conversely, legitimate revocations added at the wrong index would be silently ignored.",
+  "message": "Revoked certificates may not actually be treated as revoked if stored at wrong index. This could allow compromised PCK certificates to pass chain verification, enabling forged attestations.",
+  "recommendation": "Add input validation to restrict index to valid CRL types: `require(index <= uint256(IPEMCertChainLib.CRL.ROOT), \"Invalid CRL index\");` Also consider using the enum type directly as the parameter type.",
+  "exploit_scenario": "1. Owner intends to revoke a PCK certificate serial number\n2. Owner calls addRevokedCertSerialNum(2, [serialNum]) with wrong index\n3. Entry stored at index 2 in _serialNumIsRevoked\n4. _verifyCertChain only checks index 0 (PCK) and 1 (ROOT)\n5. Revoked certificate passes chain verification\n6. Attacker using compromised PCK certificate successfully attests",
+  "swc_id": "",
+  "file": "AutomataDcapV3Attestation.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Missing Revocation Check for Intermediate Certificates in _verifyCertChain",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-03-taiko_1n12gs_1/repo/packages/protocol/contracts/automata-attestation/AutomataDcapV3Attestation.sol",
+   "line": 0,
+   "function": "_verifyCertChain"
+  },
+  "description": "In _verifyCertChain, revocation is only checked for two specific positions: the certificate at index n-2 (checked against ROOT CRL) and certificates where isPck is true (checked against PCK CRL). For a certificate chain with more than 3 certificates, intermediate certificates that are neither at position n-2 nor PCK certificates will never have their revocation status checked. The certRevoked variable retains its previous value (false initially, or the last checked cert's status) without being explicitly set for unchecked intermediate certs. This means intermediate CA certificates in longer chains bypass revocation checking entirely.",
+  "message": "Revoked intermediate CA certificates in chains longer than 3 certificates would not be detected, allowing certificate chains signed by revoked intermediate CAs to pass verification. Attestations backed by compromised infrastructure could be accepted.",
+  "recommendation": "Restructure the revocation check to cover all intermediate certificates, not just specific positions. Each non-root certificate should be checked against the appropriate CRL based on its type/position.",
+  "exploit_scenario": "1. Configure a certificate chain with 4+ certificates where an intermediate (not PCK, not n-2 position) is revoked\n2. Add the intermediate cert's serial number to _serialNumIsRevoked\n3. Submit a quote using this chain\n4. _verifyCertChain iterates: i=0 (PCK, checked), i=1 (intermediate, NOT checked - neither n-2=2 nor isPck), i=2 (n-2, checked vs ROOT), i=3 (root)\n5. certRevoked remains false for the revoked intermediate cert\n6. Chain passes verification despite containing a revoked intermediate certificate",
+  "swc_id": "",
+  "file": "AutomataDcapV3Attestation.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "onMessageRecalled uses incorrect ABI decoding that may fail for valid messages",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-03-taiko_1n12gs_1/repo/packages/protocol/contracts/tokenvault/ERC20Vault.sol",
+   "line": 0,
+   "function": "onMessageRecalled"
+  },
+  "description": "In onMessageRecalled, the message data is decoded as: `(bytes memory data) = abi.decode(_message.data[4:], (bytes))`. The _message.data is constructed in sendToken as `abi.encodeCall(this.onMessageInvocation, abi.encode(ctoken_, _user, _to, balanceChange_))`. The encodeCall wraps the bytes argument with ABI encoding. After stripping 4 selector bytes, what remains is the ABI encoding of a single `bytes` parameter (with offset + length + data). This decode should work, but then `data` is re-decoded as `(CanonicalERC20, address, address, uint256)`. If the encoding chain is broken or if the message was constructed differently (e.g., via a future version or a manually crafted message), the double-decode could produce incorrect values silently, leading to wrong amounts being returned. More critically, the `amount` variable decoded here may not match what was actually locked, since no on-chain record is kept of locked amounts per message.",
+  "message": "If the double-ABI-decode produces incorrect values, tokens could be released in wrong amounts during message recall, potentially releasing more tokens than were originally locked.",
+  "recommendation": "Store the locked amount per message hash in a mapping (e.g., `mapping(bytes32 => uint256) public messageAmount`) during sendToken, and use that stored value during recall instead of re-decoding from message data. This eliminates the fragile double-decode and prevents any manipulation.",
+  "exploit_scenario": "1. User sends tokens via sendToken, locking 100 tokens. 2. Message is recalled by bridge. 3. onMessageRecalled decodes _message.data[4:] - if decoding produces a different `amount` value due to encoding edge cases, the wrong amount of tokens is released back to srcOwner.",
+  "swc_id": "",
+  "file": "ERC20Vault.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Bridged token migration allows minting to blacklisted (old) token via in-flight messages",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-03-taiko_1n12gs_1/repo/packages/protocol/contracts/tokenvault/ERC20Vault.sol",
+   "line": 0,
+   "function": "changeBridgedToken"
+  },
+  "description": "When `changeBridgedToken` is called, the old bridged token is blacklisted and migration starts. However, in-flight bridge messages that were sent before the migration still reference the old CanonicalERC20 struct with the old chain's data. When `onMessageInvocation` processes these old messages, it calls `_getOrDeployBridgedToken` which looks up `canonicalToBridged[ctoken.chainId][ctoken.addr]`. Since `canonicalToBridged` now points to the NEW bridged token, the new token gets minted. But if the BridgedERC20 migration mechanism redirects mints from new\u2192old token or vice versa, users with old tokens may receive the wrong token. More specifically, in-flight messages will mint to the new token, but users who already held old tokens (from before migration) will have a different token than expected.",
+  "message": "Users with tokens in-flight during migration may receive new bridged tokens, while the old bridged token holders need to migrate. This can cause token fragmentation and loss of fungibility.",
+  "recommendation": "Implement a time-lock or sequence number on migration to handle in-flight messages. Consider storing the migration block number and handling messages sent before migration differently.",
+  "exploit_scenario": "1. Token bridge exists with btokenOld as the bridged token. 2. User sends canonical tokens, creating in-flight message. 3. Owner calls changeBridgedToken, blacklisting btokenOld and creating btokenNew. 4. In-flight message arrives, mints btokenNew to user. 5. User was expecting btokenOld compatible tokens. Migration confusion ensues.",
+  "swc_id": "",
+  "file": "ERC20Vault.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "access_control",
+  "title": "Missing validation that _btokenNew canonical data matches _ctoken in changeBridgedToken",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-03-taiko_1n12gs_1/repo/packages/protocol/contracts/tokenvault/ERC20Vault.sol",
+   "line": 0,
+   "function": "changeBridgedToken"
+  },
+  "description": "In `changeBridgedToken`, after verifying the owner of `_btokenNew`, there is no validation that `_btokenNew`'s on-chain canonical token data (decimals, symbol, name, srcChainId) matches the provided `_ctoken` struct. The function only checks if btokenOld's canonical data matches _ctoken. This means the owner could supply a `_btokenNew` that is a completely different bridged token (different decimals, for example) that happens to be owned by the same owner. This creates a mismatch between what the vault thinks the token represents and what it actually is.",
+  "message": "Owner (potentially compromised or malicious) could swap a bridged token with a different-decimals token, causing users to receive wrong amounts when minting/burning, effectively stealing funds from users.",
+  "recommendation": "Add validation: `require(IBridgedERC20(_btokenNew).srcToken() == _ctoken.addr && IBridgedERC20(_btokenNew).srcChainId() == _ctoken.chainId && IBridgedERC20(_btokenNew).decimals() == _ctoken.decimals, 'VAULT_BTOKEN_MISMATCH')`",
+  "exploit_scenario": "1. btokenOld bridges USDC (6 decimals). 2. Owner deploys btokenNew as a token with 18 decimals but same name/symbol. 3. Owner calls changeBridgedToken - the check only verifies btokenOld's canonical data matches _ctoken, not btokenNew's actual configuration. 4. New mints use btokenNew with wrong decimals, users receive wrong token amounts.",
+  "swc_id": "",
+  "file": "ERC20Vault.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "onMessageInvocation trusts caller-supplied ctoken.chainId to determine token transfer path, enabling potential canonical token drain",
+  "severity": "Critical",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-03-taiko_1n12gs_1/repo/packages/protocol/contracts/tokenvault/ERC20Vault.sol",
+   "line": 0,
+   "function": "onMessageInvocation"
+  },
+  "description": "In `_transferTokens`, the decision of whether to transfer a canonical token (safeTransfer from vault's holdings) or mint a new bridged token is based solely on `_ctoken.chainId == block.chainid`. The `ctoken` struct is decoded from the message data passed by the caller (ultimately from the source chain's sendToken). If an attacker on the source chain can craft a message where `ctoken.chainId == destination_chainId` and `ctoken.addr` is a valuable token held by the destination vault (e.g., USDC), the vault would `safeTransfer` those tokens out. The bridge's `checkProcessMessageContext()` validates the message came from the authorized source vault, but that source vault's `sendToken` encodes whatever token the user provides. If the source chain's vault accepts a bridged token whose `bridgedToCanonical` mapping has `chainId == destination chainId` and `addr == USDC_on_dest`, then burning that bridged token and sending the message would cause the destination vault to safeTransfer real USDC.",
+  "message": "An attacker could drain canonical ERC20 tokens (e.g., USDC, WETH) held by the destination vault by crafting messages with manipulated canonical token data, if they can create a bridged token on the source chain that maps to a valuable canonical token on the destination chain.",
+  "recommendation": "Maintain explicit accounting of tokens locked per canonical token: `mapping(address => uint256) public lockedAmount`. Verify in _transferTokens that the released amount does not exceed locked amounts.",
+  "exploit_scenario": "1. Source chain has ERC20Vault. Destination chain has ERC20Vault holding 1M USDC. 2. Attacker on source chain creates a fake bridged token. 3. Attacker calls source vault's sendToken with the fake bridged token. 4. Source vault's _handleMessage: bridgedToCanonical[fake_token] would need to return ctoken with chainId=dest_chainId, addr=USDC_on_dest. 5. If the source vault accepted a deposit of canonical USDC originally, the ctoken struct in the message would have chainId=source_chainId, which != dest_chainId, so this specific vector requires the canonical token to be on the DEST chain... This occurs when users bridge DEST-native tokens TO source and then back - the ctoken.chainId would match dest_chainId, allowing safeTransfer on return. This is the intended behavior, but the vault must hold exactly as many tokens as were bridged away. 6. If any accounting error exists (e.g., fee-on-transfer tokens reducing balance_), the vault could be drained over time.",
+  "swc_id": "",
+  "file": "ERC20Vault.sol",
+  "backend": "claude"
+ }
+]

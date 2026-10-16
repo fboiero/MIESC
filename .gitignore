@@ -347,3 +347,33 @@ mutants/
 .mutmut-cache
 mutmut-stats.json
 mutmut-cicd-stats.json
+
+# -----------------------------------------------------------------------------
+# RIBCi-CYTED 2026 camera-ready artifacts (tracked benchmark results)
+# -----------------------------------------------------------------------------
+!benchmarks/results/paper1_ablation_20261015_README.md
+!benchmarks/results/paper1_ablation_l1_raw_20261015.json
+!benchmarks/results/paper1_ablation_l167_intel_20261015.json
+!benchmarks/results/paper1_ablation_l167_raw_20261015.json
+!benchmarks/results/paper1_smartbugs_eval_layers_1_6_7_corrected_20261016.json
+!benchmarks/results/paper2_prepatch_slither_baseline.json
+!benchmarks/results/evmbench/same_run_claude_20261016/
+!benchmarks/results/evmbench/same_run_claude_20261016/**
+!benchmarks/results/evmbench/same_run_claude_20261016.log
+!benchmarks/results/evmbench/ENTREGABLE_run2_20261016.md
+
+# Camera-ready Word versions sent to the editors (override any global *.docx ignore)
+!paper/ribci-cyted-2026/paper1-camera-ready.docx
+!paper/ribci-cyted-2026/paper2-camera-ready.docx
+
+# Discarded victim-code downloads (Etherscan sources); keep only victims/README.md
+data/datasets/rekt_exploits/victims/REKT-*/
+
+# LaTeX build intermediates, preview scratch, and regenerable arXiv bundles
+paper/ribci-cyted-2026/figs/*.aux
+paper/ribci-cyted-2026/preview/
+paper/ribci-cyted-2026/arxiv/*.tar.gz
+
+# Local archive of superseded/temporary working files (never tracked)
+_archive/
+!benchmarks/results/smartbugs_fp_filter_effect_20260710.json

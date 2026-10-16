@@ -16,6 +16,8 @@ PATCH_TRANSFORMS_OUT = ROOT / "benchmarks/results/paper2_patch_quality_by_transf
 COMPILE_FAILURES_OUT = ROOT / "benchmarks/results/paper2_compile_failure_by_category.json"
 COMPILE_TAXONOMY = ROOT / "benchmarks/results/paper2_compile_failure_taxonomy.json"
 EXPERIMENT_AUDIT = ROOT / "benchmarks/results/paper2_experiment_audit.json"
+PREPATCH_BASELINE = ROOT / "benchmarks/results/paper2_prepatch_slither_baseline.json"
+CAMERA_READY_DATE = "2026-10-16"
 
 METRIC_DEFINITIONS = {
     "fix_applied": (
@@ -26,9 +28,7 @@ METRIC_DEFINITIONS = {
         "The patched source compiled as a standalone file, without restoring the "
         "original project dependency tree."
     ),
-    "vuln_eliminated": (
-        "A re-scan reported fewer HIGH/CRITICAL findings for the target category."
-    ),
+    "vuln_eliminated": ("A re-scan reported fewer HIGH/CRITICAL findings for the target category."),
     "no_regression": (
         "The patched contract did not materially increase finding count under the "
         "same scanner; this is not semantic equivalence."
@@ -328,9 +328,7 @@ def main() -> None:
             "paper1_dependency": None,
             "unit": "compiler failure classes",
             "value": (
-                compile_taxonomy.get("compile_failure_taxonomy")
-                if compile_taxonomy
-                else None
+                compile_taxonomy.get("compile_failure_taxonomy") if compile_taxonomy else None
             ),
         },
         {
@@ -350,7 +348,9 @@ def main() -> None:
                     "rates": experiment_audit.get("rates"),
                     "compile_transitions": experiment_audit.get("compile_transitions"),
                     "joint_success_metrics": experiment_audit.get("joint_success_metrics"),
-                    "no_regression_sensitivity": experiment_audit.get("no_regression_sensitivity", {}).get("thresholds"),
+                    "no_regression_sensitivity": experiment_audit.get(
+                        "no_regression_sensitivity", {}
+                    ).get("thresholds"),
                 }
                 if experiment_audit
                 else None
@@ -412,6 +412,46 @@ def main() -> None:
             "value": None,
         },
     ]
+
+    # --- RIBCi camera-ready additive artifact (2026-10-16): pre-patch Slither baseline ---
+    if PREPATCH_BASELINE.exists():
+        pre = load_json(PREPATCH_BASELINE)
+
+        def _n(x: Any) -> int:
+            return len(x) if isinstance(x, (list, dict)) else int(x or 0)
+
+        claims.append(
+            {
+                "claim_id": "prepatch_slither_baseline",
+                "paper_claim": (
+                    "Pre-patch Slither baseline over the 143 SmartBugs contracts: the "
+                    "before/after HIGH-finding counts underlying Paper 2's remediation table."
+                ),
+                "source_artifact": str(PREPATCH_BASELINE.relative_to(ROOT)),
+                "command": "python benchmarks/paper2_prepatch_slither_baseline.py",
+                "date": CAMERA_READY_DATE,
+                "status": "supported",
+                "scope": "corpus_wide",
+                "unit": "Slither HIGH checks",
+                "value": {
+                    "contracts": len(pre),
+                    "total_pre_high_checks": sum(_n(e.get("pre_high_checks")) for e in pre),
+                    "total_post_high_checks": sum(_n(e.get("post_high_checks")) for e in pre),
+                    "contracts_with_pre_high": sum(
+                        1 for e in pre if _n(e.get("pre_high_checks")) > 0
+                    ),
+                    "contracts_with_post_high": sum(
+                        1 for e in pre if _n(e.get("post_high_checks")) > 0
+                    ),
+                },
+                "notes": (
+                    "Pre-patch total HIGH checks = 141 (matches the paper's 'before' "
+                    "figure); post = 61 (paper states 60; see ERRATA E-2). The finer "
+                    "per-category before/after figures are recorded per contract in the "
+                    "artifact."
+                ),
+            }
+        )
 
     payload = {
         "artifact": "paper2_claims_matrix",

@@ -1,0 +1,591 @@
+[
+ {
+  "type": "logic_error",
+  "title": "fillOrder cancellation writes to memory not storage - order remains Active and can be re-triggered",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-01-init-capital-invitational_9zgh46k7/repo/contracts/hook/MarginTradingHook.sol",
+   "line": 0,
+   "function": "fillOrder"
+  },
+  "description": "In fillOrder(), when the position's collateral amount is 0, the code sets `order.status = OrderStatus.Cancelled` where `order` is a memory copy (declared as `Order memory order`). This write does NOT persist to storage (`__orders[_orderId]`). As a result, the order's status remains `Active` in storage, and any subsequent call to `fillOrder()` will re-enter the same path, emitting another CancelOrder event but never actually marking the order cancelled in storage.",
+  "message": "Order status is never persisted as Cancelled when position is empty. Repeated calls will keep emitting CancelOrder events without effect. This is a correctness failure but has limited direct fund impact since position collateral is 0. However it could cause event-monitoring systems to malfunction and create DoS on order management.",
+  "recommendation": "Change `Order memory order` to `Order storage order` at the beginning of fillOrder(), OR explicitly update storage: `__orders[_orderId].status = OrderStatus.Cancelled;` in the early-return branch. The same fix applies to the storage write pattern throughout the function.",
+  "exploit_scenario": "1. Create a margin position and add a stop-loss order. 2. Reduce position to 0 collateral. 3. Call fillOrder() - it hits the `getCollAmt == 0` branch, sets memory `order.status = Cancelled`, returns. 4. Call fillOrder() again - same result, order still shows Active in storage. 5. The order can never be properly cancelled through this path.",
+  "swc_id": "",
+  "file": "MarginTradingHook.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "access_control",
+  "title": "updateOrder does not verify order belongs to caller's position - any user can modify another user's order",
+  "severity": "Critical",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-01-init-capital-invitational_9zgh46k7/repo/contracts/hook/MarginTradingHook.sol",
+   "line": 0,
+   "function": "updateOrder"
+  },
+  "description": "The `updateOrder()` function verifies that `msg.sender` owns `_posId` (via `initPosIds[msg.sender][_posId]`), but it never checks that `order.initPosId == initPosId`. An attacker can pass their own `_posId` (which they own) and any `_orderId` belonging to another user's position. The ownership check passes because the attacker owns their position, but the order being modified belongs to the victim.",
+  "message": "Any user can modify any other user's active orders: change trigger prices to force immediate/never-triggering conditions, change tokenOut to an undesirable token, change collAmt to drain more collateral than intended, or set limitPrice_e36 to 0 causing division by zero or near-zero amtOut in _calculateFillOrderInfo, effectively stealing value from the order filler or the position owner.",
+  "recommendation": "Add a check after loading the order: `_require(order.initPosId == initPosId, Errors.INVALID_INPUT);` This ensures the order being updated actually belongs to the caller's position.",
+  "exploit_scenario": "1. Alice creates a take-profit order (orderId=5) on her position with a fair limitPrice. 2. Bob (attacker) has his own position (posId=1). 3. Bob calls updateOrder(_posId=1, _orderId=5, _triggerPrice_e36=1, _tokenOut=<bad_token>, _limitPrice_e36=1, _collAmt=<max>). 4. The check `initPosId = initPosIds[Bob][1]` succeeds (Bob owns posId=1). 5. `order.initPosId` is never compared to Bob's initPosId. 6. Alice's order is now corrupted with Bob's parameters.",
+  "swc_id": "",
+  "file": "MarginTradingHook.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "access_control",
+  "title": "reducePos does not validate initPosId - anyone can reduce any position",
+  "severity": "Critical",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-01-init-capital-invitational_9zgh46k7/repo/contracts/hook/MarginTradingHook.sol",
+   "line": 0,
+   "function": "reducePos"
+  },
+  "description": "The `reducePos()` function retrieves `initPosId = initPosIds[msg.sender][_posId]` but does NOT check that `initPosId != 0` before calling `_reducePosInternal()`. If `msg.sender` has never created position `_posId`, `initPosId` will be 0. The `_reducePosInternal()` function then loads `__marginPositions[0]`, which is the zero-initialized struct. With all-zero fields for collPool/borrPool, various external calls will be made to address(0). However more critically: if a position with initPosId=0 was somehow registered OR if the zero-address pools default to specific addresses due to storage layout, this could be exploited. Additionally, a user could pass `_posId` of a position they don't own (returning initPosId=0) and potentially disrupt state.",
+  "message": "At minimum this causes inconsistent behavior and potential griefing. If any margin position exists with initPosId=0 (unlikely but theoretically possible if the core contract assigns ID 0), anyone could reduce it without authorization.",
+  "recommendation": "Add `_require(initPosId != 0, Errors.POSITION_NOT_FOUND);` immediately after `uint initPosId = initPosIds[msg.sender][_posId];` in `reducePos()`, consistent with all other position-accessing functions.",
+  "exploit_scenario": "1. Attacker calls reducePos(9999, 0, 0, tokenOut, 0, false, data, 0) for a posId they don't own. 2. initPosId = initPosIds[attacker][9999] = 0. 3. _reducePosInternal proceeds with initPosId=0. 4. __marginPositions[0] is loaded (zero struct). 5. Calls proceed against zero-address pools causing revert OR if initPosId=0 is a valid position, unauthorized reduction occurs.",
+  "swc_id": "",
+  "file": "MarginTradingHook.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "coreCallback uses full contract token balance as amtIn - token balance inflation attack",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-01-init-capital-invitational_9zgh46k7/repo/contracts/hook/MarginTradingHook.sol",
+   "line": 0,
+   "function": "coreCallback"
+  },
+  "description": "In `coreCallback()`, `amtIn` is calculated as `IERC20(swapInfo.tokenIn).balanceOf(address(this))` - the FULL balance of the token held by the hook contract. If any tokens were left in the contract from a previous transaction (due to refundNative not covering ERC20 tokens, or due to a carefully timed deposit), those extra tokens will be included in `amtIn` and transferred to the swapHelper. This means an attacker could pre-deposit tokens into the hook contract, and those tokens will be swept into the swap, potentially manipulating the swap output or draining the extra tokens.",
+  "message": "Tokens pre-deposited into the contract (by anyone who sends them directly) will be included in swap operations, potentially giving users more output than they should receive or being lost. An attacker timing a token deposit before a victim's transaction could cause the victim's position to behave unexpectedly.",
+  "recommendation": "Track the exact amount of tokens received from the core's borrow operation rather than using balanceOf(). Pass the expected amount through SwapInfo or calculate it as the difference in balance before/after the borrow callback.",
+  "exploit_scenario": "1. Alice initiates openPos() which triggers coreCallback. 2. Attacker front-runs and sends extra borrToken to the hook contract. 3. coreCallback uses balanceOf() which now includes attacker's tokens. 4. The extra tokens are transferred to swapHelper and swapped. 5. The resulting extra collToken is deposited into Alice's position - benefiting Alice at attacker's expense (MEV opportunity in reverse), OR: 6. Alternatively, attacker can extract value through carefully constructed swap paths.",
+  "swc_id": "",
+  "file": "MarginTradingHook.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "removeCollateral transmits full contract balance - leftover tokens from other operations are sent to caller",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-01-init-capital-invitational_9zgh46k7/repo/contracts/hook/MarginTradingHook.sol",
+   "line": 0,
+   "function": "removeCollateral"
+  },
+  "description": "In `removeCollateral()`, after calling `IInitCore(CORE).burnTo(marginPos.collPool, address(this))`, the function reads `uint balance = IERC20(collToken).balanceOf(address(this))` and transmits the ENTIRE balance. If the contract holds any residual collToken from previous operations (e.g., failed refunds, direct token deposits, or concurrent transactions), those tokens would be inadvertently sent to the caller. This allows a user to extract tokens that don't belong to them.",
+  "message": "A user calling removeCollateral() when the contract accidentally holds extra collateral tokens will receive more than their fair share, effectively stealing tokens meant for other users or the protocol.",
+  "recommendation": "Track the exact amount received from burnTo by checking balance before and after: `uint balBefore = IERC20(collToken).balanceOf(address(this)); IInitCore(CORE).burnTo(...); uint balance = IERC20(collToken).balanceOf(address(this)) - balBefore;`",
+  "exploit_scenario": "1. Through any mechanism, extra collToken is held by the hook contract (e.g., direct transfer or reentrancy from another call). 2. User calls removeCollateral() with minimal _shares. 3. burnTo() returns a small amount, but balanceOf() returns large amount including residual. 4. User receives all tokens including those they shouldn't.",
+  "swc_id": "",
+  "file": "MarginTradingHook.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "_calculateFillOrderInfo arithmetic underflow - negative amtOut causes revert or incorrect calculation",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-01-init-capital-invitational_9zgh46k7/repo/contracts/hook/MarginTradingHook.sol",
+   "line": 0,
+   "function": "_calculateFillOrderInfo"
+  },
+  "description": "In `_calculateFillOrderInfo()`, the `amtOut` calculations perform subtractions that can underflow if the collateral token amount is less than the repay amount denominated in the same token. For example in the 'long eth hold eth' case: `amtOut = collTokenAmt - repayAmt * ONE_E36 / _order.limitPrice_e36`. If `repayAmt * ONE_E36 / limitPrice_e36 > collTokenAmt` (which can happen if the position became underwater or if limitPrice is manipulated), this underflows in Solidity 0.8 causing a revert. Similarly for other branches. This means orders cannot be filled for underwater positions, potentially locking collateral.",
+  "message": "Orders for positions that have moved against the trader (but not yet liquidated) cannot be filled, leaving collateral locked and unable to be reclaimed via stop-loss/take-profit. This is a DoS on the order filling mechanism for distressed positions.",
+  "recommendation": "Add underflow checks before subtraction and handle the case where amtOut would be negative (e.g., set amtOut to 0 or revert with a meaningful error): `uint repayInColl = repayAmt * ONE_E36 / _order.limitPrice_e36; amtOut = collTokenAmt > repayInColl ? collTokenAmt - repayInColl : 0;`",
+  "exploit_scenario": "1. Trader opens long ETH position, sets stop-loss at $1500. 2. ETH price drops to $1400 (below stop-loss). 3. fillOrder is called, _calculateFillOrderInfo runs. 4. collTokenAmt represents 2 ETH but repayAmt/limitPrice > 2 ETH due to market conditions. 5. Underflow revert - stop-loss cannot be filled. 6. Position continues to accumulate losses.",
+  "swc_id": "",
+  "file": "MarginTradingHook.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "reentrancy",
+  "title": "callback() Missing Reentrancy Guard and Access Control Allows Arbitrary External Calls",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-01-init-capital-invitational_9zgh46k7/repo/contracts/core/InitCore.sol",
+   "line": 0,
+   "function": "callback"
+  },
+  "description": "The `callback()` function has no `nonReentrant` modifier and no access control. It allows any caller to invoke arbitrary external contracts via `ICallbackReceiver(_to).coreCallback{value: _value}(msg.sender, _data)`. During the callback execution, the external contract can re-enter InitCore functions (borrow, repay, liquidate, etc.) since the reentrancy guard is not active for this call path. The only protection is that `_to != address(this)`, but any other contract can be called.",
+  "message": "An attacker can use `callback()` to re-enter state-changing functions like `borrow()`, `liquidate()`, or `repay()` in ways that violate position health invariants. If called during a multicall sequence where health checks are deferred, this could allow extracting funds from positions that should be locked. Additionally, malicious contracts can be invoked to manipulate oracle state or steal approved tokens.",
+  "recommendation": "Add `nonReentrant` modifier to `callback()`. Also consider adding access control or removing the function if it's not essential:\n\nfunction callback(address _to, uint _value, bytes memory _data)\n    public\n    payable\n    virtual\n    nonReentrant\n    returns (bytes memory result)\n{\n    _require(_to != address(this), Errors.INVALID_CALLBACK_ADDRESS);\n    return ICallbackReceiver(_to).coreCallback{value: _value}(msg.sender, _data);\n}\n",
+  "exploit_scenario": "1. Attacker deploys MaliciousReceiver implementing ICallbackReceiver\n2. Attacker calls InitCore.callback(MaliciousReceiver, 0, data)\n3. MaliciousReceiver.coreCallback() is invoked with msg.sender = attacker\n4. MaliciousReceiver re-enters InitCore.borrow() or other nonReentrant functions\n5. Since callback() itself doesn't hold the reentrancy lock, borrow() can execute\n6. Attacker borrows funds against a position that was in a transient unhealthy state",
+  "swc_id": "",
+  "file": "InitCore.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "reentrancy",
+  "title": "Flash Loan Callback Can Re-enter via callback() to Bypass Health Checks",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-01-init-capital-invitational_9zgh46k7/repo/contracts/core/InitCore.sol",
+   "line": 0,
+   "function": "flash"
+  },
+  "description": "The `flash()` function calls `IFlashReceiver(msg.sender).flashCallback()` while holding the `nonReentrant` lock, preventing direct re-entry into `flash()`. However, the `callback()` function lacks a `nonReentrant` modifier. During the flash callback, `msg.sender` (the flash receiver) can call `InitCore.callback()` which in turn calls an arbitrary external contract. That external contract can then call back into `InitCore` state-changing functions. Since `callback()` doesn't acquire the reentrancy lock, and the flash receiver is msg.sender in the flash context but the callback caller is whoever calls callback(), this creates a cross-function reentrancy vector.",
+  "message": "A malicious flash loan receiver could chain calls through callback() to manipulate position state, execute borrows against undercollateralized positions, or manipulate the uncheckedPosIds set during a multicall context.",
+  "recommendation": "Add `nonReentrant` to `callback()` to prevent it from being called during an active flash loan or other nonReentrant call. This closes the cross-function reentrancy path.",
+  "exploit_scenario": "1. Attacker calls multicall([borrow_calldata, flash_calldata])\n2. isMulticallTx = true, health checks deferred\n3. borrow() executes, position becomes undercollateralized, posId added to uncheckedPosIds\n4. flash() executes, calls attacker's flashCallback()\n5. In flashCallback, attacker calls callback(maliciousContract, 0, data)\n6. maliciousContract.coreCallback() manipulates state (e.g., removes collateral from another position)\n7. Flash repaid, multicall ends, only original posId checked\n8. Other manipulated positions not in uncheckedPosIds escape health checks",
+  "swc_id": "",
+  "file": "InitCore.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Multicall Health Check Bypass: Position Added to uncheckedPosIds But Never Removed if Exception Occurs",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-01-init-capital-invitational_9zgh46k7/repo/contracts/core/InitCore.sol",
+   "line": 0,
+   "function": "multicall"
+  },
+  "description": "The `multicall()` function sets `isMulticallTx = true` and collects position IDs in `uncheckedPosIds` for deferred health checking. If any sub-call in `super.multicall(data)` reverts, the entire transaction reverts, correctly cleaning up state. However, the `isMulticallTx` flag and `uncheckedPosIds` are storage variables. If `multicall()` itself is called reentrantly (e.g., through the `callback()` function which lacks nonReentrant), or if there's a partial failure scenario, the `uncheckedPosIds` set could be left in a dirty state. More critically: the check `_require(!isMulticallTx, Errors.LOCKED_MULTICALL)` prevents nested multicalls, but `callback()` has no such check, allowing external code to manipulate positions during a multicall without those positions being added to `uncheckedPosIds`.",
+  "message": "Positions manipulated through the `callback()` path during a multicall are not tracked in `uncheckedPosIds` and therefore bypass the end-of-multicall health check. An attacker could open a position, add collateral, borrow maximum, then use callback() to remove collateral - the borrow position's health would not be checked.",
+  "recommendation": "Add `nonReentrant` to `callback()` to prevent state manipulation during multicall execution. Consider also adding `_require(!isMulticallTx, Errors.LOCKED_MULTICALL)` to `callback()` to completely isolate the multicall context.",
+  "exploit_scenario": "1. Attacker calls multicall([createPos, collateralize, borrow, callback_to_decollateralize])\n2. isMulticallTx = true\n3. createPos, collateralize, borrow execute normally, posId added to uncheckedPosIds\n4. callback() is called (no nonReentrant, no isMulticallTx check for callback itself)\n5. callback invokes external contract which calls decollateralize() on the position\n6. decollateralize has ensurePositionHealth which adds posId to uncheckedPosIds (already there)\n7. But the decollateralize also removes collateral, making position unhealthy\n8. End of multicall: posId IS checked... wait, it would catch this\nActual impact: The real issue is positions manipulated WITHOUT going through ensurePositionHealth modifier (via direct callback manipulation of PosManager if authorized)",
+  "swc_id": "",
+  "file": "InitCore.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "liquidate() and liquidateWLp() Allow Full Collateral Seizure on Underwater Positions Without Proportionality Check",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-01-init-capital-invitational_9zgh46k7/repo/contracts/core/InitCore.sol",
+   "line": 0,
+   "function": "liquidate"
+  },
+  "description": "When a position is fully underwater (health_e18 == 0), the `_ensurePosHealthAfterLiq` check is bypassed via `if (vars.health_e18 != 0)`. This means there's no upper bound on how much collateral a liquidator can seize relative to what they repay. While `shares` is capped at available collateral via `.min()`, and `_repayShares` is capped at actual debt, a liquidator can still seize ALL available collateral in a single `liquidateWLp` call by specifying max `_repayShares` and a `_tokenId` whose collateral covers more than the debt. For `liquidate()`, the shares calculation uses oracle prices, so with oracle manipulation or stale prices, a liquidator could seize disproportionate collateral.",
+  "message": "In underwater positions, liquidators can seize all collateral by repaying only a fraction of debt (the min of their specified shares vs actual debt shares). This is a valid design choice for bad debt but combined with oracle manipulation, it could be exploited against positions that shouldn't be underwater.",
+  "recommendation": "Oracle manipulation protection is the primary defense. For the liquidation path, consider requiring a minimum health threshold before allowing the bypass of post-liquidation health check, or require a time-weighted average price. At minimum, document that oracle security is critical to liquidation fairness.",
+  "exploit_scenario": "1. Attacker manipulates oracle to temporarily deflate collateral price\n2. Position health_e18 drops to 0 (fully underwater per oracle)\n3. Attacker calls liquidateWLp with _repayShares = 1 (tiny repayment) and _minlpOut = 0\n4. health_e18 == 0, so _ensurePosHealthAfterLiq is skipped\n5. wLpAmtToBurn is calculated as min(tiny_value, all_available_wlp) = tiny\n6. But attacker can call multiple times to drain all collateral\n7. Oracle price returns to normal - position was not actually underwater, victim lost all collateral",
+  "swc_id": "",
+  "file": "InitCore.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "access_control",
+  "title": "repay() Allows Repayment for Any posId Without Checking Position Ownership Properly",
+  "severity": "Medium",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-01-init-capital-invitational_9zgh46k7/repo/contracts/core/InitCore.sol",
+   "line": 0,
+   "function": "repay"
+  },
+  "description": "The `repay()` function has `onlyAuthorized(_posId)` modifier, which checks that `msg.sender` is authorized for the position. This seems correct. However, in `_repay()`, the function takes tokens from `msg.sender` and repays debt on `_posId`. The `_repay()` function is also called internally from `_liquidateInternal()` without the `onlyAuthorized` check - liquidators can repay any position's debt (which is intentional). The issue is that `_repay()` doesn't validate that `_pool` is a valid pool in the position's mode - it only checks `canRepay`. A malicious authorized user could repay debt on a pool that is no longer in the mode (mode was changed), potentially corrupting the mode debt accounting.",
+  "message": "If a pool is removed from a mode's allowed borrow list after a position has borrowed from it, the position owner could still call repay() on that pool. The `_repay` function only checks `poolConfig.canRepay` and `modeStatus.canRepay` but not whether the pool is still in the mode. This could corrupt `riskManager` mode debt accounting.",
+  "recommendation": "Add a check in `_repay()` to verify that the pool is still valid for the mode, or ensure the risk manager handles this gracefully. Alternatively, document that pool removal from a mode should be done carefully with existing positions migrated first.",
+  "exploit_scenario": "1. Mode 1 allows borrowing from Pool A\n2. Position borrows from Pool A in Mode 1\n3. Governance removes Pool A from Mode 1's allowed borrow list\n4. Position owner calls repay(Pool A, shares, posId)\n5. _repay executes: checks canRepay (still true), takes tokens, reduces posId debt, calls riskManager.updateModeDebtShares(mode1, PoolA, -shares)\n6. riskManager mode debt becomes inconsistent (negative or wrong)\n7. This could allow other positions in Mode 1 to borrow more than the mode cap allows",
+  "swc_id": "",
+  "file": "InitCore.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "flash() Uses safeTransferFrom Instead of Direct Pool Transfer - Requires Infinite Approval",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-01-init-capital-invitational_9zgh46k7/repo/contracts/core/InitCore.sol",
+   "line": 0,
+   "function": "flash"
+  },
+  "description": "The `flash()` function executes `IERC20(token).safeTransferFrom(_pools[i], msg.sender, _amts[i])` to transfer tokens FROM the lending pool TO the flash loan receiver. This requires that the lending pool has pre-approved InitCore to spend its tokens. If this approval exists (it must for the protocol to function), then ANY caller of `flash()` can transfer tokens from ANY lending pool to themselves, as long as the pool has `canFlash = true`. The balance check after callback (`balanceBefores[i]`) only ensures the pool gets back at LEAST what it had. There is no fee enforcement - if flash fees should be charged (pool balance must increase), the current check only requires balance >= before, meaning 0 fees can be taken.",
+  "message": "If flash loans are intended to charge fees (pool balance should increase by fee amount after the loan), the current implementation allows zero-fee flash loans since the check is `>= balanceBefore` not `>= balanceBefore + fee`. This is a loss of protocol revenue. More critically, if InitCore has blanket approval from pools, a compromised or malicious pool config could allow draining of pool funds.",
+  "recommendation": "If flash loan fees are intended, change the balance check to `IERC20(tokens[i]).balanceOf(_pools[i]) >= balanceBefores[i] + flashFee` where flashFee is obtained from the pool config. Review whether the fee mechanism is implemented in the LendingPool.burn() path instead.",
+  "exploit_scenario": "1. Flash loan fee should be 0.1% per protocol design\n2. Attacker calls flash([pool], [1000e6], data)\n3. Receives 1000 USDC\n4. In callback, returns exactly 1000 USDC (no fee)\n5. Check passes: balance(pool) >= balanceBefore\n6. Attacker has paid 0 fees, extracting MEV/arbitrage profit without sharing with protocol",
+  "swc_id": "",
+  "file": "InitCore.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Global collateral balance tracker allows cross-position balance theft",
+  "severity": "Critical",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-01-init-capital-invitational_9zgh46k7/repo/contracts/core/PosManager.sol",
+   "line": 0,
+   "function": "addCollateral"
+  },
+  "description": "The contract uses a single global `__collBalances[_pool]` mapping to track token balances across ALL positions, using a balance-diff pattern (`amtIn = newBalance - __collBalances[_pool]`). This global tracker is shared across all positions for the same token. If tokens are sent directly to the contract (donation, accidental transfer, or via reward mechanisms), the entire surplus is attributed to the NEXT caller of `addCollateral` for that pool. Furthermore, `_harvest` in `removeCollateralWLpTo` transfers reward tokens to `address(this)` via `IBaseWrapLp(_wLp).harvest(_tokenId, address(this))`. If any reward token matches a collateral token (same address), the harvested amount increases the contract's balance without updating `__collBalances[_pool]`, meaning the next `addCollateral` call will capture those reward tokens as collateral \u2014 effectively stealing them from the position that should have received them as pending rewards.",
+  "message": "An attacker can steal collateral tokens from other positions by timing `addCollateral` calls after direct token donations or reward harvests that involve the same token. This breaks the collateral accounting invariant and can lead to positions being under-collateralized or tokens being claimed multiple times.",
+  "recommendation": "Use a per-position deposit tracking model instead of global balance-diff. When adding collateral, require an explicit `amount` parameter and use `safeTransferFrom` directly: `IERC20(_pool).safeTransferFrom(msg.sender, address(this), _amt)`. This eliminates the shared balance tracker vulnerability. If the balance-diff pattern must be kept, add a per-position balance snapshot or use a separate accounting struct that doesn't share state across positions.",
+  "exploit_scenario": "1. Alice has position A with 100 USDC collateral. `__collBalances[USDC]` = 100.\n2. Bob directly transfers 50 USDC to the PosManager contract.\n3. Bob calls `core.addCollateral(posB, USDC)` \u2014 `newBalance` = 150, `amtIn` = 150 - 100 = 50. Bob's position B gets 50 USDC collateral credited.\n4. `__collBalances[USDC]` = 150.\n5. Alice attempts to remove her 100 USDC \u2014 contract has 150 USDC, transfer succeeds, `__collBalances[USDC]` = 50.\n6. Now `__collBalances[USDC]` = 50 but no position accounts for it \u2014 the 50 USDC Bob deposited legitimately is now unclaimed/stuck.\n\nAlternative: If reward token == collateral token, after `_harvest` sends tokens to contract without updating `__collBalances`, next `addCollateral` captures them.",
+  "swc_id": "",
+  "file": "PosManager.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "reentrancy",
+  "title": "Reentrancy in removeCollateralWLpTo via external harvest and unwrap calls after partial state update",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-01-init-capital-invitational_9zgh46k7/repo/contracts/core/PosManager.sol",
+   "line": 0,
+   "function": "removeCollateralWLpTo"
+  },
+  "description": "In `removeCollateralWLpTo`, when `newWLpAmt == 0`, the contract updates `isCollateralized[_wLp][_tokenId] = false` and decrements `collCount`/`wLpCount` BEFORE calling `_harvest(_posId, _wLp, _tokenId)` and `IBaseWrapLp(_wLp).unwrap(_tokenId, _amt, _receiver)`. While `isCollateralized` is set to false (preventing re-collateralization), the `_harvest` call invokes `IBaseWrapLp(_wLp).harvest(_tokenId, address(this))` which is an external call that could trigger callbacks. The `unwrap` call then sends tokens to `_receiver` which could also trigger callbacks. During these callbacks, if the attacker re-enters `removeCollateralWLpTo` or `harvestTo`, since `ids[_wLp]` already has `_tokenId` removed, the `contains` check would fail \u2014 but if `newWLpAmt != 0` (partial removal), state is NOT updated before external calls, meaning `isCollateralized` remains true and `_tokenId` remains in the set during the `_harvest` and `unwrap` calls, enabling reentrancy to call `harvestTo` again.",
+  "message": "In the partial removal case (newWLpAmt != 0), an attacker controlling the wLp contract or the receiver can reenter `harvestTo` during the `unwrap` callback, harvesting rewards multiple times for the same position before the state is finalized.",
+  "recommendation": "Apply checks-effects-interactions strictly. Move ALL state updates before ANY external calls, including the partial removal case. Specifically, update `pendingRewards` accounting before calling `_harvest` and `unwrap`. Consider adding a reentrancy guard (OpenZeppelin's `ReentrancyGuardUpgradeable`) to all state-changing public/external functions.",
+  "exploit_scenario": "1. Attacker has position with malicious wLp token where `unwrap` calls back to attacker contract.\n2. Attacker calls `core.removeCollateralWLpTo(posId, maliciousWLp, tokenId, partialAmt, attackerContract)` with partial amount (newWLpAmt > 0).\n3. State NOT updated (isCollateralized still true, tokenId still in ids set).\n4. `_harvest` is called \u2014 harvests rewards.\n5. `unwrap` is called with `_receiver = attackerContract`.\n6. `attackerContract.onERC721Received` or token receive callback calls `harvestTo(posId, maliciousWLp, tokenId, attacker)` \u2014 since `ids[wLp].contains(tokenId)` is still true and position owner is authorized, this succeeds, harvesting rewards again.\n7. Double (or multiple) reward collection.",
+  "swc_id": "",
+  "file": "PosManager.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Collateral balance accounting broken when reward token equals collateral token",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-01-init-capital-invitational_9zgh46k7/repo/contracts/core/PosManager.sol",
+   "line": 0,
+   "function": "_harvest / removeCollateralWLpTo"
+  },
+  "description": "The `_harvest` function calls `IBaseWrapLp(_wlp).harvest(_tokenId, address(this))` which transfers reward tokens directly to the PosManager contract, and then increments `pendingRewards[_posId][token]`. However, if a reward token is the same address as a pool token used as collateral in ANY position, the harvested amount increases `IERC20(token).balanceOf(address(this))` without updating `__collBalances[token]`. The next call to `addCollateral(anyPosId, token)` will compute `amtIn = newBalance - __collBalances[token]`, which now includes the harvested reward amount, attributing it as new collateral to whatever position calls `addCollateral` next. This means: (1) the original position's `pendingRewards` is credited correctly, but (2) the same tokens are ALSO credited as collateral to another position \u2014 the tokens are double-counted.",
+  "message": "Double accounting of tokens: reward tokens harvested to the contract are both credited as `pendingRewards` for the harvesting position AND as collateral for the next position that calls `addCollateral` with the same token. This inflates collateral values and allows borrowing against phantom collateral, leading to protocol insolvency.",
+  "recommendation": "When harvesting rewards to the contract address, exclude tokens that are also tracked in `__collBalances`. Either: (1) route rewards through a separate accounting contract, (2) update `__collBalances[token]` when tokens are received as rewards, or (3) use `safeTransferFrom` with explicit amounts for collateral deposits instead of the balance-diff pattern.",
+  "exploit_scenario": "1. Token X is used both as a lending pool collateral token and as a reward token for wLp positions.\n2. `__collBalances[X]` = 1000 (tracking existing collateral).\n3. `removeCollateralWLpTo` is called, triggering `_harvest` which earns 100 X tokens sent to contract.\n4. `pendingRewards[posId][X]` += 100. Contract balance of X is now 1100.\n5. `__collBalances[X]` is still 1000 (not updated).\n6. Attacker calls `core.addCollateral(attackerPosId, X)` \u2014 `amtIn` = 1100 - 1000 = 100. Attacker gets 100 X as collateral without depositing anything.\n7. `pendingRewards` still shows 100 X claimable. Both the attacker's collateral position AND the pending reward are backed by the same 100 tokens.",
+  "swc_id": "",
+  "file": "PosManager.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "posId generated via keccak256 of owner+nonce can collide with existing ERC721 token",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-01-init-capital-invitational_9zgh46k7/repo/contracts/core/PosManager.sol",
+   "line": 0,
+   "function": "createPos"
+  },
+  "description": "The `createPos` function generates `posId = uint(keccak256(abi.encodePacked(_owner, nonce)))`. The `_mint` function in ERC721 will revert if the tokenId already exists. However, since posIds are 256-bit keccak hashes of owner+nonce, there is no validation that the generated posId doesn't conflict with a posId from a DIFFERENT owner. Although birthday-paradox collision is statistically negligible for random values, a more concerning issue is: the posId space is the same as the full uint256 space, and a malicious core contract (since `createPos` is `onlyCore`) could theoretically request position creation for a specific owner/nonce combination that produces a posId matching a victim's existing position \u2014 causing `_mint` to revert (DoS) or, more critically, if the ERC721 implementation has any edge cases around tokenId=0 or specific values.",
+  "message": "While direct hash collision is statistically improbable, the deterministic nature of posId generation means that if `core` is compromised or upgraded maliciously, it could predict and manipulate posId generation. More practically, a user can predict their own future posIds, which while not directly exploitable here, creates MEV opportunities if other contracts use posId for access control.",
+  "recommendation": "Use a monotonically incrementing counter for posId generation instead of keccak256: `posId = ++totalPositions`. This is simpler, avoids any collision concerns, and is standard practice for NFT-based position managers.",
+  "exploit_scenario": "1. Attacker monitors mempool for `createPos` transactions.\n2. Since posId is deterministic from owner+nonce, attacker can predict the next posId for any user.\n3. If any protocol component grants permissions based on posId prediction, attacker front-runs to manipulate state before the position is officially created.",
+  "swc_id": "",
+  "file": "PosManager.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "msg.value Double-Spending Across Multiple Handlers",
+  "severity": "Critical",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-01-init-capital-invitational_9zgh46k7/repo/contracts/hook/MoneyMarketHook.sol",
+   "line": 0,
+   "function": "_handleRepay / _handleDeposit"
+  },
+  "description": "The contract uses msg.value in both _handleRepay and _handleDeposit when the underlying token is WNATIVE. In _handleRepay, if uToken == WNATIVE and msg.value != 0, it calls IWNative(WNATIVE).deposit{value: msg.value}() and then reduces repayAmt by msg.value. In _handleDeposit, if uToken == WNATIVE and msg.value != 0, it again calls IWNative(WNATIVE).deposit{value: msg.value}() and transfers msg.value to the pool. Since msg.value is fixed for the entire transaction, using it in both handlers leads to incorrect accounting. The first deposit consumes all ETH (since ETH is non-fungible within a tx from msg.value perspective), and the second deposit call will fail or use ETH that isn't there. Additionally, the repayAmt reduction logic assumes msg.value covers part of the repay, but when depositParams also consume msg.value, the repay may be underfunded.",
+  "message": "Users attempting to both repay and deposit native tokens in the same transaction will have the operation revert or experience incorrect fund accounting, potentially losing ETH or having positions incorrectly updated. An attacker could craft parameters to cause inconsistent state.",
+  "recommendation": "Track ETH usage with a local variable: uint remainingValue = msg.value; Pass this through the handlers and decrement it as ETH is used. Only the first handler should consume msg.value. Example: introduce a `uint remainingNative` parameter threaded through _handleRepay and _handleDeposit, decrementing after each use and reverting if it goes below zero.",
+  "exploit_scenario": "1. Attacker calls execute() with msg.value = 1 ETH\n2. repayParams contains 1 entry with WNATIVE pool\n3. depositParams contains 1 entry with WNATIVE pool\n4. In _handleRepay: IWNative.deposit{value: 1 ETH}() is called - ETH is consumed\n5. repayAmt reduced by 1 ETH (so user transfers less from wallet)\n6. In _handleDeposit: IWNative.deposit{value: msg.value}() attempts again - but msg.value is still 1 ETH in Solidity (it doesn't change), so it tries to deposit 1 ETH again\n7. The contract has already spent the 1 ETH on step 4, so step 6 fails with insufficient balance\n8. Alternatively if contract has leftover ETH, it gets double-spent",
+  "swc_id": "",
+  "file": "MoneyMarketHook.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "returnNative Steals All Contract WNATIVE Balance",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-01-init-capital-invitational_9zgh46k7/repo/contracts/hook/MoneyMarketHook.sol",
+   "line": 0,
+   "function": "execute"
+  },
+  "description": "When _params.returnNative is true, the contract withdraws ALL WNATIVE held by the contract (not just the amount belonging to the current user) and sends all native ETH balance to msg.sender. The code does: wNativeBal = IERC20(WNATIVE).balanceOf(address(this)); IWNative(WNATIVE).withdraw(wNativeBal); then sends address(this).balance to msg.sender. If any WNATIVE was sent to this contract by other means (donations, stuck funds from previous failed operations, or in a scenario where the contract holds WNATIVE temporarily), the current caller would steal those funds.",
+  "message": "An attacker can steal any WNATIVE or native ETH that is held by the contract. If another user's transaction left WNATIVE in the contract, the next caller with returnNative=true gets it all. This could also be used to drain the contract by front-running legitimate deposits.",
+  "recommendation": "Track the amount of WNATIVE received during the current operation (before and after balance) rather than using the entire contract balance. Only return the delta. Example: record wNativeBalBefore before multicall, after multicall compute delta = balanceAfter - balanceBefore, only unwrap and return delta amount.",
+  "exploit_scenario": "1. User A calls execute() with a deposit of WNATIVE but the multicall fails partway through, leaving WNATIVE in the contract\n2. User B calls execute() with returnNative=true and withdrawParams that return some small amount\n3. Step at the end: wNativeBal = IERC20(WNATIVE).balanceOf(address(this)) includes User A's stuck WNATIVE\n4. All WNATIVE (User A's + User B's) is unwrapped and sent to User B\n5. User B steals User A's funds",
+  "swc_id": "",
+  "file": "MoneyMarketHook.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "access_control",
+  "title": "Unrestricted createPos Allows Position ID Squatting",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-01-init-capital-invitational_9zgh46k7/repo/contracts/hook/MoneyMarketHook.sol",
+   "line": 0,
+   "function": "createPos"
+  },
+  "description": "The createPos() function is marked public and can be called by anyone directly (not just through execute()). Each call increments lastPosIds[msg.sender] and creates a new position in the protocol. While this doesn't immediately steal funds, an attacker can call createPos() repeatedly for a victim's address \u2014 wait, no: msg.sender is the key, so they can only spam their OWN positions. However, the real issue is: an attacker can call createPos() on behalf of themselves with arbitrary _mode and _viewer parameters without any restriction, bypassing any intended flow in execute(). More critically, if this is called directly, the NFT is minted to this contract (since IInitCore.createPos mints to the caller = this contract), and the mapping initPosIds[msg.sender][posId] is set. The caller can then call execute() with posId to operate on it. This is actually the intended flow. However, if createPos() can be called with mode=0 or invalid modes, it may create positions in invalid states.",
+  "message": "Low direct impact, but allows bypassing the execute() flow. Primarily a design concern - any user can create positions with arbitrary modes and viewers. If the protocol has restrictions on mode creation that should only be enforced through execute(), they are bypassed here.",
+  "recommendation": "Consider making createPos() internal, or adding access control so it can only be called by execute() or authorized addresses. If public access is intended, add validation on _mode parameter.",
+  "exploit_scenario": "1. Attacker calls createPos(invalidMode, address(0)) directly\n2. Position is created in protocol with potentially invalid/dangerous mode\n3. Attacker can then interact with this position through execute() with posId",
+  "swc_id": "",
+  "file": "MoneyMarketHook.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Division by Zero in getPendingRewards when lpSupply is Zero",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-01-init-capital-invitational_9zgh46k7/repo/contracts/wrapper/WLpMoeMasterChef.sol",
+   "line": 0,
+   "function": "getPendingRewards"
+  },
+  "description": "In `getPendingRewards()`, if `lpSupply` (total LP deposited in the pool) is 0, the calculation `moeRewards[0] * ONE_E18 / lpSupply` and `extraRewards[0] * ONE_E18 / lpSupply` will cause a division-by-zero revert. This can happen if the pool has no deposits or all positions have been unwrapped.",
+  "message": "Any call to `getPendingRewards` when `lpSupply == 0` reverts, breaking view functionality and any integrators or front-end relying on this function.",
+  "recommendation": "Add a guard: `if (lpSupply == 0) { return (tokens, new uint[](tokens.length)); }` before the reward calculation loop.",
+  "exploit_scenario": "1. Deploy contract. 2. Wrap some LP tokens (creating a position). 3. Unwrap all LP tokens, reducing total deposit to 0. 4. Call `getPendingRewards(_id)` \u2014 reverts with division by zero.",
+  "swc_id": "",
+  "file": "WLpMoeMasterChef.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "safeApprove Non-Zero to Non-Zero Revert Blocks wrap() for Reused LP Tokens",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-01-init-capital-invitational_9zgh46k7/repo/contracts/wrapper/WLpMoeMasterChef.sol",
+   "line": 0,
+   "function": "wrap"
+  },
+  "description": "The `wrap()` function calls `IERC20(_lp).safeApprove(MASTER_CHEF, _amt)` without first resetting the allowance to 0. OpenZeppelin's `safeApprove` reverts if the current allowance is non-zero and the new value is also non-zero. After a `deposit` call to MasterChef, if MasterChef does not consume the full approved amount (or for tokens like USDT that enforce zero-first), the next `wrap()` call for the same LP token will revert.",
+  "message": "The `wrap()` function becomes permanently unusable for a given LP token after the first call if any allowance residue remains, effectively bricking the wrapping functionality and trapping the protocol.",
+  "recommendation": "Replace `IERC20(_lp).safeApprove(MASTER_CHEF, _amt)` with a pattern that resets first: `IERC20(_lp).safeApprove(MASTER_CHEF, 0); IERC20(_lp).safeApprove(MASTER_CHEF, _amt);` or use `safeIncreaseAllowance`.",
+  "exploit_scenario": "1. Call `wrap()` with LP token X, amount 100. MasterChef deposits 100 but uses only 99 allowance (unlikely but possible, or the token reverts on non-zero approval). 2. Call `wrap()` again with LP token X, amount 50. `safeApprove(MASTER_CHEF, 50)` reverts because current allowance != 0.",
+  "swc_id": "",
+  "file": "WLpMoeMasterChef.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "NFT Not Burned After Full Unwrap Creates Ghost Positions",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-01-init-capital-invitational_9zgh46k7/repo/contracts/wrapper/WLpMoeMasterChef.sol",
+   "line": 0,
+   "function": "unwrap"
+  },
+  "description": "When `unwrap()` is called with `_amt` equal to the full `__lpBalances[_id]`, the NFT is NOT burned. The position continues to exist with `__lpBalances[_id] == 0`. The NFT owner can call `harvest()` repeatedly (which will return zero amounts but still call `_claimFromMasterChef` causing unnecessary gas waste and state changes). More critically, if rewards continue to accumulate in `pidAccRewardPerShares_e18`, the ghost position could accumulate reward debt without corresponding LP, and if `__lpBalances[_id]` is 0, the reward formula `(accReward - idAcc) * 0 / ONE_E18` would yield 0, so no actual theft. However, the ghost NFT can be transferred and sold, deceiving buyers into purchasing a worthless position.",
+  "message": "Ghost NFTs can be traded on secondary markets deceiving buyers. Additionally, calling `harvest()` on zero-balance positions wastes gas and performs unnecessary external calls to MasterChef.",
+  "recommendation": "In `unwrap()`, if `__lpBalances[_id] == 0` after the update, burn the NFT: `if (__lpBalances[_id] == 0) _burn(_id);`",
+  "exploit_scenario": "1. Call `wrap()` to create position with ID 1, depositing 100 LP tokens. 2. Call `unwrap(1, 100, attacker)` to withdraw all LP. 3. Position 1 NFT still exists with `__lpBalances[1] == 0`. 4. List NFT for sale on marketplace. Buyer purchases thinking it holds LP tokens.",
+  "swc_id": "",
+  "file": "WLpMoeMasterChef.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "reentrancy",
+  "title": "Reentrancy Risk: ERC721 safeMint Callback in wrap() After State Setup",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-01-init-capital-invitational_9zgh46k7/repo/contracts/wrapper/WLpMoeMasterChef.sol",
+   "line": 0,
+   "function": "wrap"
+  },
+  "description": "In `wrap()`, `_mint(_to, id)` is called after all state is set (LP deposited, `__lpBalances`, `pids`, `lps`, `idAccRewardPerShares_e18` configured). If `_to` is a contract, OpenZeppelin's `_mint` (which calls `_safeMint` internally if using the safe variant \u2014 however standard `_mint` does NOT call `onERC721Received`). Wait \u2014 ERC721Upgradeable's `_mint` does NOT trigger `onERC721Received`. So this is not a reentrancy vector via `_mint`. However, the `safeTransferFrom` of LP tokens at the top of `wrap()` could trigger a callback if `msg.sender` is a malicious ERC777-like token \u2014 but LP tokens are standard ERC20. This is lower risk than initially assessed but still worth noting for `_safeMint` usage patterns.",
+  "message": "If `_safeMint` were used instead of `_mint`, a malicious `_to` contract could reenter during NFT minting. Current use of `_mint` mitigates this but the pattern is fragile if changed.",
+  "recommendation": "Document that `_mint` is intentionally used (not `_safeMint`) to prevent reentrancy, and add a nonReentrant guard to `wrap()`, `unwrap()`, and `harvest()` for defense in depth.",
+  "exploit_scenario": "Currently low risk with `_mint`. Would become critical if changed to `_safeMint`.",
+  "swc_id": "",
+  "file": "WLpMoeMasterChef.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Reward Accounting Broken When Extra Rewarder Token Changes",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-01-init-capital-invitational_9zgh46k7/repo/contracts/wrapper/WLpMoeMasterChef.sol",
+   "line": 0,
+   "function": "updateRewards"
+  },
+  "description": "The `updateRewards` modifier adds the current `extraRewardToken` to `__rewardTokens[_pid]` but never removes old tokens if the extra rewarder or its token changes. If MasterChef updates the extra rewarder to a different token, the old token remains in `__rewardTokens[_pid]`. When `_transferRewards` is called, it iterates over all tokens including the old one. The `pidAccRewardPerShares_e18[pid][oldToken]` will still exist, and the formula `(pidAcc - idAcc) * balance / 1e18` could attempt to transfer tokens that the contract no longer receives, potentially reverting if the contract has insufficient balance of the old token. Conversely, rewards for the new token won't be properly tracked until the first interaction after the change.",
+  "message": "Reward distribution can become permanently broken for a pool if the extra rewarder changes. Users may be unable to harvest or unwrap their positions.",
+  "recommendation": "Track the extra rewarder address and token per pool. When the rewarder changes, finalize rewards for the old token before adding the new one. Implement a mechanism to handle rewarder changes gracefully.",
+  "exploit_scenario": "1. Pool uses ExtraRewarder A distributing TokenA. Users wrap LP, accumulate TokenA rewards. 2. MasterChef updates ExtraRewarder to B distributing TokenB. 3. New user calls `wrap()` \u2014 `updateRewards` adds TokenB to set but TokenA remains. 4. `_transferRewards` tries to transfer both TokenA and TokenB. If contract has no TokenA balance, transfer reverts, blocking unwrap.",
+  "swc_id": "",
+  "file": "WLpMoeMasterChef.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Interest Accrual Division by Zero / Incorrect Accounting When totalDebt is Zero",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-01-init-capital-invitational_9zgh46k7/repo/contracts/lending_pool/LendingPool.sol",
+   "line": 0,
+   "function": "accrueInterest"
+  },
+  "description": "In accrueInterest(), when reserve > 0 is minted to treasury, the shares calculation uses _toShares(reserve, _cash + _totalDebt + accruedInterest - reserve, totalSupply()). If totalSupply() is 0 (no depositors yet) but there is totalDebt (borrowed before any mint), the share calculation could produce 0 shares but still call _mint(treasury, 0). More critically, the _toShares denominator uses _cash + _totalDebt + accruedInterest - reserve which assumes accruedInterest >= reserve. Since reserve = accruedInterest * reserveFactor_e18 / 1e18 and reserveFactor_e18 <= 1e18, reserve <= accruedInterest always. However, if reserveFactor_e18 == 1e18 (100%), then reserve == accruedInterest, and the denominator becomes _cash + _totalDebt, which is the pre-accrual state \u2014 this is mathematically correct but the minted treasury shares would inflate share price with no corresponding asset backing since totalDebt is updated AFTER the mint.",
+  "message": "Incorrect share price calculation when minting treasury reserve shares, potentially diluting existing depositors or creating accounting inconsistencies.",
+  "recommendation": "Restructure accrueInterest to update totalDebt first before computing shares, or compute the reserve mint after updating totalDebt: uint newTotalDebt = _totalDebt + accruedInterest; if (reserve > 0) { _mint(treasury, _toShares(reserve, _cash + newTotalDebt - reserve, totalSupply())); } totalDebt = newTotalDebt;",
+  "exploit_scenario": "1. Pool has depositors (totalSupply > 0), cash=100, totalDebt=100. 2. Time passes, accruedInterest=10, reserve=5 (50% reserve factor). 3. _toShares(5, 100+100+10-5, totalSupply) = _toShares(5, 205, totalSupply). 4. _mint(treasury, shares) increases totalSupply. 5. Then totalDebt = 110 is set. The totalAssets() is now cash + totalDebt = 100 + 110 = 210, but the shares were computed against 205. This is a slight discrepancy but the treasury receives slightly fewer shares than expected.",
+  "swc_id": "",
+  "file": "LendingPool.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "access_control",
+  "title": "Unchecked IRM Return Value Enables Malicious/Broken IRM to Set Unbounded Borrow Rate",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-01-init-capital-invitational_9zgh46k7/repo/contracts/lending_pool/LendingPool.sol",
+   "line": 0,
+   "function": "setIrm / accrueInterest"
+  },
+  "description": "The setIrm() function allows a guardian to set any address as the interest rate model with no validation. The IRM's getBorrowRate_e18() return value is used without any upper bound check in accrueInterest(). A malicious or buggy IRM could return an astronomically high borrow rate (e.g., type(uint).max / (block.timestamp - lastAccruedTime) / totalDebt), causing accruedInterest to overflow or become so large that it: (1) causes totalDebt to overflow, (2) causes the reserve mint to dilute all depositors, or (3) makes borrowers' debt immediately unpayable. Even without overflow (Solidity 0.8+ reverts on overflow), a very high rate would trap all borrowers.",
+  "message": "Guardian (or compromised guardian key) can set a malicious IRM that either causes DoS via overflow revert in accrueInterest() on every call, or sets an astronomically high interest rate that makes all borrower positions instantly insolvent.",
+  "recommendation": "Add a maximum borrow rate cap check in accrueInterest(): require(borrowRate_e18 <= MAX_BORROW_RATE, 'Rate too high'). Also consider adding a timelock for setIrm() changes and validating that the new IRM returns a sane value before accepting it.",
+  "exploit_scenario": "1. Guardian calls setIrm(maliciousIRM). 2. maliciousIRM.getBorrowRate_e18() returns type(uint).max. 3. Next call to accrueInterest(): accruedInterest = (type(uint).max * timeDelta * totalDebt) / 1e18 overflows and reverts. 4. Since accrue modifier is on ALL state-changing functions, the entire pool is bricked \u2014 no mints, burns, borrows, or repays possible.",
+  "swc_id": "",
+  "file": "LendingPool.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "First Depositor Share Price Manipulation Despite Virtual Shares",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-01-init-capital-invitational_9zgh46k7/repo/contracts/lending_pool/LendingPool.sol",
+   "line": 0,
+   "function": "mint / borrow"
+  },
+  "description": "The virtual shares mechanism (VIRTUAL_SHARES = 10^8, VIRTUAL_ASSETS = 1) mitigates classic inflation attacks for depositors, but there is a different attack vector specific to this pool's architecture. An attacker can manipulate the share price by directly calling borrow() (via core) before any deposits. When totalDebt > 0 but totalSupply == 0, the first depositor's shares are computed as: _toShares(amt, cash + totalDebt, 0) = amt * (0 + VIRTUAL_SHARES) / (cash + totalDebt + VIRTUAL_ASSETS). If an attacker can borrow funds (increasing totalDebt without increasing cash), they inflate totalAssets() while keeping totalSupply at 0, making the first depositor receive fewer shares. However, this requires going through core, so the direct risk depends on core's access controls. More critically, if tokens are directly sent to the contract (donation), cash is not updated until the next mint() call, creating a gap between actual balance and tracked cash.",
+  "message": "If an attacker can donate tokens directly to the contract before mint() is called to update cash, they can inflate the share price. The difference (newCash - cash) would be captured as value for existing shareholders rather than the donor, but the gap between true balance and cash could cause mint() to revert if someone donated a very large amount causing overflow concerns.",
+  "recommendation": "The virtual shares mechanism is correctly implemented and the direct donation risk is relatively low. However, add a check in mint() that verifies the pool hasn't been manipulated by comparing expected vs actual balances with a reasonable bound.",
+  "exploit_scenario": "1. Attacker sends 1000e18 tokens directly to LendingPool contract (bypassing mint). 2. cash remains at old value, but IERC20(underlyingToken).balanceOf(address(this)) is now much higher. 3. Next user calls mint() via core: amt = newCash - _cash = inflated amount. 4. This correctly captures the donated tokens for the depositor, but if cash tracking is wrong in any edge case, accounting breaks.",
+  "swc_id": "",
+  "file": "LendingPool.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "access_control",
+  "title": "Missing Validation in initialize() - Zero Address and Parameter Checks",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-01-init-capital-invitational_9zgh46k7/repo/contracts/lending_pool/LendingPool.sol",
+   "line": 0,
+   "function": "initialize"
+  },
+  "description": "The initialize() function sets critical parameters (underlyingToken, irm, treasury, reserveFactor_e18) without any validation. Specifically: (1) underlyingToken can be address(0), causing all subsequent ERC20 calls to revert or behave unexpectedly. (2) irm can be address(0), causing accrueInterest() to revert on every call, bricking the entire pool since the accrue modifier is on all state-changing functions. (3) treasury can be address(0), causing reserve fees to be burned. (4) reserveFactor_e18 has no upper bound check (unlike setReserveFactor_e18 which checks <= ONE_E18), allowing reserveFactor_e18 > 1e18 which would cause reserve > accruedInterest, making the denominator in _toShares underflow (since accruedInterest - reserve would underflow in Solidity 0.8+).",
+  "message": "If initialize() is called with reserveFactor_e18 > 1e18, accrueInterest() will always revert due to arithmetic underflow in: _toShares(reserve, _cash + _totalDebt + accruedInterest - reserve, ...) when reserve > accruedInterest. This permanently bricks the pool. If irm is address(0), same bricking effect.",
+  "recommendation": "Add validation in initialize(): require(_underlyingToken != address(0)); require(_irm != address(0)); require(_treasury != address(0)); require(_reserveFactor_e18 <= ONE_E18, 'Reserve factor too high');",
+  "exploit_scenario": "1. initialize() called with _reserveFactor_e18 = 2e18 (200%). 2. Interest accrues: accruedInterest = 10, reserve = 10 * 2e18 / 1e18 = 20. 3. accrueInterest() computes _toShares(20, cash + totalDebt + 10 - 20, ...) \u2192 underflow revert. 4. All state-changing functions are bricked permanently.",
+  "swc_id": "",
+  "file": "LendingPool.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "reentrancy",
+  "title": "Reentrancy Risk in burn() via ERC20 safeTransfer Callback",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-01-init-capital-invitational_9zgh46k7/repo/contracts/lending_pool/LendingPool.sol",
+   "line": 0,
+   "function": "burn"
+  },
+  "description": "In burn(), the sequence is: (1) compute amt, (2) update cash = _cash - amt, (3) _burn shares, (4) safeTransfer tokens to receiver. For standard ERC20 tokens this is safe (CEI pattern is followed). However, if underlyingToken is a non-standard ERC20 with transfer hooks (ERC777 or similar tokens with callbacks on transfer), the tokensReceived hook in step 4 could reenter the contract. During reentry, cash has already been updated but since accrueInterest() uses block.timestamp == lastAccruedTime check, it won't re-accrue. A reentering attacker calling burn() again would see the updated cash value, which is correct. However, if the attacker calls mint() during the reentrant call, the balanceOf check would see new tokens already transferred out, and IERC20(underlyingToken).balanceOf(address(this)) would be lower, potentially causing newCash - _cash to be negative (revert) or zero. The primary concern is with rebasing tokens where balanceOf can change unexpectedly.",
+  "message": "For ERC777 tokens used as underlyingToken, a malicious receiver could reenter and cause state inconsistencies. The severity depends on the token type used.",
+  "recommendation": "Add a reentrancy guard (OpenZeppelin's ReentrancyGuardUpgradeable) to all state-changing external functions, or ensure the contract's architecture explicitly documents and enforces which token types are safe to use as underlyingToken.",
+  "exploit_scenario": "1. underlyingToken is ERC777. 2. Attacker calls core's burn function targeting their address. 3. During safeTransfer, tokensReceived hook calls back into borrow(). 4. At this point, cash has been decremented but totalDebt has not been updated. 5. The borrow() can proceed with the stale state.",
+  "swc_id": "",
+  "file": "LendingPool.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "repay() Does Not Enforce Minimum Repayment - Rounding Can Prevent Full Debt Clearance",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-01-init-capital-invitational_9zgh46k7/repo/contracts/lending_pool/LendingPool.sol",
+   "line": 0,
+   "function": "repay"
+  },
+  "description": "In repay(), when _shares == totalDebtShares (full repayment), amt = _shares.mulDiv(totalDebt, totalDebtShares, Rounding.Up) should equal totalDebt exactly. However, due to mulDiv rounding up, the computed amt could be totalDebt + 1 (dust). The check `amt <= IERC20(underlyingToken).balanceOf(address(this)) - cash` would require the extra dust token to be present. After the repayment: totalDebt = _totalDebt > amt ? _totalDebt - amt : 0 correctly handles this with the ternary. But if totalDebtShares = 0 after repayment while totalDebt might still be non-zero due to rounding (though the ternary prevents negative), and cash is updated correctly, then subsequent borrows with totalDebt == 0 use `_amt` as shares directly. This creates a potential accounting reset issue.",
+  "message": "In edge cases with rounding, the protocol may require slightly more tokens than the exact debt to fully repay, potentially trapping dust amounts in the debt ledger. Additionally, if totalDebtShares reaches 0 but totalDebt is non-zero (though the ternary prevents this), the debtAmtToShareStored function returns _amt directly which resets the share price.",
+  "recommendation": "Add special handling for full repayment: if (_shares == totalDebtShares) { amt = totalDebt; } else { amt = _shares.mulDiv(totalDebt, totalDebtShares, Rounding.Up); }. This ensures full debt clearance is always possible.",
+  "exploit_scenario": "1. totalDebt = 1000001, totalDebtShares = 1000000. 2. Borrower tries to repay their 1000000 shares. 3. amt = 1000000 * 1000001 / 1000000 rounded up = 1000002. 4. Borrower needs 2 extra tokens beyond their share of the debt to repay. 5. If they only have 1000001 tokens (their exact debt), repay() reverts.",
+  "swc_id": "",
+  "file": "LendingPool.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "borrow() When totalDebt == 0 Sets shares = _amt Without Scaling",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-01-init-capital-invitational_9zgh46k7/repo/contracts/lending_pool/LendingPool.sol",
+   "line": 0,
+   "function": "borrow"
+  },
+  "description": "In borrow(), when totalDebt == 0 (first borrow or after full repayment), shares is set to `_amt` directly: `shares = _totalDebt > 0 ? _amt.mulDiv(totalDebtShares, _totalDebt, ...) : _amt`. This means debt shares are 1:1 with token amounts on the first borrow. After repayment that zeros out totalDebt but leaves totalDebtShares non-zero (which shouldn't happen under normal conditions but could happen if totalDebt rounds to 0 due to the ternary in repay()), or if totalDebt is 0 while totalDebtShares > 0, the next borrow incorrectly assigns _amt shares instead of proportional shares. The ternary only checks totalDebt > 0, not totalDebtShares > 0. If totalDebt == 0 but totalDebtShares > 0 (state inconsistency), new borrowers get an unfair share allocation.",
+  "message": "State inconsistency where totalDebt == 0 but totalDebtShares > 0 (theoretically possible via repay() rounding where totalDebt rounds to 0 but totalDebtShares is not fully cleared) would cause incorrect share allocation for subsequent borrowers, potentially allowing them to borrow more than their shares represent or less.",
+  "recommendation": "Add explicit check: require both totalDebt == 0 AND totalDebtShares == 0 before using 1:1 ratio. Otherwise use proportional calculation: if (totalDebt == 0 && totalDebtShares == 0) { shares = _amt; } else if (totalDebt > 0) { shares = ... } else { revert('invariant violation'); }",
+  "exploit_scenario": "1. Small initial borrow: _amt=1, totalDebt=0 \u2192 shares=1, totalDebt=1, totalDebtShares=1. 2. Interest accrues: totalDebt=2, totalDebtShares=1. 3. Repay 1 share: amt = 1 * 2/1 rounded up = 2. totalDebt = 2 > 2? No \u2192 totalDebt=0. totalDebtShares=0. (Correctly reset). Normal case is fine. Edge case: repay where totalDebt rounds to 0 but we repay fewer than all shares.",
+  "swc_id": "",
+  "file": "LendingPool.sol",
+  "backend": "claude"
+ }
+]

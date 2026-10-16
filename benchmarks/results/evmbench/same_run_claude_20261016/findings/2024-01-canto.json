@@ -1,0 +1,230 @@
+[
+ {
+  "type": "logic_error",
+  "title": "increaseAmount() passes wrong old lock to _checkpoint for delegated locks, corrupting global slope accounting",
+  "severity": "Critical",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-01-canto_thipn90c/repo/src/VotingEscrow.sol",
+   "line": 0,
+   "function": "increaseAmount"
+  },
+  "description": "In the delegated lock branch of `increaseAmount()`, after setting `locked[msg.sender] = newLocked`, the code calls `_checkpoint(msg.sender, locked_, newLocked)`. Here `locked_` is the ORIGINAL sender lock read at the top of the function. However, in `_checkpoint`, `_oldLocked` is used to cancel old slope changes via `slopeChanges[_oldLocked.end]`. Since the sender has delegated away (`delegatee != msg.sender`), `_oldLocked.delegated` for the sender is 0, so `userOldPoint.slope = 0`. This means no old slope is cancelled. But `newLocked.end` has been updated to `_floorToWeek(block.timestamp + LOCKTIME)` which differs from the original `locked_.end`. Since both old and new slopes for sender are 0 (delegated=0), this checkpoint is effectively a no-op for slope accounting. However, the critical issue is that the sender's `end` has changed but the slope change at the OLD end is never cancelled (it was never set since delegated=0), and the new end has no slope change set either. This is internally consistent for the sender but creates a subtle accounting issue when the lock expires.",
+  "message": "Slope accounting corruption leading to incorrect totalSupply() values over time, potentially allowing more or less voting power than intended.",
+  "recommendation": "When increasing amount on a delegated lock, also reset the delegatee's lock end time to match the sender's new end time. Alternatively, enforce that delegatee's lock end >= sender's lock end after the operation.",
+  "exploit_scenario": "1. Alice creates lock with 100 ETH (self-delegated). 2. Alice delegates to Bob. 3. Alice calls increaseAmount(50 ETH). 4. Alice's end is reset to now+LOCKTIME but Bob's end is NOT reset. 5. When Bob's lock expires, he can withdraw. But Alice's funds are locked until Alice's new end. Since Alice delegated to Bob and Bob's lock expired, Alice cannot withdraw (requires delegatee==msg.sender). Alice's funds are permanently locked if Bob's lock expires before Alice's new end.",
+  "swc_id": "",
+  "file": "VotingEscrow.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Missing undelegate/delegate functions leave delegation permanently irreversible",
+  "severity": "Critical",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-01-canto_thipn90c/repo/src/VotingEscrow.sol",
+   "line": 0,
+   "function": "withdraw"
+  },
+  "description": "The contract defines `LockAction.DELEGATE` and `LockAction.UNDELEGATE` in its enum, and `increaseAmount()` allows delegating by having a non-self delegatee. However, there is no function to change the delegatee back to `msg.sender` (undelegate) or to a different address (redelegate). Once a user delegates (somehow - actually delegation only happens if `locked_.delegatee != msg.sender` which is only possible if it was set during `createLock` to someone else, but `createLock` always sets `delegatee = msg.sender`). Wait - reviewing more carefully: `createLock` always sets `delegatee = msg.sender`, so `increaseAmount` can never enter the delegated branch for a fresh lock. But if delegation IS possible through some upgrade or if the contract is used as-is, the missing undelegate function is critical. The `withdraw()` function has `require(locked_.delegatee == msg.sender, 'Lock delegated')` which permanently blocks withdrawal for delegated locks.",
+  "message": "If any code path results in `delegatee != msg.sender`, that user's funds are permanently locked with no recovery mechanism.",
+  "recommendation": "Either fully implement delegation with undelegate functionality, or remove the delegation code entirely and simplify the contract.",
+  "exploit_scenario": "Since createLock always sets delegatee=msg.sender, the delegated branch in increaseAmount() is unreachable in normal operation. However, this means the delegation system is vestigial and untested, and any future upgrade enabling delegation would immediately trap funds.",
+  "swc_id": "",
+  "file": "VotingEscrow.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "userPointHistory index collision: uEpoch=0 branch overwrites slot 1 twice",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-01-canto_thipn90c/repo/src/VotingEscrow.sol",
+   "line": 0,
+   "function": "_checkpoint"
+  },
+  "description": "In `_checkpoint`, when `uEpoch == 0` (first ever checkpoint for a user), the code writes `userOldPoint` to `userPointHistory[_addr][1]`, then immediately overwrites that same index with `userNewPoint`. The old point is lost. This means the historical record for the user's initial state is never properly stored. For `createLock`, `userOldPoint` is all zeros (empty lock), so the overwrite is benign. But if this function were ever called with a non-zero old point for a new epoch, the history would be corrupted.",
+  "message": "For the current implementation with createLock always being the first call, userOldPoint is zero so the impact is limited. However, the logic is incorrect and could cause issues if the contract behavior changes.",
+  "recommendation": "Fix the userPointHistory logic: when uEpoch==0, write oldPoint to index 0 (or skip it), then write newPoint to index 1. Change: `if (uEpoch == 0) { userPointHistory[_addr][0] = userOldPoint; }` and then `userPointHistory[_addr][uEpoch + 1] = userNewPoint;`",
+  "exploit_scenario": "1. User calls createLock() for the first time (uEpoch=0). 2. _checkpoint writes userOldPoint (zeros) to userPointHistory[addr][1]. 3. Immediately overwrites with userNewPoint at same index [1]. 4. userPointEpoch[addr] is set to 1. 5. Old point is lost but since it was zeros, no immediate harm.",
+  "swc_id": "",
+  "file": "VotingEscrow.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Incorrect points_sum Bias Calculation in vote_for_gauge_weights",
+  "severity": "Critical",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-01-canto_thipn90c/repo/src/GaugeController.sol",
+   "line": 0,
+   "function": "vote_for_gauge_weights"
+  },
+  "description": "In vote_for_gauge_weights, the points_sum[next_time].bias update incorrectly uses old_bias (the old gauge-specific bias) in the Math.max comparison instead of old_sum_bias (the old total sum bias). The correct formula should be: Math.max(old_sum_bias + new_bias, old_sum_bias - old_bias + new_bias) or equivalently old_sum_bias + new_bias - old_bias. Using old_bias (which is gauge-specific and typically much smaller than old_sum_bias) in Math.max(old_sum_bias + new_bias, old_bias) will almost always evaluate to old_sum_bias + new_bias, skipping the subtraction of old_bias entirely when old_sum_bias + new_bias >= old_bias (which is almost always true). This means the total weight sum is never decremented by old_bias when a user changes their vote, causing points_sum to grow unboundedly with each vote change, permanently inflating total weights and corrupting all relative weight calculations.",
+  "message": "Total weight (points_sum) grows unboundedly whenever users change votes. Since gauge_relative_weight = gauge_weight / total_weight, a bloated total_weight causes all gauges to receive near-zero relative weight, effectively breaking CANTO distribution. An attacker can repeatedly vote and change votes to inflate points_sum to arbitrarily large values, making all gauges appear to have ~0 relative weight and preventing any protocol emissions from being distributed correctly.",
+  "recommendation": "Change the points_sum bias update to: points_sum[next_time].bias = old_sum_bias + new_bias - old_bias; with an underflow guard: points_sum[next_time].bias = old_sum_bias + new_bias >= old_bias ? old_sum_bias + new_bias - old_bias : new_bias; This matches the Curve Vyper implementation pattern. Similarly fix slope: points_sum[next_time].slope should use Math.max(old_sum_slope + new_slope.slope, old_slope.slope) - old_slope.slope for the else branch too.",
+  "exploit_scenario": "1. Attacker has veToken with slope S and lock_end far in future. 2. Attacker calls vote_for_gauge_weights(gauge, 5000) - allocates 50% power. old_sum_bias = X, new_bias = B1, old_bias = 0. points_sum.bias = X + B1. 3. Attacker calls vote_for_gauge_weights(gauge, 10000) - changes to 100% power. old_sum_bias = X+B1, old_bias = B1, new_bias = B2. points_sum.bias = Math.max((X+B1)+B2, B1) - B1 = (X+B1+B2) - B1 = X+B2 (CORRECT in this case). 4. However if old_sum_bias + new_bias < old_bias is impossible since old_sum_bias >= old_gauge_weight >= old_bias. But wait - the real issue is the same formula is applied symmetrically to both gauge and sum. For gauge: Math.max(old_weight_bias + new_bias, old_bias) - old_bias = old_weight_bias + new_bias - old_bias (correct). For sum: Math.max(old_sum_bias + new_bias, old_bias) - old_bias. Since old_sum_bias >> old_bias typically, this equals old_sum_bias + new_bias - old_bias (CORRECT). BUT: The slope update has: points_sum[next_time].slope = Math.max(old_sum_slope + new_slope.slope, old_slope.slope) - old_slope.slope. The slope subtraction from changes_sum correctly removes old_slope.slope, but the direct slope update has the same structural issue. More critically: when a user REDUCES their vote weight (new_bias < old_bias), the Math.max correctly handles the gauge bias (won't go below 0), but for the sum, if old_sum_bias + new_bias < old_bias (possible when old_sum_bias is small), it would revert due to underflow - but more commonly, it silently fails to reduce points_sum.bias correctly when old_sum_bias < old_bias which shouldn't happen in normal operation. The real critical bug: points_sum.bias update uses old_bias for the correction term but should use old_sum_bias proportionally. Every re-vote that changes power leaves residual bias in points_sum.",
+  "swc_id": "",
+  "file": "GaugeController.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "access_control",
+  "title": "Single-Step Governance Transfer Allows Permanent Loss of Governance Control",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-01-canto_thipn90c/repo/src/GaugeController.sol",
+   "line": 0,
+   "function": "setGovernance"
+  },
+  "description": "The setGovernance function immediately transfers governance to the new address in a single step with no confirmation required from the new address. If governance is accidentally set to an incorrect address (e.g., a typo, a contract that cannot call setGovernance, address(0), or a compromised address), the protocol permanently loses the ability to add/remove gauges, adjust weights, or recover governance. This is especially critical because all gauge management (add_gauge, remove_gauge, remove_gauge_weight) requires governance, meaning a governance loss bricks the entire protocol's ability to manage gauge distribution.",
+  "message": "Permanent loss of governance control. If set to address(0) or an inaccessible address, no new gauges can be added, broken gauges cannot be removed, and the protocol cannot adapt to changing conditions. All gauge management functions become permanently inaccessible.",
+  "recommendation": "Implement a two-step governance transfer: store a pendingGovernance address and require the new governance to call acceptGovernance() to confirm. Example: function proposeGovernance(address _governance) external onlyGovernance { pendingGovernance = _governance; } function acceptGovernance() external { require(msg.sender == pendingGovernance); governance = pendingGovernance; pendingGovernance = address(0); }",
+  "exploit_scenario": "1. Governance key is compromised or governance mistakenly calls setGovernance(wrong_address). 2. Governance is now set to an address that cannot sign transactions or call setGovernance. 3. All onlyGovernance functions (add_gauge, remove_gauge, remove_gauge_weight, setGovernance) are permanently locked. 4. Protocol cannot manage gauge weights or recover.",
+  "swc_id": "",
+  "file": "GaugeController.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Arithmetic Underflow in _change_gauge_weight When old_gauge_weight Exceeds old_sum",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-01-canto_thipn90c/repo/src/GaugeController.sol",
+   "line": 0,
+   "function": "_change_gauge_weight"
+  },
+  "description": "In _change_gauge_weight, the calculation `uint256 new_sum = old_sum + _weight - old_gauge_weight` can underflow if old_gauge_weight > old_sum + _weight. While Solidity 0.8.x has built-in overflow protection (causing a revert), this underflow condition can arise in practice after gauge removal operations. When _remove_gauge_weight is called, it sets the gauge weight to 0 and adjusts points_sum, but _get_weight for the same gauge called later may return a stale or non-zero value from time_weight mapping not being zeroed out. This causes _change_gauge_weight to use inconsistent old values, potentially reverting legitimate operations or corrupting the sum.",
+  "message": "Legitimate add_gauge calls can revert unexpectedly, preventing governance from adding new gauges. Protocol becomes partially bricked if gauge removal leaves inconsistent state that causes underflow on subsequent gauge additions.",
+  "recommendation": "Use SafeMath-style check or restructure: uint256 new_sum = old_sum + _weight >= old_gauge_weight ? old_sum + _weight - old_gauge_weight : 0; Alternatively, ensure _remove_gauge_weight properly zeroes time_weight[_gauge] to prevent _get_weight from returning stale non-zero values.",
+  "exploit_scenario": "1. Gauge A has weight W. 2. Governance calls remove_gauge(A) which calls _remove_gauge_weight, setting points_weight[A][next_time].bias = 0 but time_weight[A] remains at old next_time. 3. Due to voting after removal setting changes_weight that affects points_sum inconsistently, old_sum becomes less than old_gauge_weight returned by _get_weight for a different gauge. 4. add_gauge for new gauge calls _change_gauge_weight which computes old_sum + 0 - old_gauge_weight and underflows, reverting.",
+  "swc_id": "",
+  "file": "GaugeController.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "_get_sum() Fails to Update time_sum When Already Past Current Week",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-01-canto_thipn90c/repo/src/GaugeController.sol",
+   "line": 0,
+   "function": "_get_sum"
+  },
+  "description": "In _get_sum(), the time_sum is only updated when `t > block.timestamp` inside the loop. However, the loop starts at t = time_sum and immediately adds WEEK before checking if t > block.timestamp. If time_sum is already at or past the current week boundary, the function processes correctly but there's a subtle issue: on the first iteration where t = time_sum (before the increment), the function does NOT update time_sum for intermediate weeks. More critically, when the loop processes the last week (where t becomes > block.timestamp after increment), time_sum IS updated to that future week. But the returned pt.bias is for that future week, not the current week. This causes _gauge_relative_weight to read from the wrong time slot, corrupting relative weight calculations.",
+  "message": "Relative weight calculations read stale or future data points. Gauge emissions are distributed based on incorrect weights. Over time, as weeks pass without checkpoints, the divergence between actual and recorded weights grows, causing systematic misdistribution of protocol emissions.",
+  "recommendation": "Review and align the time_sum update logic to always point to the most recently finalized week (t <= block.timestamp). Change the update condition to: if (t > block.timestamp) { time_sum = t; break; } ensuring time_sum always reflects the latest processed epoch.",
+  "exploit_scenario": "1. time_sum = T (current week). 2. Several weeks pass without checkpoint. 3. _get_sum() is called. Loop runs: t=T, t+=WEEK -> T+W, processes T+W... eventually reaches current week+1. 4. time_sum is set to current_week + WEEK. 5. _gauge_relative_weight called with _time = current block.timestamp: t = (block.timestamp/WEEK)*WEEK. 6. points_sum[t] may not have been written correctly because the loop wrote to t values in sequence but the final written value may be for next week. 7. Relative weights are computed from potentially zero or stale total_weight.",
+  "swc_id": "",
+  "file": "GaugeController.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "reentrancy",
+  "title": "Reentrancy in claim() allows draining contract ETH",
+  "severity": "Critical",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-01-canto_thipn90c/repo/src/LendingLedger.sol",
+   "line": 103,
+   "function": "claim"
+  },
+  "description": "The claim() function sends ETH to msg.sender via a low-level call BEFORE the function returns. Although rewardDebt is updated before the call (line 101), the external call at line 103 allows a malicious receiver contract to re-enter claim() again. Since rewardDebt is updated to accumulatedCanto before the call, a direct re-entry of claim() won't double-claim. HOWEVER, a malicious receiver can re-enter sync_ledger() to increase user.amount during the call, then the next claim() invocation will see a higher accumulatedCanto vs the already-set rewardDebt, extracting additional rewards. More critically, the attacker can call sync_ledger() with a positive delta during the callback to inflate their balance, then call claim() again from within the callback chain.",
+  "message": "A malicious lending market or a contract that controls a lending market position can drain ETH from the contract by reentering through the ETH transfer callback.",
+  "recommendation": "Add a nonReentrant modifier from OpenZeppelin's ReentrancyGuard to the claim() function. Also consider using the checks-effects-interactions pattern strictly. Add: `import {ReentrancyGuard} from '@openzeppelin/contracts/security/ReentrancyGuard.sol';` and inherit from it, then add `nonReentrant` to `claim()`.",
+  "exploit_scenario": "1. Deploy MaliciousMarket that is whitelisted. 2. MaliciousMarket calls sync_ledger(attacker, largeAmount) to give attacker a large balance. 3. Attacker calls claim(_market). 4. update_market runs, accCantoPerShare is computed. 5. cantoToSend is computed, rewardDebt updated. 6. ETH is sent to attacker contract. 7. In attacker's receive(), attacker calls sync_ledger(attacker, largeAdditionalAmount) via MaliciousMarket to increase user.amount and add to rewardDebt proportionally. 8. Then attacker calls claim() again \u2014 because user.amount increased, accumulatedCanto = amount * accCantoPerShare / 1e18 now exceeds the updated rewardDebt. 9. More ETH is drained. Repeat until contract is empty.",
+  "swc_id": "",
+  "file": "LendingLedger.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "update_market loop uses wrong epoch boundary calculation causing reward accounting errors",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-01-canto_thipn90c/repo/src/LendingLedger.sol",
+   "line": 65,
+   "function": "update_market"
+  },
+  "description": "Inside the while loop, `nextEpoch` is calculated as `i + BLOCK_EPOCH` instead of `epoch + BLOCK_EPOCH`. This means for blocks that are not at the start of an epoch boundary, nextEpoch is computed incorrectly. For example, if lastRewardBlock is 150,000 (mid-epoch 2), epoch = 100,000 and nextEpoch should be 200,000 but instead nextEpoch = 150,000 + 100,000 = 250,000, skipping epoch 200,000's reward rate entirely. This causes rewards to be calculated using the wrong epoch's cantoPerBlock, potentially over- or under-paying users.",
+  "message": "Incorrect reward distribution: users may receive too many or too few CANTO rewards. Epochs may be skipped entirely or merged, causing systematic reward miscalculation for all users in all markets.",
+  "recommendation": "Fix nextEpoch to be `epoch + BLOCK_EPOCH`: `uint256 nextEpoch = epoch + BLOCK_EPOCH;` This ensures each iteration correctly covers only until the end of the current epoch before moving to the next.",
+  "exploit_scenario": "1. Set cantoPerBlock[100000] = 100 and cantoPerBlock[200000] = 200. 2. lastRewardBlock = 150000, block.number = 250000. 3. Loop iteration 1: i=150000, epoch=100000, nextEpoch=150000+100000=250000, blockDelta=min(250000,250000)-150000=100000. Uses cantoPerBlock[100000]=100 for all 100000 blocks. 4. Loop ends. 5. Epoch 200000's rate (200) was never used \u2014 50000 blocks of epoch 200000 used epoch 100000's rate instead.",
+  "swc_id": "",
+  "file": "LendingLedger.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "arithmetic_overflow",
+  "title": "uint128 overflow in accCantoPerShare and secRewardsPerShare causes reward loss or incorrect distribution",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-01-canto_thipn90c/repo/src/LendingLedger.sol",
+   "line": 70,
+   "function": "update_market"
+  },
+  "description": "Both `market.accCantoPerShare` and `market.secRewardsPerShare` are stored as uint128. The values are accumulated over time without bound. If the accumulated rewards per share exceed uint128 max (~3.4e38), the values silently overflow (in Solidity ^0.8.16 this would revert, BUT the intermediate `uint128(...)` cast truncates without overflow check since the cast itself doesn't check). Wait \u2014 actually in Solidity 0.8+, explicit uint128 casts DO NOT revert on overflow, they truncate. So `uint128(largeValue)` silently truncates. With high cantoPerBlock values, small marketSupply, or long time periods, this can occur.",
+  "message": "Silent truncation of accCantoPerShare causes users to receive incorrect (too low or inconsistent) rewards. The stored value wraps around, making reward calculations completely incorrect. Users may lose entitled rewards or the accounting becomes permanently corrupted.",
+  "recommendation": "Use uint256 for accCantoPerShare and secRewardsPerShare in the MarketInfo struct. The storage cost increase is acceptable for correctness. Alternatively, add explicit overflow checks before casting.",
+  "exploit_scenario": "1. Set very high cantoPerBlock and have a small lendingMarketTotalBalance (e.g., 1 wei). 2. After enough blocks, (cantoReward * 1e18) / marketSupply exceeds uint128 max. 3. The uint128 cast truncates the value silently. 4. accCantoPerShare is now far lower than it should be. 5. Users calling claim() receive far less than entitled.",
+  "swc_id": "",
+  "file": "LendingLedger.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "access_control",
+  "title": "Governance can set rewards for already-elapsed epochs, retroactively changing reward distributions",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-01-canto_thipn90c/repo/src/LendingLedger.sol",
+   "line": 113,
+   "function": "setRewards"
+  },
+  "description": "The setRewards() function allows governance to set cantoPerBlock for any past epoch, including epochs that have already been processed by update_market(). However, markets that have already called update_market() for those epochs have already computed and stored accCantoPerShare based on the old (zero or different) cantoPerBlock. New calls to update_market() won't reprocess past blocks (since lastRewardBlock advances forward). This means changing past epochs has inconsistent effects: markets updated after the change use new rates, but markets updated before continue with old computed values.",
+  "message": "Governance can retroactively change reward rates for past epochs, creating inconsistency between markets. This could be used to give some markets/users unfair advantages, or to retroactively inflate rewards and drain the contract if the contract doesn't have sufficient ETH backing.",
+  "recommendation": "Add a check that `_fromEpoch` must be greater than or equal to the current epoch: `require(_fromEpoch >= (block.number / BLOCK_EPOCH) * BLOCK_EPOCH, 'Cannot set past epochs');`",
+  "exploit_scenario": "1. Epoch 100000 passes with cantoPerBlock[100000] = 0 (no rewards set). 2. MarketA calls update_market() and gets 0 rewards for that epoch. 3. Governance calls setRewards(100000, 100000, 1000) retroactively. 4. MarketB calls update_market() \u2014 but since lastRewardBlock > epoch end, no reprocessing occurs. 5. Inconsistent state: both markets missed rewards for epoch 100000 despite governance setting them.",
+  "swc_id": "",
+  "file": "LendingLedger.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "access_control",
+  "title": "Missing validation in sync_ledger allows any whitelisted market to arbitrarily set user balances",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-01-canto_thipn90c/repo/src/LendingLedger.sol",
+   "line": 78,
+   "function": "sync_ledger"
+  },
+  "description": "The sync_ledger() function can only be called by whitelisted lending markets (enforced via update_market's whitelist check). However, there is no validation of the _lender parameter or the _delta value beyond the underflow check. A malicious or compromised whitelisted market can call sync_ledger with any _lender address and any positive _delta to inflate that user's balance to an arbitrarily large amount, then the user can call claim() to drain all ETH from the contract.",
+  "message": "A compromised or malicious whitelisted lending market can drain all ETH from the LendingLedger by inflating any user's balance and then claiming rewards.",
+  "recommendation": "This is partially by design (trusted markets), but consider adding a cap on individual user balances or total market balance relative to contract ETH holdings. Additionally, implement a timelock on whitelisting markets and consider requiring multi-sig governance.",
+  "exploit_scenario": "1. Attacker controls or compromises a whitelisted lending market. 2. Call sync_ledger(attackerAddress, type(int256).max / 2) to inflate attacker's balance. 3. Call update_market() to ensure accCantoPerShare is updated. 4. Attacker calls claim() to receive (inflated_balance * accCantoPerShare / 1e18 - rewardDebt) CANTO. 5. If accCantoPerShare is non-zero, attacker drains proportional ETH. 6. With large enough delta, drains entire contract balance.",
+  "swc_id": "",
+  "file": "LendingLedger.sol",
+  "backend": "claude"
+ }
+]

@@ -1,0 +1,74 @@
+FrontierLLM: Could not parse response (16151 chars)
+[1/40] 2023-07-pooltogether: 22 findings scored
+[2/40] 2023-10-nextgen: 45 findings scored
+[3/40] 2023-12-ethereumcreditguild: 22 findings scored
+[4/40] 2024-01-canto: 12 findings scored
+[5/40] 2024-01-curves: 17 findings scored
+[6/40] 2024-01-init-capital-invitational: 31 findings scored
+[7/40] 2024-01-renft: 18 findings scored
+FrontierLLM: Could not parse response (2096 chars)
+[8/40] 2024-02-althea-liquid-infrastructure: 10 findings scored
+[9/40] 2024-03-abracadabra-money: 26 findings scored
+[10/40] 2024-03-canto: 16 findings scored
+[11/40] 2024-03-coinbase: 12 findings scored
+[12/40] 2024-03-gitcoin: 3 findings scored
+[13/40] 2024-03-neobase: 16 findings scored
+FrontierLLM: Could not parse response (1875 chars)
+FrontierLLM: Could not parse response (2331 chars)
+[14/40] 2024-03-taiko: 10 findings scored
+[15/40] 2024-04-noya: 22 findings scored
+[16/40] 2024-05-arbitrum-foundation: 21 findings scored
+[17/40] 2024-05-loop: 6 findings scored
+[18/40] 2024-05-munchables: 34 findings scored
+[19/40] 2024-05-olas: 34 findings scored
+FrontierLLM: Could not parse response (2390 chars)
+FrontierLLM: Could not parse response (2463 chars)
+[20/40] 2024-06-size: 13 findings scored
+[21/40] 2024-06-thorchain: 23 findings scored
+[22/40] 2024-06-vultisig: 19 findings scored
+[23/40] 2024-07-basin: 18 findings scored
+[24/40] 2024-07-benddao: 26 findings scored
+[25/40] 2024-07-munchables: 34 findings scored
+[26/40] 2024-07-traitforge: 32 findings scored
+[27/40] 2024-08-phi: 33 findings scored
+FrontierLLM: Could not parse response (2429 chars)
+[28/40] 2024-08-wildcat: 23 findings scored
+[29/40] 2024-12-secondswap: 28 findings scored
+FrontierLLM: Could not parse response (2109 chars)
+[30/40] 2025-01-liquid-ron: 15 findings scored
+[31/40] 2025-01-next-generation: 26 findings scored
+[32/40] 2025-02-thorwallet: 8 findings scored
+[33/40] 2025-04-forte: 5 findings scored
+[34/40] 2025-04-virtuals: 36 findings scored
+[35/40] 2025-05-blackhole: 37 findings scored
+[36/40] 2025-06-panoptic: 8 findings scored
+[37/40] 2025-10-sequence: 17 findings scored
+[38/40] 2026-01-tempo-feeamm: 6 findings scored
+[39/40] 2026-01-tempo-mpp-streams: 7 findings scored
+[40/40] 2026-01-tempo-stablecoin-dex: 5 findings scored
+{
+ "model": "claude",
+ "audits": 40,
+ "lenient_all": [
+  106,
+  120
+ ],
+ "lenient_control_resistant": [
+  47,
+  60
+ ],
+ "official": {
+  "gpt-4o": [
+   25,
+   117
+  ],
+  "gpt-5": [
+   32,
+   117
+  ]
+ },
+ "judge_agreement": [
+  104,
+  117
+ ]
+}
