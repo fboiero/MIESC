@@ -338,6 +338,7 @@ apik.sh
 !benchmarks/results/paper1_ablation_l167_intel_20261015.json
 !benchmarks/results/paper1_ablation_l167_raw_20261015.json
 !benchmarks/results/paper2_prepatch_slither_baseline.json
+!benchmarks/results/paper1_smartbugs_eval_layers_1_6_7_corrected_20261016.json
 !benchmarks/results/evmbench/same_run_claude_20261016/
 !benchmarks/results/evmbench/same_run_claude_20261016/**
 !benchmarks/results/evmbench/same_run_claude_20261016.log
