@@ -180,12 +180,12 @@ limits" below and Paper 1).
 | Tier | Example | Weight license | Access | Cost/audit | Recall | Precision | F1 |
 |------|---------|----------------|--------|-----------|--------|-----------|-----|
 | Frontier proprietary | GPT-4o / GPT-5 / Claude | closed | vendor API | $1.20–5.50 | 73.7–82.5% | 20–43% | 32–55% |
-| **Open-weight hosted** | **DeepSeek-R1 (MIT)** | **open (MIT)** | **hosted API** | **~$0.08** | **70.8%** | **88.5%** | **78.7%** |
+| Open-weight hosted | DeepSeek-R1 (MIT) | open (MIT) | hosted API | ~$0.08 | 70.8% | 88.5% | 78.7% |
 | Open-weight local | qwen2.5-coder:32b | open (Apache 2.0) | self-host (own GPU) | $0 | 59.2% | 30.1% | 39.9% |
 
 The central finding for this chapter is one of **viability, not ranking**: under this
 protocol (lenient matcher, single run), the **open-weight** model (DeepSeek-R1, MIT
-weights) sits **within the range of the frontier providers** on precision and F1, at an
+weights) records **the highest precision (88.5%) and F1 (78.7%) of the comparison**, at an
 estimated **~$0.08 per audit — 15 to 69 times cheaper**. Its single-pass recall (70.8%)
 trails the frontier, but a three-pass self-ensemble (≈$0.24/audit) lifts it to 81.7%,
 inside the frontier single-run range. The ~$0.08 is **hosting-convenience cost, not a
@@ -254,12 +254,11 @@ Ollama supports models whose weights are public and auditable:
 | Qwen2.5-Coder:32b | 32B | 24 GB | Apache 2.0 | Excellent (local, $0) |
 | Mistral:7b | 7B | 8 GB | Apache 2.0 | Very good |
 | DeepSeek-Coder:6.7b | 6.7B | 8 GB | MIT | Excellent (code) |
-| DeepSeek-R1 (reasoner) | ~671B | hosted API | MIT | Precision/F1 within frontier range under lenient matcher (§6.2.4; ranking inconclusive) |
+| DeepSeek-R1 (reasoner) | ~671B | hosted API | MIT | Highest precision/F1 of the comparison under the lenient matcher (§6.2.4; ranking inconclusive) |
 
 The last row is the **open-weight hosted** tier: open (MIT) weights too large for the
 test hardware, accessed via a low-cost hosted API (~$0.08/audit). Under EVMBench's
-lenient matcher it sits within the range of the frontier on precision and F1
-(Table 6.2b); this is an optimistic estimate, not a conclusive ranking.
+lenient matcher it records the highest precision and F1 of the comparison (Table 6.2b); this is an optimistic estimate, not a conclusive ranking.
 
 **3. No telemetry**
 
@@ -811,16 +810,14 @@ excludes by cost.
 **6. Empirical parity.** The argument above would be idealistic if sovereignty cost
 capability. This work's evidence indicates it does not: on the EVMBench evaluation
 (§6.2.4, Table 6.2b), under the lenient matcher and a single run, the open-weight
-DeepSeek-R1 sits **within the range of the frontier providers** on precision and F1,
+DeepSeek-R1 records **the highest precision and F1 of the comparison**,
 at **~$0.08 per audit (15–69× less)**. That comparison is an optimistic estimate —
 under EVMBench's official judge the figures drop and Paper 1 defers the provider
-ranking to future work — so what the evidence supports is not a superiority of the
-open model, but that the sovereign choice **stopped being a sacrifice of capability**.
+ranking to future work — so what the evidence supports is not a reliable ranking in favour of the open model, but that the sovereign choice **stopped being a sacrifice of capability**.
 
 Table 6.6 synthesizes the argument in a scorecard: the local tier wins on every
 sovereignty dimension, the hosted open-weight tier is the balance point (near-full
-sovereignty, competitive precision/F1, and minimal cost), and the frontier tier
-retains an advantage only in single-run recall.
+sovereignty, competitive precision/F1, and minimal cost), and the frontier tier retains an advantage only in single-run recall, always under the lenient matcher.
 
 **Table 6.6.** Sovereignty scorecard by access tier (✓ full · ◑ partial · ✗ absent)
 
@@ -833,7 +830,7 @@ retains an advantage only in single-run recall.
 | Execution with no data egress | ✗ | ✗ (hosted API) | ✓ (100% local) |
 | Cost per audit | $1.20–5.50 | ~$0.08 | $0 |
 | Recall (single pass) | 73.7–82.5% | 70.8% | 59.2% |
-| Precision / F1 (EVMBench, lenient matcher; optimistic estimate) | 20–43% / 32–55% | **88.5% / 78.7%** | 30% / 40% |
+| Precision / F1 (EVMBench, lenient matcher; optimistic estimate) | 20–43% / 32–55% | 88.5% / 78.7% | 30% / 40% |
 
 **Honest limits.** The argument is a spectrum, not an absolute, and its strength
 depends on acknowledging that. The best open-weight result (DeepSeek-R1, ~671B
@@ -854,13 +851,13 @@ and recall.
 
 ### 6.7.1 Justification Summary
 
-The decision to implement sovereign LLMs in MIESC responds to a rigorous risk and trade-off analysis. Its underlying premise (§6.6.3) is that **control over the tool is a first-order requirement of security analysis, not a preference**: what is controlled — open weights, auditable execution — is doctrinally, scientifically, and epistemically superior to what is not, and this work's evidence shows that sovereignty no longer demands sacrificing capability. The justification is based on:
+The decision to implement sovereign LLMs in MIESC responds to a rigorous risk and trade-off analysis. Its underlying premise (§6.6.3) is that **control over the tool is a first-order requirement of security analysis, not a preference**: what is controlled — open weights, auditable execution — is doctrinally, scientifically, and epistemically superior to what is not, and this work's evidence indicates that sovereignty no longer demands sacrificing capability. The justification is based on:
 
 1. **Pre-audit smart contract code has direct and significant economic value.** Leaking this code can result in losses of tens or hundreds of millions of dollars.
 
 2. **Commercial LLM APIs introduce unacceptable risk vectors** for high-value code: transmission to foreign jurisdictions, extended retention periods, possible memorization in models.
 
-3. **Open-weight models provide sufficient capability** for the security analysis use case, especially within a multi-layer architecture. This is no longer just an expectation: on the EVMBench evaluation (§6.2.4), under the lenient matcher, the open-weight DeepSeek-R1 sits **within the range of the frontier providers** on precision and F1 — an optimistic estimate; Paper 1 defers the provider ranking to the official judge as future work — and a local 32B model reaches 59.2% recall with no external calls.
+3. **Open-weight models provide sufficient capability** for the security analysis use case, especially within a multi-layer architecture. This is no longer just an expectation: on the EVMBench evaluation (§6.2.4), under the lenient matcher, the open-weight DeepSeek-R1 records **the highest precision and F1 of the comparison** — an optimistic estimate that does not support a reliable ranking; Paper 1 defers the provider ranking to the official judge as future work — and a local 32B model reaches 59.2% recall with no external calls.
 
 4. **Total cost of ownership of sovereign LLMs is lower** than commercial APIs for organizations performing audits regularly. Measured on EVMBench, the open-weight tier costs **~$0.08 per audit (15–69× less than frontier)** and the local tier $0, with competitive detection capability under the evaluated protocol.
 

@@ -246,7 +246,7 @@ Las principales contribuciones del presente trabajo son:
 
 **C6:** Evaluación empírica sobre corpus de vulnerabilidades conocidas
 
-**C7:** La tesis de que el **control sobre la herramienta —pesos abiertos, ejecución auditable— es un requisito de primer orden del análisis de seguridad, no una preferencia**: fundamentada doctrinal (ciberdefensa), científica (reproducibilidad pericial), epistemológica (autoría y rendición de cuentas) y filosóficamente (Illich, Floridi, Stallman, Winner), y respaldada empíricamente —bajo el protocolo de matcher laxo, un modelo de pesos abiertos se ubica dentro del rango de los proveedores frontier en precisión/F1 a 15-69x menos costo; el ranking de proveedores bajo el juez oficial queda como trabajo futuro (Capítulo 6, sección 6.6.3)
+**C7:** La tesis de que el **control sobre la herramienta —pesos abiertos, ejecución auditable— es un requisito de primer orden del análisis de seguridad, no una preferencia**: fundamentada doctrinal (ciberdefensa), científica (reproducibilidad pericial), epistemológica (autoría y rendición de cuentas) y filosóficamente (Illich, Floridi, Stallman, Winner), y respaldada empíricamente —bajo el protocolo de matcher laxo, un modelo de pesos abiertos registra la mayor precisión y F1 de la comparación a 15-69x menos costo, aunque ese protocolo es una estimación optimista que no habilita un ranking confiable de proveedores; el ordenamiento bajo el juez oficial queda como trabajo futuro (Capítulo 6, sección 6.6.3; Capítulo 8)
 
 ---
 

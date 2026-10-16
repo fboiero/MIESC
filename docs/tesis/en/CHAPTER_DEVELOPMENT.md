@@ -481,7 +481,7 @@ contract VulnerableBank {
 
 **Total raw:** 15 findings
 **After deduplication:** 6 unique findings
-**Deduplication rate:** 60%
+**Deduplication rate:** 60% (on this contract; the full-corpus figure is 68%, §5.4.1)
 
 ---
 

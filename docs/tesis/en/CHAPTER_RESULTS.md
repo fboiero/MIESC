@@ -251,7 +251,7 @@ increasing the timeout per query.
 
 ---
 
-**Figure 5.4.** Complete MIESC Pipeline Output
+**Figure 5.4.** Complete MIESC pipeline output on one contract (VulnerableBank: 47→16 findings, 66.0% deduplication on this contract; 68% is the full-corpus figure, 385→123)
 
 ![Figure 5.4 - Complete MIESC Pipeline Output](../figures/Figura%2016%20Salida%20del%20Pipeline%20Completo%20de%20MIESC.svg)
 
@@ -319,7 +319,7 @@ Status: COMPLETED
 
 ---
 
-**Figure 5.5.** Normalized Finding Structure (JSON)
+**Figure 5.5.** Normalized finding structure (JSON; example over layers 1/3/7: 23→9 findings, rate 0.609)
 
 ![Figure 5.5 - Normalized Finding Structure JSON](../figures/Figura%2017%20Estructura%20de%20Hallazgo%20Normalizado%20JSON.svg)
 
@@ -507,17 +507,20 @@ HIGH-severity vulnerabilities). Each model was run once through the same pipelin
 and matcher; the numbers are reported as a **local extraction, not an official
 leaderboard score** (the same methodological caution as Paper 1).
 
-**Table 5.8b.** EVMBench recall by configuration (40 audits, single run)
+**Table 5.8b.** EVMBench recall by configuration (40 audits, single run, lenient matcher)
 
 | Configuration | Recall | Precision | F1 | Cost/audit |
 |---------------|--------|-----------|-----|-----------|
 | Static only | 18.3% | 14.5% | 16.2% | $0 |
 | qwen2.5-coder:32b (local) | 59.2% | 30.1% | 39.9% | $0 |
-| **DeepSeek-R1 (open-weight)** | **70.8%** | **88.5%** | **78.7%** | **~$0.08** |
+| DeepSeek-R1 (open-weight) | 70.8% | 88.5% | 78.7% | ~$0.08 |
 | GPT-4o (frontier) | 73.7% | 20.0% | 31.5% | ~$1.20 |
 | GPT-5 (frontier) | 77.5% | 42.7% | 55.0% | ~$3 |
 | Claude Sonnet 4.6 (frontier) | 82.5% | 34.0% | 48.2% | ~$5.50 |
-| **Ensemble (4-frontier union)** | **92.5%** | — | — | ~$7 |
+| **Ensemble (union of 4 providers: 3 frontier + local)** | **92.5%** | — | — | ~$7 |
+| Null control (4 generic findings, contract-agnostic) | 50.0% (60/120) | — | — | $0 |
+
+The **null control** — four generic findings, identical for any contract — is credited with 50% under the lenient matcher. That bounds the reading of the table: only the margin above ~50% is informative, and on the control-resistant subset (60 vulnerabilities) the Claude run scores 78.3% (47/60) (Paper 1, `benchmarks/evmbench_matcher_null_control.py`).
 
 **Result.** EVMBench reproduces the pattern of the 29-vulnerability corpus: the
 union of frontier reasoners (92.5%) far exceeds any individual one, confirming
@@ -527,10 +530,9 @@ for a single run with the GPT-5 judge), so the lenient and strict figures bound 
 run. Paper 1 reports the full triple (lenient matcher / null control / official judge)
 and recommends always reporting the protocol and judge alongside any EVMBench score.
 It also adds the **economic** axis: under the lenient matcher, the open-weight model (DeepSeek-R1,
-MIT) sits **within the range of the frontier providers** on precision and F1, at
+MIT) records **the highest precision (88.5%) and F1 (78.7%) of the comparison**, at
 **~$0.08 per audit (15–69× cheaper)**; its lower single-pass recall (70.8%) is
-recovered with a low-cost self-ensemble. These figures are an optimistic estimate
-(lenient matcher, single run): Paper 1 defers the provider ranking — under
+recovered with a low-cost self-ensemble. These figures are an optimistic estimate (lenient matcher, single run) that does not support a reliable provider ranking: Paper 1 defers the provider ranking — under
 EVMBench's official judge — to future work. The three-tier openness taxonomy and
 the full economic analysis are in Chapter 6 (Table 6.2b).
 
@@ -593,7 +595,7 @@ Manual validation of the mapping from native classifications to standard taxonom
 
 The only mapping error in GPTScan corresponded to an ambiguous classification by the language model that was manually corrected.
 
-**RQ3 Result:** Normalization achieves **66%** deduplication with **97.1%** mapping precision, validating the effectiveness of the approach.
+**RQ3 Result:** Normalization achieves **68%** deduplication (385→123 over the corpus) with **97.1%** mapping precision, validating the effectiveness of the approach.
 
 ---
 
@@ -645,9 +647,7 @@ The only mapping error in GPTScan corresponded to an ambiguous classification by
 
 *Note: Estimated costs based on public prices from November 2024. The
 open-weight-hosted tier (MIT weights accessed via API, ~$0.08/audit) is 15–69×
-cheaper than the frontier APIs and, under EVMBench's lenient matcher, sits within
-the range of the frontier on precision/F1 — an optimistic estimate, not a
-conclusive ranking — (see §5.3.5 and Chapter 6, Table 6.2b).*
+cheaper than the frontier APIs and, under EVMBench's lenient matcher, records the highest precision/F1 of the comparison — under the lenient matcher, an optimistic estimate that is not a conclusive ranking — (see §5.3.5 and Chapter 6, Table 6.2b).*
 
 **RQ4 Result:** MIESC is viable for production with:
 - **Time:** ~1 minute for complete audit (parallel execution)

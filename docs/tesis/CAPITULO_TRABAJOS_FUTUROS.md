@@ -38,7 +38,7 @@ El presente trabajo de tesis ha presentado MIESC (Marco Integrado de Seguridad p
 
 6. **Rescate de Herramientas Legacy:** Parches documentados para Manticore (Python 3.11) y Oyente (Docker image), preservando capacidades de análisis.
 
-7. **Soberanía como requisito, con validación empírica:** La tesis de que el control sobre la herramienta —pesos abiertos, ejecución auditable— es un requisito de primer orden del análisis de seguridad, y no una preferencia; fundamentada doctrinal, científica, epistemológica y filosóficamente (Cap. 6, §6.6.3), y validada empíricamente: un modelo de pesos abiertos obtiene la mejor precisión (88.5%) y F1 (78.7%) de la comparación de EVMBench a ~$0.08 por auditoría (15–69× menos que los proveedores frontier), demostrando que la elección soberana ya no exige sacrificar capacidad.
+7. **Soberanía como requisito, con validación empírica:** la tesis de que el control sobre la herramienta —pesos abiertos, ejecución auditable— es un requisito de primer orden del análisis de seguridad y no una preferencia, fundamentada en el plano doctrinal, científico, epistemológico y filosófico (Cap. 6, §6.6.3). Su correlato empírico es que, en la comparación de EVMBench y bajo el matcher laxo, un modelo de pesos abiertos registra la mayor precisión (88.5%) y F1 (78.7%) de la comparación a unos USD 0.08 por auditoría (15–69 veces menos). Se trata de una estimación optimista, cuyo ranking de proveedores bajo el juez oficial queda diferido a trabajo futuro, pero suficiente para indicar que la elección soberana ya no exige sacrificar capacidad.
 
 ### 8.1.4 Validación de Hipótesis
 

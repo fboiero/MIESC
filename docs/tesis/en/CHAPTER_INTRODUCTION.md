@@ -246,7 +246,7 @@ The main contributions of this work are:
 
 **C6:** Empirical evaluation on a corpus of known vulnerabilities
 
-**C7:** The thesis that **control over the tool — open weights, auditable execution — is a first-order requirement of security analysis, not a preference**: grounded doctrinally (cyberdefense), scientifically (forensic reproducibility), epistemically (authorship and accountability), and philosophically (Illich, Floridi, Stallman, Winner), and empirically supported — under the lenient-matcher protocol, an open-weight model sits within the range of the frontier providers on precision/F1 at 15–69× lower cost; the provider ranking under the official judge is left as future work (Chapter 6, section 6.6.3)
+**C7:** The thesis that **control over the tool — open weights, auditable execution — is a first-order requirement of security analysis, not a preference**: grounded doctrinally (cyberdefense), scientifically (forensic reproducibility), epistemically (authorship and accountability), and philosophically (Illich, Floridi, Stallman, Winner), and empirically supported — under the lenient-matcher protocol, an open-weight model records the highest precision and F1 of the comparison at 15–69× lower cost, although that protocol is an optimistic estimate that does not support a reliable provider ranking; the ordering under the official judge is left as future work (Chapter 6, section 6.6.3; Chapter 8)
 
 ---
 

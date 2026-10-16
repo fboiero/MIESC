@@ -275,7 +275,7 @@ increasing the timeout per query.
 
 ---
 
-**Figura 5.4.** Salida del Pipeline Completo de MIESC
+**Figura 5.4.** Salida del Pipeline Completo de MIESC sobre un contrato (VulnerableBank: 47→16 hallazgos, 66.0% de deduplicación en este contrato; el 68% es la cifra del corpus completo, 385→123)
 
 ![Figura 5.4 - Salida del Pipeline Completo de MIESC](figures/Figura%2016%20Salida%20del%20Pipeline%20Completo%20de%20MIESC.svg)
 
@@ -343,7 +343,7 @@ Estado: COMPLETADO
 
 ---
 
-**Figura 5.5.** Estructura de Hallazgo Normalizado (JSON)
+**Figura 5.5.** Estructura de Hallazgo Normalizado (JSON; ejemplo sobre las capas 1/3/7: 23→9 hallazgos, tasa 0.609)
 
 ![Figura 5.5 - Estructura de Hallazgo Normalizado JSON](figures/Figura%2017%20Estructura%20de%20Hallazgo%20Normalizado%20JSON.svg)
 
@@ -532,17 +532,20 @@ mismo pipeline y matcher; los números se reportan como **extracción local, no
 como puntaje oficial de leaderboard** (misma prevención metodológica que el
 Paper 1).
 
-**Tabla 5.8b.** Recall en EVMBench por configuración (40 auditorías, corrida única)
+**Tabla 5.8b.** Recall en EVMBench por configuración (40 auditorías, corrida única, matcher laxo)
 
 | Configuración | Recall | Precisión | F1 | Costo/aud. |
 |---------------|--------|-----------|-----|-----------|
 | Estático solamente | 18.3% | 14.5% | 16.2% | $0 |
 | qwen2.5-coder:32b (local) | 59.2% | 30.1% | 39.9% | $0 |
-| **DeepSeek-R1 (open-weight)** | **70.8%** | **88.5%** | **78.7%** | **~$0.08** |
+| DeepSeek-R1 (open-weight) | 70.8% | 88.5% | 78.7% | ~$0.08 |
 | GPT-4o (frontier) | 73.7% | 20.0% | 31.5% | ~$1.20 |
 | GPT-5 (frontier) | 77.5% | 42.7% | 55.0% | ~$3 |
 | Claude Sonnet 4.6 (frontier) | 82.5% | 34.0% | 48.2% | ~$5.50 |
-| **Ensemble (unión 4 frontier)** | **92.5%** | — | — | ~$7 |
+| **Ensemble (unión de 4 proveedores: 3 frontier + local)** | **92.5%** | — | — | ~$7 |
+| Control nulo (4 hallazgos genéricos, agnóstico del contrato) | 50.0% (60/120) | — | — | $0 |
+
+El **control nulo** —cuatro hallazgos genéricos, idénticos para cualquier contrato— es acreditado con el 50% bajo el matcher laxo. Eso acota la lectura de la tabla: solo el margen por encima de ~50% es informativo, y sobre el subconjunto resistente al control (60 vulnerabilidades) la corrida de Claude rinde 78.3% (47/60) (Paper 1, `benchmarks/evmbench_matcher_null_control.py`).
 
 **Resultado.** EVMBench reproduce el patrón del corpus de 29 vulnerabilidades: la
 unión de razonadores frontier (92.5%) supera ampliamente a cualquiera individual,
@@ -553,10 +556,9 @@ GPT-5), de modo que las cifras laxa y estricta acotan la misma corrida. El Paper
 reporta el triple completo (matcher laxo / control nulo / juez oficial) y recomienda
 informar siempre el protocolo y el juez junto con cualquier score de EVMBench.
 Además aporta el eje **económico**: bajo el matcher laxo, el modelo de pesos abiertos
-(DeepSeek-R1, MIT) se ubica **dentro del rango de los frontier** en precisión y F1, a
+(DeepSeek-R1, MIT) registra **la mayor precisión (88.5%) y F1 (78.7%) de la comparación**, a
 **~$0.08 por auditoría (15–69× más barato)**; su menor recall de una sola pasada
-(70.8%) se recupera con un auto-ensemble de bajo costo. Estas cifras son una
-estimación optimista (matcher laxo, corrida única): el Paper 1 difiere el ranking de
+(70.8%) se recupera con un auto-ensemble de bajo costo. Estas cifras son una estimación optimista (matcher laxo, corrida única) que no habilita un ranking confiable de proveedores: el Paper 1 difiere el ranking de
 proveedores —bajo el juez oficial de EVMBench— a trabajo futuro.
 La taxonomía de tres niveles de apertura y el análisis económico completo están en
 el Capítulo 6 (Tabla 6.2b).
@@ -621,7 +623,7 @@ Se validó manualmente el mapeo de clasificaciones nativas a taxonomías estánd
 
 El único error de mapeo en GPTScan correspondió a una clasificación ambigua del modelo de lenguaje que fue corregida manualmente.
 
-**Resultado RQ3:** La normalización logra una deduplicación del **66%** con una precisión de mapeo del **97.1%**, validando la efectividad del enfoque.
+**Resultado RQ3:** La normalización logra una deduplicación del **68%** (385→123 sobre el corpus) con una precisión de mapeo del **97.1%**, validando la efectividad del enfoque.
 
 ---
 
@@ -673,9 +675,7 @@ El único error de mapeo en GPTScan correspondió a una clasificación ambigua d
 
 *Nota: Costos estimados basados en precios públicos de noviembre 2024. El nivel
 open-weight hosteado (pesos MIT accedidos por API, ~$0.08/auditoría) es 15–69×
-más barato que las APIs frontier y, bajo el matcher laxo de EVMBench, se ubica
-dentro del rango de los frontier en precisión/F1 —estimación optimista, no un
-ranking concluyente— (véase §5.3.5 y el Capítulo 6, Tabla 6.2b).*
+más barato que las APIs frontier y, bajo el matcher laxo de EVMBench, registra la mayor precisión/F1 de la comparación —bajo matcher laxo, una estimación optimista que no constituye un ranking concluyente— (véase §5.3.5 y el Capítulo 6, Tabla 6.2b).*
 
 **Resultado RQ4:** MIESC es viable para producción con:
 - **Tiempo:** ~1 minuto para auditoría completa (ejecución paralela)
