@@ -128,13 +128,13 @@ Desarrollar un servidor MCP (Model Context Protocol) que permita interacción co
 
 El presente trabajo busca responder las siguientes preguntas de investigación:
 
-**RQ1:** Es posible integrar herramientas heterogéneas de análisis de seguridad de smart contracts en un framework unificado mediante el patrón Adapter?
+**RQ1:** ¿Es posible integrar herramientas heterogéneas de análisis de seguridad de smart contracts en un framework unificado mediante el patrón Adapter?
 
-**RQ2:** Una arquitectura de capas basada en Defense-in-Depth mejora la tasa de detección de vulnerabilidades respecto a herramientas individuales?
+**RQ2:** ¿Una arquitectura de capas basada en Defense-in-Depth mejora la tasa de detección de vulnerabilidades respecto a herramientas individuales?
 
-**RQ3:** Cual es el impacto de la normalización y deduplicación en la calidad de los reportes de seguridad?
+**RQ3:** ¿Cuál es el impacto de la normalización y deduplicación en la calidad de los reportes de seguridad?
 
-**RQ4:** Es viable utilizar LLMs locales (Ollama) para análisis de seguridad de smart contracts con calidad comparable a servicios comerciales?
+**RQ4:** ¿Es viable utilizar LLMs locales (Ollama) para análisis de seguridad de smart contracts con calidad comparable a servicios comerciales?
 
 ---
 

@@ -185,7 +185,7 @@ La ejecución simbólica trata las entradas como símbolos y explora caminos de 
 
 **Figura 3.** Ejecución concreta vs ejecución simbólica
 
-![Figura 3 - Ejecucion concreta vs ejecucion simbolica](figures/Figura%203%20Ejecución%20concreta%20vs%20ejecución%20simbólica.svg)
+![Figura 3 - Ejecución concreta vs ejecución simbólica](figures/Figura%203%20Ejecución%20concreta%20vs%20ejecución%20simbólica.svg)
 
 **Herramientas:** Mythril (Mueller, 2018), Manticore (Mossberg et al., 2019), Oyente (Luu et al., 2016)
 
