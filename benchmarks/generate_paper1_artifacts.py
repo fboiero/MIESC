@@ -31,6 +31,7 @@ PROVIDERS = {
     "ollama_qwen2_5_coder_32b": EVMBENCH / "evmbench_ollama_qwen32b_40_FINAL.json",
 }
 
+CAMERA_READY_DATE = "2026-10-16"
 SMARTBUGS_LATEST = RESULTS / "paper1_smartbugs_eval_layers_1_6_7.json"
 SMARTBUGS_OLLAMA_FOLLOWUP = RESULTS / "paper1_smartbugs_local_ollama_followup_20260623.json"
 REAL_WORLD_EXPLOITS = RESULTS / "paper1_exploits_eval_20260621.json"
@@ -65,10 +66,9 @@ def metrics_from_result(data: dict) -> dict:
 
 
 def layers_from_smartbugs_artifact(data: dict, source_path: Path | None = None) -> list[int] | None:
-    layers = (
-        data.get("experiment_card", {}).get("layers_evaluated")
-        or data.get("configuration", {}).get("layers")
-    )
+    layers = data.get("experiment_card", {}).get("layers_evaluated") or data.get(
+        "configuration", {}
+    ).get("layers")
     if layers:
         return layers
     if source_path:
@@ -184,9 +184,7 @@ def generate_ensemble() -> dict:
             "from the four provider result files. A vulnerability is counted as "
             "detected if any provider marks it as matched=true."
         ),
-        "input_files": {
-            name: str(path.relative_to(ROOT)) for name, path in PROVIDERS.items()
-        },
+        "input_files": {name: str(path.relative_to(ROOT)) for name, path in PROVIDERS.items()},
         "provider_summary": provider_summary,
         "audits_evaluated": len({item["audit"] for item in vulnerabilities}),
         "total_vulns": total_vulns,
@@ -279,7 +277,9 @@ def generate_claims_matrix(ensemble: dict) -> dict:
                 "paper_claim": "Ollama qwen2.5-coder:32b reaches 59.2% recall on EVMBench local extraction.",
                 "value": ensemble["provider_summary"]["ollama_qwen2_5_coder_32b"]["recall"],
                 "unit": "recall",
-                "source_artifact": ensemble["provider_summary"]["ollama_qwen2_5_coder_32b"]["source"],
+                "source_artifact": ensemble["provider_summary"]["ollama_qwen2_5_coder_32b"][
+                    "source"
+                ],
                 "status": "supported",
             },
             {
@@ -317,9 +317,7 @@ def generate_claims_matrix(ensemble: dict) -> dict:
                     ),
                     "gpt_4o": metrics_from_result(provider_data["gpt_4o"]),
                     "gpt_5": metrics_from_result(provider_data["gpt_5"]),
-                    "claude_sonnet_4_6": metrics_from_result(
-                        provider_data["claude_sonnet_4_6"]
-                    ),
+                    "claude_sonnet_4_6": metrics_from_result(provider_data["claude_sonnet_4_6"]),
                     "ensemble_union": {
                         "audits_evaluated": ensemble["audits_evaluated"],
                         "total_vulns": ensemble["total_vulns"],
@@ -331,10 +329,7 @@ def generate_claims_matrix(ensemble: dict) -> dict:
                 "source_artifact": [
                     str(EVMBENCH_STATIC.relative_to(ROOT)),
                     "benchmarks/results/evmbench/evmbench_ensemble_40.json",
-                    *[
-                        str(path.relative_to(ROOT))
-                        for path in PROVIDERS.values()
-                    ],
+                    *[str(path.relative_to(ROOT)) for path in PROVIDERS.values()],
                 ],
                 "status": "supported",
             },
@@ -384,6 +379,103 @@ def generate_claims_matrix(ensemble: dict) -> dict:
                     "Small manually curated exploit sample; used as indicative external-validity "
                     "evidence rather than a definitive population estimate."
                 ),
+            },
+            # --- RIBCi camera-ready additive artifacts (2026-10-16) ---
+            {
+                "claim_id": "ablation_llm_free",
+                "paper_claim": (
+                    "LLM-free ablation: static 82.5% (118/143), +own detectors 93.0% "
+                    "(133/143), +intelligence 97.9% (140/143); each step gains contracts "
+                    "without losing any."
+                ),
+                "value": {
+                    "l1_static": load_json(RESULTS / "paper1_ablation_l1_raw_20261015.json")[
+                        "aggregate"
+                    ],
+                    "l1_6_7": load_json(RESULTS / "paper1_ablation_l167_raw_20261015.json")[
+                        "aggregate"
+                    ],
+                    "l1_6_7_intel": load_json(RESULTS / "paper1_ablation_l167_intel_20261015.json")[
+                        "aggregate"
+                    ],
+                },
+                "unit": "recall over 143 contracts",
+                "source_artifact": [
+                    "benchmarks/results/paper1_ablation_l1_raw_20261015.json",
+                    "benchmarks/results/paper1_ablation_l167_raw_20261015.json",
+                    "benchmarks/results/paper1_ablation_l167_intel_20261015.json",
+                ],
+                "command": "python benchmarks/paper1_ablation_summary.py",
+                "date": CAMERA_READY_DATE,
+                "status": "supported",
+            },
+            {
+                "claim_id": "evmbench_null_control",
+                "paper_claim": (
+                    "A contract-agnostic null control credits 50% (60/120) under the "
+                    "lenient matcher; the control-resistant subset is 60 vulnerabilities."
+                ),
+                "value": {
+                    "credited": 60,
+                    "total": 120,
+                    "pct": 0.5,
+                    "control_resistant_subset": 60,
+                },
+                "unit": "lenient-matched vulnerabilities",
+                "source_artifact": [
+                    "benchmarks/evmbench_matcher_null_control.py",
+                    "benchmarks/results/evmbench/evmbench_claude46_40_FINAL.json",
+                ],
+                "command": (
+                    "python benchmarks/evmbench_matcher_null_control.py "
+                    "benchmarks/results/evmbench/evmbench_claude46_40_FINAL.json "
+                    "--ensemble benchmarks/results/evmbench/evmbench_ensemble_40.json"
+                ),
+                "date": CAMERA_READY_DATE,
+                "status": "supported",
+                "notes": "Computed, not stored: the 4 generic findings match 60/120 vulns.",
+            },
+            {
+                "claim_id": "evmbench_same_run_protocols",
+                "paper_claim": (
+                    "One Claude run scored under every protocol: lenient 88.3% (106/120), "
+                    "control-resistant 78.3% (47/60); official judge GPT-4o 21.4% (25/117) "
+                    "and GPT-5 27.4% (32/117); judge agreement 104/117; of 32 GPT-5-detected "
+                    "vulns, 30 are also credited by the lenient matcher."
+                ),
+                "value": {
+                    **load_json(EVMBENCH / "same_run_claude_20261016" / "summary.json"),
+                    "gpt5_lenient_cross": "30/32",
+                },
+                "unit": "mixed protocols",
+                "source_artifact": [
+                    "benchmarks/results/evmbench/same_run_claude_20261016/summary.json",
+                    "benchmarks/results/evmbench/same_run_claude_20261016/verdicts.json",
+                ],
+                "command": (
+                    "python benchmarks/evmbench_same_run_protocols.py --model claude "
+                    "--judges gpt-4o,gpt-5 "
+                    "--out benchmarks/results/evmbench/same_run_claude_20261016"
+                ),
+                "date": CAMERA_READY_DATE,
+                "status": "supported",
+            },
+            {
+                "claim_id": "fp_filter_effect",
+                "paper_claim": (
+                    "The production FP filter removes 207 of 1,263 false positives (16%) "
+                    "with no true-positive loss, raising finding-level precision from "
+                    "13.3% to 15.5%."
+                ),
+                "value": {
+                    k: load_json(RESULTS / "smartbugs_fp_filter_effect_20260710.json")[k]
+                    for k in ("raw_baseline", "filtered_production", "delta")
+                },
+                "unit": "finding-level false positives",
+                "source_artifact": "benchmarks/results/smartbugs_fp_filter_effect_20260710.json",
+                "command": "python benchmarks/smartbugs_fp_filter_effect_20260710.py",
+                "date": CAMERA_READY_DATE,
+                "status": "supported",
             },
         ],
     }
