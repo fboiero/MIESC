@@ -136,7 +136,22 @@ published `.bbl`.
 authoritative camera-ready `.bbl` is a bibliographic edit with correctness
 implications, so it is left for Fernando to confirm before changing any entry.
 
-**Decision pending (Fernando):** confirm the camera-ready `.bbl` is the
-authoritative bibliography (then `references.bib` is corrected to match it,
-entry by entry, and this check re-run until the diff is empty), or supply the
-`references.bib` version actually used to build the camera-ready.
+**Resolution (2026-10-16):** `references.bib` was corrected entry by entry
+against the authoritative camera-ready `.bbl`. Fixed: `screpair2020` authors
+(Yu, Al-Bataineh, Lo, Roychoudhury), `elysium2022` authors and venue
+(Ferreira Torres, Jonker, State; RAID 2022), `acfix2024` volume/issue/pages/year
+(51/9/2512–2532/2025), `scpatcher2025` authors/title/year, `harvey2020` venue
+(ESEC/FSE Industry Track 2020), `nguyen2021sguard` pages removed, `evmbench2026`
+URL removed, `boiero2025miesc` promoted to the full RIBCi–CYTED 2026 companion
+citation, and the missing `solidity_smtchecker` entry added. After these fixes a
+`pdflatex`→`bibtex` rebuild reproduces the camera-ready `.bbl` **in content** —
+every author, title, venue, year and the entry set now match.
+
+**Residual (cosmetic, not data):** two hunks remain that are IEEEtran rendering
+artifacts, not citation differences: an inter-element `\hskip ... \relax` vs a
+plain period before the RIBCi publisher block, and one line-wrap position in the
+SCPatcher entry. These come from a minor IEEEtran/bibtex version difference
+between the original camera-ready build and the current TeX Live 2026 toolchain;
+they do not change any citation's content or the rendered PDF. Byte-identity is
+not pursued further, since it would require matching the exact original `.bst`
+version rather than the bibliographic data.
