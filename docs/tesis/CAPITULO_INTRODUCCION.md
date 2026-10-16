@@ -1,41 +1,41 @@
-# Capitulo 1: Introduccion
+# Capítulo 1: Introducción
 
 ## MIESC: Un Enfoque de Ciberdefensa para la Seguridad de Smart Contracts
 
 ---
 
-## 1.1 Contexto y Motivacion
+## 1.1 Contexto y Motivación
 
 ### 1.1.1 La Emergencia del Ciberespacio como Dominio de Operaciones
 
-El ciberespacio se ha consolidado como el quinto dominio de operaciones militares y de seguridad nacional, junto con tierra, mar, aire y espacio (Joint Chiefs of Staff, 2018). En este contexto, la proteccion de infraestructuras digitales criticas constituye una responsabilidad fundamental del Estado y un area prioritaria de la ciberdefensa (Libicki, 2009).
+El ciberespacio se ha consolidado como el quinto dominio de operaciones militares y de seguridad nacional, junto con tierra, mar, aire y espacio (Joint Chiefs of Staff, 2018). En este contexto, la protección de infraestructuras digitales críticas constituye una responsabilidad fundamental del Estado y un área prioritaria de la ciberdefensa (Libicki, 2009).
 
-La tecnologia blockchain, inicialmente concebida como infraestructura para sistemas de pago descentralizados (Nakamoto, 2008), ha evolucionado para soportar aplicaciones criticas en sectores estrategicos:
+La tecnología blockchain, inicialmente concebida como infraestructura para sistemas de pago descentralizados (Nakamoto, 2008), ha evolucionado para soportar aplicaciones críticas en sectores estratégicos:
 
-- **Sistemas financieros descentralizados (DeFi):** Gestionan mas de $50 mil millones en activos digitales
-- **Cadenas de suministro gubernamentales:** Trazabilidad de materiales estrategicos y defensa
+- **Sistemas financieros descentralizados (DeFi):** Gestionan más de $50 mil millones en activos digitales
+- **Cadenas de suministro gubernamentales:** Trazabilidad de materiales estratégicos y defensa
 - **Sistemas de identidad digital:** Credenciales soberanas y documentos oficiales
-- **Votacion electronica:** Procesos democraticos y consultas ciudadanas
-- **Tokenizacion de activos reales:** Infraestructura financiera regulada
+- **Votación electrónica:** Procesos democráticos y consultas ciudadanas
+- **Tokenización de activos reales:** Infraestructura financiera regulada
 
-Segun Di Pietro et al. (2024), estos sistemas constituyen potenciales infraestructuras criticas cuya seguridad tiene implicaciones directas para la soberania y seguridad nacional.
+Según Di Pietro et al. (2024), estos sistemas constituyen potenciales infraestructuras críticas cuya seguridad tiene implicaciones directas para la soberanía y seguridad nacional.
 
 ### 1.1.2 La Amenaza a los Smart Contracts
 
-Los smart contracts son programas autonomos que se ejecutan en blockchains y gestionan activos digitales de valor economico real (Szabo, 1996; Atzei et al., 2017). A diferencia del software tradicional, presentan caracteristicas que los hacen particularmente criticos desde la perspectiva de ciberdefensa:
+Los smart contracts son programas autonomos que se ejecutan en blockchains y gestionan activos digitales de valor económico real (Szabo, 1996; Atzei et al., 2017). A diferencia del software tradicional, presentan características que los hacen particularmente críticos desde la perspectiva de ciberdefensa:
 
 1. **Inmutabilidad:** Una vez desplegados, las vulnerabilidades no pueden corregirse trivialmente
-2. **Transparencia:** El codigo es publico, permitiendo a adversarios analizar debilidades
-3. **Valor directo:** Gestionan activos cuya perdida es inmediata e irreversible
-4. **Ejecucion autonoma:** Operan sin intervencion humana que pueda detener un ataque
+2. **Transparencia:** El código es público, permitiendo a adversarios analizar debilidades
+3. **Valor directo:** Gestionan activos cuya pérdida es inmediata e irreversible
+4. **Ejecución autónoma:** Operan sin intervención humana que pueda detener un ataque
 
-El impacto economico de las vulnerabilidades en smart contracts es significativo. Segun Chainalysis (2024):
+El impacto económico de las vulnerabilidades en smart contracts es significativo. Según Chainalysis (2024):
 
-> "Las perdidas acumuladas por explotacion de vulnerabilidades en smart contracts superan los $7.8 mil millones entre 2016 y 2024, con un incremento del 58% en ataques sofisticados durante el ultimo ano."
+> "Las pérdidas acumuladas por explotación de vulnerabilidades en smart contracts superan los $7.8 mil millones entre 2016 y 2024, con un incremento del 58% en ataques sofisticados durante el último año."
 
-**Tabla 1.1.** Incidentes historicos criticos en smart contracts
+**Tabla 1.1.** Incidentes históricos críticos en smart contracts
 
-| Ano | Incidente | Perdida | Vulnerabilidad |
+| Año | Incidente | Pérdida | Vulnerabilidad |
 |-----|-----------|---------|----------------|
 | 2016 | The DAO | $60M | Reentrancy (SWC-107) |
 | 2017 | Parity Wallet | $280M | Access Control (SWC-105) |
@@ -45,33 +45,33 @@ El impacto economico de las vulnerabilidades en smart contracts es significativo
 | 2022 | Ronin Bridge | $625M | Private Key Compromise |
 | 2023 | Euler Finance | $197M | Flash Loan + Reentrancy |
 
-### 1.1.3 La Fragmentacion del Ecosistema de Herramientas
+### 1.1.3 La Fragmentación del Ecosistema de Herramientas
 
-El campo de la seguridad de smart contracts ha visto el desarrollo de numerosas herramientas especializadas, cada una con fortalezas y limitaciones particulares (Ivanov et al., 2023). Sin embargo, existe una fragmentacion significativa:
+El campo de la seguridad de smart contracts ha visto el desarrollo de numerosas herramientas especializadas, cada una con fortalezas y limitaciones particulares (Ivanov et al., 2023). Sin embargo, existe una fragmentación significativa:
 
 **Problema 1: Heterogeneidad de enfoques**
-- Herramientas de analisis estatico (Slither, Solhint)
+- Herramientas de análisis estático (Slither, Solhint)
 - Fuzzers (Echidna, Medusa)
-- Ejecutores simbolicos (Mythril, Manticore)
+- Ejecutores simbólicos (Mythril, Manticore)
 - Verificadores formales (Certora, Halmos)
 - Analizadores basados en IA (GPTScan)
 
 **Problema 2: Salidas incompatibles**
 - Diferentes nomenclaturas para la misma vulnerabilidad
 - Niveles de severidad inconsistentes
-- Formatos de reporte heterogeneos
+- Formatos de reporte heterogéneos
 
 **Problema 3: Cobertura incompleta**
 - Ninguna herramienta individual detecta todas las vulnerabilidades
-- Estudios empiricos muestran que la mejor herramienta individual alcanza solo 43.2% de recall (Slither, Durieux et al., 2020)
+- Estudios empíricos muestran que la mejor herramienta individual alcanza solo 43.2% de recall (Slither, Durieux et al., 2020)
 
-### 1.1.4 La Necesidad de Soberania de Datos
+### 1.1.4 La Necesidad de Soberanía de Datos
 
-En el contexto de ciberdefensa, la confidencialidad del codigo auditado es critica. Segun Zhang et al. (2024), el uso de servicios de IA en la nube para analisis de codigo presenta riesgos:
+En el contexto de ciberdefensa, la confidencialidad del código auditado es crítica. Según Zhang et al. (2024), el uso de servicios de IA en la nube para análisis de código presenta riesgos:
 
-1. **Exposicion de propiedad intelectual:** Codigo fuente enviado a terceros
-2. **Dependencia de servicios externos:** Perdida de capacidad operativa si el servicio no esta disponible
-3. **Cumplimiento normativo:** GDPR, LGPD y regulaciones nacionales restringen transmision de datos sensibles
+1. **Exposición de propiedad intelectual:** Código fuente enviado a terceros
+2. **Dependencia de servicios externos:** Pérdida de capacidad operativa si el servicio no está disponible
+3. **Cumplimiento normativo:** GDPR, LGPD y regulaciones nacionales restringen transmisión de datos sensibles
 4. **Trazabilidad:** Incapacidad de auditar el procesamiento realizado
 
 ---
@@ -80,20 +80,20 @@ En el contexto de ciberdefensa, la confidencialidad del codigo auditado es criti
 
 ### 1.2.1 Problema Principal
 
-Las organizaciones que desarrollan o auditan smart contracts enfrentan un ecosistema fragmentado de herramientas de seguridad, cada una con capacidades parciales, salidas heterogeneas y requisitos de configuracion diferentes. Esta fragmentacion:
+Las organizaciones que desarrollan o auditan smart contracts enfrentan un ecosistema fragmentado de herramientas de seguridad, cada una con capacidades parciales, salidas heterogéneas y requisitos de configuración diferentes. Esta fragmentación:
 
-1. **Aumenta el tiempo y costo de auditoria:** Ejecutar multiples herramientas manualmente
+1. **Aumenta el tiempo y costo de auditoría:** Ejecutar múltiples herramientas manualmente
 2. **Genera resultados inconsistentes:** Diferentes herramientas reportan la misma vulnerabilidad de formas distintas
 3. **Produce falsos negativos:** Ninguna herramienta individual cubre todas las vulnerabilidades
-4. **Dificulta la toma de decisiones:** Consolidar hallazgos de multiples fuentes es complejo
+4. **Dificulta la toma de decisiones:** Consolidar hallazgos de múltiples fuentes es complejo
 
-### 1.2.2 Problemas Especificos
+### 1.2.2 Problemas Específicos
 
-**P1:** No existe un framework que integre de forma coherente las principales herramientas de analisis de seguridad de smart contracts.
+**P1:** No existe un framework que integre de forma coherente las principales herramientas de análisis de seguridad de smart contracts.
 
-**P2:** Las salidas de las herramientas existentes utilizan nomenclaturas y formatos incompatibles, dificultando la correlacion y deduplicacion de hallazgos.
+**P2:** Las salidas de las herramientas existentes utilizan nomenclaturas y formatos incompatibles, dificultando la correlación y deduplicación de hallazgos.
 
-**P3:** Las soluciones existentes que utilizan IA dependen de servicios externos (OpenAI, Anthropic), comprometiendo la confidencialidad del codigo analizado.
+**P3:** Las soluciones existentes que utilizan IA dependen de servicios externos (OpenAI, Anthropic), comprometiendo la confidencialidad del código analizado.
 
 **P4:** No existe una arquitectura que aplique el principio de Defense-in-Depth a la seguridad de smart contracts.
 
@@ -103,79 +103,79 @@ Las organizaciones que desarrollan o auditan smart contracts enfrentan un ecosis
 
 ### 1.3.1 Objetivo General
 
-Disenar e implementar MIESC (Multi-layer Integration for Ethereum Smart Contract Security), un framework de codigo abierto que integre multiples herramientas de analisis de seguridad en una arquitectura de capas basada en Defense-in-Depth, garantizando soberania de datos mediante ejecucion completamente local.
+Diseñar e implementar MIESC (Multi-layer Integration for Ethereum Smart Contract Security), un framework de código abierto que integre múltiples herramientas de análisis de seguridad en una arquitectura de capas basada en Defense-in-Depth, garantizando soberanía de datos mediante ejecución completamente local.
 
-### 1.3.2 Objetivos Especificos
+### 1.3.2 Objetivos Específicos
 
-**OE1: Integracion de Herramientas**
-Integrar al menos 20 herramientas de analisis de seguridad de smart contracts, cubriendo las categorias de analisis estatico, fuzzing, ejecucion simbolica, verificacion formal y analisis basado en IA.
+**OE1: Integración de Herramientas**
+Integrar al menos 20 herramientas de análisis de seguridad de smart contracts, cubriendo las categorías de análisis estático, fuzzing, ejecución simbólica, verificación formal y análisis basado en IA.
 
-**OE2: Normalizacion de Salidas**
-Disenar un esquema de normalizacion que mapee los hallazgos de todas las herramientas a taxonomias estandar (SWC, CWE, OWASP), permitiendo correlacion y deduplicacion efectiva.
+**OE2: Normalización de Salidas**
+Diseñar un esquema de normalización que mapee los hallazgos de todas las herramientas a taxonomías estándar (SWC, CWE, OWASP), permitiendo correlación y deduplicación efectiva.
 
 **OE3: Arquitectura Defense-in-Depth**
-Implementar una arquitectura de 7 capas donde cada capa proporcione capacidades complementarias de deteccion, siguiendo el principio de Defense-in-Depth.
+Implementar una arquitectura de 7 capas donde cada capa proporcione capacidades complementarias de detección, siguiendo el principio de Defense-in-Depth.
 
-**OE4: Soberania de Datos**
-Implementar un backend de IA soberano basado en Ollama que permita analisis semantico sin transmision de codigo a servicios externos.
+**OE4: Soberanía de Datos**
+Implementar un backend de IA soberano basado en Ollama que permita análisis semántico sin transmisión de código a servicios externos.
 
 **OE5: Interfaz Conversacional**
-Desarrollar un servidor MCP (Model Context Protocol) que permita interaccion con asistentes de IA modernos (Claude, GPT) manteniendo el procesamiento local.
+Desarrollar un servidor MCP (Model Context Protocol) que permita interacción con asistentes de IA modernos (Claude, GPT) manteniendo el procesamiento local.
 
 ---
 
-## 1.4 Preguntas de Investigacion
+## 1.4 Preguntas de Investigación
 
-El presente trabajo busca responder las siguientes preguntas de investigacion:
+El presente trabajo busca responder las siguientes preguntas de investigación:
 
-**RQ1:** Es posible integrar herramientas heterogeneas de analisis de seguridad de smart contracts en un framework unificado mediante el patron Adapter?
+**RQ1:** Es posible integrar herramientas heterogéneas de análisis de seguridad de smart contracts en un framework unificado mediante el patrón Adapter?
 
-**RQ2:** Una arquitectura de capas basada en Defense-in-Depth mejora la tasa de deteccion de vulnerabilidades respecto a herramientas individuales?
+**RQ2:** Una arquitectura de capas basada en Defense-in-Depth mejora la tasa de detección de vulnerabilidades respecto a herramientas individuales?
 
-**RQ3:** Cual es el impacto de la normalizacion y deduplicacion en la calidad de los reportes de seguridad?
+**RQ3:** Cual es el impacto de la normalización y deduplicación en la calidad de los reportes de seguridad?
 
-**RQ4:** Es viable utilizar LLMs locales (Ollama) para analisis de seguridad de smart contracts con calidad comparable a servicios comerciales?
-
----
-
-## 1.5 Hipotesis
-
-**H1:** Un framework que integre multiples herramientas de analisis de seguridad mediante el patron Adapter puede alcanzar una tasa de deteccion superior a cualquier herramienta individual.
-
-**H2:** La normalizacion de hallazgos a taxonomias estandar (SWC, CWE) permite reducir significativamente los hallazgos duplicados sin perdida de informacion.
-
-**H3:** La ejecucion de LLMs locales mediante Ollama proporciona capacidades de analisis semantico comparables a servicios comerciales, con costo operativo cercano a cero.
+**RQ4:** Es viable utilizar LLMs locales (Ollama) para análisis de seguridad de smart contracts con calidad comparable a servicios comerciales?
 
 ---
 
-## 1.6 Justificacion
+## 1.5 Hipótesis
+
+**H1:** Un framework que integre múltiples herramientas de análisis de seguridad mediante el patrón Adapter puede alcanzar una tasa de detección superior a cualquier herramienta individual.
+
+**H2:** La normalización de hallazgos a taxonomías estándar (SWC, CWE) permite reducir significativamente los hallazgos duplicados sin pérdida de información.
+
+**H3:** La ejecución de LLMs locales mediante Ollama proporciona capacidades de análisis semántico comparables a servicios comerciales, con costo operativo cercano a cero.
+
+---
+
+## 1.6 Justificación
 
 ### 1.6.1 Relevancia para la Ciberdefensa
 
 El presente trabajo se enmarca en el campo de la ciberdefensa por las siguientes razones:
 
-1. **Proteccion de infraestructuras criticas:** Los sistemas blockchain gestionan cada vez mas activos y procesos criticos
-2. **Soberania tecnologica:** La dependencia de herramientas y servicios extranjeros compromete la autonomia operativa
-3. **Capacidad de respuesta:** Un framework integrado acelera la deteccion y respuesta a vulnerabilidades
+1. **Protección de infraestructuras críticas:** Los sistemas blockchain gestionan cada vez más activos y procesos críticos
+2. **Soberanía tecnológica:** La dependencia de herramientas y servicios extranjeros compromete la autonomía operativa
+3. **Capacidad de respuesta:** Un framework integrado acelera la detección y respuesta a vulnerabilidades
 4. **Defense-in-Depth:** Aplica un principio fundamental de ciberdefensa a un dominio emergente
 
-### 1.6.2 Relevancia Academica
+### 1.6.2 Relevancia Académica
 
 El trabajo contribuye al conocimiento en:
 
-1. **Integracion de herramientas:** Demuestra viabilidad del patron Adapter para sistemas heterogeneos
-2. **Normalizacion de hallazgos:** Propone esquema reproducible basado en taxonomias estandar
-3. **IA soberana:** Evalua empiricamente capacidades de LLMs locales para analisis de codigo
+1. **Integración de herramientas:** Demuestra viabilidad del patrón Adapter para sistemas heterogéneos
+2. **Normalización de hallazgos:** Propone esquema reproducible basado en taxonomías estándar
+3. **IA soberana:** Evalúa empíricamente capacidades de LLMs locales para análisis de código
 4. **Defense-in-Depth:** Aplica y valida el principio en un dominio no tradicional
 
-### 1.6.3 Relevancia Practica
+### 1.6.3 Relevancia Práctica
 
 MIESC proporciona:
 
-1. **Herramienta de codigo abierto:** Disponible para organizaciones y auditores
-2. **Reduccion de costos:** $0 costo operativo en IA gracias a ejecucion local
-3. **Mejora de eficiencia:** Automatizacion de proceso de auditoria
-4. **Cumplimiento normativo:** Garantia de confidencialidad de datos
+1. **Herramienta de código abierto:** Disponible para organizaciones y auditores
+2. **Reducción de costos:** $0 costo operativo en IA gracias a ejecución local
+3. **Mejora de eficiencia:** Automatización de proceso de auditoría
+4. **Cumplimiento normativo:** Garantía de confidencialidad de datos
 
 ---
 
@@ -187,9 +187,9 @@ El presente trabajo incluye:
 
 1. **Blockchain objetivo:** Ethereum y blockchains compatibles con EVM
 2. **Lenguaje:** Smart contracts escritos en Solidity (versiones 0.4.x a 0.8.x)
-3. **Herramientas:** Integracion de 25 herramientas de analisis
+3. **Herramientas:** Integración de 25 herramientas de análisis
 4. **Interfaces:** API REST y servidor MCP
-5. **Evaluacion:** Corpus de contratos con vulnerabilidades conocidas
+5. **Evaluación:** Corpus de contratos con vulnerabilidades conocidas
 
 ### 1.7.2 Limitaciones
 
@@ -197,36 +197,36 @@ El trabajo no incluye:
 
 1. **Otras blockchains:** Solana, Cardano, Polkadot (trabajo futuro)
 2. **Otros lenguajes:** Vyper, Move, Rust (trabajo futuro)
-3. **Monitoreo en produccion:** Analisis post-deployment (trabajo futuro)
-4. **Auditorias manuales:** El framework complementa, no reemplaza, revision humana
+3. **Monitoreo en producción:** Análisis post-deployment (trabajo futuro)
+4. **Auditorías manuales:** El framework complementa, no reemplaza, revisión humana
 
 ---
 
-## 1.8 Metodologia
+## 1.8 Metodología
 
-### 1.8.1 Tipo de Investigacion
+### 1.8.1 Tipo de Investigación
 
-Investigacion aplicada de caracter experimental, con desarrollo de artefacto de software y validacion empirica.
+Investigación aplicada de caracter experimental, con desarrollo de artefacto de software y validación empírica.
 
-### 1.8.2 Metodologia de Desarrollo
+### 1.8.2 Metodología de Desarrollo
 
 Se adopta un enfoque iterativo-incremental:
 
-1. **Fase 1:** Investigacion y seleccion de herramientas
-2. **Fase 2:** Diseno de arquitectura y esquema de normalizacion
-3. **Fase 3:** Implementacion de adaptadores
-4. **Fase 4:** Integracion de componentes de IA
-5. **Fase 5:** Evaluacion experimental
-6. **Fase 6:** Documentacion y publicacion
+1. **Fase 1:** Investigación y selección de herramientas
+2. **Fase 2:** Diseño de arquitectura y esquema de normalización
+3. **Fase 3:** Implementación de adaptadores
+4. **Fase 4:** Integración de componentes de IA
+5. **Fase 5:** Evaluación experimental
+6. **Fase 6:** Documentación y publicación
 
-### 1.8.3 Metodologia de Evaluacion
+### 1.8.3 Metodología de Evaluación
 
-La evaluacion incluye:
+La evaluación incluye:
 
-1. **Metricas de deteccion:** Precision, Recall, F1-Score
-2. **Comparacion con baseline:** Herramientas individuales
-3. **Analisis de deduplicacion:** Reduccion de hallazgos
-4. **Evaluacion cualitativa:** Usabilidad y tiempo de auditoria
+1. **Métricas de detección:** Precisión, Recall, F1-Score
+2. **Comparación con baseline:** Herramientas individuales
+3. **Análisis de deduplicación:** Reducción de hallazgos
+4. **Evaluación cualitativa:** Usabilidad y tiempo de auditoría
 
 ---
 
@@ -234,19 +234,19 @@ La evaluacion incluye:
 
 Las principales contribuciones del presente trabajo son:
 
-**C1:** MIESC, un framework de codigo abierto que integra 25 herramientas de analisis de seguridad
+**C1:** MIESC, un framework de código abierto que integra 25 herramientas de análisis de seguridad
 
 **C2:** Arquitectura de 7 capas basada en Defense-in-Depth para seguridad de smart contracts
 
-**C3:** Esquema de normalizacion basado en SWC/CWE/OWASP
+**C3:** Esquema de normalización basado en SWC/CWE/OWASP
 
-**C4:** Implementacion de backend de IA soberano con Ollama
+**C4:** Implementación de backend de IA soberano con Ollama
 
-**C5:** Servidor MCP para integracion con asistentes de IA modernos
+**C5:** Servidor MCP para integración con asistentes de IA modernos
 
-**C6:** Evaluacion empirica sobre corpus de vulnerabilidades conocidas
+**C6:** Evaluación empírica sobre corpus de vulnerabilidades conocidas
 
-**C7:** La tesis de que el **control sobre la herramienta —pesos abiertos, ejecucion auditable— es un requisito de primer orden del analisis de seguridad, no una preferencia**: fundamentada doctrinal (ciberdefensa), cientifica (reproducibilidad pericial), epistemologica (autoria y rendicion de cuentas) y filosoficamente (Illich, Floridi, Stallman, Winner), y respaldada empiricamente —bajo el protocolo de matcher laxo, un modelo de pesos abiertos se ubica dentro del rango de los proveedores frontier en precision/F1 a 15-69x menos costo; el ranking de proveedores bajo el juez oficial queda como trabajo futuro (Capitulo 6, seccion 6.6.3)
+**C7:** La tesis de que el **control sobre la herramienta —pesos abiertos, ejecución auditable— es un requisito de primer orden del análisis de seguridad, no una preferencia**: fundamentada doctrinal (ciberdefensa), científica (reproducibilidad pericial), epistemológica (autoría y rendición de cuentas) y filosóficamente (Illich, Floridi, Stallman, Winner), y respaldada empíricamente —bajo el protocolo de matcher laxo, un modelo de pesos abiertos se ubica dentro del rango de los proveedores frontier en precisión/F1 a 15-69x menos costo; el ranking de proveedores bajo el juez oficial queda como trabajo futuro (Capítulo 6, sección 6.6.3)
 
 ---
 
@@ -254,27 +254,27 @@ Las principales contribuciones del presente trabajo son:
 
 El presente documento se organiza de la siguiente manera:
 
-**Capitulo 1 (Introduccion):** Contexto, problema, objetivos y metodologia
+**Capítulo 1 (Introducción):** Contexto, problema, objetivos y metodología
 
-**Capitulo 2 (Marco Teorico):** Fundamentos de ciberdefensa, blockchain, taxonomias de vulnerabilidades, tecnicas de analisis y patrones de diseno
+**Capítulo 2 (Marco Teórico):** Fundamentos de ciberdefensa, blockchain, taxonomías de vulnerabilidades, técnicas de análisis y patrones de diseño
 
-**Capitulo 3 (Estado del Arte):** Revision de herramientas existentes, estudios comparativos y gaps identificados
+**Capítulo 3 (Estado del Arte):** Revisión de herramientas existentes, estudios comparativos y gaps identificados
 
-**Capitulo 4 (Desarrollo e Implementacion):** Arquitectura de MIESC, diseno de capas, implementacion de adaptadores
+**Capítulo 4 (Desarrollo e Implementación):** Arquitectura de MIESC, diseño de capas, implementación de adaptadores
 
-**Capitulo 5 (Resultados Experimentales):** Evaluacion empirica, metricas de deteccion, comparacion con baseline
+**Capítulo 5 (Resultados Experimentales):** Evaluación empírica, métricas de detección, comparación con baseline
 
-**Capitulo 6 (Justificacion de IA y LLMs Soberanos):** Argumentacion tecnica de la decision arquitectonica
+**Capítulo 6 (Justificación de IA y LLMs Soberanos):** Argumentación técnica de la decisión arquitectónica
 
-**Capitulo 7 (Justificacion del MCP):** Arquitectura del servidor MCP y beneficios
+**Capítulo 7 (Justificación del MCP):** Arquitectura del servidor MCP y beneficios
 
-**Capitulo 8 (Conclusiones y Trabajos Futuros):** Sintesis, contribuciones y lineas futuras
+**Capítulo 8 (Conclusiones y Trabajos Futuros):** Síntesis, contribuciones y líneas futuras
 
-**Apendices:** Salidas de herramientas, evolucion arquitectonica, tablas comparativas
+**Apéndices:** Salidas de herramientas, evolución arquitectónica, tablas comparativas
 
 ---
 
-## 1.11 Referencias del Capitulo
+## 1.11 Referencias del Capítulo
 
 Atzei, N., Bartoletti, M., & Cimoli, T. (2017). A survey of attacks on Ethereum smart contracts (SoK). In *International Conference on Principles of Security and Trust* (pp. 164-186). Springer. https://doi.org/10.1007/978-3-662-54455-6_8
 
@@ -298,4 +298,4 @@ Zhang, Q., Zhang, C., & Li, J. (2024). When LLMs meet cybersecurity: A systemati
 
 ---
 
-*Las referencias siguen el formato APA 7ma edicion.*
+*Las referencias siguen el formato APA 7ma edición.*

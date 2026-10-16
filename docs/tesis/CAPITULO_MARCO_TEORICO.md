@@ -1,52 +1,52 @@
-# Capitulo 2: Marco Teorico
+# Capítulo 2: Marco Teórico
 
 ## Fundamentos de Ciberdefensa y Seguridad en Smart Contracts
 
 ---
 
-## 2.1 Ciberdefensa y Seguridad de Infraestructuras Criticas
+## 2.1 Ciberdefensa y Seguridad de Infraestructuras Críticas
 
-### 2.1.1 Definicion de Ciberdefensa
+### 2.1.1 Definición de Ciberdefensa
 
 La ciberdefensa se define como el conjunto de acciones, medios y procedimientos tanto ofensivos como defensivos, destinados a asegurar el uso propio del ciberespacio y negarlo al enemigo (Joint Chiefs of Staff, 2018). En el contexto de las operaciones militares modernas, el ciberespacio constituye el quinto dominio de operaciones junto con tierra, mar, aire y espacio (Libicki, 2009).
 
-Segun el Marco de Ciberseguridad del NIST (National Institute of Standards and Technology, 2024), las capacidades de ciberdefensa se organizan en cinco funciones principales:
+Según el Marco de Ciberseguridad del NIST (National Institute of Standards and Technology, 2024), las capacidades de ciberdefensa se organizan en cinco funciones principales:
 
 **Tabla 2.1.** Funciones del Marco NIST de Ciberseguridad
 
-| Funcion | Descripcion | Aplicacion en Smart Contracts |
+| Función | Descripción | Aplicación en Smart Contracts |
 |---------|-------------|-------------------------------|
 | **Identificar** | Comprender el contexto de riesgo | Inventario de activos digitales, dependencias |
-| **Proteger** | Implementar salvaguardas | Controles de acceso, validacion de entradas |
-| **Detectar** | Identificar incidentes | Monitoreo de transacciones, analisis de codigo |
+| **Proteger** | Implementar salvaguardas | Controles de acceso, validación de entradas |
+| **Detectar** | Identificar incidentes | Monitoreo de transacciones, análisis de código |
 | **Responder** | Actuar ante incidentes | Pausar contratos, mecanismos de emergencia |
-| **Recuperar** | Restaurar capacidades | Actualizacion de contratos, migracion |
+| **Recuperar** | Restaurar capacidades | Actualización de contratos, migración |
 
-### 2.1.2 Blockchain como Infraestructura Critica
+### 2.1.2 Blockchain como Infraestructura Crítica
 
-La adopcion creciente de blockchain en sectores estrategicos como finanzas, energia, logistica y gobierno ha convertido esta tecnologia en una infraestructura critica potencial (Vidal et al., 2024). Segun Sayeed et al. (2020), los sistemas blockchain utilizados para:
+La adopción creciente de blockchain en sectores estratégicos como finanzas, energía, logística y gobierno ha convertido esta tecnología en una infraestructura crítica potencial (Vidal et al., 2024). Según Sayeed et al. (2020), los sistemas blockchain utilizados para:
 
-- **Sistemas financieros descentralizados (DeFi):** Con mas de $50 mil millones en valor bloqueado
-- **Cadenas de suministro gubernamentales:** Trazabilidad de productos estrategicos
+- **Sistemas financieros descentralizados (DeFi):** Con más de $50 mil millones en valor bloqueado
+- **Cadenas de suministro gubernamentales:** Trazabilidad de productos estratégicos
 - **Sistemas de identidad digital:** Documentos y credenciales soberanas
-- **Votacion electronica:** Procesos democraticos seguros
+- **Votación electrónica:** Procesos democráticos seguros
 
-Constituyen activos cuya proteccion es responsabilidad del Estado en el marco de la defensa nacional.
+Constituyen activos cuya protección es responsabilidad del Estado en el marco de la defensa nacional.
 
 ### 2.1.3 Relevancia para la Defensa Nacional
 
-La proteccion de infraestructuras basadas en blockchain tiene implicaciones directas para la seguridad nacional (Di Pietro et al., 2024):
+La protección de infraestructuras basadas en blockchain tiene implicaciones directas para la seguridad nacional (Di Pietro et al., 2024):
 
-> "Los ataques a smart contracts representan una amenaza emergente para la seguridad economica de las naciones, con perdidas que superan los $7.8 mil millones entre 2016 y 2024" (Chainalysis, 2024).
+> "Los ataques a smart contracts representan una amenaza emergente para la seguridad económica de las naciones, con pérdidas que superan los $7.8 mil millones entre 2016 y 2024" (Chainalysis, 2024).
 
 **Vectores de amenaza identificados:**
 
 1. **Actores estatales:** Grupos APT con capacidad de explotar vulnerabilidades en contratos que gestionan activos soberanos
-2. **Crimen organizado:** Explotacion de vulnerabilidades para lavado de activos
-3. **Hacktivismo:** Ataques con motivacion politica a protocolos DeFi
+2. **Crimen organizado:** Explotación de vulnerabilidades para lavado de activos
+3. **Hacktivismo:** Ataques con motivación política a protocolos DeFi
 4. **Amenazas internas:** Desarrolladores maliciosos o negligentes
 
-**Figura 1.** Taxonomia de amenazas a sistemas blockchain
+**Figura 1.** Taxonomía de amenazas a sistemas blockchain
 
 ![Figura 1 - Taxonomia de amenazas a sistemas blockchain](figures/Figura%201.%20Taxonomía%20de%20amenazas%20a%20sistemas%20blockchain.svg)
 
@@ -54,70 +54,70 @@ La proteccion de infraestructuras basadas en blockchain tiene implicaciones dire
 
 ## 2.2 Blockchain y Smart Contracts
 
-### 2.2.1 Definicion de Blockchain
+### 2.2.1 Definición de Blockchain
 
-Una blockchain es una estructura de datos distribuida que consiste en una cadena de bloques enlazados criptograficamente, donde cada bloque contiene un conjunto de transacciones validadas (Nakamoto, 2008). En el contexto de ciberdefensa, las propiedades de blockchain presentan una dualidad:
+Una blockchain es una estructura de datos distribuida que consiste en una cadena de bloques enlazados criptográficamente, donde cada bloque contiene un conjunto de transacciones validadas (Nakamoto, 2008). En el contexto de ciberdefensa, las propiedades de blockchain presentan una dualidad:
 
 **Tabla 2.2.** Propiedades de blockchain desde perspectiva de ciberdefensa
 
 | Propiedad | Ventaja Defensiva | Riesgo Asociado |
 |-----------|-------------------|-----------------|
 | Inmutabilidad | Integridad garantizada de registros | Vulnerabilidades desplegadas son permanentes |
-| Descentralizacion | Resistencia a ataques de punto unico | Dificultad para respuesta coordinada |
-| Transparencia | Auditabilidad publica | Atacantes pueden analizar codigo fuente |
-| Determinismo | Comportamiento predecible | Explotacion reproducible |
+| Descentralización | Resistencia a ataques de punto único | Dificultad para respuesta coordinada |
+| Transparencia | Auditabilidad pública | Atacantes pueden analizar código fuente |
+| Determinismo | Comportamiento predecible | Explotación reproducible |
 | Finality | Irreversibilidad de transacciones | Ataques exitosos no pueden revertirse |
 
 ### 2.2.2 Smart Contracts
 
-Un smart contract es un programa computacional que se ejecuta de forma automatica cuando se cumplen condiciones predefinidas (Szabo, 1996). Segun la definicion formal de Atzei et al. (2017):
+Un smart contract es un programa computacional que se ejecuta de forma automática cuando se cumplen condiciones predefinidas (Szabo, 1996). Según la definición formal de Atzei et al. (2017):
 
-> "Un smart contract es un programa determinista que se ejecuta en un ambiente de ejecucion distribuido (la blockchain), maneja activos digitales, y cuyo comportamiento esta completamente determinado por su codigo y el estado de la blockchain."
+> "Un smart contract es un programa determinista que se ejecuta en un ambiente de ejecución distribuido (la blockchain), maneja activos digitales, y cuyo comportamiento esta completamente determinado por su código y el estado de la blockchain."
 
-**Caracteristicas criticas desde perspectiva de seguridad:**
+**Características críticas desde perspectiva de seguridad:**
 
-1. **Ejecucion autonoma:** Una vez desplegado, opera sin intervencion humana
-2. **Valor economico directo:** Gestiona activos digitales con valor real
-3. **Codigo publico:** Bytecode (y frecuentemente codigo fuente) visible para adversarios
-4. **Actualizacion compleja:** Modificar un contrato desplegado requiere patrones especiales
+1. **Ejecución autónoma:** Una vez desplegado, opera sin intervención humana
+2. **Valor económico directo:** Gestiona activos digitales con valor real
+3. **Código público:** Bytecode (y frecuentemente código fuente) visible para adversarios
+4. **Actualización compleja:** Modificar un contrato desplegado requiere patrones especiales
 
 ### 2.2.3 Ethereum Virtual Machine (EVM)
 
-La EVM es el entorno de ejecucion para smart contracts en Ethereum y blockchains compatibles (Wood, 2014). Segun Hildenbrandt et al. (2018), la semantica formal de la EVM incluye:
+La EVM es el entorno de ejecución para smart contracts en Ethereum y blockchains compatibles (Wood, 2014). Según Hildenbrandt et al. (2018), la semántica formal de la EVM incluye:
 
-- **Arquitectura stack-based:** Pila de 1024 elementos maximo
-- **Sistema de Gas:** Cada operacion consume unidades computacionales
+- **Arquitectura stack-based:** Pila de 1024 elementos máximo
+- **Sistema de Gas:** Cada operación consume unidades computacionales
 - **Almacenamiento multinivel:** Storage (persistente), Memory (temporal), Stack
 - **Opcodes de llamada:** CALL, DELEGATECALL, STATICCALL con diferentes modelos de seguridad
 
 ---
 
-## 2.3 Taxonomia de Vulnerabilidades
+## 2.3 Taxonomía de Vulnerabilidades
 
 ### 2.3.1 Smart Contract Weakness Classification (SWC)
 
-El SWC Registry (Smart Contract Weakness Classification, 2020) proporciona una taxonomia estandarizada de vulnerabilidades. Vidal et al. (2024) proponen OpenSCV como una extension jerarquica del SWC, organizando las debilidades en categorias:
+El SWC Registry (Smart Contract Weakness Classification, 2020) proporciona una taxonomía estandarizada de vulnerabilidades. Vidal et al. (2024) proponen OpenSCV como una extensión jerárquica del SWC, organizando las debilidades en categorías:
 
-**Tabla 2.3.** Categorias SWC criticas para ciberdefensa
+**Tabla 2.3.** Categorías SWC críticas para ciberdefensa
 
 | SWC ID | Nombre | Impacto en Ciberdefensa | Severidad |
 |--------|--------|-------------------------|-----------|
-| SWC-107 | Reentrancy | Perdida total de fondos | CRITICA |
-| SWC-101 | Integer Overflow/Underflow | Manipulacion de balances | ALTA |
+| SWC-107 | Reentrancy | Pérdida total de fondos | CRÍTICA |
+| SWC-101 | Integer Overflow/Underflow | Manipulación de balances | ALTA |
 | SWC-104 | Unchecked Return Value | Falla silenciosa de transferencias | ALTA |
-| SWC-105 | Unprotected Ether Withdrawal | Robo de fondos | CRITICA |
-| SWC-106 | Unprotected SELFDESTRUCT | Destruccion de contrato | CRITICA |
-| SWC-115 | Authorization via tx.origin | Suplantacion de identidad | ALTA |
-| SWC-116 | Block Timestamp Dependence | Manipulacion por mineros | MEDIA |
-| SWC-120 | Weak Randomness | Prediccion de resultados | ALTA |
+| SWC-105 | Unprotected Ether Withdrawal | Robo de fondos | CRÍTICA |
+| SWC-106 | Unprotected SELFDESTRUCT | Destrucción de contrato | CRÍTICA |
+| SWC-115 | Authorization vía tx.origin | Suplantación de identidad | ALTA |
+| SWC-116 | Block Timestamp Dependence | Manipulación por mineros | MEDIA |
+| SWC-120 | Weak Randomness | Predicción de resultados | ALTA |
 
 ### 2.3.2 Common Weakness Enumeration (CWE)
 
-El CWE (MITRE, 2024) permite mapear vulnerabilidades de smart contracts a debilidades de software tradicional, facilitando la comunicacion con equipos de ciberseguridad generales:
+El CWE (MITRE, 2024) permite mapear vulnerabilidades de smart contracts a debilidades de software tradicional, facilitando la comunicación con equipos de ciberseguridad generales:
 
 **Tabla 2.4.** Mapeo SWC a CWE
 
-| SWC | CWE | Categoria CWE |
+| SWC | CWE | Categoría CWE |
 |-----|-----|---------------|
 | SWC-107 | CWE-841 | Improper Enforcement of Behavioral Workflow |
 | SWC-101 | CWE-190 | Integer Overflow or Wraparound |
@@ -128,89 +128,89 @@ El CWE (MITRE, 2024) permite mapear vulnerabilidades de smart contracts a debili
 
 ### 2.3.3 OWASP Smart Contract Top 10
 
-OWASP (2023) mantiene una clasificacion de las 10 vulnerabilidades mas criticas, actualizada segun incidentes reales:
+OWASP (2023) mantiene una clasificación de las 10 vulnerabilidades más críticas, actualizada según incidentes reales:
 
 1. **Reentrancy:** $60M (The DAO, 2016)
 2. **Integer Overflow/Underflow:** $800K (BEC Token, 2018)
-3. **Front-Running:** Perdidas constantes en DEXs
+3. **Front-Running:** Pérdidas constantes en DEXs
 4. **Oracle Manipulation:** $130M (Cream Finance, 2021)
 5. **Denial of Service:** Bloqueo de fondos
 6. **Access Control Issues:** $80M (Parity Wallet, 2017)
-7. **Unprotected Functions:** Multiples incidentes
+7. **Unprotected Functions:** Múltiples incidentes
 8. **Exploits de Puentes Cross-Chain:** ~$320M (incidente del puente Wormhole, febrero de 2022)
 9. **Signature Malleability:** Robo de fondos
-10. **Short Address Attack:** Manipulacion de transferencias
+10. **Short Address Attack:** Manipulación de transferencias
 
 ---
 
-## 2.4 Tecnicas de Analisis de Seguridad
+## 2.4 Técnicas de Análisis de Seguridad
 
-### 2.4.1 Analisis Estatico
+### 2.4.1 Análisis Estático
 
-El analisis estatico examina el codigo sin ejecutarlo (Aho et al., 2006). Segun Ivanov et al. (2023), en el contexto de smart contracts incluye:
+El análisis estático examina el código sin ejecutarlo (Aho et al., 2006). Según Ivanov et al. (2023), en el contexto de smart contracts incluye:
 
-**1. Analisis de flujo de datos:**
+**1. Análisis de flujo de datos:**
 - Seguimiento de variables (taint analysis)
-- Deteccion de propagacion de datos no confiables
-- Identificacion de codigo muerto
+- Detección de propagación de datos no confiables
+- Identificación de código muerto
 
 **2. Pattern matching:**
 - Busqueda de patrones vulnerables conocidos
 - Reglas basadas en AST (Abstract Syntax Tree)
-- Heuristicas de deteccion
+- Heurísticas de detección
 
-**3. Interpretacion abstracta:**
-- Aproximacion del comportamiento del programa
-- Verificacion de propiedades sin ejecucion
-- Base teorica de herramientas como Slither (Feist et al., 2019)
+**3. Interpretación abstracta:**
+- Aproximación del comportamiento del programa
+- Verificación de propiedades sin ejecución
+- Base teórica de herramientas como Slither (Feist et al., 2019)
 
 **Herramientas representativas:** Slither, Solhint, Securify2, Aderyn
 
-### 2.4.2 Analisis Dinamico (Fuzzing)
+### 2.4.2 Análisis Dinámico (Fuzzing)
 
-El fuzzing genera entradas aleatorias o semi-dirigidas para descubrir comportamientos anomalos (Sutton et al., 2007). Segun el estudio de He et al. (2023):
+El fuzzing genera entradas aleatorias o semi-dirigidas para descubrir comportamientos anomalos (Sutton et al., 2007). Según el estudio de He et al. (2023):
 
 **Tabla 2.5.** Tipos de fuzzing en smart contracts
 
-| Tipo | Descripcion | Herramienta | Efectividad |
+| Tipo | Descripción | Herramienta | Efectividad |
 |------|-------------|-------------|-------------|
-| Black-box | Sin conocimiento del codigo | Echidna basico | Media |
+| Black-box | Sin conocimiento del código | Echidna básico | Media |
 | Grey-box | Guiado por cobertura | Medusa | Alta |
-| White-box | Con instrumentacion | Foundry Fuzz | Alta |
+| White-box | Con instrumentación | Foundry Fuzz | Alta |
 | Property-based | Verifica invariantes | Echidna avanzado | Muy Alta |
 
-### 2.4.3 Ejecucion Simbolica
+### 2.4.3 Ejecución Simbólica
 
-La ejecucion simbolica trata las entradas como simbolos y explora caminos de ejecucion (King, 1976). Segun Mossberg et al. (2019), es particularmente efectiva para:
+La ejecución simbólica trata las entradas como símbolos y explora caminos de ejecución (King, 1976). Según Mossberg et al. (2019), es particularmente efectiva para:
 
-**Figura 3.** Ejecucion concreta vs ejecucion simbolica
+**Figura 3.** Ejecución concreta vs ejecución simbólica
 
 ![Figura 3 - Ejecucion concreta vs ejecucion simbolica](figures/Figura%203%20Ejecución%20concreta%20vs%20ejecución%20simbólica.svg)
 
 **Herramientas:** Mythril (Mueller, 2018), Manticore (Mossberg et al., 2019), Oyente (Luu et al., 2016)
 
-### 2.4.4 Verificacion Formal
+### 2.4.4 Verificación Formal
 
-La verificacion formal utiliza metodos matematicos para probar propiedades de programas (Hoare, 1969). Segun Tolmach et al. (2021), las tecnicas aplicadas a smart contracts incluyen:
+La verificación formal utiliza métodos matemáticos para probar propiedades de programas (Hoare, 1969). Según Tolmach et al. (2021), las técnicas aplicadas a smart contracts incluyen:
 
 **1. Model Checking:**
-- Exploracion exhaustiva de estados
-- Verificacion de propiedades temporales
+- Exploración exhaustiva de estados
+- Verificación de propiedades temporales
 - Herramienta: SMTChecker (Solidity)
 
 **2. Theorem Proving:**
-- Demostracion matematica de propiedades
+- Demostración matemática de propiedades
 - Especificaciones en lenguajes formales
 - Herramienta: Certora Prover
 
 **3. Bounded Model Checking:**
-- Verificacion hasta profundidad k
+- Verificación hasta profundidad k
 - Balance entre completitud y escalabilidad
 - Herramienta: Halmos
 
-**Tabla 2.6.** Comparacion de tecnicas de verificacion
+**Tabla 2.6.** Comparación de técnicas de verificación
 
-| Tecnica | Soundness | Completeness | Escalabilidad |
+| Técnica | Soundness | Completeness | Escalabilidad |
 |---------|-----------|--------------|---------------|
 | Model Checking | Alta | Alta | Baja |
 | Theorem Proving | Completa | Completa | Media |
@@ -218,13 +218,13 @@ La verificacion formal utiliza metodos matematicos para probar propiedades de pr
 
 ---
 
-## 2.5 Patrones de Diseno de Software
+## 2.5 Patrones de Diseño de Software
 
-### 2.5.1 Patron Adapter (Gamma et al., 1994)
+### 2.5.1 Patrón Adapter (Gamma et al., 1994)
 
-El patron Adapter convierte la interfaz de una clase en otra esperada por los clientes. MIESC utiliza este patron para integrar herramientas heterogeneas:
+El patrón Adapter convierte la interfaz de una clase en otra esperada por los clientes. MIESC utiliza este patrón para integrar herramientas heterogéneas:
 
-**Figura 3.1.** Patron Adapter en MIESC
+**Figura 3.1.** Patrón Adapter en MIESC
 
 ![Figura 3.1 - Patron Adapter en MIESC](figures/Figura%203.1.%20Patron%20Adapter%20en%20MIESC.svg)
 
@@ -232,27 +232,27 @@ El patron Adapter convierte la interfaz de una clase en otra esperada por los cl
 
 MIESC implementa los principios SOLID (Martin, 2000):
 
-| Principio | Aplicacion en MIESC |
+| Principio | Aplicación en MIESC |
 |-----------|---------------------|
 | **S**ingle Responsibility | Cada adapter maneja una herramienta |
 | **O**pen/Closed | Extensible mediante nuevos adapters |
 | **L**iskov Substitution | Adapters son intercambiables |
 | **I**nterface Segregation | ToolProtocol define interfaz minima |
-| **D**ependency Inversion | Dependencia de abstracciones |
+| **D**ependency Inversión | Dependencia de abstracciones |
 
 ### 2.5.3 Defense in Depth
 
-Defense in Depth es una estrategia de seguridad que emplea multiples capas de controles (Ross et al., 2016a; NIST, 2024). Segun el NIST SP 800-53:
+Defense in Depth es una estrategia de seguridad que emplea múltiples capas de controles (Ross et al., 2016a; NIST, 2024). Según el NIST SP 800-53:
 
-> "Defense in depth is an information security strategy that integrates people, technology, and operations capabilities to establish variable barriers across multiple layers and missions of the organization."
+> "Defense in depth is an information security strategy that integrates people, technology, and operations capabilities to establish variable barriers across múltiple layers and missions of the organization."
 
-Durieux et al. (2020) muestran empiricamente que ninguna herramienta individual detecta todas las clases de vulnerabilidades y que combinar herramientas complementarias aumenta la cobertura de deteccion, evidencia que sustenta el enfoque defense-in-depth.
+Durieux et al. (2020) muestran empíricamente que ninguna herramienta individual detecta todas las clases de vulnerabilidades y que combinar herramientas complementarias aumenta la cobertura de detección, evidencia que sustenta el enfoque defense-in-depth.
 
 **Figura 4.** Arquitectura Defense-in-Depth de MIESC
 
 ![Figura 4 - Arquitectura Defense-in-Depth de MIESC](figures/Figura%204%20Arquitectura%20Defense-in-Depth%20de%20MIESC.svg)
 
-**Principio:** Cada capa proporciona proteccion complementaria. Si una capa falla en detectar una vulnerabilidad, las siguientes ofrecen oportunidades adicionales de deteccion.
+**Principio:** Cada capa proporciona protección complementaria. Si una capa falla en detectar una vulnerabilidad, las siguientes ofrecen oportunidades adicionales de detección.
 
 ---
 
@@ -260,18 +260,18 @@ Durieux et al. (2020) muestran empiricamente que ninguna herramienta individual 
 
 ### 2.6.1 Large Language Models (LLMs) en Seguridad
 
-Los LLMs han emergido como herramientas poderosas para analisis de seguridad de codigo (Zhang et al., 2024). Segun el estudio sistematico de Hou et al. (2024):
+Los LLMs han emergido como herramientas poderosas para análisis de seguridad de código (Zhang et al., 2024). Según el estudio sistemático de Hou et al. (2024):
 
-> "Los LLMs demuestran capacidades emergentes para detectar vulnerabilidades que escapan a herramientas tradicionales basadas en patrones, particularmente aquellas que requieren comprension semantica del codigo."
+> "Los LLMs demuestran capacidades emergentes para detectar vulnerabilidades que escapan a herramientas tradicionales basadas en patrones, particularmente aquellas que requieren comprensión semántica del código."
 
 **Aplicaciones en seguridad de smart contracts:**
 
-1. **Deteccion de vulnerabilidades:** Analisis semantico de codigo
-2. **Generacion de propiedades:** Creacion automatica de invariantes
-3. **Explicacion de hallazgos:** Traduccion a lenguaje natural
-4. **Sugerencia de remediaciones:** Generacion de codigo corregido
+1. **Detección de vulnerabilidades:** Análisis semántico de código
+2. **Generación de propiedades:** Creación automática de invariantes
+3. **Explicación de hallazgos:** Traducción a lenguaje natural
+4. **Sugerencia de remediaciones:** Generación de código corregido
 
-Sun et al. (2024) reportan que GPT-4 alcanza precision del 78% en deteccion de vulnerabilidades en smart contracts, complementando herramientas tradicionales.
+Sun et al. (2024) reportan que GPT-4 alcanza precisión del 78% en detección de vulnerabilidades en smart contracts, complementando herramientas tradicionales.
 
 ### 2.6.2 Retrieval Augmented Generation (RAG)
 
@@ -283,28 +283,28 @@ RAG combina LLMs con bases de conocimiento externas (Lewis et al., 2020). En MIE
 
 ### 2.6.3 Model Context Protocol (MCP)
 
-MCP es un estandar abierto para conectar LLMs con herramientas externas (Anthropic, 2024). Permite:
+MCP es un estándar abierto para conectar LLMs con herramientas externas (Anthropic, 2024). Permite:
 
 - **Tools:** Funciones que el LLM puede invocar
 - **Resources:** Datos estructurados accesibles
 - **Prompts:** Templates de instrucciones predefinidas
 
-### 2.6.4 Soberania de Datos en IA
+### 2.6.4 Soberanía de Datos en IA
 
-La soberania de datos es critica en contextos de ciberdefensa (Di Pietro et al., 2024). El uso de LLMs locales mediante Ollama garantiza:
+La soberanía de datos es crítica en contextos de ciberdefensa (Di Pietro et al., 2024). El uso de LLMs locales mediante Ollama garantiza:
 
-1. **Confidencialidad:** Codigo no transmitido a terceros
+1. **Confidencialidad:** Código no transmitido a terceros
 2. **Cumplimiento normativo:** GDPR, LGPD, regulaciones nacionales
 3. **Independencia operativa:** Sin dependencia de servicios externos
 4. **Auditabilidad:** Control total sobre procesamiento
 
 ---
 
-## 2.7 Normalizacion y Taxonomias
+## 2.7 Normalización y Taxonomías
 
-### 2.7.1 Necesidad de Normalizacion
+### 2.7.1 Necesidad de Normalización
 
-Las herramientas de seguridad utilizan nomenclaturas heterogeneas:
+Las herramientas de seguridad utilizan nomenclaturas heterogéneas:
 
 | Herramienta | Nombre del Hallazgo | ID | Severidad |
 |-------------|---------------------|-----|-----------|
@@ -312,11 +312,11 @@ Las herramientas de seguridad utilizan nomenclaturas heterogeneas:
 | Mythril | State Access After External Call | SWC-107 | Medium |
 | Echidna | property_balance_invariant | - | FAILED |
 
-**Problema:** Dificulta la correlacion, deduplicacion y priorizacion de hallazgos.
+**Problema:** Dificulta la correlación, deduplicación y priorización de hallazgos.
 
-### 2.7.2 Esquema de Normalizacion MIESC
+### 2.7.2 Esquema de Normalización MIESC
 
-MIESC normaliza hallazgos a un esquema unificado basado en taxonomias estandar:
+MIESC normaliza hallazgos a un esquema unificado basado en taxonomías estándar:
 
 ```json
 {
@@ -341,17 +341,17 @@ MIESC normaliza hallazgos a un esquema unificado basado en taxonomias estandar:
 }
 ```
 
-### 2.7.3 Algoritmo de Deduplicacion
+### 2.7.3 Algoritmo de Deduplicación
 
 MIESC agrupa hallazgos similares mediante:
 
-1. **Hashing de ubicacion:** (archivo, linea, funcion)
-2. **Similitud semantica:** Tipo de vulnerabilidad
-3. **Clustering:** Agrupacion por proximidad
+1. **Hashing de ubicación:** (archivo, línea, función)
+2. **Similitud semántica:** Tipo de vulnerabilidad
+3. **Clustering:** Agrupación por proximidad
 
 ---
 
-## 2.8 Referencias del Capitulo
+## 2.8 Referencias del Capítulo
 
 Aho, A. V., Lam, M. S., Sethi, R., & Ullman, J. D. (2006). *Compilers: Principles, Techniques, and Tools* (2nd ed.). Addison-Wesley.
 
@@ -425,4 +425,4 @@ Zhang, Q., Zhang, C., & Li, J. (2024). When LLMs meet cybersecurity: A systemati
 
 ---
 
-*Las referencias siguen el formato APA 7ma edicion. Todas las URLs fueron verificadas en noviembre 2024.*
+*Las referencias siguen el formato APA 7ma edición. Todas las URLs fueron verificadas en noviembre 2024.*

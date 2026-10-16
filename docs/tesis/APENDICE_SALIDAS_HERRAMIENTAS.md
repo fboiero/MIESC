@@ -1,6 +1,6 @@
-# Apendice A: Salidas de las 25 Herramientas de MIESC
+# Apéndice A: Salidas de las 25 Herramientas de MIESC
 
-## Catalogo Completo de Herramientas Integradas
+## Catálogo Completo de Herramientas Integradas
 
 ---
 
@@ -43,17 +43,17 @@
 
 ---
 
-## Capa 1: Analisis Estatico
+## Capa 1: Análisis Estático
 
 ### A.1 Slither
 
-**Descripcion:** Analizador estatico de Trail of Bits escrito en Python. Utiliza un framework de analisis intermedio (SlithIR) para detectar vulnerabilidades.
+**Descripción:** Analizador estático de Trail of Bits escrito en Python. Utiliza un framework de análisis intermedio (SlithIR) para detectar vulnerabilidades.
 
-**Caracteristicas:**
-- Mas de 80 detectores incorporados
+**Características:**
+- Más de 80 detectores incorporados
 - Soporte para herencia compleja
-- Analisis de flujo de datos
-- Integracion con CI/CD
+- Análisis de flujo de datos
+- Integración con CI/CD
 
 **Salida de Ejemplo:**
 
@@ -151,12 +151,12 @@ INFO:Slither:contracts/audit/VulnerableBank.sol analyzed (2 contracts), 9 result
 
 ### A.2 Solhint
 
-**Descripcion:** Linter de Solidity que verifica mejores practicas de estilo y seguridad.
+**Descripción:** Linter de Solidity que verifica mejores prácticas de estilo y seguridad.
 
-**Caracteristicas:**
-- Reglas configurables via .solhint.json
+**Características:**
+- Reglas configurables vía .solhint.json
 - Plugins extensibles
-- Integracion con editores (VSCode, Vim)
+- Integración con editores (VSCode, Vim)
 - Soporte para Solidity 0.8.x
 
 **Salida de Ejemplo:**
@@ -225,13 +225,13 @@ contracts/audit/VulnerableBank.sol
 
 ### A.3 Aderyn
 
-**Descripcion:** Analizador estatico escrito en Rust por Cyfrin. Ofrece velocidad superior y detectores especializados.
+**Descripción:** Analizador estático escrito en Rust por Cyfrin. Ofrece velocidad superior y detectores especializados.
 
-**Caracteristicas:**
-- Extremadamente rapido (implementacion Rust)
+**Características:**
+- Extremadamente rápido (implementación Rust)
 - Detectores para DeFi
 - Soporte para Foundry projects
-- Reportes en multiple formatos
+- Reportes en múltiple formatos
 
 **Salida de Ejemplo:**
 
@@ -339,17 +339,17 @@ Summary: 2 High, 1 Medium, 1 Low
 
 ---
 
-## Capa 2: Testing Dinamico (Fuzzing)
+## Capa 2: Testing Dinámico (Fuzzing)
 
 ### A.4 Echidna
 
-**Descripcion:** Fuzzer de contratos inteligentes de Trail of Bits basado en property testing.
+**Descripción:** Fuzzer de contratos inteligentes de Trail of Bits basado en property testing.
 
-**Caracteristicas:**
+**Características:**
 - Property-based testing
 - Campanas de fuzzing configurables
-- Shrinking automatico de tests fallidos
-- Cobertura de codigo
+- Shrinking automático de tests fallidos
+- Cobertura de código
 
 **Salida de Ejemplo:**
 
@@ -440,13 +440,13 @@ Summary:
 
 ### A.5 Foundry Fuzz
 
-**Descripcion:** Framework de testing integrado en Forge de Paradigm.
+**Descripción:** Framework de testing integrado en Forge de Paradigm.
 
-**Caracteristicas:**
+**Características:**
 - Fuzzing integrado en tests
-- Velocidad extrema (implementacion Rust)
+- Velocidad extrema (implementación Rust)
 - Cheatcodes para testing avanzado
-- Integracion con fork de mainnet
+- Integración con fork de mainnet
 
 **Salida de Ejemplo:**
 
@@ -514,13 +514,13 @@ Test result: FAILED. 2 passed; 1 failed; finished in 2.34s
 
 ### A.6 Medusa
 
-**Descripcion:** Fuzzer de contratos inteligentes escrito en Go, enfocado en coverage-guided fuzzing.
+**Descripción:** Fuzzer de contratos inteligentes escrito en Go, enfocado en coverage-guided fuzzing.
 
-**Caracteristicas:**
+**Características:**
 - Coverage-guided mutation
 - Soporte para assertion testing
-- Paralelizacion nativa
-- API para integracion
+- Paralelización nativa
+- API para integración
 
 **Salida de Ejemplo:**
 
@@ -608,13 +608,13 @@ Properties tested: 3
 
 ### A.7 DogeFuzz
 
-**Descripcion:** Fuzzer experimental basado en machine learning para guiar la generacion de inputs.
+**Descripción:** Fuzzer experimental basado en machine learning para guiar la generación de inputs.
 
-**Caracteristicas:**
+**Características:**
 - ML-guided input generation
-- Integracion con Echidna
-- Analisis de codigo para hot paths
-- Deteccion de estados interesantes
+- Integración con Echidna
+- Análisis de código para hot paths
+- Detección de estados interesantes
 
 **Salida de Ejemplo:**
 
@@ -697,13 +697,13 @@ Confidence: HIGH (heuristic sequence analysis)
 
 ### A.8 Vertigo
 
-**Descripcion:** Herramienta de mutation testing para contratos inteligentes.
+**Descripción:** Herramienta de mutation testing para contratos inteligentes.
 
-**Caracteristicas:**
+**Características:**
 - Mutation testing automatizado
-- Integracion con Foundry/Hardhat
+- Integración con Foundry/Hardhat
 - Reportes de mutantes sobrevivientes
-- Analisis de calidad de tests
+- Análisis de calidad de tests
 
 **Salida de Ejemplo:**
 
@@ -808,17 +808,17 @@ Recommendation: Add tests for boundary conditions and zero-value cases.
 
 ---
 
-## Capa 3: Ejecucion Simbolica
+## Capa 3: Ejecución Simbólica
 
 ### A.9 Mythril
 
-**Descripcion:** Framework de ejecucion simbolica de ConsenSys para analisis de seguridad.
+**Descripción:** Framework de ejecución simbólica de ConsenSys para análisis de seguridad.
 
-**Caracteristicas:**
-- Ejecucion simbolica con z3 solver
-- Deteccion de patrones de vulnerabilidad
-- Analisis de control flow
-- Soporte para multiples contratos
+**Características:**
+- Ejecución simbólica con z3 solver
+- Detección de patrones de vulnerabilidad
+- Análisis de control flow
+- Soporte para múltiples contratos
 
 **Salida de Ejemplo:**
 
@@ -952,13 +952,13 @@ Caller: [ATTACKER], function: withdraw(), txdata: 0x3ccfd60b, value: 0x0
 
 ### A.10 Manticore
 
-**Descripcion:** Herramienta de ejecucion simbolica de Trail of Bits con capacidades avanzadas.
+**Descripción:** Herramienta de ejecución simbólica de Trail of Bits con capacidades avanzadas.
 
-**Caracteristicas:**
-- Ejecucion simbolica completa
+**Características:**
+- Ejecución simbólica completa
 - Soporte para EVM y WASM
-- Deteccion de integer overflow
-- Generacion de test cases
+- Detección de integer overflow
+- Generación de test cases
 
 **Salida de Ejemplo:**
 
@@ -1042,13 +1042,13 @@ Time elapsed: 127.4s
 
 ### A.11 Oyente
 
-**Descripcion:** Uno de los primeros analizadores simbolicos para Ethereum, ahora disponible via Docker.
+**Descripción:** Uno de los primeros analizadores simbólicos para Ethereum, ahora disponible vía Docker.
 
-**Caracteristicas:**
-- Analisis de control flow
-- Deteccion de vulnerabilidades clasicas
+**Características:**
+- Análisis de control flow
+- Detección de vulnerabilidades clásicas
 - Soporte legacy para Solidity antiguo
-- Rapido para contratos simples
+- Rápido para contratos simples
 
 **Salida de Ejemplo:**
 
@@ -1134,15 +1134,15 @@ INFO: Analysis Complete
 
 ---
 
-## Capa 4: Analisis de Invariantes
+## Capa 4: Análisis de Invariantes
 
 ### A.12 Halmos
 
-**Descripcion:** Verificador simbolico para Foundry que permite probar invariantes matematicamente.
+**Descripción:** Verificador simbólico para Foundry que permite probar invariantes matemáticamente.
 
-**Caracteristicas:**
-- Integracion nativa con Foundry
-- Verificacion simbolica de propiedades
+**Características:**
+- Integración nativa con Foundry
+- Verificación simbólica de propiedades
 - Soporte para bounded model checking
 - Contrajemplos detallados
 
@@ -1235,12 +1235,12 @@ Summary: 1 failed, 2 passed (3 total)
 
 ### A.13 Wake
 
-**Descripcion:** Framework de testing y analisis con soporte para verificacion de propiedades.
+**Descripción:** Framework de testing y análisis con soporte para verificación de propiedades.
 
-**Caracteristicas:**
-- Verificacion de propiedades Python
-- Integracion con pytest
-- Analisis de cobertura
+**Características:**
+- Verificación de propiedades Python
+- Integración con pytest
+- Análisis de cobertura
 - Soporte para forks
 
 **Salida de Ejemplo:**
@@ -1314,17 +1314,17 @@ Coverage: 87.3%
 
 ---
 
-## Capa 5: Verificacion Formal
+## Capa 5: Verificación Formal
 
 ### A.14 SMTChecker
 
-**Descripcion:** Verificador formal integrado en el compilador Solidity usando SMT solvers.
+**Descripción:** Verificador formal integrado en el compilador Solidity usando SMT solvers.
 
-**Caracteristicas:**
+**Características:**
 - Integrado en solc
 - Soporte para CHC y BMC
-- Verificacion de assertions
-- Deteccion de overflow/underflow
+- Verificación de assertions
+- Detección de overflow/underflow
 
 **Salida de Ejemplo:**
 
@@ -1419,11 +1419,11 @@ Info: Consider increasing the solver timeout.
 
 ### A.15 Certora
 
-**Descripcion:** Plataforma profesional de verificacion formal para smart contracts.
+**Descripción:** Plataforma profesional de verificación formal para smart contracts.
 
-**Caracteristicas:**
-- Lenguaje de especificacion CVL
-- Verificacion de invariantes complejas
+**Características:**
+- Lenguaje de especificación CVL
+- Verificación de invariantes complejas
 - Soporte para DeFi protocols
 - Cloud-based analysis
 
@@ -1532,11 +1532,11 @@ Time: 45.2 seconds
 
 ### A.16 PropertyGPT
 
-**Descripcion:** Generador automatico de propiedades de verificacion usando LLM.
+**Descripción:** Generador automático de propiedades de verificación usando LLM.
 
-**Caracteristicas:**
-- Generacion automatica de invariantes
-- Integracion con Echidna/Foundry
+**Características:**
+- Generación automática de invariantes
+- Integración con Echidna/Foundry
 - Soporte para lenguaje natural
 - Backend Ollama (local)
 
@@ -1629,15 +1629,15 @@ Property 3: Monotonic Total Deposits
 
 ---
 
-## Capa 6: Analisis con IA
+## Capa 6: Análisis con IA
 
 ### A.17 GPTScan
 
-**Descripcion:** Escaner de vulnerabilidades basado en GPT adaptado para ejecucion local.
+**Descripción:** Escaner de vulnerabilidades basado en GPT adaptado para ejecución local.
 
-**Caracteristicas:**
-- Analisis semantico con LLM
-- Deteccion de vulnerabilidades de logica
+**Características:**
+- Análisis semántico con LLM
+- Detección de vulnerabilidades de lógica
 - Soporte para patrones DeFi
 - Backend Ollama (costo $0)
 
@@ -1749,11 +1749,11 @@ Cost: $0.00 (local Ollama)
 
 ### A.18 SmartLLM
 
-**Descripcion:** Framework de analisis de seguridad con LLM especializado en smart contracts.
+**Descripción:** Framework de análisis de seguridad con LLM especializado en smart contracts.
 
-**Caracteristicas:**
+**Características:**
 - RAG (Retrieval Augmented Generation) con base de conocimiento SWC
-- Prompts especializados para cada categoria
+- Prompts especializados para cada categoría
 - Explicaciones detalladas
 - Multi-turn analysis
 
@@ -1865,12 +1865,12 @@ Final Assessment: CRITICAL vulnerability confirmed
 
 ### A.19 LLMSmartAudit
 
-**Descripcion:** Auditor automatico que simula el proceso de auditoria manual usando LLM.
+**Descripción:** Auditor automático que simula el proceso de auditoría manual usando LLM.
 
-**Caracteristicas:**
+**Características:**
 - Simula proceso de auditor humano
 - Genera reportes profesionales
-- Priorizacion de hallazgos
+- Priorización de hallazgos
 - Recomendaciones ejecutivas
 
 **Salida de Ejemplo:**
@@ -1981,11 +1981,11 @@ Finding 2 [LOW]: Missing events
 
 ### A.20 ThreatModel
 
-**Descripcion:** Generador automatico de modelos de amenazas STRIDE para smart contracts.
+**Descripción:** Generador automático de modelos de amenazas STRIDE para smart contracts.
 
-**Caracteristicas:**
-- Metodologia STRIDE adaptada a Web3
-- Identificacion de actores maliciosos
+**Características:**
+- Metodología STRIDE adaptada a Web3
+- Identificación de actores maliciosos
 - Diagramas de flujo de amenazas
 - Contramedidas sugeridas
 
@@ -2116,22 +2116,22 @@ Recommended Priority: Fix reentrancy BEFORE deployment
 
 ---
 
-## Capa 7: Deteccion basada en ML
+## Capa 7: Detección basada en ML
 
 > **Nota:** los adaptadores de esta capa (SmartBugs-ML, DAGNN) implementan
-> clasificacion heuristica basada en reglas y features (rule-based, "ML-style"),
-> no modelos estadisticos entrenados. Los valores numericos de probabilidad y
+> clasificación heurística basada en reglas y features (rule-based, "ML-style"),
+> no modelos estadísticos entrenados. Los valores numéricos de probabilidad y
 > confianza en las salidas de ejemplo son **ilustrativos del formato**, no
-> metricas de desempeno medidas.
+> métricas de desempeño medidas.
 
 ### A.21 SmartBugs-ML
 
-**Descripcion:** Clasificador heuristico basado en reglas y features para
-clasificacion de vulnerabilidades (emula un pipeline de ML sin modelo entrenado).
+**Descripción:** Clasificador heurístico basado en reglas y features para
+clasificación de vulnerabilidades (emula un pipeline de ML sin modelo entrenado).
 
-**Caracteristicas:**
-- Reglas heuristicas sobre features extraidos del contrato
-- Clasificacion multi-clase por categoria de vulnerabilidad
+**Características:**
+- Reglas heurísticas sobre features extraidos del contrato
+- Clasificación multi-clase por categoría de vulnerabilidad
 - Features basados en AST
 - Salida normalizada compatible con el pipeline MIESC
 
@@ -2226,12 +2226,12 @@ Vulnerability: Integer Overflow (SWC-101)
 
 ### A.22 ContractCloneDetector
 
-**Descripcion:** Detector de contratos clonados o similares a exploits conocidos.
+**Descripción:** Detector de contratos clonados o similares a exploits conocidos.
 
-**Caracteristicas:**
-- Comparacion con base de datos de exploits
-- Deteccion de code clones
-- Analisis de similitud semantica
+**Características:**
+- Comparación con base de datos de exploits
+- Detección de code clones
+- Análisis de similitud semántica
 - Alertas de patrones peligrosos
 
 **Salida de Ejemplo:**
@@ -2321,15 +2321,15 @@ Review and remediate before deployment!
 
 ### A.23 DAGNN
 
-**Descripcion:** Adaptador de deteccion basado en representacion de grafo del
-contrato con analisis de atencion sobre patrones (emula un pipeline GNN sin
+**Descripción:** Adaptador de detección basado en representación de grafo del
+contrato con análisis de atención sobre patrones (emula un pipeline GNN sin
 pesos entrenados).
 
-**Caracteristicas:**
-- Representacion de contrato como grafo
-- Analisis de patrones con mecanismo de atencion heuristico
-- Analisis de flujo de datos
-- Orientado a patrones complejos multi-funcion
+**Características:**
+- Representación de contrato como grafo
+- Análisis de patrones con mecanismo de atención heurístico
+- Análisis de flujo de datos
+- Orientado a patrones complejos multi-función
 
 **Salida de Ejemplo:**
 
@@ -2421,13 +2421,13 @@ Visualization saved to: dagnn_graph_VulnerableBank.png
 
 ### A.24 GasAnalyzer
 
-**Descripcion:** Analizador de consumo de gas y optimizaciones.
+**Descripción:** Analizador de consumo de gas y optimizaciones.
 
-**Caracteristicas:**
-- Estimacion de gas por funcion
-- Identificacion de patrones costosos
-- Sugerencias de optimizacion
-- Comparacion con benchmarks
+**Características:**
+- Estimación de gas por función
+- Identificación de patrones costosos
+- Sugerencias de optimización
+- Comparación con benchmarks
 
 **Salida de Ejemplo:**
 
@@ -2538,13 +2538,13 @@ Benchmark comparison:
 
 ### A.25 MEVDetector
 
-**Descripcion:** Detector de vulnerabilidades relacionadas con MEV (Miner Extractable Value).
+**Descripción:** Detector de vulnerabilidades relacionadas con MEV (Miner Extractable Value).
 
-**Caracteristicas:**
-- Deteccion de frontrunning
-- Analisis de sandwich attacks
-- Identificacion de oracles manipulables
-- Sugerencias de proteccion
+**Características:**
+- Detección de frontrunning
+- Análisis de sandwich attacks
+- Identificación de oracles manipulables
+- Sugerencias de protección
 
 **Salida de Ejemplo:**
 
@@ -2634,40 +2634,40 @@ than MEV for this contract.
 
 ### Tabla A.1: Comparativa de las 25 Herramientas de MIESC
 
-| # | Herramienta | Capa | Tecnica | Lenguaje | Tiempo* | Fortaleza Principal |
+| # | Herramienta | Capa | Técnica | Lenguaje | Tiempo* | Fortaleza Principal |
 |---|-------------|------|---------|----------|---------|---------------------|
-| 1 | Slither | 1 | Estatico | Python | 2.3s | Cobertura amplia, 80+ detectores |
-| 2 | Solhint | 1 | Linter | JavaScript | 0.8s | Mejores practicas, estilo |
-| 3 | Aderyn | 1 | Estatico | Rust | 0.3s | Velocidad extrema |
+| 1 | Slither | 1 | Estático | Python | 2.3s | Cobertura amplía, 80+ detectores |
+| 2 | Solhint | 1 | Linter | JavaScript | 0.8s | Mejores prácticas, estilo |
+| 3 | Aderyn | 1 | Estático | Rust | 0.3s | Velocidad extrema |
 | 4 | Echidna | 2 | Fuzzing | Haskell | 18s | Property testing robusto |
-| 5 | Foundry Fuzz | 2 | Fuzzing | Rust | 2.3s | Integracion desarrollo |
+| 5 | Foundry Fuzz | 2 | Fuzzing | Rust | 2.3s | Integración desarrollo |
 | 6 | Medusa | 2 | Fuzzing | Go | 32s | Coverage-guided |
 | 7 | DogeFuzz | 2 | ML+Fuzz | Python | 45s | ML-guided generation |
 | 8 | Vertigo | 2 | Mutation | Python | 23s | Calidad de tests |
-| 9 | Mythril | 3 | Simbolico | Python | 28s | Deteccion profunda |
-| 10 | Manticore | 3 | Simbolico | Python | 127s | Analisis exhaustivo |
-| 11 | Oyente | 3 | Simbolico | Python | 3.2s | Rapidez legacy |
-| 12 | Halmos | 4 | Bounded MC | Python | 14s | Verificacion Foundry |
+| 9 | Mythril | 3 | Simbólico | Python | 28s | Detección profunda |
+| 10 | Manticore | 3 | Simbólico | Python | 127s | Análisis exhaustivo |
+| 11 | Oyente | 3 | Simbólico | Python | 3.2s | Rapidez legacy |
+| 12 | Halmos | 4 | Bounded MC | Python | 14s | Verificación Foundry |
 | 13 | Wake | 4 | Property | Python | 8.9s | Python-native |
 | 14 | SMTChecker | 5 | Formal | C++ | 9.8s | Integrado en solc |
-| 15 | Certora | 5 | Formal | - | 45s | Verificacion profesional |
-| 16 | PropertyGPT | 5 | LLM+Formal | Python | 21s | Generacion automatica |
-| 17 | GPTScan | 6 | LLM | Python | 3.7s | Analisis semantico |
+| 15 | Certora | 5 | Formal | - | 45s | Verificación profesional |
+| 16 | PropertyGPT | 5 | LLM+Formal | Python | 21s | Generación automática |
+| 17 | GPTScan | 6 | LLM | Python | 3.7s | Análisis semántico |
 | 18 | SmartLLM | 6 | RAG+LLM | Python | 8.2s | Conocimiento SWC |
 | 19 | LLMSmartAudit | 6 | LLM | Python | 12s | Reportes profesionales |
 | 20 | ThreatModel | 6 | LLM+STRIDE | Python | 5.4s | Modelo de amenazas |
-| 21 | SmartBugs-ML | 7 | Heuristico | Python | 1.2s | Clasificacion rapida |
-| 22 | CloneDetector | 7 | Similarity | Python | 2.3s | Deteccion de exploits |
-| 23 | DAGNN | 7 | Heuristico | Python | 3.2s | Patrones complejos |
-| 24 | GasAnalyzer | Esp. | Estatico | Python | 1.5s | Optimizacion gas |
-| 25 | MEVDetector | Esp. | Heuristico | Python | 1.0s | Vulnerabilidades MEV |
+| 21 | SmartBugs-ML | 7 | Heurístico | Python | 1.2s | Clasificación rápida |
+| 22 | CloneDetector | 7 | Similarity | Python | 2.3s | Detección de exploits |
+| 23 | DAGNN | 7 | Heurístico | Python | 3.2s | Patrones complejos |
+| 24 | GasAnalyzer | Esp. | Estático | Python | 1.5s | Optimización gas |
+| 25 | MEVDetector | Esp. | Heurístico | Python | 1.0s | Vulnerabilidades MEV |
 
-*Tiempos aproximados de ejecucion sobre el contrato VulnerableBank.sol (87 SLOC).
-No se tabula precision/recall por herramienta porque no existe un benchmark comun
+*Tiempos aproximados de ejecución sobre el contrato VulnerableBank.sol (87 SLOC).
+No se tabula precisión/recall por herramienta porque no existe un benchmark común
 que las mida de forma comparable entre las 25; la Tabla 3.3 reporta las cifras del
-subconjunto que Durieux et al. (2020) evaluo de forma independiente.
+subconjunto que Durieux et al. (2020) evaluó de forma independiente.
 
-### Tabla A.2: Capacidades de Deteccion por Categoria SWC
+### Tabla A.2: Capacidades de Detección por Categoría SWC
 
 | SWC ID | Vulnerabilidad | Herramientas que Detectan | Herramienta de Referencia |
 |--------|---------------|--------------------------|---------------------------|
@@ -2682,35 +2682,35 @@ subconjunto que Durieux et al. (2020) evaluo de forma independiente.
 | SWC-115 | Authorization through tx.origin | Slither, Solhint, Aderyn | Slither |
 | SWC-131 | Unused Variables | Solhint, Slither | Solhint |
 
-### Tabla A.3: Justificacion de Inclusion de Cada Herramienta
+### Tabla A.3: Justificación de Inclusión de Cada Herramienta
 
-| Herramienta | Justificacion Tecnica | Contribucion Unica |
+| Herramienta | Justificación Técnica | Contribución Única |
 |-------------|----------------------|-------------------|
-| Slither | Estandar de la industria, mantenido activamente | Mayor cobertura de detectores |
-| Solhint | Complementa analisis con reglas de estilo | Detecta anti-patterns de codigo |
-| Aderyn | Implementacion Rust para velocidad | Ciclos de feedback rapidos |
-| Echidna | Property testing matematicamente riguroso | Encuentra edge cases no obvios |
-| Foundry Fuzz | Integracion con flujo de desarrollo | Tests como documentacion |
+| Slither | Estándar de la industria, mantenido activamente | Mayor cobertura de detectores |
+| Solhint | Complementa análisis con reglas de estilo | Detecta anti-patterns de código |
+| Aderyn | Implementación Rust para velocidad | Ciclos de feedback rápidos |
+| Echidna | Property testing matemáticamente riguroso | Encuentra edge cases no obvios |
+| Foundry Fuzz | Integración con flujo de desarrollo | Tests como documentación |
 | Medusa | Coverage-guided encuentra caminos profundos | Complementa Echidna |
-| DogeFuzz | ML mejora generacion de inputs | Innovacion academica |
-| Vertigo | Mutation testing valida calidad de tests | Meta-analisis de seguridad |
-| Mythril | Ejecucion simbolica robusta | Genera exploits concretos |
-| Manticore | Analisis mas exhaustivo disponible | Mayor profundidad de busqueda |
-| Oyente | Herramienta historica, rapida | Baseline de comparacion |
+| DogeFuzz | ML mejora generación de inputs | Innovación académica |
+| Vertigo | Mutation testing valida calidad de tests | Meta-análisis de seguridad |
+| Mythril | Ejecución simbólica robusta | Genera exploits concretos |
+| Manticore | Análisis más exhaustivo disponible | Mayor profundidad de busqueda |
+| Oyente | Herramienta histórica, rápida | Baseline de comparación |
 | Halmos | Bounded model checking moderno | Puente entre testing y formal |
 | Wake | Framework Python-native | Accesible para auditores |
 | SMTChecker | Integrado en compilador | Zero-dependency formal |
-| Certora | Verificacion industrial | Maxima garantia matematica |
+| Certora | Verificación industrial | Máxima garantía matemática |
 | PropertyGPT | Automatiza escritura de specs | Reduce barrera de entrada |
-| GPTScan | LLM para patrones semanticos | Detecta logica de negocio |
+| GPTScan | LLM para patrones semánticos | Detecta lógica de negocio |
 | SmartLLM | RAG con base SWC | Explicaciones educativas |
 | LLMSmartAudit | Simula auditor humano | Reportes ejecutivos |
-| ThreatModel | Metodologia STRIDE adaptada | Vision holistica de amenazas |
-| SmartBugs-ML | Clasificacion heuristica basada en features | Rapida triaging inicial |
-| CloneDetector | Compara con exploits conocidos | Deteccion de patrones historicos |
-| DAGNN | Representacion de grafo avanzada | Patrones estructurales |
-| GasAnalyzer | Foco en eficiencia | Optimizacion economica |
-| MEVDetector | Amenazas DeFi especificas | Cobertura de ataques modernos |
+| ThreatModel | Metodología STRIDE adaptada | Visión holística de amenazas |
+| SmartBugs-ML | Clasificación heurística basada en features | Rápida triaging inicial |
+| CloneDetector | Compara con exploits conocidos | Detección de patrones históricos |
+| DAGNN | Representación de grafo avanzada | Patrones estructurales |
+| GasAnalyzer | Foco en eficiencia | Optimización económica |
+| MEVDetector | Amenazas DeFi específicas | Cobertura de ataques modernos |
 
 ---
 
@@ -2724,6 +2724,6 @@ subconjunto que Durieux et al. (2020) evaluo de forma independiente.
 
 ---
 
-*Documento generado como parte de la documentacion de tesis de MIESC v4.0.0*
+*Documento generado como parte de la documentación de tesis de MIESC v4.0.0*
 *Fecha: 2024-11-29*
 *Autor: Fernando Boiero*
