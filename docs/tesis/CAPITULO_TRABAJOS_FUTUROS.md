@@ -12,17 +12,16 @@ El presente trabajo de tesis ha presentado MIESC (Marco Integrado de Seguridad p
 
 ### 8.1.2 Objetivos Alcanzados
 
-**Tabla 8.1.** Evaluación del cumplimiento de objetivos
+**Tabla 8.1.** Evaluación del cumplimiento de los objetivos específicos (redacción del Capítulo 1)
 
-| Objetivo | Indicador de Éxito | Resultado | Estado |
-|----------|-------------------|-----------|--------|
-| Integrar herramientas heterogéneas | 25 herramientas operativas | 25/25 (100%) | Cumplido |
-| Implementar defensa en profundidad | 7 capas complementarias | 7 capas implementadas | Cumplido |
-| Normalizar resultados | Mapeo SWC/CWE/OWASP | 97.1% precisión mapeo | Cumplido |
-| Eliminar dependencias comerciales | Costo operativo $0 | $0/auditoría | Cumplido |
-| Mejorar detección type-aware | Superar al mejor tool individual | 48%→72% con capa LLM (Slither: 58%) | Cumplido |
-| Reducir duplicados | Deduplicación >40% | 68% deduplicación (385→123) | Superado |
-| Integrar con asistentes IA | MCP Server operativo | Implementado | Cumplido |
+| Objetivo específico | Indicador | Resultado | Estado |
+|---------------------|-----------|-----------|--------|
+| OE1 — Integración de herramientas (≥20) | Herramientas operativas | 25/25 disponibles en el entorno de evaluación (Tabla 5.3) | Cumplido |
+| OE2 — Normalización de salidas | Mapeo SWC/CWE/OWASP y deduplicación | Precisión de mapeo 97.1% sobre la muestra verificada (Tabla 5.10); deduplicación 68% (385→123) | Cumplido |
+| OE3 — Arquitectura Defense-in-Depth (7 capas) | Capas implementadas y evaluadas | 7 capas implementadas; la detección se midió sobre las capas 1/6/7 (Tabla 5.6); la complementariedad entre herramientas estáticas no se confirmó (§5.3.3), sí la aportada por la capa LLM | Cumplido con matices |
+| OE4 — Soberanía de datos (backend Ollama) | Análisis sin transmisión externa | Backend local operativo con costo $0/auditoría; el mejor resultado *type-aware* (72%) requirió un modelo frontier vía API (`--deep`); el modelo local alcanzó 44% | Cumplido; capacidad local inferior (§6.2.4) |
+| OE5 — Interfaz conversacional (MCP) | Servidor MCP operativo | Implementado; el servidor y las herramientas corren localmente, el cliente principal (Claude) es un servicio en la nube (§7.7.1) | Cumplido con la salvedad de §7.7.1 |
+| H1/RQ2 — Mejorar la detección *type-aware* | Superar a la mejor herramienta individual | Estáticas combinadas 48% < Slither 58%; 72% con capa LLM frontier; 86% con ensemble multi-modelo | Parcial (§8.1.4) |
 
 ### 8.1.3 Contribuciones Principales
 
@@ -42,9 +41,13 @@ El presente trabajo de tesis ha presentado MIESC (Marco Integrado de Seguridad p
 
 ### 8.1.4 Validación de Hipótesis
 
-**Hipótesis original:** "La combinación de múltiples técnicas de análisis en una arquitectura de capas mejora la detección de vulnerabilidades respecto a herramientas individuales."
+Las tres hipótesis se evalúan con la redacción con que fueron formuladas en la sección 1.5.
 
-**Resultado:** La hipótesis se valida de forma matizada. Combinar herramientas estáticas y de patrón NO superó a Slither por sí sola (48% vs 58% de detección type-aware, cobertura equivalente pero ~6× más falsos positivos). La mejora real proviene de agregar una capa de razonamiento LLM, que eleva la detección type-aware del 48% al 72%, superando a Slither (58%). La complementariedad efectiva requiere análisis semántico, no solo combinar tools estáticos.
+**H1** (*un framework que integre múltiples herramientas mediante el patrón Adapter puede alcanzar una tasa de detección superior a cualquier herramienta individual*): **se sostiene de forma parcial y matizada.** Combinar herramientas estáticas y de patrón no superó a Slither por sí sola (48% frente a 58% de detección *type-aware*, con cobertura equivalente —100% frente a 96%— y unas seis veces más falsos positivos). La superación de la mejor herramienta individual se alcanzó únicamente al incorporar razonamiento semántico: 72% con una capa LLM frontier (`--deep`) y 86% con un ensemble multi-modelo (§5.3.3–5.3.4). La complementariedad efectiva exige, por lo tanto, análisis semántico y no la mera acumulación de herramientas estáticas. Debe notarse, además, que el 72% coincide con el obtenido por los modelos frontier evaluados en forma individual (§5.3.4), de modo que la ganancia atribuible a la arquitectura multicapa por sobre el mejor LLM individual solo se observa en la configuración de ensemble.
+
+**H2** (*la normalización a taxonomías estándar permite reducir significativamente los duplicados sin pérdida de información*): **se sostiene en su primera parte; la segunda no fue demostrada.** La deduplicación alcanzó el 68% (385→123) con una precisión de mapeo del 97.1% sobre la muestra verificada (Tabla 5.10). La ausencia de pérdida de información no se midió como tal: la Tabla 5.9 registra tres "falsos duplicados" (hallazgos distintos fusionados), lo que indica una pérdida acotada pero no nula.
+
+**H3** (*la ejecución de LLMs locales mediante Ollama proporciona capacidades de análisis semántico comparables a servicios comerciales, con costo operativo cercano a cero*): **no se sostiene tal como fue formulada.** En el corpus, el modelo local (qwen2.5-coder:14b) alcanzó 44% de detección *type-aware* frente al 72% del modelo frontier; en EVMBench, el modelo local de 32B alcanzó 59.2% de recall frente a 73.7–82.5% de los frontier, siempre bajo el matcher laxo. El costo cercano a cero sí se verifica. La formulación que la evidencia sí sostiene es la del Capítulo 6: los modelos de **pesos abiertos** son viables —el open-weight alojado registra la mayor precisión y F1 de la comparación bajo el matcher laxo— y la ejecución **100% local** tiene un costo de recall medido, no asumido. Esta reformulación se adopta como conclusión (§8.5); la comparación de proveedores bajo el juez oficial queda como trabajo futuro (§8.3.1).
 
 ---
 
@@ -337,7 +340,7 @@ async with websockets.connect("ws://localhost:8765") as ws:
      TSE/TOSEM) y workshops de seguridad DeFi.
 
 2. **Contribución al conocimiento:**
-   - Validación empírica de complementariedad de técnicas
+   - Validación empírica —matizada— de la complementariedad de técnicas: la ganancia proviene del razonamiento semántico, no de acumular herramientas estáticas
    - Framework reproducible para investigación
    - Dataset de vulnerabilidades normalizadas
 
@@ -370,7 +373,7 @@ async with websockets.connect("ws://localhost:8765") as ws:
 
 El desarrollo de MIESC representa un paso significativo hacia la democratización de la seguridad en smart contracts. En un ecosistema donde las pérdidas por vulnerabilidades superan los miles de millones de dólares anuales, la disponibilidad de herramientas de auditoría accesibles y efectivas es fundamental.
 
-La arquitectura de defensa en profundidad implementada demuestra que la combinación inteligente de técnicas complementarias supera significativamente a cualquier herramienta individual. Este hallazgo tiene implicaciones más allá del dominio de smart contracts, sugiriendo que los enfoques multi-técnica deberían ser la norma en análisis de seguridad de software.
+La evaluación de la arquitectura de defensa en profundidad arrojó un resultado más instructivo que el esperado: la mera combinación de herramientas estáticas no superó a la mejor de ellas, y la ganancia medida provino del razonamiento LLM y de su combinación en ensemble (§5.3.3–5.3.4). Este hallazgo tiene implicaciones más allá del dominio de smart contracts, sugiriendo que los enfoques multi-técnica deberían ser la norma en análisis de seguridad de software.
 
 La integración con el Model Context Protocol (MCP) representa una visión del futuro donde los asistentes de IA pueden acceder directamente a herramientas especializadas de seguridad, amplificando las capacidades tanto humanas como automatizadas. MIESC no es solo una herramienta de auditoría, sino una plataforma que puede evolucionar con el ecosistema de desarrollo asistido por IA.
 

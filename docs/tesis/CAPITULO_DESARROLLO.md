@@ -652,6 +652,8 @@ class GPTScanAdapter(ToolAdapter):
         return result.stdout
 ```
 
+> **Nota sobre el modo `--deep`.** La verificación `_verify_local_only` rige la configuración soberana por defecto: todo backend LLM debe ser local. El modo `--deep` empleado en la evaluación (§5.3.3) es una opción explícita (*opt-in*) que relaja esta política para habilitar un modelo frontier vía API; conforme al criterio de §6.4.2, su uso debe limitarse a código no confidencial. Los resultados que dependen de él se identifican como tales en el Capítulo 5.
+
 ---
 
 ## 4.6 Orquestación y Deduplicación

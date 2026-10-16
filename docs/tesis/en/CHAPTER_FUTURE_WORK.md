@@ -12,17 +12,16 @@ This thesis has presented MIESC (Multi-layer Integration for Ethereum Smart Cont
 
 ### 8.1.2 Objectives Achieved
 
-**Table 6.1.** Evaluation of objective fulfillment
+**Table 8.1.** Assessment of the specific objectives (Chapter 1 wording)
 
-| Objective | Success Indicator | Result | Status |
-|-----------|-------------------|--------|--------|
-| Integrate heterogeneous tools | 25 operational tools | 25/25 (100%) | Achieved |
-| Implement defense in depth | 7 complementary layers | 7 layers implemented | Achieved |
-| Normalize results | SWC/CWE/OWASP mapping | 97.1% mapping accuracy | Achieved |
-| Eliminate commercial dependencies | Operating cost $0 | $0/audit | Achieved |
-| Improve type-aware detection | Surpass best individual tool | 48%→72% with LLM layer (Slither: 58%) | Achieved |
-| Reduce duplicates | Deduplication >40% | 68% deduplication (385→123) | Exceeded |
-| Integrate with AI assistants | MCP Server operational | Implemented | Achieved |
+| Specific objective | Indicator | Result | Status |
+|--------------------|-----------|--------|--------|
+| SO1 — Tool integration (≥20) | Operational tools | 25/25 available in the evaluation environment (Table 5.3) | Achieved |
+| SO2 — Output normalization | SWC/CWE/OWASP mapping and deduplication | Mapping precision 97.1% on the verified sample (Table 5.10); deduplication 68% (385→123) | Achieved |
+| SO3 — Defense-in-Depth architecture (7 layers) | Layers implemented and evaluated | 7 layers implemented; detection was measured on layers 1/6/7 (Table 5.6); complementarity among static tools was not confirmed (§5.3.3), the LLM layer's was | Achieved with caveats |
+| SO4 — Data sovereignty (Ollama backend) | Analysis without external transmission | Local backend operational at $0/audit; the best *type-aware* result (72%) required a frontier model via API (`--deep`); the local model reached 44% | Achieved; lower local capability (§6.2.4) |
+| SO5 — Conversational interface (MCP) | Operational MCP server | Implemented; the server and tools run locally, the main client (Claude) is a cloud service (§7.7.1) | Achieved with the caveat of §7.7.1 |
+| H1/RQ2 — Improve *type-aware* detection | Beat the best single tool | Combined static 48% < Slither 58%; 72% with a frontier LLM layer; 86% with a multi-model ensemble | Partial (§8.1.4) |
 
 ### 8.1.3 Main Contributions
 
@@ -42,9 +41,13 @@ This thesis has presented MIESC (Multi-layer Integration for Ethereum Smart Cont
 
 ### 8.1.4 Hypothesis Validation
 
-**Original hypothesis:** "The combination of multiple analysis techniques in a layered architecture improves vulnerability detection compared to individual tools."
+The three hypotheses are assessed with the wording of section 1.5.
 
-**Result:** The hypothesis is validated with a qualification. Combining static and pattern tools did NOT surpass Slither alone (48% vs 58% type-aware detection, equivalent coverage but ~6× more false positives). The real improvement comes from adding an LLM reasoning layer, which raises type-aware detection from 48% to 72%, surpassing Slither (58%). Effective complementarity requires semantic analysis, not merely combining static tools.
+**H1** (*a framework integrating multiple tools through the Adapter pattern can reach a detection rate higher than any single tool*): **partially supported, with qualifications.** Combining static and pattern tools did not beat Slither alone (48% vs. 58% *type-aware* detection, with equivalent coverage —100% vs. 96%— and about six times more false positives). Beating the best single tool was achieved only by adding semantic reasoning: 72% with a frontier LLM layer (`--deep`) and 86% with a multi-model ensemble (§5.3.3–5.3.4). Effective complementarity therefore requires semantic analysis, not the mere accumulation of static tools. Note also that the 72% equals the figure obtained by the frontier models evaluated individually (§5.3.4), so the gain attributable to the multi-layer architecture over the best single LLM is only observed in the ensemble configuration.
+
+**H2** (*normalization to standard taxonomies significantly reduces duplicates without information loss*): **supported in its first part; the second was not demonstrated.** Deduplication reached 68% (385→123) with 97.1% mapping precision on the verified sample (Table 5.10). The absence of information loss was not measured as such: Table 5.9 records three "false duplicates" (distinct findings merged), indicating a bounded but non-zero loss.
+
+**H3** (*running local LLMs via Ollama provides semantic-analysis capability comparable to commercial services, at near-zero operating cost*): **not supported as formulated.** On the corpus, the local model (qwen2.5-coder:14b) reached 44% *type-aware* detection vs. 72% for the frontier model; on EVMBench, the local 32B model reached 59.2% recall vs. 73.7–82.5% for the frontier models, always under the lenient matcher. The near-zero cost does hold. The formulation the evidence does support is Chapter 6's: **open-weight** models are viable —the hosted open-weight model records the highest precision and F1 of the comparison under the lenient matcher— and **fully local** execution has a measured, not assumed, recall cost. This reformulation is adopted as a conclusion (§8.5); the provider comparison under the official judge is left as future work (§8.3.1).
 
 ---
 
@@ -284,7 +287,7 @@ jobs:
      (e.g. TSE/TOSEM) and DeFi security workshops.
 
 2. **Contribution to knowledge:**
-   - Empirical validation of technique complementarity
+   - Empirical —qualified— validation of technique complementarity: the gain comes from semantic reasoning, not from accumulating static tools
    - Reproducible framework for research
    - Normalized vulnerability dataset
 
@@ -317,7 +320,7 @@ jobs:
 
 The development of MIESC represents a significant step towards democratizing smart contract security. In an ecosystem where vulnerability losses exceed billions of dollars annually, the availability of accessible and effective auditing tools is fundamental.
 
-The implemented defense-in-depth architecture demonstrates that the intelligent combination of complementary techniques significantly surpasses any individual tool. This finding has implications beyond the smart contract domain, suggesting that multi-technique approaches should be the norm in software security analysis.
+The evaluation of the defense-in-depth architecture yielded a more instructive result than expected: merely combining static tools did not beat the best of them, and the measured gain came from LLM reasoning and from combining reasoners in an ensemble (§5.3.3–5.3.4). This finding has implications beyond the smart contract domain, suggesting that multi-technique approaches should be the norm in software security analysis.
 
 The integration with the Model Context Protocol (MCP) represents a vision of the future where AI assistants can directly access specialized security tools, amplifying both human and automated capabilities. MIESC is not just an auditing tool, but a platform that can evolve with the AI-assisted development ecosystem.
 

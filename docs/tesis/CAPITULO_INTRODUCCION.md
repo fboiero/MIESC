@@ -134,7 +134,7 @@ El presente trabajo busca responder las siguientes preguntas de investigación:
 
 **RQ3:** ¿Cuál es el impacto de la normalización y deduplicación en la calidad de los reportes de seguridad?
 
-**RQ4:** ¿Es viable utilizar LLMs locales (Ollama) para análisis de seguridad de smart contracts con calidad comparable a servicios comerciales?
+**RQ4:** ¿Es viable operar MIESC en producción —tiempo de ejecución, recursos y costo— y qué calidad de análisis semántico ofrece un LLM local (Ollama) frente a los servicios comerciales?
 
 ---
 

@@ -160,7 +160,7 @@ Durieux et al. (2020) conducted the most comprehensive empirical study to date, 
 | Mythril | Symbolic | 6.1% | 27.4% | 10.0% |
 | SmartCheck | Static | 4.2% | 18.9% | 6.9% |
 
-Precisions are low because, at corpus scale, each tool produces many false positives. No individual tool exceeds **43.2% recall** (Slither, the best); the authors conclude that "no individual tool achieves satisfactory coverage of all vulnerability types" (Durieux et al., 2020), which motivates combined approaches like MIESC's. This 43.2% is the baseline against which MIESC's ensemble (86–92.5% depending on the corpus) represents roughly double the recall.
+Precisions are low because, at corpus scale, each tool produces many false positives. No individual tool exceeds **43.2% recall** (Slither, the best); the authors conclude that "no individual tool achieves satisfactory coverage of all vulnerability types" (Durieux et al., 2020), which motivates combined approaches like MIESC's. This 43.2% is the usual reference in the literature, but it is not directly comparable with MIESC's figures (86% on the in-house corpus with an LLM ensemble; 92.5% on EVMBench under the lenient matcher, falling to 27.4% with the official judge), because the corpus, the matching protocol and the nature of the components (static tools vs. frontier language models) all differ.
 
 ### 3.4.1 Artificial Intelligence Analysis
 
