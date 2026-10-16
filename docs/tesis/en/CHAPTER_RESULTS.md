@@ -522,11 +522,13 @@ leaderboard score** (the same methodological caution as Paper 1).
 **Result.** EVMBench reproduces the pattern of the 29-vulnerability corpus: the
 union of frontier reasoners (92.5%) far exceeds any individual one, confirming
 reasoner-level complementarity on a 4× larger corpus. It also adds the
-**economic** axis: the open-weight model (DeepSeek-R1, MIT) obtains the **best
-precision (88.5%) and F1 (78.7%)** in the whole comparison — above the frontier
-providers — at **~$0.08 per audit (15–69× cheaper)**; its lower single-pass recall
-(70.8%) is recovered with a low-cost self-ensemble. The three-tier openness
-taxonomy and the full economic analysis are in Chapter 6 (Table 6.2b).
+**economic** axis: under the lenient matcher, the open-weight model (DeepSeek-R1,
+MIT) sits **within the range of the frontier providers** on precision and F1, at
+**~$0.08 per audit (15–69× cheaper)**; its lower single-pass recall (70.8%) is
+recovered with a low-cost self-ensemble. These figures are an optimistic estimate
+(lenient matcher, single run): Paper 1 defers the provider ranking — under
+EVMBench's official judge — to future work. The three-tier openness taxonomy and
+the full economic analysis are in Chapter 6 (Table 6.2b).
 
 ---
 
@@ -615,8 +617,9 @@ The only mapping error in GPTScan corresponded to an ambiguous classification by
 
 *Note: Estimated costs based on public prices from November 2024. The
 open-weight-hosted tier (MIT weights accessed via API, ~$0.08/audit) is 15–69×
-cheaper than the frontier APIs and obtains the best measured precision/F1 on
-EVMBench (see §5.3.5 and Chapter 6, Table 6.2b).*
+cheaper than the frontier APIs and, under EVMBench's lenient matcher, sits within
+the range of the frontier on precision/F1 — an optimistic estimate, not a
+conclusive ranking — (see §5.3.5 and Chapter 6, Table 6.2b).*
 
 **RQ4 Result:** MIESC is viable for production with:
 - **Time:** ~1 minute for complete audit (parallel execution)

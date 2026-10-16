@@ -547,10 +547,12 @@ Paper 1).
 **Resultado.** EVMBench reproduce el patrón del corpus de 29 vulnerabilidades: la
 unión de razonadores frontier (92.5%) supera ampliamente a cualquiera individual,
 confirmando la complementariedad al nivel de razonadores sobre un corpus 4× mayor.
-Además aporta el eje **económico**: el modelo de pesos abiertos (DeepSeek-R1, MIT)
-obtiene la **mejor precisión (88.5%) y F1 (78.7%)** de toda la comparación —por
-encima de los frontier— a **~$0.08 por auditoría (15–69× más barato)**; su menor
-recall de una sola pasada (70.8%) se recupera con un auto-ensemble de bajo costo.
+Además aporta el eje **económico**: bajo el matcher laxo, el modelo de pesos abiertos
+(DeepSeek-R1, MIT) se ubica **dentro del rango de los frontier** en precisión y F1, a
+**~$0.08 por auditoría (15–69× más barato)**; su menor recall de una sola pasada
+(70.8%) se recupera con un auto-ensemble de bajo costo. Estas cifras son una
+estimación optimista (matcher laxo, corrida única): el Paper 1 difiere el ranking de
+proveedores —bajo el juez oficial de EVMBench— a trabajo futuro.
 La taxonomía de tres niveles de apertura y el análisis económico completo están en
 el Capítulo 6 (Tabla 6.2b).
 
@@ -641,8 +643,9 @@ El único error de mapeo en GPTScan correspondió a una clasificación ambigua d
 
 *Nota: Costos estimados basados en precios públicos de noviembre 2024. El nivel
 open-weight hosteado (pesos MIT accedidos por API, ~$0.08/auditoría) es 15–69×
-más barato que las APIs frontier y obtiene la mejor precisión/F1 medida en
-EVMBench (véase §5.3.5 y el Capítulo 6, Tabla 6.2b).*
+más barato que las APIs frontier y, bajo el matcher laxo de EVMBench, se ubica
+dentro del rango de los frontier en precisión/F1 —estimación optimista, no un
+ranking concluyente— (véase §5.3.5 y el Capítulo 6, Tabla 6.2b).*
 
 **Resultado RQ4:** MIESC es viable para producción con:
 - **Tiempo:** ~1 minuto para auditoría completa (ejecución paralela)
