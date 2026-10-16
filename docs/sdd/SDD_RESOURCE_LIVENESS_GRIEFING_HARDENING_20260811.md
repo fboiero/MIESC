@@ -227,9 +227,9 @@ Parallel lanes:
 For this SDD:
 
 ```bash
-test -s docs/SDD_RESOURCE_LIVENESS_GRIEFING_HARDENING_20260811.md
-rg -n "interchangeable security reasoning agent|provider-neutral|50-Activity" docs/SDD_RESOURCE_LIVENESS_GRIEFING_HARDENING_20260811.md
-git diff --check -- docs/SDD_RESOURCE_LIVENESS_GRIEFING_HARDENING_20260811.md
+test -s docs/sdd/SDD_RESOURCE_LIVENESS_GRIEFING_HARDENING_20260811.md
+rg -n "interchangeable security reasoning agent|provider-neutral|50-Activity" docs/sdd/SDD_RESOURCE_LIVENESS_GRIEFING_HARDENING_20260811.md
+git diff --check -- docs/sdd/SDD_RESOURCE_LIVENESS_GRIEFING_HARDENING_20260811.md
 ```
 
 Provider/model-name checks should run against the document content during review and should return no requirement binding the capability to one provider.
@@ -248,7 +248,7 @@ For future implementation:
 - OWASP Smart Contract Security Testing Guide: Denial of Service overview. https://scs.owasp.org/SCSTG/tests/SCSVS-BLOCK/overview/
 - SMARTIAN: Enhancing Smart Contract Fuzzing with Static and Dynamic Data-Flow Analyses, ASE 2021. https://conf.researchr.org/details/ase-2021/ase-2021-papers/66/SMARTIAN-Enhancing-Smart-Contract-Fuzzing-with-Static-and-Dynamic-Data-Flow-Analyse
 - Echidna smart contract fuzzer. https://github.com/crytic/echidna
-- Local reference: `docs/SDD_SEQUENCE_ORACLE_DETECTION_20260709.md`
-- Local reference: `docs/SDD_SNAPSHOT_FUZZING_GUIDANCE_20260709.md`
-- Local reference: `docs/SDD_EXTERNAL_CALL_RETURNDATA_HARDENING_20260712.md`
+- Local reference: `docs/sdd/SDD_SEQUENCE_ORACLE_DETECTION_20260709.md`
+- Local reference: `docs/sdd/SDD_SNAPSHOT_FUZZING_GUIDANCE_20260709.md`
+- Local reference: `docs/sdd/SDD_EXTERNAL_CALL_RETURNDATA_HARDENING_20260712.md`
 - Local evidence: `benchmarks/results/v6.0.0_benchmark_report_20260811.md`

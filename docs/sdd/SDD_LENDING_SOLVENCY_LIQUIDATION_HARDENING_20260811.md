@@ -311,9 +311,9 @@ Parallel lanes:
 For this SDD:
 
 ```bash
-test -s docs/SDD_LENDING_SOLVENCY_LIQUIDATION_HARDENING_20260811.md
-rg -n "interchangeable security reasoning agent|provider-neutral|50-Activity" docs/SDD_LENDING_SOLVENCY_LIQUIDATION_HARDENING_20260811.md
-git diff --check -- docs/SDD_LENDING_SOLVENCY_LIQUIDATION_HARDENING_20260811.md
+test -s docs/sdd/SDD_LENDING_SOLVENCY_LIQUIDATION_HARDENING_20260811.md
+rg -n "interchangeable security reasoning agent|provider-neutral|50-Activity" docs/sdd/SDD_LENDING_SOLVENCY_LIQUIDATION_HARDENING_20260811.md
+git diff --check -- docs/sdd/SDD_LENDING_SOLVENCY_LIQUIDATION_HARDENING_20260811.md
 ```
 
 Provider/model-name checks should run against the document content during review

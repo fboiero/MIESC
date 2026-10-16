@@ -168,7 +168,7 @@ Focused validation for this checkpoint:
 ruff check --fix miesc/llm/agentic_contracts.py miesc/llm/__init__.py tests/test_agentic_contracts.py tests/test_miesc_llm_exports.py
 python3 -m py_compile miesc/llm/agentic_contracts.py miesc/llm/__init__.py
 pytest tests/test_agentic_contracts.py tests/test_miesc_llm_exports.py -q
-git diff --check -- docs/SDD_FINANCIAL_MATH_PRECISION_HARDENING_20260712.md miesc/llm/agentic_contracts.py miesc/llm/__init__.py tests/test_agentic_contracts.py tests/test_miesc_llm_exports.py
+git diff --check -- docs/sdd/SDD_FINANCIAL_MATH_PRECISION_HARDENING_20260712.md miesc/llm/agentic_contracts.py miesc/llm/__init__.py tests/test_agentic_contracts.py tests/test_miesc_llm_exports.py
 ```
 
 ## References

@@ -229,9 +229,9 @@ Parallel lanes:
 For this SDD:
 
 ```bash
-test -s docs/SDD_YUL_ASSEMBLY_MEMORY_SAFETY_HARDENING_20260811.md
-rg -n "interchangeable security reasoning agent|provider-neutral|50-Activity" docs/SDD_YUL_ASSEMBLY_MEMORY_SAFETY_HARDENING_20260811.md
-git diff --check -- docs/SDD_YUL_ASSEMBLY_MEMORY_SAFETY_HARDENING_20260811.md
+test -s docs/sdd/SDD_YUL_ASSEMBLY_MEMORY_SAFETY_HARDENING_20260811.md
+rg -n "interchangeable security reasoning agent|provider-neutral|50-Activity" docs/sdd/SDD_YUL_ASSEMBLY_MEMORY_SAFETY_HARDENING_20260811.md
+git diff --check -- docs/sdd/SDD_YUL_ASSEMBLY_MEMORY_SAFETY_HARDENING_20260811.md
 ```
 
 Provider/model-name checks should run against the document content during review and should return no requirement binding the capability to one provider.
@@ -251,6 +251,6 @@ For future implementation:
 - OWASP SCWE-039: Insecure Use of Inline Assembly. https://scs.owasp.org/SCWE/SCSVS-CODE/SCWE-039/
 - Slither detector documentation: `assembly` and low-level call detectors. https://github.com/crytic/slither/wiki/Detector-Documentation
 - A Study of Inline Assembly in Solidity Smart Contracts, OOPSLA 2022. https://doi.org/10.1145/3563328
-- Local reference: `docs/SDD_DELEGATECALL_STORAGE_ALIASING_20260711.md`
-- Local reference: `docs/SDD_EXTERNAL_CALL_RETURNDATA_HARDENING_20260712.md`
-- Local reference: `docs/SDD_TRANSIENT_STORAGE_DETECTION_20260709.md`
+- Local reference: `docs/sdd/SDD_DELEGATECALL_STORAGE_ALIASING_20260711.md`
+- Local reference: `docs/sdd/SDD_EXTERNAL_CALL_RETURNDATA_HARDENING_20260712.md`
+- Local reference: `docs/sdd/SDD_TRANSIENT_STORAGE_DETECTION_20260709.md`

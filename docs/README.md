@@ -25,6 +25,7 @@ docs/
 ├── architecture/                 # Current architecture docs
 ├── policies/                     # Current governance, security, privacy, DPG docs
 ├── adr/                          # Architecture decision records
+├── sdd/                          # Spec-driven design notes (dated, historical; see sdd/README.md)
 ├── roadmap/                      # Current and historical planning notes
 ├── evidence/                     # Historical post-thesis OSS evidence archive
 ├── tesis/                        # Historical thesis archive (v4.0.0)
