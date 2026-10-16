@@ -1,8 +1,8 @@
 cff-version: 1.2.0
 message: "If you use MIESC in your research, please cite it as follows."
 title: "MIESC: Multi-layer Intelligent Evaluation for Smart Contracts"
-version: 5.4.3
-date-released: "2026-05-16"
+version: 5.5.0
+date-released: "2026-10-16"
 authors:
   - family-names: Boiero
     given-names: Fernando
@@ -43,36 +43,53 @@ keywords:
   - NIST CSF
 license: AGPL-3.0-only
 preferred-citation:
-  type: thesis
-  title: >
-    Integrated Security Assessment Framework for Smart Contracts: A
-    Defense-in-Depth Approach to Cyberdefense
+  type: conference-paper
+  title: "MIESC: A Multi-layer Framework for Automated Smart Contract Security Evaluation"
   authors:
     - family-names: Boiero
       given-names: Fernando
-  institution:
-    name: "Universidad de la Defensa Nacional (UNDEF) - IUA Córdoba"
-  thesis-type: "Master's Thesis"
-  department: "Cyberdefense"
-  year: 2025
-  abstract: >
-    Historical thesis snapshot by Fernando Boiero, distinct from the current
-    three-author paper metadata above. This thesis presents MIESC, a
-    comprehensive security assessment framework for smart contracts based on
-    defense-in-depth principles. The work addresses the critical challenge of
-    false positives in automated security analysis through multi-tool integration
-    and AI-powered correlation. Key contributions include:
-    (1) Novel MCP-based multi-agent architecture for collaborative cyberdefense,
-    (2) Empirical validation on curated and real-world corpora, with ensemble
-    recall approximately double the best single-tool baseline (43.2% recall,
-    Durieux et al. 2020), (3) Automated compliance mapping to international
-    standards, (4) Open-source implementation enabling reproducible
-    security research. On SmartBugs-curated (143 contracts), the static and
-    intelligence profile reports 95.8% recall, and on 11 real-world DeFi exploits
-    MIESC detects 9 of 11 cases (81.8% recall, 95% Wilson confidence interval
-    [52%, 95%]). Every quantitative claim is traced to a released per-claim matrix
-    and its source artifacts for independent reproduction.
+    - family-names: Mussetta
+      given-names: Sebastian Norberto
+    - family-names: Cena
+      given-names: Norberto Gaspar
+  collection-title: "Livros de Atas — IV Simposio Internacional de Blockchain y Ciberseguridad (RIBCi–CYTED 2026)"
+  publisher:
+    name: "Edições CEOS.PP, ISCAP"
+  location:
+    name: "Porto, Portugal"
+  year: 2026
 references:
+  - type: conference-paper
+    title: "From Findings to Verifiable Remediation Artifacts: A Smart Contract Security Pipeline"
+    authors:
+      - family-names: Boiero
+        given-names: Fernando
+      - family-names: Mussetta
+        given-names: Sebastian Norberto
+      - family-names: Cena
+        given-names: Norberto Gaspar
+    collection-title: "Livros de Atas — IV Simposio Internacional de Blockchain y Ciberseguridad (RIBCi–CYTED 2026)"
+    publisher:
+      name: "Edições CEOS.PP, ISCAP"
+    location:
+      name: "Porto, Portugal"
+    year: 2026
+  - type: thesis
+    title: >
+      Integrated Security Assessment Framework for Smart Contracts: A
+      Defense-in-Depth Approach to Cyberdefense
+    authors:
+      - family-names: Boiero
+        given-names: Fernando
+    institution:
+      name: "Universidad de la Defensa Nacional (UNDEF) - IUA Córdoba"
+    thesis-type: "Master's Thesis"
+    department: "Cyberdefense"
+    year: 2025
+    abstract: >
+      Historical Master's thesis snapshot by Fernando Boiero that introduced
+      MIESC; superseded as the primary citation by the two RIBCi–CYTED 2026
+      companion papers above, and kept here as a secondary reference.
   - type: article
     title: "Empirical Review of Automated Analysis Tools on 47,587 Ethereum Smart Contracts"
     authors:
