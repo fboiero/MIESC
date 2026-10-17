@@ -775,4 +775,3 @@ Stallman, R. M. (2002). *Free software, free society: Selected essays of Richard
 Sun, Y., Wu, D., Xue, Y., Liu, H., Wang, H., Xu, Z., Xie, X., & Liu, Y. (2024). GPTScan: Detecting logic vulnerabilities in smart contracts by combining GPT with program analysis. En *Proceedings of the IEEE/ACM 46th International Conference on Software Engineering (ICSE '24)* (pp. 1-13). ACM. https://doi.org/10.1145/3597503.3639117
 
 Winner, L. (1980). Do artifacts have politics? *Daedalus, 109*(1), 121-136.
-

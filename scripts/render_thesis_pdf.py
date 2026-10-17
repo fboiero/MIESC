@@ -15,6 +15,7 @@ from __future__ import annotations
 import argparse
 import shutil
 import subprocess
+import re
 import sys
 from pathlib import Path
 
@@ -139,6 +140,14 @@ SYMBOL_MAP = {
 }
 
 
+CODE_GLYPH_FALLBACK = {
+    "╲": "\\",
+    "∈": "in",
+    "ⱼ": "_j",
+    "⁻": "^-",
+}
+
+
 def _replace_symbols_outside_code(md: str) -> str:
     out: list[str] = []
     in_fence = False
@@ -148,6 +157,13 @@ def _replace_symbols_outside_code(md: str) -> str:
             out.append(line)
             continue
         if in_fence:
+            # Glyphs the mono font lacks inside code blocks: the diagonal of one
+            # ASCII-art diagram (§H.9.2) and the set/index symbols of the GNN
+            # formulas (§H.7), both in APENDICE_TECNICAS_ANALISIS.md. ASCII
+            # equivalents keep the blocks legible without a missing glyph.
+            for src, dst in CODE_GLYPH_FALLBACK.items():
+                if src in line:
+                    line = line.replace(src, dst)
             out.append(line)
             continue
         for src, dst in SYMBOL_MAP.items():
@@ -184,6 +200,16 @@ def _drop_blockquote_note(md: str) -> str:
     return "\n".join(ln for ln in md.split("\n") if not ln.lstrip().startswith(">"))
 
 
+# Alphabetical lists whose "## A" … "## Z" letter headings are navigation aids inside the
+# list, not sections of the thesis: keep them on the page but out of the table of contents.
+LETTER_HEADING_LISTS = {"LISTA_DE_ACRONIMOS.md", "GLOSARIO.md"}
+_LETTER_HEADING = re.compile(r"^(## [A-ZÑ])\s*$", re.M)
+
+
+def _unlist_letter_headings(md: str) -> str:
+    return _LETTER_HEADING.sub(r"\1 {.unlisted}", md)
+
+
 def read(name: str) -> str:
     p = TESIS / name
     if not p.exists():
@@ -192,6 +218,8 @@ def read(name: str) -> str:
     text = p.read_text(encoding="utf-8")
     if name in PAGE_COLUMN_LISTS:
         text = _drop_last_table_column(_drop_blockquote_note(text))
+    if name in LETTER_HEADING_LISTS:
+        text = _unlist_letter_headings(text)
     return text
 
 

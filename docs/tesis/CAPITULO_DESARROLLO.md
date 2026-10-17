@@ -1018,13 +1018,11 @@ Clarke, E. M., Henzinger, T. A., Veith, H., & Bloem, R. (Eds.). (2018). *Handboo
 
 ConsenSys. (2023). *Smart contract best practices*. https://consensys.github.io/smart-contract-best-practices/
 
-Sun, Y., Wu, D., Xue, Y., Liu, H., Wang, H., Xu, Z., Xie, X., & Liu, Y. (2024). GPTScan: Detecting logic vulnerabilities in smart contracts by combining GPT with program analysis. En *Proceedings of the IEEE/ACM 46th International Conference on Software Engineering (ICSE '24)* (pp. 1-13). ACM. https://doi.org/10.1145/3597503.3639117
-
 de Moura, L., & Bjørner, N. (2008). Z3: An efficient SMT solver. *TACAS 2008*, 337-340.
 
-Dijkstra, E. W. (1982). On the role of scientific thought. *Selected Writings on Computing*, 60-66.
-
 Digital Public Goods Alliance. (2023). *Digital Public Goods Standard*. https://digitalpublicgoods.net/standard/
+
+Dijkstra, E. W. (1982). On the role of scientific thought. *Selected Writings on Computing*, 60-66.
 
 Durieux, T., Ferreira, J. F., Abreu, R., & Cruz, P. (2020). Empirical review of automated analysis tools on 47,587 Ethereum smart contracts. *ICSE 2020*, 530-541.
 
@@ -1069,6 +1067,8 @@ Schneier, B. (2000). *Secrets and lies: Digital security in a networked world*. 
 SCSVS. (2023). *Smart Contract Security Verification Standard*. https://github.com/securing/SCSVS
 
 Shaw, M. (2012). The role of design spaces. *IEEE Software, 29*(1), 46-50.
+
+Sun, Y., Wu, D., Xue, Y., Liu, H., Wang, H., Xu, Z., Xie, X., & Liu, Y. (2024). GPTScan: Detecting logic vulnerabilities in smart contracts by combining GPT with program analysis. En *Proceedings of the IEEE/ACM 46th International Conference on Software Engineering (ICSE '24)* (pp. 1-13). ACM. https://doi.org/10.1145/3597503.3639117
 
 Touvron, H., et al. (2023). LLaMA: Open and efficient foundation language models. *arXiv:2302.13971*.
 

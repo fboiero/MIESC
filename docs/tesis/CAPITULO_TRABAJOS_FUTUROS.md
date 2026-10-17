@@ -272,4 +272,3 @@ Durieux, T., Ferreira, J. F., Abreu, R., & Cruz, P. (2020). Empirical review of 
 Qin, K., Zhou, L., Livshits, B., & Gervais, A. (2021). Attacking the DeFi ecosystem with flash loans. *FC 2021*, 3-32.
 
 Schneier, B. (2000). *Secrets and lies: Digital security in a networked world*. Wiley.
-
