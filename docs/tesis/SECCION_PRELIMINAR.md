@@ -8,7 +8,7 @@
 
 **TESIS DE POSGRADO**
 
-**MIESC: MARCO INTEGRADO PARA EVALUACIÓN DE SEGURIDAD EN CONTRATOS INTELIGENTES**
+**MIESC: FRAMEWORK MULTI-CAPA DE INTEGRACIÓN DE HERRAMIENTAS PARA SEGURIDAD DE SMART CONTRACTS**
 
 *Marco de siete capas con 25 herramientas de análisis, IA soberana y Model Context Protocol*
 
@@ -78,6 +78,10 @@ Al Instituto Universitario Aeronáutico (IUA) y la Universidad de la Defensa Nac
 
 Al equipo de Xcapit, por brindarme un espacio, tiempo y la confianza para desarrollar este framework dentro de nuestra organización.
 
+A los ingenieros Sebastián Mussetta y Gaspar Cena, co-autores de las publicaciones derivadas de esta tesis, por el trabajo compartido en la validación posterior a la defensa.
+
+Al laboratorio blockchain de la Universidad Tecnológica Nacional, Facultad Regional Villa María, por el espacio de investigación desde el que este trabajo dialoga con la docencia.
+
 A la comunidad de código abierto que desarrolla y mantiene las herramientas de seguridad integradas en MIESC, cuyo trabajo desinteresado hace posible el avance de la seguridad informática.
 
 A Trail of Bits, ConsenSys, Certora, y demás organizaciones que han desarrollado herramientas de análisis de smart contracts, sentando las bases sobre las cuales este trabajo construye.
@@ -95,6 +99,10 @@ Este trabajo no hubiera sido posible sin la contribución de cada uno de ustedes
 ## Declaración de Herramientas Tecnológicas
 
 En la elaboración de este documento se utilizó asistencia de inteligencia artificial (Claude de Anthropic) para tareas de edición, condensación de contenido y formato, siempre bajo supervisión y validación del autor. La investigación, experimentación, análisis de resultados y conclusiones son producto del trabajo original del autor.
+
+## Nota sobre esta Edición
+
+El Trabajo Final fue presentado al tribunal en octubre de 2025 y defendido en diciembre de 2025 con la arquitectura v4.0.0 de MIESC; la fecha de la carátula corresponde a esa presentación. La presente es la edición corregida de octubre de 2026: incorpora correcciones de fondo, de referencias bibliográficas y de estilo realizadas con posterioridad a la defensa, y evidencia obtenida después de ella —la revalidación del corpus del 9 de julio de 2026, las validaciones sobre EVMBench y SmartBugs Curated y las publicaciones derivadas de 2026—, siempre identificada como tal en el texto (nota de versiones en §4.1; §5.3.5–5.3.6; §8.3.1). Los modelos de lenguaje y las versiones de software mencionados en esos pasajes corresponden a la fecha de esas corridas, no a la de la defensa.
 
 ---
 

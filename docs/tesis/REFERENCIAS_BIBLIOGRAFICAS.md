@@ -52,6 +52,8 @@ Dijkstra, E. W. (1982). On the role of scientific thought. En *Selected writings
 
 Durieux, T., Ferreira, J. F., Abreu, R., & Cruz, P. (2020). Empirical review of automated analysis tools on 47,587 Ethereum smart contracts. *Proceedings of the ACM/IEEE 42nd International Conference on Software Engineering (ICSE)*, 530-541. https://doi.org/10.1145/3377811.3380364
 
+Eitzman, R., & Dobson, J. (2022). *Decentralized robbery: Dissecting the Nomad bridge hack and following the money*. Mandiant / Google Cloud Threat Intelligence. https://cloud.google.com/blog/topics/threat-intelligence/dissecting-nomad-bridge-hack
+
 Feist, J., Grieco, G., & Groce, A. (2019). Slither: A static analysis framework for smart contracts. *Proceedings of the 2nd International Workshop on Emerging Trends in Software Engineering for Blockchain (WETSEB)*, 8-15. https://doi.org/10.1109/WETSEB.2019.00008
 
 Fellegi, I. P., & Sunter, A. B. (1969). A theory for record linkage. *Journal of the American Statistical Association, 64*(328), 1183-1210. https://doi.org/10.1080/01621459.1969.10501049
@@ -115,8 +117,6 @@ Nakamoto, S. (2008). Bitcoin: A peer-to-peer electronic cash system. https://bit
 National Institute of Standards and Technology. (2024). *NIST Cybersecurity Framework 2.0* (NIST CSF). NIST. https://www.nist.gov/cyberframework
 
 National Security Agency. (s.f.). *Defense in depth: A practical strategy for achieving Information Assurance in today's highly networked environments*. NSA Information Assurance Solutions Group.
-
-National Vulnerability Database. (2018). *CVE-2018-10299: Integer overflow in the batchTransfer function of the BeautyChain (BEC) token contract*. National Institute of Standards and Technology. https://nvd.nist.gov/vuln/detail/CVE-2018-10299
 
 Newman, S. (2015). *Building microservices: Designing fine-grained systems*. O'Reilly Media.
 

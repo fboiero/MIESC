@@ -8,7 +8,7 @@ El presente capítulo documenta el proceso de desarrollo e implementación de MI
 
 ### 4.1.1 Génesis del Proyecto
 
-El origen de MIESC se encuentra en una experiencia práctica de auditoría realizada en 2023, donde el autor enfrentó la tarea de evaluar la seguridad de un protocolo DeFi con TVL (Total Value Locked) superior a los 50 millones de dólares. Durante ese proceso, se hicieron evidentes tres problemas que la literatura académica había señalado pero que la industria no había resuelto de manera satisfactoria:
+El origen de MIESC se encuentra en una experiencia práctica de auditoría realizada en 2023, cuando el autor enfrentó la tarea de evaluar la seguridad de un protocolo de ayuda humanitaria que su empresa desarrollaba para un organismo multilateral, antes de su despliegue. Durante ese proceso se hicieron evidentes tres problemas que la literatura académica había señalado pero que la industria no había resuelto de manera satisfactoria:
 
 **Primer problema: La fragmentación de herramientas.** Para realizar una auditoría exhaustiva, fue necesario ejecutar Slither, Mythril, Echidna y solicitar análisis manuales con GPT-4. Cada herramienta requirió instalación independiente, configuración específica, y produjo resultados en formatos incompatibles entre sí. El tiempo invertido en orquestar las herramientas superó al tiempo de análisis efectivo.
 
