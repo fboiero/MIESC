@@ -10,7 +10,7 @@
 
 **MIESC: MARCO INTEGRADO PARA EVALUACIÓN DE SEGURIDAD EN CONTRATOS INTELIGENTES**
 
-*Framework Multi-capa de 7 Capas con 25 Herramientas de Análisis, IA Soberana y Model Context Protocol*
+*Marco de siete capas con 25 herramientas de análisis, IA soberana y Model Context Protocol*
 
 **Autor:** Ing. Fernando Boiero
 
@@ -30,11 +30,11 @@ La investigación aborda la problemática de la fragmentación de herramientas d
 
 MIESC integra 25 herramientas de seguridad organizadas en 7 capas complementarias: (1) análisis estático, (2) testing dinámico mediante fuzzing, (3) ejecución simbólica, (4) testing de invariantes, (5) verificación formal, (6) property testing, y (7) análisis con inteligencia artificial. El framework implementa el patrón de diseño Adapter para unificar interfaces heterogéneas y un esquema de normalización que mapea hallazgos a taxonomías estándar (SWC, CWE, OWASP).
 
-Una contribución distintiva es la implementación de un backend de IA soberano basado en Ollama, que permite análisis semántico de código sin transmisión a servicios externos, garantizando la confidencialidad del código auditado. Adicionalmente, se desarrolló un servidor Model Context Protocol (MCP) que habilita la interacción con asistentes de IA modernos como Claude, manteniendo el procesamiento completamente local.
+Una contribución distintiva es la implementación de un backend de IA soberano basado en Ollama, que permite análisis semántico de código sin transmisión a servicios externos y preserva, en ese modo, la confidencialidad del código auditado. Adicionalmente, se desarrolló un servidor Model Context Protocol (MCP) que habilita la interacción con asistentes de IA modernos como Claude: el servidor y las herramientas se ejecutan en la infraestructura del usuario; el contenido que el servidor devuelve al asistente queda sujeto a la política de datos del proveedor del cliente.
 
-La evaluación experimental sobre un corpus de 4 contratos con 29 vulnerabilidades documentadas muestra que MIESC exhibe un perfil recall-first: cubre el 100% de las vulnerabilidades documentadas, con una detección type-aware (del tipo/SWC correcto) del 48% empleando capas estático y de patrón. La medición controlada indica que combinar herramientas estáticas no supera a Slither por sí sola; la mejora real proviene de agregar una capa de razonamiento LLM, que eleva la detección type-aware del 48% al 72%. El proceso de deduplicación reduce los hallazgos en un 68% (385→123), mejorando la calidad de los reportes de auditoría. El costo operativo del framework es de $0 gracias a la ejecución completamente local.
+La evaluación experimental sobre un corpus de 4 contratos con 29 vulnerabilidades documentadas muestra que MIESC exhibe un perfil *recall-first*: cubre el 100% de las vulnerabilidades documentadas, con una detección *type-aware* (del tipo/SWC correcto) del 48% empleando las capas estática y de patrones. La medición controlada indica que combinar herramientas estáticas no supera a Slither por sí sola (48% frente a 58%); la mejora real proviene de agregar una capa de razonamiento LLM, que eleva la detección *type-aware* del 48% al 72% con un modelo frontier accedido vía API (modo `--deep`), mientras que con un modelo local (qwen2.5-coder:14b vía Ollama) alcanza el 44%. El proceso de deduplicación reduce los hallazgos en un 68% (385→123), mejorando la calidad de los reportes de auditoría. En su configuración completamente local el costo operativo del framework es de $0; el modo `--deep` es opcional y relaja esa política a cambio de la mayor capacidad del modelo frontier.
 
-El trabajo contribuye al campo de la ciberdefensa al proporcionar una herramienta de código abierto que: (1) aplica el principio de Defense-in-Depth a un dominio emergente, (2) garantiza soberanía de datos en análisis de seguridad, (3) democratiza el acceso a auditorías de smart contracts sin barreras de costo, y (4) establece un marco extensible para la investigación en seguridad de blockchain.
+El trabajo contribuye al campo de la ciberdefensa al proporcionar una herramienta de código abierto que: (1) aplica el principio de Defense-in-Depth a un dominio emergente, (2) permite operar con soberanía de datos en modo local, (3) amplía el acceso a auditorías de smart contracts al eliminar las barreras de costo, y (4) establece un marco extensible para la investigación en seguridad de blockchain.
 
 **Palabras clave:** Smart Contracts, Seguridad Blockchain, Ciberdefensa, Defense-in-Depth, Análisis Estático, Ejecución Simbólica, Verificación Formal, Fuzzing, Inteligencia Artificial, LLM Soberano, Model Context Protocol, Ethereum.
 
@@ -48,11 +48,11 @@ The research addresses the fragmentation of existing security analysis tools, th
 
 MIESC integrates 25 security tools organized into 7 complementary layers: (1) static analysis, (2) dynamic testing through fuzzing, (3) symbolic execution, (4) invariant testing, (5) formal verification, (6) property testing, and (7) artificial intelligence analysis. The framework implements the Adapter design pattern to unify heterogeneous interfaces and a normalization schema that maps findings to standard taxonomies (SWC, CWE, OWASP).
 
-A distinctive contribution is the implementation of a sovereign AI backend based on Ollama, which enables semantic code analysis without transmission to external services, ensuring the confidentiality of audited code. Additionally, a Model Context Protocol (MCP) server was developed that enables interaction with modern AI assistants like Claude while maintaining entirely local processing.
+A distinctive contribution is the implementation of a sovereign AI backend based on Ollama, which enables semantic code analysis without transmission to external services and, in that mode, preserves the confidentiality of audited code. Additionally, a Model Context Protocol (MCP) server was developed that enables interaction with modern AI assistants like Claude: the server and the tools run on the user's infrastructure; the content the server returns to the assistant is subject to the data policy of the client's provider.
 
-Experimental evaluation on a corpus of 4 contracts with 29 documented vulnerabilities shows that MIESC exhibits a recall-first profile: it covers 100% of the documented vulnerabilities, with a type-aware detection (of the correct type/SWC) of 48% using static and pattern layers. Controlled measurement indicates that combining static tools does not surpass Slither alone; the real improvement comes from adding an LLM reasoning layer, which raises type-aware detection from 48% to 72%. The deduplication process reduces findings by 68% (385→123), improving audit report quality. The framework's operational cost is $0 due to entirely local execution.
+Experimental evaluation on a corpus of 4 contracts with 29 documented vulnerabilities shows that MIESC exhibits a *recall-first* profile: it covers 100% of the documented vulnerabilities, with a *type-aware* detection (of the correct type/SWC) of 48% using the static and pattern layers. Controlled measurement indicates that combining static tools does not surpass Slither alone (48% vs. 58%); the real improvement comes from adding an LLM reasoning layer, which raises *type-aware* detection from 48% to 72% with a frontier model accessed through an API (`--deep` mode), whereas a local model (qwen2.5-coder:14b via Ollama) reaches 44%. The deduplication process reduces findings by 68% (385→123), improving audit report quality. In its fully local configuration the framework's operational cost is $0; the `--deep` mode is optional and relaxes that policy in exchange for the frontier model's higher capability.
 
-This work contributes to the cyber defense field by providing an open-source tool that: (1) applies the Defense-in-Depth principle to an emerging domain, (2) guarantees data sovereignty in security analysis, (3) democratizes access to smart contract audits without cost barriers, and (4) establishes an extensible framework for blockchain security research.
+This work contributes to the cyber defense field by providing an open-source tool that: (1) applies the Defense-in-Depth principle to an emerging domain, (2) allows operating with data sovereignty in local mode, (3) broadens access to smart contract audits by removing cost barriers, and (4) establishes an extensible framework for blockchain security research.
 
 **Keywords:** Smart Contracts, Blockchain Security, Cyber Defense, Defense-in-Depth, Static Analysis, Symbolic Execution, Formal Verification, Fuzzing, Artificial Intelligence, Sovereign LLM, Model Context Protocol, Ethereum.
 
@@ -70,7 +70,7 @@ A la comunidad open source, cuyo espíritu colaborativo y compromiso con el cono
 
 ## Agradecimientos
 
-A mi familia, por su apoyo incondicional en cada uno de estos hitos académicos y profesionales.
+Reitero aquí mi gratitud a mi familia, sin cuyo apoyo este recorrido no habría sido posible.
 
 A mi director de tesis, Mg. Eduardo Casanovas, por su guía experta, paciencia y dedicación durante el desarrollo de esta investigación.
 
@@ -82,9 +82,9 @@ A la comunidad de código abierto que desarrolla y mantiene las herramientas de 
 
 A Trail of Bits, ConsenSys, Certora, y demás organizaciones que han desarrollado herramientas de análisis de smart contracts, sentando las bases sobre las cuales este trabajo construye.
 
-A Anthropic, por el desarrollo del Model Context Protocol que ha permitido la integración innovadora entre MIESC y asistentes de IA.
+A Anthropic, por el desarrollo del Model Context Protocol, que hizo posible integrar MIESC con asistentes de IA.
 
-A Meta AI y la comunidad Ollama, por democratizar el acceso a modelos de lenguaje de código abierto, habilitando la implementación de IA soberana.
+A Meta AI y a la comunidad Ollama, por abrir el acceso a modelos de lenguaje de pesos abiertos y hacer posible, con ello, la implementación de IA soberana.
 
 A mis compañeros de la Maestría, por el intercambio de ideas y el apoyo mutuo durante este proceso formativo.
 
@@ -100,7 +100,7 @@ En la elaboración de este documento se utilizó asistencia de inteligencia arti
 
 ## Licencia y Disponibilidad
 
-Este trabajo de investigación y el software MIESC (Marco Integrado para Evaluación de Seguridad en Contratos Inteligentes) se publican bajo los siguientes términos:
+Este trabajo de investigación y el software MIESC (Multi-layer Integration for Ethereum Smart Contract Security) se publican bajo los siguientes términos:
 
 ### Licencia del Documento
 
@@ -169,9 +169,9 @@ Por lo tanto, asumo la responsabilidad total por el contenido de este trabajo an
 
 El software MIESC (Multi-layer Integration for Ethereum Smart Contract Security) desarrollado como parte de este trabajo de tesis:
 
-1. **Es de código abierto** y se distribuye bajo licencia AGPL-3.0, garantizando que el software permanezca libre y de código abierto.
+1. Es de código abierto y se distribuye bajo licencia AGPL-3.0, que garantiza que el software permanezca libre y de código abierto.
 
-2. **Integra 25 herramientas de terceros** organizadas en 7 capas, que mantienen sus licencias originales:
+2. Integra 25 herramientas de terceros organizadas en 7 capas, que mantienen sus licencias originales:
    - **Capa 1 - Análisis Estático:** Slither (AGPL-3.0), Solhint (MIT), Securify2 (Apache-2.0), Semgrep (LGPL-2.1)
    - **Capa 2 - Testing Dinámico:** Echidna (AGPL-3.0), Foundry (MIT/Apache-2.0), Medusa (AGPL-3.0), Vertigo (MIT)
    - **Capa 3 - Ejecución Simbólica:** Mythril (MIT), Manticore (AGPL-3.0), Oyente (BSD-3)
@@ -180,11 +180,11 @@ El software MIESC (Multi-layer Integration for Ethereum Smart Contract Security)
    - **Capa 6 - Property Testing:** PropertyGPT (MIT), Aderyn (MIT), Wake (MIT)
    - **Capa 7 - Análisis con IA:** GPTScan, SmartLLM, LLMSmartAudit, ThreatModel, GasGauge, UpgradeGuard, BestPractices
 
-3. **Los 25 adaptadores e integraciones** desarrollados específicamente para MIESC son de autoría propia.
+3. Los 25 adaptadores e integraciones desarrollados específicamente para MIESC son de autoría propia.
 
-4. **El servidor MCP** y los componentes de integración con IA soberana (Ollama) son desarrollos originales de este trabajo.
+4. El servidor MCP y los componentes de integración con IA soberana (Ollama) son desarrollos originales de este trabajo.
 
-5. **El código está disponible públicamente** para revisión, auditoría y contribuciones de la comunidad.
+5. El código está disponible públicamente para revisión, auditoría y contribuciones de la comunidad.
 
 ---
 
@@ -193,8 +193,3 @@ El software MIESC (Multi-layer Integration for Ethereum Smart Contract Security)
 **Licencia:** GNU Affero General Public License v3.0 (AGPL-3.0)
 
 **Copyright:** (c) 2025 Fernando Boiero
-
----
-
-*Documento actualizado: 2025-11-29*
-*MIESC v4.0.0 - 25 herramientas en 7 capas Defense-in-Depth*

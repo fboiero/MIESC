@@ -2,23 +2,21 @@
 
 ## Soberanía de Datos en Auditoría de Smart Contracts
 
----
-
 ## 6.1 Introducción: El Dilema de la Confidencialidad
 
 ### 6.1.1 Naturaleza del Código en Auditoría Pre-Lanzamiento
 
-El código fuente de un smart contract antes de su despliegue en mainnet representa un tipo particular de activo informático que combina tres características que lo hacen especialmente sensible:
+El código fuente de un smart contract antes de su despliegue en mainnet representa un tipo particular de activo informático que combina tres características que lo hacen especialmente sensible.
 
-**Primera característica: Valor económico directo.** A diferencia del software tradicional, donde el código tiene valor indirecto a través del producto que produce, un smart contract ES el producto. El contrato de un protocolo DeFi que gestiona 100 millones de dólares en TVL (Total Value Locked) no simplemente "sirve para" manejar ese dinero: el contrato es el mecanismo que define las reglas de ese manejo. Exponer el código antes del lanzamiento permite a atacantes preparar exploits que pueden ejecutarse en los primeros segundos después del despliegue.
+La primera es el valor económico directo. A diferencia del software tradicional, donde el código tiene valor indirecto a través del producto que produce, un smart contract es, en sí mismo, el producto. El contrato de un protocolo DeFi que gestiona 100 millones de dólares en TVL (Total Value Locked) no simplemente "sirve para" manejar ese dinero: el contrato es el mecanismo que define las reglas de ese manejo. Exponer el código antes del lanzamiento permite a atacantes preparar exploits que pueden ejecutarse en los primeros segundos después del despliegue.
 
-**Segunda característica: Inmutabilidad post-despliegue.** Una vez desplegado en blockchain, el código de un smart contract no puede modificarse sin procedimientos extraordinarios (upgrades que requieren consenso de gobernanza, o forks del protocolo completo). Esto significa que una vulnerabilidad detectada por un atacante antes del lanzamiento puede ser explotada indefinidamente si el código desplegado es idéntico al filtrado.
+La segunda es la inmutabilidad posterior al despliegue. Una vez desplegado en blockchain, el código de un smart contract no puede modificarse sin procedimientos extraordinarios (upgrades que requieren consenso de gobernanza, o forks del protocolo completo). Esto significa que una vulnerabilidad detectada por un atacante antes del lanzamiento puede ser explotada indefinidamente si el código desplegado es idéntico al filtrado.
 
-**Tercera característica: Competencia temporal.** En el ecosistema DeFi, el primer protocolo en implementar un mecanismo innovador captura la mayor parte del mercado. La filtración del código de un protocolo innovador permite a competidores lanzar clones antes que el original, capturando el mercado que el innovador esperaba conquistar.
+La tercera es la competencia temporal. En el ecosistema DeFi, el primer protocolo en implementar un mecanismo innovador captura la mayor parte del mercado. La filtración del código de un protocolo innovador permite a competidores lanzar clones antes que el original, capturando el mercado que el innovador esperaba conquistar.
 
 ### 6.1.2 El Problema de las APIs de IA Comerciales
 
-La emergencia de modelos de lenguaje grandes (LLMs) como GPT-4 y Claude ha transformado las posibilidades de análisis de código. Sun et al. (2024) demostraron que GPTScan, una herramienta que combina LLM con análisis de programas, detecta el 90.2% de vulnerabilidades de lógica de negocio que escapan a herramientas tradicionales. Este resultado es significativo porque las vulnerabilidades de lógica, a diferencia de patrones técnicos como reentrancy, requieren comprensión semántica del propósito del código.
+La emergencia de modelos de lenguaje grandes (LLMs) como GPT-4 y Claude ha transformado las posibilidades de análisis de código. Sun et al. (2024) demostraron que GPTScan, una herramienta que combina LLM con análisis de programas, alcanza una precisión superior al 90% en contratos de tokens (57% en proyectos grandes) y un recall superior al 70% sobre vulnerabilidades de lógica, además de detectar nueve no identificadas por auditores humanos. Este resultado es significativo porque las vulnerabilidades de lógica, a diferencia de patrones técnicos como reentrancy, requieren comprensión semántica del propósito del código.
 
 Sin embargo, la utilización de estos modelos vía APIs comerciales implica transmitir el código fuente a servidores de terceros. Considérese el flujo de datos cuando un auditor utiliza GPT-4 de OpenAI para analizar un contrato:
 
@@ -31,15 +29,7 @@ Sin embargo, la utilización de estos modelos vía APIs comerciales implica tran
     -> Posible uso para entrenamiento (según ToS)
 ```
 
-Cada uno de estos pasos introduce riesgos:
-
-1. **Transmisión:** El tráfico, aunque cifrado, atraviesa infraestructura de terceros. La metadata (IP de origen, timestamps, tamaño de payload) es visible para intermediarios.
-
-2. **Jurisdicción:** El código queda sujeto a leyes estadounidenses, incluyendo el CLOUD Act que permite a autoridades acceder a datos almacenados por empresas estadounidenses sin notificar al propietario.
-
-3. **Retención:** Las políticas de retención de OpenAI (30 días para API), Anthropic (30 días), y Google (variable) implican que el código permanece accesible en sus sistemas mucho después del análisis.
-
-4. **Memorización:** Carlini et al. (2023) demostraron que los LLMs pueden memorizar y reproducir fragmentos de sus datos de entrenamiento. Aunque las APIs comerciales tienen políticas de no entrenar con datos de API, la posibilidad técnica existe.
+Cada uno de estos pasos introduce un riesgo distinto. El primero es la transmisión: aunque cifrado, el tráfico atraviesa infraestructura de terceros, y su metadata —IP de origen, marcas de tiempo, tamaño del payload— queda visible para los intermediarios. A ello se suma la jurisdicción, dado que el código pasa a estar sujeto a leyes estadounidenses, entre ellas el CLOUD Act, que habilita a las autoridades a acceder a datos almacenados por empresas de ese país sin notificar al propietario. La retención agrava el problema: las políticas de OpenAI (30 días para API), Anthropic (30 días) y Google (variable) implican que el código permanece en sus sistemas mucho después del análisis. Por último, Carlini et al. (2021) demostraron que los LLMs pueden memorizar y reproducir fragmentos de sus datos de entrenamiento; aun cuando las APIs comerciales declaran no entrenar con los datos recibidos, la posibilidad técnica subsiste.
 
 ### 6.1.3 Cuantificación del Riesgo
 
@@ -57,32 +47,15 @@ La Tabla 6.1 presenta una estimación del valor en riesgo para diferentes tipos 
 
 El patrón común en estos incidentes es que los atacantes tuvieron tiempo de analizar el código y preparar exploits antes o inmediatamente después del despliegue. Si el código se hubiera filtrado durante la auditoría, el tiempo de preparación del ataque habría sido aún mayor.
 
----
-
 ## 6.2 Análisis de Riesgos de APIs Comerciales
 
 ### 6.2.1 Riesgos Técnicos
 
-**1. Interceptación en tránsito**
+Los riesgos técnicos se concentran en tres puntos de la cadena. El primero es la interceptación en tránsito: aunque HTTPS proporciona cifrado punto a punto, subsisten vectores como el compromiso de autoridades certificadoras (DigiNotar, 2011), los ataques de intermediario en redes corporativas con inspección SSL y las vulnerabilidades en implementaciones TLS (Heartbleed, 2014); para código de alto valor no son riesgos teóricos, sino vectores que actores sofisticados pueden explotar. El segundo es la exposición ante el personal del proveedor con acceso a los registros de la API, un riesgo que los precedentes de amenazas internas en empresas tecnológicas (Twitter, 2020; Tesla, 2018) muestran real. El tercero es la memorización ya señalada en §6.1.2: mediante prompts cuidadosamente diseñados es posible extraer fragmentos de los datos de entrenamiento de un LLM (Carlini et al., 2021), de modo que un modelo entrenado, inadvertidamente o no, con código de clientes podría devolverlo a terceros. La Figura 6.1 sitúa estos vectores sobre el recorrido del código.
 
-Aunque HTTPS proporciona cifrado punto a punto, existen vectores de ataque:
-- Compromiso de autoridades certificadoras (precedente: DigiNotar, 2011)
-- Ataques man-in-the-middle en redes corporativas con inspección SSL
-- Vulnerabilidades en implementaciones TLS (precedente: Heartbleed, 2014)
+**Figura 6.1.** Superficie de ataque en análisis con API comercial
 
-Para código de alto valor, estos riesgos no son teóricos sino que constituyen vectores que actores sofisticados pueden explotar.
-
-**2. Exposición por empleados del proveedor**
-
-El personal de OpenAI, Anthropic, o Google con acceso a logs de API puede potencialmente ver código de clientes. Los precedentes de insider threats en empresas tecnológicas (Twitter, 2020; Tesla, 2018) demuestran que este riesgo es real.
-
-**3. Memorización y extracción de modelos**
-
-Carlini et al. (2023) demostraron la "memorization attack": mediante prompts cuidadosamente diseñados, es posible extraer fragmentos de datos de entrenamiento de LLMs. Si un modelo fuera entrenado (inadvertidamente o no) con código de clientes, ese código podría ser extraído posteriormente por terceros.
-
-**Figura 21.** Superficie de ataque en análisis con API comercial
-
-![Figura 21 - Superficie de ataque análisis en API comercial](figures/Figura%2021%20Superficie%20de%20ataque%20análisis%20en%20API%20comercial.svg)
+![Figura 6.1 - Superficie de ataque análisis en API comercial](figures/Figura%2021%20Superficie%20de%20ataque%20análisis%20en%20API%20comercial.svg)
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
@@ -109,23 +82,7 @@ Carlini et al. (2023) demostraron la "memorization attack": mediante prompts cui
 
 ### 6.2.2 Riesgos Regulatorios
 
-**1. GDPR (Unión Europea)**
-
-El Artículo 44 del GDPR establece restricciones a la transferencia de datos personales a países terceros. Si el código fuente contiene direcciones de wallets, nombres de funciones basados en usuarios, o cualquier dato personal, su transmisión a servidores en Estados Unidos requiere mecanismos legales específicos (SCCs, certificación Privacy Shield, etc.).
-
-**2. LGPD (Brasil)**
-
-La Ley General de Proteção de Dados, en su Artículo 33, requiere que transferencias internacionales de datos personales cumplan condiciones específicas que las APIs comerciales típicamente no garantizan para uso programático.
-
-**3. LFPDPPP (México)**
-
-La Ley Federal de Protección de Datos Personales en Posesión de los Particulares establece obligaciones de seguridad que pueden verse comprometidas al transmitir datos a servicios en la nube de terceros países.
-
-**4. Regulaciones financieras sectoriales**
-
-- SOC 2: Requiere control demostrable sobre procesamiento de datos sensibles
-- PCI DSS: Para contratos que manejen datos de tarjetas, prohibe explícitamente ciertas transferencias
-- HIPAA: Para contratos en healthcare, impone restricciones severas
+En el plano regulatorio, el artículo 44 del GDPR (Unión Europea) restringe la transferencia de datos personales a terceros países: si el código fuente contiene direcciones de billeteras, nombres de funciones basados en usuarios o cualquier otro dato personal, su transmisión a servidores en Estados Unidos exige mecanismos legales específicos, como las cláusulas contractuales tipo. La Lei Geral de Proteção de Dados de Brasil (LGPD), en su artículo 33, impone a las transferencias internacionales condiciones que las APIs comerciales no suelen garantizar para el uso programático, y la Ley Federal de Protección de Datos Personales en Posesión de los Particulares de México (LFPDPPP) establece obligaciones de seguridad que pueden verse comprometidas al enviar datos a servicios en la nube de otros países. A estas normas se suman las regulaciones sectoriales: SOC 2 requiere un control demostrable sobre el procesamiento de datos sensibles, PCI DSS prohíbe explícitamente ciertas transferencias cuando los contratos manejan datos de tarjetas, y HIPAA impone restricciones severas en el ámbito de la salud.
 
 ### 6.2.3 Riesgos Económicos
 
@@ -158,17 +115,13 @@ Reserva de contingencia: +$500/año
 Costo total estimado: ~$2,660/año
 ```
 
-Aunque estos costos parecen modestos, representan una barrera significativa para:
-- Proyectos de código abierto sin financiamiento
-- Desarrolladores individuales en países con moneda débil
-- Organizaciones educativas
-- Investigadores académicos
+Aunque estos costos parecen modestos, representan una barrera real para los proyectos de código abierto sin financiamiento, los desarrolladores individuales en países con moneda débil, las organizaciones educativas y los investigadores académicos.
 
 ### 6.2.4 Tres niveles de apertura: el costo no es binario
 
 La contraposición "API comercial cara vs. modelo local gratuito" oculta un tercer
-nivel intermedio que es clave para el argumento económico. Separando la **licencia
-de los pesos** del **método de acceso**, el espacio de modelos se ordena en tres
+nivel intermedio que es clave para el argumento económico. Separando la licencia
+de los pesos del método de acceso, el espacio de modelos se ordena en tres
 niveles:
 
 **Tabla 6.2b.** Niveles de apertura de modelos y su desempeño en EVMBench
@@ -176,57 +129,48 @@ niveles:
 mismo pipeline y **matcher laxo**, es decir una **estimación optimista**). Bajo el
 juez oficial de EVMBench las mismas detecciones rinden sustancialmente menos; por
 eso esta tabla compara **viabilidad**, no un ranking definitivo de proveedores
-(ver "Límites honestos" más abajo y el Paper 1).
+(véase el cierre de §6.6.3 y el Paper 1).
 
 | Nivel | Ejemplo | Licencia de pesos | Acceso | Costo/aud. | Recall | Precisión | F1 |
 |-------|---------|-------------------|--------|-----------|--------|-----------|-----|
 | Frontier propietario | GPT-4o / GPT-5 / Claude | cerrada | API del proveedor | $1.20–5.50 | 73.7–82.5% | 20–43% | 32–55% |
-| **Open-weight hosteado** | **DeepSeek-R1 (MIT)** | **abierta (MIT)** | **API hosteada** | **~$0.08** | **70.8%** | **88.5%** | **78.7%** |
+| Open-weight alojado | DeepSeek-R1 (MIT) | abierta (MIT) | API de terceros | ~$0.08 | 70.8% | 88.5% | 78.7% |
 | Open-weight local | qwen2.5-coder:32b | abierta (Apache 2.0) | self-host (GPU propia) | $0 | 59.2% | 30.1% | 39.9% |
 
-El hallazgo central para este capítulo es de **viabilidad, no de ranking**: bajo este
-protocolo (matcher laxo, corrida única), el modelo **open-weight** (DeepSeek-R1, con
-pesos MIT) se ubica **dentro del rango de los proveedores frontier** en precisión y F1,
-a un costo estimado de **~$0.08 por auditoría — entre 15 y 69 veces más barato**. Su
+El hallazgo central para este capítulo es de viabilidad, no de ranking: bajo este
+protocolo (matcher laxo, corrida única), el modelo open-weight (DeepSeek-R1, con
+pesos MIT) registra la mayor precisión (88.5%) y el mayor F1 (78.7%) de la comparación,
+a un costo estimado de ~$0.08 por auditoría — entre 15 y 69 veces más barato. Su
 recall en una sola pasada (70.8%) queda por debajo de los frontier, pero un
 auto-ensemble de tres pasadas (≈$0.24/auditoría) lo eleva a 81.7%, dentro del rango de
-los frontier de una sola pasada. El ~$0.08 es **costo de hosting de conveniencia, no un
-peaje de licencia**: cualquiera con GPU suficiente puede correr los mismos pesos a costo
+los frontier de una sola pasada. El ~$0.08 es costo de hosting de conveniencia, no un
+peaje de licencia: cualquiera con GPU suficiente puede correr los mismos pesos a costo
 marginal cero.
 
-Estas cifras provienen del **matcher laxo** y de una corrida única, por lo que son una
-**estimación optimista**: bajo el juez oficial de EVMBench las mismas detecciones rinden
+Estas cifras provienen del matcher laxo y de una corrida única, por lo que son una
+estimación optimista: bajo el juez oficial de EVMBench las mismas detecciones rinden
 sustancialmente menos, y un control agnóstico del contrato alcanza ~50% con ese matcher.
-Por eso el Paper 1 (camera-ready) **no establece un ranking de proveedores** y defiere
+Por eso el Paper 1 (camera-ready) no establece un ranking de proveedores y defiere
 esa comparación —bajo el juez oficial— a trabajo futuro. La lectura defendible aquí no
-es que el modelo abierto sea "el mejor", sino que **la soberanía no cuesta capacidad
-competitiva**: pagar precio frontier no compra una ventaja demostrable de precisión/F1
+es que el modelo abierto sea "el mejor", sino que la soberanía no cuesta capacidad
+competitiva: pagar precio frontier no compra una ventaja demostrable de precisión/F1
 bajo este protocolo, y la soberanía total (nivel local, $0) está disponible con una
 caída de recall cuantificada, no asumida. El detalle metodológico y las fuentes
 reproducibles de estos números están en `docs/methodology/DATASETS.md` y en el Paper 1.
-
----
 
 ## 6.3 Solución: LLMs Soberanos con Ollama
 
 ### 6.3.1 Concepto de Soberanía de Datos
 
-El término "soberanía de datos" tiene múltiples acepciones en la literatura. Para los propósitos de este trabajo, adoptamos la definición de la Digital Public Goods Alliance (2023):
+El término "soberanía de datos" tiene múltiples acepciones en la literatura. Para los propósitos de este trabajo se adopta la definición de la Digital Public Goods Alliance (2023):
 
 > "La soberanía de datos es el principio de que los datos están sujetos a las leyes y estructuras de gobernanza de la nación o entidad donde se generan y procesan, y que dicha entidad mantiene control efectivo sobre su uso y distribución."
 
-La aplicación de este principio al análisis de smart contracts implica que:
-1. El código fuente no debe abandonar la infraestructura controlada por el auditor
-2. El procesamiento debe ocurrir en recursos computacionales bajo control del auditor
-3. No debe existir transmisión a servicios de terceros que introduzcan jurisdicción externa
+Aplicado al análisis de smart contracts, el principio implica tres condiciones: que el código fuente no abandone la infraestructura controlada por el auditor, que el procesamiento ocurra en recursos computacionales bajo su control y que no exista transmisión a servicios de terceros que introduzcan una jurisdicción externa. El modo `--deep` (§4.5.3) relaja deliberadamente estas condiciones, y por eso es opcional.
 
 ### 6.3.2 Ollama como Backend Soberano
 
-Ollama es un framework de código abierto que permite ejecutar LLMs localmente en hardware de consumidor. Sus características clave para MIESC son:
-
-**1. Ejecución completamente local**
-
-El servidor Ollama escucha exclusivamente en localhost (127.0.0.1) por defecto. No existe servidor remoto, no hay transmisión de datos:
+Ollama es un framework de código abierto que permite ejecutar LLMs localmente en hardware de consumidor, y tres de sus características lo hacen adecuado como backend soberano de MIESC. La primera es la ejecución completamente local: el servidor escucha exclusivamente en localhost (127.0.0.1) por defecto, sin servidor remoto ni transmisión de datos, como puede verificarse en la propia máquina:
 
 ```bash
 # Verificación de binding de red
@@ -237,12 +181,10 @@ tcp   0   0   127.0.0.1:11434   0.0.0.0:*   LISTEN   12345/ollama
 $ tcpdump -i any "not localhost" during analysis
 tcpdump: listening on any
 ^C
-0 packets captured  # CERO tráfico externo
+0 packets captured  # sin tráfico externo (salida ilustrativa)
 ```
 
-**2. Modelos con pesos abiertos**
-
-Ollama soporta modelos cuyos pesos son públicos y auditables:
+La segunda es el soporte de modelos con pesos públicos y auditables (Tabla 6.3).
 
 **Tabla 6.3.** Modelos soportados por MIESC
 
@@ -256,17 +198,9 @@ Ollama soporta modelos cuyos pesos son públicos y auditables:
 | Qwen2.5-Coder:32b | 32B | 24 GB | Apache 2.0 | Excelente (local, $0) |
 | Mistral:7b | 7B | 8 GB | Apache 2.0 | Muy buena |
 | DeepSeek-Coder:6.7b | 6.7B | 8 GB | MIT | Excelente (código) |
-| DeepSeek-R1 (reasoner) | ~671B | API hosteada | MIT | Precisión/F1 dentro del rango frontier bajo matcher laxo (§6.2.4; ranking no concluyente) |
+| DeepSeek-R1 (reasoner) | ~671B | API de terceros | MIT | Nivel alojado (§6.2.4) |
 
-El último renglón corresponde al nivel **open-weight hosteado**: pesos abiertos (MIT)
-demasiado grandes para el hardware de prueba, accedidos por API hosteada a costo muy
-bajo (~$0.08/auditoría). Bajo el matcher laxo de EVMBench se ubica dentro del rango de
-los frontier en precisión y F1 (Tabla 6.2b); es una estimación optimista, no un ranking
-concluyente.
-
-**3. Sin telemetría**
-
-A diferencia de servicios comerciales, Ollama no incluye código de telemetría. Esto es verificable porque el código fuente es público y auditable:
+El último renglón corresponde al nivel open-weight alojado: pesos abiertos (MIT) demasiado grandes para el hardware de prueba, accedidos por una API de terceros a bajo costo (~$0.08/auditoría); su desempeño bajo el matcher laxo se discute en §6.2.4. La tercera característica es la ausencia de telemetría: a diferencia de los servicios comerciales, Ollama no incluye código de seguimiento, lo que es verificable porque su código fuente es público:
 
 ```go
 // No existe código de telemetría en ollama/server/routes.go
@@ -276,11 +210,11 @@ A diferencia de servicios comerciales, Ollama no incluye código de telemetría.
 
 ### 6.3.3 Arquitectura de MIESC con LLM Soberano
 
-**Figura 22.** Arquitectura de análisis con LLM soberano
+**Figura 6.2.** Arquitectura de análisis con LLM soberano
 
-![Figura 22 - Arquitectura de análisis con LLM soberano](figures/Figura%2022.%20Arquitectura%20de%20análisis%20con%20LLM%20soberano.svg)
+![Figura 6.2 - Arquitectura de análisis con LLM soberano](figures/Figura%2022.%20Arquitectura%20de%20análisis%20con%20LLM%20soberano.svg)
 
-*Infraestructura 100% local con cero tráfico externo*
+*Infraestructura local sin tráfico externo (configuración de referencia)*
 
 ### 6.3.4 Configuración en MIESC
 
@@ -343,15 +277,13 @@ def verify_sovereign_backend() -> bool:
     return True
 ```
 
----
-
 ## 6.4 Justificación Técnica Detallada
 
 ### 6.4.1 Comparativa de Capacidades: Local vs. Comercial
 
 La objeción más frecuente a los LLMs locales es que su capacidad es inferior a modelos comerciales de frontera. Esta sección examina en qué medida esta diferencia afecta el caso de uso específico de análisis de smart contracts.
 
-**Tabla 6.4.** Comparativa de capacidades para análisis de código
+**Tabla 6.4.** Comparativa de capacidades para análisis de código (valoración cualitativa del autor al momento del diseño, sin medición propia; la medición del Capítulo 5 se reporta en la Tabla 5.8)
 
 | Capacidad | GPT-4 | Claude 3 Opus | Llama 3.1:8b | CodeLlama:13b |
 |-----------|-------|---------------|--------------|---------------|
@@ -365,51 +297,28 @@ La objeción más frecuente a los LLMs locales es que su capacidad es inferior a
 
 *En GPU RTX 3090 o equivalente
 
-**Observaciones clave:**
-
-1. **Para vulnerabilidades técnicas conocidas** (reentrancy, overflow, access control), los modelos locales alcanzan rendimiento comparable a los comerciales. Esto se debe a que estas vulnerabilidades siguen patrones predecibles que modelos de 7-13B parámetros pueden aprender.
-
-2. **Para vulnerabilidades de lógica de negocio**, los modelos comerciales tienen ventaja. Sin embargo, esta ventaja se mitiga en MIESC porque:
-   - La capa de IA es una de siete capas, no la única defensa
-   - Los hallazgos de IA se correlacionan con hallazgos de herramientas tradicionales
-   - El auditor humano sigue siendo el decisor final
-
-3. **La velocidad de modelos locales** es frecuentemente superior porque no hay latencia de red ni colas de API.
+De la Tabla 6.4 se desprenden tres observaciones. Frente a vulnerabilidades técnicas conocidas —reentrancy, overflow, control de acceso—, los modelos locales se aproximan a los comerciales, porque se trata de patrones predecibles que modelos de 7 a 13B parámetros pueden aprender; en la medición del Capítulo 5, sin embargo, la configuración local quedó por debajo (44% frente a 72% de detección *type-aware*, §5.3.4). En las vulnerabilidades de lógica de negocio la ventaja comercial es mayor, y MIESC la mitiga porque la capa de IA es una de siete y no la única defensa, porque sus hallazgos se correlacionan con los de las herramientas tradicionales y porque el auditor humano conserva la decisión final. Finalmente, los modelos locales suelen ser más rápidos, al no sufrir latencia de red ni colas de API.
 
 ### 6.4.2 Análisis de Trade-offs
 
 **Trade-off 1: Capacidad vs. Soberanía**
 
-La decisión de usar LLMs locales implica aceptar menor capacidad de razonamiento a cambio de soberanía completa de datos. Este trade-off es aceptable cuando:
-
-- El código tiene valor significativo (>$10M en juego)
-- Existen obligaciones regulatorias de confidencialidad
-- El auditor no puede aceptar riesgo de filtración
-- Las otras capas de MIESC compensan limitaciones del LLM
-
-El trade-off NO es aceptable cuando:
-- El código ya es público (análisis post-audit de contratos desplegados)
-- No hay restricciones de confidencialidad
-- Se requiere máxima capacidad de detección de lógica de negocio
-
-MIESC permite configurar análisis híbridos donde las capas tradicionales corren siempre localmente, y la capa de IA puede configurarse para usar modelos externos solo para código no confidencial.
+Optar por LLMs locales supone aceptar una menor capacidad de razonamiento a cambio de soberanía completa sobre los datos. Ese compromiso se justifica cuando el código tiene un valor significativo (más de USD 10M en juego), cuando existen obligaciones regulatorias de confidencialidad, cuando el auditor no puede asumir el riesgo de filtración o cuando las restantes capas de MIESC compensan las limitaciones del modelo. Deja de justificarse, en cambio, si el código ya es público —como en el análisis posterior de contratos desplegados—, si no hay restricciones de confidencialidad o si se requiere la máxima capacidad de detección de lógica de negocio. Por esa razón MIESC admite configuraciones híbridas: las capas tradicionales se ejecutan siempre localmente, y la capa de IA puede recurrir a modelos externos solo cuando el código no es confidencial (modo `--deep`, §4.5.3).
 
 **Trade-off 2: Costo inicial vs. Costo operativo**
 
 | Aspecto | API Comercial | LLM Soberano |
 |---------|---------------|--------------|
 | Costo inicial | $0 | $500-1000 (GPU) |
-| Costo operativo | ~$2,500/año | ~$60/año (electricidad) |
+| Costo operativo | ~$2,660/año | ~$60/año (electricidad) |
 | Break-even | - | ~6 meses |
-| Costo a 3 años | $7,500 | $1,180 |
+| Costo a 3 años | ~$7,980 | ~$1,180 |
 
-Para organizaciones que realizan auditorías regularmente, el LLM soberano tiene mejor ROI incluso ignorando los beneficios de soberanía.
+Para organizaciones que realizan auditorías regularmente, el LLM soberano presentaría un mejor retorno de la inversión incluso sin contar los beneficios de soberanía.
 
 ### 6.4.3 Estrategias de Mitigación de Limitaciones
 
-**1. Arquitectura de múltiples capas**
-
-Las limitaciones del LLM local se mitigan porque opera dentro de una arquitectura de 7 capas donde 24 herramientas no-LLM proporcionan cobertura complementaria:
+La primera estrategia es la propia arquitectura de múltiples capas: el LLM local opera dentro de siete capas en las que las herramientas no basadas en LLM de las capas 1 a 5 proporcionan una cobertura complementaria:
 
 ```python
 def run_comprehensive_audit(contract_path: str) -> AuditReport:
@@ -421,7 +330,7 @@ def run_comprehensive_audit(contract_path: str) -> AuditReport:
     """
     all_findings = []
 
-    # Capas 1-5: Herramientas tradicionales (24 total)
+    # Capas 1-5: herramientas tradicionales
     all_findings.extend(run_static_analysis(contract_path))    # Slither, etc.
     all_findings.extend(run_fuzzing(contract_path))            # Echidna, etc.
     all_findings.extend(run_symbolic(contract_path))           # Mythril, etc.
@@ -435,9 +344,7 @@ def run_comprehensive_audit(contract_path: str) -> AuditReport:
     return deduplicate_and_prioritize(all_findings)
 ```
 
-**2. Prompts optimizados para modelos más pequeños**
-
-Los prompts de MIESC están diseñados para maximizar efectividad con modelos de 7-8B parámetros:
+La segunda son los prompts optimizados para modelos pequeños, diseñados para obtener la mayor efectividad posible con modelos de 7 a 8B parámetros:
 
 ```python
 OPTIMIZED_SECURITY_PROMPT = """
@@ -466,14 +373,7 @@ Respond in JSON format only:
 """
 ```
 
-El prompt es:
-- Específico (lista exacta de qué buscar)
-- Estructurado (formato de respuesta claro)
-- Conciso (minimiza tokens de contexto para respuesta)
-
-**3. RAG (Retrieval-Augmented Generation)**
-
-MIESC implementa RAG con una base de conocimiento local de vulnerabilidades conocidas:
+El prompt es específico, porque enumera exactamente qué buscar; estructurado, porque fija el formato de la respuesta; y conciso, porque reserva los tokens de contexto para la respuesta. La tercera estrategia es la generación aumentada por recuperación (RAG) sobre una base de conocimiento local de vulnerabilidades conocidas:
 
 ```python
 class LocalRAGEngine:
@@ -506,13 +406,11 @@ class LocalRAGEngine:
         return f"{context}\n{base_prompt}"
 ```
 
----
-
 ## 6.5 Implementación en MIESC
 
 ### 6.5.1 Herramientas LLM Integradas
 
-MIESC integra seis herramientas basadas en LLM, todas configuradas para ejecución local:
+Las principales herramientas basadas en LLM que integra MIESC (Tabla 6.5) se configuran por defecto para ejecución local; el modo `--deep` (§4.5.3) es la única excepción, explícita y opcional.
 
 **Tabla 6.5.** Herramientas LLM en MIESC
 
@@ -709,8 +607,6 @@ echo "║                  VERIFICACIÓN COMPLETADA                       ║"
 echo "╚════════════════════════════════════════════════════════════════╝"
 ```
 
----
-
 ## 6.6 Cumplimiento con Estándares
 
 ### 6.6.1 Digital Public Goods Alliance (DPGA)
@@ -731,37 +627,17 @@ MIESC está diseñado para cumplir con los nueve indicadores del estándar DPGA:
 
 ### 6.6.2 Beneficios para la Comunidad
 
-**1. Democratización del acceso**
-
-La ejecución local elimina barreras de costo para:
-- Proyectos de código abierto sin presupuesto
-- Desarrolladores en países en desarrollo
-- Instituciones educativas
-- Investigadores académicos
-
-**2. Soberanía tecnológica nacional**
-
-Organizaciones gubernamentales y empresas en jurisdicciones con requisitos de localización de datos pueden usar MIESC sin comprometer compliance:
-- No hay transferencia internacional de datos
-- No hay dependencia de servicios extranjeros
-- Control total sobre infraestructura de procesamiento
-
-**3. Transparencia y auditabilidad**
-
-Todo el stack es open source y auditable:
-- Código de MIESC: GitHub público
-- Ollama: Código abierto (MIT)
-- Modelos Llama: Pesos públicos y documentación de entrenamiento
+Los beneficios para la comunidad se ordenan en tres planos. La ejecución local elimina las barreras de costo para los actores ya mencionados en §6.2.3 —proyectos de código abierto sin presupuesto, desarrolladores en países en desarrollo, instituciones educativas e investigadores—. En el plano de la soberanía tecnológica, las organizaciones gubernamentales y las empresas sujetas a requisitos de localización de datos pueden usar MIESC en modo local sin transferencias internacionales, sin dependencia de servicios extranjeros y con control sobre la infraestructura de procesamiento. En el plano de la transparencia, todo el conjunto es de código abierto y auditable: el código de MIESC es público, Ollama se distribuye bajo licencia MIT y los modelos empleados publican sus pesos y la documentación de su entrenamiento.
 
 ### 6.6.3 Soberanía como requisito, no preferencia
 
 Las secciones anteriores justifican los modelos de pesos abiertos y la ejecución
-local por sus **riesgos evitados** (confidencialidad, jurisdicción) y su **costo**.
+local por sus riesgos evitados (confidencialidad, jurisdicción) y su costo.
 Esa es una defensa correcta pero incompleta: presenta la soberanía como una
 concesión que se acepta a cambio de seguridad y ahorro. El argumento más fuerte es
-el inverso y es de fondo: **el control sobre la herramienta es un requisito de
+el inverso y es de fondo: el control sobre la herramienta es un requisito de
 primer orden del análisis de seguridad, y —a la luz de la evidencia empírica de
-este trabajo— ya no exige sacrificar capacidad.** Lo que se controla es
+este trabajo— ya no exige sacrificar capacidad. Lo que se controla es
 epistemológicamente superior a lo que no se controla, por seis razones
 convergentes. Esta distinción no es nueva: Illich (1973) diferenció las
 herramientas *conviviales* —aquellas que la persona domina, inspecciona y adapta—
@@ -778,13 +654,13 @@ caja negra propietaria y de jurisdicción extranjera es doctrinalmente
 autocontradictorio: introduce, en el núcleo de la postura defensiva, una
 dependencia y una superficie de ataque que el defensor no controla ni puede
 inspeccionar. Una capacidad de ciberdefensa soberana requiere, por definición,
-tooling soberano; delegar el razonamiento de seguridad a un tercero opaco equivale
+herramientas soberanas; delegar el razonamiento de seguridad a un tercero opaco equivale
 a subordinar la decisión defensiva a un actor externo.
 
 **2. Reproducibilidad y periciabilidad.** Una auditoría con valor forense debe ser
 reproducible: otro perito, con el mismo insumo, debe poder obtener el mismo
 resultado. Un modelo de pesos abiertos y versionado, ejecutado localmente, es un
-artefacto **congelable y verificable**. Una API comercial es un blanco móvil: el
+artefacto congelable y verificable. Una API comercial es un blanco móvil: el
 proveedor puede actualizar el modelo en silencio, cambiar su comportamiento o
 deprecarlo (como ocurrió con generaciones previas de modelos frontier). No es
 posible construir una evidencia pericial reproducible sobre un artefacto que no se
@@ -820,82 +696,61 @@ economías con moneda débil— que un servicio comercial excluye por costo.
 **6. Paridad empírica.** El argumento anterior sería idealista si la soberanía
 costara capacidad. La evidencia de este trabajo indica que no la cuesta: en la
 evaluación de EVMBench (§6.2.4, Tabla 6.2b), bajo el matcher laxo y en una corrida
-única, el modelo de pesos abiertos DeepSeek-R1 se ubica **dentro del rango de los
-proveedores frontier** en precisión y F1, a un costo de **~$0.08 por auditoría
-(15–69× menor)**. Esa comparación es una estimación optimista —bajo el juez oficial
+única, el modelo de pesos abiertos DeepSeek-R1 registra la mayor precisión y F1 de la comparación, a un costo de ~$0.08 por auditoría
+(15–69× menor). Esa comparación es una estimación optimista —bajo el juez oficial
 de EVMBench las cifras bajan y el Paper 1 difiere el ranking de proveedores a trabajo
-futuro—, de modo que lo que la evidencia sostiene no es una superioridad del modelo
-abierto, sino que la elección soberana **dejó de ser un sacrificio de capacidad**.
+futuro—, de modo que lo que la evidencia sostiene no es un ranking confiable a favor del modelo abierto, sino que la elección soberana dejó de ser un sacrificio de capacidad.
 
 La Tabla 6.6 sintetiza el argumento en un scorecard: el nivel local gana en todas
-las dimensiones de soberanía, el open-weight hosteado es el punto de equilibrio
-(soberanía casi total, precisión/F1 competitiva y costo mínimo), y el frontier solo
-conserva ventaja en el recall de una sola pasada.
+las dimensiones de soberanía, el open-weight alojado es el punto de equilibrio
+(control de los pesos aunque sin soberanía de datos, precisión/F1 competitiva y costo mínimo), y el frontier solo conserva ventaja en el recall de una sola pasada, siempre bajo el matcher laxo.
 
 **Tabla 6.6.** Scorecard de soberanía por nivel de acceso (✓ pleno · ◑ parcial · ✗ ausente)
 
-| Dimensión | Frontier hosteado | Open-weight hosteado | Open-weight local |
+| Dimensión | Frontier (API) | Open-weight alojado (API) | Open-weight local |
 |-----------|:-----------------:|:--------------------:|:-----------------:|
 | Control e inspección de pesos | ✗ (cerrado) | ✓ (MIT) | ✓ (MIT/Apache) |
 | Reproducibilidad pericial | ✗ (blanco móvil) | ◑ (pesos fijables; ejecución en el proveedor) | ✓ (congelable extremo a extremo) |
 | Autoría y rendición de cuentas | ✗ (caja negra) | ✓ (inspeccionable) | ✓ (inspeccionable) |
 | Longevidad (no-deprecación) | ✗ (deprecable) | ✓ (irrevocable) | ✓ (irrevocable) |
-| Ejecución sin salida de datos | ✗ | ✗ (API hosteada) | ✓ (100% local) |
+| Ejecución sin salida de datos | ✗ | ✗ (API de terceros) | ✓ (100% local) |
 | Costo por auditoría | $1.20–5.50 | ~$0.08 | $0 |
 | Recall (una sola pasada) | 73.7–82.5% | 70.8% | 59.2% |
-| Precisión / F1 (EVMBench, matcher laxo; estimación optimista) | 20–43% / 32–55% | **88.5% / 78.7%** | 30% / 40% |
+| Precisión / F1 (EVMBench, matcher laxo; estimación optimista) | 20–43% / 32–55% | 88.5% / 78.7% | 30% / 40% |
 
-**Límites honestos.** El argumento no es un absoluto sino un espectro, y su fuerza
+**Límites del argumento.** El argumento no es un absoluto sino un espectro, y su fuerza
 depende de reconocerlo. El mejor resultado de pesos abiertos (DeepSeek-R1, ~671B
-parámetros) se obtuvo mediante una **API hosteada**, no en ejecución 100% local: sus
+parámetros) se obtuvo mediante una API alojada en un servicio de terceros, no en ejecución 100% local: sus
 pesos son abiertos y auto-hospedables en principio, pero el hardware de prueba no
 alcanza para ejecutarlo localmente. La soberanía *total* —el modelo local de 32B,
 sin ninguna llamada externa— tiene un costo de recall cuantificado (59.2% frente al
 70.8–82.5% de los modelos mayores), recuperable en parte mediante auto-ensemble de
 bajo costo. Asimismo, los modelos frontier conservan una ventaja en recall de una
 sola pasada. La conclusión defendible no es "lo abierto siempre gana", sino que
-**el control sobre la herramienta se obtiene sin renunciar a una capacidad
-competitiva**, y que cada punto del espectro (frontier hosteado, pesos abiertos
-hosteados, pesos abiertos locales) ofrece un compromiso medido —no asumido— entre
+el control sobre la herramienta se obtiene sin renunciar a una capacidad
+competitiva, y que cada punto del espectro (frontier por API, pesos abiertos
+alojados, pesos abiertos locales) ofrece un compromiso medido —no asumido— entre
 soberanía, costo y recall.
-
----
 
 ## 6.7 Conclusiones
 
 ### 6.7.1 Síntesis de la Justificación
 
-La decisión de implementar LLMs soberanos en MIESC responde a un análisis riguroso de riesgos y trade-offs. Su premisa de fondo (§6.6.3) es que **el control sobre la herramienta es un requisito de primer orden del análisis de seguridad, no una preferencia**: lo que se controla —pesos abiertos, ejecución auditable— es doctrinal, científica y epistemológicamente superior a lo que no se controla, y la evidencia de este trabajo demuestra que esa soberanía ya no exige sacrificar capacidad. La justificación se fundamenta en:
+La decisión de implementar LLMs soberanos en MIESC responde a un análisis de riesgos y compromisos cuya premisa de fondo (§6.6.3) es que el control sobre la herramienta constituye un requisito de primer orden del análisis de seguridad, no una preferencia: lo que se controla —pesos abiertos, ejecución auditable— es doctrinal, científica y epistemológicamente superior a lo que no se controla, y la evidencia de este trabajo indica que esa soberanía ya no exige sacrificar capacidad.
 
-1. **El código de smart contracts pre-auditoría tiene valor económico directo y significativo.** La filtración de este código puede resultar en pérdidas de decenas o cientos de millones de dólares.
+El punto de partida es económico. El código de un smart contract previo a la auditoría tiene un valor directo y significativo, y su filtración puede traducirse en pérdidas de decenas o cientos de millones de dólares. Frente a ese valor, las APIs comerciales introducen vectores de riesgo inaceptables para código de alto valor: transmisión a jurisdicciones extranjeras, retención por períodos extendidos y posible memorización en los modelos.
 
-2. **Las APIs comerciales de LLM introducen vectores de riesgo inaceptables** para código de alto valor: transmisión a jurisdicciones extranjeras, retención por períodos extendidos, posible memorización en modelos.
+La pregunta siguiente es si la alternativa soberana alcanza. Los modelos de pesos abiertos ofrecen capacidad suficiente para este caso de uso, en especial dentro de una arquitectura de múltiples capas, y esto ya no es solo una expectativa: en la evaluación de EVMBench (§6.2.4), bajo el matcher laxo, DeepSeek-R1 registra la mayor precisión y F1 de la comparación —una estimación optimista que no habilita un ranking confiable, que el Paper 1 difiere al juez oficial como trabajo futuro—, y un modelo local de 32B alcanza 59.2% de recall sin ninguna llamada externa. A ello se suma el costo: el nivel open-weight cuesta alrededor de USD 0.08 por auditoría (15–69 veces menos que los frontier) y el nivel local, nada, con capacidad de detección competitiva bajo el protocolo evaluado; para organizaciones que auditan regularmente, el costo total de propiedad resulta inferior al de las APIs comerciales. La ejecución local, además, elimina una fuente de riesgo de transferencia internacional de datos relevante para GDPR, LGPD, LFPDPPP y las regulaciones sectoriales, aunque el cumplimiento depende también de la operación.
 
-3. **Los modelos de pesos abiertos proporcionan capacidad suficiente** para el caso de uso de análisis de seguridad, especialmente dentro de una arquitectura de múltiples capas. Esto ya no es solo una expectativa: en la evaluación de EVMBench (§6.2.4), bajo el matcher laxo, el modelo open-weight DeepSeek-R1 se ubica **dentro del rango de los proveedores frontier** en precisión y F1 —una estimación optimista; el Paper 1 difiere el ranking de proveedores al juez oficial como trabajo futuro—; y un modelo local de 32B alcanza 59.2% de recall sin ninguna llamada externa.
-
-4. **El costo total de propiedad de LLMs soberanos es inferior** al de APIs comerciales para organizaciones que realizan auditorías regularmente. Medido en EVMBench, el nivel open-weight cuesta **~$0.08 por auditoría (15–69× menos que los frontier)** y el nivel local $0, con capacidad de detección competitiva bajo el protocolo evaluado.
-
-5. **La ejecución local garantiza cumplimiento regulatorio automático** con GDPR, LGPD, LFPDPPP y regulaciones sectoriales.
-
-6. **El control es reproducibilidad, autoría y longevidad.** Solo un modelo de pesos abiertos y versionado permite una evidencia pericial reproducible, una cadena de autoría en la que el auditor puede responder por sus afirmaciones, y un baseline que ningún proveedor puede deprecar unilateralmente. Estas tres propiedades —ausentes por construcción en una API cerrada— son condiciones del método científico y forense, no beneficios accesorios. La contrapartida honesta es que la soberanía plena es un espectro: el nivel 100% local tiene un costo de recall medido, y el mejor resultado de pesos abiertos se obtuvo por API hosteada; el control sobre la herramienta se preserva en todo el espectro, con compromisos cuantificados entre soberanía, costo y recall.
+Pero el argumento decisivo no es de costo sino de método: solo un modelo de pesos abiertos y versionado permite una evidencia pericial reproducible, una cadena de autoría en la que el auditor puede responder por sus afirmaciones y un baseline que ningún proveedor puede deprecar unilateralmente. Estas tres propiedades, ausentes por construcción en una API cerrada, son condiciones del método científico y forense y no beneficios accesorios. La contrapartida es que la soberanía plena es un espectro: el nivel 100% local tiene un costo de recall medido —en el corpus de esta tesis, 44% frente a 72% (§5.3.4)— y el mejor resultado de pesos abiertos se obtuvo por una API de terceros. El control sobre la herramienta se preserva, sin embargo, en todo el espectro, con compromisos cuantificados entre soberanía, costo y recall.
 
 ### 6.7.2 Recomendación
 
-Para auditorías de smart contracts que manejan código confidencial con valor económico significativo:
-
-> **El uso de LLMs soberanos (locales) es la única opción que proporciona garantías verificables de confidencialidad del código fuente durante el proceso de auditoría.**
-
-Las limitaciones de capacidad respecto a modelos comerciales se mitigan mediante:
-- Arquitectura de siete capas con 25 herramientas
-- Prompts optimizados para modelos más pequeños
-- RAG con base de conocimiento local
-- Correlación de hallazgos entre múltiples fuentes
-
----
+Para auditorías de smart contracts que involucran código confidencial con valor económico significativo, la recomendación de este trabajo es que el uso de LLMs soberanos (locales) es la opción que permite verificar localmente la ausencia de transmisión del código fuente durante el proceso de auditoría. Las limitaciones de capacidad respecto de los modelos comerciales se compensan con la propia arquitectura de MIESC —siete capas y 25 herramientas cuyos hallazgos se correlacionan entre fuentes—, con prompts optimizados para modelos más pequeños y con RAG sobre una base de conocimiento local; cuando el código no es confidencial, el modo `--deep` permite recurrir a un modelo frontier con la ganancia de detección medida en el Capítulo 5.
 
 ## 6.8 Referencias del Capítulo
 
-Carlini, N., et al. (2023). Extracting Training Data from Large Language Models. *USENIX Security Symposium*.
+Carlini, N., Tramèr, F., Wallace, E., Jagielski, M., Herbert-Voss, A., Lee, K., Roberts, A., Brown, T., Song, D., Erlingsson, Ú., Oprea, A., & Raffel, C. (2021). Extracting training data from large language models. En *Proceedings of the 30th USENIX Security Symposium* (pp. 2633-2650). USENIX Association. https://www.usenix.org/conference/usenixsecurity21/presentation/carlini-extracting
 
 Digital Public Goods Alliance. (2023). *Digital Public Goods Standard*. https://digitalpublicgoods.net/standard/
 
@@ -905,7 +760,7 @@ Floridi, L. (2020). The fight for digital sovereignty: What it is, and why it ma
 
 Illich, I. (1973). *Tools for conviviality*. Harper & Row.
 
-Meta AI. (2024). Llama 3 Model Card. https://ai.meta.com/llama/
+Meta AI. (2024). Llama 3 Model Card. https://github.com/meta-llama/llama3/blob/main/MODEL_CARD.md
 
 Ollama. (2024). Ollama Documentation. https://ollama.ai/
 
@@ -917,12 +772,7 @@ República Federativa do Brasil. (2018). Lei Geral de Proteção de Dados (LGPD)
 
 Stallman, R. M. (2002). *Free software, free society: Selected essays of Richard M. Stallman*. GNU Press.
 
-Sun, Y., Wu, D., Xue, Y., Liu, H., Wang, H., Xu, Z., Xie, X., & Liu, Y. (2024). GPTScan: Detecting logic vulnerabilities in smart contracts by combining GPT with program analysis. *Proceedings of the 46th International Conference on Software Engineering (ICSE)*, Article 166. https://doi.org/10.1145/3597503.3623318
+Sun, Y., Wu, D., Xue, Y., Liu, H., Wang, H., Xu, Z., Xie, X., & Liu, Y. (2024). GPTScan: Detecting logic vulnerabilities in smart contracts by combining GPT with program analysis. En *Proceedings of the IEEE/ACM 46th International Conference on Software Engineering (ICSE '24)* (pp. 1-13). ACM. https://doi.org/10.1145/3597503.3639117
 
 Winner, L. (1980). Do artifacts have politics? *Daedalus, 109*(1), 121-136.
 
-Touvron, H., et al. (2023). LLaMA: Open and efficient foundation language models. *arXiv:2302.13971*.
-
----
-
-*Nota: Las referencias siguen el formato APA 7ma edición. Documento actualizado: 2025-11-29*

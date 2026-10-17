@@ -1,32 +1,31 @@
-# Chapter 6: Conclusions and Future Work
+# Chapter 8: Conclusions and Future Work
 
 ## MIESC: Final Reflections and Research Lines
 
 ---
 
-## 6.1 Conclusions
+## 8.1 Conclusions
 
-### 6.1.1 Synthesis of the Work Performed
+### 8.1.1 Synthesis of the Work Performed
 
 This thesis has presented MIESC (Multi-layer Integration for Ethereum Smart Contract Security), an open-source framework that implements a defense-in-depth architecture for automated smart contract auditing. The development of MIESC represents a significant contribution to the field of smart contract security, addressing the gaps identified in the state of the art.
 
-### 6.1.2 Objectives Achieved
+### 8.1.2 Objectives Achieved
 
-**Table 6.1.** Evaluation of objective fulfillment
+**Table 8.1.** Assessment of the specific objectives (Chapter 1 wording)
 
-| Objective | Success Indicator | Result | Status |
-|-----------|-------------------|--------|--------|
-| Integrate heterogeneous tools | 25 operational tools | 25/25 (100%) | Achieved |
-| Implement defense in depth | 7 complementary layers | 7 layers implemented | Achieved |
-| Normalize results | SWC/CWE/OWASP mapping | 97.1% mapping accuracy | Achieved |
-| Eliminate commercial dependencies | Operating cost $0 | $0/audit | Achieved |
-| Improve type-aware detection | Surpass best individual tool | 48%→72% with LLM layer (Slither: 58%) | Achieved |
-| Reduce duplicates | Deduplication >40% | 68% deduplication (385→123) | Exceeded |
-| Integrate with AI assistants | MCP Server operational | Implemented | Achieved |
+| Specific objective | Indicator | Result | Status |
+|--------------------|-----------|--------|--------|
+| SO1 — Tool integration (≥20) | Operational tools | 25/25 available in the evaluation environment (Table 5.3) | Achieved |
+| SO2 — Output normalization | SWC/CWE/OWASP mapping and deduplication | Mapping precision 97.1% on the verified sample (Table 5.10); deduplication 68% (385→123) | Achieved |
+| SO3 — Defense-in-Depth architecture (7 layers) | Layers implemented and evaluated | 7 layers implemented; detection was measured on layers 1/6/7 (Table 5.6); complementarity among static tools was not confirmed (§5.3.3), the LLM layer's was | Achieved with caveats |
+| SO4 — Data sovereignty (Ollama backend) | Analysis without external transmission | Local backend operational at $0/audit; the best *type-aware* result (72%) required a frontier model via API (`--deep`); the local model reached 44% | Achieved; lower local capability (§6.2.4) |
+| SO5 — Conversational interface (MCP) | Operational MCP server | Implemented; the server and tools run locally, the main client (Claude) is a cloud service (§7.7.1) | Achieved with the caveat of §7.7.1 |
+| H1/RQ2 — Improve *type-aware* detection | Beat the best single tool | Combined static 48% < Slither 58%; 72% with a frontier LLM layer; 86% with a multi-model ensemble | Partial (§8.1.4) |
 
-### 6.1.3 Main Contributions
+### 8.1.3 Main Contributions
 
-1. **7-Layer Architecture:** First documented implementation of defense-in-depth applied specifically to smart contract auditing, combining static, dynamic, symbolic, formal, and AI analysis.
+1. **7-Layer Architecture:** As far as the Chapter 3 review reaches, first documented implementation of defense-in-depth applied specifically to smart contract auditing, combining static, dynamic, symbolic, formal, and AI analysis.
 
 2. **ToolAdapter Protocol:** Unified interface that allows integration of heterogeneous tools without core modification, following SOLID principles and the Adapter pattern.
 
@@ -34,23 +33,27 @@ This thesis has presented MIESC (Multi-layer Integration for Ethereum Smart Cont
 
 4. **Migration to Local Backend:** Elimination of commercial API dependencies through Ollama integration, meeting DPGA requirements.
 
-5. **MCP Server:** First smart contract auditing tool with native Model Context Protocol support, enabling integration with Claude and other AI assistants.
+5. **MCP Server:** As far as the Chapter 3 review reaches, first smart contract auditing tool with native Model Context Protocol support, enabling integration with Claude and other AI assistants.
 
 6. **Legacy Tool Rescue:** Documented patches for Manticore (Python 3.11) and Oyente (Docker image), preserving analysis capabilities.
 
-7. **Sovereignty as a requirement, empirically validated:** The thesis that control over the tool — open weights, auditable execution — is a first-order requirement of security analysis, not a preference; grounded doctrinally, scientifically, epistemically, and philosophically (§6.6.3), and empirically validated: an open-weight model obtains the best precision (88.5%) and F1 (78.7%) in the EVMBench comparison at ~$0.08 per audit (15–69× less than the frontier providers), showing that the sovereign choice no longer requires sacrificing capability.
+7. **Sovereignty as a requirement, empirically validated:** the thesis that control over the tool — open weights, auditable execution — is a first-order requirement of security analysis and not a preference, grounded doctrinally, scientifically, epistemically and philosophically (Ch. 6, §6.6.3). Its empirical counterpart is that, in the EVMBench comparison and under the lenient matcher, an open-weight model records the highest precision (88.5%) and F1 (78.7%) of the comparison at about USD 0.08 per audit (15–69× less). This is an optimistic estimate, whose provider ranking under the official judge is deferred to future work, but sufficient to indicate that the sovereign choice no longer requires sacrificing capability.
 
-### 6.1.4 Hypothesis Validation
+### 8.1.4 Hypothesis Validation
 
-**Original hypothesis:** "The combination of multiple analysis techniques in a layered architecture improves vulnerability detection compared to individual tools."
+The three hypotheses are assessed with the wording of section 1.5.
 
-**Result:** The hypothesis is validated with a qualification. Combining static and pattern tools did NOT surpass Slither alone (48% vs 58% type-aware detection, equivalent coverage but ~6× more false positives). The real improvement comes from adding an LLM reasoning layer, which raises type-aware detection from 48% to 72%, surpassing Slither (58%). Effective complementarity requires semantic analysis, not merely combining static tools.
+**H1** (*a framework integrating multiple tools through the Adapter pattern can reach a detection rate higher than any single tool*): **partially supported, with qualifications.** Combining static and pattern tools did not beat Slither alone (48% vs. 58% *type-aware* detection, with equivalent coverage —100% vs. 96%— and about six times more false positives). Beating the best single tool was achieved only by adding semantic reasoning: 72% with a frontier LLM layer (`--deep`) and 86% with a multi-model ensemble (§5.3.3–5.3.4). Effective complementarity therefore requires semantic analysis, not the mere accumulation of static tools. Note also that the 72% is MIESC's figure with a single frontier model as the layer-7 detector (§5.3.4, Table 5.8), so the additional gain attributable to the architecture over that single detector is only observed in the ensemble configuration (86%, union of seven models and Slither; 83% without Slither), a difference that with n=29 does not reach statistical significance (§5.6.4). The hypothesis holds as a consistent trend, not as a statistically established result.
+
+**H2** (*normalization to standard taxonomies significantly reduces duplicates without information loss*): **supported in its first part; the second was not demonstrated.** Deduplication reached 68% (385→123) with 97.1% mapping precision on the verified sample (Table 5.10). The absence of information loss was not measured as such: Table 5.9 records three "false duplicates" (distinct findings merged), indicating a bounded but non-zero loss.
+
+**H3** (*running local LLMs via Ollama provides semantic-analysis capability comparable to commercial services, at near-zero operating cost*): **not supported as formulated.** On the corpus, the local model (qwen2.5-coder:14b) reached 44% *type-aware* detection vs. 72% for the frontier model; on EVMBench, the local 32B model reached 59.2% recall vs. 73.7–82.5% for the frontier models, always under the lenient matcher. The near-zero cost does hold. The formulation the evidence does support is Chapter 6's: **open-weight** models are viable —the hosted open-weight model records the highest precision and F1 of the comparison under the lenient matcher— and **fully local** execution has a measured, not assumed, recall cost. This reformulation is adopted as a conclusion (§8.5); the provider comparison under the official judge is left as future work (§8.3.1).
 
 ---
 
-## 6.2 Work Limitations
+## 8.2 Work Limitations
 
-### 6.2.1 Technical Limitations
+### 8.2.1 Technical Limitations
 
 1. **Scalability:** Analysis of very large contracts (>1000 LOC) may require times exceeding 5 minutes, particularly in the symbolic execution layer (Mythril, Manticore).
 
@@ -60,7 +63,7 @@ This thesis has presented MIESC (Multi-layer Integration for Ethereum Smart Cont
 
 4. **Cross-Chain Compatibility:** MIESC is optimized for Ethereum and EVM-compatible chains. Other blockchains (Solana, Cosmos) would require specific adapters.
 
-### 6.2.2 Methodological Limitations
+### 8.2.2 Methodological Limitations
 
 1. **Limited Test Corpus:** Validation was performed with 4 contracts (614 LOC) and 29 documented vulnerabilities. According to Durieux et al. (2020), this may overestimate effectiveness.
 
@@ -70,18 +73,18 @@ This thesis has presented MIESC (Multi-layer Integration for Ethereum Smart Cont
 
 ---
 
-## 6.3 Future Work
+## 8.3 Future Work
 
 Several of the lines outlined in this section **were already started and published
 after the defense**, in the papers derived from this thesis. Those advances are
 summarized first, then the lines that remain open.
 
-### 6.3.0 Derived publications and lines already started (post-defense)
+### 8.3.1 Derived publications and lines already started (post-defense)
 
 This thesis gave rise to two papers presented at the IV International Symposium on
 Blockchain and Cybersecurity (RIBCi–CYTED 2026, IEEE, double-blind review):
 
-- **Paper 1 — Detection** (Boiero, Mussetta & Cena, 2026a): consolidates the detection
+- **Paper 1 — Detection** (Boiero et al., 2026a): consolidates the detection
   evaluation and contributes evidence that was not part of the defended corpus:
   - **Real-world exploits:** 9/11 detected (81.8% recall; 95% Wilson CI [52%, 95%]) over
     USD 1.59B in evaluated losses — a first step of Line 1.
@@ -94,7 +97,7 @@ Blockchain and Cybersecurity (RIBCi–CYTED 2026, IEEE, double-blind review):
     protocol and judge used.
   - **False-positive filter:** removes 207 of 1,263 FPs (16%) without losing true
     positives, raising finding-level precision from 13.3% to 15.5%.
-- **Paper 2 — Remediation** (Boiero, Mussetta & Cena, 2026b): applies and verifies
+- **Paper 2 — Remediation** (Boiero et al., 2026b): applies and verifies
   automated repairs (123/143 contracts patched, 123/123 compile, 88/123 eliminate the
   HIGH/CRITICAL finding, 121/123 with no regression) — a realization of Line 5
   (development-ecosystem integration). It does not claim semantic equivalence or
@@ -107,7 +110,7 @@ two priorities Paper 1 flags as immediate future work.
 
 ---
 
-### 6.3.1 Line 1: Vulnerability Coverage Extension
+### 8.3.2 Line 1: Vulnerability Coverage Extension
 
 **Objective:** Expand detection to emerging vulnerabilities in the DeFi ecosystem.
 
@@ -130,7 +133,7 @@ two priorities Paper 1 flags as immediate future work.
 
 ---
 
-### 6.3.2 Line 2: AI Model Improvement
+### 8.3.3 Line 2: AI Model Improvement
 
 **Objective:** Increase Layer 7 precision through fine-tuning specialized models.
 
@@ -144,7 +147,7 @@ two priorities Paper 1 flags as immediate future work.
 | FW-2.4 | False positive reduction with RAG | Medium | High |
 | FW-2.5 | AI decision explainability | High | Medium |
 
-**Rationale:** Sun et al. (2024) demonstrate that fine-tuned GPT-4 improves logic vulnerability detection by 23% compared to the base model.
+**Rationale:** Table 5.8 shows that the model used largely determines detection; the gap between the local and the frontier configuration (44% vs. 72%) is what an open model fine-tuned for Solidity should close.
 
 **Technical approach:**
 ```python
@@ -168,7 +171,7 @@ class SoliditySecurityFineTuner:
 
 ---
 
-### 6.3.3 Line 3: Multi-Chain Support
+### 8.3.4 Line 3: Multi-Chain Support
 
 **Objective:** Extend MIESC to other blockchains with smart contracts.
 
@@ -186,13 +189,13 @@ class SoliditySecurityFineTuner:
 
 **Proposed architecture:**
 
-**Figure 28.** Proposed Multi-Chain Architecture for MIESC
+**Figure 8.1.** Proposed Multi-Chain Architecture for MIESC
 
-![Figure 28 - Multi-Chain Architecture Proposed for MIESC](../figures/Figura%2028%20Multichain%20arquitectura%20propuesta..svg)
+![Figure 8.1 - Multi-Chain Architecture Proposed for MIESC](../figures/Figura%2028%20Multichain%20arquitectura%20propuesta..svg)
 
 ---
 
-### 6.3.4 Line 4: Advanced Formal Verification
+### 8.3.5 Line 4: Advanced Formal Verification
 
 **Objective:** Deepen formal verification capabilities with automatic specifications.
 
@@ -206,17 +209,17 @@ class SoliditySecurityFineTuner:
 | FW-4.4 | Upgradeability pattern verification | Medium | High |
 | FW-4.5 | Pre/post upgrade equivalence tests | High | High |
 
-**Rationale:** Lahav et al. (2022) demonstrate that formal verification detects 100% of state vulnerabilities, but requires costly manual specifications.
+**Rationale:** Formal verification can prove properties about contract state exhaustively within the scope of the specification (Certora, 2024), but requires costly manual specifications.
 
 **Invariant synthesis proposal:**
 
-**Figure 29.** Proposal for AI-based Invariant Synthesis
+**Figure 8.2.** Proposal for AI-based Invariant Synthesis
 
-![Figure 29 - Proposal for AI-based Invariant Synthesis](../figures/Figura%2029%20Propuesta%20de%20síntesis%20de%20invariantes.svg)
+![Figure 8.2 - Proposal for AI-based Invariant Synthesis](../figures/Figura%2029%20Propuesta%20de%20síntesis%20de%20invariantes.svg)
 
 ---
 
-### 6.3.5 Line 5: Development Ecosystem Integration
+### 8.3.6 Line 5: Development Ecosystem Integration
 
 **Objective:** Integrate MIESC into the smart contract development lifecycle.
 
@@ -250,7 +253,7 @@ jobs:
 
 ---
 
-### 6.3.6 Line 6: Continuous Production Auditing
+### 8.3.7 Line 6: Continuous Production Auditing
 
 **Objective:** Extend MIESC for post-deployment monitoring.
 
@@ -266,40 +269,40 @@ jobs:
 
 **Proposed architecture:**
 
-**Figure 30.** Continuous Production Auditing Architecture
+**Figure 8.3.** Continuous Production Auditing Architecture
 
-![Figure 30 - Continuous Production Auditing Architecture](../figures/Figura%2030%20Auditoría%20Continua%20en%20Producción.svg)
+![Figure 8.3 - Continuous Production Auditing Architecture](../figures/Figura%2030%20Auditoría%20Continua%20en%20Producción.svg)
 
 ---
 
-## 6.4 Expected Impact
+## 8.4 Expected Impact
 
-### 6.4.1 Academic Impact
+### 8.4.1 Academic Impact
 
 1. **Derived publications (realized):**
    - **RIBCi–CYTED 2026 (IEEE, double-blind)** — Paper 1 (detection) and Paper 2
-     (remediation), direct derivatives of this thesis (Boiero, Mussetta & Cena, 2026a,
+     (remediation), direct derivatives of this thesis (Boiero et al., 2026a,
      2026b).
    - Future dissemination lines: a journal with the extended empirical evaluation
      (e.g. TSE/TOSEM) and DeFi security workshops.
 
 2. **Contribution to knowledge:**
-   - Empirical validation of technique complementarity
+   - Empirical —qualified— validation of technique complementarity: the gain comes from semantic reasoning, not from accumulating static tools
    - Reproducible framework for research
    - Normalized vulnerability dataset
 
-### 6.4.2 Industrial Impact
+### 8.4.2 Industrial Impact
 
 1. **Expected adoption:**
    - Independent developers: access to free auditing
-   - Startups: >90% security cost reduction
+   - Startups: substantial reduction in the cost of a first security review (not quantified in this thesis)
    - Companies: integration with existing pipelines
 
 2. **Loss reduction:**
    - Early detection: prevention of post-deployment exploits
-   - Conservative estimate: prevention of $10M+ in potential losses
+   - Magnitude of avoidable losses not quantified in this thesis
 
-### 6.4.3 Social Impact
+### 8.4.3 Social Impact
 
 1. **Security democratization:**
    - Free and open-source tool
@@ -309,15 +312,15 @@ jobs:
 2. **Contribution to Digital Public Goods:**
    - DPGA standards compliance
    - AGPL-3.0 license (open-source copyleft, OSI-approved)
-   - Guaranteed portability
+   - Portability through multi-architecture Docker images
 
 ---
 
-## 6.5 Final Reflections
+## 8.5 Final Reflections
 
 The development of MIESC represents a significant step towards democratizing smart contract security. In an ecosystem where vulnerability losses exceed billions of dollars annually, the availability of accessible and effective auditing tools is fundamental.
 
-The implemented defense-in-depth architecture demonstrates that the intelligent combination of complementary techniques significantly surpasses any individual tool. This finding has implications beyond the smart contract domain, suggesting that multi-technique approaches should be the norm in software security analysis.
+The evaluation of the defense-in-depth architecture yielded a more instructive result than expected: merely combining static tools did not beat the best of them, and the measured gain came from LLM reasoning and from combining reasoners in an ensemble (§5.3.3–5.3.4). This finding has implications beyond the smart contract domain, suggesting that multi-technique approaches should be the norm in software security analysis.
 
 The integration with the Model Context Protocol (MCP) represents a vision of the future where AI assistants can directly access specialized security tools, amplifying both human and automated capabilities. MIESC is not just an auditing tool, but a platform that can evolve with the AI-assisted development ecosystem.
 
@@ -329,7 +332,7 @@ MIESC embodies this philosophy, providing not just a tool, but an extensible fra
 
 ---
 
-## 6.6 Chapter References
+## 8.6 Chapter References
 
 Boiero, F., Mussetta, S. N., & Cena, N. G. (2026a). MIESC: A multi-layer framework for automated smart contract security evaluation. In *Livros de Atas — IV International Symposium on Blockchain and Cybersecurity (RIBCi–CYTED 2026)*.
 
@@ -339,7 +342,6 @@ DeFiLlama. (2024). *DeFi TVL by Chain*. https://defillama.com/chains
 
 Durieux, T., Ferreira, J. F., Abreu, R., & Cruz, P. (2020). Empirical review of automated analysis tools on 47,587 Ethereum smart contracts. *ICSE 2020*, 530-541.
 
-Lahav, O., Grumberg, O., & Shoham, S. (2022). Automated verification of smart contracts with Certora Prover. *ICSE-SEIP 2022*, 45-54.
 
 Qin, K., Zhou, L., Livshits, B., & Gervais, A. (2021). Attacking the DeFi ecosystem with flash loans. *FC 2021*, 3-32.
 

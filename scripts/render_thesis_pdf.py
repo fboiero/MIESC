@@ -120,7 +120,9 @@ def _replace_symbols_outside_code(md: str) -> str:
 # be auto-regenerated (the figures are described in tables, not LaTeX floats). Drop
 # that column so the delivery PDF shows no wrong numbers, and drop the note that
 # claims the numbers regenerate automatically.
-PAGE_COLUMN_LISTS = {"LISTA_DE_FIGURAS.md", "LISTA_DE_TABLAS.md"}
+# LISTA_DE_FIGURAS.md is now regenerated from the real captions without a page column,
+# so only the table list still carries one.
+PAGE_COLUMN_LISTS = {"LISTA_DE_TABLAS.md"}
 
 
 def _drop_last_table_column(md: str) -> str:

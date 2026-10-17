@@ -18,7 +18,7 @@ The source code of a smart contract before its mainnet deployment represents a p
 
 ### 6.1.2 The Problem with Commercial AI APIs
 
-The emergence of large language models (LLMs) like GPT-4 and Claude has transformed the possibilities of code analysis. Sun et al. (2024) demonstrated that GPTScan, a tool combining LLM with program analysis, detects 90.2% of business logic vulnerabilities that escape traditional tools. This result is significant because logic vulnerabilities, unlike technical patterns like reentrancy, require semantic understanding of the code's purpose.
+The emergence of large language models (LLMs) like GPT-4 and Claude has transformed the possibilities of code analysis. Sun et al. (2024) demonstrated that GPTScan, a tool combining LLM with program analysis, achieves precision above 90% on token contracts (57% on large projects) and recall above 70% on logic vulnerabilities, besides detecting nine missed by human auditors. This result is significant because logic vulnerabilities, unlike technical patterns like reentrancy, require semantic understanding of the code's purpose.
 
 However, using these models via commercial APIs implies transmitting source code to third-party servers. Consider the data flow when an auditor uses OpenAI's GPT-4 to analyze a contract:
 
@@ -39,7 +39,7 @@ Each of these steps introduces risks:
 
 3. **Retention:** OpenAI's retention policies (30 days for API), Anthropic (30 days), and Google (variable) imply that code remains accessible in their systems long after analysis.
 
-4. **Memorization:** Carlini et al. (2023) demonstrated that LLMs can memorize and reproduce fragments of their training data. Although commercial APIs have policies not to train with API data, the technical possibility exists.
+4. **Memorization:** Carlini et al. (2021) demonstrated that LLMs can memorize and reproduce fragments of their training data. Although commercial APIs have policies not to train with API data, the technical possibility exists.
 
 ### 6.1.3 Risk Quantification
 
@@ -78,11 +78,11 @@ OpenAI, Anthropic, or Google staff with access to API logs can potentially view 
 
 **3. Model memorization and extraction**
 
-Carlini et al. (2023) demonstrated the "memorization attack": through carefully designed prompts, it is possible to extract training data fragments from LLMs. If a model were trained (inadvertently or not) with client code, that code could be subsequently extracted by third parties.
+Carlini et al. (2021) demonstrated the "memorization attack": through carefully designed prompts, it is possible to extract training data fragments from LLMs. If a model were trained (inadvertently or not) with client code, that code could be subsequently extracted by third parties.
 
-**Figure 21.** Attack surface in commercial API analysis
+**Figure 6.1.** Attack surface in commercial API analysis
 
-![Figure 21 - Attack surface in commercial API analysis](../figures/Figura%2021%20Superficie%20de%20ataque%20análisis%20en%20API%20comercial.svg)
+![Figure 6.1 - Attack surface in commercial API analysis](../figures/Figura%2021%20Superficie%20de%20ataque%20análisis%20en%20API%20comercial.svg)
 
 ```
 +--------------------------------------------------------------------+
@@ -180,12 +180,12 @@ limits" below and Paper 1).
 | Tier | Example | Weight license | Access | Cost/audit | Recall | Precision | F1 |
 |------|---------|----------------|--------|-----------|--------|-----------|-----|
 | Frontier proprietary | GPT-4o / GPT-5 / Claude | closed | vendor API | $1.20–5.50 | 73.7–82.5% | 20–43% | 32–55% |
-| **Open-weight hosted** | **DeepSeek-R1 (MIT)** | **open (MIT)** | **hosted API** | **~$0.08** | **70.8%** | **88.5%** | **78.7%** |
+| Open-weight hosted | DeepSeek-R1 (MIT) | open (MIT) | hosted API | ~$0.08 | 70.8% | 88.5% | 78.7% |
 | Open-weight local | qwen2.5-coder:32b | open (Apache 2.0) | self-host (own GPU) | $0 | 59.2% | 30.1% | 39.9% |
 
 The central finding for this chapter is one of **viability, not ranking**: under this
 protocol (lenient matcher, single run), the **open-weight** model (DeepSeek-R1, MIT
-weights) sits **within the range of the frontier providers** on precision and F1, at an
+weights) records **the highest precision (88.5%) and F1 (78.7%) of the comparison**, at an
 estimated **~$0.08 per audit — 15 to 69 times cheaper**. Its single-pass recall (70.8%)
 trails the frontier, but a three-pass self-ensemble (≈$0.24/audit) lifts it to 81.7%,
 inside the frontier single-run range. The ~$0.08 is **hosting-convenience cost, not a
@@ -235,7 +235,7 @@ tcp   0   0   127.0.0.1:11434   0.0.0.0:*   LISTEN   12345/ollama
 $ tcpdump -i any "not localhost" during analysis
 tcpdump: listening on any
 ^C
-0 packets captured  # ZERO external traffic
+0 packets captured  # no external traffic (illustrative output)
 ```
 
 **2. Models with open weights**
@@ -254,12 +254,11 @@ Ollama supports models whose weights are public and auditable:
 | Qwen2.5-Coder:32b | 32B | 24 GB | Apache 2.0 | Excellent (local, $0) |
 | Mistral:7b | 7B | 8 GB | Apache 2.0 | Very good |
 | DeepSeek-Coder:6.7b | 6.7B | 8 GB | MIT | Excellent (code) |
-| DeepSeek-R1 (reasoner) | ~671B | hosted API | MIT | Precision/F1 within frontier range under lenient matcher (§6.2.4; ranking inconclusive) |
+| DeepSeek-R1 (reasoner) | ~671B | hosted API | MIT | Highest precision/F1 of the comparison under the lenient matcher (§6.2.4; ranking inconclusive) |
 
 The last row is the **open-weight hosted** tier: open (MIT) weights too large for the
 test hardware, accessed via a low-cost hosted API (~$0.08/audit). Under EVMBench's
-lenient matcher it sits within the range of the frontier on precision and F1
-(Table 6.2b); this is an optimistic estimate, not a conclusive ranking.
+lenient matcher it records the highest precision and F1 of the comparison (Table 6.2b); this is an optimistic estimate, not a conclusive ranking.
 
 **3. No telemetry**
 
@@ -273,11 +272,11 @@ Unlike commercial services, Ollama does not include telemetry code. This is veri
 
 ### 6.3.3 MIESC Architecture with Sovereign LLM
 
-**Figure 22.** Analysis architecture with sovereign LLM
+**Figure 6.2.** Analysis architecture with sovereign LLM
 
-![Figure 22 - Analysis architecture with sovereign LLM](../figures/Figura%2022.%20Arquitectura%20de%20análisis%20con%20LLM%20soberano.svg)
+![Figure 6.2 - Analysis architecture with sovereign LLM](../figures/Figura%2022.%20Arquitectura%20de%20análisis%20con%20LLM%20soberano.svg)
 
-*100% local infrastructure with zero external traffic*
+*Local infrastructure with no external traffic (reference configuration)*
 
 ### 6.3.4 Configuration in MIESC
 
@@ -348,7 +347,7 @@ def verify_sovereign_backend() -> bool:
 
 The most frequent objection to local LLMs is that their capability is inferior to frontier commercial models. This section examines to what extent this difference affects the specific use case of smart contract analysis.
 
-**Table 6.4.** Capability comparison for code analysis
+**Table 6.4.** Capability comparison for code analysis (author's qualitative assessment at design time, without own measurement; the Chapter 5 measurement is reported in Table 5.8)
 
 | Capability | GPT-4 | Claude 3 Opus | Llama 3.1:8b | CodeLlama:13b |
 |------------|-------|---------------|--------------|---------------|
@@ -364,7 +363,7 @@ The most frequent objection to local LLMs is that their capability is inferior t
 
 **Key observations:**
 
-1. **For known technical vulnerabilities** (reentrancy, overflow, access control), local models achieve performance comparable to commercial ones. This is because these vulnerabilities follow predictable patterns that 7-13B parameter models can learn.
+1. **For known technical vulnerabilities** (reentrancy, overflow, access control), local models come close to commercial ones; in the Chapter 5 measurement, however, the local configuration fell short (44% vs. 72% *type-aware* detection, §5.3.4). This is because these vulnerabilities follow predictable patterns that 7-13B parameter models can learn.
 
 2. **For business logic vulnerabilities**, commercial models have an advantage. However, this advantage is mitigated in MIESC because:
    - The AI layer is one of seven layers, not the only defense
@@ -811,16 +810,13 @@ excludes by cost.
 **6. Empirical parity.** The argument above would be idealistic if sovereignty cost
 capability. This work's evidence indicates it does not: on the EVMBench evaluation
 (§6.2.4, Table 6.2b), under the lenient matcher and a single run, the open-weight
-DeepSeek-R1 sits **within the range of the frontier providers** on precision and F1,
+DeepSeek-R1 records **the highest precision and F1 of the comparison**,
 at **~$0.08 per audit (15–69× less)**. That comparison is an optimistic estimate —
 under EVMBench's official judge the figures drop and Paper 1 defers the provider
-ranking to future work — so what the evidence supports is not a superiority of the
-open model, but that the sovereign choice **stopped being a sacrifice of capability**.
+ranking to future work — so what the evidence supports is not a reliable ranking in favour of the open model, but that the sovereign choice **stopped being a sacrifice of capability**.
 
 Table 6.6 synthesizes the argument in a scorecard: the local tier wins on every
-sovereignty dimension, the hosted open-weight tier is the balance point (near-full
-sovereignty, competitive precision/F1, and minimal cost), and the frontier tier
-retains an advantage only in single-run recall.
+sovereignty dimension, the hosted open-weight tier is the balance point (control over the weights though without data sovereignty, competitive precision/F1, and minimal cost), and the frontier tier retains an advantage only in single-run recall, always under the lenient matcher.
 
 **Table 6.6.** Sovereignty scorecard by access tier (✓ full · ◑ partial · ✗ absent)
 
@@ -833,7 +829,7 @@ retains an advantage only in single-run recall.
 | Execution with no data egress | ✗ | ✗ (hosted API) | ✓ (100% local) |
 | Cost per audit | $1.20–5.50 | ~$0.08 | $0 |
 | Recall (single pass) | 73.7–82.5% | 70.8% | 59.2% |
-| Precision / F1 (EVMBench, lenient matcher; optimistic estimate) | 20–43% / 32–55% | **88.5% / 78.7%** | 30% / 40% |
+| Precision / F1 (EVMBench, lenient matcher; optimistic estimate) | 20–43% / 32–55% | 88.5% / 78.7% | 30% / 40% |
 
 **Honest limits.** The argument is a spectrum, not an absolute, and its strength
 depends on acknowledging that. The best open-weight result (DeepSeek-R1, ~671B
@@ -854,17 +850,17 @@ and recall.
 
 ### 6.7.1 Justification Summary
 
-The decision to implement sovereign LLMs in MIESC responds to a rigorous risk and trade-off analysis. Its underlying premise (§6.6.3) is that **control over the tool is a first-order requirement of security analysis, not a preference**: what is controlled — open weights, auditable execution — is doctrinally, scientifically, and epistemically superior to what is not, and this work's evidence shows that sovereignty no longer demands sacrificing capability. The justification is based on:
+The decision to implement sovereign LLMs in MIESC responds to a rigorous risk and trade-off analysis. Its underlying premise (§6.6.3) is that **control over the tool is a first-order requirement of security analysis, not a preference**: what is controlled — open weights, auditable execution — is doctrinally, scientifically, and epistemically superior to what is not, and this work's evidence indicates that sovereignty no longer demands sacrificing capability. The justification is based on:
 
 1. **Pre-audit smart contract code has direct and significant economic value.** Leaking this code can result in losses of tens or hundreds of millions of dollars.
 
 2. **Commercial LLM APIs introduce unacceptable risk vectors** for high-value code: transmission to foreign jurisdictions, extended retention periods, possible memorization in models.
 
-3. **Open-weight models provide sufficient capability** for the security analysis use case, especially within a multi-layer architecture. This is no longer just an expectation: on the EVMBench evaluation (§6.2.4), under the lenient matcher, the open-weight DeepSeek-R1 sits **within the range of the frontier providers** on precision and F1 — an optimistic estimate; Paper 1 defers the provider ranking to the official judge as future work — and a local 32B model reaches 59.2% recall with no external calls.
+3. **Open-weight models provide sufficient capability** for the security analysis use case, especially within a multi-layer architecture. This is no longer just an expectation: on the EVMBench evaluation (§6.2.4), under the lenient matcher, the open-weight DeepSeek-R1 records **the highest precision and F1 of the comparison** — an optimistic estimate that does not support a reliable ranking; Paper 1 defers the provider ranking to the official judge as future work — and a local 32B model reaches 59.2% recall with no external calls.
 
 4. **Total cost of ownership of sovereign LLMs is lower** than commercial APIs for organizations performing audits regularly. Measured on EVMBench, the open-weight tier costs **~$0.08 per audit (15–69× less than frontier)** and the local tier $0, with competitive detection capability under the evaluated protocol.
 
-5. **Local execution guarantees automatic regulatory compliance** with GDPR, LGPD, LFPDPPP and sector regulations.
+5. **Local execution removes a source of international data-transfer risk** relevant to GDPR, LGPD, LFPDPPP and sector regulations; compliance also depends on operations.
 
 6. **Control is reproducibility, authorship, and longevity.** Only a versioned, open-weight model enables reproducible forensic evidence, an authorship chain in which the auditor can answer for their claims, and a baseline no provider can unilaterally deprecate. These three properties — absent by construction in a closed API — are conditions of the scientific and forensic method, not incidental benefits. The honest counterpart is that full sovereignty is a spectrum: the 100%-local tier has a measured recall cost, and the best open-weight result was obtained via a hosted API; control over the tool is preserved across the whole spectrum, with quantified trade-offs among sovereignty, cost, and recall.
 
@@ -872,7 +868,7 @@ The decision to implement sovereign LLMs in MIESC responds to a rigorous risk an
 
 For smart contract audits handling confidential code with significant economic value:
 
-> **Using sovereign (local) LLMs is the only option that provides verifiable guarantees of source code confidentiality during the audit process.**
+> **Using sovereign (local) LLMs is the option that allows verifying locally that no source code is transmitted during the audit process.**
 
 Capability limitations compared to commercial models are mitigated through:
 - Seven-layer architecture with 25 tools
@@ -884,7 +880,7 @@ Capability limitations compared to commercial models are mitigated through:
 
 ## 6.8 Chapter References
 
-Carlini, N., et al. (2023). Extracting Training Data from Large Language Models. *USENIX Security Symposium*.
+Carlini, N., Tramèr, F., Wallace, E., Jagielski, M., Herbert-Voss, A., Lee, K., Roberts, A., Brown, T., Song, D., Erlingsson, Ú., Oprea, A., & Raffel, C. (2021). Extracting training data from large language models. En *Proceedings of the 30th USENIX Security Symposium* (pp. 2633-2650). USENIX Association. https://www.usenix.org/conference/usenixsecurity21/presentation/carlini-extracting
 
 Digital Public Goods Alliance. (2023). *Digital Public Goods Standard*. https://digitalpublicgoods.net/standard/
 
@@ -894,7 +890,7 @@ Floridi, L. (2020). The fight for digital sovereignty: What it is, and why it ma
 
 Illich, I. (1973). *Tools for conviviality*. Harper & Row.
 
-Meta AI. (2024). Llama 3 Model Card. https://ai.meta.com/llama/
+Meta AI. (2024). Llama 3 Model Card. https://github.com/meta-llama/llama3/blob/main/MODEL_CARD.md
 
 Ollama. (2024). Ollama Documentation. https://ollama.ai/
 
@@ -906,7 +902,7 @@ Republica Federativa do Brasil. (2018). Lei Geral de Protecao de Dados (LGPD). *
 
 Stallman, R. M. (2002). *Free software, free society: Selected essays of Richard M. Stallman*. GNU Press.
 
-Sun, Y., Wu, D., Xue, Y., Liu, H., Wang, H., Xu, Z., Xie, X., & Liu, Y. (2024). GPTScan: Detecting logic vulnerabilities in smart contracts by combining GPT with program analysis. *Proceedings of the 46th International Conference on Software Engineering (ICSE)*, Article 166. https://doi.org/10.1145/3597503.3623318
+Sun, Y., Wu, D., Xue, Y., Liu, H., Wang, H., Xu, Z., Xie, X., & Liu, Y. (2024). GPTScan: Detecting logic vulnerabilities in smart contracts by combining GPT with program analysis. En *Proceedings of the IEEE/ACM 46th International Conference on Software Engineering (ICSE '24)* (pp. 1-13). ACM. https://doi.org/10.1145/3597503.3639117
 
 Winner, L. (1980). Do artifacts have politics? *Daedalus, 109*(1), 121-136.
 

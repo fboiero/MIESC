@@ -43,7 +43,7 @@ The experiment was designed to answer the following research questions, formulat
 
 *Metric:* Deduplication rate = (raw_findings - unique_findings) / raw_findings × 100
 
-**RQ4:** Is the framework viable for use in production environments?
+**RQ4:** Is it viable to operate MIESC in production —execution time, resources and cost— and what quality of semantic analysis does a local LLM (Ollama) offer compared with commercial services?
 
 *Metric:* Total audit time, resource consumption, operational cost
 
@@ -144,9 +144,9 @@ Table 5.4 documents the problems encountered during integration and their soluti
 
 Below are the actual execution outputs of the main tools integrated in MIESC, demonstrating the framework's operability.
 
-**Figure 13.** Slither Output (Layer 1 - Static Analysis)
+**Figure 5.1.** Slither Output (Layer 1 - Static Analysis)
 
-![Figure 13 - Slither Output Layer 1 - Static Analysis](../figures/Figura%2013%20Salida%20de%20Slither%20Capa%201%20-%20Análisis%20Estático.svg)
+![Figure 5.1 - Slither Output Layer 1 - Static Analysis](../figures/Figura%2013%20Salida%20de%20Slither%20Capa%201%20-%20Análisis%20Estático.svg)
 
 ```
 $ slither contracts/audit/VulnerableBank.sol
@@ -189,9 +189,9 @@ INFO:Slither:contracts/audit/VulnerableBank.sol analyzed (2 contracts with 100 d
 
 ---
 
-**Figure 14.** Mythril Output (Layer 3 - Symbolic Execution)
+**Figure 5.2.** Mythril Output (Layer 3 - Symbolic Execution)
 
-![Figure 14 - Mythril Output Layer 3 - Symbolic Execution](../figures/Figura%2014%20Salida%20de%20Mythril%20Capa%203%20-%20Ejecución%20Simbólica.svg)
+![Figure 5.2 - Mythril Output Layer 3 - Symbolic Execution](../figures/Figura%2014%20Salida%20de%20Mythril%20Capa%203%20-%20Ejecución%20Simbólica.svg)
 
 ```
 $ myth analyze contracts/audit/VulnerableBank.sol --execution-timeout 90
@@ -234,9 +234,9 @@ target.withdraw()
 
 ---
 
-**Figure 15.** SMTChecker Output (Layer 5 - Formal Verification)
+**Figure 5.3.** SMTChecker Output (Layer 5 - Formal Verification)
 
-![Figure 15 - SMTChecker Output Layer 5 - Formal Verification](../figures/Figura%2015%20Salida%20de%20SMTChecker%20Capa%205%20-%20Verificación%20Formal.svg)
+![Figure 5.3 - SMTChecker Output Layer 5 - Formal Verification](../figures/Figura%2015%20Salida%20de%20SMTChecker%20Capa%205%20-%20Verificación%20Formal.svg)
 
 ```
 $ solc --model-checker-engine chc --model-checker-targets all contracts/audit/VulnerableBank.sol
@@ -251,9 +251,11 @@ increasing the timeout per query.
 
 ---
 
-**Figure 16.** Complete MIESC Pipeline Output
+**Figure 5.4.** MIESC pipeline output (layers 1/6/7) on one contract (VulnerableBank: 47→16 findings, 66.0% deduplication on this contract; 68% is the full-corpus figure, 385→123)
 
-![Figure 16 - Complete MIESC Pipeline Output](../figures/Figura%2016%20Salida%20del%20Pipeline%20Completo%20de%20MIESC.svg)
+![Figure 5.4 - MIESC pipeline output (layers 1/6/7)](../figures/Figura%2016%20Salida%20del%20Pipeline%20Completo%20de%20MIESC.svg)
+
+The following listing is an illustrative, abridged command-line output; the time it shows does not come from the §5.5 measurement.
 
 ```
 $ miesc audit full contracts/audit/VulnerableBank.sol
@@ -315,13 +317,13 @@ Total execution time: 52.4s (parallel)
 Status: COMPLETED
 ```
 
-**Observation:** The complete pipeline execution over the corpus generates 385 raw findings that are reduced to 123 unique after root-cause clustering, demonstrating the effectiveness of the normalization process.
+**Observation:** Running the evaluation pipeline (layers 1/6/7) over the corpus generates 385 raw findings that are reduced to 123 unique after root-cause clustering, demonstrating the effectiveness of the normalization process.
 
 ---
 
-**Figure 17.** Normalized Finding Structure (JSON)
+**Figure 5.5.** Normalized finding structure (JSON; example over layers 1/3/7: 23→9 findings, rate 0.609)
 
-![Figure 17 - Normalized Finding Structure JSON](../figures/Figura%2017%20Estructura%20de%20Hallazgo%20Normalizado%20JSON.svg)
+![Figure 5.5 - Normalized Finding Structure JSON](../figures/Figura%2017%20Estructura%20de%20Hallazgo%20Normalizado%20JSON.svg)
 
 The following fragment shows the structure of an individual finding normalized by MIESC, demonstrating the integration of SWC, CWE, and OWASP classifications:
 
@@ -343,8 +345,8 @@ The following fragment shows the structure of an individual finding normalized b
     "swc_title": "Reentrancy",
     "cwe_id": "CWE-841",
     "cwe_title": "Improper Enforcement of Behavioral Workflow",
-    "owasp_id": "SC06",
-    "owasp_title": "Reentrancy Attack"
+    "owasp_id": "SC01",
+    "owasp_title": "SC01:2023-Reentrancy"
   },
   "detected_by": ["slither", "mythril", "gptscan"],
   "first_detection": "slither",
@@ -352,8 +354,8 @@ The following fragment shows the structure of an individual finding normalized b
   "recommendation": "Apply checks-effects-interactions pattern. Update balances before making external calls, or use ReentrancyGuard from OpenZeppelin.",
   "references": [
     "https://swcregistry.io/docs/SWC-107",
-    "https://consensys.github.io/smart-contract-best-practices/attacks/reentrancy/",
-    "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/security/ReentrancyGuard.sol"
+    "https://consensysdiligence.github.io/smart-contract-best-practices/attacks/reentrancy/",
+    "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/ReentrancyGuard.sol"
   ],
   "timestamp": "2024-11-29T15:42:31.847Z"
 }
@@ -363,9 +365,9 @@ The following fragment shows the structure of an individual finding normalized b
 
 ---
 
-**Figure 18.** REST API Response
+**Figure 5.6.** REST API Response
 
-![Figure 18 - REST API Response](../figures/Figura%2018%20Respuesta%20de%20API%20REST.svg)
+![Figure 5.6 - REST API Response](../figures/Figura%2018%20Respuesta%20de%20API%20REST.svg)
 
 The following capture shows the MIESC REST API response after analyzing a contract:
 
@@ -438,6 +440,8 @@ All results in this section are reproducible; the raw artifacts and the vulnerab
 
 ### 5.3.2 MIESC Detection Results
 
+The detection evaluation in this section was run on layers 1 (static analysis), 6 (properties and patterns) and 7 (AI analysis), i.e. 14 of the 25 integrated tools. Layers 2 to 5 —fuzzing, symbolic execution, invariants and formal verification— were integrated and verified operationally (§5.2) but are not part of the recall/precision measurement: in the reproduction environment (ARM64) Mythril and Echidna were unavailable (scope note in §5.3.3), and the invariant and formal-verification layers require manual per-contract specifications (§3.3) beyond this evaluation's protocol. Consequently, the counts in this chapter —385 raw findings, 123 unique, 48% *type-aware* detection and 100% coverage— describe that configuration, not a seven-layer run.
+
 **Table 5.6.** MIESC detection (static + pattern configuration, layers 1/6/7)
 
 | Contract | Coverage | Type-correct | Findings |
@@ -481,7 +485,7 @@ This result qualifies the complementarity thesis of Durieux et al. (2020): while
 
 If combining static tools does not improve detection (§5.3.3), what does? Each frontier LLM detects a **different** subset of the 29 vulnerabilities; the **union** of their type-aware detections exceeds any single one.
 
-**Table 5.8.** Type-aware detection per model and ensemble (union)
+**Table 5.8.** Type-aware detection per model and ensemble (union). Except for Slither, each row is a full MIESC run in `--deep` mode with the given model as the primary layer-7 detector; they are not evaluations of the language models in isolation. Single run per model; confidence intervals in Table 5.14.
 
 | Configuration | Type-aware |
 |---------------|-----------|
@@ -491,9 +495,10 @@ If combining static tools does not improve detection (§5.3.3), what does? Each 
 | Slither (static baseline) | 17/29 (58%) |
 | DeepSeek-V4-pro | 18/29 (62%) |
 | Claude Sonnet / GPT-4o / Claude Opus | 21/29 (72%) |
-| **Ensemble (union of models)** | **25/29 (86%)** |
+| **Ensemble (union of the eight rows: seven models and Slither)** | **25/29 (86%)** |
+| LLM-only ensemble (union of the seven models, without Slither) | 24/29 (83%) |
 
-**Result.** The multi-model ensemble reaches **86%**, well above the best individual model (72%). This **reformulates** the complementarity hypothesis of Ghaleb and Pattabiraman (2020): effective complementarity comes not from stacking static tools (§5.3.3) but from **combining diverse LLM reasoners**, each with different strengths.
+**Result.** The union of the eight configurations reaches **86%** (83% excluding Slither), above the best single detector (72%): it adds four vulnerabilities that no single detector covers on its own, a difference that with n=29 does not reach statistical significance (p=0.125, Table 5.15). This **reformulates** the complementarity hypothesis of Ghaleb and Pattabiraman (2020): effective complementarity comes not from stacking static tools (§5.3.3) but from **combining diverse LLM reasoners**, each with different strengths.
 
 Only **4 vulnerabilities are detected by no model**: an unchecked return value in `transferFrom` and three DeFi-logic issues in `FlashLoanVault` (oracle manipulation, rounding in share calculation, and an arithmetic one that reverts automatically in Solidity 0.8.x). These constitute the open frontier of automated smart-contract analysis.
 
@@ -507,17 +512,20 @@ HIGH-severity vulnerabilities). Each model was run once through the same pipelin
 and matcher; the numbers are reported as a **local extraction, not an official
 leaderboard score** (the same methodological caution as Paper 1).
 
-**Table 5.8b.** EVMBench recall by configuration (40 audits, single run)
+**Table 5.8b.** EVMBench recall by configuration (40 audits, single run, lenient matcher)
 
 | Configuration | Recall | Precision | F1 | Cost/audit |
 |---------------|--------|-----------|-----|-----------|
 | Static only | 18.3% | 14.5% | 16.2% | $0 |
 | qwen2.5-coder:32b (local) | 59.2% | 30.1% | 39.9% | $0 |
-| **DeepSeek-R1 (open-weight)** | **70.8%** | **88.5%** | **78.7%** | **~$0.08** |
+| DeepSeek-R1 (open-weight) | 70.8% | 88.5% | 78.7% | ~$0.08 |
 | GPT-4o (frontier) | 73.7% | 20.0% | 31.5% | ~$1.20 |
 | GPT-5 (frontier) | 77.5% | 42.7% | 55.0% | ~$3 |
 | Claude Sonnet 4.6 (frontier) | 82.5% | 34.0% | 48.2% | ~$5.50 |
-| **Ensemble (4-frontier union)** | **92.5%** | — | — | ~$7 |
+| **Ensemble (union of 4 providers: 3 frontier + local)** | **92.5%** | — | — | ~$7 |
+| Null control (4 generic findings, contract-agnostic) | 50.0% (60/120) | — | — | $0 |
+
+The **null control** — four generic findings, identical for any contract — is credited with 50% under the lenient matcher. That bounds the reading of the table: only the margin above ~50% is informative, and on the control-resistant subset (60 vulnerabilities) the Claude run scores 78.3% (47/60) (Paper 1, `benchmarks/evmbench_matcher_null_control.py`).
 
 **Result.** EVMBench reproduces the pattern of the 29-vulnerability corpus: the
 union of frontier reasoners (92.5%) far exceeds any individual one, confirming
@@ -527,10 +535,9 @@ for a single run with the GPT-5 judge), so the lenient and strict figures bound 
 run. Paper 1 reports the full triple (lenient matcher / null control / official judge)
 and recommends always reporting the protocol and judge alongside any EVMBench score.
 It also adds the **economic** axis: under the lenient matcher, the open-weight model (DeepSeek-R1,
-MIT) sits **within the range of the frontier providers** on precision and F1, at
+MIT) records **the highest precision (88.5%) and F1 (78.7%) of the comparison**, at
 **~$0.08 per audit (15–69× cheaper)**; its lower single-pass recall (70.8%) is
-recovered with a low-cost self-ensemble. These figures are an optimistic estimate
-(lenient matcher, single run): Paper 1 defers the provider ranking — under
+recovered with a low-cost self-ensemble. These figures are an optimistic estimate (lenient matcher, single run) that does not support a reliable provider ranking: Paper 1 defers the provider ranking — under
 EVMBench's official judge — to future work. The three-tier openness taxonomy and
 the full economic analysis are in Chapter 6 (Table 6.2b).
 
@@ -568,7 +575,7 @@ The layers generated a total of 385 raw findings on the corpus. The root-cause c
 
 **Deduplication rate:** (385 - 123) / 385 × 100 = **68.1%**
 
-**Table 5.9.** Duplicate finding analysis
+**Table 5.9.** Duplicate findings analysis — breakdown on the reference contract VulnerableBank (47→16 findings, 31 duplicates). Over the full corpus deduplication is 385→123 (262 duplicates, §5.4.1); the per-type breakdown was not reconstructed at that level.
 
 | Duplicate Type | Quantity | Percentage | Example |
 |----------------|----------|------------|---------|
@@ -581,7 +588,7 @@ The layers generated a total of 385 raw findings on the corpus. The root-cause c
 
 Manual validation of the mapping from native classifications to standard taxonomies was performed:
 
-**Table 5.10.** Taxonomic mapping validation
+**Table 5.10.** Manual validation of the taxonomic mapping on a sample of 35 findings from the original run (includes Mythril, unavailable in the ARM64 reproduction environment, §5.3.3). The 97.1% is an estimate on that sample; the sampling procedure was not documented, so it should not be read as corpus-wide precision.
 
 | Tool | Mapped Findings | Correct Mapping | Mapping Precision |
 |------|-----------------|-----------------|-------------------|
@@ -593,7 +600,7 @@ Manual validation of the mapping from native classifications to standard taxonom
 
 The only mapping error in GPTScan corresponded to an ambiguous classification by the language model that was manually corrected.
 
-**RQ3 Result:** Normalization achieves **66%** deduplication with **97.1%** mapping precision, validating the effectiveness of the approach.
+**RQ3 Result:** Normalization achieves **68%** deduplication (385→123 over the corpus) with **97.1%** mapping precision, validating the effectiveness of the approach.
 
 ---
 
@@ -613,9 +620,9 @@ The only mapping error in GPTScan corresponded to an ambiguous classification by
 | 6 | PropertyGPT, Aderyn, Wake | 21.3 | 3.4 | Yes |
 | 7 | GPTScan, SmartLLM, LLMSmartAudit, etc. | 41.6 | 5.7 | Yes |
 | **Total (sequential)** | | **161.1** | | |
-| **Total (parallel per layer)** | | **52.4** | | |
+| Theoretical lower bound (all layers in parallel) | | 52.4 | | |
 
-**Observation:** Intra-layer parallel execution reduces total time by **67.5%** (from 161.1s to 52.4s), based on Amdahl's law (1967) for parallelization.
+**Observation:** The orchestrator runs tools in parallel within each layer and the layers in sequence (§4.6.1), so the design total is the sum of the per-layer times: 161.1 s. The 52.4 s value is the lower bound that would be reached if all layers ran in parallel (the slowest layer's time) and does not correspond to the evaluated implementation; Amdahl's law (1967) bounds the gain of intra-layer parallelism to the slowest tool in each layer.
 
 *Parallel execution timeline of tools per layer*
 
@@ -645,12 +652,10 @@ The only mapping error in GPTScan corresponded to an ambiguous classification by
 
 *Note: Estimated costs based on public prices from November 2024. The
 open-weight-hosted tier (MIT weights accessed via API, ~$0.08/audit) is 15–69×
-cheaper than the frontier APIs and, under EVMBench's lenient matcher, sits within
-the range of the frontier on precision/F1 — an optimistic estimate, not a
-conclusive ranking — (see §5.3.5 and Chapter 6, Table 6.2b).*
+cheaper than the frontier APIs and, under EVMBench's lenient matcher, records the highest precision/F1 of the comparison — under the lenient matcher, an optimistic estimate that is not a conclusive ranking — (see §5.3.5 and Chapter 6, Table 6.2b).*
 
 **RQ4 Result:** MIESC is viable for production with:
-- **Time:** ~1 minute for complete audit (parallel execution)
+- **Time:** ≈2.7 minutes (161.1 s) for an audit with the seven layers in sequence, with parallelism within each layer (Table 5.11)
 - **Resources:** 8 GB RAM sufficient
 - **Cost:** $0 operational (local execution)
 
@@ -684,6 +689,34 @@ Following the guidelines of Wohlin et al. (2012), threats to validity are analyz
 
 **Mitigation:** Standard deviation is reported and 10 executions are averaged.
 
+**Threat:** Small sample size (n=29 vulnerabilities) and absence of significance tests in the detection comparisons.
+
+**Mitigation:** The *type-aware* detection rates of §5.3.3–5.3.4 are accompanied here by 95% Wilson confidence intervals (Table 5.14) and exact McNemar tests on pairs of configurations evaluated on the same 29 vulnerabilities (Table 5.15). Both are derived from the per-vulnerability record of the revalidation run (`docs/evidence/corpus_revalidation_20260709/`), with no additional runs.
+
+**Table 5.14.** Confidence intervals (Wilson, 95%) of type-aware detection on the 29 corpus vulnerabilities
+
+| Configuration | Detection | 95% CI |
+|---------------|-----------|--------|
+| qwen-14b (local, `--deep`) | 13/29 (44.8%) | [28.4%, 62.5%] |
+| MIESC static + pattern (layers 1/6/7) | 14/29 (48.3%) | [31.4%, 65.6%] |
+| Slither (baseline) | 17/29 (58.6%) | [40.7%, 74.5%] |
+| MIESC `--deep` (Claude Sonnet) | 21/29 (72.4%) | [54.3%, 85.3%] |
+| Ensemble (union of seven models and Slither) | 25/29 (86.2%) | [69.4%, 94.5%] |
+
+**Table 5.15.** Exact McNemar tests between pairs of configurations on the same 29 vulnerabilities
+
+| Paired comparison (exact McNemar) | A only | B only | p |
+|-----------------------------------|--------|--------|---|
+| A: static 1/6/7 — B: Slither | 8 | 5 | 0.581 |
+| A: static 1/6/7 — B: `--deep` (Sonnet) | 9 | 2 | 0.065 |
+| A: Slither — B: `--deep` (Sonnet) | 5 | 1 | 0.219 |
+| A: qwen-14b local — B: `--deep` (Sonnet) | 8 | 0 | 0.008 |
+| A: `--deep` (Sonnet) — B: Ensemble | 4 | 0 | 0.125 |
+| A: Slither — B: Ensemble | 8 | 0 | 0.008 |
+| A: qwen-14b local — B: Ensemble | 12 | 0 | <0.001 |
+
+*Note.* "A only" and "B only" count the vulnerabilities detected by one configuration and not the other (discordant pairs); p is the two-sided exact binomial test on those pairs. With n=29 the intervals are wide and overlap in almost every case. Of the seven pairs tested, only three reach significance at 5%: the frontier detector against the local configuration (p=0.008), the ensemble against Slither (p=0.008) and the ensemble against the local configuration (p<0.001); the improvement of the frontier detector over the static configuration is borderline (p=0.065) and that of the ensemble over the best single detector does not reach significance (p=0.125). The conclusions of §5.7.2 should therefore be read as consistent trends on a small corpus, not as statistically established differences; a larger sample is part of future work (§8.3).
+
 ---
 
 ## 5.7 Discussion
@@ -700,7 +733,7 @@ These results validate the design decision to use the Adapter pattern (Gamma et 
 
 ### 5.7.2 Answer to RQ2
 
-The controlled measurement against Slither (§5.3.3) **qualifies** the complementarity hypothesis. Combining static and pattern tools (layers 1/6/7) **did not improve** type-aware detection over the best individual tool: 48% vs Slither's 58%, with equivalent coverage (100% vs 96%) but ~6× more false positives. The real gain came from **adding LLM reasoning**, which raised type-aware recall from 48% to **72%**, surpassing Slither; and from **combining diverse LLM models in an ensemble** (§5.3.4), which raised it further to **86%** (union of detections), at the cost of precision. This is consistent with:
+The controlled measurement against Slither (§5.3.3) **qualifies** the complementarity hypothesis. Combining static and pattern tools (layers 1/6/7) **did not improve** type-aware detection over the best individual tool: 48% vs Slither's 58%, with equivalent coverage (100% vs 96%) but ~6× more false positives. The real gain came from **adding LLM reasoning**, which raised type-aware recall from 48% to **72%**, surpassing Slither; and from **combining diverse LLM models in an ensemble** (§5.3.4), which raised it further to **86%** (union of detections), at the cost of precision. With n=29, only three of the compared pairs reach statistical significance —frontier detector and ensemble against the local configuration, and ensemble against Slither— and the rest do not (§5.6.4, Table 5.15). This is consistent with:
 
 - Rameder et al. (2022): "No individual tool is sufficient" — but, per our measurement, effective complementarity requires **semantic analysis**, not merely combining static tools.
 - Durieux et al. (2020): no individual tool covers all vulnerability classes.
@@ -721,7 +754,7 @@ The results demonstrate production viability:
 
 - **Performance:** Comparable to the slowest individual tool execution (Mythril)
 - **Resources:** Moderate requirements (8 GB RAM)
-- **Cost:** $0 eliminates adoption barriers
+- **Cost:** $0 in local mode lowers adoption barriers
 
 ---
 
@@ -729,11 +762,19 @@ The results demonstrate production viability:
 
 1. **Limited corpus:** 4 contracts with known vulnerabilities do not represent production complexity.
 
-2. **AI false positives:** Layer 7 introduced 2 FPs, suggesting the need for prompt refinement.
+2. **False positives:** Aggregate precision is low (≈7.5%: 385 raw findings for 29 vulnerabilities, 123 after deduplication), as expected of a *recall-first* triage tool; layer 7 added further false positives (2 on the reference contract), which suggests refining the prompts.
 
 3. **Ollama dependency:** AI layer performance depends on the available model.
 
 4. **Logic vulnerabilities:** Some categories (oracle manipulation, flash loans) require external context not available.
+
+5. **Configuration of the headline results:** the 72% *type-aware* detection was obtained with a frontier model accessed via API (`--deep`); the fully local configuration reached 44% (§5.3.3).
+
+6. **Single runs and small sample:** all LLM results correspond to one run per model, so run-to-run variability was not measured; with n=29 the confidence intervals are wide and most paired comparisons do not reach significance (§5.6.4, Tables 5.14–5.15).
+
+7. **Matching protocol:** the EVMBench figures (§5.3.5) come from the lenient matcher, an optimistic estimate; under the official judge the same run scores 27.4%.
+
+8. **Self-designed corpus and ground truth:** the 29-vulnerability corpus and its labelling were produced by the author, a design-bias risk that selecting documented vulnerabilities only partially mitigates (§5.6.1).
 
 ---
 

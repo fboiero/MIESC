@@ -24,7 +24,7 @@ According to the NIST Cybersecurity Framework (National Institute of Standards a
 
 ### 2.1.2 Blockchain as Critical Infrastructure
 
-The growing adoption of blockchain in strategic sectors such as finance, energy, logistics, and government has transformed this technology into potential critical infrastructure (Vidal et al., 2024). According to Sayeed et al. (2020), blockchain systems used for:
+The growing adoption of blockchain in strategic sectors such as finance, energy, logistics, and government has transformed this technology into potential critical infrastructure (Govea et al., 2024). According to Sayeed et al. (2020), blockchain systems used for:
 
 - **Decentralized Financial Systems (DeFi):** With more than $50 billion in locked value
 - **Government Supply Chains:** Traceability of strategic products
@@ -35,7 +35,7 @@ Constitute assets whose protection is a State responsibility within the framewor
 
 ### 2.1.3 Relevance for National Defense
 
-The protection of blockchain-based infrastructure has direct implications for national security (Di Pietro et al., 2024):
+The protection of blockchain-based infrastructure has direct implications for national security (Govea et al., 2024):
 
 > "Attacks on smart contracts represent an emerging threat to nations' economic security, with losses exceeding $7.8 billion between 2016 and 2024" (Chainalysis, 2024).
 
@@ -46,9 +46,9 @@ The protection of blockchain-based infrastructure has direct implications for na
 3. **Hacktivism:** Politically motivated attacks on DeFi protocols
 4. **Insider threats:** Malicious or negligent developers
 
-**Figure 1.** Taxonomy of threats to blockchain systems
+**Figure 2.1.** Taxonomy of threats to blockchain systems
 
-![Figure 1 - Taxonomy of threats to blockchain systems](../figures/Figura%201.%20Taxonomía%20de%20amenazas%20a%20sistemas%20blockchain.svg)
+![Figure 2.1 - Taxonomy of threats to blockchain systems](../figures/Figura%201.%20Taxonomía%20de%20amenazas%20a%20sistemas%20blockchain.svg)
 
 ---
 
@@ -131,11 +131,11 @@ The CWE (MITRE, 2024) allows mapping smart contract vulnerabilities to tradition
 OWASP (2023) maintains a classification of the 10 most critical vulnerabilities, updated according to real incidents:
 
 1. **Reentrancy:** $60M (The DAO, 2016)
-2. **Integer Overflow/Underflow:** $800K (BEC Token, 2018)
+2. **Integer Overflow/Underflow:** BEC token price collapse (2018)
 3. **Front-Running:** Constant losses in DEXs
 4. **Oracle Manipulation:** $130M (Cream Finance, 2021)
 5. **Denial of Service:** Fund blocking
-6. **Access Control Issues:** $80M (Parity Wallet, 2017)
+6. **Access Control Issues:** $150M frozen (Parity Wallet, 2017)
 7. **Unprotected Functions:** Multiple incidents
 8. **Cross-Chain Bridge Exploits:** ~$320M (Wormhole bridge incident, February 2022)
 9. **Signature Malleability:** Fund theft
@@ -168,7 +168,7 @@ Static analysis examines code without executing it (Aho et al., 2006). According
 
 ### 2.4.2 Dynamic Analysis (Fuzzing)
 
-Fuzzing generates random or semi-directed inputs to discover anomalous behaviors (Sutton et al., 2007). According to the study by He et al. (2023):
+Fuzzing generates random or semi-directed inputs to discover anomalous behaviors (Sutton et al., 2007). According to the study by He et al. (2019):
 
 **Table 2.5.** Types of fuzzing in smart contracts
 
@@ -183,9 +183,9 @@ Fuzzing generates random or semi-directed inputs to discover anomalous behaviors
 
 Symbolic execution treats inputs as symbols and explores execution paths (King, 1976). According to Mossberg et al. (2019), it is particularly effective for:
 
-**Figure 3.** Concrete execution vs symbolic execution
+**Figure 2.2.** Concrete execution vs symbolic execution
 
-![Figure 3 - Concrete execution vs symbolic execution](../figures/Figura%203%20Ejecución%20concreta%20vs%20ejecución%20simbólica.svg)
+![Figure 2.2 - Concrete execution vs symbolic execution](../figures/Figura%203%20Ejecución%20concreta%20vs%20ejecución%20simbólica.svg)
 
 **Tools:** Mythril (Mueller, 2018), Manticore (Mossberg et al., 2019), Oyente (Luu et al., 2016)
 
@@ -196,7 +196,7 @@ Formal verification uses mathematical methods to prove program properties (Hoare
 **1. Model Checking:**
 - Exhaustive state exploration
 - Temporal property verification
-- Tool: SMTChecker (Solidity)
+- Tool: SMTChecker (Solidity; BMC and CHC engines)
 
 **2. Theorem Proving:**
 - Mathematical proof of properties
@@ -224,9 +224,9 @@ Formal verification uses mathematical methods to prove program properties (Hoare
 
 The Adapter pattern converts the interface of a class into another expected by clients. MIESC uses this pattern to integrate heterogeneous tools:
 
-**Figure 3.1.** Adapter Pattern in MIESC
+**Figure 2.3.** Adapter Pattern in MIESC
 
-![Figure 3.1 - Adapter Pattern in MIESC](../figures/Figura%203.1.%20Patron%20Adapter%20en%20MIESC.svg)
+![Figure 2.3 - Adapter Pattern in MIESC](../figures/Figura%203.1.%20Patron%20Adapter%20en%20MIESC.svg)
 
 ### 2.5.2 SOLID Principles
 
@@ -242,15 +242,15 @@ MIESC implements the SOLID principles (Martin, 2000):
 
 ### 2.5.3 Defense in Depth
 
-Defense in Depth is a security strategy that employs multiple layers of controls (Ross et al., 2016a; NIST, 2024). According to NIST SP 800-53:
+Defense in Depth is a security strategy that employs multiple layers of controls (Ross et al., 2016). According to the definition in the United States national-security glossary, which NIST adopts in its publications (Committee on National Security Systems, 2015):
 
 > "Defense in depth is an information security strategy that integrates people, technology, and operations capabilities to establish variable barriers across multiple layers and missions of the organization."
 
 Durieux et al. (2020) show empirically that no single tool detects all vulnerability classes and that combining complementary tools increases detection coverage, evidence that supports the defense-in-depth approach.
 
-**Figure 4.** MIESC Defense-in-Depth Architecture
+**Figure 2.4.** MIESC Defense-in-Depth Architecture
 
-![Figure 4 - MIESC Defense-in-Depth Architecture](../figures/Figura%204%20Arquitectura%20Defense-in-Depth%20de%20MIESC.svg)
+![Figure 2.4 - MIESC Defense-in-Depth Architecture](../figures/Figura%204%20Arquitectura%20Defense-in-Depth%20de%20MIESC.svg)
 
 **Principle:** Each layer provides complementary protection. If one layer fails to detect a vulnerability, subsequent layers offer additional detection opportunities.
 
@@ -260,7 +260,7 @@ Durieux et al. (2020) show empirically that no single tool detects all vulnerabi
 
 ### 2.6.1 Large Language Models (LLMs) in Security
 
-LLMs have emerged as powerful tools for code security analysis (Zhang et al., 2024). According to the systematic study by Hou et al. (2024):
+LLMs have emerged as powerful tools for code security analysis (Zhang et al.,2025). According to the systematic study by Hou et al. (2024):
 
 > "LLMs demonstrate emergent capabilities to detect vulnerabilities that escape traditional pattern-based tools, particularly those requiring semantic understanding of code."
 
@@ -271,15 +271,15 @@ LLMs have emerged as powerful tools for code security analysis (Zhang et al., 20
 3. **Finding explanation:** Translation to natural language
 4. **Remediation suggestion:** Corrected code generation
 
-Sun et al. (2024) report that GPT-4 achieves 78% precision in smart contract vulnerability detection, complementing traditional tools.
+Sun et al. (2024) report that GPTScan, which combines GPT-3.5-turbo with program analysis, achieves precision above 90% on token contracts and recall above 70% on logic vulnerabilities, as a complement —not a replacement— to traditional tools.
 
 ### 2.6.2 Retrieval Augmented Generation (RAG)
 
 RAG combines LLMs with external knowledge bases (Lewis et al., 2020). In MIESC, SmartLLM implements RAG with a knowledge base of SWC vulnerabilities:
 
-**Figure 5.** RAG Architecture in SmartLLM
+**Figure 2.5.** RAG Architecture in SmartLLM
 
-![Figure 5 - RAG Architecture in SmartLLM](../figures/Figura%205.%20Arquitectura%20RAG%20en%20SmartLLM.svg)
+![Figure 2.5 - RAG Architecture in SmartLLM](../figures/Figura%205.%20Arquitectura%20RAG%20en%20SmartLLM.svg)
 
 ### 2.6.3 Model Context Protocol (MCP)
 
@@ -291,7 +291,7 @@ MCP is an open standard for connecting LLMs with external tools (Anthropic, 2024
 
 ### 2.6.4 Data Sovereignty in AI
 
-Data sovereignty is critical in cyber defense contexts (Di Pietro et al., 2024). The use of local LLMs through Ollama guarantees:
+Data sovereignty is critical in cyber defense contexts (Floridi, 2020). The use of local LLMs through Ollama facilitates:
 
 1. **Confidentiality:** Code not transmitted to third parties
 2. **Regulatory compliance:** GDPR, LGPD, national regulations
@@ -309,7 +309,7 @@ Security tools use heterogeneous nomenclatures:
 | Tool | Finding Name | ID | Severity |
 |------|--------------|-----|----------|
 | Slither | reentrancy-eth | - | High |
-| Mythril | State Access After External Call | SWC-107 | Medium |
+| Mythril | State change after external call | SWC-107 | Medium |
 | Echidna | property_balance_invariant | - | FAILED |
 
 **Problem:** Hinders correlation, deduplication, and prioritization of findings.
@@ -320,7 +320,7 @@ MIESC normalizes findings to a unified schema based on standard taxonomies:
 
 ```json
 {
-  "id": "MIESC-YYYY-XX-NNN",
+  "id": "MIESC-YYYY-NNN",
   "type": "normalized-category",
   "severity": "CRITICAL|HIGH|MEDIUM|LOW|INFO",
   "confidence": "HIGH|MEDIUM|LOW",
@@ -333,7 +333,7 @@ MIESC normalizes findings to a unified schema based on standard taxonomies:
   "classification": {
     "swc_id": "SWC-107",
     "cwe_id": "CWE-841",
-    "owasp_id": "SC06"
+    "owasp_id": "SC01"
   },
   "detected_by": ["slither", "mythril"],
   "message": "Normalized description",
@@ -361,21 +361,23 @@ Atzei, N., Bartoletti, M., & Cimoli, T. (2017). A survey of attacks on Ethereum 
 
 Chainalysis. (2024). The 2024 Crypto Crime Report. Chainalysis Inc.
 
-Ivanov, N., Li, C., Yan, Q., Sun, Z., Cao, Z., & Luo, X. (2023). Security defense for smart contracts: A comprehensive survey. *arXiv preprint arXiv:2302.07347*. https://arxiv.org/abs/2302.07347
+Committee on National Security Systems. (2015). *Committee on National Security Systems (CNSS) glossary* (CNSSI No. 4009). CNSS. https://www.cnss.gov/CNSS/issuances/Instructions.cfm
 
-Di Pietro, R., Ferretti, S., & Verde, N. V. (2024). Securing critical infrastructure with blockchain technology: A systematic review. *MDPI Electronics, 13*(1), 1-24.
+Durieux, T., Ferreira, J. F., Abreu, R., & Cruz, P. (2020). Empirical review of automated analysis tools on 47,587 Ethereum smart contracts. *Proceedings of the ACM/IEEE 42nd International Conference on Software Engineering (ICSE)*, 530-541. https://doi.org/10.1145/3377811.3380364
 
 Feist, J., Grieco, G., & Groce, A. (2019). Slither: A static analysis framework for smart contracts. In *2019 IEEE/ACM 2nd International Workshop on Emerging Trends in Software Engineering for Blockchain* (pp. 8-15). IEEE.
 
 Gamma, E., Helm, R., Johnson, R., & Vlissides, J. (1994). *Design Patterns: Elements of Reusable Object-Oriented Software*. Addison-Wesley.
 
-He, J., Balunovic, M., Ambroladze, N., Tsankov, P., & Vechev, M. (2023). Learning to fuzz from symbolic execution with application to smart contracts. In *Proceedings of the 2023 ACM SIGSAC Conference on Computer and Communications Security* (pp. 1-15). ACM.
+He, J., Balunović, M., Ambroladze, N., Tsankov, P., & Vechev, M. (2019). Learning to fuzz from symbolic execution with application to smart contracts. En *Proceedings of the 2019 ACM SIGSAC Conference on Computer and Communications Security (CCS '19)* (pp. 531-548). ACM. https://doi.org/10.1145/3319535.3363230
 
 Hildenbrandt, E., Saxena, M., Rodrigues, N., Zhu, X., Daian, P., Guth, D., ... & Rosu, G. (2018). KEVM: A complete formal semantics of the Ethereum virtual machine. In *2018 IEEE 31st Computer Security Foundations Symposium* (pp. 204-217). IEEE.
 
 Hoare, C. A. R. (1969). An axiomatic basis for computer programming. *Communications of the ACM, 12*(10), 576-580.
 
 Hou, X., Zhao, Y., Liu, Y., Yang, Z., Wang, K., Li, L., ... & Grundy, J. (2024). Large language models for software engineering: A systematic literature review. *ACM Transactions on Software Engineering and Methodology*. https://doi.org/10.1145/3695988
+
+Ivanov, N., Li, C., Yan, Q., Sun, Z., Cao, Z., & Luo, X. (2023). Security defense for smart contracts: A comprehensive survey. *arXiv preprint arXiv:2302.07347*. https://arxiv.org/abs/2302.07347
 
 Joint Chiefs of Staff. (2018). *Cyberspace Operations (JP 3-12)*. U.S. Department of Defense.
 
@@ -384,8 +386,6 @@ King, J. C. (1976). Symbolic execution and program testing. *Communications of t
 Lewis, P., Perez, E., Piktus, A., Petroni, F., Karpukhin, V., Goyal, N., ... & Kiela, D. (2020). Retrieval-augmented generation for knowledge-intensive NLP tasks. In *Advances in Neural Information Processing Systems, 33*, 9459-9474.
 
 Libicki, M. C. (2009). *Cyberdeterrence and Cyberwar*. RAND Corporation.
-
-Durieux, T., Ferreira, J. F., Abreu, R., & Cruz, P. (2020). Empirical review of automated analysis tools on 47,587 Ethereum smart contracts. *Proceedings of the ACM/IEEE 42nd International Conference on Software Engineering (ICSE)*, 530-541. https://doi.org/10.1145/3377811.3380364
 
 Luu, L., Chu, D. H., Olickel, H., Saxena, P., & Hobor, A. (2016). Making smart contracts smarter. In *Proceedings of the 2016 ACM SIGSAC Conference on Computer and Communications Security* (pp. 254-269). ACM.
 
@@ -403,13 +403,13 @@ National Institute of Standards and Technology. (2024). *NIST Cybersecurity Fram
 
 OWASP. (2023). *Smart Contract Security Verification Standard*. OWASP Foundation.
 
-Ross, R., Pillitteri, V., Dempsey, K., Riddle, M., & Guissanie, G. (2016). *Protecting controlled unclassified information in nonfederal systems and organizations* (NIST SP 800-171). NIST.
+Ross, R., McEvilley, M., & Oren, J. C. (2016). *Systems security engineering: Considerations for a multidisciplinary approach in the engineering of trustworthy secure systems* (NIST Special Publication 800-160, Vol. 1). National Institute of Standards and Technology. https://doi.org/10.6028/NIST.SP.800-160v1
 
 Sayeed, S., Marco-Gisbert, H., & Caira, T. (2020). Smart contract: Attacks and protections. *IEEE Access, 8*, 24416-24427.
 
 Smart Contract Weakness Classification. (2020). SWC Registry. https://swcregistry.io/
 
-Sun, Y., Wu, D., Xue, Y., Liu, H., Wang, H., Xu, Z., Xie, X., & Liu, Y. (2024). GPTScan: Detecting logic vulnerabilities in smart contracts by combining GPT with program analysis. *Proceedings of the 46th International Conference on Software Engineering (ICSE)*, Article 166. https://doi.org/10.1145/3597503.3623318
+Sun, Y., Wu, D., Xue, Y., Liu, H., Wang, H., Xu, Z., Xie, X., & Liu, Y. (2024). GPTScan: Detecting logic vulnerabilities in smart contracts by combining GPT with program analysis. En *Proceedings of the IEEE/ACM 46th International Conference on Software Engineering (ICSE '24)* (pp. 1-13). ACM. https://doi.org/10.1145/3597503.3639117
 
 Sutton, M., Greene, A., & Amini, P. (2007). *Fuzzing: Brute Force Vulnerability Discovery*. Addison-Wesley.
 
@@ -417,11 +417,11 @@ Szabo, N. (1996). Smart contracts: Building blocks for digital markets. *Extropy
 
 Tolmach, P., Li, Y., Lin, S. W., Liu, Y., & Li, Z. (2021). A survey of smart contract formal specification and verification. *ACM Computing Surveys, 54*(7), 1-38.
 
-Vidal, F. R., Ivaki, N., & Laranjeiro, N. (2024). OpenSCV: An open hierarchical taxonomy for smart contract vulnerabilities. *arXiv preprint arXiv:2403.12667*.
+Vidal, F. R., Ivaki, N., & Laranjeiro, N. (2024). OpenSCV: An open hierarchical taxonomy for smart contract vulnerabilities. *Empirical Software Engineering, 29*(4), Article 101. https://doi.org/10.1007/s10664-024-10446-8
 
 Wood, G. (2014). Ethereum: A secure decentralised generalised transaction ledger. *Ethereum Yellow Paper, 151*, 1-32.
 
-Zhang, Q., Zhang, C., & Li, J. (2024). When LLMs meet cybersecurity: A systematic literature review. *Computers & Security*. https://doi.org/10.1016/j.cose.2024.104099
+Zhang, J., Bu, H., Wen, H., Liu, Y., Fei, H., Xi, R., Li, L., Yang, Y., Zhu, H., & Meng, D. (2025). When LLMs meet cybersecurity: A systematic literature review. *Cybersecurity, 8*(1), Article 55. https://doi.org/10.1186/s42400-025-00361-w
 
 ---
 
