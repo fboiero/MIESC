@@ -275,9 +275,9 @@ increasing the timeout per query.
 
 ---
 
-**Figura 5.4.** Salida del Pipeline Completo de MIESC sobre un contrato (VulnerableBank: 47→16 hallazgos, 66.0% de deduplicación en este contrato; el 68% es la cifra del corpus completo, 385→123)
+**Figura 5.4.** Salida del pipeline de MIESC (capas 1/6/7) sobre un contrato (VulnerableBank: 47→16 hallazgos, 66.0% de deduplicación en este contrato; el 68% es la cifra del corpus completo, 385→123)
 
-![Figura 5.4 - Salida del Pipeline Completo de MIESC](figures/Figura%2016%20Salida%20del%20Pipeline%20Completo%20de%20MIESC.svg)
+![Figura 5.4 - Salida del pipeline de MIESC (capas 1/6/7)](figures/Figura%2016%20Salida%20del%20Pipeline%20Completo%20de%20MIESC.svg)
 
 ```
 $ miesc audit full contracts/audit/VulnerableBank.sol
@@ -339,7 +339,7 @@ Tiempo total de ejecución: 52.4s (paralelo)
 Estado: COMPLETADO
 ```
 
-**Observación:** La ejecución completa del pipeline sobre el corpus genera 385 hallazgos brutos que se reducen a 123 únicos tras el agrupamiento por causa-raíz, demostrando la efectividad del proceso de normalización.
+**Observación:** La ejecución del pipeline de evaluación (capas 1/6/7) sobre el corpus genera 385 hallazgos brutos que se reducen a 123 únicos tras el agrupamiento por causa-raíz, demostrando la efectividad del proceso de normalización.
 
 ---
 
@@ -461,6 +461,8 @@ Se ejecutó MIESC sobre un corpus de prueba de 4 contratos de diseño propio (61
 Todos los resultados de esta sección son reproducibles; los artefactos crudos y la verificación vulnerabilidad-por-vulnerabilidad están en el expediente `docs/evidence/corpus_revalidation_20260709/`.
 
 ### 5.3.2 Resultados de Detección de MIESC
+
+La evaluación de detección de esta sección se realizó sobre las capas 1 (análisis estático), 6 (propiedades y patrones) y 7 (análisis con IA), es decir, 14 de las 25 herramientas integradas. Las capas 2 a 5 —fuzzing, ejecución simbólica, invariantes y verificación formal— se integraron y verificaron operativamente (§5.2), pero no forman parte de la medición de recall y precisión: en el entorno de reproducción (ARM64) Mythril y Echidna no estaban disponibles (nota de alcance en §5.3.3), y las capas de invariantes y verificación formal requieren especificaciones manuales por contrato (§3.3) que exceden el protocolo de esta evaluación. En consecuencia, los conteos de este capítulo —385 hallazgos brutos, 123 únicos, 48% de detección *type-aware* y 100% de cobertura— describen esa configuración y no la ejecución de las siete capas.
 
 **Tabla 5.6.** Detección de MIESC (configuración estático + patrón, capas 1/6/7)
 
@@ -598,7 +600,7 @@ Las capas generaron un total de 385 hallazgos brutos sobre el corpus. El algorit
 
 **Tasa de deduplicación:** (385 - 123) / 385 × 100 = **68.1%**
 
-**Tabla 5.9.** Análisis de hallazgos duplicados
+**Tabla 5.9.** Análisis de hallazgos duplicados — desglose sobre el contrato de referencia VulnerableBank (47→16 hallazgos, 31 duplicados). Sobre el corpus completo la deduplicación es 385→123 (262 duplicados, §5.4.1); el desglose por tipo no se reconstruyó a ese nivel.
 
 | Tipo de Duplicado | Cantidad | Porcentaje | Ejemplo |
 |-------------------|----------|------------|---------|
@@ -611,7 +613,7 @@ Las capas generaron un total de 385 hallazgos brutos sobre el corpus. El algorit
 
 Se validó manualmente el mapeo de clasificaciones nativas a taxonomías estándar:
 
-**Tabla 5.10.** Validación de mapeo taxonómico
+**Tabla 5.10.** Validación manual del mapeo taxonómico sobre una muestra de 35 hallazgos de la corrida original (incluye Mythril, no disponible en el entorno de reproducción ARM64, §5.3.3). El 97.1% es una estimación sobre esa muestra; el procedimiento de muestreo no quedó documentado, por lo que no debe leerse como precisión a escala del corpus.
 
 | Herramienta | Hallazgos Mapeados | Mapeo Correcto | Precisión Mapeo |
 |-------------|-------------------|----------------|-----------------|
@@ -757,11 +759,19 @@ Los resultados demuestran viabilidad para producción:
 
 1. **Corpus limitado:** 4 contratos con vulnerabilidades conocidas no representan la complejidad de producción.
 
-2. **Falsos positivos de IA:** La capa 7 introdujo 2 FP, sugiriendo necesidad de refinamiento de prompts.
+2. **Falsos positivos:** La precisión agregada es baja (≈7.5%: 385 hallazgos brutos para 29 vulnerabilidades, 123 tras deduplicar), rasgo propio de una herramienta de triage *recall-first*; la capa 7 aportó falsos positivos adicionales (2 en el contrato de referencia), lo que sugiere refinar los prompts.
 
 3. **Dependencia de Ollama:** El rendimiento de la capa IA depende del modelo disponible.
 
 4. **Vulnerabilidades de lógica:** Algunas categorías (oracle manipulation, flash loans) requieren contexto externo no disponible.
+
+5. **Configuración de los resultados titulares:** la detección *type-aware* del 72% se obtuvo con un modelo frontier accedido vía API (`--deep`); la configuración completamente local alcanzó 44% (§5.3.3).
+
+6. **Corridas únicas:** todos los resultados con LLM corresponden a una sola corrida por modelo; no se midió la variabilidad entre ejecuciones ni se reportan intervalos de confianza para n=29 (§5.6.4).
+
+7. **Protocolo de emparejamiento:** las cifras de EVMBench (§5.3.5) provienen del matcher laxo, una estimación optimista; bajo el juez oficial la misma corrida rinde 27.4%.
+
+8. **Corpus y ground truth de diseño propio:** el corpus de 29 vulnerabilidades y su etiquetado fueron elaborados por el autor, lo que introduce un riesgo de sesgo de diseño que la selección de vulnerabilidades documentadas mitiga solo parcialmente (§5.6.1).
 
 ---
 

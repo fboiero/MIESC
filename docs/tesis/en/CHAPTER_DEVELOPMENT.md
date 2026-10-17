@@ -467,7 +467,7 @@ contract VulnerableBank {
 
 ### 4.8.2 Multi-Layer Analysis Results
 
-**Table 4.4.** VulnerableBank analysis results by layer
+**Table 4.4.** VulnerableBank analysis results by layer (illustrative example from a limited run during development; it is not the Chapter 5 evaluation run, whose counts for this contract are 47→16, Figure 5.4)
 
 | Layer | Tool | Time (s) | Findings | Reentrancy Detected |
 |-------|------|----------|----------|---------------------|

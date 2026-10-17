@@ -251,9 +251,9 @@ increasing the timeout per query.
 
 ---
 
-**Figure 5.4.** Complete MIESC pipeline output on one contract (VulnerableBank: 47→16 findings, 66.0% deduplication on this contract; 68% is the full-corpus figure, 385→123)
+**Figure 5.4.** MIESC pipeline output (layers 1/6/7) on one contract (VulnerableBank: 47→16 findings, 66.0% deduplication on this contract; 68% is the full-corpus figure, 385→123)
 
-![Figure 5.4 - Complete MIESC Pipeline Output](../figures/Figura%2016%20Salida%20del%20Pipeline%20Completo%20de%20MIESC.svg)
+![Figure 5.4 - MIESC pipeline output (layers 1/6/7)](../figures/Figura%2016%20Salida%20del%20Pipeline%20Completo%20de%20MIESC.svg)
 
 ```
 $ miesc audit full contracts/audit/VulnerableBank.sol
@@ -315,7 +315,7 @@ Total execution time: 52.4s (parallel)
 Status: COMPLETED
 ```
 
-**Observation:** The complete pipeline execution over the corpus generates 385 raw findings that are reduced to 123 unique after root-cause clustering, demonstrating the effectiveness of the normalization process.
+**Observation:** Running the evaluation pipeline (layers 1/6/7) over the corpus generates 385 raw findings that are reduced to 123 unique after root-cause clustering, demonstrating the effectiveness of the normalization process.
 
 ---
 
@@ -437,6 +437,8 @@ MIESC was executed on a test corpus of 4 custom-designed contracts (614 LOC in t
 All results in this section are reproducible; the raw artifacts and the vulnerability-by-vulnerability verification are in the dossier `docs/evidence/corpus_revalidation_20260709/`.
 
 ### 5.3.2 MIESC Detection Results
+
+The detection evaluation in this section was run on layers 1 (static analysis), 6 (properties and patterns) and 7 (AI analysis), i.e. 14 of the 25 integrated tools. Layers 2 to 5 —fuzzing, symbolic execution, invariants and formal verification— were integrated and verified operationally (§5.2) but are not part of the recall/precision measurement: in the reproduction environment (ARM64) Mythril and Echidna were unavailable (scope note in §5.3.3), and the invariant and formal-verification layers require manual per-contract specifications (§3.3) beyond this evaluation's protocol. Consequently, the counts in this chapter —385 raw findings, 123 unique, 48% *type-aware* detection and 100% coverage— describe that configuration, not a seven-layer run.
 
 **Table 5.6.** MIESC detection (static + pattern configuration, layers 1/6/7)
 
@@ -570,7 +572,7 @@ The layers generated a total of 385 raw findings on the corpus. The root-cause c
 
 **Deduplication rate:** (385 - 123) / 385 × 100 = **68.1%**
 
-**Table 5.9.** Duplicate finding analysis
+**Table 5.9.** Duplicate findings analysis — breakdown on the reference contract VulnerableBank (47→16 findings, 31 duplicates). Over the full corpus deduplication is 385→123 (262 duplicates, §5.4.1); the per-type breakdown was not reconstructed at that level.
 
 | Duplicate Type | Quantity | Percentage | Example |
 |----------------|----------|------------|---------|
@@ -583,7 +585,7 @@ The layers generated a total of 385 raw findings on the corpus. The root-cause c
 
 Manual validation of the mapping from native classifications to standard taxonomies was performed:
 
-**Table 5.10.** Taxonomic mapping validation
+**Table 5.10.** Manual validation of the taxonomic mapping on a sample of 35 findings from the original run (includes Mythril, unavailable in the ARM64 reproduction environment, §5.3.3). The 97.1% is an estimate on that sample; the sampling procedure was not documented, so it should not be read as corpus-wide precision.
 
 | Tool | Mapped Findings | Correct Mapping | Mapping Precision |
 |------|-----------------|-----------------|-------------------|
@@ -729,11 +731,19 @@ The results demonstrate production viability:
 
 1. **Limited corpus:** 4 contracts with known vulnerabilities do not represent production complexity.
 
-2. **AI false positives:** Layer 7 introduced 2 FPs, suggesting the need for prompt refinement.
+2. **False positives:** Aggregate precision is low (≈7.5%: 385 raw findings for 29 vulnerabilities, 123 after deduplication), as expected of a *recall-first* triage tool; layer 7 added further false positives (2 on the reference contract), which suggests refining the prompts.
 
 3. **Ollama dependency:** AI layer performance depends on the available model.
 
 4. **Logic vulnerabilities:** Some categories (oracle manipulation, flash loans) require external context not available.
+
+5. **Configuration of the headline results:** the 72% *type-aware* detection was obtained with a frontier model accessed via API (`--deep`); the fully local configuration reached 44% (§5.3.3).
+
+6. **Single runs:** all LLM results correspond to one run per model; run-to-run variability was not measured and no confidence intervals are reported for n=29 (§5.6.4).
+
+7. **Matching protocol:** the EVMBench figures (§5.3.5) come from the lenient matcher, an optimistic estimate; under the official judge the same run scores 27.4%.
+
+8. **Self-designed corpus and ground truth:** the 29-vulnerability corpus and its labelling were produced by the author, a design-bias risk that selecting documented vulnerabilities only partially mitigates (§5.6.1).
 
 ---
 

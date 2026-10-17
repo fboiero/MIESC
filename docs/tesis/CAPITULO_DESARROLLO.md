@@ -997,7 +997,7 @@ contract VulnerableBank {
 
 La Tabla 4.4 presenta los resultados del análisis de VulnerableBank con MIESC.
 
-**Tabla 4.4.** Resultados del análisis de VulnerableBank por capa
+**Tabla 4.4.** Resultados del análisis de VulnerableBank por capa (ejemplo ilustrativo de una corrida acotada durante el desarrollo; no corresponde a la corrida de evaluación del Capítulo 5, cuyos conteos para este contrato son 47→16, Figura 5.4)
 
 | Capa | Herramienta | Tiempo (s) | Hallazgos | Reentrancy Detectado |
 |------|-------------|------------|-----------|---------------------|
