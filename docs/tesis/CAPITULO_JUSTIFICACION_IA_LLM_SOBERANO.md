@@ -728,7 +728,7 @@ sin ninguna llamada externa— tiene un costo de recall cuantificado (59.2% fren
 bajo costo. Asimismo, los modelos frontier conservan una ventaja en recall de una
 sola pasada. La conclusión defendible no es "lo abierto siempre gana", sino que
 el control sobre la herramienta se obtiene sin renunciar a una capacidad
-competitiva, y que cada punto del espectro (frontier hosteado, pesos abiertos
+competitiva, y que cada punto del espectro (frontier por API, pesos abiertos
 alojados, pesos abiertos locales) ofrece un compromiso medido —no asumido— entre
 soberanía, costo y recall.
 

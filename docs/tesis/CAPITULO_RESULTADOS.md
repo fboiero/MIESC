@@ -619,7 +619,7 @@ El único error de mapeo en GPTScan correspondió a una clasificación ambigua d
 | Solución | Costo por Auditoría | Costo Mensual (100 auditorías) | Costo Anual |
 |----------|--------------------|---------------------------------|-------------|
 | MIESC (local, open-weight) | $0.00 | $0.00 | **$0.00** |
-| MIESC (open-weight hosteado, DeepSeek-R1) | ~$0.08 | ~$8.00 | ~$96.00 |
+| MIESC (open-weight alojado, DeepSeek-R1) | ~$0.08 | ~$8.00 | ~$96.00 |
 | GPTScan + GPT-4 API | $0.15 | $15.00 | $180.00 |
 | MythX Cloud (Pro) | $0.50 | $50.00 | $600.00 |
 | Certora Cloud | ~$100 | ~$10,000 | ~$120,000 |
