@@ -1,0 +1,12 @@
+{
+  "agent_id": "miesc-agent-v4.0.0",
+  "health": {
+    "core_module": true,
+    "policy_agent": true,
+    "security_checks": true
+  },
+  "status": "operational",
+  "timestamp": "2025-12-08T15:42:54.039412Z",
+  "uptime": "active",
+  "version": "4.0.0"
+}
