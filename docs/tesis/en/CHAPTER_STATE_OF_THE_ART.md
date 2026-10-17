@@ -24,10 +24,10 @@ Smart contract vulnerabilities have caused substantial economic losses in the de
 |------|----------|------------|---------------|-----------|
 | 2016 | The DAO | $60M | Reentrancy | Mehar et al. (2019) |
 | 2017 | Parity Wallet | $150M (frozen funds) | Access Control | Destefanis et al. (2018) |
-| 2018 | Beauty Chain (BEC) | Token price collapse | Integer Overflow | NVD (2018), CVE-2018-10299 |
 | 2020 | bZx Protocol | $350K | Flash Loan | Qin et al. (2021) |
 | 2021 | Poly Network | $610M | Cross-chain | Zhou et al. (2023) |
 | 2022 | Ronin Bridge | $625M | Key Compromise | Chainalysis (2024) |
+| 2022 | Nomad Bridge | $190M | Message validation (faulty upgrade) | Eitzman & Dobson (2022) |
 | 2023 | Euler Finance | $197M | Flash Loan + Logic | Chainalysis (2024) |
 
 These incidents highlight the critical need for automated vulnerability detection tools, given that manual audits, although thorough, present scalability and cost limitations (Durieux et al., 2020).
@@ -288,6 +288,8 @@ Digital Public Goods Alliance. (2023). *Digital Public Goods Standard*. https://
 
 Durieux, T., Ferreira, J. F., Abreu, R., & Cruz, P. (2020). Empirical review of automated analysis tools on 47,587 Ethereum smart contracts. *Proceedings of the ACM/IEEE 42nd International Conference on Software Engineering*, 530-541. https://doi.org/10.1145/3377811.3380364
 
+Eitzman, R., & Dobson, J. (2022). *Decentralized robbery: Dissecting the Nomad bridge hack and following the money*. Mandiant / Google Cloud Threat Intelligence. https://cloud.google.com/blog/topics/threat-intelligence/dissecting-nomad-bridge-hack
+
 Feist, J., Grieco, G., & Groce, A. (2019). Slither: A static analysis framework for smart contracts. *Proceedings of the 2nd International Workshop on Emerging Trends in Software Engineering for Blockchain*, 8-15. https://doi.org/10.1109/WETSEB.2019.00008
 
 Fellegi, I. P., & Sunter, A. B. (1969). A theory for record linkage. *Journal of the American Statistical Association, 64*(328), 1183-1210. https://doi.org/10.1080/01621459.1969.10501049
@@ -319,8 +321,6 @@ MITRE. (2024). *Common Weakness Enumeration (CWE)*. https://cwe.mitre.org/
 Mossberg, M., Manzano, F., Hennenfent, E., Groce, A., Grieco, G., Feist, J., ... & Dinaburg, A. (2019). Manticore: A user-friendly symbolic execution framework for binaries and smart contracts. *Proceedings of the 34th IEEE/ACM International Conference on Automated Software Engineering*, 1186-1189. https://doi.org/10.1109/ASE.2019.00133
 
 Mueller, B. (2018). Smashing Ethereum smart contracts for fun and real profit. *Proceedings of the 9th HITB Security Conference*.
-
-National Vulnerability Database. (2018). *CVE-2018-10299: Integer overflow in the batchTransfer function of the BeautyChain (BEC) token contract*. National Institute of Standards and Technology. https://nvd.nist.gov/vuln/detail/CVE-2018-10299
 
 Newman, S. (2015). *Building microservices: Designing fine-grained systems*. O'Reilly Media.
 

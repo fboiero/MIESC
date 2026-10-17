@@ -131,7 +131,7 @@ The CWE (MITRE, 2024) allows mapping smart contract vulnerabilities to tradition
 OWASP (2023) maintains a classification of the 10 most critical vulnerabilities, updated according to real incidents:
 
 1. **Reentrancy:** $60M (The DAO, 2016)
-2. **Integer Overflow/Underflow:** BEC token price collapse (2018)
+2. **Integer Overflow/Underflow:** arbitrary token minting through *batchOverflow* (2018)
 3. **Front-Running:** Constant losses in DEXs
 4. **Oracle Manipulation:** $130M (Cream Finance, 2021)
 5. **Denial of Service:** Fund blocking

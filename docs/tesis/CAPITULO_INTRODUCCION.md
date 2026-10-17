@@ -24,10 +24,10 @@ El impacto económico de las vulnerabilidades en smart contracts es significativ
 |-----|-----------|---------|----------------|
 | 2016 | The DAO | $60M | Reentrancy (SWC-107) |
 | 2017 | Parity Wallet | $150M (fondos congelados) | Access Control (SWC-105/106) |
-| 2018 | BEC Token | Colapso de la cotización del token (sin monto directo verificable) | Integer Overflow (SWC-101) |
 | 2021 | Cream Finance | $130M | Oracle Manipulation |
 | 2022 | Wormhole | $320M | Signature Verification |
 | 2022 | Ronin Bridge | $625M | Private Key Compromise |
+| 2022 | Nomad Bridge | $190M | Validación de mensajes defectuosa (SWC-105) |
 | 2023 | Euler Finance | $197M | Flash Loan + Reentrancy |
 
 ### 1.1.3 La Fragmentación del Ecosistema de Herramientas
@@ -38,11 +38,15 @@ El campo de la seguridad de smart contracts ha visto surgir numerosas herramient
 
 En el contexto de la ciberdefensa, la confidencialidad del código auditado es crítica. Según Zhang et al. (2025), el uso de servicios de IA en la nube para el análisis de código presenta cuatro riesgos: la exposición de propiedad intelectual, al enviarse el código fuente a terceros; la dependencia de servicios externos, con la consiguiente pérdida de capacidad operativa si el servicio deja de estar disponible; el incumplimiento normativo, dado que GDPR, LGPD y las regulaciones nacionales restringen la transmisión de datos sensibles; y la falta de trazabilidad, por la imposibilidad de auditar el procesamiento realizado.
 
+### 1.1.5 Motivación del Autor
+
+El interés del autor por este problema no nace de la especulación financiera sino de la infraestructura. Las arquitecturas *trustless* —aquellas en las que se confía en el protocolo y no en los intermediarios— resuelven problemas que otras tecnologías no habían resuelto, y por esa puerta entró el autor al mundo de blockchain: primero dándole sentido a implementaciones de firma digital y sellado de tiempo en trabajos anteriores, que dieron marco a Xcapit, la empresa desde la que hoy construye infraestructuras que requieren esas garantías. Un protocolo de ayuda humanitaria para un organismo multilateral como UNICEF, la tokenización de energía renovable con la Empresa Provincial de Energía de Córdoba (EPEC) y las líneas de trabajo del laboratorio blockchain de la Universidad Tecnológica Nacional, Facultad Regional Villa María, donde el autor es docente e investigador, tienen algo en común: todas necesitan smart contracts y, en todas, garantizar su seguridad mediante una auditoría era crítico para la implementación. Mal gestionada, esa auditoría podía volver inviables los proyectos. Este trabajo nace de esa necesidad concreta, no de un interés teórico por las herramientas.
+
 ## 1.2 Planteamiento del Problema
 
 ### 1.2.1 Problema Principal
 
-Las organizaciones que desarrollan o auditan smart contracts se enfrentan a un ecosistema fragmentado de herramientas de seguridad, cada una con capacidades parciales, salidas heterogéneas y requisitos de configuración propios. Esta fragmentación tiene consecuencias concretas sobre la auditoría. Ejecutar manualmente múltiples herramientas aumenta el tiempo y el costo del proceso; como cada una reporta la misma vulnerabilidad de manera distinta, los resultados son inconsistentes; dado que ninguna cubre todas las vulnerabilidades, persisten falsos negativos; y la necesidad de consolidar hallazgos provenientes de fuentes diversas dificulta, finalmente, la toma de decisiones.
+Las organizaciones que desarrollan o auditan smart contracts se enfrentan a un ecosistema fragmentado de herramientas de seguridad, cada una con capacidades parciales, salidas heterogéneas y requisitos de configuración propios. Esta fragmentación tiene consecuencias concretas sobre la auditoría. Ejecutar manualmente múltiples herramientas aumenta el tiempo y el costo del proceso; como cada una reporta la misma vulnerabilidad de manera distinta, los resultados son inconsistentes; dado que ninguna cubre todas las vulnerabilidades, persisten falsos negativos; y la necesidad de consolidar hallazgos provenientes de fuentes diversas dificulta, finalmente, la toma de decisiones. En la experiencia del autor esa fragmentación no es abstracta: en los proyectos blockchain llevados adelante en Xcapit y en el laboratorio blockchain de la universidad, cada auditoría previa al despliegue exigía ejecutar por separado varias herramientas con instalaciones, formatos y criterios de severidad distintos, y consolidar sus salidas a mano; el Capítulo 4 relata el caso de 2023 que motivó directamente este trabajo.
 
 ### 1.2.2 Problemas Específicos
 

@@ -39,10 +39,10 @@ The economic impact of smart contract vulnerabilities is significant. According 
 |------|----------|------|---------------|
 | 2016 | The DAO | $60M | Reentrancy (SWC-107) |
 | 2017 | Parity Wallet | $150M (frozen funds) | Access Control (SWC-105/106) |
-| 2018 | BEC Token | Token price collapse (no verifiable direct amount) | Integer Overflow (SWC-101) |
 | 2021 | Cream Finance | $130M | Oracle Manipulation |
 | 2022 | Wormhole | $320M | Signature Verification |
 | 2022 | Ronin Bridge | $625M | Private Key Compromise |
+| 2022 | Nomad Bridge | $190M | Faulty message validation (SWC-105) |
 | 2023 | Euler Finance | $197M | Flash Loan + Reentrancy |
 
 ### 1.1.3 The Fragmentation of the Tool Ecosystem

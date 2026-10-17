@@ -10,7 +10,7 @@ This chapter documents the development and implementation process of MIESC (Mult
 
 ### 4.1.1 Project Genesis
 
-The origin of MIESC lies in a practical auditing experience conducted in 2023, where the author faced the task of evaluating the security of a DeFi protocol with TVL (Total Value Locked) exceeding 50 million dollars. During that process, three problems became evident that academic literature had pointed out but that industry had not satisfactorily resolved:
+The origin of MIESC lies in a practical auditing experience conducted in 2023, when the author faced the task of evaluating the security of a humanitarian-aid protocol that his company was developing for a multilateral organisation, before its deployment. During that process, three problems became evident that academic literature had pointed out but that industry had not satisfactorily resolved:
 
 **First problem: Tool fragmentation.** To perform a comprehensive audit, it was necessary to run Slither, Mythril, Echidna and request manual analysis with GPT-4. Each tool required independent installation, specific configuration, and produced results in incompatible formats. The time invested in orchestrating the tools exceeded the actual analysis time.
 
