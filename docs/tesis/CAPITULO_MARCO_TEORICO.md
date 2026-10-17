@@ -37,7 +37,7 @@ Constituyen activos cuya protección es responsabilidad del Estado en el marco d
 
 La protección de infraestructuras basadas en blockchain tiene implicaciones directas para la seguridad nacional (Govea et al., 2024):
 
-> "Los ataques a smart contracts representan una amenaza emergente para la seguridad económica de las naciones, con pérdidas que superan los $7.8 mil millones entre 2016 y 2024" (Chainalysis, 2024).
+> "Los ataques a smart contracts representan una amenaza emergente para la seguridad económica de las naciones, con pérdidas que superan los $7.8 mil millones entre 2016 y 2024" (Chainalysis, 2024; traducción propia).
 
 **Vectores de amenaza identificados:**
 
@@ -72,7 +72,7 @@ Una blockchain es una estructura de datos distribuida que consiste en una cadena
 
 Un smart contract es un programa computacional que se ejecuta de forma automática cuando se cumplen condiciones predefinidas (Szabo, 1996). Según la definición formal de Atzei et al. (2017):
 
-> "Un smart contract es un programa determinista que se ejecuta en un ambiente de ejecución distribuido (la blockchain), maneja activos digitales, y cuyo comportamiento esta completamente determinado por su código y el estado de la blockchain."
+> "Un smart contract es un programa determinista que se ejecuta en un ambiente de ejecución distribuido (la blockchain), maneja activos digitales, y cuyo comportamiento está completamente determinado por su código y el estado de la blockchain." (traducción propia)
 
 **Características críticas desde perspectiva de seguridad:**
 
@@ -131,11 +131,11 @@ El CWE (MITRE, 2024) permite mapear vulnerabilidades de smart contracts a debili
 OWASP (2023) mantiene una clasificación de las 10 vulnerabilidades más críticas, actualizada según incidentes reales:
 
 1. **Reentrancy:** $60M (The DAO, 2016)
-2. **Integer Overflow/Underflow:** $800K (BEC Token, 2018)
+2. **Integer Overflow/Underflow:** colapso de la cotización del token BEC (2018)
 3. **Front-Running:** Pérdidas constantes en DEXs
 4. **Oracle Manipulation:** $130M (Cream Finance, 2021)
 5. **Denial of Service:** Bloqueo de fondos
-6. **Access Control Issues:** $80M (Parity Wallet, 2017)
+6. **Access Control Issues:** $150M congelados (Parity Wallet, 2017)
 7. **Unprotected Functions:** Múltiples incidentes
 8. **Exploits de Puentes Cross-Chain:** ~$320M (incidente del puente Wormhole, febrero de 2022)
 9. **Signature Malleability:** Robo de fondos
@@ -196,7 +196,7 @@ La verificación formal utiliza métodos matemáticos para probar propiedades de
 **1. Model Checking:**
 - Exploración exhaustiva de estados
 - Verificación de propiedades temporales
-- Herramienta: SMTChecker (Solidity)
+- Herramienta: SMTChecker (Solidity; motores BMC y CHC)
 
 **2. Theorem Proving:**
 - Demostración matemática de propiedades
@@ -242,9 +242,9 @@ MIESC implementa los principios SOLID (Martin, 2000):
 
 ### 2.5.3 Defense in Depth
 
-Defense in Depth es una estrategia de seguridad que emplea múltiples capas de controles (Ross et al.,2016; NIST, 2024). Según el NIST SP 800-53:
+Defense in Depth es una estrategia de seguridad que emplea múltiples capas de controles (Ross et al., 2016). Según la definición del glosario de seguridad nacional de los Estados Unidos, que el NIST adopta en sus publicaciones (Committee on National Security Systems, 2015):
 
-> "Defense in depth is an information security strategy that integrates people, technology, and operations capabilities to establish variable barriers across múltiple layers and missions of the organization."
+> "Defense in depth is an information security strategy that integrates people, technology, and operations capabilities to establish variable barriers across multiple layers and missions of the organization."
 
 Durieux et al. (2020) muestran empíricamente que ninguna herramienta individual detecta todas las clases de vulnerabilidades y que combinar herramientas complementarias aumenta la cobertura de detección, evidencia que sustenta el enfoque defense-in-depth.
 
@@ -262,7 +262,7 @@ Durieux et al. (2020) muestran empíricamente que ninguna herramienta individual
 
 Los LLMs han emergido como herramientas poderosas para análisis de seguridad de código (Zhang et al.,2025). Según el estudio sistemático de Hou et al. (2024):
 
-> "Los LLMs demuestran capacidades emergentes para detectar vulnerabilidades que escapan a herramientas tradicionales basadas en patrones, particularmente aquellas que requieren comprensión semántica del código."
+> "Los LLMs demuestran capacidades emergentes para detectar vulnerabilidades que escapan a herramientas tradicionales basadas en patrones, particularmente aquellas que requieren comprensión semántica del código." (traducción propia)
 
 **Aplicaciones en seguridad de smart contracts:**
 
@@ -309,7 +309,7 @@ Las herramientas de seguridad utilizan nomenclaturas heterogéneas:
 | Herramienta | Nombre del Hallazgo | ID | Severidad |
 |-------------|---------------------|-----|-----------|
 | Slither | reentrancy-eth | - | High |
-| Mythril | State Access After External Call | SWC-107 | Medium |
+| Mythril | State change after external call | SWC-107 | Medium |
 | Echidna | property_balance_invariant | - | FAILED |
 
 **Problema:** Dificulta la correlación, deduplicación y priorización de hallazgos.
@@ -320,7 +320,7 @@ MIESC normaliza hallazgos a un esquema unificado basado en taxonomías estándar
 
 ```json
 {
-  "id": "MIESC-YYYY-XX-NNN",
+  "id": "MIESC-YYYY-NNN",
   "type": "categoria-normalizada",
   "severity": "CRITICAL|HIGH|MEDIUM|LOW|INFO",
   "confidence": "HIGH|MEDIUM|LOW",
@@ -333,7 +333,7 @@ MIESC normaliza hallazgos a un esquema unificado basado en taxonomías estándar
   "classification": {
     "swc_id": "SWC-107",
     "cwe_id": "CWE-841",
-    "owasp_id": "SC06"
+    "owasp_id": "SC01"
   },
   "detected_by": ["slither", "mythril"],
   "message": "Descripcion normalizada",
@@ -361,8 +361,9 @@ Atzei, N., Bartoletti, M., & Cimoli, T. (2017). A survey of attacks on Ethereum 
 
 Chainalysis. (2024). The 2024 Crypto Crime Report. Chainalysis Inc.
 
-Ivanov, N., Li, C., Yan, Q., Sun, Z., Cao, Z., & Luo, X. (2023). Security defense for smart contracts: A comprehensive survey. *arXiv preprint arXiv:2302.07347*. https://arxiv.org/abs/2302.07347
+Committee on National Security Systems. (2015). *Committee on National Security Systems (CNSS) glossary* (CNSSI No. 4009). CNSS. https://www.cnss.gov/CNSS/issuances/Instructions.cfm
 
+Durieux, T., Ferreira, J. F., Abreu, R., & Cruz, P. (2020). Empirical review of automated analysis tools on 47,587 Ethereum smart contracts. *Proceedings of the ACM/IEEE 42nd International Conference on Software Engineering (ICSE)*, 530-541. https://doi.org/10.1145/3377811.3380364
 
 Feist, J., Grieco, G., & Groce, A. (2019). Slither: A static analysis framework for smart contracts. In *2019 IEEE/ACM 2nd International Workshop on Emerging Trends in Software Engineering for Blockchain* (pp. 8-15). IEEE.
 
@@ -376,6 +377,8 @@ Hoare, C. A. R. (1969). An axiomatic basis for computer programming. *Communicat
 
 Hou, X., Zhao, Y., Liu, Y., Yang, Z., Wang, K., Li, L., ... & Grundy, J. (2024). Large language models for software engineering: A systematic literature review. *ACM Transactions on Software Engineering and Methodology*. https://doi.org/10.1145/3695988
 
+Ivanov, N., Li, C., Yan, Q., Sun, Z., Cao, Z., & Luo, X. (2023). Security defense for smart contracts: A comprehensive survey. *arXiv preprint arXiv:2302.07347*. https://arxiv.org/abs/2302.07347
+
 Joint Chiefs of Staff. (2018). *Cyberspace Operations (JP 3-12)*. U.S. Department of Defense.
 
 King, J. C. (1976). Symbolic execution and program testing. *Communications of the ACM, 19*(7), 385-394.
@@ -383,8 +386,6 @@ King, J. C. (1976). Symbolic execution and program testing. *Communications of t
 Lewis, P., Perez, E., Piktus, A., Petroni, F., Karpukhin, V., Goyal, N., ... & Kiela, D. (2020). Retrieval-augmented generation for knowledge-intensive NLP tasks. In *Advances in Neural Information Processing Systems, 33*, 9459-9474.
 
 Libicki, M. C. (2009). *Cyberdeterrence and Cyberwar*. RAND Corporation.
-
-Durieux, T., Ferreira, J. F., Abreu, R., & Cruz, P. (2020). Empirical review of automated analysis tools on 47,587 Ethereum smart contracts. *Proceedings of the ACM/IEEE 42nd International Conference on Software Engineering (ICSE)*, 530-541. https://doi.org/10.1145/3377811.3380364
 
 Luu, L., Chu, D. H., Olickel, H., Saxena, P., & Hobor, A. (2016). Making smart contracts smarter. In *Proceedings of the 2016 ACM SIGSAC Conference on Computer and Communications Security* (pp. 254-269). ACM.
 
@@ -402,7 +403,7 @@ National Institute of Standards and Technology. (2024). *NIST Cybersecurity Fram
 
 OWASP. (2023). *Smart Contract Security Verification Standard*. OWASP Foundation.
 
-Ross, R., Pillitteri, V., Dempsey, K., Riddle, M., & Guissanie, G. (2016). *Protecting controlled unclassified information in nonfederal systems and organizations* (NIST SP 800-171). NIST.
+Ross, R., McEvilley, M., & Oren, J. C. (2016). *Systems security engineering: Considerations for a multidisciplinary approach in the engineering of trustworthy secure systems* (NIST Special Publication 800-160, Vol. 1). National Institute of Standards and Technology. https://doi.org/10.6028/NIST.SP.800-160v1
 
 Sayeed, S., Marco-Gisbert, H., & Caira, T. (2020). Smart contract: Attacks and protections. *IEEE Access, 8*, 24416-24427.
 

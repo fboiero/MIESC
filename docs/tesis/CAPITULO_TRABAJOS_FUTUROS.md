@@ -8,7 +8,7 @@
 
 ### 8.1.1 Síntesis del Trabajo Realizado
 
-El presente trabajo de tesis ha presentado MIESC (Marco Integrado de Seguridad para Contratos Ethereum), un framework de código abierto que implementa una arquitectura de defensa en profundidad para la auditoría automatizada de contratos inteligentes. El desarrollo de MIESC representa una contribución significativa al campo de la seguridad de smart contracts, abordando las brechas identificadas en el estado del arte.
+El presente trabajo de tesis ha presentado MIESC (Multi-layer Integration for Ethereum Smart Contract Security), un framework de código abierto que implementa una arquitectura de defensa en profundidad para la auditoría automatizada de contratos inteligentes. El desarrollo de MIESC representa una contribución significativa al campo de la seguridad de smart contracts, abordando las brechas identificadas en el estado del arte.
 
 ### 8.1.2 Objetivos Alcanzados
 

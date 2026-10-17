@@ -811,8 +811,6 @@ Beller, M., Bholanath, R., McIntosh, S., & Zaidman, A. (2016). Analyzing the sta
 
 OWASP. (2023). Smart Contract Security Testing Guide. https://owasp.org/
 
-Ross, R., et al. (2016). Guide to Industrial Control Systems (ICS) Security. *NIST SP 800-82 Rev. 2*.
-
 ---
 
 *Nota: Las referencias siguen el formato APA 7ma edición.*

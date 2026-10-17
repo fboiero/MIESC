@@ -23,8 +23,8 @@ Las vulnerabilidades en contratos inteligentes han ocasionado pérdidas económi
 | Año | Incidente | Pérdida (USD) | Vulnerabilidad | Referencia |
 |-----|-----------|---------------|----------------|------------|
 | 2016 | The DAO | $60M | Reentrancy | Mehar et al. (2019) |
-| 2017 | Parity Wallet | $150M | Access Control | Destefanis et al. (2018) |
-| 2018 | Beauty Chain | $900M | Integer Overflow | Chen et al. (2017) |
+| 2017 | Parity Wallet | $150M (fondos congelados) | Access Control | Destefanis et al. (2018) |
+| 2018 | Beauty Chain (BEC) | Colapso de la cotización del token | Integer Overflow | NVD (2018), CVE-2018-10299 |
 | 2020 | bZx Protocol | $350K | Flash Loan | Qin et al. (2021) |
 | 2021 | Poly Network | $610M | Cross-chain | Zhou et al. (2023) |
 | 2022 | Ronin Bridge | $625M | Key Compromise | Chainalysis (2024) |
@@ -143,7 +143,7 @@ La verificación formal proporciona garantías matemáticas sobre el comportamie
 
 *Certora Prover* (Certora, 2024): Herramienta comercial que utiliza el lenguaje CVL (Certora Verification Language) para especificaciones formales. Empleada por protocolos de alto valor como Aave y Compound.
 
-*SMTChecker* (Alt & Reitwiessner, 2018): Verificador integrado en el compilador de Solidity que utiliza bounded model checking para verificar aserciones.
+*SMTChecker* (Alt & Reitwiessner, 2018): Verificador integrado en el compilador de Solidity que aplica model checking con dos motores —*bounded model checking* (BMC) y cláusulas de Horn restringidas (CHC)— para verificar aserciones y propiedades.
 
 ---
 
@@ -276,13 +276,9 @@ Bhargavan, K., Delignat-Lavaud, A., Fournet, C., Gollamudi, A., Gonthier, G., Ko
 
 Chainalysis. (2024). *The 2024 Crypto Crime Report*. https://www.chainalysis.com/reports/
 
-Chen, T., Li, X., Luo, X., & Zhang, X. (2017). Under-optimized smart contracts devour your money. En *2017 IEEE 24th International Conference on Software Analysis, Evolution and Reengineering (SANER)* (pp. 442-446). IEEE. https://doi.org/10.1109/SANER.2017.7884650
-
-De Baets, C., Suleiman, B., Chitizadeh, A., & Razzak, I. (2024). Vulnerability detection in smart contracts: A comprehensive survey. *arXiv preprint arXiv:2407.07922*. https://arxiv.org/abs/2407.07922
-
 Clarke, E. M., Henzinger, T. A., Veith, H., & Bloem, R. (Eds.). (2018). *Handbook of model checking*. Springer. https://doi.org/10.1007/978-3-319-10575-8
 
-Sun, Y., Wu, D., Xue, Y., Liu, H., Wang, H., Xu, Z., Xie, X., & Liu, Y. (2024). GPTScan: Detecting logic vulnerabilities in smart contracts by combining GPT with program analysis. En *Proceedings of the IEEE/ACM 46th International Conference on Software Engineering (ICSE '24)* (pp. 1-13). ACM. https://doi.org/10.1145/3597503.3639117
+De Baets, C., Suleiman, B., Chitizadeh, A., & Razzak, I. (2024). Vulnerability detection in smart contracts: A comprehensive survey. *arXiv preprint arXiv:2407.07922*. https://arxiv.org/abs/2407.07922
 
 Destefanis, G., Marchesi, M., Ortu, M., Tonelli, R., Bracciali, A., & Hierons, R. (2018). Smart contracts vulnerabilities: A call for blockchain software engineering? *Proceedings of the International Workshop on Blockchain Oriented Software Engineering*, 19-25. https://doi.org/10.1109/IWBOSE.2018.8327567
 
@@ -310,7 +306,6 @@ King, J. C. (1976). Symbolic execution and program testing. *Communications of t
 
 Kitchenham, B., & Charters, S. (2007). *Guidelines for performing systematic literature reviews in software engineering* (Technical Report EBSE-2007-01). Keele University.
 
-
 Luu, L., Chu, D. H., Olickel, H., Saxena, P., & Hobor, A. (2016). Making smart contracts smarter. *Proceedings of the 2016 ACM SIGSAC Conference on Computer and Communications Security*, 254-269. https://doi.org/10.1145/2976749.2978309
 
 Mehar, M. I., Shier, C. L., Giambattista, A., Gong, E., Fletcher, G., Sanayhie, R., ... & Laskowski, M. (2019). Understanding a revolutionary and flawed grand experiment in blockchain: The DAO attack. *Journal of Cases on Information Technology, 21*(1), 19-32. https://doi.org/10.4018/JCIT.2019010102
@@ -324,6 +319,8 @@ MITRE. (2024). *Common Weakness Enumeration (CWE)*. https://cwe.mitre.org/
 Mossberg, M., Manzano, F., Hennenfent, E., Groce, A., Grieco, G., Feist, J., ... & Dinaburg, A. (2019). Manticore: A user-friendly symbolic execution framework for binaries and smart contracts. *Proceedings of the 34th IEEE/ACM International Conference on Automated Software Engineering*, 1186-1189. https://doi.org/10.1109/ASE.2019.00133
 
 Mueller, B. (2018). Smashing Ethereum smart contracts for fun and real profit. *Proceedings of the 9th HITB Security Conference*.
+
+National Vulnerability Database. (2018). *CVE-2018-10299: Integer overflow in the batchTransfer function of the BeautyChain (BEC) token contract*. National Institute of Standards and Technology. https://nvd.nist.gov/vuln/detail/CVE-2018-10299
 
 Newman, S. (2015). *Building microservices: Designing fine-grained systems*. O'Reilly Media.
 
@@ -348,6 +345,8 @@ Ross, R., McEvilley, M., & Oren, J. C. (2016). *Systems security engineering: Co
 Schneier, B. (2000). *Secrets and lies: Digital security in a networked world*. John Wiley & Sons.
 
 SCSVS. (2023). *Smart Contract Security Verification Standard*. https://github.com/securing/SCSVS
+
+Sun, Y., Wu, D., Xue, Y., Liu, H., Wang, H., Xu, Z., Xie, X., & Liu, Y. (2024). GPTScan: Detecting logic vulnerabilities in smart contracts by combining GPT with program analysis. En *Proceedings of the IEEE/ACM 46th International Conference on Software Engineering (ICSE '24)* (pp. 1-13). ACM. https://doi.org/10.1145/3597503.3639117
 
 Tsankov, P., Dan, A., Drachsler-Cohen, D., Gervais, A., Bünzli, F., & Vechev, M. (2018). Securify: Practical security analysis of smart contracts. *Proceedings of the 2018 ACM SIGSAC Conference on Computer and Communications Security*, 67-82. https://doi.org/10.1145/3243734.3243780
 

@@ -345,8 +345,8 @@ The following fragment shows the structure of an individual finding normalized b
     "swc_title": "Reentrancy",
     "cwe_id": "CWE-841",
     "cwe_title": "Improper Enforcement of Behavioral Workflow",
-    "owasp_id": "SC06",
-    "owasp_title": "Reentrancy Attack"
+    "owasp_id": "SC01",
+    "owasp_title": "SC01:2023-Reentrancy"
   },
   "detected_by": ["slither", "mythril", "gptscan"],
   "first_detection": "slither",

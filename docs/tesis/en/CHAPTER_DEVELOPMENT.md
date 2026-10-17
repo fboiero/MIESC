@@ -1,12 +1,12 @@
 # Chapter 4: Development
 
-## MIESC: Integrated Security Framework for Ethereum Contracts
+## MIESC: Multi-layer Integration for Ethereum Smart Contract Security
 
 ---
 
 ## 4.1 Introduction
 
-This chapter documents the development and implementation process of MIESC (Integrated Security Framework for Ethereum Contracts), an open-source framework designed to address the deficiencies identified in the smart contract auditing tools ecosystem. The exposition follows a structure that reflects the actual research process: from identifying concrete problems to the design decisions adopted to solve them, including dead ends encountered and lessons learned during development.
+This chapter documents the development and implementation process of MIESC (Multi-layer Integration for Ethereum Smart Contract Security), an open-source framework designed to address the deficiencies identified in the smart contract auditing tools ecosystem. The exposition follows a structure that reflects the actual research process: from identifying concrete problems to the design decisions adopted to solve them, including dead ends encountered and lessons learned during development.
 
 ### 4.1.1 Project Genesis
 
@@ -137,7 +137,7 @@ The selection of the 25 tools that compose MIESC followed a structured evaluatio
 
 **Layer 2 - Fuzzing:** Echidna, developed by Trail of Bits, was selected for its property-based testing capability specific to contracts. Foundry Fuzz contributes integration with the Foundry ecosystem, widely adopted in industry. Medusa provides coverage-based fuzzing with support for complex invariants. Vertigo implements mutation testing, a complementary technique that evaluates the quality of existing tests.
 
-**Layer 3 - Symbolic Execution:** Mythril, also from Trail of Bits, was selected for its maturity and extensive documentation. Manticore contributes deeper analysis capabilities at the cost of longer execution time. Oyente, although less maintained, was included for its historical relevance and detection of specific patterns not covered by other tools.
+**Layer 3 - Symbolic Execution:** Mythril, developed by ConsenSys Diligence, was selected for its maturity and extensive documentation. Manticore contributes deeper analysis capabilities at the cost of longer execution time. Oyente, although less maintained, was included for its historical relevance and detection of specific patterns not covered by other tools.
 
 **Layer 4 - Invariant Testing:** Scribble allows annotating contracts with specifications that are verified during execution. Halmos implements bounded model checking, verifying invariants up to a certain exploration depth.
 
@@ -155,7 +155,7 @@ The selection of the 25 tools that compose MIESC followed a structured evaluatio
 
 Each security tool integrated in MIESC presents unique characteristics that hinder unified orchestration:
 
-**Diversity of invocation interfaces:** Slither is invoked as a Python module, Mythril as a CLI command, Echidna requires YAML configuration files, Certora uses .conf files with its own syntax.
+**Diversity of invocation interfaces:** Slither offers a Python API and a command line (MIESC uses the latter, with JSON output), Mythril is a CLI command with its own flags and format, Echidna requires YAML configuration files, Certora uses .conf files with its own syntax.
 
 **Heterogeneity of output formats:** Slither produces structured JSON, Mythril generates formatted text or JSON depending on parameters, Echidna emits test logs, Manticore creates artifact directories.
 
@@ -413,7 +413,7 @@ MIESC development faced several technical challenges not documented in literatur
 
 ### 4.7.1 Manticore Incompatibility with Python 3.11
 
-**Identified problem:** Manticore depends on the `wasm` library, which uses `collections.Callable`, an alias removed in Python 3.11 according to PEP 585.
+**Identified problem:** Manticore depends on the `wasm` library, which uses `collections.Callable`, an alias removed in Python 3.10 after its deprecation in 3.3 (the migration to `collections.abc` is documented alongside PEP 585); the error surfaced when MIESC adopted Python 3.11.
 
 **Solution implemented:** Patch at installation time that modifies the affected file.
 

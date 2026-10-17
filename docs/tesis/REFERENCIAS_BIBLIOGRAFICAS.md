@@ -4,21 +4,15 @@
 
 ---
 
-## A
-
 Aho, A. V., Lam, M. S., Sethi, R., & Ullman, J. D. (2006). *Compilers: Principles, techniques, and tools* (2nd ed.). Addison-Wesley.
 
 Alt, L., & Reitwiessner, C. (2018). SMT-based verification of Solidity smart contracts. En T. Margaria & B. Steffen (Eds.), *Leveraging applications of formal methods, verification and validation. Industrial practice (ISoLA 2018)* (Lecture Notes in Computer Science, Vol. 11247, pp. 376-388). Springer. https://doi.org/10.1007/978-3-030-03427-6_28
 
 Amdahl, G. M. (1967). Validity of the single processor approach to achieving large scale computing capabilities. *Proceedings of the AFIPS Spring Joint Computer Conference, 30*, 483-485. https://doi.org/10.1145/1465482.1465560
 
-Di Angelo, M., & Salzer, G. (2019). A survey of tools for analyzing Ethereum smart contracts. *Proceedings of the 2019 IEEE International Conference on Decentralized Applications and Infrastructures (DAPPCON)*, 69-78. https://doi.org/10.1109/DAPPCON.2019.00018
-
 Anthropic. (2024). *Model Context Protocol Specification*. https://modelcontextprotocol.io/
 
 Atzei, N., Bartoletti, M., & Cimoli, T. (2017). A survey of attacks on Ethereum smart contracts (SoK). En M. Maffei & M. Ryan (Eds.), *Lecture Notes in Computer Science: Vol. 10204. Principles of Security and Trust* (pp. 164-186). Springer. https://doi.org/10.1007/978-3-662-54455-6_8
-
-De Baets, C., Suleiman, B., Chitizadeh, A., & Razzak, I. (2024). Vulnerability detection in smart contracts: A comprehensive survey. *arXiv preprint arXiv:2407.07922*. https://arxiv.org/abs/2407.07922
 
 Baldoni, R., Coppa, E., D'Elia, D. C., Demetrescu, C., & Finocchi, I. (2018). A survey of symbolic execution techniques. *ACM Computing Surveys, 51*(3), Article 50. https://doi.org/10.1145/3182657
 
@@ -38,15 +32,19 @@ Certora. (2024). *Certora Prover documentation*. https://docs.certora.com/
 
 Chainalysis. (2024). *The 2024 crypto crime report*. Chainalysis Inc. https://www.chainalysis.com/reports/
 
-Chen, T., Li, X., Luo, X., & Zhang, X. (2017). Under-optimized smart contracts devour your money. En *2017 IEEE 24th International Conference on Software Analysis, Evolution and Reengineering (SANER)* (pp. 442-446). IEEE. https://doi.org/10.1109/SANER.2017.7884650
-
 Clarke, E. M., Henzinger, T. A., Veith, H., & Bloem, R. (Eds.). (2018). *Handbook of model checking*. Springer. https://doi.org/10.1007/978-3-319-10575-8
 
+Committee on National Security Systems. (2015). *Committee on National Security Systems (CNSS) glossary* (CNSSI No. 4009). CNSS. https://www.cnss.gov/CNSS/issuances/Instructions.cfm
+
 ConsenSys. (2023). *Smart contract best practices*. https://consensys.github.io/smart-contract-best-practices/
+
+De Baets, C., Suleiman, B., Chitizadeh, A., & Razzak, I. (2024). Vulnerability detection in smart contracts: A comprehensive survey. *arXiv preprint arXiv:2407.07922*. https://arxiv.org/abs/2407.07922
 
 DeFiLlama. (2024). *DeFi TVL by Chain*. https://defillama.com/chains
 
 Destefanis, G., Marchesi, M., Ortu, M., Tonelli, R., Bracciali, A., & Hierons, R. (2018). Smart contracts vulnerabilities: A call for blockchain software engineering? *Proceedings of the 2018 International Workshop on Blockchain Oriented Software Engineering (IWBOSE)*, 19-25. https://doi.org/10.1109/IWBOSE.2018.8327567
+
+Di Angelo, M., & Salzer, G. (2019). A survey of tools for analyzing Ethereum smart contracts. *Proceedings of the 2019 IEEE International Conference on Decentralized Applications and Infrastructures (DAPPCON)*, 69-78. https://doi.org/10.1109/DAPPCON.2019.00018
 
 Digital Public Goods Alliance. (2023). *Digital Public Goods Standard* (Version 1.1.6). https://digitalpublicgoods.net/standard/
 
@@ -117,6 +115,8 @@ Nakamoto, S. (2008). Bitcoin: A peer-to-peer electronic cash system. https://bit
 National Institute of Standards and Technology. (2024). *NIST Cybersecurity Framework 2.0* (NIST CSF). NIST. https://www.nist.gov/cyberframework
 
 National Security Agency. (s.f.). *Defense in depth: A practical strategy for achieving Information Assurance in today's highly networked environments*. NSA Information Assurance Solutions Group.
+
+National Vulnerability Database. (2018). *CVE-2018-10299: Integer overflow in the batchTransfer function of the BeautyChain (BEC) token contract*. National Institute of Standards and Technology. https://nvd.nist.gov/vuln/detail/CVE-2018-10299
 
 Newman, S. (2015). *Building microservices: Designing fine-grained systems*. O'Reilly Media.
 
@@ -198,7 +198,7 @@ Las referencias siguen el formato de la American Psychological Association (APA)
 4. **Software/herramientas:** Se cita como software con URL del repositorio
 5. **Documentos gubernamentales:** Se incluye organizacion y numero de publicacion
 
-**Total de referencias:** 89
+**Total de referencias:** 90
 
 **Distribucion por tipo:**
 - Articulos de conferencia: 29 (30%)

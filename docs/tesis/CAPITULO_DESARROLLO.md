@@ -1,12 +1,12 @@
 # Capítulo 4: Desarrollo
 
-## MIESC: Marco Integrado de Seguridad para Contratos Ethereum
+## MIESC: Multi-layer Integration for Ethereum Smart Contract Security
 
 ---
 
 ## 4.1 Introducción
 
-El presente capítulo documenta el proceso de desarrollo e implementación de MIESC (Marco Integrado de Seguridad para Contratos Ethereum), un framework de código abierto diseñado para abordar las deficiencias identificadas en el ecosistema de herramientas de auditoría de contratos inteligentes. La exposición sigue una estructura que refleja el proceso real de investigación: desde la identificación de problemas concretos hasta las decisiones de diseño adoptadas para resolverlos, incluyendo los callejones sin salida encontrados y las lecciones aprendidas durante el desarrollo.
+El presente capítulo documenta el proceso de desarrollo e implementación de MIESC (Multi-layer Integration for Ethereum Smart Contract Security), un framework de código abierto diseñado para abordar las deficiencias identificadas en el ecosistema de herramientas de auditoría de contratos inteligentes. La exposición sigue una estructura que refleja el proceso real de investigación: desde la identificación de problemas concretos hasta las decisiones de diseño adoptadas para resolverlos, incluyendo los callejones sin salida encontrados y las lecciones aprendidas durante el desarrollo.
 
 ### 4.1.1 Génesis del Proyecto
 
@@ -73,7 +73,7 @@ El índice de mantenibilidad de 72.3 supera el umbral de 65 propuesto por Oman y
 
 ### 4.2.1 El Principio de Defensa en Profundidad: Fundamentos y Aplicación
 
-La arquitectura de MIESC se fundamenta en el principio de defensa en profundidad (*Defense-in-Depth*, DiD), un concepto originado en doctrina militar que fue adaptado a la seguridad de sistemas de información durante la década de 1990. El National Security Agency (s.f.) formalizó este principio como "la aplicación de múltiples medidas de protección en serie, de modo que un adversario deba superar o evitar cada medida sucesivamente para comprometer el sistema protegido" (p. 3-12).
+La arquitectura de MIESC se fundamenta en el principio de defensa en profundidad (*Defense-in-Depth*, DiD), un concepto originado en doctrina militar que fue adaptado a la seguridad de sistemas de información durante la década de 1990. El National Security Agency (s.f.) formalizó este principio como "la aplicación de múltiples medidas de protección en serie, de modo que un adversario deba superar o evitar cada medida sucesivamente para comprometer el sistema protegido" (p. 3-12; traducción propia).
 
 La aplicación de este principio al análisis de contratos inteligentes es, hasta donde alcanza la revisión del Capítulo 3, una contribución original de este trabajo. La justificación teórica se fundamenta en la observación empírica de que diferentes técnicas de análisis tienen fortalezas y debilidades complementarias:
 
@@ -89,7 +89,7 @@ La aplicación de este principio al análisis de contratos inteligentes es, hast
 
 Schneier (2000) articula la filosofía subyacente:
 
-> "La defensa en profundidad reconoce que ningún control de seguridad individual es perfecto. Al implementar múltiples capas, se reduce la probabilidad de que un atacante pueda evadir todos los controles" (p. 284).
+> "La defensa en profundidad reconoce que ningún control de seguridad individual es perfecto. Al implementar múltiples capas, se reduce la probabilidad de que un atacante pueda evadir todos los controles" (p. 284; traducción propia).
 
 ### 4.2.2 Proceso de Selección: De la Teoría a las Siete Capas
 
@@ -142,7 +142,7 @@ La selección de las 25 herramientas que componen MIESC siguió un proceso de ev
 
 **Capa 2 - Fuzzing:** Echidna, desarrollada por Trail of Bits, fue seleccionada por su capacidad de property-based testing específico para contratos. Foundry Fuzz aporta integración con el ecosistema Foundry, ampliamente adoptado en la industria. Medusa proporciona fuzzing basado en cobertura con soporte para invariantes complejas. Vertigo implementa mutation testing, una técnica complementaria que evalúa la calidad de las pruebas existentes.
 
-**Capa 3 - Ejecución Simbólica:** Mythril, también de Trail of Bits, fue seleccionada por su madurez y extensa documentación. Manticore aporta capacidades de análisis más profundas a costa de mayor tiempo de ejecución. Oyente, aunque menos mantenido, se incluyó por su relevancia histórica y detección de patrones específicos no cubiertos por las otras herramientas.
+**Capa 3 - Ejecución Simbólica:** Mythril, desarrollada por ConsenSys Diligence, fue seleccionada por su madurez y extensa documentación. Manticore aporta capacidades de análisis más profundas a costa de mayor tiempo de ejecución. Oyente, aunque menos mantenido, se incluyó por su relevancia histórica y detección de patrones específicos no cubiertos por las otras herramientas.
 
 **Capa 4 - Invariant Testing:** Scribble permite anotar contratos con especificaciones que se verifican durante ejecución. Halmos implementa bounded model checking, verificando invariantes hasta cierta profundidad de exploración.
 
@@ -160,7 +160,7 @@ La selección de las 25 herramientas que componen MIESC siguió un proceso de ev
 
 Cada herramienta de seguridad integrada en MIESC presenta características únicas que dificultan su orquestación unificada:
 
-**Diversidad de interfaces de invocación:** Slither se invoca como módulo Python, Mythril como comando CLI, Echidna requiere archivos de configuración YAML, Certora utiliza archivos .conf con sintaxis propia.
+**Diversidad de interfaces de invocación:** Slither ofrece API de Python y línea de comandos (MIESC usa esta última, con salida JSON), Mythril es un comando CLI con sus propias banderas y formato, Echidna requiere archivos de configuración YAML, Certora utiliza archivos .conf con sintaxis propia.
 
 **Heterogeneidad de formatos de salida:** Slither produce JSON estructurado, Mythril genera texto formateado o JSON según parámetros, Echidna emite logs de prueba, Manticore crea directorios de artefactos.
 
@@ -479,6 +479,7 @@ class SlitherAdapter(ToolAdapter):
         ]
 
         try:
+            started = time.perf_counter()
             result = subprocess.run(
                 cmd,
                 capture_output=True,
@@ -497,7 +498,7 @@ class SlitherAdapter(ToolAdapter):
                 "metadata": {
                     "detectors_run": len(raw_output.get("detectors", [])),
                     "contracts_analyzed": len(raw_output.get("contracts", [])),
-                    "execution_time_ms": result.returncode
+                    "execution_time_ms": int((time.perf_counter() - started) * 1000)
                 }
             }
         except subprocess.TimeoutExpired:
@@ -754,8 +755,9 @@ def _deduplicate_findings(self, findings: List[Dict]) -> List[Dict]:
     3. Consolidar: preservar máxima severidad y confianza
     4. Registrar todas las herramientas que detectaron cada hallazgo
 
-    La tolerancia de ±2 líneas en la clave de deduplicación maneja
-    diferencias menores en cómo las herramientas reportan ubicaciones.
+    El agrupamiento por ventanas de tres líneas (`línea // 3`) en la clave
+    de deduplicación absorbe diferencias menores en cómo las herramientas
+    reportan ubicaciones.
     Por ejemplo, Slither puede reportar línea 42 mientras Mythril
     reporta línea 43 para la misma vulnerabilidad.
     """
@@ -813,7 +815,7 @@ El desarrollo de MIESC enfrentó varios desafíos técnicos no documentados en l
 
 ### 4.7.1 Incompatibilidad de Manticore con Python 3.11
 
-**Problema identificado:** Manticore depende de la biblioteca `wasm`, la cual utiliza `collections.Callable`, un alias eliminado en Python 3.11 según PEP 585 (van Rossum et al., 2019).
+**Problema identificado:** Manticore depende de la biblioteca `wasm`, la cual utiliza `collections.Callable`, un alias eliminado en Python 3.10 tras su deprecación en 3.3 (la migración a `collections.abc` se documenta junto a PEP 585; van Rossum et al., 2019); el error se manifestó al adoptar Python 3.11 como base de MIESC.
 
 **Síntoma:** Error de importación al intentar usar Manticore:
 ```
@@ -1016,9 +1018,9 @@ La Tabla 4.4 presenta los resultados del análisis de VulnerableBank con MIESC.
 **Tasa de deduplicación:** 60% (en este contrato; la cifra del corpus completo es 68%, §5.4.1)
 
 El análisis revela que:
-1. Cinco herramientas diferentes detectaron la misma vulnerabilidad de reentrancy
-2. Sin deduplicación, aparecería 5 veces en el reporte
-3. MIESC consolida estos hallazgos en una única entrada con `detected_by: ["slither", "mythril", "manticore", "smtchecker", "gptscan"]`
+1. Seis herramientas diferentes detectaron la misma vulnerabilidad de reentrancy
+2. Sin deduplicación, aparecería 6 veces en el reporte
+3. MIESC consolida estos hallazgos en una única entrada con `detected_by: ["slither", "echidna", "mythril", "manticore", "smtchecker", "gptscan"]`
 
 ### 4.8.3 Remediación Recomendada
 
@@ -1192,8 +1194,6 @@ SCSVS. (2023). *Smart Contract Security Verification Standard*. https://github.c
 Shaw, M. (2012). The role of design spaces. *IEEE Software, 29*(1), 46-50.
 
 Sommerville, I. (2016). *Software engineering* (10th ed.). Pearson.
-
-Sun, Y., et al. (2024). GPTScan: Detecting logic vulnerabilities in smart contracts by combining GPT with program analysis. *ICSE 2024*, 1-12.
 
 Touvron, H., et al. (2023). LLaMA: Open and efficient foundation language models. *arXiv:2302.13971*.
 

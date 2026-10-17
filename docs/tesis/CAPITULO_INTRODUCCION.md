@@ -31,15 +31,15 @@ Los smart contracts son programas autonomos que se ejecutan en blockchains y ges
 
 El impacto económico de las vulnerabilidades en smart contracts es significativo. Según Chainalysis (2024):
 
-> "Las pérdidas acumuladas por explotación de vulnerabilidades en smart contracts superan los $7.8 mil millones entre 2016 y 2024, con un incremento del 58% en ataques sofisticados durante el último año."
+> "Las pérdidas acumuladas por explotación de vulnerabilidades en smart contracts superan los $7.8 mil millones entre 2016 y 2024, con un incremento del 58% en ataques sofisticados durante el último año." (traducción propia)
 
 **Tabla 1.1.** Incidentes históricos críticos en smart contracts
 
 | Año | Incidente | Pérdida | Vulnerabilidad |
 |-----|-----------|---------|----------------|
 | 2016 | The DAO | $60M | Reentrancy (SWC-107) |
-| 2017 | Parity Wallet | $280M | Access Control (SWC-105) |
-| 2018 | BEC Token | $900M | Integer Overflow (SWC-101) |
+| 2017 | Parity Wallet | $150M (fondos congelados) | Access Control (SWC-105/106) |
+| 2018 | BEC Token | Colapso de la cotización del token (sin monto directo verificable) | Integer Overflow (SWC-101) |
 | 2021 | Cream Finance | $130M | Oracle Manipulation |
 | 2022 | Wormhole | $320M | Signature Verification |
 | 2022 | Ronin Bridge | $625M | Private Key Compromise |
