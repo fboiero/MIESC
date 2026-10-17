@@ -100,12 +100,12 @@ TITLEPAGE_TEX = r"""
   \draw[line width=0.5pt]
     ($(current page.north west)+(2cm,-2cm)$) rectangle
     ($(current page.south east)+(-2cm,2cm)$);
-\end{tikzpicture}
+\end{tikzpicture}%
+\par\null\vskip 1.4cm
 \centering
-\vspace*{1.1cm}
-\noindent\hspace{0.3cm}\includegraphics[height=2.7cm]{logo_cruc_iua.png}\hfill\includegraphics[height=2.4cm]{logo_undef.png}\hspace{0.3cm}
+\noindent\hspace{0.6cm}\includegraphics[height=2.7cm]{logo_cruc_iua.png}\hfill\includegraphics[height=2.4cm]{logo_undef.png}\hspace{0.6cm}
 \par
-\vspace{2.6cm}
+\vspace{2.2cm}
 {\fontsize{20}{24}\selectfont\textbf{MAESTRÍA EN CIBERDEFENSA}\par}
 \vspace{1.0cm}
 {\fontsize{18}{22}\selectfont Trabajo Final de Maestría\par}
@@ -241,6 +241,7 @@ def assemble() -> str:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--lang", default="es")
+    ap.add_argument("--docx", action="store_true", help="also write an editable .docx (review copy)")
     args = ap.parse_args()
 
     for tool in ("pandoc", "xelatex", "rsvg-convert"):
@@ -275,6 +276,40 @@ def main() -> int:
     r = subprocess.run(cmd, cwd=ROOT)
     if r.returncode == 0:
         print(f"OK -> {out_pdf}")
+    if r.returncode != 0 or not args.docx:
+        return r.returncode
+
+    # Editable Word version for review. Raw LaTeX blocks (cover, \tableofcontents,
+    # \newpage) are dropped by pandoc for docx, so the title block comes from metadata
+    # and the table of contents from --toc; SVG figures are rasterised via rsvg-convert.
+    out_docx = BUILD / f"tesis_miesc_{args.lang}.docx"
+    cmd_docx = [
+        "pandoc",
+        str(combined),
+        "-f",
+        "markdown+raw_tex",
+        "-t",
+        "docx",
+        "--toc",
+        "--toc-depth=2",
+        f"--resource-path={TESIS}",
+        "-M",
+        "title=MIESC: Framework Multi-capa de Integración de Herramientas para Seguridad de Smart Contracts",
+        "-M",
+        "subtitle=Trabajo Final de Maestría en Ciberdefensa — versión editable para revisión",
+        "-M",
+        "author=Ing. Fernando Boiero — Director: Mg. Eduardo Casanovas",
+        "-M",
+        "date=Córdoba, Argentina — Noviembre 2025",
+        "-M",
+        "lang=es",
+        "-o",
+        str(out_docx),
+    ]
+    print("  " + " ".join(cmd_docx))
+    r = subprocess.run(cmd_docx, cwd=ROOT)
+    if r.returncode == 0:
+        print(f"OK -> {out_docx}")
     return r.returncode
 
 
