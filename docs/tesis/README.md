@@ -8,6 +8,10 @@
 > revisión y publicación están en `../../paper/PAPER1_REPRODUCIBILITY.md`,
 > `../../paper/PAPER2_REPRODUCIBILITY.md` y las matrices
 > `../../benchmarks/results/paper*_claims_matrix.json`.
+>
+> Edición corregida (octubre 2026): los capítulos en español recibieron una revisión
+> integral de fondo, referencias y estilo posterior a la defensa; el espejo en inglés
+> (`en/`) incorpora las correcciones sustantivas pero no la pasada de estilo.
 
 ---
 
