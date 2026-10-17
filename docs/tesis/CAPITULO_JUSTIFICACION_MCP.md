@@ -2,8 +2,6 @@
 
 ## Integración de MIESC con Asistentes de Inteligencia Artificial
 
----
-
 ## 7.1 Introducción: El Problema de la Interfaz Humano-Herramienta
 
 ### 7.1.1 Contexto Histórico de las Interfaces de Seguridad
@@ -29,56 +27,21 @@ Esta visión, sin embargo, enfrentaba un obstáculo fundamental: los LLMs son si
 
 ### 7.1.3 Model Context Protocol: La Solución de Anthropic
 
-En noviembre de 2024, Anthropic publicó el Model Context Protocol (MCP), una especificación abierta que define cómo los LLMs pueden interactuar de manera segura y estructurada con herramientas y datos externos. MCP resuelve las limitaciones inherentes de los LLMs mediante un protocolo que:
+En noviembre de 2024, Anthropic publicó el Model Context Protocol (MCP), una especificación abierta que define cómo los LLMs pueden interactuar de manera segura y estructurada con herramientas y datos externos. El protocolo aborda las limitaciones señaladas en el apartado anterior por cuatro vías complementarias: permite al LLM descubrir qué herramientas están registradas y qué parámetros acepta cada una; canaliza las invocaciones a través de un servidor que valida las entradas, aplica permisos y limita el acceso; devuelve resultados estructurados que el modelo puede procesar e interpretar para el usuario; y preserva el estado de la conversación entre llamadas, lo que habilita análisis iterativos.
 
-1. **Descubre herramientas disponibles:** El LLM puede consultar qué herramientas están registradas y qué parámetros acepta cada una.
-
-2. **Invoca herramientas de manera segura:** Las llamadas a herramientas pasan por un servidor que valida inputs, aplica permisos y limita acceso.
-
-3. **Recibe resultados estructurados:** Los resultados se devuelven al LLM en formato que puede procesar e interpretar para el usuario.
-
-4. **Mantiene contexto entre llamadas:** El protocolo preserva el estado de la conversación, permitiendo análisis iterativos.
-
-La decisión de implementar un servidor MCP en MIESC se fundamenta en el reconocimiento de que la barrera principal para la adopción de herramientas de seguridad no es técnica sino de usabilidad. MCP permite que MIESC sea accesible a través de Claude Desktop, transformando una colección de 25 herramientas especializadas en un asistente de seguridad conversacional.
-
----
+La decisión de implementar un servidor MCP en MIESC parte de una constatación: la barrera principal para la adopción de herramientas de seguridad no es técnica sino de usabilidad. MCP permite que MIESC sea accesible desde Claude Desktop y transforma así una colección de 25 herramientas especializadas en un asistente de seguridad conversacional.
 
 ## 7.2 Análisis de Alternativas: Por qué MCP
 
 ### 7.2.1 Alternativas Consideradas
 
-Antes de adoptar MCP, se evaluaron cuatro alternativas para habilitar interacción con asistentes de IA:
+Antes de adoptar MCP se evaluaron cuatro alternativas para habilitar la interacción con asistentes de IA. La primera, una API REST tradicional, efectivamente implementada en MIESC como interfaz complementaria, ofrece universalidad, pero carece de descubrimiento automático de capacidades, de orquestación inteligente de llamadas múltiples y de interpretación contextual de resultados: quien la consume debe conocer de antemano los endpoints, sus parámetros y el significado de las respuestas, y la API no aporta ninguna inteligencia más allá de la ejecución literal de lo solicitado.
 
-**Alternativa 1: REST API Tradicional**
+Un plugin para ChatGPT fue descartado por tres razones: el encierro en un proveedor (*vendor lock-in*), ya que solo funcionaría con ChatGPT; el costo, que exige una suscripción a ChatGPT Plus y cargos variables de API; y, sobre todo, la transmisión del código del contrato a servidores de OpenAI. Esta última razón es particularmente crítica en auditorías de seguridad, donde el código analizado suele contener propiedad intelectual confidencial o vulnerabilidades potencialmente explotables.
 
-Una API REST expondría los endpoints de MIESC para consumo por cualquier cliente. Esta opción, implementada efectivamente en MIESC como interfaz complementaria, tiene ventajas de universalidad pero carece de:
-- Descubrimiento automático de capacidades
-- Orquestación inteligente de llamadas múltiples
-- Interpretación contextual de resultados
+La tercera opción, un agente de LangChain —framework de Python que combina LLMs con herramientas externas e invoca funciones a partir de descripciones en lenguaje natural—, mostró una configuración extensa con dependencias pesadas, varias capas de indirección que añaden latencia y puntos de falla, y un acoplamiento del código a las abstracciones del propio framework, aun cuando este admite múltiples proveedores.
 
-El usuario o desarrollador que consume la API debe conocer de antemano qué endpoints existen, qué parámetros requieren, y cómo interpretar las respuestas. La API no proporciona ninguna "inteligencia" más allá de la ejecución literal de lo solicitado.
-
-**Alternativa 2: Plugin para ChatGPT**
-
-OpenAI permite desarrollar plugins que extienden las capacidades de ChatGPT. Esta opción fue descartada por tres razones:
-1. **Vendor lock-in:** El plugin solo funcionaría con ChatGPT, excluyendo otros asistentes
-2. **Costo de API:** Requiere suscripción a ChatGPT Plus y costos variables de API
-3. **Transmisión de código:** El código fuente del contrato se transmitiría a servidores de OpenAI
-
-Esta última razón es particularmente crítica en el contexto de auditorías de seguridad, donde el código bajo análisis frecuentemente contiene propiedad intelectual confidencial o vulnerabilidades potencialmente explotables.
-
-**Alternativa 3: Langchain Agent**
-
-Langchain es un framework de Python para construir aplicaciones que combinan LLMs con herramientas externas. Un "agent" de Langchain puede invocar funciones Python basándose en descripciones en lenguaje natural.
-
-La evaluación de esta alternativa reveló:
-- **Complejidad de setup:** Langchain requiere configuración extensa y dependencias pesadas
-- **Overhead de abstracción:** Múltiples capas de indirección añaden latencia y puntos de falla
-- **Acoplamiento con backend LLM:** Aunque soporta múltiples providers, el código del agent queda ligado a las abstracciones de Langchain
-
-**Alternativa 4: MCP Server (Seleccionada)**
-
-MCP ofrece un balance óptimo entre las alternativas:
+Frente a estas opciones, un servidor MCP ofreció el mejor equilibrio entre los criterios evaluados, como resume la tabla siguiente.
 
 | Criterio | REST API | ChatGPT Plugin | Langchain | MCP |
 |----------|----------|----------------|-----------|-----|
@@ -91,11 +54,7 @@ MCP ofrece un balance óptimo entre las alternativas:
 
 ### 7.2.2 Factores Decisivos para MCP
 
-La selección de MCP se fundamentó en cuatro factores:
-
-**1. Alineación con principios de soberanía de datos**
-
-MCP define un modelo donde el servidor (MIESC) corre en la infraestructura del usuario, y el cliente (Claude) se conecta localmente. El código fuente y las herramientas permanecen en el sistema local; lo que sí viaja al proveedor del asistente, cuando el cliente es un servicio alojado como Claude Desktop, es el contenido que el servidor devuelve (hallazgos y fragmentos citados):
+La selección de MCP se apoyó en cuatro factores. El primero, y el más relevante para esta tesis, es su alineación con la soberanía de datos: el servidor (MIESC) corre en la infraestructura del usuario y el cliente (Claude) se conecta localmente, de modo que el código fuente y las herramientas permanecen en el sistema local. Lo que sí viaja al proveedor del asistente, cuando el cliente es un servicio alojado como Claude Desktop, es el contenido que el servidor devuelve —hallazgos y fragmentos citados—, un alcance que conviene tener presente al leer el diagrama:
 
 ```
 Usuario -> Claude Desktop -> MCP Client -> localhost:3000 -> MIESC MCP Server -> Herramientas
@@ -103,61 +62,23 @@ Usuario -> Claude Desktop -> MCP Client -> localhost:3000 -> MIESC MCP Server ->
                                                    (Servidor y herramientas locales; respuestas hacia el cliente alojado)
 ```
 
-Este modelo es fundamentalmente diferente a los plugins de ChatGPT, donde los datos viajan a través de servidores de terceros.
+Este modelo difiere de los plugins de ChatGPT, en los que el propio contrato viaja a través de servidores de terceros para ser analizado; la diferencia es de grado, no absoluta, y el modo de análisis completamente local sigue siendo el de la línea de comandos (§6.3).
 
-**2. Especificación abierta y estable**
-
-MCP es una especificación publicada bajo licencia permisiva, con implementaciones de referencia en Python y TypeScript. La especificación define:
-- Formato de mensajes JSON-RPC 2.0
-- Esquemas para descubrimiento de herramientas
-- Protocolos de autenticación y permisos
-- Mecanismos de streaming para resultados grandes
-
-Esta apertura garantiza que MIESC no queda ligado a las decisiones futuras de un único vendor.
-
-**3. Integración nativa con Claude**
-
-Claude Desktop y Claude Code implementan soporte nativo para MCP, lo que significa que la integración con MIESC "simplemente funciona" sin desarrollo adicional del lado del cliente. Los usuarios de Claude pueden acceder a las capacidades de MIESC inmediatamente después de configurar el servidor.
-
-**4. Modelo de permisos granular**
-
-MCP define un sistema de permisos que permite al usuario controlar qué capacidades expone cada servidor:
-- Acceso a sistema de archivos (lectura/escritura)
-- Ejecución de comandos
-- Acceso a red
-- Recursos disponibles
-
-Para MIESC, esto permite configurar el servidor con acceso de solo lectura a directorios de contratos, sin capacidad de modificar archivos ni acceder a otras partes del sistema.
-
----
+En segundo lugar, MCP es una especificación publicada bajo licencia permisiva, con implementaciones de referencia en Python y TypeScript, que define el formato de mensajes JSON-RPC 2.0, los esquemas de descubrimiento de herramientas, los protocolos de autenticación y permisos y los mecanismos de streaming para resultados extensos; esa apertura reduce el riesgo de que MIESC quede ligado a las decisiones futuras de un único proveedor. Tercero, Claude Desktop y Claude Code implementan soporte nativo para el protocolo, por lo que la integración funciona sin desarrollo adicional del lado del cliente y queda disponible apenas se configura el servidor. Por último, MCP define un modelo de permisos granular —acceso al sistema de archivos en lectura o escritura, ejecución de comandos, acceso a red y recursos disponibles— que, en el caso de MIESC, permite restringir el servidor a lectura sobre los directorios de contratos, sin capacidad de modificar archivos ni de acceder a otras partes del sistema.
 
 ## 7.3 Arquitectura del Servidor MCP de MIESC
 
 ### 7.3.1 Diseño Conceptual
 
-El servidor MCP de MIESC actúa como puente entre el mundo conversacional de Claude y el mundo técnico de las herramientas de análisis de seguridad. Su responsabilidad es triple:
-
-1. **Traducir intenciones en invocaciones:** Cuando Claude determina que necesita analizar un contrato, el servidor traduce esa intención en llamadas concretas a adaptadores de MIESC.
-
-2. **Normalizar y contextualizar resultados:** Los hallazgos crudos de las herramientas se transforman en descripciones interpretables que Claude puede comunicar al usuario.
-
-3. **Mantener estado de sesión:** El servidor preserva el contexto de análisis previos, permitiendo refinamiento iterativo.
+El servidor MCP de MIESC actúa como puente entre el mundo conversacional de Claude y el mundo técnico de las herramientas de análisis de seguridad, con una responsabilidad triple: traduce las intenciones en invocaciones, de modo que cuando Claude determina que necesita analizar un contrato el servidor convierte esa intención en llamadas concretas a los adaptadores de MIESC; normaliza y contextualiza los resultados, transformando los hallazgos crudos de las herramientas en descripciones que Claude puede comunicar al usuario; y mantiene el estado de la sesión, preservando el contexto de análisis previos para permitir un refinamiento iterativo (Figura 7.1).
 
 **Figura 7.1.** Arquitectura de integración MCP
 
 ![Figura 7.1 - Arquitectura de integración MCP](figures/Figura%2023.%20Arquitectura%20de%20integración%20MCP.svg)
 
-*Flujo de interacción entre Usuario, Claude Desktop y MIESC MCP Server*
-
 ### 7.3.2 Componentes del Servidor
 
-**1. Handler de Herramientas (Tools)**
-
-El handler de herramientas expone las capacidades de MIESC como "tools" invocables por Claude. Cada herramienta se define con:
-- Nombre único y descriptivo
-- Descripción en lenguaje natural de su propósito
-- Esquema JSON de parámetros de entrada
-- Comportamiento de ejecución
+El servidor se compone de dos manejadores. El manejador de herramientas expone las capacidades de MIESC como *tools* invocables por Claude; cada una se define con un nombre único y descriptivo, una descripción en lenguaje natural de su propósito, un esquema JSON de sus parámetros de entrada y su comportamiento de ejecución:
 
 ```python
 class MIESCToolHandler:
@@ -225,9 +146,7 @@ class MIESCToolHandler:
         ]
 ```
 
-**2. Handler de Recursos (Resources)**
-
-Los recursos MCP representan datos que Claude puede consultar sin ejecutar análisis. En MIESC, los recursos incluyen:
+El manejador de recursos, por su parte, expone datos que Claude puede consultar sin ejecutar un análisis:
 
 ```python
 class MIESCResourceHandler:
@@ -314,8 +233,6 @@ Usuario             Claude              MCP Client           MIESC Server       
    │     en withdraw() │                    │                     │                   │
    │  ..."             │                    │                     │                   │
 ```
-
----
 
 ## 7.4 Implementación Técnica
 
@@ -554,13 +471,11 @@ Para que Claude Desktop reconozca el servidor MIESC, se configura en el archivo 
 }
 ```
 
----
-
 ## 7.5 Casos de Uso y Ejemplos de Interacción
 
 ### 7.5.1 Auditoría Interactiva Completa
 
-El siguiente diálogo ilustra cómo un desarrollador sin experiencia en seguridad puede obtener una auditoría comprehensiva:
+El siguiente diálogo, construido como ilustración y no como transcripción de una sesión real, muestra cómo un desarrollador sin experiencia en seguridad podría obtener una auditoría exhaustiva:
 
 ```
 Usuario: Tengo un contrato de staking en contracts/Staking.sol que necesito
@@ -668,6 +583,8 @@ Claude:  Aquí está la corrección para la vulnerabilidad de reentrancy.
 
 ### 7.5.2 Consulta de Documentación Contextual
 
+El segundo diálogo, igualmente ilustrativo, muestra la consulta de un recurso informativo:
+
 ```
 Usuario: ¿Qué es SWC-107 y por qué es tan peligroso?
 
@@ -713,13 +630,11 @@ Claude:  [Ejecuta: read_resource("miesc://swc-registry")]
          tradicionales no siempre la detectan en contextos complejos.
 ```
 
----
-
-## 7.6 Beneficios Demostrados
+## 7.6 Beneficios Esperados
 
 ### 7.6.1 Reducción de Fricción
 
-**Tabla 7.1.** Comparación de flujos de trabajo
+**Tabla 7.1.** Comparación de flujos de trabajo (estimación cualitativa del autor; no se realizó un estudio formal de usabilidad, §5.8)
 
 | Tarea | Sin MCP (CLI tradicional) | Con MCP (Claude) |
 |-------|---------------------------|------------------|
@@ -731,17 +646,7 @@ Claude:  [Ejecuta: read_resource("miesc://swc-registry")]
 
 ### 7.6.2 Democratización del Acceso
 
-El modelo MCP permite que desarrolladores sin formación específica en seguridad de smart contracts:
-
-1. **Comprendan vulnerabilidades en su contexto:** Claude explica no solo qué está mal sino por qué importa y qué podría pasar.
-
-2. **Reciban guía de remediación específica:** En lugar de documentación genérica, obtienen código corregido para su caso particular.
-
-3. **Aprendan mientras trabajan:** Cada interacción es una oportunidad de aprendizaje sobre seguridad de smart contracts.
-
-4. **Validen correcciones:** Pueden verificar que sus cambios efectivamente resuelven el problema detectado.
-
----
+El modelo MCP apunta a que desarrolladores sin formación específica en seguridad de smart contracts comprendan las vulnerabilidades en su contexto —no solo qué está mal, sino por qué importa y qué podría ocurrir—, reciban una guía de remediación específica en lugar de documentación genérica, aprendan mientras trabajan y puedan validar que sus correcciones resuelven efectivamente el problema detectado. Estos beneficios se formulan como expectativas de diseño: medirlos requiere un estudio de usabilidad que esta tesis no realizó (§5.8).
 
 ## 7.7 Limitaciones y Consideraciones
 
@@ -756,7 +661,7 @@ El modelo MCP permite que desarrolladores sin formación específica en segurida
 
 ### 7.7.2 Consideraciones de Seguridad
 
-**1. El servidor MCP solo debe escuchar en localhost:**
+Cuatro consideraciones de seguridad acompañan la implementación. La primera es que el servidor MCP solo debe escuchar en localhost:
 
 ```python
 # Configuración segura
@@ -769,37 +674,17 @@ MCP_CONFIG = {
 # MCP_CONFIG = {"host": "0.0.0.0", "port": 3000}
 ```
 
-**2. Validar siempre los paths de entrada** para prevenir acceso a archivos fuera del alcance autorizado.
-
-**3. Limitar recursos de ejecución** (tiempo, memoria) para prevenir denegación de servicio.
-
-**4. Mantener logs de auditoría** de todas las invocaciones para trazabilidad.
-
----
+Las restantes son validar siempre las rutas de entrada para impedir el acceso a archivos fuera del alcance autorizado (§7.4.2), limitar los recursos de ejecución —tiempo y memoria— para prevenir denegaciones de servicio, y mantener registros de auditoría de todas las invocaciones con fines de trazabilidad.
 
 ## 7.8 Conclusiones
 
 ### 7.8.1 Síntesis de la Justificación
 
-La implementación del servidor MCP en MIESC responde a un problema real y significativo: la brecha entre la sofisticación de las herramientas de análisis de seguridad y su accesibilidad para desarrolladores típicos. MCP permite cerrar esta brecha al proporcionar una interfaz conversacional que:
-
-1. **Reduce la barrera de entrada:** Los desarrolladores pueden acceder a análisis de seguridad profesional sin aprender comandos específicos ni interpretar output técnico críptico.
-
-2. **Mantiene la soberanía de datos:** Todo el procesamiento ocurre localmente, sin transmisión de código fuente a servicios externos.
-
-3. **Aprovecha inteligencia existente:** Claude aporta capacidad de explicación, contextualización y guía que las herramientas individuales no pueden proporcionar.
-
-4. **Es extensible y abierto:** Basado en una especificación abierta, no crea dependencia de un vendor específico.
+La implementación del servidor MCP responde a una brecha concreta entre la sofisticación de las herramientas de análisis de seguridad y su accesibilidad para los desarrolladores. La interfaz conversacional reduce la barrera de entrada, porque permite acceder a un análisis de nivel profesional sin aprender comandos específicos ni descifrar salidas técnicas; mantiene la ejecución de las herramientas en la infraestructura local, aunque el contenido devuelto a un asistente alojado sigue la política de datos de su proveedor (§7.2.2); aprovecha la capacidad del asistente para explicar, contextualizar y orientar la remediación, algo que las herramientas individuales no ofrecen; y, al apoyarse en una especificación abierta, no ata el diseño a un proveedor en particular, aunque en su estado actual el cliente principal sea Claude (§7.7.1).
 
 ### 7.8.2 Posicionamiento de MIESC
 
-La combinación de 25 herramientas de seguridad, LLM soberano (Ollama), e interfaz conversacional (MCP) posiciona a MIESC como:
-
-> **Un framework de seguridad de smart contracts con integración nativa de IA conversacional, cuyo servidor y herramientas se ejecutan en la infraestructura del usuario y que ofrece un modo de análisis completamente local.**
-
-Hasta donde alcanza la revisión del Capítulo 3, esta combinación no tiene un equivalente directo en el ecosistema de seguridad blockchain, donde las alternativas requieren enviar código a servicios externos, tienen costos significativos, o carecen de interfaces accesibles para no especialistas.
-
----
+La combinación de 25 herramientas de seguridad, LLM soberano (Ollama) e interfaz conversacional (MCP) posiciona a MIESC como un framework de seguridad de smart contracts con integración nativa de IA conversacional, cuyo servidor y herramientas se ejecutan en la infraestructura del usuario y que ofrece un modo de análisis completamente local. Hasta donde alcanza la revisión del Capítulo 3, esta combinación no tiene un equivalente directo en el ecosistema de seguridad blockchain, donde las alternativas requieren enviar el código a servicios externos, implican costos significativos o carecen de interfaces accesibles para no especialistas.
 
 ## 7.9 Referencias del Capítulo
 
@@ -810,7 +695,3 @@ Anthropic. (2024). MCP Servers Documentation. https://modelcontextprotocol.io/
 Beller, M., Bholanath, R., McIntosh, S., & Zaidman, A. (2016). Analyzing the state of static analysis: A large-scale evaluation in open source software. En *2016 IEEE 23rd International Conference on Software Analysis, Evolution, and Reengineering (SANER)* (pp. 470-481). IEEE. https://doi.org/10.1109/SANER.2016.105
 
 OWASP. (2023). Smart Contract Security Testing Guide. https://owasp.org/
-
----
-
-*Nota: Las referencias siguen el formato APA 7ma edición.*
