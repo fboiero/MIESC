@@ -103,7 +103,7 @@ Las organizaciones que desarrollan o auditan smart contracts enfrentan un ecosis
 
 ### 1.3.1 Objetivo General
 
-Diseñar e implementar MIESC (Multi-layer Integration for Ethereum Smart Contract Security), un framework de código abierto que integre múltiples herramientas de análisis de seguridad en una arquitectura de capas basada en Defense-in-Depth, garantizando soberanía de datos mediante ejecución completamente local.
+Diseñar e implementar MIESC (Multi-layer Integration for Ethereum Smart Contract Security), un framework de código abierto que integre múltiples herramientas de análisis de seguridad en una arquitectura de capas basada en Defense-in-Depth, con un modo de ejecución completamente local que preserva la soberanía de datos.
 
 ### 1.3.2 Objetivos Específicos
 
@@ -120,7 +120,7 @@ Implementar una arquitectura de 7 capas donde cada capa proporcione capacidades 
 Implementar un backend de IA soberano basado en Ollama que permita análisis semántico sin transmisión de código a servicios externos.
 
 **OE5: Interfaz Conversacional**
-Desarrollar un servidor MCP (Model Context Protocol) que permita interacción con asistentes de IA modernos (Claude, GPT) manteniendo el procesamiento local.
+Desarrollar un servidor MCP (Model Context Protocol) que permita interacción con asistentes de IA modernos (Claude, GPT) manteniendo el servidor y las herramientas en la infraestructura local; el contenido que el servidor devuelve al asistente queda sujeto a la política de datos del proveedor del cliente.
 
 ---
 
@@ -175,7 +175,7 @@ MIESC proporciona:
 1. **Herramienta de código abierto:** Disponible para organizaciones y auditores
 2. **Reducción de costos:** $0 costo operativo en IA gracias a ejecución local
 3. **Mejora de eficiencia:** Automatización de proceso de auditoría
-4. **Cumplimiento normativo:** Garantía de confidencialidad de datos
+4. **Cumplimiento normativo:** Soporte a requisitos de confidencialidad de datos (modo local)
 
 ---
 
@@ -226,7 +226,7 @@ La evaluación incluye:
 1. **Métricas de detección:** Precisión, Recall, F1-Score
 2. **Comparación con baseline:** Herramientas individuales
 3. **Análisis de deduplicación:** Reducción de hallazgos
-4. **Evaluación cualitativa:** Usabilidad y tiempo de auditoría
+4. **Evaluación cualitativa:** usabilidad y tiempo de auditoría (prevista en el diseño; no se realizó un estudio formal de usabilidad, véase §5.8)
 
 ---
 

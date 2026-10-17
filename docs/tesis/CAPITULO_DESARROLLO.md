@@ -30,7 +30,7 @@ Los objetivos técnicos de MIESC se formularon como respuesta directa a los prob
 
 3. **Normalización de resultados**: Implementar un esquema de mapeo que traduzca los hallazgos de cada herramienta a taxonomías estándar (SWC, CWE, OWASP), habilitando la deduplicación y priorización automática.
 
-4. **Soberanía de datos**: Garantizar que todo el procesamiento, incluyendo el análisis con inteligencia artificial, se ejecute localmente sin transmisión de código fuente a servicios externos.
+4. **Soberanía de datos**: Ofrecer un modo en el que todo el procesamiento, incluido el análisis con inteligencia artificial, se ejecute localmente sin transmisión de código fuente a servicios externos.
 
 5. **Costo cero operativo**: Utilizar exclusivamente herramientas de código abierto y modelos de lenguaje con pesos abiertos, eliminando barreras de costo que limitan el acceso a auditorías de calidad.
 
@@ -62,8 +62,10 @@ El índice de mantenibilidad de 72.3 supera el umbral de 65 propuesto por Oman y
 > pipeline a **9 capas y 35 módulos** (13 externos + 22 internos), incorporando
 > capas de razonamiento con LLM y filtrado de falsos positivos. Los resultados de
 > detección de esta tesis corresponden a la arquitectura v4.0.0 documentada, salvo
-> la sección de validación EVMBench, indicada explícitamente como corrida en la
-> línea v5.x.
+> los resultados señalados como posteriores: la revalidación del corpus del
+> 2026-07-09 (§5.3.3–5.3.4, modos `--deep` y ensemble, Tablas 5.7–5.8 y
+> 5.14–5.15), la validación EVMBench (§5.3.5) y la validación sobre SmartBugs
+> Curated (§5.3.6), todas corridas en la línea v5.x.
 
 ---
 
@@ -73,7 +75,7 @@ El índice de mantenibilidad de 72.3 supera el umbral de 65 propuesto por Oman y
 
 La arquitectura de MIESC se fundamenta en el principio de defensa en profundidad (*Defense-in-Depth*, DiD), un concepto originado en doctrina militar que fue adaptado a la seguridad de sistemas de información durante la década de 1990. El National Security Agency (s.f.) formalizó este principio como "la aplicación de múltiples medidas de protección en serie, de modo que un adversario deba superar o evitar cada medida sucesivamente para comprometer el sistema protegido" (p. 3-12).
 
-La aplicación de este principio al análisis de contratos inteligentes es una contribución original de este trabajo. La justificación teórica se fundamenta en la observación empírica de que diferentes técnicas de análisis tienen fortalezas y debilidades complementarias:
+La aplicación de este principio al análisis de contratos inteligentes es, hasta donde alcanza la revisión del Capítulo 3, una contribución original de este trabajo. La justificación teórica se fundamenta en la observación empírica de que diferentes técnicas de análisis tienen fortalezas y debilidades complementarias:
 
 **Análisis estático:** Examina el código sin ejecutarlo, detectando patrones conocidos de vulnerabilidad con alta velocidad pero sin capacidad de razonar sobre comportamiento en tiempo de ejecución. Los autores de Slither (Feist et al., 2019) reportan alta precisión en su propio benchmark, pero la evaluación independiente a gran escala de Durieux et al. (2020) midió apenas 43.2% de recall sobre SmartBugs-curated, indicando que más de la mitad de las vulnerabilidades escapa a la detección estática a escala de corpus.
 
@@ -166,7 +168,7 @@ Cada herramienta de seguridad integrada en MIESC presenta características únic
 
 **Variabilidad en información de ubicación:** Algunas herramientas reportan archivo y línea, otras añaden columna, otras indican función y contrato, algunas solo mencionan el nombre del detector.
 
-Esta heterogeneidad constituye la barrera principal para la adopción industrial de herramientas académicas, como documentan Rameder et al. (2022).
+Esta heterogeneidad constituye una de las principales barreras para la adopción industrial de herramientas académicas, como documentan Rameder et al. (2022).
 
 ### 4.3.2 Solución: Patrón Adapter con Principios SOLID
 

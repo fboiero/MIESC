@@ -43,7 +43,7 @@ The experiment was designed to answer the following research questions, formulat
 
 *Metric:* Deduplication rate = (raw_findings - unique_findings) / raw_findings × 100
 
-**RQ4:** Is the framework viable for use in production environments?
+**RQ4:** Is it viable to operate MIESC in production —execution time, resources and cost— and what quality of semantic analysis does a local LLM (Ollama) offer compared with commercial services?
 
 *Metric:* Total audit time, resource consumption, operational cost
 
@@ -254,6 +254,8 @@ increasing the timeout per query.
 **Figure 5.4.** MIESC pipeline output (layers 1/6/7) on one contract (VulnerableBank: 47→16 findings, 66.0% deduplication on this contract; 68% is the full-corpus figure, 385→123)
 
 ![Figure 5.4 - MIESC pipeline output (layers 1/6/7)](../figures/Figura%2016%20Salida%20del%20Pipeline%20Completo%20de%20MIESC.svg)
+
+The following listing is an illustrative, abridged command-line output; the time it shows does not come from the §5.5 measurement.
 
 ```
 $ miesc audit full contracts/audit/VulnerableBank.sol
@@ -618,9 +620,9 @@ The only mapping error in GPTScan corresponded to an ambiguous classification by
 | 6 | PropertyGPT, Aderyn, Wake | 21.3 | 3.4 | Yes |
 | 7 | GPTScan, SmartLLM, LLMSmartAudit, etc. | 41.6 | 5.7 | Yes |
 | **Total (sequential)** | | **161.1** | | |
-| **Total (parallel per layer)** | | **52.4** | | |
+| Theoretical lower bound (all layers in parallel) | | 52.4 | | |
 
-**Observation:** Intra-layer parallel execution reduces total time by **67.5%** (from 161.1s to 52.4s), based on Amdahl's law (1967) for parallelization.
+**Observation:** The orchestrator runs tools in parallel within each layer and the layers in sequence (§4.6.1), so the design total is the sum of the per-layer times: 161.1 s. The 52.4 s value is the lower bound that would be reached if all layers ran in parallel (the slowest layer's time) and does not correspond to the evaluated implementation; Amdahl's law (1967) bounds the gain of intra-layer parallelism to the slowest tool in each layer.
 
 *Parallel execution timeline of tools per layer*
 
@@ -653,7 +655,7 @@ open-weight-hosted tier (MIT weights accessed via API, ~$0.08/audit) is 15–69�
 cheaper than the frontier APIs and, under EVMBench's lenient matcher, records the highest precision/F1 of the comparison — under the lenient matcher, an optimistic estimate that is not a conclusive ranking — (see §5.3.5 and Chapter 6, Table 6.2b).*
 
 **RQ4 Result:** MIESC is viable for production with:
-- **Time:** ~1 minute for complete audit (parallel execution)
+- **Time:** ≈2.7 minutes (161.1 s) for an audit with the seven layers in sequence, with parallelism within each layer (Table 5.11)
 - **Resources:** 8 GB RAM sufficient
 - **Cost:** $0 operational (local execution)
 
@@ -752,7 +754,7 @@ The results demonstrate production viability:
 
 - **Performance:** Comparable to the slowest individual tool execution (Mythril)
 - **Resources:** Moderate requirements (8 GB RAM)
-- **Cost:** $0 eliminates adoption barriers
+- **Cost:** $0 in local mode lowers adoption barriers
 
 ---
 

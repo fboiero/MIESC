@@ -1,6 +1,6 @@
 # Capítulo 3: Estado del Arte
 
-## Análisis de Seguridad en Contratos Inteligentes: Una Revisión Sistemática
+## Análisis de Seguridad en Contratos Inteligentes: Una Revisión de la Literatura
 
 ---
 
@@ -8,7 +8,7 @@
 
 La seguridad de los contratos inteligentes representa uno de los desafíos más significativos en el ecosistema blockchain contemporáneo. Según Atzei et al. (2017), los contratos inteligentes son "programas que se ejecutan en una blockchain y que, una vez desplegados, son inmutables y públicamente verificables" (p. 164). Esta inmutabilidad, si bien garantiza la integridad del código, implica que cualquier vulnerabilidad presente en el momento del despliegue permanecerá explotable indefinidamente, a menos que se implementen mecanismos de actualización específicos (Chen et al.,2017).
 
-El presente capítulo realiza una revisión sistemática del estado del arte en herramientas y metodologías de análisis de seguridad para contratos inteligentes, siguiendo las directrices metodológicas propuestas por Kitchenham y Charters (2007) para revisiones sistemáticas en ingeniería de software. Se identifican las principales brechas existentes que fundamentan el desarrollo de MIESC como contribución al campo.
+El presente capítulo realiza una revisión narrativa del estado del arte en herramientas y metodologías de análisis de seguridad para contratos inteligentes, informada por las directrices de Kitchenham y Charters (2007) para revisiones en ingeniería de software, aunque sin un protocolo formal de búsqueda y selección. Se identifican las principales brechas existentes que fundamentan el desarrollo de MIESC como contribución al campo.
 
 ---
 
@@ -176,7 +176,7 @@ Sun et al. (2024) proponen un enfoque híbrido donde los LLMs complementan herra
 
 ## 3.5 Identificación de Brechas en el Estado del Arte
 
-A partir de la revisión sistemática realizada, se identifican las siguientes brechas que fundamentan el desarrollo de MIESC:
+A partir de la revisión realizada, se identifican las siguientes brechas que fundamentan el desarrollo de MIESC:
 
 ### 3.5.1 Brecha 1: Fragmentación de Herramientas
 
@@ -232,7 +232,7 @@ A partir de la revisión sistemática realizada, se identifican las siguientes b
 
 **Observación:** No existe un sistema para coordinar la ejecución de múltiples herramientas y consolidar resultados.
 
-**Evidencia empírica:** SmartBugs (Ferreira et al., 2020) representa el único intento previo de orquestación, pero se limita a ejecución secuencial sin normalización de resultados.
+**Evidencia empírica:** SmartBugs (Ferreira et al., 2020) es el antecedente más directo de orquestación, pero se limita a ejecución secuencial sin normalización de resultados.
 
 **Impacto:** Proceso de auditoría manual, lento y propenso a errores humanos.
 

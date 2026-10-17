@@ -103,7 +103,7 @@ Organizations developing or auditing smart contracts face a fragmented ecosystem
 
 ### 1.3.1 General Objective
 
-Design and implement MIESC (Multi-layer Integration for Ethereum Smart Contract Security), an open-source framework that integrates multiple security analysis tools in a layer-based architecture based on Defense-in-Depth, guaranteeing data sovereignty through completely local execution.
+Design and implement MIESC (Multi-layer Integration for Ethereum Smart Contract Security), an open-source framework that integrates multiple security analysis tools in a layer-based architecture based on Defense-in-Depth, with a fully local execution mode that preserves data sovereignty.
 
 ### 1.3.2 Specific Objectives
 
@@ -120,7 +120,7 @@ Implement a 7-layer architecture where each layer provides complementary detecti
 Implement a sovereign AI backend based on Ollama that enables semantic analysis without transmitting code to external services.
 
 **SO5: Conversational Interface**
-Develop an MCP (Model Context Protocol) server that enables interaction with modern AI assistants (Claude, GPT) while maintaining local processing.
+Develop an MCP (Model Context Protocol) server that enables interaction with modern AI assistants (Claude, GPT) while keeping the server and the tools on local infrastructure; the content the server returns to the assistant is subject to the data policy of the client's provider.
 
 ---
 
@@ -175,7 +175,7 @@ MIESC provides:
 1. **Open-source tool:** Available for organizations and auditors
 2. **Cost reduction:** $0 AI operational cost thanks to local execution
 3. **Efficiency improvement:** Automation of audit process
-4. **Regulatory compliance:** Guaranteed data confidentiality
+4. **Regulatory compliance:** Support for data-confidentiality requirements (local mode)
 
 ---
 
@@ -226,7 +226,7 @@ The evaluation includes:
 1. **Detection metrics:** Precision, Recall, F1-Score
 2. **Baseline comparison:** Individual tools
 3. **Deduplication analysis:** Finding reduction
-4. **Qualitative evaluation:** Usability and audit time
+4. **Qualitative evaluation:** usability and audit time (planned in the design; no formal usability study was conducted, see §5.8)
 
 ---
 

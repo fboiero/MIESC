@@ -25,7 +25,7 @@ El presente trabajo de tesis ha presentado MIESC (Marco Integrado de Seguridad p
 
 ### 8.1.3 Contribuciones Principales
 
-1. **Arquitectura de 7 Capas:** Primera implementación documentada de defensa en profundidad aplicada específicamente a auditoría de smart contracts, combinando análisis estático, dinámico, simbólico, formal e IA.
+1. **Arquitectura de 7 Capas:** Hasta donde alcanza la revisión del Capítulo 3, primera implementación documentada de defensa en profundidad aplicada específicamente a auditoría de smart contracts, combinando análisis estático, dinámico, simbólico, formal e IA.
 
 2. **Protocolo ToolAdapter:** Interfaz unificada que permite la integración de herramientas heterogéneas sin modificación del núcleo, siguiendo principios SOLID y el patrón Adapter.
 
@@ -33,7 +33,7 @@ El presente trabajo de tesis ha presentado MIESC (Marco Integrado de Seguridad p
 
 4. **Migración a Backend Local:** Eliminación de dependencias de APIs comerciales mediante integración con Ollama, cumpliendo requisitos DPGA.
 
-5. **MCP Server:** Primera herramienta de auditoría de smart contracts con soporte nativo para Model Context Protocol, permitiendo integración con Claude y otros asistentes IA.
+5. **MCP Server:** Hasta donde alcanza la revisión del Capítulo 3, primera herramienta de auditoría de smart contracts con soporte nativo para Model Context Protocol, permitiendo integración con Claude y otros asistentes IA.
 
 6. **Rescate de Herramientas Legacy:** Parches documentados para Manticore (Python 3.11) y Oyente (Docker image), preservando capacidades de análisis.
 
@@ -348,12 +348,12 @@ async with websockets.connect("ws://localhost:8765") as ws:
 
 1. **Adopción esperada:**
    - Desarrolladores independientes: acceso a auditoría gratuita
-   - Startups: reducción de costos de seguridad >90%
+   - Startups: reducción sustancial del costo de una primera revisión de seguridad (no cuantificada en esta tesis)
    - Empresas: integración con pipelines existentes
 
 2. **Reducción de pérdidas:**
    - Detección temprana: prevención de exploits post-deployment
-   - Estimación conservadora: prevención de $10M+ en pérdidas potenciales
+   - Magnitud de las pérdidas evitables no cuantificada en esta tesis
 
 ### 8.4.3 Impacto Social
 
@@ -365,7 +365,7 @@ async with websockets.connect("ws://localhost:8765") as ws:
 2. **Contribución a Digital Public Goods:**
    - Cumplimiento de estándares DPGA
    - Licencia AGPL-3.0 (código abierto copyleft, aprobada por la OSI)
-   - Portabilidad garantizada
+   - Portabilidad mediante imágenes Docker multi-arquitectura
 
 ---
 

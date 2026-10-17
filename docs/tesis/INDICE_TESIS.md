@@ -438,7 +438,7 @@
 | Índices | 25-30 | 112 Tablas, 120 Figuras, 78 Acrónimos, 95 Términos |
 | 1. Introducción | 15-18 | Contexto, objetivos, preguntas de investigación |
 | 2. Marco Teórico | 25-30 | Fundamentos teóricos con enfoque en ciberdefensa |
-| 3. Estado del Arte | 20-25 | Revisión sistemática de literatura |
+| 3. Estado del Arte | 20-25 | Revisión de literatura |
 | 4. Desarrollo | 45-50 | Diseño e implementación de MIESC v4.0.0 |
 | 5. Resultados | 35-40 | Evaluación empírica y discusión |
 | 6. Justificación IA | 20-25 | Argumentación de LLMs soberanos |

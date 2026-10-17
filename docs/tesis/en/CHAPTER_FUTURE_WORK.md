@@ -25,7 +25,7 @@ This thesis has presented MIESC (Multi-layer Integration for Ethereum Smart Cont
 
 ### 8.1.3 Main Contributions
 
-1. **7-Layer Architecture:** First documented implementation of defense-in-depth applied specifically to smart contract auditing, combining static, dynamic, symbolic, formal, and AI analysis.
+1. **7-Layer Architecture:** As far as the Chapter 3 review reaches, first documented implementation of defense-in-depth applied specifically to smart contract auditing, combining static, dynamic, symbolic, formal, and AI analysis.
 
 2. **ToolAdapter Protocol:** Unified interface that allows integration of heterogeneous tools without core modification, following SOLID principles and the Adapter pattern.
 
@@ -33,7 +33,7 @@ This thesis has presented MIESC (Multi-layer Integration for Ethereum Smart Cont
 
 4. **Migration to Local Backend:** Elimination of commercial API dependencies through Ollama integration, meeting DPGA requirements.
 
-5. **MCP Server:** First smart contract auditing tool with native Model Context Protocol support, enabling integration with Claude and other AI assistants.
+5. **MCP Server:** As far as the Chapter 3 review reaches, first smart contract auditing tool with native Model Context Protocol support, enabling integration with Claude and other AI assistants.
 
 6. **Legacy Tool Rescue:** Documented patches for Manticore (Python 3.11) and Oyente (Docker image), preserving analysis capabilities.
 
@@ -295,12 +295,12 @@ jobs:
 
 1. **Expected adoption:**
    - Independent developers: access to free auditing
-   - Startups: >90% security cost reduction
+   - Startups: substantial reduction in the cost of a first security review (not quantified in this thesis)
    - Companies: integration with existing pipelines
 
 2. **Loss reduction:**
    - Early detection: prevention of post-deployment exploits
-   - Conservative estimate: prevention of $10M+ in potential losses
+   - Magnitude of avoidable losses not quantified in this thesis
 
 ### 8.4.3 Social Impact
 
@@ -312,7 +312,7 @@ jobs:
 2. **Contribution to Digital Public Goods:**
    - DPGA standards compliance
    - AGPL-3.0 license (open-source copyleft, OSI-approved)
-   - Guaranteed portability
+   - Portability through multi-architecture Docker images
 
 ---
 

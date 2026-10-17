@@ -291,7 +291,7 @@ MCP is an open standard for connecting LLMs with external tools (Anthropic, 2024
 
 ### 2.6.4 Data Sovereignty in AI
 
-Data sovereignty is critical in cyber defense contexts (Floridi, 2020). The use of local LLMs through Ollama guarantees:
+Data sovereignty is critical in cyber defense contexts (Floridi, 2020). The use of local LLMs through Ollama facilitates:
 
 1. **Confidentiality:** Code not transmitted to third parties
 2. **Regulatory compliance:** GDPR, LGPD, national regulations

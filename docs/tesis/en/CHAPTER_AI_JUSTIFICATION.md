@@ -235,7 +235,7 @@ tcp   0   0   127.0.0.1:11434   0.0.0.0:*   LISTEN   12345/ollama
 $ tcpdump -i any "not localhost" during analysis
 tcpdump: listening on any
 ^C
-0 packets captured  # ZERO external traffic
+0 packets captured  # no external traffic (illustrative output)
 ```
 
 **2. Models with open weights**
@@ -276,7 +276,7 @@ Unlike commercial services, Ollama does not include telemetry code. This is veri
 
 ![Figure 6.2 - Analysis architecture with sovereign LLM](../figures/Figura%2022.%20Arquitectura%20de%20análisis%20con%20LLM%20soberano.svg)
 
-*100% local infrastructure with zero external traffic*
+*Local infrastructure with no external traffic (reference configuration)*
 
 ### 6.3.4 Configuration in MIESC
 
@@ -347,7 +347,7 @@ def verify_sovereign_backend() -> bool:
 
 The most frequent objection to local LLMs is that their capability is inferior to frontier commercial models. This section examines to what extent this difference affects the specific use case of smart contract analysis.
 
-**Table 6.4.** Capability comparison for code analysis
+**Table 6.4.** Capability comparison for code analysis (author's qualitative assessment at design time, without own measurement; the Chapter 5 measurement is reported in Table 5.8)
 
 | Capability | GPT-4 | Claude 3 Opus | Llama 3.1:8b | CodeLlama:13b |
 |------------|-------|---------------|--------------|---------------|
@@ -363,7 +363,7 @@ The most frequent objection to local LLMs is that their capability is inferior t
 
 **Key observations:**
 
-1. **For known technical vulnerabilities** (reentrancy, overflow, access control), local models achieve performance comparable to commercial ones. This is because these vulnerabilities follow predictable patterns that 7-13B parameter models can learn.
+1. **For known technical vulnerabilities** (reentrancy, overflow, access control), local models come close to commercial ones; in the Chapter 5 measurement, however, the local configuration fell short (44% vs. 72% *type-aware* detection, §5.3.4). This is because these vulnerabilities follow predictable patterns that 7-13B parameter models can learn.
 
 2. **For business logic vulnerabilities**, commercial models have an advantage. However, this advantage is mitigated in MIESC because:
    - The AI layer is one of seven layers, not the only defense
@@ -816,8 +816,7 @@ under EVMBench's official judge the figures drop and Paper 1 defers the provider
 ranking to future work — so what the evidence supports is not a reliable ranking in favour of the open model, but that the sovereign choice **stopped being a sacrifice of capability**.
 
 Table 6.6 synthesizes the argument in a scorecard: the local tier wins on every
-sovereignty dimension, the hosted open-weight tier is the balance point (near-full
-sovereignty, competitive precision/F1, and minimal cost), and the frontier tier retains an advantage only in single-run recall, always under the lenient matcher.
+sovereignty dimension, the hosted open-weight tier is the balance point (control over the weights though without data sovereignty, competitive precision/F1, and minimal cost), and the frontier tier retains an advantage only in single-run recall, always under the lenient matcher.
 
 **Table 6.6.** Sovereignty scorecard by access tier (✓ full · ◑ partial · ✗ absent)
 
@@ -861,7 +860,7 @@ The decision to implement sovereign LLMs in MIESC responds to a rigorous risk an
 
 4. **Total cost of ownership of sovereign LLMs is lower** than commercial APIs for organizations performing audits regularly. Measured on EVMBench, the open-weight tier costs **~$0.08 per audit (15–69× less than frontier)** and the local tier $0, with competitive detection capability under the evaluated protocol.
 
-5. **Local execution guarantees automatic regulatory compliance** with GDPR, LGPD, LFPDPPP and sector regulations.
+5. **Local execution removes a source of international data-transfer risk** relevant to GDPR, LGPD, LFPDPPP and sector regulations; compliance also depends on operations.
 
 6. **Control is reproducibility, authorship, and longevity.** Only a versioned, open-weight model enables reproducible forensic evidence, an authorship chain in which the auditor can answer for their claims, and a baseline no provider can unilaterally deprecate. These three properties — absent by construction in a closed API — are conditions of the scientific and forensic method, not incidental benefits. The honest counterpart is that full sovereignty is a spectrum: the 100%-local tier has a measured recall cost, and the best open-weight result was obtained via a hosted API; control over the tool is preserved across the whole spectrum, with quantified trade-offs among sovereignty, cost, and recall.
 
@@ -869,7 +868,7 @@ The decision to implement sovereign LLMs in MIESC responds to a rigorous risk an
 
 For smart contract audits handling confidential code with significant economic value:
 
-> **Using sovereign (local) LLMs is the only option that provides verifiable guarantees of source code confidentiality during the audit process.**
+> **Using sovereign (local) LLMs is the option that allows verifying locally that no source code is transmitted during the audit process.**
 
 Capability limitations compared to commercial models are mitigated through:
 - Seven-layer architecture with 25 tools

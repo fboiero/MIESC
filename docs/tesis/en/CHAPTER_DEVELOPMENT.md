@@ -30,7 +30,7 @@ MIESC's technical objectives were formulated as a direct response to the identif
 
 3. **Results normalization**: Implement a mapping schema that translates findings from each tool to standard taxonomies (SWC, CWE, OWASP), enabling automatic deduplication and prioritization.
 
-4. **Data sovereignty**: Guarantee that all processing, including artificial intelligence analysis, executes locally without transmitting source code to external services.
+4. **Data sovereignty**: Offer a mode in which all processing, including artificial intelligence analysis, runs locally without transmitting source code to external services.
 
 5. **Zero operational cost**: Use exclusively open-source tools and open-weight language models, eliminating cost barriers that limit access to quality audits.
 
@@ -61,14 +61,16 @@ The maintainability index of 72.3 exceeds the threshold of 65 proposed by Oman a
 > (Boiero et al., 2026a, 2026b) and published on PyPI under AGPL-3.0 — expanded the pipeline to
 > **9 layers and 35 modules** (13 external + 22 internal), adding LLM-reasoning
 > layers and false-positive filtering. The detection results in this thesis
-> correspond to the documented v4.0.0 architecture, except the EVMBench validation
-> section, which is explicitly noted as run on the v5.x line.
+> correspond to the documented v4.0.0 architecture, except the results flagged as
+> later: the corpus revalidation of 2026-07-09 (§5.3.3–5.3.4, `--deep` and ensemble
+> modes, Tables 5.7–5.8 and 5.14–5.15), the EVMBench validation (§5.3.5) and the
+> SmartBugs Curated validation (§5.3.6), all run on the v5.x line.
 
 ### 4.2.1 The Defense-in-Depth Principle: Foundations and Application
 
 MIESC's architecture is founded on the Defense-in-Depth (DiD) principle, a concept originated in military doctrine that was adapted to information systems security during the 1990s. The National Security Agency (n.d.) formalized this principle as "the application of multiple protective measures in series, so that an adversary must overcome or avoid each measure successively to compromise the protected system" (p. 3-12).
 
-The application of this principle to smart contract analysis is an original contribution of this work. The theoretical justification is based on the empirical observation that different analysis techniques have complementary strengths and weaknesses:
+The application of this principle to smart contract analysis is, as far as the Chapter 3 review reaches, an original contribution of this work. The theoretical justification is based on the empirical observation that different analysis techniques have complementary strengths and weaknesses:
 
 **Static analysis:** Examines code without executing it, detecting known vulnerability patterns with high speed but without the ability to reason about runtime behavior. Slither's authors (Feist et al., 2019) report high precision on their own benchmark, but the independent large-scale evaluation of Durieux et al. (2020) measured only 43.2% recall on SmartBugs-curated, indicating that more than half of vulnerabilities escape static detection at corpus scale.
 
@@ -161,7 +163,7 @@ Each security tool integrated in MIESC presents unique characteristics that hind
 
 **Variability in location information:** Some tools report file and line, others add column, others indicate function and contract, some only mention detector name.
 
-This heterogeneity constitutes the main barrier to industrial adoption of academic tools, as documented by Rameder et al. (2022).
+This heterogeneity constitutes one of the main barriers to industrial adoption of academic tools, as documented by Rameder et al. (2022).
 
 ### 4.3.2 Solution: Adapter Pattern with SOLID Principles
 

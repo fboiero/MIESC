@@ -1,6 +1,6 @@
 # Chapter 3: State of the Art
 
-## Security Analysis in Smart Contracts: A Systematic Review
+## Security Analysis in Smart Contracts: A Literature Review
 
 ---
 
@@ -8,7 +8,7 @@
 
 Smart contract security represents one of the most significant challenges in the contemporary blockchain ecosystem. According to Atzei et al. (2017), smart contracts are "programs that run on a blockchain and that, once deployed, are immutable and publicly verifiable" (p. 164). This immutability, while guaranteeing code integrity, implies that any vulnerability present at deployment time will remain exploitable indefinitely, unless specific upgrade mechanisms are implemented (Chen et al.,2017).
 
-This chapter presents a systematic review of the state of the art in security analysis tools and methodologies for smart contracts, following the methodological guidelines proposed by Kitchenham and Charters (2007) for systematic reviews in software engineering. The main gaps are identified, which form the foundation for the development of MIESC as a contribution to the field.
+This chapter presents a narrative review of the state of the art in security analysis tools and methodologies for smart contracts, informed by the guidelines of Kitchenham and Charters (2007) for reviews in software engineering, although without a formal search and selection protocol. The main gaps are identified, which form the foundation for the development of MIESC as a contribution to the field.
 
 ---
 
@@ -176,7 +176,7 @@ Sun et al. (2024) propose a hybrid approach where LLMs complement static analysi
 
 ## 3.5 Identification of Gaps in the State of the Art
 
-Based on the systematic review conducted, the following gaps are identified that form the foundation for MIESC development:
+Based on the review conducted, the following gaps are identified that form the foundation for MIESC development:
 
 ### 3.5.1 Gap 1: Tool Fragmentation
 
@@ -232,7 +232,7 @@ Based on the systematic review conducted, the following gaps are identified that
 
 **Observation:** There is no system to coordinate the execution of multiple tools and consolidate results.
 
-**Empirical evidence:** SmartBugs (Ferreira et al., 2020) represents the only previous orchestration attempt, but is limited to sequential execution without result normalization.
+**Empirical evidence:** SmartBugs (Ferreira et al., 2020) is the most direct orchestration precedent, but is limited to sequential execution without result normalization.
 
 **Impact:** Manual, slow audit process prone to human errors.
 

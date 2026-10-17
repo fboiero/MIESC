@@ -43,7 +43,7 @@ El experimento se diseñó para responder las siguientes preguntas de investigac
 
 *Métrica:* Tasa de deduplicación = (hallazgos_brutos - hallazgos_únicos) / hallazgos_brutos × 100
 
-**RQ4:** ¿El framework es viable para uso en entornos de producción?
+**RQ4:** ¿Es viable operar MIESC en producción —tiempo de ejecución, recursos y costo— y qué calidad de análisis semántico ofrece un LLM local (Ollama) frente a los servicios comerciales?
 
 *Métrica:* Tiempo total de auditoría, consumo de recursos, costo operativo
 
@@ -278,6 +278,8 @@ increasing the timeout per query.
 **Figura 5.4.** Salida del pipeline de MIESC (capas 1/6/7) sobre un contrato (VulnerableBank: 47→16 hallazgos, 66.0% de deduplicación en este contrato; el 68% es la cifra del corpus completo, 385→123)
 
 ![Figura 5.4 - Salida del pipeline de MIESC (capas 1/6/7)](figures/Figura%2016%20Salida%20del%20Pipeline%20Completo%20de%20MIESC.svg)
+
+El listado siguiente es una salida ilustrativa y abreviada de la interfaz de línea de comandos; el tiempo que muestra no proviene de la medición de §5.5.
 
 ```
 $ miesc audit full contracts/audit/VulnerableBank.sol
@@ -646,9 +648,9 @@ El único error de mapeo en GPTScan correspondió a una clasificación ambigua d
 | 6 | PropertyGPT, Aderyn, Wake | 21.3 | 3.4 | Sí |
 | 7 | GPTScan, SmartLLM, LLMSmartAudit, etc. | 41.6 | 5.7 | Sí |
 | **Total (secuencial)** | | **161.1** | | |
-| **Total (paralelo por capa)** | | **52.4** | | |
+| Cota inferior teórica (todas las capas en paralelo) | | 52.4 | | |
 
-**Observación:** La ejecución paralela intra-capa reduce el tiempo total en un **67.5%** (de 161.1s a 52.4s), fundamentado en la ley de Amdahl (1967) para paralelización.
+**Observación:** El orquestador ejecuta las herramientas en paralelo dentro de cada capa y las capas en secuencia (§4.6.1), por lo que el tiempo total de diseño es la suma de los tiempos por capa: 161.1 s. El valor de 52.4 s es la cota inferior que se alcanzaría si todas las capas corrieran en paralelo (el tiempo de la capa más lenta) y no corresponde a la implementación evaluada; la ley de Amdahl (1967) acota la ganancia de la paralelización intra-capa al tiempo de la herramienta más lenta de cada capa.
 
 *Timeline de ejecución paralela de herramientas por capa*
 
@@ -681,7 +683,7 @@ open-weight hosteado (pesos MIT accedidos por API, ~$0.08/auditoría) es 15–69
 más barato que las APIs frontier y, bajo el matcher laxo de EVMBench, registra la mayor precisión/F1 de la comparación —bajo matcher laxo, una estimación optimista que no constituye un ranking concluyente— (véase §5.3.5 y el Capítulo 6, Tabla 6.2b).*
 
 **Resultado RQ4:** MIESC es viable para producción con:
-- **Tiempo:** ~1 minuto para auditoría completa (ejecución paralela)
+- **Tiempo:** ≈2.7 minutos (161.1 s) para una auditoría con las siete capas en secuencia, con paralelismo dentro de cada capa (Tabla 5.11)
 - **Recursos:** 8 GB RAM suficiente
 - **Costo:** $0 operativo (ejecución local)
 
@@ -780,7 +782,7 @@ Los resultados demuestran viabilidad para producción:
 
 - **Rendimiento:** Comparable a ejecución de herramienta individual más lenta (Mythril)
 - **Recursos:** Requerimientos moderados (8 GB RAM)
-- **Costo:** $0 elimina barreras de adopción
+- **Costo:** $0 en modo local reduce las barreras de adopción
 
 ---
 

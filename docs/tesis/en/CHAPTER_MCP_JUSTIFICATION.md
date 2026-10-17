@@ -95,12 +95,12 @@ MCP selection was based on four factors:
 
 **1. Alignment with data sovereignty principles**
 
-MCP defines a model where the server (MIESC) runs on the user's infrastructure, and the client (Claude) connects locally. Source code never leaves the local system:
+MCP defines a model where the server (MIESC) runs on the user's infrastructure, and the client (Claude) connects locally. Source code and tools stay on the local system; what does travel to the assistant's provider, when the client is a hosted service such as Claude Desktop, is the content the server returns (findings and quoted snippets):
 
 ```
 User -> Claude Desktop -> MCP Client -> localhost:3000 -> MIESC MCP Server -> Tools
                                                                 |
-                                                          (All local)
+                                               (Server and tools local; responses go to the hosted client)
 ```
 
 This model is fundamentally different from ChatGPT plugins, where data travels through third-party servers.
@@ -794,9 +794,9 @@ The MCP server implementation in MIESC addresses a real and significant problem:
 
 The combination of 25 security tools, sovereign LLM (Ollama), and conversational interface (MCP) positions MIESC as:
 
-> **The first smart contract security framework with native conversational AI integration, maintaining data sovereignty through completely local execution.**
+> **A smart contract security framework with native conversational AI integration, whose server and tools run on the user's infrastructure and which offers a fully local analysis mode.**
 
-This value proposition is unique in the blockchain security ecosystem, where alternatives require sending code to external services, have significant costs, or lack accessible interfaces for non-specialists.
+As far as the review in Chapter 3 reaches, this combination has no direct equivalent in the blockchain security ecosystem, where alternatives require sending code to external services, have significant costs, or lack accessible interfaces for non-specialists.
 
 ---
 

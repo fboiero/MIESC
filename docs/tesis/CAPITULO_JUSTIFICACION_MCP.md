@@ -95,12 +95,12 @@ La selección de MCP se fundamentó en cuatro factores:
 
 **1. Alineación con principios de soberanía de datos**
 
-MCP define un modelo donde el servidor (MIESC) corre en la infraestructura del usuario, y el cliente (Claude) se conecta localmente. El código fuente nunca abandona el sistema local:
+MCP define un modelo donde el servidor (MIESC) corre en la infraestructura del usuario, y el cliente (Claude) se conecta localmente. El código fuente y las herramientas permanecen en el sistema local; lo que sí viaja al proveedor del asistente, cuando el cliente es un servicio alojado como Claude Desktop, es el contenido que el servidor devuelve (hallazgos y fragmentos citados):
 
 ```
 Usuario -> Claude Desktop -> MCP Client -> localhost:3000 -> MIESC MCP Server -> Herramientas
                                                                     |
-                                                              (Todo local)
+                                                   (Servidor y herramientas locales; respuestas hacia el cliente alojado)
 ```
 
 Este modelo es fundamentalmente diferente a los plugins de ChatGPT, donde los datos viajan a través de servidores de terceros.
@@ -795,9 +795,9 @@ La implementación del servidor MCP en MIESC responde a un problema real y signi
 
 La combinación de 25 herramientas de seguridad, LLM soberano (Ollama), e interfaz conversacional (MCP) posiciona a MIESC como:
 
-> **El primer framework de seguridad de smart contracts con integración nativa de IA conversacional, manteniendo la soberanía de datos mediante ejecución completamente local.**
+> **Un framework de seguridad de smart contracts con integración nativa de IA conversacional, cuyo servidor y herramientas se ejecutan en la infraestructura del usuario y que ofrece un modo de análisis completamente local.**
 
-Esta propuesta de valor es única en el ecosistema de seguridad blockchain, donde las alternativas requieren enviar código a servicios externos, tienen costos significativos, o carecen de interfaces accesibles para no especialistas.
+Hasta donde alcanza la revisión del Capítulo 3, esta combinación no tiene un equivalente directo en el ecosistema de seguridad blockchain, donde las alternativas requieren enviar código a servicios externos, tienen costos significativos, o carecen de interfaces accesibles para no especialistas.
 
 ---
 

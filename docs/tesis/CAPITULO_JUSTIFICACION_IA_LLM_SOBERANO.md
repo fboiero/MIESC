@@ -237,7 +237,7 @@ tcp   0   0   127.0.0.1:11434   0.0.0.0:*   LISTEN   12345/ollama
 $ tcpdump -i any "not localhost" during analysis
 tcpdump: listening on any
 ^C
-0 packets captured  # CERO tráfico externo
+0 packets captured  # sin tráfico externo (salida ilustrativa)
 ```
 
 **2. Modelos con pesos abiertos**
@@ -279,7 +279,7 @@ A diferencia de servicios comerciales, Ollama no incluye código de telemetría.
 
 ![Figura 6.2 - Arquitectura de análisis con LLM soberano](figures/Figura%2022.%20Arquitectura%20de%20análisis%20con%20LLM%20soberano.svg)
 
-*Infraestructura 100% local con cero tráfico externo*
+*Infraestructura local sin tráfico externo (configuración de referencia)*
 
 ### 6.3.4 Configuración en MIESC
 
@@ -350,7 +350,7 @@ def verify_sovereign_backend() -> bool:
 
 La objeción más frecuente a los LLMs locales es que su capacidad es inferior a modelos comerciales de frontera. Esta sección examina en qué medida esta diferencia afecta el caso de uso específico de análisis de smart contracts.
 
-**Tabla 6.4.** Comparativa de capacidades para análisis de código
+**Tabla 6.4.** Comparativa de capacidades para análisis de código (valoración cualitativa del autor al momento del diseño, sin medición propia; la medición del Capítulo 5 se reporta en la Tabla 5.8)
 
 | Capacidad | GPT-4 | Claude 3 Opus | Llama 3.1:8b | CodeLlama:13b |
 |-----------|-------|---------------|--------------|---------------|
@@ -366,7 +366,7 @@ La objeción más frecuente a los LLMs locales es que su capacidad es inferior a
 
 **Observaciones clave:**
 
-1. **Para vulnerabilidades técnicas conocidas** (reentrancy, overflow, access control), los modelos locales alcanzan rendimiento comparable a los comerciales. Esto se debe a que estas vulnerabilidades siguen patrones predecibles que modelos de 7-13B parámetros pueden aprender.
+1. **Para vulnerabilidades técnicas conocidas** (reentrancy, overflow, access control), los modelos locales se aproximan a los comerciales; en la medición del Capítulo 5, sin embargo, la configuración local quedó por debajo (44% frente a 72% de detección *type-aware*, §5.3.4). Esto se debe a que estas vulnerabilidades siguen patrones predecibles que modelos de 7-13B parámetros pueden aprender.
 
 2. **Para vulnerabilidades de lógica de negocio**, los modelos comerciales tienen ventaja. Sin embargo, esta ventaja se mitiga en MIESC porque:
    - La capa de IA es una de siete capas, no la única defensa
@@ -826,7 +826,7 @@ futuro—, de modo que lo que la evidencia sostiene no es un ranking confiable a
 
 La Tabla 6.6 sintetiza el argumento en un scorecard: el nivel local gana en todas
 las dimensiones de soberanía, el open-weight hosteado es el punto de equilibrio
-(soberanía casi total, precisión/F1 competitiva y costo mínimo), y el frontier solo conserva ventaja en el recall de una sola pasada, siempre bajo el matcher laxo.
+(control de los pesos aunque sin soberanía de datos, precisión/F1 competitiva y costo mínimo), y el frontier solo conserva ventaja en el recall de una sola pasada, siempre bajo el matcher laxo.
 
 **Tabla 6.6.** Scorecard de soberanía por nivel de acceso (✓ pleno · ◑ parcial · ✗ ausente)
 
@@ -871,7 +871,7 @@ La decisión de implementar LLMs soberanos en MIESC responde a un análisis rigu
 
 4. **El costo total de propiedad de LLMs soberanos es inferior** al de APIs comerciales para organizaciones que realizan auditorías regularmente. Medido en EVMBench, el nivel open-weight cuesta **~$0.08 por auditoría (15–69× menos que los frontier)** y el nivel local $0, con capacidad de detección competitiva bajo el protocolo evaluado.
 
-5. **La ejecución local garantiza cumplimiento regulatorio automático** con GDPR, LGPD, LFPDPPP y regulaciones sectoriales.
+5. **La ejecución local elimina una fuente de riesgo de transferencia internacional de datos** relevante para GDPR, LGPD, LFPDPPP y regulaciones sectoriales; el cumplimiento depende, además, de la operación.
 
 6. **El control es reproducibilidad, autoría y longevidad.** Solo un modelo de pesos abiertos y versionado permite una evidencia pericial reproducible, una cadena de autoría en la que el auditor puede responder por sus afirmaciones, y un baseline que ningún proveedor puede deprecar unilateralmente. Estas tres propiedades —ausentes por construcción en una API cerrada— son condiciones del método científico y forense, no beneficios accesorios. La contrapartida honesta es que la soberanía plena es un espectro: el nivel 100% local tiene un costo de recall medido, y el mejor resultado de pesos abiertos se obtuvo por API hosteada; el control sobre la herramienta se preserva en todo el espectro, con compromisos cuantificados entre soberanía, costo y recall.
 
@@ -879,7 +879,7 @@ La decisión de implementar LLMs soberanos en MIESC responde a un análisis rigu
 
 Para auditorías de smart contracts que manejan código confidencial con valor económico significativo:
 
-> **El uso de LLMs soberanos (locales) es la única opción que proporciona garantías verificables de confidencialidad del código fuente durante el proceso de auditoría.**
+> **El uso de LLMs soberanos (locales) es la opción que permite verificar localmente la ausencia de transmisión del código fuente durante el proceso de auditoría.**
 
 Las limitaciones de capacidad respecto a modelos comerciales se mitigan mediante:
 - Arquitectura de siete capas con 25 herramientas

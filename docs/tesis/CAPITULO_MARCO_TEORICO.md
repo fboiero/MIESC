@@ -291,7 +291,7 @@ MCP es un estándar abierto para conectar LLMs con herramientas externas (Anthro
 
 ### 2.6.4 Soberanía de Datos en IA
 
-La soberanía de datos es crítica en contextos de ciberdefensa (Floridi, 2020). El uso de LLMs locales mediante Ollama garantiza:
+La soberanía de datos es crítica en contextos de ciberdefensa (Floridi, 2020). El uso de LLMs locales mediante Ollama facilita:
 
 1. **Confidencialidad:** Código no transmitido a terceros
 2. **Cumplimiento normativo:** GDPR, LGPD, regulaciones nacionales
