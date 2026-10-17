@@ -2,30 +2,11 @@
 
 ## Evaluación Empírica de MIESC v4.0.0
 
----
-
 ## 5.1 Metodología de Evaluación
 
 ### 5.1.1 Diseño Experimental
 
-La evaluación de MIESC sigue las directrices metodológicas para evaluación empírica de herramientas de software propuestas por Wohlin et al. (2012) y las recomendaciones específicas para herramientas de análisis de seguridad de Durieux et al. (2020). Se adopta un diseño experimental cuasi-experimental con las siguientes características:
-
-**Tipo de estudio:** Evaluación comparativa con benchmark controlado
-
-**Variables independientes:**
-- Configuración de capas de MIESC (1-7)
-- Herramientas de comparación (Slither, Mythril, Echidna)
-
-**Variables dependientes:**
-- Número de vulnerabilidades detectadas (V)
-- Tasa de verdaderos positivos (TP rate)
-- Tasa de falsos positivos (FP rate)
-- Tiempo de ejecución (T)
-
-**Variables de control:**
-- Versión de Solidity (0.8.19)
-- Hardware de ejecución (especificado en Tabla 5.1)
-- Contratos de prueba (fijos)
+La evaluación de MIESC sigue las directrices metodológicas para la evaluación empírica de herramientas de software propuestas por Wohlin et al. (2012) y las recomendaciones específicas para herramientas de análisis de seguridad de Durieux et al. (2020). Se adopta un diseño cuasi-experimental de evaluación comparativa sobre un benchmark controlado. Las variables independientes son la configuración de capas de MIESC y la herramienta individual de comparación (Slither; Mythril y Echidna no pudieron re-medirse en el entorno de reproducción, §5.3.3). Las variables dependientes son la cobertura y la detección *type-aware* de las vulnerabilidades documentadas, el número de hallazgos brutos y únicos —del que se deriva la precisión aproximada— y el tiempo de ejecución. Se mantienen constantes la versión de Solidity (0.8.19), el hardware de ejecución (Tabla 5.1) y el conjunto de contratos de prueba.
 
 ### 5.1.2 Preguntas de Investigación
 
@@ -55,7 +36,7 @@ El experimento se diseñó para responder las siguientes preguntas de investigac
 |------------|----------------|---------------|
 | Sistema Operativo | macOS Darwin 24.6.0 | Ambiente de desarrollo típico |
 | Arquitectura | ARM64 (Apple Silicon) | Hardware moderno representativo |
-| Python | 3.11.6 | Versión LTS con mejoras de rendimiento |
+| Python | 3.11.6 | Versión estable con mejoras de rendimiento |
 | Solidity | 0.8.19 | Versión estable con SafeMath integrado |
 | Docker | 24.0.6 | Requerido para herramientas containerizadas |
 | Ollama | 0.1.17 | Backend para análisis con IA |
@@ -63,12 +44,7 @@ El experimento se diseñó para responder las siguientes preguntas de investigac
 
 ### 5.1.4 Corpus de Prueba
 
-La selección de contratos de prueba sigue las recomendaciones de Ghaleb y Pattabiraman (2020) para evaluación de herramientas de análisis:
-
-**Criterios de selección:**
-1. Vulnerabilidades conocidas y documentadas
-2. Cobertura de múltiples categorías SWC
-3. Complejidad representativa de contratos reales
+La selección de contratos de prueba sigue las recomendaciones de Ghaleb y Pattabiraman (2020) para la evaluación de herramientas de análisis: vulnerabilidades conocidas y documentadas, cobertura de múltiples categorías SWC y una complejidad representativa de contratos reales. La Tabla 5.2 resume el corpus; la Tabla 5.5 lo detalla por categoría al presentar los resultados de detección.
 
 **Tabla 5.2.** Corpus de contratos de prueba
 
@@ -81,8 +57,6 @@ La selección de contratos de prueba sigue las recomendaciones de Ghaleb y Patta
 | **Total** | **614** | **29** | **9+ categorías** | |
 
 **Limitaciones metodológicas:** Según Durieux et al. (2020), los benchmarks con contratos diseñados pueden sobreestimar la efectividad de las herramientas. Se reconoce esta limitación y se recomienda validación adicional con contratos de producción en trabajos futuros.
-
----
 
 ## 5.2 Resultados: Integración de Herramientas (RQ1)
 
@@ -138,11 +112,9 @@ La Tabla 5.4 documenta los problemas encontrados durante la integración y sus s
 | 6 | Medusa | Version check fallaba | Comando incorrecto | Fix medusa --version | - |
 | 7 | Vertigo | Sin backend de testing | Requiere framework | Integración con Foundry | Paradigm (2021) |
 
----
+### 5.2.3 Evidencia de Funcionamiento: Salidas de Herramientas
 
-## 5.2.3 Evidencia de Funcionamiento: Salidas de Herramientas
-
-A continuación se presentan las salidas reales de ejecución de las herramientas principales integradas en MIESC, demostrando la operatividad del framework.
+A continuación se presentan salidas de ejecución de las herramientas principales integradas en MIESC, que muestran la operatividad del framework sobre el contrato de referencia.
 
 **Figura 5.1.** Salida de Slither (Capa 1 - Análisis Estático)
 
@@ -196,9 +168,7 @@ Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#low-lev
 INFO:Slither:contracts/audit/VulnerableBank.sol analyzed (2 contracts with 100 detectors), 9 result(s) found
 ```
 
-**Observación:** Slither identifica correctamente la vulnerabilidad de reentrancy (SWC-107) indicando la ubicación exacta y las funciones afectadas.
-
----
+Slither identifica correctamente la vulnerabilidad de reentrancy (SWC-107) indicando la ubicación exacta y las funciones afectadas.
 
 **Figura 5.2.** Salida de Mythril (Capa 3 - Ejecución Simbólica)
 
@@ -254,9 +224,7 @@ Transaction Sequence:
 Caller: [SOMEGUY], function: attack(), txdata: 0x9e5faafc, value: 0xde0b6b3a7640000
 ```
 
-**Observación:** Mythril identifica tanto la vulnerabilidad de reentrancy (SWC-107) como el retiro de Ether no protegido (SWC-105), proporcionando secuencias de transacciones que explotan cada vulnerabilidad.
-
----
+Mythril identifica tanto la vulnerabilidad de reentrancy (SWC-107) como el retiro de Ether no protegido (SWC-105), proporcionando secuencias de transacciones que explotan cada vulnerabilidad.
 
 **Figura 5.3.** Salida de SMTChecker (Capa 5 - Verificación Formal)
 
@@ -271,9 +239,7 @@ contract to be verified in order to reduce the solving problems. Consider
 increasing the timeout per query.
 ```
 
-**Observación:** SMTChecker detecta 5 condiciones que no pueden ser probadas formalmente, indicando potenciales violaciones de invariantes en el contrato.
-
----
+SMTChecker detecta 5 condiciones que no pueden ser probadas formalmente, indicando potenciales violaciones de invariantes en el contrato.
 
 **Figura 5.4.** Salida del pipeline de MIESC (capas 1/6/7) sobre un contrato (VulnerableBank: 47→16 hallazgos, 66.0% de deduplicación en este contrato; el 68% es la cifra del corpus completo, 385→123)
 
@@ -341,9 +307,7 @@ Tiempo total de ejecución: 52.4s (paralelo)
 Estado: COMPLETADO
 ```
 
-**Observación:** La ejecución del pipeline de evaluación (capas 1/6/7) sobre el corpus genera 385 hallazgos brutos que se reducen a 123 únicos tras el agrupamiento por causa-raíz, demostrando la efectividad del proceso de normalización.
-
----
+Sobre el corpus completo, la ejecución del pipeline de evaluación (capas 1/6/7) genera 385 hallazgos brutos que se reducen a 123 únicos tras la deduplicación (§4.6.2), lo que ilustra el efecto del proceso de normalización.
 
 **Figura 5.5.** Estructura de Hallazgo Normalizado (JSON; ejemplo sobre las capas 1/3/7: 23→9 hallazgos, tasa 0.609)
 
@@ -385,9 +349,7 @@ El siguiente fragmento muestra la estructura de un hallazgo individual normaliza
 }
 ```
 
-**Observación:** La estructura normalizada incluye: (1) identificador único, (2) clasificación triple (SWC/CWE/OWASP), (3) registro de todas las herramientas que detectaron el hallazgo, (4) recomendación de remediación, y (5) referencias externas. Esta estructura facilita la trazabilidad y reporting.
-
----
+La estructura normalizada reúne un identificador único, la clasificación triple (SWC/CWE/OWASP), el registro de todas las herramientas que detectaron el hallazgo, la recomendación de remediación y las referencias externas, lo que facilita la trazabilidad y la generación de reportes.
 
 **Figura 5.6.** Respuesta de API REST
 
@@ -436,15 +398,13 @@ $ curl -X POST http://localhost:8000/api/v1/analyze \
 }
 ```
 
-**Observación:** La API REST proporciona información estructurada incluyendo: tiempo de ejecución por herramienta, estado de cada tool, y hallazgos normalizados. El formato JSON facilita la integración con sistemas de CI/CD.
-
----
+La API REST devuelve información estructurada —tiempo de ejecución y estado por herramienta, y hallazgos normalizados— en un formato JSON que facilita la integración con sistemas de CI/CD.
 
 ## 5.3 Resultados: Detección de Vulnerabilidades (RQ2)
 
 ### 5.3.1 Análisis del Corpus de Prueba
 
-Se ejecutó MIESC sobre un corpus de prueba de 4 contratos de diseño propio (614 LOC en total) con **29 vulnerabilidades documentadas** mediante anotaciones `// VULNERABILITY N:` en el código fuente, que constituyen el *ground truth*.
+Se ejecutó MIESC sobre un corpus de prueba de 4 contratos de diseño propio (614 LOC en total) con 29 vulnerabilidades documentadas mediante anotaciones `// VULNERABILITY N:` en el código fuente, que constituyen el *ground truth*.
 
 **Tabla 5.5.** Corpus de prueba (`data/audit/`)
 
@@ -456,9 +416,7 @@ Se ejecutó MIESC sobre un corpus de prueba de 4 contratos de diseño propio (61
 | FlashLoanVault.sol | 252 | 10 | Lógica DeFi (oráculo, first-depositor, reentrancy) |
 | **Total** | **614** | **29** | **9+ categorías SWC** |
 
-**Nota metodológica.** Una herramienta *recall-first* como MIESC produce muchos hallazgos por contrato, por lo que se distinguen dos criterios de "detección":
-- **Cobertura de línea:** ¿existe algún hallazgo a ±5 líneas del marcador de la vulnerabilidad? Criterio laxo, satisfecho casi trivialmente cuando hay muchos hallazgos.
-- **Detección type-aware:** ¿el hallazgo cercano identifica la vulnerabilidad del **tipo/SWC correcto**? Criterio significativo.
+Una herramienta *recall-first* como MIESC produce muchos hallazgos por contrato, por lo que conviene distinguir dos criterios de detección. La cobertura de línea pregunta si existe algún hallazgo a ±5 líneas del marcador de la vulnerabilidad: es un criterio laxo, que se satisface casi trivialmente cuando los hallazgos abundan. La detección *type-aware* pregunta, en cambio, si el hallazgo cercano identifica la vulnerabilidad con el tipo o SWC correcto, y es el criterio al que se otorga peso en este capítulo.
 
 Todos los resultados de esta sección son reproducibles; los artefactos crudos y la verificación vulnerabilidad-por-vulnerabilidad están en el expediente `docs/evidence/corpus_revalidation_20260709/`.
 
@@ -476,16 +434,11 @@ La evaluación de detección de esta sección se realizó sobre las capas 1 (an�
 | FlashLoanVault.sol | 10/10 | 4/10 | 153 |
 | **Total** | **29/29 (100%)** | **14/29 (48%)** | **385** |
 
-**Métricas agregadas:**
-- **Cobertura de recall:** 29/29 = **100%**
-- **Recall type-aware:** 14/29 = **48%**
-- **Precisión:** ≈ 29/385 ≈ **7.5%** (sube a ~32% con filtrado de FP agresivo)
-
-MIESC exhibe un perfil claramente *recall-first*: cubre la totalidad de las vulnerabilidades documentadas, pero con precisión baja producto de la inundación de hallazgos (385 sobre 614 LOC). Bajo el criterio significativo de tipo correcto, identifica el 48%.
+En términos agregados, la cobertura es de 29/29 (100%), la detección *type-aware* de 14/29 (48%) y la precisión aproximada —a lo sumo 29 verdaderos positivos sobre 385 hallazgos— de 7.5%, que sube a alrededor del 32% con un filtrado agresivo de falsos positivos. MIESC exhibe, así, un perfil claramente *recall-first*: cubre la totalidad de las vulnerabilidades documentadas, pero con una precisión baja producto de la inundación de hallazgos (385 sobre 614 líneas de código), y bajo el criterio de tipo correcto identifica el 48%.
 
 ### 5.3.3 Comparación con Slither (RQ2)
 
-Para responder RQ2 —si el enfoque multicapa mejora la detección respecto a herramientas individuales— se midió **Slither de forma aislada** sobre el mismo corpus, con idéntico criterio de correlación.
+Para responder RQ2 —si el enfoque multicapa mejora la detección respecto a herramientas individuales— se midió Slither de forma aislada sobre el mismo corpus, con idéntico criterio de correlación.
 
 **Tabla 5.7.** MIESC vs Slither sobre el corpus real (29 vulnerabilidades)
 
@@ -495,19 +448,19 @@ Para responder RQ2 —si el enfoque multicapa mejora la detección respecto a he
 | MIESC estático+patrón (capas 1/6/7) | 29/29 (100%) | 14/29 (48%) | 385 | ~7.5% |
 | MIESC + capa LLM frontier (`--deep`) | 27/29 (93%) | **21/29 (72%)** | ~110 | ~27% |
 
-**Resultado RQ2 (honesto).** Combinar herramientas estáticas y de patrón (capas 1/6/7 de MIESC) **NO mejoró la detección respecto a Slither por sí sola**: alcanzó cobertura equivalente (100% vs 96%, una vulnerabilidad de diferencia) pero **menor precisión de tipo** (48% vs 58%) y **~6× más falsos positivos** (385 vs 62). La hipótesis de que combinar tools estáticos supera al mejor tool individual **no se sostiene en este corpus**.
+**Resultado RQ2.** Combinar herramientas estáticas y de patrón (capas 1/6/7 de MIESC) no mejoró la detección respecto de Slither por sí sola: se alcanzó una cobertura equivalente (100% frente a 96%, una vulnerabilidad de diferencia), pero con menor precisión de tipo (48% frente a 58%) y aproximadamente seis veces más falsos positivos (385 frente a 62). La hipótesis de que la combinación de herramientas estáticas supera a la mejor herramienta individual, por lo tanto, no se sostiene en este corpus.
 
-La mejora real proviene de **agregar una capa de razonamiento LLM**: con un modelo frontier en modo `--deep`, el recall type-aware sube de 48% a **72%**, superando a Slither (58%). El valor diferencial del enfoque multicapa reside, por tanto, en la **capa de análisis semántico con LLM**, no en la combinación de herramientas estáticas.
+La mejora real proviene de agregar una capa de razonamiento LLM: con un modelo frontier en modo `--deep`, la detección *type-aware* sube del 48% al 72% y supera a Slither (58%). El valor diferencial del enfoque multicapa reside, por tanto, en la capa de análisis semántico, no en la combinación de herramientas estáticas; la diferencia entre la configuración estática y el detector frontier queda, con n=29, en el límite de la significación (p=0.065, Tabla 5.15).
 
 **Límite persistente.** Las vulnerabilidades de lógica DeFi profunda (manipulación de oráculo, first-depositor, redondeo en `FlashLoanVault`) permanecen difíciles incluso para los modelos frontier (4–6 de 10 según el modelo), constituyendo la frontera abierta del análisis automatizado de smart contracts.
 
-Este resultado matiza la complementariedad de Durieux et al. (2020): si bien ninguna herramienta individual detecta todas las clases, **la combinación de tools estáticos no superó al mejor tool individual** en este corpus; la ganancia provino del razonamiento semántico.
+Este resultado matiza la complementariedad de Durieux et al. (2020): si bien ninguna herramienta individual detecta todas las clases, la combinación de herramientas estáticas no superó a la mejor herramienta individual en este corpus; la ganancia provino del razonamiento semántico.
 
-> **Nota de alcance.** No se re-midieron Mythril ni Echidna de forma aislada sobre este corpus (Mythril no disponible en el entorno de reproducción arm64; Echidna sin binarios arm64). La comparación de RQ2 se limita a Slither, la herramienta estática de referencia.
+El alcance de esta comparación es acotado: no se re-midieron Mythril ni Echidna de forma aislada sobre este corpus (Mythril no estaba disponible en el entorno de reproducción ARM64; Echidna carece de binarios para esa arquitectura), de modo que RQ2 se responde frente a Slither, la herramienta estática de referencia.
 
 ### 5.3.4 Ensemble multi-modelo: complementariedad al nivel de razonadores
 
-Si combinar herramientas estáticas no mejora la detección (§5.3.3), ¿qué sí lo hace? Cada modelo LLM frontier detecta un subconjunto **distinto** de las 29 vulnerabilidades; la **unión** de sus detecciones type-aware supera a cualquiera individual.
+Si combinar herramientas estáticas no mejora la detección (§5.3.3), ¿qué sí lo hace? Cada modelo LLM detecta un subconjunto distinto de las 29 vulnerabilidades, y la unión de sus detecciones *type-aware* supera a cualquiera de ellos por separado.
 
 **Tabla 5.8.** Detección type-aware por modelo y ensemble (unión). Salvo Slither, cada fila es una corrida completa de MIESC en modo `--deep`, con el modelo indicado como detector primario de la capa 7; no son evaluaciones de los modelos de lenguaje en forma aislada. Corrida única por modelo; intervalos de confianza en Tabla 5.14.
 
@@ -524,7 +477,7 @@ Si combinar herramientas estáticas no mejora la detección (§5.3.3), ¿qué s�
 
 **Resultado.** La unión de las ocho configuraciones alcanza **86%** (83% si se excluye a Slither), por encima del mejor detector individual (72%): suma cuatro vulnerabilidades que ningún detector individual cubre por sí solo, una diferencia que con n=29 no alcanza significación estadística (p=0.125, Tabla 5.15). Esto **reformula** la hipótesis de complementariedad de Ghaleb y Pattabiraman (2020): la complementariedad efectiva no proviene de apilar herramientas estáticas (§5.3.3), sino de **combinar razonadores LLM diversos**, cada uno con fortalezas distintas.
 
-Solo **4 vulnerabilidades no son detectadas por ningún modelo**: un *unchecked return value* en `transferFrom` y tres de lógica DeFi en `FlashLoanVault` (oracle manipulation, rounding en el cálculo de shares, y una aritmética que en Solidity 0.8.x revierte automáticamente). Constituyen la frontera abierta del análisis automatizado de smart contracts.
+Solo 4 vulnerabilidades no son detectadas por ningún modelo: un *unchecked return value* en `transferFrom` y tres de lógica DeFi en `FlashLoanVault` (oracle manipulation, rounding en el cálculo de shares, y una aritmética que en Solidity 0.8.x revierte automáticamente). Constituyen la frontera abierta del análisis automatizado de smart contracts.
 
 **Trade-off recall/precisión.** El ensemble maximiza el recall (86%) pero une los falsos positivos de todos los modelos, degradando la precisión; es una configuración de triage de máxima cobertura, no de reporte de alta precisión. MIESC expone esta capacidad mediante la opción `--ensemble`. Evidencia por-vulnerabilidad en `docs/evidence/corpus_revalidation_20260709/`.
 
@@ -550,7 +503,7 @@ Paper 1).
 | **Ensemble (unión de 4 proveedores: 3 frontier + local)** | **92.5%** | — | — | ~$7 |
 | Control nulo (4 hallazgos genéricos, agnóstico del contrato) | 50.0% (60/120) | — | — | $0 |
 
-El **control nulo** —cuatro hallazgos genéricos, idénticos para cualquier contrato— es acreditado con el 50% bajo el matcher laxo. Eso acota la lectura de la tabla: solo el margen por encima de ~50% es informativo, y sobre el subconjunto resistente al control (60 vulnerabilidades) la corrida de Claude rinde 78.3% (47/60) (Paper 1, `benchmarks/evmbench_matcher_null_control.py`).
+El control nulo —cuatro hallazgos genéricos, idénticos para cualquier contrato— es acreditado con el 50% bajo el matcher laxo. Eso acota la lectura de la tabla: solo el margen por encima de ~50% es informativo, y sobre el subconjunto resistente al control (60 vulnerabilidades) la corrida de Claude rinde 78.3% (47/60) (Paper 1, `benchmarks/evmbench_matcher_null_control.py`).
 
 **Resultado.** EVMBench reproduce el patrón del corpus de 29 vulnerabilidades: la
 unión de razonadores frontier (92.5%) supera ampliamente a cualquiera individual,
@@ -593,13 +546,11 @@ La evidencia peritable (comando exacto, digests de imagen, hashes de artefactos 
 versiones de `solc`) está en `docs/evidence/smartbugs_revalidation_20260709/` y en el
 apéndice de estadísticas; el detalle metodológico, en el Paper 1.
 
----
-
 ## 5.4 Resultados: Normalización y Deduplicación (RQ3)
 
 ### 5.4.1 Efectividad de la Deduplicación
 
-Las capas generaron un total de 385 hallazgos brutos sobre el corpus. El algoritmo de agrupamiento por causa-raíz (clustering) los redujo a 123 hallazgos únicos.
+Las capas evaluadas generaron un total de 385 hallazgos brutos sobre el corpus, que el algoritmo de deduplicación (§4.6.2) redujo a 123 hallazgos únicos.
 
 **Tasa de deduplicación:** (385 - 123) / 385 × 100 = **68.1%**
 
@@ -628,9 +579,7 @@ Se validó manualmente el mapeo de clasificaciones nativas a taxonomías estánd
 
 El único error de mapeo en GPTScan correspondió a una clasificación ambigua del modelo de lenguaje que fue corregida manualmente.
 
-**Resultado RQ3:** La normalización logra una deduplicación del **68%** (385→123 sobre el corpus) con una precisión de mapeo del **97.1%**, validando la efectividad del enfoque.
-
----
+**Resultado RQ3.** La normalización logra una deduplicación del 68% (385→123 sobre el corpus) y, sobre la muestra de la Tabla 5.10, una precisión de mapeo del 97.1%, lo que respalda el enfoque con las salvedades señaladas en esa tabla.
 
 ## 5.5 Resultados: Viabilidad en Producción (RQ4)
 
@@ -651,8 +600,6 @@ El único error de mapeo en GPTScan correspondió a una clasificación ambigua d
 | Cota inferior teórica (todas las capas en paralelo) | | 52.4 | | |
 
 **Observación:** El orquestador ejecuta las herramientas en paralelo dentro de cada capa y las capas en secuencia (§4.6.1), por lo que el tiempo total de diseño es la suma de los tiempos por capa: 161.1 s. El valor de 52.4 s es la cota inferior que se alcanzaría si todas las capas corrieran en paralelo (el tiempo de la capa más lenta) y no corresponde a la implementación evaluada; la ley de Amdahl (1967) acota la ganancia de la paralelización intra-capa al tiempo de la herramienta más lenta de cada capa.
-
-*Timeline de ejecución paralela de herramientas por capa*
 
 ### 5.5.2 Consumo de Recursos
 
@@ -678,48 +625,29 @@ El único error de mapeo en GPTScan correspondió a una clasificación ambigua d
 | Certora Cloud | ~$100 | ~$10,000 | ~$120,000 |
 | Auditoría manual | $5,000-50,000 | N/A | N/A |
 
-*Nota: Costos estimados basados en precios públicos de noviembre 2024. El nivel
-open-weight hosteado (pesos MIT accedidos por API, ~$0.08/auditoría) es 15–69×
-más barato que las APIs frontier y, bajo el matcher laxo de EVMBench, registra la mayor precisión/F1 de la comparación —bajo matcher laxo, una estimación optimista que no constituye un ranking concluyente— (véase §5.3.5 y el Capítulo 6, Tabla 6.2b).*
+*Nota: Costos estimados basados en precios públicos de noviembre 2024. El nivel open-weight alojado en un servicio de terceros (pesos MIT accedidos por API, ~$0.08/auditoría) es 15–69× más barato que las APIs frontier; su precisión y F1 bajo el matcher laxo se discuten en §5.3.5 y en la Tabla 6.2b.*
 
-**Resultado RQ4:** MIESC es viable para producción con:
-- **Tiempo:** ≈2.7 minutos (161.1 s) para una auditoría con las siete capas en secuencia, con paralelismo dentro de cada capa (Tabla 5.11)
-- **Recursos:** 8 GB RAM suficiente
-- **Costo:** $0 operativo (ejecución local)
-
----
+**Resultado RQ4.** Los datos indican que MIESC es viable para uso en producción: una auditoría con las siete capas en secuencia, con paralelismo dentro de cada capa, demanda alrededor de 2.7 minutos (161.1 s, Tabla 5.11); 8 GB de RAM resultan suficientes, y el costo operativo es nulo cuando la ejecución es local. La segunda parte de la pregunta —la calidad del análisis semántico de un LLM local frente a los servicios comerciales— se responde en §5.3.4 y §5.7.4: la configuración local quedó por debajo de la frontier (44% frente a 72%).
 
 ## 5.6 Análisis de Validez
 
-Siguiendo las directrices de Wohlin et al. (2012), se analizan las amenazas a la validez:
+Siguiendo las directrices de Wohlin et al. (2012), se analizan a continuación las amenazas a la validez del estudio.
 
 ### 5.6.1 Validez Interna
 
-**Amenaza:** Sesgos en la selección de contratos de prueba.
-
-**Mitigación:** Se utilizaron contratos con vulnerabilidades conocidas y documentadas, siguiendo metodología de Durieux et al. (2020).
+La principal amenaza a la validez interna es el sesgo en la selección de los contratos de prueba, agravado por el hecho de que el corpus y su etiquetado son de diseño propio. Para acotarla se emplearon exclusivamente contratos con vulnerabilidades conocidas y documentadas, siguiendo la metodología de Durieux et al. (2020), aunque esta medida no elimina el riesgo de que el diseño favorezca a las herramientas evaluadas.
 
 ### 5.6.2 Validez Externa
 
-**Amenaza:** Generalización limitada por corpus pequeño.
-
-**Mitigación parcial:** Los contratos cubren las categorías SWC más frecuentes (Tabla 3.2). Se recomienda validación adicional con contratos de producción.
+El tamaño reducido del corpus limita la generalización de los resultados. Esta amenaza solo se mitiga parcialmente: los contratos cubren las categorías SWC más frecuentes (Tabla 3.2) y las validaciones posteriores sobre EVMBench (§5.3.5) y SmartBugs Curated (§5.3.6) amplían la base empírica, pero la validación con contratos de producción sigue siendo necesaria.
 
 ### 5.6.3 Validez de Constructo
 
-**Amenaza:** Métricas pueden no capturar efectividad real.
-
-**Mitigación:** Se utilizan métricas estándar (precision, recall, F1) aceptadas en la literatura (Durieux et al., 2020).
+Cabe la posibilidad de que las métricas empleadas no capturen la efectividad real de la herramienta. Por ese motivo se recurrió a métricas estándar aceptadas en la literatura (Durieux et al., 2020): cobertura y detección *type-aware* sobre el corpus propio, y precisión, recall y F1 sobre los benchmarks externos. La propia distinción entre cobertura de línea y detección *type-aware* (§5.3.1) responde a esta amenaza.
 
 ### 5.6.4 Validez de Conclusión
 
-**Amenaza:** Variabilidad en tiempos de ejecución.
-
-**Mitigación:** Se reporta desviación estándar y se promedian 10 ejecuciones.
-
-**Amenaza:** Tamaño muestral reducido (n=29 vulnerabilidades) y ausencia de pruebas de significación en las comparaciones de detección.
-
-**Mitigación:** Las tasas de detección *type-aware* de §5.3.3–5.3.4 se acompañan aquí de intervalos de confianza de Wilson al 95% (Tabla 5.14) y de pruebas de McNemar exactas sobre pares de configuraciones evaluadas sobre las mismas 29 vulnerabilidades (Tabla 5.15). Ambos cálculos se derivan del registro vulnerabilidad por vulnerabilidad de la corrida de revalidación (`docs/evidence/corpus_revalidation_20260709/`), sin corridas adicionales.
+La variabilidad de los tiempos de ejecución podría afectar las conclusiones sobre viabilidad; para controlarla se promediaron diez ejecuciones y se reporta la desviación estándar. Una amenaza mayor es el tamaño muestral reducido (n=29 vulnerabilidades) en las comparaciones de detección. Para acotarla, las tasas de detección *type-aware* de §5.3.3–5.3.4 se acompañan aquí de intervalos de confianza de Wilson al 95% (Tabla 5.14) y de pruebas de McNemar exactas sobre pares de configuraciones evaluadas sobre las mismas 29 vulnerabilidades (Tabla 5.15). Ambos cálculos se derivan del registro vulnerabilidad por vulnerabilidad de la corrida de revalidación (`docs/evidence/corpus_revalidation_20260709/`), sin corridas adicionales.
 
 **Tabla 5.14.** Intervalos de confianza (Wilson, 95%) de la detección type-aware sobre las 29 vulnerabilidades del corpus
 
@@ -745,46 +673,25 @@ Siguiendo las directrices de Wohlin et al. (2012), se analizan las amenazas a la
 
 *Nota.* "Solo A" y "Solo B" cuentan las vulnerabilidades detectadas por una configuración y no por la otra (pares discordantes); el valor p corresponde a la prueba binomial exacta bilateral sobre esos pares. Con n=29 los intervalos son amplios y se solapan en casi todos los casos. De los siete pares evaluados, solo tres alcanzan significación al 5%: el detector frontier frente a la configuración local (p=0.008), el ensemble frente a Slither (p=0.008) y el ensemble frente a la configuración local (p<0.001); la mejora del detector frontier sobre la configuración estática queda en el límite (p=0.065) y la del ensemble sobre el mejor detector individual no alcanza significación (p=0.125). Las conclusiones de §5.7.2 deben leerse, por lo tanto, como tendencias consistentes sobre un corpus pequeño y no como diferencias establecidas estadísticamente; una muestra mayor forma parte del trabajo futuro (§8.3).
 
----
-
 ## 5.7 Discusión
 
 ### 5.7.1 Respuesta a RQ1
 
-MIESC logró integrar exitosamente las 25 herramientas propuestas (100% disponibilidad). Los principales desafíos fueron:
-
-1. **Compatibilidad de versiones:** Python 3.11 requirió parches en bibliotecas legacy
-2. **Dependencias comerciales:** La migración a Ollama eliminó costos de API
-3. **Obsolescencia:** Docker permite mantener herramientas legacy operativas
-
-Estos resultados validan la decisión de diseño de utilizar el patrón Adapter (Gamma et al., 1994) para encapsular heterogeneidad.
+MIESC logró integrar las 25 herramientas propuestas (100% de disponibilidad). Los principales desafíos fueron tres: la compatibilidad de versiones, ya que Python 3.11 exigió parches en bibliotecas heredadas; las dependencias comerciales, resueltas con la migración a Ollama, que eliminó los costos de API; y la obsolescencia, que Docker permitió sortear manteniendo operativas las herramientas legacy. Estos resultados respaldan la decisión de diseño de utilizar el patrón Adapter (Gamma et al., 1994) para encapsular la heterogeneidad.
 
 ### 5.7.2 Respuesta a RQ2
 
-La medición controlada contra Slither (§5.3.3) **matiza** la hipótesis de complementariedad. Combinar herramientas estáticas y de patrón (capas 1/6/7) **no mejoró** la detección type-aware respecto al mejor tool individual: 48% vs 58% de Slither, con cobertura equivalente (100% vs 96%) pero ~6× más falsos positivos. La ganancia real provino de **agregar razonamiento LLM**, que elevó el recall type-aware de 48% a **72%**, superando a Slither; y de **combinar modelos LLM diversos en ensemble** (§5.3.4), que lo elevó aún más, a **86%** (unión de detecciones), a costa de precisión. Con n=29, solo tres de los pares comparados alcanzan significación estadística —detector frontier y ensemble frente a la configuración local, y ensemble frente a Slither— y el resto no (§5.6.4, Tabla 5.15). Esto es consistente con:
+La medición controlada contra Slither (§5.3.3) matiza la hipótesis de complementariedad. Combinar herramientas estáticas y de patrón (capas 1/6/7) no mejoró la detección *type-aware* respecto de la mejor herramienta individual —48% frente al 58% de Slither, con cobertura equivalente (100% frente a 96%) pero unas seis veces más falsos positivos—. La ganancia real provino de agregar razonamiento LLM, que elevó la detección *type-aware* del 48% al 72% y superó a Slither, y de combinar modelos diversos en ensemble (§5.3.4), que la elevó a 86% (unión de detecciones) a costa de precisión. Con n=29, solo tres de los pares comparados alcanzan significación estadística —detector frontier y ensemble frente a la configuración local, y ensemble frente a Slither— y el resto no (§5.6.4, Tabla 5.15).
 
-- Rameder et al. (2022): "Ninguna herramienta individual es suficiente" — pero, según nuestra medición, la complementariedad efectiva requiere **análisis semántico**, no solo combinar tools estáticos.
-- Durieux et al. (2020): ninguna herramienta individual cubre todas las clases de vulnerabilidad.
-
-La contribución del enfoque multicapa reside, por tanto, en integrar una capa de razonamiento LLM sobre el análisis estático — no en la mera combinación de herramientas estáticas.
+El resultado es consistente con la literatura, aunque la precisa. Rameder et al. (2022) sostienen que ninguna herramienta individual es suficiente, y Durieux et al. (2020) muestran que ninguna cubre todas las clases de vulnerabilidad; la medición realizada agrega que la complementariedad efectiva requiere análisis semántico y no solo la acumulación de herramientas estáticas. La contribución del enfoque multicapa reside, por tanto, en integrar una capa de razonamiento LLM sobre el análisis estático, no en la mera combinación de herramientas estáticas.
 
 ### 5.7.3 Respuesta a RQ3
 
-La tasa de deduplicación del 68% demuestra que múltiples herramientas detectan las mismas vulnerabilidades con nomenclaturas distintas. La normalización a SWC/CWE/OWASP:
-
-- Reduce ruido en reportes
-- Facilita comparación entre auditorías
-- Permite trazabilidad hacia estándares
+La tasa de deduplicación del 68% muestra que múltiples herramientas detectan las mismas vulnerabilidades bajo nomenclaturas distintas. Normalizar los hallazgos a SWC/CWE/OWASP reduce, en consecuencia, el ruido de los reportes, facilita la comparación entre auditorías y habilita la trazabilidad hacia estándares reconocidos.
 
 ### 5.7.4 Respuesta a RQ4
 
-Los resultados demuestran viabilidad para producción:
-
-- **Rendimiento:** Comparable a ejecución de herramienta individual más lenta (Mythril)
-- **Recursos:** Requerimientos moderados (8 GB RAM)
-- **Costo:** $0 en modo local reduce las barreras de adopción
-
----
+Los resultados respaldan la viabilidad en producción. El tiempo total, cercano a los tres minutos, resulta del encadenamiento secuencial de las capas y está dominado por la ejecución simbólica; los requerimientos de recursos son moderados (8 GB de RAM), y la ausencia de costo operativo en modo local reduce una barrera habitual de adopción. En cuanto a la calidad del análisis semántico, el LLM local quedó por debajo de los servicios comerciales en el corpus (44% frente a 72% de detección *type-aware*, §5.3.4) y en EVMBench (59.2% frente a 73.7–82.5% de recall, §5.3.5): la configuración soberana es viable, pero con un costo en capacidad de detección que el Capítulo 6 pondera frente a sus beneficios.
 
 ## 5.8 Limitaciones
 
@@ -803,8 +710,6 @@ Los resultados demuestran viabilidad para producción:
 7. **Protocolo de emparejamiento:** las cifras de EVMBench (§5.3.5) provienen del matcher laxo, una estimación optimista; bajo el juez oficial la misma corrida rinde 27.4%.
 
 8. **Corpus y ground truth de diseño propio:** el corpus de 29 vulnerabilidades y su etiquetado fueron elaborados por el autor, lo que introduce un riesgo de sesgo de diseño que la selección de vulnerabilidades documentadas mitiga solo parcialmente (§5.6.1).
-
----
 
 ## 5.9 Referencias del Capítulo
 
@@ -833,7 +738,3 @@ Rameder, H., Di Angelo, M., & Salzer, G. (2022). Review of automated vulnerabili
 Runeson, P., Host, M., Rainer, A., & Regnell, B. (2012). *Case study research in software engineering*. Wiley.
 
 Wohlin, C., Runeson, P., Höst, M., Ohlsson, M. C., Regnell, B., & Wesslén, A. (2012). *Experimentation in software engineering*. Springer.
-
----
-
-*Nota: Las referencias siguen el formato APA 7ma edición.*
