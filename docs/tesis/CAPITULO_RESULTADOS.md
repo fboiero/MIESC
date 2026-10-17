@@ -507,7 +507,7 @@ Este resultado matiza la complementariedad de Durieux et al. (2020): si bien nin
 
 Si combinar herramientas estáticas no mejora la detección (§5.3.3), ¿qué sí lo hace? Cada modelo LLM frontier detecta un subconjunto **distinto** de las 29 vulnerabilidades; la **unión** de sus detecciones type-aware supera a cualquiera individual.
 
-**Tabla 5.8.** Detección type-aware por modelo y ensemble (unión)
+**Tabla 5.8.** Detección type-aware por modelo y ensemble (unión). Salvo Slither, cada fila es una corrida completa de MIESC en modo `--deep`, con el modelo indicado como detector primario de la capa 7; no son evaluaciones de los modelos de lenguaje en forma aislada. Corrida única por modelo; intervalos de confianza en Tabla 5.14.
 
 | Configuración | Type-aware |
 |---------------|-----------|
@@ -517,9 +517,10 @@ Si combinar herramientas estáticas no mejora la detección (§5.3.3), ¿qué s�
 | Slither (baseline estático) | 17/29 (58%) |
 | DeepSeek-V4-pro | 18/29 (62%) |
 | Claude Sonnet / GPT-4o / Claude Opus | 21/29 (72%) |
-| **Ensemble (unión de modelos)** | **25/29 (86%)** |
+| **Ensemble (unión de las ocho filas: siete modelos y Slither)** | **25/29 (86%)** |
+| Ensemble solo LLM (unión de los siete modelos, sin Slither) | 24/29 (83%) |
 
-**Resultado.** El ensemble multi-modelo alcanza **86%**, muy por encima del mejor modelo individual (72%). Esto **reformula** la hipótesis de complementariedad de Ghaleb y Pattabiraman (2020): la complementariedad efectiva no proviene de apilar herramientas estáticas (§5.3.3), sino de **combinar razonadores LLM diversos**, cada uno con fortalezas distintas.
+**Resultado.** La unión de las ocho configuraciones alcanza **86%** (83% si se excluye a Slither), por encima del mejor detector individual (72%): suma cuatro vulnerabilidades que ningún detector individual cubre por sí solo, una diferencia que con n=29 no alcanza significación estadística (p=0.125, Tabla 5.15). Esto **reformula** la hipótesis de complementariedad de Ghaleb y Pattabiraman (2020): la complementariedad efectiva no proviene de apilar herramientas estáticas (§5.3.3), sino de **combinar razonadores LLM diversos**, cada uno con fortalezas distintas.
 
 Solo **4 vulnerabilidades no son detectadas por ningún modelo**: un *unchecked return value* en `transferFrom` y tres de lógica DeFi en `FlashLoanVault` (oracle manipulation, rounding en el cálculo de shares, y una aritmética que en Solidity 0.8.x revierte automáticamente). Constituyen la frontera abierta del análisis automatizado de smart contracts.
 
@@ -714,6 +715,34 @@ Siguiendo las directrices de Wohlin et al. (2012), se analizan las amenazas a la
 
 **Mitigación:** Se reporta desviación estándar y se promedian 10 ejecuciones.
 
+**Amenaza:** Tamaño muestral reducido (n=29 vulnerabilidades) y ausencia de pruebas de significación en las comparaciones de detección.
+
+**Mitigación:** Las tasas de detección *type-aware* de §5.3.3–5.3.4 se acompañan aquí de intervalos de confianza de Wilson al 95% (Tabla 5.14) y de pruebas de McNemar exactas sobre pares de configuraciones evaluadas sobre las mismas 29 vulnerabilidades (Tabla 5.15). Ambos cálculos se derivan del registro vulnerabilidad por vulnerabilidad de la corrida de revalidación (`docs/evidence/corpus_revalidation_20260709/`), sin corridas adicionales.
+
+**Tabla 5.14.** Intervalos de confianza (Wilson, 95%) de la detección type-aware sobre las 29 vulnerabilidades del corpus
+
+| Configuración | Detección | IC 95% |
+|---------------|-----------|--------|
+| qwen-14b (local, `--deep`) | 13/29 (44.8%) | [28.4%, 62.5%] |
+| MIESC estático + patrón (capas 1/6/7) | 14/29 (48.3%) | [31.4%, 65.6%] |
+| Slither (baseline) | 17/29 (58.6%) | [40.7%, 74.5%] |
+| MIESC `--deep` (Claude Sonnet) | 21/29 (72.4%) | [54.3%, 85.3%] |
+| Ensemble (unión de siete modelos y Slither) | 25/29 (86.2%) | [69.4%, 94.5%] |
+
+**Tabla 5.15.** Pruebas de McNemar exactas entre pares de configuraciones sobre las mismas 29 vulnerabilidades
+
+| Comparación pareada (McNemar exacto) | Solo A | Solo B | p |
+|--------------------------------------|--------|--------|---|
+| A: estático 1/6/7 — B: Slither | 8 | 5 | 0.581 |
+| A: estático 1/6/7 — B: `--deep` (Sonnet) | 9 | 2 | 0.065 |
+| A: Slither — B: `--deep` (Sonnet) | 5 | 1 | 0.219 |
+| A: qwen-14b local — B: `--deep` (Sonnet) | 8 | 0 | 0.008 |
+| A: `--deep` (Sonnet) — B: Ensemble | 4 | 0 | 0.125 |
+| A: Slither — B: Ensemble | 8 | 0 | 0.008 |
+| A: qwen-14b local — B: Ensemble | 12 | 0 | <0.001 |
+
+*Nota.* "Solo A" y "Solo B" cuentan las vulnerabilidades detectadas por una configuración y no por la otra (pares discordantes); el valor p corresponde a la prueba binomial exacta bilateral sobre esos pares. Con n=29 los intervalos son amplios y se solapan en casi todos los casos. De los siete pares evaluados, solo tres alcanzan significación al 5%: el detector frontier frente a la configuración local (p=0.008), el ensemble frente a Slither (p=0.008) y el ensemble frente a la configuración local (p<0.001); la mejora del detector frontier sobre la configuración estática queda en el límite (p=0.065) y la del ensemble sobre el mejor detector individual no alcanza significación (p=0.125). Las conclusiones de §5.7.2 deben leerse, por lo tanto, como tendencias consistentes sobre un corpus pequeño y no como diferencias establecidas estadísticamente; una muestra mayor forma parte del trabajo futuro (§8.3).
+
 ---
 
 ## 5.7 Discusión
@@ -730,7 +759,7 @@ Estos resultados validan la decisión de diseño de utilizar el patrón Adapter 
 
 ### 5.7.2 Respuesta a RQ2
 
-La medición controlada contra Slither (§5.3.3) **matiza** la hipótesis de complementariedad. Combinar herramientas estáticas y de patrón (capas 1/6/7) **no mejoró** la detección type-aware respecto al mejor tool individual: 48% vs 58% de Slither, con cobertura equivalente (100% vs 96%) pero ~6× más falsos positivos. La ganancia real provino de **agregar razonamiento LLM**, que elevó el recall type-aware de 48% a **72%**, superando a Slither; y de **combinar modelos LLM diversos en ensemble** (§5.3.4), que lo elevó aún más, a **86%** (unión de detecciones), a costa de precisión. Esto es consistente con:
+La medición controlada contra Slither (§5.3.3) **matiza** la hipótesis de complementariedad. Combinar herramientas estáticas y de patrón (capas 1/6/7) **no mejoró** la detección type-aware respecto al mejor tool individual: 48% vs 58% de Slither, con cobertura equivalente (100% vs 96%) pero ~6× más falsos positivos. La ganancia real provino de **agregar razonamiento LLM**, que elevó el recall type-aware de 48% a **72%**, superando a Slither; y de **combinar modelos LLM diversos en ensemble** (§5.3.4), que lo elevó aún más, a **86%** (unión de detecciones), a costa de precisión. Con n=29, solo tres de los pares comparados alcanzan significación estadística —detector frontier y ensemble frente a la configuración local, y ensemble frente a Slither— y el resto no (§5.6.4, Tabla 5.15). Esto es consistente con:
 
 - Rameder et al. (2022): "Ninguna herramienta individual es suficiente" — pero, según nuestra medición, la complementariedad efectiva requiere **análisis semántico**, no solo combinar tools estáticos.
 - Durieux et al. (2020): ninguna herramienta individual cubre todas las clases de vulnerabilidad.
@@ -767,7 +796,7 @@ Los resultados demuestran viabilidad para producción:
 
 5. **Configuración de los resultados titulares:** la detección *type-aware* del 72% se obtuvo con un modelo frontier accedido vía API (`--deep`); la configuración completamente local alcanzó 44% (§5.3.3).
 
-6. **Corridas únicas:** todos los resultados con LLM corresponden a una sola corrida por modelo; no se midió la variabilidad entre ejecuciones ni se reportan intervalos de confianza para n=29 (§5.6.4).
+6. **Corridas únicas y muestra pequeña:** todos los resultados con LLM corresponden a una sola corrida por modelo, por lo que no se midió la variabilidad entre ejecuciones; con n=29 los intervalos de confianza son amplios y la mayoría de las comparaciones pareadas no alcanza significación (§5.6.4, Tablas 5.14–5.15).
 
 7. **Protocolo de emparejamiento:** las cifras de EVMBench (§5.3.5) provienen del matcher laxo, una estimación optimista; bajo el juez oficial la misma corrida rinde 27.4%.
 

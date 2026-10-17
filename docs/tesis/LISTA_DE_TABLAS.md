@@ -69,6 +69,8 @@
 | 5.11 | Tiempos de ejecución por capa (promedio de 10 ejecuciones) | Media, mediana, p95 y máximo para cada capa en segundos | 202 |
 | 5.12 | Consumo de recursos durante auditoría completa | CPU%, RAM (GB), GPU% por fase de análisis | 205 |
 | 5.13 | Comparativa de costo operativo | TCO mensual/anual para configuraciones: local, cloud, híbrida | 208 |
+| 5.14 | Intervalos de confianza (Wilson, 95%) de la detección type-aware sobre las 29 vulnerabilidades del corpus | IC por configuración | — |
+| 5.15 | Pruebas de McNemar exactas entre pares de configuraciones sobre las mismas 29 vulnerabilidades | Pares discordantes y valor p exacto | — |
 
 ---
 

@@ -483,7 +483,7 @@ This result qualifies the complementarity thesis of Durieux et al. (2020): while
 
 If combining static tools does not improve detection (§5.3.3), what does? Each frontier LLM detects a **different** subset of the 29 vulnerabilities; the **union** of their type-aware detections exceeds any single one.
 
-**Table 5.8.** Type-aware detection per model and ensemble (union)
+**Table 5.8.** Type-aware detection per model and ensemble (union). Except for Slither, each row is a full MIESC run in `--deep` mode with the given model as the primary layer-7 detector; they are not evaluations of the language models in isolation. Single run per model; confidence intervals in Table 5.14.
 
 | Configuration | Type-aware |
 |---------------|-----------|
@@ -493,9 +493,10 @@ If combining static tools does not improve detection (§5.3.3), what does? Each 
 | Slither (static baseline) | 17/29 (58%) |
 | DeepSeek-V4-pro | 18/29 (62%) |
 | Claude Sonnet / GPT-4o / Claude Opus | 21/29 (72%) |
-| **Ensemble (union of models)** | **25/29 (86%)** |
+| **Ensemble (union of the eight rows: seven models and Slither)** | **25/29 (86%)** |
+| LLM-only ensemble (union of the seven models, without Slither) | 24/29 (83%) |
 
-**Result.** The multi-model ensemble reaches **86%**, well above the best individual model (72%). This **reformulates** the complementarity hypothesis of Ghaleb and Pattabiraman (2020): effective complementarity comes not from stacking static tools (§5.3.3) but from **combining diverse LLM reasoners**, each with different strengths.
+**Result.** The union of the eight configurations reaches **86%** (83% excluding Slither), above the best single detector (72%): it adds four vulnerabilities that no single detector covers on its own, a difference that with n=29 does not reach statistical significance (p=0.125, Table 5.15). This **reformulates** the complementarity hypothesis of Ghaleb and Pattabiraman (2020): effective complementarity comes not from stacking static tools (§5.3.3) but from **combining diverse LLM reasoners**, each with different strengths.
 
 Only **4 vulnerabilities are detected by no model**: an unchecked return value in `transferFrom` and three DeFi-logic issues in `FlashLoanVault` (oracle manipulation, rounding in share calculation, and an arithmetic one that reverts automatically in Solidity 0.8.x). These constitute the open frontier of automated smart-contract analysis.
 
@@ -686,6 +687,34 @@ Following the guidelines of Wohlin et al. (2012), threats to validity are analyz
 
 **Mitigation:** Standard deviation is reported and 10 executions are averaged.
 
+**Threat:** Small sample size (n=29 vulnerabilities) and absence of significance tests in the detection comparisons.
+
+**Mitigation:** The *type-aware* detection rates of §5.3.3–5.3.4 are accompanied here by 95% Wilson confidence intervals (Table 5.14) and exact McNemar tests on pairs of configurations evaluated on the same 29 vulnerabilities (Table 5.15). Both are derived from the per-vulnerability record of the revalidation run (`docs/evidence/corpus_revalidation_20260709/`), with no additional runs.
+
+**Table 5.14.** Confidence intervals (Wilson, 95%) of type-aware detection on the 29 corpus vulnerabilities
+
+| Configuration | Detection | 95% CI |
+|---------------|-----------|--------|
+| qwen-14b (local, `--deep`) | 13/29 (44.8%) | [28.4%, 62.5%] |
+| MIESC static + pattern (layers 1/6/7) | 14/29 (48.3%) | [31.4%, 65.6%] |
+| Slither (baseline) | 17/29 (58.6%) | [40.7%, 74.5%] |
+| MIESC `--deep` (Claude Sonnet) | 21/29 (72.4%) | [54.3%, 85.3%] |
+| Ensemble (union of seven models and Slither) | 25/29 (86.2%) | [69.4%, 94.5%] |
+
+**Table 5.15.** Exact McNemar tests between pairs of configurations on the same 29 vulnerabilities
+
+| Paired comparison (exact McNemar) | A only | B only | p |
+|-----------------------------------|--------|--------|---|
+| A: static 1/6/7 — B: Slither | 8 | 5 | 0.581 |
+| A: static 1/6/7 — B: `--deep` (Sonnet) | 9 | 2 | 0.065 |
+| A: Slither — B: `--deep` (Sonnet) | 5 | 1 | 0.219 |
+| A: qwen-14b local — B: `--deep` (Sonnet) | 8 | 0 | 0.008 |
+| A: `--deep` (Sonnet) — B: Ensemble | 4 | 0 | 0.125 |
+| A: Slither — B: Ensemble | 8 | 0 | 0.008 |
+| A: qwen-14b local — B: Ensemble | 12 | 0 | <0.001 |
+
+*Note.* "A only" and "B only" count the vulnerabilities detected by one configuration and not the other (discordant pairs); p is the two-sided exact binomial test on those pairs. With n=29 the intervals are wide and overlap in almost every case. Of the seven pairs tested, only three reach significance at 5%: the frontier detector against the local configuration (p=0.008), the ensemble against Slither (p=0.008) and the ensemble against the local configuration (p<0.001); the improvement of the frontier detector over the static configuration is borderline (p=0.065) and that of the ensemble over the best single detector does not reach significance (p=0.125). The conclusions of §5.7.2 should therefore be read as consistent trends on a small corpus, not as statistically established differences; a larger sample is part of future work (§8.3).
+
 ---
 
 ## 5.7 Discussion
@@ -702,7 +731,7 @@ These results validate the design decision to use the Adapter pattern (Gamma et 
 
 ### 5.7.2 Answer to RQ2
 
-The controlled measurement against Slither (§5.3.3) **qualifies** the complementarity hypothesis. Combining static and pattern tools (layers 1/6/7) **did not improve** type-aware detection over the best individual tool: 48% vs Slither's 58%, with equivalent coverage (100% vs 96%) but ~6× more false positives. The real gain came from **adding LLM reasoning**, which raised type-aware recall from 48% to **72%**, surpassing Slither; and from **combining diverse LLM models in an ensemble** (§5.3.4), which raised it further to **86%** (union of detections), at the cost of precision. This is consistent with:
+The controlled measurement against Slither (§5.3.3) **qualifies** the complementarity hypothesis. Combining static and pattern tools (layers 1/6/7) **did not improve** type-aware detection over the best individual tool: 48% vs Slither's 58%, with equivalent coverage (100% vs 96%) but ~6× more false positives. The real gain came from **adding LLM reasoning**, which raised type-aware recall from 48% to **72%**, surpassing Slither; and from **combining diverse LLM models in an ensemble** (§5.3.4), which raised it further to **86%** (union of detections), at the cost of precision. With n=29, only three of the compared pairs reach statistical significance —frontier detector and ensemble against the local configuration, and ensemble against Slither— and the rest do not (§5.6.4, Table 5.15). This is consistent with:
 
 - Rameder et al. (2022): "No individual tool is sufficient" — but, per our measurement, effective complementarity requires **semantic analysis**, not merely combining static tools.
 - Durieux et al. (2020): no individual tool covers all vulnerability classes.
@@ -739,7 +768,7 @@ The results demonstrate production viability:
 
 5. **Configuration of the headline results:** the 72% *type-aware* detection was obtained with a frontier model accessed via API (`--deep`); the fully local configuration reached 44% (§5.3.3).
 
-6. **Single runs:** all LLM results correspond to one run per model; run-to-run variability was not measured and no confidence intervals are reported for n=29 (§5.6.4).
+6. **Single runs and small sample:** all LLM results correspond to one run per model, so run-to-run variability was not measured; with n=29 the confidence intervals are wide and most paired comparisons do not reach significance (§5.6.4, Tables 5.14–5.15).
 
 7. **Matching protocol:** the EVMBench figures (§5.3.5) come from the lenient matcher, an optimistic estimate; under the official judge the same run scores 27.4%.
 
