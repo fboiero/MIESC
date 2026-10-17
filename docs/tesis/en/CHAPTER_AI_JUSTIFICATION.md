@@ -18,7 +18,7 @@ The source code of a smart contract before its mainnet deployment represents a p
 
 ### 6.1.2 The Problem with Commercial AI APIs
 
-The emergence of large language models (LLMs) like GPT-4 and Claude has transformed the possibilities of code analysis. Sun et al. (2024) demonstrated that GPTScan, a tool combining LLM with program analysis, detects 90.2% of business logic vulnerabilities that escape traditional tools. This result is significant because logic vulnerabilities, unlike technical patterns like reentrancy, require semantic understanding of the code's purpose.
+The emergence of large language models (LLMs) like GPT-4 and Claude has transformed the possibilities of code analysis. Sun et al. (2024) demonstrated that GPTScan, a tool combining LLM with program analysis, achieves precision above 90% on token contracts (57% on large projects) and recall above 70% on logic vulnerabilities, besides detecting nine missed by human auditors. This result is significant because logic vulnerabilities, unlike technical patterns like reentrancy, require semantic understanding of the code's purpose.
 
 However, using these models via commercial APIs implies transmitting source code to third-party servers. Consider the data flow when an auditor uses OpenAI's GPT-4 to analyze a contract:
 

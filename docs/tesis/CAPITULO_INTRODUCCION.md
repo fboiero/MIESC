@@ -63,7 +63,7 @@ El campo de la seguridad de smart contracts ha visto el desarrollo de numerosas 
 
 **Problema 3: Cobertura incompleta**
 - Ninguna herramienta individual detecta todas las vulnerabilidades
-- Estudios empíricos muestran que la mejor herramienta individual alcanza solo 43.2% de recall (Slither, Durieux et al., 2020)
+- Estudios empíricos muestran que la mejor herramienta individual detecta solo el 27% de las vulnerabilidades anotadas y las nueve combinadas el 42% (Durieux et al., 2020)
 
 ### 1.1.4 La Necesidad de Soberanía de Datos
 

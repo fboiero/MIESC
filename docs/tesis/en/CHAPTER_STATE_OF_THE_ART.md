@@ -73,13 +73,13 @@ Static analysis examines source code or bytecode without executing it, identifyi
 - Does not require test cases
 
 **Limitations:**
-- High false positive rate (15-30% according to Durieux et al., 2020)
+- High false positive rate: Durieux et al. (2020) observe that the nine evaluated tools flag 93% of 47,518 deployed contracts as vulnerable, a sign of a high false-alarm rate
 - Inability to detect vulnerabilities dependent on execution state
 - Difficulty analyzing dynamic calls and proxy patterns
 
 **Representative tools:**
 
-*Slither* (Feist et al., 2019): Framework developed by Trail of Bits implementing more than 80 vulnerability detectors. Uses an intermediate model (SlithIR) that facilitates data flow analysis. According to its authors, it achieves 82% precision on their own benchmark; the independent evaluation of Durieux et al. (2020) reports lower figures at corpus scale (see Table 3.3).
+*Slither* (Feist et al., 2019): Framework developed by Trail of Bits implementing more than 80 vulnerability detectors. Uses an intermediate model (SlithIR) that facilitates data flow analysis. According to its authors, it achieves 82% precision on their own benchmark; in the independent evaluation of Durieux et al. (2020) it detects 17% of the annotated SmartBugs-curated vulnerabilities, with the most exclusive detections among the nine tools (Table 3.3).
 
 *Securify2* (Tsankov et al., 2018): Developed by ETH Zurich, employs Datalog-based analysis to verify security properties. Its declarative approach allows compositional property definition.
 
@@ -99,7 +99,7 @@ Symbolic execution represents input values as mathematical symbols, systematical
 
 **Representative tools:**
 
-*Mythril* (Mueller, 2018): ConsenSys tool using the Z3 solver for symbolic execution. According to Durieux et al. (2020), it correctly detects 78% of reentrancy vulnerabilities in their benchmark.
+*Mythril* (Mueller, 2018): ConsenSys tool using the Z3 solver for symbolic execution. According to Durieux et al. (2020), it detects 5 of the 8 annotated reentrancy vulnerabilities (62%) and has the highest overall detection (27%, Table 3.3).
 
 *Manticore* (Mossberg et al., 2019): Trail of Bits framework combining symbolic and concolic execution. Allows analysis of both contracts and native binaries.
 
@@ -149,18 +149,25 @@ Formal verification provides mathematical guarantees about program behavior thro
 
 ## 3.4 Comparative Analysis of Existing Tools
 
-Durieux et al. (2020) conducted the most comprehensive empirical study to date, evaluating 9 tools on a benchmark of 47,587 contracts. Table 3.3 synthesizes their findings on the labeled subset (SmartBugs-curated), where precision and recall can be computed.
+Durieux et al. (2020) conducted the most comprehensive empirical study to date, evaluating 9 tools on a benchmark of 47,587 contracts. Table 3.3 synthesizes their findings on the labeled subset (SmartBugs-curated), where the set of annotated vulnerabilities is known.
 
-**Table 3.3.** Tool comparison according to Durieux et al. (2020), on the labeled SmartBugs-curated subset
+**Table 3.3.** Annotated vulnerabilities detected per tool according to Durieux et al. (2020, Table 5), on the 115 tagged vulnerabilities of the SmartBugs-curated subset
 
-| Tool | Technique | Precision | Recall | F1 |
-|------|-----------|-----------|--------|-----|
-| Slither | Static | 8.3% | 43.2% | 13.9% |
-| Securify | Static | 9.7% | 36.8% | 15.4% |
-| Mythril | Symbolic | 6.1% | 27.4% | 10.0% |
-| SmartCheck | Static | 4.2% | 18.9% | 6.9% |
+| Tool | Technique | Detected (of 115) | Share |
+|------|-----------|-------------------|-------|
+| Mythril | Symbolic | 31 | 27% |
+| Slither | Static | 20 | 17% |
+| Oyente | Symbolic | 17 | 15% |
+| Osiris | Symbolic | 16 | 14% |
+| Manticore | Symbolic | 13 | 11% |
+| SmartCheck | Static | 13 | 11% |
+| Securify | Static | 10 | 9% |
+| HoneyBadger | Symbolic | 2 | 2% |
+| Maian | Symbolic | 0 | 0% |
+| All nine tools combined | — | 48 | 42% |
+| Mythril + Slither (best pair) | — | 42 | 37% |
 
-Precisions are low because, at corpus scale, each tool produces many false positives. No individual tool exceeds **43.2% recall** (Slither, the best); the authors conclude that "no individual tool achieves satisfactory coverage of all vulnerability types" (Durieux et al., 2020), which motivates combined approaches like MIESC's. This 43.2% is the usual reference in the literature, but it is not directly comparable with MIESC's figures (86% on the in-house corpus with an LLM ensemble; 92.5% on EVMBench under the lenient matcher, falling to 27.4% with the official judge), because the corpus, the matching protocol and the nature of the components (static tools vs. frontier language models) all differ.
+The authors report neither precision nor F1 per tool; the metric is the fraction of annotated vulnerabilities each one detects. No individual tool exceeds **27%** (Mythril, the best); Slither, the main layer-1 tool in MIESC, detects 17%, and all nine combined reach 42%. Durieux et al. (2020) conclude that no individual tool achieves satisfactory coverage of the vulnerability types and that combining tools is the way to improve it, which motivates combined approaches like MIESC's. These figures are the usual reference in the literature, but it is not directly comparable with MIESC's figures (86% on the in-house corpus with an LLM ensemble; 92.5% on EVMBench under the lenient matcher, falling to 27.4% with the official judge), because the corpus, the matching protocol and the nature of the components (static tools vs. frontier language models) all differ.
 
 ### 3.4.1 Artificial Intelligence Analysis
 
@@ -192,7 +199,7 @@ Based on the review conducted, the following gaps are identified that form the f
 
 **Observation:** Existing tools implement a single analysis technique, limiting their vulnerability coverage.
 
-**Empirical evidence:** Table 3.3 shows that no individual tool exceeds 43.2% recall. Ghaleb and Pattabiraman (2020) show that no single static tool covers all vulnerability classes and that combining techniques materially broadens detection coverage.
+**Empirical evidence:** Table 3.3 shows that no individual tool detects more than 27% of the annotated vulnerabilities and that even all nine combined do not exceed 42%. Ghaleb and Pattabiraman (2020) show that no single static tool covers all vulnerability classes and that combining techniques materially broadens detection coverage.
 
 **Impact:** Vulnerabilities detectable only through technique combination remain unidentified.
 

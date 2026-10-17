@@ -18,7 +18,7 @@ El origen de MIESC se encuentra en una experiencia práctica de auditoría reali
 
 **Tercer problema: La interpretación de resultados.** Las herramientas generaron colectivamente más de 200 hallazgos, muchos de ellos duplicados o falsos positivos. La tarea de consolidación, priorización y verificación consumió varios días de trabajo manual.
 
-Estos problemas no son únicos de la experiencia del autor. Durieux et al. (2020), en su evaluación empírica de 47,587 contratos, documentaron que ninguna herramienta individual supera el 43.2% de recall (Slither, la mejor) y que solo alrededor del 42% de las vulnerabilidades son detectadas por el conjunto de herramientas, siendo la combinación manual impráctica a escala. Rameder et al. (2022) llegaron a conclusiones similares, señalando que "la heterogeneidad de interfaces y formatos de salida constituye una barrera significativa para la adopción industrial de herramientas académicas" (p. 12).
+Estos problemas no son únicos de la experiencia del autor. Durieux et al. (2020), en su evaluación empírica de 47,587 contratos, documentaron que ninguna herramienta individual detecta más del 27% de las vulnerabilidades anotadas (Mythril, la mejor) y que el conjunto de las nueve alcanza solo el 42%, siendo la combinación manual impráctica a escala. Rameder et al. (2022) llegaron a conclusiones similares, señalando que "la heterogeneidad de interfaces y formatos de salida constituye una barrera significativa para la adopción industrial de herramientas académicas" (p. 12).
 
 ### 4.1.2 Objetivos del Desarrollo
 
@@ -77,7 +77,7 @@ La arquitectura de MIESC se fundamenta en el principio de defensa en profundidad
 
 La aplicación de este principio al análisis de contratos inteligentes es, hasta donde alcanza la revisión del Capítulo 3, una contribución original de este trabajo. La justificación teórica se fundamenta en la observación empírica de que diferentes técnicas de análisis tienen fortalezas y debilidades complementarias:
 
-**Análisis estático:** Examina el código sin ejecutarlo, detectando patrones conocidos de vulnerabilidad con alta velocidad pero sin capacidad de razonar sobre comportamiento en tiempo de ejecución. Los autores de Slither (Feist et al., 2019) reportan alta precisión en su propio benchmark, pero la evaluación independiente a gran escala de Durieux et al. (2020) midió apenas 43.2% de recall sobre SmartBugs-curated, indicando que más de la mitad de las vulnerabilidades escapa a la detección estática a escala de corpus.
+**Análisis estático:** Examina el código sin ejecutarlo, detectando patrones conocidos de vulnerabilidad con alta velocidad pero sin capacidad de razonar sobre comportamiento en tiempo de ejecución. Los autores de Slither (Feist et al., 2019) reportan alta precisión en su propio benchmark, pero la evaluación independiente a gran escala de Durieux et al. (2020) midió para Slither apenas el 17% de las vulnerabilidades anotadas de SmartBugs-curated (27% para la mejor herramienta, Mythril), indicando que cerca de tres cuartas partes de las vulnerabilidades escapan a la detección individual a escala de corpus.
 
 **Ejecución simbólica:** Explora caminos de ejecución mediante representación simbólica de variables, capaz de descubrir vulnerabilidades dependientes de valores específicos de entrada. Baldoni et al. (2018) documentan su efectividad pero también su principal limitación: la explosión combinatoria de caminos en código complejo.
 
@@ -85,7 +85,7 @@ La aplicación de este principio al análisis de contratos inteligentes es, hast
 
 **Verificación formal:** Demuestra matemáticamente propiedades del código mediante sistemas de prueba automatizados. Clarke et al. (2018) describen los fundamentos teóricos, mientras que Certora (2024) documentan su aplicación práctica en Certora Prover.
 
-**Análisis con IA:** Modelos de lenguaje capaces de detectar vulnerabilidades de lógica de negocio que requieren comprensión semántica del código. Sun et al. (2024) demuestran que GPTScan detecta el 90.2% de vulnerabilidades de lógica que escapan a herramientas tradicionales.
+**Análisis con IA:** Modelos de lenguaje capaces de detectar vulnerabilidades de lógica de negocio que requieren comprensión semántica del código. Sun et al. (2024) muestran que GPTScan, que combina GPT con análisis de programas, alcanza una precisión superior al 90% en contratos de tokens (57% en proyectos grandes) y un recall superior al 70% sobre vulnerabilidades de lógica, además de detectar nueve no identificadas por auditores humanos.
 
 Schneier (2000) articula la filosofía subyacente:
 
@@ -138,7 +138,7 @@ La selección de las 25 herramientas que componen MIESC siguió un proceso de ev
 
 5. **Instalabilidad:** Capacidad de instalación automatizada sin intervención manual compleja.
 
-**Capa 1 - Análisis Estático:** Slither fue seleccionada como herramienta principal por su cobertura de detectores y velocidad (1.2s promedio); en la evaluación independiente de Durieux et al. (2020) es la mejor herramienta individual, con 43.2% de recall. Solhint complementa con verificación de estilo y mejores prácticas. Securify2 aporta análisis de patrones de seguridad específicos de Ethereum. Semgrep permite definir reglas personalizadas para patrones específicos de cada organización.
+**Capa 1 - Análisis Estático:** Slither fue seleccionada como herramienta principal por su cobertura de detectores y velocidad (1.2s promedio); en la evaluación independiente de Durieux et al. (2020) detecta el 17% de las vulnerabilidades anotadas, por debajo de Mythril (27%) pero con la mayor cantidad de detecciones exclusivas (8) y un tiempo de ejecución muy inferior. Solhint complementa con verificación de estilo y mejores prácticas. Securify2 aporta análisis de patrones de seguridad específicos de Ethereum. Semgrep permite definir reglas personalizadas para patrones específicos de cada organización.
 
 **Capa 2 - Fuzzing:** Echidna, desarrollada por Trail of Bits, fue seleccionada por su capacidad de property-based testing específico para contratos. Foundry Fuzz aporta integración con el ecosistema Foundry, ampliamente adoptado en la industria. Medusa proporciona fuzzing basado en cobertura con soporte para invariantes complejas. Vertigo implementa mutation testing, una técnica complementaria que evalúa la calidad de las pruebas existentes.
 
@@ -577,9 +577,9 @@ class GPTScanAdapter(ToolAdapter):
     """
     Implementación de GPTScan con backend Ollama.
 
-    Basado en la metodología de Sun et al. (2024), quienes demostraron
-    que LLMs detectan el 90.2% de vulnerabilidades de lógica de negocio
-    que escapan a herramientas tradicionales.
+    Basado en la metodología de Sun et al. (2024), quienes reportaron
+    precisión >90% (contratos de tokens) y recall >70% en vulnerabilidades
+    de lógica de negocio que escapan a herramientas tradicionales.
 
     Modificaciones respecto al paper original:
     1. Backend Ollama en lugar de OpenAI API (soberanía de datos)
