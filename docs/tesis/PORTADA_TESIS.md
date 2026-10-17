@@ -25,7 +25,7 @@
 
 **Córdoba, Argentina**
 
-**Noviembre 2024**
+**Noviembre 2025**
 
 ---
 

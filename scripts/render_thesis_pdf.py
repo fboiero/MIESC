@@ -117,7 +117,7 @@ TITLEPAGE_TEX = r"""
 \vspace{0.5cm}
 {\fontsize{13}{16}\selectfont Director: Mg. Eduardo Casanovas\par}
 \vfill
-{\fontsize{12}{15}\selectfont Córdoba, Provincia de Córdoba, Argentina — Noviembre 2024\par}
+{\fontsize{12}{15}\selectfont Córdoba, Provincia de Córdoba, Argentina — Noviembre 2025\par}
 \vspace{1.2cm}
 \end{titlepage}
 ```
