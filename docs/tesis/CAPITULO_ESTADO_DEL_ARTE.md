@@ -116,7 +116,7 @@ Los autores no reportan precisión ni F1 por herramienta; la métrica es la frac
 
 ### 3.4.1 Análisis con Inteligencia Artificial
 
-En los últimos años, la aplicación de modelos de lenguaje de gran escala (LLM) al análisis de seguridad ha emergido como un área de investigación prometedora. Sun et al. (2024) presentaron GPTScan en ICSE 2024 y mostraron que GPT-4 puede detectar vulnerabilidades de lógica que escapan a las herramientas tradicionales, mediante un enfoque híbrido en el que el LLM complementa el análisis estático y reduce los falsos positivos gracias al razonamiento semántico. De Baets et al. (2024), sin embargo, advierten sobre tres limitaciones: las alucinaciones, que se traducen en vulnerabilidades inexistentes; la dependencia del contexto y del diseño de los prompts; y el costo operativo de las APIs comerciales, aspecto que retoma la Brecha 4.
+En los últimos años, la aplicación de modelos de lenguaje de gran escala (LLM) al análisis de seguridad ha emergido como un área de investigación prometedora. Sun et al. (2024) presentaron GPTScan en ICSE 2024 y mostraron que un modelo de lenguaje de propósito general (GPT-3.5-turbo) puede detectar vulnerabilidades de lógica que escapan a las herramientas tradicionales, mediante un enfoque híbrido en el que el LLM complementa el análisis estático y reduce los falsos positivos gracias al razonamiento semántico. De Baets et al. (2024), sin embargo, advierten sobre tres limitaciones: las alucinaciones, que se traducen en vulnerabilidades inexistentes; la dependencia del contexto y del diseño de los prompts; y el costo operativo de las APIs comerciales, aspecto que retoma la Brecha 4.
 
 ## 3.5 Identificación de Brechas en el Estado del Arte
 
@@ -136,7 +136,7 @@ No existe un formato estándar para reportar hallazgos de seguridad en contratos
 
 ### 3.5.4 Brecha 4: Dependencia de Servicios Comerciales
 
-Las herramientas de análisis con IA dependen, en general, de APIs comerciales con costos considerables. GPTScan (Sun et al., 2024), por ejemplo, utiliza GPT-4, con un costo aproximado de $0.03-0.12 por análisis según el tamaño del contrato, mientras que Certora Prover requiere una licencia comercial cuyos costos no se publican. Estos montos constituyen una barrera de entrada para proyectos con recursos limitados, en especial en países en desarrollo (DPGA, 2023). Los principios de Digital Public Goods (DPGA, 2023) establecen que el software de interés público debe estar "libre de barreras de costo"; en esa línea, el uso de modelos de lenguaje locales mediante Ollama (Ollama, 2024) elimina la dependencia de APIs comerciales, con el costo en capacidad que el Capítulo 6 cuantifica.
+Las herramientas de análisis con IA dependen, en general, de APIs comerciales con costos considerables. GPTScan (Sun et al., 2024), por ejemplo, utiliza la API de OpenAI (GPT-3.5-turbo en su evaluación), con un costo aproximado de $0.03-0.12 por análisis según el tamaño del contrato, mientras que Certora Prover requiere una licencia comercial cuyos costos no se publican. Estos montos constituyen una barrera de entrada para proyectos con recursos limitados, en especial en países en desarrollo (DPGA, 2023). Los principios de Digital Public Goods (DPGA, 2023) establecen que el software de interés público debe estar "libre de barreras de costo"; en esa línea, el uso de modelos de lenguaje locales mediante Ollama (Ollama, 2024) elimina la dependencia de APIs comerciales, con el costo en capacidad que el Capítulo 6 cuantifica.
 
 ### 3.5.5 Brecha 5: Obsolescencia y Compatibilidad
 
@@ -246,8 +246,6 @@ SCSVS. (2023). *Smart Contract Security Verification Standard*. https://github.c
 Sun, Y., Wu, D., Xue, Y., Liu, H., Wang, H., Xu, Z., Xie, X., & Liu, Y. (2024). GPTScan: Detecting logic vulnerabilities in smart contracts by combining GPT with program analysis. En *Proceedings of the IEEE/ACM 46th International Conference on Software Engineering (ICSE '24)* (pp. 1-13). ACM. https://doi.org/10.1145/3597503.3639117
 
 Tsankov, P., Dan, A., Drachsler-Cohen, D., Gervais, A., Bünzli, F., & Vechev, M. (2018). Securify: Practical security analysis of smart contracts. *Proceedings of the 2018 ACM SIGSAC Conference on Computer and Communications Security*, 67-82. https://doi.org/10.1145/3243734.3243780
-
-Werner, S., Perez, D., Gudgeon, L., Klages-Mundt, A., Harz, D., & Knottenbelt, W. (2022). SoK: Decentralized finance (DeFi). En *Proceedings of the 4th ACM Conference on Advances in Financial Technologies (AFT '22)* (pp. 30-46). ACM. https://doi.org/10.1145/3558535.3559780
 
 Zhou, L., Xiong, X., Ernstberger, J., Chaliasos, S., Wang, Z., Wang, Y., Qin, K., Wattenhofer, R., Song, D., & Gervais, A. (2023). SoK: Decentralized finance (DeFi) attacks. En *2023 IEEE Symposium on Security and Privacy (SP)* (pp. 2444-2461). IEEE. https://doi.org/10.1109/SP46215.2023.10179435
 

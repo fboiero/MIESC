@@ -273,4 +273,3 @@ Qin, K., Zhou, L., Livshits, B., & Gervais, A. (2021). Attacking the DeFi ecosys
 
 Schneier, B. (2000). *Secrets and lies: Digital security in a networked world*. Wiley.
 
-Sun, Y., et al. (2024). GPTScan: Detecting logic vulnerabilities in smart contracts by combining GPT with program analysis. *ICSE 2024*, 1-12.

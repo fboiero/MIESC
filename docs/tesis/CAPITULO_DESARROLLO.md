@@ -1016,8 +1016,6 @@ Berners-Lee, T., Hendler, J., & Lassila, O. (2001). The semantic web. *Scientifi
 
 Clarke, E. M., Henzinger, T. A., Veith, H., & Bloem, R. (Eds.). (2018). *Handbook of model checking*. Springer.
 
-Claessen, K., & Hughes, J. (2000). QuickCheck: A lightweight tool for random testing of Haskell programs. *ACM SIGPLAN Notices, 35*(9), 268-279.
-
 ConsenSys. (2023). *Smart contract best practices*. https://consensys.github.io/smart-contract-best-practices/
 
 Sun, Y., Wu, D., Xue, Y., Liu, H., Wang, H., Xu, Z., Xie, X., & Liu, Y. (2024). GPTScan: Detecting logic vulnerabilities in smart contracts by combining GPT with program analysis. En *Proceedings of the IEEE/ACM 46th International Conference on Software Engineering (ICSE '24)* (pp. 1-13). ACM. https://doi.org/10.1145/3597503.3639117
@@ -1036,15 +1034,7 @@ Fellegi, I. P., & Sunter, A. B. (1969). A theory for record linkage. *JASA, 64*(
 
 Gamma, E., Helm, R., Johnson, R., & Vlissides, J. (1994). *Design patterns: Elements of reusable object-oriented software*. Addison-Wesley.
 
-Ghaleb, A., & Pattabiraman, K. (2020). How effective are smart contract analysis tools? *ISSTA 2020*, 415-427.
-
-Grech, N., et al. (2018). MadMax: Surviving out-of-gas conditions in Ethereum smart contracts. *OOPSLA 2018*, 1-27.
-
 Grieco, G., Song, W., Cygan, A., Feist, J., & Groce, A. (2020). Echidna: Effective, usable, and fast fuzzing for smart contracts. *ISSTA 2020*, 557-560.
-
-Gruber, T. R. (1993). A translation approach to portable ontology specifications. *Knowledge Acquisition, 5*(2), 199-220.
-
-Hatcliff, J., et al. (2012). Behavioral interface specification languages. *ACM Computing Surveys, 44*(3), 1-58.
 
 Hohpe, G., & Woolf, B. (2003). *Enterprise integration patterns*. Addison-Wesley.
 
@@ -1056,15 +1046,9 @@ Luu, L., Chu, D. H., Olickel, H., Saxena, P., & Hobor, A. (2016). Making smart c
 
 Martin, R. C. (2017). *Clean architecture: A craftsman's guide to software structure and design*. Prentice Hall.
 
-Merkel, D. (2014). Docker: Lightweight Linux containers for consistent development and deployment. *Linux Journal, 2014*(239), 2.
-
 Miller, B. P., Fredriksen, L., & So, B. (1990). An empirical study of the reliability of UNIX utilities. *Communications of the ACM, 33*(12), 32-44.
 
 MITRE. (2024). *Common Weakness Enumeration (CWE)*. https://cwe.mitre.org/
-
-Mueller, B. (2018). Smashing Ethereum smart contracts for fun and real profit. *HITB Security Conference*.
-
-Myrbakken, H., & Colomo-Palacios, R. (2017). DevSecOps: A multivocal literature review. *SPICE 2017*, 17-29.
 
 OASIS. (2020). *Static Analysis Results Interchange Format (SARIF)*. https://docs.oasis-open.org/sarif/
 
@@ -1078,23 +1062,13 @@ Parnas, D. L. (1972). On the criteria to be used in decomposing systems into mod
 
 Preston-Werner, T. (2013). *Semantic Versioning 2.0.0*. https://semver.org/
 
-Python. (2022). *What's new in Python 3.11*. https://docs.python.org/3/whatsnew/3.11.html
-
-Qin, K., Zhou, L., Livshits, B., & Gervais, A. (2021). Attacking the DeFi ecosystem with flash loans. *FC 2021*, 3-32.
-
 Rameder, H., Di Angelo, M., & Salzer, G. (2022). Review of automated vulnerability analysis of smart contracts on Ethereum. *Frontiers in Blockchain, 5*, 814977.
-
-Ross, R., McEvilley, M., & Oren, J. C. (2016). *Systems security engineering* (NIST SP 800-160). NIST.
-
-Saydjari, O. S. (2004). Multilevel security: Reprise. *IEEE Security & Privacy, 2*(5), 64-67.
 
 Schneier, B. (2000). *Secrets and lies: Digital security in a networked world*. Wiley.
 
 SCSVS. (2023). *Smart Contract Security Verification Standard*. https://github.com/securing/SCSVS
 
 Shaw, M. (2012). The role of design spaces. *IEEE Software, 29*(1), 46-50.
-
-Sommerville, I. (2016). *Software engineering* (10th ed.). Pearson.
 
 Touvron, H., et al. (2023). LLaMA: Open and efficient foundation language models. *arXiv:2302.13971*.
 

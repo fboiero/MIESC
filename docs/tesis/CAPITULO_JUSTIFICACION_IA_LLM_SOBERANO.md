@@ -776,4 +776,3 @@ Sun, Y., Wu, D., Xue, Y., Liu, H., Wang, H., Xu, Z., Xie, X., & Liu, Y. (2024). 
 
 Winner, L. (1980). Do artifacts have politics? *Daedalus, 109*(1), 121-136.
 
-Touvron, H., et al. (2023). LLaMA: Open and efficient foundation language models. *arXiv:2302.13971*.

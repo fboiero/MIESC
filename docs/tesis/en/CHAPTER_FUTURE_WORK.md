@@ -147,7 +147,7 @@ two priorities Paper 1 flags as immediate future work.
 | FW-2.4 | False positive reduction with RAG | Medium | High |
 | FW-2.5 | AI decision explainability | High | Medium |
 
-**Rationale:** Sun et al. (2024) demonstrate that fine-tuned GPT-4 improves logic vulnerability detection by 23% compared to the base model.
+**Rationale:** Table 5.8 shows that the model used largely determines detection; the gap between the local and the frontier configuration (44% vs. 72%) is what an open model fine-tuned for Solidity should close.
 
 **Technical approach:**
 ```python

@@ -271,7 +271,7 @@ LLMs have emerged as powerful tools for code security analysis (Zhang et al.,202
 3. **Finding explanation:** Translation to natural language
 4. **Remediation suggestion:** Corrected code generation
 
-Sun et al. (2024) report that GPT-4 achieves 78% precision in smart contract vulnerability detection, complementing traditional tools.
+Sun et al. (2024) report that GPTScan, which combines GPT-3.5-turbo with program analysis, achieves precision above 90% on token contracts and recall above 70% on logic vulnerabilities, as a complement —not a replacement— to traditional tools.
 
 ### 2.6.2 Retrieval Augmented Generation (RAG)
 

@@ -64,7 +64,7 @@ La selección de contratos de prueba sigue las recomendaciones de Ghaleb y Patta
 
 MIESC v4.0.0 integra 25 herramientas de seguridad. La Tabla 5.3 presenta el estado de disponibilidad tras la configuración inicial.
 
-**Tabla 5.3.** Estado de disponibilidad de herramientas integradas
+**Tabla 5.3.** Estado de disponibilidad de herramientas integradas (relevamiento sobre la instalación original de MIESC v4.0.0; en el entorno de reproducción ARM64 de la revalidación del 2026-07-09 Mythril y Echidna no estuvieron disponibles, lo que explica el alcance de capas 1/6/7 de la medición de detección, §5.3.2)
 
 | Capa | Herramienta | Estado | Versión | Notas |
 |------|-------------|--------|---------|-------|
@@ -94,7 +94,7 @@ MIESC v4.0.0 integra 25 herramientas de seguridad. La Tabla 5.3 presenta el esta
 | 7 | UpgradeGuard | Disponible | 1.0.0 | Análisis de proxies |
 | 7 | BestPractices | Disponible | 1.0.0 | Reglas de mejores prácticas |
 
-**Resultado RQ1:** Tasa de disponibilidad = 25/25 = **100%**
+**Resultado RQ1.** Tasa de disponibilidad = 25/25 = 100% sobre la instalación original; la disponibilidad y la detección se midieron, por lo tanto, en entornos distintos (véase la nota de la Tabla 5.3).
 
 ### 5.2.2 Desafíos de Integración Resueltos
 
@@ -714,8 +714,6 @@ Los resultados respaldan la viabilidad en producción. El tiempo total, cercano 
 ## 5.9 Referencias del Capítulo
 
 Amdahl, G. M. (1967). Validity of the single processor approach to achieving large scale computing capabilities. *AFIPS Spring Joint Computer Conference*, 483-485.
-
-Atzei, N., Bartoletti, M., & Cimoli, T. (2017). A survey of attacks on Ethereum smart contracts (SoK). *POST 2017*, 164-186.
 
 Digital Public Goods Alliance. (2023). *Digital Public Goods Standard*. https://digitalpublicgoods.net/standard/
 

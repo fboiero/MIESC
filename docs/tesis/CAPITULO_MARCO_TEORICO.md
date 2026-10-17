@@ -196,7 +196,7 @@ Los LLMs han emergido como herramientas prometedoras para el análisis de seguri
 
 > "Los LLMs demuestran capacidades emergentes para detectar vulnerabilidades que escapan a herramientas tradicionales basadas en patrones, particularmente aquellas que requieren comprensión semántica del código." (traducción propia)
 
-En la seguridad de smart contracts, sus aplicaciones abarcan la detección de vulnerabilidades mediante análisis semántico del código, la generación automática de propiedades e invariantes, la explicación de los hallazgos en lenguaje natural y la sugerencia de remediaciones con código corregido. Sun et al. (2024) reportan que GPTScan, que combina GPT-4 con análisis de programas, alcanza una precisión superior al 90% en contratos de tokens y un recall superior al 70% en vulnerabilidades de lógica, como complemento —no reemplazo— de las herramientas tradicionales.
+En la seguridad de smart contracts, sus aplicaciones abarcan la detección de vulnerabilidades mediante análisis semántico del código, la generación automática de propiedades e invariantes, la explicación de los hallazgos en lenguaje natural y la sugerencia de remediaciones con código corregido. Sun et al. (2024) reportan que GPTScan, que combina GPT-3.5-turbo con análisis de programas, alcanza una precisión superior al 90% en contratos de tokens y un recall superior al 70% en vulnerabilidades de lógica, como complemento —no reemplazo— de las herramientas tradicionales.
 
 ### 2.6.2 Retrieval Augmented Generation (RAG)
 

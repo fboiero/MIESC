@@ -171,7 +171,7 @@ The authors report neither precision nor F1 per tool; the metric is the fraction
 
 ### 3.4.1 Artificial Intelligence Analysis
 
-Recently, the application of large language models (LLMs) to security analysis has emerged as a promising research area. Sun et al. (2024) presented GPTScan at ICSE 2024, demonstrating that GPT-4 can detect logic vulnerabilities that escape traditional tools.
+Recently, the application of large language models (LLMs) to security analysis has emerged as a promising research area. Sun et al. (2024) presented GPTScan at ICSE 2024, demonstrating that a general-purpose language model (GPT-3.5-turbo) can detect logic vulnerabilities that escape traditional tools.
 
 Sun et al. (2024) propose a hybrid approach where LLMs complement static analysis tools, reducing false positives through semantic reasoning. However, De Baets et al. (2024) warn about LLM limitations, including:
 
@@ -219,7 +219,7 @@ Based on the review conducted, the following gaps are identified that form the f
 
 **Observation:** AI analysis tools require commercial APIs with significant costs.
 
-**Empirical evidence:** GPTScan (Sun et al., 2024) uses GPT-4, with an approximate cost of $0.03-0.12 per analysis depending on contract size. Certora Prover requires a commercial license with unpublished costs estimated at >$100K/year.
+**Empirical evidence:** GPTScan (Sun et al., 2024) uses the OpenAI API (GPT-3.5-turbo in its evaluation), with an approximate cost of $0.03-0.12 per analysis depending on contract size. Certora Prover requires a commercial license with unpublished costs estimated at >$100K/year.
 
 **Impact:** Entry barrier for projects with limited resources, especially in developing countries (DPGA, 2023).
 
