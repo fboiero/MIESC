@@ -2,15 +2,11 @@
 
 ## Análisis de Seguridad en Contratos Inteligentes: Una Revisión de la Literatura
 
----
-
 ## 3.1 Introducción
 
 La seguridad de los contratos inteligentes representa uno de los desafíos más significativos en el ecosistema blockchain contemporáneo. Según Atzei et al. (2017), los contratos inteligentes son "programas que se ejecutan en una blockchain y que, una vez desplegados, son inmutables y públicamente verificables" (p. 164). Esta inmutabilidad, si bien garantiza la integridad del código, implica que cualquier vulnerabilidad presente en el momento del despliegue permanecerá explotable indefinidamente, a menos que se implementen mecanismos de actualización específicos (Chen et al.,2017).
 
 El presente capítulo realiza una revisión narrativa del estado del arte en herramientas y metodologías de análisis de seguridad para contratos inteligentes, informada por las directrices de Kitchenham y Charters (2007) para revisiones en ingeniería de software, aunque sin un protocolo formal de búsqueda y selección. Se identifican las principales brechas existentes que fundamentan el desarrollo de MIESC como contribución al campo.
-
----
 
 ## 3.2 Contexto y Relevancia del Problema
 
@@ -36,12 +32,7 @@ Estos incidentes evidencian la necesidad crítica de herramientas automatizadas 
 
 La comunidad académica y la industria han desarrollado múltiples taxonomías para clasificar las vulnerabilidades en contratos inteligentes. El Smart Contract Weakness Classification Registry (SWC Registry), mantenido por la Ethereum Foundation, constituye el estándar de facto con 37 categorías de debilidades documentadas (SCSVS, 2023).
 
-Perez y Livshits (2021) proponen una clasificación basada en el origen de las vulnerabilidades:
-
-1. **Vulnerabilidades a nivel de lenguaje**: Derivadas de características específicas de Solidity
-2. **Vulnerabilidades a nivel de EVM**: Relacionadas con la semántica de la Ethereum Virtual Machine
-3. **Vulnerabilidades a nivel de blockchain**: Asociadas a la naturaleza distribuida del sistema
-4. **Vulnerabilidades de lógica de negocio**: Errores en la implementación de la lógica del protocolo
+Perez y Livshits (2021) proponen una clasificación según el origen de las vulnerabilidades, que distingue las de nivel de lenguaje, derivadas de características específicas de Solidity; las de nivel de EVM, relacionadas con la semántica de la máquina virtual; las de nivel de blockchain, asociadas a la naturaleza distribuida del sistema; y las de lógica de negocio, errores en la implementación de la lógica del protocolo.
 
 La Tabla 3.2 presenta la distribución de frecuencia de vulnerabilidades según el estudio empírico de Durieux et al. (2020) sobre 47,587 contratos desplegados en Ethereum mainnet.
 
@@ -57,27 +48,13 @@ La Tabla 3.2 presenta la distribución de frecuencia de vulnerabilidades según 
 | SWC-116 | Block Timestamp Dependence | 7.2% | Bajo |
 | Otros | Diversas | 15.1% | Variable |
 
----
-
 ## 3.3 Técnicas de Análisis de Seguridad
 
-La literatura identifica cuatro categorías principales de técnicas para el análisis de seguridad en contratos inteligentes (Rameder et al., 2022):
+La literatura identifica cuatro categorías principales de técnicas para el análisis de seguridad en contratos inteligentes (Rameder et al., 2022); las secciones siguientes las caracterizan por sus ventajas, sus limitaciones y sus herramientas representativas.
 
 ### 3.3.1 Análisis Estático
 
-El análisis estático examina el código fuente o bytecode sin ejecutarlo, identificando patrones potencialmente vulnerables mediante técnicas de análisis de flujo de datos y control (Feist et al., 2019). Según Grech et al. (2018), esta técnica ofrece:
-
-**Ventajas:**
-- Cobertura completa del código analizado
-- Tiempo de ejecución predecible y generalmente rápido
-- No requiere casos de prueba
-
-**Limitaciones:**
-- Alto índice de falsos positivos: Durieux et al. (2020) observan que las nueve herramientas evaluadas marcan como vulnerable el 93% de 47,518 contratos desplegados, indicio de una tasa elevada de falsas alarmas
-- Incapacidad para detectar vulnerabilidades dependientes del estado de ejecución
-- Dificultad para analizar llamadas dinámicas y patrones de proxy
-
-**Herramientas representativas:**
+El análisis estático examina el código fuente o el bytecode sin ejecutarlo e identifica patrones potencialmente vulnerables mediante técnicas de análisis de flujo de datos y de control (Feist et al., 2019). Según Grech et al. (2018), ofrece una cobertura completa del código analizado, con un tiempo de ejecución predecible y en general breve, y no requiere casos de prueba. Sus limitaciones, sin embargo, son conocidas: presenta un alto índice de falsos positivos —Durieux et al. (2020) observan que las nueve herramientas evaluadas marcan como vulnerable el 93% de 47,518 contratos desplegados—, no puede detectar vulnerabilidades que dependen del estado de ejecución y encuentra dificultades para analizar llamadas dinámicas y patrones de proxy. Dos herramientas son representativas de esta técnica.
 
 *Slither* (Feist et al., 2019): Framework desarrollado por Trail of Bits que implementa más de 80 detectores de vulnerabilidades. Utiliza un modelo intermedio (SlithIR) que facilita el análisis de flujo de datos. Según sus autores, alcanza una precisión del 82% en su propio benchmark; en la evaluación independiente de Durieux et al. (2020) detecta el 17% de las vulnerabilidades anotadas de SmartBugs-curated, con la mayor cantidad de detecciones exclusivas entre las nueve herramientas (Tabla 3.3).
 
@@ -87,17 +64,7 @@ El análisis estático examina el código fuente o bytecode sin ejecutarlo, iden
 
 La ejecución simbólica representa los valores de entrada como símbolos matemáticos, explorando sistemáticamente los caminos de ejecución mediante solvers de satisfacibilidad (SMT) (Luu et al., 2016). King (1976) estableció los fundamentos teóricos de esta técnica, que ha sido adaptada para el análisis de contratos inteligentes.
 
-**Ventajas:**
-- Capacidad para generar entradas que desencadenan vulnerabilidades
-- Análisis exhaustivo de caminos de ejecución
-- Alta precisión en detección de vulnerabilidades aritméticas
-
-**Limitaciones:**
-- Explosión de caminos (path explosion) en contratos complejos (Baldoni et al., 2018)
-- Alto consumo de recursos computacionales
-- Dificultad para manejar operaciones criptográficas
-
-**Herramientas representativas:**
+Su principal ventaja es la capacidad de generar entradas que desencadenan las vulnerabilidades, junto con un análisis exhaustivo de los caminos de ejecución y una alta precisión en la detección de vulnerabilidades aritméticas. Como contrapartida, sufre la explosión de caminos (*path explosion*) en contratos complejos (Baldoni et al., 2018), demanda un alto consumo de recursos computacionales y tiene dificultades para manejar operaciones criptográficas. Tres herramientas la representan en este dominio.
 
 *Mythril* (Mueller, 2018): Herramienta de ConsenSys que utiliza el solver Z3 para ejecución simbólica. Según Durieux et al. (2020), detecta 5 de las 8 vulnerabilidades de reentrancy anotadas (62%) y es la herramienta con mayor detección global (27%, Tabla 3.3).
 
@@ -109,17 +76,7 @@ La ejecución simbólica representa los valores de entrada como símbolos matem�
 
 El fuzzing genera entradas aleatorias o semi-dirigidas para explorar el comportamiento del programa en tiempo de ejecución (Miller et al., 1990). En el contexto de contratos inteligentes, Grieco et al. (2020) proponen el *property-based fuzzing*, donde el usuario especifica propiedades (invariantes) que deben mantenerse.
 
-**Ventajas:**
-- Bajo índice de falsos positivos (las vulnerabilidades encontradas son reproducibles)
-- Capacidad para encontrar vulnerabilidades en código complejo
-- Escalabilidad a contratos de gran tamaño
-
-**Limitaciones:**
-- Requiere especificación manual de propiedades
-- Cobertura dependiente de la calidad de las entradas generadas
-- Puede no explorar todos los caminos de ejecución
-
-**Herramientas representativas:**
+El fuzzing presenta un bajo índice de falsos positivos, ya que las vulnerabilidades que encuentra son reproducibles; puede hallar fallas en código complejo y escala a contratos de gran tamaño. Requiere, no obstante, que las propiedades se especifiquen manualmente, su cobertura depende de la calidad de las entradas generadas y puede no explorar todos los caminos de ejecución.
 
 *Echidna* (Grieco et al., 2020): Fuzzer basado en propiedades desarrollado por Trail of Bits. Utiliza generación de entradas basada en gramática y estrategias de cobertura guiada.
 
@@ -129,27 +86,15 @@ El fuzzing genera entradas aleatorias o semi-dirigidas para explorar el comporta
 
 La verificación formal proporciona garantías matemáticas sobre el comportamiento del programa mediante técnicas de demostración de teoremas o model checking (Clarke et al., 2018). Según Bhargavan et al. (2016), es la única técnica que puede garantizar la ausencia de ciertas clases de vulnerabilidades.
 
-**Ventajas:**
-- Garantías matemáticas de corrección
-- Detección de errores sutiles de lógica
-- Capacidad para verificar propiedades de seguridad complejas
-
-**Limitaciones:**
-- Requiere especificación formal del comportamiento esperado
-- Alto costo de implementación y mantenimiento
-- Curva de aprendizaje pronunciada
-
-**Herramientas representativas:**
+La verificación formal ofrece garantías matemáticas de corrección, detecta errores sutiles de lógica y permite verificar propiedades de seguridad complejas. Estas ventajas tienen como contrapartida la necesidad de una especificación formal del comportamiento esperado, un alto costo de implementación y mantenimiento, y una curva de aprendizaje pronunciada.
 
 *Certora Prover* (Certora, 2024): Herramienta comercial que utiliza el lenguaje CVL (Certora Verification Language) para especificaciones formales. Empleada por protocolos de alto valor como Aave y Compound.
 
 *SMTChecker* (Alt & Reitwiessner, 2018): Verificador integrado en el compilador de Solidity que aplica model checking con dos motores —*bounded model checking* (BMC) y cláusulas de Horn restringidas (CHC)— para verificar aserciones y propiedades.
 
----
-
 ## 3.4 Análisis Comparativo de Herramientas Existentes
 
-Durieux et al. (2020) realizaron el estudio empírico más comprehensivo hasta la fecha, evaluando 9 herramientas sobre un benchmark de 47,587 contratos. La Tabla 3.3 sintetiza sus hallazgos sobre el subconjunto etiquetado (SmartBugs-curated), donde se conoce el conjunto de vulnerabilidades anotadas.
+Durieux et al. (2020) realizaron el estudio empírico más exhaustivo hasta la fecha, evaluando 9 herramientas sobre un benchmark de 47,587 contratos. La Tabla 3.3 sintetiza sus hallazgos sobre el subconjunto etiquetado (SmartBugs-curated), donde se conoce el conjunto de vulnerabilidades anotadas.
 
 **Tabla 3.3.** Vulnerabilidades anotadas detectadas por herramienta según Durieux et al. (2020, Tabla 5), sobre las 115 vulnerabilidades etiquetadas del subconjunto SmartBugs-curated
 
@@ -167,19 +112,11 @@ Durieux et al. (2020) realizaron el estudio empírico más comprehensivo hasta l
 | Combinación de las nueve herramientas | — | 48 | 42% |
 | Mythril + Slither (mejor par) | — | 42 | 37% |
 
-Los autores no reportan precisión ni F1 por herramienta; la métrica es la fracción de vulnerabilidades anotadas que cada una detecta. Ninguna herramienta individual supera el **27%** (Mythril, la mejor); Slither, herramienta principal de la capa 1 de MIESC, detecta el 17%, y la combinación de las nueve alcanza el 42%. Durieux et al. (2020) concluyen que ninguna herramienta individual logra una cobertura satisfactoria de los tipos de vulnerabilidad y que la combinación de herramientas es el camino para mejorarla, lo que motiva los enfoques combinados como el de MIESC. Estas cifras son la referencia habitual de la literatura, pero no es directamente comparable con las cifras de MIESC (86% en el corpus propio con ensemble de LLMs; 92.5% en EVMBench bajo matcher laxo, que cae a 27.4% con el juez oficial), porque difieren el corpus, el protocolo de emparejamiento y la naturaleza de los componentes (herramientas estáticas frente a modelos de lenguaje frontier).
+Los autores no reportan precisión ni F1 por herramienta; la métrica es la fracción de vulnerabilidades anotadas que cada una detecta. Ninguna herramienta individual supera el 27% (Mythril, la mejor); Slither, herramienta principal de la capa 1 de MIESC, detecta el 17%, y la combinación de las nueve alcanza el 42%. Durieux et al. (2020) concluyen que ninguna herramienta individual logra una cobertura satisfactoria de los tipos de vulnerabilidad y que la combinación de herramientas es el camino para mejorarla, lo que motiva los enfoques combinados como el de MIESC. Estas cifras son la referencia habitual de la literatura, pero no son directamente comparables con las de MIESC (86% en el corpus propio con ensemble de LLMs; 92.5% en EVMBench bajo matcher laxo, que cae a 27.4% con el juez oficial), porque difieren el corpus, el protocolo de emparejamiento y la naturaleza de los componentes (herramientas estáticas frente a modelos de lenguaje frontier).
 
 ### 3.4.1 Análisis con Inteligencia Artificial
 
-Recientemente, la aplicación de modelos de lenguaje de gran escala (LLMs) al análisis de seguridad ha emergido como un área de investigación prometedora. Sun et al. (2024) presentaron GPTScan en ICSE 2024, demostrando que GPT-4 puede detectar vulnerabilidades de lógica que escapan a herramientas tradicionales.
-
-Sun et al. (2024) proponen un enfoque híbrido donde los LLMs complementan herramientas de análisis estático, reduciendo los falsos positivos mediante razonamiento semántico. Sin embargo, De Baets et al. (2024) advierten sobre las limitaciones de los LLMs, incluyendo:
-
-- Alucinaciones (generación de vulnerabilidades inexistentes)
-- Dependencia del contexto y prompt engineering
-- Costo operativo de APIs comerciales
-
----
+En los últimos años, la aplicación de modelos de lenguaje de gran escala (LLM) al análisis de seguridad ha emergido como un área de investigación prometedora. Sun et al. (2024) presentaron GPTScan en ICSE 2024 y mostraron que GPT-4 puede detectar vulnerabilidades de lógica que escapan a las herramientas tradicionales, mediante un enfoque híbrido en el que el LLM complementa el análisis estático y reduce los falsos positivos gracias al razonamiento semántico. De Baets et al. (2024), sin embargo, advierten sobre tres limitaciones: las alucinaciones, que se traducen en vulnerabilidades inexistentes; la dependencia del contexto y del diseño de los prompts; y el costo operativo de las APIs comerciales, aspecto que retoma la Brecha 4.
 
 ## 3.5 Identificación de Brechas en el Estado del Arte
 
@@ -187,65 +124,27 @@ A partir de la revisión realizada, se identifican las siguientes brechas que fu
 
 ### 3.5.1 Brecha 1: Fragmentación de Herramientas
 
-**Observación:** Las herramientas existentes operan de forma aislada con formatos de salida incompatibles (Rameder et al., 2022).
-
-**Evidencia empírica:** El estudio de Durieux et al. (2020) requirió desarrollar parsers específicos para cada herramienta, evidenciando la falta de interoperabilidad.
-
-**Impacto:** Los auditores deben ejecutar múltiples herramientas manualmente y consolidar resultados, incrementando el tiempo y riesgo de error (Di Angelo & Salzer, 2019).
-
-**Fundamentación de la solución:** El patrón Adapter, documentado por Gamma et al. (1994) en su catálogo de patrones de diseño, permite "convertir la interfaz de una clase en otra interfaz que los clientes esperan" (p. 139). MIESC implementa este patrón para unificar las interfaces heterogéneas de las herramientas integradas.
+Las herramientas existentes operan de forma aislada y con formatos de salida incompatibles (Rameder et al., 2022). La falta de interoperabilidad queda en evidencia en el propio estudio de Durieux et al. (2020), que debió desarrollar un parser específico para cada herramienta evaluada. Para el auditor, la consecuencia es la necesidad de ejecutar múltiples herramientas manualmente y consolidar sus resultados, con el consiguiente incremento del tiempo invertido y del riesgo de error (Di Angelo & Salzer, 2019). El patrón Adapter, documentado por Gamma et al. (1994), ofrece una respuesta de diseño a este problema, ya que permite "convertir la interfaz de una clase en otra interfaz que los clientes esperan" (p. 139; traducción propia); MIESC lo adopta para unificar las interfaces heterogéneas de las herramientas que integra.
 
 ### 3.5.2 Brecha 2: Ausencia de Enfoque Multi-Técnica
 
-**Observación:** Las herramientas existentes implementan una única técnica de análisis, limitando su cobertura de vulnerabilidades.
-
-**Evidencia empírica:** La Tabla 3.3 muestra que ninguna herramienta individual detecta más del 27% de las vulnerabilidades anotadas y que ni la combinación de las nueve supera el 42%. Ghaleb y Pattabiraman (2020) muestran que ninguna herramienta estática única cubre todas las clases de vulnerabilidades y que la combinación de técnicas amplía materialmente la cobertura de detección.
-
-**Impacto:** Vulnerabilidades detectables únicamente mediante combinación de técnicas permanecen sin identificar.
-
-**Fundamentación de la solución:** El modelo de defensa en profundidad (*Defense-in-Depth*), originado en doctrina militar y adaptado a seguridad informática por el NIST (Ross et al.,2016), propone múltiples capas de controles independientes. Schneier (2000) argumenta que "la seguridad es un proceso, no un producto" (p. 12), fundamentando la necesidad de enfoques multi-capa.
+Las herramientas existentes implementan, en general, una única técnica de análisis, lo que limita su cobertura. La Tabla 3.3 muestra que ninguna herramienta individual detecta más del 27% de las vulnerabilidades anotadas y que ni siquiera la combinación de las nueve supera el 42%; Ghaleb y Pattabiraman (2020) confirman que ninguna herramienta estática única cubre todas las clases de vulnerabilidades y que la combinación de técnicas amplía materialmente la cobertura. Las vulnerabilidades detectables solo mediante la combinación de técnicas permanecen, por lo tanto, sin identificar. El modelo de defensa en profundidad (*Defense-in-Depth*), originado en la doctrina militar y adaptado a la seguridad informática por el NIST (Ross et al., 2016), propone múltiples capas de controles independientes como respuesta a esta limitación; en palabras de Schneier (2000), "la seguridad es un proceso, no un producto" (p. 12; traducción propia). El Capítulo 5 matiza, sin embargo, esta expectativa: la combinación de herramientas estáticas no superó a la mejor de ellas, y la ganancia medida provino del razonamiento semántico (§5.3.3).
 
 ### 3.5.3 Brecha 3: Falta de Normalización
 
-**Observación:** No existe un formato estándar para reportar hallazgos de seguridad en contratos inteligentes (Zhou et al., 2023).
-
-**Evidencia empírica:** Cada herramienta utiliza nomenclatura propietaria; por ejemplo, Slither reporta "reentrancy-eth" mientras Mythril reporta "State change after external call" para la misma vulnerabilidad.
-
-**Impacto:** Dificultad para comparar resultados entre herramientas y generar métricas agregadas.
-
-**Fundamentación de la solución:** La taxonomía SWC Registry, desarrollada bajo consenso de la comunidad Ethereum (SCSVS, 2023), proporciona un vocabulario común. La integración con CWE (MITRE, 2024) y OWASP Smart Contract Top 10 (OWASP, 2023) permite trazabilidad hacia estándares de seguridad generales.
+No existe un formato estándar para reportar hallazgos de seguridad en contratos inteligentes (Zhou et al., 2023). Cada herramienta utiliza una nomenclatura propia —Slither reporta "reentrancy-eth" y Mythril "State change after external call" para la misma vulnerabilidad—, lo que dificulta comparar resultados entre herramientas y generar métricas agregadas. La taxonomía del SWC Registry, desarrollada por consenso de la comunidad Ethereum (SCSVS, 2023), proporciona un vocabulario común, y su integración con CWE (MITRE, 2024) y el OWASP Smart Contract Top 10 (OWASP, 2023) permite la trazabilidad hacia estándares de seguridad generales.
 
 ### 3.5.4 Brecha 4: Dependencia de Servicios Comerciales
 
-**Observación:** Las herramientas de análisis con IA requieren APIs comerciales con costos significativos.
-
-**Evidencia empírica:** GPTScan (Sun et al., 2024) utiliza GPT-4, con un costo aproximado de $0.03-0.12 por análisis según tamaño del contrato. Certora Prover requiere licencia comercial con costos no publicados pero estimados en >$100K/año.
-
-**Impacto:** Barrera de entrada para proyectos con recursos limitados, especialmente en países en desarrollo (DPGA, 2023).
-
-**Fundamentación de la solución:** Los principios de Digital Public Goods (DPGA, 2023) establecen que el software de interés público debe ser "libre de barreras de costo". El uso de modelos de lenguaje locales mediante Ollama (Ollama, 2024) elimina la dependencia de APIs comerciales.
+Las herramientas de análisis con IA dependen, en general, de APIs comerciales con costos considerables. GPTScan (Sun et al., 2024), por ejemplo, utiliza GPT-4, con un costo aproximado de $0.03-0.12 por análisis según el tamaño del contrato, mientras que Certora Prover requiere una licencia comercial cuyos costos no se publican. Estos montos constituyen una barrera de entrada para proyectos con recursos limitados, en especial en países en desarrollo (DPGA, 2023). Los principios de Digital Public Goods (DPGA, 2023) establecen que el software de interés público debe estar "libre de barreras de costo"; en esa línea, el uso de modelos de lenguaje locales mediante Ollama (Ollama, 2024) elimina la dependencia de APIs comerciales, con el costo en capacidad que el Capítulo 6 cuantifica.
 
 ### 3.5.5 Brecha 5: Obsolescencia y Compatibilidad
 
-**Observación:** Múltiples herramientas presentan problemas de mantenimiento o incompatibilidad con entornos modernos.
-
-**Evidencia empírica:** Oyente no recibe actualizaciones desde 2019; Manticore presenta incompatibilidades con Python 3.11+ debido a cambios en la biblioteca estándar (Python, 2022).
-
-**Impacto:** Reducción del conjunto de herramientas disponibles para auditoría.
-
-**Fundamentación de la solución:** El principio de encapsulación (Parnas, 1972) permite aislar las dependencias problemáticas. La containerización mediante Docker (Merkel, 2014) proporciona ambientes reproducibles para herramientas legacy.
+Múltiples herramientas presentan problemas de mantenimiento o de incompatibilidad con entornos modernos: Oyente no recibe actualizaciones desde 2019 y Manticore es incompatible con Python 3.10 y posteriores por cambios en la biblioteca estándar (Python, 2022), lo que reduce el conjunto de herramientas disponibles para la auditoría. El principio de encapsulación (Parnas, 1972) permite aislar las dependencias problemáticas, y la containerización mediante Docker (Merkel, 2014) proporciona ambientes reproducibles para herramientas legacy.
 
 ### 3.5.6 Brecha 6: Ausencia de Orquestación
 
-**Observación:** No existe un sistema para coordinar la ejecución de múltiples herramientas y consolidar resultados.
-
-**Evidencia empírica:** SmartBugs (Ferreira et al., 2020) es el antecedente más directo de orquestación, pero se limita a ejecución secuencial sin normalización de resultados.
-
-**Impacto:** Proceso de auditoría manual, lento y propenso a errores humanos.
-
-**Fundamentación de la solución:** Los patrones de orquestación de microservicios (Newman, 2015) permiten coordinar servicios heterogéneos. La deduplicación de hallazgos se fundamenta en técnicas de record linkage (Fellegi & Sunter, 1969).
-
----
+No existe un sistema que coordine la ejecución de múltiples herramientas y consolide sus resultados. SmartBugs (Ferreira et al., 2020) es el antecedente más directo de orquestación, pero se limita a la ejecución secuencial sin normalización de resultados, de modo que el proceso de auditoría sigue siendo manual, lento y propenso a errores humanos. Los patrones de orquestación de microservicios (Newman, 2015) permiten coordinar servicios heterogéneos, y la deduplicación de hallazgos se fundamenta en las técnicas de record linkage (Fellegi & Sunter, 1969).
 
 ## 3.6 Síntesis y Justificación de MIESC
 
@@ -261,8 +160,6 @@ La Tabla 3.4 sintetiza las brechas identificadas y las soluciones propuestas por
 | 4 | Costo APIs | Backend Ollama local | DPGA (2023) |
 | 5 | Obsolescencia | Docker + parches | Parnas (1972), Merkel (2014) |
 | 6 | Sin orquestación | Pipeline automatizado | Newman (2015) |
-
----
 
 ## 3.7 Referencias del Capítulo
 
@@ -353,7 +250,5 @@ Tsankov, P., Dan, A., Drachsler-Cohen, D., Gervais, A., Bünzli, F., & Vechev, M
 Werner, S., Perez, D., Gudgeon, L., Klages-Mundt, A., Harz, D., & Knottenbelt, W. (2022). SoK: Decentralized finance (DeFi). En *Proceedings of the 4th ACM Conference on Advances in Financial Technologies (AFT '22)* (pp. 30-46). ACM. https://doi.org/10.1145/3558535.3559780
 
 Zhou, L., Xiong, X., Ernstberger, J., Chaliasos, S., Wang, Z., Wang, Y., Qin, K., Wattenhofer, R., Song, D., & Gervais, A. (2023). SoK: Decentralized finance (DeFi) attacks. En *2023 IEEE Symposium on Security and Privacy (SP)* (pp. 2444-2461). IEEE. https://doi.org/10.1109/SP46215.2023.10179435
-
----
 
 *Nota: Las referencias siguen el formato APA 7ma edición.*
