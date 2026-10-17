@@ -1,38 +1,26 @@
 # Capítulo 4: Desarrollo
 
-## MIESC: Marco Integrado de Seguridad para Contratos Ethereum
-
----
+## MIESC: Multi-layer Integration for Ethereum Smart Contract Security
 
 ## 4.1 Introducción
 
-El presente capítulo documenta el proceso de desarrollo e implementación de MIESC (Marco Integrado de Seguridad para Contratos Ethereum), un framework de código abierto diseñado para abordar las deficiencias identificadas en el ecosistema de herramientas de auditoría de contratos inteligentes. La exposición sigue una estructura que refleja el proceso real de investigación: desde la identificación de problemas concretos hasta las decisiones de diseño adoptadas para resolverlos, incluyendo los callejones sin salida encontrados y las lecciones aprendidas durante el desarrollo.
+El presente capítulo documenta el proceso de desarrollo e implementación de MIESC (Multi-layer Integration for Ethereum Smart Contract Security), un framework de código abierto diseñado para abordar las deficiencias identificadas en el ecosistema de herramientas de auditoría de contratos inteligentes. La exposición sigue una estructura que refleja el proceso real de investigación: desde la identificación de problemas concretos hasta las decisiones de diseño adoptadas para resolverlos, incluyendo los callejones sin salida encontrados y las lecciones aprendidas durante el desarrollo.
 
 ### 4.1.1 Génesis del Proyecto
 
 El origen de MIESC se encuentra en una experiencia práctica de auditoría realizada en 2023, donde el autor enfrentó la tarea de evaluar la seguridad de un protocolo DeFi con TVL (Total Value Locked) superior a los 50 millones de dólares. Durante ese proceso, se hicieron evidentes tres problemas que la literatura académica había señalado pero que la industria no había resuelto de manera satisfactoria:
 
-**Primer problema: La fragmentación de herramientas.** Para realizar una auditoría comprehensiva, fue necesario ejecutar Slither, Mythril, Echidna y solicitar análisis manuales con GPT-4. Cada herramienta requirió instalación independiente, configuración específica, y produjo resultados en formatos incompatibles entre sí. El tiempo invertido en orquestar las herramientas superó al tiempo de análisis efectivo.
+**Primer problema: La fragmentación de herramientas.** Para realizar una auditoría exhaustiva, fue necesario ejecutar Slither, Mythril, Echidna y solicitar análisis manuales con GPT-4. Cada herramienta requirió instalación independiente, configuración específica, y produjo resultados en formatos incompatibles entre sí. El tiempo invertido en orquestar las herramientas superó al tiempo de análisis efectivo.
 
 **Segundo problema: La dependencia de servicios comerciales.** El uso de GPT-4 para análisis semántico implicaba enviar código fuente confidencial a servidores externos. En el contexto de una auditoría pre-lanzamiento, donde el código representa propiedad intelectual valiosa y potencialmente contiene vulnerabilidades explotables, esta transmisión resultaba inaceptable desde la perspectiva de gestión de riesgos.
 
 **Tercer problema: La interpretación de resultados.** Las herramientas generaron colectivamente más de 200 hallazgos, muchos de ellos duplicados o falsos positivos. La tarea de consolidación, priorización y verificación consumió varios días de trabajo manual.
 
-Estos problemas no son únicos de la experiencia del autor. Durieux et al. (2020), en su evaluación empírica de 47,587 contratos, documentaron que ninguna herramienta individual supera el 43.2% de recall (Slither, la mejor) y que solo alrededor del 42% de las vulnerabilidades son detectadas por el conjunto de herramientas, siendo la combinación manual impráctica a escala. Rameder et al. (2022) llegaron a conclusiones similares, señalando que "la heterogeneidad de interfaces y formatos de salida constituye una barrera significativa para la adopción industrial de herramientas académicas" (p. 12).
+Estos problemas no son únicos de la experiencia del autor. Durieux et al. (2020), en su evaluación empírica de 47,587 contratos, documentaron que ninguna herramienta individual detecta más del 27% de las vulnerabilidades anotadas (Mythril, la mejor) y que el conjunto de las nueve alcanza solo el 42%, siendo la combinación manual impráctica a escala. Rameder et al. (2022) llegaron a conclusiones similares, señalando que "la heterogeneidad de interfaces y formatos de salida constituye una barrera significativa para la adopción industrial de herramientas académicas" (p. 12).
 
 ### 4.1.2 Objetivos del Desarrollo
 
-Los objetivos técnicos de MIESC se formularon como respuesta directa a los problemas identificados, siguiendo el enfoque de diseño dirigido por problemas (*problem-driven design*) propuesto por Shaw (2012):
-
-1. **Integración heterogénea**: Desarrollar una capa de abstracción que permita invocar múltiples herramientas de seguridad a través de una interfaz unificada, ocultando las diferencias de instalación, configuración y formato de salida.
-
-2. **Defensa en profundidad**: Organizar las herramientas en capas complementarias basadas en sus técnicas de análisis, de modo que las fortalezas de unas compensen las debilidades de otras.
-
-3. **Normalización de resultados**: Implementar un esquema de mapeo que traduzca los hallazgos de cada herramienta a taxonomías estándar (SWC, CWE, OWASP), habilitando la deduplicación y priorización automática.
-
-4. **Soberanía de datos**: Garantizar que todo el procesamiento, incluyendo el análisis con inteligencia artificial, se ejecute localmente sin transmisión de código fuente a servicios externos.
-
-5. **Costo cero operativo**: Utilizar exclusivamente herramientas de código abierto y modelos de lenguaje con pesos abiertos, eliminando barreras de costo que limitan el acceso a auditorías de calidad.
+Los objetivos técnicos de MIESC se formularon como respuesta directa a los problemas descritos, siguiendo el enfoque de diseño dirigido por problemas (*problem-driven design*) propuesto por Shaw (2012). Frente a la fragmentación, se buscó desarrollar una capa de abstracción que permitiera invocar múltiples herramientas de seguridad mediante una interfaz unificada, ocultando las diferencias de instalación, configuración y formato de salida, y organizar esas herramientas en capas complementarias según su técnica de análisis, de modo que las fortalezas de unas compensaran las debilidades de otras. Frente a la dificultad de interpretar los resultados, se planteó un esquema de mapeo que tradujera los hallazgos de cada herramienta a taxonomías estándar (SWC, CWE, OWASP) y habilitara la deduplicación y la priorización automáticas. Frente a la dependencia de servicios comerciales, finalmente, se fijaron dos exigencias: ofrecer un modo en el que todo el procesamiento, incluido el análisis con inteligencia artificial, se ejecute localmente sin transmitir código fuente a servicios externos, y emplear exclusivamente herramientas de código abierto y modelos de pesos abiertos, eliminando las barreras de costo que limitan el acceso a auditorías de calidad. Estos objetivos traducen al plano técnico los objetivos específicos OE1–OE5 (sección 1.3.2).
 
 ### 4.1.3 Métricas Cuantitativas del Proyecto
 
@@ -52,42 +40,32 @@ La Tabla 4.1 presenta las métricas del proyecto en su versión 4.0.0, medidas m
 | Herramientas integradas | 25 | Conteo manual |
 | Capas de análisis | 7 | Arquitectura documentada |
 
-El índice de mantenibilidad de 72.3 supera el umbral de 65 propuesto por Oman y Hagemeister (1992) para código "altamente mantenible", lo cual valida las decisiones de diseño orientadas a la extensibilidad.
+El índice de mantenibilidad de 72.3 supera el umbral de 65 propuesto por Oman y Hagemeister (1992) para código "altamente mantenible", lo que es consistente con las decisiones de diseño orientadas a la extensibilidad.
 
 > **Nota sobre versiones.** Esta tesis documenta la arquitectura de MIESC en su
 > versión **v4.0.0** (7 capas de defensa, 25 herramientas integradas), que es la
 > defendida. Las versiones posteriores —la línea **v5.x**, usada para la validación
 > cruzada en EVMBench (§5.3.5), y la **línea actual v6.1.0**, descrita en los papers
-> asociados (RIBCi-CYTED 2026) y publicada en PyPI bajo AGPL-3.0— ampliaron el
+> asociados (Boiero et al., 2026a, 2026b) y publicada en PyPI bajo AGPL-3.0— ampliaron el
 > pipeline a **9 capas y 35 módulos** (13 externos + 22 internos), incorporando
 > capas de razonamiento con LLM y filtrado de falsos positivos. Los resultados de
 > detección de esta tesis corresponden a la arquitectura v4.0.0 documentada, salvo
-> la sección de validación EVMBench, indicada explícitamente como corrida en la
-> línea v5.x.
-
----
+> los resultados señalados como posteriores: la revalidación del corpus del
+> 2026-07-09 (§5.3.3–5.3.4, modos `--deep` y ensemble, Tablas 5.7–5.8 y
+> 5.14–5.15), la validación EVMBench (§5.3.5) y la validación sobre SmartBugs
+> Curated (§5.3.6), todas corridas en la línea v5.x.
 
 ## 4.2 Arquitectura del Sistema
 
 ### 4.2.1 El Principio de Defensa en Profundidad: Fundamentos y Aplicación
 
-La arquitectura de MIESC se fundamenta en el principio de defensa en profundidad (*Defense-in-Depth*, DiD), un concepto originado en doctrina militar que fue adaptado a la seguridad de sistemas de información durante la década de 1990. El Department of Defense (1996) formalizó este principio como "la aplicación de múltiples medidas de protección en serie, de modo que un adversario deba superar o evitar cada medida sucesivamente para comprometer el sistema protegido" (p. 3-12).
+La arquitectura de MIESC se fundamenta en el principio de defensa en profundidad (*Defense-in-Depth*, DiD), un concepto originado en doctrina militar que fue adaptado a la seguridad de sistemas de información durante la década de 1990. El National Security Agency (s.f.) formalizó este principio como "la aplicación de múltiples medidas de protección en serie, de modo que un adversario deba superar o evitar cada medida sucesivamente para comprometer el sistema protegido" (p. 3-12; traducción propia).
 
-La aplicación de este principio al análisis de contratos inteligentes es una contribución original de este trabajo. La justificación teórica se fundamenta en la observación empírica de que diferentes técnicas de análisis tienen fortalezas y debilidades complementarias:
-
-**Análisis estático:** Examina el código sin ejecutarlo, detectando patrones conocidos de vulnerabilidad con alta velocidad pero sin capacidad de razonar sobre comportamiento en tiempo de ejecución. Los autores de Slither (Feist et al., 2019) reportan alta precisión en su propio benchmark, pero la evaluación independiente a gran escala de Durieux et al. (2020) midió apenas 43.2% de recall sobre SmartBugs-curated, indicando que más de la mitad de las vulnerabilidades escapa a la detección estática a escala de corpus.
-
-**Ejecución simbólica:** Explora caminos de ejecución mediante representación simbólica de variables, capaz de descubrir vulnerabilidades dependientes de valores específicos de entrada. Baldoni et al. (2018) documentan su efectividad pero también su principal limitación: la explosión combinatoria de caminos en código complejo.
-
-**Fuzzing:** Genera entradas aleatorias o guiadas para descubrir comportamientos inesperados, particularmente efectivo para encontrar casos límite no contemplados por el desarrollador. Miller et al. (1990) establecieron esta técnica, que Grieco et al. (2020) adaptaron específicamente para contratos inteligentes con Echidna.
-
-**Verificación formal:** Demuestra matemáticamente propiedades del código mediante sistemas de prueba automatizados. Clarke et al. (2018) describen los fundamentos teóricos, mientras que Lahav et al. (2022) documentan su aplicación práctica en Certora Prover.
-
-**Análisis con IA:** Modelos de lenguaje capaces de detectar vulnerabilidades de lógica de negocio que requieren comprensión semántica del código. Sun et al. (2024) demuestran que GPTScan detecta el 90.2% de vulnerabilidades de lógica que escapan a herramientas tradicionales.
+La aplicación de este principio al análisis de contratos inteligentes constituye, hasta donde alcanza la revisión del Capítulo 3, una contribución original de este trabajo. Su justificación descansa en la complementariedad de las técnicas ya caracterizadas en las secciones 2.4 y 3.3, que aquí basta recordar en lo que importa al diseño. El análisis estático detecta patrones conocidos con gran velocidad, pero no razona sobre el comportamiento en tiempo de ejecución: aunque los autores de Slither (Feist et al., 2019) reportan alta precisión en su propio benchmark, la evaluación independiente de Durieux et al. (2020) midió para Slither apenas el 17% de las vulnerabilidades anotadas de SmartBugs-curated (27% para la mejor herramienta, Mythril), lo que indica que cerca de tres cuartas partes de las vulnerabilidades escapan a la detección individual a escala de corpus. La ejecución simbólica descubre vulnerabilidades que dependen de valores concretos de entrada, a costa de la explosión combinatoria de caminos (Baldoni et al., 2018); el fuzzing, establecido por Miller et al. (1990) y adaptado a contratos inteligentes por Grieco et al. (2020) con Echidna, encuentra casos límite no contemplados por el desarrollador; la verificación formal demuestra propiedades mediante sistemas de prueba automatizados (Clarke et al., 2018), con Certora Prover como exponente práctico (Certora, 2024); y los modelos de lenguaje abordan vulnerabilidades de lógica de negocio que exigen comprensión semántica, ámbito en el que Sun et al. (2024) reportan para GPTScan una precisión superior al 90% en contratos de tokens y un recall superior al 70%. La expectativa de que estas técnicas se complementen entre sí se somete a prueba en el Capítulo 5, con un resultado más matizado que el previsto (§5.3.3).
 
 Schneier (2000) articula la filosofía subyacente:
 
-> "La defensa en profundidad reconoce que ningún control de seguridad individual es perfecto. Al implementar múltiples capas, se reduce la probabilidad de que un atacante pueda evadir todos los controles" (p. 284).
+> "La defensa en profundidad reconoce que ningún control de seguridad individual es perfecto. Al implementar múltiples capas, se reduce la probabilidad de que un atacante pueda evadir todos los controles" (p. 284; traducción propia).
 
 ### 4.2.2 Proceso de Selección: De la Teoría a las Siete Capas
 
@@ -116,31 +94,21 @@ La Tabla 4.2 presenta el análisis de complementariedad que fundamentó la selec
 
 ### 4.2.3 Modelo de Capas Definitivo
 
-**Figura 7.** Arquitectura de defensa en profundidad de MIESC
+**Figura 4.1.** Arquitectura de defensa en profundidad de MIESC
 
-![Figura 7 - Arquitectura de defensa en profundidad de MIESC](figures/Figura%207%20Arquitectura%20de%20defensa%20en%20profundidad%20de%20MIESC.svg)
+![Figura 4.1 - Arquitectura de defensa en profundidad de MIESC](figures/Figura%207%20Arquitectura%20de%20defensa%20en%20profundidad%20de%20MIESC.svg)
 
 La numeración de capas refleja el orden típico de ejecución durante una auditoría: las técnicas más rápidas y con menor costo computacional (análisis estático) se ejecutan primero, permitiendo identificar problemas evidentes antes de invertir recursos en técnicas más costosas (ejecución simbólica, verificación formal).
 
 ### 4.2.4 Justificación de la Selección de Herramientas
 
-La selección de las 25 herramientas que componen MIESC siguió un proceso de evaluación estructurado basado en cinco criterios:
+La selección de las 25 herramientas que componen MIESC siguió un proceso de evaluación basado en cinco criterios: la efectividad demostrada, con preferencia por herramientas que cuentan con una evaluación empírica publicada; la compatibilidad de licencia, que excluyó a las que impidieran la redistribución o el uso comercial del framework integrado; el mantenimiento activo, medido por la actividad reciente del proyecto y de su comunidad; la complementariedad, para evitar redundancias entre herramientas de una misma capa; y la instalabilidad, entendida como la posibilidad de una instalación automatizada sin intervención manual compleja. El resultado, capa por capa, fue el siguiente.
 
-1. **Efectividad demostrada:** Preferencia por herramientas con evaluación empírica publicada en literatura académica.
-
-2. **Licencia compatible:** Exclusión de herramientas con licencias que impidieran redistribución o uso comercial del framework integrado.
-
-3. **Mantenimiento activo:** Preferencia por proyectos con commits recientes y comunidad activa.
-
-4. **Complementariedad:** Evitar redundancia entre herramientas de la misma capa.
-
-5. **Instalabilidad:** Capacidad de instalación automatizada sin intervención manual compleja.
-
-**Capa 1 - Análisis Estático:** Slither fue seleccionada como herramienta principal por su cobertura de detectores y velocidad (1.2s promedio); en la evaluación independiente de Durieux et al. (2020) es la mejor herramienta individual, con 43.2% de recall. Solhint complementa con verificación de estilo y mejores prácticas. Securify2 aporta análisis de patrones de seguridad específicos de Ethereum. Semgrep permite definir reglas personalizadas para patrones específicos de cada organización.
+**Capa 1 - Análisis Estático:** Slither fue seleccionada como herramienta principal por su cobertura de detectores y velocidad (1.2s promedio); en la evaluación independiente de Durieux et al. (2020) detecta el 17% de las vulnerabilidades anotadas, por debajo de Mythril (27%) pero con la mayor cantidad de detecciones exclusivas (8) y un tiempo de ejecución muy inferior. Solhint complementa con verificación de estilo y mejores prácticas. Securify2 aporta análisis de patrones de seguridad específicos de Ethereum. Semgrep permite definir reglas personalizadas para patrones específicos de cada organización.
 
 **Capa 2 - Fuzzing:** Echidna, desarrollada por Trail of Bits, fue seleccionada por su capacidad de property-based testing específico para contratos. Foundry Fuzz aporta integración con el ecosistema Foundry, ampliamente adoptado en la industria. Medusa proporciona fuzzing basado en cobertura con soporte para invariantes complejas. Vertigo implementa mutation testing, una técnica complementaria que evalúa la calidad de las pruebas existentes.
 
-**Capa 3 - Ejecución Simbólica:** Mythril, también de Trail of Bits, fue seleccionada por su madurez y extensa documentación. Manticore aporta capacidades de análisis más profundas a costa de mayor tiempo de ejecución. Oyente, aunque menos mantenido, se incluyó por su relevancia histórica y detección de patrones específicos no cubiertos por las otras herramientas.
+**Capa 3 - Ejecución Simbólica:** Mythril, desarrollada por ConsenSys Diligence, fue seleccionada por su madurez y extensa documentación. Manticore aporta capacidades de análisis más profundas a costa de mayor tiempo de ejecución. Oyente, aunque menos mantenido, se incluyó por su relevancia histórica y detección de patrones específicos no cubiertos por las otras herramientas.
 
 **Capa 4 - Invariant Testing:** Scribble permite anotar contratos con especificaciones que se verifican durante ejecución. Halmos implementa bounded model checking, verificando invariantes hasta cierta profundidad de exploración.
 
@@ -150,41 +118,29 @@ La selección de las 25 herramientas que componen MIESC siguió un proceso de ev
 
 **Capa 7 - Análisis con IA:** GPTScan implementa la metodología de Sun et al. (2024). SmartLLM combina LLM con RAG (Retrieval-Augmented Generation) para análisis contextualizado. LLMSmartAudit proporciona auditoría automatizada completa. ThreatModel genera modelos de amenazas STRIDE. GasGauge analiza optimización de gas. UpgradeGuard verifica seguridad de patrones de upgrade. BestPractices evalúa adherencia a mejores prácticas documentadas.
 
----
-
 ## 4.3 Diseño de Software
 
 ### 4.3.1 El Problema de la Heterogeneidad
 
-Cada herramienta de seguridad integrada en MIESC presenta características únicas que dificultan su orquestación unificada:
-
-**Diversidad de interfaces de invocación:** Slither se invoca como módulo Python, Mythril como comando CLI, Echidna requiere archivos de configuración YAML, Certora utiliza archivos .conf con sintaxis propia.
-
-**Heterogeneidad de formatos de salida:** Slither produce JSON estructurado, Mythril genera texto formateado o JSON según parámetros, Echidna emite logs de prueba, Manticore crea directorios de artefactos.
-
-**Inconsistencia en clasificación de severidad:** Slither utiliza "High/Medium/Low/Informational", Mythril emplea "Critical/High/Medium/Low", algunas herramientas no clasifican severidad.
-
-**Variabilidad en información de ubicación:** Algunas herramientas reportan archivo y línea, otras añaden columna, otras indican función y contrato, algunas solo mencionan el nombre del detector.
-
-Esta heterogeneidad constituye la barrera principal para la adopción industrial de herramientas académicas, como documentan Rameder et al. (2022).
+Cada herramienta integrada en MIESC presenta particularidades que dificultan su orquestación unificada, y esas diferencias se manifiestan en cuatro niveles. El primero es la forma de invocación: Slither ofrece una API de Python y una línea de comandos (MIESC usa esta última, con salida JSON), Mythril es un comando CLI con banderas y formato propios, Echidna requiere archivos de configuración YAML y Certora utiliza archivos .conf con sintaxis propia. El segundo es el formato de salida: Slither produce JSON estructurado, Mythril genera texto formateado o JSON según los parámetros, Echidna emite logs de prueba y Manticore crea directorios de artefactos. El tercero es la clasificación de severidad, que varía entre herramientas —Slither utiliza "High/Medium/Low/Informational" y Mythril "Critical/High/Medium/Low"— y en algunas directamente no existe. El cuarto es la información de ubicación: algunas herramientas reportan archivo y línea, otras añaden la columna, otras indican función y contrato, y algunas se limitan a mencionar el nombre del detector. Como documentan Rameder et al. (2022), esta heterogeneidad constituye una de las principales barreras para la adopción industrial de herramientas académicas.
 
 ### 4.3.2 Solución: Patrón Adapter con Principios SOLID
 
-La solución adoptada combina el patrón Adapter, documentado por Gamma et al. (1994), con los principios SOLID propuestos por Martin (2017). Esta combinación no es casual: el patrón Adapter proporciona la estructura para unificar interfaces, mientras que SOLID garantiza que el diseño sea extensible y mantenible.
+La solución adoptada combina el patrón Adapter, documentado por Gamma et al. (1994), con los principios SOLID propuestos por Martin (2017). Esta combinación no es casual: el patrón Adapter proporciona la estructura para unificar interfaces, mientras que SOLID favorece un diseño extensible y mantenible.
 
-**Principio de Responsabilidad Única (SRP):** Cada adaptador tiene una única responsabilidad: traducir la interfaz de una herramienta específica a la interfaz común de MIESC. El adaptador de Slither no conoce la existencia de Mythril, y viceversa.
+*Responsabilidad única (SRP).* Cada adaptador tiene una única responsabilidad: traducir la interfaz de una herramienta específica a la interfaz común de MIESC. El adaptador de Slither no conoce la existencia de Mythril, y viceversa.
 
-**Principio Abierto/Cerrado (OCP):** El framework está abierto a extensión (agregar nuevos adaptadores) pero cerrado a modificación (el núcleo no cambia al agregar herramientas). Para integrar una herramienta nueva, solo se requiere implementar un adaptador que cumpla la interfaz `ToolAdapter`.
+*Abierto/cerrado (OCP).* El framework está abierto a extensión (agregar nuevos adaptadores) pero cerrado a modificación (el núcleo no cambia al agregar herramientas). Para integrar una herramienta nueva, solo se requiere implementar un adaptador que cumpla la interfaz `ToolAdapter`.
 
-**Principio de Sustitución de Liskov (LSP):** Todos los adaptadores son intercambiables a través de la interfaz `ToolAdapter`. El orquestador puede invocar cualquier adaptador sin conocer su implementación concreta.
+*Sustitución de Liskov (LSP).* Todos los adaptadores son intercambiables a través de la interfaz `ToolAdapter`. El orquestador puede invocar cualquier adaptador sin conocer su implementación concreta.
 
-**Principio de Segregación de Interfaces (ISP):** La interfaz `ToolAdapter` define únicamente los métodos esenciales que todo adaptador debe implementar, sin imponer métodos que solo algunas herramientas necesitarían.
+*Segregación de interfaces (ISP).* La interfaz `ToolAdapter` define únicamente los métodos esenciales que todo adaptador debe implementar, sin imponer métodos que solo algunas herramientas necesitarían.
 
-**Principio de Inversión de Dependencias (DIP):** El núcleo de MIESC depende de la abstracción `ToolAdapter`, no de implementaciones concretas como `SlitherAdapter` o `MythrilAdapter`.
+*Inversión de dependencias (DIP).* El núcleo de MIESC depende de la abstracción `ToolAdapter`, no de implementaciones concretas como `SlitherAdapter` o `MythrilAdapter`.
 
-**Figura 8.** Diagrama de clases del patrón Adapter en MIESC
+**Figura 4.2.** Diagrama de clases del patrón Adapter en MIESC
 
-![Figura 8 - Diagrama de clases del patrón Adapter en MIESC](figures/Figura%208%20Diagrama%20de%20clases%20del%20patrón%20Adapter%20en%20MIESC.svg)
+![Figura 4.2 - Diagrama de clases del patrón Adapter en MIESC](figures/Figura%208%20Diagrama%20de%20clases%20del%20patrón%20Adapter%20en%20MIESC.svg)
 
 ### 4.3.3 Implementación de la Interfaz Base
 
@@ -289,8 +245,6 @@ class ToolMetadata:
     is_optional: bool = True    # Puede omitirse sin afectar funcionalidad core
 ```
 
----
-
 ## 4.4 Normalización de Hallazgos
 
 ### 4.4.1 El Problema de la Babel de Vulnerabilidades
@@ -326,21 +280,11 @@ PC address: 1234
 }
 ```
 
-Observaciones:
-- Slither llama a la vulnerabilidad "reentrancy-eth", Mythril usa "State change after external call", GPTScan dice "Reentrancy vulnerability"
-- Slither usa "High", GPTScan usa "CRITICAL" (mismo concepto, diferente nomenclatura)
-- Solo Mythril referencia el estándar SWC-107
-- El formato estructural es completamente diferente
+Las tres salidas describen el mismo defecto y, sin embargo, no comparten nada: Slither lo llama "reentrancy-eth", Mythril "State change after external call" y GPTScan "Reentrancy vulnerability"; Slither lo califica de "High" y GPTScan de "CRITICAL" para el mismo concepto; solo Mythril referencia el estándar SWC-107; y la estructura de los tres formatos es por completo distinta.
 
 ### 4.4.2 Solución: Mapeo a Taxonomías Estándar
 
-MIESC implementa un esquema de normalización que mapea hallazgos a tres taxonomías complementarias:
-
-**SWC (Smart Contract Weakness Classification):** Taxonomía específica para contratos inteligentes mantenida por la comunidad Ethereum (SCSVS, 2023). Contiene 37 categorías de debilidades con identificadores únicos (SWC-100 a SWC-136).
-
-**CWE (Common Weakness Enumeration):** Taxonomía general de debilidades de software mantenida por MITRE (2024). Permite correlacionar vulnerabilidades de smart contracts con debilidades conocidas en software tradicional, facilitando la comunicación con equipos de seguridad no especializados en blockchain.
-
-**OWASP Smart Contract Top 10:** Lista de las vulnerabilidades más críticas desarrollada por OWASP (2023), útil para priorización ejecutiva.
+MIESC implementa un esquema de normalización que mapea los hallazgos a tres taxonomías complementarias. La primera es el SWC (Smart Contract Weakness Classification), taxonomía específica para contratos inteligentes mantenida por la comunidad Ethereum (SCSVS, 2023), con 37 categorías de debilidades e identificadores únicos (SWC-100 a SWC-136). La segunda es el CWE (Common Weakness Enumeration), taxonomía general de debilidades de software mantenida por MITRE (2024), que permite correlacionar las vulnerabilidades de smart contracts con debilidades conocidas del software tradicional y facilita, con ello, la comunicación con equipos de seguridad no especializados en blockchain. La tercera es el OWASP Smart Contract Top 10, la lista de las vulnerabilidades más críticas elaborada por OWASP (2023), útil para la priorización ejecutiva.
 
 ### 4.4.3 Formato de Hallazgo Normalizado
 
@@ -371,7 +315,7 @@ El formato de hallazgo normalizado se diseñó siguiendo el estándar SARIF (Sta
   "detected_by": ["slither", "mythril", "gptscan"],
   "references": [
     "https://swcregistry.io/docs/SWC-107",
-    "https://consensys.github.io/smart-contract-best-practices/attacks/reentrancy/"
+    "https://consensysdiligence.github.io/smart-contract-best-practices/attacks/reentrancy/"
   ],
   "metadata": {
     "first_detected": "2024-11-29T14:30:00Z",
@@ -399,8 +343,6 @@ El mapeo de clasificaciones nativas a estándares se implementa mediante tablas 
 | Mythril | Dependence on tx.origin | SWC-115 | CWE-477 | SC02 |
 | Echidna | assertion failure | SWC-110 | CWE-617 | SC03 |
 | GPTScan | Reentrancy vulnerability | SWC-107 | CWE-841 | SC01 |
-
----
 
 ## 4.5 Implementación de Capas: Narrativa del Proceso
 
@@ -477,6 +419,7 @@ class SlitherAdapter(ToolAdapter):
         ]
 
         try:
+            started = time.perf_counter()
             result = subprocess.run(
                 cmd,
                 capture_output=True,
@@ -495,7 +438,7 @@ class SlitherAdapter(ToolAdapter):
                 "metadata": {
                     "detectors_run": len(raw_output.get("detectors", [])),
                     "contracts_analyzed": len(raw_output.get("contracts", [])),
-                    "execution_time_ms": result.returncode
+                    "execution_time_ms": int((time.perf_counter() - started) * 1000)
                 }
             }
         except subprocess.TimeoutExpired:
@@ -508,7 +451,7 @@ class SlitherAdapter(ToolAdapter):
 
 La ejecución simbólica representa un salto cualitativo respecto al análisis estático. Mientras el análisis estático identifica patrones sintácticos, la ejecución simbólica explora el espacio de estados posibles del contrato, descubriendo vulnerabilidades que dependen de valores específicos de entrada.
 
-El fundamento teórico se encuentra en el trabajo seminal de King (1976), quien demostró que representar variables como símbolos en lugar de valores concretos permite explorar múltiples caminos de ejecución simultáneamente. Baldoni et al. (2018) proporcionan una revisión comprehensiva de la evolución de esta técnica.
+El fundamento teórico se encuentra en el trabajo seminal de King (1976), quien demostró que representar variables como símbolos en lugar de valores concretos permite explorar múltiples caminos de ejecución simultáneamente. Baldoni et al. (2018) proporcionan una revisión exhaustiva de la evolución de esta técnica.
 
 La implementación del adaptador de Mythril ilustra consideraciones específicas de ejecución simbólica:
 
@@ -562,22 +505,16 @@ class MythrilAdapter(ToolAdapter):
 
 La capa de inteligencia artificial representa la contribución más distintiva de MIESC. Mientras las capas anteriores detectan patrones técnicos, la IA puede comprender la semántica del código y detectar vulnerabilidades de lógica de negocio que no corresponden a patrones conocidos.
 
-La decisión de implementar esta capa con modelos locales (Ollama) en lugar de APIs comerciales (OpenAI, Anthropic) se fundamenta en tres consideraciones:
-
-1. **Confidencialidad:** El código de contratos pre-auditoría es propiedad intelectual valiosa que no debe transmitirse a terceros.
-
-2. **Costo:** Las APIs comerciales generan costos significativos a escala (estimado $2,500/año para 100 auditorías mensuales).
-
-3. **Disponibilidad:** La dependencia de APIs externas introduce puntos de falla fuera del control del auditor.
+La decisión de implementar esta capa con modelos locales (Ollama) en lugar de APIs comerciales responde a las tres consideraciones ya expuestas en la génesis del proyecto (§4.1.1) —la confidencialidad del código previo a la auditoría, el costo de las APIs a escala y la dependencia de servicios fuera del control del auditor— que se desarrollan en §4.7.3 y, con detenimiento, en el Capítulo 6.
 
 ```python
 class GPTScanAdapter(ToolAdapter):
     """
     Implementación de GPTScan con backend Ollama.
 
-    Basado en la metodología de Sun et al. (2024), quienes demostraron
-    que LLMs detectan el 90.2% de vulnerabilidades de lógica de negocio
-    que escapan a herramientas tradicionales.
+    Basado en la metodología de Sun et al. (2024), quienes reportaron
+    precisión >90% (contratos de tokens) y recall >70% en vulnerabilidades
+    de lógica de negocio que escapan a herramientas tradicionales.
 
     Modificaciones respecto al paper original:
     1. Backend Ollama en lugar de OpenAI API (soberanía de datos)
@@ -652,13 +589,13 @@ class GPTScanAdapter(ToolAdapter):
         return result.stdout
 ```
 
----
+> **Nota sobre el modo `--deep`.** La verificación `_verify_local_only` rige la configuración soberana por defecto: todo backend LLM debe ser local. El modo `--deep` empleado en la evaluación (§5.3.3) es una opción explícita (*opt-in*) que relaja esta política para habilitar un modelo frontier vía API; conforme al criterio de §6.4.2, su uso debe limitarse a código no confidencial. Los resultados que dependen de él se identifican como tales en el Capítulo 5.
 
 ## 4.6 Orquestación y Deduplicación
 
 ### 4.6.1 El Pipeline de Análisis
 
-La orquestación de las siete capas sigue el patrón Pipeline propuesto por Hohpe y Woolf (2003), adaptado para ejecución paralela intra-capa y secuencial inter-capa. Esta estrategia maximiza el throughput aprovechando que las herramientas dentro de una misma capa son independientes entre sí.
+La orquestación de las siete capas sigue el patrón Pipeline propuesto por Hohpe y Woolf (2003), adaptado para ejecución paralela intra-capa y secuencial inter-capa. Esta estrategia busca maximizar el rendimiento aprovechando que las herramientas de una misma capa son independientes entre sí.
 
 ```python
 class MIESCAuditOrchestrator:
@@ -750,8 +687,9 @@ def _deduplicate_findings(self, findings: List[Dict]) -> List[Dict]:
     3. Consolidar: preservar máxima severidad y confianza
     4. Registrar todas las herramientas que detectaron cada hallazgo
 
-    La tolerancia de ±2 líneas en la clave de deduplicación maneja
-    diferencias menores en cómo las herramientas reportan ubicaciones.
+    El agrupamiento por ventanas de tres líneas (`línea // 3`) en la clave
+    de deduplicación absorbe diferencias menores en cómo las herramientas
+    reportan ubicaciones.
     Por ejemplo, Slither puede reportar línea 42 mientras Mythril
     reporta línea 43 para la misma vulnerabilidad.
     """
@@ -801,24 +739,19 @@ def _severity_rank(self, severity: str) -> int:
     return ranks.get(severity.lower() if severity else "", 0)
 ```
 
----
-
 ## 4.7 Soluciones a Desafíos Técnicos Encontrados
 
-El desarrollo de MIESC enfrentó varios desafíos técnicos no documentados en la literatura. Esta sección describe los problemas encontrados y las soluciones implementadas, con el objetivo de facilitar el trabajo de futuros investigadores.
+El desarrollo de MIESC enfrentó varios desafíos técnicos escasamente documentados en la literatura. Esta sección relata los problemas encontrados y las soluciones adoptadas, con el objetivo de facilitar el trabajo de futuros investigadores.
 
 ### 4.7.1 Incompatibilidad de Manticore con Python 3.11
 
-**Problema identificado:** Manticore depende de la biblioteca `wasm`, la cual utiliza `collections.Callable`, un alias eliminado en Python 3.11 según PEP 585 (van Rossum et al., 2019).
+La primera dificultad surgió con Manticore, cuya importación fallaba al adoptar Python 3.11 como base de MIESC:
 
-**Síntoma:** Error de importación al intentar usar Manticore:
 ```
 AttributeError: module 'collections' has no attribute 'Callable'
 ```
 
-**Análisis:** El cambio en Python 3.11 movió clases de tipado de `collections` a `collections.abc` para clarificar que son abstract base classes. Código legacy que importa `collections.Callable` falla.
-
-**Solución implementada:** Parche en tiempo de instalación que modifica el archivo afectado:
+El origen no estaba en Manticore, sino en una de sus dependencias: la biblioteca `wasm` utiliza `collections.Callable`, un alias eliminado en Python 3.10 tras su deprecación en 3.3 (la migración a `collections.abc` se documenta junto a PEP 585; van Rossum et al., 2019). Ese cambio trasladó las clases de tipado de `collections` a `collections.abc` para dejar en claro que se trata de clases base abstractas, de modo que todo código heredado que las importa desde su ubicación anterior deja de funcionar. La solución adoptada fue un parche aplicado en tiempo de instalación que corrige únicamente el archivo afectado:
 
 ```python
 # Script de instalación: scripts/patch_wasm.py
@@ -842,15 +775,11 @@ if os.path.exists(wasm_types_path):
         f.write(patched)
 ```
 
-**Fundamentación:** El principio de encapsulación de Parnas (1972) sugiere aislar cambios en un único punto. El parche modifica solo el archivo afectado sin alterar el resto del sistema.
+La decisión sigue el principio de encapsulación de Parnas (1972), que aconseja aislar los cambios en un único punto: el parche modifica solo ese archivo y deja intacto el resto del sistema.
 
 ### 4.7.2 Containerización de Herramientas Legacy
 
-**Problema identificado:** Oyente requiere versiones antiguas de dependencias (solc 0.4.x, z3 4.5.x) incompatibles con entornos modernos de desarrollo.
-
-**Síntoma:** Conflictos de dependencias al intentar instalar Oyente junto con Slither y Mythril en el mismo entorno virtual.
-
-**Solución implementada:** Ejecución de Oyente en contenedor Docker aislado:
+Oyente planteó un problema de otra naturaleza: requiere versiones antiguas de sus dependencias (solc 0.4.x, z3 4.5.x), incompatibles con los entornos modernos de desarrollo, y el intento de instalarla junto con Slither y Mythril en el mismo entorno virtual terminaba en conflictos de dependencias. La solución fue ejecutarla en un contenedor Docker aislado:
 
 ```python
 class OyenteAdapter(ToolAdapter):
@@ -905,14 +834,7 @@ class OyenteAdapter(ToolAdapter):
 
 ### 4.7.3 Migración a Backend Local de IA
 
-**Problema identificado:** GPTScan y herramientas similares requieren API keys de OpenAI, lo cual implica:
-- Costo económico (~$0.03-0.12 por análisis)
-- Transmisión de código fuente a servidores externos
-- Dependencia de disponibilidad de servicios de terceros
-
-**Análisis:** Según los estándares DPGA (2023), el software de interés público debe ser "libre de barreras de costo" y "respetuoso de la privacidad". El uso obligatorio de APIs comerciales viola ambos principios.
-
-**Solución implementada:** Migración a Ollama para ejecución local de modelos de lenguaje:
+El tercer desafío fue de índole distinta. GPTScan y las herramientas similares requieren claves de API de OpenAI, lo que implica un costo económico de aproximadamente $0.03-0.12 por análisis, la transmisión del código fuente a servidores externos y la dependencia de la disponibilidad de un servicio de terceros. Según los estándares DPGA (2023), el software de interés público debe estar "libre de barreras de costo" y ser "respetuoso de la privacidad", y el uso obligatorio de APIs comerciales contradice ambos principios. La respuesta fue migrar la capa de IA a Ollama, que ejecuta los modelos de lenguaje localmente:
 
 ```python
 # Antes (requería API key y transmitía código):
@@ -930,13 +852,11 @@ result = subprocess.run(
 )
 ```
 
-**Fundamentación:** Touvron et al. (2023) demuestran que modelos open-weight de 7B parámetros alcanzan rendimiento competitivo para tareas de análisis de código. El trade-off frente a los modelos frontier es más acotado de lo que suele asumirse: en la evaluación de EVMBench, un modelo de pesos abiertos (DeepSeek-R1) supera a los proveedores frontier en precisión y F1, y la única desventaja medida —menor recall en una sola pasada— se recupera con un auto-ensemble de bajo costo. La contrapartida es soberanía de datos y un costo entre nulo (local) y ~$0.08/auditoría (open-weight hosteado).
-
----
+Touvron et al. (2023) muestran que los modelos de pesos abiertos de 7B parámetros alcanzan un rendimiento competitivo en tareas de análisis de código, y la evidencia propia sugiere que la distancia respecto de los modelos frontier es más acotada de lo que suele asumirse: en la evaluación sobre EVMBench —corrida en la línea v5.x (§5.3.5)—, un modelo de pesos abiertos (DeepSeek-R1) registra la mayor precisión y F1 de la comparación bajo el matcher laxo, una estimación optimista que no habilita un ranking confiable de proveedores, y su única desventaja medida, un menor recall en una sola pasada, se recupera con un auto-ensemble de bajo costo. A cambio de ese compromiso se obtiene soberanía de datos y un costo que va de nulo, en la ejecución local, a aproximadamente $0.08 por auditoría con un modelo de pesos abiertos alojado en un servicio de terceros. El Capítulo 6 desarrolla este argumento y, en el corpus de la tesis, cuantifica también su costo: la configuración completamente local quedó por debajo de la frontier (44% frente a 72%, §5.3.4).
 
 ## 4.8 Caso de Estudio: Análisis de VulnerableBank
 
-Para demostrar las capacidades de MIESC de manera concreta, se desarrolló un contrato con vulnerabilidades conocidas que permite evaluar la efectividad del framework.
+Para ilustrar el funcionamiento de MIESC de manera concreta, se desarrolló un contrato con vulnerabilidades conocidas sobre el que puede seguirse el recorrido completo del framework.
 
 ### 4.8.1 Contrato de Prueba
 
@@ -995,7 +915,7 @@ contract VulnerableBank {
 
 La Tabla 4.4 presenta los resultados del análisis de VulnerableBank con MIESC.
 
-**Tabla 4.4.** Resultados del análisis de VulnerableBank por capa
+**Tabla 4.4.** Resultados del análisis de VulnerableBank por capa (ejemplo ilustrativo de una corrida acotada durante el desarrollo; no corresponde a la corrida de evaluación del Capítulo 5, cuyos conteos para este contrato son 47→16, Figura 5.4)
 
 | Capa | Herramienta | Tiempo (s) | Hallazgos | Reentrancy Detectado |
 |------|-------------|------------|-----------|---------------------|
@@ -1007,14 +927,7 @@ La Tabla 4.4 presenta los resultados del análisis de VulnerableBank con MIESC.
 | 5 | SMTChecker | 12.4 | 1 | Sí (Warning) |
 | 7 | GPTScan | 8.7 | 2 | Sí (Critical) |
 
-**Total bruto:** 15 hallazgos
-**Después de deduplicación:** 6 hallazgos únicos
-**Tasa de deduplicación:** 60%
-
-El análisis revela que:
-1. Cinco herramientas diferentes detectaron la misma vulnerabilidad de reentrancy
-2. Sin deduplicación, aparecería 5 veces en el reporte
-3. MIESC consolida estos hallazgos en una única entrada con `detected_by: ["slither", "mythril", "manticore", "smtchecker", "gptscan"]`
+En conjunto, las herramientas produjeron 15 hallazgos brutos, que la deduplicación redujo a 6 únicos: una tasa del 60% en este contrato (la cifra del corpus completo es 68%, §5.4.1). El caso muestra con claridad la función de ese proceso: seis herramientas distintas detectaron la misma vulnerabilidad de reentrancy, que sin deduplicación aparecería seis veces en el reporte, y MIESC la consolida en una única entrada con `detected_by: ["slither", "echidna", "mythril", "manticore", "smtchecker", "gptscan"]`.
 
 ### 4.8.3 Remediación Recomendada
 
@@ -1037,20 +950,18 @@ function withdraw() public nonReentrant {  // Modificador adicional
 }
 ```
 
----
-
 ## 4.9 Interfaces de Usuario
 
 ### 4.9.1 Diseño Multi-Interfaz
 
-MIESC implementa múltiples interfaces para atender diferentes casos de uso, siguiendo el principio de separación de concerns (Dijkstra, 1982):
+MIESC implementa múltiples interfaces para atender diferentes casos de uso, siguiendo el principio de separación de responsabilidades (Dijkstra, 1982):
 
 **Tabla 4.5.** Interfaces de MIESC y sus casos de uso
 
 | Interfaz | Tecnología | Caso de Uso Principal | Usuario Típico |
 |----------|------------|----------------------|----------------|
 | CLI | Python/Click | Automatización, scripts | DevOps, CI/CD |
-| Dashboard HTML | Jinja2/HTML estatico | Reportes reproducibles | Auditores |
+| Dashboard HTML | Jinja2/HTML estático | Reportes reproducibles | Auditores |
 | REST API | Django REST | Integración local con sistemas | Desarrolladores |
 | MCP Server | Model Context Protocol | Asistentes IA | Claude, usuarios finales |
 
@@ -1093,8 +1004,6 @@ jobs:
           sarif_file: results.sarif
 ```
 
----
-
 ## 4.10 Referencias del Capítulo
 
 Amdahl, G. M. (1967). Validity of the single processor approach to achieving large scale computing capabilities. *Proceedings of the AFIPS Spring Joint Computer Conference*, 483-485.
@@ -1107,15 +1016,11 @@ Berners-Lee, T., Hendler, J., & Lassila, O. (2001). The semantic web. *Scientifi
 
 Clarke, E. M., Henzinger, T. A., Veith, H., & Bloem, R. (Eds.). (2018). *Handbook of model checking*. Springer.
 
-Claessen, K., & Hughes, J. (2000). QuickCheck: A lightweight tool for random testing of Haskell programs. *ACM SIGPLAN Notices, 35*(9), 268-279.
-
 ConsenSys. (2023). *Smart contract best practices*. https://consensys.github.io/smart-contract-best-practices/
 
-Sun, Y., Wu, D., Xue, Y., Liu, H., Wang, H., Xu, Z., Xie, X., & Liu, Y. (2024). GPTScan: Detecting logic vulnerabilities in smart contracts by combining GPT with program analysis. *Proceedings of the 46th International Conference on Software Engineering (ICSE)*, Article 166. https://doi.org/10.1145/3597503.3623318
+Sun, Y., Wu, D., Xue, Y., Liu, H., Wang, H., Xu, Z., Xie, X., & Liu, Y. (2024). GPTScan: Detecting logic vulnerabilities in smart contracts by combining GPT with program analysis. En *Proceedings of the IEEE/ACM 46th International Conference on Software Engineering (ICSE '24)* (pp. 1-13). ACM. https://doi.org/10.1145/3597503.3639117
 
 de Moura, L., & Bjørner, N. (2008). Z3: An efficient SMT solver. *TACAS 2008*, 337-340.
-
-Department of Defense. (1996). *MIL-HDBK-217F: Reliability prediction of electronic equipment*.
 
 Dijkstra, E. W. (1982). On the role of scientific thought. *Selected Writings on Computing*, 60-66.
 
@@ -1129,21 +1034,11 @@ Fellegi, I. P., & Sunter, A. B. (1969). A theory for record linkage. *JASA, 64*(
 
 Gamma, E., Helm, R., Johnson, R., & Vlissides, J. (1994). *Design patterns: Elements of reusable object-oriented software*. Addison-Wesley.
 
-Ghaleb, A., & Pattabiraman, K. (2020). How effective are smart contract analysis tools? *ISSTA 2020*, 415-427.
-
-Grech, N., et al. (2018). MadMax: Surviving out-of-gas conditions in Ethereum smart contracts. *OOPSLA 2018*, 1-27.
-
 Grieco, G., Song, W., Cygan, A., Feist, J., & Groce, A. (2020). Echidna: Effective, usable, and fast fuzzing for smart contracts. *ISSTA 2020*, 557-560.
-
-Gruber, T. R. (1993). A translation approach to portable ontology specifications. *Knowledge Acquisition, 5*(2), 199-220.
-
-Hatcliff, J., et al. (2012). Behavioral interface specification languages. *ACM Computing Surveys, 44*(3), 1-58.
 
 Hohpe, G., & Woolf, B. (2003). *Enterprise integration patterns*. Addison-Wesley.
 
 King, J. C. (1976). Symbolic execution and program testing. *Communications of the ACM, 19*(7), 385-394.
-
-Lahav, O., Grumberg, O., & Shoham, S. (2022). Automated verification of smart contracts with Certora Prover. *ICSE-SEIP 2022*, 45-54.
 
 Linux Foundation. (2024). *SPDX License List*. https://spdx.org/licenses/
 
@@ -1151,15 +1046,9 @@ Luu, L., Chu, D. H., Olickel, H., Saxena, P., & Hobor, A. (2016). Making smart c
 
 Martin, R. C. (2017). *Clean architecture: A craftsman's guide to software structure and design*. Prentice Hall.
 
-Merkel, D. (2014). Docker: Lightweight Linux containers for consistent development and deployment. *Linux Journal, 2014*(239), 2.
-
 Miller, B. P., Fredriksen, L., & So, B. (1990). An empirical study of the reliability of UNIX utilities. *Communications of the ACM, 33*(12), 32-44.
 
 MITRE. (2024). *Common Weakness Enumeration (CWE)*. https://cwe.mitre.org/
-
-Mueller, B. (2018). Smashing Ethereum smart contracts for fun and real profit. *HITB Security Conference*.
-
-Myrbakken, H., & Colomo-Palacios, R. (2017). DevSecOps: A multivocal literature review. *SPICE 2017*, 17-29.
 
 OASIS. (2020). *Static Analysis Results Interchange Format (SARIF)*. https://docs.oasis-open.org/sarif/
 
@@ -1173,25 +1062,13 @@ Parnas, D. L. (1972). On the criteria to be used in decomposing systems into mod
 
 Preston-Werner, T. (2013). *Semantic Versioning 2.0.0*. https://semver.org/
 
-Python. (2022). *What's new in Python 3.11*. https://docs.python.org/3/whatsnew/3.11.html
-
-Qin, K., Zhou, L., Livshits, B., & Gervais, A. (2021). Attacking the DeFi ecosystem with flash loans. *FC 2021*, 3-32.
-
 Rameder, H., Di Angelo, M., & Salzer, G. (2022). Review of automated vulnerability analysis of smart contracts on Ethereum. *Frontiers in Blockchain, 5*, 814977.
-
-Ross, R., McEvilley, M., & Oren, J. C. (2016). *Systems security engineering* (NIST SP 800-160). NIST.
-
-Saydjari, O. S. (2004). Multilevel security: Reprise. *IEEE Security & Privacy, 2*(5), 64-67.
 
 Schneier, B. (2000). *Secrets and lies: Digital security in a networked world*. Wiley.
 
 SCSVS. (2023). *Smart Contract Security Verification Standard*. https://github.com/securing/SCSVS
 
 Shaw, M. (2012). The role of design spaces. *IEEE Software, 29*(1), 46-50.
-
-Sommerville, I. (2016). *Software engineering* (10th ed.). Pearson.
-
-Sun, Y., et al. (2024). GPTScan: Detecting logic vulnerabilities in smart contracts by combining GPT with program analysis. *ICSE 2024*, 1-12.
 
 Touvron, H., et al. (2023). LLaMA: Open and efficient foundation language models. *arXiv:2302.13971*.
 
@@ -1200,7 +1077,3 @@ Trail of Bits. (2024). *Slither documentation*. https://github.com/crytic/slithe
 van Rossum, G., & Warsaw, B. (2001b). PEP 3119 – Introducing abstract base classes. *Python Enhancement Proposals*.
 
 van Rossum, G., et al. (2019). PEP 585 – Type hinting generics in standard collections. *Python Enhancement Proposals*.
-
----
-
-*Nota: Las referencias siguen el formato APA 7ma edición. Documento actualizado: 2025-11-29*

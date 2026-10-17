@@ -18,7 +18,7 @@ Blockchain technology, initially conceived as infrastructure for decentralized p
 - **Electronic Voting:** Democratic processes and citizen consultations
 - **Real Asset Tokenization:** Regulated financial infrastructure
 
-According to Di Pietro et al. (2024), these systems constitute potential critical infrastructure whose security has direct implications for national sovereignty and security.
+According to Govea et al. (2024), these systems constitute potential critical infrastructure whose security has direct implications for national sovereignty and security.
 
 ### 1.1.2 The Threat to Smart Contracts
 
@@ -38,8 +38,8 @@ The economic impact of smart contract vulnerabilities is significant. According 
 | Year | Incident | Loss | Vulnerability |
 |------|----------|------|---------------|
 | 2016 | The DAO | $60M | Reentrancy (SWC-107) |
-| 2017 | Parity Wallet | $280M | Access Control (SWC-105) |
-| 2018 | BEC Token | $900M | Integer Overflow (SWC-101) |
+| 2017 | Parity Wallet | $150M (frozen funds) | Access Control (SWC-105/106) |
+| 2018 | BEC Token | Token price collapse (no verifiable direct amount) | Integer Overflow (SWC-101) |
 | 2021 | Cream Finance | $130M | Oracle Manipulation |
 | 2022 | Wormhole | $320M | Signature Verification |
 | 2022 | Ronin Bridge | $625M | Private Key Compromise |
@@ -63,11 +63,11 @@ The field of smart contract security has seen the development of numerous specia
 
 **Problem 3: Incomplete coverage**
 - No individual tool detects all vulnerabilities
-- Empirical studies show that the best individual tool achieves only 43.2% recall (Slither, Durieux et al., 2020)
+- Empirical studies show that the best individual tool detects only 27% of the annotated vulnerabilities and all nine combined 42% (Durieux et al., 2020)
 
 ### 1.1.4 The Need for Data Sovereignty
 
-In the context of cyber defense, the confidentiality of audited code is critical. According to Zhang et al. (2024), the use of cloud AI services for code analysis presents risks:
+In the context of cyber defense, the confidentiality of audited code is critical. According to Zhang et al. (2025), the use of cloud AI services for code analysis presents risks:
 
 1. **Intellectual property exposure:** Source code sent to third parties
 2. **External service dependency:** Loss of operational capability if the service is unavailable
@@ -103,7 +103,7 @@ Organizations developing or auditing smart contracts face a fragmented ecosystem
 
 ### 1.3.1 General Objective
 
-Design and implement MIESC (Multi-layer Integration for Ethereum Smart Contract Security), an open-source framework that integrates multiple security analysis tools in a layer-based architecture based on Defense-in-Depth, guaranteeing data sovereignty through completely local execution.
+Design and implement MIESC (Multi-layer Integration for Ethereum Smart Contract Security), an open-source framework that integrates multiple security analysis tools in a layer-based architecture based on Defense-in-Depth, with a fully local execution mode that preserves data sovereignty.
 
 ### 1.3.2 Specific Objectives
 
@@ -120,7 +120,7 @@ Implement a 7-layer architecture where each layer provides complementary detecti
 Implement a sovereign AI backend based on Ollama that enables semantic analysis without transmitting code to external services.
 
 **SO5: Conversational Interface**
-Develop an MCP (Model Context Protocol) server that enables interaction with modern AI assistants (Claude, GPT) while maintaining local processing.
+Develop an MCP (Model Context Protocol) server that enables interaction with modern AI assistants (Claude, GPT) while keeping the server and the tools on local infrastructure; the content the server returns to the assistant is subject to the data policy of the client's provider.
 
 ---
 
@@ -134,7 +134,7 @@ This work seeks to answer the following research questions:
 
 **RQ3:** What is the impact of normalization and deduplication on the quality of security reports?
 
-**RQ4:** Is it feasible to use local LLMs (Ollama) for smart contract security analysis with quality comparable to commercial services?
+**RQ4:** Is it viable to operate MIESC in production —execution time, resources and cost— and what quality of semantic analysis does a local LLM (Ollama) offer compared with commercial services?
 
 ---
 
@@ -175,7 +175,7 @@ MIESC provides:
 1. **Open-source tool:** Available for organizations and auditors
 2. **Cost reduction:** $0 AI operational cost thanks to local execution
 3. **Efficiency improvement:** Automation of audit process
-4. **Regulatory compliance:** Guaranteed data confidentiality
+4. **Regulatory compliance:** Support for data-confidentiality requirements (local mode)
 
 ---
 
@@ -226,7 +226,7 @@ The evaluation includes:
 1. **Detection metrics:** Precision, Recall, F1-Score
 2. **Baseline comparison:** Individual tools
 3. **Deduplication analysis:** Finding reduction
-4. **Qualitative evaluation:** Usability and audit time
+4. **Qualitative evaluation:** usability and audit time (planned in the design; no formal usability study was conducted, see §5.8)
 
 ---
 
@@ -246,7 +246,7 @@ The main contributions of this work are:
 
 **C6:** Empirical evaluation on a corpus of known vulnerabilities
 
-**C7:** The thesis that **control over the tool — open weights, auditable execution — is a first-order requirement of security analysis, not a preference**: grounded doctrinally (cyberdefense), scientifically (forensic reproducibility), epistemically (authorship and accountability), and philosophically (Illich, Floridi, Stallman, Winner), and empirically supported — under the lenient-matcher protocol, an open-weight model sits within the range of the frontier providers on precision/F1 at 15–69× lower cost; the provider ranking under the official judge is left as future work (Chapter 6, section 6.6.3)
+**C7:** The thesis that **control over the tool — open weights, auditable execution — is a first-order requirement of security analysis, not a preference**: grounded doctrinally (cyberdefense), scientifically (forensic reproducibility), epistemically (authorship and accountability), and philosophically (Illich, Floridi, Stallman, Winner), and empirically supported — under the lenient-matcher protocol, an open-weight model records the highest precision and F1 of the comparison at 15–69× lower cost, although that protocol is an optimistic estimate that does not support a reliable provider ranking; the ordering under the official judge is left as future work (Chapter 6, section 6.6.3; Chapter 8)
 
 ---
 
@@ -282,7 +282,6 @@ Chainalysis. (2024). *The 2024 Crypto Crime Report*. Chainalysis Inc.
 
 Ivanov, N., Li, C., Yan, Q., Sun, Z., Cao, Z., & Luo, X. (2023). Security defense for smart contracts: A comprehensive survey. *arXiv preprint arXiv:2302.07347*. https://arxiv.org/abs/2302.07347
 
-Di Pietro, R., Ferretti, S., & Verde, N. V. (2024). Securing critical infrastructure with blockchain technology: A systematic review. *MDPI Electronics, 13*(1), 1-24. https://doi.org/10.3390/electronics13010001
 
 Durieux, T., Ferreira, J. F., Abreu, R., & Cruz, P. (2020). Empirical review of automated analysis tools on 47,587 Ethereum smart contracts. In *Proceedings of the ACM/IEEE 42nd International Conference on Software Engineering* (pp. 530-541). ACM. https://doi.org/10.1145/3377811.3380364
 
@@ -294,7 +293,7 @@ Nakamoto, S. (2008). Bitcoin: A peer-to-peer electronic cash system. https://bit
 
 Szabo, N. (1996). Smart contracts: Building blocks for digital markets. *Extropy, 16*(16), 1-10.
 
-Zhang, Q., Zhang, C., & Li, J. (2024). When LLMs meet cybersecurity: A systematic literature review. *Computers & Security*. https://doi.org/10.1016/j.cose.2024.104099
+Zhang, J., Bu, H., Wen, H., Liu, Y., Fei, H., Xi, R., Li, L., Yang, Y., Zhu, H., & Meng, D. (2025). When LLMs meet cybersecurity: A systematic literature review. *Cybersecurity, 8*(1), Article 55. https://doi.org/10.1186/s42400-025-00361-w
 
 ---
 

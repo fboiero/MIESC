@@ -1,17 +1,17 @@
 # UNIVERSIDAD DE LA DEFENSA NACIONAL (UNDEF)
 
-## Centro Regional Universitario Cordoba
-## Instituto Universitario Aeronautico (IUA)
+## Centro Regional Universitario Córdoba
+## Instituto Universitario Aeronáutico (IUA)
 
 ---
 
-# MAESTRIA EN CIBERDEFENSA
+# MAESTRÍA EN CIBERDEFENSA
 
 ---
 
-## Trabajo Final de Maestria
+## Trabajo Final de Maestría
 
-# MIESC: Framework Multi-capa de Integracion de Herramientas para Seguridad de Smart Contracts
+# MIESC: Framework Multi-capa de Integración de Herramientas para Seguridad de Smart Contracts
 
 ## Multi-layer Integration Framework for Smart Contract Security
 
@@ -23,7 +23,7 @@
 
 ---
 
-**Cordoba, Argentina**
+**Córdoba, Argentina**
 
 **Noviembre 2024**
 
@@ -31,13 +31,13 @@
 
 ## Resumen
 
-El presente trabajo propone MIESC (Multi-layer Integration for Ethereum Smart Contract Security), un framework de codigo abierto que integra 25 herramientas de analisis de seguridad en una arquitectura de 7 capas basada en el principio de Defense-in-Depth. El framework aborda la problematica de la fragmentacion de herramientas existentes, la heterogeneidad de sus salidas y la necesidad de soberania de datos en auditorias de smart contracts.
+El presente trabajo propone MIESC (Multi-layer Integration for Ethereum Smart Contract Security), un framework de código abierto que integra 25 herramientas de análisis de seguridad en una arquitectura de 7 capas basada en el principio de Defense-in-Depth. El framework aborda la problemática de la fragmentación de herramientas existentes, la heterogeneidad de sus salidas y la necesidad de soberanía de datos en auditorías de smart contracts.
 
-MIESC implementa: (1) un sistema de adaptadores basado en el patron Adapter para integrar herramientas heterogeneas; (2) un esquema de normalizacion que mapea hallazgos a taxonomias estandar (SWC, CWE, OWASP); (3) un backend de inteligencia artificial soberano basado en Ollama para analisis semantico sin transmision de codigo a servicios externos; y (4) una interfaz conversacional mediante Model Context Protocol (MCP) para integracion con asistentes de IA.
+MIESC implementa: (1) un sistema de adaptadores basado en el patrón Adapter para integrar herramientas heterogéneas; (2) un esquema de normalización que mapea hallazgos a taxonomías estándar (SWC, CWE, OWASP); (3) un backend de inteligencia artificial soberano basado en Ollama para análisis semántico sin transmisión de código a servicios externos; y (4) una interfaz conversacional mediante Model Context Protocol (MCP) para integración con asistentes de IA.
 
-La evaluacion experimental sobre un corpus de 4 contratos con 29 vulnerabilidades documentadas muestra que MIESC exhibe un perfil recall-first: cubre el 100% de las vulnerabilidades documentadas, con una deteccion type-aware (del tipo/SWC correcto) del 48% con capas estatico y de patron. Combinar herramientas estaticas no supera a Slither por si sola; la mejora real proviene de agregar una capa de razonamiento LLM, que eleva la deteccion type-aware del 48% al 72%. El proceso de deduplicacion reduce los hallazgos brutos en un 68% (385&rarr;123), y el costo operativo es de $0 gracias a la ejecucion completamente local.
+La evaluación experimental sobre un corpus de 4 contratos con 29 vulnerabilidades documentadas muestra que MIESC exhibe un perfil recall-first: cubre el 100% de las vulnerabilidades documentadas, con una detección type-aware (del tipo/SWC correcto) del 48% con capas estático y de patrón. Combinar herramientas estáticas no supera a Slither por si sola; la mejora real proviene de agregar una capa de razonamiento LLM, que eleva la detección type-aware del 48% al 72%. El proceso de deduplicación reduce los hallazgos brutos en un 68% (385&rarr;123), y el costo operativo es de $0 gracias a la ejecución completamente local.
 
-**Palabras clave:** Smart Contracts, Seguridad Blockchain, Analisis Estatico, Ejecucion Simbolica, Verificacion Formal, Inteligencia Artificial, Defense-in-Depth, Ciberdefensa.
+**Palabras clave:** Smart Contracts, Seguridad Blockchain, Análisis Estático, Ejecución Simbólica, Verificación Formal, Inteligencia Artificial, Defense-in-Depth, Ciberdefensa.
 
 ---
 
@@ -57,23 +57,23 @@ Experimental evaluation on a corpus of 4 contracts with 29 documented vulnerabil
 
 **Universidad:** Universidad de la Defensa Nacional (UNDEF)
 
-**Facultad/Instituto:** Centro Regional Universitario Cordoba - Instituto Universitario Aeronautico (IUA)
+**Facultad/Instituto:** Centro Regional Universitario Córdoba - Instituto Universitario Aeronáutico (IUA)
 
-**Programa:** Maestria en Ciberdefensa
+**Programa:** Maestría en Ciberdefensa
 
-**Tipo de trabajo:** Trabajo Final de Maestria
+**Tipo de trabajo:** Trabajo Final de Maestría
 
-**Area de conocimiento:** Ciberseguridad, Seguridad en Blockchain, Seguridad de Software
+**Área de conocimiento:** Ciberseguridad, Seguridad en Blockchain, Seguridad de Software
 
-**Linea de investigacion:** Seguridad en Tecnologias Emergentes
+**Línea de investigación:** Seguridad en Tecnologías Emergentes
 
 ---
 
-## Declaracion de Originalidad
+## Declaración de Originalidad
 
-Declaro que este trabajo es de mi autoria, que no ha sido presentado previamente para ningun grado o calificacion profesional, y que he consultado las referencias bibliograficas que se incluyen en este documento.
+Declaro que este trabajo es de mi autoría, que no ha sido presentado previamente para ningún grado o calificación profesional, y que he consultado las referencias bibliográficas que se incluyen en este documento.
 
-El contenido de este trabajo es resultado de mi investigacion, excepto donde se indica lo contrario mediante citas.
+El contenido de este trabajo es resultado de mi investigación, excepto donde se indica lo contrario mediante citas.
 
 ---
 
@@ -95,6 +95,5 @@ El contenido de este trabajo es resultado de mi investigacion, excepto donde se 
 
 ---
 
-*Documento generado como parte del Trabajo Final de Maestria en Ciberdefensa*
-*UNDEF - IUA - CRU Cordoba*
+*UNDEF - IUA - CRU Córdoba*
 *2024*

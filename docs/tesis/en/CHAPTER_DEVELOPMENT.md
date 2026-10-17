@@ -1,12 +1,12 @@
 # Chapter 4: Development
 
-## MIESC: Integrated Security Framework for Ethereum Contracts
+## MIESC: Multi-layer Integration for Ethereum Smart Contract Security
 
 ---
 
 ## 4.1 Introduction
 
-This chapter documents the development and implementation process of MIESC (Integrated Security Framework for Ethereum Contracts), an open-source framework designed to address the deficiencies identified in the smart contract auditing tools ecosystem. The exposition follows a structure that reflects the actual research process: from identifying concrete problems to the design decisions adopted to solve them, including dead ends encountered and lessons learned during development.
+This chapter documents the development and implementation process of MIESC (Multi-layer Integration for Ethereum Smart Contract Security), an open-source framework designed to address the deficiencies identified in the smart contract auditing tools ecosystem. The exposition follows a structure that reflects the actual research process: from identifying concrete problems to the design decisions adopted to solve them, including dead ends encountered and lessons learned during development.
 
 ### 4.1.1 Project Genesis
 
@@ -18,7 +18,7 @@ The origin of MIESC lies in a practical auditing experience conducted in 2023, w
 
 **Third problem: Results interpretation.** The tools collectively generated more than 200 findings, many of them duplicates or false positives. The task of consolidation, prioritization, and verification consumed several days of manual work.
 
-These problems are not unique to the author's experience. Durieux et al. (2020), in their empirical evaluation of 47,587 contracts, documented that no individual tool exceeds 43.2% recall (Slither, the best) and that only about 42% of vulnerabilities are detected across the tool set, making manual combination of tools impractical at scale. Rameder et al. (2022) reached similar conclusions, noting that "the heterogeneity of interfaces and output formats constitutes a significant barrier to industrial adoption of academic tools" (p. 12).
+These problems are not unique to the author's experience. Durieux et al. (2020), in their empirical evaluation of 47,587 contracts, documented that no individual tool detects more than 27% of the annotated vulnerabilities (Mythril, the best) and that all nine together reach only 42%, making manual combination of tools impractical at scale. Rameder et al. (2022) reached similar conclusions, noting that "the heterogeneity of interfaces and output formats constitutes a significant barrier to industrial adoption of academic tools" (p. 12).
 
 ### 4.1.2 Development Objectives
 
@@ -30,7 +30,7 @@ MIESC's technical objectives were formulated as a direct response to the identif
 
 3. **Results normalization**: Implement a mapping schema that translates findings from each tool to standard taxonomies (SWC, CWE, OWASP), enabling automatic deduplication and prioritization.
 
-4. **Data sovereignty**: Guarantee that all processing, including artificial intelligence analysis, executes locally without transmitting source code to external services.
+4. **Data sovereignty**: Offer a mode in which all processing, including artificial intelligence analysis, runs locally without transmitting source code to external services.
 
 5. **Zero operational cost**: Use exclusively open-source tools and open-weight language models, eliminating cost barriers that limit access to quality audits.
 
@@ -58,27 +58,29 @@ The maintainability index of 72.3 exceeds the threshold of 65 proposed by Oman a
 > **v4.0.0** (7 defense layers, 25 integrated tools), which is the one defended.
 > Later releases — the **v5.x** line, used for the EVMBench cross-validation
 > (§5.3.5), and the **current v6.1.0 line**, described in the associated papers
-> (RIBCi-CYTED 2026) and published on PyPI under AGPL-3.0 — expanded the pipeline to
+> (Boiero et al., 2026a, 2026b) and published on PyPI under AGPL-3.0 — expanded the pipeline to
 > **9 layers and 35 modules** (13 external + 22 internal), adding LLM-reasoning
 > layers and false-positive filtering. The detection results in this thesis
-> correspond to the documented v4.0.0 architecture, except the EVMBench validation
-> section, which is explicitly noted as run on the v5.x line.
+> correspond to the documented v4.0.0 architecture, except the results flagged as
+> later: the corpus revalidation of 2026-07-09 (§5.3.3–5.3.4, `--deep` and ensemble
+> modes, Tables 5.7–5.8 and 5.14–5.15), the EVMBench validation (§5.3.5) and the
+> SmartBugs Curated validation (§5.3.6), all run on the v5.x line.
 
 ### 4.2.1 The Defense-in-Depth Principle: Foundations and Application
 
-MIESC's architecture is founded on the Defense-in-Depth (DiD) principle, a concept originated in military doctrine that was adapted to information systems security during the 1990s. The Department of Defense (1996) formalized this principle as "the application of multiple protective measures in series, so that an adversary must overcome or avoid each measure successively to compromise the protected system" (p. 3-12).
+MIESC's architecture is founded on the Defense-in-Depth (DiD) principle, a concept originated in military doctrine that was adapted to information systems security during the 1990s. The National Security Agency (n.d.) formalized this principle as "the application of multiple protective measures in series, so that an adversary must overcome or avoid each measure successively to compromise the protected system" (p. 3-12).
 
-The application of this principle to smart contract analysis is an original contribution of this work. The theoretical justification is based on the empirical observation that different analysis techniques have complementary strengths and weaknesses:
+The application of this principle to smart contract analysis is, as far as the Chapter 3 review reaches, an original contribution of this work. The theoretical justification is based on the empirical observation that different analysis techniques have complementary strengths and weaknesses:
 
-**Static analysis:** Examines code without executing it, detecting known vulnerability patterns with high speed but without the ability to reason about runtime behavior. Slither's authors (Feist et al., 2019) report high precision on their own benchmark, but the independent large-scale evaluation of Durieux et al. (2020) measured only 43.2% recall on SmartBugs-curated, indicating that more than half of vulnerabilities escape static detection at corpus scale.
+**Static analysis:** Examines code without executing it, detecting known vulnerability patterns with high speed but without the ability to reason about runtime behavior. Slither's authors (Feist et al., 2019) report high precision on their own benchmark, but the independent large-scale evaluation of Durieux et al. (2020) measured for Slither only 17% of the annotated SmartBugs-curated vulnerabilities (27% for the best tool, Mythril), indicating that about three quarters of vulnerabilities escape single-tool detection at corpus scale.
 
 **Symbolic execution:** Explores execution paths through symbolic representation of variables, capable of discovering vulnerabilities dependent on specific input values. Baldoni et al. (2018) document its effectiveness but also its main limitation: the combinatorial explosion of paths in complex code.
 
 **Fuzzing:** Generates random or guided inputs to discover unexpected behaviors, particularly effective for finding edge cases not contemplated by the developer. Miller et al. (1990) established this technique, which Grieco et al. (2020) adapted specifically for smart contracts with Echidna.
 
-**Formal verification:** Mathematically proves code properties through automated proof systems. Clarke et al. (2018) describe the theoretical foundations, while Lahav et al. (2022) document its practical application in Certora Prover.
+**Formal verification:** Mathematically proves code properties through automated proof systems. Clarke et al. (2018) describe the theoretical foundations, while Certora (2024) document its practical application in Certora Prover.
 
-**AI analysis:** Language models capable of detecting business logic vulnerabilities that require semantic understanding of code. Sun et al. (2024) demonstrate that GPTScan detects 90.2% of logic vulnerabilities that escape traditional tools.
+**AI analysis:** Language models capable of detecting business logic vulnerabilities that require semantic understanding of code. Sun et al. (2024) show that GPTScan, which combines GPT with program analysis, achieves precision above 90% on token contracts (57% on large projects) and recall above 70% on logic vulnerabilities, besides detecting nine missed by human auditors.
 
 Schneier (2000) articulates the underlying philosophy:
 
@@ -111,9 +113,9 @@ Table 4.2 presents the complementarity analysis that grounded the final selectio
 
 ### 4.2.3 Definitive Layer Model
 
-**Figure 7.** MIESC Defense-in-Depth Architecture
+**Figure 4.1.** MIESC Defense-in-Depth Architecture
 
-![Figure 7 - MIESC Defense-in-Depth Architecture](../figures/Figura%207%20Arquitectura%20de%20defensa%20en%20profundidad%20de%20MIESC.svg)
+![Figure 4.1 - MIESC Defense-in-Depth Architecture](../figures/Figura%207%20Arquitectura%20de%20defensa%20en%20profundidad%20de%20MIESC.svg)
 
 Layer numbering reflects the typical execution order during an audit: faster techniques with lower computational cost (static analysis) execute first, allowing identification of obvious problems before investing resources in more expensive techniques (symbolic execution, formal verification).
 
@@ -131,11 +133,11 @@ The selection of the 25 tools that compose MIESC followed a structured evaluatio
 
 5. **Installability:** Capacity for automated installation without complex manual intervention.
 
-**Layer 1 - Static Analysis:** Slither was selected as the main tool for its detector coverage and speed (1.2s average); in the independent evaluation of Durieux et al. (2020) it is the best single tool, with 43.2% recall. Solhint complements with style verification and best practices. Securify2 contributes Ethereum-specific security pattern analysis. Semgrep allows defining custom rules for organization-specific patterns.
+**Layer 1 - Static Analysis:** Slither was selected as the main tool for its detector coverage and speed (1.2s average); in the independent evaluation of Durieux et al. (2020) it detects 17% of the annotated vulnerabilities, below Mythril (27%) but with the most exclusive detections (8) and a far shorter execution time. Solhint complements with style verification and best practices. Securify2 contributes Ethereum-specific security pattern analysis. Semgrep allows defining custom rules for organization-specific patterns.
 
 **Layer 2 - Fuzzing:** Echidna, developed by Trail of Bits, was selected for its property-based testing capability specific to contracts. Foundry Fuzz contributes integration with the Foundry ecosystem, widely adopted in industry. Medusa provides coverage-based fuzzing with support for complex invariants. Vertigo implements mutation testing, a complementary technique that evaluates the quality of existing tests.
 
-**Layer 3 - Symbolic Execution:** Mythril, also from Trail of Bits, was selected for its maturity and extensive documentation. Manticore contributes deeper analysis capabilities at the cost of longer execution time. Oyente, although less maintained, was included for its historical relevance and detection of specific patterns not covered by other tools.
+**Layer 3 - Symbolic Execution:** Mythril, developed by ConsenSys Diligence, was selected for its maturity and extensive documentation. Manticore contributes deeper analysis capabilities at the cost of longer execution time. Oyente, although less maintained, was included for its historical relevance and detection of specific patterns not covered by other tools.
 
 **Layer 4 - Invariant Testing:** Scribble allows annotating contracts with specifications that are verified during execution. Halmos implements bounded model checking, verifying invariants up to a certain exploration depth.
 
@@ -153,7 +155,7 @@ The selection of the 25 tools that compose MIESC followed a structured evaluatio
 
 Each security tool integrated in MIESC presents unique characteristics that hinder unified orchestration:
 
-**Diversity of invocation interfaces:** Slither is invoked as a Python module, Mythril as a CLI command, Echidna requires YAML configuration files, Certora uses .conf files with its own syntax.
+**Diversity of invocation interfaces:** Slither offers a Python API and a command line (MIESC uses the latter, with JSON output), Mythril is a CLI command with its own flags and format, Echidna requires YAML configuration files, Certora uses .conf files with its own syntax.
 
 **Heterogeneity of output formats:** Slither produces structured JSON, Mythril generates formatted text or JSON depending on parameters, Echidna emits test logs, Manticore creates artifact directories.
 
@@ -161,7 +163,7 @@ Each security tool integrated in MIESC presents unique characteristics that hind
 
 **Variability in location information:** Some tools report file and line, others add column, others indicate function and contract, some only mention detector name.
 
-This heterogeneity constitutes the main barrier to industrial adoption of academic tools, as documented by Rameder et al. (2022).
+This heterogeneity constitutes one of the main barriers to industrial adoption of academic tools, as documented by Rameder et al. (2022).
 
 ### 4.3.2 Solution: Adapter Pattern with SOLID Principles
 
@@ -177,9 +179,9 @@ The adopted solution combines the Adapter pattern, documented by Gamma et al. (1
 
 **Dependency Inversion Principle (DIP):** MIESC's core depends on the `ToolAdapter` abstraction, not on concrete implementations like `SlitherAdapter` or `MythrilAdapter`.
 
-**Figure 8.** Class diagram of the Adapter pattern in MIESC
+**Figure 4.2.** Class diagram of the Adapter pattern in MIESC
 
-![Figure 8 - Class diagram of the Adapter pattern in MIESC](../figures/Figura%208%20Diagrama%20de%20clases%20del%20patrón%20Adapter%20en%20MIESC.svg)
+![Figure 4.2 - Class diagram of the Adapter pattern in MIESC](../figures/Figura%208%20Diagrama%20de%20clases%20del%20patrón%20Adapter%20en%20MIESC.svg)
 
 ### 4.3.3 Base Interface Implementation
 
@@ -336,7 +338,7 @@ The normalized finding format was designed following the SARIF (Static Analysis 
   "detected_by": ["slither", "mythril", "gptscan"],
   "references": [
     "https://swcregistry.io/docs/SWC-107",
-    "https://consensys.github.io/smart-contract-best-practices/attacks/reentrancy/"
+    "https://consensysdiligence.github.io/smart-contract-best-practices/attacks/reentrancy/"
   ],
   "metadata": {
     "first_detected": "2024-11-29T14:30:00Z",
@@ -411,7 +413,7 @@ MIESC development faced several technical challenges not documented in literatur
 
 ### 4.7.1 Manticore Incompatibility with Python 3.11
 
-**Identified problem:** Manticore depends on the `wasm` library, which uses `collections.Callable`, an alias removed in Python 3.11 according to PEP 585.
+**Identified problem:** Manticore depends on the `wasm` library, which uses `collections.Callable`, an alias removed in Python 3.10 after its deprecation in 3.3 (the migration to `collections.abc` is documented alongside PEP 585); the error surfaced when MIESC adopted Python 3.11.
 
 **Solution implemented:** Patch at installation time that modifies the affected file.
 
@@ -467,7 +469,7 @@ contract VulnerableBank {
 
 ### 4.8.2 Multi-Layer Analysis Results
 
-**Table 4.4.** VulnerableBank analysis results by layer
+**Table 4.4.** VulnerableBank analysis results by layer (illustrative example from a limited run during development; it is not the Chapter 5 evaluation run, whose counts for this contract are 47→16, Figure 5.4)
 
 | Layer | Tool | Time (s) | Findings | Reentrancy Detected |
 |-------|------|----------|----------|---------------------|
@@ -481,7 +483,7 @@ contract VulnerableBank {
 
 **Total raw:** 15 findings
 **After deduplication:** 6 unique findings
-**Deduplication rate:** 60%
+**Deduplication rate:** 60% (on this contract; the full-corpus figure is 68%, §5.4.1)
 
 ---
 
@@ -512,7 +514,6 @@ Clarke, E. M., Henzinger, T. A., Veith, H., & Bloem, R. (Eds.). (2018). *Handboo
 
 ConsenSys. (2023). *Smart contract best practices*. https://consensys.github.io/smart-contract-best-practices/
 
-Department of Defense. (1996). *MIL-HDBK-217F: Reliability prediction of electronic equipment*.
 
 Dijkstra, E. W. (1982). On the role of scientific thought. *Selected Writings on Computing*, 60-66.
 
@@ -532,7 +533,6 @@ Hohpe, G., & Woolf, B. (2003). *Enterprise integration patterns*. Addison-Wesley
 
 King, J. C. (1976). Symbolic execution and program testing. *Communications of the ACM, 19*(7), 385-394.
 
-Lahav, O., Grumberg, O., & Shoham, S. (2022). Automated verification of smart contracts with Certora Prover. *ICSE-SEIP 2022*, 45-54.
 
 Martin, R. C. (2017). *Clean architecture: A craftsman's guide to software structure and design*. Prentice Hall.
 

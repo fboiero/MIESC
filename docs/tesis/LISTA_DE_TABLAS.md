@@ -32,8 +32,8 @@
 | Tabla | Título | Descripción | Pág. |
 |-------|--------|-------------|------|
 | 3.1 | Incidentes de seguridad históricos en contratos inteligentes | Incidentes documentados con pérdida, vulnerabilidad y referencia | 65 |
-| 3.2 | Distribución de vulnerabilidades en contratos Ethereum (Zhou et al., 2023) | Frecuencia por SWC-ID sobre 47.587 contratos desplegados | 68 |
-| 3.3 | Comparativa de herramientas según Durieux et al. (2020) | Recall por herramienta individual sobre corpus estandarizado | 74 |
+| 3.2 | Distribución de vulnerabilidades en contratos Ethereum (Durieux et al., 2020) | Frecuencia por SWC-ID sobre 47.587 contratos desplegados | 68 |
+| 3.3 | Vulnerabilidades anotadas detectadas por herramienta según Durieux et al. (2020) | Detección por herramienta sobre 115 vulnerabilidades de SmartBugs-curated; combinación 42% | 74 |
 | 3.4 | Brechas identificadas y soluciones de MIESC | Gaps del estado del arte y la solución implementada por MIESC | 96 |
 
 ---
@@ -63,11 +63,14 @@
 | 5.7 | MIESC vs Slither sobre el corpus real (29 vulnerabilidades) | Comparativa de detección type-aware MIESC frente a Slither | 185 |
 | 5.8 | Detección type-aware por modelo y ensemble (unión) | Recall type-aware por modelo LLM y ensemble por unión | 188 |
 | 5.8b | Recall en EVMBench por configuración (40 auditorías) | Frontier / open-weight / local / ensemble con recall, precisión, F1 y costo | 192 |
+| 5.8c | Detección sobre SmartBugs Curated (validación post-defensa, línea v5.x) | 143 contratos: recall 95.8% (137/143), precisión 22.2%, F1 0.360; re-validación 97.9% | — |
 | 5.9 | Análisis de hallazgos duplicados | Estadísticas de deduplicación: total raw, únicos, tasa de reducción | 196 |
 | 5.10 | Validación de mapeo taxonómico | Accuracy del mapeo automático SWC→CWE validado manualmente | 198 |
 | 5.11 | Tiempos de ejecución por capa (promedio de 10 ejecuciones) | Media, mediana, p95 y máximo para cada capa en segundos | 202 |
 | 5.12 | Consumo de recursos durante auditoría completa | CPU%, RAM (GB), GPU% por fase de análisis | 205 |
 | 5.13 | Comparativa de costo operativo | TCO mensual/anual para configuraciones: local, cloud, híbrida | 208 |
+| 5.14 | Intervalos de confianza (Wilson, 95%) de la detección type-aware sobre las 29 vulnerabilidades del corpus | IC por configuración | — |
+| 5.15 | Pruebas de McNemar exactas entre pares de configuraciones sobre las mismas 29 vulnerabilidades | Pares discordantes y valor p exacto | — |
 
 ---
 
