@@ -688,9 +688,8 @@ La combinación de 25 herramientas de seguridad, LLM soberano (Ollama) e interfa
 
 ## 7.9 Referencias del Capítulo
 
-Anthropic. (2024). Model Context Protocol Specification. https://modelcontextprotocol.io/
-
 Anthropic. (2024). MCP Servers Documentation. https://modelcontextprotocol.io/
 
-Beller, M., Bholanath, R., McIntosh, S., & Zaidman, A. (2016). Analyzing the state of static analysis: A large-scale evaluation in open source software. En *2016 IEEE 23rd International Conference on Software Analysis, Evolution, and Reengineering (SANER)* (pp. 470-481). IEEE. https://doi.org/10.1109/SANER.2016.105
+Anthropic. (2024). Model Context Protocol Specification. https://modelcontextprotocol.io/
 
+Beller, M., Bholanath, R., McIntosh, S., & Zaidman, A. (2016). Analyzing the state of static analysis: A large-scale evaluation in open source software. En *2016 IEEE 23rd International Conference on Software Analysis, Evolution, and Reengineering (SANER)* (pp. 470-481). IEEE. https://doi.org/10.1109/SANER.2016.105
