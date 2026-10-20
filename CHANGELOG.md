@@ -11,6 +11,11 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **Aderyn 0.1.x parse panics are reported as a skip, not an error.** aderyn aborts
+  with a Rust panic (exit 101) on legacy Solidity it does not model (`throw` in
+  pre-0.4.22 sources; 36 of the 143 SmartBugs-curated contracts). The adapter now
+  returns `status: skipped` with `reason: unsupported_source` and a warning that
+  names the upstream limitation, so layer summaries explain the missing result.
 - **Tool availability is probed once per run, not once per contract.** `run_tool`
   caches each adapter's `is_available()` for the process;
   `AdapterLoader.reset_availability()` clears it and the evaluator calls it per run.
@@ -38,6 +43,11 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Regression tests for the installation fixes**: PDF fallback exit code
+  (`tests/test_report_pdf_fallback.py`), MCP SDK missing vs. incompatible
+  (`tests/test_mcp_import_guard.py`), `verify_installation.py` core list kept in
+  sync with `pyproject.toml` (`tests/test_verify_installation.py`), Aderyn panic
+  handling (`tests/test_aderyn_unsupported_source.py`).
 - **`miesc evaluate corpus|ablation --no-llm`**: first-class LLM-free evaluation
   profile. Adapters now declare `requires_llm` in their metadata (SmartGuard, GPTScan,
   GPTLens, iAudit, LlamaAudit, LLMSmartAudit, SmartLLM, LLMBugScanner, PropertyGPT,

@@ -532,7 +532,7 @@ Agregalo a tu `config.json` de Claude Desktop:
 }
 ```
 
-**Herramientas MCP disponibles:** `miesc_quick_scan`, `miesc_deep_scan`, `miesc_deep_audit`, `miesc_run_tool`, `miesc_run_layer`, `miesc_analyze_defi`, `miesc_apply_fix`, `miesc_validate_remediation`, `miesc_remediation_evidence_bundle`, `miesc_list_tools`, `miesc_doctor`
+**Herramientas MCP disponibles (22):** `miesc_quick_scan`, `miesc_deep_scan`, `miesc_deep_audit`, `miesc_profile_scan`, `miesc_run_tool`, `miesc_run_layer`, `miesc_analyze_defi`, `miesc_correlate`, `miesc_filter_fp`, `miesc_detect_exploit_chains`, `miesc_verify_finding`, `miesc_generate_report`, `miesc_map_compliance`, `miesc_remediate`, `miesc_apply_fix`, `miesc_validate_remediation`, `miesc_remediation_evidence_bundle`, `miesc_get_metrics`, `miesc_get_status`, `miesc_list_tools`, `miesc_get_tool_info`, `miesc_read_contract`
 
 ### Remediación vía API REST
 
@@ -559,7 +559,7 @@ report = run_full_audit("contract.sol")
 ```bash
 pip install "miesc[django]"
 python -m miesc.api.rest --host 127.0.0.1 --port 8000
-python -m src.utils.web_dashboard --results analysis/results --output analysis/dashboard
+python -m miesc.utils.web_dashboard --results ./results --output ./dashboard
 ```
 
 El core abierto expone automatización local REST/MCP y generación de reportes
@@ -613,9 +613,9 @@ Contract.sol
  Generador de Reportes --> JSON / SARIF / PDF / HTML / Markdown
 ```
 
-MIESC utiliza una arquitectura de doble paquete:
-- `miesc/` - API Pública (estable, instalable vía pip)
-- `src/` - Implementación interna (35 módulos de análisis, pipeline ML, RAG, generación de reportes)
+Todo el código vive en el único paquete `miesc/` (instalable vía pip): CLI, adaptadores
+para las 50 herramientas, pipeline ML, RAG, remediación y generación de reportes. Corré
+`miesc doctor` para ver qué herramientas están disponibles en tu máquina.
 
 Consultá [ARCHITECTURE.md](./docs/ARCHITECTURE.md) para el diseño técnico completo con diagramas Mermaid.
 
@@ -746,7 +746,7 @@ Modelos LLM pesados (32B) en contratos pequeños. Usá `qwen2.5-coder:14b` en `~
 git clone https://github.com/fboiero/MIESC.git
 cd MIESC && pip install -e .[dev]
 pytest tests/ --no-cov              # Corrida local rápida
-pytest tests/ --cov=src --cov-report=term-missing  # Corrida con cobertura
+pytest tests/ --cov=miesc --cov-report=term-missing  # Corrida con cobertura
 ```
 
 Consultá [CONTRIBUTING.md](./.github/CONTRIBUTING.md) para las guías. [CONTRIBUTING_ES.md](./.github/CONTRIBUTING_ES.md) disponible en español.

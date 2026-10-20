@@ -22,6 +22,28 @@ from typing import Any, Dict, List, Tuple
 from miesc import __version__
 from miesc.cli.constants import ADAPTER_MAP
 
+# Only what `pip install miesc` guarantees (pyproject [project.dependencies]):
+# (import name, pip distribution name). tests/test_verify_installation.py keeps
+# this list in sync with pyproject.toml.
+CORE_PACKAGES = [
+    ("slither", "slither-analyzer"),
+    ("pydantic", "pydantic"),
+    ("click", "click"),
+    ("rich", "rich"),
+    ("yaml", "pyyaml"),
+    ("jinja2", "jinja2"),
+]
+
+# Optional extras: (import name, pip name, extra and what it unlocks). Missing
+# ones are reported as warnings and never fail the check.
+OPTIONAL_PACKAGES = [
+    ("sklearn", "scikit-learn", "miesc[ml]  (built-in ML detectors, Paper 1 profile)"),
+    ("weasyprint", "weasyprint", "miesc[pdf]  (PDF reports)"),
+    ("mcp", "mcp", "miesc[mcp]  (MCP server for Claude Desktop / Cursor)"),
+    ("django", "django", "miesc[django]  (local REST API)"),
+    ("chromadb", "chromadb", "miesc[rag]  (RAG context)"),
+]
+
 # Colors for terminal output
 GREEN = "\033[92m"
 RED = "\033[91m"
@@ -189,18 +211,8 @@ def main():
 
     # 2. Check core Python dependencies
     print_section("2. Core Python Dependencies")
-    # Only what `pip install miesc` guarantees (pyproject [project.dependencies]).
-    core_packages = [
-        ("slither", "slither-analyzer"),
-        ("pydantic", "pydantic"),
-        ("click", "click"),
-        ("rich", "rich"),
-        ("yaml", "pyyaml"),
-        ("jinja2", "jinja2"),
-    ]
-
     all_core_ok = True
-    for package, pip_name in core_packages:
+    for package, pip_name in CORE_PACKAGES:
         ok, version = check_python_package(package)
         if ok:
             check_ok(f"{pip_name} ({version})")
@@ -213,14 +225,7 @@ def main():
 
     # 2b. Optional Python extras (never fail the check; they map to pip extras)
     print_section("2b. Optional Python Extras")
-    optional_packages = [
-        ("sklearn", "scikit-learn", "miesc[ml]  (built-in ML detectors, Paper 1 profile)"),
-        ("weasyprint", "weasyprint", "miesc[pdf]  (PDF reports)"),
-        ("mcp", "mcp", "miesc[mcp]  (MCP server for Claude Desktop / Cursor)"),
-        ("django", "django", "miesc[django]  (local REST API)"),
-        ("chromadb", "chromadb", "miesc[rag]  (RAG context)"),
-    ]
-    for package, pip_name, extra in optional_packages:
+    for package, pip_name, extra in OPTIONAL_PACKAGES:
         ok, version = check_python_package(package)
         if ok:
             check_ok(f"{pip_name} ({version})")
