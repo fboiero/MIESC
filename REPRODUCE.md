@@ -231,13 +231,18 @@ false positives as negatives):
   hash-puzzle check is now per function (hash of a *parameter* compared with `==`, then a
   transfer in the same function); the approve check needs an implemented `approve` that
   overwrites the allowance without a zero-allowance guard or increase/decrease helpers; the
-  TOD check needs `msg.sender.transfer(<reward state variable>)`. 15 of the 20 remaining
-  `front_running` FPs are not from this detector: they are the layer 7 `defi` adapter's
-  "MEV Exposure" finding, mapped to `front_running` by the keyword fallback in
-  `evaluate._normalize_category` (separate tool, left for a separate change).
+  TOD check needs `msg.sender.transfer(<reward state variable>)`. Only 3 of the 20 remaining
+  `front_running` FPs come from this detector (unguarded ERC20 `approve` functions, same
+  shape as the labelled contract). 15 are the layer 7 `defi` adapter's "MEV Exposure"
+  finding (plus `mev_detector` on one contract), mapped to `front_running` by the keyword
+  fallback in `evaluate._normalize_category`; 2 are the intelligence engine's own
+  `front_running` source patterns in `miesc/core/intelligence.py` (`require(sha3(...) ==`,
+  `function approve(`), which the detector used to mask. Both are separate code paths, left
+  for a separate change.
 
-Two of the 496 FPs (`unchecked_low_level_calls` on two `reentrancy/*` contracts) are the
-Slither drift already seen in the `--no-llm` re-run, not an effect of this change.
+The 496 include the two `unchecked_low_level_calls` FPs on `reentrancy/*` contracts that the
+`--no-llm` re-run attributed to Slither drift (553 in the morning run, 555 with `--no-llm`);
+the comparison above therefore understates the gain by two.
 
 Note on the paper figures: the paper's JSON summary reports `front_running` 2 TP / 5 FP and
 `short_addresses` 0 / 0 (481 FP in total), while the per-contract `.jsonl` next to it records
