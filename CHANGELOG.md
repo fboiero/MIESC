@@ -10,8 +10,9 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Fixed
 
 - **Tool availability is probed once per run, not once per contract.** `run_tool`
-  caches each adapter's `is_available()` for the process (`AdapterLoader
-  .reset_availability()` clears it; the evaluator calls it per run). SmartGuard's
+  caches each adapter's `is_available()` for the process;
+  `AdapterLoader.reset_availability()` clears it and the evaluator calls it per run.
+  SmartGuard's
   `ollama list` probe has a 5 s timeout, which added ~12 min to a 143-contract
   SmartBugs run when Ollama was unreachable.
 - **Evaluate results carry `version`, `timestamp` and `tools_used` at the top level

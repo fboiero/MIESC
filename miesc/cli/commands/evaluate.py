@@ -748,9 +748,6 @@ def evaluate_corpus(
 
       miesc evaluate corpus benchmarks/datasets/smartbugs-curated/ --config experiment.yaml
     """
-    if no_llm and with_llm:
-        raise click.UsageError("--no-llm and --with-llm are mutually exclusive")
-
     print_banner()
 
     # Load experiment config if provided (overrides CLI flags)
@@ -781,6 +778,10 @@ def evaluate_corpus(
         except Exception as e:
             error(f"Failed to load config: {e}")
             sys.exit(1)
+
+    # Checked after --config so a `no_llm: true` in the YAML cannot combine with --with-llm
+    if no_llm and with_llm:
+        raise click.UsageError("--no-llm and --with-llm are mutually exclusive")
 
     corpus_dir = Path(directory).resolve()
 

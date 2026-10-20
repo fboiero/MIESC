@@ -405,6 +405,16 @@ class TestNoLLMFlag:
         assert data["reproducibility"]["command"].endswith("--no-llm")
         assert "ablation" in data
 
+    def test_config_no_llm_still_conflicts_with_with_llm(self, runner, corpus, tmp_path):
+        pytest.importorskip("yaml")
+        cfg = tmp_path / "exp.yaml"
+        cfg.write_text("no_llm: true\n", encoding="utf-8")
+        result = runner.invoke(
+            ev.evaluate, ["corpus", str(corpus), "--config", str(cfg), "--with-llm", "ollama"]
+        )
+        assert result.exit_code == 2
+        assert "mutually exclusive" in result.output
+
     def test_config_file_can_turn_no_llm_on(self, runner, corpus, tmp_path):
         pytest.importorskip("yaml")
         cfg = tmp_path / "exp.yaml"
