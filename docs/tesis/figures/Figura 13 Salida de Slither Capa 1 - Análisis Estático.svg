@@ -2,11 +2,6 @@
   <!-- Background -->
   <rect width="850" height="580" fill="#ffffff"/>
   
-  <!-- Title -->
-  <text x="425" y="28" text-anchor="middle" font-size="18" font-weight="bold" fill="#2c3e50">
-    Figura 13: Salida de Slither (Capa 1 - Análisis Estático)
-  </text>
-  
   <!-- Terminal window -->
   <rect x="40" y="45" width="770" height="480" fill="#1e1e1e" rx="8"/>
   

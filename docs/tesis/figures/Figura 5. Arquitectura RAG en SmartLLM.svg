@@ -2,11 +2,6 @@
   <!-- Background -->
   <rect width="850" height="420" fill="#ffffff"/>
   
-  <!-- Title -->
-  <text x="425" y="40" text-anchor="middle" font-size="22" font-weight="bold" fill="#2c3e50">
-    Figura 2.5. Arquitectura RAG en SmartLLM
-  </text>
-  
   <!-- Row 1: Input -> Embedding -> Vector DB -->
   
   <!-- Contrato (input) -->
