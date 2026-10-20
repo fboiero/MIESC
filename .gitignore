@@ -123,6 +123,8 @@ benchmarks/results/evmbench/*
 # Dated re-runs of the Paper 1 profile kept as evidence (see REPRODUCE.md)
 !benchmarks/results/smartbugs_eval_layers_1_6_7_20261020.json
 !benchmarks/results/smartbugs_eval_layers_1_6_7_20261020.jsonl
+!benchmarks/results/smartbugs_eval_layers_1_6_7_20261020_fp_tightened.json
+!benchmarks/results/smartbugs_eval_layers_1_6_7_20261020_fp_tightened.jsonl
 !benchmarks/results/paper1_smartbugs_full_all_layers_smoke_20260506.json
 !benchmarks/results/paper1_smartbugs_full_all_layers_smoke_20260506.jsonl
 !benchmarks/results/fix_eval_results.json
