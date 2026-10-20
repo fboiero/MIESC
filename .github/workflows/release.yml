@@ -215,8 +215,6 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
 
       - name: Download signed artifacts
         uses: actions/download-artifact@v8
@@ -230,16 +228,26 @@ jobs:
           sha256sum *.whl *.tar.gz > SHA256SUMS.txt
           cat SHA256SUMS.txt
 
-      - name: Generate changelog
-        id: changelog
-        uses: metcalfc/changelog-generator@v4.8.0
-        with:
-          myToken: ${{ secrets.GITHUB_TOKEN }}
+      # The release tag carries a leading "v" (v6.1.1) but PyPI versions,
+      # sdist file names and the GHCR image tags published by docker.yml
+      # (type=semver,pattern={{version}}) do not. GHCR image names are
+      # lowercase, while github.repository is "fboiero/MIESC".
+      - name: Derive version and image name
+        id: meta
+        env:
+          TAG: ${{ github.event.release.tag_name || inputs.version }}
+        run: |
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+          echo "image=ghcr.io/$(echo "$GITHUB_REPOSITORY" | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
 
+      # append_body keeps the notes given at `gh release create` time
+      # (the CHANGELOG section) and adds the install/verification sections
+      # below them instead of replacing the body.
       - name: Update release with artifacts
         uses: softprops/action-gh-release@v3
         if: github.event_name == 'release'
         with:
+          append_body: true
           files: |
             dist/*.whl
             dist/*.tar.gz
@@ -247,17 +255,14 @@ jobs:
             dist/*.pem
             dist/SHA256SUMS.txt
           body: |
-            ## What's Changed
-            ${{ steps.changelog.outputs.changelog }}
-
             ## Installation
             ```bash
-            pip install miesc==${{ github.event.release.tag_name }}
+            pip install miesc==${{ steps.meta.outputs.version }}
             ```
 
             ## Docker
             ```bash
-            docker pull ghcr.io/${{ github.repository }}:${{ github.event.release.tag_name }}
+            docker pull ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.version }}
             ```
 
             ## Verification
@@ -272,10 +277,10 @@ jobs:
             **Verify signatures with cosign:**
             ```bash
             # Install cosign: https://docs.sigstore.dev/cosign/installation/
-            cosign verify-blob --signature miesc-${{ github.event.release.tag_name }}.tar.gz.sig \
-              --certificate miesc-${{ github.event.release.tag_name }}.tar.gz.pem \
+            cosign verify-blob --signature miesc-${{ steps.meta.outputs.version }}.tar.gz.sig \
+              --certificate miesc-${{ steps.meta.outputs.version }}.tar.gz.pem \
               --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-              miesc-${{ github.event.release.tag_name }}.tar.gz
+              miesc-${{ steps.meta.outputs.version }}.tar.gz
             ```
 
             See [RELEASE_VERIFICATION.md](https://github.com/fboiero/MIESC/blob/main/docs/policies/RELEASE_VERIFICATION.md) for detailed instructions.
