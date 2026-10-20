@@ -189,12 +189,14 @@ def main():
 
     # 2. Check core Python dependencies
     print_section("2. Core Python Dependencies")
+    # Only what `pip install miesc` guarantees (pyproject [project.dependencies]).
     core_packages = [
-        ("django", "django"),
-        ("rest_framework", "djangorestframework"),
+        ("slither", "slither-analyzer"),
         ("pydantic", "pydantic"),
         ("click", "click"),
         ("rich", "rich"),
+        ("yaml", "pyyaml"),
+        ("jinja2", "jinja2"),
     ]
 
     all_core_ok = True
@@ -208,6 +210,22 @@ def main():
             results["issues"].append(f"Missing package: {pip_name}")
 
     results["core_deps_ok"] = all_core_ok
+
+    # 2b. Optional Python extras (never fail the check; they map to pip extras)
+    print_section("2b. Optional Python Extras")
+    optional_packages = [
+        ("sklearn", "scikit-learn", "miesc[ml]  (built-in ML detectors, Paper 1 profile)"),
+        ("weasyprint", "weasyprint", "miesc[pdf]  (PDF reports)"),
+        ("mcp", "mcp", "miesc[mcp]  (MCP server for Claude Desktop / Cursor)"),
+        ("django", "django", "miesc[django]  (local REST API)"),
+        ("chromadb", "chromadb", "miesc[rag]  (RAG context)"),
+    ]
+    for package, pip_name, extra in optional_packages:
+        ok, version = check_python_package(package)
+        if ok:
+            check_ok(f"{pip_name} ({version})")
+        else:
+            check_warn(f"{pip_name} - optional, install with: pip install '{extra.split()[0]}'")
 
     # 3. Check external tools
     print_section("3. External Tools (Optional)")
@@ -238,7 +256,7 @@ def main():
         check_ok(f"Ollama ({ollama_version})")
 
         models = check_ollama_models()
-        recommended_models = ["deepseek-coder", "codellama", "deepseek-coder:6.7b"]
+        recommended_models = ["qwen2.5-coder:14b", "qwen2.5-coder:32b"]
 
         for model in recommended_models:
             if any(model in m for m in models):
@@ -261,7 +279,6 @@ def main():
         total = adapter_report.get("total_adapters", 0)
         failed = adapter_report.get("failed", 0)
 
-        results["tools_available"] = registered
         results["tools_total"] = total
 
         if registered == total:
@@ -269,15 +286,18 @@ def main():
         else:
             check_warn(f"{registered}/{total} adapters registered ({failed} failed)")
 
-        # Count available tools
+        # Count tools whose external binary / library is actually usable here.
         available_count = 0
         adapters = adapter_report.get("adapters", [])
         for adapter in adapters:
             if adapter.get("status") == "available":
                 available_count += 1
+        results["tools_available"] = available_count
 
         if available_count > 0:
-            check_ok(f"{available_count} tools currently available")
+            check_ok(
+                f"{available_count}/{total} tools currently available (run `miesc doctor` for the list)"
+            )
 
     # 6. Quick functionality test
     print_section("6. Quick Functionality Test")
