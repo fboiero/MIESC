@@ -4,7 +4,7 @@
 # Author: Fernando Boiero - UNDEF
 # Thesis: Master's in Cyberdefense
 
-.PHONY: help install install-dev test test-quick lint typecheck format audit audit-fast experiments experiments-run experiments-analyze mcp-manifest mcp-server docs docs-build docs-deploy install-docs sphinx-build sphinx-serve sphinx-clean sphinx-api clean clean-build clean-all clean-local-artifacts local-artifacts build build-check publish-test publish release docker-build docker-run researcher-bootstrap researcher-smoke verify reproducibility citation version security security-sast security-deps security-secrets policy-check pre-commit-install pre-commit-run test-coverage security-report shift-left rest-api rest-test mcp-rest mcp-test demo demo-simple all-checks quick-check bench ablation sbom reproduce dataset-verify academic-report mutate mutate-run mutate-quick mutate-results mutate-html mutate-show mutate-check mutate-clean
+.PHONY: help install install-dev test test-quick lint typecheck format audit audit-fast experiments experiments-run experiments-analyze mcp-manifest mcp-server docs docs-build docs-deploy install-docs sphinx-build sphinx-serve sphinx-clean sphinx-api clean clean-build clean-all clean-local-artifacts local-artifacts build build-check publish-test publish release docker-build docker-run researcher-bootstrap researcher-smoke verify reproducibility citation version security security-sast security-deps security-secrets policy-check pre-commit-install pre-commit-run test-coverage security-report shift-left rest-api rest-test mcp-rest mcp-test demo demo-simple all-checks quick-check bench ablation sbom reproduce dataset-verify mutate mutate-run mutate-quick mutate-results mutate-html mutate-show mutate-check mutate-clean
 
 # Default target
 .DEFAULT_GOAL := help
@@ -26,17 +26,14 @@ help:  ## Show this help message
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(YELLOW)%-20s$(NC) %s\n", $$1, $$2}'
 	@echo ""
 
-install:  ## Install dependencies
-	@echo "$(BLUE)Installing MIESC dependencies...$(NC)"
-	$(PYTHON) -m pip install -r requirements/requirements.txt
-	$(PYTHON) -m pip install -r requirements/requirements_core.txt
-	$(PYTHON) -m pip install -r requirements/requirements_agents.txt
-	@echo "$(GREEN)✓ Dependencies installed$(NC)"
+install:  ## Install MIESC (editable) with the core dependencies
+	@echo "$(BLUE)Installing MIESC...$(NC)"
+	$(PYTHON) -m pip install -e .
+	@echo "$(GREEN)✓ MIESC installed (add extras with: pip install -e '.[ml,pdf,mcp]')$(NC)"
 
-install-dev:  ## Install development dependencies
+install-dev:  ## Install MIESC with the development extras
 	@echo "$(BLUE)Installing development dependencies...$(NC)"
-	$(PYTHON) -m pip install -r requirements/requirements.txt
-	$(PYTHON) -m pip install pytest pytest-cov ruff black mypy
+	$(PYTHON) -m pip install -e '.[dev,ml]'
 	@echo "$(GREEN)✓ Development dependencies installed$(NC)"
 
 test:  ## Run unit tests
@@ -263,13 +260,7 @@ verify:  ## Verify installation
 	@which aderyn > /dev/null && echo "    ✓ Aderyn installed" || echo "    ✗ Aderyn not found"
 	@echo "$(GREEN)✓ Verification complete$(NC)"
 
-reproducibility:  ## Generate reproducibility package
-	@echo "$(BLUE)Generating reproducibility package...$(NC)"
-	mkdir -p thesis/reproducibility
-	cp -r analysis/experiments thesis/reproducibility/
-	cp -r src/*.py thesis/reproducibility/
-	tar -czf thesis/reproducibility_$(shell date +%Y%m%d).tar.gz thesis/reproducibility/
-	@echo "$(GREEN)✓ Reproducibility package created$(NC)"
+reproducibility: reproduce  ## Alias of `make reproduce`
 
 citation:  ## Show citation information
 	@echo "$(BLUE)MIESC Citation:$(NC)"
@@ -408,20 +399,23 @@ quick-check:  ## Quick check before commit (fast)
 # ACADEMIC REPRODUCIBILITY TARGETS (v3.3.0+)
 # ============================================
 
-bench:  ## Run statistical benchmarking and evaluation
-	@echo "$(BLUE)Running statistical evaluation...$(NC)"
-	@$(PYTHON) scripts/eval_stats.py --input analysis/results/ --output analysis/results/stats.json
-	@echo "$(GREEN)✓ Statistical results saved to analysis/results/stats.json$(NC)"
+bench:  ## Re-run the Paper 1 SmartBugs profile (layers 1,6,7; no LLM) into a dated artifact
+	@echo "$(BLUE)Running the Paper 1 SmartBugs-curated profile (143 contracts, ~15 min)...$(NC)"
+	@# The paper profile is LLM-free. SmartGuard (layer 6) calls Ollama when it finds a
+	@# model, which changes the numbers and multiplies the runtime; point it at a dead port.
+	OLLAMA_HOST=http://127.0.0.1:1 $(PYTHON) -m miesc.cli.main evaluate corpus benchmarks/datasets/smartbugs-curated/dataset \
+		--layers 1,6,7 --timeout 120 \
+		--output benchmarks/results/smartbugs_eval_layers_1_6_7_$(shell date +%Y%m%d).json \
+		--jsonl benchmarks/results/smartbugs_eval_layers_1_6_7_$(shell date +%Y%m%d).jsonl
+	@echo "$(GREEN)✓ Compare with the paper artifact:$(NC)"
+	@echo "  $(PYTHON) -m miesc.cli.main evaluate compare benchmarks/results/paper1_smartbugs_eval_layers_1_6_7.json benchmarks/results/smartbugs_eval_layers_1_6_7_$(shell date +%Y%m%d).json"
 
-ablation:  ## Run ablation study (AI on/off comparison)
-	@echo "$(BLUE)Running ablation study...$(NC)"
-	@echo "  Phase 1: Baseline (no AI)"
-	@$(PYTHON) scripts/run_benchmark.py --no-ai --output analysis/results/baseline_no_ai.json
-	@echo "  Phase 2: With AI correlation"
-	@$(PYTHON) scripts/run_benchmark.py --enable-ai --output analysis/results/baseline_with_ai.json
-	@echo "  Phase 3: Computing differences"
-	@$(PYTHON) scripts/eval_stats.py --ablation --input analysis/results/
-	@echo "$(GREEN)✓ Ablation study complete$(NC)"
+ablation:  ## Recompute the Paper 1 LLM-free ablation table from the stored raw runs
+	@echo "$(BLUE)Recomputing the layer ablation (static only / + detectors / + intelligence)...$(NC)"
+	$(PYTHON) benchmarks/paper1_ablation_summary.py \
+		benchmarks/results/paper1_ablation_l1_raw_20261015.json \
+		benchmarks/results/paper1_ablation_l167_raw_20261015.json \
+		benchmarks/results/paper1_ablation_l167_intel_20261015.json
 
 sbom:  ## Generate Software Bill of Materials (SBOM)
 	@echo "$(BLUE)Generating SBOM...$(NC)"
@@ -434,54 +428,15 @@ sbom:  ## Generate Software Bill of Materials (SBOM)
 		echo "$(GREEN)✓ Fallback: requirements_frozen.txt generated$(NC)"; \
 	fi
 
-reproduce:  ## Run complete reproducibility pipeline
-	@echo "$(BLUE)========================================$(NC)"
-	@echo "$(BLUE)MIESC Reproducibility Pipeline$(NC)"
-	@echo "$(BLUE)========================================$(NC)"
+reproduce:  ## Verify every paper claim against the stored artifacts (fast, offline)
+	@echo "$(BLUE)Recomputing Paper 1 and Paper 2 claims from benchmarks/results/...$(NC)"
+	$(PYTHON) benchmarks/verify_paper_claims.py
 	@echo ""
-	@echo "$(YELLOW)Phase 1: Environment Setup$(NC)"
-	@make install
-	@echo ""
-	@echo "$(YELLOW)Phase 2: Dataset Validation$(NC)"
-	@$(PYTHON) scripts/verify_dataset_integrity.py || echo "$(YELLOW)⚠ Dataset verification script not found - skipping$(NC)"
-	@echo ""
-	@echo "$(YELLOW)Phase 3: Statistical Evaluation$(NC)"
-	@make bench
-	@echo ""
-	@echo "$(YELLOW)Phase 4: Ablation Study$(NC)"
-	@make ablation
-	@echo ""
-	@echo "$(YELLOW)Phase 5: SBOM Generation$(NC)"
-	@make sbom
-	@echo ""
-	@echo "$(GREEN)========================================$(NC)"
-	@echo "$(GREEN)✓ Reproducibility pipeline complete!$(NC)"
-	@echo "$(GREEN)========================================$(NC)"
-	@echo ""
-	@echo "$(BLUE)Outputs generated:$(NC)"
-	@echo "  • analysis/results/stats.json"
-	@echo "  • analysis/results/baseline_no_ai.json"
-	@echo "  • analysis/results/baseline_with_ai.json"
-	@echo "  • sbom.json (or requirements_frozen.txt)"
-	@echo ""
-	@echo "$(YELLOW)For reviewers: All results are now reproducible!$(NC)"
+	@echo "$(GREEN)✓ Claims verified. To re-measure on this machine: make bench (see REPRODUCE.md)$(NC)"
 
-dataset-verify:  ## Verify dataset integrity (SHA-256 checksums)
-	@echo "$(BLUE)Verifying dataset integrity...$(NC)"
-	@$(PYTHON) scripts/verify_dataset_integrity.py || echo "$(YELLOW)⚠ Script not found - create scripts/verify_dataset_integrity.py$(NC)"
-
-academic-report:  ## Generate comprehensive academic report
-	@echo "$(BLUE)Generating academic validation report...$(NC)"
-	@echo "  → Research Design: docs/00_RESEARCH_DESIGN.md"
-	@echo "  → Metrics & Results: docs/08_METRICS_AND_RESULTS.md"
-	@echo "  → Reproducibility: docs/REPRODUCIBILITY.md"
-	@echo "  → References: docs/REFERENCES.md"
-	@echo "  → Statistical Output: analysis/results/stats.json"
-	@echo ""
-	@echo "$(GREEN)✓ All academic documentation complete$(NC)"
-	@echo ""
-	@echo "$(YELLOW)Citation:$(NC)"
-	@cat CITATION.cff
+dataset-verify:  ## Show the SmartBugs-curated corpus that ships with the repository
+	@echo "$(BLUE)Checking the SmartBugs-curated corpus (expected: 143 contracts, 10 categories)...$(NC)"
+	$(PYTHON) -m miesc.cli.main evaluate info benchmarks/datasets/smartbugs-curated/dataset
 
 # ============================================
 # MUTATION TESTING (v5.1.1+)
