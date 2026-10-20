@@ -7,6 +7,8 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [6.1.1] - 2026-10-20
+
 ### Fixed
 
 - **Aderyn 0.1.x parse panics are reported as a skip, not an error.** aderyn aborts

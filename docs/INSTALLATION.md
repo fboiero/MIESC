@@ -1,4 +1,4 @@
-# MIESC 6.1.0 - Complete Installation Guide
+# MIESC 6.1.1 - Complete Installation Guide
 
 **[Versión en Español](INSTALLATION_ES.md)**
 
@@ -328,7 +328,7 @@ miesc doctor
 Expected output:
 
 ```
-MIESC v6.1.0 - Installation Verification
+MIESC v6.1.1 - Installation Verification
 ============================================================
 
 1. Python Environment
@@ -464,4 +464,4 @@ After installation:
 
 ---
 
-**Version**: 6.1.0 | **Last Updated**: October 2026
+**Version**: 6.1.1 | **Last Updated**: October 2026
