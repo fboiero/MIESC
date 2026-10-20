@@ -222,10 +222,10 @@ pip install "miesc[django]"
 python -m miesc.api.rest --host 127.0.0.1 --port 8000
 
 # Generate a static HTML dashboard from local results
-python -m src.utils.web_dashboard --results analysis/results --output analysis/dashboard
+python -m miesc.utils.web_dashboard --results ./results --output ./dashboard
 ```
 
-[Full Installation Guide](INSTALLATION.md) | [Quick Start Guide](https://github.com/fboiero/MIESC/blob/main/QUICKSTART.md)
+[Full Installation Guide](INSTALLATION.md) | [Quick Start Guide](guides/QUICKSTART.md)
 
 ---
 

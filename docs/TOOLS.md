@@ -83,13 +83,14 @@ Complete list of security tools integrated across 9 defense layers. MIESC provid
 ### Required (minimum)
 
 ```bash
-pip install slither-analyzer
+pip install miesc            # Slither is included
+pip install solc-select && solc-select install 0.4.26 0.5.17 0.8.20
 ```
 
 ### Recommended
 
 ```bash
-pip install slither-analyzer mythril
+pip install mythril          # separate venv recommended (z3-solver conflicts)
 cargo install aderyn
 npm install -g solhint
 ```

@@ -1,4 +1,4 @@
-# MIESC v6.0.0 - Complete Installation Guide
+# MIESC 6.1.0 - Complete Installation Guide
 
 **[Versión en Español](INSTALLATION_ES.md)**
 
@@ -25,14 +25,16 @@ For users who want to get started quickly with basic functionality:
 git clone https://github.com/fboiero/MIESC.git
 cd MIESC
 
-# Install MIESC and core dependencies
+# Install MIESC and core dependencies (Slither is included)
 pip install -e .
 
-# Install Slither (required for basic analysis)
-pip install slither-analyzer
+# Install the Solidity compilers Slither will need (picked per contract pragma)
+pip install solc-select
+solc-select install 0.4.26 0.5.17 0.6.12 0.7.6 0.8.20
 
 # Verify installation
 python scripts/verify_installation.py
+miesc doctor
 ```
 
 ---
@@ -82,35 +84,44 @@ source .venv/bin/activate  # Linux/macOS
 ### Step 3: Install MIESC
 
 ```bash
-# Basic installation
+# Basic installation (CLI + Slither)
 pip install -e .
 
-# Full installation (all optional dependencies)
-pip install -e .[full]
+# Paper 1 reproducible profile: built-in ML detectors
+pip install -e '.[ml]'
+
+# Full installation (PDF, LLM clients, RAG, local APIs, ML)
+pip install -e '.[full]'
 
 # Development installation
-pip install -e .[dev]
+pip install -e '.[dev]'
 ```
+
+Extras: `ml` (scikit-learn detectors), `pdf` (WeasyPrint), `mcp` (MCP server, SDK 1.x pinned),
+`llm` (OpenAI/Anthropic clients), `rag`, `django`/`api` (local REST), `full`, `dev`.
 
 ### Step 4: Install Solidity Compiler
 
 ```bash
 pip install solc-select
-solc-select install 0.8.20
+# One version per major line you analyze. MIESC selects, per contract, the
+# installed version that satisfies its pragma (SmartBugs-curated is mostly 0.4.x).
+solc-select install 0.4.26 0.5.17 0.6.12 0.7.6 0.8.20
 solc-select use 0.8.20
 
 # Verify
 solc --version
 ```
 
-### Step 5: Install Core Analysis Tools
+### Step 5: Verify the Core Analysis Tools
+
+Slither is a core dependency of MIESC, so it is already installed. Aderyn and Solhint complete
+the static layer used in the papers:
 
 ```bash
-# Static Analysis (Layer 1)
-pip install slither-analyzer
-
-# Verify
-slither --version
+slither --version          # installed with MIESC
+cargo install aderyn       # or: brew install aderyn
+npm install -g solhint
 ```
 
 ---
@@ -123,13 +134,12 @@ MIESC integrates 50 tools across 35 analysis modules, organized in 9 defense lay
 
 | Tool | Installation | Required |
 |------|--------------|----------|
-| Slither | `pip install slither-analyzer` | Yes |
+| Slither | included in `pip install miesc` | Yes |
 | Aderyn | `cargo install aderyn` | Recommended |
 | Solhint | `npm install -g solhint` | Recommended |
 
 ```bash
-# Install all Layer 1 tools
-pip install slither-analyzer
+# Install the remaining Layer 1 tools (Slither ships with MIESC)
 cargo install aderyn
 npm install -g solhint
 ```
@@ -207,8 +217,8 @@ pip install eth-wake
 curl -fsSL https://ollama.ai/install.sh | sh
 
 # Pull required models
-ollama pull deepseek-coder:6.7b
-ollama pull codellama
+ollama pull qwen2.5-coder:14b   # default for code analysis (~9 GB)
+ollama pull qwen2.5-coder:32b   # default_model for verification (~20 GB, 24+ GB RAM)
 ```
 
 ### Layer 6: ML Detection (5 tools)
@@ -274,15 +284,15 @@ For a complete, isolated environment with all tools pre-installed:
 ### ARM64 (Apple Silicon)
 
 ```bash
-docker build -t miesc:6.0.0 .
-docker run --rm -v $(pwd):/contracts miesc:6.0.0 audit quick /contracts/MyContract.sol
+docker build -t miesc:local .
+docker run --rm -v $(pwd):/contracts miesc:local audit quick /contracts/MyContract.sol
 ```
 
 ### x86_64 (Intel/AMD)
 
 ```bash
-docker build --platform linux/amd64 -f Dockerfile.x86 -t miesc:6.0.0-x86 .
-docker run --platform linux/amd64 --rm -v $(pwd):/contracts miesc:6.0.0-x86 audit quick /contracts/MyContract.sol
+docker build --platform linux/amd64 -f Dockerfile.x86 -t miesc:local-x86 .
+docker run --platform linux/amd64 --rm -v $(pwd):/contracts miesc:local-x86 audit quick /contracts/MyContract.sol
 ```
 
 ### Pre-built Image
@@ -318,7 +328,7 @@ miesc doctor
 Expected output:
 
 ```
-MIESC 6.0.0 - Installation Verification
+MIESC v6.1.0 - Installation Verification
 ============================================================
 
 1. Python Environment
@@ -327,20 +337,27 @@ MIESC 6.0.0 - Installation Verification
 
 2. Core Python Dependencies
 ----------------------------------------
-  [OK] slither-analyzer (0.10.x)
-  [OK] django (5.x)
-  [OK] djangorestframework (3.14.x)
+  [OK] slither-analyzer (0.11.x)
+  [OK] pydantic (2.x)
+  ...
+
+2b. Optional Python Extras
+----------------------------------------
+  [WARN] scikit-learn - optional, install with: pip install 'miesc[ml]'
   ...
 
 5. MIESC Adapter Registration
 ----------------------------------------
   [OK] All 50/50 adapters registered
-  [OK] run `miesc doctor` to see available tools
+  [OK] 43/50 tools currently available (run `miesc doctor` for the list)
 
 Installation Summary
 ============================================================
 MIESC is ready to use!
 ```
+
+Only Python and the core dependencies decide the exit code; missing optional tools are
+reported as `[WARN]`. The number of available tools depends on what you installed.
 
 ---
 
@@ -375,7 +392,8 @@ docker build --platform linux/amd64 -f Dockerfile.x86 -t miesc:x86 .
 ### solc version issues
 
 ```bash
-solc-select install 0.8.20
+# Install the line the contract's pragma asks for; MIESC picks it automatically
+solc-select install 0.4.26 0.5.17 0.6.12 0.7.6 0.8.20
 solc-select use 0.8.20
 ```
 
@@ -388,8 +406,8 @@ ollama serve &
 # Check status
 ollama list
 
-# Pull required models
-ollama pull deepseek-coder:6.7b
+# Pull the default models
+ollama pull qwen2.5-coder:14b
 ```
 
 ### Missing Rust/Cargo
@@ -432,8 +450,9 @@ After installation:
 1. **Quick Start**: `miesc audit quick contract.sol`
 2. **Full Audit**: `miesc audit full contract.sol`
 3. **Local REST API**: `python -m miesc.api.rest --host 127.0.0.1 --port 8000`
-4. **Static Reports**: `python -m src.utils.web_dashboard --results analysis/results --output analysis/dashboard`
-5. **Documentation**: [fboiero.github.io/MIESC](https://fboiero.github.io/MIESC)
+4. **Static Reports**: `python -m miesc.utils.web_dashboard --results ./results --output ./dashboard`
+5. **Reproduce the paper results**: [REPRODUCE.md](https://github.com/fboiero/MIESC/blob/main/REPRODUCE.md)
+6. **Documentation**: [fboiero.github.io/MIESC](https://fboiero.github.io/MIESC)
 
 ---
 
@@ -445,4 +464,4 @@ After installation:
 
 ---
 
-**Version**: 6.0.0 | **Last Updated**: June 2026
+**Version**: 6.1.0 | **Last Updated**: October 2026

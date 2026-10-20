@@ -137,6 +137,9 @@ adds detected contracts without losing any (all figures recomputed by
 Precision on this legacy corpus is **22.2%** (36.0% F1) — the expected trade-off
 for a recall-first pre-audit triage tool.
 
+To re-run this profile on your own machine and compare it with the paper artifact,
+follow [REPRODUCE.md](./REPRODUCE.md) (about 15 minutes, no LLM or API key needed).
+
 The full-corpus SmartBugs result is the reproducible Paper 1 profile. A local
 Ollama follow-up on the remaining misses is reported in Paper 1 as 140/143
 (97.9%) and should be treated as a secondary follow-up claim until its own
@@ -274,6 +277,17 @@ cd MIESC && pip install -e .[dev]
 
 Requirements: Python 3.12+. Slither installs automatically. Other tools are optional — MIESC uses whatever is available.
 
+Slither needs a `solc` that matches each contract's `pragma`. Install the versions you
+analyze once; MIESC picks the installed one that satisfies the pragma:
+
+```bash
+pip install solc-select
+solc-select install 0.4.26 0.5.17 0.6.12 0.7.6 0.8.20
+```
+
+To reproduce the paper numbers (Slither + Aderyn + Solhint + the built-in detectors), follow
+[REPRODUCE.md](./REPRODUCE.md).
+
 For a full researcher workstation with isolated Mythril, Manticore, Certora CLI, Wake, Semgrep, and formal-verification tooling:
 
 ```bash
@@ -328,7 +342,8 @@ miesc scan Bridge.sol             # Detects 7 bridge exploit patterns
 
 ## Docker
 
-The current release is **v6.0.0** (see [CHANGELOG](./CHANGELOG.md)). Release status,
+The code on `main` is **6.1.0** (see [CHANGELOG](./CHANGELOG.md)); the latest published
+PyPI / GHCR release is **6.0.0**. Release status,
 published artifact links, GHCR digest, and smoke-test commands from the most recent detailed
 release-status report (v5.4.2) are recorded in
 [MIESC 5.4.2 Release Status](./docs/policies/RELEASE_STATUS_5.4.2.md).
@@ -544,7 +559,9 @@ Add to your Claude Desktop `config.json`:
 }
 ```
 
-**Available MCP tools:** `miesc_quick_scan`, `miesc_deep_scan`, `miesc_deep_audit`, `miesc_run_tool`, `miesc_run_layer`, `miesc_analyze_defi`, `miesc_apply_fix`, `miesc_validate_remediation`, `miesc_remediation_evidence_bundle`, `miesc_list_tools`, `miesc_doctor`
+**Available MCP tools (22):** `miesc_quick_scan`, `miesc_deep_scan`, `miesc_deep_audit`, `miesc_profile_scan`, `miesc_run_tool`, `miesc_run_layer`, `miesc_analyze_defi`, `miesc_correlate`, `miesc_filter_fp`, `miesc_detect_exploit_chains`, `miesc_verify_finding`, `miesc_generate_report`, `miesc_map_compliance`, `miesc_remediate`, `miesc_apply_fix`, `miesc_validate_remediation`, `miesc_remediation_evidence_bundle`, `miesc_get_metrics`, `miesc_get_status`, `miesc_list_tools`, `miesc_get_tool_info`, `miesc_read_contract`.
+
+The server targets the MCP Python SDK 1.x; `pip install 'miesc[mcp]'` pins it. If `miesc-mcp` reports an incompatible SDK, run `pip install 'mcp[cli]<2'`.
 
 ### REST API Remediation
 
@@ -571,7 +588,7 @@ report = run_full_audit("contract.sol")
 ```bash
 pip install "miesc[django]"
 python -m miesc.api.rest --host 127.0.0.1 --port 8000
-python -m src.utils.web_dashboard --results analysis/results --output analysis/dashboard
+python -m miesc.utils.web_dashboard --results ./results --output ./dashboard
 ```
 
 The open core exposes local REST/MCP automation and static report generation.
@@ -624,9 +641,9 @@ Contract.sol
  Report Generator --> JSON / SARIF / PDF / HTML / Markdown
 ```
 
-MIESC uses a dual-package architecture:
-- `miesc/` - Public API (stable, pip-installable)
-- `src/` - Internal implementation (35 analysis modules, ML pipeline, RAG, report generation)
+All code lives in the single `miesc/` package (pip-installable): CLI, adapters for the 50
+tools, ML pipeline, RAG, remediation and report generation. Run `miesc doctor` to see which
+tools are usable on your machine.
 
 See [ARCHITECTURE.md](./docs/ARCHITECTURE.md) for the full technical design with Mermaid diagrams.
 
@@ -730,6 +747,7 @@ The project self-assesses as meeting all 9 DPGA indicators — open license (AGP
 | Resource | Description |
 |----------|-------------|
 | [Installation Guide](./docs/INSTALLATION.md) | Complete setup instructions |
+| [Reproduce the papers](./REPRODUCE.md) | Re-run the Paper 1 SmartBugs profile from scratch and compare with the published artifact |
 | [Quick Start](./docs/guides/QUICKSTART.md) | Get running in 5 minutes |
 | [Architecture](./docs/ARCHITECTURE.md) | Technical design and layer details |
 | [Tool Reference](./docs/TOOLS.md) | All 35 analysis modules and their capabilities |
@@ -783,6 +801,15 @@ pip install solc-select
 solc-select install 0.4.26 0.5.17 0.8.20
 ```
 
+**`miesc-mcp` fails with `Cannot start the MIESC MCP server: an incompatible MCP SDK is installed`**
+The 2.x SDK renamed `FastMCP`. Pin the supported line:
+```bash
+pip install 'mcp[cli]>=1.2.0,<2'
+```
+
+**`miesc report -f pdf` exits 1 and writes `.html`**
+PDF support is an extra: `pip install 'miesc[pdf]'` (plus the system libraries below).
+
 **PDF report generation fails (`weasyprint` errors)**
 WeasyPrint needs system libraries:
 ```bash
@@ -803,7 +830,7 @@ Heavy LLM models (32B) on small contracts. Use `qwen2.5-coder:14b` in `~/.miesc/
 git clone https://github.com/fboiero/MIESC.git
 cd MIESC && pip install -e .[dev]
 pytest tests/ --no-cov              # Fast local run
-pytest tests/ --cov=src --cov-report=term-missing  # Coverage run
+pytest tests/ --cov=miesc --cov-report=term-missing  # Coverage run
 ```
 
 See [CONTRIBUTING.md](./.github/CONTRIBUTING.md) for guidelines. [CONTRIBUTING_ES.md](./.github/CONTRIBUTING_ES.md) disponible en espanol.
