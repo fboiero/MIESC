@@ -7,6 +7,8 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [6.1.1] - 2026-10-20
+
 ### Fixed
 
 - **Tool availability is probed once per run, not once per contract.** `run_tool`
