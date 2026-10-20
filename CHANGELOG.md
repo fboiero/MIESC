@@ -9,6 +9,16 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **Tool availability is probed once per run, not once per contract.** `run_tool`
+  caches each adapter's `is_available()` for the process;
+  `AdapterLoader.reset_availability()` clears it and the evaluator calls it per run.
+  SmartGuard's
+  `ollama list` probe has a 5 s timeout, which added ~12 min to a 143-contract
+  SmartBugs run when Ollama was unreachable.
+- **Evaluate results carry `version`, `timestamp` and `tools_used` at the top level
+  again** (as the 5.4.1 paper artifacts do), next to the `experiment_card`;
+  `miesc evaluate compare` reads the version from either place instead of printing
+  `MIESC ?`.
 - **`miesc[mcp]` installs a working server again.** The extra now pins the MCP
   Python SDK to the 1.x line (`mcp[cli]>=1.2.0,<2`); the 2.x SDK renamed `FastMCP`
   and `miesc-mcp` crashed with a misleading "MCP SDK not installed" message. The
@@ -26,6 +36,14 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **`miesc evaluate corpus|ablation --no-llm`**: first-class LLM-free evaluation
+  profile. Adapters now declare `requires_llm` in their metadata (SmartGuard, GPTScan,
+  GPTLens, iAudit, LlamaAudit, LLMSmartAudit, SmartLLM, LLMBugScanner, PropertyGPT,
+  FrontierLLM); the flag skips them without probing and records `llm_free: true` and
+  the skipped tools in the `experiment_card`. `make bench` and REPRODUCE.md use it
+  instead of the `OLLAMA_HOST=http://127.0.0.1:1` workaround.
+- **`make bench BENCH_TAG=<label>`** suffixes the dated result files so two runs on the
+  same day do not overwrite each other.
 - **`miesc[ml]` extra** (scikit-learn, numpy) for the built-in ML detectors that are
   part of the Paper 1 reproducible profile; also included in `miesc[full]`.
 - **`REPRODUCE.md`**: a from-scratch guide to re-run the Paper 1 SmartBugs profile

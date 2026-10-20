@@ -29,6 +29,7 @@ from miesc import __version__ as VERSION
 from miesc.cli.constants import LAYERS
 from miesc.cli.utils import (
     RICH_AVAILABLE,
+    AdapterLoader,
     console,
     error,
     info,
@@ -268,6 +269,24 @@ def _compute_metrics(tp: int, fp: int, fn: int) -> Dict[str, float]:
 # =============================================================================
 
 
+def _collect_tools_used(results: List[Dict[str, Any]], layers: List[int]) -> List[str]:
+    """Tools that returned a result for at least one contract, in layer order."""
+    seen: Set[str] = set()
+    for r in results:
+        seen.update(r.get("tools_used", []))
+    ordered = [
+        tool for layer in layers for tool in LAYERS.get(layer, {}).get("tools", []) if tool in seen
+    ]
+    extras = sorted(seen - set(ordered))  # e.g. plugin tools outside LAYERS
+    return ordered + extras
+
+
+def _run_version(data: Dict[str, Any]) -> str:
+    """MIESC version of a stored run: top-level ``version`` (paper artifacts) or the card's."""
+    version = data.get("version") or data.get("experiment_card", {}).get("version")
+    return str(version) if version else "?"
+
+
 def _evaluate_contract(
     contract_path: Path,
     ground_truth_categories: Set[str],
@@ -275,10 +294,13 @@ def _evaluate_contract(
     timeout: int,
     skip_unavailable: bool,
     use_intelligence: bool = True,
+    exclude_tools: Optional[Set[str]] = None,
 ) -> Dict[str, Any]:
     """Evaluate a single contract against ground truth.
 
-    Returns per-layer timing, findings, and match results.
+    Returns per-layer timing, findings, and match results. ``exclude_tools`` are
+    left out of every layer (neither probed nor run); ``--no-llm`` passes the
+    LLM-dependent adapters here.
     """
     result: Dict[str, Any] = {
         "contract": str(contract_path),
@@ -286,12 +308,15 @@ def _evaluate_contract(
         "layers": {},
         "aggregate": {"detected_categories": set(), "all_findings": []},
         "timing": {},
+        "tools_used": [],
     }
 
     for layer_num in layers:
         layer_start = time.perf_counter()
         try:
-            layer_results = run_layer(layer_num, str(contract_path), timeout)
+            layer_results = run_layer(
+                layer_num, str(contract_path), timeout, exclude_tools=exclude_tools
+            )
         except Exception as e:
             layer_results = [
                 {"tool": f"layer_{layer_num}", "status": "error", "findings": [], "error": str(e)}
@@ -320,12 +345,19 @@ def _evaluate_contract(
             if cat:
                 layer_detected.add(cat)
 
+        tool_status = {
+            str(tool_result.get("tool", "unknown")): str(tool_result.get("status", "unknown"))
+            for tool_result in layer_results
+        }
         result["layers"][layer_num] = {
             "findings_count": len(layer_findings),
             "detected_categories": list(layer_detected),
             "tools_run": len(layer_results),
+            "tool_status": tool_status,
+            "tools_skipped": [tool for tool, st in tool_status.items() if st == "skipped"],
             "time_seconds": round(layer_elapsed, 3),
         }
+        result["tools_used"].extend(tool for tool, st in tool_status.items() if st == "success")
 
         result["aggregate"]["detected_categories"].update(layer_detected)
         result["aggregate"]["all_findings"].extend(layer_findings)
@@ -415,6 +447,7 @@ def _run_ablation(
     timeout: int,
     skip_unavailable: bool,
     output_jsonl: Optional[Path],
+    exclude_tools: Optional[Set[str]] = None,
 ) -> Dict[str, Any]:
     """Run ablation study: evaluate each layer independently + combined."""
     ablation_results: Dict[str, Any] = {
@@ -440,7 +473,12 @@ def _run_ablation(
 
             gt_cats = ground_truth[contract_rel]
             eval_result = _evaluate_contract(
-                contract_path, gt_cats, [layer_num], timeout, skip_unavailable
+                contract_path,
+                gt_cats,
+                [layer_num],
+                timeout,
+                skip_unavailable,
+                exclude_tools=exclude_tools,
             )
 
             detected = set(eval_result["match"]["tp"])
@@ -485,7 +523,9 @@ def _run_ablation(
             continue
 
         gt_cats = ground_truth[contract_rel]
-        eval_result = _evaluate_contract(contract_path, gt_cats, layers, timeout, skip_unavailable)
+        eval_result = _evaluate_contract(
+            contract_path, gt_cats, layers, timeout, skip_unavailable, exclude_tools=exclude_tools
+        )
 
         detected = set(eval_result["match"]["tp"])
         false_pos = set(eval_result["match"]["fp"])
@@ -530,7 +570,19 @@ def _generate_experiment_card(
     results: Dict[str, Any],
     duration_s: float,
 ) -> Dict[str, Any]:
-    """Generate a reproducibility experiment card."""
+    """Generate a reproducibility experiment card.
+
+    ``results`` may carry ``llm_free`` (True when the run excluded every
+    LLM-dependent adapter) and ``skipped_tools`` (the adapters it excluded).
+    """
+    llm_free = bool(results.get("llm_free", False))
+    subcommand = results.get("subcommand", "corpus")
+    command = (
+        f"miesc evaluate {subcommand} {corpus_dir} "
+        f"--layers {','.join(map(str, layers))} --timeout {timeout}"
+    )
+    if llm_free:
+        command += " --no-llm"
     return {
         "experiment_card": {
             "tool": "MIESC",
@@ -544,17 +596,38 @@ def _generate_experiment_card(
             },
             "timeout_per_tool_s": timeout,
             "skip_unavailable": results.get("skip_unavailable", True),
+            "llm_free": llm_free,
+            "skipped_tools": sorted(results.get("skipped_tools", [])),
             "total_duration_s": round(duration_s, 1),
             "python_version": sys.version.split()[0],
             "platform": sys.platform,
         },
         "reproducibility": {
-            "command": f"miesc evaluate {corpus_dir} --layers {','.join(map(str, layers))} --timeout {timeout}",
+            "command": command,
             "seed": os.environ.get("MIESC_SEED", "not_set"),
             "llm_provider": os.environ.get("MIESC_LLM_PROVIDER", "not_set"),
             "llm_model": os.environ.get("MIESC_LLM_MODEL", "not_set"),
         },
     }
+
+
+def _llm_exclusions(no_llm: bool, layers: List[int]) -> tuple[Set[str], List[str]]:
+    """Resolve ``--no-llm`` into the tools to exclude and those actually affected.
+
+    Returns ``(exclude_tools, skipped_tools)``: the first is every adapter that
+    declares ``requires_llm`` (handed to ``run_layer``), the second the subset
+    that belongs to the evaluated layers (recorded in the experiment card).
+    """
+    if not no_llm:
+        return set(), []
+    exclude = AdapterLoader.llm_tools()
+    skipped = [
+        tool
+        for layer in layers
+        for tool in LAYERS.get(layer, {}).get("tools", [])
+        if tool in exclude
+    ]
+    return exclude, skipped
 
 
 # =============================================================================
@@ -632,6 +705,16 @@ def evaluate() -> None:
     default=None,
     help="Run LLM on missed contracts (e.g., --with-llm ollama or --with-llm claude)",
 )
+@click.option(
+    "--no-llm",
+    is_flag=True,
+    default=False,
+    help=(
+        "LLM-free profile: skip every adapter that needs an LLM backend "
+        "(SmartGuard, GPTScan, ...) even when Ollama is installed; "
+        "records llm_free=true in the experiment card"
+    ),
+)
 def evaluate_corpus(
     directory: str,
     layers: str,
@@ -644,6 +727,7 @@ def evaluate_corpus(
     config: str | None,
     no_intelligence: bool,
     with_llm: str | None,
+    no_llm: bool,
 ) -> None:
     """Evaluate MIESC against an annotated benchmark corpus.
 
@@ -655,6 +739,8 @@ def evaluate_corpus(
     Examples:
 
       miesc evaluate corpus benchmarks/datasets/smartbugs-curated/
+
+      miesc evaluate corpus benchmarks/datasets/smartbugs-curated/ --layers 1,6,7 --no-llm
 
       miesc evaluate corpus benchmarks/datasets/smartbugs-curated/ --layers 1,5 --jsonl results.jsonl
 
@@ -676,6 +762,7 @@ def evaluate_corpus(
                 layers = ",".join(str(layer) for layer in layers)
             timeout = cfg.get("timeout", timeout)
             skip_unavailable = cfg.get("skip_unavailable", skip_unavailable)
+            no_llm = bool(cfg.get("no_llm", no_llm))
             categories = cfg.get("categories", categories)
             if isinstance(categories, list):
                 categories = ",".join(categories)
@@ -692,11 +779,23 @@ def evaluate_corpus(
             error(f"Failed to load config: {e}")
             sys.exit(1)
 
+    # Checked after --config so a `no_llm: true` in the YAML cannot combine with --with-llm
+    if no_llm and with_llm:
+        raise click.UsageError("--no-llm and --with-llm are mutually exclusive")
+
     corpus_dir = Path(directory).resolve()
 
     # Parse layers
     layer_list = [int(x.strip()) for x in layers.split(",")]
     info(f"Evaluating layers: {layer_list}")
+
+    # LLM-free profile: never probe nor run the LLM-dependent adapters
+    exclude_tools, skipped_tools = _llm_exclusions(no_llm, layer_list)
+    if no_llm:
+        info(f"LLM-free profile: skipping {skipped_tools or 'no tools in these layers'}")
+
+    # Probe each tool's availability once per run, not once per contract
+    AdapterLoader.reset_availability()
 
     # Parse category filter
     category_filter: set[str] | None = None
@@ -759,6 +858,7 @@ def evaluate_corpus(
                     timeout,
                     skip_unavailable,
                     use_intelligence=not no_intelligence,
+                    exclude_tools=exclude_tools,
                 )
                 all_results.append(eval_result)
 
@@ -810,6 +910,7 @@ def evaluate_corpus(
                 timeout,
                 skip_unavailable,
                 use_intelligence=not no_intelligence,
+                exclude_tools=exclude_tools,
             )
             all_results.append(eval_result)
 
@@ -862,12 +963,21 @@ def evaluate_corpus(
     for cat, counts in sorted(category_metrics.items()):
         per_category[cat] = _compute_metrics(counts["tp"], counts["fp"], counts["fn"])
 
+    # Tools that produced a result in at least one contract, in layer order
+    tools_used = _collect_tools_used(all_results, layer_list)
+
     # Experiment card
     experiment_card = _generate_experiment_card(
         corpus_dir,
         layer_list,
         timeout,
-        {"corpus_size": len(contracts), "skip_unavailable": skip_unavailable},
+        {
+            "corpus_size": len(contracts),
+            "skip_unavailable": skip_unavailable,
+            "llm_free": no_llm,
+            "skipped_tools": skipped_tools,
+            "subcommand": "corpus",
+        },
         total_time,
     )
 
@@ -922,8 +1032,13 @@ def evaluate_corpus(
         print(f"  Hit Rate: {aggregate['hit_rate']:.1%}")  # noqa: T201
         print(f"  Time: {total_time:.1f}s")  # noqa: T201
 
-    # Save results
+    # Save results. ``version``, ``timestamp`` and ``tools_used`` stay at the top
+    # level as in the paper artifacts (``evaluate compare`` and external scripts
+    # read them there); ``experiment_card`` carries the full provenance.
     full_output = {
+        "version": VERSION,
+        "timestamp": experiment_card["experiment_card"]["timestamp"],
+        "tools_used": tools_used,
         **experiment_card,
         "aggregate": aggregate,
         "per_category": per_category,
@@ -1020,6 +1135,12 @@ def evaluate_corpus(
 @click.option(
     "--limit", type=int, default=None, help="Limit number of contracts (for quick testing)"
 )
+@click.option(
+    "--no-llm",
+    is_flag=True,
+    default=False,
+    help="LLM-free profile: skip every adapter that needs an LLM backend",
+)
 def evaluate_ablation(
     directory: str,
     layers: str,
@@ -1028,6 +1149,7 @@ def evaluate_ablation(
     output: str | None,
     jsonl: str | None,
     limit: int | None,
+    no_llm: bool,
 ) -> None:
     """Run per-layer ablation study.
 
@@ -1048,6 +1170,11 @@ def evaluate_ablation(
     layer_list = [int(x.strip()) for x in layers.split(",")]
 
     info(f"Ablation study: layers {layer_list}")
+
+    exclude_tools, skipped_tools = _llm_exclusions(no_llm, layer_list)
+    if no_llm:
+        info(f"LLM-free profile: skipping {skipped_tools or 'no tools in these layers'}")
+    AdapterLoader.reset_availability()
 
     # Load ground truth
     ground_truth = _load_ground_truth(corpus_dir)
@@ -1076,6 +1203,7 @@ def evaluate_ablation(
         timeout,
         skip_unavailable,
         Path(jsonl) if jsonl else None,
+        exclude_tools=exclude_tools,
     )
     total_time = time.perf_counter() - start_time
 
@@ -1136,14 +1264,23 @@ def evaluate_ablation(
 
     # Save results
     if output:
+        card = _generate_experiment_card(
+            corpus_dir,
+            layer_list,
+            timeout,
+            {
+                "corpus_size": len(ground_truth),
+                "skip_unavailable": skip_unavailable,
+                "llm_free": no_llm,
+                "skipped_tools": skipped_tools,
+                "subcommand": "ablation",
+            },
+            total_time,
+        )
         full_output = {
-            "experiment_card": _generate_experiment_card(
-                corpus_dir,
-                layer_list,
-                timeout,
-                {"corpus_size": len(ground_truth), "skip_unavailable": skip_unavailable},
-                total_time,
-            ),
+            "version": VERSION,
+            "timestamp": card["experiment_card"]["timestamp"],
+            **card,
             "ablation": ablation_results,
         }
         Path(output).write_text(json.dumps(full_output, indent=2, default=str), encoding="utf-8")
@@ -1403,10 +1540,8 @@ def evaluate_compare(run_a: str, run_b: str) -> None:
             print(f"  {metric}: {val_a:.1%} → {val_b:.1%} (Δ {val_b-val_a:+.1%})")  # noqa: T201
 
     # Version info
-    card_a = data_a.get("experiment_card", {})
-    card_b = data_b.get("experiment_card", {})
-    info(
-        f"Run A: MIESC {card_a.get('version', '?')} | " f"Run B: MIESC {card_b.get('version', '?')}"
-    )
+    version_a = _run_version(data_a)
+    version_b = _run_version(data_b)
+    info(f"Run A: MIESC {version_a} | Run B: MIESC {version_b}")
 
     success("Comparison complete")

@@ -174,6 +174,7 @@ class FrontierLLMAdapter(ToolAdapter):
             ],
             cost=0.01,  # ~$0.01 per contract (depends on size)
             requires_api_key=True,
+            requires_llm=True,
             is_optional=True,
         )
 

@@ -79,6 +79,9 @@ class ToolMetadata:
     cost: float = 0.0  # 0.0 = free, >0 = paid/API cost
     requires_api_key: bool = False
     is_optional: bool = True  # Default: all tools are optional (no vendor lock-in)
+    # True when analysis needs an LLM backend (Ollama or a hosted API). Lets
+    # LLM-free evaluation profiles (``miesc evaluate --no-llm``) skip the tool.
+    requires_llm: bool = False
 
 
 class ToolAdapter(ABC):
