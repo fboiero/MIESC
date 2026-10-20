@@ -105,7 +105,7 @@ OK gptscan: 4 findings in 49.7s
 | TOTAL    |    22 |
 +----------+-------+
 
-Tools executed: 12/29
+Tools executed: 12/50
 Report saved to results.json
 ```
 
@@ -185,7 +185,7 @@ Capa 9  Consenso y Reportes      Consenso Bayesiano, Enriquecimiento RAG, Report
 | **Herramientas de seguridad externas** | 13 | Slither, Mythril, Echidna, Foundry, Halmos, Aderyn, Semgrep |
 | **Módulos de análisis LLM** | 6 | SmartLLM, GPTScan, PropertyGPT (vía Ollama local) |
 | **Analizadores internos** | 16 | MEV detector, gas analyzer, threat model, clone detector |
-| **Total de módulos de análisis** | **35** | A través de 9 técnicas complementarias |
+| **Total de módulos de análisis** | **35** | 13 + 6 + 16, a través de 9 técnicas. El titular de "50 herramientas" cuenta el stack completo de adapters/capas en `miesc/cli/constants.py`; `miesc doctor` muestra cuántas están disponibles en tu máquina. |
 
 ### vs. SmartBugs 2.0 (competidor más cercano)
 
@@ -220,7 +220,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: fboiero/MIESC@v5
+      - uses: fboiero/MIESC@v6.0.0
         with:
           path: contracts/
           mode: scan
@@ -343,7 +343,7 @@ Las capas LLM de MIESC (Capa 5) usan Ollama para el análisis local con IA. La c
 # 1. Instalar e iniciar Ollama en tu HOST (no dentro de Docker)
 # Descargá desde https://ollama.com
 ollama serve &
-ollama pull qwen2.5-coder:14b   # Mejor modelo para análisis de código
+ollama pull qwen2.5-coder:14b   # Recomendado: rápido, ~9 GB (usá :32b para mayor calidad de auditoría)
 ollama pull deepseek-coder:6.7b  # Alternativa más liviana
 
 # 2. Escanear con Ollama del host (macOS)
@@ -734,7 +734,7 @@ sudo apt install libpango-1.0-0 libpangoft2-1.0-0  # Linux
 ```
 
 **`miesc audit full` corre lento (>10 min por contrato)**
-Modelos LLM pesados (32B) en contratos pequeños. Usá `qwen2.5-coder:14b` en `~/.miesc/config.yaml` o ejecutá un escaneo rápido: `miesc audit quick`.
+Las capas Ollama auto-seleccionan el modelo más capaz instalado (prefieren `qwen2.5-coder:32b` por calidad de auditoría), así que un modelo 32B en un contrato chico es lento. Forzá el modelo liviano con `--model qwen2.5-coder:14b`, configurá `qwen2.5-coder:14b` en `~/.miesc/config.yaml`, o ejecutá un escaneo rápido: `miesc audit quick`.
 
 </details>
 
