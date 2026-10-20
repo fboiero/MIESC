@@ -2,11 +2,6 @@
   <!-- Background -->
   <rect width="800" height="550" fill="#f8f9fa"/>
   
-  <!-- Title -->
-  <text x="400" y="30" text-anchor="middle" font-size="18" font-weight="bold" fill="#2c3e50">
-    Figura 2.3. Patrón Adapter en MIESC
-  </text>
-  
   <!-- ToolProtocol Interface Box -->
   <rect x="280" y="50" width="240" height="120" fill="white" stroke="#3498db" stroke-width="2" rx="4"/>
   

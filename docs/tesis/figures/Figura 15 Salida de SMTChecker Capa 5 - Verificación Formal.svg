@@ -2,11 +2,6 @@
   <!-- Background -->
   <rect width="850" height="320" fill="#ffffff"/>
   
-  <!-- Title -->
-  <text x="425" y="28" text-anchor="middle" font-size="18" font-weight="bold" fill="#2c3e50">
-    Figura 15: Salida de SMTChecker (Capa 5 - Verificación Formal)
-  </text>
-  
   <!-- Terminal window -->
   <rect x="40" y="45" width="770" height="215" fill="#1e1e1e" rx="8"/>
   

@@ -76,13 +76,17 @@ HEADER_TEX = r"""
 \usetikzlibrary{calc}
 % Art. 24.6: figure captions below, table captions above.
 \usepackage{caption}
-\captionsetup[figure]{position=below}
+\captionsetup[figure]{position=below,labelformat=empty}
 \captionsetup[table]{position=above}
 % Note: box-drawing glyphs inside code blocks are covered by \setmonofont{Menlo};
 % rare diagonal glyphs in prose may still be absent if the main font lacks them.
 % Tolerate over-wide code/tables instead of failing the build.
 \setlength{\emergencystretch}{3em}
 \usepackage{float}
+% Wrap over-long lines in tool outputs (plain ``` blocks -> verbatim; highlighted -> Highlighting).
+\usepackage{fvextra}
+\RecustomVerbatimEnvironment{verbatim}{Verbatim}{breaklines=true,breakanywhere=true,fontsize=\small}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,breakanywhere,fontsize=\small,commandchars=\\\{\}}
 """
 
 RAW_NEWPAGE = "\n\n```{=latex}\n\\newpage\n```\n\n"
@@ -207,7 +211,7 @@ _LETTER_HEADING = re.compile(r"^(## [A-ZÑ])\s*$", re.M)
 
 
 def _unlist_letter_headings(md: str) -> str:
-    return _LETTER_HEADING.sub(r"\1 {.unlisted}", md)
+    return _LETTER_HEADING.sub(r"\1 {.unnumbered .unlisted}", md)
 
 
 def read(name: str) -> str:
@@ -223,6 +227,17 @@ def read(name: str) -> str:
     return text
 
 
+# Art. 24.6: one caption per figure, BELOW it. Chapters carry a bold "**Figura X.Y.** text"
+# line above each image and pandoc's implicit_figures would add a second, flat-numbered
+# caption below ("Figura N:"); merge the bold line into the image alt so the float shows a
+# single caption "Figura X.Y. text" (labelformat=empty removes pandoc's prefix).
+_FIG_PAIR = re.compile(r"^\*\*Figura (\d+\.\d+)\.\*\* ([^\n]+)\n\n(!\[)[^\]]*(\]\([^)]+\))", re.M)
+
+
+def _merge_figure_captions(md: str) -> str:
+    return _FIG_PAIR.sub(lambda m: f"{m.group(3)}Figura {m.group(1)}. {m.group(2)}{m.group(4)}", md)
+
+
 def assemble() -> str:
     parts: list[str] = []
     # Cover = reglamento Anexo 1 titlepage (replaces PORTADA_TESIS.md, whose
@@ -235,7 +250,7 @@ def assemble() -> str:
             if body:
                 parts.append(body)
                 parts.append(RAW_NEWPAGE)
-    return _replace_symbols_outside_code("\n\n".join(parts))
+    return _merge_figure_captions(_replace_symbols_outside_code("\n\n".join(parts)))
 
 
 def main() -> int:

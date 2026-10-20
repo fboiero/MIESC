@@ -49,7 +49,7 @@ La selección de contratos de prueba sigue las recomendaciones de Ghaleb y Patta
 **Tabla 5.2.** Corpus de contratos de prueba
 
 | Contrato | LOC | Vulnerabilidades | SWC IDs | Fuente |
-|----------|-----|------------------|---------|--------|
+|---------------------------|------|------------------|----------------------------|----------------|
 | VulnerableBank.sol | 99 | 2 | 107 | Diseño propio |
 | UnsafeToken.sol | 142 | 10 | 101, 104, 114, 116, 120, 128 | Diseño propio |
 | AccessControlFlawed.sol | 121 | 7 | 105, 106, 115 | Diseño propio |
@@ -409,7 +409,7 @@ Se ejecutó MIESC sobre un corpus de prueba de 4 contratos de diseño propio (61
 **Tabla 5.5.** Corpus de prueba (`data/audit/`)
 
 | Contrato | LOC | Vulns documentadas | Categorías principales |
-|----------|-----|--------------------|------------------------|
+|---------------------------|------|--------------------|------------------------------------------|
 | VulnerableBank.sol | 99 | 2 | Reentrancy (SWC-107) |
 | UnsafeToken.sol | 142 | 10 | Múltiples (SWC-101/104/114/116/120/128) |
 | AccessControlFlawed.sol | 121 | 7 | Access control (SWC-105/106/115) |
