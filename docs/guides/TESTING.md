@@ -60,7 +60,7 @@ pytest tests/ -x --no-cov
 pytest tests/ -k "reentrancy" --no-cov
 
 # Run with coverage
-pytest tests/ --cov=src --cov-report=term-missing
+pytest tests/ --cov=miesc --cov-report=term-missing
 ```
 
 ### Test Markers
@@ -361,10 +361,10 @@ MIESC targets **80% code coverage**. Check coverage with:
 
 ```bash
 # Terminal report
-pytest tests/ --cov=src --cov-report=term-missing
+pytest tests/ --cov=miesc --cov-report=term-missing
 
 # HTML report
-pytest tests/ --cov=src --cov-report=html
+pytest tests/ --cov=miesc --cov-report=html
 open htmlcov/index.html
 ```
 

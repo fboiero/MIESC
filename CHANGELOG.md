@@ -7,7 +7,32 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **`miesc[mcp]` installs a working server again.** The extra now pins the MCP
+  Python SDK to the 1.x line (`mcp[cli]>=1.2.0,<2`); the 2.x SDK renamed `FastMCP`
+  and `miesc-mcp` crashed with a misleading "MCP SDK not installed" message. The
+  server now tells apart a missing SDK from an incompatible one.
+- **`miesc report -f pdf` no longer reports success without a PDF.** When neither
+  WeasyPrint nor pandoc is available the HTML fallback is still written, but the
+  command exits 1 and says how to install `miesc[pdf]`.
+- **`scripts/verify_installation.py`** no longer fails a minimal `pip install miesc`
+  on Django (an extra); it checks the real core dependencies, lists optional extras
+  as warnings and reports available tools consistently with `miesc doctor`.
+- **Makefile** targets `install`, `install-dev`, `bench`, `ablation`, `reproduce`,
+  `dataset-verify` pointed at files removed in the `src/ → miesc/` unification; they
+  now wrap the canonical scripts (`benchmarks/verify_paper_claims.py`,
+  `miesc evaluate corpus --layers 1,6,7`, `paper1_ablation_summary.py`).
+
 ### Added
+
+- **`miesc[ml]` extra** (scikit-learn, numpy) for the built-in ML detectors that are
+  part of the Paper 1 reproducible profile; also included in `miesc[full]`.
+- **`REPRODUCE.md`**: a from-scratch guide to re-run the Paper 1 SmartBugs profile
+  and compare it with the published artifact, with the tolerance to expect.
+- Documentation refresh: README and `docs/INSTALLATION*.md` no longer reference the
+  removed `src/` package, list the 22 real MCP tools, document `solc-select` as a
+  prerequisite and the `qwen2.5-coder` defaults.
 
 - **Calibrated finding confidence.** Every finding now carries a `confidence`
   (0-1) and `confidence_level` (high/medium/low), blending detector reliability

@@ -1,4 +1,4 @@
-# MIESC v6.0.0 - Guía de Instalación Completa
+# MIESC 6.1.0 - Guía de Instalación Completa
 
 **[English Version](INSTALLATION.md)**
 
@@ -25,14 +25,16 @@ Para usuarios que quieren comenzar rápidamente con funcionalidad básica:
 git clone https://github.com/fboiero/MIESC.git
 cd MIESC
 
-# Instalar MIESC y dependencias core
+# Instalar MIESC y dependencias core (Slither viene incluido)
 pip install -e .
 
-# Instalar Slither (requerido para análisis básico)
-pip install slither-analyzer
+# Instalar los compiladores de Solidity que Slither va a necesitar (se eligen por pragma)
+pip install solc-select
+solc-select install 0.4.26 0.5.17 0.6.12 0.7.6 0.8.20
 
 # Verificar instalación
 python scripts/verify_installation.py
+miesc doctor
 ```
 
 ---
@@ -96,19 +98,21 @@ pip install -e .[dev]
 
 ```bash
 pip install solc-select
-solc-select install 0.8.20
+# Una versión por cada línea mayor que analices. MIESC elige, por contrato, la
+# versión instalada que satisface su pragma (SmartBugs-curated es mayormente 0.4.x).
+solc-select install 0.4.26 0.5.17 0.6.12 0.7.6 0.8.20
 solc-select use 0.8.20
 
 # Verificar
 solc --version
 ```
 
-### Paso 5: Instalar Herramientas de Análisis Core
+### Paso 5: Verificar las Herramientas de Análisis Core
+
+Slither es dependencia core de MIESC, así que ya está instalado. Aderyn y Solhint completan
+la capa estática usada en los papers (`cargo install aderyn`, `npm install -g solhint`).
 
 ```bash
-# Análisis Estático (Capa 1)
-pip install slither-analyzer
-
 # Verificar
 slither --version
 ```
@@ -123,13 +127,12 @@ MIESC integra 50 herramientas distribuidas en 35 módulos de análisis, organiza
 
 | Herramienta | Instalación | Requerida |
 |-------------|-------------|-----------|
-| Slither | `pip install slither-analyzer` | Sí |
+| Slither | incluido en `pip install miesc` | Sí |
 | Aderyn | `cargo install aderyn` | Recomendada |
 | Solhint | `npm install -g solhint` | Recomendada |
 
 ```bash
-# Instalar todas las herramientas de Capa 1
-pip install slither-analyzer
+# Instalar el resto de las herramientas de Capa 1 (Slither viene con MIESC)
 cargo install aderyn
 npm install -g solhint
 ```
@@ -206,9 +209,9 @@ pip install eth-wake
 # Instalar Ollama
 curl -fsSL https://ollama.ai/install.sh | sh
 
-# Descargar modelos requeridos
-ollama pull deepseek-coder:6.7b
-ollama pull codellama
+# Descargar los modelos por defecto
+ollama pull qwen2.5-coder:14b   # análisis de código (~9 GB)
+ollama pull qwen2.5-coder:32b   # verificación (~20 GB, 24+ GB de RAM)
 ```
 
 ### Capa 6: Detección ML (5 herramientas)
@@ -274,15 +277,15 @@ Para un entorno completo y aislado con todas las herramientas preinstaladas:
 ### ARM64 (Apple Silicon)
 
 ```bash
-docker build -t miesc:v6.0.0 .
-docker run --rm -v $(pwd):/contracts miesc:v6.0.0 audit quick /contracts/MiContrato.sol
+docker build -t miesc:local .
+docker run --rm -v $(pwd):/contracts miesc:local audit quick /contracts/MiContrato.sol
 ```
 
 ### x86_64 (Intel/AMD)
 
 ```bash
-docker build --platform linux/amd64 -f Dockerfile.x86 -t miesc:v6.0.0-x86 .
-docker run --platform linux/amd64 --rm -v $(pwd):/contracts miesc:v6.0.0-x86 audit quick /contracts/MiContrato.sol
+docker build --platform linux/amd64 -f Dockerfile.x86 -t miesc:local-x86 .
+docker run --platform linux/amd64 --rm -v $(pwd):/contracts miesc:local-x86 audit quick /contracts/MiContrato.sol
 ```
 
 ### Imagen Pre-construida
@@ -318,29 +321,37 @@ miesc doctor
 Salida esperada:
 
 ```
-MIESC v6.0.0 - Verificación de Instalación
+MIESC v6.1.0 - Installation Verification
 ============================================================
 
-1. Entorno Python
+1. Python Environment
 ----------------------------------------
   [OK] Python 3.12.x
 
-2. Dependencias Core de Python
+2. Core Python Dependencies
 ----------------------------------------
-  [OK] slither-analyzer (0.10.x)
-  [OK] django (5.x)
-  [OK] djangorestframework (3.14.x)
+  [OK] slither-analyzer (0.11.x)
+  [OK] pydantic (2.x)
   ...
 
-5. Registro de Adaptadores MIESC
+2b. Optional Python Extras
 ----------------------------------------
-  [OK] Todos los 50/50 adaptadores registrados
-  [OK] XX herramientas actualmente disponibles
+  [WARN] scikit-learn - optional, install with: pip install 'miesc[ml]'
+  ...
+
+5. MIESC Adapter Registration
+----------------------------------------
+  [OK] All 50/50 adapters registered
+  [OK] 43/50 tools currently available (run `miesc doctor` for the list)
 
 Resumen de Instalación
 ============================================================
 ¡MIESC está listo para usar!
 ```
+
+Solo Python y las dependencias core deciden el código de salida; las herramientas opcionales
+que falten se informan como `[WARN]`. La cantidad de herramientas disponibles depende de lo
+que hayas instalado. (El script imprime en inglés.)
 
 ---
 
@@ -388,8 +399,8 @@ ollama serve &
 # Verificar estado
 ollama list
 
-# Descargar modelos requeridos
-ollama pull deepseek-coder:6.7b
+# Descargar los modelos por defecto
+ollama pull qwen2.5-coder:14b
 ```
 
 ### Falta Rust/Cargo
@@ -432,8 +443,9 @@ Después de la instalación:
 1. **Inicio Rápido**: `miesc audit quick contrato.sol`
 2. **Auditoría Completa**: `miesc audit full contrato.sol`
 3. **API REST local**: `python -m miesc.api.rest --host 127.0.0.1 --port 8000`
-4. **Reportes estáticos**: `python -m src.utils.web_dashboard --results analysis/results --output analysis/dashboard`
-5. **Documentación**: [fboiero.github.io/MIESC](https://fboiero.github.io/MIESC)
+4. **Reportes estáticos**: `python -m miesc.utils.web_dashboard --results ./results --output ./dashboard`
+5. **Reproducir los resultados del paper**: [REPRODUCE.md](https://github.com/fboiero/MIESC/blob/main/REPRODUCE.md)
+6. **Documentación**: [fboiero.github.io/MIESC](https://fboiero.github.io/MIESC)
 
 ---
 
@@ -445,4 +457,4 @@ Después de la instalación:
 
 ---
 
-**Versión**: 6.0.0 | **Última Actualización**: Mayo 2026
+**Versión**: 6.1.0 | **Última Actualización**: Octubre 2026

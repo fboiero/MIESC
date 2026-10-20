@@ -2024,6 +2024,7 @@ def report(
             # Generate PDF from HTML using weasyprint (preferred) or pandoc fallback
             html_content = _markdown_to_html(output_content, title or "MIESC Security Report")
             pdf_generated = False
+            pdf_degraded_to_html = False
 
             # Try weasyprint first (available in Docker image)
             try:
@@ -2074,20 +2075,32 @@ def report(
                     success(f"PDF report saved to {output_path}")
                     return
                 except FileNotFoundError:
+                    temp_html.unlink(missing_ok=True)
                     warning(
                         "PDF generation requires weasyprint or pandoc. "
-                        "Install with: pip install weasyprint"
+                        "Install with: pip install 'miesc\\[pdf]'"
                     )
                     output_path = output_path.with_suffix(".html")
                     output_content = html_content
+                    pdf_degraded_to_html = True
                     warning(f"Saved as HTML instead: {output_path}")
                 except subprocess.CalledProcessError as e:
+                    temp_html.unlink(missing_ok=True)
                     warning(f"PDF generation failed: {e}")
                     output_path = output_path.with_suffix(".html")
                     output_content = html_content
+                    pdf_degraded_to_html = True
                     warning(f"Saved as HTML instead: {output_path}")
 
         output_path.write_text(output_content, encoding="utf-8")
+        if output_format == "pdf" and pdf_degraded_to_html:
+            # Do not report success for a file the user did not ask for: the
+            # HTML is kept, but the exit code tells scripts/CI that no PDF exists.
+            error(
+                f"No PDF was produced; HTML fallback written to {output_path}. "
+                "Install PDF support with: pip install 'miesc\\[pdf]'"
+            )
+            sys.exit(1)
         success(f"Report saved to {output_path}")
     else:
         # Output to stdout

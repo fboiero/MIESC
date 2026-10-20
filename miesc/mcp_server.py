@@ -40,10 +40,22 @@ _project_root = Path(__file__).parent.parent
 if str(_project_root) not in sys.path:
     sys.path.insert(0, str(_project_root))
 
+_MCP_IMPORT_ERROR: Optional[str] = None
 try:
     from mcp.server.fastmcp import FastMCP
-except ImportError:
+except ImportError as _exc:
     FastMCP = None  # type: ignore[assignment,misc]
+    try:
+        import mcp as _mcp_pkg  # noqa: F401
+
+        # The SDK is installed but is the 2.x line, where FastMCP was renamed.
+        _MCP_IMPORT_ERROR = (
+            "an incompatible MCP SDK is installed (mcp 2.x renamed FastMCP). "
+            "Install the supported line with: pip install 'mcp[cli]>=1.2.0,<2' "
+            f"(original error: {_exc})"
+        )
+    except ImportError:
+        _MCP_IMPORT_ERROR = "MCP SDK not installed. Install with: pip install 'miesc[mcp]'"
 
 from miesc import __version__  # noqa: E402
 
@@ -60,7 +72,7 @@ class _MissingMCP:
         return decorator
 
     def run(self, *_args: Any, **_kwargs: Any) -> None:
-        raise RuntimeError("MCP SDK not installed. Install with: pip install 'mcp[cli]>=1.0.0'")
+        raise RuntimeError(f"Cannot start the MIESC MCP server: {_MCP_IMPORT_ERROR}")
 
 
 # Initialize FastMCP server when available; otherwise keep helpers importable.

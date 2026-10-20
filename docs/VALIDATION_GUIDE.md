@@ -388,7 +388,7 @@ miesc export results/analysis.json -f csv -o results/findings.csv
 
 ```bash
 # Usar el dashboard web
-python -m src.utils.web_dashboard --results results/ --output dashboard/
+python -m miesc.utils.web_dashboard --results results/ --output dashboard/
 
 # Abrir en navegador
 open dashboard/index.html  # macOS
