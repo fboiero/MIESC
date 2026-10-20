@@ -110,3 +110,45 @@ class TestParseResponse:
     def test_unparseable_returns_empty(self):
         a = FrontierLLMAdapter()
         assert a._parse_response("no structured findings here") == []
+
+
+class TestParseResponseRepairFallback:
+    """Local models often emit unescaped double quotes inside Solidity snippets
+    (e.g. ``call{value: balance}("")``), producing JSON that the built-in
+    strategies cannot recover. The optional json-repair fallback (miesc[llm])
+    rescues the findings instead of returning zero. Regression for the E2E
+    finding where ``--model ollama`` yielded 0 LLM findings on valid output."""
+
+    def test_recovers_unescaped_quotes_in_snippet(self):
+        import pytest
+
+        from miesc.adapters import frontier_llm_adapter as mod
+
+        if mod._repair_json is None:
+            pytest.skip("json-repair (miesc[llm]) not installed")
+
+        a = FrontierLLMAdapter()
+        text = (
+            "```json\n[\n"
+            '  {"title": "Reentrancy", "severity": "Critical", '
+            '"description": "external call msg.sender.call{value: balance}("") '
+            'before state update"}\n'
+            "]\n```"
+        )
+        # Sanity: the extracted array is genuinely invalid JSON.
+        inner = text[text.find("[") : text.rfind("]") + 1]
+        import pytest as _pytest
+
+        with _pytest.raises(json.JSONDecodeError):
+            json.loads(inner)
+
+        out = a._parse_response(text)
+        assert len(out) == 1
+        assert out[0]["title"] == "Reentrancy"
+
+    def test_valid_json_still_parses_without_repair_regression(self):
+        a = FrontierLLMAdapter()
+        text = '[{"title": "Overflow", "severity": "medium", "line": 3}]'
+        out = a._parse_response(text)
+        assert len(out) == 1
+        assert out[0]["title"] == "Overflow"

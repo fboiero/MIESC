@@ -40,6 +40,14 @@ from miesc.core.tool_protocol import (
 
 logger = logging.getLogger(__name__)
 
+# Optional tolerant-JSON fallback for malformed LLM output (e.g. local models
+# emitting unescaped quotes inside Solidity snippets). Installed via miesc[llm];
+# parsing degrades to the built-in strategies when it is absent.
+try:  # pragma: no cover - import guard
+    from json_repair import repair_json as _repair_json
+except ImportError:  # pragma: no cover - optional dependency
+    _repair_json = None  # type: ignore[assignment]
+
 
 # ---------------------------------------------------------------------------
 # Tool-use conversational surface (additive) — provider-neutral spec + result
@@ -1756,7 +1764,33 @@ Respond with a JSON array."""
                 except json.JSONDecodeError:
                     pass
 
+        # Final fallback: tolerant repair for malformed JSON the strategies above
+        # cannot recover — most often local models emitting unescaped double
+        # quotes inside Solidity snippets (e.g. `call{value: balance}("")`), which
+        # terminate the JSON string early. Optional dependency (miesc[llm]).
+        if _repair_json is not None:
+            for attempt_text in (text_clean, text):
+                start = attempt_text.find("[")
+                end = attempt_text.rfind("]")
+                if start != -1 and end > start:
+                    try:
+                        repaired = _repair_json(attempt_text[start : end + 1], return_objects=True)
+                    except Exception:  # pragma: no cover - defensive
+                        continue
+                    if isinstance(repaired, list):
+                        valid = [f for f in repaired if isinstance(f, dict)]
+                        if valid:
+                            logger.info(
+                                "FrontierLLM: recovered %d finding(s) via tolerant JSON repair",
+                                len(valid),
+                            )
+                            return valid
+
         logger.warning(f"FrontierLLM: Could not parse response ({len(text)} chars)")
+        # Surface the raw response under DEBUG so unparseable local-LLM output
+        # (e.g. prose or malformed JSON triggered by injected RAG context) can be
+        # diagnosed without re-running. Truncated to keep logs manageable.
+        logger.debug("FrontierLLM: unparseable response (first 2000 chars):\n%s", text[:2000])
         return []
 
     def normalize_findings(self, raw_output: Any) -> List[Dict[str, Any]]:
