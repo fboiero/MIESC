@@ -200,6 +200,55 @@ If you need the paper's precision on `main`, the item to fix is the FP gap, not 
 the `short_addresses` and `front_running` patterns live in
 `miesc/detectors/smartbugs_detectors.py` (wired by `miesc/adapters/smartbugs_detector_adapter.py`).
 
+### Tightened `short_addresses` / `front_running` patterns (2026-10-20)
+
+Same command and environment as above (`make bench`, `--no-llm`), after tightening the two
+layer 6 patterns. Artifact:
+`benchmarks/results/smartbugs_eval_layers_1_6_7_20261020_fp_tightened.{json,jsonl}`.
+
+| Metric | Paper (v5.4.1) | Re-run on `main` (morning) | Tightened patterns | Δ vs. paper |
+|---|---|---|---|---|
+| Recall (contracts) | 137/143 = 95.8 % | 143/143 = 100 % | **143/143 = 100 %** | +6 contracts |
+| Precision | 22.2 % (481 FP) | 20.5 % (553 FP) | **22.4 % (496 FP)** | +0.2 pt |
+| F1 | 36.0 % | 34.1 % | **36.6 %** | +0.5 pt |
+| `short_addresses` TP / FP | 0 / 0 | 1 / 42 | 1 / 6 | |
+| `front_running` TP / FP | 2 / 5 | 4 / 43 | 4 / 20 | |
+
+What changed (`miesc/detectors/smartbugs_detectors.py`, unit tests in
+`tests/test_smartbugs_detectors.py` use the ground-truth contracts as positives and former
+false positives as negatives):
+
+- `short_addresses` now needs the DASP scenario, not just an `(address, uint)` signature:
+  an externally callable function with a body, compiled for solc < 0.5 (0.5+ rejects short
+  calldata), not owner-only, whose body credits the address parameter with the amount
+  parameter (ledger write or ether send), and no `msg.data.length` check. Interface
+  declarations, `internal` helpers and `AddMessage(address, uint, string)`-style loggers no
+  longer fire. The 6 remaining FPs are 0.4.x ERC20 `transfer` functions identical in shape
+  to the labelled contract.
+- `front_running` dropped the two line patterns that produced most of the noise: any
+  `keccak256`/`sha3` call (function selectors, `sha3(msg.data)` in multisig modifiers,
+  randomness) and any `function approve(...)` line (including interface declarations). The
+  hash-puzzle check is now per function (hash of a *parameter* compared with `==`, then a
+  transfer in the same function); the approve check needs an implemented `approve` that
+  overwrites the allowance without a zero-allowance guard or increase/decrease helpers; the
+  TOD check needs `msg.sender.transfer(<reward state variable>)`. Only 3 of the 20 remaining
+  `front_running` FPs come from this detector (unguarded ERC20 `approve` functions, same
+  shape as the labelled contract). 15 are the layer 7 `defi` adapter's "MEV Exposure"
+  finding (plus `mev_detector` on one contract), mapped to `front_running` by the keyword
+  fallback in `evaluate._normalize_category`; 2 are the intelligence engine's own
+  `front_running` source patterns in `miesc/core/intelligence.py` (`require(sha3(...) ==`,
+  `function approve(`), which the detector used to mask. Both are separate code paths, left
+  for a separate change.
+
+The 496 include the two `unchecked_low_level_calls` FPs on `reentrancy/*` contracts that the
+`--no-llm` re-run attributed to Slither drift (553 in the morning run, 555 with `--no-llm`);
+the comparison above therefore understates the gain by two.
+
+Note on the paper figures: the paper's JSON summary reports `front_running` 2 TP / 5 FP and
+`short_addresses` 0 / 0 (481 FP in total), while the per-contract `.jsonl` next to it records
+4 / 43 and 1 / 42 (569 FP). The published number is the JSON summary; the comparison above
+uses it. The frozen artifacts are not modified.
+
 
 ## 5. What is not covered here
 

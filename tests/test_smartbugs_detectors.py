@@ -762,8 +762,10 @@ class TestShortAddressDetectorEdgeCases:
         code = """
         pragma solidity ^0.4.24;
         contract Token {
+            mapping(address => uint) balances;
             function transferFrom(address from, address to, uint amount) public {
-                // transfer logic
+                balances[from] -= amount;
+                balances[to] += amount;
             }
         }
         """
@@ -775,13 +777,79 @@ class TestShortAddressDetectorEdgeCases:
         code = """
         pragma solidity ^0.4.24;
         contract Token {
+            mapping(address => mapping(address => uint)) allowed;
             function approve(address spender, uint value) public {
-                // approve logic
+                allowed[msg.sender][spender] = value;
             }
         }
         """
         findings = detector.detect(code)
         assert len(findings) > 0
+
+    def test_ignores_declaration_without_body(self, detector):
+        """An interface declaration cannot be the attacked entry point."""
+        code = """
+        pragma solidity ^0.4.24;
+        contract ERC20Interface {
+            function transfer(address to, uint256 tokens) public returns (bool success);
+        }
+        """
+        assert detector.detect(code) == []
+
+    def test_ignores_internal_helper(self, detector):
+        """Internal functions never decode calldata."""
+        code = """
+        pragma solidity ^0.4.24;
+        contract Game {
+            mapping(address => uint) balances;
+            function credit(address player, uint amount) internal {
+                balances[player] += amount;
+            }
+        }
+        """
+        assert detector.detect(code) == []
+
+    def test_ignores_function_that_does_not_credit_the_address(self, detector):
+        """(address, uint) parameters that only get logged are not a short-address target."""
+        code = """
+        pragma solidity ^0.4.24;
+        contract Log {
+            struct Message { address sender; uint val; string data; }
+            Message[] public history;
+            function AddMessage(address _adr, uint _val, string _data) public {
+                history.push(Message(_adr, _val, _data));
+            }
+        }
+        """
+        assert detector.detect(code) == []
+
+    def test_ignores_owner_only_function(self, detector):
+        """An owner-only payout has no third-party caller to trick."""
+        code = """
+        pragma solidity ^0.4.24;
+        contract Treasury {
+            address owner;
+            modifier onlyOwner() { require(msg.sender == owner); _; }
+            function sendMoney(address target, uint value) public onlyOwner {
+                target.transfer(value);
+            }
+        }
+        """
+        assert detector.detect(code) == []
+
+    def test_ignores_solc_05_and_later(self, detector):
+        """solc >= 0.5 reverts on short calldata, so the attack is impossible."""
+        code = """
+        pragma solidity ^0.5.0;
+        contract Token {
+            mapping(address => uint) balances;
+            function transfer(address to, uint amount) public {
+                balances[msg.sender] -= amount;
+                balances[to] += amount;
+            }
+        }
+        """
+        assert detector.detect(code) == []
 
     def test_ignores_with_length_check(self, detector):
         """Test that msg.data.length check is recognized as protection."""
@@ -1073,3 +1141,88 @@ def test_arithmetic_skip_conditions():
     findings = SmartBugsDetectorEngine().analyze(src)
     # all arithmetic ops here are in skip contexts -> none should be flagged as overflow
     assert all("Overflow" not in f.title for f in findings)
+
+
+# =============================================================================
+# Tightened short_addresses / front_running patterns on SmartBugs-curated
+# =============================================================================
+
+SMARTBUGS_DATASET = PROJECT_ROOT / "benchmarks" / "datasets" / "smartbugs-curated" / "dataset"
+
+pytestmark_dataset = pytest.mark.skipif(
+    not SMARTBUGS_DATASET.is_dir(), reason="SmartBugs-curated dataset not checked out"
+)
+
+
+def _dataset_source(relative: str) -> str:
+    return (SMARTBUGS_DATASET / relative).read_text(encoding="utf-8", errors="replace")
+
+
+@pytestmark_dataset
+class TestShortAddressOnSmartBugsCurated:
+    """Positive = the ground-truth contract; negative = former false positives."""
+
+    @pytest.fixture
+    def detector(self):
+        return ShortAddressDetector()
+
+    def test_ground_truth_contract_is_reported_at_the_labelled_line(self, detector):
+        findings = detector.detect(_dataset_source("short_addresses/short_address_example.sol"))
+        assert [f.line for f in findings] == [18]
+        assert findings[0].category == "short_addresses"
+        assert "sendCoin" in findings[0].description
+
+    @pytest.mark.parametrize(
+        "contract",
+        [
+            # AddMessage(address, uint, string): logs the arguments, credits nothing
+            "reentrancy/0xb93430ce38ac4a6bb47fb1fc085ea669353fd89e.sol",
+            # only an ERC20 interface declaration without a body
+            "unchecked_low_level_calls/0x52d2e0f9b01101a59b38a3d05c80b7618aeed984.sol",
+            # deal(address, uint8) is internal
+            "bad_randomness/blackjack.sol",
+        ],
+    )
+    def test_former_false_positives_are_silent(self, detector, contract):
+        assert detector.detect(_dataset_source(contract)) == []
+
+
+@pytestmark_dataset
+class TestFrontRunningOnSmartBugsCurated:
+    """Positive = the four ground-truth contracts; negative = former false positives."""
+
+    @pytest.fixture
+    def detector(self):
+        return FrontRunningDetector()
+
+    def test_erc20_approve_race(self, detector):
+        findings = detector.detect(_dataset_source("front_running/ERC20.sol"))
+        assert any(f.line == 110 and "Approve" in f.title for f in findings)
+
+    def test_hash_puzzle(self, detector):
+        findings = detector.detect(_dataset_source("front_running/FindThisHash.sol"))
+        assert [(f.line, f.title) for f in findings] == [(17, "Front-Running - Hash Puzzle")]
+
+    def test_transaction_order_dependence(self, detector):
+        findings = detector.detect(
+            _dataset_source("front_running/eth_tx_order_dependence_minimal.sol")
+        )
+        assert any(f.line == 31 and "Transaction Order" in f.title for f in findings)
+
+    def test_player_registration_game(self, detector):
+        findings = detector.detect(_dataset_source("front_running/odds_and_evens.sol"))
+        assert any(f.line == 28 for f in findings)
+
+    @pytest.mark.parametrize(
+        "contract",
+        [
+            # keccak256 only builds a function selector
+            "unchecked_low_level_calls/0x4051334adc52057aca763453820cb0e045076ef3.sol",
+            # sha3(msg.data) inside multisig modifiers, no calldata secret
+            "access_control/parity_wallet_bug_1.sol",
+            # hash of block data (randomness), not of a parameter, next to a transfer
+            "bad_randomness/guess_the_random_number.sol",
+        ],
+    )
+    def test_former_false_positives_are_silent(self, detector, contract):
+        assert detector.detect(_dataset_source(contract)) == []
