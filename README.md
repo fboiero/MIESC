@@ -105,7 +105,7 @@ OK gptscan: 4 findings in 49.7s
 | TOTAL    |    22 |
 +----------+-------+
 
-Tools executed: 12/29
+Tools executed: 12/50
 Report saved to results.json
 ```
 
@@ -201,7 +201,7 @@ roadmap). The canonical layer definition lives in `miesc/cli/constants.py`.
 | **External security tools** | 13 | Slither, Mythril, Echidna, Foundry, Halmos, Aderyn, Semgrep |
 | **LLM analysis modules** | 6 | SmartLLM, GPTScan, PropertyGPT (via local Ollama) |
 | **Internal analyzers** | 16 | MEV detector, gas analyzer, threat model, clone detector |
-| **Total analysis modules** | **35** | Across 9 complementary techniques |
+| **Total analysis modules** | **35** | 13 + 6 + 16, across 9 techniques. The "50 tools" headline counts the full adapter/layer stack in `miesc/cli/constants.py`; `miesc doctor` shows how many are usable on your machine. |
 
 ### vs. SmartBugs 2.0 (closest competitor)
 
@@ -236,7 +236,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: fboiero/MIESC@v5
+      - uses: fboiero/MIESC@v6.0.0
         with:
           path: contracts/
           mode: scan
@@ -370,7 +370,7 @@ MIESC's LLM layers (Layer 5) use Ollama for local AI analysis. The recommended s
 # 1. Install and start Ollama on your HOST (not inside Docker)
 # Download from https://ollama.com
 ollama serve &
-ollama pull qwen2.5-coder:14b   # Best model for code analysis
+ollama pull qwen2.5-coder:14b   # Recommended: fast, ~9 GB (use :32b for higher audit quality)
 ollama pull deepseek-coder:6.7b  # Lighter alternative
 
 # 2. Scan with host Ollama (macOS)
@@ -818,7 +818,7 @@ sudo apt install libpango-1.0-0 libpangoft2-1.0-0  # Linux
 ```
 
 **`miesc audit full` runs slowly (>10 min per contract)**
-Heavy LLM models (32B) on small contracts. Use `qwen2.5-coder:14b` in `~/.miesc/config.yaml` or run quick scan: `miesc audit quick`.
+The Ollama layers auto-select the most capable installed model (preferring `qwen2.5-coder:32b` for audit quality), so a 32B model on a small contract is slow. Force the lighter model with `--model qwen2.5-coder:14b`, set `qwen2.5-coder:14b` in `~/.miesc/config.yaml`, or run a quick scan: `miesc audit quick`.
 
 </details>
 
