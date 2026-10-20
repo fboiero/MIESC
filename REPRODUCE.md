@@ -104,24 +104,27 @@ make ablation           # LLM-free layer ablation: 82.5 % -> 93.0 % -> 97.9 % re
 make bench
 ```
 
-which runs the documented command with Ollama made unreachable on purpose:
+which runs the documented command in its LLM-free profile:
 
 ```bash
-OLLAMA_HOST=http://127.0.0.1:1 \
 python -m miesc.cli.main evaluate corpus benchmarks/datasets/smartbugs-curated/dataset \
-  --layers 1,6,7 --timeout 120 \
+  --layers 1,6,7 --timeout 120 --no-llm \
   --output benchmarks/results/smartbugs_eval_layers_1_6_7_<YYYYMMDD>.json \
   --jsonl  benchmarks/results/smartbugs_eval_layers_1_6_7_<YYYYMMDD>.jsonl
 ```
 
 `--layers 1,6,7` matters: the CLI default is `1,5,7,9`, which is a different profile.
 
-`OLLAMA_HOST=http://127.0.0.1:1` matters too. The paper profile is LLM-free, but
-`smartguard` (layer 6) calls a local Ollama model whenever `ollama list` shows one. On the
-paper machine it did not run (layer 6 took 0.1 s per contract in the artifact's timing);
-on a workstation with Ollama and `qwen2.5-coder` installed it does, adding LLM findings
-to the count and taking 10–120 s per contract. Pointing the Ollama client at a dead port
-makes the adapter report itself unavailable and the run matches the paper profile.
+`--no-llm` matters too. The paper profile is LLM-free, but `smartguard` (layer 6) calls a
+local Ollama model whenever `ollama list` shows one. On the paper machine it did not run
+(layer 6 took 0.1 s per contract in the artifact's timing); on a workstation with Ollama
+and a coder model installed it does, adding LLM findings to the count and taking 10–120 s
+per contract. `--no-llm` skips every adapter that declares an LLM backend (SmartGuard
+here; the layer 5 and 9 adapters when those layers are selected) without probing it, and
+records `"llm_free": true` plus the skipped tools in the result's `experiment_card`.
+
+Two runs on the same day go to the same file name; `make bench BENCH_TAG=<label>` adds a
+suffix (`..._<YYYYMMDD>_<label>.json`) so a before/after pair does not overwrite itself.
 
 Then compare with the paper artifact:
 
@@ -187,6 +190,7 @@ install scikit-learn by hand and run the command explicitly):
 ```bash
 git checkout v5.4.1          # the version the artifact was produced with
 pip install -e . scikit-learn solc-select
+# --no-llm does not exist at the tag: make Ollama unreachable instead
 OLLAMA_HOST=http://127.0.0.1:1 python -m miesc.cli.main evaluate corpus \
   benchmarks/datasets/smartbugs-curated/dataset --layers 1,6,7 --timeout 120 \
   --output smartbugs_eval_v541_rerun.json --jsonl smartbugs_eval_v541_rerun.jsonl

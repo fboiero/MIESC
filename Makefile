@@ -399,16 +399,21 @@ quick-check:  ## Quick check before commit (fast)
 # ACADEMIC REPRODUCIBILITY TARGETS (v3.3.0+)
 # ============================================
 
-bench:  ## Re-run the Paper 1 SmartBugs profile (layers 1,6,7; no LLM) into a dated artifact
-	@echo "$(BLUE)Running the Paper 1 SmartBugs-curated profile (143 contracts, ~15 min)...$(NC)"
-	@# The paper profile is LLM-free. SmartGuard (layer 6) calls Ollama when it finds a
-	@# model, which changes the numbers and multiplies the runtime; point it at a dead port.
-	OLLAMA_HOST=http://127.0.0.1:1 $(PYTHON) -m miesc.cli.main evaluate corpus benchmarks/datasets/smartbugs-curated/dataset \
-		--layers 1,6,7 --timeout 120 \
-		--output benchmarks/results/smartbugs_eval_layers_1_6_7_$(shell date +%Y%m%d).json \
-		--jsonl benchmarks/results/smartbugs_eval_layers_1_6_7_$(shell date +%Y%m%d).jsonl
+# Output stem of `make bench`; BENCH_TAG=<label> adds a suffix so two runs on the same
+# day (e.g. before/after a change) do not overwrite each other.
+BENCH_TAG ?=
+BENCH_OUT := benchmarks/results/smartbugs_eval_layers_1_6_7_$(shell date +%Y%m%d)$(if $(BENCH_TAG),_$(BENCH_TAG),)
+
+bench:  ## Re-run the Paper 1 SmartBugs profile (layers 1,6,7; --no-llm) into a dated artifact
+	@echo "$(BLUE)Running the Paper 1 SmartBugs-curated profile (143 contracts, LLM-free)...$(NC)"
+	@# The paper profile is LLM-free: --no-llm skips SmartGuard (layer 6) and every other
+	@# LLM-backed adapter even when a local Ollama model is installed.
+	$(PYTHON) -m miesc.cli.main evaluate corpus benchmarks/datasets/smartbugs-curated/dataset \
+		--layers 1,6,7 --timeout 120 --no-llm \
+		--output $(BENCH_OUT).json \
+		--jsonl $(BENCH_OUT).jsonl
 	@echo "$(GREEN)✓ Compare with the paper artifact:$(NC)"
-	@echo "  $(PYTHON) -m miesc.cli.main evaluate compare benchmarks/results/paper1_smartbugs_eval_layers_1_6_7.json benchmarks/results/smartbugs_eval_layers_1_6_7_$(shell date +%Y%m%d).json"
+	@echo "  $(PYTHON) -m miesc.cli.main evaluate compare benchmarks/results/paper1_smartbugs_eval_layers_1_6_7.json $(BENCH_OUT).json"
 
 ablation:  ## Recompute the Paper 1 LLM-free ablation table from the stored raw runs
 	@echo "$(BLUE)Recomputing the layer ablation (static only / + detectors / + intelligence)...$(NC)"

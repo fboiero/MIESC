@@ -15,7 +15,7 @@ import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, Dict, Iterable, List, Optional, Set, cast
 
 from .constants import ADAPTER_MAP, LAYERS
 
@@ -300,6 +300,11 @@ class AdapterLoader:
 
     _adapters: Dict[str, Any] = {}
     _loaded = False
+    # Tool availability probed once per process (``reset_availability`` clears it).
+    # Probing is expensive for some adapters (SmartGuard shells out to ``ollama list``
+    # with a 5 s timeout) and the answer does not change between two contracts of
+    # the same run.
+    _availability: Dict[str, Any] = {}
 
     @classmethod
     def load_all(cls) -> Dict[str, Any]:
@@ -386,10 +391,44 @@ class AdapterLoader:
             }
 
     @classmethod
+    def get_availability(cls, tool_name: str, adapter: Any) -> Any:
+        """Return ``adapter.is_available()``, probing each tool at most once.
+
+        The first call for a tool runs the adapter's probe and caches the resulting
+        ``ToolStatus``; later calls return the cached value. ``reset_availability``
+        drops the cache (the evaluator does so at the start of every run).
+        """
+        if tool_name not in cls._availability:
+            cls._availability[tool_name] = adapter.is_available()
+        return cls._availability[tool_name]
+
+    @classmethod
+    def reset_availability(cls) -> None:
+        """Forget cached tool availability so the next ``run_tool`` probes again."""
+        cls._availability = {}
+
+    @classmethod
+    def llm_tools(cls) -> Set[str]:
+        """Names of the tools whose adapter declares ``requires_llm`` in its metadata.
+
+        These are the adapters that call an LLM backend (local Ollama or a hosted
+        API) to produce findings; ``miesc evaluate --no-llm`` skips them.
+        """
+        tools: Set[str] = set()
+        for tool_name, adapter in cls.load_all().items():
+            try:
+                if getattr(adapter.get_metadata(), "requires_llm", False):
+                    tools.add(tool_name)
+            except Exception as e:  # pragma: no cover - defensive, metadata is static
+                logger.debug(f"Could not read metadata for {tool_name}: {e}")
+        return tools
+
+    @classmethod
     def reset(cls) -> None:
         """Reset the loader state (useful for testing)."""
         cls._adapters = {}
         cls._loaded = False
+        cls._availability = {}
 
 
 # =============================================================================
@@ -432,7 +471,7 @@ def run_tool(tool: str, contract: str, timeout: int = 0, **kwargs: Any) -> Dict[
         # Check if tool is available
         from miesc.core.tool_protocol import ToolStatus
 
-        status = adapter.is_available()
+        status = AdapterLoader.get_availability(tool, adapter)
 
         if status != ToolStatus.AVAILABLE:
             return {
@@ -475,13 +514,45 @@ def run_tool(tool: str, contract: str, timeout: int = 0, **kwargs: Any) -> Dict[
         }
 
 
-def run_layer(layer: int, contract: str, timeout: int = 300) -> List[Dict[str, Any]]:
-    """Run all tools in a specific layer."""
+def _skipped_tool_result(tool: str, contract: str, reason: str) -> Dict[str, Any]:
+    """Result record for a tool deliberately left out of a run (not probed, not run)."""
+    return {
+        "tool": tool,
+        "contract": contract,
+        "status": "skipped",
+        "findings": [],
+        "execution_time": 0,
+        "timestamp": datetime.now().isoformat(),
+        "error": reason,
+    }
+
+
+def run_layer(
+    layer: int,
+    contract: str,
+    timeout: int = 300,
+    *,
+    exclude_tools: Optional[Iterable[str]] = None,
+) -> List[Dict[str, Any]]:
+    """Run all tools in a specific layer.
+
+    ``exclude_tools`` names tools to leave out entirely: they are neither probed
+    for availability nor run, and appear in the result with status ``"skipped"``
+    so callers that count tools per layer see the same shape either way.
+    """
     if layer not in LAYERS:
         return []
 
     layer_info = LAYERS[layer]
-    tools = list(layer_info["tools"])
+    excluded = set(exclude_tools or ())
+    tools = [tool for tool in layer_info["tools"] if tool not in excluded]
+    skipped = [
+        _skipped_tool_result(tool, contract, "skipped: LLM-dependent tool (--no-llm)")
+        for tool in layer_info["tools"]
+        if tool in excluded
+    ]
+    for result in skipped:
+        _print_tool_result(result["tool"], result)
     max_workers = min(max(get_max_workers(default=4), 1), len(tools) or 1)
 
     if max_workers == 1 or len(tools) <= 1:
@@ -491,7 +562,7 @@ def run_layer(layer: int, contract: str, timeout: int = 300) -> List[Dict[str, A
             result = run_tool(tool, contract, timeout)
             results.append(result)
             _print_tool_result(tool, result)
-        return results
+        return results + skipped
 
     for tool in tools:
         info(f"Running {tool}...")
@@ -521,7 +592,7 @@ def run_layer(layer: int, contract: str, timeout: int = 300) -> List[Dict[str, A
     for tool, result in zip(tools, results, strict=True):
         _print_tool_result(tool, result)
 
-    return results
+    return results + skipped
 
 
 def _print_tool_result(tool: str, result: Dict[str, Any]) -> None:
@@ -530,6 +601,8 @@ def _print_tool_result(tool: str, result: Dict[str, Any]) -> None:
         success(f"{tool}: {findings_count} findings in {result.get('execution_time', 0):.1f}s")
     elif result["status"] == "not_available":
         warning(f"{tool}: not installed")
+    elif result["status"] == "skipped":
+        info(f"{tool}: skipped ({result.get('error', 'excluded')})")
     else:
         warning(f"{tool}: {result.get('error', 'Unknown error')}")
 

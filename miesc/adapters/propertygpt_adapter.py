@@ -146,6 +146,7 @@ class PropertyGPTAdapter(ToolAdapter):
             ],
             cost=0.0,  # Using local Ollama by default
             requires_api_key=False,  # Optional for cloud LLMs
+            requires_llm=True,
             is_optional=True,
         )
 

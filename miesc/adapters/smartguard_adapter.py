@@ -266,6 +266,7 @@ class SmartGuardAdapter(ToolAdapter):
             ],
             cost=0.0,
             requires_api_key=False,
+            requires_llm=True,
             is_optional=True,
         )
 

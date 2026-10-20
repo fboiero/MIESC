@@ -217,6 +217,7 @@ Respond ONLY with valid JSON. Report ONLY vulnerabilities you are CONFIDENT abou
             ],
             cost=0.0,  # Free - local execution
             requires_api_key=False,
+            requires_llm=True,
             is_optional=True,
         )
 
