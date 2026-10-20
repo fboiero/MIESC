@@ -34,6 +34,24 @@ from miesc.llm import enhance_findings_with_llm
 logger = logging.getLogger(__name__)
 
 
+_PANIC_MARKERS = ("panicked at", "unknown variant", "called `Result::unwrap()`")
+
+
+def _is_unsupported_source_panic(returncode: int, output: str) -> bool:
+    """True when aderyn aborted with a Rust panic on a source it cannot model.
+
+    Exit code 101 is the Rust panic exit code. aderyn 0.1.x panics on legacy
+    Solidity statements (``throw``) instead of reporting a parse error, and with
+    some builds the panic text never reaches stderr, so a bare 101 with no
+    output is treated the same way.
+    """
+    if returncode != 101:
+        return False
+    if not output:
+        return True
+    return any(marker in output for marker in _PANIC_MARKERS)
+
+
 def _get_solc_env() -> dict:
     """
     Get environment with correct solc PATH for ARM64 Macs.
@@ -287,8 +305,35 @@ class AderynAdapter(ToolAdapter):
                     output_valid = False
 
             if result.returncode != 0 and not output_valid:
-                error_msg = result.stderr or result.stdout
-                logger.error(f"Aderyn execution failed: {error_msg}")
+                error_msg = (result.stderr or result.stdout or "").strip()
+                if _is_unsupported_source_panic(result.returncode, error_msg):
+                    # aderyn 0.1.x aborts with a Rust panic on Solidity constructs it
+                    # does not model (e.g. `throw` in pre-0.4.22 contracts). That is
+                    # an upstream limitation, not a MIESC failure: report it as a
+                    # skip so the rest of the layer carries on and the summary says
+                    # why this tool has no result for the contract.
+                    logger.warning(
+                        "Aderyn cannot parse this contract (unsupported Solidity "
+                        "dialect, e.g. `throw` in pre-0.4.22 sources); skipped. "
+                        "Upstream limitation of aderyn 0.1.x."
+                    )
+                    return {
+                        "tool": "aderyn",
+                        "version": "1.0.0",
+                        "status": "skipped",
+                        "findings": [],
+                        "metadata": {
+                            "exit_code": result.returncode,
+                            "reason": "unsupported_source",
+                            "stderr": error_msg[-500:],
+                        },
+                        "execution_time": execution_time,
+                        "error": (
+                            f"Aderyn skipped: unsupported Solidity dialect "
+                            f"(exit code {result.returncode})"
+                        ),
+                    }
+                logger.error(f"Aderyn execution failed: {error_msg or '(no output)'}")
                 return {
                     "tool": "aderyn",
                     "version": "1.0.0",
