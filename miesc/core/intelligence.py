@@ -1154,6 +1154,9 @@ def enhance_findings(
     # Enrich generic recommendations from the RAG knowledge base
     _enrich_recommendations(results)
 
+    # Identical rule hits in one file are one finding with a location list
+    results = group_identical_rule_hits(results)
+
     # Sort: non-suppressed first, then by severity rank, then by confidence
     results.sort(
         key=lambda f: (
@@ -1164,6 +1167,75 @@ def enhance_findings(
     )
 
     return results
+
+
+# =============================================================================
+# 6b. Grouping of identical rule hits within one file
+# =============================================================================
+
+
+def _line_of(finding: Dict[str, Any]) -> int:
+    loc = finding.get("location")
+    if not isinstance(loc, dict):
+        return 0
+    try:
+        return int(loc.get("line") or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def group_identical_rule_hits(findings: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Collapse hits of the same rule, by the same tool, in the same file.
+
+    Aderyn reports ``useless-public-function`` once per function; a reader
+    wants one row with the list of places. The survivor is the lowest-line
+    hit, carries ``occurrences`` (how many hits) and ``locations`` (every
+    ``{line, function}`` in line order), and keeps the highest severity and
+    confidence of the group. Suppressed and kept hits are never mixed, and a
+    finding without a file or line is left alone.
+    """
+    grouped: Dict[Tuple[Any, ...], Dict[str, Any]] = {}
+    members: Dict[Tuple[Any, ...], List[Dict[str, Any]]] = {}
+    order: List[Tuple[Any, ...]] = []
+    passthrough: List[Dict[str, Any]] = []
+
+    for f in findings:
+        loc = f.get("location")
+        rule = str(f.get("type") or f.get("check") or f.get("rule") or "").strip().lower()
+        if not isinstance(loc, dict) or not loc.get("file") or not _line_of(f) or not rule:
+            passthrough.append(f)
+            continue
+        key = (str(f.get("tool", "")), rule, loc.get("file"), bool(f.get("fp_suppressed")))
+        if key not in grouped:
+            grouped[key] = f
+            members[key] = [f]
+            order.append(key)
+        else:
+            members[key].append(f)
+
+    out: List[Dict[str, Any]] = []
+    for key in order:
+        hits = sorted(members[key], key=_line_of)
+        head = dict(hits[0])
+        if len(hits) > 1:
+            head["occurrences"] = len(hits)
+            head["locations"] = [
+                {
+                    "line": _line_of(h),
+                    "function": (h.get("location") or {}).get("function", "unknown"),
+                }
+                for h in hits
+            ]
+            head["severity"] = max(
+                (h.get("severity", "") for h in hits), key=_severity_rank, default=head.get("severity")
+            )
+            head["confidence"] = max(float(h.get("confidence", 0) or 0) for h in hits)
+            tools = {t for h in hits for t in (h.get("confirming_tools") or [])}
+            if tools:
+                head["confirming_tools"] = sorted(tools)
+                head["tool_count"] = len(tools)
+        out.append(head)
+    return out + passthrough
 
 
 # =============================================================================

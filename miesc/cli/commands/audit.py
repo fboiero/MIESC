@@ -208,6 +208,9 @@ def _to_sarif(results: List[Dict[str, Any]]) -> Dict[str, Any]:
                 file_path = result.get("contract", "unknown")
                 line = 1
 
+            # A grouped finding (same rule, same file, several lines) carries
+            # every hit in "locations"; SARIF locations is natively a list.
+            lines = [loc.get("line", line) for loc in finding.get("locations") or []] or [line]
             sarif["runs"][0]["results"].append(
                 {
                     "ruleId": rule_id,
@@ -217,9 +220,10 @@ def _to_sarif(results: List[Dict[str, Any]]) -> Dict[str, Any]:
                         {
                             "physicalLocation": {
                                 "artifactLocation": {"uri": file_path},
-                                "region": {"startLine": max(1, int(line))},
+                                "region": {"startLine": max(1, int(hit_line or 1))},
                             }
                         }
+                        for hit_line in lines
                     ],
                     "properties": {
                         "tool": tool_name,
