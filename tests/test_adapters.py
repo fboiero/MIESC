@@ -119,7 +119,7 @@ class TestSlitherAdapter(TestAdapterBase):
         contract.write_text(
             'import {ERC20} from "@solmate/tokens/ERC20.sol";\n'
             'import "@chainlink/interfaces/AggregatorV3Interface.sol";\n'
-            'contract C {}'
+            "contract C {}"
         )
         imports = SlitherAdapter()._detect_imports(str(contract))
         assert "@solmate/" in imports
@@ -415,7 +415,7 @@ class TestAderynAdapter(TestAdapterBase):
         contract.write_text(
             'import {ERC20} from "@solmate/tokens/ERC20.sol";\n'
             'import "@chainlink/interfaces/AggregatorV3Interface.sol";\n'
-            'contract C {}'
+            "contract C {}"
         )
         imports = AderynAdapter()._detect_imports(str(contract))
         assert "@solmate/" in imports

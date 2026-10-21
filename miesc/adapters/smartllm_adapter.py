@@ -347,17 +347,13 @@ class SmartLLMAdapter(OllamaCallMixin, LLMCacheMixin, ToolAdapter):
                     "SmartLLM: structured output validation failed; retrying once: %s",
                     structured_output_errors,
                 )
-                logger.debug(
-                    "SmartLLM invalid generator response: %s", generator_response[:2000]
-                )
+                logger.debug("SmartLLM invalid generator response: %s", generator_response[:2000])
                 correction_prompt = (
                     f"{generator_prompt}\n\nYour previous response failed JSON schema validation: "
                     f"{'; '.join(structured_output_errors)}. Return only valid JSON matching "
                     "the requested schema."
                 )
-                retry_response = self._call_ollama_with_retry(
-                    correction_prompt, timeout=timeout
-                )
+                retry_response = self._call_ollama_with_retry(correction_prompt, timeout=timeout)
                 if retry_response:
                     generator_response = retry_response
                     generator_validation = safe_parse_llm_json(

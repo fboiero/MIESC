@@ -792,7 +792,9 @@ class TestEdgeCases:
         nodes = CallGraphBuilder().build_from_source(source, "Vault.sol").nodes
         elapsed = time.monotonic() - start
 
-        assert elapsed < 2.0, f"FUNCTION_PATTERN took {elapsed:.1f}s — regression to catastrophic backtracking"
+        assert (
+            elapsed < 2.0
+        ), f"FUNCTION_PATTERN took {elapsed:.1f}s — regression to catastrophic backtracking"
         assert "withdraw" in nodes
 
     def test_max_depth_limiting(self):

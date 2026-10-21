@@ -317,9 +317,7 @@ class AderynAdapter(ToolAdapter):
                 elif external_imports:
                     logger.info(f"Detected external imports: {external_imports}")
                     assert temp_workspace is not None
-                    self._install_deps_in_workspace(
-                        temp_workspace, contract_path, external_imports
-                    )
+                    self._install_deps_in_workspace(temp_workspace, contract_path, external_imports)
 
             # Build command - always analyze the directory, not a single file
             # Aderyn 0.1.9 has issues finding solc when targeting single files
