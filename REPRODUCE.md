@@ -432,6 +432,71 @@ mis-mapping. The rule therefore also counts a contract-level variable written wi
 external input, which brings the five back (138 → 143) and keeps the precision gain.
 The remaining 66 arithmetic false positives are Slither's own pre-0.8 heuristics.
 
+### Time and randomness data flow (2026-10-21)
+
+Same command (`make bench`, `--no-llm`), run with a fresh `HOME` so no adapter cache is
+reused. Artifact `benchmarks/results/smartbugs_eval_layers_1_6_7_20261021_time_rand_flow.{json,jsonl}`.
+
+A measurement note first, because it bit this run: the `smartbugs_ml` fallback caches its
+predictions for 24 h in the *system temp directory*, outside `HOME`, keyed by contract
+hash only. The first bench after the rule change was served the previous rules' findings
+and reported `bad_randomness` unchanged at 46. The key now includes a fingerprint of the
+rule code, so a rule change invalidates the cache; if you compare two runs made with
+different rules on the same machine within a day, that fingerprint is what keeps the
+comparison honest.
+
+| Metric | Arithmetic fix (reference) | Data-flow fix | Δ |
+|---|---|---|---|
+| Recall (contracts) | 143/143 | **143/143** | 0 |
+| Precision | 28.9 % (352 FP) | **31.9 % (305 FP)** | +3.0 pt, −47 FP |
+| F1 | 44.8 % | **48.4 %** | +3.6 pt |
+| `time_manipulation` category | 5 TP / 43 FP | 5 TP / 30 FP | −13 FP |
+| `bad_randomness` category | 8 TP / 46 FP | 8 TP / 14 FP | −32 FP |
+
+The other two moves are one false positive each: `access_control` 67 → 66 (the path leak
+below) and `arithmetic` 66 → 65 (a stale cached `smartbugs_ml` prediction in the reference
+run, see the measurement note). Tool statuses are identical in both runs (4 Slither errors,
+18 Aderyn skips/errors on the same contracts); the reference ran under Python 3.14 and this
+one under 3.12, and an offline re-score of the reference run's stored findings with the new
+scorer and rules predicted 306 FP, so the two runs are comparable.
+
+Attribution first (every layer-1/6/7 tool run on the 89 false-positive and 13 labelled
+contracts, each finding passed through the scorer): the `bad_randomness` false positives
+came from the `smartbugs_ml` fallback rule on all 46 contracts (it fired when the file
+contained `block.timestamp` or the *substring* `now`, which also matches `known`), from
+Slither's `timestamp` detector mis-scored as randomness on 22 (the alias `block.timestamp`
+made `timestamp` a substring match), and from the layer-6 "Timestamp Dependency" rule on 13
+(its `block.number` description says "predictable", a randomness keyword). The
+`time_manipulation` false positives came from 4naly3er's `use_of_block_timestamp` on 35 of
+43 (any line with the attribute) and from the intelligence gap-filler, whose
+"non-timelock" filter flagged `x = block.timestamp` and suppressed comparisons, the
+inverse of the labelled shapes.
+
+The fix is one shared, deliberately minimal data flow
+(`miesc/detectors/chain_attribute_flow.py`): the chain attribute, or a local assigned from
+it in the same function, has to reach a comparison inside a condition or a `return`
+(time dependence), or a hash, a modulo or be a strong entropy source such as `blockhash`
+or `block.difficulty` (weak randomness). Storing the timestamp, logging it or doing
+arithmetic that never reaches such a sink is not a finding. Measured before changing
+anything: all 5 labelled `time_manipulation` and all 8 labelled `bad_randomness` contracts
+have such a flow (`ether_lotto.sol` only through the entropy branch, `old_blockhash.sol`
+only through the strong-source branch); 34 of the 46 and 14 of the 43 false positives do
+not. The three emitters above are gated on it; the layer-6 detectors and the Peculiar rule
+already required a comparison or an entropy context and were left alone.
+
+What remains is not a detector defect. The `time_manipulation` false positives left are
+comparison shapes (`require(now > unlockTime[msg.sender])` cooldowns in reentrancy
+contracts, deadline checks) that SmartBugs' single label per contract cannot credit, and the
+`bad_randomness` ones are lottery contracts filed under another category plus Slither's
+own `weak-prng`. Cutting those would fit the labels, not improve the tool.
+
+Two scorer corrections ride along, each measured on the stored findings of the reference
+run: Slither `timestamp` now scores as `time_manipulation` (it moved 22 contracts between
+categories and created no new false positive), and path-like tokens are removed before the
+keyword fallback, because Slither embeds the file path in its descriptions and on a
+labelled corpus the path *is* the label (`dataset/bad_randomness/lottery.sol` contains
+"randomness"): 1 false positive, 0 hits on the reference run, but a leak worth closing.
+
 ## 5. What is not covered here
 
 - **LLM follow-up (97.9 %)**: Paper 1 reports a local-Ollama pass on the six misses as a

@@ -30,6 +30,7 @@ from typing import Any, Dict, List, Optional, Tuple, cast
 
 from miesc.core.finding_taxonomy import CanonicalCategory, normalize_finding_type
 from miesc.core.rule_classes import class_max_severity, finding_rule_class, rule_ids
+from miesc.detectors.chain_attribute_flow import has_time_dependence
 
 # =============================================================================
 # 1. Cross-tool confirmation scoring
@@ -646,27 +647,13 @@ def _passes_zero_recall_context_filter(
         return False
 
     if filter_name == "non_timelock_timestamp":
-        # Check if block.timestamp/now usage in the source code is ONLY in
-        # require() timelock patterns. If so, suppress (not a vulnerability).
-        has_non_timelock_usage = False
-        lines = source_code.split("\n")
-        for line in lines:
-            if not _TIMESTAMP_KEYWORDS_RE.search(line):
-                continue
-            line_stripped = line.strip()
-            # Skip comments
-            if line_stripped.startswith("//") or line_stripped.startswith("*"):
-                continue
-            # If this line is purely a require with time comparison → timelock
-            if _TIMELOCK_REQUIRE_RE.search(line_stripped):
-                # Remove require parts and check if timestamp is used elsewhere
-                without_require = re.sub(r"require\s*\([^)]*\)", "", line_stripped)
-                if not _TIMESTAMP_KEYWORDS_RE.search(without_require):
-                    continue  # This line is a pure timelock, skip it
-            # This line has timestamp in a non-timelock context → vulnerable
-            has_non_timelock_usage = True
-            break
-        return has_non_timelock_usage
+        # Fire only when a timestamp-like value reaches a comparison in a
+        # condition/return or an entropy sink (shared minimal data flow). Storing
+        # or logging the timestamp is not time-sensitive logic. Measured on
+        # SmartBugs-curated (2026-10-21): every labelled time_manipulation
+        # contract has such a flow; 13 of the 43 false positives were store-only
+        # contracts this filter used to flag because the store is "not a timelock".
+        return has_time_dependence(source_code)
 
     if filter_name == "randomness_context":
         # Only fire if block variables are used in randomness/entropy context:

@@ -15,6 +15,19 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   or a contract-level variable written with an external input; the ML fallback's
   `integer_overflow` needs a balance-like state write. SmartBugs-curated (LLM-free):
   recall 143/143 kept, precision 25.7 % → 28.9 % (414 → 352 FP), F1 44.8 %.
+- **Time and randomness false positives.** New `miesc/detectors/chain_attribute_flow.py`:
+  a minimal intra-procedural data flow for `block.timestamp`/`now`/`block.number`/
+  `blockhash`/`block.difficulty`/`block.coinbase`. The `smartbugs_ml` fallback, 4naly3er's
+  `use_of_block_timestamp` and the intelligence timestamp gap-filler only fire when the
+  value reaches a comparison in a condition/return or an entropy sink (hash, modulo,
+  strong source); storing or logging the timestamp is not a finding. The ML fallback also
+  matches `now` as a word (the substring test hit `known`). Scorer: Slither `timestamp`
+  maps to `time_manipulation` (a stray `block.timestamp` alias made it randomness), the
+  adapter's own `category` is honoured, `deprecated-standards` is out of taxonomy, and
+  path-like tokens are stripped before the keyword fallback (the corpus path leaked the
+  label). SmartBugs-curated (LLM-free): recall 143/143, precision 28.9 % → 31.9 %
+  (352 → 305 FP), F1 48.4 %; `bad_randomness` 46 → 14 FP, `time_manipulation`
+  43 → 30 FP.
 - **Professional report** now shows, per finding, which tools agree and the calibrated
   confidence, plus a "Coverage and Limitations" section (tools skipped, in fallback mode,
   failed; LLM on/off) and an "Appendix B: Provenance" from the result's provenance block.
@@ -22,6 +35,8 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Fixed
 
 - `miesc report` crashed on the `audit full` JSON (`raw_findings` is a dict there).
+- The `smartbugs_ml` prediction cache (system temp dir, 24 h) is keyed on the rule code,
+  so a rule change no longer serves the previous rules' findings to a benchmark run.
 
 ### Changed
 - `miesc scan --model ollama` now defaults to `qwen2.5-coder:14b` for a fast opt-in

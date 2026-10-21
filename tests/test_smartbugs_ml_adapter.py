@@ -125,9 +125,18 @@ def test_inference_delegatecall_randomness_overflow_selfdestruct():
         f["type"] == "delegatecall"
         for f in a._run_ml_inference(_features(has_delegatecall=1.0), "")
     )
-    assert any(
+    # The randomness heuristic needs the chain attribute to reach an entropy sink;
+    # the feature alone (presence of "now"/blockhash) stays below the threshold.
+    assert not any(
         f["type"] == "bad_randomness"
         for f in a._run_ml_inference(_features(uses_blockhash=1.0), "")
+    )
+    lotto = (
+        "function draw() public { winner = uint(blockhash(block.number - 1)) % players.length; }"
+    )
+    assert any(
+        f["type"] == "bad_randomness"
+        for f in a._run_ml_inference(_features(uses_blockhash=1.0), lotto)
     )
     # The overflow heuristic needs a balance-like state write with raw arithmetic;
     # bare "pre-0.8 code without SafeMath" stays below the confidence threshold.
@@ -242,3 +251,17 @@ def test_cache_result_tolerates_write_failure(tmp_path):
     a.cache_dir = tmp_path / "missing" / "deeper"  # does not exist -> open() raises
     # must not raise; the except logs a warning and returns
     a._cache_result(str(tmp_path / "C.sol"), {"x": 1})
+
+
+def test_cache_key_changes_with_the_rule_code(tmp_path, monkeypatch):
+    """A prediction cached by older rules must not be served after a rule change
+    (the cache lives in the temp dir for 24 h, outside HOME)."""
+    import miesc.adapters.smartbugs_ml_adapter as mod
+
+    contract = tmp_path / "c.sol"
+    contract.write_text("contract C {}")
+    a = _a()
+    key_before = a._get_cache_key(str(contract))
+    assert key_before == a._get_cache_key(str(contract))
+    monkeypatch.setattr(mod, "_RULES_FINGERPRINT", "deadbeef")
+    assert a._get_cache_key(str(contract)) != key_before

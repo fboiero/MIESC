@@ -135,6 +135,8 @@ benchmarks/results/evmbench/*
 !benchmarks/results/smartbugs_eval_layers_1_6_7_20261021_intel_fix.jsonl
 !benchmarks/results/smartbugs_eval_layers_1_6_7_20261021_arith_fp2.json
 !benchmarks/results/smartbugs_eval_layers_1_6_7_20261021_arith_fp2.jsonl
+!benchmarks/results/smartbugs_eval_layers_1_6_7_20261021_time_rand_flow.json
+!benchmarks/results/smartbugs_eval_layers_1_6_7_20261021_time_rand_flow.jsonl
 !benchmarks/results/paper1_smartbugs_full_all_layers_smoke_20260506.json
 !benchmarks/results/paper1_smartbugs_full_all_layers_smoke_20260506.jsonl
 !benchmarks/results/fix_eval_results.json
