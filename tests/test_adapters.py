@@ -107,6 +107,73 @@ class TestSlitherAdapter(TestAdapterBase):
         assert "Medium" in SlitherAdapter.SEVERITY_MAP
         assert "Low" in SlitherAdapter.SEVERITY_MAP
 
+    # Regression for MEJORAS3.md item 1: "@solmate/..." (npm-style alias) and
+    # "@chainlink/..." (interfaces re-exported one level up from the historical
+    # "@chainlink/contracts/" convention) were canonicalized to a single guessed
+    # dependency key that only matched some real-world projects' actual import
+    # prefix, so their remapping never lined up with what the source imported.
+    def test_detect_imports_recognizes_at_solmate_and_at_chainlink(self, tmp_path):
+        from miesc.adapters.slither_adapter import SlitherAdapter
+
+        contract = tmp_path / "C.sol"
+        contract.write_text(
+            'import {ERC20} from "@solmate/tokens/ERC20.sol";\n'
+            'import "@chainlink/interfaces/AggregatorV3Interface.sol";\n'
+            'contract C {}'
+        )
+        imports = SlitherAdapter()._detect_imports(str(contract))
+        assert "@solmate/" in imports
+        assert "@chainlink/" in imports
+
+    def test_get_dependency_info_matches_detected_prefix(self):
+        from miesc.adapters.slither_adapter import SlitherAdapter
+
+        adapter = SlitherAdapter()
+        install_target, remapping = adapter._get_dependency_info("@solmate/")
+        assert install_target == "transmissions11/solmate"
+        assert remapping == "@solmate/=lib/solmate/src/"
+
+        install_target, remapping = adapter._get_dependency_info("@chainlink/")
+        assert install_target == "smartcontractkit/chainlink-evm@v0.3.3"
+        assert remapping == "@chainlink/=lib/chainlink-evm/contracts/src/v0.8/shared/"
+
+    def test_should_force_solc_not_used_when_external_imports_present(self, tmp_path):
+        # A standalone file with a known package import must not be routed
+        # through raw solc (no remapping support there) — it needs the
+        # dependency-workspace path, which builds a real foundry.toml.
+        from miesc.adapters.slither_adapter import SlitherAdapter
+
+        contract = tmp_path / "C.sol"
+        contract.write_text('import "@solmate/tokens/ERC20.sol";\ncontract C {}')
+        adapter = SlitherAdapter()
+        external_imports = adapter._detect_imports(str(contract))
+        assert external_imports
+        force_solc = adapter._should_force_solc(str(contract)) and not external_imports
+        assert force_solc is False
+
+    def test_has_existing_project_detects_foundry_toml_in_parent(self, tmp_path):
+        # A contract inside a real Foundry project must defer to that
+        # project's own dependency setup instead of MIESC spinning up an
+        # isolated temp workspace with freshly (floating-version) installed
+        # deps that ignore whatever the project actually pinned.
+        from miesc.adapters.slither_adapter import SlitherAdapter
+
+        (tmp_path / "foundry.toml").write_text("[profile.default]\n")
+        src = tmp_path / "src"
+        src.mkdir()
+        contract = src / "C.sol"
+        contract.write_text("contract C {}")
+
+        assert SlitherAdapter()._has_existing_project(str(contract)) is True
+
+    def test_has_existing_project_false_for_standalone_file(self, tmp_path):
+        from miesc.adapters.slither_adapter import SlitherAdapter
+
+        contract = tmp_path / "C.sol"
+        contract.write_text("contract C {}")
+
+        assert SlitherAdapter()._has_existing_project(str(contract)) is False
+
 
 class TestMythrilAdapter(TestAdapterBase):
     """Tests for MythrilAdapter."""
@@ -337,6 +404,68 @@ class TestAderynAdapter(TestAdapterBase):
 
         resolved = [p.name for p in AderynAdapter()._resolve_relative_imports(main)]
         assert resolved == ["IFoo.sol"]
+
+    # Same bug as SlitherAdapter (see TestSlitherAdapter regression tests
+    # above) — both adapters used to canonicalize "@solmate/"/"@chainlink/"
+    # imports to a guessed key that didn't match every real project's prefix.
+    def test_detect_imports_recognizes_at_solmate_and_at_chainlink(self, tmp_path):
+        from miesc.adapters.aderyn_adapter import AderynAdapter
+
+        contract = tmp_path / "C.sol"
+        contract.write_text(
+            'import {ERC20} from "@solmate/tokens/ERC20.sol";\n'
+            'import "@chainlink/interfaces/AggregatorV3Interface.sol";\n'
+            'contract C {}'
+        )
+        imports = AderynAdapter()._detect_imports(str(contract))
+        assert "@solmate/" in imports
+        assert "@chainlink/" in imports
+
+    def test_get_dependency_info_matches_detected_prefix(self):
+        from miesc.adapters.aderyn_adapter import AderynAdapter
+
+        adapter = AderynAdapter()
+        install_target, remapping = adapter._get_dependency_info("@chainlink/")
+        assert install_target == "smartcontractkit/chainlink-evm@v0.3.3"
+        assert remapping == "@chainlink/=lib/chainlink-evm/contracts/src/v0.8/shared/"
+
+    # Regression: a contract inside a real Foundry project must defer to
+    # that project's own lib/ instead of Aderyn spinning up an isolated temp
+    # workspace with a freshly (floating-version) forge-installed dependency
+    # that ignores whatever the project actually pinned.
+    def test_find_project_root_detects_foundry_toml_in_parent(self, tmp_path):
+        from miesc.adapters.aderyn_adapter import AderynAdapter
+
+        (tmp_path / "foundry.toml").write_text("[profile.default]\n")
+        src = tmp_path / "src"
+        src.mkdir()
+        contract = src / "C.sol"
+        contract.write_text("contract C {}")
+
+        assert AderynAdapter()._find_project_root(str(contract)) == tmp_path.resolve()
+
+    def test_find_project_root_none_for_standalone_file(self, tmp_path):
+        from miesc.adapters.aderyn_adapter import AderynAdapter
+
+        contract = tmp_path / "C.sol"
+        contract.write_text("contract C {}")
+
+        assert AderynAdapter()._find_project_root(str(contract)) is None
+
+    def test_copy_existing_project_deps_copies_lib_and_config(self, tmp_path):
+        from miesc.adapters.aderyn_adapter import AderynAdapter
+
+        project = tmp_path / "project"
+        (project / "lib" / "solmate" / "src").mkdir(parents=True)
+        (project / "lib" / "solmate" / "src" / "ERC20.sol").write_text("contract ERC20 {}")
+        (project / "foundry.toml").write_text('[profile.default]\nsolc = "0.8.15"\n')
+
+        workspace = tmp_path / "workspace"
+        workspace.mkdir()
+        AderynAdapter()._copy_existing_project_deps(project, str(workspace))
+
+        assert (workspace / "foundry.toml").read_text() == '[profile.default]\nsolc = "0.8.15"\n'
+        assert (workspace / "lib" / "solmate" / "src" / "ERC20.sol").exists()
 
 
 class TestHalmosAdapter(TestAdapterBase):
