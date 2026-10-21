@@ -134,8 +134,8 @@ def watch(directory: str, profile: str, debounce: float, recursive: bool) -> Non
                             console.print(f"  [green]{tool}[/green]: {len(findings)} findings")
                         else:
                             print(f"  {tool}: {len(findings)} findings")  # noqa: T201
-                elif result["status"] == "not_available":
-                    pass  # Silently skip unavailable tools
+                elif result["status"] == "skipped":
+                    pass  # Silently skip tools that were not run (not installed, excluded)
                 else:
                     if RICH_AVAILABLE:
                         console.print(f"  [yellow]{tool}[/yellow]: error")

@@ -699,9 +699,7 @@ def _passes_zero_recall_context_filter(
     return True
 
 
-_FUNCTION_DECL = re.compile(
-    r"\b(?:function\s+(\w+)|(constructor)|(fallback)|(receive))\s*\("
-)
+_FUNCTION_DECL = re.compile(r"\b(?:function\s+(\w+)|(constructor)|(fallback)|(receive))\s*\(")
 
 
 def function_at_line(source_code: str, line: int) -> Optional[str]:
@@ -1227,7 +1225,9 @@ def group_identical_rule_hits(findings: List[Dict[str, Any]]) -> List[Dict[str, 
                 for h in hits
             ]
             head["severity"] = max(
-                (h.get("severity", "") for h in hits), key=_severity_rank, default=head.get("severity")
+                (h.get("severity", "") for h in hits),
+                key=_severity_rank,
+                default=head.get("severity"),
             )
             head["confidence"] = max(float(h.get("confidence", 0) or 0) for h in hits)
             tools = {t for h in hits for t in (h.get("confirming_tools") or [])}
@@ -1674,7 +1674,7 @@ def _category_template_key(finding: Dict[str, Any]) -> Optional[str]:
             return canonical
         resolved = normalize_finding_type(finding)
         if resolved is not None and resolved.value != "other":
-            return resolved.value
+            return cast(str, resolved.value)
     return None
 
 

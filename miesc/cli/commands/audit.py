@@ -22,7 +22,10 @@ from miesc import __version__ as VERSION
 from miesc.cli.constants import ADAPTER_MAP, AVAILABLE_PROFILES, LAYERS, QUICK_TOOLS
 from miesc.cli.utils import (
     RICH_AVAILABLE,
+    _print_tool_result,
     console,
+    count_available,
+    describe_tool_status,
     error,
     get_correlation_api,
     get_ml_orchestrator,
@@ -35,6 +38,7 @@ from miesc.cli.utils import (
     run_tool,
     success,
     summarize_findings,
+    summarize_tool_statuses,
     warning,
 )
 
@@ -242,14 +246,55 @@ def _to_sarif(results: List[Dict[str, Any]]) -> Dict[str, Any]:
     return sarif
 
 
+def _print_tool_run_summary(
+    *,
+    tools_planned: List[str],
+    success: List[str],
+    fallback: List[str],
+    skipped: List[str],
+    failed: List[str],
+) -> None:
+    """Print the tool denominator the way ``miesc doctor`` counts it.
+
+    ``available`` is the number of planned tools whose adapter reports
+    AVAILABLE (what doctor prints); ``ran`` counts results, fallbacks included
+    but labelled; ``skipped`` were not run; ``failed`` are errors and timeouts.
+    """
+    planned = [t for t in dict.fromkeys(tools_planned) if t]
+    available, total = count_available(planned)
+    ran = f"ran {len(success)}/{len(planned)}"
+    if fallback:
+        ran += f" ({len(fallback)} fallback)"
+    line = (
+        f"Tools: available {available}/{total} (as `miesc doctor`) · {ran} · "
+        f"skipped {len(skipped)} · failed {len(failed)}"
+    )
+    if RICH_AVAILABLE:
+        console.print(f"\n[dim]{line}[/dim]")
+        if skipped:
+            console.print(f"[dim]Skipped: {', '.join(skipped)}[/dim]")
+        if failed:
+            console.print(f"[yellow]Failed: {', '.join(failed)}[/yellow]")
+    else:
+        print(line)  # noqa: T201
+        if skipped:
+            print(f"Skipped: {', '.join(skipped)}")  # noqa: T201
+        if failed:
+            print(f"Failed: {', '.join(failed)}")  # noqa: T201
+
+
 def _to_markdown(results: List[Dict[str, Any]], contract: str) -> str:
     """Convert results to Markdown report."""
     summary = summarize_findings(results)
     total = sum(summary.values())
 
-    # Count tools
-    successful_tools = [r["tool"] for r in results if r.get("status") == "success"]
-    failed_tools = [r["tool"] for r in results if r.get("status") != "success"]
+    # Count tools (shared status vocabulary: success / skipped / timeout / error)
+    buckets = summarize_tool_statuses(results)
+    successful_tools = [
+        f"{t} (fallback)" if t in buckets["fallback"] else t for t in buckets["success"]
+    ]
+    skipped_tools = buckets["skipped"]
+    failed_tools = buckets["timeout"] + buckets["error"]
 
     md = f"""# MIESC Security Audit Report
 
@@ -271,7 +316,8 @@ def _to_markdown(results: List[Dict[str, Any]], contract: str) -> str:
 ### Tools Executed
 
 - **Successful**: {', '.join(successful_tools) if successful_tools else 'None'}
-- **Failed/Unavailable**: {', '.join(failed_tools) if failed_tools else 'None'}
+- **Skipped** (not installed / excluded): {', '.join(skipped_tools) if skipped_tools else 'None'}
+- **Failed** (error / timeout): {', '.join(failed_tools) if failed_tools else 'None'}
 
 ## Detailed Findings
 
@@ -316,7 +362,7 @@ def _to_markdown(results: List[Dict[str, Any]], contract: str) -> str:
 
     for result in results:
         tool = result.get("tool", "unknown")
-        status = result.get("status", "unknown")
+        status = describe_tool_status(result)
         exec_time = result.get("execution_time", 0)
         findings_count = len(result.get("findings", []))
         md += f"| {tool} | {status} | {exec_time:.1f} | {findings_count} |\n"
@@ -360,7 +406,9 @@ def _ml_result_to_markdown(result: Any, contract: str) -> str:
 ## Tools Executed
 
 - **Successful**: {', '.join(result.tools_success) if result.tools_success else 'None'}
-- **Failed**: {', '.join(result.tools_failed) if result.tools_failed else 'None'}
+- **Of which built-in fallback**: {', '.join(getattr(result, 'tools_fallback', [])) or 'None'}
+- **Skipped** (not installed / excluded): {', '.join(getattr(result, 'tools_skipped', [])) or 'None'}
+- **Failed** (error / timeout): {', '.join(result.tools_failed) if result.tools_failed else 'None'}
 
 ## Detailed Findings
 
@@ -556,12 +604,14 @@ def _run_full_audit_with_ml(
             ml_table.add_row("Cross-Validated", str(result.cross_validated))
             console.print(ml_table)
 
-            # Tools summary
-            console.print(
-                f"\n[dim]Tools: {len(result.tools_success)}/{len(result.tools_run)} successful[/dim]"
+            # Tools summary — same vocabulary and denominator as `miesc doctor`
+            _print_tool_run_summary(
+                tools_planned=result.tools_run,
+                success=result.tools_success,
+                fallback=getattr(result, "tools_fallback", []),
+                skipped=getattr(result, "tools_skipped", []),
+                failed=result.tools_failed,
             )
-            if result.tools_failed:
-                console.print(f"[yellow]Failed: {', '.join(result.tools_failed)}[/yellow]")
 
             console.print(
                 f"[dim]Execution time: {result.execution_time_ms/1000:.1f}s (ML: {result.ml_processing_time_ms/1000:.1f}s)[/dim]"
@@ -911,9 +961,17 @@ def _run_full_audit_basic(
         table.add_row("TOTAL", str(total), style="bold")
         console.print(table)
 
-        # Execution summary
-        successful = len([r for r in all_results if r.get("status") == "success"])
-        console.print(f"\n[dim]Tools executed: {successful}/{len(all_results)}[/dim]")
+        # Execution summary — same vocabulary and denominator as `miesc doctor`
+        buckets = summarize_tool_statuses(all_results)
+        _print_tool_run_summary(
+            tools_planned=[
+                t for layer in layer_list if layer in LAYERS for t in LAYERS[layer]["tools"]
+            ],
+            success=buckets["success"],
+            fallback=buckets["fallback"],
+            skipped=buckets["skipped"],
+            failed=buckets["timeout"] + buckets["error"],
+        )
         console.print(
             "[yellow]Note: ML filtering disabled. Results may contain false positives.[/yellow]"
         )
@@ -1088,12 +1146,7 @@ def audit_quick(
                 result = run_tool(tool, contract, timeout)
                 all_results.append(result)
 
-                if result["status"] == "success":
-                    success(f"{tool}: {len(result.get('findings', []))} findings")
-                elif result["status"] == "not_available":
-                    warning(f"{tool}: not installed")
-                else:
-                    warning(f"{tool}: {result.get('error', 'error')}")
+                _print_tool_result(tool, result)
 
                 progress.advance(task)
     else:
@@ -1740,13 +1793,7 @@ def audit_profile(
                 result = run_tool(tool, contract, timeout)
                 all_results.append(result)
 
-                if result["status"] == "success":
-                    findings_count = len(result.get("findings", []))
-                    success(f"{tool}: {findings_count} findings")
-                elif result["status"] == "not_available":
-                    warning(f"{tool}: not installed")
-                else:
-                    warning(f"{tool}: {result.get('error', 'error')[:50]}")
+                _print_tool_result(tool, result)
 
                 progress.advance(task)
     else:

@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Dict, Iterable, Optional
+from typing import Any, Dict, Iterable, Optional, cast
 
 import yaml  # type: ignore[import-untyped]
 
@@ -65,7 +65,7 @@ def rule_class(tool: str, rule: str) -> Optional[str]:
     table = load_rule_classes()["rules"].get((tool or "").lower())
     if not table:
         return None
-    return table.get((rule or "").lower())
+    return cast(Optional[str], table.get((rule or "").lower()))
 
 
 def finding_rule_class(finding: Dict[str, Any]) -> Optional[str]:
