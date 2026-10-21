@@ -125,9 +125,18 @@ def test_inference_delegatecall_randomness_overflow_selfdestruct():
         f["type"] == "delegatecall"
         for f in a._run_ml_inference(_features(has_delegatecall=1.0), "")
     )
-    assert any(
+    # The randomness heuristic needs the chain attribute to reach an entropy sink;
+    # the feature alone (presence of "now"/blockhash) stays below the threshold.
+    assert not any(
         f["type"] == "bad_randomness"
         for f in a._run_ml_inference(_features(uses_blockhash=1.0), "")
+    )
+    lotto = (
+        "function draw() public { winner = uint(blockhash(block.number - 1)) % players.length; }"
+    )
+    assert any(
+        f["type"] == "bad_randomness"
+        for f in a._run_ml_inference(_features(uses_blockhash=1.0), lotto)
     )
     # The overflow heuristic needs a balance-like state write with raw arithmetic;
     # bare "pre-0.8 code without SafeMath" stays below the confidence threshold.

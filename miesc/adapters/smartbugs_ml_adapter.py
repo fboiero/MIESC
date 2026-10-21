@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, cast
 
 from miesc.core.tool_protocol import ToolCapability, ToolCategory, ToolMetadata, ToolStatus
+from miesc.detectors.chain_attribute_flow import has_weak_randomness
 
 logger = logging.getLogger(__name__)
 
@@ -259,8 +260,9 @@ class SmartBugsMLAdapter:
         features["uses_blockhash"] = (
             1.0 if "blockhash" in contract_code or "block.blockhash" in contract_code else 0.0
         )
+        # ``now`` as a word: the substring test matched "known", "snow", "unknown".
         features["uses_timestamp"] = (
-            1.0 if "block.timestamp" in contract_code or "now" in contract_code else 0.0
+            1.0 if re.search(r"block\.timestamp|\bnow\b", contract_code) else 0.0
         )
         features["uses_block_number"] = 1.0 if "block.number" in contract_code else 0.0
 
@@ -385,9 +387,12 @@ class SmartBugsMLAdapter:
                     }
                 )
 
-        # Bad randomness
+        # Bad randomness. Presence of a chain attribute is not a finding: the value
+        # has to reach an entropy sink (hash, modulo) or be a strong entropy source
+        # (blockhash, difficulty, coinbase). Measured on SmartBugs-curated
+        # (2026-10-21): the presence-only rule fired on 46 non-randomness contracts.
         if features["uses_blockhash"] > 0.5 or features["uses_timestamp"] > 0.5:
-            confidence = 0.8
+            confidence = 0.8 if has_weak_randomness(contract_code) else 0.5
             if confidence >= self.confidence_threshold:
                 findings.append(
                     {

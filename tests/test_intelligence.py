@@ -145,19 +145,23 @@ class TestSemanticDedup:
 
 
 class TestZeroRecallPatterns:
-    def test_timelock_require_not_flagged(self):
-        """Pure timelock require(block.timestamp > deadline) is NOT a vulnerability."""
+    def test_timestamp_comparison_is_flagged(self):
+        """A comparison on block.timestamp is the SWC-116 shape (every labelled
+        SmartBugs time_manipulation contract has one); Slither's `timestamp`
+        detector reports the same comparison."""
         code = "function f() { require(block.timestamp > deadline); }"
         findings = detect_zero_recall_categories(code)
         types = [f["type"] for f in findings]
-        assert "time_manipulation" not in types
+        assert "time_manipulation" in types
 
-    def test_detects_timestamp_in_assignment(self):
-        """block.timestamp used in assignment IS a vulnerability."""
+    def test_store_only_timestamp_not_flagged(self):
+        """Storing block.timestamp without a comparison or entropy sink is not
+        time-sensitive logic (measured: 0 of 5 labelled contracts are store-only,
+        13 of 43 false positives were)."""
         code = "uint seed = block.timestamp;"
         findings = detect_zero_recall_categories(code)
         types = [f["type"] for f in findings]
-        assert "time_manipulation" in types
+        assert "time_manipulation" not in types
 
     def test_detects_timestamp_in_arithmetic(self):
         """block.timestamp used in arithmetic IS a vulnerability."""
@@ -520,7 +524,7 @@ class TestEnhanceFindings:
     def test_adds_zero_recall_patterns(self):
         code = (
             "pragma solidity ^0.7.0;\n"
-            "function f(uint a, uint b) { uint c = a + b; uint t = block.timestamp; }"
+            "function f(uint a, uint b) { uint c = a + b; if (block.timestamp > deadline) { pay(); } }"
         )
         result = enhance_findings([], source_code=code)
         types = [f["type"] for f in result]
@@ -528,15 +532,15 @@ class TestEnhanceFindings:
         # arithmetic_pre08 removed — no longer added by zero-recall patterns
         assert "arithmetic_pre08" not in types
 
-    def test_timelock_not_flagged_in_enhance(self):
-        """Timelock require() with timestamp does not produce time_manipulation."""
+    def test_store_only_timestamp_not_flagged_in_enhance(self):
+        """Storing block.timestamp without a comparison or entropy sink is not
+        time-sensitive logic (shared minimal data flow, measured on SmartBugs)."""
         code = (
             "pragma solidity ^0.7.0;\n"
-            "function f(uint a, uint b) { uint c = a + b; require(block.timestamp > x); }"
+            "function f(uint a, uint b) { uint c = a + b; uint t = block.timestamp; }"
         )
         result = enhance_findings([], source_code=code)
         types = [f["type"] for f in result]
-        # time_manipulation does NOT fire (pure timelock require)
         assert "time_manipulation" not in types
 
     def test_suppressed_findings_last(self):
@@ -860,22 +864,24 @@ class TestZeroRecallContextFilter:
         assert _passes_zero_recall_context_filter("some_unknown_filter", "code", "code") is True
 
     # --- non_timelock_timestamp ---
-    def test_pure_timelock_is_suppressed(self):
+    def test_timestamp_comparison_fires(self):
+        """SWC-116 shape: the timestamp reaches a comparison (what Slither's
+        `timestamp` detector reports too)."""
         src = "function f() { require(block.timestamp > deadline); }"
         assert (
             _passes_zero_recall_context_filter(
                 "non_timelock_timestamp", src, "require(block.timestamp > deadline)"
             )
-            is False
+            is True
         )
 
-    def test_non_timelock_timestamp_fires(self):
+    def test_store_or_argument_only_does_not_fire(self):
         src = "function f() { uint t = block.timestamp; bet(t); }"
         assert (
             _passes_zero_recall_context_filter(
                 "non_timelock_timestamp", src, "uint t = block.timestamp;"
             )
-            is True
+            is False
         )
 
     # --- randomness_context ---
@@ -909,10 +915,17 @@ class TestZeroRecallContextFilter:
         assert _passes_zero_recall_context_filter("has_unchecked_arithmetic", src, src) is False
 
     def test_non_timelock_skips_commented_timestamp_line(self):
-        src = "// legacy: block.timestamp check\nuint t = block.timestamp; bet(t);"
+        src = "// legacy: require(block.timestamp > deadline)\nuint t = block.timestamp; bet(t);"
         assert (
             _passes_zero_recall_context_filter(
                 "non_timelock_timestamp", src, "uint t = block.timestamp;"
+            )
+            is False
+        )
+        src = "// legacy\nif (block.timestamp > deadline) { bet(); }"
+        assert (
+            _passes_zero_recall_context_filter(
+                "non_timelock_timestamp", src, "if (block.timestamp > deadline)"
             )
             is True
         )
