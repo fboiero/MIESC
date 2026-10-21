@@ -89,7 +89,8 @@ MIESC employs a 9-layer defense-in-depth approach. The following table shows the
 | Category | {{ finding.category }} |
 | Location | {{ finding.location }} |
 | Status | {{ finding.status }} |
-| Tool | {{ finding.tool }} |
+| Detected by | {{ finding.confirming_tools | join(', ') if finding.confirming_tools else finding.tool }}{% if finding.tool_count and finding.tool_count > 1 %} ({{ finding.tool_count }} tools agree){% endif %} |
+| Confidence | {{ finding.confidence_pct | default('n/a') }}{% if finding.cross_validated_static or finding.cross_validated_llm %} — cross-validated{% endif %} |
 
 #### Description
 
@@ -153,6 +154,22 @@ MIESC employs a 9-layer defense-in-depth approach. The following table shows the
 
 ---
 
+## Coverage and Limitations
+
+What this report does **not** cover is as important as what it does. Figures come from the
+run itself, not from the tool catalogue.
+
+| Coverage | Tools |
+|----------|-------|
+| Ran and produced results | {{ coverage_tools_clean | length }} of {{ coverage_tools_run | length }}{% if coverage_tools_clean %}: {{ coverage_tools_clean | join(', ') }}{% endif %} |
+| Skipped (not installed / unsupported input / excluded) | {% if coverage_tools_skipped %}{{ coverage_tools_skipped | join(', ') }}{% else %}none{% endif %} |
+| Ran in built-in fallback mode (no external model or binary) | {% if coverage_tools_fallback %}{{ coverage_tools_fallback | join(', ') }}{% else %}none{% endif %} |
+| Failed or timed out | {% if coverage_tools_failed %}{{ coverage_tools_failed | join(', ') }}{% else %}none{% endif %} |
+{% if coverage_llm_free is not none %}| LLM-backed adapters | {% if coverage_llm_free %}disabled for this run (`--no-llm`){% else %}enabled where a model was reachable{% endif %} |
+{% endif %}
+Findings from a tool in fallback mode are heuristic and carry lower confidence; a skipped
+tool means its vulnerability classes were **not** checked by that engine in this run.
+
 ## Methodology
 
 This audit employed MIESC's 9-layer defense-in-depth methodology:
@@ -212,7 +229,27 @@ This audit employed MIESC's 9-layer defense-in-depth methodology:
 
 ---
 
-## Appendix B: Files Analyzed
+## Appendix B: Provenance
+
+{% if has_provenance %}
+Environment of the run that produced the findings above (from the result file's
+`provenance` block), so the audit can be reproduced or cited.
+
+| Item | Value |
+|------|-------|
+{% for label, value in provenance_rows %}| {{ label }} | `{{ value }}` |
+{% endfor %}
+{% if provenance_tool_versions %}
+| Tool | Version reported by the binary |
+|------|-------------------------------|
+{% for tool, version in provenance_tool_versions %}| {{ tool }} | {{ version }} |
+{% endfor %}{% endif %}
+{% else %}
+The result file carries no `provenance` block (produced before MIESC 6.2.0). Re-run the
+analysis to record tool versions, solc per contract and the exact command.
+{% endif %}
+
+## Appendix C: Files Analyzed
 
 | File | Lines | Findings |
 |------|-------|----------|

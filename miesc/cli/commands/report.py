@@ -159,6 +159,107 @@ def _extract_confidence_level(findings: list[dict[str, Any]]) -> str:
     return "Low"
 
 
+def _finding_list(value: Any) -> list[dict[str, Any]]:
+    """Findings from either shape the result files use: a list of findings, or a
+    dict with a ``findings`` key (``raw_findings`` is a dict in the audit JSON and a
+    list in older files). Non-dict entries are dropped."""
+    if isinstance(value, dict):
+        value = value.get("findings", [])
+    if not isinstance(value, list):
+        return []
+    return [f for f in value if isinstance(f, dict)]
+
+
+def _coverage_and_provenance_variables(results: dict[str, Any]) -> dict[str, Any]:
+    """Template variables describing coverage gaps and run provenance.
+
+    Works for both the scan JSON (``tools`` / ``tools_failed``) and the audit JSON
+    (``tools_run`` / ``tools_success`` / ``tools_skipped`` / ``tools_fallback`` /
+    ``tool_status``). Everything degrades to empty lists when a key is absent.
+    """
+    tool_status = results.get("tool_status") or {}
+    tools_run = list(results.get("tools_run") or results.get("tools") or tool_status.keys())
+    skipped = list(
+        results.get("tools_skipped") or [t for t, s in tool_status.items() if s == "skipped"]
+    )
+    fallback = list(
+        results.get("tools_fallback") or [t for t, s in tool_status.items() if "fallback" in str(s)]
+    )
+    failed = list(
+        results.get("tools_failed")
+        or [t for t, s in tool_status.items() if s in ("error", "timeout")]
+    )
+    failed = [t if isinstance(t, str) else str(t) for t in failed]
+    ran_clean = [t for t in tools_run if t not in skipped and t not in fallback and t not in failed]
+
+    prov = results.get("provenance") or {}
+    miesc_info = prov.get("miesc") or {}
+    python_info = prov.get("python") or {}
+    platform_info = prov.get("platform") or {}
+    solc_info = prov.get("solc") or {}
+    config_info = prov.get("config") or {}
+    tool_versions = prov.get("tools") or {}
+    rows: list[tuple[str, str]] = []
+    if prov:
+        version = miesc_info.get("version") or results.get("version") or VERSION
+        sha = miesc_info.get("git_sha")
+        if sha:
+            version = f"{version} ({sha[:12]}{', dirty' if miesc_info.get('git_dirty') else ''})"
+        rows.append(("MIESC", version))
+        rows.append(("Run timestamp", str(prov.get("timestamp") or results.get("timestamp") or "")))
+        if python_info:
+            rows.append(
+                (
+                    "Python",
+                    f"{python_info.get('version', '?')} ({python_info.get('implementation', '')})".strip(),
+                )
+            )
+        if platform_info:
+            rows.append(
+                (
+                    "Platform",
+                    " ".join(
+                        str(platform_info.get(k, "")) for k in ("system", "release", "machine")
+                    ).strip(),
+                )
+            )
+        per_contract = solc_info.get("per_contract") or {}
+        if per_contract:
+            rows.append(
+                (
+                    "solc per contract",
+                    "; ".join(f"{Path(k).name} → {v}" for k, v in sorted(per_contract.items())),
+                )
+            )
+        if config_info.get("sha256"):
+            rows.append(("Config sha256", str(config_info["sha256"])[:16] + "…"))
+        if "llm_free" in prov:
+            rows.append(
+                (
+                    "LLM adapters",
+                    "disabled (--no-llm)" if prov.get("llm_free") else "enabled where available",
+                )
+            )
+        if prov.get("command_line"):
+            rows.append(("Command", str(prov["command_line"])))
+    known_tool_versions = sorted(
+        (t, v)
+        for t, v in tool_versions.items()
+        if v and str(v).lower() != "unknown" and len(str(v)) < 80
+    )
+    return {
+        "coverage_tools_run": tools_run,
+        "coverage_tools_clean": ran_clean,
+        "coverage_tools_skipped": sorted(skipped),
+        "coverage_tools_fallback": sorted(fallback),
+        "coverage_tools_failed": sorted(failed),
+        "coverage_llm_free": bool(prov.get("llm_free")) if prov else None,
+        "provenance_rows": rows,
+        "provenance_tool_versions": known_tool_versions,
+        "has_provenance": bool(prov),
+    }
+
+
 def _get_swc_references(category: str, swc_id: str = "") -> list[str]:
     """Auto-generate references based on SWC/CWE classification."""
     refs = []
@@ -866,6 +967,11 @@ def report(
         key_takeaways = "No vulnerabilities identified during the audit. " + deploy_note
 
     variables["key_takeaways"] = key_takeaways
+
+    # Coverage and provenance (Product Excellence Plan B.2/B.3): what did not run,
+    # what ran in fallback mode, and the exact environment, straight from the
+    # result JSON so the report can be cited and its gaps are visible.
+    variables.update(_coverage_and_provenance_variables(results))
     # Also set llm_executive_summary if not already set by LLM
     if not variables.get("llm_executive_summary"):
         variables["llm_executive_summary"] = key_takeaways
@@ -995,8 +1101,10 @@ def report(
         tools_run = results.get("tools_run", [])
         tools_success = set(results.get("tools_success", []))
         tools_failed = set(results.get("tools_failed", []))
-        raw_findings = results.get("raw_findings", {}).get("findings", [])
-        ml_findings = results.get("ml_filtered", {}).get("findings", [])
+        raw_findings = _finding_list(results.get("raw_findings"))
+        ml_findings = _finding_list(results.get("ml_filtered")) or _finding_list(
+            results.get("ml_enhanced")
+        )
         all_findings = ml_findings if ml_findings else raw_findings
 
         # Group findings by tool
