@@ -1,4 +1,4 @@
-# MIESC 6.3.0 - Guía de Instalación Completa
+# MIESC 6.4.0 - Guía de Instalación Completa
 
 **[English Version](INSTALLATION.md)**
 
@@ -321,7 +321,7 @@ miesc doctor
 Salida esperada:
 
 ```
-MIESC v6.3.0 - Installation Verification
+MIESC v6.4.0 - Installation Verification
 ============================================================
 
 1. Python Environment
@@ -457,4 +457,4 @@ Después de la instalación:
 
 ---
 
-**Versión**: 6.3.0 | **Última Actualización**: Octubre 2026
+**Versión**: 6.4.0 | **Última Actualización**: Octubre 2026
