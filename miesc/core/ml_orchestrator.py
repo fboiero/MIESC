@@ -10,6 +10,8 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, cast
 
+from miesc.core.llm_budget import budget_for
+
 if TYPE_CHECKING:
     pass
 
@@ -280,7 +282,7 @@ class MLOrchestrator:
         try:
             adapter = self.discovery.load_adapter(tool_name)
             adapter_config = self.config.get_adapter_config(tool_name)
-            effective_timeout = adapter_config.timeout or timeout
+            effective_timeout = budget_for(adapter, adapter_config.timeout or timeout)
 
             # Probe availability first so the record says whether the real tool
             # ran. Adapters with a built-in heuristic (dagnn, smartbugs_ml) still
@@ -290,6 +292,7 @@ class MLOrchestrator:
 
             result = adapter.analyze(contract_path, timeout=effective_timeout)
             result = _normalize_status(cast(dict[str, Any], result))
+            result.setdefault("timeout_budget_s", effective_timeout)
             if availability not in (None, "available"):
                 if result.get("status") == "success":
                     result["fallback"] = True

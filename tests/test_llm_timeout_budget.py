@@ -71,3 +71,34 @@ def test_print_tool_timing_handles_empty(capsys):
         utils.print_tool_timing([])
         utils.print_tool_timing([{"tool": "x", "execution_time": "n/a"}])
     assert capsys.readouterr().out == ""
+
+
+def test_ml_orchestrator_applies_budget_to_llm_adapters(tmp_path):
+    from types import SimpleNamespace
+
+    from miesc.core.ml_orchestrator import MLOrchestrator
+
+    contract = tmp_path / "c.sol"
+    contract.write_text("pragma solidity ^0.8.0;\ncontract C {}\n")
+    seen = {}
+
+    class FakeLLMAdapter:
+        def get_metadata(self):
+            return SimpleNamespace(requires_llm=True)
+
+        def is_available(self):
+            return "available"
+
+        def analyze(self, path, timeout=None, **kwargs):
+            seen["timeout"] = timeout
+            return {"tool": "fake_llm", "status": "success", "findings": []}
+
+    orch = MLOrchestrator(ml_enabled=False, cache_enabled=False)
+    utils.set_llm_timeout(25)
+    with patch.object(orch.discovery, "load_adapter", return_value=FakeLLMAdapter()):
+        with patch.object(
+            orch.config, "get_adapter_config", return_value=SimpleNamespace(timeout=None)
+        ):
+            result = orch._run_tool("fake_llm", str(contract), 300)
+    assert seen["timeout"] == 25
+    assert result["timeout_budget_s"] == 25

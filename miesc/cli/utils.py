@@ -17,6 +17,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Set, cast
 
+from miesc.core.llm_budget import get_llm_timeout, set_llm_timeout  # noqa: F401
 from miesc.core.rule_classes import apply_rule_class_caps
 
 from .constants import ADAPTER_MAP, LAYERS
@@ -541,26 +542,15 @@ def count_available(tools: Iterable[str]) -> tuple[int, int]:
 
 
 # Wall-clock budget applied to LLM-backed adapters only (``--llm-timeout``).
-# None means "same timeout as every other tool".
-_LLM_TIMEOUT_OVERRIDE: Optional[int] = None
-
-
-def set_llm_timeout(seconds: Optional[int]) -> None:
-    """Set (or clear with None/0) the per-tool budget for LLM-backed adapters."""
-    global _LLM_TIMEOUT_OVERRIDE
-    _LLM_TIMEOUT_OVERRIDE = int(seconds) if seconds else None
-
-
-def get_llm_timeout() -> Optional[int]:
-    """Current LLM budget in seconds, or None when not set."""
-    return _LLM_TIMEOUT_OVERRIDE
+# The state lives in miesc.core.llm_budget so the ML orchestrator shares it.
 
 
 def effective_tool_timeout(tool: str, timeout: int) -> int:
     """Timeout to hand to ``tool``: the LLM budget when one is set and the
     adapter declares ``requires_llm``, otherwise ``timeout`` unchanged."""
-    if _LLM_TIMEOUT_OVERRIDE and tool in AdapterLoader.llm_tools():
-        return _LLM_TIMEOUT_OVERRIDE
+    budget = get_llm_timeout()
+    if budget and tool in AdapterLoader.llm_tools():
+        return budget
     return timeout
 
 
@@ -759,13 +749,16 @@ def print_tool_timing(results: List[Dict[str, Any]], top: int = 8) -> None:
             continue
         if secs <= 0:
             continue
-        rows.append(
-            (secs, str(r.get("tool", "?")), describe_tool_status(r), r.get("timeout_budget_s"))
-        )
+        status = describe_tool_status(r)
+        cached = bool(r.get("from_cache") or (r.get("metadata") or {}).get("from_cache"))
+        if cached:
+            status += " (cached)"
+        rows.append((secs, str(r.get("tool", "?")), status, r.get("timeout_budget_s"), cached))
     if not rows:
         return
     rows.sort(reverse=True)
-    total = sum(secs for secs, *_ in rows)
+    # Cached results carry the time of the run that produced them, not this one.
+    total = sum(secs for secs, _t, _s, _b, cached in rows if not cached)
     shown = rows[:top]
     if RICH_AVAILABLE and console:
         from rich import box
@@ -778,12 +771,12 @@ def print_tool_timing(results: List[Dict[str, Any]], top: int = 8) -> None:
         table.add_column("Status")
         table.add_column("Time (s)", justify="right")
         table.add_column("Budget (s)", justify="right")
-        for secs, tool, status, budget in shown:
+        for secs, tool, status, budget, _cached in shown:
             table.add_row(tool, status, f"{secs:.1f}", str(budget) if budget else "-")
         console.print(table)
     else:
         print(f"Slowest tools (of {len(rows)}, {total:.1f}s tool time):")  # noqa: T201
-        for secs, tool, status, budget in shown:
+        for secs, tool, status, budget, _cached in shown:
             print(f"  {tool:<24} {status:<22} {secs:7.1f}s  budget={budget or '-'}")  # noqa: T201
 
 
