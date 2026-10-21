@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from functools import lru_cache
 from typing import Dict, Iterable, List, Set, Tuple
 
 __all__ = [
@@ -163,7 +164,9 @@ def _mentions(text: str, names: Iterable[str]) -> List[str]:
     )
 
 
-def _analyze(source: str) -> List[FlowHit]:
+@lru_cache(maxsize=256)
+def _analyze(source: str) -> Tuple[FlowHit, ...]:
+    # Cached: the intelligence filter asks per matched line, the adapters per file.
     stripped = _strip(source)
     hits: Set[FlowHit] = set()
     for offset, body in _bodies(stripped):
@@ -204,7 +207,7 @@ def _analyze(source: str) -> List[FlowHit]:
                         hits.add(FlowHit(line, attribute, "condition", sink_line))
                     elif is_return:
                         hits.add(FlowHit(line, attribute, "return", sink_line))
-    return sorted(hits, key=lambda hit: (hit.line, hit.sink_line, hit.attribute, hit.sink))
+    return tuple(sorted(hits, key=lambda hit: (hit.line, hit.sink_line, hit.attribute, hit.sink)))
 
 
 def time_dependence(source: str) -> List[FlowHit]:

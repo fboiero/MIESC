@@ -456,7 +456,9 @@ comparison honest.
 The other two moves are one false positive each: `access_control` 67 → 66 (the path leak
 below) and `arithmetic` 66 → 65 (a stale cached `smartbugs_ml` prediction in the reference
 run, see the measurement note). Tool statuses are identical in both runs (4 Slither errors,
-18 Aderyn skips/errors on the same contracts).
+18 Aderyn skips/errors on the same contracts); the reference ran under Python 3.14 and this
+one under 3.12, and an offline re-score of the reference run's stored findings with the new
+scorer and rules predicted 306 FP, so the two runs are comparable.
 
 Attribution first (every layer-1/6/7 tool run on the 89 false-positive and 13 labelled
 contracts, each finding passed through the scorer): the `bad_randomness` false positives
