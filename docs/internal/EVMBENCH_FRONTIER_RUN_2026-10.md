@@ -85,6 +85,31 @@ spend is a few dollars, not a barrier. This matches the papers' thesis ("frontie
 single-run recall, not better precision/F1"), with the nuance that GPT-5 *does* improve
 precision/F1 over the other frontier models and over local.
 
+## Same-subset local baseline (GPT-5 vs local qwen32b, my own run)
+
+To make the frontier-vs-local comparison apples-to-apples (not frontier-mine vs
+local-paper), I ran `--model qwen32b` (local Ollama, $0) on the **same 10 audits**:
+
+| Metric | GPT-5 (frontier) | qwen2.5-coder:32b (local) |
+|--------|:----------------:|:-------------------------:|
+| Recall | **88.2%** (15/17) | 41.2% (7/17) |
+| Precision | **78.9%** | 12.7% (TP=7, FP=48) |
+| F1 | **83.3%** | 19.4% |
+| Findings emitted | 19 | 55 (48 false positives) |
+| Cost | ~$0.064/audit | **$0** |
+
+**Honest nuance — this widens, and partly complicates, the earlier picture.** On this
+subset the frontier advantage is much larger than the papers' 40-audit aggregate
+(there: GPT-5 77.5% vs local 59.2%, +18 pts; here: +47 pts). And the local model did
+**worse than its paper number** (41% vs 59%) for three reasons: (1) it **flooded false
+positives** (48 FP → 12.7% precision), (2) **5 responses still failed to parse**
+(recall lost), and (3) the 10 smallest audits are not representative. So the claim that
+"local is a strong free baseline" holds for common vulns (SmartBugs) but is weaker for
+business-logic on this subset — local was noisy and lossy here. The overall conclusion
+stands: local-first for free coverage; paid frontier for business-logic recall at a
+few cents per audit, where on this subset it clearly dominated local on both recall and
+precision.
+
 ## Reproduce
 
 ```bash
