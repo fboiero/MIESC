@@ -29,7 +29,7 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple, cast
 
 from miesc.core.finding_taxonomy import CanonicalCategory, normalize_finding_type
-from miesc.core.rule_classes import class_max_severity, finding_rule_class
+from miesc.core.rule_classes import class_max_severity, finding_rule_class, rule_ids
 
 # =============================================================================
 # 1. Cross-tool confirmation scoring
@@ -1198,14 +1198,45 @@ _CANONICAL_RECOMMENDATIONS: Dict[str, str] = {
 
 _GENERIC_RECOMMENDATIONS = {"review and fix", "review the", "check the", "see the"}
 
+# Recommendation text for detector rules whose canonical category is too coarse
+# to advise from. Keyed by the rule id as the tool names it; always wins over
+# the category text, even when the adapter supplied a (wrong) recommendation.
+_RULE_RECOMMENDATIONS: Dict[str, str] = {
+    "send-ether-no-checks": (
+        "Aderyn found no condition on `msg.sender` before native ETH leaves this "
+        "function. A user withdrawal needs no caller restriction: bound the amount "
+        "by the caller's own balance, update that balance before the external call "
+        "(Checks-Effects-Interactions) and `require(success)` on the call. Only a "
+        "payout meant for a privileged caller should be restricted with an "
+        "access-control modifier."
+    ),
+    "tx-origin": "Replace `tx.origin` with `msg.sender` for authorization; `tx.origin` is the EOA that started the transaction, so any contract the user interacts with can relay a call that passes the check.",
+    "tx_origin_auth": "Replace `tx.origin` with `msg.sender` for authorization; `tx.origin` is the EOA that started the transaction, so any contract the user interacts with can relay a call that passes the check.",
+    "unindexed-events": "Mark address and id parameters of the event as `indexed` so off-chain consumers can filter on them.",
+}
+
 
 def _enrich_recommendations(findings: List[Dict[str, Any]]) -> None:
-    """Replace generic recommendations with canonical per-category advice."""
+    """Replace generic recommendations with rule-specific advice, falling back
+    to the canonical per-category text only where the category is a faithful
+    description of the rule (see ``_category_template_key``)."""
     for f in findings:
+        rule_rec = next(
+            (_RULE_RECOMMENDATIONS[r] for r in _finding_rule_ids(f) if r in _RULE_RECOMMENDATIONS),
+            None,
+        )
+        if rule_rec:
+            f["recommendation"] = rule_rec
+            continue
         rec = (f.get("recommendation") or f.get("message") or "").strip().lower()
         if not rec or any(g in rec for g in _GENERIC_RECOMMENDATIONS):
-            canonical = f.get("canonical_category", "")
-            better = _CANONICAL_RECOMMENDATIONS.get(canonical)
+            if f.get("rule_class"):
+                # A lint rule's title already is the advice ("could be marked external").
+                message = (f.get("message") or f.get("description") or "").strip()
+                if message:
+                    f["recommendation"] = message
+                continue
+            better = _CANONICAL_RECOMMENDATIONS.get(_category_template_key(f) or "")
             if better:
                 f["recommendation"] = better
 
@@ -1438,6 +1469,143 @@ contract SecureProxy is Initializable, OwnableUpgradeable {
 }
 
 
+# Fix snippets keyed by detector rule, for rules whose canonical category would
+# select a misleading template (Aderyn's send-ether-no-checks maps to
+# access_control via SWC-105, which yields "add onlyOwner" on a user withdraw).
+_RULE_FIX_TEMPLATES: Dict[str, str] = {
+    "send-ether-no-checks": """\
+// Aderyn send-ether-no-checks: ETH leaves this function with no condition on
+// msg.sender. Pick the fix that matches what the function is FOR:
+//
+// (a) user withdrawal — bound by the caller's own balance, CEI, check the call.
+//     Do NOT add onlyOwner here: it would lock every user out of their funds.
+function withdraw(uint256 amount) external {
+    require(balances[msg.sender] >= amount, "Insufficient balance"); // CHECKS
+    balances[msg.sender] -= amount;                                  // EFFECTS
+    (bool success, ) = msg.sender.call{value: amount}("");           // INTERACTIONS
+    require(success, "Transfer failed");
+}
+
+// (b) privileged payout — restrict the caller.
+// import "@openzeppelin/contracts/access/Ownable.sol";
+// function sweep(address payable to, uint256 amount) external onlyOwner { ... }""",
+    "tx-origin": """\
+// Fix: authorize with msg.sender, never tx.origin
+contract Vault {
+    address public owner;
+
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Not owner"); // was: tx.origin == owner
+        _;
+    }
+}""",
+}
+_RULE_FIX_TEMPLATES["tx_origin_auth"] = _RULE_FIX_TEMPLATES["tx-origin"]
+
+# Detector rules whose canonical category IS a faithful description, so the
+# category template applies. Everything else gets no category fallback: a
+# finding resolved only through an SWC id, a title keyword or a substring
+# would otherwise receive advice written for a different bug.
+_RULE_CATEGORY_TEMPLATE: Dict[str, str] = {
+    # reentrancy
+    "reentrancy-eth": "reentrancy",
+    "reentrancy-no-eth": "reentrancy",
+    "reentrancy-benign": "reentrancy",
+    "reentrancy-events": "reentrancy",
+    "reentrancy-unlimited-gas": "reentrancy",
+    "reentrancy": "reentrancy",
+    "reentrancy_crossfunction": "reentrancy",
+    "withdraw_no_balance_update": "reentrancy",
+    # access control (functions that must be restricted)
+    "arbitrary-send-eth": "access_control",
+    "arbitrary-send-erc20": "access_control",
+    "arbitrary-send": "access_control",
+    "suicidal": "access_control",
+    "unprotected-upgrade": "access_control",
+    "unprotected_selfdestruct": "access_control",
+    "access_control_initwallet": "access_control",
+    "access_control_owner_reassign": "access_control",
+    "access_control_newowner_public": "access_control",
+    "mapping_write_arbitrary": "access_control",
+    "delegatecall_unprotected": "access_control",
+    "unchecked_mint_burn": "access_control",
+    # unchecked calls
+    "unchecked-lowlevel": "unchecked_call",
+    "unchecked-send": "unchecked_call",
+    "unchecked-transfer": "unchecked_call",
+    "unchecked-return": "unchecked_call",
+    "unused-return": "unchecked_call",
+    "unchecked_return_value": "unchecked_call",
+    "unchecked_send_pattern": "unchecked_call",
+    "unchecked_call_pattern": "unchecked_call",
+    "return_value_token": "unchecked_call",
+    # arithmetic
+    "integer-overflow": "arithmetic",
+    "integer-underflow": "arithmetic",
+    "overflow": "arithmetic",
+    "underflow": "arithmetic",
+    # randomness / time / ordering
+    "weak-prng": "bad_randomness",
+    "weak-randomness": "bad_randomness",
+    "bad_randomness_blockhash": "bad_randomness",
+    "bad_randomness_block_vars": "bad_randomness",
+    "timestamp": "time_manipulation",
+    "block-timestamp-deadline": "time_manipulation",
+    "block-timestamp": "time_manipulation",
+    "front-running": "front_running",
+    "transaction-order-dependence": "front_running",
+    # proxy / delegatecall / initialization
+    "controlled-delegatecall": "proxy_upgrade",
+    "delegatecall-loop": "proxy_upgrade",
+    "delegatecall-in-loop": "proxy_upgrade",
+    "delegate-call-unchecked-address": "proxy_upgrade",
+    "delegatecall_to_untrusted": "proxy_upgrade",
+    "storage_collision_proxy": "proxy_upgrade",
+    "storage-collision": "proxy_upgrade",
+    "unprotected-initializer": "initialization",
+    "uninitialized_proxy": "initialization",
+    "unprotected_initialize": "initialization",
+    # oracle
+    "price_oracle_stale": "oracle_manipulation",
+}
+
+
+def _finding_rule_ids(finding: Dict[str, Any]) -> List[str]:
+    """Rule ids a finding carries (``rule``, ``check``, ``type`` …), lower-cased."""
+    return list(rule_ids(finding))
+
+
+def _category_template_key(finding: Dict[str, Any]) -> Optional[str]:
+    """Canonical category whose template may be used for ``finding``.
+
+    Returns the category when
+      - a rule id is listed in ``_RULE_CATEGORY_TEMPLATE``, or
+      - the finding's own type/rule IS a canonical category name
+        (LLM and pattern detectors emit ``"reentrancy"``, ``"access-control"``),
+      - or, for callers that pass only ``canonical_category`` and no rule id
+        (legacy API), that category.
+    Lint/informational rules and every other resolution path return None.
+    """
+    if finding.get("rule_class") or finding_rule_class(finding):
+        return None
+    rules = _finding_rule_ids(finding)
+    for rule in rules:
+        if rule in _RULE_CATEGORY_TEMPLATE:
+            return _RULE_CATEGORY_TEMPLATE[rule]
+    for rule in rules:
+        as_category = rule.replace("-", "_").replace(" ", "_")
+        if as_category in _CANONICAL_RECOMMENDATIONS or as_category in _FIX_CODE_TEMPLATES:
+            return as_category
+    if not rules:
+        canonical = str(finding.get("canonical_category") or "")
+        if canonical and canonical != "other":
+            return canonical
+        resolved = normalize_finding_type(finding)
+        if resolved is not None and resolved.value != "other":
+            return resolved.value
+    return None
+
+
 def generate_fix_code(
     finding: Dict[str, Any],
     source_code: str = "",
@@ -1445,28 +1613,27 @@ def generate_fix_code(
     """
     Return a copy-pasteable Solidity fix snippet for a given finding.
 
-    Looks up the finding's canonical_category (or normalizes it if absent)
-    against the FIX_CODE_TEMPLATES dictionary.  Returns None for unknown or
-    "other" categories so callers can omit the field cleanly.
+    Resolution order (first hit wins):
+      1. a template written for the detector rule (``_RULE_FIX_TEMPLATES``);
+      2. the canonical-category template, only when the rule is one for
+         which the category is a faithful description (``_RULE_CATEGORY_TEMPLATE``
+         or the type is the category name itself);
+      3. None — a misleading fix is worse than none.
 
     Args:
-        finding: A finding dict (must contain at least 'canonical_category'
-                 or enough fields for normalize_finding_type to resolve one).
+        finding: A finding dict with the tool's rule id in ``type``/``rule``/
+                 ``check`` (or, for legacy callers, just ``canonical_category``).
         source_code: Optional contract source — reserved for future context-
                      aware template selection (e.g. pragma version detection).
 
     Returns:
-        Solidity code string, or None if no template exists for this category.
+        Solidity code string, or None if no template applies.
     """
-    canonical = finding.get("canonical_category", "")
-    if not canonical or canonical == "other":
-        # Try to resolve from the finding itself
-        resolved = normalize_finding_type(finding)
-        if resolved is None or resolved.value == "other":
-            return None
-        canonical = resolved.value
-
-    return _FIX_CODE_TEMPLATES.get(canonical)
+    for rule in _finding_rule_ids(finding):
+        if rule in _RULE_FIX_TEMPLATES:
+            return _RULE_FIX_TEMPLATES[rule]
+    category = _category_template_key(finding)
+    return _FIX_CODE_TEMPLATES.get(category) if category else None
 
 
 # =============================================================================
@@ -1551,27 +1718,36 @@ _EXPLOIT_SCENARIOS: Dict[str, List[str]] = {
 }
 
 
+# Attack narratives keyed by detector rule (same rationale as _RULE_FIX_TEMPLATES).
+_RULE_EXPLOIT_SCENARIOS: Dict[str, List[str]] = {
+    "tx-origin": [
+        "1. Victim (the owner EOA) is lured into calling an attacker contract, e.g. to claim an airdrop.",
+        "2. The attacker contract, inside that call, invokes the victim's privileged function.",
+        "3. The check `tx.origin == owner` passes: tx.origin is the EOA that started the transaction, not the attacker contract.",
+        "4. The privileged action (withdraw, transfer ownership) executes with the owner's authority.",
+    ],
+}
+_RULE_EXPLOIT_SCENARIOS["tx_origin_auth"] = _RULE_EXPLOIT_SCENARIOS["tx-origin"]
+
+
 def generate_exploit_scenario(finding: Dict[str, Any]) -> Optional[List[str]]:
     """
     Return a step-by-step attack description for a given finding.
 
-    Uses the finding's canonical_category to look up a pre-defined scenario
-    modelled on the RAG attack_steps format.  Returns None for unknown or
-    "other" categories.
+    Same resolution as :func:`generate_fix_code`: a scenario written for the
+    detector rule first, then the canonical-category scenario only where the
+    category faithfully describes the rule, otherwise None.
 
     Args:
-        finding: A finding dict with at least 'canonical_category', or enough
-                 fields for normalize_finding_type to resolve a category.
+        finding: A finding dict with the tool's rule id in ``type``/``rule``/
+                 ``check`` (or, for legacy callers, just ``canonical_category``).
 
     Returns:
-        List of step strings, or None if no scenario exists for this category.
+        List of step strings, or None if no scenario applies.
     """
-    canonical = finding.get("canonical_category", "")
-    if not canonical or canonical == "other":
-        resolved = normalize_finding_type(finding)
-        if resolved is None or resolved.value == "other":
-            return None
-        canonical = resolved.value
-
-    scenario = _EXPLOIT_SCENARIOS.get(canonical)
+    for rule in _finding_rule_ids(finding):
+        if rule in _RULE_EXPLOIT_SCENARIOS:
+            return list(_RULE_EXPLOIT_SCENARIOS[rule])
+    category = _category_template_key(finding)
+    scenario = _EXPLOIT_SCENARIOS.get(category) if category else None
     return list(scenario) if scenario is not None else None
