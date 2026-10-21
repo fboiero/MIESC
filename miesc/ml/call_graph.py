@@ -452,11 +452,20 @@ class CallGraphBuilder:
     """
 
     # Regex patterns for source code parsing
+    # The Modifiers group used to be `(?:\w+\s*)*?` — bare words only. Any custom
+    # modifier taking arguments (`epochHasEnded(id)`, `marketExists(id)` —
+    # common in real Solidity, e.g. Y2K Finance's Vault.sol) leaves an
+    # unconsumed "(" the group can't cross, and the regex engine catastrophically
+    # backtracks trying every possible split with the surrounding optional
+    # groups before giving up: real, reproducible hang (confirmed >120s on a
+    # 452-line file) that no synthetic fixture ever exercised (they only ever
+    # used bare-word modifiers like `nonReentrant`). Now consumes an optional
+    # single-level `(...)` argument list as part of the same token.
     FUNCTION_PATTERN = re.compile(
         r"function\s+(\w+)\s*\(([^)]*)\)\s*"
         r"((?:public|external|internal|private)\s*)?"
         r"((?:view|pure|payable)\s*)?"
-        r"((?:\w+\s*)*?)"  # Modifiers
+        r"((?:\w+(?:\([^()]*\))?\s*)*?)"  # Modifiers, optionally with args
         r"(?:returns\s*\([^)]*\))?\s*\{",
         re.MULTILINE,
     )
