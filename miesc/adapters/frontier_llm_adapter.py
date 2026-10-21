@@ -30,6 +30,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, cast
 
+from miesc.adapters._ollama_mixin import ollama_format_json_default
 from miesc.core.tool_protocol import (
     ToolAdapter,
     ToolCapability,
@@ -1582,21 +1583,24 @@ Respond with a JSON array."""
         logger.info(f"FrontierLLM: Calling Ollama {model} ({len(trimmed)} chars{rag_note})")
 
         # Use chat endpoint (handles system/user roles better than generate)
-        data = json.dumps(
-            {
-                "model": model,
-                "messages": [
-                    {"role": "system", "content": AUDIT_SYSTEM_PROMPT},
-                    {"role": "user", "content": user_prompt},
-                ],
-                "stream": False,
-                "options": {
-                    "temperature": 0,
-                    "seed": int(os.environ.get("MIESC_LLM_SEED", "42")),
-                    "num_predict": 4096,
-                },
-            }
-        ).encode()
+        body: Dict[str, Any] = {
+            "model": model,
+            "messages": [
+                {"role": "system", "content": AUDIT_SYSTEM_PROMPT},
+                {"role": "user", "content": user_prompt},
+            ],
+            "stream": False,
+            "options": {
+                "temperature": 0,
+                "seed": int(os.environ.get("MIESC_LLM_SEED", "42")),
+                "num_predict": 4096,
+            },
+        }
+        if ollama_format_json_default():
+            # Native structured output (MIESC_OLLAMA_FORMAT_JSON=1): the model
+            # returns a JSON document instead of prose the extractor must repair.
+            body["format"] = "json"
+        data = json.dumps(body).encode()
 
         req = urllib.request.Request(
             "http://localhost:11434/api/chat",

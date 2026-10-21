@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import time
 import urllib.error
 import urllib.request
@@ -34,6 +35,17 @@ logger = logging.getLogger(__name__)
 # Returned to callers that distinguish "the call failed" from a real empty
 # response. Adapters that historically returned "" can pass empty_return="".
 _DEFAULT_OPTIONS: Dict[str, Any] = {"temperature": 0.1, "num_ctx": 8192}
+
+# Ask Ollama for native JSON output (``"format": "json"``) so the model returns
+# a valid document instead of prose the extractor must repair. Opt-in via
+# MIESC_OLLAMA_FORMAT_JSON=1 until it is measured on the full LLM profile; the
+# shared extractor stays as the safety net either way.
+_FORMAT_JSON_ENV = "MIESC_OLLAMA_FORMAT_JSON"
+
+
+def ollama_format_json_default() -> bool:
+    """True when MIESC_OLLAMA_FORMAT_JSON is set to a truthy value."""
+    return os.environ.get(_FORMAT_JSON_ENV, "").strip().lower() in ("1", "true", "yes", "on")
 
 
 class OllamaCallMixin:
@@ -54,21 +66,28 @@ class OllamaCallMixin:
         max_attempts: int = 1,
         retry_delay: float = 2.0,
         log_prefix: str = "Ollama",
+        format_json: Optional[bool] = None,
     ) -> Optional[str]:
         """POST ``prompt`` to Ollama and return the response text, or ``None``.
+
+        ``format_json`` adds Ollama's ``"format": "json"`` (native structured
+        output); ``None`` follows ``MIESC_OLLAMA_FORMAT_JSON``.
 
         On a final timeout failure (after exhausting ``max_attempts``) sets
         ``self._timed_out = True``. A timeout on an attempt that a later retry
         recovers from does NOT flag the run.
         """
-        payload = json.dumps(
-            {
-                "model": model,
-                "prompt": prompt,
-                "stream": False,
-                "options": options or dict(_DEFAULT_OPTIONS),
-            }
-        ).encode("utf-8")
+        body: Dict[str, Any] = {
+            "model": model,
+            "prompt": prompt,
+            "stream": False,
+            "options": options or dict(_DEFAULT_OPTIONS),
+        }
+        if format_json is None:
+            format_json = ollama_format_json_default()
+        if format_json:
+            body["format"] = "json"
+        payload = json.dumps(body).encode("utf-8")
 
         # Only a FINAL timeout failure marks the run as timed out.
         last_error_timeout = False

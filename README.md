@@ -159,6 +159,23 @@ separately as an end-to-end integration smoke run, not as a corpus-wide claim.
 
 **Why recall matters more than precision for pre-audit triage**: High recall means fewer missed vulnerabilities. False positives are filtered in the triage step — missed vulnerabilities become exploits in production.
 
+**What you actually get, by setup** (EVMBench, 40 audits, high-severity findings; every
+number recomputed from `benchmarks/results/paper1_claims_matrix.json` by `make reproduce`):
+
+| Setup | Recall | Precision | F1 | Cost per audit |
+|---|:---:|:---:|:---:|---|
+| Static tools only (Slither, Aderyn, Solhint) | 18.3 % | 14.5 % | 16.2 % | $0 |
+| Local open-weight model (`qwen2.5-coder:32b` via Ollama) | 59.2 % | 30.1 % | 39.9 % | $0 |
+| Frontier API: GPT-4o (39 audits) | 73.7 % | 20.0 % | 31.5 % | paid |
+| Frontier API: GPT-5 | 77.5 % | 42.7 % | 55.0 % | paid |
+| Frontier API: Claude Sonnet 4.6 | 82.5 % | 34.0 % | 48.2 % | paid |
+| Ensemble (union of the providers above) | 92.5 % | — | — | paid |
+
+Read it as a trade: the free, fully local setup finds six in ten high-severity issues with
+the best precision of any single model; paying for a frontier API buys recall, not precision.
+On SmartBugs-curated (the academic corpus, LLM-free) the static profile alone reaches 143/143
+contracts at 22.4 % precision, see the table above.
+
 **Cost efficiency (EVMBench, 40 audits)**: detection does not require frontier prices. An open-weight model (DeepSeek-R1, MIT weights) reaches the best precision (88.5%) and F1 (78.7%) in the comparison at an estimated ~$0.08/audit — 15–69× cheaper than frontier APIs — while a fully-local 32B model reaches 59.2% recall at $0. Paying frontier prices buys higher single-run recall, not better precision/F1. See Paper 1 for the run-count-matched detail.
 
 ### Research Papers and Reproducible Claims

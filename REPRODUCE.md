@@ -391,6 +391,18 @@ fixing them.
 
 Remaining FP sources are now tool-side: `arithmetic` 128 (Slither/Aderyn pre-0.8 overflow
 heuristics), `time_manipulation` 43, `access_control` 67, `bad_randomness` 46.
+### ArithmeticDetector fix (#188), corpus check (2026-10-21)
+
+#188 made the built-in `ArithmeticDetector` recognise cast operands (`uint256(cnt) * _value`,
+the BECToken batchOverflow) and stop flagging SafeMath's own internals. On this corpus it
+moves nothing: the "`main` + #188" column of the wave C3 table above equals wave C4 contract
+by contract (143/143, 495 FP; `arithmetic` 15/15 with 128 FP). SmartBugs-curated's 15
+arithmetic contracts were already covered by Slither and the other detectors, so the fix shows
+up on the arena contracts (BECToken, `insecure_transfer`, `integer_overflow_1`: detector-level
+recall 33 % → 100 %). Plan wave C7 keeps
+`smartbugs_eval_layers_1_6_7_20261021_main_after_188` as the baseline for the next coverage
+item.
+
 
 ## 5. What is not covered here
 
