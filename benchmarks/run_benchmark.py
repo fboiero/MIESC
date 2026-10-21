@@ -52,6 +52,52 @@ CATEGORY_MAPPING = {
     "other": [],
 }
 
+# Substring keyword matching alone under-counts: a real access-control finding
+# reported as `controlled-delegatecall` / `arbitrary-send-eth` contains none of the
+# access_control keywords, so it was scored a miss (the arena saw access_control
+# recall collapse to 0.33 purely as a matcher artifact). Credit a finding to a
+# category when its SWC id or its detector `type` maps to it, in addition to the
+# keyword text match below.
+SWC_CATEGORY = {
+    "SWC-101": "arithmetic",
+    "SWC-107": "reentrancy",
+    "SWC-105": "access_control",  # unprotected ether withdrawal
+    "SWC-106": "access_control",  # unprotected selfdestruct
+    "SWC-115": "access_control",  # tx.origin authorization
+    "SWC-118": "access_control",  # incorrect constructor
+    "SWC-120": "bad_randomness",
+    "SWC-114": "front_running",  # transaction-order dependence
+    "SWC-116": "time_manipulation",
+    "SWC-104": "unchecked_low_level_calls",
+    "SWC-113": "denial_of_service",
+    "SWC-128": "denial_of_service",
+}
+
+# Detector / finding `type` names (Slither, Aderyn, MIESC) → category.
+DETECTOR_CATEGORY = {
+    "controlled-delegatecall": "access_control",
+    "delegatecall_to_untrusted": "access_control",
+    "arbitrary-send-eth": "access_control",
+    "arbitrary-send": "access_control",
+    "send-ether-no-checks": "access_control",
+    "arbitrary-transfer-from": "access_control",
+    "arbitrary_token_transfer": "access_control",
+    "suicidal": "access_control",
+    "tx-origin": "access_control",
+    "weak-prng": "bad_randomness",
+    "reentrancy-eth": "reentrancy",
+    "reentrancy-no-eth": "reentrancy",
+    "reentrancy-benign": "reentrancy",
+    "reentrancy-events": "reentrancy",
+    "unchecked-lowlevel": "unchecked_low_level_calls",
+    "unchecked-send": "unchecked_low_level_calls",
+    "unchecked-transfer": "unchecked_low_level_calls",
+    "unused-return": "unchecked_low_level_calls",
+    "calls-loop": "denial_of_service",
+    "costly-loop": "denial_of_service",
+    "timestamp": "time_manipulation",
+}
+
 
 @dataclass
 class BenchmarkResult:
@@ -81,16 +127,34 @@ class CategoryStats:
 
 
 def find_matching_findings(findings: List[Dict], category: str) -> List[Dict]:
-    """Find findings that match the expected vulnerability category."""
+    """Find findings that match the expected vulnerability category.
+
+    A finding matches when any of these hold:
+    - a category keyword appears in its title/description/category/type/message, or
+    - its SWC id maps to the category (``SWC_CATEGORY``), or
+    - its detector ``type`` maps to the category (``DETECTOR_CATEGORY``).
+
+    The SWC/detector signals fix the keyword-only under-count (e.g. a
+    ``controlled-delegatecall`` access-control finding has no access_control keyword).
+    """
     keywords = CATEGORY_MAPPING.get(category, [])
     if not keywords:
         return findings  # For 'other', return all findings
 
     matching = []
     for finding in findings:
-        # Check title, description, category
-        text = f"{finding.get('title', '')} {finding.get('description', '')} {finding.get('category', '')}".lower()
-        if any(kw in text for kw in keywords):
+        text = (
+            f"{finding.get('title', '')} {finding.get('description', '')} "
+            f"{finding.get('category', '')} {finding.get('type', '')} "
+            f"{finding.get('message', '')}"
+        ).lower()
+        swc = str(finding.get("swc_id", "")).upper()
+        ftype = str(finding.get("type", "")).lower()
+        if (
+            any(kw in text for kw in keywords)
+            or SWC_CATEGORY.get(swc) == category
+            or DETECTOR_CATEGORY.get(ftype) == category
+        ):
             matching.append(finding)
 
     return matching
