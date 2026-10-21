@@ -521,8 +521,10 @@ def evaluate_audit(audit_id, audit_data, llm_enhance=False, frontier_model=None,
             for sf in source_files_sorted[:5]:
                 try:
                     model_map = {"claude": "claude-sonnet-4-6", "claude-opus": "claude-opus-4-6",
-                                 "gpt": "gpt-4o", "gpt-4o": "gpt-4o",
-                                 "deepseek": "deepseek-chat", "deepseek-r": "deepseek-reasoner"}
+                                 "gpt": "gpt-4o", "gpt-4o": "gpt-4o", "gpt-4.1": "gpt-4.1", "gpt-5": "gpt-5",
+                                 "deepseek": "deepseek-chat", "deepseek-r": "deepseek-reasoner",
+                                 "ollama": "qwen2.5-coder:32b", "qwen32b": "qwen2.5-coder:32b",
+                                 "qwen14b": "qwen2.5-coder:14b", "codellama": "codellama:13b"}
                     result = _frontier_adapter.analyze(
                         sf, model=model_map.get(frontier_model, "claude-sonnet-4-6"),
                     )
