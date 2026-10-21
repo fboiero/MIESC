@@ -21,6 +21,8 @@ import os
 import re
 from typing import Any, Callable, Optional
 
+from miesc.security.safe_deserialize import safe_to_deserialize
+
 DEFAULT_MODEL_PATH = os.path.join(
     os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
     "models",
@@ -127,6 +129,11 @@ class TriageRanker:
 
     def _load(self) -> None:
         if not os.path.exists(self.model_path):
+            return
+        # joblib.load executes arbitrary code; refuse a model file another user
+        # could have tampered with (group/world-writable). Fail safe to None.
+        if not safe_to_deserialize(self.model_path):
+            self.model = None
             return
         try:
             import joblib

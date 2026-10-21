@@ -95,6 +95,8 @@ Shows per-metric deltas and per-category recall changes.
 
 The `--output` flag produces a complete JSON file with:
 - `experiment_card`: reproducibility metadata (version, timestamp, layers, timeout, platform)
+- `provenance`: the environment that produced the run — tool versions as the binaries
+  report them, solc builds per contract, config hash, git SHA (see [Run provenance](#run-provenance))
 - `aggregate`: precision, recall, F1, hit_rate, timing
 - `per_category`: breakdown by vulnerability category
 - `per_contract`: individual contract results with per-layer findings and timing
@@ -253,6 +255,70 @@ Every evaluation run generates an experiment card:
   }
 }
 ```
+
+### Run provenance
+
+The experiment card says *what* was evaluated; the `provenance` block says *with what*.
+It is written into every result JSON of `miesc scan`, `miesc audit quick|full`,
+`miesc evaluate corpus|ablation` and the run report of `miesc fix`, so any result can be
+cited and re-run. It is built once per run by `miesc.core.provenance`; a version probe
+that fails records `"unknown"` and never aborts the run.
+
+```json
+{
+  "provenance": {
+    "schema": 1,
+    "command": "evaluate corpus",
+    "command_line": "miesc evaluate corpus benchmarks/datasets/smartbugs-curated/dataset --layers 1,6,7 --no-llm -o run.json",
+    "argv": ["miesc", "evaluate", "corpus", "...", "--no-llm", "-o", "run.json"],
+    "cwd": "/work/MIESC",
+    "timestamp": "2026-10-20T21:04:10",
+    "miesc": {"version": "6.1.1", "git_sha": "abff8a7b7a49…", "git_dirty": false},
+    "python": {"version": "3.12.6", "implementation": "CPython", "executable": "/work/.venv/bin/python"},
+    "platform": {"system": "Darwin", "release": "25.4.0", "machine": "arm64"},
+    "tools": {
+      "slither": "0.11.6",
+      "aderyn": "aderyn 0.1.9",
+      "solhint": "6.0.1",
+      "fouranalyzer": "unknown",
+      "smartbugs_detector": "built-in (miesc 6.1.1)"
+    },
+    "python_packages": {"slither-analyzer": "0.11.6", "scikit-learn": "1.9.1", "solc-select": "1.1.0"},
+    "solc": {
+      "per_contract": {"…/reentrancy/simple_dao.sol": "0.4.26", "…/arithmetic/overflow.sol": "0.4.25"},
+      "binaries": {"0.4.25": "Version: 0.4.25+commit.59dbf8f1…", "0.4.26": "Version: 0.4.26+commit.4563c3fc…"},
+      "path_default": "Version: 0.8.10+commit.fc410830…"
+    },
+    "config": {"path": "/work/MIESC/miesc/data/config/miesc.yaml", "exists": true, "sha256": "c4c40f2a…"},
+    "env": {"MIESC_SEED": "42"},
+    "llm_free": true
+  }
+}
+```
+
+| Field | Meaning |
+|---|---|
+| `miesc.git_sha`, `git_dirty` | Commit of the checkout MIESC runs from; `null` for a wheel install. |
+| `tools` | One entry per tool that **executed** (status `success`, `error` or `timeout`), with the first version-looking line its binary prints. Adapters that resolve their own executable (Slither's priority paths, Mythril's `.tools` install) are probed through that executable, so the version matches the binary that produced the findings. `built-in (miesc X)` marks detectors shipped with MIESC; `unknown` means the tool has no version flag; `not_installed` means the probe found no executable. Tools that did not run are not listed. |
+| `python_packages` | Releases of the Python libraries that move results (`slither-analyzer`, `scikit-learn`, `solc-select`, …), when installed. |
+| `solc.per_contract` | The compiler version the Slither adapter selected for each contract's `pragma`; `solc.binaries` is what each selected solc-select artifact reports (`not_installed` when the artifact is missing and Slither fell back). |
+| `config` | The configuration file in effect (`MIESC_CONFIG`, `./miesc.yaml`, or the packaged default) and its SHA-256. |
+| `env` | `MIESC_SEED`, `MIESC_LLM_PROVIDER`, `MIESC_LLM_MODEL` — only the ones that were set. |
+| `llm_free` | `true` when no LLM-backed adapter ran and no `--llm-enhance`/`--model`/`--verify-model` was used; `null` when the command cannot tell (agentic scan profiles). |
+| `argv`, `command_line` | The exact command line, as a list and shell-quoted. |
+
+Useful queries:
+
+```bash
+jq '.provenance.tools' run.json
+jq '.provenance.solc.binaries' run.json
+jq -r '.provenance.command_line' run.json
+miesc evaluate compare paper_run.json run.json     # "Run Provenance" table, differing rows highlighted
+```
+
+Artifacts written before this block existed (the Paper 1 files) show
+`n/a (pre-provenance artifact)` in `evaluate compare`; their versions are the hand-written
+ones in [REPRODUCE.md](../../REPRODUCE.md).
 
 ### Environment Variables
 

@@ -38,6 +38,7 @@ from miesc.cli.utils import (
     success,
     warning,
 )
+from miesc.core.provenance import build_provenance, provenance_rows, reset_tool_versions
 
 if RICH_AVAILABLE:
     from rich import box
@@ -281,6 +282,23 @@ def _collect_tools_used(results: List[Dict[str, Any]], layers: List[int]) -> Lis
     return ordered + extras
 
 
+def _merge_tool_status(into: Dict[str, str], eval_result: Dict[str, Any]) -> None:
+    """Fold one contract's per-layer ``tool_status`` into a run-wide ``{tool: status}``.
+
+    A tool that succeeded on any contract is recorded as ``success``; otherwise
+    the last status seen wins. Used to tell provenance which tools executed.
+    """
+    for layer in eval_result.get("layers", {}).values():
+        for tool, status in (layer.get("tool_status") or {}).items():
+            if into.get(tool) != "success":
+                into[tool] = str(status)
+
+
+def _provenance_records(tool_status: Dict[str, str]) -> List[Dict[str, Any]]:
+    """``run_tool``-shaped records (tool + status) for ``build_provenance``."""
+    return [{"tool": tool, "status": status} for tool, status in tool_status.items()]
+
+
 def _run_version(data: Dict[str, Any]) -> str:
     """MIESC version of a stored run: top-level ``version`` (paper artifacts) or the card's."""
     version = data.get("version") or data.get("experiment_card", {}).get("version")
@@ -460,6 +478,8 @@ def _run_ablation(
         "per_layer": {},
         "combined": None,
         "layer_contributions": {},
+        # {tool: status} over every contract and layer, for the provenance block
+        "tool_status": {},
     }
 
     contracts = list(ground_truth.keys())
@@ -486,6 +506,8 @@ def _run_ablation(
                 skip_unavailable,
                 exclude_tools=exclude_tools,
             )
+
+            _merge_tool_status(ablation_results["tool_status"], eval_result)
 
             detected = set(eval_result["match"]["tp"])
             false_pos = set(eval_result["match"]["fp"])
@@ -532,6 +554,7 @@ def _run_ablation(
         eval_result = _evaluate_contract(
             contract_path, gt_cats, layers, timeout, skip_unavailable, exclude_tools=exclude_tools
         )
+        _merge_tool_status(ablation_results["tool_status"], eval_result)
 
         detected = set(eval_result["match"]["tp"])
         false_pos = set(eval_result["match"]["fp"])
@@ -802,6 +825,7 @@ def evaluate_corpus(
 
     # Probe each tool's availability once per run, not once per contract
     AdapterLoader.reset_availability()
+    reset_tool_versions()
 
     # Parse category filter
     category_filter: set[str] | None = None
@@ -1050,6 +1074,15 @@ def evaluate_corpus(
         "per_category": per_category,
         "per_contract": all_results,
     }
+    run_tool_status: Dict[str, str] = {}
+    for contract_result in all_results:
+        _merge_tool_status(run_tool_status, contract_result)
+    full_output["provenance"] = build_provenance(
+        _provenance_records(run_tool_status),
+        command="evaluate corpus",
+        contracts=[str(r.get("contract")) for r in all_results if r.get("contract")],
+        llm_free=no_llm,
+    )
 
     if output:
         Path(output).write_text(json.dumps(full_output, indent=2, default=str), encoding="utf-8")
@@ -1181,6 +1214,7 @@ def evaluate_ablation(
     if no_llm:
         info(f"LLM-free profile: skipping {skipped_tools or 'no tools in these layers'}")
     AdapterLoader.reset_availability()
+    reset_tool_versions()
 
     # Load ground truth
     ground_truth = _load_ground_truth(corpus_dir)
@@ -1288,6 +1322,12 @@ def evaluate_ablation(
             "timestamp": card["experiment_card"]["timestamp"],
             **card,
             "ablation": ablation_results,
+            "provenance": build_provenance(
+                _provenance_records(ablation_results.get("tool_status", {})),
+                command="evaluate ablation",
+                contracts=[str(corpus_dir / rel) for rel in ground_truth],
+                llm_free=no_llm,
+            ),
         }
         Path(output).write_text(json.dumps(full_output, indent=2, default=str), encoding="utf-8")
         success(f"Ablation results saved to {output}")
@@ -1549,5 +1589,23 @@ def evaluate_compare(run_a: str, run_b: str) -> None:
     version_a = _run_version(data_a)
     version_b = _run_version(data_b)
     info(f"Run A: MIESC {version_a} | Run B: MIESC {version_b}")
+
+    # Provenance side by side: what differed in the environment that produced
+    # each run (tool releases, solc builds, config, seed, LLM use).
+    rows = provenance_rows(data_a, data_b)
+    if RICH_AVAILABLE:
+        prov_table = Table(title="Run Provenance", box=box.ROUNDED)
+        prov_table.add_column("Field", style="bold")
+        prov_table.add_column("Run A", overflow="fold")
+        prov_table.add_column("Run B", overflow="fold")
+        for label, value_a, value_b in rows:
+            style = "yellow" if value_a != value_b else ""
+            prov_table.add_row(label, value_a, value_b, style=style)
+        console.print(prov_table)
+    else:
+        print("\n=== Run Provenance ===")  # noqa: T201
+        for label, value_a, value_b in rows:
+            marker = " *" if value_a != value_b else ""
+            print(f"  {label}: {value_a} | {value_b}{marker}")  # noqa: T201
 
     success("Comparison complete")

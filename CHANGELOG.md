@@ -7,6 +7,45 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Every result JSON carries a `provenance` block** so a run can be cited and
+  re-run: MIESC version and git SHA (when running from a checkout), Python, OS/arch,
+  the version string of every tool that executed as its binary reports it (probed
+  once per run through the executable the adapter resolved; `unknown` when a tool has
+  no version flag, never a failed run), the `solc` build the Slither adapter selected
+  per contract, the versions of the result-moving Python packages (`slither-analyzer`,
+  `scikit-learn`, `solc-select`, …), the config file path and SHA-256,
+  `MIESC_SEED`/`MIESC_LLM_PROVIDER`/`MIESC_LLM_MODEL` when set, an `llm_free` flag
+  and the exact command line. Written by `miesc scan`, `miesc audit quick|full`,
+  `miesc evaluate corpus|ablation` (next to the unchanged `experiment_card`) and
+  `miesc fix`, which now also writes a run report (`<output>.json`, or `--report PATH`)
+  that cites the scan it consumed. `miesc evaluate compare` prints both runs'
+  provenance side by side with differing rows highlighted. Adapters may declare
+  `ToolAdapter.version_command()`; Slither, Aderyn, Solhint and Mythril do.
+  (`miesc/core/provenance.py`; REPRODUCE.md now points at the block instead of a
+  hand-maintained tool-version table.)
+- **Documentation drift guards** (`tests/test_docs_drift.py`): CI now fails when the
+  README MCP tool list differs from the server's `@mcp.tool()` set, when the
+  installation guides or `CITATION.cff` state a version other than `miesc.__version__`,
+  when a quoted `python -m <module>` command names a module that does not exist, or
+  when a relative Markdown link in the user-facing docs is dead.
+- **Product Excellence Plan** (`docs/roadmap/PRODUCT_EXCELLENCE_PLAN_2026-10.md`): the
+  researcher-journey scorecard and ranked improvement waves; `docs/ROADMAP.md` points to it.
+
+### Changed
+
+- **`smartbugs_detector` precision.** Tightened the `short_addresses` and `front_running`
+  patterns: on SmartBugs-curated (LLM-free layers 1,6,7) recall stays 143/143 and
+  precision rises from 20.5 % to 22.4 % (paper: 22.2 %); artifact
+  `benchmarks/results/smartbugs_eval_layers_1_6_7_20261020_fp_tightened.*` (#172).
+
+### Fixed
+
+- **Local-LLM responses with unescaped quotes inside Solidity snippets** no longer yield
+  zero findings on the `scan --model ollama` path: the parser falls back to a tolerant
+  JSON repair before giving up (#174).
+
 ## [6.1.1] - 2026-10-20
 
 ### Fixed

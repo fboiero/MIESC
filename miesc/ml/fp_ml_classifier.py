@@ -53,6 +53,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+from miesc.security.safe_deserialize import safe_to_deserialize
+
 logger = logging.getLogger(__name__)
 
 
@@ -208,6 +210,11 @@ class AuditorTrainedFPClassifier:
     def _load_model(self) -> None:
         """Load a pre-trained model if available."""
         if not self.model_path.exists():
+            return
+        # pickle.load executes arbitrary code; refuse a model file another user
+        # could have tampered with (group/world-writable). Fail safe to None.
+        if not safe_to_deserialize(self.model_path):
+            self.model = None
             return
         try:
             with open(self.model_path, "rb") as f:

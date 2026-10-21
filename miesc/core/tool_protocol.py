@@ -262,6 +262,20 @@ print(f"Status: {{status}}")
     # Helper Methods - Reduce boilerplate in adapters
     # =========================================================================
 
+    def version_command(self) -> Optional[List[str]]:
+        """
+        Command that prints the version of the external binary this adapter runs.
+
+        OPTIONAL: Run provenance (``miesc.core.provenance``) executes it once per
+        run and records the first version-looking line of its output next to the
+        findings, so a result can be cited with the exact tool release. Return
+        ``None`` (the default) when the adapter is built in or the tool has no
+        version flag; the provenance block then records the tool as built-in
+        or ``"unknown"``. Adapters that resolve their executable themselves
+        should return that resolved path, not the bare command name.
+        """
+        return None
+
     def check_binary_available(
         self,
         binary_name: str,
