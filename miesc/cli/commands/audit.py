@@ -37,6 +37,7 @@ from miesc.cli.utils import (
     summarize_findings,
     warning,
 )
+from miesc.core.provenance import build_provenance
 
 # Import Rich components if available
 if RICH_AVAILABLE:
@@ -576,6 +577,15 @@ def _run_full_audit_with_ml(
         if output:
             if fmt == "json":
                 data = result.to_dict()
+                tool_records = [
+                    {"tool": t, "status": "success"} for t in getattr(result, "tools_success", [])
+                ] + [{"tool": t, "status": "error"} for t in getattr(result, "tools_failed", [])]
+                data["provenance"] = build_provenance(
+                    tool_records,
+                    command="audit full",
+                    contracts=[contract],
+                    llm_used=bool(verify_fp and verify_model),
+                )
                 with open(output, "w", encoding="utf-8") as f:
                     json.dump(data, f, indent=2, default=str)
             elif fmt == "markdown":
@@ -756,6 +766,13 @@ def _run_full_audit_with_correlation(
         print(f"Cross-validated: {summary.get('cross_validated', 0)}")
 
     if output:
+        if isinstance(report, dict):
+            report["provenance"] = build_provenance(
+                all_results,
+                command="audit full",
+                contracts=[contract],
+                llm_used=bool(verify_fp and verify_model),
+            )
         with open(output, "w", encoding="utf-8") as f:
             json.dump(report, f, indent=2, default=str)
         success(f"Report saved to {output}")
@@ -954,6 +971,12 @@ def _run_full_audit_basic(
                     "per_layer": {str(k): v for k, v in layer_timing.items()},
                     "total_s": round(sum(layer_timing.values()), 3),
                 },
+                "provenance": build_provenance(
+                    all_results,
+                    command="audit full",
+                    contracts=[contract],
+                    llm_used=bool(verify_fp and verify_model),
+                ),
             }
 
         with open(output, "w", encoding="utf-8") as f:
@@ -1196,7 +1219,17 @@ def audit_quick(
             with open(output, "w", encoding="utf-8") as f:
                 f.write(data)
         else:
-            data = {"results": all_results, "summary": summary, "version": VERSION}
+            data = {
+                "results": all_results,
+                "summary": summary,
+                "version": VERSION,
+                "provenance": build_provenance(
+                    all_results,
+                    command="audit quick",
+                    contracts=[contract],
+                    llm_used=bool(verify_fp and verify_model),
+                ),
+            }
             with open(output, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2, default=str)
         success(f"Report saved to {output}")

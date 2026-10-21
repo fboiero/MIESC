@@ -21,14 +21,17 @@ from __future__ import annotations
 import json
 import re
 import sys
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
 import click
 
+from miesc import __version__ as VERSION
 from miesc.cli.utils import console, error, info, success, warning
 from miesc.core.baseline import fingerprint
 from miesc.core.code_actions import FixEdit, to_code_actions
+from miesc.core.provenance import build_provenance, sha256_file
 
 # ---------------------------------------------------------------------------
 # Patcher helpers
@@ -1861,6 +1864,17 @@ def build_code_actions(source: str, findings: list[dict], file_label: str) -> li
     help="Output path for the patched file (default: <contract>.fixed.sol).",
 )
 @click.option(
+    "--report",
+    "report_path",
+    type=click.Path(),
+    default=None,
+    help=(
+        "Path of the JSON run report written next to the patched file "
+        "(default: <output>.json, e.g. Token.fixed.json). It records what was "
+        "applied, the SHA-256 of inputs and output, and the run provenance."
+    ),
+)
+@click.option(
     "--dry-run",
     is_flag=True,
     default=False,
@@ -1882,6 +1896,7 @@ def fix(
     results_file: str,
     contract_path: str,
     output: str | None,
+    report_path: str | None,
     dry_run: bool,
     output_format: str,
     quiet: bool,
@@ -2078,3 +2093,35 @@ def fix(
     if skipped:
         parts.append(f"{skipped} could not patch")
     success(f"{', '.join(parts)} — written to {out_path}")
+
+    # ------------------------------------------------------------------
+    # Run report: the machine-readable record of this fix run. It cites the
+    # scan/audit run it consumed (``input_provenance``) and carries its own
+    # ``provenance`` so the patched file can be traced back to tool versions.
+    # ------------------------------------------------------------------
+    report_file = Path(report_path) if report_path else out_path.with_suffix(".json")
+    report = {
+        "command": "fix",
+        "version": VERSION,
+        "timestamp": datetime.now().isoformat(),
+        "results_file": str(results_file),
+        "results_sha256": sha256_file(results_file),
+        "contract": str(contract),
+        "contract_sha256": sha256_file(contract),
+        "output": str(out_path),
+        "output_sha256": sha256_file(out_path),
+        "fixes": {
+            "fixable": len(fixable),
+            "applied": applied,
+            "already_fixed": already_fixed,
+            "skipped": skipped,
+        },
+        "input_provenance": data.get("provenance") if isinstance(data, dict) else None,
+        "provenance": build_provenance([], command="fix", contracts=[str(contract)], llm_free=True),
+    }
+    try:
+        report_file.write_text(json.dumps(report, indent=2, default=str) + "\n", encoding="utf-8")
+        if not quiet:
+            info(f"Run report written to {report_file}")
+    except OSError as exc:
+        warning(f"Could not write run report {report_file}: {exc}")
