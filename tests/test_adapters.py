@@ -266,6 +266,78 @@ class TestAderynAdapter(TestAdapterBase):
         adapter = AderynAdapter()
         assert adapter is not None
 
+    # MEJORAS2.md #4: Aderyn used to copy only the target file into its
+    # isolated temp workspace, so any `import "./Sibling.sol"` failed to
+    # compile — a corpus/adapter mismatch that was actually two separate
+    # things (see MEJORAS2.md #4's write-up): solodit-real's corpus was
+    # missing dependency files entirely (a corpus problem, not fixed here),
+    # and Aderyn/Slither's adapters weren't copying siblings that DID exist
+    # (an adapter bug, fixed here). These tests cover the resolver in
+    # isolation, with real files on disk — no subprocess/tool invocation.
+    def test_resolve_relative_imports_finds_direct_sibling(self, tmp_path):
+        from miesc.adapters.aderyn_adapter import AderynAdapter
+
+        (tmp_path / "IFoo.sol").write_text("interface IFoo {}")
+        main = tmp_path / "Foo.sol"
+        main.write_text('import "./IFoo.sol";\ncontract Foo {}')
+
+        resolved = AderynAdapter()._resolve_relative_imports(main)
+        assert [p.name for p in resolved] == ["IFoo.sol"]
+
+    def test_resolve_relative_imports_is_transitive(self, tmp_path):
+        from miesc.adapters.aderyn_adapter import AderynAdapter
+
+        (tmp_path / "Base.sol").write_text("contract Base {}")
+        (tmp_path / "Mid.sol").write_text('import "./Base.sol";\ncontract Mid {}')
+        main = tmp_path / "Top.sol"
+        main.write_text('import "./Mid.sol";\ncontract Top {}')
+
+        resolved = {p.name for p in AderynAdapter()._resolve_relative_imports(main)}
+        assert resolved == {"Mid.sol", "Base.sol"}
+
+    def test_resolve_relative_imports_skips_missing_files(self, tmp_path):
+        # Same behavior as before this fix for files that don't exist —
+        # this only adds siblings that ARE present, never invents an error
+        # for ones that aren't.
+        from miesc.adapters.aderyn_adapter import AderynAdapter
+
+        main = tmp_path / "Foo.sol"
+        main.write_text('import "./DoesNotExist.sol";\ncontract Foo {}')
+
+        assert AderynAdapter()._resolve_relative_imports(main) == []
+
+    def test_resolve_relative_imports_ignores_package_imports(self, tmp_path):
+        # "@openzeppelin/..." etc. are handled by the separate
+        # known-dependency/forge-install path, not this sibling walker.
+        from miesc.adapters.aderyn_adapter import AderynAdapter
+
+        (tmp_path / "IFoo.sol").write_text("interface IFoo {}")
+        main = tmp_path / "Foo.sol"
+        main.write_text(
+            'import "@openzeppelin/contracts/access/Ownable.sol";\n'
+            'import "./IFoo.sol";\ncontract Foo {}'
+        )
+
+        resolved = AderynAdapter()._resolve_relative_imports(main)
+        assert [p.name for p in resolved] == ["IFoo.sol"]
+
+    def test_resolve_relative_imports_does_not_pull_in_unrelated_siblings(self, tmp_path):
+        # Regression for the first (reverted) approach: bulk-copying every
+        # .sol in the directory pulled in unrelated contracts with their own
+        # unresolved imports, breaking Aderyn's whole-directory compile even
+        # for files that used to analyze fine on their own.
+        from miesc.adapters.aderyn_adapter import AderynAdapter
+
+        (tmp_path / "IFoo.sol").write_text("interface IFoo {}")
+        main = tmp_path / "Foo.sol"
+        main.write_text('import "./IFoo.sol";\ncontract Foo {}')
+        # An unrelated sibling with its own missing dependency — must NOT
+        # be pulled in just because it lives in the same directory.
+        (tmp_path / "Unrelated.sol").write_text('import "./Missing.sol";\ncontract Unrelated {}')
+
+        resolved = [p.name for p in AderynAdapter()._resolve_relative_imports(main)]
+        assert resolved == ["IFoo.sol"]
+
 
 class TestHalmosAdapter(TestAdapterBase):
     """Tests for HalmosAdapter."""

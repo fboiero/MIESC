@@ -400,6 +400,19 @@ class SlitherAdapter(ToolAdapter):
             # Normalize findings
             findings = self.normalize_findings(raw_output)
 
+            # MEJORAS2.md #4: when the target file has sibling/dependency
+            # imports, Slither compiles (and reports on) those files too —
+            # e.g. an Ownable.sol lint finding would otherwise be attributed
+            # to the requested contract. Keep only findings actually located
+            # in the requested file.
+            if Path(contract_path).is_file():
+                target_name = Path(contract_path).name
+                findings = [
+                    f
+                    for f in findings
+                    if Path(f.get("location", {}).get("file", "")).name == target_name
+                ]
+
             # Enhance findings with OpenLLaMA (opt-in via llm_enhance=True)
             # Default: SKIP — adds 8s per finding (5 findings = 40s overhead).
             # Enable explicitly when generating reports for clients.

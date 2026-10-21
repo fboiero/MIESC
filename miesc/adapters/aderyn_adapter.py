@@ -255,13 +255,28 @@ class AderynAdapter(ToolAdapter):
             contract_file = Path(contract_path)
 
             # Always copy contract to a clean temp directory for Aderyn
-            # This avoids issues with solc discovery and complex project structures
+            # This avoids issues with solc discovery and complex project structures.
+            # MEJORAS2.md #4: also copy any relatively-imported sibling files
+            # (`import "./Interface.sol"`) — real multi-file contracts (unlike
+            # SmartBugs-curated's standalone files) commonly need one. Copying
+            # only the target file made every such import fail to compile
+            # (confirmed: AuctionDemo.sol went from 0 findings, ParserError, to
+            # 46 once its dependency closure was copied alongside it). Walks
+            # the *target file's own* transitive relative-import graph rather
+            # than bulk-copying every .sol in the directory — a first attempt
+            # at the latter broke on directories with multiple independently
+            # incomplete contracts (Aderyn hard-fails the whole batch if any
+            # copied file in the workspace fails to parse, so pulling in an
+            # unrelated sibling's own missing dependency took down files that
+            # used to compile fine on their own).
             if contract_file.is_file():
                 temp_workspace = tempfile.mkdtemp(prefix="miesc_aderyn_")
                 temp_contract = Path(temp_workspace) / contract_file.name
                 shutil.copy2(contract_path, temp_contract)
+                for sibling in self._resolve_relative_imports(contract_file):
+                    shutil.copy2(sibling, Path(temp_workspace) / sibling.name)
                 analysis_dir = temp_workspace
-                logger.debug(f"Copied contract to temp workspace: {temp_workspace}")
+                logger.debug(f"Copied contract + siblings to temp workspace: {temp_workspace}")
             else:
                 temp_workspace = None
                 analysis_dir = str(contract_file)
@@ -368,6 +383,15 @@ class AderynAdapter(ToolAdapter):
 
             # Normalize findings
             findings = self.normalize_findings(raw_output)
+
+            # MEJORAS2.md #4: Aderyn analyzes the whole temp directory, which
+            # now includes copied dependency siblings (see above) — without
+            # this, findings *about the dependency files themselves* (e.g. an
+            # Ownable.sol lint) would be attributed to the target contract.
+            if temp_workspace and contract_file.is_file():
+                findings = [
+                    f for f in findings if f.get("location", {}).get("file") == contract_file.name
+                ]
 
             # Enhance findings with OpenLLaMA (opt-in via llm_enhance=True)
             # Default: SKIP — adds 8s per finding. Enable for client reports.
@@ -723,6 +747,37 @@ class AderynAdapter(ToolAdapter):
         except Exception as e:
             logger.debug(f"Error detecting imports: {e}")
         return imports
+
+    def _resolve_relative_imports(self, contract_file: Path) -> List[Path]:
+        """Walk `contract_file`'s relative (`./`, `../`) imports transitively.
+
+        Returns every sibling file reachable this way that actually exists on
+        disk. Missing files are silently skipped (same as today — this only
+        fixes imports that *could* have resolved but were never copied over),
+        not treated as an error here.
+        """
+        import_pattern = re.compile(r'import\s+(?:{[^}]+}\s+from\s+)?["\']([^"\']+)["\']')
+        resolved: Dict[str, Path] = {}
+        pending = [contract_file]
+        seen = {contract_file.resolve()}
+
+        while pending:
+            current = pending.pop()
+            try:
+                content = current.read_text(errors="ignore")
+            except OSError:
+                continue
+            for match in import_pattern.findall(content):
+                if not (match.startswith("./") or match.startswith("../")):
+                    continue
+                candidate = (current.parent / match).resolve()
+                if not candidate.is_file() or candidate in seen:
+                    continue
+                seen.add(candidate)
+                resolved[candidate.name] = candidate
+                pending.append(candidate)
+
+        return list(resolved.values())
 
     def _get_dependency_info(self, import_name: str) -> Tuple[Optional[str], Optional[str]]:
         """Get forge install command and remapping for a dependency."""
