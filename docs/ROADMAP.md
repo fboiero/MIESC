@@ -5,7 +5,7 @@ Development roadmap for MIESC. The authoritative history of shipped changes live
 
 ---
 
-## Current Version: 6.1.1 (released 2026-10-20)
+## Current Version: 6.2.0 (released 2026-10-21)
 
 > What a security researcher still trips over, ranked, with measurable exits:
 > [Product Excellence Plan (2026-10)](roadmap/PRODUCT_EXCELLENCE_PLAN_2026-10.md).
