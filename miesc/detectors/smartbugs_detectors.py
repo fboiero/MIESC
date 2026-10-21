@@ -59,19 +59,24 @@ class ArithmeticDetector:
     category = "arithmetic"
     swc_id = "SWC-101"
 
+    # An operand: a variable / array / member access, optionally a cast or call
+    # like ``uint256(cnt)`` — the parenthesised form is what the batchOverflow
+    # ``uint256(cnt) * _value`` needs and the old ``[\w\[\]\.]+`` pattern missed.
+    _OPERAND = r"[\w\[\]\.]+(?:\s*\([^)]*\))?"
+
     # Arithmetic operations without SafeMath
-    # Patterns match variables, array access, and mapping access
+    # Patterns match variables, array access, mapping access, and casts/calls.
     ARITHMETIC_PATTERNS = [
         # Direct arithmetic without SafeMath
-        (r"[\w\[\]\.]+\s*=\s*[\w\[\]\.]+\s*\+\s*[\w\[\]\.]+", "Addition without overflow check"),
-        (r"[\w\[\]\.]+\s*=\s*[\w\[\]\.]+\s*-\s*[\w\[\]\.]+", "Subtraction without underflow check"),
+        (rf"{_OPERAND}\s*=\s*{_OPERAND}\s*\+\s*{_OPERAND}", "Addition without overflow check"),
+        (rf"{_OPERAND}\s*=\s*{_OPERAND}\s*-\s*{_OPERAND}", "Subtraction without underflow check"),
         (
-            r"[\w\[\]\.]+\s*=\s*[\w\[\]\.]+\s*\*\s*[\w\[\]\.]+",
+            rf"{_OPERAND}\s*=\s*{_OPERAND}\s*\*\s*{_OPERAND}",
             "Multiplication without overflow check",
         ),
-        (r"[\w\[\]\.]+\s*\+=\s*[\w\[\]\.]+", "Addition assignment without overflow check"),
-        (r"[\w\[\]\.]+\s*-=\s*[\w\[\]\.]+", "Subtraction assignment without underflow check"),
-        (r"[\w\[\]\.]+\s*\*=\s*[\w\[\]\.]+", "Multiplication assignment without overflow check"),
+        (rf"{_OPERAND}\s*\+=\s*{_OPERAND}", "Addition assignment without overflow check"),
+        (rf"{_OPERAND}\s*-=\s*{_OPERAND}", "Subtraction assignment without underflow check"),
+        (rf"{_OPERAND}\s*\*=\s*{_OPERAND}", "Multiplication assignment without overflow check"),
     ]
 
     # SafeMath line-level patterns (exclude specific lines)
@@ -91,10 +96,26 @@ class ArithmeticDetector:
         if is_solidity_08:
             return findings  # Solidity 0.8+ has built-in checks
 
+        # Track whether we are inside a `library { ... }` block (e.g. the SafeMath
+        # implementation itself). Its internal raw `a * b` / `a + b` are the checked
+        # primitive, not user vulnerabilities — flagging them is a false positive.
+        in_library = False
+        library_depth = 0
+
         # Look for arithmetic operations
         for i, line in enumerate(lines, 1):
             # Skip comments
             if line.strip().startswith("//") or line.strip().startswith("*"):
+                continue
+
+            # Maintain library-block scope via brace counting.
+            if not in_library and re.search(r"\blibrary\s+\w+", line):
+                in_library = True
+                library_depth = 0
+            if in_library:
+                library_depth += line.count("{") - line.count("}")
+                if library_depth <= 0 and "}" in line:
+                    in_library = False
                 continue
 
             # Skip lines that use SafeMath methods (protected)
@@ -176,8 +197,10 @@ class ArithmeticDetector:
         if "constant" in line_lower or "immutable" in line_lower:
             return None
 
-        # Skip if not an actual assignment
-        if not re.search(r"[+\-*]=|=\s*\w+\s*[+\-*]", line):
+        # Skip if not an actual assignment. The `\w+(?:\([^)]*\))?` allows a cast or
+        # call on the right-hand side (e.g. `= uint256(cnt) * _value`, the batchOverflow
+        # shape) which a bare `\w+` would miss.
+        if not re.search(r"[+\-*]=|=\s*\w+(?:\s*\([^)]*\))?\s*[+\-*]", line):
             return None
 
         # === CONFIDENCE LEVELS ===
