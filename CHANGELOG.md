@@ -7,6 +7,15 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [6.2.0] - 2026-10-21 — Product Excellence waves C1–C4
+
+Minor release: the finding-quality wave changes what a scan reports (lint and
+informational rules are capped at Low/Info, fixes are keyed by detector rule, every
+finding carries its file and function), so baselines built on 6.1.x may shift. Every
+result JSON now carries a `provenance` block, and the local-LLM path parses what the
+models actually emit. SmartBugs-curated (LLM-free paper profile): recall 143/143,
+precision 22.4 % (paper: 137/143, 22.2 %).
+
 ### Added
 
 - **One tolerant JSON extractor for every LLM adapter** (`miesc/llm/json_extraction.py`).
