@@ -1,0 +1,138 @@
+# =============================================================================
+# Rule classes — which detector rules are lint or informational, not security.
+#
+# A finding's severity comes from the tool's own bucket and is then calibrated
+# per tool (see miesc/core/intelligence.py SEVERITY_CALIBRATION). Neither step
+# knows what the rule *is*, so Aderyn's "public function could be external"
+# lands in the same Medium bucket as a real finding. This table is the missing
+# notion of rule class: a rule listed here can never be reported above its
+# class ceiling, in scan, audit or evaluate output.
+#
+# Lookup key: (tool, rule id as the tool names it). Rules not listed keep
+# whatever severity the tool and the calibration gave them.
+#
+# Loaded by miesc/core/rule_classes.py; tested by tests/test_rule_classes.py.
+# =============================================================================
+
+version: 1
+
+classes:
+  informational:
+    max_severity: Info
+    description: Naming, style, documentation, deprecated syntax. No runtime impact.
+  lint:
+    max_severity: Low
+    description: Code quality and gas rules. Worth fixing; never a vulnerability.
+
+rules:
+  aderyn:
+    # gas / dead code
+    useless-public-function: lint
+    useless-internal-function: lint
+    useless-modifier: lint
+    push-zero-opcode: lint
+    cache-array-length: lint
+    costly-loop: lint
+    costly-operations-inside-loops: lint
+    reverts-and-requires-in-loops: lint
+    state-variable-could-be-declared-constant: lint
+    state-variable-could-be-declared-immutable: lint
+    constants-instead-of-literals: lint
+    literal-instead-of-constant: lint
+    internal-function-used-once: lint
+    dead-code: lint
+    redundant-statements: lint
+    unused-error: lint
+    unused-imports: lint
+    unused-import: lint
+    unused-state-variable: lint
+    unused-public-function: lint
+    # style / informational
+    unspecific-solidity-pragma: lint
+    solmate-safe-transfer-lib: informational
+    large-numeric-literal: informational
+    too-many-digits: informational
+    unindexed-events: lint
+    require-with-string: lint
+    empty-block: lint
+    boolean-equal: lint
+    inconsistent-type-names: informational
+    tautology-or-contradiction: lint
+    void-constructor: lint
+    non-reentrant-before-others: lint
+    missing-inheritance: informational
+    state-change-without-event: lint
+    state-variable-changes-without-events: lint
+  slither:
+    # Slither "Informational" and "Optimization" impact detectors
+    naming-convention: informational
+    pragma: lint
+    solc-version: lint
+    too-many-digits: informational
+    similar-names: informational
+    unused-state: lint
+    unused-import: lint
+    constable-states: lint
+    immutable-states: lint
+    external-function: lint
+    dead-code: lint
+    cache-array-length: lint
+    costly-loop: lint
+    assembly: informational
+    missing-inheritance: informational
+    redundant-statements: lint
+    unimplemented-functions: informational
+    var-read-using-this: lint
+    cyclomatic-complexity: informational
+    boolean-equal: lint
+    deprecated-standards: informational
+    erc20-indexed: lint
+    shadowing-local: lint
+    shadowing-abstract: lint
+    shadowing-builtin: lint
+    void-cst: lint
+  solhint:
+    # The adapter types every non-security rule as style_violation and keeps
+    # the rule id in "rule"; both keys are consulted.
+    style_violation: lint
+    compiler-version: lint
+    max-line-length: informational
+    no-empty-blocks: lint
+    no-unused-vars: lint
+    no-unused-import: lint
+    var-name-mixedcase: informational
+    func-name-mixedcase: informational
+    const-name-snakecase: informational
+    contract-name-camelcase: informational
+    event-name-camelcase: informational
+    modifier-name-mixedcase: informational
+    immutable-vars-naming: informational
+    private-vars-leading-underscore: informational
+    use-forbidden-name: informational
+    imports-on-top: informational
+    ordering: informational
+    visibility-modifier-order: informational
+    quotes: informational
+    reason-string: lint
+    no-console: lint
+    no-global-import: lint
+    one-contract-per-file: informational
+    interface-starts-with-i: informational
+    named-parameters-mapping: informational
+    explicit-types: informational
+    max-states-count: informational
+    code-complexity: informational
+    function-max-lines: informational
+    state-visibility: lint
+    duplicated-imports: lint
+    gas-custom-errors: lint
+    gas-indexed-events: lint
+    gas-small-strings: lint
+    gas-strict-inequalities: lint
+    gas-increment-by-one: lint
+    gas-struct-packing: lint
+    gas-calldata-parameters: lint
+    gas-length-in-loops: lint
+    gas-named-return-values: lint
+    gas-operator-cheaper: lint
+    gas-multitoken1155: lint

@@ -29,6 +29,7 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple, cast
 
 from miesc.core.finding_taxonomy import CanonicalCategory, normalize_finding_type
+from miesc.core.rule_classes import class_max_severity, finding_rule_class
 
 # =============================================================================
 # 1. Cross-tool confirmation scoring
@@ -999,14 +1000,26 @@ SEVERITY_CALIBRATION = {
 
 
 def calibrate_severity(finding: Dict[str, Any]) -> str:
-    """Return calibrated severity, accounting for tool-specific biases."""
+    """Return calibrated severity, accounting for tool-specific biases.
+
+    A lint or informational rule (``miesc/data/config/rule_classes.yaml``)
+    never comes out above its class ceiling, whatever the tool bucket said.
+    """
     tool = finding.get("tool", "")
     raw_severity = finding.get("severity", "Medium")
 
     calibrated = SEVERITY_CALIBRATION.get((tool, raw_severity))
-    if calibrated:
-        return calibrated
+    if not calibrated:
+        calibrated = _normalize_severity_label(raw_severity)
+    cls = finding_rule_class(finding)
+    if cls:
+        ceiling = class_max_severity(cls)
+        if ceiling and _severity_rank(calibrated) > _severity_rank(ceiling):
+            return ceiling
+    return calibrated
 
+
+def _normalize_severity_label(raw_severity: str) -> str:
     severity_map = {
         "critical": "Critical",
         "high": "High",
@@ -1112,6 +1125,9 @@ def enhance_findings(
         out["confidence"] = group.confidence
         out["severity"] = group.calibrated_severity
         out["canonical_category"] = group.canonical_category
+        rule_cls = finding_rule_class(group.representative)
+        if rule_cls:
+            out["rule_class"] = rule_cls
         out["confirming_tools"] = list(set(group.confirming_tools))
         out["tool_count"] = len(set(group.confirming_tools))
         out["cross_validated_static"] = group.cross_validated_by_static

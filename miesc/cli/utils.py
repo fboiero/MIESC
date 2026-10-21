@@ -17,6 +17,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Set, cast
 
+from miesc.core.rule_classes import apply_rule_class_caps
+
 from .constants import ADAPTER_MAP, LAYERS
 
 # Root directory setup
@@ -487,12 +489,20 @@ def run_tool(tool: str, contract: str, timeout: int = 0, **kwargs: Any) -> Dict[
         # Run analysis
         result = adapter.analyze(contract, timeout=timeout, **kwargs)
 
+        findings = result.get("findings", [])
+        for finding in findings:
+            if isinstance(finding, dict):
+                finding.setdefault("tool", tool)
+        # Lint / informational rules are capped at their class ceiling here so
+        # every CLI path (scan, audit, evaluate) reports the same severity.
+        apply_rule_class_caps(findings)
+
         # Ensure consistent output format
         return {
             "tool": tool,
             "contract": contract,
             "status": result.get("status", "success"),
-            "findings": result.get("findings", []),
+            "findings": findings,
             "execution_time": result.get(
                 "execution_time", (datetime.now() - start_time).total_seconds()
             ),

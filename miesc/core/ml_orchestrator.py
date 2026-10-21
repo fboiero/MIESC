@@ -415,6 +415,12 @@ class MLOrchestrator:
         # trust. Runs on the default path, not only under --correlate.
         self._annotate_confidence(ml_filtered_findings, contract_source, contract_path)
 
+        # Lint / informational rules never outrank real findings, whatever the
+        # tool bucket said (miesc/data/config/rule_classes.yaml).
+        from .rule_classes import apply_rule_class_caps
+
+        severity_adjustments += apply_rule_class_caps(ml_filtered_findings)
+
         # Calculate severity distribution
         severity_dist = self._calculate_severity_distribution(ml_filtered_findings)
 
