@@ -9,6 +9,21 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **One tolerant JSON extractor for every LLM adapter** (`miesc/llm/json_extraction.py`).
+  SmartGuard, GPTScan, GPTLens, iAudit, LlamaAudit, LLM-SmartAudit, SmartLLM,
+  LLMBugScanner, PropertyGPT and FrontierLLM now parse model output through the same
+  strategies (code fences, `<think>` blocks, key-anchored string-aware balanced scans,
+  repair of trailing commas / single quotes / raw newlines, the `json-repair` library
+  for unescaped quotes inside Solidity snippets and truncated output, NDJSON). The
+  extractor never raises and records which strategy worked or why none did; SmartGuard
+  and FrontierLLM keep that outcome in their result metadata. Real Ollama responses
+  captured with `MIESC_LLM_DUMP_DIR` live in `tests/fixtures/llm_responses/` and must
+  keep parsing.
+- **`--llm-timeout` on `scan` and `audit full`**: a wall-clock budget applied only to
+  adapters that declare `requires_llm`; static tools keep `--timeout`. Every tool record
+  carries `timeout_budget_s`.
+- **"Slowest tools" table** at the end of `audit full` (all three paths), from per-tool
+  timings the ML orchestrator now keeps (`tool_timings`, `tool_budgets`).
 - **Every result JSON carries a `provenance` block** so a run can be cited and
   re-run: MIESC version and git SHA (when running from a checkout), Python, OS/arch,
   the version string of every tool that executed as its binary reports it (probed
