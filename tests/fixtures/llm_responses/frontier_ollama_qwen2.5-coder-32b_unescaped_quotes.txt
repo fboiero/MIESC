@@ -1,0 +1,15 @@
+```json
+[
+  {
+    "title": "Reentrancy Vulnerability",
+    "severity": "Critical",
+    "type": "reentrancy",
+    "function": "withdraw",
+    "line": 25,
+    "description": "The `withdraw` function in `VulnerableBank` updates the state after making an external call to `msg.sender.call{value: balance}("")`. This allows an attacker to re-enter the `withdraw` function before their balance is set to 0, leading to multiple withdrawals.",
+    "impact": "An attacker can drain all funds from the contract by repeatedly calling `withdraw` in a reentrancy attack.",
+    "proof_of_concept": "1. Attacker deposits ETH into the contract.\n2. Attacker calls `withdraw` with a malicious contract that re-enters `withdraw` before the balance is set to 0.\n3. The malicious contract continues to re-enter `withdraw` until the contract is drained.",
+    "recommendation": "Update the state before making any external calls to prevent reentrancy attacks. Follow the checks-effects-interactions pattern. Modify the `withdraw` function as follows:\n\n```solidity\nfunction withdraw() public {\n    uint256 balance = balances[msg.sender];\n    require(balance > 0, \"Insufficient balance\");\n\n    // Update state before external call\n    balances[msg.sender] = 0;\n    emit Withdrawal(msg.sender, balance);\n\n    (bool success, ) = msg.sender.call{value: balance}(\"\");\n    require(success, \"Transfer failed\");\n}\n```"
+  }
+]
+```
