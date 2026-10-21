@@ -173,6 +173,10 @@ class SlitherAdapter(ToolAdapter):
         self._slither_binary = _find_slither_binary()
         logger.debug(f"SlitherAdapter using binary: {self._slither_binary}")
 
+    def version_command(self) -> Optional[List[str]]:
+        """Version probe for the binary this adapter resolved (not the PATH one)."""
+        return [self._slither_binary, "--version"]
+
     def is_available(self) -> ToolStatus:
         """
         Check if Slither CLI is available and working.
@@ -408,6 +412,8 @@ class SlitherAdapter(ToolAdapter):
                 "raw_findings_count": len(raw_output.get("results", {}).get("detectors", [])),
                 "normalized_findings_count": len(findings),
                 "slither_version": raw_output.get("success", False),
+                # solc build selected for this file's pragma (run provenance reads it)
+                "solc_version": solc_version,
                 "excluded_detectors": exclude_detectors,
                 "analysis_incomplete": analysis_incomplete,
                 "incomplete_functions": incomplete_functions,

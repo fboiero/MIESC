@@ -146,6 +146,10 @@ class AderynAdapter(ToolAdapter):
             is_optional=True,  # DPGA compliance - graceful degradation
         )
 
+    def version_command(self) -> Optional[List[str]]:
+        """Version probe used by run provenance (``aderyn --version``)."""
+        return ["aderyn", "--version"]
+
     def is_available(self) -> ToolStatus:
         """
         Check if Aderyn CLI is available and working.

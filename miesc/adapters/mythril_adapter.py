@@ -102,6 +102,11 @@ class MythrilAdapter(ToolAdapter):
             is_optional=True,  # DPGA compliance - graceful degradation
         )
 
+    def version_command(self) -> Optional[List[str]]:
+        """Version probe for the ``myth`` this adapter resolved (``.tools`` install first)."""
+        myth_cmd = self._myth_cmd()
+        return [myth_cmd, "version"] if myth_cmd else None
+
     def is_available(self) -> ToolStatus:
         """
         Check if Mythril CLI is available and working.
