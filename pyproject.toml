@@ -46,6 +46,9 @@ dependencies = [
     # Without rich the analyze/report/audit commands crash with
     # AttributeError: 'NoneType' object has no attribute 'print'.
     "rich>=13.0.0",
+    # Tolerant JSON repair for LLM output (pure Python). Core, not an extra: the
+    # local --model ollama path needs it and must work on a minimal install.
+    "json-repair>=0.25.0",
 ]
 
 [project.optional-dependencies]

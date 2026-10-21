@@ -777,7 +777,9 @@ Respond with ONLY the JSON object. No explanations outside JSON."""
 
     def _extract_json_object(self, text: str) -> Optional[Dict]:
         """Extract the outermost JSON object from text (shared tolerant extractor)."""
-        parsed = extract_llm_object(text, required_keys=("findings",), log_prefix="LlamaAudit")
+        parsed = extract_llm_object(
+            text, required_keys=("findings",), log_prefix="LlamaAudit", warn=False
+        )
         if parsed is None:
             parsed = extract_llm_object(text, log_prefix="LlamaAudit")
         return parsed

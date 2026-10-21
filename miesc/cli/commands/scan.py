@@ -277,6 +277,9 @@ def scan(
         0 - Success (no critical/high issues, or CI mode disabled)
         1 - Critical or high severity issues found (CI mode only)
     """
+    # Budget for LLM-backed adapters; set (or cleared) per invocation so a
+    # long-lived process never inherits it from a previous call.
+    set_llm_timeout(llm_timeout)
     profile_config = _get_scan_profile(profile)
     profile_tools = _profile_tools(profile_config)
 
@@ -506,7 +509,6 @@ def scan(
 
         # Frontier LLM in directory mode: concatenate top source files
         if frontier_model:
-            set_llm_timeout(llm_timeout)
             try:
                 from miesc.adapters.frontier_llm_adapter import FrontierLLMAdapter
                 from miesc.core.tool_protocol import ToolStatus

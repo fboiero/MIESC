@@ -1184,7 +1184,10 @@ class GPTLensAdapter(OllamaCallMixin, LLMCacheMixin, ToolAdapter):
     def _extract_json_from_response(self, response: str) -> Optional[Dict[str, Any]]:
         """Extract the JSON object from an LLM response (shared tolerant extractor)."""
         parsed = extract_llm_object(
-            response, required_keys=("findings", "verdict", "vulnerabilities"), log_prefix="GPTLens"
+            response,
+            required_keys=("findings", "verdict", "vulnerabilities"),
+            log_prefix="GPTLens",
+            warn=False,
         )
         if parsed is None:
             parsed = extract_llm_object(response, log_prefix="GPTLens")

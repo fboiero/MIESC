@@ -19,6 +19,8 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   and FrontierLLM keep that outcome in their result metadata. Real Ollama responses
   captured with `MIESC_LLM_DUMP_DIR` live in `tests/fixtures/llm_responses/` and must
   keep parsing.
+  `json-repair` is now a core dependency (pure Python) so the local `--model ollama`
+  path works on a minimal install.
 - **`--llm-timeout` on `scan` and `audit full`**: a wall-clock budget applied only to
   adapters that declare `requires_llm`; static tools keep `--timeout`. Every tool record
   carries `timeout_budget_s`.

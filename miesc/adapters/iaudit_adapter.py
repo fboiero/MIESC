@@ -1507,7 +1507,7 @@ class IAuditAdapter(OllamaCallMixin, LLMCacheMixin, ToolAdapter):
         if not text or not text.strip():
             return None
         parsed = extract_llm_object(
-            text, required_keys=("findings", "reviewed_findings"), log_prefix="iAudit"
+            text, required_keys=("findings", "reviewed_findings"), log_prefix="iAudit", warn=False
         )
         if parsed is None:
             parsed = extract_llm_object(text, log_prefix="iAudit")

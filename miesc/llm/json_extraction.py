@@ -219,6 +219,7 @@ def extract_llm_json(
     required_keys: Sequence[str] = (),
     anchor_keys: Sequence[str] = DEFAULT_ANCHOR_KEYS,
     log_prefix: str = "LLM",
+    warn: bool = True,
 ) -> ExtractionResult:
     """Extract the JSON payload from an LLM response without ever raising.
 
@@ -230,6 +231,8 @@ def extract_llm_json(
             ``{...}`` from prose).
         anchor_keys: keys used to anchor the balanced scan.
         log_prefix: adapter name for log lines.
+        warn: log a warning when nothing parses (callers that retry with looser
+            requirements pass False on the first attempt).
     """
     result = ExtractionResult(raw_excerpt=(text or "")[:_RAW_EXCERPT])
     _maybe_dump(text, log_prefix)
@@ -311,9 +314,10 @@ def extract_llm_json(
         f"no JSON {want if want != 'auto' else 'payload'} found after "
         f"{len(result.attempts)} attempt(s)"
     )
-    logger.warning(
-        "%s: could not parse response (%d chars): %s", log_prefix, len(text), result.error
-    )
+    if warn:
+        logger.warning(
+            "%s: could not parse response (%d chars): %s", log_prefix, len(text), result.error
+        )
     logger.debug(
         "%s: unparseable response (first %d chars):\n%s",
         log_prefix,
@@ -324,10 +328,16 @@ def extract_llm_json(
 
 
 def extract_llm_object(
-    text: Optional[str], *, required_keys: Sequence[str] = (), log_prefix: str = "LLM"
+    text: Optional[str],
+    *,
+    required_keys: Sequence[str] = (),
+    log_prefix: str = "LLM",
+    warn: bool = True,
 ) -> Optional[Dict[str, Any]]:
     """Convenience: the dict payload or None (see :func:`extract_llm_json`)."""
-    res = extract_llm_json(text, want="object", required_keys=required_keys, log_prefix=log_prefix)
+    res = extract_llm_json(
+        text, want="object", required_keys=required_keys, log_prefix=log_prefix, warn=warn
+    )
     return res.data if isinstance(res.data, dict) else None
 
 

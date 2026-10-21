@@ -31,7 +31,6 @@ def test_fixture_parses_or_fails_cleanly(path: Path):
 
 
 def test_frontier_unescaped_quotes_fixture_yields_the_finding():
-    pytest.importorskip("json_repair")
     path = FIXTURES / "frontier_ollama_qwen2.5-coder-32b_unescaped_quotes.txt"
     result = extract_llm_json(path.read_text(encoding="utf-8"), want="array")
     assert result.ok and result.strategy == "json_repair"

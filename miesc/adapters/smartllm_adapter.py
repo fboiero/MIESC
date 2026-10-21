@@ -1059,7 +1059,9 @@ Report ONLY vulnerabilities confirmed by your step-by-step analysis. Quality ove
 
     def _extract_json(self, text: str) -> Optional[Dict]:
         """Extract JSON object from text (shared tolerant extractor)."""
-        parsed = extract_llm_object(text, required_keys=("findings",), log_prefix="SmartLLM")
+        parsed = extract_llm_object(
+            text, required_keys=("findings",), log_prefix="SmartLLM", warn=False
+        )
         if parsed is None:
             parsed = extract_llm_object(text, log_prefix="SmartLLM")
         return parsed

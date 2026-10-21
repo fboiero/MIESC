@@ -56,7 +56,6 @@ def test_unescaped_quotes_inside_solidity_snippet():
         '"code": "msg.sender.call{value: balance}("")", "description": "d"}]'
     )
     res = extract_llm_json(text, want="array")
-    pytest.importorskip("json_repair")
     assert res.ok, res.error
     assert res.strategy == "json_repair"
     assert res.data[0]["title"] == "Unchecked call"
