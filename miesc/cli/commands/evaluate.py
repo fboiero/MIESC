@@ -164,6 +164,24 @@ CATEGORY_ALIASES = {
 OUT_OF_TAXONOMY_TYPES = {
     "hardcoded_gas",
     "missing_event_emission",
+    # Informational / style detectors. Their descriptions mention real bug classes
+    # ("this solc version has known overflow issues") and the keyword fallback
+    # read that as the diagnosis: Slither `solc-version` alone scored as
+    # `arithmetic` on 95 of 128 non-arithmetic SmartBugs contracts (2026-10-21).
+    "solc_version",
+    "pragma",
+    "different_pragma_directives",
+    "unspecific_solidity_pragma",
+    "naming_convention",
+    "unused_state",
+    "constable_states",
+    "external_function",
+    "dead_code",
+    "too_many_digits",
+    "similar_names",
+    "useless_public_function",
+    "unindexed_events",
+    "cache_array_length",
     # miesc/detectors/defi_detectors.py::DeFiCategory
     "flash_loan",
     "oracle_manipulation",
