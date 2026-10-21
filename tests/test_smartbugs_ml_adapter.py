@@ -251,3 +251,17 @@ def test_cache_result_tolerates_write_failure(tmp_path):
     a.cache_dir = tmp_path / "missing" / "deeper"  # does not exist -> open() raises
     # must not raise; the except logs a warning and returns
     a._cache_result(str(tmp_path / "C.sol"), {"x": 1})
+
+
+def test_cache_key_changes_with_the_rule_code(tmp_path, monkeypatch):
+    """A prediction cached by older rules must not be served after a rule change
+    (the cache lives in the temp dir for 24 h, outside HOME)."""
+    import miesc.adapters.smartbugs_ml_adapter as mod
+
+    contract = tmp_path / "c.sol"
+    contract.write_text("contract C {}")
+    a = _a()
+    key_before = a._get_cache_key(str(contract))
+    assert key_before == a._get_cache_key(str(contract))
+    monkeypatch.setattr(mod, "_RULES_FINGERPRINT", "deadbeef")
+    assert a._get_cache_key(str(contract)) != key_before
