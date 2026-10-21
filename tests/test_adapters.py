@@ -1081,6 +1081,43 @@ class TestHalmosAdapterComprehensive(TestAdapterBase):
 class TestAdapterErrorHandling(TestAdapterBase):
     """Tests for adapter error handling."""
 
+    def test_slither_scope_filter_keeps_target_and_unmapped_findings(self, tmp_path):
+        """Findings in dependency files are dropped; target and unmapped ones stay."""
+        import json
+
+        from miesc.adapters.slither_adapter import SlitherAdapter
+        from miesc.core.tool_protocol import ToolStatus
+
+        contract = tmp_path / "Vault.sol"
+        contract.write_text('pragma solidity ^0.8.0;\nimport "./Ownable.sol";\ncontract Vault {}\n')
+        (tmp_path / "Ownable.sol").write_text("pragma solidity ^0.8.0;\ncontract Ownable {}\n")
+
+        def element(filename):
+            return [{"name": "x", "source_mapping": {"filename_short": filename, "lines": [3]}}]
+
+        detectors = [
+            {"check": "in-target", "impact": "High", "elements": element("Vault.sol")},
+            {"check": "in-dependency", "impact": "Low", "elements": element("Ownable.sol")},
+            {"check": "unmapped", "impact": "Low", "elements": []},
+        ]
+
+        def fake_run(cmd, **kwargs):
+            Path(cmd[cmd.index("--json") + 1]).write_text(
+                json.dumps({"success": True, "results": {"detectors": detectors}})
+            )
+            return MagicMock(returncode=0, stdout="", stderr="")
+
+        adapter = SlitherAdapter()
+        with (
+            patch.object(adapter, "is_available", return_value=ToolStatus.AVAILABLE),
+            patch("miesc.adapters.slither_adapter.subprocess.run", side_effect=fake_run),
+        ):
+            result = adapter.analyze(str(contract), timeout=30)
+
+        assert "in-dependency" not in str(result["findings"])
+        assert "in-target" in str(result["findings"])
+        assert "unmapped" in str(result["findings"])
+
     def test_slither_handles_invalid_json(self, temp_contract):
         """Test Slither handles invalid JSON output."""
         from miesc.adapters.slither_adapter import SlitherAdapter

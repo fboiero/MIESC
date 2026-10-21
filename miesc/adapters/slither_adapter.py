@@ -427,13 +427,15 @@ class SlitherAdapter(ToolAdapter):
             # imports, Slither compiles (and reports on) those files too —
             # e.g. an Ownable.sol lint finding would otherwise be attributed
             # to the requested contract. Keep only findings actually located
-            # in the requested file.
+            # in the requested file; findings with no source mapping
+            # ("unknown") can't be attributed elsewhere, so they stay.
             if Path(contract_path).is_file():
                 target_name = Path(contract_path).name
                 findings = [
                     f
                     for f in findings
-                    if Path(f.get("location", {}).get("file", "")).name == target_name
+                    if Path(f.get("location", {}).get("file", "unknown")).name
+                    in (target_name, "unknown")
                 ]
 
             # Enhance findings with OpenLLaMA (opt-in via llm_enhance=True)

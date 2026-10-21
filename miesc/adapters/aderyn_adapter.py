@@ -281,11 +281,11 @@ class AderynAdapter(ToolAdapter):
                     # (src = "...") and its lib/ still resolve correctly once
                     # copied — see _copy_existing_project_deps below.
                     contract_rel = contract_file.resolve().relative_to(project_root)
-                    for f in [contract_file, *siblings]:
-                        rel = f.resolve().relative_to(project_root)
+                    for src in [contract_file, *siblings]:
+                        rel = src.resolve().relative_to(project_root)
                         dest = Path(temp_workspace) / rel
                         dest.parent.mkdir(parents=True, exist_ok=True)
-                        shutil.copy2(f, dest)
+                        shutil.copy2(src, dest)
                     target_name = str(contract_rel)
                 else:
                     temp_contract = Path(temp_workspace) / contract_file.name
@@ -421,7 +421,8 @@ class AderynAdapter(ToolAdapter):
                 findings = [
                     f
                     for f in findings
-                    if f.get("location", {}).get("file") in (target_name, target_basename)
+                    if f.get("location", {}).get("file", "unknown")
+                    in (target_name, target_basename, "unknown")
                 ]
 
             # Enhance findings with OpenLLaMA (opt-in via llm_enhance=True)
