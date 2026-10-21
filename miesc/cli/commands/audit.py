@@ -33,9 +33,11 @@ from miesc.cli.utils import (
     info,
     load_profiles,
     print_banner,
+    print_tool_timing,
     run_layer,
     run_plugins,
     run_tool,
+    set_llm_timeout,
     success,
     summarize_findings,
     summarize_tool_statuses,
@@ -571,6 +573,17 @@ def _run_full_audit_with_ml(
             for _k in ("critical", "high", "medium", "low"):
                 summary_data[_k] = _sf.get(_k.upper(), summary_data.get(_k, 0))
 
+        print_tool_timing(
+            [
+                {
+                    "tool": t,
+                    "status": result.tool_status.get(t, "success"),
+                    "execution_time": secs,
+                    "timeout_budget_s": getattr(result, "tool_budgets", {}).get(t),
+                }
+                for t, secs in getattr(result, "tool_timings", {}).items()
+            ]
+        )
         if RICH_AVAILABLE:
             console.print("\n")
 
@@ -793,6 +806,7 @@ def _run_full_audit_with_correlation(
 
     if RICH_AVAILABLE:
         console.print("\n")
+        print_tool_timing(all_results)
         table = Table(title="Correlated Audit Summary", box=box.ROUNDED)
         table.add_column("Metric", style="bold")
         table.add_column("Value", justify="right")
@@ -894,6 +908,8 @@ def _run_full_audit_basic(
         layer_timing["plugins"] = round(plugin_elapsed, 3)
         all_results.extend(plugin_results)
         info(f"Plugins: {len(plugin_results)} detectors executed")
+
+    print_tool_timing(all_results)
 
     # v5.2.0: Intelligence engine — cross-tool scoring, semantic dedup,
     # zero-recall pattern detection, context-aware FP suppression,
@@ -1331,6 +1347,13 @@ def audit_quick(
     help="Layers to run (comma-separated, default: all 9)",
 )
 @click.option("--timeout", "-t", type=int, default=600, help="Timeout per tool in seconds")
+@click.option(
+    "--llm-timeout",
+    "llm_timeout",
+    type=int,
+    default=None,
+    help="Wall-clock budget in seconds for LLM-backed adapters (SmartGuard, GPTScan, iAudit...); static tools keep --timeout.",
+)
 @click.option("--skip-unavailable", is_flag=True, default=True, help="Skip unavailable tools")
 @click.option(
     "--ml/--no-ml", default=True, help="Enable ML pipeline for FP filtering and correlation"
@@ -1405,6 +1428,7 @@ def audit_full(
     fmt: str,
     layers: str,
     timeout: int,
+    llm_timeout: int | None,
     skip_unavailable: bool,
     ml: bool,
     correlate: bool,
@@ -1434,6 +1458,11 @@ def audit_full(
     info(f"Full audit of {contract}")
 
     layer_list = [int(x.strip()) for x in layers.split(",") if x.strip().isdigit()]
+
+    # LLM-backed adapters get their own wall-clock budget when asked for.
+    set_llm_timeout(llm_timeout)
+    if llm_timeout:
+        info(f"LLM budget: {llm_timeout}s per LLM-backed tool (static tools: {timeout}s)")
 
     # Try to use ML Orchestrator for enhanced analysis
     ml_orchestrator = get_ml_orchestrator() if ml else None

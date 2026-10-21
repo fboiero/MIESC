@@ -540,6 +540,30 @@ def count_available(tools: Iterable[str]) -> tuple[int, int]:
     return sum(1 for info in statuses.values() if info.get("available")), len(statuses)
 
 
+# Wall-clock budget applied to LLM-backed adapters only (``--llm-timeout``).
+# None means "same timeout as every other tool".
+_LLM_TIMEOUT_OVERRIDE: Optional[int] = None
+
+
+def set_llm_timeout(seconds: Optional[int]) -> None:
+    """Set (or clear with None/0) the per-tool budget for LLM-backed adapters."""
+    global _LLM_TIMEOUT_OVERRIDE
+    _LLM_TIMEOUT_OVERRIDE = int(seconds) if seconds else None
+
+
+def get_llm_timeout() -> Optional[int]:
+    """Current LLM budget in seconds, or None when not set."""
+    return _LLM_TIMEOUT_OVERRIDE
+
+
+def effective_tool_timeout(tool: str, timeout: int) -> int:
+    """Timeout to hand to ``tool``: the LLM budget when one is set and the
+    adapter declares ``requires_llm``, otherwise ``timeout`` unchanged."""
+    if _LLM_TIMEOUT_OVERRIDE and tool in AdapterLoader.llm_tools():
+        return _LLM_TIMEOUT_OVERRIDE
+    return timeout
+
+
 def run_tool(tool: str, contract: str, timeout: int = 0, **kwargs: Any) -> Dict[str, Any]:
     """
     Run a security tool using its adapter.
@@ -547,7 +571,8 @@ def run_tool(tool: str, contract: str, timeout: int = 0, **kwargs: Any) -> Dict[
     Args:
         tool: Tool name (e.g., 'slither', 'mythril')
         contract: Path to Solidity contract
-        timeout: Timeout in seconds (0 = use config or default 300)
+        timeout: Timeout in seconds (0 = use config or default 300); LLM-backed
+            tools use the ``--llm-timeout`` budget instead when one is set.
         **kwargs: Additional tool-specific parameters
 
     Returns:
@@ -555,6 +580,7 @@ def run_tool(tool: str, contract: str, timeout: int = 0, **kwargs: Any) -> Dict[
     """
     if timeout <= 0:
         timeout = get_tool_timeout(tool, default=300)
+    timeout = effective_tool_timeout(tool, timeout)
     start_time = datetime.now()
 
     # Get adapter for tool
@@ -614,6 +640,7 @@ def run_tool(tool: str, contract: str, timeout: int = 0, **kwargs: Any) -> Dict[
             "timestamp": datetime.now().isoformat(),
             "metadata": result.get("metadata", {}),
             "error": normalized.get("error"),
+            "timeout_budget_s": timeout,
         }
         if normalized.get("reason"):
             record["reason"] = normalized["reason"]
@@ -716,6 +743,48 @@ def run_layer(
         _print_tool_result(tool, result)
 
     return results + skipped
+
+
+def print_tool_timing(results: List[Dict[str, Any]], top: int = 8) -> None:
+    """Show the slowest tools of a run so a slow adapter is visible, not hidden
+    in the total. ``results`` are ``run_tool`` dicts (``execution_time`` in s,
+    optional ``timeout_budget_s``). Skipped tools (0 s) are left out."""
+    rows = []
+    for r in results:
+        if not isinstance(r, dict):
+            continue
+        try:
+            secs = float(r.get("execution_time") or 0)
+        except (TypeError, ValueError):
+            continue
+        if secs <= 0:
+            continue
+        rows.append(
+            (secs, str(r.get("tool", "?")), describe_tool_status(r), r.get("timeout_budget_s"))
+        )
+    if not rows:
+        return
+    rows.sort(reverse=True)
+    total = sum(secs for secs, *_ in rows)
+    shown = rows[:top]
+    if RICH_AVAILABLE and console:
+        from rich import box
+        from rich.table import Table
+
+        table = Table(
+            title=f"Slowest tools (of {len(rows)}, {total:.1f}s tool time)", box=box.SIMPLE
+        )
+        table.add_column("Tool")
+        table.add_column("Status")
+        table.add_column("Time (s)", justify="right")
+        table.add_column("Budget (s)", justify="right")
+        for secs, tool, status, budget in shown:
+            table.add_row(tool, status, f"{secs:.1f}", str(budget) if budget else "-")
+        console.print(table)
+    else:
+        print(f"Slowest tools (of {len(rows)}, {total:.1f}s tool time):")  # noqa: T201
+        for secs, tool, status, budget in shown:
+            print(f"  {tool:<24} {status:<22} {secs:7.1f}s  budget={budget or '-'}")  # noqa: T201
 
 
 def describe_tool_status(result: Dict[str, Any]) -> str:

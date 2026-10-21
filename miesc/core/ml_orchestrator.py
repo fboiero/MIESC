@@ -98,6 +98,10 @@ class MLAnalysisResult:
     tools_skipped: List[str] = field(default_factory=list)
     tools_fallback: List[str] = field(default_factory=list)
     tool_status: Dict[str, str] = field(default_factory=dict)
+    # Per-tool wall time (s) and the timeout budget each tool ran under, so a
+    # slow adapter is visible in the summary instead of hidden in the total.
+    tool_timings: Dict[str, float] = field(default_factory=dict)
+    tool_budgets: Dict[str, Optional[int]] = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         """Convierte resultado a diccionario."""
@@ -105,6 +109,7 @@ class MLAnalysisResult:
             "contract_path": self.contract_path,
             "tools_run": self.tools_run,
             "tools_success": self.tools_success,
+            "tool_timings": {k: round(v, 3) for k, v in self.tool_timings.items()},
             "tools_failed": self.tools_failed,
             "tools_skipped": self.tools_skipped,
             "tools_fallback": self.tools_fallback,
@@ -528,6 +533,14 @@ class MLOrchestrator:
             tools_skipped=tools_skipped,
             tools_fallback=tools_fallback,
             tool_status=tool_status,
+            tool_timings={
+                t: float(r.get("execution_time") or 0)
+                for t, r in raw_results.items()
+                if isinstance(r, dict)
+            },
+            tool_budgets={
+                t: r.get("timeout_budget_s") for t, r in raw_results.items() if isinstance(r, dict)
+            },
             total_raw_findings=len(all_findings),
             raw_findings=all_findings,
             ml_filtered_findings=ml_filtered_findings,

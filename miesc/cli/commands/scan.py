@@ -27,6 +27,7 @@ from miesc.cli.utils import (
     info,
     print_banner,
     run_tool,
+    set_llm_timeout,
     success,
     summarize_findings,
     warning,
@@ -122,6 +123,14 @@ if RICH_AVAILABLE:
     ),
     default=None,
     help="Use frontier LLM for deep semantic analysis (requires API key)",
+)
+@click.option(
+    "--llm-timeout",
+    "llm_timeout",
+    type=int,
+    default=None,
+    help="Wall-clock budget in seconds for LLM-backed adapters (--model, --ensemble); "
+    "static tools keep their own timeout.",
 )
 @click.option(
     "--deep",
@@ -227,6 +236,7 @@ def scan(
     recursive: bool,
     diff_ref: str | None,
     frontier_model: str | None,
+    llm_timeout: int | None,
     deep: bool,
     ensemble: bool,
     verify_fp: bool,
@@ -496,6 +506,7 @@ def scan(
 
         # Frontier LLM in directory mode: concatenate top source files
         if frontier_model:
+            set_llm_timeout(llm_timeout)
             try:
                 from miesc.adapters.frontier_llm_adapter import FrontierLLMAdapter
                 from miesc.core.tool_protocol import ToolStatus
@@ -554,6 +565,8 @@ def scan(
                     kwargs: dict[str, Any] = {"model": model_id} if model_id else {}
                     if deep:
                         kwargs["deep"] = True
+                    if llm_timeout:
+                        kwargs["timeout"] = llm_timeout
                     frontier_result = adapter.analyze(concat.name, **kwargs)
                     Path(concat.name).unlink(missing_ok=True)
 
@@ -712,7 +725,10 @@ def scan(
                 if not quiet:
                     info(f"  Ensemble: running {label} ({model_id})...")
                 try:
-                    result = adapter.analyze(str(contract), model=model_id)
+                    ensemble_kwargs: dict[str, Any] = {"model": model_id}
+                    if llm_timeout:
+                        ensemble_kwargs["timeout"] = llm_timeout
+                    result = adapter.analyze(str(contract), **ensemble_kwargs)
                     if result.get("status") == "success":
                         for f in result.get("findings", []):
                             key = (
@@ -792,6 +808,8 @@ def scan(
                 kwargs = {"model": model_id} if model_id else {}
                 if deep:
                     kwargs["deep"] = True
+                if llm_timeout:
+                    kwargs["timeout"] = llm_timeout
                 frontier_result = adapter.analyze(str(contract), **kwargs)
                 if frontier_result.get("status") == "success":
                     frontier_findings = frontier_result.get("findings", [])
