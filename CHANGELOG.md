@@ -7,6 +7,17 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [6.3.0] - 2026-10-21 — Precision wave (C3) and LLM-path follow-ups
+
+Minor release. Wave C3 changes what the intelligence layer reports: two broad gap-fillers
+(`dos_push_unbounded`, `reentrancy_crossfunction`) are gone, three rule bugs are fixed and the
+evaluation scorer no longer reads remediation text as a diagnosis. On SmartBugs-curated
+(LLM-free paper profile) recall stays 143/143 and precision rises from 22.4 % to 25.7 %
+(495 → 414 false positives). Also: the ArithmeticDetector recognises cast operands (BECToken
+batchOverflow), Slither and Aderyn no longer share `/tmp` report files, Ollama can be asked
+for native JSON (opt-in), the arena benchmark matcher credits by SWC id and detector type,
+and the README states what each setup actually delivers.
+
 ### Added
 
 - **Opt-in native JSON output for Ollama** (`MIESC_OLLAMA_FORMAT_JSON=1`, or
@@ -24,6 +35,21 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - README: a "what you actually get, by setup" table (static-only, local open-weight,
   three frontier APIs, ensemble) with recall, precision, F1 and cost per audit from the
   Paper 1 claims matrix.
+
+### Changed
+
+- **Wave C3, precision.** `_normalize_category` in `miesc evaluate` no longer coerces
+  out-of-taxonomy findings (`hardcoded_gas`, DeFi `mev_exposure`) into SmartBugs categories by
+  reading their remediation text, and an empty type no longer matches every alias. The
+  intelligence layer's `dos_push_unbounded` and `reentrancy_crossfunction` gap-fillers are
+  removed (0 exclusive true positives); `incorrect_constructor_name`, `unchecked_call_pattern`
+  and `front_running` rule bugs fixed. SmartBugs-curated LLM-free: 143/143 recall, precision
+  22.4 % → 25.7 % (artifact `smartbugs_eval_layers_1_6_7_20261021_intel_fix`) (#189).
+- **ArithmeticDetector** recognises cast operands (`uint256(cnt) * _value`, the BECToken
+  batchOverflow) and skips SafeMath library bodies; detector-level arithmetic recall on the
+  three arena contracts 33 % → 100 %, SmartBugs-curated unchanged (#188).
+- **Arena benchmark matcher** credits findings by SWC id and detector type instead of keyword
+  substrings; arena access_control 1/3 → 3/3, overall 0.82 → 0.89 without over-crediting (#191).
 
 ### Fixed
 
