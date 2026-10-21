@@ -155,20 +155,52 @@ CATEGORY_ALIASES = {
 }
 
 
-def _normalize_category(finding_type: str, title: str = "", description: str = "") -> Optional[str]:
+# Finding kinds MIESC emits that have no SmartBugs-curated counterpart. They are
+# real findings for the auditor but must not be coerced into a benchmark category
+# by the keyword fallback below, which would otherwise read their *remediation
+# text* as a diagnosis: ``hardcoded_gas`` (SWC-134) says "use call{value:}() with
+# reentrancy guard" and the DeFi ``mev_exposure`` rule says "can be front-run".
+# Measured on SmartBugs-curated (2026-10-20): 36 + 14 false positives, 0 true ones.
+OUT_OF_TAXONOMY_TYPES = {
+    "hardcoded_gas",
+    "missing_event_emission",
+    # miesc/detectors/defi_detectors.py::DeFiCategory
+    "flash_loan",
+    "oracle_manipulation",
+    "price_manipulation",
+    "sandwich_attack",
+    "mev_exposure",
+    "slippage",
+    "liquidity",
+}
+
+
+def _normalize_category(
+    finding_type: str, title: str = "", description: str = "", category: str = ""
+) -> Optional[str]:
     """Normalize a finding type to a ground-truth category.
 
-    Checks type field first, then falls back to keyword matching on title/description.
+    Checks the type field first, then falls back to keyword matching on
+    title/description. ``category`` is the adapter's own classification when
+    it ships one (the DeFi adapter sets ``category`` but no ``type``); a type or
+    category in ``OUT_OF_TAXONOMY_TYPES`` is never mapped, whatever its text says.
     """
+    for raw in (finding_type, category):
+        if raw and raw.lower().replace(" ", "_").replace("-", "_") in OUT_OF_TAXONOMY_TYPES:
+            return None
+
     finding_lower = finding_type.lower().replace(" ", "_").replace("-", "_")
-    for canonical, aliases in CATEGORY_ALIASES.items():
-        normalized_aliases = {a.lower().replace(" ", "_").replace("-", "_") for a in aliases}
-        if finding_lower in normalized_aliases:
-            return canonical
-        # Substring match for compound types like "reentrancy-eth"
-        for alias in normalized_aliases:
-            if alias in finding_lower or finding_lower in alias:
+    # An empty type must not reach the substring match: "" is a substring of
+    # every alias and used to classify type-less findings as the first category.
+    if finding_lower:
+        for canonical, aliases in CATEGORY_ALIASES.items():
+            normalized_aliases = {a.lower().replace(" ", "_").replace("-", "_") for a in aliases}
+            if finding_lower in normalized_aliases:
                 return canonical
+            # Substring match for compound types like "reentrancy-eth"
+            for alias in normalized_aliases:
+                if alias in finding_lower or finding_lower in alias:
+                    return canonical
 
     # Fallback: keyword search in title and description
     combined_text = f"{title} {description}".lower()
@@ -359,6 +391,7 @@ def _evaluate_contract(
                 f.get("type", "") or f.get("title", ""),
                 title=f.get("title", ""),
                 description=f.get("description", f.get("message", "")),
+                category=str(f.get("category", "") or ""),
             )
             if cat:
                 layer_detected.add(cat)
@@ -420,6 +453,7 @@ def _evaluate_contract(
                         f.get("type", "") or f.get("title", ""),
                         title=f.get("title", ""),
                         description=f.get("description", f.get("message", "")),
+                        category=str(f.get("category", "") or ""),
                     )
                     if cat:
                         intel_detected.add(cat)
@@ -1121,6 +1155,7 @@ def evaluate_corpus(
                             f.get("type", ""),
                             f.get("title", ""),
                             f.get("description", ""),
+                            category=str(f.get("category", "") or ""),
                         )
                         if llm_cat:
                             llm_cats.add(llm_cat)

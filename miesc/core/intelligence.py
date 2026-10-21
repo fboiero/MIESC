@@ -179,7 +179,9 @@ ZERO_RECALL_PATTERNS: Dict[str, Dict[str, Any]] = {
     "front_running": {
         "patterns": [
             r"\.approve\s*\(",
-            r"function\s+approve\s*\(",
+            # An implemented approve(); a bodyless declaration (`...) returns (bool);`
+            # in an abstract ERC20 contract) is not an approve race.
+            r"function\s+approve\s*\([^)]*\)(?![^{;]*;)",
             r"require\s*\(\s*\w+\s*==\s*(?:sha3|keccak256)\s*\(",
             r"require\s*\(\s*(?:sha3|keccak256)\s*\([^)]*\)\s*==",
             # Claimable reward paid out from mutable state — order-dependent
@@ -301,17 +303,20 @@ ZERO_RECALL_PATTERNS: Dict[str, Dict[str, Any]] = {
         "message": "ERC20 transfer without return value check — some tokens (USDT) don't return bool. Use SafeERC20.",
     },
     "reentrancy_crossfunction": {
+        # NOTE: the bare `.call{value:` / `.call.value(` patterns were REMOVED.
+        # Every value-bearing call is not a reentrancy; Slither and the layer 6
+        # detectors already flag the ones with a state write after the call.
+        # Measured on SmartBugs-curated (2026-10-20): 35 FP, 0 TP that no tool
+        # had already found.
         "patterns": [
-            r"\.call\s*\{value:",
-            r"\.call\.value\s*\(",
             # Callback into a caller-controlled contract (e.g. Bank(msg.sender).cb()):
             # the callee can re-enter before state is settled. Covers modifier/interface
-            # reentrancy that .call-based patterns miss. Measured 0 FP on SmartBugs.
+            # reentrancy that .call-based patterns miss. Measured 1 TP / 0 FP on SmartBugs.
             r"\b[A-Z]\w*\(\s*msg\.sender\s*\)\.\w+\s*\(",
         ],
         "severity": "High",
         "swc": "SWC-107",
-        "message": "External call with value — potential cross-function reentrancy if state is shared. Verify CEI pattern across ALL functions that read the same state.",
+        "message": "External call into a caller-controlled contract — potential cross-function reentrancy if state is shared. Verify CEI pattern across ALL functions that read the same state.",
     },
     # v5.3.1: Business logic patterns (EVMBench-informed)
     "price_oracle_stale": {
@@ -421,15 +426,20 @@ ZERO_RECALL_PATTERNS: Dict[str, Dict[str, Any]] = {
         "context_filter": "randomness_context",
     },
     "incorrect_constructor_name": {
+        # Group 1 is the function name; the post-filter below drops the match
+        # when it equals the enclosing contract's name (that IS the pre-0.4.22
+        # constructor). Measured on SmartBugs-curated: the unfiltered rule fired
+        # on three real constructors.
         "patterns": [
             r"function\s+(\w+)\s*\(\s*\)\s*(public|external)?\s*\{[^}]*(owner|admin|creator)\s*=\s*msg\.sender",
         ],
         "multiline_patterns": [
-            r"function\s+\w+\s*\([^)]*\)\s*(public|external)[^{]*\{[^}]*(owner|admin|creator)\s*=\s*msg\.sender",
+            r"function\s+(\w+)\s*\([^)]*\)\s*(public|external)[^{]*\{[^}]*(owner|admin|creator)\s*=\s*msg\.sender",
         ],
         "severity": "Critical",
         "swc": "SWC-118",
         "message": "Function assigns ownership but may not be the constructor — in Solidity <0.4.22, constructors were functions with the contract name. A typo means anyone can call it and become owner.",
+        "requires_name_not_enclosing_contract": True,
     },
     "delegatecall_unprotected": {
         "multiline_patterns": [
@@ -468,14 +478,11 @@ ZERO_RECALL_PATTERNS: Dict[str, Dict[str, Any]] = {
         "swc": "SWC-113",
         "message": "External call inside loop — single failure reverts entire batch. Use pull-over-push (let recipients withdraw individually).",
     },
-    "dos_push_unbounded": {
-        "patterns": [
-            r"\w+\.push\s*\(",
-        ],
-        "severity": "Medium",
-        "swc": "SWC-128",
-        "message": "Unbounded array push in public function — array can grow until iteration exceeds gas limit. Consider max length or pagination.",
-    },
+    # NOTE: dos_push_unbounded (any `x.push(`) was REMOVED. An array push is not
+    # a DoS by itself; the gas-limit shape is the loop over that array, which
+    # dos_gas_limit / dos_unbounded_loop / dos_send_in_loop already cover.
+    # Measured on SmartBugs-curated (2026-10-20): 33 FP (19 of them
+    # `History.push(LastMsg)`), 0 TP that no tool had already found.
     "dos_send_require": {
         "patterns": [
             r"require\s*\(\s*\w+\.(send|transfer)\s*\(",
@@ -518,9 +525,12 @@ ZERO_RECALL_PATTERNS: Dict[str, Dict[str, Any]] = {
         "message": "Return value of .send() not checked — transfer can silently fail. Use require(addr.send(amount)) or addr.transfer(amount).",
     },
     "unchecked_call_pattern": {
+        # Anchored at the statement start: `(bool ok, ) = x.call...;` captures
+        # the return value and must not match (it did: 5 FP on SmartBugs-curated,
+        # all reentrancy samples that check `success`).
         "patterns": [
-            r"\w+\.call\s*\([^)]*\)\s*;",
-            r"\w+\.call\.value\s*\([^)]*\)\s*\([^)]*\)\s*;",
+            r"^\s*[\w.\[\]]+\.call\s*\([^)]*\)\s*;",
+            r"^\s*[\w.\[\]]+\.call\.value\s*\([^)]*\)\s*\([^)]*\)\s*;",
         ],
         "severity": "Medium",
         "swc": "SWC-104",
@@ -755,6 +765,25 @@ def _pattern_location(source_code: str, file_path: str, line: int) -> Dict[str, 
     }
 
 
+_CONTRACT_DECL_RE = re.compile(r"\b(?:contract|library|interface)\s+(\w+)")
+
+
+def _names_enclosing_contract(source_code: str, function_name: str, pos: int) -> bool:
+    """True when ``function_name`` equals the name of the contract enclosing ``pos``.
+
+    In Solidity <0.4.22 the constructor is the function named after its
+    contract, so such a function is not an "incorrect constructor name".
+    Matching the name of a *different* contract in the file is still reported:
+    that is the copy-paste bug the rule exists for.
+    """
+    enclosing = None
+    for decl in _CONTRACT_DECL_RE.finditer(source_code):
+        if decl.start() >= pos:
+            break
+        enclosing = decl.group(1)
+    return enclosing is not None and enclosing == function_name
+
+
 def detect_zero_recall_categories(
     source_code: str,
     file_path: str = "",
@@ -766,6 +795,11 @@ def detect_zero_recall_categories(
     """
     findings = []
     code_lower = source_code.lower()
+    lines = source_code.split("\n")
+    # Absolute offset of each line start, to locate a line match in the source
+    line_offsets = [0]
+    for line in lines[:-1]:
+        line_offsets.append(line_offsets[-1] + len(line) + 1)
     has_safemath = "safemath" in code_lower or "using safemath" in code_lower
     has_safe_approve = "increaseallowance" in code_lower or "safeapprove" in code_lower
     has_initializer_guard = "initializer" in code_lower and (
@@ -786,12 +820,19 @@ def detect_zero_recall_categories(
         for pattern in cfg.get("patterns", []):
             if matched:
                 break
-            for i, line in enumerate(source_code.split("\n"), 1):
-                if re.search(pattern, line):
+            for i, line in enumerate(lines, 1):
+                m = re.search(pattern, line)
+                if m:
                     if not _passes_zero_recall_context_filter(
                         cfg.get("context_filter"),
                         source_code,
                         line,
+                    ):
+                        continue
+                    if cfg.get(
+                        "requires_name_not_enclosing_contract"
+                    ) and _names_enclosing_contract(
+                        source_code, m.group(1), line_offsets[i - 1] + m.start()
                     ):
                         continue
                     findings.append(
@@ -820,6 +861,10 @@ def detect_zero_recall_categories(
                     cfg.get("context_filter"),
                     source_code,
                     m.group(0),
+                ):
+                    continue
+                if cfg.get("requires_name_not_enclosing_contract") and _names_enclosing_contract(
+                    source_code, m.group(1), m.start()
                 ):
                     continue
                 # Post-match filter: skip if balance subtraction present
