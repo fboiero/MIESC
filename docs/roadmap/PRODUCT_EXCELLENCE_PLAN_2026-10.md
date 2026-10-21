@@ -167,7 +167,8 @@ miesc` reproduces the numbers REPRODUCE.md describes.
 | **C5 — Guardrails and release** | B.7 drift tests; B.8 tag discipline, 6.1.2/6.2.0 | drift tests in CI; PyPI version matches REPRODUCE.md numbers |
 
 C1 and C2 touch different files and can run in parallel; C3 waits for the decision; C4
-after C1 (it reuses the status vocabulary); C5 closes the cycle.
+after C1 (it reuses the status vocabulary); C5 closes the cycle. **C6 — real-protocol
+audits** (Part E) follows C1–C2 and is fed by the split of community PR #144.
 
 ---
 
@@ -185,6 +186,35 @@ after C1 (it reuses the status vocabulary); C5 closes the cycle.
    local" claim used it); docs now say how to force 14b. Keep, or change with a new measurement.
 
 ---
+
+## Part E — What to absorb from community PR #144
+
+[fboiero/MIESC#144](https://github.com/fboiero/MIESC/pull/144) (alva-p, 100 commits, 687
+files) cannot be merged as one unit: it edits frozen paper notes, its headline numbers
+(43.5 % → 60 % precision) are on a private corpus, and GitHub cannot even render the diff.
+The author was asked on 2026-10-20 to split it. The *content*, read file by file from the
+PR head, maps onto this plan as follows. Each row says where it lands and what the split
+PR must bring.
+
+| Contribution in #144 | Lands in | Condition to take it |
+|---|---|---|
+| New DeFi detectors: `rounding-error`, `fee-on-transfer`, `erc4626-compliance`, `unrefunded-excess-payment` (`miesc/detectors/defi_detectors.py`, +326) | C1/C3 (detection quality) | Own PR with positive and negative contracts in `tests/`; `make bench --no-llm` before/after in the PR body; severities per the rule-class table of B.1 |
+| FP tracking in the finding validator (+369), hallucination/LLM-output validator tightening, ReDoS guards | C3, C4 | Own PR; unit tests included in #144 already (`test_finding_validator_fp_tracking.py`, `test_net_guard.py`) |
+| Protocol graph (cross-file inheritance, inter-contract calls, `__gap` storage heuristic; `miesc/ml/protocol_graph.py`) and the `miesc xray` pre-audit map (entry points by permission, attack-surface score) | **new wave C6 — real-protocol audits** | Own PR; regex-based by its own admission, so document limits; fixture protocol with ≥ 3 files |
+| `miesc audit address` via the Etherscan V2 unified API (opt-in, user's own key, Solidity only; `miesc/core/block_explorer.py`) | C6 | Own PR; network call must stay opt-in and off in `--no-llm`/offline runs; tests mock the API (already in `test_block_explorer.py`) |
+| Checkpoint/resume for long batch audits, `run_layer` timeout safety | C6, B.6 | Own PR; interacts with the status vocabulary of B.3, so after C1 |
+| Vyper adapter and routing (`miesc/adapters/vyper_adapter.py`, `vyper-real` corpus) | C6 (multichain) | Own PR after the Solidity items; corpus in a separate dataset PR |
+| "Unloaded-machine" benchmark protocol (`docs/guides/BENCHMARK_REPRODUCIBILITY.md`): Aderyn crashes 36/143 unloaded vs up to 66 under CPU load, moving recall by ~2 points | C2, B.6 | Fold into `REPRODUCE.md`; record load average and CPU count in the provenance block of C2 so a run can be judged after the fact. Matches our own 36-crash observation (#171) |
+| `scripts/compare_benchmark_runs.py`, `compare_vs_upstream.py` | C5 | Reconcile with `miesc evaluate compare` rather than adding parallel scripts |
+| Corpora: `solidifi`, `solodit_real_fp_filter`, `vyper-real` | B.4 (precision beyond SmartBugs-curated) | Separate dataset PR under `benchmarks/datasets/` with provenance and licence README; results as dated artifacts, never under `paper1_*` |
+| Deep-reasoning pass through the Claude Code CLI (`claude -p`, read-only tools) and subscription-authenticated transports for Claude Code / Codex (`miesc/llm/cli_subscription.py`) | **deferred: design discussion** | Billing through a personal subscription and shelling out to vendor CLIs are product and terms-of-service decisions for Fernando; if accepted, strictly opt-in and excluded from every reproducible profile |
+| Edits to `paper/PAPER1_REPRODUCIBILITY.md`, `paper/PAPER2_REPRODUCIBILITY.md`, README benchmark prose; `vs_upstream_*` result dumps (22k lines) | **declined** | Frozen evidence; comparisons go to dated artifacts and `REPRODUCE.md` |
+| Removal of the duplicated `docs/templates/reports/*` (the package copy lives in `miesc/data/templates/reports/`) | Backlog | Hygiene PR once verified that nothing links to the `docs/` copy |
+
+Net effect on the waves: C3 gains two measurement corpora and the FP-tracking validator;
+C4 gains the output-validator hardening; a new **C6 — real-protocol audits** (multi-file
+graph, `xray`, `audit address`, checkpoint/resume, Vyper) becomes the researcher-facing
+feature wave after C1–C2, since real audits are multi-file protocols, not single contracts.
 
 ## Backlog (small, no wave needed)
 
