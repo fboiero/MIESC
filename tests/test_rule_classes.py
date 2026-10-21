@@ -80,7 +80,12 @@ class TestCapSeverity:
         assert f["rule_class"] == "lint"
 
     def test_solhint_rule_id_is_read_from_rule_key(self):
-        f = {"tool": "solhint", "type": "style_violation", "rule": "max-line-length", "severity": "medium"}
+        f = {
+            "tool": "solhint",
+            "type": "style_violation",
+            "rule": "max-line-length",
+            "severity": "medium",
+        }
         assert rc.finding_rule_class(f) == "informational"  # "rule" wins over "type"
         g = {"tool": "solhint", "rule": "max-line-length", "severity": "medium"}
         assert rc.finding_rule_class(g) == "informational"

@@ -38,7 +38,9 @@ class TestRuleKeyedResolution:
     def test_send_ether_no_checks_gets_rule_text_not_only_owner(self):
         f = _aderyn("send-ether-no-checks", 27, "withdraw")
         fix = generate_fix_code(f)
-        assert fix is not None and "onlyOwner" in fix  # mentioned as the WRONG fix for a user withdraw
+        assert (
+            fix is not None and "onlyOwner" in fix
+        )  # mentioned as the WRONG fix for a user withdraw
         assert "Do NOT add onlyOwner" in fix
         assert "Checks-Effects-Interactions" in fix or "CHECKS" in fix
         assert generate_exploit_scenario(f) is None  # no honest generic attack story
@@ -52,7 +54,11 @@ class TestRuleKeyedResolution:
         slither = {"type": "reentrancy-eth", "tool": "slither", "severity": "High"}
         assert "nonReentrant" in generate_fix_code(slither)
         assert generate_exploit_scenario(slither)[0].startswith("1. Attacker deploys")
-        pattern = {"type": "unchecked_return_value", "tool": "miesc-intelligence", "swc_id": "SWC-104"}
+        pattern = {
+            "type": "unchecked_return_value",
+            "tool": "miesc-intelligence",
+            "swc_id": "SWC-104",
+        }
         assert "require(success" in generate_fix_code(pattern)
 
     def test_type_that_is_a_category_name_still_resolves(self):
