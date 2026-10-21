@@ -268,9 +268,14 @@ identical rule hits grouped per file, one tool-status vocabulary). Artifact:
 Nothing in C1 changes which tools run or what they report; the only step that can move the
 score is the location fill (findings now carry file and function *before* the semantic
 dedup, so groups form differently and the context-aware FP check can look the function up).
-Measured in isolation that step reproduced the reference exactly at the aggregate level; the
-per-contract diff of the `.jsonl` files shows five flips, all in the false-positive column of
-the intelligence layer and all in `reentrancy`: lost on `unchecked_low_level_calls/mishandled`,
+A run of that step alone also landed on 496 FP, but it is not clean evidence: a `miesc scan`
+executed during that bench contaminated two contracts (`other/random_number_generator`,
+`other/lucky_doubler`) because the Aderyn and Slither adapters write fixed
+`/tmp/aderyn_output.json` / `/tmp/slither_output.json` paths and concurrent runs read each
+other's output; those two accidental flips cancelled the five real ones. The final run above
+was made with nothing else running and equals the reference plus five deterministic flips
+(re-checked twice on a five-contract corpus), all in the false-positive column of the
+intelligence layer and all in `reentrancy`: lost on `unchecked_low_level_calls/mishandled`,
 `access_control/mycontract`, `arithmetic/timelock`; gained on
 `access_control/incorrect_constructor_name3`, `access_control/mapping_write`. The mechanism is
 not C1 itself but a scoring quirk it exposes: `_normalize_category` in
