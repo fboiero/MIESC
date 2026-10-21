@@ -65,14 +65,23 @@ they were part of the paper run as well and the layer membership has not changed
 v5.4.1. Optional tools that are *not* installed (Wake, Semgrep, DA-GNN) are skipped and
 were not part of the paper number either.
 
-Tool versions of the published run and of the re-run documented below:
+Tool versions are part of every result MIESC writes (the `provenance` block, see
+[docs/guides/RESEARCH.md](docs/guides/RESEARCH.md#run-provenance)). Read them from the
+artifact you are comparing against instead of from this file:
 
-| Tool | Paper run (v5.4.1, 2026-05) | Re-run on main (v6.1.0, 2026-10-20) |
-|---|---|---|
-| Slither | 0.11.5 (`requirements-lock.txt`) | 0.11.6 |
-| Aderyn | not recorded in the artifact | 0.1.9 |
-| Solhint | not recorded in the artifact | 6.0.1 |
-| scikit-learn | not recorded in the artifact | 1.9.1 |
+```bash
+jq '.provenance.tools' <run>.json            # each tool that ran, as its binary reports it
+jq '.provenance.solc.binaries' <run>.json    # the solc builds the Slither adapter selected
+jq '.provenance.python_packages' <run>.json  # slither-analyzer, scikit-learn, solc-select, ...
+jq '.provenance | {miesc, python, platform, config, env, llm_free, command_line}' <run>.json
+miesc evaluate compare <run_a>.json <run_b>.json   # both blocks side by side, differences marked
+```
+
+The two runs documented below predate the block, so what is known about them lives only
+here: the paper run (v5.4.1, 2026-05) used Slither 0.11.5 (`requirements-lock.txt`); its
+Aderyn, Solhint and scikit-learn releases were not recorded. The 2026-10-20 re-run on
+`main` (v6.1.0) used Slither 0.11.6, Aderyn 0.1.9, Solhint 6.0.1 and scikit-learn 1.9.1,
+noted by hand at run time. Every later `make bench` artifact carries its own block.
 
 ## 3. Verify the claims (fast)
 
