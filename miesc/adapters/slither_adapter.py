@@ -18,6 +18,7 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple, cast
 
+from miesc.adapters._output_paths import discard_output_path, new_output_path
 from miesc.core.tool_protocol import (
     ToolAdapter,
     ToolCapability,
@@ -236,6 +237,8 @@ class SlitherAdapter(ToolAdapter):
         temp_foundry_toml = None  # Track for cleanup in finally block
         temp_workspace = None  # Track for cleanup
         actual_contract_path = contract_path  # May change if workspace created
+        output_path: Optional[str] = None  # Per-run report file (cleaned in finally)
+        owns_output = False
 
         # Check that the target path exists BEFORE running anything.
         # Otherwise slither exits with an error and the adapter reads
@@ -269,8 +272,11 @@ class SlitherAdapter(ToolAdapter):
             }
 
         try:
-            # Prepare output path
-            output_path = kwargs.get("output_path", "/tmp/slither_output.json")
+            # Prepare output path: a per-run temp file unless the caller chose one.
+            output_path = kwargs.get("output_path")
+            if output_path is None:
+                output_path = new_output_path("slither")
+                owns_output = True
             timeout = kwargs.get("timeout", 300)
             exclude_detectors = kwargs.get("exclude_detectors", [])
             filter_paths = kwargs.get("filter_paths", [])
@@ -490,6 +496,7 @@ class SlitherAdapter(ToolAdapter):
                 self._cleanup_foundry_project(temp_foundry_toml)
             if temp_workspace:
                 self._cleanup_workspace(temp_workspace)
+            discard_output_path(output_path, owns_output)
 
     def normalize_findings(self, raw_output: Any) -> List[Dict[str, Any]]:
         """
