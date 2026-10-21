@@ -7,6 +7,19 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Opt-in native JSON output for Ollama** (`MIESC_OLLAMA_FORMAT_JSON=1`, or
+  `format_json=True` on the shared mixin): the shared Ollama caller and the frontier
+  adapter's chat call send `"format": "json"`, so the model returns a JSON document
+  instead of prose the extractor must repair. Measured on `VulnerableBank.sol` with
+  `qwen2.5-coder:32b`: the same reentrancy finding, parsed by the `direct` strategy
+  instead of `json_repair`, in 52 s instead of 198 s. Off by default until measured on
+  the full LLM profile.
+- README: a "what you actually get, by setup" table (static-only, local open-weight,
+  three frontier APIs, ensemble) with recall, precision, F1 and cost per audit from the
+  Paper 1 claims matrix.
+
 ### Fixed
 
 - **Slither and Aderyn no longer share `/tmp/slither_output.json` / `/tmp/aderyn_output.json`.**
