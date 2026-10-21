@@ -321,6 +321,25 @@ with Ollama reachable took 724 s with three LLM adapters hitting the 120 s per-c
 (GPTScan, GPTLens, LLM-SmartAudit, reported as `timeout`, not as empty success); with
 Ollama unreachable the same audit takes 15 s.
 
+### ArithmeticDetector fix, corpus check (2026-10-21)
+
+#188 made the built-in `ArithmeticDetector` recognise cast operands (`uint256(cnt) * _value`,
+the BECToken batchOverflow) and stop flagging SafeMath's own internals. Whole-corpus check
+with the same command (`make bench`, `--no-llm`), artifact
+`benchmarks/results/smartbugs_eval_layers_1_6_7_20261021_main_after_188.{json,jsonl}` (added by the
+wave C3 pull request, which measured the same baseline):
+
+| Metric | Wave C4 (reference) | After #188 | Δ |
+|---|---|---|---|
+| Recall (contracts) | 143/143 | **143/143** | 0 |
+| Precision | 22.4 % (495 FP) | **22.4 % (495 FP)** | 0 |
+| `arithmetic` category | 15/15, 128 FP | 15/15, 128 FP | 0 |
+
+SmartBugs-curated's 15 arithmetic contracts were already covered by Slither and the other
+detectors, so the fix shows up on the arena contracts (BECToken, `insecure_transfer`,
+`integer_overflow_1`: detector-level recall 33 % → 100 %) and not on this corpus. Plan wave C7
+keeps this artifact as the baseline for the next coverage item.
+
 ## 5. What is not covered here
 
 - **LLM follow-up (97.9 %)**: Paper 1 reports a local-Ollama pass on the six misses as a
