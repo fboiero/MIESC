@@ -102,3 +102,19 @@ def test_ml_orchestrator_applies_budget_to_llm_adapters(tmp_path):
             result = orch._run_tool("fake_llm", str(contract), 300)
     assert seen["timeout"] == 25
     assert result["timeout_budget_s"] == 25
+
+
+def test_ml_orchestrator_marks_cache_hits(tmp_path):
+    from miesc.core.ml_orchestrator import MLOrchestrator
+
+    orch = MLOrchestrator(ml_enabled=False, cache_enabled=True)
+    stored = {"tool": "slither", "status": "success", "findings": [], "execution_time": 42.0}
+    with patch.object(orch.cache, "get", return_value=stored):
+        hit = orch._run_tool("slither", str(tmp_path / "c.sol"), 60)
+    assert hit["from_cache"] is True
+    assert "from_cache" not in stored  # the cached record itself is untouched
+    # and the timing table reports it as cached, outside the run's total
+    with patch.object(utils, "RICH_AVAILABLE", False):
+        utils.print_tool_timing(
+            [hit, {"tool": "aderyn", "status": "success", "execution_time": 1.5}]
+        )

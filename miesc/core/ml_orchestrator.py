@@ -104,6 +104,7 @@ class MLAnalysisResult:
     # slow adapter is visible in the summary instead of hidden in the total.
     tool_timings: Dict[str, float] = field(default_factory=dict)
     tool_budgets: Dict[str, Optional[int]] = field(default_factory=dict)
+    tool_cached: Dict[str, bool] = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         """Convierte resultado a diccionario."""
@@ -277,7 +278,11 @@ class MLOrchestrator:
             cached = self.cache.get(tool_name, contract_path)
             if cached:
                 logger.info(f"Cache hit for {tool_name}")
-                return cached
+                # Copy so the stored record stays untouched; flag it so timing
+                # tables do not present the original run's time as this run's.
+                hit = dict(cached)
+                hit["from_cache"] = True
+                return hit
 
         try:
             adapter = self.discovery.load_adapter(tool_name)
@@ -543,6 +548,9 @@ class MLOrchestrator:
             },
             tool_budgets={
                 t: r.get("timeout_budget_s") for t, r in raw_results.items() if isinstance(r, dict)
+            },
+            tool_cached={
+                t: bool(r.get("from_cache")) for t, r in raw_results.items() if isinstance(r, dict)
             },
             total_raw_findings=len(all_findings),
             raw_findings=all_findings,

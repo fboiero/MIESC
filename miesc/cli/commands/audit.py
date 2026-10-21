@@ -580,6 +580,7 @@ def _run_full_audit_with_ml(
                     "status": result.tool_status.get(t, "success"),
                     "execution_time": secs,
                     "timeout_budget_s": getattr(result, "tool_budgets", {}).get(t),
+                    "from_cache": getattr(result, "tool_cached", {}).get(t, False),
                 }
                 for t, secs in getattr(result, "tool_timings", {}).items()
             ]
