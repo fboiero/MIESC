@@ -14,8 +14,13 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   adapter's chat call send `"format": "json"`, so the model returns a JSON document
   instead of prose the extractor must repair. Measured on `VulnerableBank.sol` with
   `qwen2.5-coder:32b`: the same reentrancy finding, parsed by the `direct` strategy
-  instead of `json_repair`, in 52 s instead of 198 s. Off by default until measured on
-  the full LLM profile.
+  instead of `json_repair`, in 52 s instead of 198 s. Cache-free `audit full` on the same
+  contract (fresh `HOME`, Ollama live, `--llm-timeout 120`): with the flag every LLM
+  adapter's response parsed by the `direct` strategy (GPTScan, GPTLens, iAudit, LlamaAudit,
+  LLM-SmartAudit, SmartLLM, LLMBugScanner; PropertyGPT still fenced) against a mix of
+  `fenced`/`anchored` repairs without it, no timeouts either way, wall time 304 s vs 294 s.
+  Still off by default: the next step is the same comparison on the SmartBugs LLM
+  follow-up profile before flipping it.
 - README: a "what you actually get, by setup" table (static-only, local open-weight,
   three frontier APIs, ensemble) with recall, precision, F1 and cost per audit from the
   Paper 1 claims matrix.
