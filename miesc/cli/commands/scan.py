@@ -525,7 +525,9 @@ def scan(
                     # client pointed at the DeepSeek endpoint (see env setup below).
                     "deepseek-v4-pro": ("openai", "deepseek-v4-pro"),
                     "deepseek-v4-flash": ("openai", "deepseek-v4-flash"),
-                    "ollama": ("ollama", "qwen2.5-coder:32b"),
+                    # `--model ollama` is the convenient fast default (14b); the
+                    # benchmarked local figure uses 32b, reachable via `--model qwen32b`.
+                    "ollama": ("ollama", "qwen2.5-coder:14b"),
                     "qwen32b": ("ollama", "qwen2.5-coder:32b"),
                     "qwen14b": ("ollama", "qwen2.5-coder:14b"),
                     "codellama": ("ollama", "codellama:13b"),
@@ -784,7 +786,9 @@ def scan(
                 "gpt-5": ("openai", "gpt-5"),
                 "deepseek-v4-pro": ("openai", "deepseek-v4-pro"),
                 "deepseek-v4-flash": ("openai", "deepseek-v4-flash"),
-                "ollama": ("ollama", "qwen2.5-coder:32b"),
+                # `--model ollama` is the convenient fast default (14b); the
+                # benchmarked local figure uses 32b, reachable via `--model qwen32b`.
+                "ollama": ("ollama", "qwen2.5-coder:14b"),
                 "qwen32b": ("ollama", "qwen2.5-coder:32b"),
                 "qwen14b": ("ollama", "qwen2.5-coder:14b"),
                 "codellama": ("ollama", "codellama:13b"),
