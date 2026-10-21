@@ -7,6 +7,14 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Slither and Aderyn no longer share `/tmp/slither_output.json` / `/tmp/aderyn_output.json`.**
+  Each run writes its report to a per-run temp file and removes it, so two MIESC
+  processes on one machine (a benchmark and a scan, parallel CI jobs) cannot read each
+  other's output and attribute one contract's findings to another; a caller-supplied
+  `output_path` is still honoured and kept.
+
 ## [6.2.0] - 2026-10-21 — Product Excellence waves C1–C4
 
 Minor release: the finding-quality wave changes what a scan reports (lint and

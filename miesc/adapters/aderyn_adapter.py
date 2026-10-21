@@ -22,6 +22,7 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
+from miesc.adapters._output_paths import discard_output_path, new_output_path
 from miesc.core.tool_protocol import (
     ToolAdapter,
     ToolCapability,
@@ -206,6 +207,8 @@ class AderynAdapter(ToolAdapter):
         """
         start_time = time.time()
         temp_workspace = None
+        output_path: Optional[str] = None  # Per-run report file (cleaned in finally)
+        owns_output = False
 
         # Existence check BEFORE running aderyn — same stale-cache bug as Slither:
         # without this, /tmp/aderyn_output.json from a prior run would leak into
@@ -237,8 +240,11 @@ class AderynAdapter(ToolAdapter):
             }
 
         try:
-            # Prepare output path
-            output_path = kwargs.get("output_path", "/tmp/aderyn_output.json")
+            # Prepare output path: a per-run temp file unless the caller chose one.
+            output_path = kwargs.get("output_path")
+            if output_path is None:
+                output_path = new_output_path("aderyn")
+                owns_output = True
             timeout = kwargs.get("timeout", 300)
             no_snippets = kwargs.get("no_snippets", False)
 
@@ -449,6 +455,7 @@ class AderynAdapter(ToolAdapter):
             }
 
         finally:
+            discard_output_path(output_path, owns_output)
             # Always cleanup temporary workspace
             if temp_workspace:
                 self._cleanup_workspace(temp_workspace)

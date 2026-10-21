@@ -224,7 +224,6 @@ class MythrilAdapter(ToolAdapter):
 
         try:
             # Prepare parameters
-            kwargs.get("output_path", "/tmp/mythril_output.json")
             timeout = kwargs.get("timeout", 600)
             execution_timeout = kwargs.get("execution_timeout", 300)
             max_depth = kwargs.get("max_depth", 22)
