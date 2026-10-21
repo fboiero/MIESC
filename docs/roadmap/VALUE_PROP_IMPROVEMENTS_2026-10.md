@@ -99,15 +99,32 @@ exactly what the sibling branches target — so this session does **not** touch 
 | 2 (this session) | **P3** | here | Arithmetic coverage on Apple Silicon without Mythril. |
 | 3 | P4 + P5 + P6 | open | Honest, fast, credible surface and benchmarks. |
 
-## Phase 2 kick-off (P3) — arithmetic via Halmos/SMTChecker
+## Phase 2 kick-off (P3) — measured 2026-10-21
 
-Before wiring anything, measure the opportunity:
-1. Run **Halmos** and **SMTChecker** on `BECToken.sol` (the batchOverflow the static
-   stack missed) and confirm whether either detects the integer overflow.
-2. If yes, wire arithmetic/overflow routing so the available symbolic tool runs on
-   Apple Silicon when Mythril/Manticore are absent, and surface a clear coverage note
-   when none is usable.
-3. Re-check the arena arithmetic category with the symbolic tool enabled.
+I measured the "just route arithmetic to an available symbolic/formal tool" idea on
+`BECToken.sol` (the batchOverflow the static stack missed). **The easy fix is
+disproven:**
+- **Halmos** (Layer 3, available on ARM64): `No test file found` → 0 findings. Halmos
+  proves properties in Foundry `check_` harnesses; on a bare contract it does nothing.
+- **SMTChecker** (Layer 4, available): ran with solc **0.8.33** against a `^0.4.16`
+  contract → compile failed (`completed with code 1`); its single "finding" is a
+  compile diagnostic, not the overflow. SMTChecker also did not exist in 0.4.x, so a
+  version-matched compile is not a path either.
+- **oyente / pakala** did not flag the specific overflow; **Mythril / Manticore**
+  (which historically do catch batchOverflow) are absent on ARM64.
+- Subtlety: BECToken **uses SafeMath**; the bug is a single raw `uint256(cnt) * _value`
+  in `batchTransfer` that bypasses it — so a naive "no SafeMath" detector misses it too.
+
+**Revised P3 (harder than it looked).** Options, for the maintainer to choose:
+1. A targeted internal detector for **raw arithmetic that bypasses an otherwise-present
+   SafeMath / unchecked ops in Solidity < 0.8** (SWC-101). Precise but non-trivial.
+2. Make **Mythril** reliable on ARM64 (the project already attempts this via the
+   researcher bootstrap / native Docker build).
+3. A legacy-contract SMTChecker path that transpiles or pins a compatible toolchain.
+
+Recommendation: option 1 (internal detector) is the only one that is free, ARM64-native,
+and in MIESC''s existing "internal analyzers" wheelhouse — but it needs real detection
+logic, not a one-liner, so it is scoped as a follow-up rather than landed here.
 
 ## Non-goals / guardrails
 - No changes to frozen paper artifacts; any benchmark re-runs are additive and dated.
