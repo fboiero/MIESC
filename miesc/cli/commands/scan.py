@@ -471,7 +471,13 @@ def scan(
                 )
                 non_suppressed = [f for f in enhanced if not f.get("fp_suppressed")]
                 suppressed_count = sum(1 for f in enhanced if f.get("fp_suppressed"))
-                all_results = [
+                # Keep the per-tool records (minus findings) as single-file mode does:
+                # the report's tool coverage, `tools`/`tools_failed` and the
+                # provenance block (tool versions, solc per file) read them.
+                tool_metadata = [
+                    {k: v for k, v in r.items() if k != "findings"} for r in all_results
+                ]
+                all_results = tool_metadata + [
                     {"tool": "miesc-intelligence", "status": "success", "findings": non_suppressed}
                 ]
                 if not quiet and suppressed_count > 0:

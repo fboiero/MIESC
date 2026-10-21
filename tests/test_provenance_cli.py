@@ -129,6 +129,27 @@ class TestScan:
         # existing top-level keys are untouched
         assert data["version"] == prov.VERSION and "findings" in data and "results" in data
 
+    def test_directory_scan_keeps_tool_records_and_solc_per_file(self, runner, tmp_path):
+        """Directory mode used to replace all_results with the intelligence record only."""
+        contracts_dir = tmp_path / "contracts"
+        contracts_dir.mkdir()
+        files = [contracts_dir / "A.sol", contracts_dir / "B.sol"]
+        for path in files:
+            path.write_text(CONTRACT, encoding="utf-8")
+        out = tmp_path / "dir.json"
+        with (
+            patch.object(scan_mod, "run_tool", side_effect=_fake_run_tool),
+            patch.object(scan_mod, "_preflight_syntax_check", lambda *_a, **_k: None),
+        ):
+            result = runner.invoke(scan_mod.scan, [str(contracts_dir), "-o", str(out), "--quiet"])
+        assert result.exit_code == 0, result.output
+        data = json.loads(out.read_text(encoding="utf-8"))
+        block = data["provenance"]
+        _assert_block(block, "scan")
+        assert block["tools"]["slither"] == "slither 9.9.9-test"
+        assert set(block["solc"]["per_contract"]) == {str(p) for p in files}
+        assert "slither" in data["tools"]  # top-level tool coverage is kept too
+
     def test_scan_with_llm_enhance_is_not_llm_free(self, runner, contract, tmp_path):
         out = tmp_path / "scan.json"
         with (
@@ -337,6 +358,28 @@ class TestFix:
         assert report["input_provenance"] is None
         assert report["provenance"]["command"] == "fix"
         assert not (tmp_path / "patched.json").exists()
+
+    def test_fix_report_never_overwrites_the_results_it_read(self, runner, contract, tmp_path):
+        """`scan Victim.sol -o Victim.json` then `fix Victim.json -o Victim.sol` in place."""
+        results = tmp_path / "Victim.json"
+        results.write_text(
+            json.dumps(
+                {
+                    "contract": str(contract),
+                    "findings": [
+                        {"type": "reentrancy", "function": "withdraw", "fix_code": "nonReentrant"}
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+        result = runner.invoke(
+            fix_mod.fix, [str(results), "-c", str(contract), "-o", str(contract)]
+        )
+        assert result.exit_code == 0, result.output
+        assert json.loads(results.read_text(encoding="utf-8"))["findings"]  # intact
+        report = json.loads((tmp_path / "Victim.fix-report.json").read_text(encoding="utf-8"))
+        assert report["command"] == "fix"
 
     def test_dry_run_writes_nothing(self, runner, contract, tmp_path):
         results = self._results(tmp_path, contract)
