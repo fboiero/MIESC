@@ -96,9 +96,29 @@ class TestCompleteLocation:
         assert f["location"]["function"] == "unknown"
 
 
+# A value-bearing `.call` alone no longer counts as reentrancy (tools cover the
+# CEI violation); the gap-filler keeps the callback-into-caller shape.
+CALLBACK_SOURCE = """pragma solidity ^0.8.0;
+
+interface IBank {
+    function onWithdraw() external;
+}
+
+contract Bank {
+    mapping(address => uint256) public balances;
+
+    function withdraw() public {
+        uint256 amount = balances[msg.sender];
+        IBank(msg.sender).onWithdraw();
+        balances[msg.sender] = 0;
+    }
+}
+"""
+
+
 class TestIntelligenceFindingsCarryLocation:
     def test_pattern_findings_have_file_and_function(self):
-        findings = detect_zero_recall_categories(SOURCE, "Bank.sol")
+        findings = detect_zero_recall_categories(CALLBACK_SOURCE, "Bank.sol")
         assert findings, "expected at least the cross-function reentrancy pattern"
         for f in findings:
             assert f["location"]["file"] == "Bank.sol"

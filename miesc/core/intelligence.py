@@ -301,17 +301,20 @@ ZERO_RECALL_PATTERNS: Dict[str, Dict[str, Any]] = {
         "message": "ERC20 transfer without return value check — some tokens (USDT) don't return bool. Use SafeERC20.",
     },
     "reentrancy_crossfunction": {
+        # NOTE: the bare `.call{value:` / `.call.value(` patterns were REMOVED.
+        # Every value-bearing call is not a reentrancy; Slither and the layer 6
+        # detectors already flag the ones with a state write after the call.
+        # Measured on SmartBugs-curated (2026-10-20): 35 FP, 0 TP that no tool
+        # had already found.
         "patterns": [
-            r"\.call\s*\{value:",
-            r"\.call\.value\s*\(",
             # Callback into a caller-controlled contract (e.g. Bank(msg.sender).cb()):
             # the callee can re-enter before state is settled. Covers modifier/interface
-            # reentrancy that .call-based patterns miss. Measured 0 FP on SmartBugs.
+            # reentrancy that .call-based patterns miss. Measured 1 TP / 0 FP on SmartBugs.
             r"\b[A-Z]\w*\(\s*msg\.sender\s*\)\.\w+\s*\(",
         ],
         "severity": "High",
         "swc": "SWC-107",
-        "message": "External call with value — potential cross-function reentrancy if state is shared. Verify CEI pattern across ALL functions that read the same state.",
+        "message": "External call into a caller-controlled contract — potential cross-function reentrancy if state is shared. Verify CEI pattern across ALL functions that read the same state.",
     },
     # v5.3.1: Business logic patterns (EVMBench-informed)
     "price_oracle_stale": {
@@ -468,14 +471,11 @@ ZERO_RECALL_PATTERNS: Dict[str, Dict[str, Any]] = {
         "swc": "SWC-113",
         "message": "External call inside loop — single failure reverts entire batch. Use pull-over-push (let recipients withdraw individually).",
     },
-    "dos_push_unbounded": {
-        "patterns": [
-            r"\w+\.push\s*\(",
-        ],
-        "severity": "Medium",
-        "swc": "SWC-128",
-        "message": "Unbounded array push in public function — array can grow until iteration exceeds gas limit. Consider max length or pagination.",
-    },
+    # NOTE: dos_push_unbounded (any `x.push(`) was REMOVED. An array push is not
+    # a DoS by itself; the gas-limit shape is the loop over that array, which
+    # dos_gas_limit / dos_unbounded_loop / dos_send_in_loop already cover.
+    # Measured on SmartBugs-curated (2026-10-20): 33 FP (19 of them
+    # `History.push(LastMsg)`), 0 TP that no tool had already found.
     "dos_send_require": {
         "patterns": [
             r"require\s*\(\s*\w+\.(send|transfer)\s*\(",
