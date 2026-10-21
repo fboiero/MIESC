@@ -8,6 +8,22 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Changed
+
+- **Arithmetic false positives.** The evaluation scorer no longer maps informational
+  detectors (Slither `solc-version`, pragma and style rules) to a vulnerability category
+  through their descriptions; the layer-6 overflow rule needs a state or financial context
+  or a contract-level variable written with an external input; the ML fallback's
+  `integer_overflow` needs a balance-like state write. SmartBugs-curated (LLM-free):
+  recall 143/143 kept, precision 25.7 % → 28.9 % (414 → 352 FP), F1 44.8 %.
+- **Professional report** now shows, per finding, which tools agree and the calibrated
+  confidence, plus a "Coverage and Limitations" section (tools skipped, in fallback mode,
+  failed; LLM on/off) and an "Appendix B: Provenance" from the result's provenance block.
+
+### Fixed
+
+- `miesc report` crashed on the `audit full` JSON (`raw_findings` is a dict there).
+
+### Changed
 - `miesc scan --model ollama` now defaults to `qwen2.5-coder:14b` for a fast opt-in
   local LLM pass (was `qwen2.5-coder:32b`). The benchmarked 32B local model remains
   available via `--model qwen32b`; `audit full`, the ensemble path, and the config

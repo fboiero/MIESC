@@ -404,6 +404,34 @@ recall 33 % → 100 %). Plan wave C7 keeps
 item.
 
 
+### Arithmetic false positives (2026-10-21)
+
+Same command (`make bench`, `--no-llm`). Artifact
+`benchmarks/results/smartbugs_eval_layers_1_6_7_20261021_arith_fp2.{json,jsonl}`.
+
+| Metric | Wave C3 (reference) | Arithmetic fix | Δ |
+|---|---|---|---|
+| Recall (contracts) | 143/143 | **143/143** | 0 |
+| Precision | 25.7 % (414 FP) | **28.9 % (352 FP)** | +3.2 pt, −62 FP |
+| F1 | 40.9 % | **44.8 %** | +3.9 pt |
+| `arithmetic` category | 15 TP / 128 FP | 15 TP / 66 FP | −62 FP |
+
+Three causes, each measured before it was changed. The scorer's keyword fallback read
+Slither's `solc-version` description ("known severe issues: … overflow") as a diagnosis, so
+layer 1 "detected" arithmetic on 95 of the 128 non-arithmetic contracts; informational
+detectors are now out of taxonomy. The layer-6 `smartbugs_detector` arithmetic rule reported
+any pre-0.8 arithmetic assignment at "low" confidence and the `smartbugs_ml` fallback fired
+on any pre-0.8 code without SafeMath (126/128 contracts); the rule now needs a state or
+financial context, and the fallback a balance-like state write with raw arithmetic.
+
+A first cut that dropped the context-free bucket outright lost five contracts
+(`integer_overflow_minimal/add/mul/multitx_*`: `count -= input;`, a contract-level counter
+written with a function parameter, no financial term, no index); the earlier claim that
+layer 1 covered all 15 arithmetic contracts was itself an artifact of the `solc-version`
+mis-mapping. The rule therefore also counts a contract-level variable written with an
+external input, which brings the five back (138 → 143) and keeps the precision gain.
+The remaining 66 arithmetic false positives are Slither's own pre-0.8 heuristics.
+
 ## 5. What is not covered here
 
 - **LLM follow-up (97.9 %)**: Paper 1 reports a local-Ollama pass on the six misses as a
