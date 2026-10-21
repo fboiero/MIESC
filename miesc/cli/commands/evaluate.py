@@ -15,6 +15,7 @@ License: AGPL-3.0
 
 import json
 import os
+import re
 import statistics
 import sys
 import time
@@ -140,7 +141,8 @@ CATEGORY_ALIASES = {
         "weak-randomness",
         "weak-prng",
         "blockhash",
-        "block.timestamp",
+        # No tool emits a type "block.timestamp"; the alias only made Slither's
+        # `timestamp` detector (SWC-116) a substring match for bad_randomness.
     },
     "front_running": {"front_running", "front-running", "frontrunning", "transaction-ordering"},
     "short_addresses": {"short_addresses", "short-addresses", "short-address"},
@@ -182,6 +184,11 @@ OUT_OF_TAXONOMY_TYPES = {
     "useless_public_function",
     "unindexed_events",
     "cache_array_length",
+    # Slither `deprecated-standards` quotes the offending expression (`sha3()(now,
+    # block.blockhash(...))`), Aderyn `constant-functions-assembly` warns about
+    # "vulnerabilities" in general: deprecation and style notices, not diagnoses.
+    "deprecated_standards",
+    "constant_functions_assembly",
     # miesc/detectors/defi_detectors.py::DeFiCategory
     "flash_loan",
     "oracle_manipulation",
@@ -191,6 +198,9 @@ OUT_OF_TAXONOMY_TYPES = {
     "slippage",
     "liquidity",
 }
+
+
+_PATH_TOKEN_RE = re.compile(r"\S*[\\/]\S*")
 
 
 def _normalize_category(
@@ -220,8 +230,23 @@ def _normalize_category(
                 if alias in finding_lower or finding_lower in alias:
                     return canonical
 
-    # Fallback: keyword search in title and description
-    combined_text = f"{title} {description}".lower()
+    # The adapter's own classification, when it is a taxonomy name (SmartBugs
+    # detectors ship ``category`` and a human title, no ``type``). Exact match only;
+    # "other"/"unknown" never count as a detection.
+    category_lower = category.lower().replace(" ", "_").replace("-", "_")
+    if category_lower:
+        for canonical, aliases in CATEGORY_ALIASES.items():
+            if canonical == "other":
+                continue
+            normalized_aliases = {a.lower().replace(" ", "_").replace("-", "_") for a in aliases}
+            if category_lower == canonical or category_lower in normalized_aliases:
+                return canonical
+
+    # Fallback: keyword search in title and description. Path-like tokens are
+    # dropped first: Slither embeds the file path in its descriptions and on a
+    # labelled corpus that path *is* the label ("dataset/bad_randomness/lottery.sol"
+    # contains "randomness"). Measured 2026-10-21: 1 false positive, 0 hits.
+    combined_text = _PATH_TOKEN_RE.sub(" ", f"{title} {description}".lower())
     keyword_map = {
         "reentrancy": ["reentran", "re-entran", "re_entran"],
         "access_control": [
