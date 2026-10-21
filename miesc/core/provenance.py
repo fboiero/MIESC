@@ -196,8 +196,12 @@ def _adapter_for(tool: str) -> Any:
         return None
 
 
+#: Pseudo-tools the CLI adds to a run that are MIESC code, not external binaries.
+_BUILTIN_TOOL_NAMES = frozenset({"access-control-semantic"})
+
+
 def _is_builtin(tool: str, adapter: Any) -> bool:
-    if tool.startswith("miesc"):
+    if tool.startswith("miesc") or tool in _BUILTIN_TOOL_NAMES:
         return True
     if adapter is None:
         return False

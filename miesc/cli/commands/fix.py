@@ -2100,6 +2100,11 @@ def fix(
     # ``provenance`` so the patched file can be traced back to tool versions.
     # ------------------------------------------------------------------
     report_file = Path(report_path) if report_path else out_path.with_suffix(".json")
+    if report_file.resolve() == Path(results_file).resolve():
+        # `-o Token.sol` after `scan Token.sol -o Token.json` would overwrite the
+        # very results we just consumed; keep them and move the report aside.
+        report_file = out_path.with_suffix(".fix-report.json")
+        warning(f"Run report would overwrite {results_file}; writing {report_file} instead")
     report = {
         "command": "fix",
         "version": VERSION,

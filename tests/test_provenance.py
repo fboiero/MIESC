@@ -131,6 +131,7 @@ class TestToolVersions:
     def test_miesc_pseudo_tools_are_builtin_without_an_adapter(self, monkeypatch):
         monkeypatch.setattr(prov, "_adapter_for", lambda _t: None)
         assert prov.tool_version("miesc-intelligence") == f"built-in (miesc {VERSION})"
+        assert prov.tool_version("access-control-semantic") == f"built-in (miesc {VERSION})"
 
     def test_unknown_when_no_version_flag_is_known(self, monkeypatch):
         monkeypatch.setattr(prov, "_adapter_for", lambda _t: _Adapter(None, "npm install -g x"))
