@@ -201,6 +201,12 @@ class ArithmeticDetector:
         in_library = False
         library_depth = 0
 
+        # Contract-level state variables and function parameters, so a write to
+        # storage driven by an external input (`count -= input`) counts even when
+        # the variable name carries no financial term.
+        state_vars = self._state_variable_names(source_code)
+        params = self._parameter_names(source_code)
+
         # Look for arithmetic operations
         for i, line in enumerate(lines, 1):
             # Skip comments
@@ -224,7 +230,7 @@ class ArithmeticDetector:
             for pattern, desc in self.ARITHMETIC_PATTERNS:
                 if re.search(pattern, line):
                     # Check it's not a constant or safe context
-                    confidence = self._get_confidence(line, source_code)
+                    confidence = self._get_confidence(line, source_code, state_vars, params)
                     if confidence:
                         findings.append(
                             SmartBugsFinding(
@@ -242,10 +248,49 @@ class ArithmeticDetector:
 
         return findings
 
-    def _get_confidence(self, line: str, source: str) -> Optional[str]:
+    _STATE_VAR_DECL = re.compile(
+        r"^\s*(?:mapping\s*\([^;]*?\)|u?int\d*|address|bytes\d*|bool)"
+        r"(?:\s*\[\s*\])*\s+(?:public|private|internal|constant\s+)?\s*(\w+)\s*(?:=|;)",
+        re.M,
+    )
+    _FUNCTION_SIG = re.compile(r"\bfunction\s+\w*\s*\(([^)]*)\)")
+
+    @classmethod
+    def _state_variable_names(cls, source: str) -> set:
+        """Names declared at contract scope (best-effort, regex-based)."""
+        names = set()
+        depth = 0
+        for raw in source.split("\n"):
+            line = raw.split("//")[0]
+            if depth == 1:  # inside a contract body, outside functions
+                m = cls._STATE_VAR_DECL.match(line)
+                if m and not line.strip().startswith("function"):
+                    names.add(m.group(1))
+            depth += line.count("{") - line.count("}")
+        return names
+
+    @classmethod
+    def _parameter_names(cls, source: str) -> set:
+        """Identifiers that appear as function parameters anywhere in the file."""
+        names = set()
+        for sig in cls._FUNCTION_SIG.findall(source):
+            for part in sig.split(","):
+                tokens = part.strip().split()
+                if tokens:
+                    names.add(tokens[-1])
+        names.discard("")
+        return names
+
+    def _get_confidence(
+        self,
+        line: str,
+        source: str,
+        state_vars: Optional[set] = None,
+        params: Optional[set] = None,
+    ) -> Optional[str]:
         """
         Determine confidence level for arithmetic finding.
-        Returns: 'high', 'medium', 'low', or None (skip)
+        Returns: 'high', 'medium', or None (skip)
         """
         line_lower = line.lower().strip()
 
@@ -296,10 +341,10 @@ class ArithmeticDetector:
         if "constant" in line_lower or "immutable" in line_lower:
             return None
 
-        # Skip if not an actual assignment. The `\w+(?:\([^)]*\))?` allows a cast or
-        # call on the right-hand side (e.g. `= uint256(cnt) * _value`, the batchOverflow
-        # shape) which a bare `\w+` would miss.
-        if not re.search(r"[+\-*]=|=\s*\w+(?:\s*\([^)]*\))?\s*[+\-*]", line):
+        # Skip if not an actual assignment. The right-hand operand may be a cast or
+        # call (`= uint256(cnt) * _value`, the batchOverflow shape) or an indexed
+        # state read (`= balances[msg.sender] + amount`); a bare `\w+` missed both.
+        if not re.search(r"[+\-*]=|=\s*\w+(?:\s*(?:\[[^\]]*\]|\([^)]*\)))*\s*[+\-*]", line):
             return None
 
         # === CONFIDENCE LEVELS ===
@@ -332,8 +377,18 @@ class ArithmeticDetector:
         if is_high_confidence or is_state_var:
             return "medium"
 
-        # LOW: Any other arithmetic assignment
-        return "low"
+        # MEDIUM: a contract-level variable written with an external input
+        # (`count -= input;` — SmartBugs integer_overflow_* shape).
+        m = re.match(r"\s*(\w+)\s*(?:\[[^\]]*\]\s*)?(?:[+\-*]=|=)", line)
+        if m and state_vars and m.group(1) in state_vars:
+            rhs = line.split("=", 1)[1] if "=" in line else ""
+            rhs_idents = set(re.findall(r"[A-Za-z_]\w*", rhs))
+            if "msg" in rhs_idents or (params and rhs_idents & params):
+                return "medium"
+
+        # Anything else is "pre-0.8 code does arithmetic": on SmartBugs-curated that
+        # fired on all 128 non-arithmetic contracts, so it is not reported as a finding.
+        return None
 
 
 # =============================================================================

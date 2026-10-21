@@ -129,9 +129,17 @@ def test_inference_delegatecall_randomness_overflow_selfdestruct():
         f["type"] == "bad_randomness"
         for f in a._run_ml_inference(_features(uses_blockhash=1.0), "")
     )
-    assert any(
+    # The overflow heuristic needs a balance-like state write with raw arithmetic;
+    # bare "pre-0.8 code without SafeMath" stays below the confidence threshold.
+    assert not any(
         f["type"] == "integer_overflow"
         for f in a._run_ml_inference(_features(has_unchecked_math=1.0), "")
+    )
+    bec_like = "pragma solidity ^0.4.16;\ncontract T {\n  mapping(address=>uint) balances;\n"
+    bec_like += "  function t(uint _value) public { balances[msg.sender] = balances[msg.sender] - _value; }\n}\n"
+    assert any(
+        f["type"] == "integer_overflow"
+        for f in a._run_ml_inference(_features(has_unchecked_math=1.0), bec_like)
     )
     assert any(
         f["type"] == "unprotected_selfdestruct"

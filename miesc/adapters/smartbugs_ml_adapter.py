@@ -12,6 +12,7 @@ Version: 1.0.0
 import hashlib
 import json
 import logging
+import re
 import tempfile
 import time
 from pathlib import Path
@@ -292,6 +293,28 @@ class SmartBugsMLAdapter:
                         count += 1
         return float(count)
 
+    _FINANCIAL_TERMS = re.compile(
+        r"balance|amount|total|supply|credit|debit|deposit|withdraw|reward|stake|token|fund|price|fee",
+        re.IGNORECASE,
+    )
+    _RAW_ARITH_WRITE = re.compile(r"[+\-*]=|=\s*\w+(?:\s*(?:\[[^\]]*\]|\([^)]*\)))*\s*[+\-*]")
+
+    def _has_financial_arithmetic(self, code: str) -> bool:
+        """True when some line writes a balance-like state variable with raw arithmetic."""
+        for line in code.split("\n"):
+            stripped = line.strip()
+            if stripped.startswith("//") or stripped.startswith("*"):
+                continue
+            if "require" in stripped or "assert" in stripped:
+                continue
+            if re.search(r"\.(add|sub|mul|div)\s*\(", stripped):
+                continue
+            if not self._RAW_ARITH_WRITE.search(stripped):
+                continue
+            if self._FINANCIAL_TERMS.search(stripped) and re.search(r"\w+\s*\[[^\]]+\]", stripped):
+                return True
+        return False
+
     def _detect_unchecked_math(self, code: str) -> float:
         """
         Detect arithmetic operations that might overflow
@@ -377,9 +400,12 @@ class SmartBugsMLAdapter:
                     }
                 )
 
-        # Integer overflow (for pre-0.8.0 contracts)
+        # Integer overflow (for pre-0.8.0 contracts). Without a trained model this
+        # is a heuristic; "pre-0.8 code without SafeMath" alone flagged every such
+        # contract, so it only counts when a balance-like state variable is written
+        # with raw arithmetic (the BECToken shape), otherwise it stays below threshold.
         if features["has_unchecked_math"] > 0.5:
-            confidence = 0.75
+            confidence = 0.75 if self._has_financial_arithmetic(contract_code) else 0.5
             if confidence >= self.confidence_threshold:
                 findings.append(
                     {

@@ -40,9 +40,9 @@ class TestArithmeticDetector:
         code = """
         pragma solidity ^0.4.24;
         contract Test {
-            function add(uint a, uint b) public returns (uint) {
-                uint c = a + b;
-                return c;
+            mapping(address => uint) balances;
+            function deposit(uint amount) public {
+                balances[msg.sender] = balances[msg.sender] + amount;
             }
         }
         """
@@ -54,14 +54,45 @@ class TestArithmeticDetector:
         code = """
         pragma solidity ^0.4.24;
         contract Test {
-            function sub(uint a, uint b) public returns (uint) {
-                uint c = a - b;
-                return c;
+            mapping(address => uint) balances;
+            function withdraw(uint amount) public {
+                balances[msg.sender] -= amount;
             }
         }
         """
         findings = detector.detect(code)
         assert len(findings) > 0
+
+    def test_state_variable_written_with_user_input(self, detector):
+        # SmartBugs arithmetic/integer_overflow_minimal.sol shape: no financial
+        # term, no index, but a contract-level counter written with a parameter.
+        code = """
+        pragma solidity ^0.4.19;
+        contract IntegerOverflowMinimal {
+            uint public count = 1;
+            function run(uint256 input) public {
+                count -= input;
+            }
+        }
+        """
+        findings = detector.detect(code)
+        assert len(findings) == 1
+        assert findings[0].line == 6
+
+    def test_context_free_arithmetic_is_not_a_finding(self, detector):
+        # "pre-0.8 code does arithmetic" fired on every non-arithmetic SmartBugs
+        # contract (128/128) while Slither already covered the real ones; a local
+        # computation with no state write and no financial term is not reported.
+        code = """
+        pragma solidity ^0.4.24;
+        contract Test {
+            function add(uint a, uint b) public returns (uint) {
+                uint c = a + b;
+                return c;
+            }
+        }
+        """
+        assert detector.detect(code) == []
 
     def test_ignores_safemath(self, detector):
         code = """
@@ -730,13 +761,13 @@ class TestArithmeticDetectorEdgeCases:
         return ArithmeticDetector()
 
     def test_detects_multiplication_overflow(self, detector):
-        """Test multiplication overflow detection."""
+        """Test multiplication overflow detection on a financial state write."""
         code = """
         pragma solidity ^0.4.24;
         contract Test {
-            function mul(uint a, uint b) public returns (uint) {
-                uint c = a * b;
-                return c;
+            uint public totalSupply;
+            function mint(uint factor) public {
+                totalSupply = totalSupply * factor;
             }
         }
         """
