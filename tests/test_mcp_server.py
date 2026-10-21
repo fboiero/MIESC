@@ -30,9 +30,13 @@ from miesc.mcp_server import (  # noqa: E402
     _summarize_results,
     _validate_contract_path,
     miesc_apply_fix,
+    miesc_correlate,
+    miesc_filter_fp,
     miesc_get_status,
     miesc_get_tool_info,
     miesc_list_tools,
+    miesc_map_compliance,
+    miesc_remediate,
     miesc_remediation_evidence_bundle,
     miesc_validate_remediation,
 )
@@ -265,3 +269,76 @@ contract Victim {
             )
         )
         assert data["status"] == "no_fixable_findings"
+
+
+# =========================================================================
+# Regression: runtime call-arg bugs in MCP tools
+#
+# These four tools shipped with wrong keyword arguments to their backing
+# engines. Because each tool only catches ImportError, a bad kwarg surfaced
+# as an *uncaught* TypeError ("unexpected keyword argument ...") at runtime.
+# The tests drive the REAL engines (no mocking) through the exact path that
+# previously raised, so they fail loudly if any call-arg regresses.
+# =========================================================================
+_REGRESSION_FINDING = {
+    "type": "reentrancy",
+    "severity": "High",
+    "title": "reentrancy",
+    "check": "reentrancy-eth",
+    "location": {"file": "C.sol", "line": 10, "function": "withdraw"},
+    "description": "external call before state update",
+}
+
+
+class TestMCPRuntimeBugRegressions:
+    def test_correlate_uses_correlation_api(self):
+        """miesc_correlate previously constructed the wrong SmartCorrelationEngine
+        with a confidence_threshold kwarg it did not accept."""
+        out = json.loads(
+            asyncio.run(
+                miesc_correlate(
+                    json.dumps({"slither": [_REGRESSION_FINDING]}),
+                    min_tools=2,
+                    confidence_threshold=0.5,
+                )
+            )
+        )
+        assert "error" not in out
+        # MIESCCorrelationAPI.analyze() returns the full correlation report.
+        assert {"metadata", "summary", "findings"} <= set(out)
+
+    def test_filter_fp_uses_threshold_kwarg(self):
+        """miesc_filter_fp passed fp_threshold=; the filter takes threshold=."""
+        out = json.loads(
+            asyncio.run(miesc_filter_fp(json.dumps([_REGRESSION_FINDING]), threshold=0.5))
+        )
+        assert "error" not in out
+        assert out["original_count"] == 1
+        assert "findings" in out
+
+    def test_map_compliance_no_frameworks_kwarg(self):
+        """map_findings takes no frameworks= param and returns (finding, mapping)
+        tuples; the tool must consume that shape, not a bare dict."""
+        out = json.loads(asyncio.run(miesc_map_compliance(json.dumps([_REGRESSION_FINDING]))))
+        assert isinstance(out, list) and len(out) == 1
+        assert "finding" in out[0] and "compliance" in out[0]
+        assert "swc_id" in out[0]["compliance"]
+
+    def test_map_compliance_framework_filter(self):
+        """The optional framework filter keeps only requested keys (+ metadata)."""
+        out = json.loads(
+            asyncio.run(
+                miesc_map_compliance(json.dumps([_REGRESSION_FINDING]), frameworks="swc,cwe")
+            )
+        )
+        keys = set(out[0]["compliance"])
+        assert {"swc_id", "cwe_ids"} <= keys
+        assert "iso27001_controls" not in keys and "nist_csf_functions" not in keys
+
+    def test_remediate_no_contract_name_kwarg(self):
+        """enrich_findings takes no contract_name= param and returns EnrichedFinding
+        objects; the tool must serialize them via to_dict()."""
+        out = json.loads(asyncio.run(miesc_remediate(json.dumps([_REGRESSION_FINDING]))))
+        assert isinstance(out, list) and len(out) == 1
+        # to_dict() shape, not the raw fallback dict.
+        assert "type" in out[0]
