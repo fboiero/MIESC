@@ -7,15 +7,22 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [6.4.0] - 2026-10-21 — Data-flow detectors and honest scoring (C3 continued)
+
+Paper-profile numbers on `main` after this release (SmartBugs-curated, 143 contracts,
+layers 1/6/7, LLM-free): recall 143/143, precision 31.9 % (305 FP), F1 48.4 %. The
+published papers report 137/143, 22.2 %, 36.0 % at v5.4.1; `make bench` reproduces
+the new figures into a dated artifact and `make reproduce` keeps checking the frozen ones.
+
 ### Changed
 
-- **Arithmetic false positives.** The evaluation scorer no longer maps informational
+- **Arithmetic false positives (#198).** The evaluation scorer no longer maps informational
   detectors (Slither `solc-version`, pragma and style rules) to a vulnerability category
   through their descriptions; the layer-6 overflow rule needs a state or financial context
   or a contract-level variable written with an external input; the ML fallback's
   `integer_overflow` needs a balance-like state write. SmartBugs-curated (LLM-free):
   recall 143/143 kept, precision 25.7 % → 28.9 % (414 → 352 FP), F1 44.8 %.
-- **Time and randomness false positives.** New `miesc/detectors/chain_attribute_flow.py`:
+- **Time and randomness false positives (#199).** New `miesc/detectors/chain_attribute_flow.py`:
   a minimal intra-procedural data flow for `block.timestamp`/`now`/`block.number`/
   `blockhash`/`block.difficulty`/`block.coinbase`. The `smartbugs_ml` fallback, 4naly3er's
   `use_of_block_timestamp` and the intelligence timestamp gap-filler only fire when the
@@ -28,21 +35,24 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   label). SmartBugs-curated (LLM-free): recall 143/143, precision 28.9 % → 31.9 %
   (352 → 305 FP), F1 48.4 %; `bad_randomness` 46 → 14 FP, `time_manipulation`
   43 → 30 FP.
-- **Professional report** now shows, per finding, which tools agree and the calibrated
+- **Professional report (#198)** now shows, per finding, which tools agree and the calibrated
   confidence, plus a "Coverage and Limitations" section (tools skipped, in fallback mode,
   failed; LLM on/off) and an "Appendix B: Provenance" from the result's provenance block.
+- `miesc scan --model ollama` now defaults to `qwen2.5-coder:14b` for a fast opt-in
+  local LLM pass (was `qwen2.5-coder:32b`) (#195). The benchmarked 32B local model remains
+  available via `--model qwen32b`; `audit full`, the ensemble path, and the config
+  default are unchanged, so the documented benchmark figures are unaffected.
 
 ### Fixed
 
-- `miesc report` crashed on the `audit full` JSON (`raw_findings` is a dict there).
+- `miesc report` crashed on the `audit full` JSON (`raw_findings` is a dict there) (#198).
 - The `smartbugs_ml` prediction cache (system temp dir, 24 h) is keyed on the rule code,
-  so a rule change no longer serves the previous rules' findings to a benchmark run.
+  so a rule change no longer serves the previous rules' findings to a benchmark run (#199).
 
-### Changed
-- `miesc scan --model ollama` now defaults to `qwen2.5-coder:14b` for a fast opt-in
-  local LLM pass (was `qwen2.5-coder:32b`). The benchmarked 32B local model remains
-  available via `--model qwen32b`; `audit full`, the ensemble path, and the config
-  default are unchanged, so the documented benchmark figures are unaffected.
+### Dependencies
+
+- Python minor-version group bumped (21 packages, #163); `github/codeql-action` 4.39.0
+  (#162); `ossf/scorecard-action` 2.5.0 (#161).
 
 ## [6.3.0] - 2026-10-21 — Precision wave (C3) and LLM-path follow-ups
 
