@@ -39,10 +39,7 @@ from miesc.core.tool_protocol import (
     ToolMetadata,
     ToolStatus,
 )
-from miesc.security.llm_output_validator import (
-    extract_json_from_text,
-    repair_common_json_errors,
-)
+from miesc.llm.json_extraction import extract_llm_object
 
 # Try to import EmbeddingRAG (optional dependency)
 try:
@@ -587,12 +584,22 @@ Respond with ONLY the JSON, no additional text."""
             # Robust JSON extraction (balanced braces + repair) — recoverable
             # malformed LLM output (code fences, trailing commas, invalid escapes)
             # must not silently drop findings.
-            json_str = extract_json_from_text(llm_response)
-            if not json_str:
+            parsed = extract_llm_object(
+                llm_response, required_keys=("findings",), log_prefix=f"LLMBugScanner[{model_name}]"
+            )
+            if parsed is None:
                 return []
-            parsed = json.loads(repair_common_json_errors(json_str))
+            raw_findings = parsed.get("findings", [])
+            if not isinstance(raw_findings, list):
+                raw_findings = []
 
-            for idx, finding in enumerate(parsed.get("findings", [])):
+            for idx, finding in enumerate(raw_findings):
+                if not isinstance(finding, dict):
+                    continue
+                # A repaired/truncated tail can yield a shell with no content;
+                # a finding needs at least a title or a description to be one.
+                if not (finding.get("title") or finding.get("description")):
+                    continue
                 normalized = {
                     "id": f"llmbugscanner-{model_name}-{idx+1}",
                     "title": finding.get("title", "Detected issue"),

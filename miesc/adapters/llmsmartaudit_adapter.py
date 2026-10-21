@@ -29,10 +29,7 @@ from miesc.core.tool_protocol import (
     ToolMetadata,
     ToolStatus,
 )
-from miesc.security.llm_output_validator import (
-    extract_json_from_text,
-    repair_common_json_errors,
-)
+from miesc.llm.json_extraction import extract_llm_object
 
 # Try to import EmbeddingRAG (optional dependency)
 try:
@@ -418,13 +415,15 @@ Respond ONLY with valid JSON. Prioritize security issues over style issues."""
             # Robust JSON extraction (balanced braces + repair) before falling
             # back to text parsing — recoverable malformed JSON (trailing commas,
             # code fences) must not silently degrade.
-            json_str = extract_json_from_text(output)
+            parsed = extract_llm_object(
+                output, required_keys=("issues", "findings"), log_prefix="LLM-SmartAudit"
+            )
 
-            if json_str:
-                parsed = json.loads(repair_common_json_errors(json_str))
-
+            if parsed is not None:
                 # Extract findings from parsed JSON
                 issues = parsed.get("issues", []) or parsed.get("findings", [])
+                if not isinstance(issues, list):
+                    issues = []
 
                 for idx, issue in enumerate(issues):
                     finding = {

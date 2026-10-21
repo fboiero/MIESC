@@ -34,10 +34,7 @@ from miesc.core.tool_protocol import (
     ToolMetadata,
     ToolStatus,
 )
-from miesc.security.llm_output_validator import (
-    extract_json_from_text,
-    repair_common_json_errors,
-)
+from miesc.llm.json_extraction import extract_llm_json
 
 logger = logging.getLogger(__name__)
 
@@ -210,6 +207,8 @@ class SmartGuardAdapter(ToolAdapter):
 
     def __init__(self) -> None:
         super().__init__()
+        self._parse_failures: List[Dict[str, Any]] = []
+        self._last_parse: Optional[Dict[str, Any]] = None
         self._cache_dir = Path.home() / ".miesc" / "smartguard_cache"
         self._cache_dir.mkdir(parents=True, exist_ok=True)
         self._model = select_ollama_model(
@@ -302,6 +301,7 @@ class SmartGuardAdapter(ToolAdapter):
         3. Generate Chain-of-Thought reasoning
         4. Classify using in-context learning
         """
+        self._parse_failures = []
         start_time = time.time()
 
         if self.is_available() != ToolStatus.AVAILABLE:
@@ -379,6 +379,7 @@ class SmartGuardAdapter(ToolAdapter):
                     "functions_analyzed": analyzed,
                     "functions_total": len(functions),
                     "partial": budget_exhausted,
+                    "parse_failures": list(self._parse_failures),
                     "sovereign": True,
                     "dpga_compliant": True,
                 },
@@ -554,21 +555,26 @@ Fix: {vuln.fix_suggestion}
         findings = []
 
         try:
-            # Robust JSON extraction: balanced-brace scan (handles code fences and
-            # trailing prose) with a fallback to the legacy outermost-brace grab,
-            # then repair common LLM JSON errors (trailing commas, single quotes).
-            json_str = extract_json_from_text(response)
-            if not json_str:
-                json_start = response.find("{")
-                json_end = response.rfind("}") + 1
-                if json_start == -1:
-                    return []
-                json_str = response[json_start:json_end]
-
-            json_str = repair_common_json_errors(self._sanitize_json_response(json_str))
-            parsed = json.loads(json_str, strict=False)
+            # Shared tolerant extractor (fences, prose, trailing commas, unescaped
+            # quotes in snippets); the raw text is kept when nothing parses.
+            extraction = extract_llm_json(
+                self._sanitize_json_response(response),
+                want="object",
+                required_keys=("analysis", "vulnerabilities", "findings"),
+                log_prefix=f"SmartGuard[{func_name}]",
+            )
+            self._last_parse = extraction.as_dict()
+            if not extraction.ok:
+                failures = getattr(self, "_parse_failures", None)
+                if failures is None:
+                    failures = self._parse_failures = []
+                failures.append({"function": func_name, **extraction.as_dict()})
+                return []
+            parsed = extraction.data
 
             analysis = parsed.get("analysis", {})
+            if not isinstance(analysis, dict):
+                analysis = {"vulnerabilities": parsed.get("vulnerabilities", [])}
             cot = self._clean_llm_text(analysis.get("chain_of_thought", ""))
             vulns = analysis.get("vulnerabilities", [])
 

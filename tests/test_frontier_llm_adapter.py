@@ -122,7 +122,7 @@ class TestParseResponseRepairFallback:
     def test_recovers_unescaped_quotes_in_snippet(self):
         import pytest
 
-        from miesc.adapters import frontier_llm_adapter as mod
+        from miesc.llm import json_extraction as mod
 
         if mod._repair_json is None:
             pytest.skip("json-repair (miesc[llm]) not installed")
