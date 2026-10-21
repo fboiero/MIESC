@@ -7,6 +7,12 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+- `miesc scan --model ollama` now defaults to `qwen2.5-coder:14b` for a fast opt-in
+  local LLM pass (was `qwen2.5-coder:32b`). The benchmarked 32B local model remains
+  available via `--model qwen32b`; `audit full`, the ensemble path, and the config
+  default are unchanged, so the documented benchmark figures are unaffected.
+
 ## [6.3.0] - 2026-10-21 — Precision wave (C3) and LLM-path follow-ups
 
 Minor release. Wave C3 changes what the intelligence layer reports: two broad gap-fillers
