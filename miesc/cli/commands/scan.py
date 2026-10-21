@@ -31,6 +31,7 @@ from miesc.cli.utils import (
     summarize_findings,
     warning,
 )
+from miesc.core.provenance import build_provenance
 
 # Import Rich components if available
 if RICH_AVAILABLE:
@@ -339,6 +340,7 @@ def scan(
         _display_and_save(
             diff_results,
             contract=str(contract),
+            llm_used=bool(llm_enhance),
             output=output,
             quiet=quiet,
             verbose=verbose,
@@ -469,7 +471,13 @@ def scan(
                 )
                 non_suppressed = [f for f in enhanced if not f.get("fp_suppressed")]
                 suppressed_count = sum(1 for f in enhanced if f.get("fp_suppressed"))
-                all_results = [
+                # Keep the per-tool records (minus findings) as single-file mode does:
+                # the report's tool coverage, `tools`/`tools_failed` and the
+                # provenance block (tool versions, solc per file) read them.
+                tool_metadata = [
+                    {k: v for k, v in r.items() if k != "findings"} for r in all_results
+                ]
+                all_results = tool_metadata + [
                     {"tool": "miesc-intelligence", "status": "success", "findings": non_suppressed}
                 ]
                 if not quiet and suppressed_count > 0:
@@ -561,6 +569,7 @@ def scan(
         _display_and_save(
             all_results,
             contract=str(contract),
+            llm_used=bool(llm_enhance or frontier_model),
             output=output,
             quiet=quiet,
             verbose=verbose,
@@ -883,6 +892,7 @@ def scan(
     _display_and_save(
         all_results,
         contract=str(contract),
+        llm_used=bool(llm_enhance or frontier_model),
         output=output,
         quiet=quiet,
         verbose=verbose,
@@ -1021,6 +1031,8 @@ def _run_agentic_scan_profile(
     _display_and_save(
         all_results,
         contract=contract,
+        # The agentic profile may or may not reach an LLM (graceful degradation).
+        llm_used=None,
         output=output,
         quiet=quiet,
         verbose=verbose,
@@ -1240,8 +1252,14 @@ def _display_and_save(
     notify_url: str | None = None,
     slack_url: str | None = None,
     notify_min_severity: str = "low",
+    llm_used: bool | None = False,
 ) -> None:
-    """Display the scan summary table, optionally save JSON, and handle CI exit."""
+    """Display the scan summary table, optionally save JSON, and handle CI exit.
+
+    ``llm_used`` feeds the ``provenance.llm_free`` flag of the saved JSON: True
+    when the caller invoked an LLM outside the tool adapters (``--llm-enhance``,
+    ``--model``), None when it cannot tell (agentic profiles).
+    """
     if verify_fp:
         _apply_verify_fp(all_results, contract=contract, model=verify_model, quiet=quiet)
     if rank:
@@ -1398,6 +1416,12 @@ def _display_and_save(
             {r.get("tool", "") for r in all_results if r.get("status") == "error" and r.get("tool")}
         )
 
+        scanned_files = sorted(
+            {str(r.get("contract")) for r in all_results if r.get("contract")}
+            | ({str(contract)} if Path(contract).is_file() else set())
+        )
+        if verify_fp and verify_model:
+            llm_used = True
         data = {
             "contract": str(contract),
             "timestamp": datetime.now().isoformat(),
@@ -1409,6 +1433,9 @@ def _display_and_save(
             "tools_failed": tools_failed,
             "findings": all_findings,
             "results": all_results,
+            "provenance": build_provenance(
+                all_results, command="scan", contracts=scanned_files, llm_used=llm_used
+            ),
         }
         with open(output, "w", encoding="utf-8") as output_handle:
             json.dump(data, output_handle, indent=2, default=str)
