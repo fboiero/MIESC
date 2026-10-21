@@ -7,6 +7,29 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Documentation drift guards** (`tests/test_docs_drift.py`): CI now fails when the
+  README MCP tool list differs from the server's `@mcp.tool()` set, when the
+  installation guides or `CITATION.cff` state a version other than `miesc.__version__`,
+  when a quoted `python -m <module>` command names a module that does not exist, or
+  when a relative Markdown link in the user-facing docs is dead.
+- **Product Excellence Plan** (`docs/roadmap/PRODUCT_EXCELLENCE_PLAN_2026-10.md`): the
+  researcher-journey scorecard and ranked improvement waves; `docs/ROADMAP.md` points to it.
+
+### Changed
+
+- **`smartbugs_detector` precision.** Tightened the `short_addresses` and `front_running`
+  patterns: on SmartBugs-curated (LLM-free layers 1,6,7) recall stays 143/143 and
+  precision rises from 20.5 % to 22.4 % (paper: 22.2 %); artifact
+  `benchmarks/results/smartbugs_eval_layers_1_6_7_20261020_fp_tightened.*` (#172).
+
+### Fixed
+
+- **Local-LLM responses with unescaped quotes inside Solidity snippets** no longer yield
+  zero findings on the `scan --model ollama` path: the parser falls back to a tolerant
+  JSON repair before giving up (#174).
+
 ## [6.1.1] - 2026-10-20
 
 ### Fixed
