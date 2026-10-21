@@ -529,7 +529,7 @@ class TestLLMBugScannerMetadata:
 
 
 # ---------------------------------------------------------------------------
-# MEJORAS3.md item 6: llmbugscanner used to reimplement caching by hand
+# llmbugscanner used to reimplement caching by hand
 # instead of the shared LLMCacheMixin, so it never checked MIESC_DISABLE_LLM_CACHE
 # — variance experiments (e.g. evaluate ablation --runs N) got a silent cache
 # hit on the 2nd+ run instead of a fresh model call.

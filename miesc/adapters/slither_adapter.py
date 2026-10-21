@@ -423,7 +423,7 @@ class SlitherAdapter(ToolAdapter):
             # Normalize findings
             findings = self.normalize_findings(raw_output)
 
-            # MEJORAS2.md #4: when the target file has sibling/dependency
+            # When the target file has sibling/dependency
             # imports, Slither compiles (and reports on) those files too —
             # e.g. an Ownable.sol lint finding would otherwise be attributed
             # to the requested contract. Keep only findings actually located

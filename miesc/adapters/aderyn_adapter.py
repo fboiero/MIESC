@@ -259,7 +259,7 @@ class AderynAdapter(ToolAdapter):
 
             # Always copy contract to a clean temp directory for Aderyn
             # This avoids issues with solc discovery and complex project structures.
-            # MEJORAS2.md #4: also copy any relatively-imported sibling files
+            # Also copy any relatively-imported sibling files
             # (`import "./Interface.sol"`) — real multi-file contracts (unlike
             # SmartBugs-curated's standalone files) commonly need one. Copying
             # only the target file made every such import fail to compile
@@ -414,7 +414,7 @@ class AderynAdapter(ToolAdapter):
             # Normalize findings
             findings = self.normalize_findings(raw_output)
 
-            # MEJORAS2.md #4: Aderyn analyzes the whole temp directory, which
+            # Aderyn analyzes the whole temp directory, which
             # now includes copied dependency siblings (see above) — without
             # this, findings *about the dependency files themselves* (e.g. an
             # Ownable.sol lint) would be attributed to the target contract.

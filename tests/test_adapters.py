@@ -107,7 +107,7 @@ class TestSlitherAdapter(TestAdapterBase):
         assert "Medium" in SlitherAdapter.SEVERITY_MAP
         assert "Low" in SlitherAdapter.SEVERITY_MAP
 
-    # Regression for MEJORAS3.md item 1: "@solmate/..." (npm-style alias) and
+    # Regression: "@solmate/..." (npm-style alias) and
     # "@chainlink/..." (interfaces re-exported one level up from the historical
     # "@chainlink/contracts/" convention) were canonicalized to a single guessed
     # dependency key that only matched some real-world projects' actual import
@@ -333,10 +333,10 @@ class TestAderynAdapter(TestAdapterBase):
         adapter = AderynAdapter()
         assert adapter is not None
 
-    # MEJORAS2.md #4: Aderyn used to copy only the target file into its
+    # Aderyn used to copy only the target file into its
     # isolated temp workspace, so any `import "./Sibling.sol"` failed to
     # compile — a corpus/adapter mismatch that was actually two separate
-    # things (see MEJORAS2.md #4's write-up): solodit-real's corpus was
+    # things: solodit-real's corpus was
     # missing dependency files entirely (a corpus problem, not fixed here),
     # and Aderyn/Slither's adapters weren't copying siblings that DID exist
     # (an adapter bug, fixed here). These tests cover the resolver in

@@ -66,7 +66,7 @@ class ModelConfig:
 
 # Default ensemble configuration (local Ollama models).
 #
-# Timeouts measured empirically (2026-08-15, MEJORAS2.md #5h) against a 7B
+# Timeouts measured empirically (2026-08-15) against a 7B
 # model over Ollama LAN with a real full-contract prompt: a genuine (not
 # fallback-to-pattern) completion took 132s. The original 90s/90s/60s here
 # predates that measurement and silently forced every run into the
