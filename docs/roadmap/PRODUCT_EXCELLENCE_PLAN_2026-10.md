@@ -170,8 +170,8 @@ miesc` reproduces the numbers REPRODUCE.md describes.
 C1 and C2 touch different files and can run in parallel; C3 waits for the decision; C4
 after C1 (it reuses the status vocabulary); C5 closes the cycle. **C6 — real-protocol
 audits** (Part E) follows C1–C2 and is fed by the split of community PR #144. **C7 —
-coverage gaps** (Part F, from #186) starts with an SWC-101 raw-arithmetic detector for
-Solidity < 0.8 on ARM64.
+coverage gaps** (Part F, from #186) opened with the ArithmeticDetector fix (#188) and continues
+with the whole-corpus check and the symbolic-tool gap on ARM64.
 
 ---
 
@@ -230,7 +230,7 @@ ordering. Status as of 2026-10-21.
 |---|---|---|
 | P1 — LLM-layer false-positive flooding (local qwen32b: 48 FP, 12.7 % precision on 10 EVMBench audits) | B.1 (calibration) and C3; the corroboration-based confidence for LLM findings is the C3 follow-up once the static-side FPs are closed | C1 landed (#180); C3 in progress |
 | P2 — reliable LLM output parsing | C4 (#182, shared extractor, `json-repair` core). The "5 of 10 local responses unparsed" figure predates #182: that EVMBench run used the old per-adapter parsers. **New sub-item kept:** ask for structured output natively (Ollama `format: json`, provider JSON/tool-call modes) so the extractor is the net, not the path | C4 landed; structured-output request → C4 follow-up |
-| P3 — arithmetic / overflow coverage on ARM64 (BECToken batchOverflow: 24 findings, none about overflow; Halmos needs a Foundry harness; SMTChecker cannot compile 0.4.x; Mythril/Manticore absent on ARM64) | **New: wave C7 — coverage gaps.** Option 1 of #186 (an internal SWC-101 detector for raw arithmetic that bypasses an otherwise-present SafeMath in Solidity < 0.8) is the only free, ARM64-native route; it needs real detection logic and its own corpus (SmartBugs `arithmetic/` has 15 contracts) | open |
+| P3 — arithmetic / overflow coverage on ARM64 (BECToken batchOverflow: 24 findings, none about overflow; Halmos needs a Foundry harness; SMTChecker cannot compile 0.4.x; Mythril/Manticore absent on ARM64) | **Wave C7 — coverage gaps.** It turned out to be a bug, not a missing detector: `ArithmeticDetector`'s regex did not match cast operands (`uint256(cnt) * _value`) and flagged SafeMath's own internals; #188 fixes both (detector-level arithmetic recall on the three arena contracts 33 % → 100 %). C7 keeps the whole-corpus check: `make bench` after #188 and the next systematic gap (symbolic tools on ARM64) | #188 merged; corpus check open |
 | P4 — honest value messaging ("What you actually get": static / local / frontier / ensemble with recall, precision and cost per audit, sourced from the claims matrices) | B.7/B.8 plus one README table; cheap and worth doing before the next release | open, low effort |
 | P5 — fast default LLM model (14b for quick scans, 32b for `audit full`) | Part D decision 4 (unchanged: the EVMBench "fully local" claim used 32b; docs now say how to force 14b) | Fernando's call |
 | P6 — honest benchmark matcher (detector-name → category map instead of substring keywords) | C3: the `_normalize_category` fixes (empty type matches every alias; remediation text read as diagnosis) are exactly this | in progress |
