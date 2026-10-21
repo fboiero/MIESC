@@ -160,6 +160,7 @@ miesc` reproduces the numbers REPRODUCE.md describes.
 | Wave | Scope | Measurable exit |
 |---|---|---|
 | **C0 (done 2026-10-20)** | install path, docs, Makefile, REPRODUCE.md, `--no-llm`, Aderyn skip, FP tightening, Ollama parser, release 6.1.1 | `make reproduce` green; `make bench --no-llm` = 143/143, 22.4 %; PyPI 6.1.1 installs `[mcp]` and `[ml]` working |
+| **C1, C2, C4, C5 (done 2026-10-21)** | #180 trust the findings, #179 provenance, #182 LLM extractor + `--llm-timeout`, #177 drift guards, #185 per-run tool output files, release **6.2.0** (#184) | PyPI/GHCR 6.2.0; fresh venv `miesc[mcp,ml]` works; bench unchanged 143/143, 22.4 % |
 | **C1 — Trust the findings** | B.1 (locations, severity classes, rule-keyed fixes, grouping, calibration), B.3 (status vocabulary) | acceptance lines of B.1 and B.3; `VulnerableBank.sol` scan reads correctly to a reviewer |
 | **C2 — Cite the run** | B.2 provenance block; REPRODUCE.md consumes it | `jq .provenance` non-empty on every command |
 | **C3 — Precision** | B.4 after Fernando's methodology decision | ≥ 25 % precision, recall unchanged, new dated artifact |
@@ -168,7 +169,9 @@ miesc` reproduces the numbers REPRODUCE.md describes.
 
 C1 and C2 touch different files and can run in parallel; C3 waits for the decision; C4
 after C1 (it reuses the status vocabulary); C5 closes the cycle. **C6 — real-protocol
-audits** (Part E) follows C1–C2 and is fed by the split of community PR #144.
+audits** (Part E) follows C1–C2 and is fed by the split of community PR #144. **C7 —
+coverage gaps** (Part F, from #186) starts with an SWC-101 raw-arithmetic detector for
+Solidity < 0.8 on ARM64.
 
 ---
 
@@ -215,6 +218,26 @@ Net effect on the waves: C3 gains two measurement corpora and the FP-tracking va
 C4 gains the output-validator hardening; a new **C6 — real-protocol audits** (multi-file
 graph, `xray`, `audit address`, checkpoint/resume, Vyper) becomes the researcher-facing
 feature wave after C1–C2, since real audits are multi-file protocols, not single contracts.
+
+## Part F — Cross-reference with the value-proposition plan (#186)
+
+The new-user test session wrote its own evidence-driven list,
+[`VALUE_PROP_IMPROVEMENTS_2026-10.md`](VALUE_PROP_IMPROVEMENTS_2026-10.md) (P1–P6), from the
+arena and EVMBench runs. It is complementary, not competing; this table keeps one
+ordering. Status as of 2026-10-21.
+
+| Item in #186 | Where it lives here | Status |
+|---|---|---|
+| P1 — LLM-layer false-positive flooding (local qwen32b: 48 FP, 12.7 % precision on 10 EVMBench audits) | B.1 (calibration) and C3; the corroboration-based confidence for LLM findings is the C3 follow-up once the static-side FPs are closed | C1 landed (#180); C3 in progress |
+| P2 — reliable LLM output parsing | C4 (#182, shared extractor, `json-repair` core). The "5 of 10 local responses unparsed" figure predates #182: that EVMBench run used the old per-adapter parsers. **New sub-item kept:** ask for structured output natively (Ollama `format: json`, provider JSON/tool-call modes) so the extractor is the net, not the path | C4 landed; structured-output request → C4 follow-up |
+| P3 — arithmetic / overflow coverage on ARM64 (BECToken batchOverflow: 24 findings, none about overflow; Halmos needs a Foundry harness; SMTChecker cannot compile 0.4.x; Mythril/Manticore absent on ARM64) | **New: wave C7 — coverage gaps.** Option 1 of #186 (an internal SWC-101 detector for raw arithmetic that bypasses an otherwise-present SafeMath in Solidity < 0.8) is the only free, ARM64-native route; it needs real detection logic and its own corpus (SmartBugs `arithmetic/` has 15 contracts) | open |
+| P4 — honest value messaging ("What you actually get": static / local / frontier / ensemble with recall, precision and cost per audit, sourced from the claims matrices) | B.7/B.8 plus one README table; cheap and worth doing before the next release | open, low effort |
+| P5 — fast default LLM model (14b for quick scans, 32b for `audit full`) | Part D decision 4 (unchanged: the EVMBench "fully local" claim used 32b; docs now say how to force 14b) | Fernando's call |
+| P6 — honest benchmark matcher (detector-name → category map instead of substring keywords) | C3: the `_normalize_category` fixes (empty type matches every alias; remediation text read as diagnosis) are exactly this | in progress |
+
+Net effect: P1/P2/P6 are absorbed by C1–C4 and the running C3; P3 opens **C7 — coverage
+gaps**; P4 is a small README/table task; P5 stays a maintainer decision. Nothing in #186
+contradicts the waves above.
 
 ## Backlog (small, no wave needed)
 
