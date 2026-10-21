@@ -698,10 +698,73 @@ def _passes_zero_recall_context_filter(
     return True
 
 
+_FUNCTION_DECL = re.compile(
+    r"\b(?:function\s+(\w+)|(constructor)|(fallback)|(receive))\s*\("
+)
+
+
+def function_at_line(source_code: str, line: int) -> Optional[str]:
+    """Return the name of the function whose body spans ``line`` (1-based).
+
+    Walks every ``function``/``constructor``/``fallback``/``receive``
+    declaration and matches braces to find the body extent. A declaration
+    without a body (interface or abstract) only covers its own line. Returns
+    ``None`` when the line is outside any function (state variables, pragma).
+    """
+    if not source_code or not line or line <= 0:
+        return None
+    for match in _FUNCTION_DECL.finditer(source_code):
+        name = next(g for g in match.groups() if g)
+        start_line = source_code.count("\n", 0, match.start()) + 1
+        if start_line > line:
+            break
+        pos = match.end()  # just past the parameter list's opening "("
+        depth = 1
+        while pos < len(source_code) and not (depth == 0 and source_code[pos] in "{;"):
+            depth += source_code[pos] == "("
+            depth -= source_code[pos] == ")"
+            pos += 1
+        if pos >= len(source_code):
+            continue
+        if source_code[pos] == ";":
+            end = pos
+        else:
+            braces = 0
+            end = pos
+            for cursor in range(pos, len(source_code)):
+                if source_code[cursor] == "{":
+                    braces += 1
+                elif source_code[cursor] == "}":
+                    braces -= 1
+                    if braces == 0:
+                        end = cursor
+                        break
+            else:
+                end = len(source_code) - 1
+        end_line = source_code.count("\n", 0, end) + 1
+        if start_line <= line <= end_line:
+            return name
+    return None
+
+
+def _pattern_location(source_code: str, file_path: str, line: int) -> Dict[str, Any]:
+    """Location record for an intelligence-engine hit: real file, derived function."""
+    return {
+        "file": file_path or "",
+        "line": line,
+        "function": function_at_line(source_code, line) or "unknown",
+    }
+
+
 def detect_zero_recall_categories(
     source_code: str,
+    file_path: str = "",
 ) -> List[Dict[str, Any]]:
-    """Detect vulnerabilities in the 5 categories that currently show 0% recall."""
+    """Detect vulnerabilities in the 5 categories that currently show 0% recall.
+
+    ``file_path`` is recorded on every emitted finding so intelligence-engine
+    findings carry the same location shape as tool findings.
+    """
     findings = []
     code_lower = source_code.lower()
     has_safemath = "safemath" in code_lower or "using safemath" in code_lower
@@ -739,7 +802,7 @@ def detect_zero_recall_categories(
                             "swc_id": cfg.get("swc"),
                             "tool": "miesc-intelligence",
                             "confidence": 0.65,
-                            "location": {"file": "", "line": i, "function": "unknown"},
+                            "location": _pattern_location(source_code, file_path, i),
                             "message": cfg["message"],
                             "description": cfg["message"],
                             "recommendation": cfg["message"],
@@ -777,7 +840,7 @@ def detect_zero_recall_categories(
                         "swc_id": cfg.get("swc"),
                         "tool": "miesc-intelligence",
                         "confidence": 0.65,
-                        "location": {"file": "", "line": line_num, "function": "unknown"},
+                        "location": _pattern_location(source_code, file_path, line_num),
                         "message": cfg["message"],
                         "description": cfg["message"],
                         "recommendation": cfg["message"],
@@ -967,6 +1030,33 @@ def _severity_rank(severity: str) -> int:
 # =============================================================================
 
 
+_UNKNOWN_FUNCTION = {"", "unknown", "<unknown>", None}
+
+
+def complete_location(
+    finding: Dict[str, Any], source_code: str = "", file_path: str = ""
+) -> Dict[str, Any]:
+    """Fill ``location.file`` (from ``file_path``) and ``location.function``
+    (derived from ``source_code`` at ``location.line``) when the tool left them
+    empty. The finding is returned (mutated in place; a non-dict location is
+    replaced by a dict)."""
+    loc = finding.get("location")
+    if not isinstance(loc, dict):
+        loc = {"file": "", "line": 0, "function": "unknown"}
+        finding["location"] = loc
+    if not loc.get("file") and file_path:
+        loc["file"] = file_path
+    if loc.get("function") in _UNKNOWN_FUNCTION and source_code:
+        try:
+            line = int(loc.get("line") or 0)
+        except (TypeError, ValueError):
+            line = 0
+        derived = function_at_line(source_code, line)
+        if derived:
+            loc["function"] = derived
+    return finding
+
+
 def enhance_findings(
     findings: List[Dict[str, Any]],
     source_code: str = "",
@@ -987,8 +1077,13 @@ def enhance_findings(
     """
     # Step 0: Add pattern-based findings for 0%-recall categories
     if source_code:
-        pattern_findings = detect_zero_recall_categories(source_code)
+        pattern_findings = detect_zero_recall_categories(source_code, file_path)
         findings = list(findings) + pattern_findings
+
+    # Step 0b: every finding gets a real file and, when derivable, a function
+    # name before dedup so tool findings that only carry a line (Aderyn, Solhint)
+    # group with their peers and the context checks can look the function up.
+    findings = [complete_location(f, source_code, file_path) for f in findings]
 
     # Step 1+2: Semantic dedup + cross-tool grouping
     merged = semantic_dedup(findings)
