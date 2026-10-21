@@ -109,10 +109,18 @@ def _fake_layer(layer_num: int, contract: str, timeout: int, **kwargs: Any) -> l
     """run_layer stand-in: one static finding, plus whatever ``exclude_tools`` says to skip."""
     results = [
         {"tool": "slither", "status": "success", "findings": [{"type": "reentrancy-eth"}]},
-        {"tool": "aderyn", "status": "not_available", "findings": []},
+        {"tool": "aderyn", "status": "skipped", "reason": "not_installed", "findings": []},
     ]
     for tool in sorted(kwargs.get("exclude_tools") or ()):
-        results.append({"tool": tool, "status": "skipped", "findings": [], "error": "--no-llm"})
+        results.append(
+            {
+                "tool": tool,
+                "status": "skipped",
+                "reason": "no_llm",
+                "findings": [],
+                "error": "--no-llm",
+            }
+        )
     return results
 
 
@@ -263,7 +271,7 @@ class TestAvailabilityCache:
 
         statuses = [utils.run_tool("smartguard", c, timeout=10)["status"] for c in ("A", "B")]
 
-        assert statuses == ["not_available", "not_available"]
+        assert statuses == ["skipped", "skipped"]
         assert smartguard.probes == 1
         assert smartguard.analyses == 0
 
@@ -384,8 +392,10 @@ class TestNoLLMFlag:
         # Only tools that produced a result: not the unavailable or skipped ones.
         assert data["tools_used"] == ["slither"]
         per_layer = data["per_contract"][0]["layers"]["6"]
-        assert per_layer["tools_skipped"] == ["smartguard"]
+        # Not-installed and --no-llm tools share the status; the reason tells them apart.
+        assert per_layer["tools_skipped"] == ["aderyn", "smartguard"]
         assert per_layer["tool_status"]["smartguard"] == "skipped"
+        assert per_layer["tool_reason"] == {"aderyn": "not_installed", "smartguard": "no_llm"}
 
     def test_ablation_accepts_no_llm(self, runner, corpus, tmp_path):
         out = tmp_path / "abl.json"

@@ -345,7 +345,7 @@ def _evaluate_contract(
 
         layer_findings = []
         for tool_result in layer_results:
-            if tool_result.get("status") == "not_available" and skip_unavailable:
+            if tool_result.get("status") == "skipped" and skip_unavailable:
                 continue
             for finding in tool_result.get("findings", []):
                 finding["_source_layer"] = layer_num
@@ -367,11 +367,17 @@ def _evaluate_contract(
             str(tool_result.get("tool", "unknown")): str(tool_result.get("status", "unknown"))
             for tool_result in layer_results
         }
+        tool_reason = {
+            str(tool_result.get("tool", "unknown")): str(tool_result.get("reason"))
+            for tool_result in layer_results
+            if tool_result.get("reason")
+        }
         result["layers"][layer_num] = {
             "findings_count": len(layer_findings),
             "detected_categories": list(layer_detected),
             "tools_run": len(layer_results),
             "tool_status": tool_status,
+            "tool_reason": tool_reason,
             "tools_skipped": [tool for tool, st in tool_status.items() if st == "skipped"],
             "time_seconds": round(layer_elapsed, 3),
         }

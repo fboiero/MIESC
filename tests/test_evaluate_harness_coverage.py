@@ -215,7 +215,9 @@ class TestEvaluateContract:
         contract = corpus / "reentrancy" / "vuln.sol"
 
         def _fake(layer_num, contract_path, timeout, **_kwargs):
-            return [{"tool": "slither", "status": "not_available", "findings": []}]
+            return [
+                {"tool": "slither", "status": "skipped", "reason": "not_installed", "findings": []}
+            ]
 
         with patch("miesc.cli.commands.evaluate.run_layer", side_effect=_fake):
             result = _evaluate_contract(

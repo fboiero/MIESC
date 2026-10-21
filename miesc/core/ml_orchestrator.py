@@ -6,7 +6,7 @@ Orquestador con integración completa del pipeline ML.
 import logging
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, cast
 
@@ -22,6 +22,35 @@ from .tool_discovery import get_tool_discovery
 # from miesc.ml import MLPipeline, MLEnhancedResult, FeedbackType, VulnerabilityCluster, get_ml_pipeline
 
 logger = logging.getLogger(__name__)
+
+
+_STATUS_ALIASES = {
+    "success": "success",
+    "ok": "success",
+    "completed": "success",
+    "skipped": "skipped",
+    "not_available": "skipped",
+    "no_adapter": "skipped",
+    "timeout": "timeout",
+    "error": "error",
+    "failed": "error",
+    "failure": "error",
+}
+
+
+def _normalize_status(result: Dict[str, Any]) -> Dict[str, Any]:
+    """Rewrite ``result["status"]`` into success / skipped / timeout / error."""
+    raw = str(result.get("status") or "success").strip().lower()
+    result["status"] = _STATUS_ALIASES.get(raw, "error")
+    metadata = result.get("metadata") or {}
+    if isinstance(metadata, dict):
+        if metadata.get("reason") and "reason" not in result:
+            result["reason"] = metadata["reason"]
+        if metadata.get("fallback") and "fallback" not in result:
+            result["fallback"] = True
+    if result["status"] == "skipped" and "reason" not in result and raw != "skipped":
+        result["reason"] = raw
+    return result
 
 
 @dataclass
@@ -62,6 +91,14 @@ class MLAnalysisResult:
     ml_processing_time_ms: float
     timestamp: datetime
 
+    # Shared status vocabulary (success / skipped / timeout / error):
+    # tools_success includes fallbacks, listed again in tools_fallback;
+    # tools_skipped were not run (not installed, no adapter, ...);
+    # tools_failed are errors and timeouts; tool_status has the label per tool.
+    tools_skipped: List[str] = field(default_factory=list)
+    tools_fallback: List[str] = field(default_factory=list)
+    tool_status: Dict[str, str] = field(default_factory=dict)
+
     def to_dict(self) -> Dict[str, Any]:
         """Convierte resultado a diccionario."""
         return {
@@ -69,6 +106,9 @@ class MLAnalysisResult:
             "tools_run": self.tools_run,
             "tools_success": self.tools_success,
             "tools_failed": self.tools_failed,
+            "tools_skipped": self.tools_skipped,
+            "tools_fallback": self.tools_fallback,
+            "tool_status": self.tool_status,
             "raw_findings": {
                 "total": self.total_raw_findings,
                 "findings": self.raw_findings[:20],  # Limit for output
@@ -237,12 +277,27 @@ class MLOrchestrator:
             adapter_config = self.config.get_adapter_config(tool_name)
             effective_timeout = adapter_config.timeout or timeout
 
-            result = adapter.analyze(contract_path, timeout=effective_timeout)
+            # Probe availability first so the record says whether the real tool
+            # ran. Adapters with a built-in heuristic (dagnn, smartbugs_ml) still
+            # produce findings without their dependencies: that is reported as
+            # success with fallback=True, never as the tool being available.
+            availability = self._probe_availability(adapter)
 
-            if self.cache and result.get("status") != "error":
+            result = adapter.analyze(contract_path, timeout=effective_timeout)
+            result = _normalize_status(cast(dict[str, Any], result))
+            if availability not in (None, "available"):
+                if result.get("status") == "success":
+                    result["fallback"] = True
+                    result.setdefault("reason", availability)
+                elif result.get("status") == "error":
+                    # Not installed is a skip, not a failure of the tool.
+                    result["status"] = "skipped"
+                    result["reason"] = availability
+
+            if self.cache and result.get("status") not in ("error", "timeout"):
                 self.cache.set(tool_name, contract_path, result)
 
-            return cast(dict[str, Any], result)
+            return result
 
         except Exception as e:
             return {
@@ -251,6 +306,19 @@ class MLOrchestrator:
                 "error": str(e),
                 "findings": [],
             }
+
+    @staticmethod
+    def _probe_availability(adapter: Any) -> Optional[str]:
+        """``adapter.is_available()`` as a string, or None when the adapter has
+        no probe or the probe itself fails (then the run decides)."""
+        probe = getattr(adapter, "is_available", None)
+        if probe is None:
+            return None
+        try:
+            status = probe()
+        except Exception:  # noqa: BLE001 - a broken probe must not block the tool
+            return None
+        return str(getattr(status, "value", status) or "").lower() or None
 
     def analyze(
         self,
@@ -292,6 +360,9 @@ class MLOrchestrator:
         raw_results: Dict[str, Dict[str, Any]] = {}
         tools_success: List[str] = []
         tools_failed: List[str] = []
+        tools_skipped: List[str] = []
+        tools_fallback: List[str] = []
+        tool_status: Dict[str, str] = {}
         all_findings: List[Dict[str, Any]] = []
 
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
@@ -306,13 +377,23 @@ class MLOrchestrator:
                 completed += 1
 
                 try:
-                    result = future.result(timeout=timeout + 30)
+                    result = _normalize_status(future.result(timeout=timeout + 30))
                     raw_results[tool] = result
+                    status = result["status"]
+                    tool_status[tool] = (
+                        "success (fallback)"
+                        if status == "success" and result.get("fallback")
+                        else status
+                    )
 
-                    if result.get("status") == "error":
+                    if status == "skipped":
+                        tools_skipped.append(tool)
+                    elif status in ("error", "timeout"):
                         tools_failed.append(tool)
                     else:
                         tools_success.append(tool)
+                        if result.get("fallback"):
+                            tools_fallback.append(tool)
                         # Collect findings
                         for finding in result.get("findings", []):
                             finding["tool"] = tool
@@ -324,6 +405,7 @@ class MLOrchestrator:
 
                 except Exception as e:
                     tools_failed.append(tool)
+                    tool_status[tool] = "error"
                     raw_results[tool] = {
                         "tool": tool,
                         "status": "error",
@@ -415,6 +497,12 @@ class MLOrchestrator:
         # trust. Runs on the default path, not only under --correlate.
         self._annotate_confidence(ml_filtered_findings, contract_source, contract_path)
 
+        # Lint / informational rules never outrank real findings, whatever the
+        # tool bucket said (miesc/data/config/rule_classes.yaml).
+        from .rule_classes import apply_rule_class_caps
+
+        severity_adjustments += apply_rule_class_caps(ml_filtered_findings)
+
         # Calculate severity distribution
         severity_dist = self._calculate_severity_distribution(ml_filtered_findings)
 
@@ -437,6 +525,9 @@ class MLOrchestrator:
             tools_run=tools_to_run,
             tools_success=tools_success,
             tools_failed=tools_failed,
+            tools_skipped=tools_skipped,
+            tools_fallback=tools_fallback,
+            tool_status=tool_status,
             total_raw_findings=len(all_findings),
             raw_findings=all_findings,
             ml_filtered_findings=ml_filtered_findings,

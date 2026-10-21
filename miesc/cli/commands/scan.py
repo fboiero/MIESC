@@ -1297,8 +1297,8 @@ def _display_and_save(
         if not quiet:
             info(f"confidence annotation skipped: {e}")
     # Detect tool failures — help users who installed miesc without slither/aderyn
-    tools_succeeded = [r for r in all_results if r.get("status") != "error"]
-    tools_errored = [r for r in all_results if r.get("status") == "error"]
+    tools_succeeded = [r for r in all_results if r.get("status") == "success"]
+    tools_errored = [r for r in all_results if r.get("status") in ("error", "timeout")]
 
     if tools_errored and not tools_succeeded and not quiet:
         error("All analysis tools failed. Check tool availability:")
@@ -1409,11 +1409,28 @@ def _display_and_save(
                 f.setdefault("tool", r.get("tool", "unknown"))
                 all_findings.append(f)
 
+        # Shared status vocabulary: success (ran) / skipped (not run) /
+        # timeout and error (failed). Skipped tools are not failures.
         tools_used = sorted(
-            {r.get("tool", "") for r in all_results if r.get("status") != "error" and r.get("tool")}
+            {
+                r.get("tool", "")
+                for r in all_results
+                if r.get("status") == "success" and r.get("tool")
+            }
+        )
+        tools_skipped = sorted(
+            {
+                r.get("tool", "")
+                for r in all_results
+                if r.get("status") == "skipped" and r.get("tool")
+            }
         )
         tools_failed = sorted(
-            {r.get("tool", "") for r in all_results if r.get("status") == "error" and r.get("tool")}
+            {
+                r.get("tool", "")
+                for r in all_results
+                if r.get("status") in ("error", "timeout") and r.get("tool")
+            }
         )
 
         scanned_files = sorted(
@@ -1431,6 +1448,7 @@ def _display_and_save(
             "total_findings": total,
             "tools": tools_used,
             "tools_failed": tools_failed,
+            "tools_skipped": tools_skipped,
             "findings": all_findings,
             "results": all_results,
             "provenance": build_provenance(

@@ -1820,6 +1820,12 @@ def report(
             loc_str = f"{location.get('file', 'unknown')}:{location.get('line', '?')}"
             if location.get("function"):
                 loc_str += f" ({location.get('function')})"
+            extra = (finding.get("occurrences") or 1) - 1
+            if extra > 0:
+                more = ", ".join(
+                    str(hit.get("line", "?")) for hit in (finding.get("locations") or [])[1:]
+                )
+                loc_str += f" +{extra} more (lines {more})" if more else f" +{extra} more"
         else:
             loc_str = str(location) if location else "unknown"
 

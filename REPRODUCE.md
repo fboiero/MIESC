@@ -259,6 +259,47 @@ Note on the paper figures: the paper's JSON summary reports `front_running` 2 TP
 uses it. The frozen artifacts are not modified.
 
 
+### Wave C1 "Trust the findings" (2026-10-20)
+
+Same command and environment as above (`make bench`, `--no-llm`) after the finding-quality
+changes of wave C1 (real file path and function on every finding, lint rules capped at
+Low/Info by `miesc/data/config/rule_classes.yaml`, fix templates keyed by detector rule,
+identical rule hits grouped per file, one tool-status vocabulary). Artifact:
+`benchmarks/results/smartbugs_eval_layers_1_6_7_20261020_trust_findings.{json,jsonl}`.
+
+| Metric | Tightened patterns (reference) | Wave C1 | Δ |
+|---|---|---|---|
+| Recall (contracts) | 143/143 = 100 % | **143/143 = 100 %** | 0 |
+| Precision | 22.4 % (496 FP) | **22.4 % (495 FP)** | −1 FP |
+| F1 | 36.6 % | **36.6 %** | 0 |
+| Wall time | 195 s | 179 s | |
+
+Nothing in C1 changes which tools run or what they report; the only step that can move the
+score is the location fill (findings now carry file and function *before* the semantic
+dedup, so groups form differently and the context-aware FP check can look the function up).
+A run of that step alone also landed on 496 FP, but it is not clean evidence: a `miesc scan`
+executed during that bench contaminated two contracts (`other/random_number_generator`,
+`other/lucky_doubler`) because the Aderyn and Slither adapters write fixed
+`/tmp/aderyn_output.json` / `/tmp/slither_output.json` paths and concurrent runs read each
+other's output; those two accidental flips cancelled the five real ones. The final run above
+was made with nothing else running and equals the reference plus five deterministic flips
+(re-checked twice on a five-contract corpus), all in the false-positive column of the
+intelligence layer and all in `reentrancy`: lost on `unchecked_low_level_calls/mishandled`,
+`access_control/mycontract`, `arithmetic/timelock`; gained on
+`access_control/incorrect_constructor_name3`, `access_control/mapping_write`. The mechanism is
+not C1 itself but a scoring quirk it exposes: `_normalize_category` in
+`miesc/cli/commands/evaluate.py` matches an **empty** finding type against every alias
+(`"" in alias` is true), so a layer 6/7 finding that carries only a title (`Integer
+Overflow/Underflow`, `MEV Exposure Detected`, ...) is counted as `reentrancy`; which such
+finding survives dedup decides whether that contract gets the spurious `reentrancy` FP.
+Fixing the scorer is a methodology change (plan B.4) and is left for wave C3.
+
+Tool statuses are now the same vocabulary in every output (`success`, `success (fallback)`,
+`skipped` with a reason, `timeout`, `error`); the per-layer `tool_status` in the `.jsonl`
+reads `skipped` + `tool_reason: not_installed | no_llm` where the earlier artifacts read
+`not_available` / `skipped`. Comparisons with `miesc evaluate compare` are unaffected.
+
+
 ## 5. What is not covered here
 
 - **LLM follow-up (97.9 %)**: Paper 1 reports a local-Ollama pass on the six misses as a

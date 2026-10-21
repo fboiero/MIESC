@@ -17,6 +17,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Set, cast
 
+from miesc.core.rule_classes import apply_rule_class_caps
+
 from .constants import ADAPTER_MAP, LAYERS
 
 # Root directory setup
@@ -376,7 +378,9 @@ class AdapterLoader:
             # Import ToolStatus enum
             from miesc.core.tool_protocol import ToolStatus
 
-            status = adapter.is_available()
+            # Same per-process cache run_tool uses, so a probe made by an audit
+            # and the count ``miesc doctor`` prints come from one answer.
+            status = cls.get_availability(tool_name, adapter)
             return {
                 "status": status.value if hasattr(status, "value") else str(status),
                 "available": status == ToolStatus.AVAILABLE,
@@ -436,6 +440,106 @@ class AdapterLoader:
 # =============================================================================
 
 
+# One status vocabulary for every tool result record, across scan, audit, evaluate
+# and doctor:
+#   success  - the tool ran and produced a (possibly empty) findings list;
+#              ``fallback: True`` when a built-in heuristic stood in for the real tool
+#   skipped  - deliberately not run; ``reason`` says why (not_installed,
+#              configuration_error, license_required, no_adapter, no_llm,
+#              unsupported_source)
+#   timeout  - the tool was killed after the configured timeout
+#   error    - the tool ran and failed; ``error`` carries the message
+TOOL_STATUSES = ("success", "skipped", "timeout", "error")
+
+_STATUS_ALIASES = {
+    "success": "success",
+    "ok": "success",
+    "completed": "success",
+    "done": "success",
+    "skipped": "skipped",
+    "skip": "skipped",
+    "not_available": "skipped",
+    "unavailable": "skipped",
+    "no_adapter": "skipped",
+    "timeout": "timeout",
+    "timed_out": "timeout",
+    "error": "error",
+    "failed": "error",
+    "failure": "error",
+}
+
+
+def normalize_tool_status(raw: Any) -> str:
+    """Map whatever an adapter put in ``status`` onto :data:`TOOL_STATUSES`.
+
+    Unknown labels are kept out of the vocabulary deliberately: a label we
+    have never seen is reported as ``error`` so it is noticed, never as a
+    silent success.
+    """
+    key = str(raw or "success").strip().lower()
+    return _STATUS_ALIASES.get(key, "error")
+
+
+def normalize_tool_result(result: Dict[str, Any]) -> Dict[str, Any]:
+    """Rewrite ``result["status"]`` into the shared vocabulary in place and lift
+    ``reason`` / ``fallback`` out of ``metadata`` when the adapter put them there."""
+    raw = result.get("status")
+    status = normalize_tool_status(raw)
+    if status == "error" and raw and str(raw).lower() not in _STATUS_ALIASES:
+        result.setdefault("reason", f"unknown_status:{raw}")
+        result.setdefault("error", f"adapter returned unknown status {raw!r}")
+    result["status"] = status
+    metadata = result.get("metadata") or {}
+    if isinstance(metadata, dict):
+        if "reason" not in result and metadata.get("reason"):
+            result["reason"] = metadata["reason"]
+        if "fallback" not in result and metadata.get("fallback"):
+            result["fallback"] = True
+    if status == "skipped" and "reason" not in result and raw:
+        result["reason"] = str(raw).lower()
+    return result
+
+
+def summarize_tool_statuses(results: Iterable[Dict[str, Any]]) -> Dict[str, List[str]]:
+    """Tool names per status: ``success`` (of which ``fallback``), ``skipped``,
+    ``timeout``, ``error``. Pseudo-tools (``miesc-intelligence`` ...) are included
+    only where they carry a status."""
+    buckets: Dict[str, List[str]] = {
+        k: [] for k in ("success", "fallback", "skipped", "timeout", "error")
+    }
+    for r in results:
+        tool = str(r.get("tool") or "")
+        if not tool:
+            continue
+        status = normalize_tool_status(r.get("status"))
+        buckets[status].append(tool)
+        if status == "success" and r.get("fallback"):
+            buckets["fallback"].append(tool)
+    return buckets
+
+
+def format_tool_summary(results: Iterable[Dict[str, Any]]) -> str:
+    """One line a reader can trust: ``ran 42/50 (2 fallback) · skipped 6 · timeout 0 · error 2``."""
+    b = summarize_tool_statuses(results)
+    total = len(b["success"]) + len(b["skipped"]) + len(b["timeout"]) + len(b["error"])
+    ran = f"ran {len(b['success'])}/{total}"
+    if b["fallback"]:
+        ran += f" ({len(b['fallback'])} fallback)"
+    return f"{ran} · skipped {len(b['skipped'])} · timeout {len(b['timeout'])} · error {len(b['error'])}"
+
+
+def tool_availability(tools: Iterable[str]) -> Dict[str, Dict[str, Any]]:
+    """``AdapterLoader.check_tool_status`` for each tool. ``miesc doctor`` and the
+    audit summaries both go through here so they print the same denominator."""
+    return {tool: AdapterLoader.check_tool_status(tool) for tool in tools}
+
+
+def count_available(tools: Iterable[str]) -> tuple[int, int]:
+    """(available, total) over ``tools`` — the number ``miesc doctor`` prints."""
+    statuses = tool_availability(list(tools))
+    return sum(1 for info in statuses.values() if info.get("available")), len(statuses)
+
+
 def run_tool(tool: str, contract: str, timeout: int = 0, **kwargs: Any) -> Dict[str, Any]:
     """
     Run a security tool using its adapter.
@@ -460,7 +564,8 @@ def run_tool(tool: str, contract: str, timeout: int = 0, **kwargs: Any) -> Dict[
         return {
             "tool": tool,
             "contract": contract,
-            "status": "no_adapter",
+            "status": "skipped",
+            "reason": "no_adapter",
             "findings": [],
             "execution_time": 0,
             "timestamp": datetime.now().isoformat(),
@@ -477,7 +582,8 @@ def run_tool(tool: str, contract: str, timeout: int = 0, **kwargs: Any) -> Dict[
             return {
                 "tool": tool,
                 "contract": contract,
-                "status": "not_available",
+                "status": "skipped",
+                "reason": status.value,
                 "findings": [],
                 "execution_time": (datetime.now() - start_time).total_seconds(),
                 "timestamp": datetime.now().isoformat(),
@@ -487,19 +593,33 @@ def run_tool(tool: str, contract: str, timeout: int = 0, **kwargs: Any) -> Dict[
         # Run analysis
         result = adapter.analyze(contract, timeout=timeout, **kwargs)
 
+        findings = result.get("findings", [])
+        for finding in findings:
+            if isinstance(finding, dict):
+                finding.setdefault("tool", tool)
+        # Lint / informational rules are capped at their class ceiling here so
+        # every CLI path (scan, audit, evaluate) reports the same severity.
+        apply_rule_class_caps(findings)
+
         # Ensure consistent output format
-        return {
+        normalized = normalize_tool_result(dict(result))
+        record = {
             "tool": tool,
             "contract": contract,
-            "status": result.get("status", "success"),
-            "findings": result.get("findings", []),
+            "status": normalized["status"],
+            "findings": findings,
             "execution_time": result.get(
                 "execution_time", (datetime.now() - start_time).total_seconds()
             ),
             "timestamp": datetime.now().isoformat(),
             "metadata": result.get("metadata", {}),
-            "error": result.get("error"),
+            "error": normalized.get("error"),
         }
+        if normalized.get("reason"):
+            record["reason"] = normalized["reason"]
+        if normalized.get("fallback"):
+            record["fallback"] = True
+        return record
 
     except Exception as e:
         logger.error(f"Error running {tool}: {e}", exc_info=True)
@@ -514,12 +634,15 @@ def run_tool(tool: str, contract: str, timeout: int = 0, **kwargs: Any) -> Dict[
         }
 
 
-def _skipped_tool_result(tool: str, contract: str, reason: str) -> Dict[str, Any]:
+def _skipped_tool_result(
+    tool: str, contract: str, reason: str, *, reason_code: str = "no_llm"
+) -> Dict[str, Any]:
     """Result record for a tool deliberately left out of a run (not probed, not run)."""
     return {
         "tool": tool,
         "contract": contract,
         "status": "skipped",
+        "reason": reason_code,
         "findings": [],
         "execution_time": 0,
         "timestamp": datetime.now().isoformat(),
@@ -595,14 +718,30 @@ def run_layer(
     return results + skipped
 
 
+def describe_tool_status(result: Dict[str, Any]) -> str:
+    """Short human label for a tool result: ``success``, ``success (fallback)``,
+    ``skipped (not_installed)``, ``timeout``, ``error``."""
+    status = normalize_tool_status(result.get("status"))
+    if status == "success":
+        return "success (fallback)" if result.get("fallback") else "success"
+    if status == "skipped":
+        reason = result.get("reason") or "excluded"
+        return f"skipped ({reason})"
+    return status
+
+
 def _print_tool_result(tool: str, result: Dict[str, Any]) -> None:
-    if result["status"] == "success":
+    status = normalize_tool_status(result.get("status"))
+    if status == "success":
         findings_count = len(result.get("findings", []))
-        success(f"{tool}: {findings_count} findings in {result.get('execution_time', 0):.1f}s")
-    elif result["status"] == "not_available":
-        warning(f"{tool}: not installed")
-    elif result["status"] == "skipped":
-        info(f"{tool}: skipped ({result.get('error', 'excluded')})")
+        tag = " (fallback)" if result.get("fallback") else ""
+        success(f"{tool}: {findings_count} findings in {result.get('execution_time', 0):.1f}s{tag}")
+    elif status == "skipped":
+        reason = result.get("reason") or "excluded"
+        detail = "not installed" if reason == "not_installed" else result.get("error") or reason
+        info(f"{tool}: skipped ({detail})")
+    elif status == "timeout":
+        warning(f"{tool}: timeout after {result.get('execution_time', 0):.0f}s")
     else:
         warning(f"{tool}: {result.get('error', 'Unknown error')}")
 

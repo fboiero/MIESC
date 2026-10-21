@@ -29,6 +29,7 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple, cast
 
 from miesc.core.finding_taxonomy import CanonicalCategory, normalize_finding_type
+from miesc.core.rule_classes import class_max_severity, finding_rule_class, rule_ids
 
 # =============================================================================
 # 1. Cross-tool confirmation scoring
@@ -698,10 +699,71 @@ def _passes_zero_recall_context_filter(
     return True
 
 
+_FUNCTION_DECL = re.compile(r"\b(?:function\s+(\w+)|(constructor)|(fallback)|(receive))\s*\(")
+
+
+def function_at_line(source_code: str, line: int) -> Optional[str]:
+    """Return the name of the function whose body spans ``line`` (1-based).
+
+    Walks every ``function``/``constructor``/``fallback``/``receive``
+    declaration and matches braces to find the body extent. A declaration
+    without a body (interface or abstract) only covers its own line. Returns
+    ``None`` when the line is outside any function (state variables, pragma).
+    """
+    if not source_code or not line or line <= 0:
+        return None
+    for match in _FUNCTION_DECL.finditer(source_code):
+        name = next(g for g in match.groups() if g)
+        start_line = source_code.count("\n", 0, match.start()) + 1
+        if start_line > line:
+            break
+        pos = match.end()  # just past the parameter list's opening "("
+        depth = 1
+        while pos < len(source_code) and not (depth == 0 and source_code[pos] in "{;"):
+            depth += source_code[pos] == "("
+            depth -= source_code[pos] == ")"
+            pos += 1
+        if pos >= len(source_code):
+            continue
+        if source_code[pos] == ";":
+            end = pos
+        else:
+            braces = 0
+            end = pos
+            for cursor in range(pos, len(source_code)):
+                if source_code[cursor] == "{":
+                    braces += 1
+                elif source_code[cursor] == "}":
+                    braces -= 1
+                    if braces == 0:
+                        end = cursor
+                        break
+            else:
+                end = len(source_code) - 1
+        end_line = source_code.count("\n", 0, end) + 1
+        if start_line <= line <= end_line:
+            return name
+    return None
+
+
+def _pattern_location(source_code: str, file_path: str, line: int) -> Dict[str, Any]:
+    """Location record for an intelligence-engine hit: real file, derived function."""
+    return {
+        "file": file_path or "",
+        "line": line,
+        "function": function_at_line(source_code, line) or "unknown",
+    }
+
+
 def detect_zero_recall_categories(
     source_code: str,
+    file_path: str = "",
 ) -> List[Dict[str, Any]]:
-    """Detect vulnerabilities in the 5 categories that currently show 0% recall."""
+    """Detect vulnerabilities in the 5 categories that currently show 0% recall.
+
+    ``file_path`` is recorded on every emitted finding so intelligence-engine
+    findings carry the same location shape as tool findings.
+    """
     findings = []
     code_lower = source_code.lower()
     has_safemath = "safemath" in code_lower or "using safemath" in code_lower
@@ -739,7 +801,7 @@ def detect_zero_recall_categories(
                             "swc_id": cfg.get("swc"),
                             "tool": "miesc-intelligence",
                             "confidence": 0.65,
-                            "location": {"file": "", "line": i, "function": "unknown"},
+                            "location": _pattern_location(source_code, file_path, i),
                             "message": cfg["message"],
                             "description": cfg["message"],
                             "recommendation": cfg["message"],
@@ -777,7 +839,7 @@ def detect_zero_recall_categories(
                         "swc_id": cfg.get("swc"),
                         "tool": "miesc-intelligence",
                         "confidence": 0.65,
-                        "location": {"file": "", "line": line_num, "function": "unknown"},
+                        "location": _pattern_location(source_code, file_path, line_num),
                         "message": cfg["message"],
                         "description": cfg["message"],
                         "recommendation": cfg["message"],
@@ -936,14 +998,26 @@ SEVERITY_CALIBRATION = {
 
 
 def calibrate_severity(finding: Dict[str, Any]) -> str:
-    """Return calibrated severity, accounting for tool-specific biases."""
+    """Return calibrated severity, accounting for tool-specific biases.
+
+    A lint or informational rule (``miesc/data/config/rule_classes.yaml``)
+    never comes out above its class ceiling, whatever the tool bucket said.
+    """
     tool = finding.get("tool", "")
     raw_severity = finding.get("severity", "Medium")
 
     calibrated = SEVERITY_CALIBRATION.get((tool, raw_severity))
-    if calibrated:
-        return calibrated
+    if not calibrated:
+        calibrated = _normalize_severity_label(raw_severity)
+    cls = finding_rule_class(finding)
+    if cls:
+        ceiling = class_max_severity(cls)
+        if ceiling and _severity_rank(calibrated) > _severity_rank(ceiling):
+            return ceiling
+    return calibrated
 
+
+def _normalize_severity_label(raw_severity: str) -> str:
     severity_map = {
         "critical": "Critical",
         "high": "High",
@@ -967,6 +1041,33 @@ def _severity_rank(severity: str) -> int:
 # =============================================================================
 
 
+_UNKNOWN_FUNCTION = {"", "unknown", "<unknown>", None}
+
+
+def complete_location(
+    finding: Dict[str, Any], source_code: str = "", file_path: str = ""
+) -> Dict[str, Any]:
+    """Fill ``location.file`` (from ``file_path``) and ``location.function``
+    (derived from ``source_code`` at ``location.line``) when the tool left them
+    empty. The finding is returned (mutated in place; a non-dict location is
+    replaced by a dict)."""
+    loc = finding.get("location")
+    if not isinstance(loc, dict):
+        loc = {"file": "", "line": 0, "function": "unknown"}
+        finding["location"] = loc
+    if not loc.get("file") and file_path:
+        loc["file"] = file_path
+    if loc.get("function") in _UNKNOWN_FUNCTION and source_code:
+        try:
+            line = int(loc.get("line") or 0)
+        except (TypeError, ValueError):
+            line = 0
+        derived = function_at_line(source_code, line)
+        if derived:
+            loc["function"] = derived
+    return finding
+
+
 def enhance_findings(
     findings: List[Dict[str, Any]],
     source_code: str = "",
@@ -987,8 +1088,13 @@ def enhance_findings(
     """
     # Step 0: Add pattern-based findings for 0%-recall categories
     if source_code:
-        pattern_findings = detect_zero_recall_categories(source_code)
+        pattern_findings = detect_zero_recall_categories(source_code, file_path)
         findings = list(findings) + pattern_findings
+
+    # Step 0b: every finding gets a real file and, when derivable, a function
+    # name before dedup so tool findings that only carry a line (Aderyn, Solhint)
+    # group with their peers and the context checks can look the function up.
+    findings = [complete_location(f, source_code, file_path) for f in findings]
 
     # Step 1+2: Semantic dedup + cross-tool grouping
     merged = semantic_dedup(findings)
@@ -1017,6 +1123,9 @@ def enhance_findings(
         out["confidence"] = group.confidence
         out["severity"] = group.calibrated_severity
         out["canonical_category"] = group.canonical_category
+        rule_cls = finding_rule_class(group.representative)
+        if rule_cls:
+            out["rule_class"] = rule_cls
         out["confirming_tools"] = list(set(group.confirming_tools))
         out["tool_count"] = len(set(group.confirming_tools))
         out["cross_validated_static"] = group.cross_validated_by_static
@@ -1043,6 +1152,9 @@ def enhance_findings(
     # Enrich generic recommendations from the RAG knowledge base
     _enrich_recommendations(results)
 
+    # Identical rule hits in one file are one finding with a location list
+    results = group_identical_rule_hits(results)
+
     # Sort: non-suppressed first, then by severity rank, then by confidence
     results.sort(
         key=lambda f: (
@@ -1053,6 +1165,77 @@ def enhance_findings(
     )
 
     return results
+
+
+# =============================================================================
+# 6b. Grouping of identical rule hits within one file
+# =============================================================================
+
+
+def _line_of(finding: Dict[str, Any]) -> int:
+    loc = finding.get("location")
+    if not isinstance(loc, dict):
+        return 0
+    try:
+        return int(loc.get("line") or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def group_identical_rule_hits(findings: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Collapse hits of the same rule, by the same tool, in the same file.
+
+    Aderyn reports ``useless-public-function`` once per function; a reader
+    wants one row with the list of places. The survivor is the lowest-line
+    hit, carries ``occurrences`` (how many hits) and ``locations`` (every
+    ``{line, function}`` in line order), and keeps the highest severity and
+    confidence of the group. Suppressed and kept hits are never mixed, and a
+    finding without a file or line is left alone.
+    """
+    grouped: Dict[Tuple[Any, ...], Dict[str, Any]] = {}
+    members: Dict[Tuple[Any, ...], List[Dict[str, Any]]] = {}
+    order: List[Tuple[Any, ...]] = []
+    passthrough: List[Dict[str, Any]] = []
+
+    for f in findings:
+        loc = f.get("location")
+        rule = str(f.get("type") or f.get("check") or f.get("rule") or "").strip().lower()
+        if not isinstance(loc, dict) or not loc.get("file") or not _line_of(f) or not rule:
+            passthrough.append(f)
+            continue
+        key = (str(f.get("tool", "")), rule, loc.get("file"), bool(f.get("fp_suppressed")))
+        if key not in grouped:
+            grouped[key] = f
+            members[key] = [f]
+            order.append(key)
+        else:
+            members[key].append(f)
+
+    out: List[Dict[str, Any]] = []
+    for key in order:
+        hits = sorted(members[key], key=_line_of)
+        head = dict(hits[0])
+        if len(hits) > 1:
+            head["occurrences"] = len(hits)
+            head["locations"] = [
+                {
+                    "line": _line_of(h),
+                    "function": (h.get("location") or {}).get("function", "unknown"),
+                }
+                for h in hits
+            ]
+            head["severity"] = max(
+                (h.get("severity", "") for h in hits),
+                key=_severity_rank,
+                default=head.get("severity"),
+            )
+            head["confidence"] = max(float(h.get("confidence", 0) or 0) for h in hits)
+            tools = {t for h in hits for t in (h.get("confirming_tools") or [])}
+            if tools:
+                head["confirming_tools"] = sorted(tools)
+                head["tool_count"] = len(tools)
+        out.append(head)
+    return out + passthrough
 
 
 # =============================================================================
@@ -1087,14 +1270,45 @@ _CANONICAL_RECOMMENDATIONS: Dict[str, str] = {
 
 _GENERIC_RECOMMENDATIONS = {"review and fix", "review the", "check the", "see the"}
 
+# Recommendation text for detector rules whose canonical category is too coarse
+# to advise from. Keyed by the rule id as the tool names it; always wins over
+# the category text, even when the adapter supplied a (wrong) recommendation.
+_RULE_RECOMMENDATIONS: Dict[str, str] = {
+    "send-ether-no-checks": (
+        "Aderyn found no condition on `msg.sender` before native ETH leaves this "
+        "function. A user withdrawal needs no caller restriction: bound the amount "
+        "by the caller's own balance, update that balance before the external call "
+        "(Checks-Effects-Interactions) and `require(success)` on the call. Only a "
+        "payout meant for a privileged caller should be restricted with an "
+        "access-control modifier."
+    ),
+    "tx-origin": "Replace `tx.origin` with `msg.sender` for authorization; `tx.origin` is the EOA that started the transaction, so any contract the user interacts with can relay a call that passes the check.",
+    "tx_origin_auth": "Replace `tx.origin` with `msg.sender` for authorization; `tx.origin` is the EOA that started the transaction, so any contract the user interacts with can relay a call that passes the check.",
+    "unindexed-events": "Mark address and id parameters of the event as `indexed` so off-chain consumers can filter on them.",
+}
+
 
 def _enrich_recommendations(findings: List[Dict[str, Any]]) -> None:
-    """Replace generic recommendations with canonical per-category advice."""
+    """Replace generic recommendations with rule-specific advice, falling back
+    to the canonical per-category text only where the category is a faithful
+    description of the rule (see ``_category_template_key``)."""
     for f in findings:
+        rule_rec = next(
+            (_RULE_RECOMMENDATIONS[r] for r in _finding_rule_ids(f) if r in _RULE_RECOMMENDATIONS),
+            None,
+        )
+        if rule_rec:
+            f["recommendation"] = rule_rec
+            continue
         rec = (f.get("recommendation") or f.get("message") or "").strip().lower()
         if not rec or any(g in rec for g in _GENERIC_RECOMMENDATIONS):
-            canonical = f.get("canonical_category", "")
-            better = _CANONICAL_RECOMMENDATIONS.get(canonical)
+            if f.get("rule_class"):
+                # A lint rule's title already is the advice ("could be marked external").
+                message = (f.get("message") or f.get("description") or "").strip()
+                if message:
+                    f["recommendation"] = message
+                continue
+            better = _CANONICAL_RECOMMENDATIONS.get(_category_template_key(f) or "")
             if better:
                 f["recommendation"] = better
 
@@ -1327,6 +1541,143 @@ contract SecureProxy is Initializable, OwnableUpgradeable {
 }
 
 
+# Fix snippets keyed by detector rule, for rules whose canonical category would
+# select a misleading template (Aderyn's send-ether-no-checks maps to
+# access_control via SWC-105, which yields "add onlyOwner" on a user withdraw).
+_RULE_FIX_TEMPLATES: Dict[str, str] = {
+    "send-ether-no-checks": """\
+// Aderyn send-ether-no-checks: ETH leaves this function with no condition on
+// msg.sender. Pick the fix that matches what the function is FOR:
+//
+// (a) user withdrawal — bound by the caller's own balance, CEI, check the call.
+//     Do NOT add onlyOwner here: it would lock every user out of their funds.
+function withdraw(uint256 amount) external {
+    require(balances[msg.sender] >= amount, "Insufficient balance"); // CHECKS
+    balances[msg.sender] -= amount;                                  // EFFECTS
+    (bool success, ) = msg.sender.call{value: amount}("");           // INTERACTIONS
+    require(success, "Transfer failed");
+}
+
+// (b) privileged payout — restrict the caller.
+// import "@openzeppelin/contracts/access/Ownable.sol";
+// function sweep(address payable to, uint256 amount) external onlyOwner { ... }""",
+    "tx-origin": """\
+// Fix: authorize with msg.sender, never tx.origin
+contract Vault {
+    address public owner;
+
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Not owner"); // was: tx.origin == owner
+        _;
+    }
+}""",
+}
+_RULE_FIX_TEMPLATES["tx_origin_auth"] = _RULE_FIX_TEMPLATES["tx-origin"]
+
+# Detector rules whose canonical category IS a faithful description, so the
+# category template applies. Everything else gets no category fallback: a
+# finding resolved only through an SWC id, a title keyword or a substring
+# would otherwise receive advice written for a different bug.
+_RULE_CATEGORY_TEMPLATE: Dict[str, str] = {
+    # reentrancy
+    "reentrancy-eth": "reentrancy",
+    "reentrancy-no-eth": "reentrancy",
+    "reentrancy-benign": "reentrancy",
+    "reentrancy-events": "reentrancy",
+    "reentrancy-unlimited-gas": "reentrancy",
+    "reentrancy": "reentrancy",
+    "reentrancy_crossfunction": "reentrancy",
+    "withdraw_no_balance_update": "reentrancy",
+    # access control (functions that must be restricted)
+    "arbitrary-send-eth": "access_control",
+    "arbitrary-send-erc20": "access_control",
+    "arbitrary-send": "access_control",
+    "suicidal": "access_control",
+    "unprotected-upgrade": "access_control",
+    "unprotected_selfdestruct": "access_control",
+    "access_control_initwallet": "access_control",
+    "access_control_owner_reassign": "access_control",
+    "access_control_newowner_public": "access_control",
+    "mapping_write_arbitrary": "access_control",
+    "delegatecall_unprotected": "access_control",
+    "unchecked_mint_burn": "access_control",
+    # unchecked calls
+    "unchecked-lowlevel": "unchecked_call",
+    "unchecked-send": "unchecked_call",
+    "unchecked-transfer": "unchecked_call",
+    "unchecked-return": "unchecked_call",
+    "unused-return": "unchecked_call",
+    "unchecked_return_value": "unchecked_call",
+    "unchecked_send_pattern": "unchecked_call",
+    "unchecked_call_pattern": "unchecked_call",
+    "return_value_token": "unchecked_call",
+    # arithmetic
+    "integer-overflow": "arithmetic",
+    "integer-underflow": "arithmetic",
+    "overflow": "arithmetic",
+    "underflow": "arithmetic",
+    # randomness / time / ordering
+    "weak-prng": "bad_randomness",
+    "weak-randomness": "bad_randomness",
+    "bad_randomness_blockhash": "bad_randomness",
+    "bad_randomness_block_vars": "bad_randomness",
+    "timestamp": "time_manipulation",
+    "block-timestamp-deadline": "time_manipulation",
+    "block-timestamp": "time_manipulation",
+    "front-running": "front_running",
+    "transaction-order-dependence": "front_running",
+    # proxy / delegatecall / initialization
+    "controlled-delegatecall": "proxy_upgrade",
+    "delegatecall-loop": "proxy_upgrade",
+    "delegatecall-in-loop": "proxy_upgrade",
+    "delegate-call-unchecked-address": "proxy_upgrade",
+    "delegatecall_to_untrusted": "proxy_upgrade",
+    "storage_collision_proxy": "proxy_upgrade",
+    "storage-collision": "proxy_upgrade",
+    "unprotected-initializer": "initialization",
+    "uninitialized_proxy": "initialization",
+    "unprotected_initialize": "initialization",
+    # oracle
+    "price_oracle_stale": "oracle_manipulation",
+}
+
+
+def _finding_rule_ids(finding: Dict[str, Any]) -> List[str]:
+    """Rule ids a finding carries (``rule``, ``check``, ``type`` …), lower-cased."""
+    return list(rule_ids(finding))
+
+
+def _category_template_key(finding: Dict[str, Any]) -> Optional[str]:
+    """Canonical category whose template may be used for ``finding``.
+
+    Returns the category when
+      - a rule id is listed in ``_RULE_CATEGORY_TEMPLATE``, or
+      - the finding's own type/rule IS a canonical category name
+        (LLM and pattern detectors emit ``"reentrancy"``, ``"access-control"``),
+      - or, for callers that pass only ``canonical_category`` and no rule id
+        (legacy API), that category.
+    Lint/informational rules and every other resolution path return None.
+    """
+    if finding.get("rule_class") or finding_rule_class(finding):
+        return None
+    rules = _finding_rule_ids(finding)
+    for rule in rules:
+        if rule in _RULE_CATEGORY_TEMPLATE:
+            return _RULE_CATEGORY_TEMPLATE[rule]
+    for rule in rules:
+        as_category = rule.replace("-", "_").replace(" ", "_")
+        if as_category in _CANONICAL_RECOMMENDATIONS or as_category in _FIX_CODE_TEMPLATES:
+            return as_category
+    if not rules:
+        canonical = str(finding.get("canonical_category") or "")
+        if canonical and canonical != "other":
+            return canonical
+        resolved = normalize_finding_type(finding)
+        if resolved is not None and resolved.value != "other":
+            return cast(str, resolved.value)
+    return None
+
+
 def generate_fix_code(
     finding: Dict[str, Any],
     source_code: str = "",
@@ -1334,28 +1685,27 @@ def generate_fix_code(
     """
     Return a copy-pasteable Solidity fix snippet for a given finding.
 
-    Looks up the finding's canonical_category (or normalizes it if absent)
-    against the FIX_CODE_TEMPLATES dictionary.  Returns None for unknown or
-    "other" categories so callers can omit the field cleanly.
+    Resolution order (first hit wins):
+      1. a template written for the detector rule (``_RULE_FIX_TEMPLATES``);
+      2. the canonical-category template, only when the rule is one for
+         which the category is a faithful description (``_RULE_CATEGORY_TEMPLATE``
+         or the type is the category name itself);
+      3. None — a misleading fix is worse than none.
 
     Args:
-        finding: A finding dict (must contain at least 'canonical_category'
-                 or enough fields for normalize_finding_type to resolve one).
+        finding: A finding dict with the tool's rule id in ``type``/``rule``/
+                 ``check`` (or, for legacy callers, just ``canonical_category``).
         source_code: Optional contract source — reserved for future context-
                      aware template selection (e.g. pragma version detection).
 
     Returns:
-        Solidity code string, or None if no template exists for this category.
+        Solidity code string, or None if no template applies.
     """
-    canonical = finding.get("canonical_category", "")
-    if not canonical or canonical == "other":
-        # Try to resolve from the finding itself
-        resolved = normalize_finding_type(finding)
-        if resolved is None or resolved.value == "other":
-            return None
-        canonical = resolved.value
-
-    return _FIX_CODE_TEMPLATES.get(canonical)
+    for rule in _finding_rule_ids(finding):
+        if rule in _RULE_FIX_TEMPLATES:
+            return _RULE_FIX_TEMPLATES[rule]
+    category = _category_template_key(finding)
+    return _FIX_CODE_TEMPLATES.get(category) if category else None
 
 
 # =============================================================================
@@ -1440,27 +1790,36 @@ _EXPLOIT_SCENARIOS: Dict[str, List[str]] = {
 }
 
 
+# Attack narratives keyed by detector rule (same rationale as _RULE_FIX_TEMPLATES).
+_RULE_EXPLOIT_SCENARIOS: Dict[str, List[str]] = {
+    "tx-origin": [
+        "1. Victim (the owner EOA) is lured into calling an attacker contract, e.g. to claim an airdrop.",
+        "2. The attacker contract, inside that call, invokes the victim's privileged function.",
+        "3. The check `tx.origin == owner` passes: tx.origin is the EOA that started the transaction, not the attacker contract.",
+        "4. The privileged action (withdraw, transfer ownership) executes with the owner's authority.",
+    ],
+}
+_RULE_EXPLOIT_SCENARIOS["tx_origin_auth"] = _RULE_EXPLOIT_SCENARIOS["tx-origin"]
+
+
 def generate_exploit_scenario(finding: Dict[str, Any]) -> Optional[List[str]]:
     """
     Return a step-by-step attack description for a given finding.
 
-    Uses the finding's canonical_category to look up a pre-defined scenario
-    modelled on the RAG attack_steps format.  Returns None for unknown or
-    "other" categories.
+    Same resolution as :func:`generate_fix_code`: a scenario written for the
+    detector rule first, then the canonical-category scenario only where the
+    category faithfully describes the rule, otherwise None.
 
     Args:
-        finding: A finding dict with at least 'canonical_category', or enough
-                 fields for normalize_finding_type to resolve a category.
+        finding: A finding dict with the tool's rule id in ``type``/``rule``/
+                 ``check`` (or, for legacy callers, just ``canonical_category``).
 
     Returns:
-        List of step strings, or None if no scenario exists for this category.
+        List of step strings, or None if no scenario applies.
     """
-    canonical = finding.get("canonical_category", "")
-    if not canonical or canonical == "other":
-        resolved = normalize_finding_type(finding)
-        if resolved is None or resolved.value == "other":
-            return None
-        canonical = resolved.value
-
-    scenario = _EXPLOIT_SCENARIOS.get(canonical)
+    for rule in _finding_rule_ids(finding):
+        if rule in _RULE_EXPLOIT_SCENARIOS:
+            return list(_RULE_EXPLOIT_SCENARIOS[rule])
+    category = _category_template_key(finding)
+    scenario = _EXPLOIT_SCENARIOS.get(category) if category else None
     return list(scenario) if scenario is not None else None
