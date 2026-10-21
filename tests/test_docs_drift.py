@@ -138,3 +138,18 @@ def _relative_links() -> list[tuple[str, str]]:
 def test_relative_links_resolve(doc: str, target: str):
     resolved = (ROOT / doc).parent / target
     assert resolved.exists(), f"{doc} links to {target}, which does not exist"
+
+
+# ---------------------------------------------------------------------------
+# No merge-conflict markers left behind
+# ---------------------------------------------------------------------------
+
+_MARKERS = ("<<<<<<< ", ">>>>>>> ")
+
+
+@pytest.mark.parametrize("doc", [*USER_FACING_DOCS, ROOT / "CHANGELOG.md"], ids=lambda p: p.name)
+def test_no_conflict_markers(doc: Path):
+    offending = [
+        n for n, line in enumerate(_read(doc).splitlines(), 1) if line.startswith(_MARKERS)
+    ]
+    assert not offending, f"{doc.relative_to(ROOT)} has merge-conflict markers at lines {offending}"
