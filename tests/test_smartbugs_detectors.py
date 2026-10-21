@@ -90,6 +90,50 @@ class TestArithmeticDetector:
         findings = detector.detect(code)
         assert len(findings) == 0
 
+    def test_detects_cast_multiplication_bypassing_safemath(self, detector):
+        # BECToken batchOverflow shape: the contract defines SafeMath but one raw
+        # multiplication with a cast operand bypasses it. The `uint256(cnt)` cast
+        # used to defeat the operand regex, so the real overflow was missed.
+        code = """
+        pragma solidity ^0.4.16;
+        library SafeMath {
+            function mul(uint256 a, uint256 b) internal returns (uint256) {
+                uint256 c = a * b;
+                assert(a == 0 || c / a == b);
+                return c;
+            }
+        }
+        contract Token {
+            using SafeMath for uint256;
+            function batchTransfer(uint256 cnt, uint256 _value) public {
+                uint256 amount = uint256(cnt) * _value;
+            }
+        }
+        """
+        findings = detector.detect(code)
+        assert any("overflow" in f.title.lower() for f in findings)
+        # The raw bypass line is flagged, but the SafeMath library's own `a * b` is not.
+        assert any("uint256(cnt) * _value" in f.code_snippet for f in findings)
+        assert not any("c = a * b" in f.code_snippet for f in findings)
+
+    def test_ignores_safemath_library_internals(self, detector):
+        # A SafeMath library's own checked-primitive arithmetic must not be flagged.
+        code = """
+        pragma solidity ^0.4.24;
+        library SafeMath {
+            function mul(uint256 a, uint256 b) internal returns (uint256) {
+                uint256 c = a * b;
+                return c;
+            }
+            function add(uint256 a, uint256 b) internal returns (uint256) {
+                uint256 c = a + b;
+                return c;
+            }
+        }
+        """
+        findings = detector.detect(code)
+        assert len(findings) == 0
+
 
 class TestReentrancyDetector:
     """Tests for ReentrancyDetector."""
