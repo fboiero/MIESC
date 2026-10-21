@@ -321,6 +321,77 @@ with Ollama reachable took 724 s with three LLM adapters hitting the 120 s per-c
 (GPTScan, GPTLens, LLM-SmartAudit, reported as `timeout`, not as empty success); with
 Ollama unreachable the same audit takes 15 s.
 
+### Wave C3 "Score what the tools found" (2026-10-21)
+
+Same command and environment (`make bench`, `--no-llm`, Python 3.12.6, Slither 0.11.3 resolved
+first, Aderyn 0.1.9, Solhint 6.0.1). Two runs, nothing else executing on the machine:
+`main` after #188 (clean detached worktree at `ea7cce4f`), then the same `main` plus the three
+C3 commits. Artifacts:
+`benchmarks/results/smartbugs_eval_layers_1_6_7_20261021_main_after_188.{json,jsonl}` and
+`benchmarks/results/smartbugs_eval_layers_1_6_7_20261021_intel_fix.{json,jsonl}`.
+
+| Metric | Wave C4 (reference) | `main` + #188 | + wave C3 | Δ vs. reference |
+|---|---|---|---|---|
+| Recall (contracts) | 143/143 = 100 % | 143/143 = 100 % | **143/143 = 100 %** | 0 |
+| Precision | 22.4 % (495 FP) | 22.4 % (495 FP) | **25.7 % (414 FP)** | +3.3 pt, −81 FP |
+| F1 | 36.6 % | 36.6 % | **40.9 %** | +4.2 pt |
+| Wall time | 310 s | 143 s | 153 s | |
+
+#188 (ArithmeticDetector cast operands) does not move this profile: `main` + #188 equals C4
+contract by contract. Every one of the 81 removed false positives is attributed below; no
+false positive was added and no contract lost a true category (per-contract diff of the two
+`.jsonl` files). The C3 run is deterministic: a first run on the pre-#188 base also gave 414.
+
+The change is three commits, each measured on the corpus before it was written:
+
+1. **Scorer (`miesc/cli/commands/evaluate.py`), the methodology change.**
+   `_normalize_category` falls back to keyword matching on title/description when a finding's
+   type is unknown. Two finding kinds that are not SmartBugs categories were being coerced into
+   one by that fallback reading their own *remediation text*: the `hardcoded_gas` gap-filler
+   (SWC-134, "use call{value:}() with reentrancy guard") scored as `reentrancy`, 36 FP / 0 TP;
+   the DeFi adapter's `mev_exposure` rule ("Public withdrawal - can be front-run", ships
+   `category` but no `type`) scored as `front_running`, 14 FP / 0 TP. Both existed in the paper
+   run (the paper `.jsonl` carries the same 15 layer-7 `front_running` contracts). An explicit
+   `OUT_OF_TAXONOMY_TYPES` set (hardcoded_gas, missing_event_emission, the `DeFiCategory`
+   values) is now checked against the finding's `type` and `category` before any alias or
+   keyword match. Only those names consult `category`, so `smartbugs_detector` findings (also
+   category-without-type) are untouched. The empty-type quirk recorded under wave C1 is fixed
+   in the same commit (an empty type no longer reaches the substring match). `mev_detector`'s
+   balance-dependent `require` on `bad_randomness/smart_billions` is real SWC-114 and is the one
+   layer-7 `front_running` finding that still counts (1 FP).
+2. **Two gap-fillers removed (`miesc/core/intelligence.py`).** `dos_push_unbounded` fired on
+   any `x.push(`: 33 FP (19 of them `History.push(LastMsg)` in reentrancy samples), 0 TP that a
+   tool had not already found. `reentrancy_crossfunction` fired on any `.call{value:}` /
+   `.call.value(`: 35 FP, 0 exclusive TP; its callback-into-caller pattern
+   (`Bank(msg.sender).cb()`, 1 TP / 0 FP) is kept.
+3. **Three rule bugs.** `incorrect_constructor_name` never checked the contract name and fired
+   on real pre-0.4.22 constructors (`function EthTxOrderDependenceMinimal()` inside that
+   contract); it now skips a function named after its *enclosing* contract (a function named
+   after a different contract in the file, the copy-paste bug, still fires: the six
+   `initTokenBank` / `DranMe` cases). `unchecked_call_pattern` fired on
+   `(bool success, ) = x.call.value(..)("")` with `require(success)` on the next line; anchored
+   at the statement start (35 TP / 5 FP → 35 TP / 0 FP). `front_running` fired on a bodyless
+   `function approve(...) returns (bool);` in an abstract ERC20 declaration; approve now needs a
+   body.
+
+What the intelligence layer contributes to this profile after C3: 4 false positives, 0 true
+positives that no tool had found (`layers.intelligence.new_categories` in the `.jsonl`:
+`access_control` ×2 from `access_control_initwallet` on Parity-style `init()` in arithmetic
+samples, `denial_of_service` ×1 on `etherpot_lotto`'s real loop over buyers, `front_running`
+×1 on `require(sha3(status) == sha3("Married"))`). That is consistent with the paper-era
+ablation: at v5.4.1 the gap-fillers were worth +7 contracts (93.0 % → 97.9 %); the layer 6
+detectors shipped since then cover all of them, so the gap-fillers' recall contribution on
+`main` is nil and only their precision cost remained.
+
+The alternative that was measured and not taken: ignoring every intelligence-only category in
+the scorer (equivalent to `--no-intelligence` for the score, since the FP suppression never
+removes a tool category) gives 410 FP / 25.9 %, 0.4 pt more, by scoring a pipeline the paper's
+own ablation says mattered and by hiding the noisy rules from `miesc audit` users instead of
+fixing them.
+
+Remaining FP sources are now tool-side: `arithmetic` 128 (Slither/Aderyn pre-0.8 overflow
+heuristics), `time_manipulation` 43, `access_control` 67, `bad_randomness` 46.
+
 ## 5. What is not covered here
 
 - **LLM follow-up (97.9 %)**: Paper 1 reports a local-Ollama pass on the six misses as a
