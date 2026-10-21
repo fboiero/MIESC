@@ -28,7 +28,6 @@ Version: 1.0.0
 """
 
 import hashlib
-import json
 import logging
 import re
 import time
@@ -48,6 +47,7 @@ from miesc.core.tool_protocol import (
     ToolMetadata,
     ToolStatus,
 )
+from miesc.llm.json_extraction import extract_llm_object
 
 logger = logging.getLogger(__name__)
 
@@ -1182,66 +1182,16 @@ class GPTLensAdapter(OllamaCallMixin, LLMCacheMixin, ToolAdapter):
     # ========================================================================
 
     def _extract_json_from_response(self, response: str) -> Optional[Dict[str, Any]]:
-        """
-        Extract JSON object from an LLM response using multiple strategies.
-
-        Strategy 1: Look for ```json ... ``` code blocks
-        Strategy 2: Find JSON starting with {"findings"
-        Strategy 3: Find first { to last } and parse
-        Strategy 4: Attempt JSON repair (trailing commas, etc.)
-
-        Args:
-            response: Raw LLM response text
-
-        Returns:
-            Parsed JSON dictionary or None
-        """
-        # Strategy 1: JSON code block
-        json_block = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", response, re.DOTALL)
-        if json_block:
-            try:
-                return cast(Optional[Dict[Any, Any]], json.loads(json_block.group(1)))
-            except json.JSONDecodeError:
-                pass
-
-        # Strategy 2: Find {"findings"
-        findings_match = re.search(r'\{\s*"findings"\s*:', response)
-        if findings_match:
-            start = findings_match.start()
-            depth = 0
-            for i, char in enumerate(response[start:]):
-                if char == "{":
-                    depth += 1
-                elif char == "}":
-                    depth -= 1
-                    if depth == 0:
-                        try:
-                            return cast(
-                                Optional[Dict[Any, Any]],
-                                json.loads(response[start : start + i + 1]),
-                            )
-                        except json.JSONDecodeError:
-                            break
-
-        # Strategy 3: First { to last }
-        json_start = response.find("{")
-        json_end = response.rfind("}") + 1
-        if json_start != -1 and json_end > json_start:
-            json_str = response[json_start:json_end]
-            try:
-                return cast(Optional[Dict[Any, Any]], json.loads(json_str))
-            except json.JSONDecodeError:
-                pass
-
-            # Strategy 4: Repair common issues
-            repaired = self._repair_json(json_str)
-            if repaired:
-                try:
-                    return cast(Optional[Dict[Any, Any]], json.loads(repaired))
-                except json.JSONDecodeError:
-                    pass
-
-        return None
+        """Extract the JSON object from an LLM response (shared tolerant extractor)."""
+        parsed = extract_llm_object(
+            response,
+            required_keys=("findings", "verdict", "vulnerabilities"),
+            log_prefix="GPTLens",
+            warn=False,
+        )
+        if parsed is None:
+            parsed = extract_llm_object(response, log_prefix="GPTLens")
+        return parsed
 
     def _repair_json(self, json_str: str) -> Optional[str]:
         """

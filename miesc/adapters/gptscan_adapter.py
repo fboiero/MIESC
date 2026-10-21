@@ -27,10 +27,7 @@ from miesc.core.tool_protocol import (
     ToolMetadata,
     ToolStatus,
 )
-from miesc.security.llm_output_validator import (
-    extract_json_from_text,
-    repair_common_json_errors,
-)
+from miesc.llm.json_extraction import extract_llm_object
 
 # Try to import EmbeddingRAG (optional dependency)
 try:
@@ -485,11 +482,11 @@ Respond ONLY with valid JSON. Report ONLY vulnerabilities you are CONFIDENT abou
             # Robust JSON extraction (balanced braces + repair) before falling
             # back to weaker text parsing — recoverable malformed JSON (trailing
             # commas, code fences) must not silently degrade to text.
-            json_str = extract_json_from_text(output)
+            parsed = extract_llm_object(
+                output, required_keys=("vulnerabilities", "findings"), log_prefix="GPTScan"
+            )
 
-            if json_str:
-                parsed = json.loads(repair_common_json_errors(json_str))
-
+            if parsed is not None:
                 # Extract findings from parsed JSON. Guard against hostile/atypical
                 # LLM output where ``parsed`` is not a dict or ``vulnerabilities`` is
                 # not a list of dicts — otherwise iteration / .get() / .upper() would

@@ -127,6 +127,8 @@ benchmarks/results/evmbench/*
 !benchmarks/results/smartbugs_eval_layers_1_6_7_20261020_fp_tightened.jsonl
 !benchmarks/results/smartbugs_eval_layers_1_6_7_20261020_trust_findings.json
 !benchmarks/results/smartbugs_eval_layers_1_6_7_20261020_trust_findings.jsonl
+!benchmarks/results/smartbugs_eval_layers_1_6_7_20261020_c4.json
+!benchmarks/results/smartbugs_eval_layers_1_6_7_20261020_c4.jsonl
 !benchmarks/results/paper1_smartbugs_full_all_layers_smoke_20260506.json
 !benchmarks/results/paper1_smartbugs_full_all_layers_smoke_20260506.jsonl
 !benchmarks/results/fix_eval_results.json

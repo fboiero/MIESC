@@ -300,6 +300,27 @@ reads `skipped` + `tool_reason: not_installed | no_llm` where the earlier artifa
 `not_available` / `skipped`. Comparisons with `miesc evaluate compare` are unaffected.
 
 
+### Wave C4 "LLM path robustness" (2026-10-20)
+
+Same command (`make bench`, `--no-llm`) after routing every LLM adapter through the shared
+JSON extractor and adding the `--llm-timeout` budget. The profile is LLM-free, so nothing
+should move, and nothing did. Artifact:
+`benchmarks/results/smartbugs_eval_layers_1_6_7_20261020_c4.{json,jsonl}`.
+
+| Metric | Wave C1 (reference) | Wave C4 | Δ |
+|---|---|---|---|
+| Recall (contracts) | 143/143 = 100 % | **143/143 = 100 %** | 0 |
+| Precision | 22.4 % (495 FP) | **22.4 % (495 FP)** | 0 |
+| F1 | 36.6 % | **36.6 %** | 0 |
+| Wall time | 179 s | 310 s | run overlapped with an Ollama audit on the same machine |
+
+The LLM-path measurements of the wave are on `examples/contracts/VulnerableBank.sol`:
+`scan --model ollama` (qwen2.5-coder:32b) now parses the 1,419-character response that
+yielded zero findings in the walkthrough (`json_repair` strategy, 1 finding); `audit full`
+with Ollama reachable took 724 s with three LLM adapters hitting the 120 s per-call budget
+(GPTScan, GPTLens, LLM-SmartAudit, reported as `timeout`, not as empty success); with
+Ollama unreachable the same audit takes 15 s.
+
 ## 5. What is not covered here
 
 - **LLM follow-up (97.9 %)**: Paper 1 reports a local-Ollama pass on the six misses as a

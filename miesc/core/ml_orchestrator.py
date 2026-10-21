@@ -10,6 +10,8 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, cast
 
+from miesc.core.llm_budget import budget_for
+
 if TYPE_CHECKING:
     pass
 
@@ -98,6 +100,11 @@ class MLAnalysisResult:
     tools_skipped: List[str] = field(default_factory=list)
     tools_fallback: List[str] = field(default_factory=list)
     tool_status: Dict[str, str] = field(default_factory=dict)
+    # Per-tool wall time (s) and the timeout budget each tool ran under, so a
+    # slow adapter is visible in the summary instead of hidden in the total.
+    tool_timings: Dict[str, float] = field(default_factory=dict)
+    tool_budgets: Dict[str, Optional[int]] = field(default_factory=dict)
+    tool_cached: Dict[str, bool] = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         """Convierte resultado a diccionario."""
@@ -105,6 +112,7 @@ class MLAnalysisResult:
             "contract_path": self.contract_path,
             "tools_run": self.tools_run,
             "tools_success": self.tools_success,
+            "tool_timings": {k: round(v, 3) for k, v in self.tool_timings.items()},
             "tools_failed": self.tools_failed,
             "tools_skipped": self.tools_skipped,
             "tools_fallback": self.tools_fallback,
@@ -270,12 +278,16 @@ class MLOrchestrator:
             cached = self.cache.get(tool_name, contract_path)
             if cached:
                 logger.info(f"Cache hit for {tool_name}")
-                return cached
+                # Copy so the stored record stays untouched; flag it so timing
+                # tables do not present the original run's time as this run's.
+                hit = dict(cached)
+                hit["from_cache"] = True
+                return hit
 
         try:
             adapter = self.discovery.load_adapter(tool_name)
             adapter_config = self.config.get_adapter_config(tool_name)
-            effective_timeout = adapter_config.timeout or timeout
+            effective_timeout = budget_for(adapter, adapter_config.timeout or timeout)
 
             # Probe availability first so the record says whether the real tool
             # ran. Adapters with a built-in heuristic (dagnn, smartbugs_ml) still
@@ -285,6 +297,7 @@ class MLOrchestrator:
 
             result = adapter.analyze(contract_path, timeout=effective_timeout)
             result = _normalize_status(cast(dict[str, Any], result))
+            result.setdefault("timeout_budget_s", effective_timeout)
             if availability not in (None, "available"):
                 if result.get("status") == "success":
                     result["fallback"] = True
@@ -528,6 +541,17 @@ class MLOrchestrator:
             tools_skipped=tools_skipped,
             tools_fallback=tools_fallback,
             tool_status=tool_status,
+            tool_timings={
+                t: float(r.get("execution_time") or 0)
+                for t, r in raw_results.items()
+                if isinstance(r, dict)
+            },
+            tool_budgets={
+                t: r.get("timeout_budget_s") for t, r in raw_results.items() if isinstance(r, dict)
+            },
+            tool_cached={
+                t: bool(r.get("from_cache")) for t, r in raw_results.items() if isinstance(r, dict)
+            },
             total_raw_findings=len(all_findings),
             raw_findings=all_findings,
             ml_filtered_findings=ml_filtered_findings,

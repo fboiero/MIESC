@@ -37,16 +37,9 @@ from miesc.core.tool_protocol import (
     ToolMetadata,
     ToolStatus,
 )
+from miesc.llm.json_extraction import extract_llm_json
 
 logger = logging.getLogger(__name__)
-
-# Optional tolerant-JSON fallback for malformed LLM output (e.g. local models
-# emitting unescaped quotes inside Solidity snippets). Installed via miesc[llm];
-# parsing degrades to the built-in strategies when it is absent.
-try:  # pragma: no cover - import guard
-    from json_repair import repair_json as _repair_json
-except ImportError:  # pragma: no cover - optional dependency
-    _repair_json = None  # type: ignore[assignment]
 
 
 # ---------------------------------------------------------------------------
@@ -572,6 +565,7 @@ class FrontierLLMAdapter(ToolAdapter):
                 "provider": provider,
                 "model": self._model,
                 "source_chars": len(source_code),
+                "parse": getattr(self, "_last_parse", None),
             },
         }
 
@@ -1613,184 +1607,48 @@ Respond with a JSON array."""
         result = json.loads(resp.read())
         return self._parse_response(result.get("message", {}).get("content", ""))
 
+    _FINDING_KEYS = ("title", "type", "vulnerability", "description", "severity")
+
     def _parse_response(self, text: str) -> List[Dict]:
-        """Parse JSON findings from LLM response.
+        """Parse JSON findings from an LLM response.
 
-        Handles multiple response formats:
-        - Raw JSON array: [...]
-        - Markdown code block: ```json [...] ```
-        - Wrapped dict: {"vulnerabilities": [...]}
-        - Mixed text with embedded JSON
+        Accepts a raw array, a fenced array, a wrapped dict
+        (``{"vulnerabilities": [...]}``), prose around the JSON, NDJSON lines and
+        the malformed variants local models emit (trailing commas, raw newlines,
+        unescaped quotes inside Solidity snippets). Delegates to the shared
+        extractor so every LLM adapter reads the same inputs the same way.
         """
-        import re
-
-        text = text.strip()
-
-        # Strip OUTER markdown code fences only (preserve inner ones in strings)
-        # Match: starts with ```json, ends with ```
-        text_clean = text
-        if text_clean.startswith("```"):
-            # Remove opening fence
-            first_newline = text_clean.find("\n")
-            if first_newline > 0:
-                text_clean = text_clean[first_newline + 1 :]
-            # Remove closing fence
-            last_fence = text_clean.rfind("```")
-            if last_fence > 0:
-                text_clean = text_clean[:last_fence]
-        text_clean = text_clean.strip()
-
-        # Try multiple extraction strategies
-        for attempt_text in [text_clean, text]:
-            # Strategy 1: Find outermost JSON array
-            start = attempt_text.find("[")
-            end = attempt_text.rfind("]")
-            if start != -1 and end != -1 and end > start:
-                json_str = attempt_text[start : end + 1]
-                # Sanitize: escape inner backticks and control chars in string values
-                json_str = json_str.replace("```solidity", "").replace("```", "")
-                # Fix literal newlines/tabs inside JSON string values (common with local LLMs)
-                # Replace actual newlines inside strings with \\n
-                json_str = re.sub(
-                    r'(?<=": ")(.*?)(?="[,\s*\}])',
-                    lambda m: m.group(0).replace("\n", "\\n").replace("\t", "\\t"),
-                    json_str,
-                    flags=re.DOTALL,
+        extraction = extract_llm_json(text, want="auto", log_prefix="FrontierLLM")
+        self._last_parse = extraction.as_dict()
+        findings: List[Dict] = []
+        data = extraction.data
+        if isinstance(data, list):
+            findings = [f for f in data if isinstance(f, dict)]
+        elif isinstance(data, dict):
+            for key in ("vulnerabilities", "findings", "results", "issues"):
+                value = data.get(key)
+                if isinstance(value, list):
+                    findings = [f for f in value if isinstance(f, dict)]
+                    break
+            else:
+                if any(k in data for k in self._FINDING_KEYS):
+                    findings = [data]
+        findings = [f for f in findings if any(k in f for k in self._FINDING_KEYS)]
+        if findings:
+            if extraction.strategy and extraction.strategy not in ("direct", "fenced"):
+                logger.info(
+                    "FrontierLLM: recovered %d finding(s) via %s",
+                    len(findings),
+                    extraction.strategy,
                 )
-                # Fallback: replace ALL raw control chars with spaces
-                json_str = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", " ", json_str)
-                try:
-                    findings = json.loads(json_str)
-                    if isinstance(findings, list):
-                        valid = [f for f in findings if isinstance(f, dict)]
-                        if valid:
-                            return valid
-                except json.JSONDecodeError:
-                    # Try fixing common JSON issues: trailing commas + raw newlines
-                    fixed = re.sub(r",\s*([}\]])", r"\1", json_str)
-                    # Nuclear option: replace ALL newlines that aren't between [ and ]
-                    fixed = fixed.replace("\n", "\\n")
-                    try:
-                        findings = json.loads(fixed)
-                        if isinstance(findings, list):
-                            return [f for f in findings if isinstance(f, dict)]
-                    except json.JSONDecodeError:
-                        pass
-
-            # Strategy 2: Parse as dict with vulnerabilities key
-            try:
-                result = json.loads(attempt_text)
-                if isinstance(result, list):
-                    return [f for f in result if isinstance(f, dict)]
-                if isinstance(result, dict):
-                    for key in ("vulnerabilities", "findings", "results"):
-                        if key in result and isinstance(result[key], list):
-                            return [f for f in result[key] if isinstance(f, dict)]
-            except json.JSONDecodeError:
-                pass
-
-        # Strategy 3: Extract individual JSON objects line by line
-        findings = []
-        for line in text.split("\n"):
-            line = line.strip().rstrip(",")
-            if line.startswith("{") and line.endswith("}"):
-                try:
-                    obj = json.loads(line)
-                    if isinstance(obj, dict) and any(
-                        k in obj for k in ("title", "type", "vulnerability", "description")
-                    ):
-                        findings.append(obj)
-                except json.JSONDecodeError:
-                    pass
-        if findings:
             return findings
-
-        # Strategy 4: Extract objects by matching balanced braces
-        depth = 0
-        obj_start = -1
-        for i, ch in enumerate(text_clean):
-            if ch == "{":
-                if depth == 0:
-                    obj_start = i
-                depth += 1
-            elif ch == "}":
-                depth -= 1
-                if depth == 0 and obj_start >= 0:
-                    obj_str = text_clean[obj_start : i + 1]
-                    # Clean up common issues in extracted objects
-                    obj_str = obj_str.replace("```solidity", "").replace("```", "")
-                    obj_str = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", " ", obj_str)
-                    try:
-                        obj = json.loads(obj_str)
-                        if isinstance(obj, dict) and any(
-                            k in obj
-                            for k in ("title", "type", "vulnerability", "description", "severity")
-                        ):
-                            findings.append(obj)
-                    except json.JSONDecodeError:
-                        pass
-                    obj_start = -1
-        if findings:
-            return findings
-
-        # Strategy 5: Find JSON array anywhere in the text using regex
-        # Handles cases where model outputs explanation text before/after JSON
-        json_array_match = re.search(r"\[\s*\{", text)
-        if json_array_match:
-            # Find the matching closing bracket
-            start_pos = json_array_match.start()
-            bracket_depth = 0
-            end_pos = start_pos
-            for i in range(start_pos, len(text)):
-                if text[i] == "[":
-                    bracket_depth += 1
-                elif text[i] == "]":
-                    bracket_depth -= 1
-                    if bracket_depth == 0:
-                        end_pos = i + 1
-                        break
-            if end_pos > start_pos:
-                json_str = text[start_pos:end_pos]
-                json_str = json_str.replace("```solidity", "").replace("```", "")
-                json_str = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", " ", json_str)
-                # Fix trailing commas
-                json_str = re.sub(r",\s*([}\]])", r"\1", json_str)
-                try:
-                    findings = json.loads(json_str)
-                    if isinstance(findings, list):
-                        valid = [f for f in findings if isinstance(f, dict)]
-                        if valid:
-                            return valid
-                except json.JSONDecodeError:
-                    pass
-
-        # Final fallback: tolerant repair for malformed JSON the strategies above
-        # cannot recover — most often local models emitting unescaped double
-        # quotes inside Solidity snippets (e.g. `call{value: balance}("")`), which
-        # terminate the JSON string early. Optional dependency (miesc[llm]).
-        if _repair_json is not None:
-            for attempt_text in (text_clean, text):
-                start = attempt_text.find("[")
-                end = attempt_text.rfind("]")
-                if start != -1 and end > start:
-                    try:
-                        repaired = _repair_json(attempt_text[start : end + 1], return_objects=True)
-                    except Exception:  # pragma: no cover - defensive
-                        continue
-                    if isinstance(repaired, list):
-                        valid = [f for f in repaired if isinstance(f, dict)]
-                        if valid:
-                            logger.info(
-                                "FrontierLLM: recovered %d finding(s) via tolerant JSON repair",
-                                len(valid),
-                            )
-                            return valid
-
-        logger.warning(f"FrontierLLM: Could not parse response ({len(text)} chars)")
-        # Surface the raw response under DEBUG so unparseable local-LLM output
-        # (e.g. prose or malformed JSON triggered by injected RAG context) can be
-        # diagnosed without re-running. Truncated to keep logs manageable.
-        logger.debug("FrontierLLM: unparseable response (first 2000 chars):\n%s", text[:2000])
+        if extraction.ok:
+            logger.warning("FrontierLLM: parsed JSON but found no finding objects")
+        else:
+            logger.warning(f"FrontierLLM: Could not parse response ({len(text or '')} chars)")
+            logger.debug(
+                "FrontierLLM: unparseable response (first 2000 chars):\n%s", (text or "")[:2000]
+            )
         return []
 
     def normalize_findings(self, raw_output: Any) -> List[Dict[str, Any]]:

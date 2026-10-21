@@ -120,12 +120,6 @@ class TestParseResponseRepairFallback:
     finding where ``--model ollama`` yielded 0 LLM findings on valid output."""
 
     def test_recovers_unescaped_quotes_in_snippet(self):
-        import pytest
-
-        from miesc.adapters import frontier_llm_adapter as mod
-
-        if mod._repair_json is None:
-            pytest.skip("json-repair (miesc[llm]) not installed")
 
         a = FrontierLLMAdapter()
         text = (

@@ -75,6 +75,7 @@ from miesc.core.tool_protocol import (
     ToolMetadata,
     ToolStatus,
 )
+from miesc.llm.json_extraction import extract_llm_object
 
 logger = logging.getLogger(__name__)
 
@@ -1057,46 +1058,13 @@ Report ONLY vulnerabilities confirmed by your step-by-step analysis. Quality ove
         return findings
 
     def _extract_json(self, text: str) -> Optional[Dict]:
-        """Extract JSON object from text using multiple strategies."""
-        import re
-
-        # Strategy 1: Find JSON block between ```json and ```
-        json_block_match = re.search(r"```json\s*(.*?)\s*```", text, re.DOTALL)
-        if json_block_match:
-            try:
-                return cast(Optional[Dict[Any, Any]], json.loads(json_block_match.group(1)))
-            except json.JSONDecodeError:
-                pass
-
-        # Strategy 2: Find JSON starting with {"findings"
-        findings_match = re.search(r'\{\s*"findings"\s*:', text)
-        if findings_match:
-            start = findings_match.start()
-            # Find matching closing brace
-            depth = 0
-            for i, char in enumerate(text[start:]):
-                if char == "{":
-                    depth += 1
-                elif char == "}":
-                    depth -= 1
-                    if depth == 0:
-                        try:
-                            return cast(
-                                Optional[Dict[Any, Any]], json.loads(text[start : start + i + 1])
-                            )
-                        except json.JSONDecodeError:
-                            break
-
-        # Strategy 3: Simple extraction between first { and last }
-        json_start = text.find("{")
-        json_end = text.rfind("}") + 1
-        if json_start != -1 and json_end > json_start:
-            try:
-                return cast(Optional[Dict[Any, Any]], json.loads(text[json_start:json_end]))
-            except json.JSONDecodeError:
-                pass
-
-        return None
+        """Extract JSON object from text (shared tolerant extractor)."""
+        parsed = extract_llm_object(
+            text, required_keys=("findings",), log_prefix="SmartLLM", warn=False
+        )
+        if parsed is None:
+            parsed = extract_llm_object(text, log_prefix="SmartLLM")
+        return parsed
 
     def _repair_and_parse_json(self, text: str) -> Optional[Dict]:
         """Attempt to repair common JSON issues and parse."""

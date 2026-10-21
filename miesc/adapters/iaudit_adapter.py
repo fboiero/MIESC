@@ -49,6 +49,7 @@ from miesc.core.tool_protocol import (
     ToolMetadata,
     ToolStatus,
 )
+from miesc.llm.json_extraction import extract_llm_object
 
 logger = logging.getLogger(__name__)
 
@@ -1502,60 +1503,15 @@ class IAuditAdapter(OllamaCallMixin, LLMCacheMixin, ToolAdapter):
     # ========================================================================
 
     def _extract_json_robust(self, text: str) -> Optional[Dict[str, Any]]:
-        """
-        Extract JSON from LLM output using multiple strategies.
-
-        Strategy order:
-          1. JSON code block (```json ... ```)
-          2. Find {"findings" or {"reviewed_findings" start
-          3. First { to last }
-          4. Aggressive repair (trailing commas, unescaped newlines)
-
-        Args:
-            text: Raw LLM output text
-
-        Returns:
-            Parsed JSON dict, or None if extraction fails
-        """
+        """Extract JSON from LLM output (shared tolerant extractor)."""
         if not text or not text.strip():
             return None
-
-        # Strategy 1: JSON code block
-        json_block = re.search(r"```json\s*(.*?)\s*```", text, re.DOTALL)
-        if json_block:
-            try:
-                return cast(Optional[Dict[Any, Any]], json.loads(json_block.group(1)))
-            except json.JSONDecodeError:
-                pass
-
-        # Strategy 2: Find known key patterns
-        for key in ['"findings"', '"reviewed_findings"']:
-            pattern = re.search(r"\{\s*" + re.escape(key) + r"\s*:", text)
-            if pattern:
-                start = pattern.start()
-                result = self._extract_balanced_json(text, start)
-                if result is not None:
-                    return result
-
-        # Strategy 3: First { to last }
-        json_start = text.find("{")
-        json_end = text.rfind("}") + 1
-        if json_start != -1 and json_end > json_start:
-            json_str = text[json_start:json_end]
-            try:
-                return cast(Optional[Dict[Any, Any]], json.loads(json_str))
-            except json.JSONDecodeError:
-                pass
-
-            # Strategy 4: Repair and retry
-            repaired = self._repair_json(json_str)
-            if repaired:
-                try:
-                    return cast(Optional[Dict[Any, Any]], json.loads(repaired))
-                except json.JSONDecodeError:
-                    pass
-
-        return None
+        parsed = extract_llm_object(
+            text, required_keys=("findings", "reviewed_findings"), log_prefix="iAudit", warn=False
+        )
+        if parsed is None:
+            parsed = extract_llm_object(text, log_prefix="iAudit")
+        return parsed
 
     def _extract_balanced_json(self, text: str, start: int) -> Optional[Dict[str, Any]]:
         """

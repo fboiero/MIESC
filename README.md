@@ -818,7 +818,10 @@ sudo apt install libpango-1.0-0 libpangoft2-1.0-0  # Linux
 ```
 
 **`miesc audit full` runs slowly (>10 min per contract)**
-The Ollama layers auto-select the most capable installed model (preferring `qwen2.5-coder:32b` for audit quality), so a 32B model on a small contract is slow. Force the lighter model with `--model qwen2.5-coder:14b`, set `qwen2.5-coder:14b` in `~/.miesc/config.yaml`, or run a quick scan: `miesc audit quick`.
+The Ollama layers auto-select the most capable installed model (preferring `qwen2.5-coder:32b` for audit quality), so a 32B model on a small contract is slow. Cap the LLM-backed tools with `--llm-timeout 60` (static tools keep `--timeout`), force the lighter model with `--model qwen2.5-coder:14b`, set `qwen2.5-coder:14b` in `~/.miesc/config.yaml`, or run a quick scan: `miesc audit quick`. The "Slowest tools" table at the end of the audit shows where the time went.
+
+**An LLM adapter reports 0 findings on a contract that clearly has issues**
+Set `MIESC_LLM_DUMP_DIR=/tmp/miesc-llm` and re-run: every raw model response is saved there. If a file does not parse, open an issue with it attached; the parser fixtures in `tests/fixtures/llm_responses/` are built from exactly these captures.
 
 </details>
 

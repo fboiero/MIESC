@@ -40,6 +40,7 @@ from miesc.core.tool_protocol import (
     ToolMetadata,
     ToolStatus,
 )
+from miesc.llm.json_extraction import extract_llm_object
 
 logger = logging.getLogger(__name__)
 
@@ -775,40 +776,13 @@ Respond with ONLY the JSON object. No explanations outside JSON."""
         return None
 
     def _extract_json_object(self, text: str) -> Optional[Dict]:
-        """Extract the outermost JSON object from text."""
-        # Try finding {"findings": pattern first
-        findings_match = re.search(r'\{\s*"findings"\s*:', text)
-        if findings_match:
-            start = findings_match.start()
-            depth = 0
-            for i, char in enumerate(text[start:]):
-                if char == "{":
-                    depth += 1
-                elif char == "}":
-                    depth -= 1
-                    if depth == 0:
-                        try:
-                            return cast(
-                                Optional[Dict[Any, Any]], json.loads(text[start : start + i + 1])
-                            )
-                        except json.JSONDecodeError:
-                            break
-
-        # Fallback: first { to last }
-        json_start = text.find("{")
-        json_end = text.rfind("}") + 1
-        if json_start != -1 and json_end > json_start:
-            try:
-                return cast(Optional[Dict[Any, Any]], json.loads(text[json_start:json_end]))
-            except json.JSONDecodeError:
-                # Try removing trailing commas
-                cleaned = re.sub(r",\s*([}\]])", r"\1", text[json_start:json_end])
-                try:
-                    return cast(Optional[Dict[Any, Any]], json.loads(cleaned))
-                except json.JSONDecodeError:
-                    pass
-
-        return None
+        """Extract the outermost JSON object from text (shared tolerant extractor)."""
+        parsed = extract_llm_object(
+            text, required_keys=("findings",), log_prefix="LlamaAudit", warn=False
+        )
+        if parsed is None:
+            parsed = extract_llm_object(text, log_prefix="LlamaAudit")
+        return parsed
 
     def _extract_findings_regex(self, text: str, contract_path: str) -> List[Dict[str, Any]]:
         """
