@@ -553,16 +553,19 @@ class FeeOnTransferDetector(DeFiDetector):
     # tokenId, not an amount) — fee-on-transfer is an ERC20-only concept, so a
     # call cast through one of these NFT/multi-token interfaces is not a hit.
     NFT_TRANSFER_MARKER = re.compile(r"\bI?ERC(721|1155)\b")
+    # Only a transfer *into this contract* can over-credit it: one between
+    # third parties (`transferFrom(buyer, seller, x)`) or a token forwarding
+    # to its own parent (`super.transferFrom(_from, _to, _value)`) cannot.
+    INTO_THIS = re.compile(r"[(,]\s*(?:address\s*\(\s*this\s*\)|this)\s*[,)]")
+    # An NFT held in a plain variable has no ERC721 cast on the line, but
+    # its last argument is a token id, not an amount.
+    TOKEN_ID_ARG = re.compile(r",\s*_?[Tt]oken_?[Ii]d\w*\s*\)")
 
     def detect(self, source_code: str, file_path: Optional[Path] = None) -> List[DeFiFinding]:
         findings: List[DeFiFinding] = []
         lines = source_code.split("\n")
 
-        transfer_in_lines = [
-            i
-            for i, line in enumerate(lines, 1)
-            if self.TRANSFER_IN_PATTERN.search(line) and not self.NFT_TRANSFER_MARKER.search(line)
-        ]
+        transfer_in_lines = [i for i, line in enumerate(lines, 1) if self._is_transfer_in(line)]
         has_balance_check = self.BALANCE_CHECK_PATTERN.search(source_code)
 
         if transfer_in_lines and not has_balance_check:
@@ -588,6 +591,13 @@ class FeeOnTransferDetector(DeFiDetector):
                 )
 
         return findings
+
+    def _is_transfer_in(self, line: str) -> bool:
+        match = self.TRANSFER_IN_PATTERN.search(line)
+        if not match or self.NFT_TRANSFER_MARKER.search(line):
+            return False
+        args = "(" + line[match.end() :]
+        return bool(self.INTO_THIS.search(args)) and not self.TOKEN_ID_ARG.search(args)
 
 
 class ERC4626ComplianceDetector(DeFiDetector):

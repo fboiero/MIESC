@@ -472,6 +472,47 @@ class TestFeeOnTransferDetector:
         findings = detector.detect(source)
         assert len(findings) == 0
 
+    def test_transfer_not_into_this_contract_not_flagged(self):
+        """Seen on SmartBugs-curated: a transfer between third parties and a
+        token forwarding to its parent move nothing into this contract."""
+        from miesc.detectors.defi_detectors import FeeOnTransferDetector
+
+        detector = FeeOnTransferDetector()
+        source = """
+        function buy(address erc20, address buyer, address seller, uint256 price) public {
+            require(ERC20(erc20).transferFrom(buyer, seller, price));
+        }
+        function transferFrom(address _from, address _to, uint256 _value) public returns (bool) {
+            return super.transferFrom(_from, _to, _value);
+        }
+        """
+        assert detector.detect(source) == []
+
+    def test_nft_in_plain_variable_not_flagged(self):
+        """No ERC721 cast on the line, but the last argument is a token id."""
+        from miesc.detectors.defi_detectors import FeeOnTransferDetector
+
+        detector = FeeOnTransferDetector()
+        source = """
+        function escrow(address _owner, uint256 _tokenId) internal {
+            nonFungibleContract.transferFrom(_owner, this, _tokenId);
+        }
+        """
+        assert detector.detect(source) == []
+
+    def test_legacy_this_destination_flagged(self):
+        """Pre-0.5 code passes `this`, not `address(this)`, as destination."""
+        from miesc.detectors.defi_detectors import FeeOnTransferDetector
+
+        detector = FeeOnTransferDetector()
+        source = """
+        function deposit(uint256 _balance) public {
+            require(token.transferFrom(msg.sender, this, _balance));
+            balances[msg.sender] += _balance;
+        }
+        """
+        assert len(detector.detect(source)) == 1
+
     def test_no_transfer_no_findings(self):
         from miesc.detectors.defi_detectors import FeeOnTransferDetector
 
