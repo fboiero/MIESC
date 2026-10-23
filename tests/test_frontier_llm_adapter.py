@@ -146,3 +146,44 @@ class TestParseResponseRepairFallback:
         out = a._parse_response(text)
         assert len(out) == 1
         assert out[0]["title"] == "Overflow"
+
+
+class TestRegistryProviders:
+    """Kimi and DeepSeek go through the registry: availability by key, auto-detect order."""
+
+    def _fake_openai(self, monkeypatch):
+        import sys
+        import types
+
+        monkeypatch.setitem(
+            sys.modules, "openai", types.SimpleNamespace(OpenAI=object, AsyncOpenAI=object)
+        )
+
+    def test_kimi_available_with_either_moonshot_variable(self, monkeypatch):
+        self._fake_openai(monkeypatch)
+        with patch.dict("os.environ", {"KIMI_API_KEY": "k"}, clear=True):
+            assert FrontierLLMAdapter(provider="kimi").is_available() == ToolStatus.AVAILABLE
+        with patch.dict("os.environ", {"MOONSHOT_API_KEY": "m"}, clear=True):
+            assert FrontierLLMAdapter(provider="kimi").is_available() == ToolStatus.AVAILABLE
+
+    def test_kimi_without_key_is_a_configuration_error(self, monkeypatch):
+        self._fake_openai(monkeypatch)
+        with patch.dict("os.environ", {}, clear=True):
+            assert (
+                FrontierLLMAdapter(provider="kimi").is_available() == ToolStatus.CONFIGURATION_ERROR
+            )
+
+    def test_unknown_provider_is_a_configuration_error(self):
+        with patch.dict("os.environ", {}, clear=True):
+            assert (
+                FrontierLLMAdapter(provider="nope").is_available() == ToolStatus.CONFIGURATION_ERROR
+            )
+
+    def test_auto_detect_reaches_deepseek_and_kimi(self):
+        a = FrontierLLMAdapter()
+        with patch.dict("os.environ", {"MOONSHOT_API_KEY": "m"}, clear=True):
+            assert a._detect_provider() == "kimi"
+        with patch.dict("os.environ", {"DEEPSEEK_API_KEY": "d", "KIMI_API_KEY": "k"}, clear=True):
+            assert a._detect_provider() == "deepseek"
+        with patch.dict("os.environ", {"OPENAI_API_KEY": "o", "DEEPSEEK_API_KEY": "d"}, clear=True):
+            assert a._detect_provider() == "openai"
