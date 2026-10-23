@@ -30,6 +30,48 @@ from miesc.cli.utils import (
 # =============================================================================
 
 
+def _audit_findings(data: dict[str, Any]) -> list[dict[str, Any]]:
+    """Extract the consolidated finding list from an ``audit full`` JSON.
+
+    ``audit full`` stores findings under ``ml_enhanced`` / ``raw_findings`` (dicts with a
+    ``findings`` key), not a top-level ``findings`` list, so mirror the precedence the
+    ``report`` command uses. Returns ``[]`` for the scan shape.
+    """
+    ml = data.get("ml_enhanced")
+    if isinstance(ml, dict):
+        for key in ("findings", "top_findings"):
+            value = ml.get(key)
+            if isinstance(value, list) and value:
+                return [f for f in value if isinstance(f, dict)]
+    raw = data.get("raw_findings")
+    if isinstance(raw, dict) and isinstance(raw.get("findings"), list):
+        return [f for f in raw["findings"] if isinstance(f, dict)]
+    if isinstance(raw, list):
+        return [f for f in raw if isinstance(f, dict)]
+    return []
+
+
+def _normalize_results(data: dict[str, Any]) -> list[dict[str, Any]]:
+    """Normalize scan/audit JSON into a list of ``{"findings": [...]}`` results.
+
+    - scan JSON: a ``results`` list, or a single object already carrying ``findings``.
+    - ``audit full`` JSON: no top-level ``findings`` list; lift the consolidated findings
+      (``ml_enhanced`` / ``raw_findings``) into a synthesized result so the exporters see
+      them instead of emitting an empty SARIF/CSV/JSONL.
+    """
+    results = data.get("results")
+    if isinstance(results, list):
+        return results
+    if isinstance(data.get("findings"), list):
+        return [data]
+    audit = _audit_findings(data)
+    if audit:
+        merged = dict(data)
+        merged["findings"] = audit
+        return [merged]
+    return [data]
+
+
 @click.command()
 @click.argument("input_file", type=click.Path(exists=True))
 @click.option(
@@ -76,7 +118,7 @@ def export(input_file: str, fmt: str, output: str | None, baseline_path: str | N
     with open(input_file, encoding="utf-8") as f:
         data: dict[str, Any] = json.load(f)
 
-    results = data.get("results", [data])
+    results = _normalize_results(data)
     contract = data.get("contract", input_file)
 
     if fmt == "sarif":
