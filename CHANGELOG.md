@@ -22,6 +22,10 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   the DeepSeek special case that used to overwrite `OPENAI_API_KEY` in the process
   environment. Guide: `docs/guides/LLM_PROVIDERS.md`. The ensemble provider list and the
   older OpenAI-only agents are not on the registry yet.
+- `benchmarks/evmbench_eval.py --model` resolves through the registry too (any provider as
+  `provider[:model]`, Kimi included); `deepseek` and `ollama` keep their harness meaning
+  (`deepseek-chat`, `qwen2.5-coder:32b`) so earlier runs stay comparable. Evidence note:
+  `docs/internal/DETECT_MULTIPROVIDER_EVMBENCH_2026-10.md`.
 - The `--verify-fp` advisory LLM pass (`--verify-model`) reads the same registry: any
   provider as `provider[:model]`, a cheaper default tier per vendor, `MIESC_VERIFY_<NAME>_MODEL`
   to override it; an unknown provider disables the pass rather than guessing an endpoint.
