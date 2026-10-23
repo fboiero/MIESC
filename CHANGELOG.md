@@ -7,6 +7,19 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Resource/liveness griefing — progress surface** (Phase 1 of
+  `docs/sdd/SDD_RESOURCE_LIVENESS_GRIEFING_HARDENING_20260811.md`). A deterministic, local miner
+  (`miesc/llm/resource_liveness_griefing.py`) that models *progress* rather than re-matching
+  `for (...)` loops: for each externally growable resource (dynamic array, mapping, withdrawal/
+  proposal queue, pending-payment map, keeper task) it records the functions that grow it and the
+  progress-critical functions (withdraw/claim/settle/execute/liquidate/…) that traverse it,
+  anchored to source. Output is the provider-neutral `ResourceLivenessGriefingPlan` contract (with
+  `parse_resource_liveness_plans`). It is advisory — a progress-surface inventory, never a
+  `Finding` and never an "unbounded loop" accusation (distinct from the DoS detectors); later SDD
+  phases (liveness hypotheses, progress oracles, execution plans) build on it.
+
 ## [6.5.0] - 2026-10-23 — Configurable LLM providers and access-control precision
 
 Minor release. One registry now decides which LLM backends exist and how to reach them:

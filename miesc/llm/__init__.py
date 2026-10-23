@@ -170,6 +170,12 @@ from .remediation_generator import (
     generate_fix,
     get_quick_fix,
 )
+from .resource_liveness_griefing import (
+    GrowableSurface,
+    ResourceLivenessGriefingPlan,
+    mine_resource_liveness_griefing,
+    parse_resource_liveness_plans,
+)
 from .vulnerability_rag import (
     EXPLOIT_EXAMPLES,
     SWC_REGISTRY,
@@ -313,6 +319,10 @@ __all__ = [
     "parse_signature_domain_hardening_plans",
     "parse_snapshot_fuzzing_plans",
     "parse_sequence_oracle_plans",
+    "GrowableSurface",
+    "ResourceLivenessGriefingPlan",
+    "mine_resource_liveness_griefing",
+    "parse_resource_liveness_plans",
     "parse_token_hook_reentrancy_hardening_plans",
     "parse_upgrade_evolution_plans",
     "LLMOrchestratorReasoningProvider",
