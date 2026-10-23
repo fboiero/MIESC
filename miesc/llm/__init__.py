@@ -136,6 +136,12 @@ from .finding_validator import (
     ValidatorConfig,
     validate_findings_sync,
 )
+from .lending_solvency_liquidation import (
+    LendingMarket,
+    LendingSolvencyLiquidationPlan,
+    mine_lending_solvency_liquidation,
+    parse_lending_solvency_plans,
+)
 from .llm_orchestrator import (
     AnthropicBackend,
     DeepSeekBackend,
@@ -313,6 +319,10 @@ __all__ = [
     "parse_signature_domain_hardening_plans",
     "parse_snapshot_fuzzing_plans",
     "parse_sequence_oracle_plans",
+    "LendingMarket",
+    "LendingSolvencyLiquidationPlan",
+    "mine_lending_solvency_liquidation",
+    "parse_lending_solvency_plans",
     "parse_token_hook_reentrancy_hardening_plans",
     "parse_upgrade_evolution_plans",
     "LLMOrchestratorReasoningProvider",

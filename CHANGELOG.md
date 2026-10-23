@@ -7,6 +7,20 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Lending solvency & liquidation — market model** (Phase 1 of
+  `docs/sdd/SDD_LENDING_SOLVENCY_LIQUIDATION_HARDENING_20260811.md`). A deterministic, local miner
+  (`miesc/llm/lending_solvency_liquidation.py`) that builds a protocol-solvency model for lending
+  contracts: accounting fields (collateral, debt, shares, indexes, reserves, bad_debt), market
+  parameters (collateral factor, liquidation threshold, close factor, bonus), solvency-critical
+  functions (supply/borrow/repay/accrue/liquidate/…), price dependencies, and configuration actors.
+  A precision gate emits a plan only when the contract looks like a lending protocol (≥1
+  solvency-critical function and ≥1 accounting field). Output is the provider-neutral
+  `LendingSolvencyLiquidationPlan` contract (with `parse_lending_solvency_plans`). It is advisory —
+  a market-model inventory, never a `Finding` (distinct from the DeFi detectors / solvency
+  invariant templates); later SDD phases build on it.
+
 ## [6.5.0] - 2026-10-23 — Configurable LLM providers and access-control precision
 
 Minor release. One registry now decides which LLM backends exist and how to reach them:
