@@ -1081,6 +1081,19 @@ def _run_full_audit_basic(
 # =============================================================================
 
 
+def _validate_llm_provider(ctx: click.Context, param: click.Parameter, value: str) -> str:
+    """``auto`` or a provider known to the registry (built-in or from the config)."""
+    from miesc.core.llm_providers import UnknownProviderError, get_provider
+
+    if value is None or value.lower() == "auto":
+        return "auto"
+    try:
+        get_provider(value)
+    except UnknownProviderError as exc:
+        raise click.BadParameter(str(exc)) from None
+    return value.lower()
+
+
 @click.group()
 def audit() -> None:
     """Run security audits on smart contracts."""
@@ -2357,9 +2370,14 @@ def audit_batch(
 @click.option("--no-rag", is_flag=True, help="Disable RAG enrichment")
 @click.option(
     "--llm-provider",
-    type=click.Choice(["auto", "ollama", "anthropic", "openai"]),
+    type=str,
+    callback=_validate_llm_provider,
     default="auto",
-    help="LLM provider: auto (local-first with cloud fallback), ollama, anthropic, openai",
+    metavar="PROVIDER",
+    help=(
+        "LLM provider for the narrative: auto (local-first with cloud fallback), ollama, "
+        "anthropic, openai, deepseek, kimi or one declared under llm.providers in the config"
+    ),
 )
 @click.option("--ci", is_flag=True, help="CI mode: exit 1 if critical/high issues")
 def audit_deep(
