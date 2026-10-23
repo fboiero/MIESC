@@ -19,6 +19,12 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+from miesc.detectors.access_guards import (
+    OWNER_LIKE_RE,
+    has_caller_guard,
+    is_self_service_withdrawal,
+)
+
 
 class Severity(Enum):
     CRITICAL = "critical"
@@ -1423,6 +1429,11 @@ class AccessControlDetector:
 
             for pattern, func_name, desc in self.CRITICAL_FUNCTIONS:
                 if re.search(pattern, function["text"], re.I):
+                    if func_name == "withdraw" and is_self_service_withdrawal(
+                        str(function["text"])
+                    ):
+                        # Users taking back their own deposit: not an access-control bug.
+                        break
                     line_num = function["line"]
                     findings.append(
                         self._build_finding(
@@ -1550,7 +1561,11 @@ class AccessControlDetector:
     def _is_protected(self, function: Dict[str, Any]) -> bool:
         """Check access-control only inside the function signature/body."""
         context = str(function["text"])
-        return any(re.search(pattern, context, re.I) for pattern in self.ACCESS_CONTROL_PATTERNS)
+        if any(re.search(pattern, context, re.I) for pattern in self.ACCESS_CONTROL_PATTERNS):
+            return True
+        # Any `only*` modifier, or a condition on msg.sender (`if (msg.sender != organizer)
+        # throw`, `require(isOwner[msg.sender])`), not just the four spellings above.
+        return has_caller_guard(str(function["header"]), context)
 
     def _has_arbitrary_array_write(self, function: Dict[str, Any], source_code: str) -> bool:
         """Detect public writes to storage arrays through caller-controlled indexes."""
@@ -1565,10 +1580,6 @@ class AccessControlDetector:
         }
         if not array_names:
             return False
-        for array_name in array_names:
-            if re.search(rf"\b{re.escape(array_name)}\.length\s*(?:--|=)", text):
-                return True
-
         params_match = re.search(r"\((?P<params>[^)]*)\)", header)
         params = params_match.group("params") if params_match else ""
         param_names = {
@@ -1578,6 +1589,15 @@ class AccessControlDetector:
                 params,
             )
         }
+        for array_name in array_names:
+            # Shrinking the array (`length--`, `length -= n`) is the SWC-124 underflow
+            # shape whoever controls it; setting the length is only arbitrary when the
+            # caller supplies the value. `length = CONSTANT` / `length += n` are not.
+            if re.search(rf"\b{re.escape(array_name)}\.length\s*(?:--|-=)", text):
+                return True
+            length_set = re.search(rf"\b{re.escape(array_name)}\.length\s*=\s*(\w+)", text)
+            if length_set and length_set.group(1) in param_names:
+                return True
         if not param_names:
             return False
         for array_name in array_names:
@@ -1612,14 +1632,20 @@ class AccessControlDetector:
                         break
             contract_text = source_code[brace_pos:end]
             contract_offset = brace_pos
-            for function in self._extract_functions(contract_text):
+            functions = self._extract_functions(contract_text)
+            # A function named like the contract (or `constructor`) IS the constructor;
+            # then another public setter of ownership is a different bug, not a typo.
+            if any(str(f["name"]) in ("constructor", contract_name) for f in functions):
+                continue
+            for function in functions:
                 function_name = str(function["name"])
                 if function_name in ("", "constructor", contract_name):
                     continue
+                if not self._is_public_entrypoint(function) or self._is_protected(function):
+                    continue
                 function_text = str(function["text"])
-                if not re.search(
-                    r"\b\w*(?:owner|creator|root)\w*\s*=\s*msg\.sender\b", function_text, re.I
-                ):
+                assigned = re.search(r"\b(\w+)\s*=\s*msg\.sender\b", function_text)
+                if not assigned or not OWNER_LIKE_RE.match(assigned.group(1)):
                     continue
                 line_num = source_code[:contract_offset].count("\n") + int(function["line"])
                 findings.append(

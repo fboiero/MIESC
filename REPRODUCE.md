@@ -497,6 +497,55 @@ keyword fallback, because Slither embeds the file path in its descriptions and o
 labelled corpus the path *is* the label (`dataset/bad_randomness/lottery.sol` contains
 "randomness"): 1 false positive, 0 hits on the reference run, but a leak worth closing.
 
+### Access-control false positives (2026-10-23)
+
+Same command (`make bench`, `--no-llm`, fresh `HOME`, temp caches cleared). Artifact
+`benchmarks/results/smartbugs_eval_layers_1_6_7_20261023_access_control_fp.{json,jsonl}`.
+
+| Metric | Data-flow fix (reference) | Access-control fix | Δ |
+|---|---|---|---|
+| Recall (contracts) | 143/143 | **143/143** | 0 |
+| Precision | 31.9 % (305 FP) | **33.7 % (281 FP)** | +1.8 pt, −24 FP |
+| F1 | 48.4 % | **50.4 %** | +2.0 pt |
+| `access_control` category | 18 TP / 66 FP | 18 TP / 42 FP | −24 FP |
+
+Every other category is unchanged and the tool statuses match the reference run contract
+for contract (Aderyn 17 skips and 1 error, Slither 4 errors). Two harness hazards surfaced
+on the way and are worth knowing before you compare runs: Aderyn installs the solc it needs
+per pragma through `svm` under `HOME`, so a "fresh HOME" given as a *relative* path makes it
+fail on every contract with "Error running solc command" (use an absolute path); and
+aderyn 0.1.x panics when its GitHub version check is rate-limited, which the adapter now
+avoids with `--skip-update-check`. Both failures used to be reported as "unsupported
+Solidity dialect" skips.
+
+The ceiling first. Of the 66 contracts wrongly credited with `access_control`, 36 carry a
+finding that is not ours to remove: Slither's own `arbitrary-send-eth` on 26 (SmartBugs maps
+it to this category), or a real `tx.origin` / unguarded `selfdestruct` in a contract filed
+under another label. That left 30 reachable, and 24 are gone; the 6 that stay are public
+`init*` functions that assign `owner = msg.sender` with no real constructor in the contract,
+and a constructor typo (`DranMe`), which are genuine access-control bugs whatever the label.
+
+Attribution of the 30 (every layer-1/6/7 tool re-run on today's `main`, each finding passed
+through the scorer): the layer-6 "Missing Access Control" rule flagged any public `withdraw`
+without `onlyOwner`, including users taking back their own deposit; Peculiar's rule flagged a
+function that merely *mentioned* `withdraw`, `pause` (`if (paused)`) or `mint`; the advanced
+detector's "Ownership Not Renounced" note (22 contracts, 0 labelled ones) reached the
+category through the keyword "onlyOwner"; and the intelligence `constructor_mismatch` regex
+ran across contracts (`.*?`), pairing `contract SafeMath` with `function Ownable()`.
+
+The fix is a shared pair of predicates (`miesc/detectors/access_guards.py`): a function is
+*guarded* when it has any `only*` modifier, compares `msg.sender` in a condition, or uses a
+role mapping indexed by `msg.sender` as a boolean (a balance comparison on such a mapping
+is not a guard); a withdrawal is *self-service* when the value goes to the caller or to a
+recipient whose own mapping entry is read, or refunds `msg.value`, and never when the amount
+mentions the contract balance. The layer-6 rules, Peculiar and the intelligence
+gap-fillers use them; the legacy-constructor rules additionally require a public, unguarded
+function assigning `msg.sender` to an owner-like variable inside a contract that has no
+function named after itself; array writes count only when the array shrinks or the caller
+supplies the length or the index. "Ownership Not Renounced" is out of taxonomy, as
+`solc-version` was in the arithmetic fix. Every labelled access-control contract keeps its
+hit (measured before and after on the stored findings, then with the run above).
+
 ## 5. What is not covered here
 
 - **LLM follow-up (97.9 %)**: Paper 1 reports a local-Ollama pass on the six misses as a

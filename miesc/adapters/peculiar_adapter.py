@@ -45,6 +45,11 @@ from miesc.core.tool_protocol import (
     ToolMetadata,
     ToolStatus,
 )
+from miesc.detectors.access_guards import (
+    has_caller_guard,
+    is_self_service_withdrawal,
+    moves_value,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -1193,27 +1198,43 @@ class PeculiarAdapter(ToolAdapter):
             # Check for require(msg.sender == ...) in body as inline guard
             if "require(msg.sender" in body or "require(msg.sender ==" in body:
                 has_access_control = True
+            # Any `only*` modifier (onlywizard, onlyBy) or a condition on msg.sender /
+            # a role mapping, not just the spellings listed above.
+            if has_caller_guard(" ".join(func.get("modifiers", [])), body):
+                has_access_control = True
 
             if has_access_control:
                 continue
 
             for keyword in privileged_keywords:
-                if keyword.lower() in body.lower() or keyword.lower() in func["name"].lower():
-                    findings.append(
-                        {
-                            "type": "access_control",
-                            "confidence": 0.85,
-                            "function": func["name"],
-                            "line": func["start_line"],
-                            "detail": (
-                                f"Function {func['name']}() contains "
-                                f"privileged operation '{keyword}' without "
-                                f"access control modifier"
-                            ),
-                            "source": "pattern_analysis",
-                        }
-                    )
-                    break  # One finding per function
+                # The operation has to be *performed* here (called, or this is the
+                # function itself), not merely mentioned: `if (paused)` is not `pause()`.
+                performed = re.search(rf"\b{keyword}\w*\s*\(", body, re.I) or (
+                    keyword.lower() in func["name"].lower()
+                )
+                if not performed:
+                    continue
+                if keyword == "withdraw":
+                    # An unprotected withdrawal moves value out of the contract here; a
+                    # function that merely mentions "withdraw" (a bonus bookkeeping
+                    # helper) or lets users take their own balance is not one.
+                    if not moves_value(body) or is_self_service_withdrawal(body):
+                        continue
+                findings.append(
+                    {
+                        "type": "access_control",
+                        "confidence": 0.85,
+                        "function": func["name"],
+                        "line": func["start_line"],
+                        "detail": (
+                            f"Function {func['name']}() contains "
+                            f"privileged operation '{keyword}' without "
+                            f"access control modifier"
+                        ),
+                        "source": "pattern_analysis",
+                    }
+                )
+                break  # One finding per function
 
         return findings
 
