@@ -189,6 +189,10 @@ OUT_OF_TAXONOMY_TYPES = {
     # "vulnerabilities" in general: deprecation and style notices, not diagnoses.
     "deprecated_standards",
     "constant_functions_assembly",
+    # Advanced detector "Ownership Not Renounced": a centralization note whose text
+    # ("has onlyOwner functions") the keyword fallback read as access_control.
+    # Measured 2026-10-23: 22 non-access-control contracts, 0 labelled ones.
+    "ownership_not_renounced",
     # miesc/detectors/defi_detectors.py::DeFiCategory
     "flash_loan",
     "oracle_manipulation",
@@ -213,7 +217,7 @@ def _normalize_category(
     it ships one (the DeFi adapter sets ``category`` but no ``type``); a type or
     category in ``OUT_OF_TAXONOMY_TYPES`` is never mapped, whatever its text says.
     """
-    for raw in (finding_type, category):
+    for raw in (finding_type, category, title):
         if raw and raw.lower().replace(" ", "_").replace("-", "_") in OUT_OF_TAXONOMY_TYPES:
             return None
 

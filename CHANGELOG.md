@@ -7,6 +7,44 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Configurable LLM providers.** `miesc/core/llm_providers.py` is the single registry of
+  backends: built-in `anthropic`, `openai`, `deepseek`, `kimi` (Moonshot, OpenAI-compatible)
+  and `ollama`, plus any OpenAI-compatible endpoint declared under `llm.providers` in the
+  config (`kind`, `base_url`, `api_key_env`, `default_model`, `models`). `scan --model` takes
+  `provider[:model]` (`kimi`, `kimi:kimi-k2-thinking`, `ollama:qwen2.5-coder:32b`,
+  `deepseek:pro`) next to the historical aliases and rejects unknown providers before any
+  analysis; `audit deep --llm-provider` and `MIESC_LLM_PROVIDER` accept any registered name;
+  `miesc doctor` lists every provider, whether its key variable is set and whether the
+  default model is reachable, without printing keys. The frontier adapter and the
+  orchestrator build their clients from the registry (base URL, key, timeout), which removes
+  the DeepSeek special case that used to overwrite `OPENAI_API_KEY` in the process
+  environment. Guide: `docs/guides/LLM_PROVIDERS.md`. The ensemble provider list and the
+  older OpenAI-only agents are not on the registry yet.
+
+### Changed
+
+- **Access-control false positives.** New `miesc/detectors/access_guards.py` (caller guard:
+  any `only*` modifier, a `msg.sender` condition or a role mapping used as a boolean;
+  self-service withdrawal: value to the caller or to a recipient whose own entry is read, or
+  a `msg.value` refund, never the contract balance). The layer-6 access-control rules,
+  Peculiar's rule and the intelligence gap-fillers use them; legacy-constructor rules need a
+  public unguarded function assigning `msg.sender` to an owner-like variable in a contract
+  without a real constructor, and the intelligence regex no longer runs across contracts;
+  array writes count only when the array shrinks or the caller supplies length or index;
+  "Ownership Not Renounced" (advanced detector) is a note, out of the scoring taxonomy.
+  SmartBugs-curated (LLM-free): recall 143/143, precision 31.9 % → 33.7 %
+  (305 → 281 FP), F1 50.4 %; `access_control` 66 → 42 FP. The 36 contracts
+  left with a spurious `access_control` carry Slither's `arbitrary-send-eth` or a real
+  `tx.origin` / `selfdestruct` under another label.
+
+### Fixed
+
+- Aderyn runs with `--skip-update-check` (aderyn 0.1.x panics when its GitHub version check
+  is rate-limited) and gets the running interpreter's `solc-select` shim first on its PATH,
+  so a fresh `HOME` no longer pushes it onto Homebrew's single latest solc.
+
 ## [6.4.0] - 2026-10-23 — Data-flow detectors and honest scoring (C3 continued)
 
 Paper-profile numbers on `main` after this release (SmartBugs-curated, 143 contracts,

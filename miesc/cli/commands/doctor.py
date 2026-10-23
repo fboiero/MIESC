@@ -37,43 +37,51 @@ if RICH_AVAILABLE:
 from miesc.llm.provider_health import fetch_openai_compatible_model_ids
 
 
-def _deepseek_doctor_status() -> tuple[str, str]:
-    """Return a human-readable DeepSeek status without exposing secrets."""
-    api_key = os.environ.get("DEEPSEEK_API_KEY")
-    if not api_key:
-        return "[dim]not set[/dim]", "Set DEEPSEEK_API_KEY for DeepSeek API"
+def _provider_status(row: dict) -> tuple[str, str]:
+    """Status cell and details for one registry provider, never exposing the key.
 
-    base_url = os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
+    Cloud providers with a key: OpenAI-compatible ones are probed on ``/v1/models`` (3 s)
+    to say whether the default model is listed; Anthropic-kind ones report configured.
+    """
+    env_hint = " or ".join(row["api_key_env"]) or "no key needed"
+    if not row["configured"]:
+        return "[dim]not set[/dim]", f"Set {env_hint}"
+    if row["kind"] != "openai":
+        return "[green]configured[/green]", f"{row['default_model']} via {row['host']}"
+
+    from miesc.core.llm_providers import api_key_for, get_provider
+
+    spec = get_provider(row["name"])
+    api_key = api_key_for(spec) or ""
     configured_provider = os.environ.get("MIESC_LLM_PROVIDER", "").lower()
-    configured_model = (
-        os.environ.get("MIESC_LLM_MODEL") if configured_provider == "deepseek" else None
-    )
-    model = configured_model or "deepseek-v4-flash"
-
+    model = (
+        os.environ.get("MIESC_LLM_MODEL") if configured_provider == row["name"] else None
+    ) or spec.default_model
     try:
         asyncio.get_running_loop()
     except RuntimeError:
         pass
     else:
         return "[yellow]configured[/yellow]", f"{model} configured; run outside active event loop"
-
     try:
         models = asyncio.run(
             fetch_openai_compatible_model_ids(
-                base_url,
+                spec.base_url or "https://api.openai.com/v1",
                 api_key,
                 timeout=3,
-                provider_name="DeepSeek",
+                provider_name=spec.display_name,
             )
         )
     except RuntimeError:
         return "[yellow]configured[/yellow]", f"{model} configured; run outside active event loop"
-
     if model in models:
-        return "[green]ready[/green]", f"{model} available"
+        return "[green]ready[/green]", f"{model} available at {row['host']}"
     if models:
         return "[yellow]model missing[/yellow]", f"{model} not listed ({len(models)} models)"
-    return "[yellow]unavailable[/yellow]", "/v1/models unreachable or unauthorized"
+    return (
+        "[yellow]unavailable[/yellow]",
+        f"/v1/models at {row['host']} unreachable or unauthorized",
+    )
 
 
 # =============================================================================
@@ -190,23 +198,21 @@ def doctor(verbose: bool) -> None:
                 "Install: https://ollama.com + ollama pull qwen2.5-coder:14b",
             )
 
-        # Anthropic
-        if os.environ.get("ANTHROPIC_API_KEY"):
-            llm_table.add_row("Anthropic", "[green]configured[/green]", "ANTHROPIC_API_KEY set")
-        else:
-            llm_table.add_row("Anthropic", "[dim]not set[/dim]", "Set ANTHROPIC_API_KEY for Claude")
+        # Cloud providers from the registry (built-ins plus llm.providers in the config)
+        from miesc.core.llm_providers import describe_providers
 
-        # OpenAI
-        if os.environ.get("OPENAI_API_KEY"):
-            llm_table.add_row("OpenAI", "[green]configured[/green]", "OPENAI_API_KEY set")
-        else:
-            llm_table.add_row("OpenAI", "[dim]not set[/dim]", "Set OPENAI_API_KEY for GPT")
-
-        # DeepSeek
-        deepseek_status, deepseek_details = _deepseek_doctor_status()
-        llm_table.add_row("DeepSeek", deepseek_status, deepseek_details)
+        for row in describe_providers():
+            if row["kind"] == "ollama":
+                continue
+            status, details = _provider_status(row)
+            label = row["label"] if row["source"] == "builtin" else f"{row['label']} (config)"
+            llm_table.add_row(label, status, details)
 
         console.print(llm_table)
+        console.print(
+            "[dim]Select with --model provider[:model], e.g. --model kimi, "
+            "--model deepseek:deepseek-v4-pro, --model ollama:qwen2.5-coder:32b[/dim]"
+        )
 
         # Recommendations
         console.print("\n[bold]Quick Start:[/bold]")

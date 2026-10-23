@@ -17,6 +17,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 import time
 from pathlib import Path
@@ -62,8 +63,14 @@ def _get_solc_env() -> dict:
     """
     env = os.environ.copy()
 
-    # Priority paths for solc (user site-packages first)
+    # Priority paths for solc: the running interpreter's own bin first (a venv's
+    # `solc-select` shim switches versions per pragma and does not depend on HOME;
+    # a fresh HOME used to push Aderyn onto Homebrew's single latest solc, which
+    # cannot compile pre-0.5 sources: "Error running solc command"), then the
+    # user site-packages, then Homebrew.
     priority_paths = [
+        str(Path(sys.prefix) / "bin"),
+        str(Path(sys.executable).parent),
         os.path.expanduser("~/Library/Python/3.9/bin"),
         os.path.expanduser("~/Library/Python/3.10/bin"),
         os.path.expanduser("~/Library/Python/3.11/bin"),
@@ -278,7 +285,12 @@ class AderynAdapter(ToolAdapter):
 
             # Build command - always analyze the directory, not a single file
             # Aderyn 0.1.9 has issues finding solc when targeting single files
-            cmd = ["aderyn", analysis_dir, "-o", output_path]
+            # --skip-update-check: aderyn 0.1.x asks GitHub for its latest version on
+            # every run and panics (exit 101, "unexpected character while parsing major
+            # version number") when the answer is not a version string, e.g. a rate-limit
+            # page. That took Aderyn out of a whole benchmark run (2026-10-23); the
+            # check has no bearing on the analysis and must not reach the network.
+            cmd = ["aderyn", analysis_dir, "-o", output_path, "--skip-update-check"]
 
             if no_snippets:
                 cmd.append("--no-snippets")

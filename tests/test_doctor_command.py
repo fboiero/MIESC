@@ -5,8 +5,9 @@ from unittest.mock import AsyncMock, patch
 
 from click.testing import CliRunner
 
-from miesc.cli.commands.doctor import _deepseek_doctor_status, doctor
+from miesc.cli.commands.doctor import _provider_status, doctor
 from miesc.cli.constants import LAYERS
+from miesc.core.llm_providers import describe_providers
 
 
 def test_doctor_uses_dynamic_tool_total_and_full_status_text():
@@ -24,7 +25,7 @@ def test_doctor_uses_dynamic_tool_total_and_full_status_text():
         patch("miesc.cli.commands.doctor.info"),
         patch("miesc.cli.commands.doctor.subprocess.run", return_value=fake_completed),
         patch(
-            "miesc.cli.commands.doctor._deepseek_doctor_status",
+            "miesc.cli.commands.doctor._provider_status",
             return_value=("[green]ready[/green]", "deepseek-v4-flash available"),
         ),
         patch(
@@ -41,15 +42,19 @@ def test_doctor_uses_dynamic_tool_total_and_full_status_text():
     assert "configuration_…" not in result.output
 
 
-def test_deepseek_doctor_status_no_key():
+def _deepseek_row():
+    return next(row for row in describe_providers() if row["name"] == "deepseek")
+
+
+def test_provider_status_no_key():
     with patch.dict(os.environ, {}, clear=True):
-        status, details = _deepseek_doctor_status()
+        status, details = _provider_status(_deepseek_row())
 
     assert status == "[dim]not set[/dim]"
     assert "DEEPSEEK_API_KEY" in details
 
 
-def test_deepseek_doctor_status_ready():
+def test_provider_status_ready_uses_the_registry_endpoint_and_env_model():
     with (
         patch.dict(
             os.environ,
@@ -67,10 +72,10 @@ def test_deepseek_doctor_status_ready():
             return_value={"deepseek-v4-flash", "deepseek-v4-pro"},
         ) as mock_fetch,
     ):
-        status, details = _deepseek_doctor_status()
+        status, details = _provider_status(_deepseek_row())
 
     assert status == "[green]ready[/green]"
-    assert details == "deepseek-v4-pro available"
+    assert details == "deepseek-v4-pro available at api.deepseek.example"
     mock_fetch.assert_awaited_once_with(
         "https://api.deepseek.example",
         "test-key",
@@ -79,7 +84,7 @@ def test_deepseek_doctor_status_ready():
     )
 
 
-def test_deepseek_doctor_status_model_missing():
+def test_provider_status_model_missing():
     with (
         patch.dict(os.environ, {"DEEPSEEK_API_KEY": "test-key"}, clear=True),
         patch(
@@ -88,13 +93,13 @@ def test_deepseek_doctor_status_model_missing():
             return_value={"deepseek-v4-pro"},
         ),
     ):
-        status, details = _deepseek_doctor_status()
+        status, details = _provider_status(_deepseek_row())
 
     assert status == "[yellow]model missing[/yellow]"
     assert details == "deepseek-v4-flash not listed (1 models)"
 
 
-def test_deepseek_doctor_status_unavailable():
+def test_provider_status_unavailable():
     with (
         patch.dict(os.environ, {"DEEPSEEK_API_KEY": "test-key"}, clear=True),
         patch(
@@ -103,13 +108,29 @@ def test_deepseek_doctor_status_unavailable():
             return_value=set(),
         ),
     ):
-        status, details = _deepseek_doctor_status()
+        status, details = _provider_status(_deepseek_row())
 
     assert status == "[yellow]unavailable[/yellow]"
-    assert details == "/v1/models unreachable or unauthorized"
+    assert details == "/v1/models at api.deepseek.com unreachable or unauthorized"
 
 
-def test_deepseek_doctor_status_inside_active_event_loop_does_not_fetch():
+def test_provider_status_anthropic_kind_is_not_probed():
+    with (
+        patch.dict(os.environ, {"ANTHROPIC_API_KEY": "k"}, clear=True),
+        patch(
+            "miesc.cli.commands.doctor.fetch_openai_compatible_model_ids",
+            new_callable=AsyncMock,
+        ) as mock_fetch,
+    ):
+        row = next(r for r in describe_providers() if r["name"] == "anthropic")
+        status, details = _provider_status(row)
+
+    assert status == "[green]configured[/green]"
+    assert "claude-sonnet-4-6" in details and "k" not in details.split()
+    mock_fetch.assert_not_called()
+
+
+def test_provider_status_inside_active_event_loop_does_not_fetch():
     async def run_test():
         with (
             patch.dict(os.environ, {"DEEPSEEK_API_KEY": "test-key"}, clear=True),
@@ -118,7 +139,7 @@ def test_deepseek_doctor_status_inside_active_event_loop_does_not_fetch():
                 new_callable=AsyncMock,
             ) as mock_fetch,
         ):
-            status, details = _deepseek_doctor_status()
+            status, details = _provider_status(_deepseek_row())
 
         assert status == "[yellow]configured[/yellow]"
         assert details == "deepseek-v4-flash configured; run outside active event loop"
@@ -145,7 +166,7 @@ def test_doctor_shows_install_hints_for_missing_tools():
         patch("miesc.cli.commands.doctor.info"),
         patch("miesc.cli.commands.doctor.subprocess.run", return_value=fake_completed),
         patch(
-            "miesc.cli.commands.doctor._deepseek_doctor_status",
+            "miesc.cli.commands.doctor._provider_status",
             return_value=("[green]ready[/green]", "ok"),
         ),
         patch(

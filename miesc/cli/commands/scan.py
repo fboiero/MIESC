@@ -8,11 +8,10 @@ License: AGPL-3.0
 """
 
 import json
-import os
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 import click
 
@@ -32,6 +31,7 @@ from miesc.cli.utils import (
     summarize_findings,
     warning,
 )
+from miesc.core.llm_providers import UnknownProviderError, resolve_model
 from miesc.core.provenance import build_provenance
 
 # Import Rich components if available
@@ -44,6 +44,19 @@ if RICH_AVAILABLE:
 # =============================================================================
 # Scan Command
 # =============================================================================
+
+
+def _validate_model_option(
+    ctx: click.Context, param: click.Parameter, value: Optional[str]
+) -> Optional[str]:
+    """Reject unknown providers at parse time, naming the registered ones."""
+    if value is None:
+        return None
+    try:
+        resolve_model(value)
+    except UnknownProviderError as exc:
+        raise click.BadParameter(str(exc)) from None
+    return value
 
 
 @click.command()
@@ -103,26 +116,16 @@ if RICH_AVAILABLE:
 @click.option(
     "--model",
     "frontier_model",
-    type=click.Choice(
-        [
-            "claude",
-            "gpt",
-            "claude-opus",
-            "claude-sonnet",
-            "gpt-4o",
-            "gpt-4.1",
-            "gpt-5",
-            "deepseek-v4-pro",
-            "deepseek-v4-flash",
-            "ollama",
-            "qwen32b",
-            "qwen14b",
-            "codellama",
-        ],
-        case_sensitive=False,
-    ),
+    type=str,
+    callback=_validate_model_option,
     default=None,
-    help="Use frontier LLM for deep semantic analysis (requires API key)",
+    metavar="PROVIDER[:MODEL]",
+    help=(
+        "Run an LLM pass: a provider (anthropic, openai, deepseek, kimi, ollama or one from "
+        "llm.providers in the config), provider:model (kimi:kimi-k2-thinking, "
+        "ollama:qwen2.5-coder:32b) or an alias (claude, gpt-5, qwen32b). Cloud providers need "
+        "their API key variable; see docs/guides/LLM_PROVIDERS.md."
+    ),
 )
 @click.option(
     "--llm-timeout",
@@ -516,37 +519,10 @@ def scan(
                 from miesc.adapters.frontier_llm_adapter import FrontierLLMAdapter
                 from miesc.core.tool_protocol import ToolStatus
 
-                provider_map = {
-                    "claude": ("anthropic", "claude-sonnet-4-6"),
-                    "claude-opus": ("anthropic", "claude-opus-4-6"),
-                    "claude-sonnet": ("anthropic", "claude-sonnet-4-6"),
-                    "gpt": ("openai", "gpt-4o"),
-                    "gpt-4o": ("openai", "gpt-4o"),
-                    "gpt-4.1": ("openai", "gpt-4.1"),
-                    "gpt-5": ("openai", "gpt-5"),
-                    # DeepSeek V4 is OpenAI-compatible; routed via the OpenAI
-                    # client pointed at the DeepSeek endpoint (see env setup below).
-                    "deepseek-v4-pro": ("openai", "deepseek-v4-pro"),
-                    "deepseek-v4-flash": ("openai", "deepseek-v4-flash"),
-                    # `--model ollama` is the convenient fast default (14b); the
-                    # benchmarked local figure uses 32b, reachable via `--model qwen32b`.
-                    "ollama": ("ollama", "qwen2.5-coder:14b"),
-                    "qwen32b": ("ollama", "qwen2.5-coder:32b"),
-                    "qwen14b": ("ollama", "qwen2.5-coder:14b"),
-                    "codellama": ("ollama", "codellama:13b"),
-                }
-                provider, model_id = provider_map.get(frontier_model.lower(), ("auto", None))
-                # DeepSeek exposes an OpenAI-compatible API. Point the OpenAI
-                # client at the DeepSeek endpoint using DEEPSEEK_API_KEY so the
-                # existing openai code path sends the deepseek-v4 model name.
-                if frontier_model.lower().startswith("deepseek") and os.environ.get(
-                    "DEEPSEEK_API_KEY"
-                ):
-                    os.environ["OPENAI_API_KEY"] = os.environ["DEEPSEEK_API_KEY"]
-                    os.environ["OPENAI_BASE_URL"] = os.environ.get(
-                        "DEEPSEEK_BASE_URL", "https://api.deepseek.com"
-                    )
-                adapter = FrontierLLMAdapter(provider=provider)
+                choice = resolve_model(frontier_model)
+                assert choice is not None  # validated by the option callback
+                provider, model_id = choice.provider.name, choice.model
+                adapter = FrontierLLMAdapter(provider=provider, model=model_id)
 
                 if adapter.is_available() == ToolStatus.AVAILABLE:
                     if not quiet:
@@ -779,32 +755,10 @@ def scan(
         try:
             from miesc.adapters.frontier_llm_adapter import FrontierLLMAdapter
 
-            provider_map = {
-                "claude": ("anthropic", "claude-sonnet-4-6"),
-                "claude-opus": ("anthropic", "claude-opus-4-6"),
-                "claude-sonnet": ("anthropic", "claude-sonnet-4-6"),
-                "gpt": ("openai", "gpt-4o"),
-                "gpt-4o": ("openai", "gpt-4o"),
-                "gpt-4.1": ("openai", "gpt-4.1"),
-                "gpt-5": ("openai", "gpt-5"),
-                "deepseek-v4-pro": ("openai", "deepseek-v4-pro"),
-                "deepseek-v4-flash": ("openai", "deepseek-v4-flash"),
-                # `--model ollama` is the convenient fast default (14b); the
-                # benchmarked local figure uses 32b, reachable via `--model qwen32b`.
-                "ollama": ("ollama", "qwen2.5-coder:14b"),
-                "qwen32b": ("ollama", "qwen2.5-coder:32b"),
-                "qwen14b": ("ollama", "qwen2.5-coder:14b"),
-                "codellama": ("ollama", "codellama:13b"),
-            }
-            provider, model_id = provider_map.get(frontier_model.lower(), ("auto", None))
-            # DeepSeek V4 is OpenAI-compatible: point the OpenAI client at the
-            # DeepSeek endpoint using DEEPSEEK_API_KEY.
-            if frontier_model.lower().startswith("deepseek") and os.environ.get("DEEPSEEK_API_KEY"):
-                os.environ["OPENAI_API_KEY"] = os.environ["DEEPSEEK_API_KEY"]
-                os.environ["OPENAI_BASE_URL"] = os.environ.get(
-                    "DEEPSEEK_BASE_URL", "https://api.deepseek.com"
-                )
-            adapter = FrontierLLMAdapter(provider=provider)
+            choice = resolve_model(frontier_model)
+            assert choice is not None  # validated by the option callback
+            provider, model_id = choice.provider.name, choice.model
+            adapter = FrontierLLMAdapter(provider=provider, model=model_id)
 
             if (
                 adapter.is_available()

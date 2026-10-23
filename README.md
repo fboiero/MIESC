@@ -768,6 +768,7 @@ The project self-assesses as meeting all 9 DPGA indicators — open license (AGP
 | [Quick Start](./docs/guides/QUICKSTART.md) | Get running in 5 minutes |
 | [Architecture](./docs/ARCHITECTURE.md) | Technical design and layer details |
 | [Tool Reference](./docs/TOOLS.md) | All 35 analysis modules and their capabilities |
+| [LLM Providers](./docs/guides/LLM_PROVIDERS.md) | Claude, GPT, DeepSeek, Kimi, Ollama or any OpenAI-compatible endpoint, selected with `--model provider[:model]` |
 | [Report Guide](./docs/guides/REPORTS.md) | Report templates and customization |
 | [Custom Detectors](./docs/CUSTOM_DETECTORS.md) | Build your own detectors |
 | [Multi-Chain](./docs/MULTICHAIN.md) | Non-EVM chain analysis |
@@ -835,7 +836,7 @@ sudo apt install libpango-1.0-0 libpangoft2-1.0-0  # Linux
 ```
 
 **`miesc audit full` runs slowly (>10 min per contract)**
-The Ollama layers auto-select the most capable installed model (preferring `qwen2.5-coder:32b` for audit quality), so a 32B model on a small contract is slow. Cap the LLM-backed tools with `--llm-timeout 60` (static tools keep `--timeout`), force the lighter model with `--model qwen2.5-coder:14b`, set `qwen2.5-coder:14b` in `~/.miesc/config.yaml`, or run a quick scan: `miesc audit quick`. The "Slowest tools" table at the end of the audit shows where the time went.
+The Ollama layers auto-select the most capable installed model (preferring `qwen2.5-coder:32b` for audit quality), so a 32B model on a small contract is slow. Cap the LLM-backed tools with `--llm-timeout 60` (static tools keep `--timeout`), force the lighter model with `--model ollama:qwen2.5-coder:14b` (any provider works the same way, see [LLM Providers](./docs/guides/LLM_PROVIDERS.md)), set `qwen2.5-coder:14b` in `~/.miesc/config.yaml`, or run a quick scan: `miesc audit quick`. The "Slowest tools" table at the end of the audit shows where the time went.
 
 **An LLM adapter reports 0 findings on a contract that clearly has issues**
 Set `MIESC_LLM_DUMP_DIR=/tmp/miesc-llm` and re-run: every raw model response is saved there. If a file does not parse, open an issue with it attached; the parser fixtures in `tests/fixtures/llm_responses/` are built from exactly these captures.

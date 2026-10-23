@@ -30,6 +30,11 @@ from typing import Any, Dict, List, Optional, Tuple, cast
 
 from miesc.core.finding_taxonomy import CanonicalCategory, normalize_finding_type
 from miesc.core.rule_classes import class_max_severity, finding_rule_class, rule_ids
+from miesc.detectors.access_guards import (
+    OWNER_LIKE_RE,
+    function_text_at,
+    has_caller_guard,
+)
 from miesc.detectors.chain_attribute_flow import has_time_dependence
 
 # =============================================================================
@@ -441,6 +446,7 @@ ZERO_RECALL_PATTERNS: Dict[str, Dict[str, Any]] = {
         "swc": "SWC-118",
         "message": "Function assigns ownership but may not be the constructor — in Solidity <0.4.22, constructors were functions with the contract name. A typo means anyone can call it and become owner.",
         "requires_name_not_enclosing_contract": True,
+        "post_filter": "legacy_constructor_typo",
     },
     "delegatecall_unprotected": {
         "multiline_patterns": [
@@ -508,6 +514,7 @@ ZERO_RECALL_PATTERNS: Dict[str, Dict[str, Any]] = {
         "severity": "Critical",
         "swc": "SWC-118",
         "message": "Public init/initialize function without access restriction — anyone can call and take ownership. Use initializer modifier or require(!initialized).",
+        "post_filter": "init_takes_ownership",
     },
     "access_control_owner_reassign": {
         "patterns": [
@@ -516,6 +523,7 @@ ZERO_RECALL_PATTERNS: Dict[str, Dict[str, Any]] = {
         "severity": "Critical",
         "swc": "SWC-105",
         "message": "Public function reassigns owner without access control modifier — anyone can become owner.",
+        "post_filter": "unguarded_function",
     },
     "unchecked_send_pattern": {
         "patterns": [
@@ -546,6 +554,7 @@ ZERO_RECALL_PATTERNS: Dict[str, Dict[str, Any]] = {
         "severity": "Critical",
         "swc": "SWC-105",
         "message": "Public function to add/change owner without onlyOwner modifier — anyone can add themselves as owner.",
+        "post_filter": "unguarded_function",
     },
     # v5.3.1: SmartBugs access_control gap-closing patterns
     "constructor_mismatch": {
@@ -555,6 +564,10 @@ ZERO_RECALL_PATTERNS: Dict[str, Dict[str, Any]] = {
         "severity": "Critical",
         "swc": "SWC-118",
         "message": "Constructor name mismatch — function name differs from contract name in Solidity <0.4.22. Anyone can call it to seize ownership (e.g., Rubixi/DynamicPyramid bug).",
+        # The regex may run across contracts (`.*?`); the post-filter re-anchors the
+        # function in its own contract and requires the legacy-typo shape.
+        "post_filter": "legacy_constructor_typo",
+        "function_name_group": 2,
     },
     "withdraw_no_balance_update": {
         "multiline_patterns": [
@@ -771,6 +784,98 @@ def _names_enclosing_contract(source_code: str, function_name: str, pos: int) ->
     return enclosing is not None and enclosing == function_name
 
 
+_CONTRACT_BODY_RE = re.compile(r"\b(?:contract|library|interface)\s+(\w+)(?:\s+is\s+[^{;]+?)?\s*\{")
+_COMMENT_RE = re.compile(r"/\*.*?\*/|//[^\n]*", re.S)
+
+
+def _blank_comments(source_code: str) -> str:
+    """Replace comment characters with spaces, keeping every offset and newline."""
+    return _COMMENT_RE.sub(lambda m: re.sub(r"[^\n]", " ", m.group(0)), source_code)
+
+
+def _enclosing_contract_span(source_code: str, pos: int) -> Optional[Tuple[str, int, int]]:
+    """``(name, body_start, body_end)`` of the contract/library whose body contains ``pos``.
+
+    Declarations are matched on comment-blanked text and must open a body (`{`), so the
+    word "contract" in a NatSpec sentence is not a declaration.
+    """
+    code = _blank_comments(source_code)
+    for decl in _CONTRACT_BODY_RE.finditer(code):
+        if decl.start() > pos:
+            break
+        open_brace = decl.end() - 1
+        source_code = code
+        depth = 0
+        end = open_brace
+        while end < len(source_code):
+            if source_code[end] == "{":
+                depth += 1
+            elif source_code[end] == "}":
+                depth -= 1
+                if depth == 0:
+                    break
+            end += 1
+        if open_brace <= pos <= end:
+            return decl.group(1), open_brace, end
+    return None
+
+
+def _passes_post_filter(
+    name: Optional[str], source_code: str, match: "re.Match[str]", abs_pos: int, cfg: Dict[str, Any]
+) -> bool:
+    """Semantic checks a regex cannot express; ``abs_pos`` is the match start in the file.
+
+    - ``unguarded_function``: the function has no caller guard (``only*`` modifier,
+      ``msg.sender`` condition, role mapping).
+    - ``init_takes_ownership``: an unguarded ``init*`` function that actually sets an
+      owner/admin or delegates to another ``init*`` (Parity ``initWallet``); a plain
+      ``init()`` that sets a flag or a mapping entry is not an ownership takeover.
+    - ``legacy_constructor_typo``: the matched function is public and unguarded, assigns
+      ``msg.sender`` to an owner-like variable, sits in a contract that has no function
+      named after itself (no real legacy constructor) and no ``constructor``.
+    Measured on SmartBugs-curated (2026-10-23): the unfiltered rules fired on 16
+    contracts labelled with other categories (BECToken's `Ownable()` matched from the
+    `SafeMath` declaration, ``init()`` of the overflow samples) and kept every labelled one.
+    """
+    if not name:
+        return True
+    if name == "unguarded_function":
+        header, body = function_text_at(source_code, abs_pos)
+        return not has_caller_guard(header, body)
+    if name == "init_takes_ownership":
+        header, body = function_text_at(source_code, abs_pos)
+        if has_caller_guard(header, body):
+            return False
+        return bool(
+            re.search(r"\b\w*(?:owner|admin)\w*\s*(?:\[[^\]]*\])?\s*=[^=]", body, re.I)
+            or re.search(r"\binit\w*\s*\(", body)
+        )
+    if name == "legacy_constructor_typo":
+        function_name = match.group(int(cfg.get("function_name_group", 1)))
+        definition = re.compile(r"\bfunction\s+%s\s*\(" % re.escape(function_name)).search(
+            source_code, abs_pos
+        )
+        if not definition:
+            return True
+        header, body = function_text_at(source_code, definition.start())
+        if re.search(r"\b(?:private|internal)\b", header) or has_caller_guard(header, body):
+            return False
+        assigned = re.search(r"\b(\w+)\s*=\s*msg\.sender\b", body)
+        if not assigned or not OWNER_LIKE_RE.match(assigned.group(1)):
+            return False
+        span = _enclosing_contract_span(source_code, definition.start())
+        if span is None:
+            return True
+        contract_name, body_start, body_end = span
+        contract_body = source_code[body_start:body_end]
+        if re.search(
+            r"\bfunction\s+%s\s*\(|\bconstructor\s*\(" % re.escape(contract_name), contract_body
+        ):
+            return False
+        return True
+    return True
+
+
 def detect_zero_recall_categories(
     source_code: str,
     file_path: str = "",
@@ -822,6 +927,10 @@ def detect_zero_recall_categories(
                         source_code, m.group(1), line_offsets[i - 1] + m.start()
                     ):
                         continue
+                    if not _passes_post_filter(
+                        cfg.get("post_filter"), source_code, m, line_offsets[i - 1] + m.start(), cfg
+                    ):
+                        continue
                     findings.append(
                         {
                             "type": category,
@@ -853,6 +962,8 @@ def detect_zero_recall_categories(
                 if cfg.get("requires_name_not_enclosing_contract") and _names_enclosing_contract(
                     source_code, m.group(1), m.start()
                 ):
+                    continue
+                if not _passes_post_filter(cfg.get("post_filter"), source_code, m, m.start(), cfg):
                     continue
                 # Post-match filter: skip if balance subtraction present
                 if cfg.get("requires_no_balance_subtraction"):
