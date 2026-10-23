@@ -31,6 +31,16 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, cast
 
 from miesc.adapters._ollama_mixin import ollama_format_json_default
+from miesc.core.llm_providers import (
+    ProviderSpec,
+    UnknownProviderError,
+    base_url_host,
+    get_provider,
+    is_configured,
+    load_providers,
+    make_client,
+    resolve_model,
+)
 from miesc.core.tool_protocol import (
     ToolAdapter,
     ToolCapability,
@@ -137,16 +147,25 @@ Focus ONLY on HIGH and CRITICAL issues that could lead to loss of funds or proto
 class FrontierLLMAdapter(ToolAdapter):
     """Adapter for frontier LLM APIs (Claude, GPT) for deep semantic analysis."""
 
-    def __init__(self, provider: str = "auto"):
+    AUTO_ORDER = ("anthropic", "openai", "deepseek", "kimi")
+    """Providers tried, in this order, when ``provider="auto"`` (first one with a key wins)."""
+
+    def __init__(self, provider: str = "auto", model: Optional[str] = None):
         """
         Initialize with provider selection.
 
         Args:
-            provider: "anthropic", "openai", or "auto" (detect from env vars)
+            provider: a registry name (``anthropic``, ``openai``, ``deepseek``, ``kimi``,
+                ``ollama`` or one added under ``llm.providers`` in the config) or
+                ``"auto"`` (first provider in :attr:`AUTO_ORDER` with an API key set).
+            model: model id to use; ``None`` means the provider's default model.
         """
         self._provider = provider
-        self._model: Optional[str] = None
+        self._requested_model = model
+        self._model: Optional[str] = model
         self._client: Any = None
+        self._active_provider: Optional[str] = None
+        self._conversation_spec: Optional[ProviderSpec] = None
 
     def get_metadata(self) -> ToolMetadata:
         return ToolMetadata(
@@ -181,12 +200,31 @@ class FrontierLLMAdapter(ToolAdapter):
         )
 
     def _detect_provider(self) -> Optional[str]:
-        """Auto-detect provider from environment variables."""
-        if os.environ.get("ANTHROPIC_API_KEY"):
-            return "anthropic"
-        if os.environ.get("OPENAI_API_KEY"):
-            return "openai"
+        """First provider of :attr:`AUTO_ORDER` whose API key is set, else ``None``."""
+        providers = load_providers()
+        for name in self.AUTO_ORDER:
+            spec = providers.get(name)
+            if spec is not None and is_configured(spec):
+                return name
         return None
+
+    def _spec(self) -> Optional[ProviderSpec]:
+        """Registry entry of the provider in use (the fallback one while a fallback runs)."""
+        name = self._active_provider or self._get_provider()
+        if not name:
+            return None
+        try:
+            return get_provider(name)
+        except UnknownProviderError:
+            return None
+
+    def _spec_for_kind(self, kind: str) -> ProviderSpec:
+        """The provider to call for a client protocol: the conversation's explicit
+        provider, then the adapter's own, then the built-in of that kind."""
+        for candidate in (self._conversation_spec, self._spec()):
+            if candidate is not None and candidate.kind == kind:
+                return candidate
+        return get_provider({"anthropic": "anthropic", "openai": "openai"}.get(kind, "ollama"))
 
     def _preprocess_codebase(self, source_code: str) -> str:
         """Build a protocol map from code structure analysis.
@@ -326,45 +364,33 @@ class FrontierLLMAdapter(ToolAdapter):
     def is_available(self) -> ToolStatus:
         provider = self._get_provider()
         if not provider:
-            logger.debug("FrontierLLM: No API key found (ANTHROPIC_API_KEY or OPENAI_API_KEY)")
+            logger.debug("FrontierLLM: no API key found for %s", ", ".join(self.AUTO_ORDER))
             return ToolStatus.NOT_INSTALLED
+        try:
+            spec = get_provider(provider)
+        except UnknownProviderError as exc:
+            logger.warning("FrontierLLM: %s", exc)
+            return ToolStatus.CONFIGURATION_ERROR
 
-        if provider == "anthropic":
-            try:
-                import anthropic  # noqa: F401
-
-                if not os.environ.get("ANTHROPIC_API_KEY"):
-                    return ToolStatus.CONFIGURATION_ERROR
-                return ToolStatus.AVAILABLE
-            except ImportError:
-                logger.info("FrontierLLM: anthropic SDK not installed. pip install anthropic")
-                return ToolStatus.NOT_INSTALLED
-
-        if provider == "ollama":
+        if spec.kind == "ollama":
             return ToolStatus.AVAILABLE if self._check_ollama() else ToolStatus.NOT_INSTALLED
 
-        if provider == "openai":
-            try:
-                import openai  # noqa: F401
-
-                if not os.environ.get("OPENAI_API_KEY"):
-                    return ToolStatus.CONFIGURATION_ERROR
-                return ToolStatus.AVAILABLE
-            except ImportError:
-                logger.info("FrontierLLM: openai SDK not installed. pip install openai")
-                return ToolStatus.NOT_INSTALLED
-
-        if provider == "deepseek":
-            try:
-                import openai  # noqa: F401 -- DeepSeek uses the OpenAI-compatible SDK
-
-                if not os.environ.get("DEEPSEEK_API_KEY"):
-                    return ToolStatus.CONFIGURATION_ERROR
-                return ToolStatus.AVAILABLE
-            except ImportError:
-                return ToolStatus.NOT_INSTALLED
-
-        return ToolStatus.NOT_INSTALLED
+        sdk = "anthropic" if spec.kind == "anthropic" else "openai"
+        try:
+            __import__(sdk)
+        except ImportError:
+            logger.info(
+                "FrontierLLM: %s needs the %s SDK. pip install %s", spec.display_name, sdk, sdk
+            )
+            return ToolStatus.NOT_INSTALLED
+        if not is_configured(spec):
+            logger.info(
+                "FrontierLLM: %s selected but %s is not set",
+                spec.display_name,
+                " / ".join(spec.api_key_env),
+            )
+            return ToolStatus.CONFIGURATION_ERROR
+        return ToolStatus.AVAILABLE
 
     def analyze(self, contract_path: str, **kwargs: Any) -> Dict[str, Any]:
         """Analyze contract using frontier LLM API.
@@ -402,16 +428,19 @@ class FrontierLLMAdapter(ToolAdapter):
             rag_context = protocol_map + "\n\n" + rag_context
 
         provider = self._get_provider()
+        spec = self._spec()
+        if self._requested_model and not kwargs.get("model"):
+            kwargs["model"] = self._requested_model
 
         try:
-            if provider == "anthropic":
-                findings = self._analyze_anthropic(source_code, rag_context=rag_context, **kwargs)
-            elif provider in ("openai", "deepseek"):
-                findings = self._analyze_openai(source_code, rag_context=rag_context, **kwargs)
-            elif provider == "ollama":
-                findings = self._analyze_ollama(source_code, rag_context=rag_context, **kwargs)
-            else:
+            if spec is None:
                 return self._error_result(start_time, f"Unknown provider: {provider}")
+            if spec.kind == "anthropic":
+                findings = self._analyze_anthropic(source_code, rag_context=rag_context, **kwargs)
+            elif spec.kind == "openai":
+                findings = self._analyze_openai(source_code, rag_context=rag_context, **kwargs)
+            else:
+                findings = self._analyze_ollama(source_code, rag_context=rag_context, **kwargs)
         except Exception as e:
             # A provider-comparison benchmark must NOT silently substitute a
             # different provider on failure — that corrupts the comparison (a
@@ -420,18 +449,16 @@ class FrontierLLMAdapter(ToolAdapter):
             if os.environ.get("MIESC_FRONTIER_NO_FALLBACK"):
                 logger.error(f"FrontierLLM: {provider} failed, fallback disabled: {e}")
                 return self._error_result(start_time, f"{provider} failed (no fallback): {e}")
-            # Auto-fallback: if primary provider fails, try the other one
-            fallback = "openai" if provider == "anthropic" else "anthropic"
-            fallback_key = "OPENAI_API_KEY" if fallback == "openai" else "ANTHROPIC_API_KEY"
-            if os.environ.get(fallback_key):
+            # Auto-fallback: if the primary provider fails, try the other built-in cloud
+            # provider (anthropic <-> openai), only when its key is set.
+            fallback = "openai" if spec.kind == "anthropic" else "anthropic"
+            fallback_spec = get_provider(fallback)
+            if is_configured(fallback_spec):
                 logger.warning(f"FrontierLLM: {provider} failed ({e}), falling back to {fallback}")
-                # Use the correct default model for the fallback provider
                 fallback_kwargs = dict(kwargs)
                 fallback_kwargs.pop("model", None)
-                if fallback == "openai":
-                    fallback_kwargs["model"] = "gpt-4o"
-                else:
-                    fallback_kwargs["model"] = "claude-sonnet-4-6"
+                fallback_kwargs["model"] = fallback_spec.default_model
+                self._active_provider = fallback
                 try:
                     if fallback == "openai":
                         findings = self._analyze_openai(
@@ -446,6 +473,8 @@ class FrontierLLMAdapter(ToolAdapter):
                         f"FrontierLLM: Both providers failed. {provider}: {e}, {fallback}: {e2}"
                     )
                     return self._error_result(start_time, f"{provider}: {e} | {fallback}: {e2}")
+                finally:
+                    self._active_provider = None
             else:
                 logger.error(f"FrontierLLM API error: {e}")
                 return self._error_result(start_time, str(e))
@@ -565,6 +594,7 @@ class FrontierLLMAdapter(ToolAdapter):
             "metadata": {
                 "provider": provider,
                 "model": self._model,
+                "base_url_host": base_url_host(spec) if spec else "",
                 "source_chars": len(source_code),
                 "parse": getattr(self, "_last_parse", None),
             },
@@ -657,22 +687,20 @@ Report ONLY NEW vulnerabilities not found in the first pass. Focus on HIGH/CRITI
 Respond with a JSON array."""
 
         try:
-            if provider == "anthropic":
-                import anthropic
-
-                client: Any = anthropic.Anthropic()
+            spec = self._spec()
+            kind = spec.kind if spec else provider
+            if kind == "anthropic":
+                client: Any = make_client(self._spec_for_kind("anthropic"))
                 msg = client.messages.create(
-                    model=kwargs.get("model", "claude-sonnet-4-6"),
+                    model=kwargs.get("model") or self._spec_for_kind("anthropic").default_model,
                     max_tokens=4096,
                     system=AUDIT_SYSTEM_PROMPT,
                     messages=[{"role": "user", "content": deep_prompt}],
                 )
                 return self._parse_response(getattr(msg.content[0], "text", ""))
-            elif provider == "openai":
-                import openai
-
-                client = openai.OpenAI()
-                _dp_model = kwargs.get("model", "gpt-4o")
+            elif kind == "openai":
+                client = make_client(self._spec_for_kind("openai"))
+                _dp_model = kwargs.get("model") or self._spec_for_kind("openai").default_model
                 resp = client.chat.completions.create(
                     model=_dp_model,
                     # Reasoning models (DeepSeek V4) need a large budget: reasoning
@@ -724,22 +752,29 @@ Respond with a JSON array."""
             )
 
             try:
-                if provider == "anthropic":
-                    import anthropic
-
-                    client: Any = anthropic.Anthropic()
+                spec = self._spec()
+                kind = spec.kind if spec else provider
+                if kind == "anthropic":
+                    verifier = self._spec_for_kind("anthropic")
+                    client: Any = make_client(verifier)
                     msg = client.messages.create(
-                        model="claude-haiku-4-5-20251001",  # Cheaper model for verification
+                        # A cheaper model for verification where the provider has one
+                        model=(
+                            "claude-haiku-4-5-20251001"
+                            if verifier.name == "anthropic"
+                            else verifier.default_model
+                        ),
                         max_tokens=500,
                         messages=[{"role": "user", "content": challenge_prompt}],
                     )
                     response = getattr(msg.content[0], "text", "")
-                elif provider == "openai":
-                    import openai
-
-                    client = openai.OpenAI()
+                elif kind == "openai":
+                    verifier = self._spec_for_kind("openai")
+                    client = make_client(verifier)
                     resp = client.chat.completions.create(
-                        model="gpt-4o-mini",  # Cheaper model for verification
+                        model=(
+                            "gpt-4o-mini" if verifier.name == "openai" else verifier.default_model
+                        ),
                         max_tokens=500,
                         messages=[{"role": "user", "content": challenge_prompt}],
                     )
@@ -975,12 +1010,11 @@ Respond with a JSON array."""
                 pass
 
     def _analyze_anthropic(self, source_code: str, **kwargs: Any) -> List[Dict]:
-        """Call Anthropic Claude API."""
-        import anthropic
-
-        client: Any = anthropic.Anthropic()
+        """Call the Anthropic Messages API (or an Anthropic-compatible endpoint)."""
+        spec = self._spec_for_kind("anthropic")
+        client: Any = make_client(spec)
         rag_context = kwargs.pop("rag_context", "")
-        model = kwargs.get("model", "claude-sonnet-4-6")
+        model = kwargs.get("model") or spec.default_model
         self._model = model
 
         user_prompt = self._build_user_prompt(source_code, rag_context)
@@ -1044,6 +1078,7 @@ Respond with a JSON array."""
             the tool-call trace, and accumulated token usage.
         """
         provider = self._resolve_conversation_provider(model)
+        model = self._conversation_model(model)
         if provider == "openai":
             return self._converse_openai(
                 system, messages, tools, on_tool_call, model, max_iterations, temperature
@@ -1057,16 +1092,29 @@ Respond with a JSON array."""
         ``anthropic`` → anthropic; ``gpt``/``openai``/o-series → openai);
         otherwise fall back to the adapter's configured/detected provider,
         defaulting to anthropic."""
+        self._conversation_spec = None
         if model:
-            m = model.lower()
-            if m.startswith(("claude", "anthropic")):
-                return "anthropic"
-            if m.startswith(("gpt", "openai", "o1", "o3", "o4")):
-                return "openai"
-        provider = self._get_provider()
-        if provider in ("anthropic", "openai"):
-            return provider
+            try:
+                choice = resolve_model(model)
+            except UnknownProviderError:
+                choice = None
+            if choice is not None and choice.provider.kind in ("anthropic", "openai"):
+                self._conversation_spec = choice.provider
+                return choice.provider.kind
+        spec = self._spec()
+        if spec is not None and spec.kind in ("anthropic", "openai"):
+            return spec.kind
         return "anthropic"
+
+    def _conversation_model(self, model: Optional[str]) -> Optional[str]:
+        """``provider:model`` / alias → bare model id for the SDK call."""
+        if not model:
+            return None
+        try:
+            choice = resolve_model(model)
+        except UnknownProviderError:
+            return model
+        return choice.model if choice else model
 
     def _converse_anthropic(
         self,
@@ -1079,10 +1127,9 @@ Respond with a JSON array."""
         temperature: float = 0.2,
     ) -> ConversationResult:
         """Anthropic ``tool_use`` branch of :meth:`converse_with_tools`."""
-        import anthropic
-
-        client: Any = anthropic.Anthropic()
-        model = model or "claude-sonnet-4-6"
+        spec = self._spec_for_kind("anthropic")
+        client: Any = make_client(spec)
+        model = model or spec.default_model
         self._model = model
 
         # Translate provider-neutral specs to Anthropic's tool format.
@@ -1237,10 +1284,9 @@ Respond with a JSON array."""
         back as a ``role:"tool"`` message until the model returns plain content
         or ``max_iterations`` rounds are exhausted.
         """
-        import openai
-
-        client: Any = openai.OpenAI()
-        model = model or "gpt-4o"
+        spec = self._spec_for_kind("openai")
+        client: Any = make_client(spec)
+        model = model or spec.default_model
         self._model = model
 
         # Translate provider-neutral specs to OpenAI's function-tool format.
@@ -1422,23 +1468,12 @@ Respond with a JSON array."""
         )
 
     def _analyze_openai(self, source_code: str, **kwargs: Any) -> List[Dict]:
-        """Call OpenAI API (GPT-4o, GPT-5, o-series) or DeepSeek (OpenAI-compatible)."""
-        import openai
-
+        """Call an OpenAI-compatible chat API: OpenAI, DeepSeek, Kimi or a configured endpoint."""
+        spec = self._spec_for_kind("openai")
         rag_context = kwargs.pop("rag_context", "")
-        model = kwargs.get("model", "gpt-4o")
+        model = kwargs.get("model") or spec.default_model
         self._model = model
-        # DeepSeek exposes an OpenAI-compatible endpoint; route by provider/model.
-        if os.environ.get("DEEPSEEK_API_KEY") and (
-            self._get_provider() == "deepseek" or model.startswith("deepseek")
-        ):
-            client: Any = openai.OpenAI(
-                base_url="https://api.deepseek.com",
-                api_key=os.environ["DEEPSEEK_API_KEY"],
-                timeout=300,
-            )
-        else:
-            client = openai.OpenAI()
+        client: Any = make_client(spec)
 
         user_prompt = self._build_user_prompt(source_code, rag_context)
         rag_note = f" +RAG({len(rag_context)})" if rag_context else ""
