@@ -229,7 +229,7 @@ CONTEXT_BLOCK="$(swarm_prior_context "$LANE" "$OBJECTIVE")"
 
 # ── 2. the prompt handed to the console ─────────────────────────────────────
 read -r -d '' PROMPT <<EOF || true
-You are working lane $LANE of the xNinja development swarm, in a one-shot
+You are working lane $LANE of the ${SWARM_PROJECT_LABEL} development swarm, in a one-shot
 non-interactive run. There is no human to ask, so if the objective is
 ambiguous, choose the narrowest reasonable reading, state the assumption in
 your closeout, and stop rather than widening scope.

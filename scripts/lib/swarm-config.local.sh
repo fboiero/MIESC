@@ -23,6 +23,11 @@ _miesc_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 # --- Project identity ---------------------------------------------------------
 : "${SWARM_PROJECT_ID:=miesc}"
+# Runtime display label (dispatch prompt + lane-status banner). Set explicitly for
+# brand casing: the generic default is SWARM_PROJECT_ID ("miesc", lowercase). This
+# is what makes a MIESC console read "MIESC swarm", not "xNinja swarm". Cosmetic
+# only — never drives routing.
+: "${SWARM_PROJECT_LABEL:=MIESC}"
 
 # --- Verify hook (THE load-bearing per-project fact) --------------------------
 # "Is this merged tree green?", run in the isolated landing worktree BEFORE a land.

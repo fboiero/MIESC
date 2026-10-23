@@ -67,22 +67,22 @@ To change an engine file you edit **swarm-ops**, re-copy, and re-pin with `--wri
 — you never hand-edit MIESC's copy. 13 files are adopted; the pin lives in
 `scripts/lib/engine-sync-source.json`.
 
-### Known gap this adoption surfaced
+### Resolved: the hard-coded project label
 
-The vendored engine still carries **two hard-coded `xNinja` runtime strings** — the
-`swarm-ops` canonical was extracted from xNinja without fully parameterising them:
+This adoption surfaced that `swarm-ops` hard-coded **"xNinja"** in two *runtime*
+strings — `lane-dispatch.sh` (the dispatch prompt) and `lane-status.sh` (the status
+banner) — so a MIESC console would have been told it was on "the xNinja swarm". Not
+cosmetic for an orchestration prompt: a wrong label can steer a console's priors
+toward another project's conventions (develop, `make ci-verify`, glab).
 
-- `scripts/lane-dispatch.sh` injects *"You are working lane N of the **xNinja**
-  development swarm"* into every dispatch prompt.
-- `scripts/lane-status.sh` prints *"**xNinja** swarm"* as its status header.
-
-(The engine's other `xNinja` mentions are byte-identical documentation comments —
-harmless.) So a MIESC console is currently told, **in its dispatch prompt**, that it
-is on "the xNinja swarm". This is **cosmetic in the engine's mechanics** — the config
-seam below overrides the actual base branch, forge and verify gate — **but it
-mislabels the project in the worker's prompt**, which can steer a console's priors
-toward xNinja conventions (develop, `make ci-verify`, glab). **Fix it before any live
-MIESC dispatch.** It is the first thing this worked example exposed.
+**Fixed in `swarm-ops`** by parameterising it — `SWARM_PROJECT_LABEL`, defaulting to
+`SWARM_PROJECT_ID` — and re-synced here; `swarm-config.local.sh` sets
+`SWARM_PROJECT_LABEL=MIESC`, so this swarm now reads **"MIESC swarm"**. The change
+was made in the canonical and re-copied — never hand-edited in the vendored copy,
+which the drift guard forbids. (The swarm-ops commit and this re-sync are both
+local until the operator pushes them; the swarm-ops `xNinja`-specific doc paths in
+the dispatch prompt — `docs/AGENT-SWARM-OPERATIONS.md` etc. — remain a separate,
+larger parameterisation left for later.)
 
 The fix does **not** belong here: the drift guard correctly forbids hand-editing
 MIESC's copy. It belongs in **swarm-ops** — parameterise the label (e.g. a

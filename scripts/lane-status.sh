@@ -29,7 +29,7 @@ hdr() { printf '\n%s%s%s\n' "$cy" "$1" "$off"; }
 [ "${1:-}" = "--fetch" ] && { printf '%sfetching origin...%s\n' "$dim" "$off"; git fetch -q origin 2>/dev/null || true; }
 
 DEV="$(git rev-parse --short origin/${SWARM_BASE_BRANCH} 2>/dev/null || echo '?')"
-printf '%sxNinja swarm%s   '"${SWARM_BASE_BRANCH}"' @ %s   %s\n' "$b" "$off" "$DEV" "$(date '+%Y-%m-%d %H:%M')"
+printf '%s'"${SWARM_PROJECT_LABEL}"' swarm%s   '"${SWARM_BASE_BRANCH}"' @ %s   %s\n' "$b" "$off" "$DEV" "$(date '+%Y-%m-%d %H:%M')"
 
 # ── consoles ────────────────────────────────────────────────────────────────
 # Roster + lane ownership come straight from the manifest: swarm_consoles for the

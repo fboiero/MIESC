@@ -33,6 +33,14 @@ unset _swarm_cfg_local
 # Empty means "single-project manifest" (the first/only project entry).
 : "${SWARM_PROJECT_ID:=}"
 
+# --- Project display label (runtime-facing) -----------------------------------
+# Human-facing name for this swarm in runtime output: the dispatch prompt and the
+# lane-status banner. Defaults to SWARM_PROJECT_ID, else "local". A project with
+# brand casing (e.g. xNinja) sets this explicitly in swarm-config.local.sh; it is
+# cosmetic (never drives routing), but a wrong label in a dispatch prompt can steer
+# a console's priors toward another project's conventions.
+: "${SWARM_PROJECT_LABEL:=${SWARM_PROJECT_ID:-local}}"
+
 # --- The verify hook (THE load-bearing per-project fact) ----------------------
 # The command that decides "is this merged tree green?", run in the isolated
 # landing worktree BEFORE a land is pushed. This is where projects differ most:
