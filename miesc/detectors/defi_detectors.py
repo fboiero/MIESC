@@ -499,7 +499,10 @@ class RoundingErrorDetector(DeFiDetector):
     description = "Detects divide-before-multiply rounding errors in fixed-point math chains"
     category = DeFiCategory.ROUNDING
 
-    DIV_THEN_MUL_CHAIN = re.compile(r"\.\w*[Dd]iv\w*\s*\([^()]*\)\s*\.\w*[Mm]ul\w*\s*\(")
+    # `div`/`mul` must start the method name or a camelCase word in it
+    # (`divWadDown`, `wadDiv`), not appear inside an unrelated word
+    # (`individual(...)`, `emulate(...)`).
+    DIV_THEN_MUL_CHAIN = re.compile(r"\.(?:div|\w*Div)\w*\s*\([^()]*\)\s*\.(?:mul|\w*Mul)\w*\s*\(")
 
     def detect(self, source_code: str, file_path: Optional[Path] = None) -> List[DeFiFinding]:
         findings: List[DeFiFinding] = []
@@ -520,7 +523,10 @@ class RoundingErrorDetector(DeFiDetector):
                         recommendation="Combine into a single call that multiplies before "
                         "dividing (e.g. mulDivDown/mulDivUp) instead of chaining separate "
                         "div then mul calls.",
-                        references=["https://swcregistry.io/docs/SWC-101"],
+                        references=[
+                            "https://github.com/crytic/slither/wiki/"
+                            "Detector-Documentation#divide-before-multiply"
+                        ],
                     )
                 )
 

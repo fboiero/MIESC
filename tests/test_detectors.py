@@ -367,7 +367,7 @@ class TestPriceManipulationDetector:
 
 
 class TestRoundingErrorDetector:
-    """Tests for RoundingErrorDetector (MEJORAS3.md item 2)."""
+    """Tests for RoundingErrorDetector."""
 
     def test_detector_attributes(self):
         from miesc.detectors.defi_detectors import DeFiCategory, RoundingErrorDetector
@@ -401,6 +401,18 @@ class TestRoundingErrorDetector:
         findings = detector.detect(source)
         assert len(findings) == 0
 
+    def test_div_and_mul_inside_unrelated_names_not_flagged(self):
+        """`individual(...)` / `emulate(...)` merely contain "div"/"mul"."""
+        from miesc.detectors.defi_detectors import RoundingErrorDetector
+
+        detector = RoundingErrorDetector()
+        source = """
+        function f(uint256 id) public returns (uint256) {
+            return registry.individual(id).emulate(id);
+        }
+        """
+        assert detector.detect(source) == []
+
     def test_no_math_no_findings(self):
         from miesc.detectors.defi_detectors import RoundingErrorDetector
 
@@ -410,7 +422,7 @@ class TestRoundingErrorDetector:
 
 
 class TestFeeOnTransferDetector:
-    """Tests for FeeOnTransferDetector (MEJORAS3.md item 2)."""
+    """Tests for FeeOnTransferDetector."""
 
     def test_detector_attributes(self):
         from miesc.detectors.defi_detectors import DeFiCategory, FeeOnTransferDetector
@@ -469,7 +481,7 @@ class TestFeeOnTransferDetector:
 
 
 class TestERC4626ComplianceDetector:
-    """Tests for ERC4626ComplianceDetector (MEJORAS3.md item 13)."""
+    """Tests for ERC4626ComplianceDetector."""
 
     def test_detector_attributes(self):
         from miesc.detectors.defi_detectors import DeFiCategory, ERC4626ComplianceDetector
@@ -534,7 +546,7 @@ class TestERC4626ComplianceDetector:
 
 
 class TestUnrefundedExcessPaymentDetector:
-    """Tests for UnrefundedExcessPaymentDetector (MEJORAS3.md item 16, M-12)."""
+    """Tests for UnrefundedExcessPaymentDetector."""
 
     def test_detector_attributes(self):
         from miesc.detectors.defi_detectors import DeFiCategory, UnrefundedExcessPaymentDetector

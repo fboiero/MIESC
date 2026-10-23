@@ -171,7 +171,7 @@ def test_price_calc_reserve_ratio():
 
 
 # --------------------------------------------------------------------------- #
-# MEJORAS3.md item 2: rounding (divide-before-multiply library chains) and
+# Rounding (divide-before-multiply library chains) and
 # fee-on-transfer (missing balance-before/after) detectors.
 # --------------------------------------------------------------------------- #
 def test_divide_before_multiply_library_chain_flagged():
