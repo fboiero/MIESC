@@ -552,6 +552,19 @@ llm:
   provider: ollama
   host: http://localhost:11434
 
+  # Proveedores LLM (nube y locales). Los built-in son anthropic, openai, deepseek,
+  # kimi (Moonshot) y ollama; acá se agregan endpoints compatibles con OpenAI o se
+  # pisa un campo de un built-in. Las claves se leen de las variables de entorno
+  # indicadas y nunca se guardan. Ver docs/guides/LLM_PROVIDERS.md.
+  # providers:
+  #   openrouter:
+  #     kind: openai                     # openai | anthropic | ollama
+  #     base_url: https://openrouter.ai/api/v1
+  #     api_key_env: OPENROUTER_API_KEY
+  #     default_model: qwen/qwen-2.5-coder-32b-instruct
+  #   kimi:
+  #     default_model: kimi-k2-thinking
+
   # Modelo por defecto para todas las tareas
   default_model: qwen2.5-coder:32b
 

@@ -65,6 +65,7 @@ docs/
 |----------|----------|-------------|
 | Repository Hygiene | `guides/REPOSITORY_HYGIENE.md` | What belongs in Git, what is generated/local, and how evidence is curated |
 | Researcher Packaging | `guides/RESEARCHER_PACKAGING.md` | How researchers should install and run the full toolchain |
+| LLM Providers | `guides/LLM_PROVIDERS.md` | Cloud APIs (Claude, GPT, DeepSeek, Kimi), local Ollama and custom OpenAI-compatible endpoints: selection, keys, config |
 | Testing Guide | `guides/TESTING.md` | Test strategy and validation commands |
 | RAG Source Policy | `guides/RAG_SOURCE_POLICY.md` | Source selection and weighting criteria |
 | Remediation API/MCP | `guides/REMEDIATION_API_MCP.md` | Evidence-producing remediation workflows |
