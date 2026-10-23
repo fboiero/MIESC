@@ -1120,8 +1120,10 @@ def audit() -> None:
     "--verify-model",
     "verify_model",
     default=None,
-    help="Ollama/DeepSeek model for an ADVISORY --verify-fp LLM pass (e.g. qwen2.5-coder:32b, "
-    "deepseek): flags more suspected FPs as needs_review; never drops.",
+    help="Model for an ADVISORY --verify-fp LLM pass: any registered provider as provider[:model] "
+    "(local Ollama by default, e.g. ollama:qwen2.5-coder:32b; gpt, claude, deepseek, kimi or an "
+    "endpoint from llm.providers need their key). Flags more suspected FPs as needs_review; "
+    "never drops. See docs/guides/LLM_PROVIDERS.md.",
 )
 @click.option(
     "--rank",
@@ -1385,8 +1387,10 @@ def audit_quick(
     "--verify-model",
     "verify_model",
     default=None,
-    help="Ollama/DeepSeek model for an ADVISORY --verify-fp LLM pass (e.g. qwen2.5-coder:32b, "
-    "deepseek): flags more suspected FPs as needs_review; never drops.",
+    help="Model for an ADVISORY --verify-fp LLM pass: any registered provider as provider[:model] "
+    "(local Ollama by default, e.g. ollama:qwen2.5-coder:32b; gpt, claude, deepseek, kimi or an "
+    "endpoint from llm.providers need their key). Flags more suspected FPs as needs_review; "
+    "never drops. See docs/guides/LLM_PROVIDERS.md.",
 )
 @click.option(
     "--rank",

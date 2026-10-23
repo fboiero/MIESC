@@ -24,7 +24,9 @@ This was hardened via wild real-data evaluation (docs/research/WILD_FIELD_MEASUR
 recall is now 1.0 across all six ground-truth sources. The earlier +28.6pp LLM-drop figure
 came from controlled synthetic pairs and did NOT generalize — that is why it no longer drops.
 
-Opt-in: the LLM path requires a local Ollama model; without one the rule-only path runs.
+Opt-in: the advisory LLM path runs on a local Ollama model (default) or a configurable
+API provider (OpenAI/GPT, Anthropic/Claude, DeepSeek, Moonshot/Kimi); without one, or
+without the provider's key, the rule-only path runs. Providers come from the shared registry (``miesc.core.llm_providers``).
 
 Author: Fernando Boiero · License: AGPL-3.0
 """
@@ -36,6 +38,15 @@ import json
 import os
 import re
 from typing import Any, Optional, cast
+
+from miesc.core.llm_config import get_ollama_host
+from miesc.core.llm_providers import (
+    ProviderSpec,
+    UnknownProviderError,
+    api_key_for,
+    get_provider,
+    resolve_model,
+)
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 _DEFAULT_BENIGN_GLOB = os.path.join(_ROOT, "data", "rag", "benign_patterns_seed_*.jsonl")
@@ -246,19 +257,82 @@ def match_benign(
     return None
 
 
+# -- Configurable verifier LLM providers -------------------------------------------
+# Providers, endpoints, key variables and default models come from the shared registry
+# (miesc.core.llm_providers), the same one `scan --model`, `audit --llm-provider` and
+# `doctor` read, so `--verify-model kimi:...` and `--model kimi:...` resolve identically.
+# Calls stay on the dependency-free urllib path; a missing key or any error returns ''
+# which the caller treats as a recall-safe KEEP (never a drop).
+
+#: Cheaper tier for the per-finding advisory pass where the vendor has one; the other
+#: providers use their registry default. ``MIESC_VERIFY_<NAME>_MODEL`` overrides either,
+#: an explicit ``provider:model`` overrides everything.
+_VERIFIER_CHEAP_MODELS: dict[str, str] = {
+    "openai": "gpt-4o-mini",
+    "anthropic": "claude-haiku-4-5-20251001",
+    "deepseek": "deepseek-chat",
+}
+#: Pre-registry override variable kept working for the DeepSeek failover.
+_LEGACY_MODEL_ENV: dict[str, str] = {"deepseek": "DEEPSEEK_MODEL"}
+
+
+def _parse_verifier_model(model: Optional[str]) -> tuple[Optional[str], Optional[str]]:
+    """Resolve a verify-model string to ``(provider name, explicit model or None)``.
+
+    Accepts anything the provider registry accepts: ``provider`` or ``provider:model``
+    (``gpt``, ``claude:claude-3-5-sonnet``, ``kimi``, ``ollama:qwen2.5-coder:32b``), a bare
+    Ollama tag (``llama3``), or a bare model id whose provider is inferred from its prefix.
+    ``None`` is returned as the model when the user named only a provider, so the verifier
+    can pick its cheaper tier. ``(None, None)`` disables the LLM pass; an unknown provider
+    prefix also disables it rather than guessing a paid endpoint.
+    """
+    if not model or not model.strip():
+        return None, None
+    try:
+        choice = resolve_model(model)
+    except UnknownProviderError:
+        return None, None
+    if choice is None:
+        return None, None
+    explicit = choice.model if choice.how in ("explicit", "inferred") else None
+    return choice.provider.name, explicit
+
+
+def _verifier_model(spec: ProviderSpec, explicit: Optional[str]) -> str:
+    """Model for the advisory pass: explicit > MIESC_VERIFY_<NAME>_MODEL > cheap tier > default."""
+    if explicit:
+        return explicit
+    env_name = f"MIESC_VERIFY_{spec.name.upper().replace('-', '_')}_MODEL"
+    legacy = _LEGACY_MODEL_ENV.get(spec.name)
+    return (
+        os.environ.get(env_name)
+        or (os.environ.get(legacy) if legacy else None)
+        or _VERIFIER_CHEAP_MODELS.get(spec.name)
+        or spec.default_model
+    )
+
+
 class BenignContextVerifier:
-    """Recall-safe FP/hallucination verifier. Opt-in LLM grounding via local Ollama."""
+    """Recall-safe FP/hallucination verifier.
+
+    Opt-in LLM grounding runs on a local Ollama model (default, free, reproducible) or on
+    a configurable API provider (OpenAI/GPT, Anthropic/Claude, DeepSeek, Moonshot/Kimi),
+    selected by the ``model`` string. The LLM is always ADVISORY — it can only FLAG
+    (needs_review), never drop.
+    """
 
     def __init__(
         self,
         model: Optional[str] = None,
-        host: str = "http://localhost:11434",
+        host: Optional[str] = None,
         benign_path: Optional[str] = None,
         timeout: int = 60,
     ) -> None:
         self.patterns = load_benign_patterns(benign_path)
         self.model = model
-        self.host = host
+        # Resolve the Ollama host as the LLM adapters do (OLLAMA_HOST env, then config,
+        # then localhost) so Docker/remote daemons are reachable, not silently skipped.
+        self.host = host or get_ollama_host()
         self.timeout = timeout
 
     # -- LLM grounding (recall-safe, reference-not-directive) -------------------
@@ -292,57 +366,117 @@ class BenignContextVerifier:
         return bool(m and json.loads(m.group(0)).get("false_positive") is True)
 
     def _query(self, prompt: str) -> str:
-        """Query the verifier model: Ollama first, DeepSeek API failover. '' on any failure.
+        """Route the advisory prompt to the configured provider. '' on any failure.
 
-        - model='deepseek'           -> DeepSeek API directly.
-        - model=<ollama model>       -> Ollama; on failure (e.g. Ollama down) AND
-                                        DEEPSEEK_API_KEY set -> automatic DeepSeek failover.
-        Any failure returns '' which the caller treats as recall-safe KEEP.
+        The provider comes from ``self.model`` through the registry
+        (:func:`_parse_verifier_model`):
+
+        - Ollama (``ollama[:<m>]`` or a bare tag): local generate call; when it fails (daemon
+          down) and ``DEEPSEEK_API_KEY`` is set, the historical DeepSeek failover runs.
+        - An Anthropic-kind provider: Messages API with ``x-api-key``.
+        - Any OpenAI-compatible provider (openai, deepseek, kimi, a configured endpoint):
+          ``<base_url>/chat/completions`` with a bearer key.
+
+        Any failure or missing key returns '' which the caller treats as recall-safe KEEP.
         """
+        provider, explicit = _parse_verifier_model(self.model)
+        if provider is None:
+            return ""
+        try:
+            spec = get_provider(provider)
+        except UnknownProviderError:
+            return ""
+        if spec.kind == "ollama":
+            out = self._query_ollama(_verifier_model(spec, explicit), prompt)
+            # backward-compatible failover: Ollama down -> DeepSeek if a key is set
+            return out or self._query_openai_compatible(get_provider("deepseek"), prompt)
+        if spec.kind == "anthropic":
+            return self._query_anthropic(spec, prompt, explicit)
+        return self._query_openai_compatible(spec, prompt, explicit)
+
+    def _query_ollama(self, model: str, prompt: str) -> str:
+        """Local Ollama generate call. '' on any failure (recall-safe KEEP)."""
+        if not model:
+            return ""
         import urllib.request
 
-        if self.model and self.model.lower() != "deepseek":
-            try:
-                body = json.dumps(
-                    {
-                        "model": self.model,
-                        "prompt": prompt,
-                        "stream": False,
-                        "options": {"temperature": 0},
-                    }
-                ).encode()
-                req = urllib.request.Request(
-                    self.host.rstrip("/") + "/api/generate",
-                    data=body,
-                    headers={"Content-Type": "application/json"},
-                )
-                with urllib.request.urlopen(req, timeout=self.timeout) as r:
-                    return cast(str, json.loads(r.read()).get("response", ""))
-            except Exception:  # noqa: BLE001 - fall through to DeepSeek failover
-                pass
-        key = os.environ.get("DEEPSEEK_API_KEY")
-        if key:
-            try:
-                base = os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com").rstrip("/")
-                ds_model = os.environ.get("DEEPSEEK_MODEL", "deepseek-chat")
-                body = json.dumps(
-                    {
-                        "model": ds_model,
-                        "messages": [{"role": "user", "content": prompt}],
-                        "temperature": 0,
-                        "stream": False,
-                    }
-                ).encode()
-                req = urllib.request.Request(
-                    base + "/chat/completions",
-                    data=body,
-                    headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"},
-                )
-                with urllib.request.urlopen(req, timeout=self.timeout) as r:
-                    return cast(str, json.loads(r.read())["choices"][0]["message"]["content"])
-            except Exception:  # noqa: BLE001 - recall-safe: failure -> keep
-                return ""
-        return ""
+        try:
+            body = json.dumps(
+                {"model": model, "prompt": prompt, "stream": False, "options": {"temperature": 0}}
+            ).encode()
+            req = urllib.request.Request(
+                self.host.rstrip("/") + "/api/generate",
+                data=body,
+                headers={"Content-Type": "application/json"},
+            )
+            with urllib.request.urlopen(req, timeout=self.timeout) as r:
+                return cast(str, json.loads(r.read()).get("response", ""))
+        except Exception:  # noqa: BLE001 - recall-safe: failure -> keep
+            return ""
+
+    def _query_openai_compatible(
+        self, spec: ProviderSpec, prompt: str, explicit: Optional[str] = None
+    ) -> str:
+        """OpenAI-style chat/completions call for any OpenAI-compatible registry provider."""
+        import urllib.request
+
+        key = api_key_for(spec)
+        if not key:
+            return ""
+        base = (spec.base_url or "https://api.openai.com/v1").rstrip("/")
+        mdl = _verifier_model(spec, explicit)
+        try:
+            body = json.dumps(
+                {
+                    "model": mdl,
+                    "messages": [{"role": "user", "content": prompt}],
+                    "temperature": 0,
+                    "stream": False,
+                }
+            ).encode()
+            req = urllib.request.Request(
+                base + "/chat/completions",
+                data=body,
+                headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"},
+            )
+            with urllib.request.urlopen(req, timeout=self.timeout) as r:
+                return cast(str, json.loads(r.read())["choices"][0]["message"]["content"])
+        except Exception:  # noqa: BLE001 - recall-safe: failure -> keep
+            return ""
+
+    def _query_anthropic(
+        self, spec: ProviderSpec, prompt: str, explicit: Optional[str] = None
+    ) -> str:
+        """Anthropic Messages API call. '' on any failure (recall-safe KEEP)."""
+        import urllib.request
+
+        key = api_key_for(spec)
+        if not key:
+            return ""
+        base = (spec.base_url or "https://api.anthropic.com").rstrip("/")
+        mdl = _verifier_model(spec, explicit)
+        try:
+            body = json.dumps(
+                {
+                    "model": mdl,
+                    "max_tokens": 512,
+                    "messages": [{"role": "user", "content": prompt}],
+                }
+            ).encode()
+            req = urllib.request.Request(
+                base + "/v1/messages",
+                data=body,
+                headers={
+                    "Content-Type": "application/json",
+                    "x-api-key": key,
+                    "anthropic-version": "2023-06-01",
+                },
+            )
+            with urllib.request.urlopen(req, timeout=self.timeout) as r:
+                parts = json.loads(r.read()).get("content", [])
+                return cast(str, parts[0].get("text", "")) if parts else ""
+        except Exception:  # noqa: BLE001 - recall-safe: failure -> keep
+            return ""
 
     # -- public API ------------------------------------------------------------
     def verify(self, finding: dict[str, Any], code: str) -> str:
