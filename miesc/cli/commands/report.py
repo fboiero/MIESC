@@ -22,6 +22,7 @@ from miesc.cli.utils import (
     RICH_AVAILABLE,
     console,
     error,
+    finding_list,
     get_data_path,
     get_root_dir,
     info,
@@ -160,14 +161,8 @@ def _extract_confidence_level(findings: list[dict[str, Any]]) -> str:
 
 
 def _finding_list(value: Any) -> list[dict[str, Any]]:
-    """Findings from either shape the result files use: a list of findings, or a
-    dict with a ``findings`` key (``raw_findings`` is a dict in the audit JSON and a
-    list in older files). Non-dict entries are dropped."""
-    if isinstance(value, dict):
-        value = value.get("findings", [])
-    if not isinstance(value, list):
-        return []
-    return [f for f in value if isinstance(f, dict)]
+    """Findings from either result-file shape; see ``miesc.cli.utils.finding_list``."""
+    return finding_list(value)
 
 
 def _coverage_and_provenance_variables(results: dict[str, Any]) -> dict[str, Any]:
