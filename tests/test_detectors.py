@@ -533,6 +533,128 @@ class TestERC4626ComplianceDetector:
         assert len(findings) == 0
 
 
+class TestUnrefundedExcessPaymentDetector:
+    """Tests for UnrefundedExcessPaymentDetector (MEJORAS3.md item 16, M-12)."""
+
+    def test_detector_attributes(self):
+        from miesc.detectors.defi_detectors import DeFiCategory, UnrefundedExcessPaymentDetector
+
+        detector = UnrefundedExcessPaymentDetector()
+        assert detector.name == "unrefunded-excess-payment-detector"
+        assert detector.category == DeFiCategory.BUSINESS_LOGIC
+
+    def test_computed_price_overpay_without_refund_flagged(self):
+        """Real case (NextGen M-12): a computed per-unit price (function call
+        + multiplication), overpayment allowed, never refunded."""
+        from miesc.detectors.defi_detectors import UnrefundedExcessPaymentDetector
+
+        detector = UnrefundedExcessPaymentDetector()
+        source = """
+        contract C {
+            function mint(uint256 qty) public payable {
+                require(msg.value >= (getPrice() * qty), "Wrong ETH");
+                total = total + msg.value;
+            }
+        }
+        """
+        findings = detector.detect(source)
+        assert len(findings) == 1
+        assert findings[0].line == 3
+
+    def test_exact_payment_not_flagged(self):
+        """msg.value == cost has no possible excess - nothing to refund."""
+        from miesc.detectors.defi_detectors import UnrefundedExcessPaymentDetector
+
+        detector = UnrefundedExcessPaymentDetector()
+        source = """
+        contract C {
+            function mint(uint256 qty) public payable {
+                require(msg.value == (getPrice() * qty), "Wrong ETH");
+                total = total + msg.value;
+            }
+        }
+        """
+        findings = detector.detect(source)
+        assert len(findings) == 0
+
+    def test_refund_present_not_flagged(self):
+        from miesc.detectors.defi_detectors import UnrefundedExcessPaymentDetector
+
+        detector = UnrefundedExcessPaymentDetector()
+        source = """
+        contract C {
+            function mint(uint256 qty) public payable {
+                require(msg.value >= (getPrice() * qty), "Wrong ETH");
+                uint256 cost = getPrice() * qty;
+                total = total + cost;
+                if (msg.value > cost) {
+                    payable(msg.sender).transfer(msg.value - cost);
+                }
+            }
+        }
+        """
+        findings = detector.detect(source)
+        assert len(findings) == 0
+
+    def test_deposit_with_minimum_not_flagged(self):
+        """Verified against smartbugs-curated real contracts: a Deposit()
+        function crediting the *entire* msg.value to the sender's own
+        balance, gated only by a bare minimum threshold (not a computed
+        price), is correct behavior - not this bug."""
+        from miesc.detectors.defi_detectors import UnrefundedExcessPaymentDetector
+
+        detector = UnrefundedExcessPaymentDetector()
+        source = """
+        contract C {
+            function deposit() public payable {
+                if (msg.value >= MinDeposit) {
+                    balances[msg.sender] += msg.value;
+                }
+            }
+        }
+        """
+        findings = detector.detect(source)
+        assert len(findings) == 0
+
+    def test_flat_fee_constant_not_flagged(self):
+        """Real case (CryptoKitties breedWithAuto): a flat fee constant, not
+        a computed per-unit price - same conservative gate as the deposit
+        case above."""
+        from miesc.detectors.defi_detectors import UnrefundedExcessPaymentDetector
+
+        detector = UnrefundedExcessPaymentDetector()
+        source = """
+        contract C {
+            function breed() external payable {
+                require(msg.value >= autoBirthFee);
+            }
+        }
+        """
+        findings = detector.detect(source)
+        assert len(findings) == 0
+
+    def test_non_payable_function_not_flagged(self):
+        from miesc.detectors.defi_detectors import UnrefundedExcessPaymentDetector
+
+        detector = UnrefundedExcessPaymentDetector()
+        source = """
+        contract C {
+            function check(uint256 qty) public {
+                require(msg.value >= (getPrice() * qty), "Wrong ETH");
+            }
+        }
+        """
+        findings = detector.detect(source)
+        assert len(findings) == 0
+
+    def test_no_payable_functions_no_findings(self):
+        from miesc.detectors.defi_detectors import UnrefundedExcessPaymentDetector
+
+        detector = UnrefundedExcessPaymentDetector()
+        findings = detector.detect("contract C { function setValue(uint256 v) public {} }")
+        assert len(findings) == 0
+
+
 class TestDeFiDetectorEngine:
     """Tests for DeFiDetectorEngine."""
 
@@ -541,7 +663,7 @@ class TestDeFiDetectorEngine:
         from miesc.detectors.defi_detectors import DeFiDetectorEngine
 
         engine = DeFiDetectorEngine()
-        assert len(engine.detectors) == 8
+        assert len(engine.detectors) == 9
 
     def test_engine_analyze(self):
         """Test engine runs all detectors."""

@@ -40,6 +40,7 @@ class DeFiCategory(Enum):
     ROUNDING = "rounding"
     FEE_ON_TRANSFER = "fee_on_transfer"
     ERC4626 = "erc4626"
+    BUSINESS_LOGIC = "business_logic"
 
 
 @dataclass
@@ -661,6 +662,141 @@ class ERC4626ComplianceDetector(DeFiDetector):
         return findings
 
 
+class UnrefundedExcessPaymentDetector(DeFiDetector):
+    """
+    Detects `payable` functions that accept overpayment (`msg.value >= cost`)
+    but never refund the difference back to the caller.
+
+    Real case (NextGen M-12, ground truth): MinterContract's mint()/
+    burnToMint()/burnOrSwapExternalToMint() all `require(msg.value >= price)`
+    (explicitly allowing overpayment) then credit the *full* msg.value to
+    internal accounting - any amount paid above the actual price is silently
+    kept by the contract, never returned. A contract that instead requires
+    exact payment (`msg.value == cost`) has no excess to refund and is not
+    flagged - the risk is specifically in accepting *more* than required
+    without giving the difference back.
+
+    Gated on the comparison's right-hand side looking like a computed price
+    (a function call or a multiplication, e.g. `getPrice(id) * qty`) rather
+    than a bare threshold constant/variable (`MinDeposit`, `0.02 ether`,
+    `autoBirthFee`). Verified against smartbugs-curated: several real
+    "deposit if msg.value >= minimum" functions credit the *entire*
+    msg.value to the sender's own balance - correct behavior, no excess to
+    refund - and would be false positives without this gate.
+    """
+
+    name = "unrefunded-excess-payment-detector"
+    description = (
+        "Detects payable functions with a 'msg.value >=' overpayment check "
+        "that never refund the excess"
+    )
+    category = DeFiCategory.BUSINESS_LOGIC
+
+    MSG_VALUE_OVERPAY_CHECK = re.compile(r"msg\.value\s*>=")
+    COMPUTED_PRICE = re.compile(r"\w\s*\(|\*")
+    REFUND_PATTERNS = [
+        re.compile(r"msg\.sender\s*\.\s*(?:call\s*\{|transfer\s*\(|send\s*\()"),
+        re.compile(r"payable\s*\(\s*msg\.sender\s*\)\s*\.\s*(?:call\s*\{|transfer\s*\(|send\s*\()"),
+        re.compile(r"\brefund\w*\s*\("),
+    ]
+
+    def detect(self, source_code: str, file_path: Optional[Path] = None) -> List[DeFiFinding]:
+        findings: List[DeFiFinding] = []
+        try:
+            from miesc.ml.call_graph import CallGraphBuilder
+
+            graph = CallGraphBuilder().build_from_source(source_code)
+        except Exception:
+            return findings
+
+        lines = source_code.split("\n")
+        for func in graph.nodes.values():
+            if not func.is_payable or not func.start_line:
+                continue
+            end_line = self._function_body_end(lines, func.start_line)
+            body = "\n".join(lines[func.start_line - 1 : end_line])
+
+            match = self.MSG_VALUE_OVERPAY_CHECK.search(body)
+            if not match:
+                continue
+            condition = self._enclosing_call(body, match.start())
+            if not condition or not self.COMPUTED_PRICE.search(condition):
+                continue
+            if any(pattern.search(body) for pattern in self.REFUND_PATTERNS):
+                continue
+
+            findings.append(
+                DeFiFinding(
+                    title="Unrefunded Excess Payment",
+                    description=f"`{func.name}` at line {func.start_line} accepts "
+                    "overpayment (`msg.value >=` a required amount) but never refunds "
+                    "the difference back to the caller - any ETH sent above the "
+                    "required amount is silently kept by the contract.",
+                    severity=Severity.MEDIUM,
+                    category=self.category,
+                    line=func.start_line,
+                    code_snippet=f"function {func.name}(...) payable",
+                    recommendation="Either require exact payment (`msg.value == cost`) "
+                    "or refund the excess (`msg.value - cost`) back to msg.sender "
+                    "before returning.",
+                )
+            )
+
+        return findings
+
+    @staticmethod
+    def _function_body_end(lines: List[str], start_line: int) -> int:
+        """1-indexed last line of the function starting at `start_line`.
+
+        Same regex-based rigor as the rest of this codebase's Solidity
+        parsing (not a real compiler) - brace-count from the function
+        header to its matching close.
+        """
+        depth = 0
+        started = False
+        end_idx = start_line - 1
+        for i in range(start_line - 1, len(lines)):
+            depth += lines[i].count("{") - lines[i].count("}")
+            if "{" in lines[i]:
+                started = True
+            end_idx = i
+            if started and depth <= 0:
+                break
+        return end_idx + 1
+
+    @staticmethod
+    def _enclosing_call(text: str, pos: int) -> Optional[str]:
+        """The nearest `require(...)`/`if(...)` (or any `foo(...)`) span
+        enclosing `pos`, via paren balance - not just "next 40 chars", so a
+        nested call like `getPrice(col)` inside the condition doesn't get
+        mistaken for the end of the whole require(...)."""
+        depth = 0
+        start = None
+        i = pos
+        while i > 0:
+            i -= 1
+            c = text[i]
+            if c == ")":
+                depth += 1
+            elif c == "(":
+                if depth == 0:
+                    start = i
+                    break
+                depth -= 1
+        if start is None:
+            return None
+        depth = 0
+        for j in range(start, len(text)):
+            c = text[j]
+            if c == "(":
+                depth += 1
+            elif c == ")":
+                depth -= 1
+                if depth == 0:
+                    return text[start : j + 1]
+        return None
+
+
 class DeFiDetectorEngine:
     """Engine to run all DeFi detectors."""
 
@@ -674,6 +810,7 @@ class DeFiDetectorEngine:
             RoundingErrorDetector(),
             FeeOnTransferDetector(),
             ERC4626ComplianceDetector(),
+            UnrefundedExcessPaymentDetector(),
         ]
 
     def analyze(self, source_code: str, file_path: Optional[Path] = None) -> List[DeFiFinding]:

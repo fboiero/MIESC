@@ -220,6 +220,7 @@ class DeFiAdapter:
                 "rounding",
                 "fee_on_transfer",
                 "erc4626",
+                "business_logic",
             ],
             "supported_vulnerabilities": [
                 "Flash Loan Attacks",
@@ -232,6 +233,7 @@ class DeFiAdapter:
                 "Rounding Errors (fixed-point math chains)",
                 "Fee-on-Transfer / Rebasing Token Issues",
                 "EIP-4626 Signature Non-Compliance",
+                "Unrefunded Excess Payment",
             ],
         }
 
