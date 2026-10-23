@@ -21,6 +21,7 @@ from miesc.cli.commands.audit import _to_markdown, _to_sarif
 from miesc.cli.utils import (
     error,
     print_banner,
+    results_from_result_file,
     success,
     summarize_findings,
 )
@@ -76,8 +77,8 @@ def export(input_file: str, fmt: str, output: str | None, baseline_path: str | N
     with open(input_file, encoding="utf-8") as f:
         data: dict[str, Any] = json.load(f)
 
-    results = data.get("results", [data])
-    contract = data.get("contract", input_file)
+    contract = str(data.get("contract") or data.get("contract_path") or input_file)
+    results = results_from_result_file(data, contract)
 
     if fmt == "sarif":
         output_data = _to_sarif(results)
