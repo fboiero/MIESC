@@ -666,3 +666,109 @@ class TestMultiProviderRouting:
         finding = {"type": "reentrancy", "function": "w", "line": 2}
         # LLM says FP, but a real finding is only flagged, never dropped
         assert v.verify(finding, code) == "needs_review"
+
+
+import pytest  # noqa: E402
+
+
+class TestVerifierUsesTheProviderRegistry:
+    """`--verify-model` resolves exactly like `scan --model` (miesc.core.llm_providers)."""
+
+    @pytest.fixture(autouse=True)
+    def _clean(self, monkeypatch):
+        for name in (
+            "OPENAI_API_KEY",
+            "ANTHROPIC_API_KEY",
+            "DEEPSEEK_API_KEY",
+            "MOONSHOT_API_KEY",
+            "KIMI_API_KEY",
+            "DEEPSEEK_MODEL",
+            "MIESC_VERIFY_OPENAI_MODEL",
+            "MIESC_VERIFY_KIMI_MODEL",
+            "ANTHROPIC_BASE_URL",
+            "OPENAI_BASE_URL",
+            "DEEPSEEK_BASE_URL",
+            "MOONSHOT_BASE_URL",
+        ):
+            monkeypatch.delenv(name, raising=False)
+        import miesc.core.llm_providers as lp
+
+        monkeypatch.setattr(lp, "get_llm_config", lambda: {})
+
+    def test_registry_forms_resolve_like_scan_model(self):
+        from miesc.ml.benign_context_verifier import _parse_verifier_model as parse
+
+        assert parse("kimi:thinking") == ("kimi", "kimi-k2-thinking")
+        assert parse("deepseek:pro") == ("deepseek", "deepseek-v4-pro")
+        assert parse("codellama:instruct") == ("ollama", "codellama:instruct")
+        assert parse("claude-opus-4-6") == ("anthropic", "claude-opus-4-6")
+        assert parse("ollama") == ("ollama", None)
+
+    def test_unknown_provider_disables_the_pass_instead_of_guessing(self):
+        from miesc.ml.benign_context_verifier import _parse_verifier_model as parse
+
+        assert parse("nope:some-model") == (None, None)
+
+    def test_model_precedence_explicit_env_cheap_default(self, monkeypatch):
+        from miesc.core.llm_providers import get_provider
+        from miesc.ml.benign_context_verifier import _verifier_model
+
+        openai = get_provider("openai")
+        assert _verifier_model(openai, None) == "gpt-4o-mini"  # cheap tier for the advisory pass
+        monkeypatch.setenv("MIESC_VERIFY_OPENAI_MODEL", "gpt-4.1-mini")
+        assert _verifier_model(openai, None) == "gpt-4.1-mini"
+        assert _verifier_model(openai, "gpt-5") == "gpt-5"  # explicit wins
+        kimi = get_provider("kimi")
+        assert _verifier_model(kimi, None) == kimi.default_model  # no cheap tier: registry default
+        deepseek = get_provider("deepseek")
+        assert _verifier_model(deepseek, None) == "deepseek-chat"
+        monkeypatch.setenv("DEEPSEEK_MODEL", "deepseek-reasoner")  # pre-registry variable
+        assert _verifier_model(deepseek, None) == "deepseek-reasoner"
+
+    def test_configured_endpoint_is_called_at_its_base_url(self, monkeypatch):
+        import miesc.core.llm_providers as lp
+        from miesc.ml.benign_context_verifier import BenignContextVerifier
+
+        monkeypatch.setattr(
+            lp,
+            "get_llm_config",
+            lambda: {
+                "providers": {
+                    "vllm": {
+                        "kind": "openai",
+                        "base_url": "http://gpu-box:8000/v1",
+                        "api_key_env": "VLLM_API_KEY",
+                        "default_model": "Qwen/Qwen2.5-Coder-7B",
+                    }
+                }
+            },
+        )
+        monkeypatch.setenv("VLLM_API_KEY", "local")
+        seen = {}
+
+        class _Resp:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *a):
+                return False
+
+            def read(self):
+                return _json.dumps(
+                    {"choices": [{"message": {"content": '{"false_positive": false}'}}]}
+                ).encode()
+
+        def fake_urlopen(req, timeout=0):
+            seen["url"] = req.full_url
+            seen["model"] = _json.loads(req.data)["model"]
+            seen["auth"] = req.headers.get("Authorization")
+            return _Resp()
+
+        monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
+        out = BenignContextVerifier(model="vllm")._query("is it a bug?")
+        assert out == '{"false_positive": false}'
+        assert seen == {
+            "url": "http://gpu-box:8000/v1/chat/completions",
+            "model": "Qwen/Qwen2.5-Coder-7B",
+            "auth": "Bearer local",
+        }

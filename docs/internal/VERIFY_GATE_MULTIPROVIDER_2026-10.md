@@ -86,3 +86,17 @@ proven by the mocked-transport tests; the gate's recall-safety is the pre-existi
 - `tests/test_benign_context_verifier.py` — parser + per-provider mocked-transport tests.
 
 No frozen paper/benchmark artifacts were modified.
+
+## Update (same PR, after #204): the verifier reads the shared provider registry
+
+The provider table and `_parse_verifier_model` alias list that this document describes
+were replaced by `miesc.core.llm_providers` (landed in #204), so `--verify-model` and
+`scan --model` accept the same forms (`provider[:model]`, the historical aliases, bare
+Ollama tags, bare model ids by prefix) and read the same endpoints and key variables
+(`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `DEEPSEEK_API_KEY`, `MOONSHOT_API_KEY` /
+`KIMI_API_KEY`, `<NAME>_BASE_URL`, plus anything under `llm.providers`). What is specific
+to the verifier: a cheaper default tier for the per-finding advisory call (`gpt-4o-mini`,
+`claude-haiku-4-5-20251001`, `deepseek-chat`), `MIESC_VERIFY_<NAME>_MODEL` to override it,
+the pre-registry `DEEPSEEK_MODEL` kept for the failover, and the recall-safe behaviour on
+any failure. An unknown provider prefix disables the pass instead of guessing an endpoint.
+See `docs/guides/LLM_PROVIDERS.md`.

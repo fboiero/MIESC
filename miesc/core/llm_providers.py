@@ -42,6 +42,7 @@ __all__ = [
     "UnknownProviderError",
     "KINDS",
     "BUILTIN_PROVIDERS",
+    "PROVIDER_NAME_ALIASES",
     "MODEL_ALIASES",
     "load_providers",
     "get_provider",
@@ -169,6 +170,9 @@ MODEL_ALIASES: Dict[str, Tuple[str, str]] = {
     "qwen14b": ("ollama", "qwen2.5-coder:14b"),
     "codellama": ("ollama", "codellama:13b"),
 }
+
+PROVIDER_NAME_ALIASES: Dict[str, str] = {"gpt": "openai", "claude": "anthropic", "moonshot": "kimi"}
+"""Spoken names accepted wherever a provider name is: ``claude:claude-opus-4-6``, ``moonshot:...``."""
 
 _PREFIX_TO_PROVIDER: Tuple[Tuple[Tuple[str, ...], str], ...] = (
     (("claude",), "anthropic"),
@@ -298,6 +302,7 @@ def load_providers() -> Dict[str, ProviderSpec]:
 def get_provider(name: str) -> ProviderSpec:
     providers = load_providers()
     key = (name or "").strip().lower()
+    key = PROVIDER_NAME_ALIASES.get(key, key)
     if key not in providers:
         raise UnknownProviderError(
             f"Unknown LLM provider '{name}'. Known providers: {', '.join(sorted(providers))}"
@@ -321,7 +326,7 @@ def resolve_model(
 
     if ":" in value:
         prefix, _, rest = value.partition(":")
-        prefix_key = prefix.strip().lower()
+        prefix_key = PROVIDER_NAME_ALIASES.get(prefix.strip().lower(), prefix.strip().lower())
         if prefix_key in providers:
             spec = providers[prefix_key]
             model = rest.strip()

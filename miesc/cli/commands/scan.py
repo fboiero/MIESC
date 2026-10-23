@@ -158,12 +158,10 @@ def _validate_model_option(
     "--verify-model",
     "verify_model",
     default=None,
-    help="Model for an ADVISORY --verify-fp LLM pass. Local Ollama by default "
-    "(e.g. qwen2.5-coder:32b) or an API provider: 'gpt'/'claude'/'deepseek'/'kimi', "
-    "optionally 'provider:model' (e.g. claude:claude-3-5-sonnet). Flags more suspected FPs "
-    "as needs_review; never drops (no recall impact). API providers need their key "
-    "(OPENAI/ANTHROPIC/DEEPSEEK/KIMI_API_KEY) and an env-overridable default model "
-    "(*_MODEL); omit for the fast rule-only verifier.",
+    help="Model for an ADVISORY --verify-fp LLM pass: any registered provider as provider[:model] "
+    "(local Ollama by default, e.g. ollama:qwen2.5-coder:32b; gpt, claude, deepseek, kimi or an "
+    "endpoint from llm.providers need their key). Flags more suspected FPs as needs_review; "
+    "never drops. See docs/guides/LLM_PROVIDERS.md.",
 )
 @click.option(
     "--rank",

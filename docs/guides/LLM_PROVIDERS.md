@@ -87,6 +87,7 @@ list them).
 | `miesc audit deep --llm-provider` | the executive narrative |
 | `MIESC_LLM_PROVIDER` / `MIESC_LLM_MODEL` | the orchestrator behind `audit full` and the agents |
 | `miesc doctor` | the "LLM Providers" table: key set or not, default model reachable or not |
+| `--verify-model` (`scan`, `audit`) | the advisory LLM pass of the recall-safe `--verify-fp` gate; same `provider[:model]` forms, cheaper tier by default (`gpt-4o-mini`, `claude-haiku-4-5`, `deepseek-chat`), `MIESC_VERIFY_<NAME>_MODEL` overrides |
 
 Not yet on the registry: the `--ensemble` provider list (`miesc/llm/ensemble_detector.py`) and
 the older OpenAI-only agents under `miesc/agents/`; they keep their own `OPENAI_API_KEY` /
