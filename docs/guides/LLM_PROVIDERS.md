@@ -97,5 +97,6 @@ the older OpenAI-only agents under `miesc/agents/`; they keep their own `OPENAI_
 Cloud calls are billed by the vendor. For a comparison across providers set
 `MIESC_FRONTIER_NO_FALLBACK=1`, otherwise a failed Anthropic or OpenAI call falls back to the
 other one when its key is set. OpenAI-compatible calls send `temperature 0` and a fixed seed
-(`MIESC_LLM_SEED`, default 42) where the endpoint honours them; the provenance block records the
-provider, the model and the endpoint host of every run.
+(`MIESC_LLM_SEED`, default 42) where the endpoint honours them. The frontier tool's result
+metadata records `provider`, `model` and `base_url_host`; the provenance block records
+`MIESC_LLM_PROVIDER` / `MIESC_LLM_MODEL` when they are set in the environment.

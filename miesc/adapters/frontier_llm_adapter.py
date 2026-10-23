@@ -429,12 +429,12 @@ class FrontierLLMAdapter(ToolAdapter):
 
         provider = self._get_provider()
         spec = self._spec()
+        if spec is None:
+            return self._error_result(start_time, f"Unknown provider: {provider}")
         if self._requested_model and not kwargs.get("model"):
             kwargs["model"] = self._requested_model
 
         try:
-            if spec is None:
-                return self._error_result(start_time, f"Unknown provider: {provider}")
             if spec.kind == "anthropic":
                 findings = self._analyze_anthropic(source_code, rag_context=rag_context, **kwargs)
             elif spec.kind == "openai":

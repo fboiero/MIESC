@@ -60,7 +60,10 @@ _NAME_RE = re.compile(r"^[a-z][a-z0-9_-]{0,31}$")
 _ENV_RE = re.compile(r"^[A-Z][A-Z0-9_]{0,63}$")
 _MODEL_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$")
 _MAX_TIMEOUT = 3600
-_OLLAMA_TAG_RE = re.compile(r"^(?:latest|[A-Za-z0-9._-]*\d[A-Za-z0-9._-]*)$")
+_OLLAMA_TAG_RE = re.compile(
+    r"^(?:latest|instruct|chat|text|code|base|vision|q\w*|[A-Za-z0-9._-]*\d[A-Za-z0-9._-]*)"
+    r"(?:[-:][A-Za-z0-9._-]+)*$"
+)
 
 
 class UnknownProviderError(ValueError):

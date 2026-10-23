@@ -80,6 +80,20 @@ class TestResolution:
         assert lp.resolve_model("moonshot-v1-128k").provider.name == "kimi"
         assert lp.resolve_model("llama3.1:8b").provider.name == "ollama"
 
+    @pytest.mark.parametrize(
+        "tag",
+        [
+            "codellama:instruct",
+            "llama2:chat",
+            "mistral:text",
+            "llama3:latest",
+            "qwen2.5-coder:7b-instruct-q4_K_M",
+        ],
+    )
+    def test_bare_ollama_tags_without_digits_still_go_to_ollama(self, tag):
+        choice = lp.resolve_model(tag)
+        assert (choice.provider.name, choice.model) == ("ollama", tag)
+
     def test_unknown_prefix_names_the_known_providers(self):
         with pytest.raises(lp.UnknownProviderError) as err:
             lp.resolve_model("nope:some-model")
