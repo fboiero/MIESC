@@ -39,6 +39,7 @@ class DeFiCategory(Enum):
     LIQUIDITY = "liquidity"
     ROUNDING = "rounding"
     FEE_ON_TRANSFER = "fee_on_transfer"
+    ERC4626 = "erc4626"
 
 
 @dataclass
@@ -582,6 +583,84 @@ class FeeOnTransferDetector(DeFiDetector):
         return findings
 
 
+class ERC4626ComplianceDetector(DeFiDetector):
+    """
+    Detects vault-accounting contracts (deposit/withdraw/totalAssets) whose
+    function signatures don't match the EIP-4626 standard's mandated arity.
+
+    EIP-4626 fixes the exact parameter count for its accounting functions:
+    `deposit(assets, receiver)` and `mint(shares, receiver)` take 2 params,
+    `withdraw(assets, receiver, owner)` and `redeem(shares, receiver, owner)`
+    take 3, `totalAssets()` takes 0, `convertToShares(assets)` takes 1. A
+    contract that implements the full vault accounting API but adds extra
+    parameters (e.g. an `id` for a multi-vault/ERC1155-backed design) cannot
+    be integrated by any EIP-4626-aware caller, no matter how correct its
+    internal accounting is — every mandated function signature is broken.
+    """
+
+    name = "erc4626-compliance-detector"
+    description = (
+        "Detects vault-accounting functions whose signatures don't match the EIP-4626 standard"
+    )
+    category = DeFiCategory.ERC4626
+
+    CANONICAL_ARITY = {
+        "deposit": 2,
+        "mint": 2,
+        "withdraw": 3,
+        "redeem": 3,
+        "totalAssets": 0,
+        "convertToShares": 1,
+    }
+    # Gate: only judge signature shape on contracts that already look like a
+    # vault (has the core accounting trio together) - deposit/withdraw alone
+    # are far too common (staking, escrow, ...) to use as the sole signal.
+    VAULT_CORE_FUNCTIONS = {"deposit", "withdraw", "totalAssets"}
+    FUNC_SIG = re.compile(
+        r"function\s+(deposit|mint|withdraw|redeem|totalAssets|convertToShares)\s*\(([^)]*)\)"
+    )
+
+    def detect(self, source_code: str, file_path: Optional[Path] = None) -> List[DeFiFinding]:
+        findings: List[DeFiFinding] = []
+        matches = list(self.FUNC_SIG.finditer(source_code))
+        names_present = {m.group(1) for m in matches}
+        if not self.VAULT_CORE_FUNCTIONS.issubset(names_present):
+            return findings
+
+        for m in matches:
+            name = m.group(1)
+            params_raw = m.group(2).strip()
+            param_count = (
+                0 if not params_raw else len([p for p in params_raw.split(",") if p.strip()])
+            )
+            expected = self.CANONICAL_ARITY[name]
+            if param_count == expected:
+                continue
+
+            line = source_code[: m.start()].count("\n") + 1
+            findings.append(
+                DeFiFinding(
+                    title=f"EIP-4626 Signature Mismatch: {name}()",
+                    description=f"`{name}` at line {line} takes {param_count} parameter(s), but "
+                    f"EIP-4626 mandates exactly {expected} for this function. A contract exposing "
+                    "the vault accounting API (deposit/withdraw/totalAssets) with a signature that "
+                    "doesn't match the standard cannot be integrated by any EIP-4626-aware caller "
+                    "(aggregators, other vaults composing on top of it), even though it may behave "
+                    "correctly as a vault internally.",
+                    severity=Severity.MEDIUM,
+                    category=self.category,
+                    line=line,
+                    code_snippet=f"function {name}(...)",
+                    recommendation="If EIP-4626 compatibility is required, expose a compliant "
+                    f"single-asset `{name}` with the standard signature, or document explicitly "
+                    "that this is a vault-like contract, not an EIP-4626 vault.",
+                    references=["https://eips.ethereum.org/EIPS/eip-4626"],
+                )
+            )
+
+        return findings
+
+
 class DeFiDetectorEngine:
     """Engine to run all DeFi detectors."""
 
@@ -594,6 +673,7 @@ class DeFiDetectorEngine:
             PriceManipulationDetector(),
             RoundingErrorDetector(),
             FeeOnTransferDetector(),
+            ERC4626ComplianceDetector(),
         ]
 
     def analyze(self, source_code: str, file_path: Optional[Path] = None) -> List[DeFiFinding]:

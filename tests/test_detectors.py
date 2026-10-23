@@ -468,6 +468,71 @@ class TestFeeOnTransferDetector:
         assert len(findings) == 0
 
 
+class TestERC4626ComplianceDetector:
+    """Tests for ERC4626ComplianceDetector (MEJORAS3.md item 13)."""
+
+    def test_detector_attributes(self):
+        from miesc.detectors.defi_detectors import DeFiCategory, ERC4626ComplianceDetector
+
+        detector = ERC4626ComplianceDetector()
+        assert detector.name == "erc4626-compliance-detector"
+        assert detector.category == DeFiCategory.ERC4626
+
+    def test_extra_id_param_flagged(self):
+        """Real case (y2k-finance H-08): multi-vault deposit/withdraw/totalAssets
+        all carry an extra `id` param beyond what EIP-4626 mandates."""
+        from miesc.detectors.defi_detectors import ERC4626ComplianceDetector
+
+        detector = ERC4626ComplianceDetector()
+        source = """
+        function deposit(uint256 id, uint256 assets, address receiver) public returns (uint256 shares) {}
+        function withdraw(uint256 id, uint256 assets, address receiver, address owner) external returns (uint256 shares) {}
+        function totalAssets(uint256 id) public view returns (uint256) {}
+        """
+        findings = detector.detect(source)
+        assert len(findings) == 3
+        assert {f.title for f in findings} == {
+            "EIP-4626 Signature Mismatch: deposit()",
+            "EIP-4626 Signature Mismatch: withdraw()",
+            "EIP-4626 Signature Mismatch: totalAssets()",
+        }
+
+    def test_compliant_vault_not_flagged(self):
+        """Canonical EIP-4626 arity (deposit/mint 2 params, withdraw/redeem 3,
+        totalAssets 0, convertToShares 1) must not be flagged."""
+        from miesc.detectors.defi_detectors import ERC4626ComplianceDetector
+
+        detector = ERC4626ComplianceDetector()
+        source = """
+        function deposit(uint256 assets, address receiver) public returns (uint256 shares) {}
+        function withdraw(uint256 assets, address receiver, address owner) external returns (uint256 shares) {}
+        function totalAssets() public view returns (uint256) {}
+        function convertToShares(uint256 assets) public view returns (uint256) {}
+        """
+        findings = detector.detect(source)
+        assert len(findings) == 0
+
+    def test_non_vault_deposit_withdraw_not_flagged(self):
+        """deposit/withdraw alone (no totalAssets) is common outside vaults
+        (staking, escrow) - must not be judged against EIP-4626 arity."""
+        from miesc.detectors.defi_detectors import ERC4626ComplianceDetector
+
+        detector = ERC4626ComplianceDetector()
+        source = """
+        function deposit(uint256 amount) external {}
+        function withdraw(uint256 amount) external {}
+        """
+        findings = detector.detect(source)
+        assert len(findings) == 0
+
+    def test_no_vault_functions_no_findings(self):
+        from miesc.detectors.defi_detectors import ERC4626ComplianceDetector
+
+        detector = ERC4626ComplianceDetector()
+        findings = detector.detect("contract C { function setValue(uint256 v) public {} }")
+        assert len(findings) == 0
+
+
 class TestDeFiDetectorEngine:
     """Tests for DeFiDetectorEngine."""
 
@@ -476,7 +541,7 @@ class TestDeFiDetectorEngine:
         from miesc.detectors.defi_detectors import DeFiDetectorEngine
 
         engine = DeFiDetectorEngine()
-        assert len(engine.detectors) == 7
+        assert len(engine.detectors) == 8
 
     def test_engine_analyze(self):
         """Test engine runs all detectors."""
