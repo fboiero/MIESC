@@ -151,7 +151,7 @@ class TestSlitherAdapter(TestAdapterBase):
         force_solc = adapter._should_force_solc(str(contract)) and not external_imports
         assert force_solc is False
 
-    def test_has_existing_project_detects_foundry_toml_in_parent(self, tmp_path):
+    def test_find_project_root_detects_foundry_toml_in_parent(self, tmp_path):
         # A contract inside a real Foundry project must defer to that
         # project's own dependency setup instead of MIESC spinning up an
         # isolated temp workspace with freshly (floating-version) installed
@@ -164,15 +164,15 @@ class TestSlitherAdapter(TestAdapterBase):
         contract = src / "C.sol"
         contract.write_text("contract C {}")
 
-        assert SlitherAdapter()._has_existing_project(str(contract)) is True
+        assert SlitherAdapter()._find_project_root(str(contract)) == tmp_path.resolve()
 
-    def test_has_existing_project_false_for_standalone_file(self, tmp_path):
+    def test_find_project_root_none_for_standalone_file(self, tmp_path):
         from miesc.adapters.slither_adapter import SlitherAdapter
 
         contract = tmp_path / "C.sol"
         contract.write_text("contract C {}")
 
-        assert SlitherAdapter()._has_existing_project(str(contract)) is False
+        assert SlitherAdapter()._find_project_root(str(contract)) is None
 
 
 class TestMythrilAdapter(TestAdapterBase):
@@ -1081,23 +1081,30 @@ class TestHalmosAdapterComprehensive(TestAdapterBase):
 class TestAdapterErrorHandling(TestAdapterBase):
     """Tests for adapter error handling."""
 
-    def test_slither_scope_filter_keeps_target_and_unmapped_findings(self, tmp_path):
-        """Findings in dependency files are dropped; target and unmapped ones stay."""
+    def test_slither_scope_filter_drops_only_dependency_findings(self, tmp_path):
+        """lib/ findings are dropped; target, inherited sibling and unmapped ones stay."""
         import json
 
         from miesc.adapters.slither_adapter import SlitherAdapter
         from miesc.core.tool_protocol import ToolStatus
 
-        contract = tmp_path / "Vault.sol"
-        contract.write_text('pragma solidity ^0.8.0;\nimport "./Ownable.sol";\ncontract Vault {}\n')
-        (tmp_path / "Ownable.sol").write_text("pragma solidity ^0.8.0;\ncontract Ownable {}\n")
+        contract = tmp_path / "Bank.sol"
+        contract.write_text(
+            'pragma solidity ^0.8.0;\nimport "./Helper.sol";\ncontract Bank is Helper {}\n'
+        )
+        (tmp_path / "Helper.sol").write_text("pragma solidity ^0.8.0;\ncontract Helper {}\n")
 
-        def element(filename):
-            return [{"name": "x", "source_mapping": {"filename_short": filename, "lines": [3]}}]
+        def element(path):
+            return [{"name": "x", "source_mapping": {"filename_absolute": str(path), "lines": [3]}}]
 
+        oz = tmp_path / "lib" / "openzeppelin-contracts" / "contracts" / "token" / "ERC20.sol"
         detectors = [
-            {"check": "in-target", "impact": "High", "elements": element("Vault.sol")},
-            {"check": "in-dependency", "impact": "Low", "elements": element("Ownable.sol")},
+            {"check": "in-target", "impact": "High", "elements": element(contract)},
+            # Bank inherits Helper: dropping this is a false negative for Bank.
+            {"check": "in-sibling", "impact": "High", "elements": element(tmp_path / "Helper.sol")},
+            # Same basename as a project file, but it lives in lib/.
+            {"check": "in-dependency", "impact": "Low", "elements": element(oz)},
+            {"check": "own-erc20", "impact": "Low", "elements": element(tmp_path / "ERC20.sol")},
             {"check": "unmapped", "impact": "Low", "elements": []},
         ]
 
@@ -1114,9 +1121,85 @@ class TestAdapterErrorHandling(TestAdapterBase):
         ):
             result = adapter.analyze(str(contract), timeout=30)
 
-        assert "in-dependency" not in str(result["findings"])
-        assert "in-target" in str(result["findings"])
-        assert "unmapped" in str(result["findings"])
+        found = str(result["findings"])
+        assert "in-dependency" not in found
+        for kept in ("in-target", "in-sibling", "own-erc20", "unmapped"):
+            assert kept in found
+
+    def test_aderyn_scope_filter_drops_only_dependency_findings(self, tmp_path):
+        """Same rule for Aderyn, whose paths are relative to its temp workspace."""
+        import json
+
+        from miesc.adapters.aderyn_adapter import AderynAdapter
+        from miesc.core.tool_protocol import ToolStatus
+
+        contract = tmp_path / "Bank.sol"
+        contract.write_text(
+            'pragma solidity ^0.8.0;\nimport "./Helper.sol";\ncontract Bank is Helper {}\n'
+        )
+        (tmp_path / "Helper.sol").write_text("pragma solidity ^0.8.0;\ncontract Helper {}\n")
+
+        def issue(name, path):
+            return {"detector_name": name, "instances": [{"contract_path": path, "line_no": 3}]}
+
+        issues = [
+            issue("in-target", "Bank.sol"),
+            issue("in-sibling", "Helper.sol"),
+            issue("in-dependency", "lib/openzeppelin-contracts/contracts/access/Ownable.sol"),
+        ]
+
+        def fake_run(cmd, **kwargs):
+            Path(cmd[cmd.index("-o") + 1]).write_text(
+                json.dumps({"high_issues": {"issues": issues}, "low_issues": {"issues": []}})
+            )
+            return MagicMock(returncode=0, stdout="", stderr="")
+
+        adapter = AderynAdapter()
+        with (
+            patch.object(adapter, "is_available", return_value=ToolStatus.AVAILABLE),
+            patch("miesc.adapters.aderyn_adapter.subprocess.run", side_effect=fake_run),
+        ):
+            result = adapter.analyze(str(contract), timeout=30)
+
+        found = str(result["findings"])
+        assert "in-dependency" not in found
+        assert "in-target" in found
+        assert "in-sibling" in found
+
+    def test_aderyn_sibling_outside_project_root_falls_back_to_flat_copy(self, tmp_path):
+        """A sibling outside the project root used to raise ValueError (status=error)."""
+        import json
+
+        from miesc.adapters.aderyn_adapter import AderynAdapter
+        from miesc.core.tool_protocol import ToolStatus
+
+        project = tmp_path / "project"
+        (project / "src").mkdir(parents=True)
+        (project / "foundry.toml").write_text("[profile.default]\n")
+        (tmp_path / "shared").mkdir()
+        (tmp_path / "shared" / "B.sol").write_text("pragma solidity ^0.8.0;\ncontract B {}\n")
+        contract = project / "src" / "A.sol"
+        contract.write_text(
+            'pragma solidity ^0.8.0;\nimport "../../shared/B.sol";\ncontract A is B {}\n'
+        )
+        copied = []
+
+        def fake_run(cmd, **kwargs):
+            copied.extend(sorted(p.name for p in Path(cmd[1]).iterdir()))
+            Path(cmd[cmd.index("-o") + 1]).write_text(
+                json.dumps({"high_issues": {"issues": []}, "low_issues": {"issues": []}})
+            )
+            return MagicMock(returncode=0, stdout="", stderr="")
+
+        adapter = AderynAdapter()
+        with (
+            patch.object(adapter, "is_available", return_value=ToolStatus.AVAILABLE),
+            patch("miesc.adapters.aderyn_adapter.subprocess.run", side_effect=fake_run),
+        ):
+            result = adapter.analyze(str(contract), timeout=30)
+
+        assert result["status"] == "success", result.get("error")
+        assert copied == ["A.sol", "B.sol"]
 
     def test_slither_handles_invalid_json(self, temp_contract):
         """Test Slither handles invalid JSON output."""

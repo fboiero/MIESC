@@ -18,6 +18,7 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple, cast
 
+from miesc.adapters._dependency_scope import is_dependency_file
 from miesc.adapters._output_paths import discard_output_path, new_output_path
 from miesc.core.tool_protocol import (
     ToolAdapter,
@@ -294,7 +295,8 @@ class SlitherAdapter(ToolAdapter):
             # isolated temp workspace with freshly (floating-version) forge-
             # installed deps, which would ignore whatever the project actually
             # pinned and can drift incompatible with the project's own pragma.
-            has_existing_project = self._has_existing_project(contract_path)
+            project_root = self._find_project_root(contract_path)
+            has_existing_project = project_root is not None
 
             # Support for legacy Solidity versions (0.4.x, 0.5.x).
             # Pick a solc-select artifact compatible with the file pragma before
@@ -420,23 +422,27 @@ class SlitherAdapter(ToolAdapter):
                     len(incomplete_functions),
                 )
 
+            # Slither also reports on every file the target imports. Drop the
+            # findings located in dependencies (lib/, node_modules/, package
+            # prefixes) so e.g. an Ownable.sol lint is not attributed to the
+            # target, but keep the target's own siblings: a bug in an
+            # inherited Helper.sol is a bug in the target.
+            results = raw_output.get("results") or {}
+            if Path(contract_path).is_file() and results.get("detectors"):
+                dep_root = (
+                    Path(temp_workspace)
+                    if temp_workspace
+                    else project_root or Path(contract_path).resolve().parent
+                )
+                prefixes = [prefix for prefix, _, _ in self.KNOWN_DEP_PREFIXES]
+                results["detectors"] = [
+                    d
+                    for d in results["detectors"]
+                    if not is_dependency_file(self._detector_file(d), dep_root, prefixes)
+                ]
+
             # Normalize findings
             findings = self.normalize_findings(raw_output)
-
-            # When the target file has sibling/dependency
-            # imports, Slither compiles (and reports on) those files too —
-            # e.g. an Ownable.sol lint finding would otherwise be attributed
-            # to the requested contract. Keep only findings actually located
-            # in the requested file; findings with no source mapping
-            # ("unknown") can't be attributed elsewhere, so they stay.
-            if Path(contract_path).is_file():
-                target_name = Path(contract_path).name
-                findings = [
-                    f
-                    for f in findings
-                    if Path(f.get("location", {}).get("file", "unknown")).name
-                    in (target_name, "unknown")
-                ]
 
             # Enhance findings with OpenLLaMA (opt-in via llm_enhance=True)
             # Default: SKIP — adds 8s per finding (5 findings = 40s overhead).
@@ -696,28 +702,34 @@ class SlitherAdapter(ToolAdapter):
 
         return None
 
-    def _has_existing_project(self, contract_path: str) -> bool:
-        """True if `contract_path` already sits inside a real Foundry/
-        Hardhat/Truffle project (config file found walking up to 5 parent
-        directories) — as opposed to a standalone file with no project
+    @staticmethod
+    def _detector_file(detector: Dict[str, Any]) -> str:
+        """Path of the file a raw Slither detector result points at, or ""."""
+        elements = detector.get("elements") or [{}]
+        mapping = elements[0].get("source_mapping") or {}
+        return mapping.get("filename_absolute") or mapping.get("filename_short") or ""
+
+    def _find_project_root(self, contract_path: str) -> Optional[Path]:
+        """Return the real Foundry/Hardhat/Truffle project root containing
+        `contract_path` (config file found walking up to 5 parent
+        directories), or None for a standalone file with no project
         scaffolding of its own.
         """
         path = Path(contract_path).resolve()
         check_dir = path.parent if path.is_file() else path
         for _ in range(5):
-            if (check_dir / "foundry.toml").exists():
-                return True
-            if (check_dir / "hardhat.config.js").exists() or (
-                check_dir / "hardhat.config.ts"
-            ).exists():
-                return True
-            if (check_dir / "truffle-config.js").exists():
-                return True
+            if (
+                (check_dir / "foundry.toml").exists()
+                or (check_dir / "hardhat.config.js").exists()
+                or (check_dir / "hardhat.config.ts").exists()
+                or (check_dir / "truffle-config.js").exists()
+            ):
+                return check_dir
             parent = check_dir.parent
             if parent == check_dir:
                 break
             check_dir = parent
-        return False
+        return None
 
     def _should_force_solc(self, contract_path: str) -> bool:
         """

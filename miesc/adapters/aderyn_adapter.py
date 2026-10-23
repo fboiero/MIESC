@@ -22,6 +22,7 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
+from miesc.adapters._dependency_scope import is_dependency_file
 from miesc.adapters._output_paths import discard_output_path, new_output_path
 from miesc.core.tool_protocol import (
     ToolAdapter,
@@ -276,29 +277,39 @@ class AderynAdapter(ToolAdapter):
                 temp_workspace = tempfile.mkdtemp(prefix="miesc_aderyn_")
                 siblings = self._resolve_relative_imports(contract_file)
                 if project_root is not None:
+                    try:
+                        rels = [
+                            src.resolve().relative_to(project_root)
+                            for src in [contract_file, *siblings]
+                        ]
+                    except ValueError:
+                        # A sibling outside the project root (../../shared/B.sol)
+                        # has no place in the preserved layout: fall back to
+                        # the standalone flat copy below.
+                        logger.warning(
+                            f"Aderyn: {contract_file.name} imports files outside "
+                            f"{project_root}; analyzing it as a standalone file"
+                        )
+                        project_root = None
+                if project_root is not None:
                     # Preserve each file's path relative to the project root
                     # (not flattened) so the project's own foundry.toml
                     # (src = "...") and its lib/ still resolve correctly once
                     # copied — see _copy_existing_project_deps below.
-                    contract_rel = contract_file.resolve().relative_to(project_root)
-                    for src in [contract_file, *siblings]:
-                        rel = src.resolve().relative_to(project_root)
+                    for src, rel in zip([contract_file, *siblings], rels, strict=True):
                         dest = Path(temp_workspace) / rel
                         dest.parent.mkdir(parents=True, exist_ok=True)
                         shutil.copy2(src, dest)
-                    target_name = str(contract_rel)
                 else:
                     temp_contract = Path(temp_workspace) / contract_file.name
                     shutil.copy2(contract_path, temp_contract)
                     for sibling in siblings:
                         shutil.copy2(sibling, Path(temp_workspace) / sibling.name)
-                    target_name = contract_file.name
                 analysis_dir = temp_workspace
                 logger.debug(f"Copied contract + siblings to temp workspace: {temp_workspace}")
             else:
                 temp_workspace = None
                 analysis_dir = str(contract_file)
-                target_name = contract_file.name
 
             # Check for external imports and set up dependencies if needed
             if contract_file.is_file():
@@ -412,17 +423,19 @@ class AderynAdapter(ToolAdapter):
             # Normalize findings
             findings = self.normalize_findings(raw_output)
 
-            # Aderyn analyzes the whole temp directory, which
-            # now includes copied dependency siblings (see above) — without
-            # this, findings *about the dependency files themselves* (e.g. an
-            # Ownable.sol lint) would be attributed to the target contract.
+            # Aderyn analyzes the whole temp directory, which also holds the
+            # dependencies (lib/). Drop findings located there so e.g. an
+            # Ownable.sol lint is not attributed to the target, but keep the
+            # copied siblings: a bug in an inherited Helper.sol is a bug in
+            # the target.
             if temp_workspace and contract_file.is_file():
-                target_basename = Path(target_name).name
+                prefixes = [prefix for prefix, _, _ in self.KNOWN_DEP_PREFIXES]
                 findings = [
                     f
                     for f in findings
-                    if f.get("location", {}).get("file", "unknown")
-                    in (target_name, target_basename, "unknown")
+                    if not is_dependency_file(
+                        f.get("location", {}).get("file", ""), Path(temp_workspace), prefixes
+                    )
                 ]
 
             # Enhance findings with OpenLLaMA (opt-in via llm_enhance=True)
