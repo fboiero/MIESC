@@ -248,7 +248,7 @@ class TestSameDenominator:
         with (
             patch("miesc.cli.commands.doctor.print_banner"),
             patch("miesc.cli.commands.doctor.subprocess.run", return_value=fake_completed),
-            patch("miesc.cli.commands.doctor._deepseek_doctor_status", return_value=("x", "y")),
+            patch("miesc.cli.commands.doctor._provider_status", return_value=("x", "y")),
             patch("miesc.cli.utils.AdapterLoader.check_tool_status", side_effect=self._fake_status),
         ):
             doc = CliRunner().invoke(doctor)
