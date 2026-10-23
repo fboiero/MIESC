@@ -200,6 +200,20 @@ class TestCredentialsAndClients:
             lp.make_client(lp.get_provider("deepseek"))
         assert "DEEPSEEK_API_KEY" in str(err.value)
 
+    def test_openai_without_key_defers_to_the_sdk(self, monkeypatch):
+        """The SDK reads OPENAI_API_KEY itself; only non-default providers fail early."""
+        seen = {}
+
+        class FakeOpenAI:
+            def __init__(self, **kwargs):
+                seen.update(kwargs)
+
+        monkeypatch.setitem(
+            sys.modules, "openai", types.SimpleNamespace(OpenAI=FakeOpenAI, AsyncOpenAI=FakeOpenAI)
+        )
+        lp.make_client(lp.get_provider("openai"))
+        assert "api_key" not in seen and "base_url" not in seen
+
     def test_make_client_without_sdk_names_the_provider(self, monkeypatch):
         monkeypatch.setitem(sys.modules, "openai", None)
         monkeypatch.setenv("MOONSHOT_API_KEY", "k")

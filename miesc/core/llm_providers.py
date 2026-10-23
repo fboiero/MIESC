@@ -396,11 +396,16 @@ def make_client(
     if spec.kind == "ollama":
         raise RuntimeError("Ollama is called over HTTP; there is no SDK client to build")
     key = api_key_for(spec)
-    if key is None:
+    sdk_default_env = {"anthropic": "ANTHROPIC_API_KEY", "openai": "OPENAI_API_KEY"}[spec.kind]
+    if key is None and sdk_default_env not in spec.api_key_env:
+        # DeepSeek, Kimi or a configured endpoint without its own key must never fall
+        # through to the SDK's default variable (that would bill the OpenAI account).
         raise RuntimeError(
             f"{spec.display_name}: no API key found; set {' or '.join(spec.api_key_env)}"
         )
-    kwargs: Dict[str, Any] = {"api_key": key, "timeout": timeout or spec.timeout}
+    kwargs: Dict[str, Any] = {"timeout": timeout or spec.timeout}
+    if key is not None:
+        kwargs["api_key"] = key
     if spec.base_url:
         kwargs["base_url"] = spec.base_url
     if spec.kind == "anthropic":
