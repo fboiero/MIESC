@@ -21,6 +21,18 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   a market-model inventory, never a `Finding` (distinct from the DeFi detectors / solvency
   invariant templates); later SDD phases build on it.
 
+### Fixed
+
+- `miesc export` read only the `results` list, so every format (SARIF, CSV, JSONL,
+  Markdown, HTML, GitHub annotations) exported zero findings from the JSON that
+  `audit full` writes through the ML orchestrator (`raw_findings` / `ml_enhanced`,
+  no `results` key); observed on a real run with 64 findings. The exporters now
+  share the result-file normalisation `report` already used
+  (`miesc.cli.utils.results_from_result_file`): `ml_enhanced.findings` first (the
+  complete, severity-adjusted list), then `top_findings`, then `raw_findings`
+  (capped to 20 entries by the orchestrator), regrouped per tool; `contract_path`
+  is honoured as the contract name.
+
 ## [6.5.0] - 2026-10-23 — Configurable LLM providers and access-control precision
 
 Minor release. One registry now decides which LLM backends exist and how to reach them:
