@@ -7,7 +7,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-## [6.4.0] - 2026-10-21 — Data-flow detectors and honest scoring (C3 continued)
+## [6.4.0] - 2026-10-23 — Data-flow detectors and honest scoring (C3 continued)
 
 Paper-profile numbers on `main` after this release (SmartBugs-curated, 143 contracts,
 layers 1/6/7, LLM-free): recall 143/143, precision 31.9 % (305 FP), F1 48.4 %. The
