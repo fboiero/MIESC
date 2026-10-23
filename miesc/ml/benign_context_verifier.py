@@ -40,6 +40,13 @@ import re
 from typing import Any, Optional, cast
 
 from miesc.core.llm_config import get_ollama_host
+from miesc.llm.provider_registry import (
+    PROVIDERS,
+    parse_model,
+    resolve_base_url,
+    resolve_key,
+    resolve_model,
+)
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 _DEFAULT_BENIGN_GLOB = os.path.join(_ROOT, "data", "rag", "benign_patterns_seed_*.jsonl")
@@ -250,88 +257,6 @@ def match_benign(
     return None
 
 
-# -- Configurable verifier LLM providers -------------------------------------------
-# The advisory LLM pass can run on a local Ollama model (default, free, reproducible)
-# or on any configured API provider. Each API provider is reached with the same
-# dependency-free urllib path already used for the DeepSeek failover; a missing key or
-# any error returns '' which the caller treats as a recall-safe KEEP (never a drop).
-#
-# provider -> (api_style, api-key env vars, base-url env, default base-url, chat path,
-#              model env, default model)
-_VERIFIER_PROVIDERS: dict[str, tuple[str, tuple[str, ...], str, str, str, str, str]] = {
-    "deepseek": (
-        "openai",
-        ("DEEPSEEK_API_KEY",),
-        "DEEPSEEK_BASE_URL",
-        "https://api.deepseek.com",
-        "/chat/completions",
-        "DEEPSEEK_MODEL",
-        "deepseek-chat",
-    ),
-    "openai": (
-        "openai",
-        ("OPENAI_API_KEY",),
-        "OPENAI_BASE_URL",
-        "https://api.openai.com",
-        "/v1/chat/completions",
-        "MIESC_VERIFY_OPENAI_MODEL",
-        "gpt-4o-mini",
-    ),
-    "kimi": (
-        "openai",
-        ("KIMI_API_KEY", "MOONSHOT_API_KEY"),
-        "KIMI_BASE_URL",
-        "https://api.moonshot.ai",
-        "/v1/chat/completions",
-        "KIMI_MODEL",
-        "moonshot-v1-8k",
-    ),
-    "anthropic": (
-        "anthropic",
-        ("ANTHROPIC_API_KEY",),
-        "ANTHROPIC_BASE_URL",
-        "https://api.anthropic.com",
-        "/v1/messages",
-        "MIESC_VERIFY_ANTHROPIC_MODEL",
-        "claude-3-5-sonnet-latest",
-    ),
-}
-
-#: Spoken aliases accepted on the CLI / config -> canonical provider key above.
-_PROVIDER_ALIASES: dict[str, str] = {
-    "gpt": "openai",
-    "openai": "openai",
-    "claude": "anthropic",
-    "anthropic": "anthropic",
-    "kimi": "kimi",
-    "moonshot": "kimi",
-    "deepseek": "deepseek",
-}
-
-
-def _parse_verifier_model(model: Optional[str]) -> tuple[Optional[str], Optional[str]]:
-    """Resolve a verify-model string to ``(provider, model_name)``.
-
-    Accepts ``provider`` or ``provider:model`` (e.g. ``gpt``, ``claude:claude-3-5-sonnet``,
-    ``ollama:qwen2.5-coder:32b``). A bare string that is not a known provider alias is
-    treated as an Ollama model name (backward compatible). ``(None, None)`` disables the
-    LLM pass.
-    """
-    if not model:
-        return None, None
-    raw = model.strip()
-    head, sep, tail = raw.partition(":")
-    hl = head.lower()
-    if sep:
-        if hl in _PROVIDER_ALIASES:
-            return _PROVIDER_ALIASES[hl], (tail or None)
-        if hl == "ollama":
-            return "ollama", tail or None
-    if raw.lower() in _PROVIDER_ALIASES:
-        return _PROVIDER_ALIASES[raw.lower()], None
-    return "ollama", raw
-
-
 class BenignContextVerifier:
     """Recall-safe FP/hallucination verifier.
 
@@ -399,7 +324,7 @@ class BenignContextVerifier:
 
         Any failure or missing key returns '' which the caller treats as recall-safe KEEP.
         """
-        provider, name = _parse_verifier_model(self.model)
+        provider, name = parse_model(self.model)
         if provider is None:
             return ""
         if provider == "ollama":
@@ -436,14 +361,12 @@ class BenignContextVerifier:
         """OpenAI-style chat/completions call (OpenAI, DeepSeek, Moonshot/Kimi)."""
         import urllib.request
 
-        _, key_envs, base_env, base_default, chat_path, model_env, model_default = (
-            _VERIFIER_PROVIDERS[provider]
-        )
-        key = next((os.environ[k] for k in key_envs if os.environ.get(k)), "")
+        key = resolve_key(provider)
         if not key:
             return ""
-        base = os.environ.get(base_env, base_default).rstrip("/")
-        mdl = model or os.environ.get(model_env) or model_default
+        base = resolve_base_url(provider)
+        mdl = resolve_model(provider, model)
+        chat_path = PROVIDERS[provider].chat_path
         try:
             body = json.dumps(
                 {
@@ -467,14 +390,12 @@ class BenignContextVerifier:
         """Anthropic Messages API call. '' on any failure (recall-safe KEEP)."""
         import urllib.request
 
-        _, key_envs, base_env, base_default, chat_path, model_env, model_default = (
-            _VERIFIER_PROVIDERS["anthropic"]
-        )
-        key = next((os.environ[k] for k in key_envs if os.environ.get(k)), "")
+        key = resolve_key("anthropic")
         if not key:
             return ""
-        base = os.environ.get(base_env, base_default).rstrip("/")
-        mdl = model or os.environ.get(model_env) or model_default
+        base = resolve_base_url("anthropic")
+        mdl = resolve_model("anthropic", model)
+        chat_path = PROVIDERS["anthropic"].chat_path
         try:
             body = json.dumps(
                 {

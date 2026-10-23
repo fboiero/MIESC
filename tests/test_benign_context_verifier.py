@@ -560,7 +560,7 @@ def test_apply_to_results_missing_file_uses_empty_code():
 # Multi-provider verifier routing (local Ollama + configurable API providers).
 # All mocked: no network, no real keys.
 # =========================================================================== #
-from miesc.ml.benign_context_verifier import _parse_verifier_model  # noqa: E402
+from miesc.llm.provider_registry import parse_model as _parse_verifier_model  # noqa: E402
 
 
 class TestParseVerifierModel:

@@ -39,6 +39,7 @@ from miesc.core.tool_protocol import (
     ToolStatus,
 )
 from miesc.llm.json_extraction import extract_llm_json
+from miesc.llm.provider_registry import resolve_base_url, resolve_key
 
 logger = logging.getLogger(__name__)
 
@@ -186,6 +187,10 @@ class FrontierLLMAdapter(ToolAdapter):
             return "anthropic"
         if os.environ.get("OPENAI_API_KEY"):
             return "openai"
+        if os.environ.get("DEEPSEEK_API_KEY"):
+            return "deepseek"
+        if resolve_key("kimi"):
+            return "kimi"
         return None
 
     def _preprocess_codebase(self, source_code: str) -> str:
@@ -364,6 +369,16 @@ class FrontierLLMAdapter(ToolAdapter):
             except ImportError:
                 return ToolStatus.NOT_INSTALLED
 
+        if provider == "kimi":
+            try:
+                import openai  # noqa: F401 -- Moonshot/Kimi uses the OpenAI-compatible SDK
+
+                if not resolve_key("kimi"):
+                    return ToolStatus.CONFIGURATION_ERROR
+                return ToolStatus.AVAILABLE
+            except ImportError:
+                return ToolStatus.NOT_INSTALLED
+
         return ToolStatus.NOT_INSTALLED
 
     def analyze(self, contract_path: str, **kwargs: Any) -> Dict[str, Any]:
@@ -406,7 +421,7 @@ class FrontierLLMAdapter(ToolAdapter):
         try:
             if provider == "anthropic":
                 findings = self._analyze_anthropic(source_code, rag_context=rag_context, **kwargs)
-            elif provider in ("openai", "deepseek"):
+            elif provider in ("openai", "deepseek", "kimi"):
                 findings = self._analyze_openai(source_code, rag_context=rag_context, **kwargs)
             elif provider == "ollama":
                 findings = self._analyze_ollama(source_code, rag_context=rag_context, **kwargs)
@@ -1428,13 +1443,22 @@ Respond with a JSON array."""
         rag_context = kwargs.pop("rag_context", "")
         model = kwargs.get("model", "gpt-4o")
         self._model = model
-        # DeepSeek exposes an OpenAI-compatible endpoint; route by provider/model.
-        if os.environ.get("DEEPSEEK_API_KEY") and (
-            self._get_provider() == "deepseek" or model.startswith("deepseek")
-        ):
+        # DeepSeek and Moonshot/Kimi expose OpenAI-compatible endpoints; route them through
+        # the shared provider registry (base URL + key) instead of plain OpenAI. Use the
+        # configured provider, or infer it from the model id as a fallback.
+        _p = self._get_provider()
+        if _p in ("deepseek", "kimi"):
+            compat: Optional[str] = _p
+        elif model.startswith("deepseek"):
+            compat = "deepseek"
+        elif model.startswith(("moonshot", "kimi")):
+            compat = "kimi"
+        else:
+            compat = None
+        if compat and resolve_key(compat):
             client: Any = openai.OpenAI(
-                base_url="https://api.deepseek.com",
-                api_key=os.environ["DEEPSEEK_API_KEY"],
+                base_url=resolve_base_url(compat),
+                api_key=resolve_key(compat),
                 timeout=300,
             )
         else:

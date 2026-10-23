@@ -114,6 +114,7 @@ if RICH_AVAILABLE:
             "gpt-5",
             "deepseek-v4-pro",
             "deepseek-v4-flash",
+            "kimi",
             "ollama",
             "qwen32b",
             "qwen14b",
@@ -528,6 +529,9 @@ def scan(
                     # client pointed at the DeepSeek endpoint (see env setup below).
                     "deepseek-v4-pro": ("openai", "deepseek-v4-pro"),
                     "deepseek-v4-flash": ("openai", "deepseek-v4-flash"),
+                    # Moonshot/Kimi is OpenAI-compatible; routed via the shared provider
+                    # registry (base URL + KIMI_API_KEY/MOONSHOT_API_KEY) in the adapter.
+                    "kimi": ("kimi", "moonshot-v1-8k"),
                     # `--model ollama` is the convenient fast default (14b); the
                     # benchmarked local figure uses 32b, reachable via `--model qwen32b`.
                     "ollama": ("ollama", "qwen2.5-coder:14b"),
@@ -789,6 +793,9 @@ def scan(
                 "gpt-5": ("openai", "gpt-5"),
                 "deepseek-v4-pro": ("openai", "deepseek-v4-pro"),
                 "deepseek-v4-flash": ("openai", "deepseek-v4-flash"),
+                # Moonshot/Kimi is OpenAI-compatible; routed via the shared provider
+                # registry (base URL + KIMI_API_KEY/MOONSHOT_API_KEY) in the adapter.
+                "kimi": ("kimi", "moonshot-v1-8k"),
                 # `--model ollama` is the convenient fast default (14b); the
                 # benchmarked local figure uses 32b, reachable via `--model qwen32b`.
                 "ollama": ("ollama", "qwen2.5-coder:14b"),
