@@ -899,6 +899,52 @@ def run_plugins(contract: str, timeout: int = 300) -> List[Dict[str, Any]]:
     return results
 
 
+def finding_list(value: Any) -> List[Dict[str, Any]]:
+    """Findings from either shape the result files use: a list of findings, or a
+    dict with a ``findings`` key (``raw_findings`` is a dict in the audit JSON and a
+    list in older files). Non-dict entries are dropped."""
+    if isinstance(value, dict):
+        value = value.get("findings", [])
+    if not isinstance(value, list):
+        return []
+    return [f for f in value if isinstance(f, dict)]
+
+
+def results_from_result_file(data: Dict[str, Any], contract: str) -> List[Dict[str, Any]]:
+    """Per-tool ``{"tool", "findings"}`` results from any result file MIESC writes.
+
+    ``miesc scan`` / ``audit`` write ``{"results": [...]}``; some older files put a
+    flat ``findings`` list at the root; the ML orchestrator behind ``audit full``
+    writes ``raw_findings`` (a dict capped to 20 entries) and ``ml_enhanced`` (the
+    complete, severity-adjusted list) with no ``results`` key at all. ``report``
+    reads all of them; the exporters consume the per-tool list, so the ML shape is
+    regrouped by each finding's ``tool``. Unknown shapes degrade to ``[data]``.
+    """
+    results = data.get("results")
+    if isinstance(results, list):
+        return [r for r in results if isinstance(r, dict)]
+    if isinstance(data.get("findings"), list):
+        return [data]
+
+    ml_enhanced = data.get("ml_enhanced")
+    findings = finding_list(ml_enhanced)
+    if not findings and isinstance(ml_enhanced, dict):
+        findings = finding_list(ml_enhanced.get("top_findings"))
+    if not findings:
+        findings = finding_list(data.get("raw_findings"))
+    if not findings:
+        return [data]
+
+    contract = str(data.get("contract") or data.get("contract_path") or contract)
+    grouped: Dict[str, List[Dict[str, Any]]] = {}
+    for finding in findings:
+        grouped.setdefault(str(finding.get("tool") or "miesc"), []).append(finding)
+    return [
+        {"tool": tool, "contract": contract, "status": "success", "findings": tool_findings}
+        for tool, tool_findings in grouped.items()
+    ]
+
+
 def summarize_findings(all_results: List[Dict[str, Any]]) -> Dict[str, int]:
     """Summarize findings by severity."""
     summary = {"CRITICAL": 0, "HIGH": 0, "MEDIUM": 0, "LOW": 0, "INFO": 0}

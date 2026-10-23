@@ -7,6 +7,31 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- `miesc export` read only the `results` list, so every format (SARIF, CSV, JSONL,
+  Markdown, HTML, GitHub annotations) exported zero findings from the JSON that
+  `audit full` writes through the ML orchestrator (`raw_findings` / `ml_enhanced`,
+  no `results` key); observed on a real run with 64 findings. The exporters now
+  share the result-file normalisation `report` already used
+  (`miesc.cli.utils.results_from_result_file`): `ml_enhanced.findings` first (the
+  complete, severity-adjusted list), then `top_findings`, then `raw_findings`
+  (capped to 20 entries by the orchestrator), regrouped per tool; `contract_path`
+  is honoured as the contract name.
+
+## [6.5.0] - 2026-10-23 — Configurable LLM providers and access-control precision
+
+Minor release. One registry now decides which LLM backends exist and how to reach them:
+Claude, GPT, DeepSeek, Kimi (Moonshot), a local Ollama, or any OpenAI-compatible endpoint you
+declare in the config; `scan --model`, `audit deep --llm-provider`, the `--verify-fp` advisory
+pass, `MIESC_LLM_PROVIDER`, `miesc doctor` and the EVMBench harness all read it (#204, #203,
+#208). On the detection side the access-control rules need an unguarded privileged operation
+(#202). Paper-profile numbers on `main` after this release (SmartBugs-curated, 143 contracts,
+layers 1/6/7, LLM-free): recall 143/143, precision 33.7 % (281 FP), F1 50.4 %; the published
+papers report 137/143, 22.2 %, 36.0 % at v5.4.1. Nothing frozen changed; `make bench`
+reproduces the new figures into a dated artifact and `make reproduce` keeps checking the old.
+
+
 ### Added
 
 - **Revert-invariant mining** (Phase 1 of
