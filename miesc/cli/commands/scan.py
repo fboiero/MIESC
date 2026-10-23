@@ -155,9 +155,12 @@ if RICH_AVAILABLE:
     "--verify-model",
     "verify_model",
     default=None,
-    help="Ollama model for an ADVISORY --verify-fp LLM pass (e.g. qwen2.5-coder:32b): flags "
-    "more suspected FPs as needs_review; never drops (no recall impact). Slower; omit for "
-    "the fast rule-only verifier.",
+    help="Model for an ADVISORY --verify-fp LLM pass. Local Ollama by default "
+    "(e.g. qwen2.5-coder:32b) or an API provider: 'gpt'/'claude'/'deepseek'/'kimi', "
+    "optionally 'provider:model' (e.g. claude:claude-3-5-sonnet). Flags more suspected FPs "
+    "as needs_review; never drops (no recall impact). API providers need their key "
+    "(OPENAI/ANTHROPIC/DEEPSEEK/KIMI_API_KEY) and an env-overridable default model "
+    "(*_MODEL); omit for the fast rule-only verifier.",
 )
 @click.option(
     "--rank",

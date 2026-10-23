@@ -1107,8 +1107,9 @@ def audit() -> None:
     "--verify-model",
     "verify_model",
     default=None,
-    help="Ollama/DeepSeek model for an ADVISORY --verify-fp LLM pass (e.g. qwen2.5-coder:32b, "
-    "deepseek): flags more suspected FPs as needs_review; never drops.",
+    help="Model for an ADVISORY --verify-fp LLM pass: local Ollama (e.g. qwen2.5-coder:32b) "
+    "or an API provider 'gpt'/'claude'/'deepseek'/'kimi' (optionally 'provider:model'). "
+    "Flags more suspected FPs as needs_review; never drops. API providers need their key.",
 )
 @click.option(
     "--rank",
@@ -1372,8 +1373,9 @@ def audit_quick(
     "--verify-model",
     "verify_model",
     default=None,
-    help="Ollama/DeepSeek model for an ADVISORY --verify-fp LLM pass (e.g. qwen2.5-coder:32b, "
-    "deepseek): flags more suspected FPs as needs_review; never drops.",
+    help="Model for an ADVISORY --verify-fp LLM pass: local Ollama (e.g. qwen2.5-coder:32b) "
+    "or an API provider 'gpt'/'claude'/'deepseek'/'kimi' (optionally 'provider:model'). "
+    "Flags more suspected FPs as needs_review; never drops. API providers need their key.",
 )
 @click.option(
     "--rank",

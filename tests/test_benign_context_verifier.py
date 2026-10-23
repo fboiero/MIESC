@@ -554,3 +554,115 @@ def test_apply_to_results_missing_file_uses_empty_code():
     ]
     dropped, flagged = apply_to_results(results, model=None)
     assert dropped >= 0 and flagged >= 0
+
+
+# =========================================================================== #
+# Multi-provider verifier routing (local Ollama + configurable API providers).
+# All mocked: no network, no real keys.
+# =========================================================================== #
+from miesc.ml.benign_context_verifier import _parse_verifier_model  # noqa: E402
+
+
+class TestParseVerifierModel:
+    def test_disabled_and_bare_ollama(self):
+        assert _parse_verifier_model(None) == (None, None)
+        assert _parse_verifier_model("") == (None, None)
+        # a bare, non-alias string is an Ollama model name (backward compatible)
+        assert _parse_verifier_model("llama3") == ("ollama", "llama3")
+        assert _parse_verifier_model("ollama:qwen2.5-coder:32b") == (
+            "ollama",
+            "qwen2.5-coder:32b",
+        )
+
+    def test_api_aliases_and_explicit_models(self):
+        assert _parse_verifier_model("gpt") == ("openai", None)
+        assert _parse_verifier_model("openai:gpt-4o") == ("openai", "gpt-4o")
+        assert _parse_verifier_model("claude") == ("anthropic", None)
+        assert _parse_verifier_model("claude:claude-3-5-sonnet") == (
+            "anthropic",
+            "claude-3-5-sonnet",
+        )
+        assert _parse_verifier_model("deepseek") == ("deepseek", None)
+        assert _parse_verifier_model("kimi") == ("kimi", None)
+        assert _parse_verifier_model("moonshot:moonshot-v1-8k") == ("kimi", "moonshot-v1-8k")
+
+
+def _capture_request(monkeypatch, payload):
+    """Patch urlopen to record the outgoing Request and return a canned JSON body."""
+    seen: dict = {}
+
+    def fake_urlopen(req, *a, **k):
+        seen["url"] = req.full_url
+        seen["headers"] = {h.lower(): v for h, v in req.header_items()}
+        seen["body"] = _json.loads(req.data.decode())
+        return _Resp(_json.dumps(payload).encode())
+
+    monkeypatch.setattr(_urlreq, "urlopen", fake_urlopen)
+    return seen
+
+
+class TestMultiProviderRouting:
+    def test_openai_gpt_success_and_endpoint(self, monkeypatch):
+        monkeypatch.setenv("OPENAI_API_KEY", "k")
+        seen = _capture_request(monkeypatch, {"choices": [{"message": {"content": "gpt-ans"}}]})
+        v = BenignContextVerifier(model="gpt")
+        assert v._query("p") == "gpt-ans"
+        assert seen["url"] == "https://api.openai.com/v1/chat/completions"
+        assert seen["headers"]["authorization"] == "Bearer k"
+
+    def test_openai_explicit_model_is_sent(self, monkeypatch):
+        monkeypatch.setenv("OPENAI_API_KEY", "k")
+        seen = _capture_request(monkeypatch, {"choices": [{"message": {"content": "x"}}]})
+        BenignContextVerifier(model="openai:gpt-4o")._query("p")
+        assert seen["body"]["model"] == "gpt-4o"
+
+    def test_anthropic_claude_success_and_headers(self, monkeypatch):
+        monkeypatch.setenv("ANTHROPIC_API_KEY", "k")
+        seen = _capture_request(monkeypatch, {"content": [{"text": "claude-ans"}]})
+        v = BenignContextVerifier(model="claude")
+        assert v._query("p") == "claude-ans"
+        assert seen["url"] == "https://api.anthropic.com/v1/messages"
+        assert seen["headers"]["x-api-key"] == "k"
+        assert "anthropic-version" in seen["headers"]
+
+    def test_kimi_success_via_moonshot_key(self, monkeypatch):
+        monkeypatch.delenv("KIMI_API_KEY", raising=False)
+        monkeypatch.setenv("MOONSHOT_API_KEY", "k")
+        seen = _capture_request(monkeypatch, {"choices": [{"message": {"content": "kimi-ans"}}]})
+        v = BenignContextVerifier(model="kimi")
+        assert v._query("p") == "kimi-ans"
+        assert seen["url"] == "https://api.moonshot.ai/v1/chat/completions"
+
+    def test_api_provider_without_key_is_recall_safe_empty(self, monkeypatch):
+        for var in ("OPENAI_API_KEY", "ANTHROPIC_API_KEY", "KIMI_API_KEY", "MOONSHOT_API_KEY"):
+            monkeypatch.delenv(var, raising=False)
+        # no network should be attempted; missing key -> '' -> caller KEEPs the finding
+        monkeypatch.setattr(
+            _urlreq, "urlopen", lambda *a, **k: (_ for _ in ()).throw(AssertionError("no call"))
+        )
+        assert BenignContextVerifier(model="gpt")._query("p") == ""
+        assert BenignContextVerifier(model="claude")._query("p") == ""
+
+    def test_ollama_host_honors_env(self, monkeypatch):
+        # a Docker/remote daemon (OLLAMA_HOST) must be reached, not silently skipped
+        monkeypatch.setenv("OLLAMA_HOST", "http://host.docker.internal:11434")
+        seen = _capture_request(monkeypatch, {"response": "ok"})
+        v = BenignContextVerifier(model="llama3")
+        assert v._query("p") == "ok"
+        assert seen["url"].startswith("http://host.docker.internal:11434")
+
+    def test_anthropic_empty_content_returns_empty(self, monkeypatch):
+        monkeypatch.setenv("ANTHROPIC_API_KEY", "k")
+        _capture_request(monkeypatch, {"content": []})
+        assert BenignContextVerifier(model="claude")._query("p") == ""
+
+    def test_api_false_positive_only_flags_never_drops(self, monkeypatch):
+        """Full recall-safe contract through an API provider: LLM 'false_positive' -> FLAG."""
+        monkeypatch.setenv("OPENAI_API_KEY", "k")
+        verdict_json = '{"false_positive": true}'
+        _capture_request(monkeypatch, {"choices": [{"message": {"content": verdict_json}}]})
+        v = BenignContextVerifier(model="gpt")
+        code = "contract C {\n  function w() external {\n    msg.sender.call{value: 1}('');\n  }\n}"
+        finding = {"type": "reentrancy", "function": "w", "line": 2}
+        # LLM says FP, but a real finding is only flagged, never dropped
+        assert v.verify(finding, code) == "needs_review"
