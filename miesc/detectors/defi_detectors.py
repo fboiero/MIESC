@@ -565,7 +565,7 @@ class FeeOnTransferDetector(DeFiDetector):
         findings: List[DeFiFinding] = []
         lines = source_code.split("\n")
 
-        transfer_in_lines = [i for i, line in enumerate(lines, 1) if self._is_transfer_in(line)]
+        transfer_in_lines = [i for i in range(1, len(lines) + 1) if self._is_transfer_in(lines, i)]
         has_balance_check = self.BALANCE_CHECK_PATTERN.search(source_code)
 
         if transfer_in_lines and not has_balance_check:
@@ -592,11 +592,21 @@ class FeeOnTransferDetector(DeFiDetector):
 
         return findings
 
-    def _is_transfer_in(self, line: str) -> bool:
+    def _is_transfer_in(self, lines: List[str], i: int) -> bool:
+        line = lines[i - 1]
         match = self.TRANSFER_IN_PATTERN.search(line)
         if not match or self.NFT_TRANSFER_MARKER.search(line):
             return False
-        args = "(" + line[match.end() :]
+        # The call may span several lines (one argument per line, as
+        # formatters write long calls): read up to its closing parenthesis.
+        rest = "\n".join([line[match.end() :], *lines[i : i + 10]])
+        depth = 1
+        for j, c in enumerate(rest):
+            depth += {"(": 1, ")": -1}.get(c, 0)
+            if depth == 0:
+                rest = rest[: j + 1]
+                break
+        args = "(" + rest
         return bool(self.INTO_THIS.search(args)) and not self.TOKEN_ID_ARG.search(args)
 
 

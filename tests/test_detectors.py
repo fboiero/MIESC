@@ -513,6 +513,24 @@ class TestFeeOnTransferDetector:
         """
         assert len(detector.detect(source)) == 1
 
+    def test_multiline_transfer_in_flagged(self):
+        """Formatters put one argument per line; the destination is not on
+        the line with `safeTransferFrom(`."""
+        from miesc.detectors.defi_detectors import FeeOnTransferDetector
+
+        detector = FeeOnTransferDetector()
+        source = """
+        function deposit(uint256 amount) external {
+            token.safeTransferFrom(
+                msg.sender,
+                address(this),
+                amount
+            );
+            shares[msg.sender] += amount;
+        }
+        """
+        assert len(detector.detect(source)) == 1
+
     def test_no_transfer_no_findings(self):
         from miesc.detectors.defi_detectors import FeeOnTransferDetector
 
