@@ -1,0 +1,13 @@
+{
+  "extraKnownMarketplaces": {
+    "xcapit-marketplace": {
+      "source": {
+        "source": "git",
+        "url": "https://gitlab.xcapit.com/fer/xcapit-marketplace.git"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "xcapit-swarm@xcapit-marketplace": true
+  }
+}

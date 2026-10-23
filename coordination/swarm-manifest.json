@@ -1,0 +1,108 @@
+{
+  "schema_version": 3,
+  "provenance": "authored",
+  "generator": null,
+  "drift_guard": null,
+  "note": "Hand-authored k0+1-4 STARTER lane agreement for MIESC's development swarm. Unlike xNinja's manifest this is NOT generated from source docs (MIESC has no gen_swarm_manifest.py yet), so provenance is 'authored', not 'generated' -- a consumer must NOT render these bindings as 'observed'. The load-bearing field for the engine is lanes[].console (lib/manifest.sh::lane_console inverts it); the charters and agent bindings are a sensible starting split for an operator to tune as the console pool settles. NOT the product's own model policy.",
+  "regenerate": "hand-edit this file; keep lanes[].id + lanes[].console coherent with console-registry.sh's SWARM_WT_PREFIX (MIESC-).",
+  "sources": {
+    "console_to_lane": "this file (authored starter -- no separate agreement doc yet)",
+    "agent_roster": "xcapit-swarm plugin agents (installed via the GitLab marketplace)"
+  },
+  "axes": {
+    "console": "which CLI/provider drives a lane at runtime (kimi=moonshot, claude=anthropic, codex=openai). The only reliable runtime signal is the [lane:<id>] commit tag -- git author may be a shared merge-readiness identity.",
+    "agent": "advisory primary/secondary builder agent(s) from the xcapit-swarm plugin; a starting split, not a hard binding."
+  },
+  "consoles": [
+    {
+      "id": "kimi",
+      "cli": "kimi",
+      "provider": "moonshot",
+      "owns_lanes": ["k0"],
+      "backup_lanes": ["3"],
+      "charter": "Orchestration, research, architecture synthesis, dispatch routing"
+    },
+    {
+      "id": "claude",
+      "cli": "claude-code",
+      "provider": "anthropic",
+      "owns_lanes": ["1", "3"],
+      "backup_lanes": [],
+      "charter": "Detection quality + false-positive reduction, grounding/RAG, reproducibility & defensive docs"
+    },
+    {
+      "id": "codex",
+      "cli": "codex",
+      "provider": "openai",
+      "owns_lanes": ["2", "4"],
+      "backup_lanes": [],
+      "charter": "Scanner/tool-adapter integration, MCP server, release readiness + GitHub Actions CI, packaging"
+    }
+  ],
+  "lanes": [
+    {
+      "id": "k0",
+      "status": "current",
+      "console": "kimi",
+      "console_provenance": "authored",
+      "backup_consoles": ["claude"],
+      "charter": "Orchestration, research, architecture synthesis, dispatch routing",
+      "primary_agents": ["lane-coordinator", "context-manager"],
+      "secondary_agents": ["sdd-architect"],
+      "ledger": "coordination/status/lane-k0.md",
+      "commit_tag": "[lane:k0]"
+    },
+    {
+      "id": "1",
+      "status": "current",
+      "console": "claude",
+      "console_provenance": "authored",
+      "backup_consoles": [],
+      "charter": "Detection quality + FP reduction: tool-result adapters, RAG/grounding, the agentic quality loop; adversarial verification of findings (CONFIRMED vs FALSE-POSITIVE vs HALLUCINATION)",
+      "primary_agents": ["backend-tdd-engineer", "adversarial-reviewer"],
+      "secondary_agents": ["threat-modeler"],
+      "ledger": "coordination/status/lane-1.md",
+      "commit_tag": "[lane:1]"
+    },
+    {
+      "id": "2",
+      "status": "current",
+      "console": "codex",
+      "console_provenance": "authored",
+      "backup_consoles": [],
+      "charter": "Scanner/tool integration: the security-tool adapters, install paths, Docker runtime, MCP server surface",
+      "primary_agents": ["backend-tdd-engineer"],
+      "secondary_agents": ["lane-coordinator"],
+      "ledger": "coordination/status/lane-2.md",
+      "commit_tag": "[lane:2]"
+    },
+    {
+      "id": "3",
+      "status": "current",
+      "console": "claude",
+      "console_provenance": "authored",
+      "backup_consoles": ["kimi"],
+      "charter": "Reproducibility, benchmarks, and defensive/user docs. Does NOT touch the frozen paper/benchmark artifacts (MIESC's paper-freeze gate blocks those).",
+      "primary_agents": ["sdd-architect", "adversarial-reviewer"],
+      "secondary_agents": ["context-manager"],
+      "ledger": "coordination/status/lane-3.md",
+      "commit_tag": "[lane:3]"
+    },
+    {
+      "id": "4",
+      "status": "current",
+      "console": "codex",
+      "console_provenance": "authored",
+      "backup_consoles": [],
+      "charter": "Release readiness: GitHub Actions CI, packaging/publish, SBOM, reproducibility checks",
+      "primary_agents": ["backend-tdd-engineer"],
+      "secondary_agents": ["lane-coordinator"],
+      "ledger": "coordination/status/lane-4.md",
+      "commit_tag": "[lane:4]"
+    }
+  ],
+  "consumer_contract": {
+    "observed_flag": "render structure as observed=false: provenance is 'authored', NOT 'generated'. Do not infer console from commit-string prefixes; read the [lane:<id>] tag -> lanes[].console.",
+    "read": "parse this JSON. Per lane (lanes[]): console, console_provenance, status (current|retired), backup_consoles, primary_agents, secondary_agents. To attribute a commit to a console: read its [lane:N] tag -> lanes[].console."
+  }
+}

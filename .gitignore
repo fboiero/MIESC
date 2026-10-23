@@ -271,7 +271,11 @@ crytic-export/
 CLAUDE.md
 LANES.md
 LANES_ROADMAP.md
-.claude/
+# Ignore all of .claude/ (per-console session cruft) EXCEPT the shared, committable
+# plugin declaration, so the xcapit-swarm project-scope adoption travels with the repo.
+# (git cannot re-include a file under a fully-ignored dir, so ignore CONTENTS then negate.)
+.claude/*
+!.claude/settings.json
 
 # -----------------------------------------------------------------------------
 # Miscellaneous
