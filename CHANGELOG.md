@@ -9,6 +9,17 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Yul/inline-assembly memory-safety detector** (Phase 1 of
+  `docs/SDD_YUL_ASSEMBLY_MEMORY_SAFETY_HARDENING_20260811.md`). A deterministic, local
+  detector (`miesc/detectors/yul_assembly_safety_detector.py`) that models a bounded set of
+  inline-assembly effects and flags three high-precision, advisory hazards:
+  `yul-memory-safe-violation` (a `memory-safe` block writing memory beyond scratch space
+  without managing the free-memory pointer), `yul-unbounded-returndatacopy` (a full
+  `returndatacopy` into a fixed offset without allocation) and `yul-arbitrary-sstore` (a
+  storage slot derived from calldata or a function parameter). Raw `assembly` is never a
+  finding and each hazard has negative checks; findings use distinct `yul-*` names so they
+  never collapse Slither's informational `assembly` warning. Emits 0 findings on the
+  SmartBugs-curated 143 corpus (zero-FP regression guard). No benchmark claim.
 - **Configurable LLM providers.** `miesc/core/llm_providers.py` is the single registry of
   backends: built-in `anthropic`, `openai`, `deepseek`, `kimi` (Moonshot, OpenAI-compatible)
   and `ollama`, plus any OpenAI-compatible endpoint declared under `llm.providers` in the
