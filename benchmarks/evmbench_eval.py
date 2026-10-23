@@ -170,6 +170,35 @@ def _try_build_project(repo_dir):
     return None
 
 
+# Frontier model names on this harness resolve through the shared provider registry
+# (miesc.core.llm_providers), the same one `miesc scan --model` uses: any provider as
+# provider[:model] (claude, gpt-5, deepseek, kimi, ollama:qwen2.5-coder:32b, a configured
+# endpoint). Two spellings keep the meaning they had in earlier EVMBench runs so numbers
+# stay comparable: `deepseek` is deepseek-chat (the registry default is deepseek-v4-flash)
+# and `ollama` is the benchmarked 32B local model (scan's `ollama` is the 14B quick model).
+HARNESS_MODEL_ALIASES = {
+    "deepseek": "deepseek:deepseek-chat",
+    "deepseek-r": "deepseek:deepseek-reasoner",
+    "ollama": "ollama:qwen2.5-coder:32b",
+}
+
+
+def resolve_frontier_model(frontier_model):
+    """Return (provider name, model id, canonical 'provider:model') or None when unset.
+
+    Raises miesc.core.llm_providers.UnknownProviderError for an unknown provider prefix.
+    """
+    if not frontier_model:
+        return None
+    if str(PROJECT_ROOT) not in sys.path:
+        sys.path.insert(0, str(PROJECT_ROOT))
+    from miesc.core.llm_providers import resolve_model
+
+    spelled = HARNESS_MODEL_ALIASES.get(frontier_model.strip().lower(), frontier_model)
+    choice = resolve_model(spelled)
+    return choice.provider.name, choice.model, f"{choice.provider.name}:{choice.model}"
+
+
 def run_miesc_scan(sol_files, output_path, llm_enhance=False, repo_dir=None, frontier_model=None):
     """Run miesc scan on the Solidity files."""
     if not sol_files:
@@ -243,7 +272,8 @@ def run_miesc_scan(sol_files, output_path, llm_enhance=False, repo_dir=None, fro
         "--quiet", "-o", str(output_path), "--fp-strictness", "low",
     ]
     if frontier_model:
-        cmd.extend(["--model", frontier_model])
+        # Canonical provider:model so the CLI and the direct adapter path agree.
+        cmd.extend(["--model", resolve_frontier_model(frontier_model)[2]])
     if llm_enhance:
         cmd.append("--llm-enhance")
 
@@ -456,11 +486,8 @@ def evaluate_audit(audit_id, audit_data, llm_enhance=False, frontier_model=None,
         sys.path.insert(0, str(PROJECT_ROOT / "src"))
         from miesc.adapters.frontier_llm_adapter import FrontierLLMAdapter
 
-        provider_map = {"claude": "anthropic", "claude-opus": "anthropic",
-                        "claude-sonnet": "anthropic", "gpt": "openai", "gpt-4o": "openai", "gpt-4.1": "openai", "gpt-5": "openai",
-                        "deepseek": "deepseek", "deepseek-r": "deepseek",
-                        "ollama": "ollama", "qwen32b": "ollama", "qwen14b": "ollama", "codellama": "ollama"}
-        _frontier_adapter = FrontierLLMAdapter(provider=provider_map.get(frontier_model, "auto"))
+        _provider_name, _model_id, _ = resolve_frontier_model(frontier_model)
+        _frontier_adapter = FrontierLLMAdapter(provider=_provider_name, model=_model_id)
 
         # Build concat file once (up to 150KB for large audits)
         source_files = [f for f in sol_files if "/test" not in f.lower()
@@ -495,14 +522,9 @@ def evaluate_audit(audit_id, audit_data, llm_enhance=False, frontier_model=None,
         # Strategy A: Direct frontier adapter (reliable, no subprocess issues)
         if _frontier_adapter and _frontier_concat:
             try:
-                model_map = {"claude": "claude-sonnet-4-6", "claude-opus": "claude-opus-4-6",
-                             "gpt": "gpt-4o", "gpt-4o": "gpt-4o", "gpt-4.1": "gpt-4.1", "gpt-5": "gpt-5",
-                             "deepseek": "deepseek-chat", "deepseek-r": "deepseek-reasoner",
-                             "ollama": "qwen2.5-coder:32b", "qwen32b": "qwen2.5-coder:32b",
-                             "qwen14b": "qwen2.5-coder:14b", "codellama": "codellama:13b"}
                 result = _frontier_adapter.analyze(
                     str(_frontier_concat),
-                    model=model_map.get(frontier_model, "claude-sonnet-4-6"),
+                    model=_model_id,
                     deep=deep,
                 )
                 run_findings = result.get("findings", [])
@@ -520,14 +542,7 @@ def evaluate_audit(audit_id, audit_data, llm_enhance=False, frontier_model=None,
             # Scan top 5 largest files individually
             for sf in source_files_sorted[:5]:
                 try:
-                    model_map = {"claude": "claude-sonnet-4-6", "claude-opus": "claude-opus-4-6",
-                                 "gpt": "gpt-4o", "gpt-4o": "gpt-4o", "gpt-4.1": "gpt-4.1", "gpt-5": "gpt-5",
-                                 "deepseek": "deepseek-chat", "deepseek-r": "deepseek-reasoner",
-                                 "ollama": "qwen2.5-coder:32b", "qwen32b": "qwen2.5-coder:32b",
-                                 "qwen14b": "qwen2.5-coder:14b", "codellama": "codellama:13b"}
-                    result = _frontier_adapter.analyze(
-                        sf, model=model_map.get(frontier_model, "claude-sonnet-4-6"),
-                    )
+                    result = _frontier_adapter.analyze(sf, model=_model_id)
                     file_findings = result.get("findings", [])
                     if file_findings:
                         run_findings.extend(file_findings)
@@ -609,7 +624,9 @@ def main():
     parser.add_argument("--audit", type=str, help="Single audit to evaluate")
     parser.add_argument("--llm", action="store_true", help="Enable LLM enhancement (Ollama)")
     parser.add_argument("--model", type=str, default=None,
-                        help="Frontier model: claude, claude-opus, gpt, gpt-4o")
+                        help="Frontier model, any registry provider as provider[:model]: claude, gpt-5, "
+                             "deepseek (deepseek-chat), deepseek-r, kimi, ollama (qwen2.5-coder:32b), "
+                             "ollama:qwen2.5-coder:14b, or an endpoint from llm.providers")
     parser.add_argument("--runs", type=int, default=1,
                         help="Number of runs to ensemble (union of findings)")
     parser.add_argument("--judge", action="store_true",
@@ -619,6 +636,11 @@ def main():
     parser.add_argument("--output", type=Path, default=None,
                         help="Output JSON path. Defaults to benchmarks/results/evmbench/evmbench_results.json")
     args = parser.parse_args()
+    if args.model:
+        try:
+            resolve_frontier_model(args.model)
+        except Exception as exc:  # UnknownProviderError: stop before any API call
+            parser.error(str(exc))
 
     if not EVMBENCH_AUDITS.exists():
         print("ERROR: EVMBench dataset not found at /tmp/evmbench/")
