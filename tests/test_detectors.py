@@ -413,6 +413,21 @@ class TestRoundingErrorDetector:
         """
         assert detector.detect(source) == []
 
+    def test_chain_split_across_lines_flagged(self):
+        """Formatters break long chains before `.mulDivDown(`."""
+        from miesc.detectors.defi_detectors import RoundingErrorDetector
+
+        detector = RoundingErrorDetector()
+        source = """
+        function f(uint256 a, uint256 b) public returns (uint256) {
+            return a.divWadDown(b)
+                .mulDivDown(1e18, 1);
+        }
+        """
+        findings = detector.detect(source)
+        assert len(findings) == 1
+        assert findings[0].line == 3
+
     def test_no_math_no_findings(self):
         from miesc.detectors.defi_detectors import RoundingErrorDetector
 
@@ -583,6 +598,22 @@ class TestERC4626ComplianceDetector:
         findings = detector.detect(source)
         assert len(findings) == 0
 
+    def test_compliant_vault_with_slippage_overload_not_flagged(self):
+        """An extra overload (ERC-5143 style) next to the standard signature
+        does not break EIP-4626 compliance."""
+        from miesc.detectors.defi_detectors import ERC4626ComplianceDetector
+
+        detector = ERC4626ComplianceDetector()
+        source = """
+        function deposit(uint256 assets, address receiver) public returns (uint256) {}
+        function deposit(uint256 assets, address receiver, uint256 minShares)
+            public returns (uint256) {}
+        function withdraw(uint256 assets, address receiver, address owner)
+            public returns (uint256) {}
+        function totalAssets() public view returns (uint256) {}
+        """
+        assert detector.detect(source) == []
+
     def test_non_vault_deposit_withdraw_not_flagged(self):
         """deposit/withdraw alone (no totalAssets) is common outside vaults
         (staking, escrow) - must not be judged against EIP-4626 arity."""
@@ -666,6 +697,21 @@ class TestUnrefundedExcessPaymentDetector:
         """
         findings = detector.detect(source)
         assert len(findings) == 0
+
+    def test_refund_through_prefixed_helper_not_flagged(self):
+        """`_refundExcess(...)` refunds the excess too."""
+        from miesc.detectors.defi_detectors import UnrefundedExcessPaymentDetector
+
+        detector = UnrefundedExcessPaymentDetector()
+        source = """
+        contract M {
+            function mint(uint256 qty) external payable {
+                require(msg.value >= getPrice() * qty);
+                _refundExcess(msg.value - getPrice() * qty);
+            }
+        }
+        """
+        assert detector.detect(source) == []
 
     def test_deposit_with_minimum_not_flagged(self):
         """Verified against smartbugs-curated real contracts: a Deposit()

@@ -507,28 +507,35 @@ class RoundingErrorDetector(DeFiDetector):
     def detect(self, source_code: str, file_path: Optional[Path] = None) -> List[DeFiFinding]:
         findings: List[DeFiFinding] = []
         lines = source_code.split("\n")
+        # Searched over the whole source, not line by line: formatters break
+        # long chains before `.mulDivDown(`. One finding per starting line.
+        hit_lines = sorted(
+            {
+                source_code[: m.start()].count("\n") + 1
+                for m in self.DIV_THEN_MUL_CHAIN.finditer(source_code)
+            }
+        )
 
-        for i, line in enumerate(lines, 1):
-            if self.DIV_THEN_MUL_CHAIN.search(line):
-                findings.append(
-                    DeFiFinding(
-                        title="Divide-Before-Multiply in Fixed-Point Math Chain",
-                        description=f"A division method is chained directly into a "
-                        f"multiplication method at line {i}, truncating precision in the "
-                        "division step before the multiplication runs.",
-                        severity=Severity.MEDIUM,
-                        category=self.category,
-                        line=i,
-                        code_snippet=line.strip(),
-                        recommendation="Combine into a single call that multiplies before "
-                        "dividing (e.g. mulDivDown/mulDivUp) instead of chaining separate "
-                        "div then mul calls.",
-                        references=[
-                            "https://github.com/crytic/slither/wiki/"
-                            "Detector-Documentation#divide-before-multiply"
-                        ],
-                    )
+        for i in hit_lines:
+            findings.append(
+                DeFiFinding(
+                    title="Divide-Before-Multiply in Fixed-Point Math Chain",
+                    description=f"A division method is chained directly into a "
+                    f"multiplication method at line {i}, truncating precision in the "
+                    "division step before the multiplication runs.",
+                    severity=Severity.MEDIUM,
+                    category=self.category,
+                    line=i,
+                    code_snippet=lines[i - 1].strip(),
+                    recommendation="Combine into a single call that multiplies before "
+                    "dividing (e.g. mulDivDown/mulDivUp) instead of chaining separate "
+                    "div then mul calls.",
+                    references=[
+                        "https://github.com/crytic/slither/wiki/"
+                        "Detector-Documentation#divide-before-multiply"
+                    ],
                 )
+            )
 
         return findings
 
@@ -654,15 +661,20 @@ class ERC4626ComplianceDetector(DeFiDetector):
         if not self.VAULT_CORE_FUNCTIONS.issubset(names_present):
             return findings
 
+        def arity(m: "re.Match[str]") -> int:
+            return len([p for p in m.group(2).split(",") if p.strip()])
+
+        # A name with one standard-arity definition is compliant: extra
+        # overloads next to it (e.g. ERC-5143 `deposit(assets, receiver,
+        # minShares)` slippage variants) are allowed by the standard.
+        compliant = {m.group(1) for m in matches if arity(m) == self.CANONICAL_ARITY[m.group(1)]}
+
         for m in matches:
             name = m.group(1)
-            params_raw = m.group(2).strip()
-            param_count = (
-                0 if not params_raw else len([p for p in params_raw.split(",") if p.strip()])
-            )
-            expected = self.CANONICAL_ARITY[name]
-            if param_count == expected:
+            if name in compliant:
                 continue
+            param_count = arity(m)
+            expected = self.CANONICAL_ARITY[name]
 
             line = source_code[: m.start()].count("\n") + 1
             findings.append(
@@ -723,7 +735,7 @@ class UnrefundedExcessPaymentDetector(DeFiDetector):
     REFUND_PATTERNS = [
         re.compile(r"msg\.sender\s*\.\s*(?:call\s*\{|transfer\s*\(|send\s*\()"),
         re.compile(r"payable\s*\(\s*msg\.sender\s*\)\s*\.\s*(?:call\s*\{|transfer\s*\(|send\s*\()"),
-        re.compile(r"\brefund\w*\s*\("),
+        re.compile(r"[Rr]efund\w*\s*\("),
     ]
 
     def detect(self, source_code: str, file_path: Optional[Path] = None) -> List[DeFiFinding]:
