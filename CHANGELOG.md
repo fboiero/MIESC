@@ -7,6 +7,22 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Configurable LLM providers.** `miesc/core/llm_providers.py` is the single registry of
+  backends: built-in `anthropic`, `openai`, `deepseek`, `kimi` (Moonshot, OpenAI-compatible)
+  and `ollama`, plus any OpenAI-compatible endpoint declared under `llm.providers` in the
+  config (`kind`, `base_url`, `api_key_env`, `default_model`, `models`). `scan --model` takes
+  `provider[:model]` (`kimi`, `kimi:kimi-k2-thinking`, `ollama:qwen2.5-coder:32b`,
+  `deepseek:pro`) next to the historical aliases and rejects unknown providers before any
+  analysis; `audit deep --llm-provider` and `MIESC_LLM_PROVIDER` accept any registered name;
+  `miesc doctor` lists every provider, whether its key variable is set and whether the
+  default model is reachable, without printing keys. The frontier adapter and the
+  orchestrator build their clients from the registry (base URL, key, timeout), which removes
+  the DeepSeek special case that used to overwrite `OPENAI_API_KEY` in the process
+  environment. Guide: `docs/guides/LLM_PROVIDERS.md`. The ensemble provider list and the
+  older OpenAI-only agents are not on the registry yet.
+
 ### Changed
 
 - **Access-control false positives.** New `miesc/detectors/access_guards.py` (caller guard:

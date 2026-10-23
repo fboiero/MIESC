@@ -1331,7 +1331,7 @@ Respond ONLY with JSON of the shape:
         provider = self.config.llm_provider
 
         # Try LLMOrchestrator (supports Ollama, Anthropic, OpenAI with fallback)
-        if provider == "auto" or provider in ("anthropic", "openai"):
+        if provider != "ollama":
             narrative = self._try_llm_orchestrator(findings, summary, chains)
             if narrative:
                 return narrative
@@ -1388,6 +1388,15 @@ Respond ONLY with JSON of the shape:
                         api_key=os.getenv("OPENAI_API_KEY"),
                     )
                 )
+
+            # Any other registered provider (deepseek, kimi, or one declared under
+            # llm.providers): endpoint, key and default model come from the registry.
+            if provider not in ("auto", "ollama", "anthropic", "openai"):
+                from miesc.llm.llm_orchestrator import config_for_provider
+
+                registry_config = config_for_provider(provider)
+                if registry_config is not None and registry_config.api_key:
+                    configs.append(registry_config)
 
             if not configs:
                 return ""
