@@ -460,12 +460,15 @@ class CallGraphBuilder:
     # groups before giving up: real, reproducible hang (confirmed >120s on a
     # 452-line file) that no synthetic fixture ever exercised (they only ever
     # used bare-word modifiers like `nonReentrant`). Now consumes an optional
-    # single-level `(...)` argument list as part of the same token.
+    # `(...)` argument list (one nesting level, for `onlyRole(keccak256("X"))`)
+    # as part of the same token. The group is possessive (`*+`) and stops
+    # before `returns`, so a header that never reaches `{` (an abstract
+    # `...;` declaration) fails at once instead of retrying every split.
     FUNCTION_PATTERN = re.compile(
         r"function\s+(\w+)\s*\(([^)]*)\)\s*"
         r"((?:public|external|internal|private)\s*)?"
         r"((?:view|pure|payable)\s*)?"
-        r"((?:\w+(?:\([^()]*\))?\s*)*?)"  # Modifiers, optionally with args
+        r"((?:(?!returns\b)\w+(?:\((?:[^()]|\([^()]*\))*\))?\s*)*+)"  # Modifiers
         r"(?:returns\s*\([^)]*\))?\s*\{",
         re.MULTILINE,
     )
