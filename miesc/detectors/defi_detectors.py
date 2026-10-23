@@ -37,6 +37,8 @@ class DeFiCategory(Enum):
     MEV_EXPOSURE = "mev_exposure"
     SLIPPAGE = "slippage"
     LIQUIDITY = "liquidity"
+    ROUNDING = "rounding"
+    FEE_ON_TRANSFER = "fee_on_transfer"
 
 
 @dataclass
@@ -478,6 +480,108 @@ class PriceManipulationDetector(DeFiDetector):
         return findings
 
 
+class RoundingErrorDetector(DeFiDetector):
+    """
+    Detects divide-then-multiply rounding errors via fixed-point library
+    method chains (e.g. solmate's `x.divWadDown(y).mulDivDown(z, w)`).
+
+    Slither's own divide-before-multiply detector catches the raw-operator
+    form (`(a / b) * c`) but not this one: a `div*`-named method call chained
+    straight into a `mul*`-named method call truncates in the division step
+    before the multiplication ever sees the lost precision. A *single*
+    combined call like `a.mulDivDown(b, c)` is the correct, safe pattern
+    (multiply first, divide once) and is not flagged.
+    """
+
+    name = "rounding-error-detector"
+    description = "Detects divide-before-multiply rounding errors in fixed-point math chains"
+    category = DeFiCategory.ROUNDING
+
+    DIV_THEN_MUL_CHAIN = re.compile(r"\.\w*[Dd]iv\w*\s*\([^()]*\)\s*\.\w*[Mm]ul\w*\s*\(")
+
+    def detect(self, source_code: str, file_path: Optional[Path] = None) -> List[DeFiFinding]:
+        findings: List[DeFiFinding] = []
+        lines = source_code.split("\n")
+
+        for i, line in enumerate(lines, 1):
+            if self.DIV_THEN_MUL_CHAIN.search(line):
+                findings.append(
+                    DeFiFinding(
+                        title="Divide-Before-Multiply in Fixed-Point Math Chain",
+                        description=f"A division method is chained directly into a "
+                        f"multiplication method at line {i}, truncating precision in the "
+                        "division step before the multiplication runs.",
+                        severity=Severity.MEDIUM,
+                        category=self.category,
+                        line=i,
+                        code_snippet=line.strip(),
+                        recommendation="Combine into a single call that multiplies before "
+                        "dividing (e.g. mulDivDown/mulDivUp) instead of chaining separate "
+                        "div then mul calls.",
+                        references=["https://swcregistry.io/docs/SWC-101"],
+                    )
+                )
+
+        return findings
+
+
+class FeeOnTransferDetector(DeFiDetector):
+    """
+    Detects missing balance-before/after checks around token transfers-in.
+
+    A function that pulls tokens via `transferFrom`/`safeTransferFrom` and
+    then mints/credits shares based on the requested amount (instead of the
+    actual balance delta) silently over-credits the depositor whenever the
+    token charges a transfer fee or rebases.
+    """
+
+    name = "fee-on-transfer-detector"
+    description = "Detects missing balance-before/after checks on token transfers-in"
+    category = DeFiCategory.FEE_ON_TRANSFER
+
+    TRANSFER_IN_PATTERN = re.compile(r"\.(safeTransferFrom|transferFrom)\s*\(")
+    BALANCE_CHECK_PATTERN = re.compile(r"balanceOf\s*\(\s*address\s*\(\s*this\s*\)\s*\)")
+    # ERC721/ERC1155 also expose safeTransferFrom/transferFrom (moving a
+    # tokenId, not an amount) — fee-on-transfer is an ERC20-only concept, so a
+    # call cast through one of these NFT/multi-token interfaces is not a hit.
+    NFT_TRANSFER_MARKER = re.compile(r"\bI?ERC(721|1155)\b")
+
+    def detect(self, source_code: str, file_path: Optional[Path] = None) -> List[DeFiFinding]:
+        findings: List[DeFiFinding] = []
+        lines = source_code.split("\n")
+
+        transfer_in_lines = [
+            i
+            for i, line in enumerate(lines, 1)
+            if self.TRANSFER_IN_PATTERN.search(line) and not self.NFT_TRANSFER_MARKER.search(line)
+        ]
+        has_balance_check = self.BALANCE_CHECK_PATTERN.search(source_code)
+
+        if transfer_in_lines and not has_balance_check:
+            for i in transfer_in_lines:
+                line = lines[i - 1]
+                findings.append(
+                    DeFiFinding(
+                        title="Fee-on-Transfer Token Risk: Missing Balance-Before/After Check",
+                        description=f"transferFrom at line {i} pulls tokens in but no "
+                        "balanceOf(address(this)) check anywhere in this file measures the "
+                        "actual amount received. A fee-on-transfer or rebasing token would "
+                        "credit shares/accounting based on the requested amount, not what "
+                        "actually arrived.",
+                        severity=Severity.MEDIUM,
+                        category=self.category,
+                        line=i,
+                        code_snippet=line.strip(),
+                        recommendation="Measure balanceOf(address(this)) before and after "
+                        "the transfer and use the delta for any shares/accounting "
+                        "calculation, instead of the requested transfer amount.",
+                        references=["https://github.com/d-xo/weird-erc20#fee-on-transfer"],
+                    )
+                )
+
+        return findings
+
+
 class DeFiDetectorEngine:
     """Engine to run all DeFi detectors."""
 
@@ -488,6 +592,8 @@ class DeFiDetectorEngine:
             SandwichAttackDetector(),
             MEVExposureDetector(),
             PriceManipulationDetector(),
+            RoundingErrorDetector(),
+            FeeOnTransferDetector(),
         ]
 
     def analyze(self, source_code: str, file_path: Optional[Path] = None) -> List[DeFiFinding]:

@@ -366,6 +366,108 @@ class TestPriceManipulationDetector:
         assert detector.name == "price-manipulation-detector"
 
 
+class TestRoundingErrorDetector:
+    """Tests for RoundingErrorDetector (MEJORAS3.md item 2)."""
+
+    def test_detector_attributes(self):
+        from miesc.detectors.defi_detectors import DeFiCategory, RoundingErrorDetector
+
+        detector = RoundingErrorDetector()
+        assert detector.name == "rounding-error-detector"
+        assert detector.category == DeFiCategory.ROUNDING
+
+    def test_detect_divide_then_multiply_chain(self):
+        from miesc.detectors.defi_detectors import RoundingErrorDetector
+
+        detector = RoundingErrorDetector()
+        source = """
+        function withdraw(uint256 amount, uint256 total) public returns (uint256) {
+            return amount.divWadDown(total).mulDivDown(1e18, 1);
+        }
+        """
+        findings = detector.detect(source)
+        assert len(findings) == 1
+
+    def test_single_muldiv_call_not_flagged(self):
+        """mulDivDown(a, b, c) alone is the safe pattern — multiply first."""
+        from miesc.detectors.defi_detectors import RoundingErrorDetector
+
+        detector = RoundingErrorDetector()
+        source = """
+        function withdraw(uint256 amount, uint256 total) public returns (uint256) {
+            return amount.mulDivDown(1e18, total);
+        }
+        """
+        findings = detector.detect(source)
+        assert len(findings) == 0
+
+    def test_no_math_no_findings(self):
+        from miesc.detectors.defi_detectors import RoundingErrorDetector
+
+        detector = RoundingErrorDetector()
+        findings = detector.detect("contract C { function setValue(uint256 v) public {} }")
+        assert len(findings) == 0
+
+
+class TestFeeOnTransferDetector:
+    """Tests for FeeOnTransferDetector (MEJORAS3.md item 2)."""
+
+    def test_detector_attributes(self):
+        from miesc.detectors.defi_detectors import DeFiCategory, FeeOnTransferDetector
+
+        detector = FeeOnTransferDetector()
+        assert detector.name == "fee-on-transfer-detector"
+        assert detector.category == DeFiCategory.FEE_ON_TRANSFER
+
+    def test_detect_missing_balance_check(self):
+        from miesc.detectors.defi_detectors import FeeOnTransferDetector
+
+        detector = FeeOnTransferDetector()
+        source = """
+        function deposit(uint256 assets) public returns (uint256 shares) {
+            shares = previewDeposit(assets);
+            asset.safeTransferFrom(msg.sender, address(this), assets);
+            _mint(msg.sender, shares);
+        }
+        """
+        findings = detector.detect(source)
+        assert len(findings) == 1
+
+    def test_balance_before_after_not_flagged(self):
+        from miesc.detectors.defi_detectors import FeeOnTransferDetector
+
+        detector = FeeOnTransferDetector()
+        source = """
+        function deposit(uint256 assets) public returns (uint256 shares) {
+            uint256 before = token.balanceOf(address(this));
+            asset.safeTransferFrom(msg.sender, address(this), assets);
+            shares = token.balanceOf(address(this)) - before;
+        }
+        """
+        findings = detector.detect(source)
+        assert len(findings) == 0
+
+    def test_nft_safe_transfer_from_not_flagged(self):
+        """ERC721/ERC1155 safeTransferFrom moves a tokenId, not an amount."""
+        from miesc.detectors.defi_detectors import FeeOnTransferDetector
+
+        detector = FeeOnTransferDetector()
+        source = """
+        function settle(address token, address winner, uint256 tokenId) public {
+            IERC721(token).safeTransferFrom(address(this), winner, tokenId);
+        }
+        """
+        findings = detector.detect(source)
+        assert len(findings) == 0
+
+    def test_no_transfer_no_findings(self):
+        from miesc.detectors.defi_detectors import FeeOnTransferDetector
+
+        detector = FeeOnTransferDetector()
+        findings = detector.detect("contract C { function setValue(uint256 v) public {} }")
+        assert len(findings) == 0
+
+
 class TestDeFiDetectorEngine:
     """Tests for DeFiDetectorEngine."""
 
@@ -374,7 +476,7 @@ class TestDeFiDetectorEngine:
         from miesc.detectors.defi_detectors import DeFiDetectorEngine
 
         engine = DeFiDetectorEngine()
-        assert len(engine.detectors) == 5
+        assert len(engine.detectors) == 7
 
     def test_engine_analyze(self):
         """Test engine runs all detectors."""
