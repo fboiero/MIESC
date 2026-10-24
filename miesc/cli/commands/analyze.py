@@ -20,13 +20,13 @@ from miesc.cli.utils import console, error, info, print_banner, success
 # File extension → chain mapping
 CHAIN_BY_EXTENSION = {
     ".sol": "ethereum",
-    ".vy": "ethereum",  # Vyper (EVM)
+    ".vy": "vyper",  # Vyper (EVM, different source language — pattern-based, not Slither/Aderyn)
     ".move": "move",  # Sui, Aptos
     ".cairo": "starknet",  # Starknet
     ".rs": "solana",  # Anchor/native Solana
 }
 
-SUPPORTED_CHAINS = ["ethereum", "move", "starknet", "solana"]
+SUPPORTED_CHAINS = ["ethereum", "vyper", "move", "starknet", "solana"]
 
 
 def detect_chain(contract_path: str) -> str:
@@ -51,7 +51,8 @@ def analyze(contract: str, chain: str | None, output: str | None, ci: bool, quie
 
     \b
     Supported:
-      Ethereum/EVM     .sol, .vy     (routed to Slither, Aderyn, etc.)
+      Ethereum/EVM     .sol           (routed to Slither, Aderyn, etc.)
+      Vyper            .vy            (pattern-based Vyper analyzer)
       Starknet         .cairo         (Cairo analyzer)
       Move (Sui/Aptos) .move          (Move analyzer)
       Solana/Anchor    .rs            (Anchor analyzer)
@@ -59,6 +60,7 @@ def analyze(contract: str, chain: str | None, output: str | None, ci: bool, quie
     \b
     Examples:
       miesc analyze Token.sol           # Auto-detects EVM
+      miesc analyze Vault.vy            # Auto-detects Vyper
       miesc analyze Vault.cairo         # Auto-detects Starknet
       miesc analyze program.rs --chain solana
       miesc analyze MyModule.move
@@ -97,6 +99,21 @@ def analyze(contract: str, chain: str | None, output: str | None, ci: bool, quie
             )
             return
 
+        elif chain == "vyper":
+            from miesc.adapters.vyper_adapter import VyperAnalyzer
+
+            analyzer: Any = VyperAnalyzer()
+            contract_obj = analyzer.parse(Path(contract))
+            findings = analyzer.detect_vulnerabilities(contract_obj)
+            result = {
+                "success": True,
+                "tool": "miesc-vyper",
+                "chain": "vyper",
+                "file": contract,
+                "findings": [_normalize_finding(f, "vyper") for f in findings],
+                "summary": _summarize(findings),
+            }
+
         elif chain == "starknet":
             from miesc.adapters.cairo_adapter import CairoAnalyzer
 
@@ -105,7 +122,7 @@ def analyze(contract: str, chain: str | None, output: str | None, ci: bool, quie
         elif chain == "move":
             from miesc.adapters.move_adapter import MoveAnalyzer
 
-            analyzer: Any = MoveAnalyzer()
+            analyzer = MoveAnalyzer()
             # MoveAnalyzer is AbstractChainAnalyzer — use parse + detect
             contract_obj = analyzer.parse(Path(contract))
             findings = analyzer.detect_vulnerabilities(contract_obj)
@@ -193,6 +210,12 @@ def analyze(contract: str, chain: str | None, output: str | None, ci: bool, quie
 
 def _normalize_finding(f: Any, chain: str) -> dict[str, Any]:
     """Convert AbstractFinding to MIESC finding dict."""
+    if isinstance(f, dict):
+        # AbstractChainAnalyzer.normalize_finding() already returns a fully
+        # formed finding dict — pass it through instead of falling into the
+        # str(f) branch below, which used to flatten every field (severity,
+        # type, location, ...) into a single unstructured "raw" string.
+        return {**f, "chain": chain}
     if hasattr(f, "to_dict"):
         return cast(dict[str, Any], f.to_dict())
     if hasattr(f, "__dict__"):

@@ -685,6 +685,19 @@ class ToolRegistry:
 _registry = ToolRegistry()
 
 
+def applies_to(adapter: Any, contract_path: str) -> bool:
+    """Whether ``adapter`` should run on ``contract_path``.
+
+    Only a single source file is checked against ``can_analyze`` (``.vy`` to the Vyper
+    analyzer, ``.sol`` to the Solidity tools); a directory (a project audit) goes to
+    every tool, as it did before the check existed.
+    """
+    can_analyze = getattr(adapter, "can_analyze", None)
+    if not callable(can_analyze) or not Path(contract_path).is_file():
+        return True
+    return bool(can_analyze(contract_path))
+
+
 def get_tool_registry() -> ToolRegistry:
     """Get singleton instance of tool registry"""
     return _registry
