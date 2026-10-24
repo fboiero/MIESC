@@ -324,30 +324,14 @@ if [ "${CONTINUE:-0}" = "1" ]; then
   log "resuming the previous $BIN session in $WT (CONTINUE=1)"
 fi
 
-# PER-TASK MODEL (opt-in, OFF by default). Pass --model/-m ONLY when a tier is set AND
-# a model is mapped for (this provider, that tier) via SWARM_MODEL_<bin>_<tier> (indirect
-# env lookup). No tier or no mapping => MODEL_FLAG empty and the CLI uses its configured
-# default — the dispatched argv is identical to before. The tier is sanitised so a
-# malformed value can never splice a bogus flag. Injected into the FRESH invocation of
-# each provider; NOT onto a codex `resume` (its -C/-s/resume ordering is load-bearing and
-# a resumed session keeps the model it already has).
-MODEL_FLAG=""
-if [ -n "${SWARM_LANE_TIER:-}" ]; then
-  case "$SWARM_LANE_TIER" in
-    *[!a-z0-9]*) log "ignoring malformed SWARM_LANE_TIER='$SWARM_LANE_TIER' (want lowercase-alnum)" ;;
-    *)
-      _model_var="SWARM_MODEL_${BIN}_${SWARM_LANE_TIER}"
-      _model="${!_model_var:-}"
-      if [ -n "$_model" ]; then
-        case "$BIN" in
-          claude|kimi) MODEL_FLAG="--model $_model" ;;
-          codex)       MODEL_FLAG="-m $_model" ;;
-        esac
-        [ -n "$MODEL_FLAG" ] && log "routing $BIN to model '$_model' (tier $SWARM_LANE_TIER)"
-      fi
-      ;;
-  esac
-fi
+# PER-TASK MODEL (opt-in, OFF by default). model_flag_for (lib/swarm-config.sh) resolves
+# the --model/-m flag for (this provider, SWARM_LANE_TIER) from SWARM_MODEL_<bin>_<tier>,
+# or NOTHING when no tier is set / no model is mapped / the tier is malformed — so with no
+# config the dispatched argv is identical to before. It is injected into the FRESH
+# invocation of each provider below; NOT onto a codex `resume` (its -C/-s/resume ordering
+# is load-bearing, and a resumed session keeps the model it already has).
+MODEL_FLAG="$(model_flag_for "$BIN" "${SWARM_LANE_TIER:-}")"
+[ -n "$MODEL_FLAG" ] && log "routing $BIN to model '${MODEL_FLAG#* }' (tier $SWARM_LANE_TIER)"
 
 case "$BIN" in
   claude)

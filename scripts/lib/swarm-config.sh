@@ -100,6 +100,26 @@ unset _swarm_cfg_local
 # model fits what. No tier, or no mapped model, => no flag.
 : "${SWARM_LANE_TIER:=}"
 
+# model_flag_for <bin> <tier> -> the "--model X" / "-m X" flag for (provider, tier), or
+# NOTHING. The single source of the per-task model decision (lane-dispatch calls it), kept
+# here as a sourced, PURE, unit-testable function instead of inline in the dispatch. It is
+# the fail-safe boundary: a tier that is empty, not lowercase-alnum, or has no mapped model
+# yields empty so the CLI keeps its own default — and a malformed tier can never splice a
+# flag, because it is rejected BEFORE the indirect lookup. Flag spelling is per-CLI
+# (claude/kimi: --model; codex: -m). bash 3.2 safe.
+model_flag_for() {
+  local _bin="$1" _tier="${2:-}" _var _model
+  [ -n "$_tier" ] || return 0
+  case "$_tier" in *[!a-z0-9]*) return 0 ;; esac
+  _var="SWARM_MODEL_${_bin}_${_tier}"
+  _model="${!_var:-}"
+  [ -n "$_model" ] || return 0
+  case "$_bin" in
+    claude|kimi) printf '%s\n' "--model $_model" ;;
+    codex)       printf '%s\n' "-m $_model" ;;
+  esac
+}
+
 # --- Optional prior-context injection hook (OFF by default) -------------------
 # A project can feed the dispatched console point-in-time recall — an Engram query,
 # a notes grep, anything — as ADVISORY background, WITHOUT coupling this portable
