@@ -170,6 +170,12 @@ from .remediation_generator import (
     generate_fix,
     get_quick_fix,
 )
+from .revert_invariant_mining import (
+    GuardInventoryItem,
+    RevertInvariantOraclePlan,
+    mine_revert_invariants,
+    parse_revert_invariant_plans,
+)
 from .vulnerability_rag import (
     EXPLOIT_EXAMPLES,
     SWC_REGISTRY,
@@ -313,6 +319,10 @@ __all__ = [
     "parse_signature_domain_hardening_plans",
     "parse_snapshot_fuzzing_plans",
     "parse_sequence_oracle_plans",
+    "GuardInventoryItem",
+    "RevertInvariantOraclePlan",
+    "mine_revert_invariants",
+    "parse_revert_invariant_plans",
     "parse_token_hook_reentrancy_hardening_plans",
     "parse_upgrade_evolution_plans",
     "LLMOrchestratorReasoningProvider",
