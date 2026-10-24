@@ -7,6 +7,30 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Revert-invariant reasoning executor for pause/freshness gaps
+  (`miesc/llm/revert_invariant_reasoning.py`).** `pause_toggle` and `freshness_check` gap
+  hypotheses can now reach the `counterexample` rung that access control already reaches, without
+  opening a false-positive hole. The non-negotiable precision invariant: the facts layer never
+  constructs the rejectable state as ground truth — a counterexample requires **both** Foundry
+  probes to agree. A *control* probe reaches the proposed state (pause the contract / pass a past
+  deadline), then calls the guarded sibling (`GuardGapHypothesis.guarded_example`, a new structured
+  field) and asserts it reverts, with a leading baseline call so "it reverts" means "because of the
+  state"; a *target* probe reuses the executor's storage-write assertion on the unguarded sibling.
+  Promotion happens only when control confirms the state **and** the target call succeeded and wrote
+  storage, so a wrong fact (a pauser that does not pause, a misidentified deadline) fails closed to
+  `hypothesis`. This first slice implements the deterministic local fallback only (literal cases:
+  `pause`/`setPaused` + a `whenNotPaused`-style sibling; an integer deadline/expiry parameter the
+  sibling checks); the provider hook signature is in place but no remote path runs yet. Opt-in via
+  `DeepAuditConfig.enable_gap_reasoning` (default off, requires `enable_gap_execution`; the remote
+  gate reuses `agentic_invariants_allow_remote`, no new flag). Confirmed counterexamples emit
+  findings through the existing bridge and the same FP filter, typed to canonical taxonomy
+  categories that aggregate correctly (`dos` → denial-of-service for pause gating, `timestamp` →
+  time-manipulation for freshness) and never mislabelled as access control. The sandbox
+  (`ffi=false`, scrubbed environment, network denial, cheatcode-source refusal) is reused verbatim
+  from the executor and never weakened.
+
 ### Security
 
 - **Revert-invariant executor hardened (`miesc/llm/revert_invariant_executor.py`).** The

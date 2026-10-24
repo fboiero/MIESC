@@ -62,6 +62,13 @@ class DeepAuditConfig:
     # ffi/fs_permissions off, scrubs the environment and denies network where the host can,
     # but only enable this on code you are willing to run, ideally in a network-less container.
     enable_gap_execution: bool = False
+    # Opt-in: also execute pause/freshness gap probes via the reasoning executor. REQUIRES
+    # enable_gap_execution (it is a no-op when that is off). The precision invariant is in
+    # miesc/llm/revert_invariant_reasoning.py: a counterexample needs a control probe to confirm
+    # the rejectable state AND a target probe to show the unguarded call succeeded+wrote, so a wrong
+    # fact fails closed. The remote gate reuses agentic_invariants_allow_remote (no new flag); this
+    # first slice runs the deterministic local fallback only.
+    enable_gap_reasoning: bool = False
     fp_threshold: float = 0.5
     max_workers: int = 4
 
@@ -645,15 +652,19 @@ class DeepAuditAgent(BaseAgent):
             return []
 
     def _counterexample_findings(self, source_code: str, contract_path: str) -> List[Dict]:
-        """Execute access-control gaps and turn confirmed counterexamples into findings.
+        """Execute gap probes and turn confirmed counterexamples into findings.
 
-        Deterministic and execution-gated: only an unauthorized call that actually *succeeded*
+        Deterministic and execution-gated: only a call that actually behaved as the gap predicted
         under Foundry becomes a finding, and the result passes through the same FP filter as the
-        rest. Returns [] when forge is absent, nothing is eligible, or no counterexample is found.
+        rest. Access-control gaps always run here; pause/freshness gaps run too when
+        ``enable_gap_reasoning`` is on (their precision invariant needs a control probe to confirm
+        the rejectable state before any target result is trusted). Returns [] when forge is absent,
+        nothing is eligible, or no counterexample is found.
         """
         try:
             from miesc.llm import (
                 execute_access_control_gaps,
+                execute_reasoning_gaps,
                 mine_revert_invariants,
             )
             from miesc.llm.revert_invariant_findings import counterexample_findings
@@ -662,6 +673,12 @@ class DeepAuditAgent(BaseAgent):
                 source_code, Path(contract_path) if contract_path else None
             )
             executions = execute_access_control_gaps(plans, source_code)
+            if self.config.enable_gap_reasoning:
+                executions = executions + execute_reasoning_gaps(
+                    plans,
+                    source_code,
+                    allow_remote=self.config.agentic_invariants_allow_remote,
+                )
             emitted = counterexample_findings(executions, source_code, contract_path)
             return self._filter_false_positives(emitted) if emitted else []
         except Exception as e:  # never let gap execution break synthesis

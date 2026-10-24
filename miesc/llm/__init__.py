@@ -211,6 +211,9 @@ from .revert_invariant_mining import (
     mine_revert_invariants,
     parse_revert_invariant_plans,
 )
+from .revert_invariant_reasoning import (
+    execute_reasoning_gaps,
+)
 from .vulnerability_rag import (
     EXPLOIT_EXAMPLES,
     SWC_REGISTRY,
@@ -378,6 +381,7 @@ __all__ = [
     "generate_revert_guard_harnesses",
     "harness_for_gap",
     "execute_access_control_gaps",
+    "execute_reasoning_gaps",
     "counterexample_findings",
     "parse_token_hook_reentrancy_hardening_plans",
     "parse_upgrade_evolution_plans",
