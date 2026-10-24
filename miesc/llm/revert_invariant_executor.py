@@ -180,9 +180,32 @@ def _target_contract(masked: str) -> Optional[str]:
 
 
 def _has_blocking_constructor(masked: str) -> bool:
-    """True when a constructor takes at least one argument (cannot ``new Contract()``)."""
+    """True when a constructor takes at least one argument (cannot ``new Contract()``).
+
+    Retained for compatibility; new call sites use :func:`_constructor_args`, which also admits an
+    elementary-argument constructor by deploying it with zero literals.
+    """
     m = re.search(r"\bconstructor\s*\(([^)]*)\)", masked)
     return bool(m and m.group(1).strip())
+
+
+def _constructor_args(masked: str) -> Optional[List[str]]:
+    """Zero-literal arguments to deploy the contract with ``new C(...)``.
+
+    ``[]`` when there is no constructor or it takes none. A list of elementary zero literals when
+    every constructor parameter is elementary (uint/int/address/bool/bytesN). ``None`` when a
+    parameter is not elementary -> the contract is not deployable here (stays ineligible).
+
+    Deploying with zero literals cannot manufacture a counterexample: a weird zero-initialised
+    state can only make the probe fail to demonstrate the violation (inconclusive), and a
+    constructor that ``require``s a non-zero argument simply reverts in ``setUp`` (also
+    inconclusive). It never makes an unauthorized/stale/paused call succeed that otherwise would
+    not.
+    """
+    m = re.search(r"\bconstructor\s*\(([^)]*)\)", masked)
+    if not m or not m.group(1).strip():
+        return []
+    return _zero_args(m.group(1))
 
 
 def _references_cheatcodes(source: str) -> bool:
@@ -194,7 +217,9 @@ def _pragma_prefix(source: str) -> str:
     return "" if "pragma solidity" in source else "pragma solidity >=0.7.0;\n"
 
 
-def _build_probe(source: str, contract: str, fn_args: Dict[str, List[str]]) -> str:
+def _build_probe(
+    source: str, contract: str, fn_args: Dict[str, List[str]], ctor_args: List[str]
+) -> str:
     """A self-contained Foundry test: the inlined contract + a minimal Vm + one probe per fn.
 
     Each probe records storage accesses around the unauthorized call and fails only when the call
@@ -223,7 +248,7 @@ def _build_probe(source: str, contract: str, fn_args: Dict[str, List[str]]) -> s
         f"contract RevertInvariantACProbe {{\n"
         f"    Vm constant vm = Vm({_HEVM_ADDRESS});\n"
         f"    {contract} target;\n"
-        f"    function setUp() public {{ target = new {contract}(); }}\n\n"
+        f"    function setUp() public {{ target = new {contract}({', '.join(ctor_args)}); }}\n\n"
         f"{''.join(probes)}}}\n"
     )
 
@@ -324,9 +349,10 @@ def execute_access_control_gaps(
                 {**base, "reason": "source references Foundry cheatcodes; refused to execute"}
             )
             continue
-        if contract is None or _has_blocking_constructor(masked):
+        ctor_args = None if contract is None else _constructor_args(masked)
+        if contract is None or ctor_args is None:
             results.append(
-                {**base, "reason": "contract has constructor arguments or is not deployable here"}
+                {**base, "reason": "contract is not deployable here (non-elementary constructor)"}
             )
             continue
         fn_args = _eligible_functions(gap, functions)
@@ -334,7 +360,7 @@ def execute_access_control_gaps(
             results.append({**base, "reason": "no affected function with elementary arguments"})
             continue
 
-        verdict = _run_probe(forge, source_code, contract, fn_args, timeout)
+        verdict = _run_probe(forge, source_code, contract, fn_args, ctor_args, timeout)
         results.append({**base, **verdict})
     return results
 
@@ -344,13 +370,14 @@ def _run_probe(
     source_code: str,
     contract: str,
     fn_args: Dict[str, List[str]],
+    ctor_args: List[str],
     timeout: int,
 ) -> Dict[str, object]:
     """Compile and run the probe with ``forge test --json`` under the hardened project/env/sandbox;
     map the result to a promotion decision. We parse forge's own JSON (``status`` per test)
     directly: the counterexample signal must be read from the authoritative field, not re-derived.
     """
-    probe = _build_probe(source_code, contract, fn_args)
+    probe = _build_probe(source_code, contract, fn_args, ctor_args)
     sandbox = _network_sandbox()
     isolation: Dict[str, object] = {
         "ffi": False,
