@@ -163,6 +163,16 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   not bypass the controls. Negative control: 0 counterexample findings across OpenZeppelin, Solady
   and Uniswap v2-periphery (513 files). No benchmark claim.
 
+- **Revert-invariant reasoning agent: remote provider path.** The pause/freshness reasoning
+  executor now resolves probe facts local-first (deterministic literal cases, no tokens) and, when
+  the local extractor cannot name the one identity it needs (a non-literally-named pauser, or the
+  deadline parameter index), asks a supplied reasoning provider for that **single** identity via
+  `auto_reasoning_provider` / `ReasoningTask` (capability `counterexample_validation`, remote gate
+  reuses `agentic_invariants_allow_remote`). The provider's answer is validated against the parsed
+  contract, and the control+baseline probe remains the final gate — a wrong answer fails CLOSED
+  (the guarded sibling will not revert in the proposed state), so the LLM can never manufacture a
+  counterexample. Local-only behaviour is unchanged when no provider is passed. No benchmark claim.
+
 ## [6.6.0] - 2026-10-24 — Phase-1 plan miners, DeFi and Yul detectors, hardened adapters
 
 Minor release. Four deterministic, LLM-free *plan miners* land as Phase 1 of their SDDs

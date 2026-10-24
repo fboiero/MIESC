@@ -62,6 +62,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 
+from miesc.llm.agentic_contracts import MAX_AGENT_SOURCE_CHARS
 from miesc.llm.revert_invariant_executor import (
     _HEVM_ADDRESS,
     _PROBE_TOML,
@@ -226,6 +227,7 @@ def _extract_local_facts(
 def _extract_facts(
     gap: GuardGapHypothesis,
     by_name: Dict[str, "_FuncSig"],
+    source_code: str,
     *,
     provider: "Optional[ReasoningProvider]" = None,
     allow_remote: bool = False,
@@ -237,9 +239,174 @@ def _extract_facts(
     is intentionally not implemented yet, so any provider is ignored and the local literal-case
     extractor decides. Facts always fail CLOSED: when the literal case does not hold this returns
     ``None`` and the gap is left unchanged.
+
+    Resolution order: the deterministic literal-case extractor first (cheapest, no tokens). Only
+    when it cannot name the identity it needs (a non-literally-named pauser, a deadline parameter
+    not named ``deadline``/``expir``) and a reasoning ``provider`` is supplied is the provider
+    asked -- for that ONE identity, which is then validated against the parsed contract. The
+    control+baseline probe downstream is the final gate, so a wrong provider answer fails CLOSED
+    (the guarded sibling will not revert, or will revert without the state) and never promotes.
     """
-    del provider, allow_remote
-    return _extract_local_facts(gap, by_name)
+    local = _extract_local_facts(gap, by_name)
+    if local is not None:
+        return local
+    if provider is None:
+        return None
+    return _extract_remote_facts(
+        gap, by_name, source_code, provider=provider, allow_remote=allow_remote
+    )
+
+
+def _common_prefix(
+    gap: GuardGapHypothesis, by_name: Dict[str, "_FuncSig"]
+) -> Optional[Tuple["_FuncSig", List[str], Dict[str, List[str]]]]:
+    """``(guarded_sibling_sig, its_zero_args, {target: zero_args})`` or ``None`` when the gap is
+    structurally ineligible (missing/non-elementary guarded sibling, no elementary target)."""
+    guarded = by_name.get(gap.guarded_example)
+    if guarded is None:
+        return None
+    guarded_zero = _zero_args(guarded.params)
+    if guarded_zero is None:
+        return None
+    targets: Dict[str, List[str]] = {}
+    for fn in gap.affected_functions:
+        sig = by_name.get(fn)
+        if sig is None:
+            continue
+        zeros = _zero_args(sig.params)
+        if zeros is None:
+            continue
+        targets[fn] = zeros
+    if not targets:
+        return None
+    return guarded, guarded_zero, targets
+
+
+def _remote_identity(
+    objective: str,
+    prompt: str,
+    inputs: Dict[str, object],
+    output_schema: Dict[str, object],
+    provider: "ReasoningProvider",
+    allow_remote: bool,
+) -> Optional[Dict[str, object]]:
+    """Ask the provider for one bounded identity fact; ``None`` on any failure (fail CLOSED)."""
+    try:
+        from miesc.llm.agentic_contracts import (
+            AgentCapability,
+            DPGAgentConfig,
+            ReasoningTask,
+        )
+
+        task = ReasoningTask(
+            capability=AgentCapability.COUNTEREXAMPLE_VALIDATION,
+            objective=objective,
+            prompt=prompt,
+            inputs=inputs,
+            output_schema=output_schema,
+            policy=DPGAgentConfig(allow_remote=allow_remote),
+        )
+        result = provider.complete_json(task)
+        data = getattr(result, "data", None)
+        return data if isinstance(data, dict) else None
+    except Exception as e:  # provider error, policy refusal, malformed output -> fail closed
+        logger.debug("revert-invariant reasoning: provider identity call failed: %s", e)
+        return None
+
+
+def _extract_remote_facts(
+    gap: GuardGapHypothesis,
+    by_name: Dict[str, "_FuncSig"],
+    source_code: str,
+    *,
+    provider: "ReasoningProvider",
+    allow_remote: bool,
+) -> Optional[_ReasoningFacts]:
+    """Fill the one identity the local extractor could not, from the provider, then VALIDATE it
+    against the parsed contract. Returns ``None`` (fail closed) on any invalid/missing answer."""
+    prefix = _common_prefix(gap, by_name)
+    if prefix is None:
+        return None
+    guarded, guarded_zero, targets = prefix
+
+    if gap.category == "pause_toggle":
+        data = _remote_identity(
+            objective="Name the function that reaches the paused state.",
+            prompt=(
+                "A contract has a pause-gated sibling and an un-gated peer. Name the single "
+                "external/public, state-changing function that SETS the paused state and is "
+                "callable by the deployer (no arguments, or a single bool set to true). Reply as "
+                'JSON {"pauser": "<functionName>"} and nothing else. If none exists, reply '
+                '{"pauser": ""}.'
+            ),
+            inputs={
+                "source": source_code[:MAX_AGENT_SOURCE_CHARS],
+                "guarded_sibling": guarded.name,
+            },
+            output_schema={"pauser": "string (an external/public state-changing function name)"},
+            provider=provider,
+            allow_remote=allow_remote,
+        )
+        if not data:
+            return None
+        name = data.get("pauser")
+        if not isinstance(name, str) or not name:
+            return None
+        sig = by_name.get(name)
+        if sig is None or sig.visibility not in ("external", "public") or not sig.mutates:
+            return None
+        params = sig.params.strip()
+        if params == "":
+            pauser_args: List[str] = []
+        else:
+            parts = _split_top_level(params)
+            if len(parts) != 1 or _arg_type(parts[0]) != "bool":
+                return None
+            pauser_args = ["true"]
+        return _ReasoningFacts(
+            category=gap.category,
+            guarded_sibling=gap.guarded_example,
+            guarded_zero_args=guarded_zero,
+            targets=targets,
+            pauser=name,
+            pauser_args=pauser_args,
+        )
+
+    if gap.category == "freshness_check":
+        params = _split_top_level(guarded.params)
+        data = _remote_identity(
+            objective="Identify the deadline/expiry parameter of the guarded function.",
+            prompt=(
+                f"Function `{guarded.name}` has parameters (0-indexed): "
+                f"{[p.strip() for p in params]}. Which one is the transaction deadline/expiry "
+                "checked against block.timestamp? Reply as JSON "
+                '{"deadline_index": <int>} and nothing else. If none, reply {"deadline_index": -1}.'
+            ),
+            inputs={
+                "source": source_code[:MAX_AGENT_SOURCE_CHARS],
+                "guarded_sibling": guarded.name,
+            },
+            output_schema={"deadline_index": "integer, 0-based parameter position or -1"},
+            provider=provider,
+            allow_remote=allow_remote,
+        )
+        if not data:
+            return None
+        idx = data.get("deadline_index")
+        if not isinstance(idx, int) or isinstance(idx, bool) or not (0 <= idx < len(params)):
+            return None
+        dtype = (_arg_type(params[idx]) or "").strip()
+        if not dtype or not _INT_TYPE_RE.match(dtype):
+            return None
+        return _ReasoningFacts(
+            category=gap.category,
+            guarded_sibling=gap.guarded_example,
+            guarded_zero_args=guarded_zero,
+            targets=targets,
+            guarded_deadline_index=idx,
+            guarded_deadline_type=dtype,
+        )
+    return None
 
 
 # --------------------------------------------------------------------------------------
@@ -546,14 +713,16 @@ def execute_reasoning_gaps(
                 {**base, "reason": "contract has constructor arguments or is not deployable here"}
             )
             continue
-        facts = _extract_facts(gap, by_name, provider=provider, allow_remote=allow_remote)
+        facts = _extract_facts(
+            gap, by_name, source_code, provider=provider, allow_remote=allow_remote
+        )
         if facts is None:
             results.append(
                 {
                     **base,
                     "reason": (
-                        "could not extract probe facts for this gap locally; gap left unchanged "
-                        "(no reasoning provider in this slice)"
+                        "could not extract probe facts for this gap (no literal match and no "
+                        "reasoning provider supplied a validatable identity); gap left unchanged"
                     ),
                 }
             )

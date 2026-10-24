@@ -2,10 +2,16 @@
 
 Date: 2026-10-24
 Owner/Lane: Claude
-Status: **First slice implemented (local fallback; access-control-style subset).** The control-probe
-precision invariant, the pause/freshness executor (`miesc/llm/revert_invariant_reasoning.py`), the
-`enable_gap_reasoning` wiring and tests have shipped; only the deterministic local fallback runs in
-this slice (the remote reasoning-provider path is hooked but not yet implemented).
+Status: **Implemented (local + remote reasoning-provider path; access-control-style subset).** The
+control-probe precision invariant, the pause/freshness executor (`miesc/llm/revert_invariant_reasoning.py`),
+the `enable_gap_reasoning` wiring and tests have shipped. Fact resolution is local-first
+(deterministic literal cases, no tokens); when the local extractor cannot name the one identity it
+needs — a non-literally-named pauser, or a deadline parameter index — and a reasoning provider is
+supplied, the provider is asked for that single identity via `auto_reasoning_provider` /
+`ReasoningTask` (capability `counterexample_validation`, gated by `agentic_invariants_allow_remote`),
+and the answer is validated against the parsed contract. A wrong provider answer fails CLOSED: the
+control+baseline probe does not confirm the state, so nothing promotes. Still open: widening the
+executable subset beyond no-arg-constructor + elementary args.
 
 ## Context
 
