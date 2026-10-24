@@ -589,6 +589,23 @@ def run_tool(tool: str, contract: str, timeout: int = 0, **kwargs: Any) -> Dict[
         }
 
     try:
+        # Skip tools that don't apply to this file type (e.g. Solidity-only
+        # tools against a .vy file) before spending time on availability
+        # checks or a doomed analyze() call.
+        from miesc.core.tool_protocol import applies_to
+
+        if not applies_to(adapter, contract):
+            return {
+                "tool": tool,
+                "contract": contract,
+                "status": "skipped",
+                "reason": "unsupported_source",
+                "findings": [],
+                "execution_time": 0,
+                "timestamp": datetime.now().isoformat(),
+                "error": f"{tool} does not support this file type",
+            }
+
         # Check if tool is available
         from miesc.core.tool_protocol import ToolStatus
 
@@ -683,9 +700,17 @@ def run_layer(
     if layer not in LAYERS:
         return []
 
+    from miesc.core.tool_protocol import applies_to
+
     layer_info = LAYERS[layer]
     excluded = set(exclude_tools or ())
-    tools = [tool for tool in layer_info["tools"] if tool not in excluded]
+    # A tool that does not read this file type is left out, not run and skipped:
+    # the Vyper analyzer adds no row to a Solidity scan, and vice versa.
+    tools = [
+        tool
+        for tool in layer_info["tools"]
+        if tool not in excluded and applies_to(AdapterLoader.get_adapter(tool), contract)
+    ]
     skipped = [
         _skipped_tool_result(tool, contract, "skipped: LLM-dependent tool (--no-llm)")
         for tool in layer_info["tools"]

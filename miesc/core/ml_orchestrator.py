@@ -19,6 +19,7 @@ from .config_loader import MIESCConfig, get_config
 from .optimized_orchestrator import ResultCache
 from .result_aggregator import ResultAggregator
 from .tool_discovery import get_tool_discovery
+from .tool_protocol import applies_to
 
 # ML components imported lazily to avoid circular imports
 # from miesc.ml import MLPipeline, MLEnhancedResult, FeedbackType, VulnerabilityCluster, get_ml_pipeline
@@ -286,6 +287,14 @@ class MLOrchestrator:
 
         try:
             adapter = self.discovery.load_adapter(tool_name)
+            if not applies_to(adapter, contract_path):
+                return {
+                    "tool": tool_name,
+                    "status": "skipped",
+                    "reason": "unsupported_source",
+                    "findings": [],
+                    "error": f"{tool_name} does not support this file type",
+                }
             adapter_config = self.config.get_adapter_config(tool_name)
             effective_timeout = budget_for(adapter, adapter_config.timeout or timeout)
 
