@@ -7,6 +7,23 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [6.6.0] - 2026-10-24 — Phase-1 plan miners, DeFi and Yul detectors, hardened adapters
+
+Minor release. Four deterministic, LLM-free *plan miners* land as Phase 1 of their SDDs
+(revert-invariant guards, privileged-governance authority graph, resource/liveness progress
+surfaces, lending-solvency market model) together with their first consumer, an opt-in
+advisory phase in the deep-audit agent that emits plans, never findings (#209, #213, #214,
+#215, #219, #221). Two detector families join layer 6/7: four DeFi detectors from @alva-p
+(rounding chains, fee-on-transfer, EIP-4626 signatures, unrefunded excess payment; #211) and a
+Yul/inline-assembly memory-safety detector rebuilt on the real Solidity memory rules (#207).
+The adapters got @alva-p's robustness pass (#197: sibling imports, dependency-only scoping, a
+call-graph regex that no longer stalls, validated LLM output), `miesc export` reads the
+`audit full` JSON again (#218), and the `defi` profile reaches the DeFi adapter (#220).
+Paper-profile numbers on `main` after this release (SmartBugs-curated, 143 contracts, layers
+1/6/7, LLM-free): recall 143/143, precision 33.7 % (281 FP), F1 50.4 % — identical, contract
+for contract, to the 6.5.0 baseline (`benchmarks/results/smartbugs_eval_layers_1_6_7_20261024_post_pr211_213.json`);
+the published papers report 137/143, 22.2 %, 36.0 % at v5.4.1. Nothing frozen changed.
+
 ### Added
 
 - **Revert-invariant mining** (Phase 1 of
@@ -113,6 +130,19 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **Adapter robustness and LLM output validation** (contributed by @alva-p, #197, split 1 of 7
+  of #144). Slither and Aderyn resolve relative sibling imports and the `@openzeppelin` /
+  `@solmate` / `@chainlink` package prefixes on standalone files, and scope their findings to
+  the contract under audit by dropping only dependency files (`lib/`, `node_modules/`, package
+  prefixes; `miesc/adapters/_dependency_scope.py`) while keeping findings inherited from
+  sibling contracts and findings without a source mapping; an Aderyn sibling outside the
+  project root falls back to a flat copy instead of failing. The call-graph function regex
+  (`CallGraphBuilder.FUNCTION_PATTERN`) no longer backtracks catastrophically: it stalled for
+  more than 60 s on Uniswap v3 `SwapRouter`, OpenZeppelin `TimelockController` and Solady
+  `ERC4337`, and now takes milliseconds while also recognising `onlyRole(keccak256(...))`
+  modifiers. SmartLLM enforces valid structured output (one validated retry) and accepts the
+  installed coder models; LLMBugScanner falls back to an installed coding model instead of a
+  configuration error, shares the LLM cache mixin and records `models_used` in its metadata.
 - The lending-solvency miner's gate ("a deposit/supply/withdraw/redeem function and a
   collateral/debt/shares/reserve word anywhere in the source") accepted every vault, staking
   pool, pair and token: `supply` matched `totalSupply`, and the words were matched as
