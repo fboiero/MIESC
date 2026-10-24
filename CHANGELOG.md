@@ -33,6 +33,19 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   ungated — without that, every `Pausable` consumer would false-positive. Advisory only, never a
   `Finding`, `promotion.state` stays `hypothesis`. Negative control: 0 hypotheses on OpenZeppelin
   `contracts/` and Solady `src/` (490 files). No benchmark claim.
+- **Revert-invariant Phase 2 (third slice): deadline/freshness gap hypotheses.** The miner now
+  groups external/public mutators **by signature** — those that accept a `deadline`/`expiry`-like
+  parameter — and, when a sibling in that group never enforces the deadline, records a
+  `GuardGapHypothesis` (`observed_gap="inconsistent"`, category `freshness_check`). A deadline that
+  is enforced by a modifier (DEX routers' `ensure(deadline)`), checked locally
+  (`block.timestamp <= deadline`), forwarded into an inner call, or stored resolves to
+  guarded/opaque and drops out; only a parameter accepted and never referenced reads as a gap.
+  Forwarded/stored deadlines are treated as **opaque** (the property is delegated somewhere the
+  parser cannot follow — the same epistemic state as an unresolved modifier), not asserted as a
+  gap. Advisory only, never a `Finding`, `promotion.state` stays `hypothesis`. Negative control:
+  0 hypotheses on OpenZeppelin `contracts/`, Solady `src/`, and Uniswap v2-periphery (≈20 deadline
+  functions, all resolved guarded-by-`ensure` or opaque-by-forwarding — a non-vacuous 0). No
+  benchmark claim.
 
 ## [6.6.0] - 2026-10-24 — Phase-1 plan miners, DeFi and Yul detectors, hardened adapters
 

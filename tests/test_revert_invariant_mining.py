@@ -344,3 +344,87 @@ class TestPhase2PauseGaps:
             "}\n"
         )
         assert self._cats(src) == []
+
+
+class TestPhase2FreshnessGaps:
+    def _cats(self, src):
+        p = mine_revert_invariants(src)
+        return [
+            (g["category"], g["affected_functions"])
+            for g in (p[0].to_dict()["gap_hypotheses"] if p else [])
+        ]
+
+    def test_freshness_gap_on_unreferenced_deadline_sibling(self):
+        # `a` enforces the deadline; `b` takes one and never references it -> gap on `b`.
+        src = (
+            "contract C {\n"
+            "  function a(uint256 deadline, uint256 x) external {\n"
+            '    require(block.timestamp <= deadline, "expired"); _do(x);\n'
+            "  }\n"
+            "  function b(uint256 deadline, uint256 y) external { _do(y); }\n"
+            "}\n"
+        )
+        assert ("freshness_check", ["b"]) in self._cats(src)
+
+    def test_same_file_ensure_modifier_is_guarded_so_silent(self):
+        # The DEX-router shape: every deadline function carries one `ensure(deadline)` modifier.
+        src = (
+            "contract R {\n"
+            "  modifier ensure(uint256 deadline) {\n"
+            '    require(deadline >= block.timestamp, "EXPIRED"); _;\n'
+            "  }\n"
+            "  function swapA(uint256 deadline, uint256 x) external ensure(deadline) { _do(x); }\n"
+            "  function swapB(uint256 deadline, uint256 y) external ensure(deadline) { _do(y); }\n"
+            "}\n"
+        )
+        assert self._cats(src) == []
+
+    def test_forwarded_deadline_is_opaque_so_silent(self):
+        # `b` forwards the deadline into an inner call -> delegated, opaque, not a gap.
+        src = (
+            "contract C {\n"
+            "  function a(uint256 deadline, uint256 x) external {\n"
+            '    require(block.timestamp <= deadline, "e"); _do(x);\n'
+            "  }\n"
+            "  function b(uint256 deadline, uint256 y) external { _settle(y, deadline); }\n"
+            "}\n"
+        )
+        assert self._cats(src) == []
+
+    def test_stored_deadline_is_opaque_so_silent(self):
+        # Storing the value references it -> opaque; a checked sibling does not force a gap.
+        src = (
+            "contract C {\n"
+            "  mapping(uint256 => uint256) end;\n"
+            "  function a(uint256 deadline, uint256 x) external {\n"
+            '    require(block.timestamp <= deadline, "e"); _do(x);\n'
+            "  }\n"
+            "  function createOrder(uint256 id, uint256 expiry) external { end[id] = expiry; }\n"
+            "}\n"
+        )
+        assert self._cats(src) == []
+
+    def test_group_of_one_is_silent(self):
+        # A single deadline function has no sibling to be inconsistent with.
+        src = (
+            "contract C {\n"
+            "  function a(uint256 deadline, uint256 x) external { _do(x); }\n"
+            "  function other(uint256 y) external { _do(y); }\n"
+            "}\n"
+        )
+        assert self._cats(src) == []
+
+    def test_gap_is_advisory_hypothesis_never_a_finding(self):
+        src = (
+            "contract C {\n"
+            "  function a(uint256 deadline, uint256 x) external {\n"
+            '    require(block.timestamp <= deadline, "e"); _do(x);\n'
+            "  }\n"
+            "  function b(uint256 deadline, uint256 y) external { _do(y); }\n"
+            "}\n"
+        )
+        plan = mine_revert_invariants(src)[0].to_dict()
+        gap = next(g for g in plan["gap_hypotheses"] if g["category"] == "freshness_check")
+        assert plan["promotion"]["state"] == "hypothesis"
+        assert "finding" not in plan
+        assert any("interface/ABI" in nc for nc in gap["negative_checks"])
