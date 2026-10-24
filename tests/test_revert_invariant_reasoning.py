@@ -237,3 +237,239 @@ class TestSynthesisWiring:
         )
         emitted = agent._counterexample_findings(_PAUSE_OK, "C.sol")
         assert all(f.get("source") != "revert_invariant_reasoning" for f in emitted)
+
+
+# --- control-probe soundness: wrong facts must fail CLOSED even with stateful siblings ---------
+# Each of these produced a counterexample + a Medium finding before the control was split into
+# fresh-state tests and made to match the guard's own revert data.
+
+# A1: pause() does not set the flag; the guarded sibling is one-shot (reverts on its 2nd call).
+_A1_WRONG_PAUSER_ONE_SHOT = """pragma solidity ^0.8.20;
+contract Pausable {
+  bool public paused; uint256 public counter; bool claimed;
+  modifier whenNotPaused() { require(!paused, "paused"); _; }
+  function pause() external { counter += 1; }
+  function claim() external whenNotPaused { require(!claimed, "once"); claimed = true; }
+  function withdraw() external { counter += 1; }
+}
+"""
+# A2: same, with a cooldown-gated sibling.
+_A2_WRONG_PAUSER_COOLDOWN = """pragma solidity ^0.8.20;
+contract Pausable {
+  bool public paused; uint256 public counter; uint256 last;
+  modifier whenNotPaused() { require(!paused, "paused"); _; }
+  function pause() external { counter += 1; }
+  function deposit() external whenNotPaused { require(block.timestamp > last, "cooldown"); last = block.timestamp; }
+  function withdraw() external { counter += 1; }
+}
+"""
+# A3: pause() has an unrelated side effect the guarded sibling depends on.
+_A3_PAUSER_SIDE_EFFECT = """pragma solidity ^0.8.20;
+contract Pausable {
+  bool public paused; uint256 public counter; uint256 bal = 1;
+  modifier whenNotPaused() { require(!paused, "paused"); _; }
+  function pause() external { bal = 0; }
+  function deposit() external whenNotPaused { require(bal > 0, "empty"); counter += 1; }
+  function withdraw() external { counter += 1; }
+}
+"""
+# A4: freshness: the sibling's "check" is a bare non-zero validation, not a deadline check.
+_A4_NONZERO_IS_NOT_A_DEADLINE_CHECK = """pragma solidity ^0.8.20;
+contract Orders {
+  uint256 public counter;
+  function commit(uint256 deadline) external { require(deadline > 0, "zero"); counter += 1; }
+  function settle(uint256 deadline) external { counter += 1; }
+}
+"""
+# Legit: a one-shot sibling WITH a real deadline check must still be a counterexample.
+_ONE_SHOT_WITH_REAL_CHECK = """pragma solidity ^0.8.20;
+contract Orders {
+  uint256 public counter; bool done;
+  function commit(uint256 deadline) external { require(block.timestamp <= deadline, "expired"); require(!done, "once"); done = true; }
+  function settle(uint256 deadline) external { counter += 1; }
+}
+"""
+# Legit: a message-less guard (empty revert data) must still be recognised.
+_PAUSE_OK_NO_MESSAGE = _PAUSE_OK.replace('require(!paused, "paused")', "require(!paused)")
+# Legit: a custom-error guard.
+_PAUSE_OK_CUSTOM_ERROR = """pragma solidity ^0.8.20;
+contract Pausable {
+  error EnforcedPause();
+  bool public paused; uint256 public counter;
+  modifier whenNotPaused() { if (paused) revert EnforcedPause(); _; }
+  function pause() external { paused = true; }
+  function deposit() external whenNotPaused { counter += 1; }
+  function withdraw() external { counter += 1; }
+}
+"""
+
+
+@pytest.mark.skipif(not _HAS_FORGE, reason="forge not installed")
+class TestControlProbeSoundness:
+    @pytest.mark.parametrize(
+        "src",
+        [
+            _A1_WRONG_PAUSER_ONE_SHOT,
+            _A2_WRONG_PAUSER_COOLDOWN,
+            _A3_PAUSER_SIDE_EFFECT,
+            _A4_NONZERO_IS_NOT_A_DEADLINE_CHECK,
+        ],
+        ids=["one-shot sibling", "cooldown sibling", "pauser side effect", "nonzero check"],
+    )
+    def test_wrong_facts_with_stateful_siblings_fail_closed(self, src):
+        res = execute_reasoning_gaps(mine_revert_invariants(src), src, timeout=180)
+        assert len(res) == 1, "the miner must still see exactly one gap here"
+        assert res[0]["promotion_state"] == "hypothesis"
+        assert "counterexamples" not in res[0]
+        assert "control probe did not confirm" in res[0]["reason"]
+        assert counterexample_findings(res, src, "C.sol") == []
+
+    @pytest.mark.parametrize(
+        "src, fn",
+        [
+            (_ONE_SHOT_WITH_REAL_CHECK, "settle"),
+            (_PAUSE_OK_NO_MESSAGE, "withdraw"),
+            (_PAUSE_OK_CUSTOM_ERROR, "withdraw"),
+        ],
+        ids=["one-shot with real check", "message-less guard", "custom-error guard"],
+    )
+    def test_real_gaps_still_promote(self, src, fn):
+        res = execute_reasoning_gaps(mine_revert_invariants(src), src, timeout=180)
+        assert res[0]["promotion_state"] == "counterexample"
+        assert res[0]["counterexamples"] == [fn]
+        assert res[0]["control"]["baseline"] == "Success"
+        assert res[0]["control"]["state"] == "Success"
+
+    def test_control_record_reports_the_matched_guard(self):
+        res = execute_reasoning_gaps(mine_revert_invariants(_PAUSE_OK), _PAUSE_OK, timeout=180)
+        assert res[0]["control"]["guard_revert_data"] == "matched"
+        assert "guard's own revert data" in res[0]["evidence"][0]
+
+
+# --- probe text and gating, pinned without forge (run in CI) ----------------------------------
+def _fake_forge(monkeypatch, statuses: dict):
+    """Pretend forge exists and returns ``statuses`` (test name -> status); capture the probe."""
+    import json as _json
+    import pathlib as _pathlib
+    import subprocess as _subprocess
+
+    captured: dict = {}
+
+    def run(cmd, cwd=None, env=None, **kwargs):
+        root = _pathlib.Path(cwd)
+        captured["probe"] = next(root.glob("test/*.t.sol")).read_text()
+        report = {
+            "test/P.t.sol:Probe": {
+                "test_results": {f"{n}()": {"status": st} for n, st in statuses.items()}
+            }
+        }
+        return _subprocess.CompletedProcess(cmd, 0, stdout=_json.dumps(report), stderr="")
+
+    monkeypatch.setattr(rr.shutil, "which", lambda _: "/usr/bin/forge")
+    monkeypatch.setattr(rr.subprocess, "run", run)
+    monkeypatch.setattr(rr, "_network_sandbox", lambda: None)
+    return captured
+
+
+class TestControlProbeText:
+    def test_pause_control_is_split_and_matches_the_guard_revert_data(self, monkeypatch):
+        cap = _fake_forge(
+            monkeypatch,
+            {
+                "test_control_baseline": "Success",
+                "test_control_state": "Success",
+                "test_target_withdraw": "Failure",
+            },
+        )
+        res = execute_reasoning_gaps(mine_revert_invariants(_PAUSE_OK), _PAUSE_OK)
+        probe = cap["probe"]
+        assert "function test_control_baseline() public" in probe
+        assert "function test_control_state() public" in probe
+        assert "function test_control()" not in probe
+        assert 'abi.encodeWithSignature("Error(string)", "paused")' in probe
+        assert "reverted for a reason other than its guard" in probe
+        assert res[0]["promotion_state"] == "counterexample"
+
+    def test_freshness_control_uses_a_nonzero_past_deadline(self, monkeypatch):
+        cap = _fake_forge(
+            monkeypatch,
+            {
+                "test_control_baseline": "Success",
+                "test_control_state": "Success",
+                "test_target_settle": "Failure",
+            },
+        )
+        execute_reasoning_gaps(mine_revert_invariants(_FRESH_OK), _FRESH_OK)
+        probe = cap["probe"]
+        assert "Orders.commit.selector, type(uint256).max" in probe
+        assert "Orders.commit.selector, uint256(1)" in probe
+        assert "Orders.commit.selector, uint256(0)" not in probe
+        assert 'abi.encodeWithSignature("Error(string)", "expired")' in probe
+
+    def test_custom_error_and_bare_require_payloads(self, monkeypatch):
+        cap = _fake_forge(
+            monkeypatch, {"test_control_baseline": "Success", "test_control_state": "Success"}
+        )
+        execute_reasoning_gaps(
+            mine_revert_invariants(_PAUSE_OK_CUSTOM_ERROR), _PAUSE_OK_CUSTOM_ERROR
+        )
+        assert "abi.encodeWithSelector(Pausable.EnforcedPause.selector)" in cap["probe"]
+        cap = _fake_forge(
+            monkeypatch, {"test_control_baseline": "Success", "test_control_state": "Success"}
+        )
+        execute_reasoning_gaps(mine_revert_invariants(_PAUSE_OK_NO_MESSAGE), _PAUSE_OK_NO_MESSAGE)
+        assert 'keccak256(bytes(""))' in cap["probe"]
+
+    @pytest.mark.parametrize(
+        "statuses",
+        [
+            {
+                "test_control_baseline": "Failure",
+                "test_control_state": "Success",
+                "test_target_withdraw": "Failure",
+            },
+            {
+                "test_control_baseline": "Success",
+                "test_control_state": "Failure",
+                "test_target_withdraw": "Failure",
+            },
+            {
+                "test_control_state": "Success",
+                "test_target_withdraw": "Failure",
+            },  # baseline missing
+            {
+                "test_control": "Success",
+                "test_target_withdraw": "Failure",
+            },  # old single control name
+        ],
+        ids=["baseline fails", "state fails", "baseline missing", "legacy control name"],
+    )
+    def test_promotion_needs_both_control_tests(self, monkeypatch, statuses):
+        _fake_forge(monkeypatch, statuses)
+        res = execute_reasoning_gaps(mine_revert_invariants(_PAUSE_OK), _PAUSE_OK)
+        assert res[0]["promotion_state"] == "hypothesis"
+        assert "counterexamples" not in res[0]
+        assert res[0]["control"]["guard_revert_data"] == "matched"
+
+
+class TestMetadataIncludesReasoningExecutions:
+    def test_executions_metadata_lists_reasoning_results(self, monkeypatch):
+        from miesc.agents.deep_audit_agent import DeepAuditAgent, DeepAuditConfig
+
+        # forge "absent": both executors short-circuit, so the shape is testable without Foundry.
+        monkeypatch.setattr(rr.shutil, "which", lambda _: None)
+        import miesc.llm.revert_invariant_executor as ex
+
+        monkeypatch.setattr(ex.shutil, "which", lambda _: None)
+        agent = DeepAuditAgent(
+            DeepAuditConfig(
+                enable_advisory_plans=True,
+                enable_gap_execution=True,
+                enable_gap_reasoning=True,
+                enable_llm=False,
+            )
+        )
+        phase = agent._extract_advisory_plans(_PAUSE_OK, "C.sol")
+        execs = phase["capabilities"]["revert_invariants"]["executions"]
+        assert any(e["category"] == "pause_toggle" for e in execs)
+        assert all(e["promotion_state"] == "hypothesis" for e in execs)

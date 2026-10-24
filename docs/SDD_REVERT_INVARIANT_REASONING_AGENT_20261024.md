@@ -5,7 +5,7 @@ Owner/Lane: Claude
 Status: **First slice implemented (local fallback; access-control-style subset).** The control-probe
 precision invariant, the pause/freshness executor (`miesc/llm/revert_invariant_reasoning.py`), the
 `enable_gap_reasoning` wiring and tests have shipped; only the deterministic local fallback runs in
-this slice (the remote reasoning-provider path is hooked but not yet implemented).
+this slice (the remote reasoning-provider path is hooked but not yet implemented). A post-merge review found the first control probe failing *open*: baseline and state check ran in one test, so a guarded sibling that reverts on its second call for an unrelated reason (one-shot, cooldown, a pauser with a side effect) or a bare `require(deadline > 0)` against the zero literal confirmed a fake state. The control now runs `test_control_baseline` and `test_control_state` from fresh state, passes a nonzero past deadline, and requires the sibling to revert with the guard's own revert data (degrading to a plain revert only when that payload is not readable); those four cases are regression fixtures.
 
 ## Context
 
