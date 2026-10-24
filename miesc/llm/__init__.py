@@ -156,6 +156,14 @@ from .openllama_helper import (
     generate_remediation_advice,
     prioritize_findings,
 )
+from .privileged_governance_lifecycle import (
+    GovernanceActor,
+    GovernanceEdge,
+    GovernanceRole,
+    PrivilegedGovernanceLifecyclePlan,
+    mine_privileged_governance_lifecycle,
+    parse_privileged_governance_plans,
+)
 from .reasoning_provider_adapter import (
     LLMOrchestratorReasoningProvider,
     LocalHeuristicReasoningProvider,
@@ -325,6 +333,12 @@ __all__ = [
     "parse_signature_domain_hardening_plans",
     "parse_snapshot_fuzzing_plans",
     "parse_sequence_oracle_plans",
+    "GovernanceActor",
+    "GovernanceEdge",
+    "GovernanceRole",
+    "PrivilegedGovernanceLifecyclePlan",
+    "mine_privileged_governance_lifecycle",
+    "parse_privileged_governance_plans",
     "GrowableSurface",
     "ResourceLivenessGriefingPlan",
     "mine_resource_liveness_griefing",

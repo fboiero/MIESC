@@ -9,6 +9,17 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Privileged governance lifecycle — authority graph** (Phase 1 of
+  `docs/sdd/SDD_PRIVILEGED_GOVERNANCE_LIFECYCLE_HARDENING_20260811.md`). A deterministic, local
+  miner (`miesc/llm/privileged_governance_lifecycle.py`) that models a contract's privileged
+  authority rather than re-matching `onlyOwner`: it inventories privileged actors (owner,
+  admin, guardian, governor, proposer, executor, pauser, upgrader, keeper, …), AccessControl
+  roles with their grant/revoke functions, and the edges between them and the functions they
+  guard/grant/revoke, anchored to source. Output is the provider-neutral
+  `PrivilegedGovernanceLifecyclePlan` contract (with `parse_privileged_governance_plans`). It is
+  advisory — an authority inventory, never a `Finding` and never a "missing timelock"
+  accusation (distinct from the governance findings in `advanced_detectors`); later SDD phases
+  (lifecycle hypotheses, governance oracles, execution plans) build on this graph.
 - **Resource/liveness griefing — progress surface** (Phase 1 of
   `docs/sdd/SDD_RESOURCE_LIVENESS_GRIEFING_HARDENING_20260811.md`). A deterministic, local miner
   (`miesc/llm/resource_liveness_griefing.py`) that models *progress* rather than re-matching
