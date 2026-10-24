@@ -170,6 +170,12 @@ from .remediation_generator import (
     generate_fix,
     get_quick_fix,
 )
+from .resource_liveness_griefing import (
+    GrowableSurface,
+    ResourceLivenessGriefingPlan,
+    mine_resource_liveness_griefing,
+    parse_resource_liveness_plans,
+)
 from .revert_invariant_mining import (
     GuardInventoryItem,
     RevertInvariantOraclePlan,
@@ -319,6 +325,10 @@ __all__ = [
     "parse_signature_domain_hardening_plans",
     "parse_snapshot_fuzzing_plans",
     "parse_sequence_oracle_plans",
+    "GrowableSurface",
+    "ResourceLivenessGriefingPlan",
+    "mine_resource_liveness_griefing",
+    "parse_resource_liveness_plans",
     "GuardInventoryItem",
     "RevertInvariantOraclePlan",
     "mine_revert_invariants",
