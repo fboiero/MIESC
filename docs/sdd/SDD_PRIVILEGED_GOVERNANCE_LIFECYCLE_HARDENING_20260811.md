@@ -2,7 +2,7 @@
 
 Date: 2026-08-11
 Owner/Lane: Codex
-Status: Proposed SDD, not implemented, no benchmark claim
+Status: Phase 1 implemented (deterministic authority graph) — see `miesc/llm/privileged_governance_lifecycle.py`. Later phases (lifecycle hypotheses, governance oracles, execution plans, LLM reasoning agent, cross-plan bridges) remain proposed. No benchmark claim.
 
 ## Signal
 
