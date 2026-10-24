@@ -57,6 +57,8 @@ class DeepAuditConfig:
     enable_agentic_invariants: bool = False
     agentic_invariants_allow_remote: bool = False
     enable_advisory_plans: bool = False
+    # Opt-in: actually run access-control gap probes with Foundry (adds wall-clock; needs forge).
+    enable_gap_execution: bool = False
     fp_threshold: float = 0.5
     max_workers: int = 4
 
@@ -931,6 +933,7 @@ class DeepAuditAgent(BaseAgent):
         """
         from miesc.llm import (
             bridge_revert_invariant_plans,
+            execute_access_control_gaps,
             generate_revert_guard_harnesses,
             mine_lending_solvency_liquidation,
             mine_privileged_governance_lifecycle,
@@ -965,6 +968,12 @@ class DeepAuditAgent(BaseAgent):
                     # One rung further: incomplete, never-executed Foundry probe harnesses
                     # (promotion: test_generated). Additive and advisory; no execution.
                     capabilities[key]["harnesses"] = generate_revert_guard_harnesses(plans)
+                    # Opt-in execution: run the access-control probes with Foundry and record
+                    # only real counterexamples (promotion stays metadata, never a Finding here).
+                    if self.config.enable_gap_execution:
+                        capabilities[key]["executions"] = execute_access_control_gaps(
+                            plans, source_code
+                        )
                 total += len(plans)
             except Exception as e:
                 logger.debug(f"Advisory miner {key} skipped: {e}")

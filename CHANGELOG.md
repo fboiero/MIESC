@@ -78,6 +78,23 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   a semantic mismatch for revert probes). Silent where the miner is silent — 0 harnesses across
   OpenZeppelin, Solady and Uniswap v2-periphery (513 files). No benchmark claim.
 
+- **Revert-invariant Phase 2: access-control gap execution (`counterexample` rung).** New
+  `miesc/llm/revert_invariant_executor.py` executes **access-control** gap hypotheses with Foundry
+  and promotes only on a real counterexample. It is opt-in (`DeepAuditConfig.enable_gap_execution`,
+  default off; surfaced under `capabilities.revert_invariants.executions`). For the subset where
+  the contract deploys with a no-arg constructor and the affected function's parameters are
+  elementary, it builds a self-contained probe (inlined contract + a minimal `Vm`, no `forge-std`)
+  and performs the unauthorized call low-level. The test inverts on purpose — an unauthorized call
+  that **succeeds** → the probe fails → `counterexample`; one that **reverts** → inconclusive, the
+  hypothesis stays `hypothesis` (never downgraded to `rejected`, since a revert for an unrelated
+  reason, e.g. a zero-argument `require`, is not proof the guard exists). `freshness_check` and
+  `pause_toggle` are never routed here (their rejectable state can't be reached without contract
+  knowledge). Forge absent, an ineligible subset, or a non-compiling probe → the gap is returned
+  unchanged, never an error. Counterexamples are recorded as promoted-plan metadata, **not**
+  emitted into the finding set — that bridge is a later, separately-reviewed step. Silent where the
+  miner is silent (0 access-control gaps across OpenZeppelin, Solady, Uniswap v2-periphery). No
+  benchmark claim.
+
 ## [6.6.0] - 2026-10-24 — Phase-1 plan miners, DeFi and Yul detectors, hardened adapters
 
 Minor release. Four deterministic, LLM-free *plan miners* land as Phase 1 of their SDDs

@@ -194,6 +194,9 @@ from .revert_invariant_bridge import (
     bridge_gap_to_oracle_plan,
     bridge_revert_invariant_plans,
 )
+from .revert_invariant_executor import (
+    execute_access_control_gaps,
+)
 from .revert_invariant_harness import (
     generate_revert_guard_harnesses,
     harness_for_gap,
@@ -371,6 +374,7 @@ __all__ = [
     "bridge_revert_invariant_plans",
     "generate_revert_guard_harnesses",
     "harness_for_gap",
+    "execute_access_control_gaps",
     "parse_token_hook_reentrancy_hardening_plans",
     "parse_upgrade_evolution_plans",
     "LLMOrchestratorReasoningProvider",
