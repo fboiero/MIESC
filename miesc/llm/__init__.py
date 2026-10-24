@@ -176,6 +176,12 @@ from .resource_liveness_griefing import (
     mine_resource_liveness_griefing,
     parse_resource_liveness_plans,
 )
+from .revert_invariant_mining import (
+    GuardInventoryItem,
+    RevertInvariantOraclePlan,
+    mine_revert_invariants,
+    parse_revert_invariant_plans,
+)
 from .vulnerability_rag import (
     EXPLOIT_EXAMPLES,
     SWC_REGISTRY,
@@ -323,6 +329,10 @@ __all__ = [
     "ResourceLivenessGriefingPlan",
     "mine_resource_liveness_griefing",
     "parse_resource_liveness_plans",
+    "GuardInventoryItem",
+    "RevertInvariantOraclePlan",
+    "mine_revert_invariants",
+    "parse_revert_invariant_plans",
     "parse_token_hook_reentrancy_hardening_plans",
     "parse_upgrade_evolution_plans",
     "LLMOrchestratorReasoningProvider",

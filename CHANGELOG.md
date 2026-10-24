@@ -47,6 +47,17 @@ reproduces the new figures into a dated artifact and `make reproduce` keeps chec
 
 ### Added
 
+- **Revert-invariant mining** (Phase 1 of
+  `docs/SDD_REVERT_INVARIANT_MINING_20260810.md`). A deterministic, local miner
+  (`miesc/llm/revert_invariant_mining.py`) that treats a contract's existing defenses as
+  signal: it inventories every guard (`require` / `assert` / custom-error `revert` /
+  `if (...) revert|throw`), anchors each to its source line and enclosing function, and
+  normalizes it into a defensive category (access control, signature verification, replay
+  prevention, freshness, pause toggle, allow/ban list, slippage, accounting cap, bounds, or
+  unclassified). Output is the provider-neutral `RevertInvariantOraclePlan` contract (with
+  `parse_revert_invariant_plans`), mirroring the existing oracle-plan contracts. It is
+  advisory — a guard inventory, never a `Finding` and never a "missing require" accusation;
+  later SDD phases (gap hypotheses, oracle/execution plans, the LLM agent) build on it.
 - **Configurable LLM providers.** `miesc/core/llm_providers.py` is the single registry of
   backends: built-in `anthropic`, `openai`, `deepseek`, `kimi` (Moonshot, OpenAI-compatible)
   and `ollama`, plus any OpenAI-compatible endpoint declared under `llm.providers` in the
@@ -1493,7 +1504,7 @@ Workflow:
 
 ---
 
-## [Unreleased]
+## [Historical — DPGA submission (2025-12)]
 
 ### Added
 - **DPGA Application Submitted** (December 5, 2025)
