@@ -166,6 +166,18 @@ class TestSlitherAdapter(TestAdapterBase):
 
         assert SlitherAdapter()._find_project_root(str(contract)) == tmp_path.resolve()
 
+    def test_find_project_root_reaches_deep_sources(self, tmp_path):
+        # Aave: src/contracts/protocol/libraries/logic/BorrowLogic.sol
+        from miesc.adapters.slither_adapter import SlitherAdapter
+
+        (tmp_path / "foundry.toml").write_text("[profile.default]\n")
+        logic = tmp_path / "src/contracts/protocol/libraries/logic"
+        logic.mkdir(parents=True)
+        contract = logic / "BorrowLogic.sol"
+        contract.write_text("library BorrowLogic {}")
+
+        assert SlitherAdapter()._find_project_root(str(contract)) == tmp_path.resolve()
+
     def test_find_project_root_none_for_standalone_file(self, tmp_path):
         from miesc.adapters.slither_adapter import SlitherAdapter
 

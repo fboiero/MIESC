@@ -452,6 +452,7 @@ class MLOrchestrator:
                 findings=all_findings,
                 code_context_map=code_context_map,
                 contract_source=contract_source,
+                contract_path=contract_path,
             )
 
             ml_filtered_findings = ml_result.filtered_findings

@@ -2420,6 +2420,11 @@ def audit_deep(
         miesc audit deep contract.sol --no-llm
         miesc audit deep contract.sol -t 300
         miesc audit deep contract.sol -o report.json --ci
+        miesc audit deep ./src
+
+    CONTRACT may be a directory: each .sol file is audited (lib/, node_modules/,
+    test/, script/ and build output are skipped) and the report lists which
+    function of another contract each contract calls.
     """
     print_banner()
 
@@ -2464,29 +2469,41 @@ def audit_deep(
     summary = result.get("summary", {})
     phases = result.get("phases", {})
 
+    if "files" in result:
+        meta, protocol = result["metadata"], result["protocol"]
+        info(
+            f"Protocol: {meta['files_analyzed']}/{meta['files_total']} files, "
+            f"{len(protocol['contracts'])} contracts, "
+            f"{len(protocol['calls'])} cross-contract calls"
+        )
+        if meta["timed_out"]:
+            warning("Timeout reached before every file was analyzed; raise --timeout")
+        for call in protocol["calls"][:10]:
+            info(f"  {call['caller']} -> {call['callee']}: {', '.join(call['functions'])}")
+
     if RICH_AVAILABLE:
         from rich.panel import Panel
         from rich.table import Table
 
-        # Risk profile
-        recon = phases.get("reconnaissance", {})
-        profile = recon.get("risk_profile", {})
-        console.print(
-            Panel(
-                f"[bold]{profile.get('primary', 'general').upper()}[/bold]",
-                title="Risk Profile",
-                border_style="cyan",
+        # Risk profile and phase summary are per file; a directory report has neither.
+        if phases:
+            recon = phases.get("reconnaissance", {})
+            profile = recon.get("risk_profile", {})
+            console.print(
+                Panel(
+                    f"[bold]{profile.get('primary', 'general').upper()}[/bold]",
+                    title="Risk Profile",
+                    border_style="cyan",
+                )
             )
-        )
 
-        # Phase summary
-        inv = phases.get("deep_investigation", {})
-        console.print(f"\n  Iterations: {inv.get('iterations', 0)}")
-        console.print(f"  Findings enriched: {inv.get('findings_enriched', 0)}")
-        console.print(f"  Exploit chains: {inv.get('chains_detected', 0)}")
-        console.print(f"  Mitigated: {inv.get('mitigated', 0)}")
-        if inv.get("additional_tools"):
-            console.print(f"  Additional tools triggered: {inv['additional_tools']}")
+            inv = phases.get("deep_investigation", {})
+            console.print(f"\n  Iterations: {inv.get('iterations', 0)}")
+            console.print(f"  Findings enriched: {inv.get('findings_enriched', 0)}")
+            console.print(f"  Exploit chains: {inv.get('chains_detected', 0)}")
+            console.print(f"  Mitigated: {inv.get('mitigated', 0)}")
+            if inv.get("additional_tools"):
+                console.print(f"  Additional tools triggered: {inv['additional_tools']}")
 
         # Findings table
         table = Table(title="Deep Audit Results")
@@ -2531,3 +2548,81 @@ def audit_deep(
         if critical > 0 or high > 0:
             error(f"CI check failed: {critical} critical, {high} high issues")
             sys.exit(1)
+
+
+@audit.command("address")
+@click.argument("address")
+@click.option(
+    "--chain",
+    type=click.Choice(["ethereum", "polygon", "arbitrum", "optimism", "bsc", "avalanche"]),
+    default="ethereum",
+    help="Chain the contract is deployed on",
+)
+@click.option(
+    "--api-key",
+    help="Etherscan API key (one V2 key covers every --chain); defaults to ETHERSCAN_API_KEY",
+)
+@click.option("--output", "-o", type=click.Path(), help="Output file path")
+@click.option("--format", "-f", "fmt", type=click.Choice(["json", "markdown"]), default="json")
+@click.option("--timeout", "-t", type=int, default=600, help="Max total audit time in seconds")
+@click.option("--no-llm", is_flag=True, help="Disable LLM synthesis entirely")
+@click.option("--ci", is_flag=True, help="CI mode: exit 1 if critical/high issues")
+@click.pass_context
+def audit_address(
+    ctx: click.Context,
+    address: str,
+    chain: str,
+    api_key: str | None,
+    output: str | None,
+    fmt: str,
+    timeout: int,
+    no_llm: bool,
+    ci: bool,
+) -> None:
+    """Audit a deployed contract by address: fetch its verified source, then `audit deep` it.
+
+    The source comes from the chain's block explorer (Etherscan V2), with your own
+    API key. Solidity only. Dependencies (@openzeppelin/..., lib/...) are written
+    under lib/ so imports resolve against the deployed versions, and are not
+    audited as protocol code.
+
+    \b
+    Examples:
+        miesc audit address 0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984
+        miesc audit address 0x... --chain arbitrum --no-llm -o report.json
+    """
+    import tempfile
+
+    from miesc.core.block_explorer import (
+        BlockExplorerError,
+        fetch_verified_source,
+        write_contract_to_dir,
+    )
+    from miesc.core.chain_abstraction import ChainType
+
+    info(f"Fetching verified source for {address} on {chain}...")
+    try:
+        contract = fetch_verified_source(address, chain=ChainType(chain), api_key=api_key)
+    except BlockExplorerError as e:
+        error(str(e))
+        sys.exit(1)
+    success(
+        f"Fetched {contract.contract_name} ({len(contract.files)} file(s), "
+        f"{contract.compiler_version})"
+    )
+
+    with tempfile.TemporaryDirectory(prefix="miesc_address_") as tmp:
+        try:
+            target = write_contract_to_dir(contract, Path(tmp))
+        except BlockExplorerError as e:
+            error(str(e))
+            sys.exit(1)
+        ctx.invoke(
+            audit_deep,
+            contract=str(target),
+            output=output,
+            fmt=fmt,
+            timeout=timeout,
+            no_llm=no_llm,
+            ci=ci,
+        )

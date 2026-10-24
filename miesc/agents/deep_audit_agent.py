@@ -18,7 +18,7 @@ import logging
 import re
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, cast
@@ -26,6 +26,21 @@ from typing import Any, Callable, Dict, List, Optional, Set, Tuple, cast
 from miesc.agents.base_agent import BaseAgent
 
 logger = logging.getLogger(__name__)
+
+
+# Directories skipped when `audit deep` gets a project directory: dependencies,
+# build output, tests and deploy scripts are not the protocol's own source.
+_SKIPPED_DIR_NAMES = {
+    "lib",
+    "node_modules",
+    "out",
+    "cache",
+    "artifacts",
+    "broadcast",
+    "test",
+    "tests",
+    "script",
+}
 
 
 # ---------------------------------------------------------------------------
@@ -208,7 +223,10 @@ class DeepAuditAgent(BaseAgent):
     # -----------------------------------------------------------------------
 
     def analyze(self, contract_path: str, **kwargs: Any) -> Dict[str, Any]:
-        """Run the 4-phase agentic deep audit."""
+        """Run the 4-phase agentic deep audit on a file, or on every .sol file of a directory."""
+        if Path(contract_path).is_dir():
+            return self._analyze_directory(Path(contract_path))
+
         self._start_time = time.monotonic()
         self.contract_path = contract_path
         source_code = Path(contract_path).read_text()
@@ -323,6 +341,82 @@ class DeepAuditAgent(BaseAgent):
             f"{len(report['exploit_chains'])} chains, {elapsed:.0f}ms"
         )
         return report
+
+    def _analyze_directory(self, dir_path: Path) -> Dict[str, Any]:
+        """Run the single-file pipeline on each .sol file and merge the reports.
+
+        The timeout is the budget for the whole directory: each file gets what is left,
+        and no file starts once it runs out. The report adds the protocol's contracts and
+        what each contract inherits and which function of another contract it calls.
+        """
+        from miesc.ml.protocol_graph import build_protocol_graph, cross_contract_calls
+
+        start = time.monotonic()
+        sol_files = sorted(
+            str(p)
+            for p in dir_path.rglob("*.sol")
+            if p.is_file()
+            and not _SKIPPED_DIR_NAMES.intersection(p.relative_to(dir_path).parts[:-1])
+        )
+        graph = build_protocol_graph(sol_files)
+
+        file_reports: List[Dict[str, Any]] = []
+        for sol_file in sol_files:
+            remaining = self.config.timeout_seconds - (time.monotonic() - start)
+            if remaining <= 0:
+                break
+            agent = DeepAuditAgent(config=replace(self.config, timeout_seconds=int(remaining)))
+            file_report = agent.analyze(sol_file)
+            file_reports.append(file_report)
+
+        # Each file's run also reports what it imports (Slither and Aderyn compile the
+        # imports), so a base contract imported by n files comes back n times.
+        findings: List[Dict[str, Any]] = []
+        seen: Set[Tuple[Any, ...]] = set()
+        for finding in (f for r in file_reports for f in r.get("findings", [])):
+            loc = finding.get("location") or {}
+            key = (finding.get("tool"), finding.get("type"), loc.get("file"), loc.get("line"))
+            if key not in seen:
+                seen.add(key)
+                findings.append(finding)
+        # Counted from the findings, not summed from each file's summary: a file
+        # that times out before synthesis returns findings but no summary.
+        summary: Dict[str, Any] = dict.fromkeys(["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"], 0)
+        for finding in findings:
+            severity = str(finding.get("severity", "")).upper()
+            if severity in summary:
+                summary[severity] += 1
+        summary["total"] = sum(summary.values())
+        # Same for the chains: one id per chain, whichever file's run found it.
+        exploit_chains = list(
+            {c.get("id"): c for r in file_reports for c in r.get("exploit_chains", [])}.values()
+        )
+        summary["exploit_chains"] = len(exploit_chains)
+        summary["tools_used"] = sorted(
+            {t for r in file_reports for t in r.get("summary", {}).get("tools_used", [])}
+        )
+
+        return {
+            "contract": str(dir_path),
+            "agent": "DeepAuditAgent",
+            "files": file_reports,
+            "protocol": {
+                "contracts": {
+                    name: {"file": c["file"], "bases": c["bases"]}
+                    for name, c in graph.contracts.items()
+                },
+                "calls": cross_contract_calls(graph),
+            },
+            "findings": findings,
+            "exploit_chains": exploit_chains,
+            "summary": summary,
+            "metadata": {
+                "files_analyzed": len(file_reports),
+                "files_total": len(sol_files),
+                "timed_out": len(file_reports) < len(sol_files),
+                "total_duration_ms": (time.monotonic() - start) * 1000,
+            },
+        }
 
     # -----------------------------------------------------------------------
     # Phase 1: Reconnaissance

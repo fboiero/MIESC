@@ -711,13 +711,14 @@ class SlitherAdapter(ToolAdapter):
 
     def _find_project_root(self, contract_path: str) -> Optional[Path]:
         """Return the real Foundry/Hardhat/Truffle project root containing
-        `contract_path` (config file found walking up to 5 parent
-        directories), or None for a standalone file with no project
+        `contract_path` (config file found walking up to 10 parent
+        directories: Aave keeps sources 6 below its root, in
+        src/contracts/protocol/libraries/logic/), or None for a standalone file with no project
         scaffolding of its own.
         """
         path = Path(contract_path).resolve()
         check_dir = path.parent if path.is_file() else path
-        for _ in range(5):
+        for _ in range(10):
             if (
                 (check_dir / "foundry.toml").exists()
                 or (check_dir / "hardhat.config.js").exists()

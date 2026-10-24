@@ -44,6 +44,34 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Slither's own Vyper support stays out of reach through `SlitherAdapter.can_analyze`
   (documented limit). Contributed by @alva-p (#228).
 
+- **`miesc audit deep` on a directory, and `miesc audit address`.** `audit deep ./src` (or any
+  project directory) used to stop at `IsADirectoryError`; it now runs the unchanged single-file
+  pipeline on every `.sol` file (skipping `lib/`, `node_modules/`, `test/`, `script/` and build
+  output), with `--timeout` as the budget for the whole directory. Each file's run also reports
+  what it imports, so the merged findings and exploit chains are deduplicated (Y2K Finance
+  233 -> 122, NextGen 166 -> 121, USDC 265 -> 118) and the summary is counted from them.
+  Pattern-detector findings now name the analyzed file instead of a `contract.sol` placeholder.
+  The report adds `protocol.contracts` (file and bases of each contract, across files) and
+  `protocol.calls`, from a regex graph (`miesc/ml/protocol_graph.py`): which function of another
+  contract each contract calls, through a cast (`Vault(x).withdraw()`) or anything declared with
+  that type (state variable, parameter, local, struct field), with `IVault` resolved to `Vault`.
+  On Y2K (11 files) and NextGen (17 files) every listed call is a real one. Findings are not
+  linked across contracts yet: on both protocols a caller-to-finding link only matched generic
+  patterns, never the real cross-contract bug (NextGen H-01 has no per-file finding inside
+  `NextGenCore` to link to). Slither and Aderyn now look for the project's `foundry.toml` up to
+  10 directories up instead of 5 (Aave keeps sources 6 below its root).
+  `audit address <0x…> [--chain]` fetches the verified Solidity source through Etherscan V2 with
+  the user's own key (`--api-key` or `ETHERSCAN_API_KEY`), writes it to a temporary directory
+  (paths escaping it are rejected; the deployer's absolute paths lose their common prefix;
+  `@scope/` packages go under `lib/` with their remapping, plus the contract's own remappings, in
+  a `foundry.toml`; a contract deployed from a `lib/` dependency moves to the root, since the
+  tools leave out findings under `lib/`) so Slither and Aderyn compile against the deployed
+  dependency versions instead of installing the latest ones, then runs `audit deep` on it.
+  Checked live on UNI (1 file, solc 0.5.16), the USDC `FiatTokenV2_2` implementation (19 own
+  files + OpenZeppelin, solc 0.6.12) and the Aave V3 `PoolInstance` (36 files, solc 0.8.27): no
+  compilation error, nothing installed. It is the only command that makes a network call. Stdlib
+  `urllib`, no new dependency; tests mock every HTTP call. Contributed by @alva-p.
+
 - **Revert-invariant reasoning executor for pause/freshness gaps
   (`miesc/llm/revert_invariant_reasoning.py`).** `pause_toggle` and `freshness_check` gap
   hypotheses can now reach the `counterexample` rung that access control already reaches, without
