@@ -477,6 +477,47 @@ class TestControlProbeSoundness:
         assert "guard's own revert data" in res[0]["evidence"][0]
 
 
+def _inject_elementary_ctor(src: str) -> str:
+    """Add an elementary-argument constructor to the first contract, so the constructor-widening
+    path (``_constructor_args``) makes the contract executable and actually runs the control probe
+    on it. Only injects when the contract has no constructor already."""
+    import re as _re
+
+    if "constructor(" in src:
+        return src
+    return _re.sub(
+        r"(contract\s+\w+\s*\{)",
+        r"\1\n  constructor(address o, uint256 seed) {}",
+        src,
+        count=1,
+    )
+
+
+@pytest.mark.skipif(not _HAS_FORGE, reason="forge not installed")
+class TestControlProbeSoundnessWithConstructor:
+    """The constructor-widening (#241) makes A1-A4 *executable* (they were skipped before). The
+    control-probe fix must still hold: they must fail CLOSED with an elementary constructor."""
+
+    @pytest.mark.parametrize(
+        "src",
+        [
+            _A1_WRONG_PAUSER_ONE_SHOT,
+            _A2_WRONG_PAUSER_COOLDOWN,
+            _A3_PAUSER_SIDE_EFFECT,
+            _A4_NONZERO_IS_NOT_A_DEADLINE_CHECK,
+        ],
+        ids=["one-shot", "cooldown", "side-effect", "nonzero-check"],
+    )
+    def test_ctor_widened_stateful_siblings_still_fail_closed(self, src):
+        widened = _inject_elementary_ctor(src)
+        assert "constructor(address o, uint256 seed)" in widened  # the widening path is exercised
+        res = execute_reasoning_gaps(mine_revert_invariants(widened), widened, timeout=180)
+        assert len(res) == 1
+        assert res[0]["promotion_state"] == "hypothesis"
+        assert "counterexamples" not in res[0]
+        assert counterexample_findings(res, widened, "C.sol") == []
+
+
 # --- probe text and gating, pinned without forge (run in CI) ----------------------------------
 def _fake_forge(monkeypatch, statuses: dict):
     """Pretend forge exists and returns ``statuses`` (test name -> status); capture the probe."""
