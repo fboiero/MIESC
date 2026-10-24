@@ -1,0 +1,53 @@
+{
+  "capability": "revert_invariant_mining / enable_gap_execution",
+  "canonical": false,
+  "benchmark_claim": false,
+  "forge_available": true,
+  "positive_control": [
+    {
+      "name": "unguarded_setter",
+      "expected": [
+        "setTreasury"
+      ],
+      "got": [
+        "setTreasury"
+      ],
+      "findings": 1,
+      "ok": true
+    },
+    {
+      "name": "unguarded_upgrade",
+      "expected": [
+        "upgradeImpl"
+      ],
+      "got": [
+        "upgradeImpl"
+      ],
+      "findings": 1,
+      "ok": true
+    },
+    {
+      "name": "vacuous_revert",
+      "expected": [],
+      "got": [],
+      "findings": 0,
+      "ok": true
+    },
+    {
+      "name": "consistent_family",
+      "expected": [],
+      "got": [],
+      "findings": 0,
+      "ok": true
+    }
+  ],
+  "fp_control": {
+    "corpus": "/private/tmp/claude-503/-Users-fboiero-Documents-GitHub-MIESC/c85466b5-ac7d-4175-927d-e42604e321a3/scratchpad/libs",
+    "files": 805,
+    "counterexamples": 0,
+    "findings": 0,
+    "offenders": [],
+    "pass": true
+  },
+  "positive_control_pass": true
+}
