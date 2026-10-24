@@ -564,9 +564,10 @@ class VyperAnalyzer(AbstractChainAnalyzer):
             ),
             VyperVulnerability.UNSAFE_PROXY_CREATION: (
                 "Proxy/clone creation without a visible init guard",
-                "create_forwarder_to/create_minimal_proxy_to/create_from_blueprint deploy an "
-                "uninitialized clone — if initialization isn't atomic with deployment, an "
-                "attacker can front-run it and take ownership of the clone.",
+                "create_forwarder_to/create_minimal_proxy_to deploy an uninitialized clone — if "
+                "initialization isn't atomic with deployment, an attacker can front-run it and "
+                "take ownership of the clone. (create_from_blueprint is not reported: the "
+                "blueprint receives its constructor arguments and initializes in the deploy.)",
             ),
         }
         if vuln_type not in messages:

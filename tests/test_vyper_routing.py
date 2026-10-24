@@ -109,3 +109,22 @@ def test_ml_orchestrator_skips_vyper_on_sol_file(tmp_path):
 
     assert result["status"] == "skipped"
     assert result["findings"] == []
+
+
+def test_ml_orchestrator_leaves_vyper_out_of_the_run_list_on_sol(tmp_path):
+    """Like the --no-ml path: a tool that cannot read the file is not run and not reported."""
+    sol_file = tmp_path / "Token.sol"
+    sol_file.write_text(SOL_SOURCE)
+    vy_file = tmp_path / "Token.vy"
+    vy_file.write_text("# @version 0.3.10\n@external\ndef f():\n    pass\n")
+
+    orchestrator = MLOrchestrator(ml_enabled=False, cache_enabled=False)
+    assert "vyper" not in orchestrator._applicable_tools(["vyper", "slither"], str(sol_file))
+    assert "slither" in orchestrator._applicable_tools(["vyper", "slither"], str(sol_file))
+    assert "vyper" in orchestrator._applicable_tools(["vyper", "slither"], str(vy_file))
+    assert "slither" not in orchestrator._applicable_tools(["vyper", "slither"], str(vy_file))
+    # A directory keeps every tool (applies_to is per file).
+    assert orchestrator._applicable_tools(["vyper", "slither"], str(tmp_path)) == [
+        "vyper",
+        "slither",
+    ]
