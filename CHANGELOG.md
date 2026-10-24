@@ -1480,7 +1480,7 @@ Workflow:
 
 ---
 
-## [Unreleased]
+## [Historical — DPGA submission (2025-12)]
 
 ### Added
 - **DPGA Application Submitted** (December 5, 2025)
