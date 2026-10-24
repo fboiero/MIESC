@@ -70,9 +70,7 @@ class TestVyperChainDetection:
         out_file = tmp_path / "out.json"
 
         runner = CliRunner()
-        result = runner.invoke(
-            analyze, [str(contract), "-o", str(out_file), "-q"]
-        )
+        result = runner.invoke(analyze, [str(contract), "-o", str(out_file), "-q"])
 
         assert result.exit_code == 0, result.output
         report = json.loads(out_file.read_text())

@@ -29,7 +29,7 @@ Detects Vyper-specific patterns:
 
 References:
 - https://docs.vyperlang.org/en/stable/
-- https://github.com/vyperlang/vyper/security/advisories/GHSA-ph9x-4vc9-m2gg
+- https://github.com/vyperlang/vyper/security/advisories/GHSA-5824-cm3x-3c38
 - https://hacken.io/discover/curve-finance-hack/ (Curve Finance incident writeup)
 
 Author: Fernando Boiero <fboiero@frvm.utn.edu.ar>
@@ -137,8 +137,8 @@ class VyperPatternDetector:
     VERSION_RE = re.compile(r"#\s*(?:@version|pragma\s+version)\s+([^\s\n]+)")
     FUNCTION_RE = re.compile(
         r"(?P<decorators>(?:^@\w+(?:\([^)\n]*\))?[ \t]*\n)*)"
-        r"^def[ \t]+(?P<name>\w+)[ \t]*\((?P<params>[^)]*)\)[ \t]*"
-        r"(?:->[ \t]*[^:\n]+)?:",
+        r"^def[ \t]+(?P<name>\w+)[ \t]*\((?P<params>(?:[^()]|\([^()]*\))*)\)[ \t]*"
+        r"(?:->(?:[^:()]|\([^()]*\))+)?:",
         re.MULTILINE,
     )
     DECORATOR_RE = re.compile(r"@(\w+)")
@@ -146,11 +146,15 @@ class VyperPatternDetector:
     # Simple, single-occurrence patterns: (regex, VyperVulnerability, severity)
     SIMPLE_PATTERNS = [
         (re.compile(r"\bselfdestruct\s*\("), VyperVulnerability.SELFDESTRUCT_USAGE, "High"),
-        (re.compile(r"\btx\.origin\b"), VyperVulnerability.TX_ORIGIN_AUTH, "Medium"),
+        (
+            re.compile(r"\btx\.origin\s*[!=]=|[!=]=\s*tx\.origin\b|\bassert\b[^\n]*\btx\.origin\b"),
+            VyperVulnerability.TX_ORIGIN_AUTH,
+            "Medium",
+        ),
         (
             re.compile(r"\bunsafe_(add|sub|mul|div)\s*\("),
             VyperVulnerability.UNSAFE_ARITHMETIC,
-            "Medium",
+            "Low",
         ),
         (
             re.compile(r"raw_call\s*\([^)]{0,300}?is_delegate_call\s*=\s*True", re.DOTALL),
@@ -158,18 +162,40 @@ class VyperPatternDetector:
             "High",
         ),
         (
-            re.compile(r"\b(create_forwarder_to|create_minimal_proxy_to|create_from_blueprint)\s*\("),
+            re.compile(
+                r"\b(create_forwarder_to|create_minimal_proxy_to|create_from_blueprint)\s*\("
+            ),
             VyperVulnerability.UNSAFE_PROXY_CREATION,
             "Medium",
         ),
     ]
 
     EXTERNAL_CALL_RE = re.compile(
-        r"\braw_call\s*\(|\bsend\s*\(|\bextcall\b|\braw_revert\s*\(|"
-        r"\b\w+\s*\(\s*\w+\s*\)\.\w+\s*\("
+        r"\braw_call\s*\(|\bsend\s*\(|\bextcall\b|" r"\b\w+\s*\(\s*\w+\s*\)\.\w+\s*\("
     )
     STATE_WRITE_RE = re.compile(r"\bself\.\w+\s*(\[[^\]]*\])?\s*(\+=|-=|\*=|/=|=[^=])")
-    ACCESS_CHECK_RE = re.compile(r"assert\s+[^\n]*msg\.sender|owner\s*\(\s*\)")
+    # A caller guard: msg.sender compared or tested for membership in an assert/if, a
+    # `self.is_admin[msg.sender]`-style flag used as a boolean, or a module helper such
+    # as snekmate's `ownable._check_owner()`. A numeric check on a mapping keyed by
+    # msg.sender (`assert self.balances[msg.sender] >= x`) is a balance check, not a guard.
+    ACCESS_CHECK_RE = re.compile(
+        r"\b(?:assert|if)\b[^\n]*(?:msg\.sender\s*(?:[!=]=|(?:not\s+)?in\b)|[!=]=\s*msg\.sender\b"
+        r"|\[\s*msg\.sender\s*\]\s*(?:$|[,:#]|\band\b|\bor\b))"
+        r"|^\s*\w+\._?(?:check|only|assert)\w*\s*\(",
+        re.MULTILINE,
+    )
+    # What makes an unguarded function a bug: it reconfigures the contract (owner, admin,
+    # fees, oracle, pause/kill switch, implementation) or can destroy or drain it. Every
+    # other state write - transfer, exchange, add_liquidity, deposit - is meant to be
+    # public. Same criterion as miesc/detectors/access_guards.py for Solidity.
+    PRIVILEGED_WRITE_RE = re.compile(
+        r"\bself\.(?:future_|pending_|suggested_|new_)?(?:owner|admin|governance|guardian"
+        r"|manager|operator|minter|implementation|paused|is_paused|is_killed|killed|fee"
+        r"|admin_fee|oracle|controller|treasury)\b\s*(?:\[[^\]]*\])?\s*=[^=]"
+        r"|\bselfdestruct\s*\(|\bis_delegate_call\s*=\s*True|\bself\.balance\b"
+    )
+    # Vyper 0.4: `# pragma nonreentrancy on` guards every external function of the module.
+    NONREENTRANCY_PRAGMA_RE = re.compile(r"^#\s*pragma\s+nonreentrancy\s+on\b", re.MULTILINE)
 
     def detect_simple_patterns(self, source_code: str, file_path: str) -> List[Dict[str, Any]]:
         """Detect single-regex vulnerability patterns anywhere in the source."""
@@ -183,9 +209,11 @@ class VyperPatternDetector:
                         "severity": severity,
                         "line": line,
                         "file": file_path,
-                        "code": source_code.splitlines()[line - 1].strip()
-                        if line <= len(source_code.splitlines())
-                        else "",
+                        "code": (
+                            source_code.splitlines()[line - 1].strip()
+                            if line <= len(source_code.splitlines())
+                            else ""
+                        ),
                     }
                 )
         return findings
@@ -321,7 +349,9 @@ class VyperAnalyzer(AbstractChainAnalyzer):
     def _extract_state_variables(self, source_code: str, file_path: str) -> List[AbstractVariable]:
         """Extract module-level state variable declarations (`name: type`)."""
         variables: List[AbstractVariable] = []
-        var_re = re.compile(r"^(\w+)\s*:\s*(public\s*\(\s*)?([^=\n]+?)\)?\s*(?:=.*)?$", re.MULTILINE)
+        var_re = re.compile(
+            r"^(\w+)\s*:\s*(public\s*\(\s*)?([^=\n]+?)\)?\s*(?:=.*)?$", re.MULTILINE
+        )
         for match in var_re.finditer(source_code):
             name = match.group(1)
             if name in ("def", "event", "struct", "interface", "implements"):
@@ -366,11 +396,15 @@ class VyperAnalyzer(AbstractChainAnalyzer):
                 SecurityProperty.EXTERNAL_CALLS not in properties
             ):
                 continue
-            if vuln_type in (
-                VyperVulnerability.SELFDESTRUCT_USAGE,
-                VyperVulnerability.TX_ORIGIN_AUTH,
-                VyperVulnerability.MISSING_ACCESS_CONTROL,
-            ) and SecurityProperty.ACCESS_CONTROL not in properties:
+            if (
+                vuln_type
+                in (
+                    VyperVulnerability.SELFDESTRUCT_USAGE,
+                    VyperVulnerability.TX_ORIGIN_AUTH,
+                    VyperVulnerability.MISSING_ACCESS_CONTROL,
+                )
+                and SecurityProperty.ACCESS_CONTROL not in properties
+            ):
                 continue
             if vuln_type == VyperVulnerability.UNSAFE_ARITHMETIC and (
                 SecurityProperty.ARITHMETIC not in properties
@@ -380,12 +414,14 @@ class VyperAnalyzer(AbstractChainAnalyzer):
                 SecurityProperty.UPGRADE not in properties
             ):
                 continue
-            findings.append(self._simple_match_to_finding(match))
+            finding = self._simple_match_to_finding(match)
+            if finding is not None:
+                findings.append(finding)
 
         if SecurityProperty.ACCESS_CONTROL in properties:
             findings.extend(self._check_missing_access_control(contract))
 
-        return [f for f in findings if f is not None]
+        return findings
 
     def _simple_match_to_finding(self, match: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         vuln_type: VyperVulnerability = match["vuln_type"]
@@ -463,7 +499,7 @@ class VyperAnalyzer(AbstractChainAnalyzer):
                 ),
                 recommendation=(
                     "Recompile with a patched Vyper version and redeploy, or verify against "
-                    "the official advisory (GHSA-ph9x-4vc9-m2gg) whether this exact version "
+                    "the official advisory (GHSA-5824-cm3x-3c38) whether this exact version "
                     "and pattern combination is affected."
                 ),
                 confidence=0.6,
@@ -472,8 +508,10 @@ class VyperAnalyzer(AbstractChainAnalyzer):
 
     def _check_missing_reentrancy_guard(self, contract: AbstractContract) -> List[Dict[str, Any]]:
         findings: List[Dict[str, Any]] = []
+        if self.pattern_detector.NONREENTRANCY_PRAGMA_RE.search(contract.source_code or ""):
+            return findings
         for func in contract.functions:
-            if func.visibility != Visibility.EXTERNAL:
+            if func.visibility != Visibility.EXTERNAL or func.name == "__init__":
                 continue
             if not func.calls_external or not func.writes_state:
                 continue
@@ -509,6 +547,8 @@ class VyperAnalyzer(AbstractChainAnalyzer):
             if func.name in ("__init__",):
                 continue
             body = func.body_source or ""
+            if not self.pattern_detector.PRIVILEGED_WRITE_RE.search(body):
+                continue
             if self.pattern_detector.ACCESS_CHECK_RE.search(body):
                 continue
             if any(
@@ -520,8 +560,9 @@ class VyperAnalyzer(AbstractChainAnalyzer):
                 self.normalize_finding(
                     vuln_type=VyperVulnerability.MISSING_ACCESS_CONTROL.value,
                     severity="Medium",
-                    message=f"'{func.name}' is external, writes state, and has no visible "
-                    "msg.sender / owner() check",
+                    message=f"'{func.name}' is external, performs a privileged operation "
+                    "(owner/admin/fee/oracle/pause/kill, selfdestruct, delegatecall or the "
+                    "whole balance) and has no visible msg.sender check",
                     location=func.location,
                     description=f"Function: {func.name}",
                     recommendation="Add an explicit assert msg.sender == <authorized address> "
@@ -597,9 +638,7 @@ class VyperAdapter:
 def probe_vyper_compiler() -> Optional[str]:
     """Return the installed `vyper` compiler version string, or None if unavailable."""
     try:
-        result = subprocess.run(
-            ["vyper", "--version"], capture_output=True, text=True, timeout=10
-        )
+        result = subprocess.run(["vyper", "--version"], capture_output=True, text=True, timeout=10)
         if result.returncode == 0:
             return result.stdout.strip()
     except (OSError, subprocess.TimeoutExpired) as e:

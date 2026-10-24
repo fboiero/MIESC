@@ -600,6 +600,7 @@ def run_tool(tool: str, contract: str, timeout: int = 0, **kwargs: Any) -> Dict[
                 "tool": tool,
                 "contract": contract,
                 "status": "skipped",
+                "reason": "unsupported_source",
                 "findings": [],
                 "execution_time": 0,
                 "timestamp": datetime.now().isoformat(),

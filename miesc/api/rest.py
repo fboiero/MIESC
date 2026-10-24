@@ -351,6 +351,7 @@ def run_tool(tool: str, contract_path: str, timeout: int = 300, **kwargs: Any) -
                 "tool": tool,
                 "contract": contract_path,
                 "status": "skipped",
+                "reason": "unsupported_source",
                 "findings": [],
                 "execution_time": 0,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
