@@ -27,6 +27,23 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Vyper analyzer and `.vy` routing (`miesc/adapters/vyper_adapter.py`, tool `vyper`, layer 1).**
+  A pattern-based analyzer for Vyper sources: explicit `unsafe_*` arithmetic (Low),
+  `raw_call(..., is_delegate_call=True)` to a caller-influenced target (`self` excepted),
+  `create_forwarder_to`/`create_minimal_proxy_to` without an `initialize` in the same function
+  (`create_from_blueprint` is not reported), `tx.origin` authorization, privileged operations
+  without a caller guard, missing reentrancy protection on external calls that break
+  checks-effects-interactions, and the 0.2.15/0.2.16/0.3.0 broken `@nonreentrant` lock —
+  **Critical only on an exact version pin**, Low on a range that merely includes one. Reads
+  `# pragma nonreentrancy on` (0.4) and `@nonreentrant("lock")` (0.3). Routing: `miesc analyze`
+  picks the analyzer for `.vy`; `run_tool`/`run_layer`, the REST API and the ML path only run the
+  tools whose adapter applies to the file (`applies_to`), so the Vyper analyzer adds no row to a
+  Solidity audit and Solidity tools add none to a Vyper one. Measured on snekmate, Curve,
+  stableswap-ng and Yearn (148 files): 451 `unsafe_arithmetic` Low, 2 reentrancy High in test
+  mocks, 1 `tx.origin`, 0 access-control; the paper baseline is unchanged by construction.
+  Slither's own Vyper support stays out of reach through `SlitherAdapter.can_analyze`
+  (documented limit). Contributed by @alva-p (#228).
+
 - **Revert-invariant reasoning executor for pause/freshness gaps
   (`miesc/llm/revert_invariant_reasoning.py`).** `pause_toggle` and `freshness_check` gap
   hypotheses can now reach the `counterexample` rung that access control already reaches, without

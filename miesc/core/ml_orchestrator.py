@@ -369,8 +369,10 @@ class MLOrchestrator:
         # Read contract source
         contract_source = self._read_contract_source(contract_path)
 
-        # Determine tools to run
-        tools_to_run = self._determine_tools(tools, layers)
+        # Determine tools to run. A tool that does not read this file type is left out, exactly
+        # as the --no-ml path does: the Vyper analyzer adds no row to a Solidity audit, and vice
+        # versa (``_run_tool`` keeps its own guard for direct callers).
+        tools_to_run = self._applicable_tools(self._determine_tools(tools, layers), contract_path)
 
         if not tools_to_run:
             return self._empty_result(contract_path, contract_source)
@@ -692,6 +694,23 @@ class MLOrchestrator:
         enabled = self.config.get_enabled_adapters()
         available = {t.name for t in self.discovery.get_available_tools()}
         return [t for t in enabled if t in available]
+
+    def _applicable_tools(self, tools: List[str], contract_path: str) -> List[str]:
+        """Drop the tools whose adapter declares it cannot read ``contract_path``.
+
+        An adapter that fails to load is kept: ``_run_tool`` reports that failure as the tool's
+        own error instead of this filter hiding it.
+        """
+        kept: List[str] = []
+        for tool in tools:
+            try:
+                adapter = self.discovery.load_adapter(tool)
+            except Exception:
+                kept.append(tool)
+                continue
+            if applies_to(adapter, contract_path):
+                kept.append(tool)
+        return kept
 
     def _empty_result(
         self,
