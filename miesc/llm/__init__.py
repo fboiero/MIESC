@@ -178,6 +178,18 @@ from .remediation_generator import (
     generate_fix,
     get_quick_fix,
 )
+from .resource_liveness_griefing import (
+    GrowableSurface,
+    ResourceLivenessGriefingPlan,
+    mine_resource_liveness_griefing,
+    parse_resource_liveness_plans,
+)
+from .revert_invariant_mining import (
+    GuardInventoryItem,
+    RevertInvariantOraclePlan,
+    mine_revert_invariants,
+    parse_revert_invariant_plans,
+)
 from .vulnerability_rag import (
     EXPLOIT_EXAMPLES,
     SWC_REGISTRY,
@@ -327,6 +339,14 @@ __all__ = [
     "PrivilegedGovernanceLifecyclePlan",
     "mine_privileged_governance_lifecycle",
     "parse_privileged_governance_plans",
+    "GrowableSurface",
+    "ResourceLivenessGriefingPlan",
+    "mine_resource_liveness_griefing",
+    "parse_resource_liveness_plans",
+    "GuardInventoryItem",
+    "RevertInvariantOraclePlan",
+    "mine_revert_invariants",
+    "parse_revert_invariant_plans",
     "parse_token_hook_reentrancy_hardening_plans",
     "parse_upgrade_evolution_plans",
     "LLMOrchestratorReasoningProvider",
