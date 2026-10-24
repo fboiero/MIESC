@@ -144,3 +144,35 @@ def test_advisory_plans_phase_is_metadata_only(tmp_path, monkeypatch):
     assert report["findings"] == [finding]
     assert set(report["phases"]["advisory_plans"]["capabilities"]) == _CAPABILITIES
     assert report["metadata"]["advisory_plan_count"] == report["phases"]["advisory_plans"]["count"]
+
+
+# A contract with an inconsistent pause gate: `deposit` is pause-gated, `withdraw` is not.
+PAUSE_GAP = """
+pragma solidity ^0.8.20;
+contract Vault {
+    bool public paused;
+    uint256 bal;
+    modifier whenNotPaused() { require(!paused, "paused"); _; }
+    function deposit() external whenNotPaused { bal += 1; }
+    function withdraw() external { bal -= 1; }
+}
+"""
+
+
+def test_advisory_phase_surfaces_bridged_oracle_plans():
+    from miesc.llm.agentic_contracts import parse_sequence_oracle_plans
+
+    agent = DeepAuditAgent(DeepAuditConfig(enable_advisory_plans=True, enable_llm=False))
+    phase = agent._extract_advisory_plans(PAUSE_GAP, "Vault.sol")
+
+    ri = phase["capabilities"]["revert_invariants"]
+    # the bridge adds an advisory oracle-plan surface alongside the raw inventory
+    assert "oracle_plans" in ri
+    assert len(ri["oracle_plans"]) >= 1
+    # the bridged plans are valid sequence-oracle plans (they round-trip through the parser)
+    reparsed = parse_sequence_oracle_plans({"plans": ri["oracle_plans"]})
+    assert len(reparsed) == len(ri["oracle_plans"])
+    # still advisory: dicts, low confidence, never Findings
+    op = ri["oracle_plans"][0]
+    assert op["confidence"] == 0.2
+    assert op["metadata"]["advisory"] == "true"
