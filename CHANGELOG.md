@@ -94,6 +94,19 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- The lending-solvency miner's gate ("a deposit/supply/withdraw/redeem function and a
+  collateral/debt/shares/reserve word anywhere in the source") accepted every vault, staking
+  pool, pair and token: `supply` matched `totalSupply`, and the words were matched as
+  substrings of the whole text, string literals included. Measured before the fix: the
+  ERC-4626 vaults of OpenZeppelin (6) and Solady, Lido's stETH and two SmartBugs tokens all
+  came out as "lending markets" (2/143 on SmartBugs, both false). The gate now requires a
+  debt-side function (borrow / repay / liquidate / seize / absorb) and a `collateral` or
+  `debt` identifier; accounting keywords are matched inside identifiers only, with comments
+  and string contents masked; the plan anchors at the first accounting identifier (a
+  declaration) instead of the first loose word or line 1. After the fix: Aave v3 (`Pool`,
+  `BorrowLogic`) and Compound v3 (`CometCore`) still pass with every parameter extracted;
+  SmartBugs, OpenZeppelin, Solady, Lido, Uniswap v3 and Chainlink: 0. The parser's
+  `market_model` typing is fixed too (5 mypy errors).
 - The resource/liveness progress-surface miner counted two things as a traversal that are
   not one: a bodiless declaration (an interface's `function execute(...) external;`) whose
   "body" became the whole next contract in the file, loops included, and the word `for`

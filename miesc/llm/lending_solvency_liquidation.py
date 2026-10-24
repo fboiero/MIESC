@@ -21,7 +21,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional
 
-from miesc.llm._solidity_text import _line_of, _strip_comments
+from miesc.llm._solidity_text import _line_of, _mask_strings, _strip_comments
 from miesc.llm.agentic_contracts import (
     MAX_AGENT_ITEMS,
     MAX_AGENT_TEXT_CHARS,
@@ -118,7 +118,8 @@ def parse_lending_solvency_plans(data: Any) -> List[LendingSolvencyLiquidationPl
         objective = _safe_text(raw.get("objective"), MAX_AGENT_TEXT_CHARS, allow_multiline=True)
         if not objective:
             continue
-        model = raw.get("market_model") if isinstance(raw.get("market_model"), Mapping) else {}
+        raw_model = raw.get("market_model")
+        model: Mapping[str, Any] = raw_model if isinstance(raw_model, Mapping) else {}
         markets: List[LendingMarket] = []
         for rm in (model.get("markets") or [])[:MAX_AGENT_ITEMS]:
             if isinstance(rm, Mapping) and rm.get("id"):
@@ -158,6 +159,11 @@ _SOLVENCY_FN_RE = re.compile(
     r"rebalance|configuremarket|configure|updateoracle|setoracle)"
 )
 _ONLY_MODIFIER_RE = re.compile(r"\bonly([A-Za-z_]\w*)")
+# The debt side of a lending market: without one of these the contract is a vault, a
+# staking pool, a pair or a token, however many `deposit`/`withdraw`/`totalSupply` it has.
+_DEBT_FN_RE = re.compile(r"(?i)(borrow|repay|liquidat|seize|absorb)")
+_IDENT_RE = re.compile(r"\b[A-Za-z_]\w*\b")
+_TYPE_DECL_RE = re.compile(r"\b(?:contract|interface|library)\s+([A-Za-z_]\w*)")
 
 # accounting category -> keywords (whole-word, case-insensitive, scanned on the source)
 _ACCOUNTING = [
@@ -208,26 +214,32 @@ def mine_lending_solvency_liquidation(
 ) -> List[LendingSolvencyLiquidationPlan]:
     """Deterministically build a lending market model when the contract looks like a lending protocol.
 
-    Gate: a plan is emitted only when the contract has at least one solvency-critical function AND at
-    least one accounting field — otherwise an empty list. Never raises and never emits a Finding.
+    Gate: a plan is emitted only when the contract has a debt-side function (borrow / repay /
+    liquidate / seize / absorb) AND a collateral or debt accounting identifier — otherwise an
+    empty list. Never raises and never emits a Finding.
     """
     if not isinstance(source_code, str) or not source_code.strip():
         return []
-    masked = _strip_comments(source_code)
+    # Comments and string contents masked: "reserve too low" in a revert message is not a
+    # reserve account. Keywords are then matched inside identifiers only.
+    masked = _mask_strings(_strip_comments(source_code))
     low = masked.lower()
     anchor = Path(file_path).name if file_path else "<memory>"
 
-    solvency_functions = sorted(
-        {
-            m.group("name")
-            for m in _FUNCTION_RE.finditer(masked)
-            if _SOLVENCY_FN_RE.search(m.group("name"))
-        }
-    )
-    accounting_fields = [cat for cat, kws in _ACCOUNTING if any(k in low for k in kws)]
+    fn_names = {m.group("name") for m in _FUNCTION_RE.finditer(masked)}
+    solvency_functions = sorted(n for n in fn_names if _SOLVENCY_FN_RE.search(n))
+    identifiers = {t.lower() for t in _IDENT_RE.findall(masked)}
+    accounting_fields = [
+        cat for cat, kws in _ACCOUNTING if any(k in ident for k in kws for ident in identifiers)
+    ]
 
-    # Precision gate: must look like a lending protocol.
-    if not solvency_functions or not accounting_fields:
+    # Precision gate: a lending market has a debt side. Require a borrow/repay/liquidate/
+    # seize/absorb function AND a collateral or debt identifier; `deposit`/`withdraw`/
+    # `totalSupply` plus `shares`/`reserve` describe every vault, pool, pair and token too.
+    # Measured 2026-10-24 before this gate: ERC-4626 vaults (OpenZeppelin ×6, Solady), Lido
+    # stETH and two SmartBugs tokens passed; Aave v3 and Compound v3 pass either way.
+    has_debt_fn = any(_DEBT_FN_RE.search(n) for n in fn_names)
+    if not has_debt_fn or not ({"collateral", "debt"} & set(accounting_fields)):
         return []
 
     market = LendingMarket(id=anchor)
@@ -239,8 +251,21 @@ def mine_lending_solvency_liquidation(
     price_deps = sorted({kw for kw in _PRICE_KEYWORDS if kw in low})
     if price_deps:
         market.price_source = _first_token(low, masked, price_deps[0])
-    first = re.search(r"(?i)collateral|borrow|debt", masked)
-    market.source_anchors = [f"{anchor}:{_line_of(source_code, first.start() if first else 0)}"]
+    # Anchor at the first accounting identifier in the source (a state variable or parameter
+    # declaration in practice), not at the first loose occurrence of a word or line 1.
+    # Contract / interface / library names are not accounting fields (a `CToken` contract
+    # name matches the `ctoken` share keyword), so they are skipped when anchoring.
+    type_names = {m.group(1) for m in _TYPE_DECL_RE.finditer(masked)}
+    matched_kws = [k for cat, kws in _ACCOUNTING if cat in accounting_fields for k in kws]
+    first_at = min(
+        (
+            m.start()
+            for m in _IDENT_RE.finditer(masked)
+            if m.group(0) not in type_names and any(k in m.group(0).lower() for k in matched_kws)
+        ),
+        default=0,
+    )
+    market.source_anchors = [f"{anchor}:{_line_of(source_code, first_at)}"]
 
     config_actors = sorted(
         {
