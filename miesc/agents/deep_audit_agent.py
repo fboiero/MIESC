@@ -641,6 +641,30 @@ class DeepAuditAgent(BaseAgent):
             logger.debug(f"{tool_name} error: {e}")
             return []
 
+    def _counterexample_findings(self, source_code: str, contract_path: str) -> List[Dict]:
+        """Execute access-control gaps and turn confirmed counterexamples into findings.
+
+        Deterministic and execution-gated: only an unauthorized call that actually *succeeded*
+        under Foundry becomes a finding, and the result passes through the same FP filter as the
+        rest. Returns [] when forge is absent, nothing is eligible, or no counterexample is found.
+        """
+        try:
+            from miesc.llm import (
+                execute_access_control_gaps,
+                mine_revert_invariants,
+            )
+            from miesc.llm.revert_invariant_findings import counterexample_findings
+
+            plans = mine_revert_invariants(
+                source_code, Path(contract_path) if contract_path else None
+            )
+            executions = execute_access_control_gaps(plans, source_code)
+            emitted = counterexample_findings(executions, source_code, contract_path)
+            return self._filter_false_positives(emitted) if emitted else []
+        except Exception as e:  # never let gap execution break synthesis
+            logger.debug(f"Counterexample finding emission skipped: {e}")
+            return []
+
     def _filter_false_positives(self, findings: List[Dict]) -> List[Dict]:
         """Apply FP filter to findings."""
         try:
@@ -1339,6 +1363,11 @@ Respond ONLY with JSON of the shape:
     ) -> Dict[str, Any]:
         findings = investigation.get("findings", scan.filtered_findings)
         chains = investigation.get("exploit_chains", [])
+
+        # Execution-verified access-control counterexamples become findings here (opt-in). They
+        # pass through the same FP filter and the correlation/dedup below as every other finding.
+        if self.config.enable_gap_execution:
+            findings = findings + self._counterexample_findings(source_code, contract_path)
 
         # Correlation pass
         correlated = self._correlate_findings(findings)
