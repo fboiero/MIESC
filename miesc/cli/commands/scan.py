@@ -947,7 +947,11 @@ def _get_scan_profile(profile_name: str | None) -> dict[str, Any] | None:
 
 
 def _profile_uses_agentic_path(profile: dict[str, Any]) -> bool:
-    return bool(profile.get("agentic_ensemble") or profile.get("enable_agentic_invariants"))
+    return bool(
+        profile.get("agentic_ensemble")
+        or profile.get("enable_agentic_invariants")
+        or profile.get("enable_advisory_plans")
+    )
 
 
 def _profile_tools(profile: dict[str, Any] | None) -> list[str]:

@@ -33,6 +33,27 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   the fee-on-transfer cases that do exactly what the rule describes; the paper-profile numbers
   do not move (the four types are outside the SmartBugs taxonomy). The detectors scan with a
   linear header regex, not `CallGraphBuilder`.
+- **Advisory-plan phase in the deep-audit agent** — the first consumer of the deterministic,
+  LLM-free plan miners. `DeepAuditAgent`, when `enable_advisory_plans` is set (opt-in, default
+  off), runs the revert-invariant, privileged-governance, resource/liveness-griefing and
+  lending-solvency miners over the source and surfaces their plans under
+  `report["phases"]["advisory_plans"]` (plus an `advisory_plan_count` in metadata). The phase
+  needs no reasoning provider and emits plans, never `Finding`s — so it adds zero precision risk
+  and never alters the finding set. A miner that raises is recorded with its error and does not
+  break the audit. Until now these miners (`mine_revert_invariants`,
+  `mine_privileged_governance_lifecycle`, `mine_resource_liveness_griefing`,
+  `mine_lending_solvency_liquidation`) were exported but never called.
+- **Lending solvency & liquidation — market model** (Phase 1 of
+  `docs/sdd/SDD_LENDING_SOLVENCY_LIQUIDATION_HARDENING_20260811.md`). A deterministic, local miner
+  (`miesc/llm/lending_solvency_liquidation.py`) that builds a protocol-solvency model for lending
+  contracts: accounting fields (collateral, debt, shares, indexes, reserves, bad_debt), market
+  parameters (collateral factor, liquidation threshold, close factor, bonus), solvency-critical
+  functions (supply/borrow/repay/accrue/liquidate/…), price dependencies, and configuration actors.
+  A precision gate emits a plan only when the contract looks like a lending protocol (≥1
+  solvency-critical function and ≥1 accounting field). Output is the provider-neutral
+  `LendingSolvencyLiquidationPlan` contract (with `parse_lending_solvency_plans`). It is advisory —
+  a market-model inventory, never a `Finding` (distinct from the DeFi detectors / solvency
+  invariant templates); later SDD phases build on it.
 - **Privileged governance lifecycle — authority graph** (Phase 1 of
   `docs/sdd/SDD_PRIVILEGED_GOVERNANCE_LIFECYCLE_HARDENING_20260811.md`). A deterministic, local
   miner (`miesc/llm/privileged_governance_lifecycle.py`) that models a contract's privileged

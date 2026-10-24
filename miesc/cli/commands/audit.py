@@ -70,6 +70,8 @@ def _apply_deep_profile_config(config: Any, profile_name: str | None) -> tuple[A
         config.max_iterations = int(profile["max_iterations"])
     if "enable_agentic_invariants" in profile:
         config.enable_agentic_invariants = bool(profile["enable_agentic_invariants"])
+    if "enable_advisory_plans" in profile:
+        config.enable_advisory_plans = bool(profile["enable_advisory_plans"])
 
     ensemble = profile.get("agentic_ensemble", {})
     if isinstance(ensemble, dict):
@@ -83,7 +85,11 @@ def _apply_deep_profile_config(config: Any, profile_name: str | None) -> tuple[A
 
 def _profile_uses_agentic_path(profile: Dict[str, Any]) -> bool:
     """Return True for profiles that require agentic audit semantics."""
-    return bool(profile.get("agentic_ensemble") or profile.get("enable_agentic_invariants"))
+    return bool(
+        profile.get("agentic_ensemble")
+        or profile.get("enable_agentic_invariants")
+        or profile.get("enable_advisory_plans")
+    )
 
 
 def _run_agentic_audit_profile(
