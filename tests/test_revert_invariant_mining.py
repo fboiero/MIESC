@@ -123,3 +123,40 @@ class TestParserRoundTrip:
         plan = RevertInvariantOraclePlan(id="p", objective="o", guard_inventory=[item])
         parsed = parse_revert_invariant_plans({"plans": [plan.to_dict(), {"objective": ""}]})
         assert len(parsed) == 1  # the empty-objective entry is dropped
+
+
+class TestReviewFixes:
+    def test_predicate_not_truncated_on_inner_comma(self):
+        # require(f(a, b), "msg") -> predicate keeps the full call, message is the string
+        g = _guards(_wrap('require(hasRole(ROLE, msg.sender), "bad");'))[0]
+        assert g.predicate == "hasRole(ROLE, msg.sender)"
+        assert g.error_signal == "bad"
+
+    def test_guard_inside_modifier_anchors_to_modifier(self):
+        src = (
+            "contract C {\n"
+            "  modifier onlyOwner() { require(msg.sender == owner); _; }\n"
+            "  function f() public onlyOwner {}\n"
+            "}\n"
+        )
+        g = _guards(src)
+        assert g and g[0].function == "onlyOwner"  # not 'unknown'
+
+    def test_if_revert_custom_counted_once(self):
+        g = _guards(_wrap("if (msg.sender != owner) revert NotOwner(msg.sender);"))
+        assert len(g) == 1
+        assert g[0].guard_kind == "if_revert"  # kept over the duplicate custom_error
+
+    def test_standalone_custom_error_still_counts(self):
+        g = _guards(_wrap("revert NotAllowed();"))
+        assert len(g) == 1 and g[0].guard_kind == "custom_error"
+
+    def test_not_paused_is_pause_toggle_not_replay(self):
+        cats = {
+            g.defensive_category for g in _guards(_wrap('require(!paused, "Pausable: paused");'))
+        }
+        assert "pause_toggle" in cats and "replay_prevention" not in cats
+
+    def test_capacity_is_not_accounting_cap(self):
+        cats = {g.defensive_category for g in _guards(_wrap("require(capacity > 0);"))}
+        assert "accounting_cap" not in cats

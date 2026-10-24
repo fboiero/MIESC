@@ -150,48 +150,64 @@ def parse_revert_invariant_plans(data: Any) -> List[RevertInvariantOraclePlan]:
 # --------------------------------------------------------------------------------------
 # Deterministic local miner (no provider, no LLM).
 # --------------------------------------------------------------------------------------
-_FUNCTION_RE = re.compile(r"\bfunction\s+(?P<name>[A-Za-z_]\w*)\s*\(|\bconstructor\s*\(")
+_FUNCTION_RE = re.compile(
+    r"\bfunction\s+(?P<name>[A-Za-z_]\w*)\s*\("
+    r"|\bmodifier\s+(?P<mod>[A-Za-z_]\w*)\b"
+    r"|\bconstructor\s*\("
+)
 _REQUIRE_RE = re.compile(r"\b(?P<kind>require|assert)\s*\(")
 _REVERT_CUSTOM_RE = re.compile(r"\brevert\s+(?P<err>[A-Za-z_]\w*)\s*\(")
 _IF_REVERT_RE = re.compile(
     r"\bif\s*\((?P<cond>(?:[^(){}]|\([^()]*\))*)\)\s*(?:\{[^{}]*)?(?:revert|throw)\b"
 )
 
-# defensive_category -> keyword set (checked in this order; first match wins).
+# defensive_category -> keyword set. Keywords match whole *tokens* of the predicate/error (not
+# raw substrings), and ``pause_toggle`` is checked before ``replay_prevention`` so ``paused`` is
+# not mis-read as ``used`` (replay). First category with a token match wins.
 _CATEGORY_RULES = [
     (
         "access_control",
         (
             "msg.sender",
+            "sender",
             "owner",
             "admin",
             "onlyowner",
             "authorized",
             "hasrole",
             "role",
-            "_msgsender",
+            "governor",
+            "guardian",
         ),
     ),
     ("signature_verification", ("ecrecover", "signature", "signer", "isvalidsignature", "verify")),
+    ("pause_toggle", ("paused", "pause", "whennotpaused", "halted", "frozen")),
     ("replay_prevention", ("nonce", "used", "executed", "processed", "replay", "consumed")),
-    ("freshness_check", ("deadline", "expiry", "expired", "block.timestamp", "timestamp", "stale")),
-    ("pause_toggle", ("paused", "whennotpaused", "halted", "enabled", "active")),
+    ("freshness_check", ("deadline", "expiry", "expired", "timestamp", "stale")),
     ("allow_ban_list", ("whitelist", "blacklist", "allowlist", "denylist", "banned", "allowed")),
     (
         "slippage_threshold",
         ("minout", "amountoutmin", "slippage", "minamount", "minreturn", "mintokens"),
     ),
     ("accounting_cap", ("cap", "maxsupply", "maxmint", "limit", "totalsupply", "maxamount")),
-    ("bounds_check", ("length", ".length", "index", "outofbounds", "<=", ">=", "<", ">")),
+    ("bounds_check", ("length", "index", "bound")),
 ]
 
 
 def _normalize_category(predicate: str, error_signal: str) -> tuple:
-    """Return ``(category, normalized_terms)`` from the predicate + error label."""
+    """Return ``(category, normalized_terms)`` from the predicate + error label.
+
+    Tokens come from the identifiers in the predicate/error, expanded over ``.`` so
+    ``msg.sender`` yields ``msg``/``sender`` and ``arr.length`` yields ``length``. Categories
+    match a whole token, so ``capacity`` does not hit ``cap`` and ``!inactive`` does not hit
+    ``active``.
+    """
     blob = f"{predicate} {error_signal}".lower()
-    terms = sorted({t for t in re.findall(r"[a-z_][a-z0-9_.]*", blob) if len(t) > 2})[:12]
+    raw = re.findall(r"[a-z_][a-z0-9_.]*", blob)
+    tokens = set(raw) | {sub for t in raw for sub in t.split(".") if sub}
+    terms = sorted(t for t in tokens if len(t) > 2)[:12]
     for category, keywords in _CATEGORY_RULES:
-        if any(kw in blob for kw in keywords):
+        if any(kw in tokens for kw in keywords):
             return category, terms
     return "unclassified", terms
 
@@ -233,12 +249,31 @@ def _balanced_arg(source: str, open_paren: int) -> tuple:
     return source[open_paren + 1 :], len(source)
 
 
-def _function_at(source: str, pos: int) -> tuple:
-    """Return ``(name, start)`` of the innermost function definition containing ``pos``."""
-    best = ("unknown", -1)
+def _split_top_comma(arg: str) -> tuple:
+    """Split ``arg`` at the first depth-zero comma into ``(condition, message)``.
+
+    Respects parentheses/brackets so ``check(a, b), "msg"`` splits into ``check(a, b)`` and
+    ``"msg"`` instead of truncating the predicate at the inner comma.
+    """
+    depth = 0
+    for i, ch in enumerate(arg):
+        if ch in "([{":
+            depth += 1
+        elif ch in ")]}":
+            depth -= 1
+        elif ch == "," and depth == 0:
+            return arg[:i], arg[i + 1 :]
+    return arg, ""
+
+
+def _collect_spans(source: str) -> List[tuple]:
+    """Precompute ``(start, end, name)`` for every function/modifier/constructor body.
+
+    Computed once per contract so guard anchoring is a lookup rather than a full re-scan per
+    guard (the ``_function_at`` hot path the review flagged).
+    """
+    spans: List[tuple] = []
     for m in _FUNCTION_RE.finditer(source):
-        if m.start() > pos:
-            break
         brace = source.find("{", m.end())
         if brace == -1:
             continue
@@ -251,9 +286,19 @@ def _function_at(source: str, pos: int) -> tuple:
                 if depth == 0:
                     break
             end += 1
-        if m.start() <= pos <= end and m.start() > best[1]:
-            best = (m.groupdict().get("name") or "constructor", m.start())
-    return best[0], best[1]
+        gd = m.groupdict()
+        name = gd.get("name") or gd.get("mod") or "constructor"
+        spans.append((m.start(), end, name))
+    return spans
+
+
+def _enclosing(spans: List[tuple], pos: int) -> str:
+    """Innermost span name containing ``pos`` (modifiers included), or ``unknown``."""
+    best_name, best_start = "unknown", -1
+    for start, end, name in spans:
+        if start <= pos <= end and start > best_start:
+            best_name, best_start = name, start
+    return best_name
 
 
 def _line_of(source: str, index: int) -> int:
@@ -274,16 +319,16 @@ def mine_revert_invariants(
         return []
     masked = _strip_comments(source_code)
     anchor = Path(file_path).name if file_path else "<memory>"
+    spans = _collect_spans(masked)
     guards: List[GuardInventoryItem] = []
 
     def _anchor(idx: int) -> tuple:
-        name, _ = _function_at(masked, idx)
-        return f"{anchor}:{_line_of(source_code, idx)}", name
+        return f"{anchor}:{_line_of(source_code, idx)}", _enclosing(spans, idx)
 
     # require(...) / assert(...)
     for m in _REQUIRE_RE.finditer(masked):
         arg, _ = _balanced_arg(masked, m.end() - 1)
-        cond, _, msg = arg.partition(",")
+        cond, msg = _split_top_comma(arg)
         predicate = cond.strip()
         if not predicate:
             continue
@@ -338,6 +383,12 @@ def mine_revert_invariants(
 
     if not guards:
         return []
+    # `if (cond) revert Custom(...)` matches both the if_revert and custom_error rules at the
+    # same line; keep the if_revert (it carries the real predicate) and drop the duplicate.
+    if_anchors = {g.source_anchor for g in guards if g.guard_kind == "if_revert"}
+    guards = [
+        g for g in guards if not (g.guard_kind == "custom_error" and g.source_anchor in if_anchors)
+    ]
     guards.sort(key=lambda g: (g.function, g.source_anchor))
     return [
         RevertInvariantOraclePlan(
