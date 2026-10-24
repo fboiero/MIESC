@@ -17,6 +17,20 @@ while the others match only ``function``.
 
 from __future__ import annotations
 
+import re
+
+_CAMEL_RE = re.compile(r"[A-Z]+(?![a-z])|[A-Z][a-z0-9]*|[a-z0-9]+")
+
+
+def split_identifier(name: str) -> list:
+    """Split a camelCase/snake_case identifier into lowercased word tokens.
+
+    ``setFeeTo`` -> ``["set", "fee", "to"]``, ``emergency_withdraw`` ->
+    ``["emergency", "withdraw"]``, ``ERC20Mint`` -> ``["erc20", "mint"]``. Used to derive a
+    function's verb family for guard-gap comparison; shared so miners don't each re-implement it.
+    """
+    return [t.lower() for part in str(name).split("_") for t in _CAMEL_RE.findall(part)]
+
 
 def _strip_comments(source: str) -> str:
     """Blank ``//`` and ``/* */`` comments in place, preserving every index and newline.

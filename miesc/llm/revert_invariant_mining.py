@@ -21,7 +21,12 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional
 
-from miesc.llm._solidity_text import _body_brace, _line_of, _strip_comments
+from miesc.llm._solidity_text import (
+    _body_brace,
+    _line_of,
+    _strip_comments,
+    split_identifier,
+)
 from miesc.llm.agentic_contracts import (
     MAX_AGENT_ITEMS,
     MAX_AGENT_TEXT_CHARS,
@@ -67,13 +72,50 @@ class GuardInventoryItem:
 
 
 @dataclass
+class GuardGapHypothesis:
+    """A deterministic, advisory hypothesis that a guard is inconsistent within a verb family.
+
+    Never a Finding and never a confirmed state: a category gap is a hypothesis until execution
+    evidence (a counterexample) promotes it, which Phase 2 does not do. ``negative_checks`` list
+    the reasons the gap may be benign so a reader weighs it rather than treats it as a defect.
+    """
+
+    category: str
+    expected_guard: str
+    observed_gap: str = "inconsistent"
+    affected_functions: List[str] = field(default_factory=list)
+    semantic_preconditions: List[str] = field(default_factory=list)
+    negative_checks: List[str] = field(default_factory=list)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "category": _safe_label(self.category) or "unclassified",
+            "expected_guard": _safe_text(self.expected_guard, MAX_AGENT_TEXT_CHARS) or "",
+            "observed_gap": (
+                self.observed_gap
+                if self.observed_gap
+                in {"missing", "weaker", "inconsistent", "unreachable", "dead_guard"}
+                else "inconsistent"
+            ),
+            "affected_functions": _safe_text_list(self.affected_functions),
+            "semantic_preconditions": _safe_text_list(self.semantic_preconditions),
+            "negative_checks": _safe_text_list(self.negative_checks),
+        }
+
+
+@dataclass
 class RevertInvariantOraclePlan:
-    """Provider-neutral plan built from a contract's guard inventory (Phase 1: inventory only)."""
+    """Provider-neutral plan from a contract's guards (Phase 1 inventory + Phase 2 gap hypotheses).
+
+    Phase 2 adds ``gap_hypotheses``: deterministic, advisory within-family guard inconsistencies.
+    The plan is still never a Finding and ``promotion.state`` stays ``hypothesis``.
+    """
 
     id: str
     objective: str
     contract_role: str = ""
     guard_inventory: List[GuardInventoryItem] = field(default_factory=list)
+    gap_hypotheses: List[GuardGapHypothesis] = field(default_factory=list)
     promotion_state: str = "hypothesis"
     metadata: Dict[str, Any] = field(default_factory=dict)
 
@@ -84,6 +126,7 @@ class RevertInvariantOraclePlan:
             or "",
             "contract_role": _safe_text(self.contract_role, MAX_AGENT_TEXT_CHARS) or "",
             "guard_inventory": [g.to_dict() for g in self.guard_inventory[:MAX_AGENT_ITEMS]],
+            "gap_hypotheses": [h.to_dict() for h in self.gap_hypotheses[:MAX_AGENT_ITEMS]],
             "promotion": {"state": self.promotion_state, "evidence": [], "blockers": []},
             "metadata": _json_safe_mapping(
                 {**self.metadata, "capability": "revert_invariant_mining", "schema_version": "1"}
@@ -137,12 +180,32 @@ def parse_revert_invariant_plans(data: Any) -> List[RevertInvariantOraclePlan]:
                         or "unclassified",
                     )
                 )
+        hypotheses: List[GuardGapHypothesis] = []
+        raw_gaps = raw.get("gap_hypotheses", [])
+        if isinstance(raw_gaps, list):
+            for rh in raw_gaps[:MAX_AGENT_ITEMS]:
+                if not isinstance(rh, Mapping):
+                    continue
+                expected = _safe_text(rh.get("expected_guard"), MAX_AGENT_TEXT_CHARS)
+                if not expected:
+                    continue
+                hypotheses.append(
+                    GuardGapHypothesis(
+                        category=_safe_label(rh.get("category")) or "unclassified",
+                        expected_guard=expected,
+                        observed_gap=str(rh.get("observed_gap") or "inconsistent"),
+                        affected_functions=_safe_text_list(rh.get("affected_functions")),
+                        semantic_preconditions=_safe_text_list(rh.get("semantic_preconditions")),
+                        negative_checks=_safe_text_list(rh.get("negative_checks")),
+                    )
+                )
         plans.append(
             RevertInvariantOraclePlan(
                 id=_safe_label(raw.get("id")) or "revinv",
                 objective=objective,
                 contract_role=_safe_text(raw.get("contract_role"), MAX_AGENT_TEXT_CHARS) or "",
                 guard_inventory=guards,
+                gap_hypotheses=hypotheses,
             )
         )
     return plans
@@ -278,6 +341,172 @@ def _enclosing(spans: List[tuple], pos: int) -> str:
     return best_name
 
 
+# --------------------------------------------------------------------------------------
+# Phase 2: within-family access-control gap hypotheses (deterministic, advisory).
+# --------------------------------------------------------------------------------------
+# Verb prefixes that mark a function as privileged. A family is compared only when at least
+# one member is guarded, so a broad verb (``add``) never fires on its own.
+_PRIVILEGED_VERBS = frozenset(
+    {
+        "set",
+        "update",
+        "configure",
+        "config",
+        "withdraw",
+        "rescue",
+        "sweep",
+        "pause",
+        "unpause",
+        "upgrade",
+        "mint",
+        "burn",
+        "grant",
+        "revoke",
+        "add",
+        "remove",
+        "emergency",
+        "admin",
+        "change",
+        "enable",
+        "disable",
+        "initialize",
+        "migrate",
+        "seize",
+    }
+)
+_VIS_RE = re.compile(r"\b(external|public|internal|private)\b")
+_VIEW_RE = re.compile(r"\b(?:view|pure|constant)\b")
+# Bare words in a signature tail that are keywords, not applied modifiers.
+_TAIL_KEYWORDS = frozenset(
+    {
+        "external",
+        "public",
+        "internal",
+        "private",
+        "view",
+        "pure",
+        "payable",
+        "nonpayable",
+        "virtual",
+        "override",
+        "returns",
+        "constant",
+        "memory",
+        "storage",
+        "calldata",
+    }
+)
+_FUNCTION_DECL_RE = re.compile(r"\bfunction\s+(?P<name>[A-Za-z_]\w*)\s*\(")
+
+
+@dataclass
+class _FuncSig:
+    name: str
+    visibility: str
+    mutates: bool
+    modifiers: List[str]
+
+
+def _collect_functions(masked: str) -> List["_FuncSig"]:
+    """Enumerate named functions with visibility, state-mutability, and applied modifiers."""
+    out: List[_FuncSig] = []
+    for m in _FUNCTION_DECL_RE.finditer(masked):
+        popen = m.end() - 1
+        _, pclose = _balanced_arg(masked, popen)
+        body = _body_brace(masked, pclose)
+        if body == -1:
+            continue  # abstract/interface declaration: no body of its own
+        tail = masked[pclose + 1 : body]
+        vis = _VIS_RE.search(tail)
+        # strip modifier args and the returns clause, then bare identifiers are the modifiers
+        cleaned = re.sub(r"\([^()]*\)", " ", tail)
+        modifiers = [t for t in re.findall(r"[A-Za-z_]\w*", cleaned) if t not in _TAIL_KEYWORDS]
+        out.append(
+            _FuncSig(
+                name=m.group("name"),
+                visibility=vis.group(1) if vis else "",
+                mutates=not _VIEW_RE.search(tail),
+                modifiers=modifiers,
+            )
+        )
+    return out
+
+
+def _categories_by_owner(guards: List[GuardInventoryItem]) -> Dict[str, set]:
+    """Map each guard-bearing function/modifier name to the set of categories it carries."""
+    owner: Dict[str, set] = {}
+    for g in guards:
+        owner.setdefault(g.function, set()).add(g.defensive_category)
+    return owner
+
+
+def _gap_hypotheses(
+    guards: List[GuardInventoryItem], functions: List["_FuncSig"]
+) -> List[GuardGapHypothesis]:
+    """Within a privileged verb family, flag external/public members that lack the access-control
+    guard their sibling(s) have. Guards are resolved through applied modifiers, so a function
+    guarded by ``onlyOwner`` counts as guarded. Advisory only: emitted as a hypothesis, never a
+    confirmed finding, with negative checks that may make the gap benign.
+    """
+    owner = _categories_by_owner(guards)
+
+    def _classify(f: "_FuncSig") -> str:
+        """``guarded`` (visible access-control), ``opaque`` (applies a modifier whose effect we
+        cannot see — delegated or inherited), or ``unguarded``. Opaque members are excluded from
+        the comparison: the SDD says a modifier may enforce the property, so we must not assume it
+        does not."""
+        cats = set(owner.get(f.name, ()))
+        opaque = False
+        for mod in f.modifiers:
+            if mod in owner:
+                cats |= owner[mod]  # modifier with an anchored guard: categories are known
+            else:
+                opaque = True  # delegates to an internal check, or inherited from a base
+        if "access_control" in cats:
+            return "guarded"
+        if opaque:
+            return "opaque"
+        return "unguarded"
+
+    families: Dict[str, List[_FuncSig]] = {}
+    for f in functions:
+        if f.visibility not in ("external", "public") or not f.mutates:
+            continue
+        toks = split_identifier(f.name)
+        if toks and toks[0] in _PRIVILEGED_VERBS:
+            families.setdefault(toks[0], []).append(f)
+
+    out: List[GuardGapHypothesis] = []
+    for verb, members in sorted(families.items()):
+        if len(members) < 2:
+            continue
+        classified = {f.name: _classify(f) for f in members}
+        guarded = [f for f in members if classified[f.name] == "guarded"]
+        unguarded = [f for f in members if classified[f.name] == "unguarded"]
+        if not guarded or not unguarded:
+            continue
+        sibling = sorted(f.name for f in guarded)[0]
+        out.append(
+            GuardGapHypothesis(
+                category="access_control",
+                expected_guard=f"access control consistent with `{sibling}`",
+                observed_gap="inconsistent",
+                affected_functions=sorted(f.name for f in unguarded),
+                semantic_preconditions=[
+                    f"`{verb}`-family external/public state-changing functions; "
+                    f"`{sibling}` is access-controlled"
+                ],
+                negative_checks=[
+                    "a guard may be applied by a modifier not parsed here",
+                    "a guard may be inherited from a base contract",
+                    "the function may be intentionally permissionless",
+                    "the property may be enforced upstream or by a protocol invariant",
+                ],
+            )
+        )
+    return out
+
+
 def mine_revert_invariants(
     source_code: str,
     file_path: Optional[Path] = None,
@@ -363,17 +592,22 @@ def mine_revert_invariants(
         g for g in guards if not (g.guard_kind == "custom_error" and g.source_anchor in if_anchors)
     ]
     guards.sort(key=lambda g: (g.function, g.source_anchor))
+    gaps = _gap_hypotheses(guards, _collect_functions(masked))
+    objective = f"Guard inventory for {anchor} ({len(guards)} guards"
+    objective += f", {len(gaps)} gap hypotheses)" if gaps else ")"
     return [
         RevertInvariantOraclePlan(
             id=f"revinv-{anchor}",
-            objective=f"Guard inventory for {anchor} ({len(guards)} guards)",
+            objective=objective,
             guard_inventory=guards,
+            gap_hypotheses=gaps,
         )
     ]
 
 
 __all__ = [
     "GuardInventoryItem",
+    "GuardGapHypothesis",
     "RevertInvariantOraclePlan",
     "parse_revert_invariant_plans",
     "mine_revert_invariants",

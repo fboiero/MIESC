@@ -191,6 +191,7 @@ from .resource_liveness_griefing import (
     parse_resource_liveness_plans,
 )
 from .revert_invariant_mining import (
+    GuardGapHypothesis,
     GuardInventoryItem,
     RevertInvariantOraclePlan,
     mine_revert_invariants,
@@ -353,6 +354,7 @@ __all__ = [
     "ResourceLivenessGriefingPlan",
     "mine_resource_liveness_griefing",
     "parse_resource_liveness_plans",
+    "GuardGapHypothesis",
     "GuardInventoryItem",
     "RevertInvariantOraclePlan",
     "mine_revert_invariants",

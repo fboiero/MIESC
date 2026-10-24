@@ -172,3 +172,133 @@ class TestSpanCollection:
         )
         names = [name for _, _, name in _collect_spans(src)]
         assert names == ["f"]
+
+
+class TestPhase2GapHypotheses:
+    def _gaps(self, src: str):
+        plans = mine_revert_invariants(src)
+        return plans[0].to_dict()["gap_hypotheses"] if plans else []
+
+    def test_within_family_inconsistency_flags_unguarded_sibling(self):
+        src = (
+            "contract C {\n"
+            "  address owner;\n"
+            "  function setFee(uint x) external { require(msg.sender == owner, 'no'); }\n"
+            "  function setTreasury(address t) external { treasury = t; }\n"
+            "}\n"
+        )
+        gaps = self._gaps(src)
+        assert len(gaps) == 1
+        assert gaps[0]["affected_functions"] == ["setTreasury"]
+        assert gaps[0]["category"] == "access_control"
+        assert gaps[0]["observed_gap"] == "inconsistent"
+        assert gaps[0]["negative_checks"]
+
+    def test_modifier_guarded_sibling_is_not_a_gap(self):
+        src = (
+            "contract C {\n"
+            "  address owner;\n"
+            "  modifier onlyOwner() { require(msg.sender == owner); _; }\n"
+            "  function setFee(uint x) external { require(msg.sender == owner, 'no'); }\n"
+            "  function setTreasury(address t) external onlyOwner { treasury = t; }\n"
+            "}\n"
+        )
+        assert self._gaps(src) == []
+
+    def test_different_family_is_not_a_gap(self):
+        src = (
+            "contract C {\n"
+            "  address owner;\n"
+            "  function setFee(uint x) external { require(msg.sender == owner); }\n"
+            "  function deposit() external payable { bal += msg.value; }\n"
+            "}\n"
+        )
+        assert self._gaps(src) == []
+
+    def test_family_with_no_guarded_member_is_not_a_gap(self):
+        src = (
+            "contract C {\n"
+            "  function setFee(uint x) external { fee = x; }\n"
+            "  function setTreasury(address t) external { treasury = t; }\n"
+            "}\n"
+        )
+        assert self._gaps(src) == []
+
+    def test_internal_sibling_is_skipped(self):
+        src = (
+            "contract C {\n"
+            "  address owner;\n"
+            "  function setFee(uint x) external { require(msg.sender == owner); }\n"
+            "  function _setTreasury(address t) internal { treasury = t; }\n"
+            "}\n"
+        )
+        assert self._gaps(src) == []
+
+    def test_view_sibling_is_skipped(self):
+        src = (
+            "contract C {\n"
+            "  address owner;\n"
+            "  function setFee(uint x) external { require(msg.sender == owner); }\n"
+            "  function setView() external view returns (uint) { return fee; }\n"
+            "}\n"
+        )
+        assert self._gaps(src) == []
+
+    def test_gap_hypotheses_round_trip_through_parser(self):
+        src = (
+            "contract C {\n"
+            "  address owner;\n"
+            "  function setFee(uint x) external { require(msg.sender == owner); }\n"
+            "  function setTreasury(address t) external { treasury = t; }\n"
+            "}\n"
+        )
+        plan = mine_revert_invariants(src)[0]
+        parsed = parse_revert_invariant_plans({"revert_invariant_plans": [plan.to_dict()]})
+        assert len(parsed) == 1
+        assert len(parsed[0].gap_hypotheses) == 1
+        assert parsed[0].gap_hypotheses[0].affected_functions == ["setTreasury"]
+
+    def test_gap_plan_is_advisory_never_a_finding(self):
+        src = (
+            "contract C {\n"
+            "  address owner;\n"
+            "  function setFee(uint x) external { require(msg.sender == owner); }\n"
+            "  function setTreasury(address t) external { treasury = t; }\n"
+            "}\n"
+        )
+        plan = mine_revert_invariants(src)[0]
+        assert not hasattr(plan, "severity")
+        assert plan.to_dict()["promotion"]["state"] == "hypothesis"
+
+    def test_opaque_modifier_excludes_sibling_not_flags_it(self):
+        # onlyRole delegates to an internal check: its body has no anchored guard, so the sibling
+        # is opaque, not unguarded -> no hypothesis (SDD FP control: a modifier may enforce it).
+        src = (
+            "contract C {\n"
+            "  modifier onlyRole(bytes32 r) { _checkRole(r); _; }\n"
+            "  function setFee(uint x) external { require(msg.sender == owner); }\n"
+            "  function setTreasury(address t) external onlyRole(ADMIN) { treasury = t; }\n"
+            "}\n"
+        )
+        assert self._gaps(src) == []
+
+    def test_inherited_modifier_is_opaque(self):
+        # onlyOwner is not defined in this file (inherited) -> opaque -> excluded.
+        src = (
+            "contract C {\n"
+            "  function setFee(uint x) external { require(msg.sender == owner); }\n"
+            "  function setTreasury(address t) external onlyOwner { treasury = t; }\n"
+            "}\n"
+        )
+        assert self._gaps(src) == []
+
+    def test_interface_declaration_does_not_contaminate_functions(self):
+        src = (
+            "interface I { function setFee(uint) external; }\n"
+            "contract C {\n"
+            "  function setFee(uint x) external { require(msg.sender == owner); }\n"
+            "  function setTreasury(address t) external { treasury = t; }\n"
+            "}\n"
+        )
+        gaps = self._gaps(src)
+        assert len(gaps) == 1 and gaps[0]["affected_functions"] == ["setTreasury"]
