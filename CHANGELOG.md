@@ -9,6 +9,16 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Advisory-plan phase in the deep-audit agent** — the first consumer of the deterministic,
+  LLM-free plan miners. `DeepAuditAgent`, when `enable_advisory_plans` is set (opt-in, default
+  off), runs the revert-invariant, privileged-governance, resource/liveness-griefing and
+  lending-solvency miners over the source and surfaces their plans under
+  `report["phases"]["advisory_plans"]` (plus an `advisory_plan_count` in metadata). The phase
+  needs no reasoning provider and emits plans, never `Finding`s — so it adds zero precision risk
+  and never alters the finding set. A miner that raises is recorded with its error and does not
+  break the audit. Until now these miners (`mine_revert_invariants`,
+  `mine_privileged_governance_lifecycle`, `mine_resource_liveness_griefing`,
+  `mine_lending_solvency_liquidation`) were exported but never called.
 - **Lending solvency & liquidation — market model** (Phase 1 of
   `docs/sdd/SDD_LENDING_SOLVENCY_LIQUIDATION_HARDENING_20260811.md`). A deterministic, local miner
   (`miesc/llm/lending_solvency_liquidation.py`) that builds a protocol-solvency model for lending
