@@ -459,6 +459,52 @@ class TestFeeOnTransferDetector:
         """
         findings = detector.detect(source)
         assert len(findings) == 1
+        assert findings[0].severity.value == "low"
+        assert findings[0].confidence == "medium"
+
+    def test_transfer_in_natspec_comment_not_flagged(self):
+        """Seen on OZ IERC20Permit.sol: the call is a usage example in NatSpec."""
+        from miesc.detectors.defi_detectors import FeeOnTransferDetector
+
+        detector = FeeOnTransferDetector()
+        source = """
+        /**
+         * function deposit(uint256 value) external {
+         *     token.safeTransferFrom(msg.sender, address(this), value);
+         *     balances[msg.sender] += value;
+         * }
+         */
+        interface IERC20Permit {}
+        """
+        assert detector.detect(source) == []
+
+    def test_custody_without_accounting_not_flagged(self):
+        """Seen on OZ BridgeERC20._onSend: locking tokens credits nothing."""
+        from miesc.detectors.defi_detectors import FeeOnTransferDetector
+
+        detector = FeeOnTransferDetector()
+        source = """
+        function _onSend(address from, uint256 amount) internal virtual override {
+            token().safeTransferFrom(from, address(this), amount);
+        }
+        """
+        assert detector.detect(source) == []
+
+    def test_library_balance_check_not_flagged(self):
+        """Seen on Solady ERC4626: `SafeTransferLib.balanceOf(asset(), address(this))`."""
+        from miesc.detectors.defi_detectors import FeeOnTransferDetector
+
+        detector = FeeOnTransferDetector()
+        source = """
+        function totalAssets() public view returns (uint256 assets) {
+            assets = SafeTransferLib.balanceOf(asset(), address(this));
+        }
+        function _deposit(address by, address to, uint256 assets, uint256 shares) internal {
+            SafeTransferLib.safeTransferFrom(asset(), by, address(this), assets);
+            _mint(to, shares);
+        }
+        """
+        assert detector.detect(source) == []
 
     def test_balance_before_after_not_flagged(self):
         from miesc.detectors.defi_detectors import FeeOnTransferDetector
@@ -627,6 +673,39 @@ class TestERC4626ComplianceDetector:
         findings = detector.detect(source)
         assert len(findings) == 0
 
+    def test_gate_is_per_contract(self):
+        """An `IVault` in the same file must not enable the gate for an
+        unrelated contract next to it."""
+        from miesc.detectors.defi_detectors import ERC4626ComplianceDetector
+
+        detector = ERC4626ComplianceDetector()
+        source = """
+        interface IVault {
+            function deposit(uint256 assets, address receiver) external returns (uint256);
+            function withdraw(uint256 assets, address receiver, address owner) external returns (uint256);
+            function totalAssets() external view returns (uint256);
+        }
+        contract Staking {
+            function mint(uint256 amount) external {}
+            function redeem(uint256 id) external {}
+        }
+        """
+        assert detector.detect(source) == []
+
+    def test_line_number_in_second_contract(self):
+        from miesc.detectors.defi_detectors import ERC4626ComplianceDetector
+
+        detector = ERC4626ComplianceDetector()
+        source = """contract A {}
+contract Vault {
+    function deposit(uint256 id, uint256 assets, address receiver) public {}
+    function withdraw(uint256 assets, address receiver, address owner) public {}
+    function totalAssets() public view returns (uint256) {}
+}
+"""
+        findings = detector.detect(source)
+        assert [f.line for f in findings] == [3]
+
     def test_no_vault_functions_no_findings(self):
         from miesc.detectors.defi_detectors import ERC4626ComplianceDetector
 
@@ -763,6 +842,46 @@ class TestUnrefundedExcessPaymentDetector:
         """
         findings = detector.detect(source)
         assert len(findings) == 0
+
+    def test_multiline_payable_header_flagged(self):
+        from miesc.detectors.defi_detectors import UnrefundedExcessPaymentDetector
+
+        detector = UnrefundedExcessPaymentDetector()
+        source = """
+        contract C {
+            function mint(uint256 qty)
+                external
+                payable
+                nonReentrant
+            {
+                require(msg.value >= getPrice() * qty);
+            }
+        }
+        """
+        assert [f.line for f in detector.detect(source)] == [3]
+
+    def test_payable_param_is_not_a_payable_function(self):
+        """`address payable to` in the parameters does not make it payable."""
+        from miesc.detectors.defi_detectors import UnrefundedExcessPaymentDetector
+
+        detector = UnrefundedExcessPaymentDetector()
+        source = """
+        contract C {
+            function pay(address payable to, uint256 qty) public {
+                require(msg.value >= getPrice() * qty);
+            }
+        }
+        """
+        assert detector.detect(source) == []
+
+    def test_header_without_body_does_not_hang(self):
+        """This header made CallGraphBuilder's regex backtrack for > 60 s
+        (Uniswap v3, OZ TimelockController); the detector no longer uses it."""
+        from miesc.detectors.defi_detectors import UnrefundedExcessPaymentDetector
+
+        detector = UnrefundedExcessPaymentDetector()
+        source = "function g() external virtual onlyOwner(x) " + " ".join(["w"] * 40)
+        assert detector.detect(source) == []
 
     def test_no_payable_functions_no_findings(self):
         from miesc.detectors.defi_detectors import UnrefundedExcessPaymentDetector
