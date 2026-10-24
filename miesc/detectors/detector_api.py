@@ -440,6 +440,16 @@ class DetectorRegistry:
             )  # noqa: T201
 
         try:
+            from .yul_assembly_safety_detector import YulAssemblySafetyDetector
+
+            if YulAssemblySafetyDetector.name not in self._detectors:
+                self.register_class(YulAssemblySafetyDetector)
+        except Exception as e:
+            print(
+                f"Warning: Failed to load built-in detector yul-assembly-safety-detector: {e}"
+            )  # noqa: T201
+
+        try:
             # Python 3.10+ style
             entry_points = importlib.metadata.entry_points()
             if hasattr(entry_points, "select"):

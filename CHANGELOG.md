@@ -20,6 +20,25 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `parse_revert_invariant_plans`), mirroring the existing oracle-plan contracts. It is
   advisory — a guard inventory, never a `Finding` and never a "missing require" accusation;
   later SDD phases (gap hypotheses, oracle/execution plans, the LLM agent) build on it.
+- **Yul/inline-assembly memory-safety detector** (Phase 1 of
+  `docs/SDD_YUL_ASSEMBLY_MEMORY_SAFETY_HARDENING_20260811.md`). A deterministic, local
+  detector (`miesc/detectors/yul_assembly_safety_detector.py`) that models a bounded set of
+  inline-assembly effects and flags three high-precision, advisory hazards:
+  `yul-memory-safe-violation` (a `memory-safe` block that *structurally* corrupts the memory
+  model — frees the pointer at `0x40` to a literal below `0x80`, or leaves the zero slot
+  `0x60` non-zero — and does not restore it or return/revert before falling through),
+  `yul-unbounded-returndatacopy` (a full `returndatacopy` into a fixed offset with no
+  allocation and no terminating `return`/`revert` over the copied region) and
+  `yul-arbitrary-sstore` (a slot from `calldataload` or from a parameter of an
+  external/public function). A regex cannot know the runtime free pointer, so the model
+  honors the Solidity memory-safety rules: temporary use at or above `mload(0x40)` without
+  updating the pointer, scratch writes, clobber-then-restore and clobber-then-return are all
+  safe and are not flagged. Raw `assembly` is never a finding; `yul-*` names never collapse
+  Slither's informational `assembly` warning. Negative control (the claim that matters, not
+  the near-empty SmartBugs assembly set): on OpenZeppelin `contracts/` and Solady `src/` —
+  the libraries with the most correct assembly — it emits 0 memory-safety and 0
+  returndatacopy findings; the only `arbitrary-sstore` hits are public functions that write a
+  caller-supplied slot. No benchmark claim.
 - **Four DeFi detectors in layer 7** (`miesc/detectors/defi_detectors.py`, contributed by
   @alva-p, #211, split 2 of 7 of #144): `rounding` (a `div*` method chained straight into a
   `mul*` method in fixed-point libraries, the form Slither's divide-before-multiply does not
