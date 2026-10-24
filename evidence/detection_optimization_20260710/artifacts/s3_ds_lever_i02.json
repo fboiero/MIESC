@@ -1,0 +1,225 @@
+{
+  "variant": "lever",
+  "model": "deepseek-reasoner",
+  "type_aware_recall": 0.3448,
+  "detected": 10,
+  "total": 29,
+  "per_contract": {
+    "VulnerableBank.sol": {
+      "hit": 2,
+      "total": 2,
+      "findings": 2
+    },
+    "UnsafeToken.sol": {
+      "hit": 0,
+      "total": 10,
+      "findings": 11
+    },
+    "AccessControlFlawed.sol": {
+      "hit": 6,
+      "total": 7,
+      "findings": 8
+    },
+    "FlashLoanVault.sol": {
+      "hit": 2,
+      "total": 10,
+      "findings": 8
+    }
+  },
+  "raw": {
+    "VulnerableBank.sol": {
+      "n_findings": 2,
+      "findings": [
+        {
+          "line": 35,
+          "type": "reentrancy",
+          "swc": "SWC-107",
+          "severity": "critical"
+        },
+        {
+          "line": 52,
+          "type": "reentrancy",
+          "swc": "SWC-107",
+          "severity": "critical"
+        }
+      ]
+    },
+    "UnsafeToken.sol": {
+      "n_findings": 11,
+      "findings": [
+        {
+          "line": 13,
+          "type": "Missing event in constructor",
+          "swc": "",
+          "severity": "low"
+        },
+        {
+          "line": 22,
+          "type": "Missing zero address check",
+          "swc": "",
+          "severity": "low"
+        },
+        {
+          "line": 32,
+          "type": "Transaction order dependency",
+          "swc": "SWC-114",
+          "severity": "medium"
+        },
+        {
+          "line": 51,
+          "type": "Missing access control",
+          "swc": "SWC-106",
+          "severity": "critical"
+        },
+        {
+          "line": 60,
+          "type": "Missing access control",
+          "swc": "SWC-106",
+          "severity": "critical"
+        },
+        {
+          "line": 73,
+          "type": "Reentrancy",
+          "swc": "SWC-107",
+          "severity": "critical"
+        },
+        {
+          "line": 73,
+          "type": "Unchecked return value",
+          "swc": "SWC-104",
+          "severity": "medium"
+        },
+        {
+          "line": 82,
+          "type": "Unbounded loop DoS",
+          "swc": "SWC-124",
+          "severity": "medium"
+        },
+        {
+          "line": 90,
+          "type": "Timestamp dependency",
+          "swc": "SWC-116",
+          "severity": "low"
+        },
+        {
+          "line": 96,
+          "type": "Weak randomness",
+          "swc": "SWC-120",
+          "severity": "low"
+        },
+        {
+          "line": 116,
+          "type": "Locked ether",
+          "swc": "",
+          "severity": "medium"
+        }
+      ]
+    },
+    "AccessControlFlawed.sol": {
+      "n_findings": 8,
+      "findings": [
+        {
+          "line": 28,
+          "type": "Missing Access Control",
+          "swc": "SWC-105",
+          "severity": "critical"
+        },
+        {
+          "line": 35,
+          "type": "Authorization via tx.origin",
+          "swc": "SWC-115",
+          "severity": "high"
+        },
+        {
+          "line": 46,
+          "type": "Missing Access Control",
+          "swc": "SWC-105",
+          "severity": "critical"
+        },
+        {
+          "line": 53,
+          "type": "Unprotected Selfdestruct",
+          "swc": "SWC-106",
+          "severity": "critical"
+        },
+        {
+          "line": 60,
+          "type": "Missing Access Control",
+          "swc": "SWC-105",
+          "severity": "high"
+        },
+        {
+          "line": 68,
+          "type": "Reinitialization Attack",
+          "swc": "SWC-105",
+          "severity": "high"
+        },
+        {
+          "line": 75,
+          "type": "Transaction Ordering Dependence",
+          "swc": "SWC-114",
+          "severity": "medium"
+        },
+        {
+          "line": 85,
+          "type": "Integer Division Rounding",
+          "swc": "",
+          "severity": "low"
+        }
+      ]
+    },
+    "FlashLoanVault.sol": {
+      "n_findings": 8,
+      "findings": [
+        {
+          "line": 48,
+          "type": "oracle-manipulation (spot price)",
+          "swc": "SWC-120",
+          "severity": "high"
+        },
+        {
+          "line": 53,
+          "type": "cross-function-reentrancy",
+          "swc": "SWC-107",
+          "severity": "critical"
+        },
+        {
+          "line": 62,
+          "type": "unchecked-external-call",
+          "swc": "SWC-104",
+          "severity": "low"
+        },
+        {
+          "line": 69,
+          "type": "price-manipulation-in-collateral",
+          "swc": "SWC-120",
+          "severity": "high"
+        },
+        {
+          "line": 77,
+          "type": "slippage-protection-missing",
+          "swc": "SWC-120",
+          "severity": "high"
+        },
+        {
+          "line": 117,
+          "type": "borrow-during-flash-loan",
+          "swc": "SWC-107",
+          "severity": "critical"
+        },
+        {
+          "line": 134,
+          "type": "no-timelock-emergency",
+          "swc": "SWC-119",
+          "severity": "medium"
+        },
+        {
+          "line": 160,
+          "type": "oracle-manipulation (public setter)",
+          "swc": "SWC-120",
+          "severity": "critical"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="900" height="500" viewBox="0 0 900 500" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="interfaceGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#E3F2FD"/>
+      <stop offset="100%" style="stop-color:#BBDEFB"/>
+    </linearGradient>
+    <linearGradient id="adapterGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#E8F5E9"/>
+      <stop offset="100%" style="stop-color:#C8E6C9"/>
+    </linearGradient>
+    <linearGradient id="toolGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFF3E0"/>
+      <stop offset="100%" style="stop-color:#FFE0B2"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="2" dy="2" stdDeviation="2" flood-opacity="0.2"/>
+    </filter>
+  </defs>
+
+  <!-- Title -->
+  <text x="450" y="35" font-family="Arial, sans-serif" font-size="22" font-weight="bold" fill="#1a237e" text-anchor="middle">
+    Adapter Pattern Implementation / Implementación del Patrón Adapter
+  </text>
+  <text x="450" y="55" font-family="Arial, sans-serif" font-size="12" fill="#5c6bc0" text-anchor="middle">
+    SOLID Principles: Open/Closed, Liskov Substitution, Dependency Inversion
+  </text>
+
+  <!-- ML Orchestrator -->
+  <rect x="360" y="75" width="180" height="70" rx="8" fill="#1565C0" filter="url(#shadow)"/>
+  <text x="450" y="100" font-family="Arial, sans-serif" font-size="14" fill="white" text-anchor="middle" font-weight="bold">ML Orchestrator</text>
+  <text x="450" y="118" font-family="Arial, sans-serif" font-size="10" fill="#BBDEFB" text-anchor="middle">Orquestador Principal</text>
+  <text x="450" y="135" font-family="Arial, sans-serif" font-size="9" fill="#E3F2FD" text-anchor="middle">analyze(), quick_scan(), deep_scan()</text>
+
+  <!-- Arrow from orchestrator to interface -->
+  <path d="M450 145 L450 165" stroke="#1565C0" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#1565C0"/>
+    </marker>
+  </defs>
+
+  <!-- Base Adapter Interface -->
+  <rect x="300" y="170" width="300" height="100" rx="8" fill="url(#interfaceGrad)" stroke="#1976D2" stroke-width="2" stroke-dasharray="5,3" filter="url(#shadow)"/>
+  <text x="450" y="195" font-family="Arial, sans-serif" font-size="14" fill="#1565C0" text-anchor="middle" font-weight="bold">«interface» BaseAdapter</text>
+  <line x1="320" y1="205" x2="580" y2="205" stroke="#1976D2" stroke-width="1"/>
+  <text x="330" y="222" font-family="Courier New, monospace" font-size="10" fill="#0D47A1">+ name: str</text>
+  <text x="330" y="236" font-family="Courier New, monospace" font-size="10" fill="#0D47A1">+ category: ToolCategory</text>
+  <text x="330" y="250" font-family="Courier New, monospace" font-size="10" fill="#0D47A1">+ analyze(path: str) → ToolResult</text>
+  <text x="330" y="264" font-family="Courier New, monospace" font-size="10" fill="#0D47A1">+ is_available() → bool</text>
+
+  <!-- Arrows to adapters -->
+  <path d="M350 270 L200 310" stroke="#4CAF50" stroke-width="2" stroke-dasharray="5,3"/>
+  <path d="M400 270 L400 310" stroke="#4CAF50" stroke-width="2" stroke-dasharray="5,3"/>
+  <path d="M500 270 L500 310" stroke="#4CAF50" stroke-width="2" stroke-dasharray="5,3"/>
+  <path d="M550 270 L700 310" stroke="#4CAF50" stroke-width="2" stroke-dasharray="5,3"/>
+
+  <!-- Concrete Adapters -->
+  <!-- Slither Adapter -->
+  <rect x="100" y="310" width="160" height="90" rx="8" fill="url(#adapterGrad)" stroke="#4CAF50" stroke-width="2" filter="url(#shadow)"/>
+  <text x="180" y="335" font-family="Arial, sans-serif" font-size="12" fill="#2E7D32" text-anchor="middle" font-weight="bold">SlitherAdapter</text>
+  <line x1="115" y1="345" x2="245" y2="345" stroke="#4CAF50" stroke-width="1"/>
+  <text x="120" y="360" font-family="Courier New, monospace" font-size="9" fill="#1B5E20">name = "slither"</text>
+  <text x="120" y="375" font-family="Courier New, monospace" font-size="9" fill="#1B5E20">category = STATIC</text>
+  <text x="120" y="390" font-family="Courier New, monospace" font-size="9" fill="#1B5E20">_parse_output()</text>
+
+  <!-- Mythril Adapter -->
+  <rect x="300" y="310" width="160" height="90" rx="8" fill="url(#adapterGrad)" stroke="#4CAF50" stroke-width="2" filter="url(#shadow)"/>
+  <text x="380" y="335" font-family="Arial, sans-serif" font-size="12" fill="#2E7D32" text-anchor="middle" font-weight="bold">MythrilAdapter</text>
+  <line x1="315" y1="345" x2="445" y2="345" stroke="#4CAF50" stroke-width="1"/>
+  <text x="320" y="360" font-family="Courier New, monospace" font-size="9" fill="#1B5E20">name = "mythril"</text>
+  <text x="320" y="375" font-family="Courier New, monospace" font-size="9" fill="#1B5E20">category = SYMBOLIC</text>
+  <text x="320" y="390" font-family="Courier New, monospace" font-size="9" fill="#1B5E20">_run_myth()</text>
+
+  <!-- Echidna Adapter -->
+  <rect x="500" y="310" width="160" height="90" rx="8" fill="url(#adapterGrad)" stroke="#4CAF50" stroke-width="2" filter="url(#shadow)"/>
+  <text x="580" y="335" font-family="Arial, sans-serif" font-size="12" fill="#2E7D32" text-anchor="middle" font-weight="bold">EchidnaAdapter</text>
+  <line x1="515" y1="345" x2="645" y2="345" stroke="#4CAF50" stroke-width="1"/>
+  <text x="520" y="360" font-family="Courier New, monospace" font-size="9" fill="#1B5E20">name = "echidna"</text>
+  <text x="520" y="375" font-family="Courier New, monospace" font-size="9" fill="#1B5E20">category = FUZZING</text>
+  <text x="520" y="390" font-family="Courier New, monospace" font-size="9" fill="#1B5E20">_fuzz_contract()</text>
+
+  <!-- PropertyGPT Adapter -->
+  <rect x="700" y="310" width="160" height="90" rx="8" fill="url(#adapterGrad)" stroke="#4CAF50" stroke-width="2" filter="url(#shadow)"/>
+  <text x="780" y="335" font-family="Arial, sans-serif" font-size="12" fill="#2E7D32" text-anchor="middle" font-weight="bold">PropertyGPTAdapter</text>
+  <line x1="715" y1="345" x2="845" y2="345" stroke="#4CAF50" stroke-width="1"/>
+  <text x="720" y="360" font-family="Courier New, monospace" font-size="9" fill="#1B5E20">name = "propertygpt"</text>
+  <text x="720" y="375" font-family="Courier New, monospace" font-size="9" fill="#1B5E20">category = ML_AI</text>
+  <text x="720" y="390" font-family="Courier New, monospace" font-size="9" fill="#1B5E20">_generate_props()</text>
+
+  <!-- Arrows to external tools -->
+  <path d="M180 400 L180 420" stroke="#FF9800" stroke-width="2"/>
+  <path d="M380 400 L380 420" stroke="#FF9800" stroke-width="2"/>
+  <path d="M580 400 L580 420" stroke="#FF9800" stroke-width="2"/>
+  <path d="M780 400 L780 420" stroke="#FF9800" stroke-width="2"/>
+
+  <!-- External Tools -->
+  <rect x="110" y="425" width="140" height="50" rx="8" fill="url(#toolGrad)" stroke="#FF9800" stroke-width="2" filter="url(#shadow)"/>
+  <text x="180" y="450" font-family="Arial, sans-serif" font-size="11" fill="#E65100" text-anchor="middle" font-weight="bold">Slither CLI</text>
+  <text x="180" y="465" font-family="Arial, sans-serif" font-size="9" fill="#F57C00" text-anchor="middle">slither contract.sol</text>
+
+  <rect x="310" y="425" width="140" height="50" rx="8" fill="url(#toolGrad)" stroke="#FF9800" stroke-width="2" filter="url(#shadow)"/>
+  <text x="380" y="450" font-family="Arial, sans-serif" font-size="11" fill="#E65100" text-anchor="middle" font-weight="bold">Mythril CLI</text>
+  <text x="380" y="465" font-family="Arial, sans-serif" font-size="9" fill="#F57C00" text-anchor="middle">myth analyze</text>
+
+  <rect x="510" y="425" width="140" height="50" rx="8" fill="url(#toolGrad)" stroke="#FF9800" stroke-width="2" filter="url(#shadow)"/>
+  <text x="580" y="450" font-family="Arial, sans-serif" font-size="11" fill="#E65100" text-anchor="middle" font-weight="bold">Echidna</text>
+  <text x="580" y="465" font-family="Arial, sans-serif" font-size="9" fill="#F57C00" text-anchor="middle">echidna-test</text>
+
+  <rect x="710" y="425" width="140" height="50" rx="8" fill="url(#toolGrad)" stroke="#FF9800" stroke-width="2" filter="url(#shadow)"/>
+  <text x="780" y="450" font-family="Arial, sans-serif" font-size="11" fill="#E65100" text-anchor="middle" font-weight="bold">Ollama LLM</text>
+  <text x="780" y="465" font-family="Arial, sans-serif" font-size="9" fill="#F57C00" text-anchor="middle">codellama:13b</text>
+
+  <!-- Labels -->
+  <text x="50" y="260" font-family="Arial, sans-serif" font-size="10" fill="#666" font-style="italic">implements</text>
+  <text x="50" y="440" font-family="Arial, sans-serif" font-size="10" fill="#666" font-style="italic">uses</text>
+
+  <!-- More adapters indicator -->
+  <text x="450" y="490" font-family="Arial, sans-serif" font-size="11" fill="#9E9E9E" text-anchor="middle">... + 21 more adapters / + 21 adaptadores más ...</text>
+</svg>

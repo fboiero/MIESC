@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 400" font-family="Arial, Helvetica, sans-serif">
+  <!-- Background -->
+  <rect width="700" height="400" fill="#ffffff"/>
+  
+  <!-- Title -->
+  <text x="350" y="30" text-anchor="middle" font-size="20" font-weight="bold" fill="#2c3e50">
+    Arquitectura Propuesta: MIESC Multi-Chain
+  </text>
+  
+  <!-- Main container -->
+  <rect x="50" y="55" width="600" height="320" fill="#f8f9fa" rx="10" stroke="#3498db" stroke-width="2"/>
+  
+  <!-- Header: MIESC Multi-Chain -->
+  <rect x="50" y="55" width="600" height="50" fill="#3498db" rx="10"/>
+  <rect x="50" y="90" width="600" height="15" fill="#3498db"/>
+  <text x="350" y="88" text-anchor="middle" font-size="18" font-weight="bold" fill="white">
+    MIESC Multi-Chain
+  </text>
+  
+  <!-- Capa de Abstracción -->
+  <rect x="70" y="120" width="560" height="140" fill="#e8f6f3" rx="8" stroke="#1abc9c" stroke-width="2"/>
+  <text x="350" y="145" text-anchor="middle" font-size="14" font-weight="bold" fill="#1e8449">
+    Capa de Abstracción
+  </text>
+  
+  <!-- Adapters row -->
+  <!-- Solidity Adapter -->
+  <rect x="90" y="160" width="120" height="80" fill="#9b59b6" rx="6" stroke="#8e44ad" stroke-width="2"/>
+  <text x="150" y="195" text-anchor="middle" font-size="13" font-weight="bold" fill="white">Solidity</text>
+  <text x="150" y="215" text-anchor="middle" font-size="12" fill="#e8daef">Adapter</text>
+  <text x="150" y="235" text-anchor="middle" font-size="10" fill="#d7bde2">EVM</text>
+  
+  <!-- Rust Adapter -->
+  <rect x="225" y="160" width="120" height="80" fill="#e74c3c" rx="6" stroke="#c0392b" stroke-width="2"/>
+  <text x="285" y="195" text-anchor="middle" font-size="13" font-weight="bold" fill="white">Rust</text>
+  <text x="285" y="215" text-anchor="middle" font-size="12" fill="#fdedec">Adapter</text>
+  <text x="285" y="235" text-anchor="middle" font-size="10" fill="#f5b7b1">Solana</text>
+  
+  <!-- Move Adapter -->
+  <rect x="360" y="160" width="120" height="80" fill="#3498db" rx="6" stroke="#2980b9" stroke-width="2"/>
+  <text x="420" y="195" text-anchor="middle" font-size="13" font-weight="bold" fill="white">Move</text>
+  <text x="420" y="215" text-anchor="middle" font-size="12" fill="#d6eaf8">Adapter</text>
+  <text x="420" y="235" text-anchor="middle" font-size="10" fill="#aed6f1">Aptos/Sui</text>
+  
+  <!-- Cairo Adapter -->
+  <rect x="495" y="160" width="120" height="80" fill="#f39c12" rx="6" stroke="#d68910" stroke-width="2"/>
+  <text x="555" y="195" text-anchor="middle" font-size="13" font-weight="bold" fill="white">Cairo</text>
+  <text x="555" y="215" text-anchor="middle" font-size="12" fill="#fef9e7">Adapter</text>
+  <text x="555" y="235" text-anchor="middle" font-size="10" fill="#fdebd0">StarkNet</text>
+  
+  <!-- Taxonomía Unificada -->
+  <rect x="70" y="275" width="560" height="85" fill="#2c3e50" rx="8"/>
+  <text x="350" y="305" text-anchor="middle" font-size="14" font-weight="bold" fill="white">
+    Taxonomía Unificada
+  </text>
+  <text x="350" y="335" text-anchor="middle" font-size="13" fill="#1abc9c">
+    SWC → Cross-Chain Weakness Enumeration (CCWE)
+  </text>
+</svg>

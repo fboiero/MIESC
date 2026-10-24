@@ -1,0 +1,70 @@
+MIESC Project Structure
+=======================
+
+miesc/                    # PyPI Package
+├── __init__.py          # Main API (analyze, quick_scan)
+├── cli/
+│   ├── __init__.py
+│   └── main.py          # Click CLI
+└── core/
+    ├── __init__.py
+    ├── orchestrator.py  # MIESCOrchestrator
+    └── quick_scanner.py # QuickScanner
+
+src/                      # Source Code
+├── adapters/            # 25 tool adapters
+│   ├── slither_adapter.py
+│   ├── mythril_adapter.py
+│   ├── echidna_adapter.py
+│   ├── aderyn_adapter.py
+│   ├── halmos_adapter.py
+│   ├── certora_adapter.py
+│   ├── medusa_adapter.py
+│   ├── foundry_adapter.py
+│   ├── solhint_adapter.py
+│   ├── smtchecker_adapter.py
+│   ├── smartllm_adapter.py
+│   └── ... (25 total)
+├── agents/              # MCP Agents
+│   ├── base_agent.py
+│   ├── static_agent.py
+│   ├── dynamic_agent.py
+│   ├── symbolic_agent.py
+│   ├── formal_agent.py
+│   ├── policy_agent.py
+│   ├── smartllm_agent.py
+│   └── coordinator_agent.py
+├── ml/                  # ML Pipeline
+│   ├── __init__.py
+│   ├── false_positive_filter.py
+│   ├── severity_predictor.py
+│   ├── vulnerability_clusterer.py
+│   ├── code_embeddings.py
+│   └── feedback_loop.py
+├── mcp/                 # Model Context Protocol
+│   ├── __init__.py
+│   └── context_bus.py
+├── security/            # Security modules
+│   ├── __init__.py
+│   ├── input_validator.py
+│   ├── api_limiter.py
+│   └── secure_logging.py
+└── utils/
+    └── web_dashboard.py # Static HTML dashboard
+
+miesc/api/
+└── rest.py              # Core REST API
+
+tests/                    # Test Suite (204 tests)
+├── test_adapters.py
+├── test_agents.py
+├── test_security.py
+├── test_ml_pipeline.py
+└── ...
+
+contracts/audit/          # Example Contracts
+├── VulnerableBank.sol   # Reentrancy
+├── AccessControlFlawed.sol
+├── UnsafeToken.sol
+├── FlashLoanVault.sol
+└── NFTMarketplace.sol
