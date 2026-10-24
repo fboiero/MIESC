@@ -134,7 +134,7 @@ for the findings).
 - **`solc` must be cached on a sandboxed host.** With outbound network denied, `forge` cannot
   download the compiler the contract's pragma asks for; the probe then fails to compile and the
   gap stays `hypothesis` with `reason = "probe did not compile or run standalone"` — silently
-  inconclusive, never a false positive. Pre-install the versions you need (`svm install <ver>`, or
-  one `forge build` of a same-pragma file outside the sandbox) before relying on execution.
+  inconclusive, never a false positive. Pre-install the versions you need (`forge build --use <version>` on any file, outside the
+  sandbox) before relying on execution.
 - **No benchmark claim.** These results are advisory; no canonical precision/recall uplift is
   claimed from this capability.
