@@ -1,8 +1,10 @@
 """
 Unit tests for the deterministic resource/liveness-griefing progress-surface miner (SDD Phase 1).
 
-Covers growable-resource detection (array/mapping/queue), growth sources, progress-function
-linking, source anchoring, the provider-neutral parser round-trip, and the advisory contract.
+A surface is a growable resource that a progress-named function *traverses with a loop* (not an
+O(1) per-user access). Growth is `.push(`, `+=`, or a non-clearing assignment — never `==`, `-=`,
+`= 0` or `delete`. Covers detection, the growth/traversal distinction, token (not substring)
+matching, source anchoring, the parser round-trip, and the advisory contract.
 """
 
 from __future__ import annotations
@@ -12,72 +14,104 @@ from pathlib import Path
 from miesc.llm.resource_liveness_griefing import (
     GrowableSurface,
     ResourceLivenessGriefingPlan,
+    _is_progress_name,
+    _tokenize,
     mine_resource_liveness_griefing,
     parse_resource_liveness_plans,
 )
 
-CONTRACT = """
+PAYOUTS = """
 contract Payouts {
-    address[] public recipients;
-    mapping(address => uint256) public pendingWithdrawals;
-    uint256[] internal withdrawalQueue;
+    address[] public depositors;
+    mapping(address => uint256) public balances;
+    mapping(address => uint256) public pendingRefunds;
 
-    function enroll(address a) external { recipients.push(a); }
-    function credit(address a, uint256 v) external { pendingWithdrawals[a] = v; }
-    function distribute() external {
-        for (uint256 i = 0; i < recipients.length; i++) {
-            payable(recipients[i]).transfer(1);
+    function deposit() external payable {
+        if (balances[msg.sender] == 0) { depositors.push(msg.sender); }
+        balances[msg.sender] += msg.value;
+    }
+    function payoutAll() external {
+        for (uint256 i = 0; i < depositors.length; i++) {
+            payable(depositors[i]).transfer(balances[depositors[i]]);
         }
     }
     function withdraw() external {
-        uint256 amt = pendingWithdrawals[msg.sender];
-        pendingWithdrawals[msg.sender] = 0;
+        uint256 amt = balances[msg.sender];
+        balances[msg.sender] = 0;
         payable(msg.sender).transfer(amt);
     }
-    function queueWithdrawal(uint256 id) external { withdrawalQueue.push(id); }
-    function processQueue() external {
-        for (uint256 i = 0; i < withdrawalQueue.length; i++) { delete withdrawalQueue[i]; }
-    }
-    function noop() external view returns (uint256) { return 1; }
+    function refundOf(address a) external view returns (uint256) { return pendingRefunds[a]; }
 }
 """
 
 
-def _plans(src):
-    return mine_resource_liveness_griefing(src)
+def _surfaces(src, path=None):
+    return {p.surface.resource: p.surface for p in mine_resource_liveness_griefing(src, path)}
 
 
-def _by_resource(src):
-    return {p.surface.resource: p.surface for p in _plans(src)}
+class TestTraversalGate:
+    def test_array_traversed_by_loop_is_a_surface(self):
+        s = _surfaces(PAYOUTS)
+        assert "depositors" in s
+        assert "payoutAll" in s["depositors"].progress_functions  # for over depositors.length
+        assert s["depositors"].resource_kind == "array"
 
+    def test_mapping_traversed_in_loop_is_a_surface(self):
+        # balances is read as balances[depositors[i]] inside payoutAll's loop
+        s = _surfaces(PAYOUTS)
+        assert "balances" in s
+        assert "payoutAll" in s["balances"].progress_functions
 
-class TestResourceDetection:
-    def test_array_and_mapping_and_queue_detected(self):
-        res = _by_resource(CONTRACT)
-        assert "recipients" in res  # dynamic array
-        assert "pendingWithdrawals" in res  # mapping
-        assert "withdrawalQueue" in res  # array, queue-named
+    def test_o1_mapping_access_is_not_a_surface(self):
+        # pendingRefunds is only read O(1) in refundOf (no loop) -> not a griefing surface
+        assert "pendingRefunds" not in _surfaces(PAYOUTS)
 
-    def test_resource_kind_inference(self):
-        res = _by_resource(CONTRACT)
-        assert res["withdrawalQueue"].resource_kind == "withdrawal_queue"
-        assert res["pendingWithdrawals"].resource_kind == "pending_payment"
-        assert res["recipients"].resource_kind == "array"
-
-    def test_growth_sources(self):
-        res = _by_resource(CONTRACT)
-        assert "enroll" in res["recipients"].growth_sources  # .push(
-        assert "credit" in res["pendingWithdrawals"].growth_sources  # [k] =
-
-    def test_progress_functions_linked(self):
-        res = _by_resource(CONTRACT)
-        assert "distribute" in res["recipients"].progress_functions  # iterates recipients
-        assert "withdraw" in res["pendingWithdrawals"].progress_functions
-
-    def test_static_or_untraversed_resource_skipped(self):
-        # an array nobody grows or traverses is not a progress surface
-        src = "contract C { uint256[] private cache; function f() public {} }"
+    def test_growth_only_without_traversal_is_dropped(self):
+        src = """
+        contract C {
+            mapping(address => uint256) bal;
+            function credit(address a) external { bal[a] += 1; }
+            function readOne(address a) external view returns (uint256) { return bal[a]; }
+        }
+        """
         assert mine_resource_liveness_griefing(src) == []
+
+
+class TestGrowthRegex:
+    def test_compound_assign_counts_as_growth(self):
+        # deposit grows balances via `+=`
+        assert "deposit" in _surfaces(PAYOUTS)["balances"].growth_sources
+
+    def test_comparison_and_clear_are_not_growth(self):
+        # withdraw only does `balances[k] == ...` (comparison) and `balances[k] = 0` (clear)
+        assert "withdraw" not in _surfaces(PAYOUTS)["balances"].growth_sources
+
+    def test_push_counts_as_growth(self):
+        assert "deposit" in _surfaces(PAYOUTS)["depositors"].growth_sources
+
+
+class TestTokenMatching:
+    def test_tokenize(self):
+        assert _tokenize("payoutAll") == ["payout", "all"]
+        assert _tokenize("withdrawal_queue") == ["withdrawal", "queue"]
+
+    def test_progress_name_by_token_not_substring(self):
+        assert _is_progress_name("payoutAll")
+        assert _is_progress_name("liquidatePosition")
+        assert _is_progress_name("emergencyWithdraw")
+        assert not _is_progress_name("preprocess")  # 'process' only as a substring
+        assert not _is_progress_name("setOwner")
+
+    def test_kind_substring_does_not_misfire(self):
+        # a queue-named array traversed in a loop keeps its kind; 'task' mid-word does not
+        src = """
+        contract Q {
+            uint256[] withdrawalQueue;
+            function flush() external { for (uint256 i; i < withdrawalQueue.length; i++) { delete withdrawalQueue[i]; } }
+        }
+        """
+        s = _surfaces(src)
+        assert s and s["withdrawalQueue"].resource_kind == "withdrawal_queue"
 
 
 class TestContractAndAdvisory:
@@ -88,28 +122,31 @@ class TestContractAndAdvisory:
         assert mine_resource_liveness_griefing("") == []
 
     def test_returns_plans_not_findings(self):
-        plans = _plans(CONTRACT)
+        plans = mine_resource_liveness_griefing(PAYOUTS)
         assert plans and isinstance(plans[0], ResourceLivenessGriefingPlan)
         assert not hasattr(plans[0], "severity")
         d = plans[0].to_dict()
         assert d["promotion"]["state"] == "hypothesis"
         assert d["metadata"]["capability"] == "resource_liveness_griefing_hardening"
-        assert "surface" in d
 
-    def test_anchors_present(self):
-        plans = mine_resource_liveness_griefing(CONTRACT, Path("/x/Payouts.sol"))
+    def test_anchors_use_file_name(self):
+        plans = mine_resource_liveness_griefing(PAYOUTS, Path("/x/Payouts.sol"))
         assert plans[0].surface.source_anchors[0].startswith("Payouts.sol:")
 
 
 class TestParserRoundTrip:
     def test_round_trip(self):
-        plan = next(p for p in _plans(CONTRACT) if p.surface.resource == "recipients")
+        plan = next(
+            p
+            for p in mine_resource_liveness_griefing(PAYOUTS)
+            if p.surface.resource == "depositors"
+        )
         parsed = parse_resource_liveness_plans(
             {"resource_liveness_griefing_plans": [plan.to_dict()]}
         )
         assert len(parsed) == 1
-        assert parsed[0].surface.resource == "recipients"
-        assert parsed[0].surface.growth_sources == plan.surface.growth_sources
+        assert parsed[0].surface.resource == "depositors"
+        assert parsed[0].surface.progress_functions == plan.surface.progress_functions
 
     def test_parser_rejects_garbage(self):
         assert parse_resource_liveness_plans("nope") == []

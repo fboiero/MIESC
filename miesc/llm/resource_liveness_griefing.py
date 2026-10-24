@@ -113,7 +113,8 @@ def parse_resource_liveness_plans(data: Any) -> List[ResourceLivenessGriefingPla
         objective = _safe_text(raw.get("objective"), MAX_AGENT_TEXT_CHARS, allow_multiline=True)
         if not objective:
             continue
-        rs = raw.get("surface") if isinstance(raw.get("surface"), Mapping) else {}
+        raw_surface = raw.get("surface")
+        rs: Mapping[str, Any] = raw_surface if isinstance(raw_surface, Mapping) else {}
         resource = _safe_label(rs.get("resource")) or ""
         surface = GrowableSurface(
             resource=resource,
@@ -141,10 +142,39 @@ _MAPPING_DECL_RE = re.compile(
     r"\bmapping\s*\([^;]*?\)\s+(?:public\s+|private\s+|internal\s+)*([A-Za-z_]\w*)\s*[;=]"
 )
 _FUNCTION_RE = re.compile(r"\bfunction\s+(?P<name>[A-Za-z_]\w*)\s*\(")
-_PROGRESS_RE = re.compile(
-    r"(?i)(withdraw|claim|refund|settle|execute|liquidat|process|finaliz|redeem|"
-    r"payout|distribut|relay|upkeep|recover|dequeue|flush)"
+
+# Progress-critical stems, matched against camelCase / snake_case *tokens* (not as raw
+# substrings) so ``emergencyWithdraw`` matches but ``preprocess`` does not falsely hit
+# ``process`` mid-word.
+_PROGRESS_STEMS = (
+    "withdraw",
+    "claim",
+    "refund",
+    "settle",
+    "execute",
+    "liquidat",
+    "process",
+    "finaliz",
+    "redeem",
+    "payout",
+    "distribut",
+    "relay",
+    "upkeep",
+    "recover",
+    "dequeue",
+    "flush",
 )
+
+
+def _tokenize(name: str) -> List[str]:
+    """Split a camelCase / snake_case identifier into lowercase tokens."""
+    spaced = re.sub(r"(?<=[a-z0-9])(?=[A-Z])", " ", name).replace("_", " ")
+    return [p.lower() for p in spaced.split()]
+
+
+def _is_progress_name(name: str) -> bool:
+    return any(t.startswith(s) for t in _tokenize(name) for s in _PROGRESS_STEMS)
+
 
 _KIND_BY_NAME = [
     # *_queue kinds require an explicit "queue" token so pull-payment maps like
@@ -158,10 +188,15 @@ _KIND_BY_NAME = [
 
 
 def _resource_kind(name: str, is_mapping: bool) -> str:
-    low = name.lower()
+    # Match a kind keyword as a whole token, or (for long, unambiguous compound keys like
+    # ``withdrawalqueue``) as a substring of the de-spaced name — so short keys like ``task``
+    # or ``credit`` no longer hit mid-word (``taskmaster``).
+    tokens = _tokenize(name)
+    joined = "".join(tokens)
     for kind, keys in _KIND_BY_NAME:
-        if any(k in low for k in keys):
-            return kind
+        for k in keys:
+            if any(t == k for t in tokens) or (len(k) >= 7 and k in joined):
+                return kind
     return "mapping_index" if is_mapping else "array"
 
 
@@ -224,7 +259,7 @@ def _functions(masked: str) -> List[_Func]:
                 name=m.group("name"),
                 start=m.start(),
                 body=masked[brace : end + 1],
-                is_progress=bool(_PROGRESS_RE.search(m.group("name"))),
+                is_progress=_is_progress_name(m.group("name")),
             )
         )
     return funcs
@@ -236,8 +271,9 @@ def mine_resource_liveness_griefing(
 ) -> List[ResourceLivenessGriefingPlan]:
     """Deterministically build the progress surface (growable resources × progress functions).
 
-    Returns one plan per growable resource that is either grown or traversed by a progress
-    function; empty list when none. Never raises and never emits a Finding — advisory only.
+    Returns one plan per growable resource that a progress-named function traverses with a
+    loop (an O(1) per-user access is not a surface); empty list when none. Never raises and
+    never emits a Finding — advisory only.
     """
     if not isinstance(source_code, str) or not source_code.strip():
         return []
@@ -268,18 +304,44 @@ def mine_resource_liveness_griefing(
 
     plans: List[ResourceLivenessGriefingPlan] = []
     for name, meta in resources.items():
-        word = re.compile(r"\b" + re.escape(name) + r"\b")
-        push = re.compile(r"\b" + re.escape(name) + r"\s*\.\s*push\s*\(")
-        assign = re.compile(r"\b" + re.escape(name) + r"\s*\[[^\]]*\]\s*=")
-        growth = sorted({f.name for f in funcs if push.search(f.body) or assign.search(f.body)})
-        progress = sorted({f.name for f in funcs if f.is_progress and word.search(f.body)})
-        if not growth and not progress:
-            continue  # a resource nobody grows or traverses is not a progress surface
+        esc = re.escape(name)
+        push = re.compile(r"\b" + esc + r"\s*\.\s*push\s*\(")
+        # Growth = push, compound-add (`+=`), or a non-clearing assignment. Deliberately NOT
+        # `==` (a comparison), `-=` (a reduction), `= 0` / `= false` (a clear), or `delete`.
+        grow_add = re.compile(r"\b" + esc + r"\s*\[[^\]]*\]\s*\+=")
+        # `\s*` lives INSIDE the negative lookahead so backtracking can't bypass the
+        # not-a-clear check (a bare `\s*` before it would match zero width and pass on ` 0`).
+        grow_set = re.compile(
+            r"\b" + esc + r"\s*\[[^\]]*\]\s*=(?!=)(?!\s*(?:0\b|false\b|0x0+\b|delete\b))"
+        )
+        # Traversal = a `for`/`while` loop in the function that reads the resource or its length.
+        loop_re = re.compile(r"\b(?:for|while)\b")
+        refs_re = re.compile(r"\b" + esc + r"\s*(?:\.\s*length|\[)")
+
+        traversal = sorted(
+            {
+                f.name
+                for f in funcs
+                if f.is_progress and loop_re.search(f.body) and refs_re.search(f.body)
+            }
+        )
+        # The SDD gap is *progress over* a growable resource. An O(1) access (e.g. a per-user
+        # `withdraw` reading `balances[msg.sender]`) is not a griefing surface, and a resource
+        # nobody traverses with a loop is not one either — so require a traversal.
+        if not traversal:
+            continue
+        growth = sorted(
+            {
+                f.name
+                for f in funcs
+                if push.search(f.body) or grow_add.search(f.body) or grow_set.search(f.body)
+            }
+        )
         surface = GrowableSurface(
             resource=name,
             resource_kind=meta["kind"],
             growth_sources=growth[:MAX_AGENT_ITEMS],
-            progress_functions=progress[:MAX_AGENT_ITEMS],
+            progress_functions=traversal[:MAX_AGENT_ITEMS],
             source_anchors=[meta["anchor"]],
         )
         plans.append(
