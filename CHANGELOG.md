@@ -94,6 +94,18 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- The resource/liveness progress-surface miner counted two things as a traversal that are
+  not one: a bodiless declaration (an interface's `function execute(...) external;`) whose
+  "body" became the whole next contract in the file, loops included, and the word `for`
+  inside a string literal (`"Incorrect balances for bonded amount"`). On SmartBugs-curated
+  10 of its 14 surfaces came from those two artifacts (parity_wallet ×8, spank_chain ×2).
+  Two shared helpers in `miesc/llm/_solidity_text.py` fix it for every miner: `_body_brace`
+  (returns no body when a `;` precedes the next `{`) and `_mask_strings` (blanks literal
+  contents, offsets preserved); a traversal now also requires the resource to be referenced
+  inside the loop's header or block, not merely somewhere in the same function. The
+  revert-invariant miner's span table had the same bodiless-declaration pattern and uses the
+  same helper. Corpus after the fix: 5 surfaces in 3 contracts (rubixi, etheraffle ×2,
+  send_loop ×2), all real loops; real-project sweep unchanged (Aave's one real surface).
 - `miesc export` read only the `results` list, so every format (SARIF, CSV, JSONL,
   Markdown, HTML, GitHub annotations) exported zero findings from the JSON that
   `audit full` writes through the ML orchestrator (`raw_findings` / `ml_enhanced`,

@@ -57,3 +57,42 @@ class TestMatchBrace:
     def test_unmatched_returns_len(self):
         src = "f() { g();"
         assert _match_brace(src, src.index("{")) == len(src)
+
+
+class TestMaskStrings:
+    def test_blanks_string_contents_and_keeps_offsets(self):
+        from miesc.llm._solidity_text import _mask_strings
+
+        src = "require(ok, \"for bonded amount\"); x = 'a{b'; // for\n"
+        out = _mask_strings(src)
+        assert len(out) == len(src)
+        assert "for bonded" not in out and "a{b" not in out
+        assert out.startswith('require(ok, "') and out.count('"') == 2
+        # the comment is not a string: untouched here (comments are a separate pass)
+        assert out.endswith("// for\n")
+
+    def test_escaped_quote_does_not_end_the_literal(self):
+        from miesc.llm._solidity_text import _mask_strings
+
+        src = 'emit E("say \\"for\\" now"); for (;;) {}'
+        out = _mask_strings(src)
+        assert "for (;;)" in out and "say" not in out
+
+
+class TestBodyBrace:
+    def test_returns_the_opening_brace_of_a_body(self):
+        from miesc.llm._solidity_text import _body_brace
+
+        src = "function f() public returns (uint) { return 1; }"
+        assert src[_body_brace(src, src.index(")") + 1)] == "{"
+
+    def test_bodiless_declaration_returns_minus_one(self):
+        from miesc.llm._solidity_text import _body_brace
+
+        src = "function execute(address to) external;\ncontract W { function g() { } }"
+        assert _body_brace(src, src.index(")") + 1) == -1
+
+    def test_no_brace_at_all_returns_minus_one(self):
+        from miesc.llm._solidity_text import _body_brace
+
+        assert _body_brace("function f() external", 12) == -1

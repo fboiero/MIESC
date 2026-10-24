@@ -160,3 +160,15 @@ class TestReviewFixes:
     def test_capacity_is_not_accounting_cap(self):
         cats = {g.defensive_category for g in _guards(_wrap("require(capacity > 0);"))}
         assert "accounting_cap" not in cats
+
+
+class TestSpanCollection:
+    def test_bodiless_declaration_does_not_produce_a_span(self):
+        from miesc.llm.revert_invariant_mining import _collect_spans
+
+        src = (
+            "contract Abi { function execute(address to) external; }\n"
+            "contract W { function f() public { require(msg.sender == owner); } }\n"
+        )
+        names = [name for _, _, name in _collect_spans(src)]
+        assert names == ["f"]
