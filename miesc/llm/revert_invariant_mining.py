@@ -19,11 +19,12 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Optional
+from typing import Any, Collection, Dict, List, Mapping, Optional
 
 from miesc.llm._solidity_text import (
     _body_brace,
     _line_of,
+    _match_brace,
     _strip_comments,
     split_identifier,
 )
@@ -431,18 +432,21 @@ class _FuncSig:
     visibility: str
     mutates: bool
     modifiers: List[str]
+    params: str = ""
+    body: str = ""
 
 
 def _collect_functions(masked: str) -> List["_FuncSig"]:
-    """Enumerate named functions with visibility, state-mutability, and applied modifiers."""
+    """Enumerate named functions with visibility, state-mutability, applied modifiers, the raw
+    parameter-list text, and the body text (all already balanced here, so no second parse)."""
     out: List[_FuncSig] = []
     for m in _FUNCTION_DECL_RE.finditer(masked):
         popen = m.end() - 1
-        _, pclose = _balanced_arg(masked, popen)
-        body = _body_brace(masked, pclose)
-        if body == -1:
+        params, pclose = _balanced_arg(masked, popen)
+        brace = _body_brace(masked, pclose)
+        if brace == -1:
             continue  # abstract/interface declaration: no body of its own
-        tail = masked[pclose + 1 : body]
+        tail = masked[pclose + 1 : brace]
         vis = _VIS_RE.search(tail)
         # strip modifier args and the returns clause, then bare identifiers are the modifiers
         cleaned = re.sub(r"\([^()]*\)", " ", tail)
@@ -453,8 +457,25 @@ def _collect_functions(masked: str) -> List["_FuncSig"]:
                 visibility=vis.group(1) if vis else "",
                 mutates=not _VIEW_RE.search(tail),
                 modifiers=modifiers,
+                params=params,
+                body=masked[brace : _match_brace(masked, brace)],
             )
         )
+    return out
+
+
+# Parameter-name fragments that mark a function as time-bounded. Substrings (not whole tokens):
+# ``expir`` covers expiry/expiration/expired/expires, and the ``valid*`` forms are distinctive
+# enough that a substring match carries no realistic collision.
+_DEADLINE_HINTS = ("deadline", "expir", "validuntil", "validafter", "validbefore")
+
+
+def _deadline_params(f: "_FuncSig") -> List[str]:
+    """The parameter identifiers naming a deadline/expiry-like argument (names, not types)."""
+    out: List[str] = []
+    for ident in re.findall(r"[A-Za-z_]\w*", f.params):
+        if any(hint in ident.lower() for hint in _DEADLINE_HINTS) and ident not in out:
+            out.append(ident)
     return out
 
 
@@ -507,12 +528,24 @@ def _family_gap(
     owner: Dict[str, set],
     expected: str,
     precondition: str,
+    opaque_names: "Collection[str]" = (),
 ) -> Optional[GuardGapHypothesis]:
     """Emit one ``inconsistent`` hypothesis when a group has a guarded and an unguarded member
-    for ``category`` (opaque members excluded). ``None`` when the group is consistent."""
+    for ``category`` (opaque members excluded). ``None`` when the group is consistent.
+
+    ``opaque_names`` promotes a would-be-unguarded member to opaque (excluded): the caller knows
+    the property is delegated somewhere this parser cannot follow — the same epistemic state as an
+    unresolved modifier, so it is treated the same way rather than asserted as a gap."""
     if len(members) < 2:
         return None
-    cls = {f.name: _classify_for(f, category, owner) for f in members}
+
+    def _cls(f: "_FuncSig") -> str:
+        c = _classify_for(f, category, owner)
+        if c == "unguarded" and f.name in opaque_names:
+            return "opaque"
+        return c
+
+    cls = {f.name: _cls(f) for f in members}
     guarded = sorted(f.name for f in members if cls[f.name] == "guarded")
     unguarded = sorted(f.name for f in members if cls[f.name] == "unguarded")
     if not guarded or not unguarded:
@@ -535,7 +568,7 @@ def _family_gap(
 def _gap_hypotheses(
     guards: List[GuardInventoryItem], functions: List["_FuncSig"]
 ) -> List[GuardGapHypothesis]:
-    """Deterministic, advisory within-group guard inconsistencies. Two categories, each over the
+    """Deterministic, advisory within-group guard inconsistencies. Three categories, each over the
     population it actually belongs to:
 
     - ``access_control`` over each *privileged* verb family (set/withdraw/upgrade/…): a privileged
@@ -543,6 +576,9 @@ def _gap_hypotheses(
     - ``pause_toggle`` over *user-facing* external/public mutators (verbs NOT in the privileged
       set): a pause check is a protocol-state property of user entry points, not of admin ones
       (admins must act while paused), so privileged functions are deliberately not in this group.
+    - ``freshness_check`` over functions that *accept a deadline/expiry parameter*: the parameter
+      is direct evidence of time-bounded intent, so this group is keyed on the signature rather
+      than the verb. Modifier-enforced deadlines resolve to guarded/opaque and drop out.
 
     Guards resolve through modifiers; an opaque modifier (delegated or inherited, e.g. OZ's
     inherited ``whenNotPaused``) excludes the function, so inherited-pause protocols read silent
@@ -577,6 +613,42 @@ def _gap_hypotheses(
         "user-facing external/public state-changing functions",
     )
     if gap:
+        out.append(gap)
+
+    # freshness_check over functions that *accept* a deadline/expiry parameter: the parameter is
+    # direct evidence the call is meant to be time-bounded, so a sibling in that population that
+    # never checks it is an inconsistency. Modifier-enforced deadlines (DEX routers' ``ensure``/
+    # ``checkDeadline``) resolve to guarded or opaque and drop out. A function that *forwards* the
+    # parameter into its body (passing it to ``permit``, to an internal ``removeLiquidity``, …)
+    # delegates the check somewhere this parser cannot follow, so it is opaque, not a gap — only a
+    # function that accepts the parameter and never references it reads as unguarded.
+    deadline_fns: List[_FuncSig] = []
+    forwarded: set = set()
+    for f in cands:
+        names = _deadline_params(f)
+        if not names:
+            continue
+        deadline_fns.append(f)
+        body_idents = set(re.findall(r"[A-Za-z_]\w*", f.body))
+        if any(n in body_idents for n in names):
+            forwarded.add(f.name)
+    gap = _family_gap(
+        deadline_fns,
+        "freshness_check",
+        owner,
+        "freshness/deadline enforcement",
+        "external/public state-changing functions that accept a deadline/expiry parameter",
+        opaque_names=forwarded,
+    )
+    if gap:
+        # A forwarded or stored deadline is already opaque, so what reaches here is a function that
+        # accepts the parameter and never references it at all; the benign reading is that the name
+        # is only there to satisfy an interface/ABI signature and is intentionally unused.
+        gap.negative_checks = [
+            "the deadline/expiry parameter may exist only to satisfy an interface/ABI signature and"
+            " be intentionally unused in this implementation",
+            *gap.negative_checks,
+        ]
         out.append(gap)
     return out
 
