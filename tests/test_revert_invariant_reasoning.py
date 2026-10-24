@@ -159,10 +159,34 @@ class TestCentralFalsePositive:
         assert counterexample_findings(res, _PAUSE_VACUOUS, "C.sol") == []
 
 
+_PAUSE_OK_CTOR = """pragma solidity ^0.8.20;
+contract Pausable {
+  bool public paused;
+  uint256 public counter;
+  address owner;
+  constructor(address o, uint256 seed) { owner = o; counter = seed; }
+  modifier whenNotPaused() { require(!paused, "paused"); _; }
+  function pause() external { paused = true; }
+  function deposit() external whenNotPaused { counter += 1; }
+  function withdraw() external { counter += 1; }
+}
+"""
+
+
 @pytest.mark.skipif(not _HAS_FORGE, reason="forge not installed")
 class TestCorrectCounterexamples:
     def test_correct_pause_gap_is_a_counterexample(self):
         res = execute_reasoning_gaps(mine_revert_invariants(_PAUSE_OK), _PAUSE_OK, timeout=180)
+        assert len(res) == 1
+        assert res[0]["promotion_state"] == "counterexample"
+        assert res[0]["counterexamples"] == ["withdraw"]
+
+    def test_elementary_constructor_pause_gap_is_executed(self):
+        # The contract has a `constructor(address, uint256)` -> deployed with zero literals; the
+        # pause gap still promotes. (Previously a constructor with args was skipped outright.)
+        res = execute_reasoning_gaps(
+            mine_revert_invariants(_PAUSE_OK_CTOR), _PAUSE_OK_CTOR, timeout=180
+        )
         assert len(res) == 1
         assert res[0]["promotion_state"] == "counterexample"
         assert res[0]["counterexamples"] == ["withdraw"]

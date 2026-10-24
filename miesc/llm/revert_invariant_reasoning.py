@@ -67,7 +67,7 @@ from miesc.llm.revert_invariant_executor import (
     _HEVM_ADDRESS,
     _PROBE_TOML,
     _arg_type,
-    _has_blocking_constructor,
+    _constructor_args,
     _network_sandbox,
     _pragma_prefix,
     _probe_env,
@@ -416,7 +416,9 @@ def _selector(contract: str, fn: str, args: List[str]) -> str:
     return ", ".join([f"{contract}.{fn}.selector", *args])
 
 
-def _wrap_probe(source: str, contract: str, probe_name: str, body: str) -> str:
+def _wrap_probe(
+    source: str, contract: str, probe_name: str, body: str, ctor_args: List[str]
+) -> str:
     """Inline the audited contract + a minimal ``Vm`` + the generated probe contract."""
     return (
         f"{_pragma_prefix(source)}{source}\n\n"
@@ -428,7 +430,7 @@ def _wrap_probe(source: str, contract: str, probe_name: str, body: str) -> str:
         f"contract {probe_name} {{\n"
         f"    Vm constant vm = Vm({_HEVM_ADDRESS});\n"
         f"    {contract} target;\n"
-        f"    function setUp() public {{ target = new {contract}(); }}\n\n"
+        f"    function setUp() public {{ target = new {contract}({', '.join(ctor_args)}); }}\n\n"
         f"{body}}}\n"
     )
 
@@ -452,7 +454,9 @@ def _target_test(contract: str, fn: str, args: List[str], reach: str, label: str
     )
 
 
-def _build_pause_probe(source: str, contract: str, facts: _ReasoningFacts) -> str:
+def _build_pause_probe(
+    source: str, contract: str, facts: _ReasoningFacts, ctor_args: List[str]
+) -> str:
     pauser_sel = _selector(contract, facts.pauser, facts.pauser_args)
     guarded_sel = _selector(contract, facts.guarded_sibling, facts.guarded_zero_args)
     control = (
@@ -480,10 +484,12 @@ def _build_pause_probe(source: str, contract: str, facts: _ReasoningFacts) -> st
         )
         for fn, args in facts.targets.items()
     )
-    return _wrap_probe(source, contract, _PAUSE_PROBE, control + "\n" + targets)
+    return _wrap_probe(source, contract, _PAUSE_PROBE, control + "\n" + targets, ctor_args)
 
 
-def _build_freshness_probe(source: str, contract: str, facts: _ReasoningFacts) -> str:
+def _build_freshness_probe(
+    source: str, contract: str, facts: _ReasoningFacts, ctor_args: List[str]
+) -> str:
     future = list(facts.guarded_zero_args)
     future[facts.guarded_deadline_index] = f"type({facts.guarded_deadline_type}).max"
     guarded_future = _selector(contract, facts.guarded_sibling, future)
@@ -511,7 +517,7 @@ def _build_freshness_probe(source: str, contract: str, facts: _ReasoningFacts) -
         )
         for fn, args in facts.targets.items()
     )
-    return _wrap_probe(source, contract, _FRESHNESS_PROBE, control + "\n" + targets)
+    return _wrap_probe(source, contract, _FRESHNESS_PROBE, control + "\n" + targets, ctor_args)
 
 
 def _evidence(facts: _ReasoningFacts, fn: str) -> str:
@@ -537,6 +543,7 @@ def _run_reasoning_probe(
     source_code: str,
     contract: str,
     facts: _ReasoningFacts,
+    ctor_args: List[str],
     timeout: int,
 ) -> Dict[str, object]:
     """Compile+run the control/target probes under the hardened project/env/sandbox and decide.
@@ -546,10 +553,10 @@ def _run_reasoning_probe(
     storage in that state). A wrong fact makes the control test fail -> no promotion.
     """
     if facts.category == "pause_toggle":
-        probe = _build_pause_probe(source_code, contract, facts)
+        probe = _build_pause_probe(source_code, contract, facts, ctor_args)
         probe_name = _PAUSE_PROBE
     else:
-        probe = _build_freshness_probe(source_code, contract, facts)
+        probe = _build_freshness_probe(source_code, contract, facts, ctor_args)
         probe_name = _FRESHNESS_PROBE
 
     sandbox = _network_sandbox()
@@ -708,9 +715,10 @@ def execute_reasoning_gaps(
                 {**base, "reason": "source references Foundry cheatcodes; refused to execute"}
             )
             continue
-        if contract is None or _has_blocking_constructor(masked):
+        ctor_args = None if contract is None else _constructor_args(masked)
+        if contract is None or ctor_args is None:
             results.append(
-                {**base, "reason": "contract has constructor arguments or is not deployable here"}
+                {**base, "reason": "contract is not deployable here (non-elementary constructor)"}
             )
             continue
         facts = _extract_facts(
@@ -728,7 +736,7 @@ def execute_reasoning_gaps(
             )
             continue
 
-        verdict = _run_reasoning_probe(forge, source_code, contract, facts, timeout)
+        verdict = _run_reasoning_probe(forge, source_code, contract, facts, ctor_args, timeout)
         results.append({**base, **verdict})
     return results
 

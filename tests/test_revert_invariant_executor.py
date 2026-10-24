@@ -42,6 +42,15 @@ contract Vault {
   function setTreasury(address a) external { treasury = a; }
 }
 """
+_CTOR_NONELEM = """pragma solidity ^0.8.20;
+contract Vault {
+  address owner; address treasury; string name;
+  constructor(string memory n) { owner = msg.sender; name = n; }
+  modifier onlyOwner() { require(msg.sender == owner, "no"); _; }
+  function setFee(uint256 x) external onlyOwner {}
+  function setTreasury(address a) external { treasury = a; }
+}
+"""
 _NON_ELEMENTARY = """pragma solidity ^0.8.20;
 contract Vault {
   address owner; string note;
@@ -79,12 +88,14 @@ class TestEligibilityWithoutRunning:
         assert res[0]["promotion_state"] == "hypothesis"
         assert "forge not available" in res[0]["reason"]
 
-    def test_constructor_args_make_it_ineligible(self, monkeypatch):
+    def test_non_elementary_constructor_is_ineligible(self, monkeypatch):
+        # A constructor with a non-elementary parameter (string) cannot be deployed with zero
+        # literals, so the gap stays unexecuted.
         monkeypatch.setattr(ex.shutil, "which", lambda _: "/usr/bin/forge")  # pretend present
-        assert ("access_control", ["setTreasury"]) in _gaps(_CTOR_ARGS)
-        res = execute_access_control_gaps(mine_revert_invariants(_CTOR_ARGS), _CTOR_ARGS)
+        assert ("access_control", ["setTreasury"]) in _gaps(_CTOR_NONELEM)
+        res = execute_access_control_gaps(mine_revert_invariants(_CTOR_NONELEM), _CTOR_NONELEM)
         assert res[0]["promotion_state"] == "hypothesis"
-        assert "constructor arguments" in res[0]["reason"]
+        assert "non-elementary constructor" in res[0]["reason"]
 
     def test_non_elementary_args_are_ineligible(self, monkeypatch):
         monkeypatch.setattr(ex.shutil, "which", lambda _: "/usr/bin/forge")
@@ -107,6 +118,15 @@ _HAS_FORGE = shutil.which("forge") is not None
 
 @pytest.mark.skipif(not _HAS_FORGE, reason="forge not installed")
 class TestRealExecution:
+    def test_elementary_constructor_contract_is_executed(self):
+        # `constructor(address o)` is elementary -> deployed with zero literals -> the unguarded
+        # setter is still a counterexample. (Previously this contract was skipped outright.)
+        res = execute_access_control_gaps(
+            mine_revert_invariants(_CTOR_ARGS), _CTOR_ARGS, timeout=180
+        )
+        assert res[0]["promotion_state"] == "counterexample"
+        assert res[0]["counterexamples"] == ["setTreasury"]
+
     def test_unguarded_setter_is_a_counterexample(self):
         res = execute_access_control_gaps(
             mine_revert_invariants(_AC_POSITIVE), _AC_POSITIVE, timeout=180

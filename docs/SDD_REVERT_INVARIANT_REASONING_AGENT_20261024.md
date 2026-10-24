@@ -10,8 +10,12 @@ needs — a non-literally-named pauser, or a deadline parameter index — and a 
 supplied, the provider is asked for that single identity via `auto_reasoning_provider` /
 `ReasoningTask` (capability `counterexample_validation`, gated by `agentic_invariants_allow_remote`),
 and the answer is validated against the parsed contract. A wrong provider answer fails CLOSED: the
-control+baseline probe does not confirm the state, so nothing promotes. Still open: widening the
-executable subset beyond no-arg-constructor + elementary args.
+control+baseline probe does not confirm the state, so nothing promotes. The executable subset was
+widened from no-arg constructors to constructors whose parameters are all elementary (deployed with
+zero literals — a weird zero state only makes a probe inconclusive, never a false counterexample);
+both the access-control executor and this reasoning executor share that `_constructor_args` gate.
+Still open: constructors with non-elementary parameters (would need provider-proposed constructor
+arguments).
 
 ## Context
 

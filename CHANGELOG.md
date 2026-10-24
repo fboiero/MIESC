@@ -173,6 +173,16 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   (the guarded sibling will not revert in the proposed state), so the LLM can never manufacture a
   counterexample. Local-only behaviour is unchanged when no provider is passed. No benchmark claim.
 
+- **Revert-invariant gap execution: elementary-constructor contracts.** The access-control
+  executor and the pause/freshness reasoning executor previously skipped any contract whose
+  constructor took arguments. They now deploy a contract whose constructor parameters are all
+  elementary (uint/int/address/bool/bytesN) with zero literals via a shared `_constructor_args`
+  gate, widening the executable subset to the many real contracts that take e.g. an owner address
+  or a cap. This is precision-safe: a zero-initialised state can only make a probe inconclusive,
+  and a constructor that `require`s a non-zero argument simply reverts in `setUp` (also
+  inconclusive) — it never makes an unauthorized/stale/paused call succeed that otherwise would
+  not. Constructors with non-elementary parameters stay ineligible. No benchmark claim.
+
 ## [6.6.0] - 2026-10-24 — Phase-1 plan miners, DeFi and Yul detectors, hardened adapters
 
 Minor release. Four deterministic, LLM-free *plan miners* land as Phase 1 of their SDDs
