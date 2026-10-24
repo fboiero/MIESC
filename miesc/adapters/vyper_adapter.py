@@ -21,11 +21,16 @@ Detects Vyper-specific patterns:
   where available)
 - raw_call(..., is_delegate_call=True) - delegatecall to a
   caller-influenced target
-- create_forwarder_to / create_minimal_proxy_to / create_from_blueprint
-  without a visible init guard in the same function (proxy front-running)
+- create_forwarder_to / create_minimal_proxy_to without an init call after it
+  in the same function (proxy front-running; create_from_blueprint runs the
+  blueprint's constructor atomically and is not flagged)
 - tx.origin used for authorization
 - Missing access control on state-changing @external functions
 - unsafe_add/unsafe_sub/unsafe_mul/unsafe_div (explicit unchecked math)
+
+Known limit: a .vy file only reaches this analyzer. SlitherAdapter.can_analyze
+accepts .sol only, so Slither's own Vyper support (which needs the vyper
+compiler on PATH) is not used.
 
 References:
 - https://docs.vyperlang.org/en/stable/
@@ -39,11 +44,10 @@ Version: 1.0.0
 
 import logging
 import re
-import subprocess
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import AbstractSet, Any, Dict, List, Optional, Union
 
 from miesc.core.chain_abstraction import (
     AbstractChainAnalyzer,
@@ -74,6 +78,61 @@ logger = logging.getLogger(__name__)
 # multiple pools). Consult the official advisory for the authoritative,
 # up-to-date list — this set is a starting point, not exhaustive.
 BROKEN_REENTRANCY_LOCK_VERSIONS = {"0.2.15", "0.2.16", "0.3.0"}
+
+# Comments and docstrings, blanked before any pattern runs (newlines kept, so line
+# numbers survive): a `selfdestruct(` or `tx.origin` in prose is not code. Plain string
+# literals are matched too, so a `#` inside one is not taken for a comment, and kept.
+_COMMENT_OR_STRING_RE = re.compile(
+    r'"""[\s\S]*?"""|\'\'\'[\s\S]*?\'\'\'|"(?:\\.|[^"\\\n])*"|\'(?:\\.|[^\'\\\n])*\'|#[^\n]*'
+)
+
+
+def strip_comments(source: str) -> str:
+    """Blank comments and docstrings, keeping every newline."""
+
+    def blank(match: "re.Match[str]") -> str:
+        text = match.group()
+        if text.startswith(("#", '"""', "'''")):
+            return re.sub(r"[^\n]", " ", text)
+        return text
+
+    return _COMMENT_OR_STRING_RE.sub(blank, source)
+
+
+_SPEC_TERM_RE = re.compile(r"(\^|~=?|[<>]=?|==?)?\s*v?(\d+)\.(\d+)\.(\d+)")
+
+
+def version_spec_terms(spec: str) -> List[tuple]:
+    return [(op, (int(a), int(b), int(c))) for op, a, b, c in _SPEC_TERM_RE.findall(spec)]
+
+
+def version_spec_admits(spec: str, version: str) -> bool:
+    """Whether a `# @version` / `# pragma version` spec admits ``version``.
+
+    ``^0.3.0`` and ``~0.3.0``/``~=0.3.0`` admit up to the next minor (``<0.4.0``);
+    comparators (``>=0.3.0 <0.4.0``) are ANDed; a bare version is an exact pin.
+    """
+    terms = version_spec_terms(spec)
+    if not terms:
+        return False
+    v = tuple(int(x) for x in version.split("."))
+    for op, b in terms:
+        if op in ("^", "~", "~="):
+            upper = (b[0] + 1, 0, 0) if op == "^" and b[0] > 0 else (b[0], b[1] + 1, 0)
+            ok = b <= v < upper
+        elif op == ">=":
+            ok = v >= b
+        elif op == ">":
+            ok = v > b
+        elif op == "<=":
+            ok = v <= b
+        elif op == "<":
+            ok = v < b
+        else:
+            ok = v == b
+        if not ok:
+            return False
+    return True
 
 
 # ============================================================================
@@ -134,7 +193,7 @@ class VyperFunction:
 class VyperPatternDetector:
     """Detects vulnerability patterns in Vyper source code."""
 
-    VERSION_RE = re.compile(r"#\s*(?:@version|pragma\s+version)\s+([^\s\n]+)")
+    VERSION_RE = re.compile(r"#\s*(?:@version|pragma\s+version)\s+([^\n]+)")
     FUNCTION_RE = re.compile(
         r"(?P<decorators>(?:^@\w+(?:\([^)\n]*\))?[ \t]*\n)*)"
         r"^def[ \t]+(?P<name>\w+)[ \t]*\((?P<params>(?:[^()]|\([^()]*\))*)\)[ \t]*"
@@ -156,22 +215,30 @@ class VyperPatternDetector:
             VyperVulnerability.UNSAFE_ARITHMETIC,
             "Low",
         ),
-        (
-            re.compile(r"raw_call\s*\([^)]{0,300}?is_delegate_call\s*=\s*True", re.DOTALL),
-            VyperVulnerability.DANGEROUS_DELEGATECALL,
-            "High",
-        ),
-        (
-            re.compile(
-                r"\b(create_forwarder_to|create_minimal_proxy_to|create_from_blueprint)\s*\("
-            ),
-            VyperVulnerability.UNSAFE_PROXY_CREATION,
-            "Medium",
-        ),
     ]
+    RAW_CALL_RE = re.compile(r"\braw_call\s*\(")
+    CLONE_RE = re.compile(r"\b(?:create_forwarder_to|create_minimal_proxy_to)\s*\(")
+    CLONE_INIT_RE = re.compile(r"\.\s*(?:init|initialize)\w*\s*\(")
+    TOP_LEVEL_RE = re.compile(r"^(?:@|def\b)", re.MULTILINE)
 
     EXTERNAL_CALL_RE = re.compile(
         r"\braw_call\s*\(|\bsend\s*\(|\bextcall\b|" r"\b\w+\s*\(\s*\w+\s*\)\.\w+\s*\("
+    )
+    # `Iface(addr).method(` - the method name is what tells a STATICCALL from a call.
+    INTERFACE_CALL_RE = re.compile(r"\b\w+\s*\(\s*\w+\s*\)\.(\w+)\s*\(")
+    # Interface methods declared view/pure (`constant` before 0.2) compile to STATICCALL,
+    # which cannot change state, so they are no reentry point. Plus the ERC20 views of the
+    # built-in `vyper.interfaces.ERC20` / `ERC20Detailed`, which are imported, not declared.
+    VIEW_METHOD_RE = re.compile(
+        r"^[ \t]+def[ \t]+(\w+)[ \t]*\((?:[^()]|\([^()]*\))*\)[^:\n]*:[ \t]*(?:view|pure|constant)\b",
+        re.MULTILINE,
+    )
+    ERC20_VIEWS = frozenset({"balanceOf", "allowance", "totalSupply", "name", "symbol", "decimals"})
+    # One-shot initializer: `assert self.activation == 0`, `assert not self.initialized`.
+    # Same role as Solidity's `require(!initialized)` / `initializer` modifier.
+    ONE_TIME_INIT_RE = re.compile(
+        r"^\s*assert\s+(?:not\s+self\.\w+|self\.\w+\s*==\s*(?:0|False|empty\([^)]*\)))",
+        re.MULTILINE,
     )
     STATE_WRITE_RE = re.compile(r"\bself\.\w+\s*(\[[^\]]*\])?\s*(\+=|-=|\*=|/=|=[^=])")
     # A caller guard: msg.sender compared or tested for membership in an assert/if, a
@@ -198,35 +265,80 @@ class VyperPatternDetector:
     NONREENTRANCY_PRAGMA_RE = re.compile(r"^#\s*pragma\s+nonreentrancy\s+on\b", re.MULTILINE)
 
     def detect_simple_patterns(self, source_code: str, file_path: str) -> List[Dict[str, Any]]:
-        """Detect single-regex vulnerability patterns anywhere in the source."""
-        findings: List[Dict[str, Any]] = []
+        """Detect single-statement vulnerability patterns in the code (not in comments)."""
+        code = strip_comments(source_code)
+        lines = code.splitlines()
+        hits: List[tuple] = []
         for pattern, vuln_type, severity in self.SIMPLE_PATTERNS:
-            for match in pattern.finditer(source_code):
-                line = source_code[: match.start()].count("\n") + 1
-                findings.append(
-                    {
-                        "vuln_type": vuln_type,
-                        "severity": severity,
-                        "line": line,
-                        "file": file_path,
-                        "code": (
-                            source_code.splitlines()[line - 1].strip()
-                            if line <= len(source_code.splitlines())
-                            else ""
-                        ),
-                    }
-                )
+            for match in pattern.finditer(code):
+                hits.append((match.start(), vuln_type, severity))
+        hits += [
+            (pos, VyperVulnerability.DANGEROUS_DELEGATECALL, "High")
+            for pos in self._delegatecalls(code)
+        ]
+        hits += [
+            (pos, VyperVulnerability.UNSAFE_PROXY_CREATION, "Medium")
+            for pos in self._uninitialized_clones(code)
+        ]
+        findings: List[Dict[str, Any]] = []
+        for pos, vuln_type, severity in hits:
+            line = code[:pos].count("\n") + 1
+            text = lines[line - 1] if line <= len(lines) else ""
+            # `msg.sender == tx.origin` only rejects contract callers (Slither's
+            # tx-origin rule excludes it too); it authorizes nobody.
+            if vuln_type == VyperVulnerability.TX_ORIGIN_AUTH and "msg.sender" in text:
+                continue
+            findings.append(
+                {
+                    "vuln_type": vuln_type,
+                    "severity": severity,
+                    "line": line,
+                    "file": file_path,
+                    "code": text.strip(),
+                }
+            )
         return findings
 
+    def _delegatecalls(self, code: str) -> List[int]:
+        """`raw_call(target, ..., is_delegate_call=True)` whose target is not `self`."""
+        hits = []
+        for match in self.RAW_CALL_RE.finditer(code):
+            depth, end = 1, match.end()
+            while end < len(code) and depth:
+                depth += {"(": 1, ")": -1}.get(code[end], 0)
+                end += 1
+            args = code[match.end() : end - 1]
+            if re.search(r"\bis_delegate_call\s*=\s*True\b", args) and not re.match(
+                r"\s*self\s*,", args
+            ):
+                hits.append(match.start())
+        return hits
+
+    def _uninitialized_clones(self, code: str) -> List[int]:
+        """A forwarder/minimal proxy with no `.init*()`/`.initialize*()` later in the function."""
+        hits = []
+        for match in self.CLONE_RE.finditer(code):
+            next_def = self.TOP_LEVEL_RE.search(code, match.end())
+            rest = code[match.end() : next_def.start() if next_def else len(code)]
+            if not self.CLONE_INIT_RE.search(rest):
+                hits.append(match.start())
+        return hits
+
     def extract_version(self, source_code: str) -> Optional[str]:
+        """The version spec as written (``0.3.7``, ``^0.3.0``, ``>=0.3.0 <0.4.0``)."""
         match = self.VERSION_RE.search(source_code)
         if not match:
             return None
-        return match.group(1).lstrip("=^~<>! ")
+        return match.group(1).strip()
+
+    def version_line(self, source_code: str) -> int:
+        match = self.VERSION_RE.search(source_code)
+        return source_code[: match.start()].count("\n") + 1 if match else 1
 
     def extract_functions(self, source_code: str, file_path: str) -> List[VyperFunction]:
         """Extract top-level (0-indent) function definitions with their decorators."""
         functions: List[VyperFunction] = []
+        source_code = strip_comments(source_code)
         lines = source_code.split("\n")
 
         for match in self.FUNCTION_RE.finditer(source_code):
@@ -235,8 +347,9 @@ class VyperPatternDetector:
             # Line the `def` keyword itself is on (i.e. after the decorator lines).
             def_offset = match.start(0) + len(match.group("decorators") or "")
             def_line = source_code[:def_offset].count("\n") + 1
+            signature_end_line = source_code[: match.end()].count("\n") + 1
 
-            body = self._extract_body(lines, def_line)
+            body = self._extract_body(lines, def_line, signature_end_line)
 
             functions.append(
                 VyperFunction(
@@ -249,13 +362,17 @@ class VyperPatternDetector:
             )
         return functions
 
-    def _extract_body(self, lines: List[str], def_line: int) -> str:
-        """Collect lines indented deeper than the `def` line (Python-style blocks)."""
+    def _extract_body(self, lines: List[str], def_line: int, signature_end_line: int) -> str:
+        """Collect the lines after the signature indented deeper than the `def`.
+
+        A multi-line signature closes with `):` or `) -> T:` at the `def`'s column, so
+        the body starts after the signature's last line, not after the `def` line.
+        """
         if def_line < 1 or def_line > len(lines):
             return ""
         def_indent = len(lines[def_line - 1]) - len(lines[def_line - 1].lstrip())
         body_lines: List[str] = []
-        for line in lines[def_line:]:
+        for line in lines[signature_end_line:]:
             if not line.strip():
                 body_lines.append(line)
                 continue
@@ -276,9 +393,7 @@ class VyperAnalyzer(AbstractChainAnalyzer):
     Analyzer for Vyper smart contracts.
 
     Pattern-based parsing and vulnerability detection — no dependency on
-    the `vyper` compiler being installed. If `vyper` is available on PATH,
-    `compiler_available` is recorded on the result as a bonus signal, but
-    detection never depends on it (a contract's `@version` pragma very
+    the `vyper` compiler being installed (a contract's `@version` pragma very
     often won't match whatever compiler happens to be installed, so relying
     on a real compile would produce noisy false "can't analyze" failures).
     """
@@ -474,22 +589,53 @@ class VyperAnalyzer(AbstractChainAnalyzer):
         against the official Vyper security advisory before treating this as
         conclusive — BROKEN_REENTRANCY_LOCK_VERSIONS is a starting point.
         """
-        if not contract.compiler_version:
+        spec = contract.compiler_version
+        if not spec or "@nonreentrant" not in strip_comments(contract.source_code or ""):
             return []
-        if contract.compiler_version not in BROKEN_REENTRANCY_LOCK_VERSIONS:
+        admitted = sorted(
+            v for v in BROKEN_REENTRANCY_LOCK_VERSIONS if version_spec_admits(spec, v)
+        )
+        if not admitted:
             return []
-        if "@nonreentrant" not in contract.source_code:
-            return []
+        location = Location(
+            file=contract.source_path,
+            line=self.pattern_detector.version_line(contract.source_code or ""),
+        )
+        terms = version_spec_terms(spec)
+        if not (len(terms) == 1 and terms[0][0] in ("", "=", "==")):
+            # A range compiles with whatever version the build picked; only a pin
+            # proves the broken lock is there.
+            return [
+                self.normalize_finding(
+                    vuln_type=VyperVulnerability.BROKEN_REENTRANCY_LOCK_COMPILER.value,
+                    severity="Low",
+                    message=(
+                        f"Version range '{spec}' admits Vyper {', '.join(admitted)}, which "
+                        "shipped a broken @nonreentrant lock; confirm the compiled version"
+                    ),
+                    location=location,
+                    description=(
+                        "The pragma is a range, so the compiled version is not known from the "
+                        "source. Vyper 0.2.15, 0.2.16 and 0.3.0 shipped a broken @nonreentrant "
+                        "lock (GHSA-5824-cm3x-3c38, the Curve Finance incident)."
+                    ),
+                    recommendation=(
+                        "Check the deployed bytecode's compiler version, or pin a patched "
+                        "version in the pragma."
+                    ),
+                    confidence=0.4,
+                )
+            ]
 
         return [
             self.normalize_finding(
                 vuln_type=VyperVulnerability.BROKEN_REENTRANCY_LOCK_COMPILER.value,
                 severity="Critical",
                 message=(
-                    f"@nonreentrant used under Vyper {contract.compiler_version}, a compiler "
+                    f"@nonreentrant used under Vyper {spec}, a compiler "
                     "version with a documented broken reentrancy lock"
                 ),
-                location=Location(file=contract.source_path, line=1),
+                location=location,
                 description=(
                     "Vyper compiler versions 0.2.15, 0.2.16 and 0.3.0 shipped a broken "
                     "@nonreentrant lock implementation — the root cause of the Curve Finance "
@@ -508,14 +654,35 @@ class VyperAnalyzer(AbstractChainAnalyzer):
 
     def _check_missing_reentrancy_guard(self, contract: AbstractContract) -> List[Dict[str, Any]]:
         findings: List[Dict[str, Any]] = []
-        if self.pattern_detector.NONREENTRANCY_PRAGMA_RE.search(contract.source_code or ""):
+        source = contract.source_code or ""
+        detector = self.pattern_detector
+        if detector.NONREENTRANCY_PRAGMA_RE.search(source):
             return findings
+        views = detector.ERC20_VIEWS | set(detector.VIEW_METHOD_RE.findall(strip_comments(source)))
+        bodies_by_name = {f.name: f.body_source or "" for f in contract.functions}
         for func in contract.functions:
             if func.visibility != Visibility.EXTERNAL or func.name == "__init__":
                 continue
             if not func.calls_external or not func.writes_state:
                 continue
             if func.has_reentrancy_guard:
+                continue
+            body = func.body_source or ""
+            # A reentrant call arrives with msg.sender = the called contract, which an
+            # owner-only function rejects.
+            if self._caller_restricted(body, bodies_by_name):
+                continue
+            # Checks-effects-interactions: reentering is harmless when no state write
+            # follows the first state-changing external call.
+            first_call = next(
+                (
+                    m
+                    for m in detector.EXTERNAL_CALL_RE.finditer(body)
+                    if not self._is_view_call(m, views)
+                ),
+                None,
+            )
+            if not first_call or not detector.STATE_WRITE_RE.search(body, first_call.end()):
                 continue
             findings.append(
                 self.normalize_finding(
@@ -532,13 +699,23 @@ class VyperAnalyzer(AbstractChainAnalyzer):
             )
         return findings
 
-    def _check_missing_access_control(self, contract: AbstractContract) -> List[Dict[str, Any]]:
-        findings: List[Dict[str, Any]] = []
+    def _is_view_call(self, match: "re.Match[str]", views: AbstractSet[str]) -> bool:
+        method = self.pattern_detector.INTERFACE_CALL_RE.match(match.group(0))
+        return method is not None and method.group(1) in views
+
+    def _caller_restricted(self, body: str, bodies_by_name: Dict[str, str]) -> bool:
         # Vyper has no modifiers, so `self._check_admin()`-style internal helpers are the
         # idiomatic way to share an access check across functions — look one call deep
         # before flagging, or every such contract is 100% false positives.
+        check = self.pattern_detector.ACCESS_CHECK_RE
+        return bool(check.search(body)) or any(
+            check.search(bodies_by_name.get(callee, ""))
+            for callee in re.findall(r"self\.(\w+)\s*\(", body)
+        )
+
+    def _check_missing_access_control(self, contract: AbstractContract) -> List[Dict[str, Any]]:
+        findings: List[Dict[str, Any]] = []
         bodies_by_name = {f.name: f.body_source or "" for f in contract.functions}
-        internal_call_re = re.compile(r"self\.(\w+)\s*\(")
         for func in contract.functions:
             if func.visibility != Visibility.EXTERNAL:
                 continue
@@ -549,12 +726,9 @@ class VyperAnalyzer(AbstractChainAnalyzer):
             body = func.body_source or ""
             if not self.pattern_detector.PRIVILEGED_WRITE_RE.search(body):
                 continue
-            if self.pattern_detector.ACCESS_CHECK_RE.search(body):
+            if self._caller_restricted(body, bodies_by_name):
                 continue
-            if any(
-                self.pattern_detector.ACCESS_CHECK_RE.search(bodies_by_name.get(callee, ""))
-                for callee in internal_call_re.findall(body)
-            ):
+            if func.name.startswith("init") and self.pattern_detector.ONE_TIME_INIT_RE.search(body):
                 continue
             findings.append(
                 self.normalize_finding(
@@ -604,7 +778,16 @@ class VyperAdapter:
     def analyze(self, contract_path: str, timeout: int = 0, **kwargs: Any) -> Dict[str, Any]:
         # Regex/AST-free pattern matching over source text — effectively
         # instant, so `timeout` (used by subprocess-based adapters) doesn't
-        # apply here.
+        # apply here. Never read a file it does not understand (Solidity on the
+        # ML path, which does not consult can_analyze).
+        if not self.can_analyze(contract_path):
+            return {
+                "tool": self.name,
+                "status": "skipped",
+                "reason": "unsupported_source",
+                "findings": [],
+                "error": f"{self.name} only analyzes .vy files",
+            }
         return self._analyzer.analyze(contract_path)
 
     def get_metadata(self) -> ToolMetadata:
@@ -628,22 +811,6 @@ class VyperAdapter:
             ],
             is_optional=True,
         )
-
-
-# ============================================================================
-# Optional compiler probe (bonus signal only — never required for detection)
-# ============================================================================
-
-
-def probe_vyper_compiler() -> Optional[str]:
-    """Return the installed `vyper` compiler version string, or None if unavailable."""
-    try:
-        result = subprocess.run(["vyper", "--version"], capture_output=True, text=True, timeout=10)
-        if result.returncode == 0:
-            return result.stdout.strip()
-    except (OSError, subprocess.TimeoutExpired) as e:
-        logger.debug(f"vyper compiler not available: {e}")
-    return None
 
 
 # ============================================================================
@@ -680,5 +847,4 @@ __all__ = [
     "BROKEN_REENTRANCY_LOCK_VERSIONS",
     "register_vyper_analyzer",
     "analyze_vyper_contract",
-    "probe_vyper_compiler",
 ]
