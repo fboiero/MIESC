@@ -110,7 +110,7 @@ class SmartBugsDetectorAdapter:
             return {"success": False, "error": f"File not found: {contract_path}", "findings": []}
 
         try:
-            findings = self.engine.analyze_file(path)
+            findings: List[Any] = self.engine.analyze_file(path)
             source_code = path.read_text(encoding="utf-8")
             findings.extend(self.transient_detector.analyze(source_code, path))
             findings.extend(self.yul_detector.analyze(source_code, path))
@@ -173,7 +173,7 @@ class SmartBugsDetectorAdapter:
     def analyze_source(self, source_code: str) -> Dict[str, Any]:
         """Analyze source code directly."""
         try:
-            findings = self.engine.analyze(source_code)
+            findings: List[Any] = self.engine.analyze(source_code)
             findings.extend(self.transient_detector.analyze(source_code))
             findings.extend(self.yul_detector.analyze(source_code))
             miesc_findings = self._convert_findings(findings)
