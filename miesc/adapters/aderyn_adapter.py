@@ -23,6 +23,7 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
+from miesc.adapters._dependency_scope import is_dependency_file
 from miesc.adapters._output_paths import discard_output_path, new_output_path
 from miesc.core.tool_protocol import (
     ToolAdapter,
@@ -260,15 +261,59 @@ class AderynAdapter(ToolAdapter):
                 Path(output_path).unlink()
 
             contract_file = Path(contract_path)
+            project_root = (
+                self._find_project_root(contract_path) if contract_file.is_file() else None
+            )
 
             # Always copy contract to a clean temp directory for Aderyn
-            # This avoids issues with solc discovery and complex project structures
+            # This avoids issues with solc discovery and complex project structures.
+            # Also copy any relatively-imported sibling files
+            # (`import "./Interface.sol"`) — real multi-file contracts (unlike
+            # SmartBugs-curated's standalone files) commonly need one. Copying
+            # only the target file made every such import fail to compile
+            # (confirmed: AuctionDemo.sol went from 0 findings, ParserError, to
+            # 46 once its dependency closure was copied alongside it). Walks
+            # the *target file's own* transitive relative-import graph rather
+            # than bulk-copying every .sol in the directory — a first attempt
+            # at the latter broke on directories with multiple independently
+            # incomplete contracts (Aderyn hard-fails the whole batch if any
+            # copied file in the workspace fails to parse, so pulling in an
+            # unrelated sibling's own missing dependency took down files that
+            # used to compile fine on their own).
             if contract_file.is_file():
                 temp_workspace = tempfile.mkdtemp(prefix="miesc_aderyn_")
-                temp_contract = Path(temp_workspace) / contract_file.name
-                shutil.copy2(contract_path, temp_contract)
+                siblings = self._resolve_relative_imports(contract_file)
+                if project_root is not None:
+                    try:
+                        rels = [
+                            src.resolve().relative_to(project_root)
+                            for src in [contract_file, *siblings]
+                        ]
+                    except ValueError:
+                        # A sibling outside the project root (../../shared/B.sol)
+                        # has no place in the preserved layout: fall back to
+                        # the standalone flat copy below.
+                        logger.warning(
+                            f"Aderyn: {contract_file.name} imports files outside "
+                            f"{project_root}; analyzing it as a standalone file"
+                        )
+                        project_root = None
+                if project_root is not None:
+                    # Preserve each file's path relative to the project root
+                    # (not flattened) so the project's own foundry.toml
+                    # (src = "...") and its lib/ still resolve correctly once
+                    # copied — see _copy_existing_project_deps below.
+                    for src, rel in zip([contract_file, *siblings], rels, strict=True):
+                        dest = Path(temp_workspace) / rel
+                        dest.parent.mkdir(parents=True, exist_ok=True)
+                        shutil.copy2(src, dest)
+                else:
+                    temp_contract = Path(temp_workspace) / contract_file.name
+                    shutil.copy2(contract_path, temp_contract)
+                    for sibling in siblings:
+                        shutil.copy2(sibling, Path(temp_workspace) / sibling.name)
                 analysis_dir = temp_workspace
-                logger.debug(f"Copied contract to temp workspace: {temp_workspace}")
+                logger.debug(f"Copied contract + siblings to temp workspace: {temp_workspace}")
             else:
                 temp_workspace = None
                 analysis_dir = str(contract_file)
@@ -276,10 +321,19 @@ class AderynAdapter(ToolAdapter):
             # Check for external imports and set up dependencies if needed
             if contract_file.is_file():
                 external_imports = self._detect_imports(contract_path)
-                if external_imports:
+                if project_root is not None:
+                    # A contract that already lives inside a real Foundry
+                    # project has its own dependency setup (lib/, a real
+                    # foundry.toml/remappings) — copy that in instead of doing
+                    # a fresh (floating-version) forge install, which ignores
+                    # whatever the project actually pinned and can drift
+                    # incompatible with the project's own pragma. Always (not
+                    # just when the *target file itself* has an external
+                    # import) since a sibling reached transitively may.
+                    assert temp_workspace is not None
+                    self._copy_existing_project_deps(project_root, temp_workspace)
+                elif external_imports:
                     logger.info(f"Detected external imports: {external_imports}")
-                    # Set up workspace with dependencies (reuse temp_workspace).
-                    # temp_workspace is non-None here: set via mkdtemp in the is_file() branch above.
                     assert temp_workspace is not None
                     self._install_deps_in_workspace(temp_workspace, contract_path, external_imports)
 
@@ -380,6 +434,21 @@ class AderynAdapter(ToolAdapter):
 
             # Normalize findings
             findings = self.normalize_findings(raw_output)
+
+            # Aderyn analyzes the whole temp directory, which also holds the
+            # dependencies (lib/). Drop findings located there so e.g. an
+            # Ownable.sol lint is not attributed to the target, but keep the
+            # copied siblings: a bug in an inherited Helper.sol is a bug in
+            # the target.
+            if temp_workspace and contract_file.is_file():
+                prefixes = [prefix for prefix, _, _ in self.KNOWN_DEP_PREFIXES]
+                findings = [
+                    f
+                    for f in findings
+                    if not is_dependency_file(
+                        f.get("location", {}).get("file", ""), Path(temp_workspace), prefixes
+                    )
+                ]
 
             # Enhance findings with OpenLLaMA (opt-in via llm_enhance=True)
             # Default: SKIP — adds 8s per finding. Enable for client reports.
@@ -706,48 +775,135 @@ class AderynAdapter(ToolAdapter):
 
         return None
 
+    # Ordered longest-prefix-first: the matched prefix is used verbatim as
+    # both the dependency key and the left side of its remapping, so e.g.
+    # "@solmate/" and "solmate/" (with/without the npm-style alias) or
+    # "@chainlink/" and "@chainlink/contracts/" (different repos alias the
+    # same package at different depths) each resolve correctly instead of
+    # collapsing to one guessed canonical form that only matches some of them.
+    # chainlink pinned to chainlink-evm (the split-out repo with just the
+    # Solidity contracts): smartcontractkit/chainlink's own default branch has
+    # dropped its contracts/ directory entirely, and even pinned to an old tag
+    # (e.g. v1.11.0) `forge install` on that huge, submodule-heavy monorepo
+    # reliably hangs/fails on the nested-submodule checkout. chainlink-evm is
+    # the same files, smaller and installs cleanly (verified: ~20s).
+    KNOWN_DEP_PREFIXES: List[Tuple[str, str, str]] = [
+        ("forge-std/", "foundry-rs/forge-std", "lib/forge-std/src/"),
+        (
+            "@openzeppelin/contracts-upgradeable/",
+            "OpenZeppelin/openzeppelin-contracts-upgradeable",
+            "lib/openzeppelin-contracts-upgradeable/contracts/",
+        ),
+        ("@openzeppelin/", "OpenZeppelin/openzeppelin-contracts", "lib/openzeppelin-contracts/"),
+        (
+            "@chainlink/contracts/",
+            "smartcontractkit/chainlink-evm@v0.3.3",
+            "lib/chainlink-evm/contracts/",
+        ),
+        (
+            "@chainlink/",
+            "smartcontractkit/chainlink-evm@v0.3.3",
+            "lib/chainlink-evm/contracts/src/v0.8/shared/",
+        ),
+        ("@solmate/", "transmissions11/solmate", "lib/solmate/src/"),
+        ("solmate/", "transmissions11/solmate", "lib/solmate/src/"),
+        ("solady/", "Vectorized/solady", "lib/solady/src/"),
+    ]
+
     def _detect_imports(self, contract_path: str) -> Set[str]:
-        """Detect external imports in a Solidity contract."""
-        imports = set()
+        """Detect external imports in a Solidity contract that match a known
+        dependency prefix. Returns the matched prefixes themselves."""
+        imports: Set[str] = set()
         try:
             with open(contract_path, "r") as f:
                 content = f.read()
 
             import_pattern = r'import\s+(?:{[^}]+}\s+from\s+)?["\']([^"\']+)["\']'
-            matches = re.findall(import_pattern, content)
-
-            for match in matches:
-                if match.startswith("forge-std/"):
-                    imports.add("forge-std")
-                elif match.startswith("@openzeppelin/"):
-                    imports.add("@openzeppelin/contracts")
-                elif match.startswith("@chainlink/"):
-                    imports.add("@chainlink/contracts")
-                elif match.startswith("solmate/"):
-                    imports.add("solmate")
-                elif match.startswith("solady/"):
-                    imports.add("solady")
-                elif not match.startswith("."):
-                    root = match.split("/")[0]
-                    if root and not root.endswith(".sol"):
-                        imports.add(root)
+            for match in re.findall(import_pattern, content):
+                if match.startswith("."):
+                    continue
+                for prefix, _, _ in self.KNOWN_DEP_PREFIXES:
+                    if match.startswith(prefix):
+                        imports.add(prefix)
+                        break
 
         except Exception as e:
             logger.debug(f"Error detecting imports: {e}")
         return imports
 
+    def _resolve_relative_imports(self, contract_file: Path) -> List[Path]:
+        """Walk `contract_file`'s relative (`./`, `../`) imports transitively.
+
+        Returns every sibling file reachable this way that actually exists on
+        disk. Missing files are silently skipped (same as today — this only
+        fixes imports that *could* have resolved but were never copied over),
+        not treated as an error here.
+        """
+        import_pattern = re.compile(r'import\s+(?:{[^}]+}\s+from\s+)?["\']([^"\']+)["\']')
+        resolved: Dict[str, Path] = {}
+        pending = [contract_file]
+        seen = {contract_file.resolve()}
+
+        while pending:
+            current = pending.pop()
+            try:
+                content = current.read_text(errors="ignore")
+            except OSError:
+                continue
+            for match in import_pattern.findall(content):
+                if not (match.startswith("./") or match.startswith("../")):
+                    continue
+                candidate = (current.parent / match).resolve()
+                if not candidate.is_file() or candidate in seen:
+                    continue
+                seen.add(candidate)
+                resolved[candidate.name] = candidate
+                pending.append(candidate)
+
+        return list(resolved.values())
+
     def _get_dependency_info(self, import_name: str) -> Tuple[Optional[str], Optional[str]]:
         """Get forge install command and remapping for a dependency."""
-        KNOWN_DEPS = {
-            "forge-std": ("foundry-rs/forge-std", "forge-std/=lib/forge-std/src/"),
-            "@openzeppelin/contracts": (
-                "OpenZeppelin/openzeppelin-contracts",
-                "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/",
-            ),
-            "solmate": ("transmissions11/solmate", "solmate/=lib/solmate/src/"),
-            "solady": ("Vectorized/solady", "solady/=lib/solady/src/"),
-        }
-        return KNOWN_DEPS.get(import_name, (None, None))
+        for prefix, install_target, lib_subpath in self.KNOWN_DEP_PREFIXES:
+            if prefix == import_name:
+                return install_target, f"{prefix}={lib_subpath}"
+        return None, None
+
+    def _find_project_root(self, contract_path: str) -> Optional[Path]:
+        """Return the real Foundry/Hardhat/Truffle project root containing
+        `contract_path` (config file found walking up to 5 parent
+        directories), or None for a standalone file with no project
+        scaffolding of its own.
+        """
+        path = Path(contract_path).resolve()
+        check_dir = path.parent if path.is_file() else path
+        for _ in range(5):
+            if (
+                (check_dir / "foundry.toml").exists()
+                or (check_dir / "hardhat.config.js").exists()
+                or (check_dir / "hardhat.config.ts").exists()
+                or (check_dir / "truffle-config.js").exists()
+            ):
+                return check_dir
+            parent = check_dir.parent
+            if parent == check_dir:
+                break
+            check_dir = parent
+        return None
+
+    def _copy_existing_project_deps(self, project_root: Path, workspace: str) -> None:
+        """Copy the real project's own foundry.toml/remappings.txt and lib/
+        into `workspace`, so the isolated temp copy Aderyn analyzes resolves
+        package imports against the project's actual pinned dependencies
+        instead of a fresh floating-version forge install.
+        """
+        for name in ("foundry.toml", "remappings.txt"):
+            src = project_root / name
+            if src.exists():
+                shutil.copy2(src, Path(workspace) / name)
+        lib_dir = project_root / "lib"
+        if lib_dir.is_dir():
+            shutil.copytree(lib_dir, Path(workspace) / "lib", dirs_exist_ok=True)
 
     def _detect_solidity_version(self, contract_path: str) -> str:
         """Detect Solidity version from pragma statement."""

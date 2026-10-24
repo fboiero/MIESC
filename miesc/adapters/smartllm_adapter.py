@@ -195,10 +195,34 @@ class SmartLLMAdapter(OllamaCallMixin, LLMCacheMixin, ToolAdapter):
                     # Check if we have a suitable model
                     data = json.loads(resp.read().decode())
                     models = [m.get("name", "") for m in data.get("models", [])]
-                    model_names = " ".join(models).lower()
+                    configured = self._model.lower()
+                    fallback = next(
+                        (
+                            model
+                            for model in models
+                            if any(
+                                family in model.lower()
+                                for family in (
+                                    "deepseek-coder",
+                                    "codellama",
+                                    "qwen2.5-coder",
+                                    "qwen3-coder",
+                                )
+                            )
+                        ),
+                        None,
+                    )
 
-                    if "deepseek-coder" in model_names or "codellama" in model_names:
+                    if configured in (model.lower() for model in models):
                         logger.info(f"SmartLLM: Ollama available at {ollama_host}")
+                        return ToolStatus.AVAILABLE
+                    if fallback:
+                        logger.warning(
+                            "SmartLLM: configured model %s is unavailable; using %s",
+                            self._model,
+                            fallback,
+                        )
+                        self._model = fallback
                         return ToolStatus.AVAILABLE
                     else:
                         logger.warning(
@@ -311,6 +335,36 @@ class SmartLLMAdapter(OllamaCallMixin, LLMCacheMixin, ToolAdapter):
                     ),
                 }
 
+            structured_output_retried = False
+            structured_output_errors: List[str] = []
+            generator_validation = safe_parse_llm_json(
+                generator_response, AnalysisResponse, strict=True
+            )
+            if not generator_validation.is_valid:
+                structured_output_retried = True
+                structured_output_errors = generator_validation.errors
+                logger.warning(
+                    "SmartLLM: structured output validation failed; retrying once: %s",
+                    structured_output_errors,
+                )
+                logger.debug("SmartLLM invalid generator response: %s", generator_response[:2000])
+                correction_prompt = (
+                    f"{generator_prompt}\n\nYour previous response failed JSON schema validation: "
+                    f"{'; '.join(structured_output_errors)}. Return only valid JSON matching "
+                    "the requested schema."
+                )
+                retry_response = self._call_ollama_with_retry(correction_prompt, timeout=timeout)
+                if retry_response:
+                    generator_response = retry_response
+                    generator_validation = safe_parse_llm_json(
+                        generator_response, AnalysisResponse, strict=True
+                    )
+                    if not generator_validation.is_valid:
+                        structured_output_errors.extend(generator_validation.errors)
+                        logger.debug(
+                            "SmartLLM invalid retry response: %s", generator_response[:2000]
+                        )
+
             # Parse initial findings
             initial_findings = self._parse_llm_response(generator_response, contract_path)
 
@@ -347,6 +401,9 @@ class SmartLLMAdapter(OllamaCallMixin, LLMCacheMixin, ToolAdapter):
                     "verified_findings": len(verified_findings),
                     "false_positives_removed": len(initial_findings) - len(verified_findings),
                     "timed_out": self._timed_out,
+                    "structured_output_valid": generator_validation.is_valid,
+                    "structured_output_retried": structured_output_retried,
+                    "structured_output_errors": structured_output_errors,
                 },
                 "execution_time": time.time() - start_time,
                 "from_cache": False,
@@ -726,8 +783,11 @@ follows the same anti-pattern. If a pattern does NOT apply, do not force it.
         prompt += """
 OUTPUT (valid JSON only):
 ```json
-{"findings": [{"type": "reentrancy", "severity": "CRITICAL", "title": "...", "description": "...", "location": "function:line", "swc_id": "SWC-107", "attack_scenario": "1. Attacker calls... 2. During callback... 3. State is...", "false_positive_check": "Why this is NOT an FP", "remediation": "Add nonReentrant modifier or use CEI pattern"}]}
+{"findings": [{"type": "reentrancy", "severity": "CRITICAL", "title": "...", "description": "...", "function": "withdraw", "swc_id": "SWC-107", "attack_scenario": "1. Attacker calls... 2. During callback... 3. State is...", "false_positive_check": "Why this is NOT an FP", "remediation": "Add nonReentrant modifier or use CEI pattern"}]}
 ```
+
+Use plain natural-language string values. Do not copy Solidity expressions or Markdown code
+into string values; put only the bare function name in the function field.
 
 Report ONLY vulnerabilities confirmed by your step-by-step analysis. Quality over quantity."""
 
@@ -865,7 +925,7 @@ Report ONLY vulnerabilities confirmed by your step-by-step analysis. Quality ove
             url=generate_url,
             model=self._model,
             timeout=timeout,
-            options={"temperature": 0.1, "num_ctx": self._max_tokens},
+            options={"temperature": 0.0, "num_ctx": self._max_tokens},
             max_attempts=max_attempts,
             retry_delay=self._retry_delay,
             log_prefix="SmartLLM",
@@ -1592,7 +1652,7 @@ Your analysis:"""
         """Generate cache key from contract code, model, and RAG mode."""
         rag_mode = "embedding" if self._use_embedding_rag and self._embedding_rag else "keyword"
         return hashlib.sha256(
-            f"{self._model}:{rag_mode}:{KNOWLEDGE_BASE_VERSION}:{contract_code}".encode()
+            f"structured-v1:{self._model}:{rag_mode}:{KNOWLEDGE_BASE_VERSION}:{contract_code}".encode()
         ).hexdigest()
 
     # _get_cached_result / _cache_result are provided by LLMCacheMixin.

@@ -107,6 +107,73 @@ class TestSlitherAdapter(TestAdapterBase):
         assert "Medium" in SlitherAdapter.SEVERITY_MAP
         assert "Low" in SlitherAdapter.SEVERITY_MAP
 
+    # Regression: "@solmate/..." (npm-style alias) and
+    # "@chainlink/..." (interfaces re-exported one level up from the historical
+    # "@chainlink/contracts/" convention) were canonicalized to a single guessed
+    # dependency key that only matched some real-world projects' actual import
+    # prefix, so their remapping never lined up with what the source imported.
+    def test_detect_imports_recognizes_at_solmate_and_at_chainlink(self, tmp_path):
+        from miesc.adapters.slither_adapter import SlitherAdapter
+
+        contract = tmp_path / "C.sol"
+        contract.write_text(
+            'import {ERC20} from "@solmate/tokens/ERC20.sol";\n'
+            'import "@chainlink/interfaces/AggregatorV3Interface.sol";\n'
+            "contract C {}"
+        )
+        imports = SlitherAdapter()._detect_imports(str(contract))
+        assert "@solmate/" in imports
+        assert "@chainlink/" in imports
+
+    def test_get_dependency_info_matches_detected_prefix(self):
+        from miesc.adapters.slither_adapter import SlitherAdapter
+
+        adapter = SlitherAdapter()
+        install_target, remapping = adapter._get_dependency_info("@solmate/")
+        assert install_target == "transmissions11/solmate"
+        assert remapping == "@solmate/=lib/solmate/src/"
+
+        install_target, remapping = adapter._get_dependency_info("@chainlink/")
+        assert install_target == "smartcontractkit/chainlink-evm@v0.3.3"
+        assert remapping == "@chainlink/=lib/chainlink-evm/contracts/src/v0.8/shared/"
+
+    def test_should_force_solc_not_used_when_external_imports_present(self, tmp_path):
+        # A standalone file with a known package import must not be routed
+        # through raw solc (no remapping support there) — it needs the
+        # dependency-workspace path, which builds a real foundry.toml.
+        from miesc.adapters.slither_adapter import SlitherAdapter
+
+        contract = tmp_path / "C.sol"
+        contract.write_text('import "@solmate/tokens/ERC20.sol";\ncontract C {}')
+        adapter = SlitherAdapter()
+        external_imports = adapter._detect_imports(str(contract))
+        assert external_imports
+        force_solc = adapter._should_force_solc(str(contract)) and not external_imports
+        assert force_solc is False
+
+    def test_find_project_root_detects_foundry_toml_in_parent(self, tmp_path):
+        # A contract inside a real Foundry project must defer to that
+        # project's own dependency setup instead of MIESC spinning up an
+        # isolated temp workspace with freshly (floating-version) installed
+        # deps that ignore whatever the project actually pinned.
+        from miesc.adapters.slither_adapter import SlitherAdapter
+
+        (tmp_path / "foundry.toml").write_text("[profile.default]\n")
+        src = tmp_path / "src"
+        src.mkdir()
+        contract = src / "C.sol"
+        contract.write_text("contract C {}")
+
+        assert SlitherAdapter()._find_project_root(str(contract)) == tmp_path.resolve()
+
+    def test_find_project_root_none_for_standalone_file(self, tmp_path):
+        from miesc.adapters.slither_adapter import SlitherAdapter
+
+        contract = tmp_path / "C.sol"
+        contract.write_text("contract C {}")
+
+        assert SlitherAdapter()._find_project_root(str(contract)) is None
+
 
 class TestMythrilAdapter(TestAdapterBase):
     """Tests for MythrilAdapter."""
@@ -266,6 +333,140 @@ class TestAderynAdapter(TestAdapterBase):
         adapter = AderynAdapter()
         assert adapter is not None
 
+    # Aderyn used to copy only the target file into its
+    # isolated temp workspace, so any `import "./Sibling.sol"` failed to
+    # compile — a corpus/adapter mismatch that was actually two separate
+    # things: solodit-real's corpus was
+    # missing dependency files entirely (a corpus problem, not fixed here),
+    # and Aderyn/Slither's adapters weren't copying siblings that DID exist
+    # (an adapter bug, fixed here). These tests cover the resolver in
+    # isolation, with real files on disk — no subprocess/tool invocation.
+    def test_resolve_relative_imports_finds_direct_sibling(self, tmp_path):
+        from miesc.adapters.aderyn_adapter import AderynAdapter
+
+        (tmp_path / "IFoo.sol").write_text("interface IFoo {}")
+        main = tmp_path / "Foo.sol"
+        main.write_text('import "./IFoo.sol";\ncontract Foo {}')
+
+        resolved = AderynAdapter()._resolve_relative_imports(main)
+        assert [p.name for p in resolved] == ["IFoo.sol"]
+
+    def test_resolve_relative_imports_is_transitive(self, tmp_path):
+        from miesc.adapters.aderyn_adapter import AderynAdapter
+
+        (tmp_path / "Base.sol").write_text("contract Base {}")
+        (tmp_path / "Mid.sol").write_text('import "./Base.sol";\ncontract Mid {}')
+        main = tmp_path / "Top.sol"
+        main.write_text('import "./Mid.sol";\ncontract Top {}')
+
+        resolved = {p.name for p in AderynAdapter()._resolve_relative_imports(main)}
+        assert resolved == {"Mid.sol", "Base.sol"}
+
+    def test_resolve_relative_imports_skips_missing_files(self, tmp_path):
+        # Same behavior as before this fix for files that don't exist —
+        # this only adds siblings that ARE present, never invents an error
+        # for ones that aren't.
+        from miesc.adapters.aderyn_adapter import AderynAdapter
+
+        main = tmp_path / "Foo.sol"
+        main.write_text('import "./DoesNotExist.sol";\ncontract Foo {}')
+
+        assert AderynAdapter()._resolve_relative_imports(main) == []
+
+    def test_resolve_relative_imports_ignores_package_imports(self, tmp_path):
+        # "@openzeppelin/..." etc. are handled by the separate
+        # known-dependency/forge-install path, not this sibling walker.
+        from miesc.adapters.aderyn_adapter import AderynAdapter
+
+        (tmp_path / "IFoo.sol").write_text("interface IFoo {}")
+        main = tmp_path / "Foo.sol"
+        main.write_text(
+            'import "@openzeppelin/contracts/access/Ownable.sol";\n'
+            'import "./IFoo.sol";\ncontract Foo {}'
+        )
+
+        resolved = AderynAdapter()._resolve_relative_imports(main)
+        assert [p.name for p in resolved] == ["IFoo.sol"]
+
+    def test_resolve_relative_imports_does_not_pull_in_unrelated_siblings(self, tmp_path):
+        # Regression for the first (reverted) approach: bulk-copying every
+        # .sol in the directory pulled in unrelated contracts with their own
+        # unresolved imports, breaking Aderyn's whole-directory compile even
+        # for files that used to analyze fine on their own.
+        from miesc.adapters.aderyn_adapter import AderynAdapter
+
+        (tmp_path / "IFoo.sol").write_text("interface IFoo {}")
+        main = tmp_path / "Foo.sol"
+        main.write_text('import "./IFoo.sol";\ncontract Foo {}')
+        # An unrelated sibling with its own missing dependency — must NOT
+        # be pulled in just because it lives in the same directory.
+        (tmp_path / "Unrelated.sol").write_text('import "./Missing.sol";\ncontract Unrelated {}')
+
+        resolved = [p.name for p in AderynAdapter()._resolve_relative_imports(main)]
+        assert resolved == ["IFoo.sol"]
+
+    # Same bug as SlitherAdapter (see TestSlitherAdapter regression tests
+    # above) — both adapters used to canonicalize "@solmate/"/"@chainlink/"
+    # imports to a guessed key that didn't match every real project's prefix.
+    def test_detect_imports_recognizes_at_solmate_and_at_chainlink(self, tmp_path):
+        from miesc.adapters.aderyn_adapter import AderynAdapter
+
+        contract = tmp_path / "C.sol"
+        contract.write_text(
+            'import {ERC20} from "@solmate/tokens/ERC20.sol";\n'
+            'import "@chainlink/interfaces/AggregatorV3Interface.sol";\n'
+            "contract C {}"
+        )
+        imports = AderynAdapter()._detect_imports(str(contract))
+        assert "@solmate/" in imports
+        assert "@chainlink/" in imports
+
+    def test_get_dependency_info_matches_detected_prefix(self):
+        from miesc.adapters.aderyn_adapter import AderynAdapter
+
+        adapter = AderynAdapter()
+        install_target, remapping = adapter._get_dependency_info("@chainlink/")
+        assert install_target == "smartcontractkit/chainlink-evm@v0.3.3"
+        assert remapping == "@chainlink/=lib/chainlink-evm/contracts/src/v0.8/shared/"
+
+    # Regression: a contract inside a real Foundry project must defer to
+    # that project's own lib/ instead of Aderyn spinning up an isolated temp
+    # workspace with a freshly (floating-version) forge-installed dependency
+    # that ignores whatever the project actually pinned.
+    def test_find_project_root_detects_foundry_toml_in_parent(self, tmp_path):
+        from miesc.adapters.aderyn_adapter import AderynAdapter
+
+        (tmp_path / "foundry.toml").write_text("[profile.default]\n")
+        src = tmp_path / "src"
+        src.mkdir()
+        contract = src / "C.sol"
+        contract.write_text("contract C {}")
+
+        assert AderynAdapter()._find_project_root(str(contract)) == tmp_path.resolve()
+
+    def test_find_project_root_none_for_standalone_file(self, tmp_path):
+        from miesc.adapters.aderyn_adapter import AderynAdapter
+
+        contract = tmp_path / "C.sol"
+        contract.write_text("contract C {}")
+
+        assert AderynAdapter()._find_project_root(str(contract)) is None
+
+    def test_copy_existing_project_deps_copies_lib_and_config(self, tmp_path):
+        from miesc.adapters.aderyn_adapter import AderynAdapter
+
+        project = tmp_path / "project"
+        (project / "lib" / "solmate" / "src").mkdir(parents=True)
+        (project / "lib" / "solmate" / "src" / "ERC20.sol").write_text("contract ERC20 {}")
+        (project / "foundry.toml").write_text('[profile.default]\nsolc = "0.8.15"\n')
+
+        workspace = tmp_path / "workspace"
+        workspace.mkdir()
+        AderynAdapter()._copy_existing_project_deps(project, str(workspace))
+
+        assert (workspace / "foundry.toml").read_text() == '[profile.default]\nsolc = "0.8.15"\n'
+        assert (workspace / "lib" / "solmate" / "src" / "ERC20.sol").exists()
+
 
 class TestHalmosAdapter(TestAdapterBase):
     """Tests for HalmosAdapter."""
@@ -350,6 +551,22 @@ class TestSmartLLMAdapter(TestAdapterBase):
 
         adapter = SmartLLMAdapter()
         assert adapter is not None
+
+    def test_available_coder_model_is_used_as_fallback(self):
+        from miesc.adapters.smartllm_adapter import SmartLLMAdapter
+        from miesc.core.tool_protocol import ToolStatus
+
+        response = MagicMock(status=200)
+        response.__enter__.return_value = response
+        response.read.return_value = json.dumps(
+            {"models": [{"name": "qwen2.5-coder:7b-16k"}]}
+        ).encode()
+        adapter = SmartLLMAdapter()
+        adapter._model = "qwen2.5-coder:14b"
+
+        with patch("urllib.request.urlopen", return_value=response):
+            assert adapter.is_available() == ToolStatus.AVAILABLE
+        assert adapter._model == "qwen2.5-coder:7b-16k"
 
 
 class TestThreatModelAdapter(TestAdapterBase):
@@ -863,6 +1080,126 @@ class TestHalmosAdapterComprehensive(TestAdapterBase):
 
 class TestAdapterErrorHandling(TestAdapterBase):
     """Tests for adapter error handling."""
+
+    def test_slither_scope_filter_drops_only_dependency_findings(self, tmp_path):
+        """lib/ findings are dropped; target, inherited sibling and unmapped ones stay."""
+        import json
+
+        from miesc.adapters.slither_adapter import SlitherAdapter
+        from miesc.core.tool_protocol import ToolStatus
+
+        contract = tmp_path / "Bank.sol"
+        contract.write_text(
+            'pragma solidity ^0.8.0;\nimport "./Helper.sol";\ncontract Bank is Helper {}\n'
+        )
+        (tmp_path / "Helper.sol").write_text("pragma solidity ^0.8.0;\ncontract Helper {}\n")
+
+        def element(path):
+            return [{"name": "x", "source_mapping": {"filename_absolute": str(path), "lines": [3]}}]
+
+        oz = tmp_path / "lib" / "openzeppelin-contracts" / "contracts" / "token" / "ERC20.sol"
+        detectors = [
+            {"check": "in-target", "impact": "High", "elements": element(contract)},
+            # Bank inherits Helper: dropping this is a false negative for Bank.
+            {"check": "in-sibling", "impact": "High", "elements": element(tmp_path / "Helper.sol")},
+            # Same basename as a project file, but it lives in lib/.
+            {"check": "in-dependency", "impact": "Low", "elements": element(oz)},
+            {"check": "own-erc20", "impact": "Low", "elements": element(tmp_path / "ERC20.sol")},
+            {"check": "unmapped", "impact": "Low", "elements": []},
+        ]
+
+        def fake_run(cmd, **kwargs):
+            Path(cmd[cmd.index("--json") + 1]).write_text(
+                json.dumps({"success": True, "results": {"detectors": detectors}})
+            )
+            return MagicMock(returncode=0, stdout="", stderr="")
+
+        adapter = SlitherAdapter()
+        with (
+            patch.object(adapter, "is_available", return_value=ToolStatus.AVAILABLE),
+            patch("miesc.adapters.slither_adapter.subprocess.run", side_effect=fake_run),
+        ):
+            result = adapter.analyze(str(contract), timeout=30)
+
+        found = str(result["findings"])
+        assert "in-dependency" not in found
+        for kept in ("in-target", "in-sibling", "own-erc20", "unmapped"):
+            assert kept in found
+
+    def test_aderyn_scope_filter_drops_only_dependency_findings(self, tmp_path):
+        """Same rule for Aderyn, whose paths are relative to its temp workspace."""
+        import json
+
+        from miesc.adapters.aderyn_adapter import AderynAdapter
+        from miesc.core.tool_protocol import ToolStatus
+
+        contract = tmp_path / "Bank.sol"
+        contract.write_text(
+            'pragma solidity ^0.8.0;\nimport "./Helper.sol";\ncontract Bank is Helper {}\n'
+        )
+        (tmp_path / "Helper.sol").write_text("pragma solidity ^0.8.0;\ncontract Helper {}\n")
+
+        def issue(name, path):
+            return {"detector_name": name, "instances": [{"contract_path": path, "line_no": 3}]}
+
+        issues = [
+            issue("in-target", "Bank.sol"),
+            issue("in-sibling", "Helper.sol"),
+            issue("in-dependency", "lib/openzeppelin-contracts/contracts/access/Ownable.sol"),
+        ]
+
+        def fake_run(cmd, **kwargs):
+            Path(cmd[cmd.index("-o") + 1]).write_text(
+                json.dumps({"high_issues": {"issues": issues}, "low_issues": {"issues": []}})
+            )
+            return MagicMock(returncode=0, stdout="", stderr="")
+
+        adapter = AderynAdapter()
+        with (
+            patch.object(adapter, "is_available", return_value=ToolStatus.AVAILABLE),
+            patch("miesc.adapters.aderyn_adapter.subprocess.run", side_effect=fake_run),
+        ):
+            result = adapter.analyze(str(contract), timeout=30)
+
+        found = str(result["findings"])
+        assert "in-dependency" not in found
+        assert "in-target" in found
+        assert "in-sibling" in found
+
+    def test_aderyn_sibling_outside_project_root_falls_back_to_flat_copy(self, tmp_path):
+        """A sibling outside the project root used to raise ValueError (status=error)."""
+        import json
+
+        from miesc.adapters.aderyn_adapter import AderynAdapter
+        from miesc.core.tool_protocol import ToolStatus
+
+        project = tmp_path / "project"
+        (project / "src").mkdir(parents=True)
+        (project / "foundry.toml").write_text("[profile.default]\n")
+        (tmp_path / "shared").mkdir()
+        (tmp_path / "shared" / "B.sol").write_text("pragma solidity ^0.8.0;\ncontract B {}\n")
+        contract = project / "src" / "A.sol"
+        contract.write_text(
+            'pragma solidity ^0.8.0;\nimport "../../shared/B.sol";\ncontract A is B {}\n'
+        )
+        copied = []
+
+        def fake_run(cmd, **kwargs):
+            copied.extend(sorted(p.name for p in Path(cmd[1]).iterdir()))
+            Path(cmd[cmd.index("-o") + 1]).write_text(
+                json.dumps({"high_issues": {"issues": []}, "low_issues": {"issues": []}})
+            )
+            return MagicMock(returncode=0, stdout="", stderr="")
+
+        adapter = AderynAdapter()
+        with (
+            patch.object(adapter, "is_available", return_value=ToolStatus.AVAILABLE),
+            patch("miesc.adapters.aderyn_adapter.subprocess.run", side_effect=fake_run),
+        ):
+            result = adapter.analyze(str(contract), timeout=30)
+
+        assert result["status"] == "success", result.get("error")
+        assert copied == ["A.sol", "B.sol"]
 
     def test_slither_handles_invalid_json(self, temp_contract):
         """Test Slither handles invalid JSON output."""

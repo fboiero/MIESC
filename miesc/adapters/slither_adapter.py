@@ -18,6 +18,7 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple, cast
 
+from miesc.adapters._dependency_scope import is_dependency_file
 from miesc.adapters._output_paths import discard_output_path, new_output_path
 from miesc.core.tool_protocol import (
     ToolAdapter,
@@ -288,6 +289,15 @@ class SlitherAdapter(ToolAdapter):
                 if external_imports:
                     logger.info(f"Detected external imports: {external_imports}")
 
+            # A contract that already lives inside a real Foundry/Hardhat/
+            # Truffle project has its own dependency setup (lib/, node_modules,
+            # a real remappings.txt) — defer to that instead of spinning up an
+            # isolated temp workspace with freshly (floating-version) forge-
+            # installed deps, which would ignore whatever the project actually
+            # pinned and can drift incompatible with the project's own pragma.
+            project_root = self._find_project_root(contract_path)
+            has_existing_project = project_root is not None
+
             # Support for legacy Solidity versions (0.4.x, 0.5.x).
             # Pick a solc-select artifact compatible with the file pragma before
             # building the Slither command. Without this, standalone SmartBugs
@@ -300,12 +310,17 @@ class SlitherAdapter(ToolAdapter):
 
             # Auto-detect if we should force solc compilation
             # This prevents crytic-compile from incorrectly detecting Foundry
-            # when forge is installed but the contract is a standalone file
+            # when forge is installed but the contract is a standalone file.
+            # Never force raw solc when the file has known package imports
+            # (@openzeppelin/, @solmate/, ...) — solc has no remapping in that
+            # path, so every such import fails to resolve. Route those through
+            # the dependency-workspace path below instead, which sets up a real
+            # foundry.toml with remappings that crytic-compile can use.
             if force_solc is None:
-                force_solc = self._should_force_solc(contract_path)
+                force_solc = self._should_force_solc(contract_path) and not external_imports
 
             # If contract has external imports, set up workspace with dependencies
-            if external_imports and not force_solc:
+            if external_imports and not force_solc and not has_existing_project:
                 workspace_result = self._setup_workspace_with_deps(contract_path, external_imports)
                 if workspace_result:
                     temp_workspace, actual_contract_path = workspace_result
@@ -331,11 +346,21 @@ class SlitherAdapter(ToolAdapter):
                 cmd.extend(["--solc", solc_artifact])
                 logger.debug(f"Slither using direct solc binary: {solc_artifact}")
 
-            if force_solc or legacy_solc or solc_version:
+            if temp_workspace or has_existing_project:
+                # Either we built our own deps workspace with remappings, or
+                # the target already lives inside a real Foundry/Hardhat
+                # project — either way let crytic-compile auto-detect it and
+                # drive `forge build`, which honors that project's own
+                # remappings. `--compile-force-framework solc` bypasses all
+                # of that (raw solc has no remapping of its own), so every
+                # external package import would fail to resolve even though
+                # the dependency is correctly installed right there.
+                pass
+            elif force_solc or legacy_solc or solc_version:
                 cmd.extend(["--compile-force-framework", "solc"])
                 if solc_version and not Path(solc_artifact).exists():
                     cmd.extend(["--solc-solcs-select", solc_version])
-            elif not temp_workspace:
+            else:
                 # If not forcing solc, no workspace, and no project exists, create minimal Foundry project
                 # This handles ARM64 where solc-select binaries don't work
                 temp_foundry_toml = self._setup_foundry_project(actual_contract_path)
@@ -396,6 +421,25 @@ class SlitherAdapter(ToolAdapter):
                     contract_path,
                     len(incomplete_functions),
                 )
+
+            # Slither also reports on every file the target imports. Drop the
+            # findings located in dependencies (lib/, node_modules/, package
+            # prefixes) so e.g. an Ownable.sol lint is not attributed to the
+            # target, but keep the target's own siblings: a bug in an
+            # inherited Helper.sol is a bug in the target.
+            results = raw_output.get("results") or {}
+            if Path(contract_path).is_file() and results.get("detectors"):
+                dep_root = (
+                    Path(temp_workspace)
+                    if temp_workspace
+                    else project_root or Path(contract_path).resolve().parent
+                )
+                prefixes = [prefix for prefix, _, _ in self.KNOWN_DEP_PREFIXES]
+                results["detectors"] = [
+                    d
+                    for d in results["detectors"]
+                    if not is_dependency_file(self._detector_file(d), dep_root, prefixes)
+                ]
 
             # Normalize findings
             findings = self.normalize_findings(raw_output)
@@ -658,6 +702,35 @@ class SlitherAdapter(ToolAdapter):
 
         return None
 
+    @staticmethod
+    def _detector_file(detector: Dict[str, Any]) -> str:
+        """Path of the file a raw Slither detector result points at, or ""."""
+        elements = detector.get("elements") or [{}]
+        mapping = elements[0].get("source_mapping") or {}
+        return mapping.get("filename_absolute") or mapping.get("filename_short") or ""
+
+    def _find_project_root(self, contract_path: str) -> Optional[Path]:
+        """Return the real Foundry/Hardhat/Truffle project root containing
+        `contract_path` (config file found walking up to 5 parent
+        directories), or None for a standalone file with no project
+        scaffolding of its own.
+        """
+        path = Path(contract_path).resolve()
+        check_dir = path.parent if path.is_file() else path
+        for _ in range(5):
+            if (
+                (check_dir / "foundry.toml").exists()
+                or (check_dir / "hardhat.config.js").exists()
+                or (check_dir / "hardhat.config.ts").exists()
+                or (check_dir / "truffle-config.js").exists()
+            ):
+                return check_dir
+            parent = check_dir.parent
+            if parent == check_dir:
+                break
+            check_dir = parent
+        return None
+
     def _should_force_solc(self, contract_path: str) -> bool:
         """
         Determine if we should force solc compilation instead of auto-detection.
@@ -870,16 +943,49 @@ auto_detect_solc = false
             return version < target
         return version == target
 
+    # Ordered longest-prefix-first: the matched prefix is used verbatim as
+    # both the dependency key and the left side of its remapping, so e.g.
+    # "@solmate/" and "solmate/" (with/without the npm-style alias) or
+    # "@chainlink/" and "@chainlink/contracts/" (different repos alias the
+    # same package at different depths) each resolve correctly instead of
+    # collapsing to one guessed canonical form that only matches some of them.
+    # chainlink pinned to chainlink-evm (the split-out repo with just the
+    # Solidity contracts): smartcontractkit/chainlink's own default branch has
+    # dropped its contracts/ directory entirely, and even pinned to an old tag
+    # (e.g. v1.11.0) `forge install` on that huge, submodule-heavy monorepo
+    # reliably hangs/fails on the nested-submodule checkout. chainlink-evm is
+    # the same files, smaller and installs cleanly (verified: ~20s).
+    KNOWN_DEP_PREFIXES: List[Tuple[str, str, str]] = [
+        ("forge-std/", "foundry-rs/forge-std", "lib/forge-std/src/"),
+        (
+            "@openzeppelin/contracts-upgradeable/",
+            "OpenZeppelin/openzeppelin-contracts-upgradeable",
+            "lib/openzeppelin-contracts-upgradeable/contracts/",
+        ),
+        ("@openzeppelin/", "OpenZeppelin/openzeppelin-contracts", "lib/openzeppelin-contracts/"),
+        (
+            "@chainlink/contracts/",
+            "smartcontractkit/chainlink-evm@v0.3.3",
+            "lib/chainlink-evm/contracts/",
+        ),
+        (
+            "@chainlink/",
+            "smartcontractkit/chainlink-evm@v0.3.3",
+            "lib/chainlink-evm/contracts/src/v0.8/shared/",
+        ),
+        ("@solmate/", "transmissions11/solmate", "lib/solmate/src/"),
+        ("solmate/", "transmissions11/solmate", "lib/solmate/src/"),
+        ("solady/", "Vectorized/solady", "lib/solady/src/"),
+    ]
+
     def _detect_imports(self, contract_path: str) -> Set[str]:
         """
-        Detect external imports in a Solidity contract.
+        Detect external (non-relative) imports in a Solidity contract that
+        match a known dependency prefix.
 
-        Returns a set of import prefixes like:
-        - 'forge-std'
-        - '@openzeppelin/contracts'
-        - '@chainlink/contracts'
+        Returns a set of matched prefixes, e.g. {'@openzeppelin/', '@solmate/'}.
         """
-        imports = set()
+        imports: Set[str] = set()
         try:
             with open(contract_path, "r") as f:
                 content = f.read()
@@ -889,28 +995,13 @@ auto_detect_solc = false
             # import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
             # import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
             import_pattern = r'import\s+(?:{[^}]+}\s+from\s+)?["\']([^"\']+)["\']'
-            matches = re.findall(import_pattern, content)
-
-            for match in matches:
-                # Extract the root package
-                if match.startswith("forge-std/"):
-                    imports.add("forge-std")
-                elif match.startswith("@openzeppelin/"):
-                    imports.add("@openzeppelin/contracts")
-                elif match.startswith("@chainlink/"):
-                    imports.add("@chainlink/contracts")
-                elif match.startswith("@uniswap/"):
-                    imports.add("@uniswap")
-                elif match.startswith("solmate/"):
-                    imports.add("solmate")
-                elif match.startswith("solady/"):
-                    imports.add("solady")
-                # Relative imports (./foo.sol, ../bar.sol) are OK
-                elif not match.startswith("."):
-                    # Unknown external import
-                    root = match.split("/")[0]
-                    if root and not root.endswith(".sol"):
-                        imports.add(root)
+            for match in re.findall(import_pattern, content):
+                if match.startswith("."):
+                    continue
+                for prefix, _, _ in self.KNOWN_DEP_PREFIXES:
+                    if match.startswith(prefix):
+                        imports.add(prefix)
+                        break
 
         except Exception as e:
             logger.debug(f"Error detecting imports: {e}")
@@ -923,26 +1014,39 @@ auto_detect_solc = false
 
         Returns (install_target, remapping) or (None, None) if unknown.
         """
-        # Known dependencies mapping: import_name -> (forge_install_target, remapping)
-        KNOWN_DEPS = {
-            "forge-std": ("foundry-rs/forge-std", "forge-std/=lib/forge-std/src/"),
-            "@openzeppelin/contracts": (
-                "OpenZeppelin/openzeppelin-contracts",
-                "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/",
-            ),
-            "@openzeppelin/contracts-upgradeable": (
-                "OpenZeppelin/openzeppelin-contracts-upgradeable",
-                "@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/",
-            ),
-            "@chainlink/contracts": (
-                "smartcontractkit/chainlink",
-                "@chainlink/contracts/=lib/chainlink/contracts/",
-            ),
-            "solmate": ("transmissions11/solmate", "solmate/=lib/solmate/src/"),
-            "solady": ("Vectorized/solady", "solady/=lib/solady/src/"),
-        }
+        for prefix, install_target, lib_subpath in self.KNOWN_DEP_PREFIXES:
+            if prefix == import_name:
+                return install_target, f"{prefix}={lib_subpath}"
+        return None, None
 
-        return KNOWN_DEPS.get(import_name, (None, None))
+    def _resolve_relative_imports(self, contract_file: Path) -> List[Path]:
+        """Walk `contract_file`'s relative (`./`, `../`) imports transitively.
+
+        Returns every sibling file reachable this way that actually exists on
+        disk. Missing files are silently skipped, not treated as an error.
+        """
+        import_pattern = re.compile(r'import\s+(?:{[^}]+}\s+from\s+)?["\']([^"\']+)["\']')
+        resolved: Dict[str, Path] = {}
+        pending = [contract_file]
+        seen = {contract_file.resolve()}
+
+        while pending:
+            current = pending.pop()
+            try:
+                content = current.read_text(errors="ignore")
+            except OSError:
+                continue
+            for match in import_pattern.findall(content):
+                if not (match.startswith("./") or match.startswith("../")):
+                    continue
+                candidate = (current.parent / match).resolve()
+                if not candidate.is_file() or candidate in seen:
+                    continue
+                seen.add(candidate)
+                resolved[candidate.name] = candidate
+                pending.append(candidate)
+
+        return list(resolved.values())
 
     def _setup_workspace_with_deps(
         self, contract_path: str, imports: Set[str]
@@ -965,10 +1069,15 @@ auto_detect_solc = false
             workspace = tempfile.mkdtemp(prefix="miesc_slither_")
             logger.debug(f"Created temporary workspace: {workspace}")
 
-            # Copy contract to workspace
+            # Copy contract to workspace, plus any sibling files it reaches via
+            # relative imports (./Foo.sol) — without this, a file that mixes
+            # package imports (@solmate/...) with local relative imports
+            # loses the local ones once isolated into this temp workspace.
             contract_name = Path(contract_path).name
             temp_contract = Path(workspace) / contract_name
             shutil.copy2(contract_path, temp_contract)
+            for sibling in self._resolve_relative_imports(Path(contract_path)):
+                shutil.copy2(sibling, Path(workspace) / sibling.name)
 
             # Detect solidity version
             solc_version = self._detect_solidity_version(contract_path)
