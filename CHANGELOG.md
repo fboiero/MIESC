@@ -7,6 +7,21 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Revert-invariant Phase 2 (first slice): within-family access-control gap hypotheses.** The
+  revert-invariant miner now compares external/public, state-changing functions that share a
+  privileged verb family (`set`, `withdraw`, `upgrade`, `pause`, …) and, when some members are
+  access-controlled and a sibling is not, records a `GuardGapHypothesis`
+  (`observed_gap="inconsistent"`). Guards are resolved **through applied modifiers**, so a
+  function guarded by `onlyOwner` counts as guarded — without that, every OpenZeppelin-style
+  contract would false-positive. Advisory only: it is a hypothesis with negative checks (a guard
+  may be on an unparsed/inherited modifier, the function may be intentionally permissionless, the
+  property may be enforced upstream), never a `Finding`, and `promotion.state` stays `hypothesis`.
+  Surfaced under `gap_hypotheses` in the plan (the deep-audit advisory phase picks it up for free)
+  and round-trips through `parse_revert_invariant_plans`. Negative control: 0 hypotheses on
+  OpenZeppelin `contracts/` and Solady `src/`. No benchmark claim.
+
 ## [6.6.0] - 2026-10-24 — Phase-1 plan miners, DeFi and Yul detectors, hardened adapters
 
 Minor release. Four deterministic, LLM-free *plan miners* land as Phase 1 of their SDDs

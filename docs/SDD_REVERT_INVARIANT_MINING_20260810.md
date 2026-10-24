@@ -2,7 +2,7 @@
 
 Date: 2026-08-10
 Owner/Lane: Codex
-Status: Phase 1 implemented (deterministic guard inventory) — see `miesc/llm/revert_invariant_mining.py`. Later phases (gap hypotheses, oracle/execution plans, LLM reasoning agent, counterexample feeding) remain proposed. No benchmark claim.
+Status: Phase 1 implemented (deterministic guard inventory) and a first Phase 2 slice — within-family access-control gap hypotheses (modifier-resolved, advisory, `observed_gap="inconsistent"`, `promotion.state="hypothesis"`, never a Finding) — see `miesc/llm/revert_invariant_mining.py`. Negative control: 0 gap hypotheses on OpenZeppelin `contracts/` and Solady `src/`. Remaining Phase 2+ (other gap kinds, oracle/execution plans, LLM reasoning agent, counterexample feeding and promotion) remain proposed. No benchmark claim.
 
 ## Signal
 
