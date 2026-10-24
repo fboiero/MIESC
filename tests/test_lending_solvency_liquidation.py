@@ -119,3 +119,79 @@ class TestParserRoundTrip:
         )
         parsed = parse_lending_solvency_plans({"plans": [good.to_dict(), {"objective": ""}]})
         assert len(parsed) == 1
+
+
+ERC4626_VAULT = """
+contract Vault is ERC20 {
+    IERC20 public asset;
+    function deposit(uint256 assets, address receiver) external returns (uint256 shares) { shares = assets; }
+    function withdraw(uint256 assets, address receiver, address owner) external returns (uint256 shares) { }
+    function totalAssets() public view returns (uint256) { return asset.balanceOf(address(this)); }
+}
+"""
+
+TOKEN_WITH_RESERVE_STRING = """
+contract Token {
+    uint256 private _supply;
+    mapping(address => uint256) private b;
+    function totalSupply() external view returns (uint256) { return _supply; }
+    function transfer(address to, uint256 v) external { require(b[msg.sender] >= v, "reserve too low"); b[to] += v; }
+}
+"""
+
+STAKING_POOL = """
+contract Staking {
+    mapping(address => uint256) public shares;
+    uint256 public totalShares;
+    function deposit(uint256 amt) external { shares[msg.sender] += amt; totalShares += amt; }
+    function withdraw(uint256 amt) external { shares[msg.sender] -= amt; totalShares -= amt; }
+}
+"""
+
+COMPOUND_LIKE = """
+contract CToken {
+    uint public borrowIndex;
+    uint public totalBorrows;
+    uint public totalReserves;
+    uint public reserveFactorMantissa;
+    PriceOracle public oracle;
+    uint public collateralFactorMantissa;
+    function accrueInterest() public returns (uint) { }
+    function borrow(uint amount) external { }
+    function repayBorrow(uint amount) external { }
+    function liquidateBorrow(address borrower, uint repayAmount, address cTokenCollateral) external {
+        uint price = oracle.getUnderlyingPrice(cTokenCollateral);
+    }
+}
+"""
+
+
+class TestGateIsDebtAndCollateral:
+    def test_erc4626_vault_is_not_a_lending_market(self):
+        assert mine_lending_solvency_liquidation(ERC4626_VAULT, Path("Vault.sol")) == []
+
+    def test_token_with_reserve_in_a_string_is_not_a_lending_market(self):
+        assert mine_lending_solvency_liquidation(TOKEN_WITH_RESERVE_STRING, Path("T.sol")) == []
+
+    def test_staking_pool_is_not_a_lending_market(self):
+        assert mine_lending_solvency_liquidation(STAKING_POOL, Path("S.sol")) == []
+
+    def test_compound_like_market_still_passes_with_its_parameters(self):
+        plans = mine_lending_solvency_liquidation(COMPOUND_LIKE, Path("CToken.sol"))
+        assert len(plans) == 1
+        d = plans[0].to_dict()["market_model"]
+        assert {"borrow", "repayBorrow", "liquidateBorrow", "accrueInterest"} <= set(
+            d["solvency_functions"]
+        )
+        assert {"collateral", "debt", "reserves", "indexes"} <= set(d["accounting_fields"])
+        m = d["markets"][0]
+        assert m["collateral_factor"] == "collateralFactorMantissa"
+        assert m["interest_index"] == "borrowIndex"
+        assert m["price_source"] == "getUnderlyingPrice"
+
+    def test_anchor_points_at_a_declaration_not_line_one(self):
+        plans = mine_lending_solvency_liquidation(COMPOUND_LIKE, Path("CToken.sol"))
+        anchor = plans[0].to_dict()["market_model"]["markets"][0]["source_anchors"][0]
+        line = int(anchor.rsplit(":", 1)[1])
+        # borrowIndex is declared on line 3 of the fixture; line 1 is the blank before `contract`
+        assert line == 3
