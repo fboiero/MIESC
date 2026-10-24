@@ -7,6 +7,37 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Security
+
+- **Revert-invariant executor hardened (`miesc/llm/revert_invariant_executor.py`).** The
+  opt-in access-control gap executor runs the *audited* contract under Foundry, and Foundry grants
+  cheatcode access to every contract a test deploys. A post-merge review of the executor showed
+  that, with the default generated `foundry.toml`, a malicious contract could read the auditor's
+  environment (`vm.envOr`) and send it out over `vm.rpc`/`createFork`, and that a permissive global
+  `~/.foundry/foundry.toml` let it run shell commands (`vm.ffi`) and write files. The executor now
+  pins `ffi = false` and `fs_permissions = []` in the generated project (verified to override the
+  global file), runs `forge` with an allow-listed environment and `FOUNDRY_PROFILE=default`
+  (verified: the same contract exfiltrates `unset`), denies outbound network where the host offers
+  an unprivileged sandbox (`sandbox-exec` on macOS, `unshare -rn` on Linux) and records
+  `isolation.network` as `denied`/`unrestricted` in every executed result (a warning is logged when
+  unrestricted), and refuses to execute a source that names the cheatcode address or the
+  `"hevm cheat code"` seed. `enable_gap_execution` stays off by default and is documented as
+  "only on code you are willing to run".
+
+### Fixed
+
+- **Revert-invariant executor: a non-reverting guard is no longer a counterexample.** The probe
+  now wraps the unauthorized call in `vm.record()`/`vm.accesses(target)` and fails only when the
+  call both succeeded **and** wrote the target's storage. An early-return guard
+  (`if (msg.sender != owner) return;`) or a setter that no-ops on the zero argument used to be
+  promoted with the evidence "the access-control guard is absent"; both now stay `hypothesis`,
+  and the evidence reads "did not revert and wrote the contract's storage". Result ids are now
+  unique per privileged verb family (`<plan>-access_control-<first function>`, aligned with the
+  harness ids) instead of colliding when one plan carries gaps in two families. The forge JSON
+  mapping, the generated `foundry.toml`, the scrubbed environment and the probe text are now
+  covered by mocked-forge tests that run in CI (the real-forge tests remain skipped where `forge`
+  is absent).
+
 ### Added
 
 - **Revert-invariant Phase 2 (first slice): within-family access-control gap hypotheses.** The
