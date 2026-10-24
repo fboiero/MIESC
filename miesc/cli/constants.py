@@ -24,7 +24,7 @@ LAYERS: Dict[int, Dict[str, Any]] = {
     1: {
         "name": "Static Analysis",
         "description": "Pattern-based code analysis",
-        "tools": ["slither", "aderyn", "solhint", "wake", "semgrep", "fouranalyzer"],
+        "tools": ["slither", "aderyn", "solhint", "wake", "semgrep", "fouranalyzer", "vyper"],
     },
     2: {
         "name": "Dynamic Testing",
@@ -96,6 +96,7 @@ ADAPTER_MAP: Dict[str, str] = {
     "wake": "WakeAdapter",
     "semgrep": "SemgrepAdapter",
     "fouranalyzer": "FourAnalyzerAdapter",
+    "vyper": "VyperAdapter",
     # Layer 2: Dynamic Testing
     "echidna": "EchidnaAdapter",
     "medusa": "MedusaAdapter",

@@ -342,6 +342,21 @@ def run_tool(tool: str, contract_path: str, timeout: int = 300, **kwargs: Any) -
         }
 
     try:
+        # Skip tools that don't apply to this file type (e.g. Solidity-only
+        # tools against a .vy file, or vice versa) — same gate as
+        # run_tool in miesc/cli/utils.py.
+        can_analyze = getattr(adapter, "can_analyze", None)
+        if callable(can_analyze) and not can_analyze(contract_path):
+            return {
+                "tool": tool,
+                "contract": contract_path,
+                "status": "skipped",
+                "findings": [],
+                "execution_time": 0,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "error": f"{tool} does not support this file type",
+            }
+
         from miesc.core.tool_protocol import ToolStatus
 
         tool_status = adapter.is_available()

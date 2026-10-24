@@ -589,6 +589,23 @@ def run_tool(tool: str, contract: str, timeout: int = 0, **kwargs: Any) -> Dict[
         }
 
     try:
+        # Skip tools that don't apply to this file type (e.g. Solidity-only
+        # tools against a .vy file) before spending time on availability
+        # checks or a doomed analyze() call. can_analyze defaults to .sol-only
+        # (ToolAdapter.can_analyze) or is omitted entirely by duck-typed
+        # adapters that accept anything — both are treated as "applies".
+        can_analyze = getattr(adapter, "can_analyze", None)
+        if callable(can_analyze) and not can_analyze(contract):
+            return {
+                "tool": tool,
+                "contract": contract,
+                "status": "skipped",
+                "findings": [],
+                "execution_time": 0,
+                "timestamp": datetime.now().isoformat(),
+                "error": f"{tool} does not support this file type",
+            }
+
         # Check if tool is available
         from miesc.core.tool_protocol import ToolStatus
 
