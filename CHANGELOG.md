@@ -89,6 +89,11 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- The index-preserving Solidity text helpers (`_strip_comments`, `_line_of`, `_match_brace`) that
+  the deterministic plan miners had each copied verbatim now live in one tested module,
+  `miesc/llm/_solidity_text.py`. Internal refactor with no behavior change; `_FUNCTION_RE` stays
+  per-module because the revert-invariant miner needs a superset (it also matches
+  `modifier`/`constructor`) that the others must not.
 - DeFi findings now carry a `type` equal to their category (`flash_loan`, `mev_exposure`,
   `rounding`, `fee_on_transfer`, `erc4626`, `business_logic`, …) instead of relying on the
   title keyword fallback. The SARIF `ruleId` becomes one per category and the `miesc baseline`

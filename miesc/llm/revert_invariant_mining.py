@@ -21,6 +21,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional
 
+from miesc.llm._solidity_text import _line_of, _strip_comments
 from miesc.llm.agentic_contracts import (
     MAX_AGENT_ITEMS,
     MAX_AGENT_TEXT_CHARS,
@@ -212,30 +213,6 @@ def _normalize_category(predicate: str, error_signal: str) -> tuple:
     return "unclassified", terms
 
 
-def _strip_comments(source: str) -> str:
-    """Blank // and /* */ comments while preserving indexes (string bodies are kept)."""
-    out = list(source)
-    i, n = 0, len(source)
-    while i < n:
-        c, nxt = source[i], source[i + 1] if i + 1 < n else ""
-        if c == "/" and nxt == "/":
-            j = source.find("\n", i)
-            j = n if j == -1 else j
-            for k in range(i, j):
-                out[k] = " "
-            i = j
-        elif c == "/" and nxt == "*":
-            j = source.find("*/", i + 2)
-            j = n if j == -1 else j + 2
-            for k in range(i, min(j, n)):
-                if out[k] != "\n":
-                    out[k] = " "
-            i = j
-        else:
-            i += 1
-    return "".join(out)
-
-
 def _balanced_arg(source: str, open_paren: int) -> tuple:
     """Return ``(arg_text, end_index)`` for the parenthesized group opening at ``open_paren``."""
     depth = 0
@@ -299,10 +276,6 @@ def _enclosing(spans: List[tuple], pos: int) -> str:
         if start <= pos <= end and start > best_start:
             best_name, best_start = name, start
     return best_name
-
-
-def _line_of(source: str, index: int) -> int:
-    return source[:index].count("\n") + 1
 
 
 def mine_revert_invariants(
