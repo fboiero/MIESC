@@ -87,6 +87,10 @@ class GuardGapHypothesis:
     affected_functions: List[str] = field(default_factory=list)
     semantic_preconditions: List[str] = field(default_factory=list)
     negative_checks: List[str] = field(default_factory=list)
+    # The guarded sibling that anchors the comparison (``guarded[0]`` in ``_family_gap``). It is the
+    # control-probe oracle for the reasoning executor: a structured field, never parsed back out of
+    # the prose ``expected_guard``. Empty when the hypothesis carries no resolvable sibling.
+    guarded_example: str = ""
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -101,6 +105,7 @@ class GuardGapHypothesis:
             "affected_functions": _safe_text_list(self.affected_functions),
             "semantic_preconditions": _safe_text_list(self.semantic_preconditions),
             "negative_checks": _safe_text_list(self.negative_checks),
+            "guarded_example": _safe_label(self.guarded_example) or "",
         }
 
 
@@ -198,6 +203,7 @@ def parse_revert_invariant_plans(data: Any) -> List[RevertInvariantOraclePlan]:
                         affected_functions=_safe_text_list(rh.get("affected_functions")),
                         semantic_preconditions=_safe_text_list(rh.get("semantic_preconditions")),
                         negative_checks=_safe_text_list(rh.get("negative_checks")),
+                        guarded_example=_safe_label(rh.get("guarded_example")) or "",
                     )
                 )
         plans.append(
@@ -557,6 +563,7 @@ def _family_gap(
         expected_guard=f"{expected} consistent with `{guarded[0]}`",
         observed_gap="inconsistent",
         affected_functions=unguarded,
+        guarded_example=guarded[0],
         semantic_preconditions=[f"{precondition}; `{guarded[0]}` carries {category}"],
         negative_checks=[
             "a guard may be applied by a modifier not parsed here",

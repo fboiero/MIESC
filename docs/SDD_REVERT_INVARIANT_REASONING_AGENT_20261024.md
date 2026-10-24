@@ -2,8 +2,10 @@
 
 Date: 2026-10-24
 Owner/Lane: Claude
-Status: **Proposed, not implemented.** This is a design for review. No code ships from this
-document.
+Status: **First slice implemented (local fallback; access-control-style subset).** The control-probe
+precision invariant, the pause/freshness executor (`miesc/llm/revert_invariant_reasoning.py`), the
+`enable_gap_reasoning` wiring and tests have shipped; only the deterministic local fallback runs in
+this slice (the remote reasoning-provider path is hooked but not yet implemented).
 
 ## Context
 
