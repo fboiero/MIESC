@@ -346,25 +346,22 @@ def _enclosing(spans: List[tuple], pos: int) -> str:
 # --------------------------------------------------------------------------------------
 # Verb prefixes that mark a function as privileged. A family is compared only when at least
 # one member is guarded, so a broad verb (``add``) never fires on its own.
+# Admin-only verbs (the access-control comparison population). Verbs that are ambiguous between
+# admin and user intent (``withdraw``, ``mint``, ``burn``, ``add``, ``remove``, ``emergency``) are
+# deliberately left out so a plain user ``withdraw()`` is not mistaken for a privileged action.
 _PRIVILEGED_VERBS = frozenset(
     {
         "set",
         "update",
         "configure",
         "config",
-        "withdraw",
         "rescue",
         "sweep",
         "pause",
         "unpause",
         "upgrade",
-        "mint",
-        "burn",
         "grant",
         "revoke",
-        "add",
-        "remove",
-        "emergency",
         "admin",
         "change",
         "enable",
@@ -372,6 +369,35 @@ _PRIVILEGED_VERBS = frozenset(
         "initialize",
         "migrate",
         "seize",
+        "whitelist",
+        "blacklist",
+    }
+)
+# User-facing entry-point verbs (the pause-gating comparison population). Disjoint from the
+# privileged set; a verb that is in neither has role ``None`` and joins no comparison.
+_USER_VERBS = frozenset(
+    {
+        "deposit",
+        "withdraw",
+        "transfer",
+        "send",
+        "swap",
+        "stake",
+        "unstake",
+        "claim",
+        "redeem",
+        "borrow",
+        "repay",
+        "buy",
+        "sell",
+        "wrap",
+        "unwrap",
+        "exchange",
+        "mint",
+        "burn",
+        "bid",
+        "lock",
+        "unlock",
     }
 )
 _VIS_RE = re.compile(r"\b(external|public|internal|private)\b")
@@ -440,70 +466,118 @@ def _categories_by_owner(guards: List[GuardInventoryItem]) -> Dict[str, set]:
     return owner
 
 
+def _verb_role(name: str) -> Optional[str]:
+    """``privileged`` (admin verb), ``user`` (user-facing entry-point verb), or ``None``.
+
+    The two sets are disjoint and curated: a verb in neither (``execute``, ``flashLoan``, …) is
+    left unclassified rather than forced into a comparison it does not belong to.
+    """
+    toks = split_identifier(name)
+    if not toks:
+        return None
+    if toks[0] in _PRIVILEGED_VERBS:
+        return "privileged"
+    if toks[0] in _USER_VERBS:
+        return "user"
+    return None
+
+
+def _classify_for(f: "_FuncSig", category: str, owner: Dict[str, set]) -> str:
+    """``guarded`` (``category`` visible on the function or a resolvable modifier), ``opaque``
+    (applies a modifier whose effect we cannot see — delegated or inherited), or ``unguarded``.
+    Opaque members are excluded from a comparison: the SDD says a modifier may enforce the
+    property, so we never assume it does not."""
+    cats = set(owner.get(f.name, ()))
+    opaque = False
+    for mod in f.modifiers:
+        if mod in owner:
+            cats |= owner[mod]  # modifier with an anchored guard: categories are known
+        else:
+            opaque = True  # delegates to an internal check, or inherited from a base
+    if category in cats:
+        return "guarded"
+    if opaque:
+        return "opaque"
+    return "unguarded"
+
+
+def _family_gap(
+    members: List["_FuncSig"],
+    category: str,
+    owner: Dict[str, set],
+    expected: str,
+    precondition: str,
+) -> Optional[GuardGapHypothesis]:
+    """Emit one ``inconsistent`` hypothesis when a group has a guarded and an unguarded member
+    for ``category`` (opaque members excluded). ``None`` when the group is consistent."""
+    if len(members) < 2:
+        return None
+    cls = {f.name: _classify_for(f, category, owner) for f in members}
+    guarded = sorted(f.name for f in members if cls[f.name] == "guarded")
+    unguarded = sorted(f.name for f in members if cls[f.name] == "unguarded")
+    if not guarded or not unguarded:
+        return None
+    return GuardGapHypothesis(
+        category=category,
+        expected_guard=f"{expected} consistent with `{guarded[0]}`",
+        observed_gap="inconsistent",
+        affected_functions=unguarded,
+        semantic_preconditions=[f"{precondition}; `{guarded[0]}` carries {category}"],
+        negative_checks=[
+            "a guard may be applied by a modifier not parsed here",
+            "a guard may be inherited from a base contract",
+            "the function may be intentionally exempt from this guard",
+            "the property may be enforced upstream or by a protocol invariant",
+        ],
+    )
+
+
 def _gap_hypotheses(
     guards: List[GuardInventoryItem], functions: List["_FuncSig"]
 ) -> List[GuardGapHypothesis]:
-    """Within a privileged verb family, flag external/public members that lack the access-control
-    guard their sibling(s) have. Guards are resolved through applied modifiers, so a function
-    guarded by ``onlyOwner`` counts as guarded. Advisory only: emitted as a hypothesis, never a
-    confirmed finding, with negative checks that may make the gap benign.
+    """Deterministic, advisory within-group guard inconsistencies. Two categories, each over the
+    population it actually belongs to:
+
+    - ``access_control`` over each *privileged* verb family (set/withdraw/upgrade/…): a privileged
+      sibling being guarded is a strong prior that the others should be too.
+    - ``pause_toggle`` over *user-facing* external/public mutators (verbs NOT in the privileged
+      set): a pause check is a protocol-state property of user entry points, not of admin ones
+      (admins must act while paused), so privileged functions are deliberately not in this group.
+
+    Guards resolve through modifiers; an opaque modifier (delegated or inherited, e.g. OZ's
+    inherited ``whenNotPaused``) excludes the function, so inherited-pause protocols read silent
+    rather than noisy. Never a Finding; ``promotion.state`` stays ``hypothesis``.
     """
     owner = _categories_by_owner(guards)
-
-    def _classify(f: "_FuncSig") -> str:
-        """``guarded`` (visible access-control), ``opaque`` (applies a modifier whose effect we
-        cannot see — delegated or inherited), or ``unguarded``. Opaque members are excluded from
-        the comparison: the SDD says a modifier may enforce the property, so we must not assume it
-        does not."""
-        cats = set(owner.get(f.name, ()))
-        opaque = False
-        for mod in f.modifiers:
-            if mod in owner:
-                cats |= owner[mod]  # modifier with an anchored guard: categories are known
-            else:
-                opaque = True  # delegates to an internal check, or inherited from a base
-        if "access_control" in cats:
-            return "guarded"
-        if opaque:
-            return "opaque"
-        return "unguarded"
-
-    families: Dict[str, List[_FuncSig]] = {}
-    for f in functions:
-        if f.visibility not in ("external", "public") or not f.mutates:
-            continue
-        toks = split_identifier(f.name)
-        if toks and toks[0] in _PRIVILEGED_VERBS:
-            families.setdefault(toks[0], []).append(f)
+    cands = [f for f in functions if f.visibility in ("external", "public") and f.mutates]
 
     out: List[GuardGapHypothesis] = []
-    for verb, members in sorted(families.items()):
-        if len(members) < 2:
-            continue
-        classified = {f.name: _classify(f) for f in members}
-        guarded = [f for f in members if classified[f.name] == "guarded"]
-        unguarded = [f for f in members if classified[f.name] == "unguarded"]
-        if not guarded or not unguarded:
-            continue
-        sibling = sorted(f.name for f in guarded)[0]
-        out.append(
-            GuardGapHypothesis(
-                category="access_control",
-                expected_guard=f"access control consistent with `{sibling}`",
-                observed_gap="inconsistent",
-                affected_functions=sorted(f.name for f in unguarded),
-                semantic_preconditions=[
-                    f"`{verb}`-family external/public state-changing functions; "
-                    f"`{sibling}` is access-controlled"
-                ],
-                negative_checks=[
-                    "a guard may be applied by a modifier not parsed here",
-                    "a guard may be inherited from a base contract",
-                    "the function may be intentionally permissionless",
-                    "the property may be enforced upstream or by a protocol invariant",
-                ],
-            )
+
+    priv_families: Dict[str, List[_FuncSig]] = {}
+    for f in cands:
+        if _verb_role(f.name) == "privileged":
+            priv_families.setdefault(split_identifier(f.name)[0], []).append(f)
+    for verb, members in sorted(priv_families.items()):
+        gap = _family_gap(
+            members,
+            "access_control",
+            owner,
+            "access control",
+            f"`{verb}`-family privileged external/public state-changing functions",
         )
+        if gap:
+            out.append(gap)
+
+    user_mutators = [f for f in cands if _verb_role(f.name) == "user"]
+    gap = _family_gap(
+        user_mutators,
+        "pause_toggle",
+        owner,
+        "pause gating",
+        "user-facing external/public state-changing functions",
+    )
+    if gap:
+        out.append(gap)
     return out
 
 
