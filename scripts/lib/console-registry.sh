@@ -84,4 +84,12 @@ console_of_worktree() { printf '%s\n' "$CONSOLE_REGISTRY" | awk -v w="${1##*/}" 
 # this replaced. Empty when the lane is unknown or the manifest is absent — callers
 # already treat empty as "auto-pick an idle console", so a missing manifest degrades
 # routing to auto rather than crashing a dispatch.
-lane_class() { lane_console "$1"; }
+#
+# SPREAD-FIRST (opt-in, OFF by default): when SWARM_DISPATCH_SPREAD names a provider
+# set (e.g. "claude,codex,kimi"), return THAT set for every lane instead of the lane's
+# single owner, so pick_wt + quota_pick_provider balance the dispatch toward the sub
+# with the most headroom. Empty => the lane's own console, byte-identical to before.
+lane_class() {
+  [ -n "${SWARM_DISPATCH_SPREAD:-}" ] && { printf '%s\n' "$SWARM_DISPATCH_SPREAD"; return 0; }
+  lane_console "$1"
+}

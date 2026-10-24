@@ -324,6 +324,31 @@ if [ "${CONTINUE:-0}" = "1" ]; then
   log "resuming the previous $BIN session in $WT (CONTINUE=1)"
 fi
 
+# PER-TASK MODEL (opt-in, OFF by default). Pass --model/-m ONLY when a tier is set AND
+# a model is mapped for (this provider, that tier) via SWARM_MODEL_<bin>_<tier> (indirect
+# env lookup). No tier or no mapping => MODEL_FLAG empty and the CLI uses its configured
+# default — the dispatched argv is identical to before. The tier is sanitised so a
+# malformed value can never splice a bogus flag. Injected into the FRESH invocation of
+# each provider; NOT onto a codex `resume` (its -C/-s/resume ordering is load-bearing and
+# a resumed session keeps the model it already has).
+MODEL_FLAG=""
+if [ -n "${SWARM_LANE_TIER:-}" ]; then
+  case "$SWARM_LANE_TIER" in
+    *[!a-z0-9]*) log "ignoring malformed SWARM_LANE_TIER='$SWARM_LANE_TIER' (want lowercase-alnum)" ;;
+    *)
+      _model_var="SWARM_MODEL_${BIN}_${SWARM_LANE_TIER}"
+      _model="${!_model_var:-}"
+      if [ -n "$_model" ]; then
+        case "$BIN" in
+          claude|kimi) MODEL_FLAG="--model $_model" ;;
+          codex)       MODEL_FLAG="-m $_model" ;;
+        esac
+        [ -n "$MODEL_FLAG" ] && log "routing $BIN to model '$_model' (tier $SWARM_LANE_TIER)"
+      fi
+      ;;
+  esac
+fi
+
 case "$BIN" in
   claude)
     # bypassPermissions, NOT acceptEdits. The dispatch asks the console to
@@ -333,7 +358,7 @@ case "$BIN" in
     # the operator had to rescue both by hand. Verified: under
     # bypassPermissions a one-shot run creates a real commit; under acceptEdits
     # the same prompt did not.
-    ( cd "$WT" && timeout "$TIMEOUT" claude $RESUME_FLAG -p "$PROMPT" \
+    ( cd "$WT" && timeout "$TIMEOUT" claude $RESUME_FLAG $MODEL_FLAG -p "$PROMPT" \
         --permission-mode bypassPermissions --output-format text ) 2>&1 | tee "$RUNLOG"
     ;;
   codex)
@@ -350,21 +375,21 @@ case "$BIN" in
       # active writer". Resume is only safe here while one codex session runs.
       timeout "$TIMEOUT" codex exec -C "$WT" -s workspace-write $RESUME_FLAG "$PROMPT"  < /dev/null 2>&1 | tee "$RUNLOG"
     else
-      timeout "$TIMEOUT" codex exec -C "$WT" -s workspace-write "$PROMPT"  < /dev/null 2>&1 | tee "$RUNLOG"
+      timeout "$TIMEOUT" codex exec -C "$WT" -s workspace-write $MODEL_FLAG "$PROMPT"  < /dev/null 2>&1 | tee "$RUNLOG"
     fi
     ;;
   kimi2)
     # Second Kimi session. Same binary and flags as `kimi`; what separates them
     # is the worktree, so two lanes can run Kimi concurrently without sharing a
     # tree. Same no-approval-flag rule applies.
-    ( cd "$WT" && timeout "$TIMEOUT" kimi $RESUME_FLAG -p "$PROMPT" --output-format text ) 2>&1 | tee "$RUNLOG"
+    ( cd "$WT" && timeout "$TIMEOUT" kimi $RESUME_FLAG $MODEL_FLAG -p "$PROMPT" --output-format text ) 2>&1 | tee "$RUNLOG"
     ;;
   kimi)
     # NO approval flag. kimi rejects BOTH alongside --prompt:
     #   kimi -p ... -y      -> "Cannot combine --prompt with --yolo"
     #   kimi -p ... --auto  -> "Cannot combine --prompt with --auto"
     # --prompt is already one-shot autonomous; approval flags are for the TUI.
-    ( cd "$WT" && timeout "$TIMEOUT" kimi $RESUME_FLAG -p "$PROMPT" --output-format text ) 2>&1 | tee "$RUNLOG"
+    ( cd "$WT" && timeout "$TIMEOUT" kimi $RESUME_FLAG $MODEL_FLAG -p "$PROMPT" --output-format text ) 2>&1 | tee "$RUNLOG"
     ;;
 esac
 RC=${PIPESTATUS[0]}

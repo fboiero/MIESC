@@ -77,6 +77,29 @@ unset _swarm_cfg_local
 # output; a vendored copy lives under .swarm/.
 : "${SWARM_MANIFEST:=.swarm/swarm-manifest.json}"
 
+# --- Spread-first dispatch (OFF by default) -----------------------------------
+# Empty (the default) => lane_class returns the lane's single owning console
+# (lib/manifest.sh::lane_console) and dispatch is byte-identical to before. When set
+# to a comma-separated PROVIDER SET (e.g. "claude,codex,kimi"), lib/console-registry.sh
+# ::lane_class returns that set for EVERY lane, so pick_wt + quota_pick_provider route
+# the dispatch to the provider with the most weekly headroom — spreading spend across
+# all the paid subscriptions instead of pinning each lane to one. The balancing is only
+# as good as the pasted quota (coordination/quota-observed.md): stale or absent, it
+# degrades to "first free worktree", never worse than the pre-spread behaviour.
+: "${SWARM_DISPATCH_SPREAD:=}"
+
+# --- Per-task model routing (OFF by default) ----------------------------------
+# "Route each task to the model that fits it." The dispatch passes `--model`/`-m` to
+# the chosen CLI ONLY when BOTH a task tier is given AND a model is mapped for that
+# (provider, tier); otherwise it passes no model flag and the CLI uses its own default
+# — byte-identical to before. SWARM_LANE_TIER names the task's tier (e.g. top|mid|cheap;
+# any lowercase-alnum token). The model per (provider, tier) is read by INDIRECT env
+# lookup from `SWARM_MODEL_<bin>_<tier>` — e.g. SWARM_MODEL_claude_top=opus,
+# SWARM_MODEL_codex_mid=gpt-5-codex, SWARM_MODEL_kimi_cheap=... — so a project sets only
+# the tiers it uses, in swarm-config.local.sh, and refines the map as it learns which
+# model fits what. No tier, or no mapped model, => no flag.
+: "${SWARM_LANE_TIER:=}"
+
 # --- Optional prior-context injection hook (OFF by default) -------------------
 # A project can feed the dispatched console point-in-time recall — an Engram query,
 # a notes grep, anything — as ADVISORY background, WITHOUT coupling this portable
