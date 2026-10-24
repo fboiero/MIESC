@@ -58,6 +58,9 @@ class DeepAuditConfig:
     agentic_invariants_allow_remote: bool = False
     enable_advisory_plans: bool = False
     # Opt-in: actually run access-control gap probes with Foundry (adds wall-clock; needs forge).
+    # SECURITY: the audited contract EXECUTES with Foundry cheatcodes. The executor pins
+    # ffi/fs_permissions off, scrubs the environment and denies network where the host can,
+    # but only enable this on code you are willing to run, ideally in a network-less container.
     enable_gap_execution: bool = False
     fp_threshold: float = 0.5
     max_workers: int = 4
