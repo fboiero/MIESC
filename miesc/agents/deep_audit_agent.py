@@ -21,7 +21,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple, cast
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple, cast
 
 from miesc.agents.base_agent import BaseAgent
 
@@ -56,6 +56,7 @@ class DeepAuditConfig:
     enable_exploit_chains: bool = True
     enable_agentic_invariants: bool = False
     agentic_invariants_allow_remote: bool = False
+    enable_advisory_plans: bool = False
     fp_threshold: float = 0.5
     max_workers: int = 4
 
@@ -281,6 +282,11 @@ class DeepAuditAgent(BaseAgent):
             )
             report["phases"]["agentic_invariants"] = invariant_phase
             report["metadata"]["agentic_invariants_count"] = invariant_phase.get("count", 0)
+
+        if self.config.enable_advisory_plans and not self._timeout_exceeded():
+            advisory_phase = self._extract_advisory_plans(source_code, contract_path)
+            report["phases"]["advisory_plans"] = advisory_phase
+            report["metadata"]["advisory_plan_count"] = advisory_phase.get("count", 0)
 
         # Phase 4: Synthesis
         self._current_phase = AuditPhase.SYNTHESIS
@@ -914,6 +920,45 @@ class DeepAuditAgent(BaseAgent):
                 "candidates": [],
                 "error": str(e),
             }
+
+    def _extract_advisory_plans(self, source_code: str, contract_path: str) -> Dict[str, Any]:
+        """Run the deterministic, LLM-free advisory-plan miners for report metadata.
+
+        Unlike ``_extract_agentic_invariants`` this needs no reasoning provider: each
+        miner statically inspects the source and returns provider-neutral plans, never
+        ``Finding`` objects, so the phase adds zero precision risk. A miner that raises
+        is recorded with its error and does not break the audit.
+        """
+        from miesc.llm import (
+            mine_lending_solvency_liquidation,
+            mine_privileged_governance_lifecycle,
+            mine_resource_liveness_griefing,
+            mine_revert_invariants,
+        )
+
+        # Explicit annotation: the four miners have different plan return types; without
+        # this mypy joins them to ``object`` and rejects ``plan.to_dict()``.
+        miners: Dict[str, Callable[[str, Optional[Path]], List[Any]]] = {
+            "revert_invariants": mine_revert_invariants,
+            "privileged_governance": mine_privileged_governance_lifecycle,
+            "resource_liveness_griefing": mine_resource_liveness_griefing,
+            "lending_solvency_liquidation": mine_lending_solvency_liquidation,
+        }
+        path = Path(contract_path) if contract_path else None
+        capabilities: Dict[str, Any] = {}
+        total = 0
+        for key, miner in miners.items():
+            try:
+                plans = miner(source_code, path)
+                capabilities[key] = {
+                    "count": len(plans),
+                    "plans": [plan.to_dict() for plan in plans],
+                }
+                total += len(plans)
+            except Exception as e:
+                logger.debug(f"Advisory miner {key} skipped: {e}")
+                capabilities[key] = {"count": 0, "plans": [], "error": str(e)}
+        return {"enabled": True, "count": total, "capabilities": capabilities}
 
     def _enrich_with_rag(self, finding: Dict) -> Dict[str, Any]:
         """Enrich a finding with RAG vulnerability knowledge."""
