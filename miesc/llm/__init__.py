@@ -197,6 +197,9 @@ from .revert_invariant_bridge import (
 from .revert_invariant_executor import (
     execute_access_control_gaps,
 )
+from .revert_invariant_findings import (
+    counterexample_findings,
+)
 from .revert_invariant_harness import (
     generate_revert_guard_harnesses,
     harness_for_gap,
@@ -375,6 +378,7 @@ __all__ = [
     "generate_revert_guard_harnesses",
     "harness_for_gap",
     "execute_access_control_gaps",
+    "counterexample_findings",
     "parse_token_hook_reentrancy_hardening_plans",
     "parse_upgrade_evolution_plans",
     "LLMOrchestratorReasoningProvider",

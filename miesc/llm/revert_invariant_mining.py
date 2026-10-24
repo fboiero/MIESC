@@ -434,6 +434,7 @@ class _FuncSig:
     modifiers: List[str]
     params: str = ""
     body: str = ""
+    decl_offset: int = 0
 
 
 def _collect_functions(masked: str) -> List["_FuncSig"]:
@@ -459,6 +460,7 @@ def _collect_functions(masked: str) -> List["_FuncSig"]:
                 modifiers=modifiers,
                 params=params,
                 body=masked[brace : _match_brace(masked, brace)],
+                decl_offset=m.start(),
             )
         )
     return out

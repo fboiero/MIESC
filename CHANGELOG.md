@@ -95,6 +95,19 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   miner is silent (0 access-control gaps across OpenZeppelin, Solady, Uniswap v2-periphery). No
   benchmark claim.
 
+- **Revert-invariant Phase 2: access-control counterexamples become findings.** New
+  `miesc/llm/revert_invariant_findings.py` promotes an access-control **counterexample** from the
+  gap executor into a finding (`type="access_control"`, `severity="High"`, `confidence=0.85`,
+  `location` anchored at the real function declaration via a new `_FuncSig.decl_offset`, `evidence`
+  carrying the reproduction). Emission is gated on `promotion_state == "counterexample"` exactly —
+  a hypothesis or a `test_generated` harness never becomes a finding. This is the one rung that
+  crosses into the finding set, and it is consistent with the precision discipline: the rule was
+  "never an *unverified* finding", and a counterexample is Foundry-executed evidence. In
+  `DeepAuditAgent._phase_synthesis` (opt-in, same `enable_gap_execution` flag) these findings pass
+  through the **same** false-positive filter and correlation/dedup as every other finding — they do
+  not bypass the controls. Negative control: 0 counterexample findings across OpenZeppelin, Solady
+  and Uniswap v2-periphery (513 files). No benchmark claim.
+
 ## [6.6.0] - 2026-10-24 — Phase-1 plan miners, DeFi and Yul detectors, hardened adapters
 
 Minor release. Four deterministic, LLM-free *plan miners* land as Phase 1 of their SDDs
