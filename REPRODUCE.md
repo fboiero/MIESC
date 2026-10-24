@@ -546,6 +546,40 @@ supplies the length or the index. "Ownership Not Renounced" is out of taxonomy, 
 `solc-version` was in the arithmetic fix. Every labelled access-control contract keeps its
 hit (measured before and after on the stored findings, then with the run above).
 
+### DeFi detectors and Phase-1 miners on `main` (2026-10-24)
+
+Same command (`make bench`, `--no-llm`, fresh `HOME`, temp caches cleared), on `main` at
+`05607c3a` (v6.5.0 plus the export fix, the four DeFi detectors of #211 and the Phase-1
+miners of #209, #214 and #213). Artifact
+`benchmarks/results/smartbugs_eval_layers_1_6_7_20261024_post_pr211_213.{json,jsonl}`.
+
+| Metric | Access-control fix (reference) | This run | Δ |
+|---|---|---|---|
+| Recall (contracts) | 143/143 | **143/143** | 0 |
+| Precision | 33.7 % (281 FP) | **33.7 % (281 FP)** | 0 |
+| F1 | 50.4 % | **50.4 %** | 0 |
+
+Identical to the reference, contract for contract: the 143 per-contract false-positive lists match, every category count matches, and every tool ran on the same number of contracts (Slither 139, Aderyn 125, the rest 143). The four DeFi detectors ran on all 143 contracts and produced only the fee-on-transfer hits the scorer ignores (outside the SmartBugs taxonomy); the Phase-1 miners emit plans, not findings, so they cannot move the line either. This is the baseline the next release ships with.
+
+A harness hazard first, because the first attempt at this run was wrong and looked like
+good news: it reported precision 38.4 % (229 FP) with recall intact. `tools_used` showed
+why: Slither had run on 0 of 143 contracts. The Slither adapter picks the compiler from
+`~/.solc-select/artifacts`; a fresh `HOME` has none, so it falls back to
+`--solc-solcs-select`, and the machine's `solc-select` wrapper no longer starts (its
+interpreter line points at a Command Line Tools python that an Xcode update removed).
+Every Slither run failed, 52 of Slither's false positives vanished with it (17
+`access_control`, 27 `unchecked_low_level_calls`, 7 `reentrancy`, 1
+`time_manipulation`) and the aggregate improved. The fresh `HOME` used for a comparable run
+must link the compiler store that is not a cache, `ln -s ~/.solc-select $H/.solc-select`,
+and nothing else: Aderyn populates its own `svm` store under the fresh `HOME` on first use
+(it downloads the solc each pragma needs), and a pre-created `~/.svm` symlink to a path that
+does not exist makes it panic on every contract ("svm data dir … is not a directory", exit
+101), which the adapter reports as an "unsupported Solidity dialect" skip. The second
+attempt at this run made exactly that mistake: Slither back, Aderyn on 0 of 143, aggregate
+one false positive short of the reference. Before comparing two artifacts, check that
+`.tools_used` lists the same tools and that `.provenance.solc.binaries` shows installed
+versions in both; a missing tool is a different experiment, not a better number.
+
 ## 5. What is not covered here
 
 - **LLM follow-up (97.9 %)**: Paper 1 reports a local-Ollama pass on the six misses as a
