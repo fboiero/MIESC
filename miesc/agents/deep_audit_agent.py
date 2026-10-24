@@ -978,6 +978,7 @@ class DeepAuditAgent(BaseAgent):
         from miesc.llm import (
             bridge_revert_invariant_plans,
             execute_access_control_gaps,
+            execute_reasoning_gaps,
             generate_revert_guard_harnesses,
             mine_lending_solvency_liquidation,
             mine_privileged_governance_lifecycle,
@@ -1015,9 +1016,14 @@ class DeepAuditAgent(BaseAgent):
                     # Opt-in execution: run the access-control probes with Foundry and record
                     # only real counterexamples (promotion stays metadata, never a Finding here).
                     if self.config.enable_gap_execution:
-                        capabilities[key]["executions"] = execute_access_control_gaps(
-                            plans, source_code
-                        )
+                        executions = execute_access_control_gaps(plans, source_code)
+                        if self.config.enable_gap_reasoning:
+                            executions = executions + execute_reasoning_gaps(
+                                plans,
+                                source_code,
+                                allow_remote=self.config.agentic_invariants_allow_remote,
+                            )
+                        capabilities[key]["executions"] = executions
                 total += len(plans)
             except Exception as e:
                 logger.debug(f"Advisory miner {key} skipped: {e}")

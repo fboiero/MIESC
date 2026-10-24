@@ -7,6 +7,24 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Revert-invariant reasoning executor: the control probe no longer fails open.** A post-merge
+  review of the pause/freshness executor built four contracts that produced a `counterexample`
+  and a Medium finding without any real gap: a `pause()` that does not pause next to a one-shot
+  (`require(!claimed)`) or cooldown-gated guarded sibling, a `pause()` with an unrelated side
+  effect the sibling depends on, and a freshness sibling whose "check" is `require(deadline > 0)`
+  against the probe's zero literal. The cause was a single control test running baseline → state →
+  sibling, so any second-call revert impersonated the guard. The control is now two Foundry tests
+  from fresh state (`test_control_baseline`, `test_control_state`), the past deadline is nonzero,
+  and the sibling must revert **with the guard's own revert data** (the `require` message or
+  custom error read from the locally-defined modifier / local check; plain revert only when that
+  payload is not readable). Results carry a `control` record (both statuses, whether the payload
+  was matched). The four cases are regression fixtures; the PR's own positive and negative fixtures
+  keep their outcome. `capabilities.revert_invariants.executions` now also lists the reasoning
+  results when `enable_gap_reasoning` is on, so a `dos`/`timestamp` finding always has its
+  execution record in the metadata.
+
 ### Added
 
 - **Revert-invariant reasoning executor for pause/freshness gaps

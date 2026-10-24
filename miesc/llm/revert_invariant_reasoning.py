@@ -14,17 +14,23 @@ target call can succeed for a reason unrelated to the guard, and we would emit a
 is a lie. So a counterexample requires **both** Foundry probes to agree, and a wrong fact fails into
 ``hypothesis`` (inconclusive), never into a finding:
 
-- **control probe** -- reach the proposed rejectable state, then call the *guarded sibling*
-  (``gap.guarded_example``) and assert it reverts; a leading baseline call first asserts the sibling
-  *succeeds* before the state is reached, so "it reverts" means "it reverts *because of the state*"
-  rather than for an unrelated reason (the vacuous-pass the executor's own docstring warns about).
-  The control test is ``Success`` only when the proposed state is real.
+- **control probe** -- two Foundry tests, each from a **fresh** ``setUp`` state so no call-count
+  effect leaks between them: ``test_control_baseline`` calls the *guarded sibling*
+  (``gap.guarded_example``) and asserts it *succeeds* before the state is reached;
+  ``test_control_state`` reaches the proposed state and asserts the sibling **reverts with the
+  guard's own revert data** (the ``require`` message or custom error extracted from the locally
+  defined modifier / local check; when that payload is not extractable the check degrades to a
+  plain revert). Both must be ``Success`` for the state to count as real. Running them in one test
+  would let a sibling that reverts on its *second* call for any reason (a one-shot ``claim``, a
+  cooldown, a pauser with an unrelated side effect) impersonate the guard -- that is exactly the
+  false counterexample this layer exists to prevent. The freshness control passes a **nonzero**
+  past deadline so a mere ``require(deadline > 0)`` cannot pass for a deadline check.
 - **target probe** -- in the same state, call the unguarded affected function and reuse the
   executor's storage-write assertion: it ``Failure``s only when the call both *succeeded* and
   *wrote* the target's storage.
 
-Promotion to ``counterexample`` happens only when the control test is ``Success`` **and** the
-target test is ``Failure``. Either alone is inconclusive.
+Promotion to ``counterexample`` happens only when both control tests are ``Success`` **and** the
+target test is ``Failure``. Anything less is inconclusive.
 
 First slice -- local deterministic fallback only
 ------------------------------------------------
@@ -62,6 +68,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 
+from miesc.llm._solidity_text import _match_brace
 from miesc.llm.agentic_contracts import MAX_AGENT_SOURCE_CHARS
 from miesc.llm.revert_invariant_executor import (
     _HEVM_ADDRESS,
@@ -97,6 +104,18 @@ _REASONING_CATEGORIES = ("pause_toggle", "freshness_check")
 # A past timestamp baseline: warp block.timestamp well above zero so a past deadline (the zero
 # literal) is unambiguously behind it regardless of the comparison operator's direction.
 _WARP_TARGET = "1000000"
+# The past deadline handed to the guarded sibling in the control: strictly between zero and the
+# warped ``block.timestamp`` so a plain non-zero validation cannot pass for a freshness check.
+_PAST_DEADLINE = "1"
+
+# Revert payload of a guard, read from its locally-defined body (comments already stripped, string
+# literals intact): ``require(cond, "msg")`` -> ``Error(string)``; ``revert Custom();`` (no args) ->
+# the custom error selector; a bare ``require(cond)`` / ``revert()`` -> empty revert data.
+_REQUIRE_MSG_RE = re.compile(
+    r'\brequire\s*\((?P<cond>[^;]*?),\s*"(?P<msg>(?:[^"\\]|\\.)*)"\s*\)\s*;'
+)
+_REQUIRE_BARE_RE = re.compile(r"\brequire\s*\((?P<cond>[^;\"]*)\)\s*;")
+_CUSTOM_ERROR_RE = re.compile(r"\brevert\s+(?P<err>[A-Za-z_]\w*)\s*\(\s*\)\s*;")
 
 # Elementary integer type (the only type for which ``type(T).max`` and a zero past-deadline both
 # make sense). ``uint256[]`` / ``bytes32`` / ``address`` deliberately do not match.
@@ -121,6 +140,10 @@ class _ReasoningFacts:
     # freshness_check
     guarded_deadline_index: int = -1
     guarded_deadline_type: str = ""
+    # Solidity expression of the guard's revert data (``abi.encodeWithSignature("Error(string)",
+    # "msg")``, ``abi.encodeWithSelector(Err.selector)`` or ``bytes("")``), or ``""`` when it could
+    # not be read -- the control then degrades to a plain-revert check.
+    guard_revert_expr: str = ""
 
 
 # --------------------------------------------------------------------------------------
@@ -172,8 +195,80 @@ def _deadline_slot(sig: "_FuncSig") -> Tuple[Optional[int], str]:
     return None, ""
 
 
+def _modifier_body(masked: str, name: str) -> Optional[str]:
+    """Body text of a locally-defined modifier, or ``None`` (inherited / not found)."""
+    m = re.search(r"\bmodifier\s+" + re.escape(name) + r"\b[^{;]*\{", masked)
+    if not m:
+        return None
+    end = _match_brace(masked, m.end() - 1)
+    return masked[m.end() : end]
+
+
+def _qualified_error(masked: str, err: str) -> str:
+    """``Contract.Err`` when the custom error is declared inside a contract (the probe lives
+    outside it), ``Err`` when it is declared at file level."""
+    decl = re.search(r"\berror\s+" + re.escape(err) + r"\s*\(", masked)
+    first_type = re.search(
+        r"\b(?:abstract\s+contract|contract|interface|library)\s+[A-Za-z_]\w*", masked
+    )
+    if decl and first_type and decl.start() > first_type.start():
+        owner = _target_contract(masked)
+        if owner:
+            return f"{owner}.{err}"
+    return err
+
+
+def _revert_expr_in(body: str, must_mention: str = "", masked: str = "") -> Optional[str]:
+    """Expected revert data (as a Solidity expression) of the first guard statement in ``body``
+    whose condition mentions ``must_mention`` (any statement when empty)."""
+    for m in _REQUIRE_MSG_RE.finditer(body):
+        if must_mention and must_mention not in m.group("cond"):
+            continue
+        msg = m.group("msg")
+        return f'abi.encodeWithSignature("Error(string)", "{msg}")'
+    for m in _CUSTOM_ERROR_RE.finditer(body):
+        prefix = body[: m.start()]
+        if must_mention and must_mention not in prefix[-200:]:
+            continue
+        return f"abi.encodeWithSelector({_qualified_error(masked, m.group('err'))}.selector)"
+    for m in _REQUIRE_BARE_RE.finditer(body):
+        if must_mention and must_mention not in m.group("cond"):
+            continue
+        return 'bytes("")'
+    return None
+
+
+def _pause_guard_revert_expr(masked: str, guarded: "_FuncSig") -> str:
+    """Revert data of the pause guard applied to ``guarded``: the locally-defined modifier whose
+    body mentions the paused state, else the first modifier with a readable guard statement."""
+    candidates = []
+    for mod in guarded.modifiers:
+        body = _modifier_body(masked, mod)
+        if body is None:
+            continue
+        expr = _revert_expr_in(body, masked=masked)
+        if expr is not None:
+            candidates.append((("paus" in body.lower()), expr))
+    for prefer_paused in (True, False):
+        for flag, expr in candidates:
+            if flag == prefer_paused:
+                return expr
+    return ""
+
+
+def _freshness_guard_revert_expr(guarded: "_FuncSig", deadline_index: int, masked: str = "") -> str:
+    """Revert data of the local deadline check in ``guarded`` (the statement naming the deadline
+    parameter), or ``""`` when it is not a readable local statement."""
+    parts = _split_top_level(guarded.params)
+    toks = parts[deadline_index].split() if deadline_index < len(parts) else []
+    param = toks[-1] if len(toks) >= 2 else ""
+    if not param:
+        return ""
+    return _revert_expr_in(guarded.body, must_mention=param, masked=masked) or ""
+
+
 def _extract_local_facts(
-    gap: GuardGapHypothesis, by_name: Dict[str, "_FuncSig"]
+    gap: GuardGapHypothesis, by_name: Dict[str, "_FuncSig"], masked: str = ""
 ) -> Optional[_ReasoningFacts]:
     """Deterministic literal-case facts, or ``None`` (fail CLOSED -> gap unchanged)."""
     guarded = by_name.get(gap.guarded_example)
@@ -207,6 +302,7 @@ def _extract_local_facts(
             targets=targets,
             pauser=name,
             pauser_args=args,
+            guard_revert_expr=_pause_guard_revert_expr(masked, guarded),
         )
 
     if gap.category == "freshness_check":
@@ -220,6 +316,7 @@ def _extract_local_facts(
             targets=targets,
             guarded_deadline_index=idx,
             guarded_deadline_type=dtype,
+            guard_revert_expr=_freshness_guard_revert_expr(guarded, idx, masked),
         )
     return None
 
@@ -229,6 +326,7 @@ def _extract_facts(
     by_name: Dict[str, "_FuncSig"],
     source_code: str,
     *,
+    masked: str = "",
     provider: "Optional[ReasoningProvider]" = None,
     allow_remote: bool = False,
 ) -> Optional[_ReasoningFacts]:
@@ -247,14 +345,27 @@ def _extract_facts(
     control+baseline probe downstream is the final gate, so a wrong provider answer fails CLOSED
     (the guarded sibling will not revert, or will revert without the state) and never promotes.
     """
-    local = _extract_local_facts(gap, by_name)
+    local = _extract_local_facts(gap, by_name, masked)
     if local is not None:
         return local
     if provider is None:
         return None
-    return _extract_remote_facts(
+    remote = _extract_remote_facts(
         gap, by_name, source_code, provider=provider, allow_remote=allow_remote
     )
+    if remote is None:
+        return None
+    # The provider only names an identity; the guard's revert payload is still read locally so the
+    # control probe holds the remote path to the same standard as the local one.
+    guarded = by_name.get(gap.guarded_example)
+    if guarded is not None and not remote.guard_revert_expr:
+        if remote.category == "pause_toggle":
+            remote.guard_revert_expr = _pause_guard_revert_expr(masked, guarded)
+        else:
+            remote.guard_revert_expr = _freshness_guard_revert_expr(
+                guarded, remote.guarded_deadline_index, masked
+            )
+    return remote
 
 
 def _common_prefix(
@@ -373,12 +484,12 @@ def _extract_remote_facts(
         )
 
     if gap.category == "freshness_check":
-        params = _split_top_level(guarded.params)
+        plist = _split_top_level(guarded.params)
         data = _remote_identity(
             objective="Identify the deadline/expiry parameter of the guarded function.",
             prompt=(
                 f"Function `{guarded.name}` has parameters (0-indexed): "
-                f"{[p.strip() for p in params]}. Which one is the transaction deadline/expiry "
+                f"{[p.strip() for p in plist]}. Which one is the transaction deadline/expiry "
                 "checked against block.timestamp? Reply as JSON "
                 '{"deadline_index": <int>} and nothing else. If none, reply {"deadline_index": -1}.'
             ),
@@ -452,17 +563,31 @@ def _target_test(contract: str, fn: str, args: List[str], reach: str, label: str
     )
 
 
+def _state_assertions(facts: _ReasoningFacts, label: str) -> str:
+    """The sibling must revert -- and, when the guard's payload is known, revert *with it*."""
+    out = f'        require(!okS, "{label}");\n'
+    if facts.guard_revert_expr:
+        out += (
+            f"        require(keccak256(ret) == keccak256({facts.guard_revert_expr}), "
+            f'"control: guarded sibling reverted for a reason other than its guard");\n'
+        )
+    return out
+
+
 def _build_pause_probe(source: str, contract: str, facts: _ReasoningFacts) -> str:
     pauser_sel = _selector(contract, facts.pauser, facts.pauser_args)
     guarded_sel = _selector(contract, facts.guarded_sibling, facts.guarded_zero_args)
     control = (
-        f"    function test_control() public {{\n"
-        f"        (bool okBefore, ) = address(target).call(abi.encodeWithSelector({guarded_sel}));\n"
-        f'        require(okBefore, "control baseline: guarded sibling reverted before pausing");\n'
+        f"    function test_control_baseline() public {{\n"
+        f"        (bool okB, ) = address(target).call(abi.encodeWithSelector({guarded_sel}));\n"
+        f'        require(okB, "control baseline: guarded sibling reverted in a fresh state");\n'
+        f"    }}\n"
+        f"    function test_control_state() public {{\n"
         f"        (bool reached, ) = address(target).call(abi.encodeWithSelector({pauser_sel}));\n"
         f'        require(reached, "control: the proposed pauser reverted");\n'
-        f"        (bool okAfter, ) = address(target).call(abi.encodeWithSelector({guarded_sel}));\n"
-        f'        require(!okAfter, "control: guarded sibling did not revert when paused");\n'
+        f"        (bool okS, bytes memory ret) = address(target).call("
+        f"abi.encodeWithSelector({guarded_sel}));\n"
+        f"{_state_assertions(facts, 'control: guarded sibling did not revert when paused')}"
         f"    }}\n"
     )
     reach = (
@@ -487,17 +612,23 @@ def _build_freshness_probe(source: str, contract: str, facts: _ReasoningFacts) -
     future = list(facts.guarded_zero_args)
     future[facts.guarded_deadline_index] = f"type({facts.guarded_deadline_type}).max"
     guarded_future = _selector(contract, facts.guarded_sibling, future)
-    # The zero literal at the deadline slot is already a past deadline once time is warped forward.
-    guarded_past = _selector(contract, facts.guarded_sibling, facts.guarded_zero_args)
+    # A nonzero deadline strictly before the warped timestamp: a mere ``require(deadline > 0)``
+    # must not be able to pass for a freshness check.
+    past = list(facts.guarded_zero_args)
+    past[facts.guarded_deadline_index] = f"{facts.guarded_deadline_type}({_PAST_DEADLINE})"
+    guarded_past = _selector(contract, facts.guarded_sibling, past)
     control = (
-        f"    function test_control() public {{\n"
+        f"    function test_control_baseline() public {{\n"
         f"        vm.warp({_WARP_TARGET});\n"
-        f"        (bool okFuture, ) = address(target).call("
+        f"        (bool okB, ) = address(target).call("
         f"abi.encodeWithSelector({guarded_future}));\n"
-        f'        require(okFuture, "control baseline: guarded sibling reverted with a future deadline");\n'
-        f"        (bool okPast, ) = address(target).call("
+        f'        require(okB, "control baseline: guarded sibling reverted with a future deadline");\n'
+        f"    }}\n"
+        f"    function test_control_state() public {{\n"
+        f"        vm.warp({_WARP_TARGET});\n"
+        f"        (bool okS, bytes memory ret) = address(target).call("
         f"abi.encodeWithSelector({guarded_past}));\n"
-        f'        require(!okPast, "control: guarded sibling did not revert with a past deadline");\n'
+        f"{_state_assertions(facts, 'control: guarded sibling did not revert with a past deadline')}"
         f"    }}\n"
     )
     reach = f"        vm.warp({_WARP_TARGET});\n"
@@ -517,16 +648,21 @@ def _build_freshness_probe(source: str, contract: str, facts: _ReasoningFacts) -
 def _evidence(facts: _ReasoningFacts, fn: str) -> str:
     if facts.category == "pause_toggle":
         return (
-            f"a Foundry probe reached the paused state via `{facts.pauser}` (the guarded sibling "
-            f"`{facts.guarded_sibling}` reverted in that state), then called `{fn}`: the call did "
-            f"not revert and wrote the contract's storage -- no pause gate protects `{fn}`"
+            f"a Foundry probe called `{facts.pauser}` and the guarded sibling "
+            f"`{facts.guarded_sibling}`, which succeeds in a fresh state, then reverted"
+            f"{_with_guard(facts)}; in that state `{fn}` did not revert and wrote the contract's "
+            f"storage -- no pause gate protects `{fn}`"
         )
     return (
-        f"a Foundry probe advanced time and passed a deadline already in the past (the guarded "
-        f"sibling `{facts.guarded_sibling}` reverted on that past deadline), then called `{fn}`: "
-        f"the call did not revert and wrote the contract's storage -- no freshness/deadline check "
-        f"protects `{fn}`"
+        f"a Foundry probe advanced time: the guarded sibling `{facts.guarded_sibling}` accepted a "
+        f"future deadline and reverted on a past one{_with_guard(facts)}; `{fn}` then did not "
+        f"revert and wrote the contract's storage with a past deadline -- no freshness/deadline "
+        f"check protects `{fn}`"
     )
+
+
+def _with_guard(facts: _ReasoningFacts) -> str:
+    return " with its guard's own revert data" if facts.guard_revert_expr else ""
 
 
 # --------------------------------------------------------------------------------------
@@ -541,9 +677,10 @@ def _run_reasoning_probe(
 ) -> Dict[str, object]:
     """Compile+run the control/target probes under the hardened project/env/sandbox and decide.
 
-    A counterexample is promoted only when ``test_control`` is ``Success`` (the proposed rejectable
-    state is real) AND a ``test_target_<fn>`` is ``Failure`` (the unguarded call succeeded and wrote
-    storage in that state). A wrong fact makes the control test fail -> no promotion.
+    A counterexample is promoted only when both ``test_control_baseline`` and ``test_control_state``
+    are ``Success`` (the proposed rejectable state is real, from fresh state each) AND a
+    ``test_target_<fn>`` is ``Failure`` (the unguarded call succeeded and wrote storage in that
+    state). A wrong fact makes a control test fail -> no promotion.
     """
     if facts.category == "pause_toggle":
         probe = _build_pause_probe(source_code, contract, facts)
@@ -623,13 +760,19 @@ def _run_reasoning_probe(
             "isolation": isolation,
         }
 
-    if statuses.get("test_control") != "Success":
+    control = {
+        "baseline": statuses.get("test_control_baseline", ""),
+        "state": statuses.get("test_control_state", ""),
+        "guard_revert_data": "matched" if facts.guard_revert_expr else "not_extractable",
+    }
+    if control["baseline"] != "Success" or control["state"] != "Success":
         return {
             "promotion_state": "hypothesis",
             "reason": (
                 "control probe did not confirm the proposed rejectable state; the proposed facts "
                 "are unverified and the gap is not promoted"
             ),
+            "control": control,
             "isolation": isolation,
         }
 
@@ -641,6 +784,7 @@ def _run_reasoning_probe(
             "promotion_state": "counterexample",
             "counterexamples": counterexamples,
             "evidence": [_evidence(facts, fn) for fn in counterexamples],
+            "control": control,
             "isolation": isolation,
         }
     return {
@@ -649,6 +793,7 @@ def _run_reasoning_probe(
             "control confirmed the state but no unguarded target both succeeded and wrote storage; "
             "not promoted"
         ),
+        "control": control,
         "isolation": isolation,
     }
 
@@ -666,6 +811,7 @@ def execute_reasoning_gaps(
     Returns one result per eligible gap (``id`` = ``<plan id>-<category>-<first affected
     function>``), mirroring :func:`execute_access_control_gaps`:
       - ``promotion_state="counterexample"`` + ``counterexamples=[fn, ...]`` + ``evidence`` +
+        ``control`` (both control statuses and whether the guard's revert data was matched) +
         ``isolation`` when both probes agree (see module docstring);
       - ``promotion_state="hypothesis"`` (unchanged) with a ``reason`` otherwise -- ``forge``
         absent, cheatcode-referencing source, constructor arguments, facts not extractable locally,
@@ -714,7 +860,7 @@ def execute_reasoning_gaps(
             )
             continue
         facts = _extract_facts(
-            gap, by_name, source_code, provider=provider, allow_remote=allow_remote
+            gap, by_name, source_code, masked=masked, provider=provider, allow_remote=allow_remote
         )
         if facts is None:
             results.append(

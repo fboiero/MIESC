@@ -11,7 +11,7 @@ supplied, the provider is asked for that single identity via `auto_reasoning_pro
 `ReasoningTask` (capability `counterexample_validation`, gated by `agentic_invariants_allow_remote`),
 and the answer is validated against the parsed contract. A wrong provider answer fails CLOSED: the
 control+baseline probe does not confirm the state, so nothing promotes. Still open: widening the
-executable subset beyond no-arg-constructor + elementary args.
+executable subset beyond no-arg-constructor + elementary args. A post-merge review found the first control probe failing *open*: baseline and state check ran in one test, so a guarded sibling that reverts on its second call for an unrelated reason (one-shot, cooldown, a pauser with a side effect) or a bare `require(deadline > 0)` against the zero literal confirmed a fake state. The control now runs `test_control_baseline` and `test_control_state` from fresh state, passes a nonzero past deadline, and requires the sibling to revert with the guard's own revert data (degrading to a plain revert only when that payload is not readable); those four cases are regression fixtures.
 
 ## Context
 
