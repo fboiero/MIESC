@@ -188,7 +188,9 @@ Domain-specific security checks:
 * **Gas Analyzer**: gas-optimization and DoS patterns
 * **MEV Detector**: front-running, sandwich, and MEV patterns
 * **Clone Detector**: known-exploit similarity
-* **DeFi**: flash-loan, oracle, and price-manipulation checks
+* **DeFi**: flash-loan, oracle and price-manipulation checks, plus rounding
+  (divide-before-multiply chains), fee-on-transfer, EIP-4626 signature compliance and
+  unrefunded-excess-payment detectors
 * **Advanced Detector** / **Upgradability Checker**: proxy and cross-cutting patterns
 
 Strengths:
