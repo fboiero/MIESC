@@ -237,3 +237,94 @@ class TestSynthesisWiring:
         )
         emitted = agent._counterexample_findings(_PAUSE_OK, "C.sol")
         assert all(f.get("source") != "revert_invariant_reasoning" for f in emitted)
+
+
+# --- remote provider path (item 1): the LLM supplies ONE identity, validated, control-gated ---
+
+_HAS_FORGE = shutil.which("forge") is not None
+
+# Non-literal pauser name: the local extractor can't find it, but it DOES set the paused flag.
+_PAUSE_NONLITERAL = """pragma solidity ^0.8.20;
+contract V {
+  bool paused; uint256 bal;
+  function freezeContract() external { paused = true; }
+  modifier whenNotPaused(){ require(!paused, "p"); _; }
+  function deposit() external whenNotPaused { bal += 1; }
+  function withdraw() external { bal = 7; }
+}"""
+
+
+class _MockProvider:
+    """A replaceable reasoning provider returning canned identity facts."""
+
+    def __init__(self, data):
+        self._data = data
+        self.calls = 0
+
+    def complete_json(self, task):
+        from miesc.llm.agentic_contracts import ReasoningResult
+
+        self.calls += 1
+        return ReasoningResult(data=dict(self._data))
+
+
+def _gap(src):
+    plans = mine_revert_invariants(src)
+    return plans, next(g for p in plans for g in p.gap_hypotheses if g.category == "pause_toggle")
+
+
+class TestRemoteFactsUnit:
+    """Pure fact-extraction (no forge): the provider identity is validated against the contract."""
+
+    def test_local_first_short_circuits_provider(self):
+        # A literal pause() case never consults the provider.
+        src = _PAUSE_NONLITERAL.replace("freezeContract", "pause")
+        plans = mine_revert_invariants(src)
+        by = {f.name: f for f in rr._collect_functions(rr._strip_comments(src))}
+        g = next(x for p in plans for x in p.gap_hypotheses if x.category == "pause_toggle")
+        prov = _MockProvider({"pauser": "withdraw"})
+        facts = rr._extract_facts(g, by, src, provider=prov, allow_remote=False)
+        assert facts is not None and facts.pauser == "pause" and prov.calls == 0
+
+    def test_provider_supplies_nonliteral_pauser(self):
+        by = {f.name: f for f in rr._collect_functions(rr._strip_comments(_PAUSE_NONLITERAL))}
+        _, g = _gap(_PAUSE_NONLITERAL)
+        prov = _MockProvider({"pauser": "freezeContract"})
+        facts = rr._extract_facts(g, by, _PAUSE_NONLITERAL, provider=prov, allow_remote=True)
+        assert facts is not None and facts.pauser == "freezeContract" and prov.calls == 1
+
+    def test_provider_names_nonexistent_function_fails_closed(self):
+        by = {f.name: f for f in rr._collect_functions(rr._strip_comments(_PAUSE_NONLITERAL))}
+        _, g = _gap(_PAUSE_NONLITERAL)
+        facts = rr._extract_facts(
+            g, by, _PAUSE_NONLITERAL, provider=_MockProvider({"pauser": "ghost"}), allow_remote=True
+        )
+        assert facts is None
+
+    def test_no_provider_leaves_nonliteral_unresolved(self):
+        by = {f.name: f for f in rr._collect_functions(rr._strip_comments(_PAUSE_NONLITERAL))}
+        _, g = _gap(_PAUSE_NONLITERAL)
+        assert rr._extract_facts(g, by, _PAUSE_NONLITERAL, provider=None) is None
+
+
+@pytest.mark.skipif(not _HAS_FORGE, reason="forge not installed")
+class TestRemoteExecution:
+    def _cx(self, src, provider):
+        out = []
+        for ex in execute_reasoning_gaps(
+            mine_revert_invariants(src), src, provider=provider, allow_remote=True
+        ):
+            if ex.get("promotion_state") == "counterexample":
+                out += ex.get("counterexamples", [])
+        return sorted(set(out))
+
+    def test_correct_nonliteral_pauser_promotes(self):
+        # Provider names the real (non-literal) pauser -> control confirms -> counterexample.
+        assert self._cx(_PAUSE_NONLITERAL, _MockProvider({"pauser": "freezeContract"})) == [
+            "withdraw"
+        ]
+
+    def test_wrong_pauser_from_provider_fails_closed(self):
+        # Provider names a function that does NOT reach the paused state -> control probe does not
+        # revert -> NO counterexample, even though the name is a valid callable.
+        assert self._cx(_PAUSE_NONLITERAL, _MockProvider({"pauser": "withdraw"})) == []
