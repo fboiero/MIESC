@@ -302,3 +302,45 @@ class TestPhase2GapHypotheses:
         )
         gaps = self._gaps(src)
         assert len(gaps) == 1 and gaps[0]["affected_functions"] == ["setTreasury"]
+
+
+class TestPhase2PauseGaps:
+    def _cats(self, src):
+        p = mine_revert_invariants(src)
+        return [
+            (g["category"], g["affected_functions"])
+            for g in (p[0].to_dict()["gap_hypotheses"] if p else [])
+        ]
+
+    def test_pause_gap_on_user_mutator_same_file_modifier(self):
+        src = (
+            "contract C {\n"
+            "  bool paused;\n"
+            "  modifier whenNotPaused() { require(!paused); _; }\n"
+            "  function deposit() external whenNotPaused { bal += 1; }\n"
+            "  function withdraw() external { bal -= 1; }\n"
+            "}\n"
+        )
+        assert ("pause_toggle", ["withdraw"]) in self._cats(src)
+
+    def test_privileged_functions_excluded_from_pause_family(self):
+        # pause()/setFee are privileged; only deposit is a user mutator -> no pause family of >=2
+        src = (
+            "contract C {\n"
+            "  bool paused; address owner;\n"
+            "  modifier whenNotPaused() { require(!paused); _; }\n"
+            "  function deposit() external whenNotPaused { bal += 1; }\n"
+            "  function pause() external { require(msg.sender == owner); paused = true; }\n"
+            "  function setFee(uint x) external { require(msg.sender == owner); fee = x; }\n"
+            "}\n"
+        )
+        assert all(c != "pause_toggle" for c, _ in self._cats(src))
+
+    def test_inherited_pausable_is_opaque_so_silent(self):
+        src = (
+            "contract C is Pausable {\n"
+            "  function deposit() external whenNotPaused { bal += 1; }\n"
+            "  function withdraw() external { bal -= 1; }\n"
+            "}\n"
+        )
+        assert self._cats(src) == []

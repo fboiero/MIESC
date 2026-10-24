@@ -21,6 +21,18 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Surfaced under `gap_hypotheses` in the plan (the deep-audit advisory phase picks it up for free)
   and round-trips through `parse_revert_invariant_plans`. Negative control: 0 hypotheses on
   OpenZeppelin `contracts/` and Solady `src/`. No benchmark claim.
+- **Revert-invariant Phase 2 (second slice): within-group `pause_toggle` gap hypotheses.** The
+  miner now also compares *user-facing* mutators (`deposit`, `withdraw`, `transfer`, `swap`,
+  `claim`, …) as a group and, when some are pause-gated (`whenNotPaused`) and a sibling is not,
+  records a `GuardGapHypothesis` (`observed_gap="inconsistent"`, category `pause_toggle`).
+  Privileged/admin verbs are kept in a disjoint set and are excluded from the pause group, so an
+  admin `setX` without `whenNotPaused` never pulls a user mutator into a false gap. Gating is
+  resolved through applied modifiers with a three-valued classifier: an applied modifier that is
+  not a locally-parsed guard (an inherited or delegating one such as OpenZeppelin `Pausable`'s
+  `whenNotPaused`) marks the function **opaque** and excludes it rather than counting it as
+  ungated — without that, every `Pausable` consumer would false-positive. Advisory only, never a
+  `Finding`, `promotion.state` stays `hypothesis`. Negative control: 0 hypotheses on OpenZeppelin
+  `contracts/` and Solady `src/` (490 files). No benchmark claim.
 
 ## [6.6.0] - 2026-10-24 — Phase-1 plan miners, DeFi and Yul detectors, hardened adapters
 
