@@ -931,6 +931,7 @@ class DeepAuditAgent(BaseAgent):
         """
         from miesc.llm import (
             bridge_revert_invariant_plans,
+            generate_revert_guard_harnesses,
             mine_lending_solvency_liquidation,
             mine_privileged_governance_lifecycle,
             mine_resource_liveness_griefing,
@@ -961,6 +962,9 @@ class DeepAuditAgent(BaseAgent):
                 if key == "revert_invariants":
                     bridged = bridge_revert_invariant_plans(plans)
                     capabilities[key]["oracle_plans"] = [p.to_dict() for p in bridged]
+                    # One rung further: incomplete, never-executed Foundry probe harnesses
+                    # (promotion: test_generated). Additive and advisory; no execution.
+                    capabilities[key]["harnesses"] = generate_revert_guard_harnesses(plans)
                 total += len(plans)
             except Exception as e:
                 logger.debug(f"Advisory miner {key} skipped: {e}")

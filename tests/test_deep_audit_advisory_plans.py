@@ -176,3 +176,19 @@ def test_advisory_phase_surfaces_bridged_oracle_plans():
     op = ri["oracle_plans"][0]
     assert op["confidence"] == 0.2
     assert op["metadata"]["advisory"] == "true"
+
+
+def test_advisory_phase_surfaces_test_generated_harnesses():
+    agent = DeepAuditAgent(DeepAuditConfig(enable_advisory_plans=True, enable_llm=False))
+    phase = agent._extract_advisory_plans(PAUSE_GAP, "Vault.sol")
+
+    ri = phase["capabilities"]["revert_invariants"]
+    assert "harnesses" in ri
+    assert len(ri["harnesses"]) >= 1
+    art = ri["harnesses"][0]
+    # test_generated rung: a harness exists, with recorded blockers, never auto-executed.
+    assert art["promotion_state"] == "test_generated"
+    assert art["blockers"]
+    assert "vm.expectRevert()" in art["foundry_harness"]
+    # pause harness must not fabricate a pauser call.
+    assert "pause()" not in art["foundry_harness"]
