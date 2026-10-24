@@ -62,6 +62,22 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   claim. This completes the deterministic within-group gap layer (access-control, pause, freshness)
   plus its first consumer.
 
+- **Revert-invariant Phase 2: `test_generated` probe harnesses.** New
+  `miesc/llm/revert_invariant_harness.py` turns each gap hypothesis into a Foundry
+  `vm.expectRevert` probe **harness** and advances that artifact one rung up the SDD promotion
+  ladder (`hypothesis` → `test_generated`). The harness is incomplete by design: every
+  contract-specific step (constructor args, call args, reaching the paused state) is an explicit
+  `TODO` recorded in `blockers`, and only the category-generic, un-fakeable fragments are
+  generated (an unauthorized `vm.prank` for access control, a `vm.warp` past the deadline for
+  freshness). The paused state is deliberately **not** fabricated — guessing a pauser call would
+  be a false probe. It is returned as an artifact (surfaced under
+  `capabilities.revert_invariants.harnesses`), never as a runnable `foundry_test` fed to the
+  validator, so nothing is executed and no counterexample is claimed. Actually running the
+  harnesses against `InvariantValidator` and promoting to `counterexample` is deliberately
+  deferred (the validator runs positive `invariant_… view` assertions with a no-arg constructor,
+  a semantic mismatch for revert probes). Silent where the miner is silent — 0 harnesses across
+  OpenZeppelin, Solady and Uniswap v2-periphery (513 files). No benchmark claim.
+
 ## [6.6.0] - 2026-10-24 — Phase-1 plan miners, DeFi and Yul detectors, hardened adapters
 
 Minor release. Four deterministic, LLM-free *plan miners* land as Phase 1 of their SDDs
