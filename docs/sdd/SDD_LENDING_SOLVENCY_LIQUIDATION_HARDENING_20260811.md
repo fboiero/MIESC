@@ -2,7 +2,7 @@
 
 Date: 2026-08-11
 Owner/Lane: Codex
-Status: Proposed SDD, not implemented, no benchmark claim
+Status: Phase 1 implemented (deterministic market model) — see `miesc/llm/lending_solvency_liquidation.py`. Later phases (solvency hypotheses, liquidation oracles, execution plans, LLM reasoning agent) remain proposed. No benchmark claim.
 
 ## Signal
 
