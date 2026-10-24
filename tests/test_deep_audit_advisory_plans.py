@@ -192,3 +192,19 @@ def test_advisory_phase_surfaces_test_generated_harnesses():
     assert "vm.expectRevert()" in art["foundry_harness"]
     # pause harness must not fabricate a pauser call.
     assert "pause()" not in art["foundry_harness"]
+
+
+def test_gap_execution_is_off_by_default_and_opt_in():
+    assert DeepAuditConfig().enable_gap_execution is False
+    # Off by default -> no executions key.
+    agent = DeepAuditAgent(DeepAuditConfig(enable_advisory_plans=True, enable_llm=False))
+    phase = agent._extract_advisory_plans(PAUSE_GAP, "Vault.sol")
+    assert "executions" not in phase["capabilities"]["revert_invariants"]
+
+    # Opt-in -> executions key present; a pause-only contract has no access-control gaps,
+    # so the executor returns an empty list without invoking Foundry.
+    agent2 = DeepAuditAgent(
+        DeepAuditConfig(enable_advisory_plans=True, enable_gap_execution=True, enable_llm=False)
+    )
+    phase2 = agent2._extract_advisory_plans(PAUSE_GAP, "Vault.sol")
+    assert phase2["capabilities"]["revert_invariants"]["executions"] == []
