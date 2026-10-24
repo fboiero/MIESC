@@ -52,6 +52,14 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `Finding` and never an "unbounded loop" accusation (distinct from the DoS detectors); later SDD
   phases (liveness hypotheses, progress oracles, execution plans) build on it.
 
+### Changed
+
+- The index-preserving Solidity text helpers (`_strip_comments`, `_line_of`, `_match_brace`) that
+  the deterministic plan miners had each copied verbatim now live in one tested module,
+  `miesc/llm/_solidity_text.py`. Internal refactor with no behavior change; `_FUNCTION_RE` stays
+  per-module because the revert-invariant miner needs a superset (it also matches
+  `modifier`/`constructor`) that the others must not.
+
 ### Fixed
 
 - `miesc export` read only the `results` list, so every format (SARIF, CSV, JSONL,

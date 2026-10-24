@@ -21,6 +21,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional
 
+from miesc.llm._solidity_text import _line_of, _strip_comments
 from miesc.llm.agentic_contracts import (
     MAX_AGENT_ITEMS,
     MAX_AGENT_TEXT_CHARS,
@@ -199,33 +200,6 @@ def _first_token(lowsrc: str, src: str, keyword: str) -> str:
         re.IGNORECASE,
     )
     return m.group(1) if m else keyword
-
-
-def _strip_comments(source: str) -> str:
-    out = list(source)
-    i, n = 0, len(source)
-    while i < n:
-        c, nxt = source[i], source[i + 1] if i + 1 < n else ""
-        if c == "/" and nxt == "/":
-            j = source.find("\n", i)
-            j = n if j == -1 else j
-            for k in range(i, j):
-                out[k] = " "
-            i = j
-        elif c == "/" and nxt == "*":
-            j = source.find("*/", i + 2)
-            j = n if j == -1 else j + 2
-            for k in range(i, min(j, n)):
-                if out[k] != "\n":
-                    out[k] = " "
-            i = j
-        else:
-            i += 1
-    return "".join(out)
-
-
-def _line_of(source: str, index: int) -> int:
-    return source[:index].count("\n") + 1
 
 
 def mine_lending_solvency_liquidation(
