@@ -47,6 +47,21 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   functions, all resolved guarded-by-`ensure` or opaque-by-forwarding — a non-vacuous 0). No
   benchmark claim.
 
+- **Revert-invariant Phase 2: advisory bridge to fuzzing/oracle guidance.** New
+  `miesc/llm/revert_invariant_bridge.py` turns each `GuardGapHypothesis` into a provider-neutral
+  `SequenceOraclePlan` — a fuzzing/oracle obligation the existing agentic layer already
+  understands and that round-trips through `parse_sequence_oracle_plans`. Each bridged plan maps
+  the gap category to a property a fuzzer should try to violate (access-control / pause / deadline
+  → "the call must revert"), one probe step per affected function, and carries the hypothesis'
+  own negative checks in its evidence so the benign explanations travel with the obligation. The
+  deep-audit advisory phase surfaces them under `capabilities.revert_invariants.oracle_plans`.
+  Advisory→advisory: fixed low confidence, never a `Finding`, no executable Solidity. Silent
+  exactly where the miner is silent — 0 bridged plans across OpenZeppelin, Solady and Uniswap
+  v2-periphery (513 files). Bridging into `InvariantValidator` (executable assertions,
+  counterexample promotion) is deliberately deferred to the reasoning-agent step. No benchmark
+  claim. This completes the deterministic within-group gap layer (access-control, pause, freshness)
+  plus its first consumer.
+
 ## [6.6.0] - 2026-10-24 — Phase-1 plan miners, DeFi and Yul detectors, hardened adapters
 
 Minor release. Four deterministic, LLM-free *plan miners* land as Phase 1 of their SDDs

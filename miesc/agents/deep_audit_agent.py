@@ -930,6 +930,7 @@ class DeepAuditAgent(BaseAgent):
         is recorded with its error and does not break the audit.
         """
         from miesc.llm import (
+            bridge_revert_invariant_plans,
             mine_lending_solvency_liquidation,
             mine_privileged_governance_lifecycle,
             mine_resource_liveness_griefing,
@@ -954,6 +955,12 @@ class DeepAuditAgent(BaseAgent):
                     "count": len(plans),
                     "plans": [plan.to_dict() for plan in plans],
                 }
+                # Bridge the revert-invariant gap hypotheses into advisory sequence-oracle
+                # plans so the fuzzing/oracle guidance surfaces alongside the raw inventory.
+                # Additive and advisory-only: silent when the miner found no gaps.
+                if key == "revert_invariants":
+                    bridged = bridge_revert_invariant_plans(plans)
+                    capabilities[key]["oracle_plans"] = [p.to_dict() for p in bridged]
                 total += len(plans)
             except Exception as e:
                 logger.debug(f"Advisory miner {key} skipped: {e}")

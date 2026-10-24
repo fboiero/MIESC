@@ -190,6 +190,10 @@ from .resource_liveness_griefing import (
     mine_resource_liveness_griefing,
     parse_resource_liveness_plans,
 )
+from .revert_invariant_bridge import (
+    bridge_gap_to_oracle_plan,
+    bridge_revert_invariant_plans,
+)
 from .revert_invariant_mining import (
     GuardGapHypothesis,
     GuardInventoryItem,
@@ -359,6 +363,8 @@ __all__ = [
     "RevertInvariantOraclePlan",
     "mine_revert_invariants",
     "parse_revert_invariant_plans",
+    "bridge_gap_to_oracle_plan",
+    "bridge_revert_invariant_plans",
     "parse_token_hook_reentrancy_hardening_plans",
     "parse_upgrade_evolution_plans",
     "LLMOrchestratorReasoningProvider",
