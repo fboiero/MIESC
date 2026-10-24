@@ -2,7 +2,7 @@
 
 Date: 2026-08-11
 Owner/Lane: Codex
-Status: Proposed SDD, not implemented, no benchmark claim
+Status: Phase 1 implemented (deterministic progress surface) — see `miesc/llm/resource_liveness_griefing.py`. Later phases (liveness hypotheses, progress oracles, execution plans, LLM reasoning agent) remain proposed. No benchmark claim.
 
 ## Signal
 

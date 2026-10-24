@@ -7,6 +7,41 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Lending solvency & liquidation — market model** (Phase 1 of
+  `docs/sdd/SDD_LENDING_SOLVENCY_LIQUIDATION_HARDENING_20260811.md`). A deterministic, local miner
+  (`miesc/llm/lending_solvency_liquidation.py`) that builds a protocol-solvency model for lending
+  contracts: accounting fields (collateral, debt, shares, indexes, reserves, bad_debt), market
+  parameters (collateral factor, liquidation threshold, close factor, bonus), solvency-critical
+  functions (supply/borrow/repay/accrue/liquidate/…), price dependencies, and configuration actors.
+  A precision gate emits a plan only when the contract looks like a lending protocol (≥1
+  solvency-critical function and ≥1 accounting field). Output is the provider-neutral
+  `LendingSolvencyLiquidationPlan` contract (with `parse_lending_solvency_plans`). It is advisory —
+  a market-model inventory, never a `Finding` (distinct from the DeFi detectors / solvency
+  invariant templates); later SDD phases build on it.
+- **Privileged governance lifecycle — authority graph** (Phase 1 of
+  `docs/sdd/SDD_PRIVILEGED_GOVERNANCE_LIFECYCLE_HARDENING_20260811.md`). A deterministic, local
+  miner (`miesc/llm/privileged_governance_lifecycle.py`) that models a contract's privileged
+  authority rather than re-matching `onlyOwner`: it inventories privileged actors (owner,
+  admin, guardian, governor, proposer, executor, pauser, upgrader, keeper, …), AccessControl
+  roles with their grant/revoke functions, and the edges between them and the functions they
+  guard/grant/revoke, anchored to source. Output is the provider-neutral
+  `PrivilegedGovernanceLifecyclePlan` contract (with `parse_privileged_governance_plans`). It is
+  advisory — an authority inventory, never a `Finding` and never a "missing timelock"
+  accusation (distinct from the governance findings in `advanced_detectors`); later SDD phases
+  (lifecycle hypotheses, governance oracles, execution plans) build on this graph.
+- **Resource/liveness griefing — progress surface** (Phase 1 of
+  `docs/sdd/SDD_RESOURCE_LIVENESS_GRIEFING_HARDENING_20260811.md`). A deterministic, local miner
+  (`miesc/llm/resource_liveness_griefing.py`) that models *progress* rather than re-matching
+  `for (...)` loops: for each externally growable resource (dynamic array, mapping, withdrawal/
+  proposal queue, pending-payment map, keeper task) it records the functions that grow it and the
+  progress-critical functions (withdraw/claim/settle/execute/liquidate/…) that traverse it,
+  anchored to source. Output is the provider-neutral `ResourceLivenessGriefingPlan` contract (with
+  `parse_resource_liveness_plans`). It is advisory — a progress-surface inventory, never a
+  `Finding` and never an "unbounded loop" accusation (distinct from the DoS detectors); later SDD
+  phases (liveness hypotheses, progress oracles, execution plans) build on it.
+
 ### Fixed
 
 - `miesc export` read only the `results` list, so every format (SARIF, CSV, JSONL,
@@ -45,6 +80,17 @@ reproduces the new figures into a dated artifact and `make reproduce` keeps chec
   finding and each hazard has negative checks; findings use distinct `yul-*` names so they
   never collapse Slither's informational `assembly` warning. Emits 0 findings on the
   SmartBugs-curated 143 corpus (zero-FP regression guard). No benchmark claim.
+- **Revert-invariant mining** (Phase 1 of
+  `docs/SDD_REVERT_INVARIANT_MINING_20260810.md`). A deterministic, local miner
+  (`miesc/llm/revert_invariant_mining.py`) that treats a contract's existing defenses as
+  signal: it inventories every guard (`require` / `assert` / custom-error `revert` /
+  `if (...) revert|throw`), anchors each to its source line and enclosing function, and
+  normalizes it into a defensive category (access control, signature verification, replay
+  prevention, freshness, pause toggle, allow/ban list, slippage, accounting cap, bounds, or
+  unclassified). Output is the provider-neutral `RevertInvariantOraclePlan` contract (with
+  `parse_revert_invariant_plans`), mirroring the existing oracle-plan contracts. It is
+  advisory — a guard inventory, never a `Finding` and never a "missing require" accusation;
+  later SDD phases (gap hypotheses, oracle/execution plans, the LLM agent) build on it.
 - **Configurable LLM providers.** `miesc/core/llm_providers.py` is the single registry of
   backends: built-in `anthropic`, `openai`, `deepseek`, `kimi` (Moonshot, OpenAI-compatible)
   and `ollama`, plus any OpenAI-compatible endpoint declared under `llm.providers` in the
@@ -1491,7 +1537,7 @@ Workflow:
 
 ---
 
-## [Unreleased]
+## [Historical — DPGA submission (2025-12)]
 
 ### Added
 - **DPGA Application Submitted** (December 5, 2025)

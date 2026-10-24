@@ -136,6 +136,12 @@ from .finding_validator import (
     ValidatorConfig,
     validate_findings_sync,
 )
+from .lending_solvency_liquidation import (
+    LendingMarket,
+    LendingSolvencyLiquidationPlan,
+    mine_lending_solvency_liquidation,
+    parse_lending_solvency_plans,
+)
 from .llm_orchestrator import (
     AnthropicBackend,
     DeepSeekBackend,
@@ -156,6 +162,14 @@ from .openllama_helper import (
     generate_remediation_advice,
     prioritize_findings,
 )
+from .privileged_governance_lifecycle import (
+    GovernanceActor,
+    GovernanceEdge,
+    GovernanceRole,
+    PrivilegedGovernanceLifecyclePlan,
+    mine_privileged_governance_lifecycle,
+    parse_privileged_governance_plans,
+)
 from .reasoning_provider_adapter import (
     LLMOrchestratorReasoningProvider,
     LocalHeuristicReasoningProvider,
@@ -169,6 +183,18 @@ from .remediation_generator import (
     RemediationResult,
     generate_fix,
     get_quick_fix,
+)
+from .resource_liveness_griefing import (
+    GrowableSurface,
+    ResourceLivenessGriefingPlan,
+    mine_resource_liveness_griefing,
+    parse_resource_liveness_plans,
+)
+from .revert_invariant_mining import (
+    GuardInventoryItem,
+    RevertInvariantOraclePlan,
+    mine_revert_invariants,
+    parse_revert_invariant_plans,
 )
 from .vulnerability_rag import (
     EXPLOIT_EXAMPLES,
@@ -313,6 +339,24 @@ __all__ = [
     "parse_signature_domain_hardening_plans",
     "parse_snapshot_fuzzing_plans",
     "parse_sequence_oracle_plans",
+    "LendingMarket",
+    "LendingSolvencyLiquidationPlan",
+    "mine_lending_solvency_liquidation",
+    "parse_lending_solvency_plans",
+    "GovernanceActor",
+    "GovernanceEdge",
+    "GovernanceRole",
+    "PrivilegedGovernanceLifecyclePlan",
+    "mine_privileged_governance_lifecycle",
+    "parse_privileged_governance_plans",
+    "GrowableSurface",
+    "ResourceLivenessGriefingPlan",
+    "mine_resource_liveness_griefing",
+    "parse_resource_liveness_plans",
+    "GuardInventoryItem",
+    "RevertInvariantOraclePlan",
+    "mine_revert_invariants",
+    "parse_revert_invariant_plans",
     "parse_token_hook_reentrancy_hardening_plans",
     "parse_upgrade_evolution_plans",
     "LLMOrchestratorReasoningProvider",
