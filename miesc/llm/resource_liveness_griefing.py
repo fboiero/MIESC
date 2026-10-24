@@ -21,7 +21,13 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional
 
-from miesc.llm._solidity_text import _line_of, _match_brace, _strip_comments
+from miesc.llm._solidity_text import (
+    _body_brace,
+    _line_of,
+    _mask_strings,
+    _match_brace,
+    _strip_comments,
+)
 from miesc.llm.agentic_contracts import (
     MAX_AGENT_ITEMS,
     MAX_AGENT_TEXT_CHARS,
@@ -209,12 +215,46 @@ class _Func:
     is_progress: bool
 
 
+_LOOP_HEAD_RE = re.compile(r"\b(?:for|while)\s*\(")
+
+
+def _loop_texts(body: str) -> List[str]:
+    """Text of every `for (...)`/`while (...)` loop in ``body``: header plus its block.
+
+    Strings are already masked, so the keyword is only matched as code. A loop without braces
+    runs to the next ``;``.
+    """
+    loops: List[str] = []
+    for m in _LOOP_HEAD_RE.finditer(body):
+        close = _match_paren(body, m.end() - 1)
+        brace = body.find("{", close)
+        semi = body.find(";", close)
+        if brace != -1 and (semi == -1 or brace < semi):
+            end = _match_brace(body, brace)
+        else:
+            end = semi if semi != -1 else len(body)
+        loops.append(body[m.start() : end + 1])
+    return loops
+
+
+def _match_paren(source: str, open_paren: int) -> int:
+    depth = 0
+    for idx in range(open_paren, len(source)):
+        if source[idx] == "(":
+            depth += 1
+        elif source[idx] == ")":
+            depth -= 1
+            if depth == 0:
+                return idx
+    return len(source)
+
+
 def _functions(masked: str) -> List[_Func]:
     funcs: List[_Func] = []
     for m in _FUNCTION_RE.finditer(masked):
-        brace = masked.find("{", m.end())
+        brace = _body_brace(masked, m.end())
         if brace == -1:
-            continue
+            continue  # interface / abstract declaration: no body of its own
         end = _match_brace(masked, brace)
         funcs.append(
             _Func(
@@ -239,7 +279,8 @@ def mine_resource_liveness_griefing(
     """
     if not isinstance(source_code, str) or not source_code.strip():
         return []
-    masked = _strip_comments(source_code)
+    # Comments first, then string contents: a "for" inside an error message is not a loop.
+    masked = _mask_strings(_strip_comments(source_code))
     anchor = Path(file_path).name if file_path else "<memory>"
     funcs = _functions(masked)
 
@@ -276,15 +317,16 @@ def mine_resource_liveness_griefing(
         grow_set = re.compile(
             r"\b" + esc + r"\s*\[[^\]]*\]\s*=(?!=)(?!\s*(?:0\b|false\b|0x0+\b|delete\b))"
         )
-        # Traversal = a `for`/`while` loop in the function that reads the resource or its length.
-        loop_re = re.compile(r"\b(?:for|while)\b")
-        refs_re = re.compile(r"\b" + esc + r"\s*(?:\.\s*length|\[)")
+        # Traversal = a `for`/`while` loop whose header or body reads the resource (by index,
+        # by `.length`, or by name). The reference has to be *inside the loop*: a loop over
+        # another array elsewhere in the function plus an O(1) read of this one is not it.
+        refs_re = re.compile(r"\b" + esc + r"\b")
 
         traversal = sorted(
             {
                 f.name
                 for f in funcs
-                if f.is_progress and loop_re.search(f.body) and refs_re.search(f.body)
+                if f.is_progress and any(refs_re.search(loop) for loop in _loop_texts(f.body))
             }
         )
         # The SDD gap is *progress over* a growable resource. An O(1) access (e.g. a per-user

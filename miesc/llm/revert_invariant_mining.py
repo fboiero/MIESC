@@ -21,7 +21,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional
 
-from miesc.llm._solidity_text import _line_of, _strip_comments
+from miesc.llm._solidity_text import _body_brace, _line_of, _strip_comments
 from miesc.llm.agentic_contracts import (
     MAX_AGENT_ITEMS,
     MAX_AGENT_TEXT_CHARS,
@@ -251,9 +251,9 @@ def _collect_spans(source: str) -> List[tuple]:
     """
     spans: List[tuple] = []
     for m in _FUNCTION_RE.finditer(source):
-        brace = source.find("{", m.end())
+        brace = _body_brace(source, m.end())
         if brace == -1:
-            continue
+            continue  # interface / abstract declaration: no span of its own
         depth, end = 0, brace
         while end < len(source):
             if source[end] == "{":
