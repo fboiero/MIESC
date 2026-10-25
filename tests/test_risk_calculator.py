@@ -266,18 +266,19 @@ class TestGetVectorForCategory:
         vector = calc.get_vector_for_category("dos")
         assert vector.availability_impact == Impact.HIGH
 
-    def test_unknown_category_returns_default(self, calc):
-        """Test unknown category returns default vector."""
-        vector = calc.get_vector_for_category("unknown-xyz")
-        default = calc.CATEGORY_VECTORS["default"]
-        assert vector.attack_vector == default.attack_vector
+    def test_unknown_category_returns_none(self, calc):
+        """Unknown category returns None so the finding is marked 'not scored'."""
+        assert calc.get_vector_for_category("unknown-xyz") is None
+
+    def test_empty_or_non_string_category_returns_none(self, calc):
+        """Empty or non-string categories must not fall through to a default vector."""
+        assert calc.get_vector_for_category("") is None
+        assert calc.get_vector_for_category("   ") is None
 
     def test_no_partial_match(self, calc):
-        """Test that partial names don't match - requires exact category."""
-        # "reentrant" does NOT match "reentrancy" - returns default
-        vector = calc.get_vector_for_category("reentrant-issue")
-        default = calc.CATEGORY_VECTORS["default"]
-        assert vector.integrity_impact == default.integrity_impact
+        """Partial names that do not match any real category return None, not a default."""
+        # "reentrant-issue" does NOT match any category vector
+        assert calc.get_vector_for_category("reentrant-issue") is None
 
     def test_case_insensitive(self, calc):
         """Test case insensitive matching."""

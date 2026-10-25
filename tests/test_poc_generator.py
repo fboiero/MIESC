@@ -634,15 +634,15 @@ class TestTypeResolution:
             assert vuln_type == VulnerabilityType.ACCESS_CONTROL
 
     def test_resolve_rejects_overlong_alias_like_type(self, generator):
-        """Overlong finding types should not be partially matched."""
+        """Overlong finding types should not be partially matched, so resolve to None."""
         finding = {"type": "reentrancy" + ("x" * 121)}
 
-        assert generator._resolve_vulnerability_type(finding) == VulnerabilityType.REENTRANCY
+        assert generator._resolve_vulnerability_type(finding) is None
 
     @pytest.mark.parametrize("finding", [None, ["type", "reentrancy"], "reentrancy"])
     def test_resolve_rejects_malformed_finding_container(self, generator, finding):
-        """Malformed type resolution input should default safely."""
-        assert generator._resolve_vulnerability_type(finding) == VulnerabilityType.REENTRANCY
+        """Malformed type resolution input returns None (no PoC fabricated)."""
+        assert generator._resolve_vulnerability_type(finding) is None
 
     def test_resolve_oracle(self, generator):
         """Test resolving oracle manipulation type."""
@@ -677,18 +677,16 @@ class TestTypeResolution:
             vuln_type = generator._resolve_vulnerability_type(finding)
             assert vuln_type == VulnerabilityType.TX_ORIGIN
 
-    def test_resolve_unknown_defaults_reentrancy(self, generator, unknown_type_finding):
-        """Test unknown type defaults to reentrancy."""
+    def test_resolve_unknown_returns_none(self, generator, unknown_type_finding):
+        """Unknown types must resolve to None, never a fabricated reentrancy default."""
         vuln_type = generator._resolve_vulnerability_type(unknown_type_finding)
-        assert vuln_type == VulnerabilityType.REENTRANCY
+        assert vuln_type is None
 
     def test_resolve_resets_malformed_type_aliases_state(self, generator):
-        """Malformed alias state should not crash type resolution."""
+        """Malformed alias state should not crash; with no usable aliases, resolve to None."""
         generator.TYPE_ALIASES = ["reentrancy"]
 
-        assert generator._resolve_vulnerability_type({"type": "reentrancy"}) == (
-            VulnerabilityType.REENTRANCY
-        )
+        assert generator._resolve_vulnerability_type({"type": "reentrancy"}) is None
 
     def test_resolve_ignores_hostile_finding_get_accessor(self, generator):
         """Type resolution should not call custom dict.get implementations."""
@@ -701,11 +699,11 @@ class TestTypeResolution:
 
         assert generator._resolve_vulnerability_type(finding) == VulnerabilityType.FLASH_LOAN
 
-    def test_resolve_non_string_type_defaults_reentrancy(self, generator):
-        """Test non-string finding type defaults to reentrancy."""
+    def test_resolve_non_string_type_returns_none(self, generator):
+        """Non-string finding types cannot be resolved, so return None (no PoC)."""
         for type_value in [None, ["reentrancy"], {"name": "reentrancy"}]:
             vuln_type = generator._resolve_vulnerability_type({"type": type_value})
-            assert vuln_type == VulnerabilityType.REENTRANCY
+            assert vuln_type is None
 
     def test_resolve_case_insensitive(self, generator):
         """Test type resolution is case insensitive."""
@@ -2482,11 +2480,11 @@ class TestResolveVulnerabilityTypePartialMatch:
         vuln_type = generator._resolve_vulnerability_type(finding)
         assert vuln_type == VulnerabilityType.INTEGER_OVERFLOW
 
-    def test_unknown_type_defaults_to_reentrancy(self, generator):
-        """Test unknown vulnerability type defaults to reentrancy."""
+    def test_unknown_type_returns_none(self, generator):
+        """Unknown vulnerability type returns None instead of a fabricated reentrancy PoC."""
         finding = {"type": "totally-unknown-xyz", "severity": "high"}
         vuln_type = generator._resolve_vulnerability_type(finding)
-        assert vuln_type == VulnerabilityType.REENTRANCY
+        assert vuln_type is None
 
 
 class TestHelperInputNormalization:
@@ -2505,9 +2503,7 @@ class TestHelperInputNormalization:
             generator._resolve_vulnerability_type({"type": b"  flash_loan  "})
             == VulnerabilityType.FLASH_LOAN
         )
-        assert generator._resolve_vulnerability_type({"type": "flash_loan\x7f"}) == (
-            VulnerabilityType.REENTRANCY
-        )
+        assert generator._resolve_vulnerability_type({"type": "flash_loan\x7f"}) is None
 
         options = GenerationOptions(
             attacker_balance=b" 25 ether ",

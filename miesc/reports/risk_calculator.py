@@ -7,7 +7,7 @@ security findings. Designed for premium audit reports.
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, TypedDict
+from typing import Any, Optional, TypedDict
 
 
 class EffortImpactCell(TypedDict):
@@ -99,6 +99,9 @@ class CVSSScore:
     vector: str
     exploitability_subscore: float = 0.0
     impact_subscore: float = 0.0
+    # True when no category vector matched, so the score was NOT computed and
+    # must be rendered as "not scored" rather than a fabricated default.
+    uncategorized: bool = False
 
 
 @dataclass
@@ -308,16 +311,26 @@ class RiskCalculator:
         """Initialize the risk calculator."""
         pass
 
-    def get_vector_for_category(self, category: str) -> CVSSVector:
-        """Get the appropriate CVSS vector for a vulnerability category."""
+    def get_vector_for_category(self, category: str) -> Optional[CVSSVector]:
+        """Get the CVSS vector for a vulnerability category.
+
+        Returns ``None`` when the category does not match any known vector. The
+        caller then marks the finding as "not scored" instead of silently using
+        a fabricated default vector and base score.
+        """
+        if not isinstance(category, str) or not category.strip():
+            return None
+
         category_lower = category.lower().replace(" ", "-").replace("_", "-")
 
-        # Check for partial matches
+        # Check for partial matches (the "default" fallback is not a real match).
         for key in self.CATEGORY_VECTORS:
+            if key == "default":
+                continue
             if key in category_lower or category_lower in key:
                 return self.CATEGORY_VECTORS[key]
 
-        return self.CATEGORY_VECTORS["default"]
+        return None
 
     def calculate_exploitability(self, vector: CVSSVector) -> float:
         """Calculate exploitability subscore."""
@@ -405,6 +418,18 @@ class RiskCalculator:
 
         # Get base vector for category
         vector = self.get_vector_for_category(category)
+
+        if vector is None:
+            # Uncategorized: do not fabricate a vector/score. Flag it so the
+            # report renders "not scored" instead of a misleading default.
+            return CVSSScore(
+                finding_id=finding_id,
+                title=title,
+                base_score=0.0,
+                severity=str(severity),
+                vector="not scored (uncategorized)",
+                uncategorized=True,
+            )
 
         # Adjust based on reported severity
         vector = self.adjust_vector_by_severity(vector, severity)
@@ -788,9 +813,10 @@ def calculate_premium_risk_data(findings: list[dict[str, Any]]) -> dict[str, Any
             {
                 "finding_id": s.finding_id,
                 "title": s.title,
-                "base_score": s.base_score,
+                "base_score": ("not scored (uncategorized)" if s.uncategorized else s.base_score),
                 "severity": s.severity,
                 "vector": s.vector,
+                "uncategorized": s.uncategorized,
             }
             for s in cvss_scores
         ],

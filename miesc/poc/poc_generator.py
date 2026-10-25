@@ -830,7 +830,7 @@ class PoCGenerator:
         finding: Dict[str, Any],
         target_contract: str,
         options: Optional[GenerationOptions] = None,
-    ) -> PoCTemplate:
+    ) -> Optional[PoCTemplate]:
         """
         Generate a PoC from a vulnerability finding.
 
@@ -840,7 +840,8 @@ class PoCGenerator:
             options: Optional generation options override
 
         Returns:
-            PoCTemplate with generated Solidity test code
+            PoCTemplate with generated Solidity test code, or ``None`` when the
+            vulnerability type cannot be resolved (so no PoC is fabricated).
         """
         if not isinstance(finding, dict):
             raise ValueError("Malformed vulnerability finding")
@@ -848,6 +849,9 @@ class PoCGenerator:
 
         # Determine vulnerability type
         vuln_type = self._resolve_vulnerability_type(finding)
+        if vuln_type is None:
+            logger.info("Skipping PoC: unresolved vulnerability type for finding")
+            return None
 
         # Extract finding details
         target_function = self._extract_function_name(finding)
@@ -918,6 +922,8 @@ class PoCGenerator:
 
             try:
                 poc = self.generate(finding, target_contract, options)
+                if poc is None:
+                    continue
                 pocs.append(poc)
                 if len(pocs) >= _LIST_FIELD_LIMIT:
                     break
@@ -1066,22 +1072,31 @@ class PoCGenerator:
         self._template_cache = {}
         return self._template_cache
 
-    def _resolve_vulnerability_type(self, finding: Dict[str, Any]) -> VulnerabilityType:
-        """Resolve finding type to VulnerabilityType enum."""
+    def _resolve_vulnerability_type(self, finding: Dict[str, Any]) -> Optional[VulnerabilityType]:
+        """Resolve finding type to a VulnerabilityType enum.
+
+        Returns ``None`` for malformed, empty, or unrecognized types. Callers must
+        then skip PoC generation rather than fabricating one: emitting, for
+        example, a reentrancy exploit labelled as a weak-PRNG finding would
+        misrepresent the automated output.
+        """
         if not isinstance(finding, Mapping):
-            logger.warning("Malformed finding type container, defaulting to REENTRANCY")
-            return VulnerabilityType.REENTRANCY
+            logger.warning("Malformed finding type container; skipping PoC generation")
+            return None
         type_aliases = self.TYPE_ALIASES if isinstance(self.TYPE_ALIASES, Mapping) else {}
         finding_type = _normalize_type_label(_safe_mapping_get(finding, "type", ""))
+
+        # An empty/normalized-away type cannot be matched safely.
+        if not finding_type:
+            logger.warning("Missing or malformed vulnerability type; skipping PoC generation")
+            return None
 
         # Try direct alias lookup
         if finding_type in type_aliases:
             resolved = _safe_mapping_get(type_aliases, finding_type)
-            return (
-                resolved
-                if isinstance(resolved, VulnerabilityType)
-                else VulnerabilityType.REENTRANCY
-            )
+            if isinstance(resolved, VulnerabilityType):
+                return resolved
+            return None
 
         # Try partial matching
         for alias, vuln_type in type_aliases.items():
@@ -1093,9 +1108,9 @@ class PoCGenerator:
             ):
                 return vuln_type
 
-        # Default to reentrancy as most common
-        logger.warning(f"Unknown vulnerability type: {finding_type}, defaulting to REENTRANCY")
-        return VulnerabilityType.REENTRANCY
+        # Unknown type: do not fabricate a PoC for a class we have no template for.
+        logger.warning(f"Unknown vulnerability type: {finding_type}; skipping PoC generation")
+        return None
 
     def _finding_text_field(
         self, finding: Dict[str, Any], key: str, default: Optional[str] = None
