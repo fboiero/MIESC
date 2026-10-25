@@ -1629,6 +1629,10 @@ Respond with a JSON array."""
                 "temperature": 0,
                 "seed": int(os.environ.get("MIESC_LLM_SEED", "42")),
                 "num_predict": 4096,
+                # Ollama's per-request context defaults to 4096 tokens, which
+                # silently truncates contracts larger than ~12 KB. Set it so the
+                # full source reaches the model (32B models have ~32K context).
+                "num_ctx": int(os.environ.get("MIESC_OLLAMA_NUM_CTX", "32768")),
             },
         }
         if ollama_format_json_default():

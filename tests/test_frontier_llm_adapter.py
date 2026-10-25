@@ -187,3 +187,34 @@ class TestRegistryProviders:
             assert a._detect_provider() == "deepseek"
         with patch.dict("os.environ", {"OPENAI_API_KEY": "o", "DEEPSEEK_API_KEY": "d"}, clear=True):
             assert a._detect_provider() == "openai"
+
+
+class TestOllamaContextWindow:
+    """The /api/chat request must set an explicit num_ctx, otherwise Ollama's
+    per-request default (4096) silently truncates contracts larger than ~12 KB."""
+
+    def _captured_body(self, adapter):
+        captured = {}
+
+        def fake_urlopen(req, timeout=None):
+            captured["data"] = req.data
+            resp = MagicMock()
+            resp.read.return_value = json.dumps({"message": {"content": "[]"}}).encode()
+            return resp
+
+        with patch.object(FrontierLLMAdapter, "_ensure_ollama_model", lambda self, m: None):
+            with patch("urllib.request.urlopen", side_effect=fake_urlopen):
+                adapter._analyze_ollama("contract C {}", model="qwen2.5-coder:32b")
+        return json.loads(captured["data"])
+
+    def test_num_ctx_default(self):
+        a = FrontierLLMAdapter(provider="ollama")
+        with patch.dict("os.environ", {}, clear=True):
+            body = self._captured_body(a)
+        assert body["options"]["num_ctx"] == 32768
+
+    def test_num_ctx_env_override(self):
+        a = FrontierLLMAdapter(provider="ollama")
+        with patch.dict("os.environ", {"MIESC_OLLAMA_NUM_CTX": "16000"}, clear=True):
+            body = self._captured_body(a)
+        assert body["options"]["num_ctx"] == 16000

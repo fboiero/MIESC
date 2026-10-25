@@ -412,6 +412,14 @@ def make_client(
             f"{spec.display_name}: no API key found; set {' or '.join(spec.api_key_env)}"
         )
     kwargs: Dict[str, Any] = {"timeout": timeout or spec.timeout}
+    # Retry transient failures (HTTP 429 rate limits and 5xx) using the SDK's
+    # own exponential backoff, which honors Retry-After. The SDK default is 2,
+    # which is not enough for a shared OpenAI-compatible endpoint that enforces
+    # a tokens-per-minute cap; override with MIESC_LLM_MAX_RETRIES.
+    try:
+        kwargs["max_retries"] = max(0, int(os.environ.get("MIESC_LLM_MAX_RETRIES", "5")))
+    except ValueError:
+        kwargs["max_retries"] = 5
     if key is not None:
         kwargs["api_key"] = key
     if spec.base_url:
