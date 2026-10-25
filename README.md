@@ -359,7 +359,7 @@ miesc scan Bridge.sol             # Detects 7 bridge exploit patterns
 
 ## Docker
 
-The latest published PyPI / GHCR release is **6.7.0**, matching the code on `main`
+The latest published PyPI / GHCR release is **6.8.0**, matching the code on `main`
 (see [CHANGELOG](./CHANGELOG.md)). Release status,
 published artifact links, GHCR digest, and smoke-test commands from the most recent detailed
 release-status report (v5.4.2) are recorded in
@@ -534,7 +534,7 @@ miesc detectors list                         # List all available detectors
 # Pre-commit hook (.pre-commit-config.yaml)
 repos:
   - repo: https://github.com/fboiero/MIESC
-    rev: v6.7.0
+    rev: v6.8.0
     hooks:
       - id: miesc-quick
         args: ['--ci']
