@@ -26,6 +26,16 @@ V2_BASE_URL = "https://api.etherscan.io/v2/api"
 API_KEY_ENV = "ETHERSCAN_API_KEY"
 ADDRESS_RE = re.compile(r"^0x[0-9a-fA-F]{40}$")
 
+
+# The payload supplies Solidity SOURCES ONLY. Anything else — a foundry.toml, hardhat.config,
+# brownie-config.yaml, waffle.json, a dapp/embark config — is build configuration the analyzers
+# (crytic-compile/forge) auto-detect and honour, so a payload one with its own `out`/`cache_path`
+# would steer the build to write and clean outside our temp dir. We allow-list `.sol` and always
+# generate the build config ourselves, which closes the whole class rather than a known list.
+def _is_source_file(rel_path: str) -> bool:
+    return posixpath.basename(rel_path).lower().endswith(".sol")
+
+
 CHAIN_IDS: Dict[ChainType, int] = {
     ChainType.ETHEREUM: 1,
     ChainType.POLYGON: 137,
@@ -108,14 +118,23 @@ def fetch_verified_source(
 
     if payload.get("status") != "1":
         raise BlockExplorerError(str(payload.get("result") or "Unknown block explorer error"))
-    result = (payload.get("result") or [{}])[0]
-    if not result.get("SourceCode"):
-        raise NotVerifiedError(f"{address} has no verified source on {chain.value}.")
-    if "vyper" in str(result.get("CompilerVersion", "")).lower():
-        raise BlockExplorerError(f"{address} is a Vyper contract; only Solidity is supported.")
-
-    name = result.get("ContractName") or "Contract"
-    files, remappings = parse_source_payload(result["SourceCode"], name)
+    # The explorer's payload is untrusted: a malformed `result`/`SourceCode` must surface as a
+    # BlockExplorerError (clean exit), not as a raw traceback out of the CLI handler.
+    try:
+        results = payload.get("result")
+        result = results[0] if isinstance(results, list) and results else {}
+        if not isinstance(result, dict):
+            raise BlockExplorerError(f"Unexpected explorer payload for {address}.")
+        if not result.get("SourceCode"):
+            raise NotVerifiedError(f"{address} has no verified source on {chain.value}.")
+        if "vyper" in str(result.get("CompilerVersion", "")).lower():
+            raise BlockExplorerError(f"{address} is a Vyper contract; only Solidity is supported.")
+        name = result.get("ContractName") or "Contract"
+        files, remappings = parse_source_payload(result["SourceCode"], name)
+    except BlockExplorerError:
+        raise
+    except (ValueError, KeyError, TypeError, AttributeError, IndexError) as e:
+        raise BlockExplorerError(f"Malformed source payload for {address}: {e}") from e
     return FetchedContract(
         address=address,
         chain=chain,
@@ -144,6 +163,8 @@ def write_contract_to_dir(contract: FetchedContract, target_dir: Path) -> Path:
     prefix = posixpath.commonpath([posixpath.dirname(p) for p in absolute]) if absolute else "/"
     sources = {}
     for rel_path, content in contract.files.items():
+        if not _is_source_file(rel_path):
+            continue  # payload is sources only; we generate the build config ourselves below
         if rel_path.startswith("/"):
             rel_path = posixpath.relpath(rel_path, prefix)
         if rel_path.startswith("@"):
@@ -159,7 +180,7 @@ def write_contract_to_dir(contract: FetchedContract, target_dir: Path) -> Path:
     defines = re.compile(rf"\bcontract\s+{re.escape(contract.contract_name)}\b")
     deployed = next((p for p, src in sources.items() if defines.search(src)), "")
     dirs = deployed.split("/")[:-1]
-    if "lib" in dirs[:-1]:
+    if dirs[:-1] and "lib" in dirs[:-1]:
         last_lib = max(i for i, d in enumerate(dirs[:-1]) if d == "lib")
         package, moved = "/".join(dirs[: last_lib + 2]) + "/", dirs[last_lib + 1] + "/"
         sources = {
@@ -181,12 +202,12 @@ def write_contract_to_dir(contract: FetchedContract, target_dir: Path) -> Path:
         dest.parent.mkdir(parents=True, exist_ok=True)
         dest.write_text(content, encoding="utf-8")
 
-    # Plain or relative imports need no foundry.toml: the tools' usual single-file path.
+    # We always write the build config ourselves (never the payload's), pinning out/cache inside
+    # the temp dir so the analyzers' build and `forge clean` cannot touch anything outside it.
     if remappings:
         (root / "foundry.toml").write_text(
-            '[profile.default]\nsrc = "."\nlibs = []\nremappings = '
-            + json.dumps(remappings)
-            + "\n",
+            '[profile.default]\nsrc = "."\nlibs = []\nout = "out"\ncache_path = "cache"\n'
+            "remappings = " + json.dumps(remappings) + "\n",
             encoding="utf-8",
         )
     return root

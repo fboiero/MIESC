@@ -213,3 +213,68 @@ def test_cli_prints_the_protocol_line(tmp_path):
 
     assert "Protocol: 3/3 files, 3 contracts, 1 cross-contract calls" in out
     assert "Controller -> Vault: sweep, withdraw" in out
+
+
+def test_location_less_findings_from_different_files_are_not_collapsed(tmp_path):
+    """A finding with no resolvable location (enriched/LLM-normalized to location {}) must not
+    collapse to one row per (tool, type) across every file — that is a recall loss, not dedupe."""
+    (tmp_path / "A.sol").write_text("pragma solidity ^0.8.20;\ncontract A {}")
+    (tmp_path / "B.sol").write_text("pragma solidity ^0.8.20;\ncontract B {}")
+
+    def reports(path):
+        name = Path(path).stem
+        # same tool+type, empty location, distinct ids: two real findings, one per file.
+        return {
+            "findings": [
+                {"id": f"{name}-1", "tool": "llm", "type": "reentrancy", "severity": "High"}
+            ]
+        }
+
+    with _fake_files(reports):
+        result = DeepAuditAgent(DeepAuditConfig(timeout_seconds=60)).analyze(str(tmp_path))
+
+    assert len(result["findings"]) == 2
+    assert result["summary"]["HIGH"] == 2
+
+
+def test_location_less_findings_without_id_are_kept_each(tmp_path):
+    (tmp_path / "A.sol").write_text("pragma solidity ^0.8.20;\ncontract A {}")
+    (tmp_path / "B.sol").write_text("pragma solidity ^0.8.20;\ncontract B {}")
+
+    def reports(path):
+        return {"findings": [{"tool": "llm", "type": "reentrancy", "severity": "Low"}]}
+
+    with _fake_files(reports):
+        result = DeepAuditAgent(DeepAuditConfig(timeout_seconds=60)).analyze(str(tmp_path))
+    assert len(result["findings"]) == 2  # no id, no location -> never silently merged
+
+
+def test_one_failing_file_does_not_abort_the_whole_directory(tmp_path):
+    """A file that raises during analyze is recorded and skipped; the other reports survive and
+    the failure is counted in metadata."""
+    for n in ("A", "B", "C"):
+        (tmp_path / f"{n}.sol").write_text(f"pragma solidity ^0.8.20;\ncontract {n} {{}}")
+
+    def reports(path):
+        if Path(path).stem == "B":
+            raise UnicodeDecodeError("utf-8", b"", 0, 1, "boom")
+        return {
+            "findings": [
+                {
+                    "id": Path(path).stem,
+                    "tool": "slither",
+                    "type": "x",
+                    "severity": "Low",
+                    "location": {"file": Path(path).name, "line": 1},
+                }
+            ]
+        }
+
+    with _fake_files(reports):
+        result = DeepAuditAgent(DeepAuditConfig(timeout_seconds=60)).analyze(str(tmp_path))
+
+    assert result["metadata"]["files_analyzed"] == 3
+    assert result["metadata"]["files_failed"] == 1
+    assert len(result["findings"]) == 2  # A and C survived
+    errored = [r for r in result["files"] if r.get("error")]
+    assert len(errored) == 1 and errored[0]["contract"].endswith("B.sol")
