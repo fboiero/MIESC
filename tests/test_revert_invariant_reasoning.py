@@ -181,6 +181,27 @@ class TestCorrectCounterexamples:
         assert res[0]["promotion_state"] == "counterexample"
         assert res[0]["counterexamples"] == ["withdraw"]
 
+    def test_constructor_set_pauser_role_promotes(self):
+        # B9: the pauser is set from a constructor address param. Non-unset literals deploy
+        # pauser = address(this) (the probe), so the probe can reach the paused state and the
+        # control confirms -> the unguarded `withdraw` is a counterexample. (Zero literals would
+        # give pauser = address(0), the probe could not pause, and it would stay inconclusive.)
+        src = (
+            "pragma solidity ^0.8.20;\n"
+            "contract C {\n"
+            "  bool paused; address pauser; uint256 bal;\n"
+            "  constructor(address _pauser) { pauser = _pauser; }\n"
+            '  modifier whenNotPaused() { require(!paused, "p"); _; }\n'
+            '  function pause() external { require(msg.sender == pauser, "no"); paused = true; }\n'
+            "  function deposit() external whenNotPaused { bal += 1; }\n"
+            "  function withdraw() external { bal = 7; }\n"
+            "}\n"
+        )
+        res = execute_reasoning_gaps(mine_revert_invariants(src), src, timeout=180)
+        assert len(res) == 1
+        assert res[0]["promotion_state"] == "counterexample"
+        assert res[0]["counterexamples"] == ["withdraw"]
+
     def test_elementary_constructor_pause_gap_is_executed(self):
         # The contract has a `constructor(address, uint256)` -> deployed with zero literals; the
         # pause gap still promotes. (Previously a constructor with args was skipped outright.)

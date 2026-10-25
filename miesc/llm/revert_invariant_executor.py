@@ -123,6 +123,27 @@ def _zero_for(sol_type: str) -> Optional[str]:
     return None
 
 
+def _nonunset_for(sol_type: str) -> Optional[str]:
+    """A *non-unset* literal for a constructor parameter, or ``None`` if not constructible.
+
+    Zero literals materialise the "never initialised" state, which a dead ``require(x == 0)`` path
+    reads as live. So a constructor deploys with values that look *set*: ``address(this)`` for every
+    address (the probe contract is the deployer -- the same identity ``owner = msg.sender`` gives a
+    no-argument constructor), ``1`` for every integer, ``false`` for ``bool`` (its natural default),
+    and a zero ``bytesN`` (no distinguished non-zero default). Non-elementary -> ``None``.
+    """
+    t = sol_type.strip()
+    if t in ("uint", "int") or re.fullmatch(rf"u?int({_INT_WIDTHS})", t):
+        return f"{t}(1)"
+    if t == "address":
+        return "address(this)"
+    if t == "bool":
+        return "false"
+    if re.fullmatch(r"bytes(1|2|3|4|8|16|32)", t):
+        return f"{t}(0)"
+    return None
+
+
 def _arg_type(param: str) -> Optional[str]:
     """Extract the leading type token from one parameter declaration (``uint256 x`` -> uint256)."""
     param = param.strip()
@@ -179,33 +200,35 @@ def _target_contract(masked: str) -> Optional[str]:
     return name
 
 
-def _has_blocking_constructor(masked: str) -> bool:
-    """True when a constructor takes at least one argument (cannot ``new Contract()``).
-
-    Retained for compatibility; new call sites use :func:`_constructor_args`, which also admits an
-    elementary-argument constructor by deploying it with zero literals.
-    """
-    m = re.search(r"\bconstructor\s*\(([^)]*)\)", masked)
-    return bool(m and m.group(1).strip())
-
-
 def _constructor_args(masked: str) -> Optional[List[str]]:
-    """Zero-literal arguments to deploy the contract with ``new C(...)``.
+    """Arguments to deploy the contract with ``new C(...)``, as *non-unset* literals.
 
-    ``[]`` when there is no constructor or it takes none. A list of elementary zero literals when
-    every constructor parameter is elementary (uint/int/address/bool/bytesN). ``None`` when a
-    parameter is not elementary -> the contract is not deployable here (stays ineligible).
+    ``[]`` when there is no constructor or it takes none. A list of non-unset literals
+    (``address(this)`` for addresses, ``1`` for integers, ``false`` for ``bool``, zero ``bytesN``)
+    when every constructor parameter is elementary. ``None`` when a parameter is not elementary ->
+    the contract is not deployable here (stays ineligible).
 
-    Deploying with zero literals cannot manufacture a counterexample: a weird zero-initialised
-    state can only make the probe fail to demonstrate the violation (inconclusive), and a
-    constructor that ``require``s a non-zero argument simply reverts in ``setUp`` (also
-    inconclusive). It never makes an unauthorized/stale/paused call succeed that otherwise would
-    not.
+    Non-unset literals are used, not zeros, so the deployed state does not read as "never
+    initialised": ``address(this)`` makes the probe contract the deployer/owner (mirroring
+    ``owner = msg.sender`` on a no-argument constructor) and ``1`` keeps a dead ``require(x == 0)``
+    path dead. The residual blind spot is a constructor whose genuinely *armed* value is exactly 0,
+    or an address other than the deployer -- those are left for a future provider-proposed
+    constructor; ``evidence`` records the literals actually used so a reviewer can see them.
     """
     m = re.search(r"\bconstructor\s*\(([^)]*)\)", masked)
     if not m or not m.group(1).strip():
         return []
-    return _zero_args(m.group(1))
+    params_text = m.group(1).strip()
+    out: List[str] = []
+    for raw in _split_top_level(params_text):
+        t = _arg_type(raw)
+        if t is None:
+            return None
+        lit = _nonunset_for(t)
+        if lit is None:
+            return None
+        out.append(lit)
+    return out
 
 
 def _references_cheatcodes(source: str) -> bool:
@@ -461,14 +484,17 @@ def _run_probe(
         }
     )
     if counterexamples:
+        evidence = [
+            f"an unauthorized caller ({_UNAUTHORIZED}) called `{fn}`: the call did not revert "
+            f"and wrote the contract's storage -- no access-control guard rejected it"
+            for fn in counterexamples
+        ]
+        if ctor_args:
+            evidence.append(f"contract deployed with `new {contract}({', '.join(ctor_args)})`")
         return {
             "promotion_state": "counterexample",
             "counterexamples": counterexamples,
-            "evidence": [
-                f"an unauthorized caller ({_UNAUTHORIZED}) called `{fn}`: the call did not revert "
-                f"and wrote the contract's storage -- no access-control guard rejected it"
-                for fn in counterexamples
-            ],
+            "evidence": evidence,
             "isolation": isolation,
         }
     return {

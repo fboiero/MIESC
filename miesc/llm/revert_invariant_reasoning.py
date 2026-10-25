@@ -787,10 +787,13 @@ def _run_reasoning_probe(
         fn for fn in facts.targets if statuses.get(f"test_target_{fn}") == "Failure"
     )
     if counterexamples:
+        evidence = [_evidence(facts, fn) for fn in counterexamples]
+        if ctor_args:
+            evidence.append(f"contract deployed with `new {contract}({', '.join(ctor_args)})`")
         return {
             "promotion_state": "counterexample",
             "counterexamples": counterexamples,
-            "evidence": [_evidence(facts, fn) for fn in counterexamples],
+            "evidence": evidence,
             "control": control,
             "isolation": isolation,
         }

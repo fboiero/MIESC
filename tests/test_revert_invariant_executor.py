@@ -116,8 +116,30 @@ class TestEligibilityWithoutRunning:
 _HAS_FORGE = shutil.which("forge") is not None
 
 
+_B8_ZERO_LOCK = """pragma solidity ^0.8.20;
+contract C {
+  address owner; uint256 lockedAt; uint256 config; uint256 fee;
+  constructor(address _owner, uint256 _lockedAt) { owner = _owner; lockedAt = _lockedAt; }
+  modifier onlyOwner() { require(msg.sender == owner, "no"); _; }
+  function setFee(uint256 x) external onlyOwner { fee = x; }
+  function setConfig(uint256 v) external { require(lockedAt == 0, "locked"); config = v; }
+}"""
+
+
 @pytest.mark.skipif(not _HAS_FORGE, reason="forge not installed")
 class TestRealExecution:
+    def test_zero_lock_idiom_is_not_a_false_counterexample(self):
+        # B8: `require(lockedAt == 0)` is a dead path in production (lockedAt armed non-zero).
+        # Zero ctor literals would materialise lockedAt==0 and make setConfig a false counterexample;
+        # the non-unset literal deploys lockedAt=1, so setConfig reverts -> stays hypothesis.
+        assert ("access_control", ["setConfig"]) in _gaps(_B8_ZERO_LOCK)
+        res = execute_access_control_gaps(
+            mine_revert_invariants(_B8_ZERO_LOCK), _B8_ZERO_LOCK, timeout=180
+        )
+        assert len(res) == 1
+        assert res[0]["promotion_state"] == "hypothesis"
+        assert "counterexamples" not in res[0]
+
     def test_elementary_constructor_contract_is_executed(self):
         # `constructor(address o)` is elementary -> deployed with zero literals -> the unguarded
         # setter is still a counterexample. (Previously this contract was skipped outright.)

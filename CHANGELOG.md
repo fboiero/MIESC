@@ -194,12 +194,16 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **Revert-invariant gap execution: elementary-constructor contracts.** The access-control
   executor and the pause/freshness reasoning executor previously skipped any contract whose
   constructor took arguments. They now deploy a contract whose constructor parameters are all
-  elementary (uint/int/address/bool/bytesN) with zero literals via a shared `_constructor_args`
-  gate, widening the executable subset to the many real contracts that take e.g. an owner address
-  or a cap. This is precision-safe: a zero-initialised state can only make a probe inconclusive,
-  and a constructor that `require`s a non-zero argument simply reverts in `setUp` (also
-  inconclusive) — it never makes an unauthorized/stale/paused call succeed that otherwise would
-  not. Constructors with non-elementary parameters stay ineligible. No benchmark claim.
+  elementary (uint/int/address/bool/bytesN) via a shared `_constructor_args` gate, widening the
+  executable subset to the many real contracts that take e.g. an owner address or a cap. The
+  constructor is deployed with **non-unset** literals — `address(this)` for every address (the
+  probe is the deployer, the identity a no-arg `owner = msg.sender` would give), `1` for every
+  integer, `false` for `bool`, zero `bytesN` — not zeros, so the deployed state does not read as
+  "never initialised": a dead `require(lockedAt == 0)` path stays dead instead of firing as a false
+  High counterexample. `evidence` records the literals used. Residual: a constructor whose
+  genuinely armed value is exactly 0 or an address other than the deployer (future
+  provider-proposed constructor); non-elementary constructor parameters stay ineligible. No
+  benchmark claim.
 
 ## [6.6.0] - 2026-10-24 — Phase-1 plan miners, DeFi and Yul detectors, hardened adapters
 
