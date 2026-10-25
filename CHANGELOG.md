@@ -7,52 +7,14 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-### Security
+## [6.7.0] - 2026-10-25 — Vyper analyzer, directory & on-chain audit, revert-invariant Phase 2 execution
 
-- **`audit address`: the verified-source payload can no longer steer the build out of the sandbox.**
-  `write_contract_to_dir` used to keep a `foundry.toml` that arrived in a contract's verified
-  source, and the static analyzers honour it, so a payload `foundry.toml` with an `out`/`cache_path`
-  pointing outside the temp directory made `forge build`/`forge clean` write and delete files on a
-  path the contract author chose — confirmed by a planted file outside the sandbox being deleted
-  during an `audit address` run. The writer now writes **only `.sol` sources** from the payload
-  (an allow-list) and always generates the build config itself, with `out`/`cache_path` pinned
-  inside the temp directory — closing the whole class, not just `foundry.toml`/`hardhat.config`
-  (crytic-compile also auto-detects `brownie-config.yaml`, `waffle.json`, dapp/embark). The payload
-  supplies sources only. Not present in any release (post-dates 6.6.0).
-
-### Fixed
-
-- **`audit address`: malformed explorer payloads exit cleanly instead of crashing.** The
-  `SourceCode` parse and result extraction in `fetch_verified_source` now run inside the guard, so
-  a malformed standard-json, a non-list `result` or a non-object `sources` entry raises
-  `BlockExplorerError` (clean `exit 1`) rather than an unhandled traceback.
-- **`audit deep <dir>`: location-less findings are no longer collapsed across files.** The
-  directory dedupe keyed on `(tool, type, file, line)`, which degenerated to one row per
-  `(tool, type)` for every finding without a resolvable location (enriched/LLM-normalized to an
-  empty location) — a recall loss. Such findings are now kept per id, or each when they have none.
-- **`audit deep <dir>`: one unreadable file no longer aborts the whole run.** A file that raises
-  during analysis (e.g. a non-UTF-8 source) is recorded as `{contract, error}`, counted in
-  `metadata.files_failed`, and the remaining files still run, instead of discarding every report
-  already gathered. The last file in a tight time budget also gets at least one second.
-
-
-### Fixed
-
-- **Revert-invariant reasoning executor: the control probe no longer fails open.** A post-merge
-  review of the pause/freshness executor built four contracts that produced a `counterexample`
-  and a Medium finding without any real gap: a `pause()` that does not pause next to a one-shot
-  (`require(!claimed)`) or cooldown-gated guarded sibling, a `pause()` with an unrelated side
-  effect the sibling depends on, and a freshness sibling whose "check" is `require(deadline > 0)`
-  against the probe's zero literal. The cause was a single control test running baseline → state →
-  sibling, so any second-call revert impersonated the guard. The control is now two Foundry tests
-  from fresh state (`test_control_baseline`, `test_control_state`), the past deadline is nonzero,
-  and the sibling must revert **with the guard's own revert data** (the `require` message or
-  custom error read from the locally-defined modifier / local check; plain revert only when that
-  payload is not readable). Results carry a `control` record (both statuses, whether the payload
-  was matched). The four cases are regression fixtures; the PR's own positive and negative fixtures
-  keep their outcome. `capabilities.revert_invariants.executions` now also lists the reasoning
-  results when `enable_gap_reasoning` is on, so a `dos`/`timestamp` finding always has its
-  execution record in the metadata.
+Minor release. Adds a Vyper pattern analyzer and `.vy` routing, `miesc audit deep <dir>` and
+`miesc audit address <0x…>` (verified source from Etherscan V2), and completes revert-invariant
+Phase 2: the deterministic gap miner's three categories now reach the execution rungs
+(`test_generated` harnesses, Foundry-executed `counterexample`s, and findings for confirmed
+access-control / pause / freshness gaps), all opt-in and behind the same FP filter. Two post-merge
+security fixes to the new opt-in paths land here, before any of this code ships in a release.
 
 ### Added
 
@@ -101,61 +63,6 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   compilation error, nothing installed. It is the only command that makes a network call. Stdlib
   `urllib`, no new dependency; tests mock every HTTP call. Contributed by @alva-p.
 
-- **Revert-invariant reasoning executor for pause/freshness gaps
-  (`miesc/llm/revert_invariant_reasoning.py`).** `pause_toggle` and `freshness_check` gap
-  hypotheses can now reach the `counterexample` rung that access control already reaches, without
-  opening a false-positive hole. The non-negotiable precision invariant: the facts layer never
-  constructs the rejectable state as ground truth — a counterexample requires **both** Foundry
-  probes to agree. A *control* probe reaches the proposed state (pause the contract / pass a past
-  deadline), then calls the guarded sibling (`GuardGapHypothesis.guarded_example`, a new structured
-  field) and asserts it reverts, with a leading baseline call so "it reverts" means "because of the
-  state"; a *target* probe reuses the executor's storage-write assertion on the unguarded sibling.
-  Promotion happens only when control confirms the state **and** the target call succeeded and wrote
-  storage, so a wrong fact (a pauser that does not pause, a misidentified deadline) fails closed to
-  `hypothesis`. This first slice implements the deterministic local fallback only (literal cases:
-  `pause`/`setPaused` + a `whenNotPaused`-style sibling; an integer deadline/expiry parameter the
-  sibling checks); the provider hook signature is in place but no remote path runs yet. Opt-in via
-  `DeepAuditConfig.enable_gap_reasoning` (default off, requires `enable_gap_execution`; the remote
-  gate reuses `agentic_invariants_allow_remote`, no new flag). Confirmed counterexamples emit
-  findings through the existing bridge and the same FP filter, typed to canonical taxonomy
-  categories that aggregate correctly (`dos` → denial-of-service for pause gating, `timestamp` →
-  time-manipulation for freshness) and never mislabelled as access control. The sandbox
-  (`ffi=false`, scrubbed environment, network denial, cheatcode-source refusal) is reused verbatim
-  from the executor and never weakened.
-
-### Security
-
-- **Revert-invariant executor hardened (`miesc/llm/revert_invariant_executor.py`).** The
-  opt-in access-control gap executor runs the *audited* contract under Foundry, and Foundry grants
-  cheatcode access to every contract a test deploys. A post-merge review of the executor showed
-  that, with the default generated `foundry.toml`, a malicious contract could read the auditor's
-  environment (`vm.envOr`) and send it out over `vm.rpc`/`createFork`, and that a permissive global
-  `~/.foundry/foundry.toml` let it run shell commands (`vm.ffi`) and write files. The executor now
-  pins `ffi = false` and `fs_permissions = []` in the generated project (verified to override the
-  global file), runs `forge` with an allow-listed environment and `FOUNDRY_PROFILE=default`
-  (verified: the same contract exfiltrates `unset`), denies outbound network where the host offers
-  an unprivileged sandbox (`sandbox-exec` on macOS, `unshare -rn` on Linux) and records
-  `isolation.network` as `denied`/`unrestricted` in every executed result (a warning is logged when
-  unrestricted), and refuses to execute a source that names the cheatcode address or the
-  `"hevm cheat code"` seed. `enable_gap_execution` stays off by default and is documented as
-  "only on code you are willing to run".
-
-### Fixed
-
-- **Revert-invariant executor: a non-reverting guard is no longer a counterexample.** The probe
-  now wraps the unauthorized call in `vm.record()`/`vm.accesses(target)` and fails only when the
-  call both succeeded **and** wrote the target's storage. An early-return guard
-  (`if (msg.sender != owner) return;`) or a setter that no-ops on the zero argument used to be
-  promoted with the evidence "the access-control guard is absent"; both now stay `hypothesis`,
-  and the evidence reads "did not revert and wrote the contract's storage". Result ids are now
-  unique per privileged verb family (`<plan>-access_control-<first function>`, aligned with the
-  harness ids) instead of colliding when one plan carries gaps in two families. The forge JSON
-  mapping, the generated `foundry.toml`, the scrubbed environment and the probe text are now
-  covered by mocked-forge tests that run in CI (the real-forge tests remain skipped where `forge`
-  is absent).
-
-### Added
-
 - **Revert-invariant Phase 2 (first slice): within-family access-control gap hypotheses.** The
   revert-invariant miner now compares external/public, state-changing functions that share a
   privileged verb family (`set`, `withdraw`, `upgrade`, `pause`, …) and, when some members are
@@ -168,6 +75,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Surfaced under `gap_hypotheses` in the plan (the deep-audit advisory phase picks it up for free)
   and round-trips through `parse_revert_invariant_plans`. Negative control: 0 hypotheses on
   OpenZeppelin `contracts/` and Solady `src/`. No benchmark claim.
+
 - **Revert-invariant Phase 2 (second slice): within-group `pause_toggle` gap hypotheses.** The
   miner now also compares *user-facing* mutators (`deposit`, `withdraw`, `transfer`, `swap`,
   `claim`, …) as a group and, when some are pause-gated (`whenNotPaused`) and a sibling is not,
@@ -180,6 +88,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   ungated — without that, every `Pausable` consumer would false-positive. Advisory only, never a
   `Finding`, `promotion.state` stays `hypothesis`. Negative control: 0 hypotheses on OpenZeppelin
   `contracts/` and Solady `src/` (490 files). No benchmark claim.
+
 - **Revert-invariant Phase 2 (third slice): deadline/freshness gap hypotheses.** The miner now
   groups external/public mutators **by signature** — those that accept a `deadline`/`expiry`-like
   parameter — and, when a sibling in that group never enforces the deadline, records a
@@ -255,6 +164,28 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   not bypass the controls. Negative control: 0 counterexample findings across OpenZeppelin, Solady
   and Uniswap v2-periphery (513 files). No benchmark claim.
 
+- **Revert-invariant reasoning executor for pause/freshness gaps
+  (`miesc/llm/revert_invariant_reasoning.py`).** `pause_toggle` and `freshness_check` gap
+  hypotheses can now reach the `counterexample` rung that access control already reaches, without
+  opening a false-positive hole. The non-negotiable precision invariant: the facts layer never
+  constructs the rejectable state as ground truth — a counterexample requires **both** Foundry
+  probes to agree. A *control* probe reaches the proposed state (pause the contract / pass a past
+  deadline), then calls the guarded sibling (`GuardGapHypothesis.guarded_example`, a new structured
+  field) and asserts it reverts, with a leading baseline call so "it reverts" means "because of the
+  state"; a *target* probe reuses the executor's storage-write assertion on the unguarded sibling.
+  Promotion happens only when control confirms the state **and** the target call succeeded and wrote
+  storage, so a wrong fact (a pauser that does not pause, a misidentified deadline) fails closed to
+  `hypothesis`. This first slice implements the deterministic local fallback only (literal cases:
+  `pause`/`setPaused` + a `whenNotPaused`-style sibling; an integer deadline/expiry parameter the
+  sibling checks); the provider hook signature is in place but no remote path runs yet. Opt-in via
+  `DeepAuditConfig.enable_gap_reasoning` (default off, requires `enable_gap_execution`; the remote
+  gate reuses `agentic_invariants_allow_remote`, no new flag). Confirmed counterexamples emit
+  findings through the existing bridge and the same FP filter, typed to canonical taxonomy
+  categories that aggregate correctly (`dos` → denial-of-service for pause gating, `timestamp` →
+  time-manipulation for freshness) and never mislabelled as access control. The sandbox
+  (`ffi=false`, scrubbed environment, network denial, cheatcode-source refusal) is reused verbatim
+  from the executor and never weakened.
+
 - **Revert-invariant reasoning agent: remote provider path.** The pause/freshness reasoning
   executor now resolves probe facts local-first (deterministic literal cases, no tokens) and, when
   the local extractor cannot name the one identity it needs (a non-literally-named pauser, or the
@@ -278,6 +209,79 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   genuinely armed value is exactly 0 or an address other than the deployer (future
   provider-proposed constructor); non-elementary constructor parameters stay ineligible. No
   benchmark claim.
+
+### Fixed
+
+- **`audit address`: malformed explorer payloads exit cleanly instead of crashing.** The
+  `SourceCode` parse and result extraction in `fetch_verified_source` now run inside the guard, so
+  a malformed standard-json, a non-list `result` or a non-object `sources` entry raises
+  `BlockExplorerError` (clean `exit 1`) rather than an unhandled traceback.
+
+- **`audit deep <dir>`: location-less findings are no longer collapsed across files.** The
+  directory dedupe keyed on `(tool, type, file, line)`, which degenerated to one row per
+  `(tool, type)` for every finding without a resolvable location (enriched/LLM-normalized to an
+  empty location) — a recall loss. Such findings are now kept per id, or each when they have none.
+
+- **`audit deep <dir>`: one unreadable file no longer aborts the whole run.** A file that raises
+  during analysis (e.g. a non-UTF-8 source) is recorded as `{contract, error}`, counted in
+  `metadata.files_failed`, and the remaining files still run, instead of discarding every report
+  already gathered. The last file in a tight time budget also gets at least one second.
+
+- **Revert-invariant reasoning executor: the control probe no longer fails open.** A post-merge
+  review of the pause/freshness executor built four contracts that produced a `counterexample`
+  and a Medium finding without any real gap: a `pause()` that does not pause next to a one-shot
+  (`require(!claimed)`) or cooldown-gated guarded sibling, a `pause()` with an unrelated side
+  effect the sibling depends on, and a freshness sibling whose "check" is `require(deadline > 0)`
+  against the probe's zero literal. The cause was a single control test running baseline → state →
+  sibling, so any second-call revert impersonated the guard. The control is now two Foundry tests
+  from fresh state (`test_control_baseline`, `test_control_state`), the past deadline is nonzero,
+  and the sibling must revert **with the guard's own revert data** (the `require` message or
+  custom error read from the locally-defined modifier / local check; plain revert only when that
+  payload is not readable). Results carry a `control` record (both statuses, whether the payload
+  was matched). The four cases are regression fixtures; the PR's own positive and negative fixtures
+  keep their outcome. `capabilities.revert_invariants.executions` now also lists the reasoning
+  results when `enable_gap_reasoning` is on, so a `dos`/`timestamp` finding always has its
+  execution record in the metadata.
+
+- **Revert-invariant executor: a non-reverting guard is no longer a counterexample.** The probe
+  now wraps the unauthorized call in `vm.record()`/`vm.accesses(target)` and fails only when the
+  call both succeeded **and** wrote the target's storage. An early-return guard
+  (`if (msg.sender != owner) return;`) or a setter that no-ops on the zero argument used to be
+  promoted with the evidence "the access-control guard is absent"; both now stay `hypothesis`,
+  and the evidence reads "did not revert and wrote the contract's storage". Result ids are now
+  unique per privileged verb family (`<plan>-access_control-<first function>`, aligned with the
+  harness ids) instead of colliding when one plan carries gaps in two families. The forge JSON
+  mapping, the generated `foundry.toml`, the scrubbed environment and the probe text are now
+  covered by mocked-forge tests that run in CI (the real-forge tests remain skipped where `forge`
+  is absent).
+
+### Security
+
+- **`audit address`: the verified-source payload can no longer steer the build out of the sandbox.**
+  `write_contract_to_dir` used to keep a `foundry.toml` that arrived in a contract's verified
+  source, and the static analyzers honour it, so a payload `foundry.toml` with an `out`/`cache_path`
+  pointing outside the temp directory made `forge build`/`forge clean` write and delete files on a
+  path the contract author chose — confirmed by a planted file outside the sandbox being deleted
+  during an `audit address` run. The writer now writes **only `.sol` sources** from the payload
+  (an allow-list) and always generates the build config itself, with `out`/`cache_path` pinned
+  inside the temp directory — closing the whole class, not just `foundry.toml`/`hardhat.config`
+  (crytic-compile also auto-detects `brownie-config.yaml`, `waffle.json`, dapp/embark). The payload
+  supplies sources only. Not present in any release (post-dates 6.6.0).
+
+- **Revert-invariant executor hardened (`miesc/llm/revert_invariant_executor.py`).** The
+  opt-in access-control gap executor runs the *audited* contract under Foundry, and Foundry grants
+  cheatcode access to every contract a test deploys. A post-merge review of the executor showed
+  that, with the default generated `foundry.toml`, a malicious contract could read the auditor's
+  environment (`vm.envOr`) and send it out over `vm.rpc`/`createFork`, and that a permissive global
+  `~/.foundry/foundry.toml` let it run shell commands (`vm.ffi`) and write files. The executor now
+  pins `ffi = false` and `fs_permissions = []` in the generated project (verified to override the
+  global file), runs `forge` with an allow-listed environment and `FOUNDRY_PROFILE=default`
+  (verified: the same contract exfiltrates `unset`), denies outbound network where the host offers
+  an unprivileged sandbox (`sandbox-exec` on macOS, `unshare -rn` on Linux) and records
+  `isolation.network` as `denied`/`unrestricted` in every executed result (a warning is logged when
+  unrestricted), and refuses to execute a source that names the cheatcode address or the
+  `"hevm cheat code"` seed. `enable_gap_execution` stays off by default and is documented as
+  "only on code you are willing to run".
 
 ## [6.6.0] - 2026-10-24 — Phase-1 plan miners, DeFi and Yul detectors, hardened adapters
 
