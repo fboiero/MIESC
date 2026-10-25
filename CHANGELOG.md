@@ -7,6 +7,15 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [6.8.0] - 2026-10-25 — Audit batch checkpoint/resume, linear Peculiar parsing, test-suite hardening
+
+Minor release. Adds crash-safe checkpoint/resume to `miesc audit batch` and fixes a
+catastrophic-backtracking hang in the Peculiar adapter's function extraction (both contributed by
+@alva-p). Internally, a hardening pass took line coverage to the 88% target: the one flaky
+wall-clock test was removed, an `OLLAMA_HOST`-dependent assertion was isolated, and seven modules
+(foundry_scaffold, triage_ranker, the tools/remediate/verify CLIs, slither_benchmark and the
+compatibility orchestrator) gained deterministic behavioural tests, most reaching ~100%.
+
 ### Added
 
 - **`miesc audit batch --checkpoint PATH [--resume]`.** The checkpoint is written after every
