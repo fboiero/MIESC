@@ -154,7 +154,9 @@ def test_scaffold_assembles_remappings_and_selects_missing_deps(tmp_path, monkey
     repo = tmp_path / "repo"
     (repo / "src").mkdir(parents=True)
     contract = repo / "src" / "Target.sol"
-    contract.write_text('pragma solidity 0.8.17;\nimport "solmate/tokens/ERC20.sol";\ncontract T {}')
+    contract.write_text(
+        'pragma solidity 0.8.17;\nimport "solmate/tokens/ERC20.sol";\ncontract T {}'
+    )
     fake = _FakeRun()
     _mock_forge(monkeypatch, fake)
 
@@ -175,7 +177,9 @@ def test_scaffold_prefers_repo_vendored_dep_over_reinstall(tmp_path, monkeypatch
     (repo / "src").mkdir(parents=True)
     (repo / "lib" / "solmate").mkdir(parents=True)  # repo vendors solmate
     contract = repo / "src" / "Target.sol"
-    contract.write_text('pragma solidity 0.8.17;\nimport "solmate/tokens/ERC20.sol";\ncontract T {}')
+    contract.write_text(
+        'pragma solidity 0.8.17;\nimport "solmate/tokens/ERC20.sol";\ncontract T {}'
+    )
     fake = _FakeRun()
     _mock_forge(monkeypatch, fake)
 
