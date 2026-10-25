@@ -1420,7 +1420,17 @@ Respond with a JSON array."""
         model = kwargs.get("model", "gpt-4o")
         self._model = model
         # DeepSeek exposes an OpenAI-compatible endpoint; route by provider/model.
-        if os.environ.get("DEEPSEEK_API_KEY") and (
+        _compat_base = os.environ.get("MIESC_OPENAI_BASE_URL")
+        if _compat_base:
+            # Generic OpenAI-compatible endpoint (e.g. Huawei Cloud MaaS):
+            # honor an explicit base_url for ANY model, overriding the
+            # provider/name-based routing below.
+            client: Any = openai.OpenAI(
+                base_url=_compat_base,
+                api_key=os.environ.get("OPENAI_API_KEY", ""),
+                timeout=300,
+            )
+        elif os.environ.get("DEEPSEEK_API_KEY") and (
             self._get_provider() == "deepseek" or model.startswith("deepseek")
         ):
             client: Any = openai.OpenAI(

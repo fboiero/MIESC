@@ -490,6 +490,7 @@ def scan(
                     # client pointed at the DeepSeek endpoint (see env setup below).
                     "deepseek-v4-pro": ("openai", "deepseek-v4-pro"),
                     "deepseek-v4-flash": ("openai", "deepseek-v4-flash"),
+                    "deepseek-v4.1-flash": ("openai", "deepseek-v4.1-flash"),
                     "ollama": ("ollama", "qwen2.5-coder:32b"),
                     "qwen32b": ("ollama", "qwen2.5-coder:32b"),
                     "qwen14b": ("ollama", "qwen2.5-coder:14b"),
@@ -734,6 +735,7 @@ def scan(
                 "gpt-5": ("openai", "gpt-5"),
                 "deepseek-v4-pro": ("openai", "deepseek-v4-pro"),
                 "deepseek-v4-flash": ("openai", "deepseek-v4-flash"),
+                "deepseek-v4.1-flash": ("openai", "deepseek-v4.1-flash"),
                 "ollama": ("ollama", "qwen2.5-coder:32b"),
                 "qwen32b": ("ollama", "qwen2.5-coder:32b"),
                 "qwen14b": ("ollama", "qwen2.5-coder:14b"),
