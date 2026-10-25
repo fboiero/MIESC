@@ -159,10 +159,55 @@ class TestCentralFalsePositive:
         assert counterexample_findings(res, _PAUSE_VACUOUS, "C.sol") == []
 
 
+_PAUSE_OK_CTOR = """pragma solidity ^0.8.20;
+contract Pausable {
+  bool public paused;
+  uint256 public counter;
+  address owner;
+  constructor(address o, uint256 seed) { owner = o; counter = seed; }
+  modifier whenNotPaused() { require(!paused, "paused"); _; }
+  function pause() external { paused = true; }
+  function deposit() external whenNotPaused { counter += 1; }
+  function withdraw() external { counter += 1; }
+}
+"""
+
+
 @pytest.mark.skipif(not _HAS_FORGE, reason="forge not installed")
 class TestCorrectCounterexamples:
     def test_correct_pause_gap_is_a_counterexample(self):
         res = execute_reasoning_gaps(mine_revert_invariants(_PAUSE_OK), _PAUSE_OK, timeout=180)
+        assert len(res) == 1
+        assert res[0]["promotion_state"] == "counterexample"
+        assert res[0]["counterexamples"] == ["withdraw"]
+
+    def test_constructor_set_pauser_role_promotes(self):
+        # B9: the pauser is set from a constructor address param. Non-unset literals deploy
+        # pauser = address(this) (the probe), so the probe can reach the paused state and the
+        # control confirms -> the unguarded `withdraw` is a counterexample. (Zero literals would
+        # give pauser = address(0), the probe could not pause, and it would stay inconclusive.)
+        src = (
+            "pragma solidity ^0.8.20;\n"
+            "contract C {\n"
+            "  bool paused; address pauser; uint256 bal;\n"
+            "  constructor(address _pauser) { pauser = _pauser; }\n"
+            '  modifier whenNotPaused() { require(!paused, "p"); _; }\n'
+            '  function pause() external { require(msg.sender == pauser, "no"); paused = true; }\n'
+            "  function deposit() external whenNotPaused { bal += 1; }\n"
+            "  function withdraw() external { bal = 7; }\n"
+            "}\n"
+        )
+        res = execute_reasoning_gaps(mine_revert_invariants(src), src, timeout=180)
+        assert len(res) == 1
+        assert res[0]["promotion_state"] == "counterexample"
+        assert res[0]["counterexamples"] == ["withdraw"]
+
+    def test_elementary_constructor_pause_gap_is_executed(self):
+        # The contract has a `constructor(address, uint256)` -> deployed with zero literals; the
+        # pause gap still promotes. (Previously a constructor with args was skipped outright.)
+        res = execute_reasoning_gaps(
+            mine_revert_invariants(_PAUSE_OK_CTOR), _PAUSE_OK_CTOR, timeout=180
+        )
         assert len(res) == 1
         assert res[0]["promotion_state"] == "counterexample"
         assert res[0]["counterexamples"] == ["withdraw"]
@@ -451,6 +496,47 @@ class TestControlProbeSoundness:
         res = execute_reasoning_gaps(mine_revert_invariants(_PAUSE_OK), _PAUSE_OK, timeout=180)
         assert res[0]["control"]["guard_revert_data"] == "matched"
         assert "guard's own revert data" in res[0]["evidence"][0]
+
+
+def _inject_elementary_ctor(src: str) -> str:
+    """Add an elementary-argument constructor to the first contract, so the constructor-widening
+    path (``_constructor_args``) makes the contract executable and actually runs the control probe
+    on it. Only injects when the contract has no constructor already."""
+    import re as _re
+
+    if "constructor(" in src:
+        return src
+    return _re.sub(
+        r"(contract\s+\w+\s*\{)",
+        r"\1\n  constructor(address o, uint256 seed) {}",
+        src,
+        count=1,
+    )
+
+
+@pytest.mark.skipif(not _HAS_FORGE, reason="forge not installed")
+class TestControlProbeSoundnessWithConstructor:
+    """The constructor-widening (#241) makes A1-A4 *executable* (they were skipped before). The
+    control-probe fix must still hold: they must fail CLOSED with an elementary constructor."""
+
+    @pytest.mark.parametrize(
+        "src",
+        [
+            _A1_WRONG_PAUSER_ONE_SHOT,
+            _A2_WRONG_PAUSER_COOLDOWN,
+            _A3_PAUSER_SIDE_EFFECT,
+            _A4_NONZERO_IS_NOT_A_DEADLINE_CHECK,
+        ],
+        ids=["one-shot", "cooldown", "side-effect", "nonzero-check"],
+    )
+    def test_ctor_widened_stateful_siblings_still_fail_closed(self, src):
+        widened = _inject_elementary_ctor(src)
+        assert "constructor(address o, uint256 seed)" in widened  # the widening path is exercised
+        res = execute_reasoning_gaps(mine_revert_invariants(widened), widened, timeout=180)
+        assert len(res) == 1
+        assert res[0]["promotion_state"] == "hypothesis"
+        assert "counterexamples" not in res[0]
+        assert counterexample_findings(res, widened, "C.sol") == []
 
 
 # --- probe text and gating, pinned without forge (run in CI) ----------------------------------

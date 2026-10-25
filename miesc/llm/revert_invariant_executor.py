@@ -123,6 +123,27 @@ def _zero_for(sol_type: str) -> Optional[str]:
     return None
 
 
+def _nonunset_for(sol_type: str) -> Optional[str]:
+    """A *non-unset* literal for a constructor parameter, or ``None`` if not constructible.
+
+    Zero literals materialise the "never initialised" state, which a dead ``require(x == 0)`` path
+    reads as live. So a constructor deploys with values that look *set*: ``address(this)`` for every
+    address (the probe contract is the deployer -- the same identity ``owner = msg.sender`` gives a
+    no-argument constructor), ``1`` for every integer, ``false`` for ``bool`` (its natural default),
+    and a zero ``bytesN`` (no distinguished non-zero default). Non-elementary -> ``None``.
+    """
+    t = sol_type.strip()
+    if t in ("uint", "int") or re.fullmatch(rf"u?int({_INT_WIDTHS})", t):
+        return f"{t}(1)"
+    if t == "address":
+        return "address(this)"
+    if t == "bool":
+        return "false"
+    if re.fullmatch(r"bytes(1|2|3|4|8|16|32)", t):
+        return f"{t}(0)"
+    return None
+
+
 def _arg_type(param: str) -> Optional[str]:
     """Extract the leading type token from one parameter declaration (``uint256 x`` -> uint256)."""
     param = param.strip()
@@ -179,10 +200,35 @@ def _target_contract(masked: str) -> Optional[str]:
     return name
 
 
-def _has_blocking_constructor(masked: str) -> bool:
-    """True when a constructor takes at least one argument (cannot ``new Contract()``)."""
+def _constructor_args(masked: str) -> Optional[List[str]]:
+    """Arguments to deploy the contract with ``new C(...)``, as *non-unset* literals.
+
+    ``[]`` when there is no constructor or it takes none. A list of non-unset literals
+    (``address(this)`` for addresses, ``1`` for integers, ``false`` for ``bool``, zero ``bytesN``)
+    when every constructor parameter is elementary. ``None`` when a parameter is not elementary ->
+    the contract is not deployable here (stays ineligible).
+
+    Non-unset literals are used, not zeros, so the deployed state does not read as "never
+    initialised": ``address(this)`` makes the probe contract the deployer/owner (mirroring
+    ``owner = msg.sender`` on a no-argument constructor) and ``1`` keeps a dead ``require(x == 0)``
+    path dead. The residual blind spot is a constructor whose genuinely *armed* value is exactly 0,
+    or an address other than the deployer -- those are left for a future provider-proposed
+    constructor; ``evidence`` records the literals actually used so a reviewer can see them.
+    """
     m = re.search(r"\bconstructor\s*\(([^)]*)\)", masked)
-    return bool(m and m.group(1).strip())
+    if not m or not m.group(1).strip():
+        return []
+    params_text = m.group(1).strip()
+    out: List[str] = []
+    for raw in _split_top_level(params_text):
+        t = _arg_type(raw)
+        if t is None:
+            return None
+        lit = _nonunset_for(t)
+        if lit is None:
+            return None
+        out.append(lit)
+    return out
 
 
 def _references_cheatcodes(source: str) -> bool:
@@ -194,7 +240,9 @@ def _pragma_prefix(source: str) -> str:
     return "" if "pragma solidity" in source else "pragma solidity >=0.7.0;\n"
 
 
-def _build_probe(source: str, contract: str, fn_args: Dict[str, List[str]]) -> str:
+def _build_probe(
+    source: str, contract: str, fn_args: Dict[str, List[str]], ctor_args: List[str]
+) -> str:
     """A self-contained Foundry test: the inlined contract + a minimal Vm + one probe per fn.
 
     Each probe records storage accesses around the unauthorized call and fails only when the call
@@ -223,7 +271,7 @@ def _build_probe(source: str, contract: str, fn_args: Dict[str, List[str]]) -> s
         f"contract RevertInvariantACProbe {{\n"
         f"    Vm constant vm = Vm({_HEVM_ADDRESS});\n"
         f"    {contract} target;\n"
-        f"    function setUp() public {{ target = new {contract}(); }}\n\n"
+        f"    function setUp() public {{ target = new {contract}({', '.join(ctor_args)}); }}\n\n"
         f"{''.join(probes)}}}\n"
     )
 
@@ -324,9 +372,10 @@ def execute_access_control_gaps(
                 {**base, "reason": "source references Foundry cheatcodes; refused to execute"}
             )
             continue
-        if contract is None or _has_blocking_constructor(masked):
+        ctor_args = None if contract is None else _constructor_args(masked)
+        if contract is None or ctor_args is None:
             results.append(
-                {**base, "reason": "contract has constructor arguments or is not deployable here"}
+                {**base, "reason": "contract is not deployable here (non-elementary constructor)"}
             )
             continue
         fn_args = _eligible_functions(gap, functions)
@@ -334,7 +383,7 @@ def execute_access_control_gaps(
             results.append({**base, "reason": "no affected function with elementary arguments"})
             continue
 
-        verdict = _run_probe(forge, source_code, contract, fn_args, timeout)
+        verdict = _run_probe(forge, source_code, contract, fn_args, ctor_args, timeout)
         results.append({**base, **verdict})
     return results
 
@@ -344,13 +393,14 @@ def _run_probe(
     source_code: str,
     contract: str,
     fn_args: Dict[str, List[str]],
+    ctor_args: List[str],
     timeout: int,
 ) -> Dict[str, object]:
     """Compile and run the probe with ``forge test --json`` under the hardened project/env/sandbox;
     map the result to a promotion decision. We parse forge's own JSON (``status`` per test)
     directly: the counterexample signal must be read from the authoritative field, not re-derived.
     """
-    probe = _build_probe(source_code, contract, fn_args)
+    probe = _build_probe(source_code, contract, fn_args, ctor_args)
     sandbox = _network_sandbox()
     isolation: Dict[str, object] = {
         "ffi": False,
@@ -434,14 +484,17 @@ def _run_probe(
         }
     )
     if counterexamples:
+        evidence = [
+            f"an unauthorized caller ({_UNAUTHORIZED}) called `{fn}`: the call did not revert "
+            f"and wrote the contract's storage -- no access-control guard rejected it"
+            for fn in counterexamples
+        ]
+        if ctor_args:
+            evidence.append(f"contract deployed with `new {contract}({', '.join(ctor_args)})`")
         return {
             "promotion_state": "counterexample",
             "counterexamples": counterexamples,
-            "evidence": [
-                f"an unauthorized caller ({_UNAUTHORIZED}) called `{fn}`: the call did not revert "
-                f"and wrote the contract's storage -- no access-control guard rejected it"
-                for fn in counterexamples
-            ],
+            "evidence": evidence,
             "isolation": isolation,
         }
     return {
