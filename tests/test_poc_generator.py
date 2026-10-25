@@ -683,10 +683,18 @@ class TestTypeResolution:
         assert vuln_type is None
 
     def test_resolve_resets_malformed_type_aliases_state(self, generator):
-        """Malformed alias state should not crash; with no usable aliases, resolve to None."""
+        """Malformed alias state must not crash.
+
+        With the exact-alias table unusable, resolution now falls back to the
+        canonical taxonomy, so a clear type like ``reentrancy`` still resolves
+        (robustness), while a template-less type stays None.
+        """
         generator.TYPE_ALIASES = ["reentrancy"]
 
-        assert generator._resolve_vulnerability_type({"type": "reentrancy"}) is None
+        assert generator._resolve_vulnerability_type({"type": "reentrancy"}) == (
+            VulnerabilityType.REENTRANCY
+        )
+        assert generator._resolve_vulnerability_type({"type": "naming-convention"}) is None
 
     def test_resolve_ignores_hostile_finding_get_accessor(self, generator):
         """Type resolution should not call custom dict.get implementations."""

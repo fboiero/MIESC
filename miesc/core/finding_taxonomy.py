@@ -109,6 +109,7 @@ _DIRECT_MAP: Dict[str, CanonicalCategory] = {
     "unchecked-low-level-calls": CanonicalCategory.UNCHECKED_CALL,
     "unchecked-send": CanonicalCategory.UNCHECKED_CALL,
     "unchecked-call": CanonicalCategory.UNCHECKED_CALL,
+    "unchecked-return": CanonicalCategory.UNCHECKED_CALL,
     "unused-return": CanonicalCategory.UNCHECKED_CALL,
     "unchecked_syscall_result": CanonicalCategory.UNCHECKED_CALL,
     "SWC-104": CanonicalCategory.UNCHECKED_CALL,

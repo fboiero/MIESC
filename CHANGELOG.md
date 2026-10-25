@@ -25,6 +25,33 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   - Uncategorized findings render `not scored (uncategorized)` for their CVSS vector and base score
     instead of a fabricated default (~6.8). Findings that match a category are unaffected.
 
+- **`miesc report -t premium` Phase 1 — correct the data binding.** With the report now honest
+  (above), this fills the blanks with real values by routing CVSS scoring, impact/recommendation
+  text and PoC-template selection through `normalize_finding_type` (16-category canonical taxonomy)
+  **before** keying their tables, so raw tool check names (`weak-prng`, `suicidal`,
+  `unused-return`, `controlled-delegatecall`, aderyn's `unchecked-return`, …) resolve instead of
+  silently missing:
+  - CVSS vectors in `risk_calculator` are keyed by `CanonicalCategory` (with a small hygiene table
+    for best-practice detectors), so recognized findings get a real vector/score. In the bundled
+    sample all 10 findings now score (previously 7 of 10 said "not scored").
+  - The **honesty invariant is preserved**: a finding that still maps only to `OTHER` stays
+    `not scored (uncategorized)` and gets no PoC, and a score whose severity band is more than one
+    step from the tool-reported severity is withheld as "not scored (inconsistent with reported
+    severity)" — never a LOW finding showing a high CVSS.
+  - §5 Impact Analysis and Recommendation are category-specific for recognized categories;
+    §5 Vulnerable Code embeds the real source snippet when the contract is locatable (the search
+    now includes the results-file directory and audited source paths); the §5 Category field is
+    populated from the canonical category.
+  - Render fixes: Appendix D (SWC) cites the real `F-xxx` finding IDs (was `F1` for every row) and
+    the finding's own SWC id; §6.1 priority list is numbered sequentially; §1.4 Availability is
+    derived from the scored CVSS vectors (no more "Medium – No significant availability risks"
+    self-contradiction); layer status is consistent between §2.3 and §4.3 (a `not_available` tool
+    is "Not Run", not "Failed"); the CVSS table binds by finding position, not title.
+  - PR-0 follow-ups: `get_vector_for_category` / scoring now return a **copy** of the category
+    vector, so adjusting one finding no longer mutates the shared template for the rest of the run;
+    the Disclaimer's "professional opinion" wording is reconciled with the automated-output
+    disclosure.
+
 ## [6.8.0] - 2026-10-25 — Audit batch checkpoint/resume, linear Peculiar parsing, test-suite hardening
 
 Minor release. Adds crash-safe checkpoint/resume to `miesc audit batch` and fixes a

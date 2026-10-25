@@ -30,6 +30,7 @@ from miesc.cli.utils import (
     success,
     warning,
 )
+from miesc.core.finding_taxonomy import CanonicalCategory, normalize_finding_type
 
 # Import Rich components if available
 if RICH_AVAILABLE:
@@ -46,8 +47,51 @@ ROOT_DIR = get_root_dir()
 # =============================================================================
 
 
-def _get_impact_description(severity: str, category: str = "") -> str:
-    """Get impact description based on severity and vulnerability category."""
+# Canonical-category -> human impact description. Keyed by CanonicalCategory so
+# the prose is selected from the normalized category rather than a raw tool
+# string (which frequently missed). Categories without a dedicated entry fall
+# back to the legacy keyword table and then to the severity-based text.
+_CANONICAL_IMPACTS: Dict[CanonicalCategory, str] = {
+    CanonicalCategory.PROXY_UPGRADE: "An unchecked delegatecall or upgradeable-proxy flaw lets an attacker execute arbitrary code in the contract's storage context, potentially overwriting critical state (owner, implementation address) and seizing full control of the contract and its funds.",
+    CanonicalCategory.CENTRALIZATION: "A single privileged account (owner/admin) can perform sensitive operations unilaterally. If that key is compromised or acts maliciously, it can drain funds, freeze the contract, or alter critical parameters, concentrating trust in one party.",
+    CanonicalCategory.SIGNATURE_VERIFICATION: "Flawed signature handling (malleability, missing zero-address or nonce checks) allows an attacker to forge or replay signed messages, bypassing authorization or double-spending signed approvals.",
+    CanonicalCategory.TIME_MANIPULATION: "Relying on block.timestamp/block.number for critical logic lets miners/validators nudge these values within consensus bounds, skewing time-dependent behavior such as deadlines, vesting, or auctions.",
+    CanonicalCategory.DENIAL_OF_SERVICE: "An attacker can make a critical function permanently revert or exhaust gas (e.g., unbounded loops, failing external calls in a loop), locking funds or blocking legitimate users from interacting with the contract.",
+    CanonicalCategory.INPUT_VALIDATION: "Missing validation of function inputs (ranges, zero addresses, array lengths) can place the contract into an inconsistent state or send funds to unintended destinations.",
+}
+
+# Canonical category -> keyword present in the legacy prose tables, so the
+# existing impact/recommendation text is reused for categories not listed in the
+# dedicated canonical tables above.
+_CANONICAL_KEYWORD = {
+    CanonicalCategory.REENTRANCY: "reentrancy",
+    CanonicalCategory.ACCESS_CONTROL: "access control",
+    CanonicalCategory.ORACLE_MANIPULATION: "oracle",
+    CanonicalCategory.FLASH_LOAN: "flash loan",
+    CanonicalCategory.ARITHMETIC: "integer overflow",
+    CanonicalCategory.UNCHECKED_CALL: "unchecked send",
+    CanonicalCategory.INITIALIZATION: "uninitialized state",
+    CanonicalCategory.BAD_RANDOMNESS: "weak randomness",
+    CanonicalCategory.FRONT_RUNNING: "front running",
+}
+
+
+def _get_impact_description(
+    severity: str, category: str = "", canonical: CanonicalCategory | None = None
+) -> str:
+    """Get impact description based on canonical category, then severity.
+
+    ``canonical`` (from :func:`normalize_finding_type`) is consulted first so the
+    description matches the normalized category. ``category`` and ``severity``
+    remain as fallbacks for hygiene detectors and the uncategorized case.
+    """
+    if canonical is not None and canonical is not CanonicalCategory.OTHER:
+        canon_text = _CANONICAL_IMPACTS.get(canonical)
+        if canon_text:
+            return canon_text
+        # Fall through to the keyword table using a known keyword so the
+        # existing prose (reentrancy, access control, …) is reused.
+        category = _CANONICAL_KEYWORD.get(canonical, canonical.value)
     cat = category.lower().replace("-", " ").replace("_", " ") if category else ""
     # Category-specific impact descriptions
     category_impacts = {
@@ -77,8 +121,31 @@ def _get_impact_description(severity: str, category: str = "") -> str:
     return severity_impacts.get(severity, "Impact assessment pending.")
 
 
-def _get_recommendation(category: str, severity: str = "") -> str:
-    """Get specific recommendation based on vulnerability category."""
+# Canonical-category -> remediation recommendation for categories whose prose is
+# not already covered by the legacy keyword table below.
+_CANONICAL_RECOMMENDATIONS: Dict[CanonicalCategory, str] = {
+    CanonicalCategory.PROXY_UPGRADE: "Validate and allow-list delegatecall targets, never derive them from untrusted input. For upgradeable contracts use OpenZeppelin's UUPS/Transparent proxy with a storage gap and restrict upgrade authorization behind a timelock or multisig.",
+    CanonicalCategory.CENTRALIZATION: "Reduce single-key trust: move privileged operations behind a multisig and/or timelock, split roles with OpenZeppelin AccessControl, and emit events on every privileged action so changes are auditable.",
+    CanonicalCategory.SIGNATURE_VERIFICATION: "Use OpenZeppelin ECDSA (which rejects malleable signatures), include a per-signer nonce and domain separator (EIP-712), and reject the zero address returned by ecrecover on malformed input.",
+    CanonicalCategory.TIME_MANIPULATION: "Avoid using block.timestamp/block.number as a precise clock or entropy source. Widen tolerances, use block-number ranges where appropriate, and source randomness from Chainlink VRF.",
+    CanonicalCategory.DENIAL_OF_SERVICE: "Favor pull-over-push payments, bound all loops, and never let a single external call failure revert a batch. Isolate untrusted calls and cap gas where appropriate.",
+    CanonicalCategory.INPUT_VALIDATION: "Validate all external inputs with require() checks: non-zero addresses, sane numeric ranges, and matching array lengths before mutating state or transferring funds.",
+}
+
+
+def _get_recommendation(
+    category: str, severity: str = "", canonical: CanonicalCategory | None = None
+) -> str:
+    """Get specific recommendation based on canonical category.
+
+    ``canonical`` (from :func:`normalize_finding_type`) is consulted first, then
+    the legacy keyword table, then a generic best-practice recommendation.
+    """
+    if canonical is not None and canonical is not CanonicalCategory.OTHER:
+        canon_text = _CANONICAL_RECOMMENDATIONS.get(canonical)
+        if canon_text:
+            return canon_text
+        category = _CANONICAL_KEYWORD.get(canonical, canonical.value)
     cat = category.lower().replace("-", " ").replace("_", " ") if category else ""
     recommendations = {
         "reentrancy": "Apply the Checks-Effects-Interactions pattern: verify conditions, update state, then make external calls. Consider using OpenZeppelin's ReentrancyGuard modifier.",
@@ -289,30 +356,52 @@ def _get_swc_references(category: str, swc_id: str = "") -> list[str]:
 
 
 def _extract_source_code(
-    contract_path: str, line_number: int, context: int = 5, base_dir: str = ""
+    contract_path: str,
+    line_number: int,
+    context: int = 5,
+    base_dir: str = "",
+    extra_dirs: list[str] | None = None,
 ) -> str:
-    """Extract actual source code lines from the contract file."""
+    """Extract actual source code lines from the contract file.
+
+    Searches, in order: the path as given, the results-file directory and the
+    audited source paths (``extra_dirs``), the base_dir and its parent, the CWD,
+    and finally ``/contracts`` / ``/tmp``. For each base both ``base/contract_path``
+    and ``base/<basename>`` are tried, so a finding whose location is just
+    ``Foo.sol`` is still located next to the results JSON.
+    """
     if not contract_path or contract_path == "unknown" or not line_number:
         return ""
     try:
         path = Path(contract_path)
         if not path.exists():
-            # Try relative to base_dir (from results JSON "contract" field)
-            search_dirs = [Path.cwd()]
+            # Build the ordered list of directories to search.
+            search_dirs: list[Path] = []
+            for extra in extra_dirs or []:
+                if extra:
+                    ed = Path(extra)
+                    search_dirs.append(ed.parent if ed.is_file() else ed)
             if base_dir:
                 bd = Path(base_dir)
-                search_dirs.insert(0, bd)
-                # If base_dir is a file, use its parent
                 if bd.is_file():
-                    search_dirs.insert(0, bd.parent)
+                    search_dirs.append(bd.parent)
+                else:
+                    search_dirs.append(bd)
+            search_dirs.append(Path.cwd())
             search_dirs.extend([Path("/contracts"), Path("/tmp")])
+
+            basename = Path(contract_path).name
+            resolved = None
             for base in search_dirs:
-                candidate = base / contract_path
-                if candidate.exists():
-                    path = candidate
+                for candidate in (base / contract_path, base / basename):
+                    if candidate.exists() and candidate.is_file():
+                        resolved = candidate
+                        break
+                if resolved:
                     break
-            else:
+            if resolved is None:
                 return ""
+            path = resolved
         lines = path.read_text(encoding="utf-8").splitlines()
         start = max(0, line_number - context - 1)
         end = min(len(lines), line_number + context)
@@ -365,6 +454,22 @@ def _interactive_wizard(variables: dict[str, Any], console: Any) -> dict[str, An
         console.print(f"[green]✓ {changes} field(s) updated.[/green]\n")
 
     return variables
+
+
+def _coverage_label(success_count: int, failed_count: int) -> str:
+    """Single source of truth for a layer's coverage status label.
+
+    Used by both §2.3 (methodology) and §4.3 (layer coverage) so the two
+    sections never disagree. A layer with no successes and no failures was not
+    run (e.g. a ``not_available`` tool) — that is NOT a failure.
+    """
+    if success_count > 0 and failed_count == 0:
+        return "✅ Complete"
+    if success_count > 0:
+        return "⚠️ Partial"
+    if failed_count > 0:
+        return "❌ Failed"
+    return "⏭️ Not Run"
 
 
 def _calculate_risk_level(summary: dict[str, Any]) -> str:
@@ -811,6 +916,29 @@ def report(
                 seen_findings[dedup_key] = f
     findings = list(seen_findings.values())
 
+    # =========================================================================
+    # Normalize each finding's taxonomy ONCE, here, before any downstream
+    # aggregation (category summary, key takeaways, CVSS, impact/recommendation,
+    # PoC) reads it. We populate ``canonical_category`` only when a real category
+    # resolves (not OTHER / None) and only when the field is not already set by
+    # the intelligence engine — so we fill PR-0's honest blanks without
+    # clobbering richer upstream metadata or fabricating a category.
+    # ``_canonical`` holds the enum for in-process use (impact/recommendation).
+    for f in findings:
+        canon = normalize_finding_type(
+            {
+                "type": str(f.get("type") or f.get("category") or ""),
+                "check": str(f.get("check") or ""),
+                "swc_id": str(f.get("swc_id") or ""),
+            }
+        )
+        if canon is not None and canon is not CanonicalCategory.OTHER:
+            f["_canonical"] = canon
+            if not f.get("canonical_category"):
+                f["canonical_category"] = canon.value
+        else:
+            f["_canonical"] = None
+
     # Recalculate severity counts after deduplication
     if not summary:
         critical_count = sum(1 for f in findings if f.get("severity", "").lower() == "critical")
@@ -909,6 +1037,8 @@ def report(
         "category_summary": _extract_category_summary(findings),
         "exploitability_rating": "Medium",
         "business_impact": "Medium",
+        "availability_rating": "Low",
+        "availability_note": "No significant availability risks identified",
         "confidence_level": _extract_confidence_level(findings),
         "value_at_risk": None,
         "out_of_scope": [],
@@ -1211,6 +1341,8 @@ def report(
             "skipped": "Skipped",
             "timeout": "Timeout",
             "error": "Error",
+            "not_available": "Not Available",
+            "not_run": "Not Run",
         }
         display_status = status_map.get(
             tool_status, tool_status.capitalize() if isinstance(tool_status, str) else "Unknown"
@@ -1319,11 +1451,7 @@ def report(
                     "success_count": ls["tools_success"],
                     "failed_count": ls["tools_failed"],
                     "findings_count": ls["findings_count"],
-                    "coverage_status": (
-                        "✅ Complete"
-                        if ls["tools_success"] > 0 and ls["tools_failed"] == 0
-                        else ("⚠️ Partial" if ls["tools_success"] > 0 else "❌ Not Executed")
-                    ),
+                    "coverage_status": _coverage_label(ls["tools_success"], ls["tools_failed"]),
                 }
             )
 
@@ -1381,12 +1509,7 @@ def report(
     for lk, var_name in layer_coverage_map.items():
         if lk in layer_summary:
             ls = layer_summary[lk]
-            if ls["tools_success"] > 0 and ls["tools_failed"] == 0:
-                variables[var_name] = "✅ Complete"
-            elif ls["tools_success"] > 0:
-                variables[var_name] = "⚠️ Partial"
-            else:
-                variables[var_name] = "❌ Failed"
+            variables[var_name] = _coverage_label(ls["tools_success"], ls["tools_failed"])
         else:
             variables[var_name] = "-- Not Run"
 
@@ -1539,6 +1662,12 @@ def report(
             # Calculate risk data
             risk_data = calculate_premium_risk_data(findings)
 
+            # cvss_scores is parallel to findings (same order). Re-label each row
+            # with the canonical F-xxx id so §3.2, §4.1, §5 and Appendix D all
+            # refer to the same finding identifiers instead of raw tool ids.
+            for cvss_idx, cvss_row in enumerate(risk_data.get("cvss_scores", []), 1):
+                cvss_row["finding_id"] = f"F-{cvss_idx:03d}"
+
             # Post-process risk score: cap by severity band
             # Only reach 100 if there are CRITICAL findings
             raw_score = risk_data.get("overall_risk_score", 0)
@@ -1597,6 +1726,26 @@ def report(
                 }
             )
 
+            # §1.4 Impact Assessment — derive the Availability row from the
+            # actual scored CVSS vectors (A:H) instead of hard-coding it off
+            # severity counts, which previously produced a self-contradiction
+            # ("Medium - No significant availability risks"). Rating and note now
+            # always agree.
+            scored_vectors = [
+                str(row.get("vector", ""))
+                for row in risk_data.get("cvss_scores", [])
+                if not row.get("uncategorized")
+            ]
+            has_availability_impact = any("A:H" in v for v in scored_vectors)
+            if has_availability_impact:
+                variables["availability_rating"] = "Medium"
+                variables["availability_note"] = (
+                    "Denial-of-service or fund-locking impact is possible"
+                )
+            else:
+                variables["availability_rating"] = "Low"
+                variables["availability_note"] = "No significant availability risks identified"
+
             # Calculate category summary
             categories: Dict[str, Any] = {}
             for f in findings:
@@ -1650,8 +1799,23 @@ def report(
                 "visibility": ("SWC-100", "Function Default Visibility"),
             }
 
+            # Known SWC id -> title (built from the keyword map, plus a baseline
+            # of common registry titles) so a finding's own swc_id can be
+            # labelled even if its type does not match a keyword.
+            swc_titles = {
+                "SWC-106": "Unprotected SELFDESTRUCT Instruction",
+                "SWC-112": "Delegatecall to Untrusted Callee",
+                "SWC-116": "Block values as a proxy for time",
+                "SWC-120": "Weak Sources of Randomness from Chain Attributes",
+            }
+            swc_titles.update({sid: title for _, (sid, title) in SWC_MAPPING.items()})
+            swc_re = re.compile(r"^SWC-\d+$")
+
             swc_found: Dict[str, Any] = {}
-            for f in findings:
+            # Enumerate with the SAME 1-based index used to build F-xxx finding
+            # IDs below, so Appendix D cites the real finding IDs instead of a
+            # per-row "F1".
+            for idx, f in enumerate(findings, 1):
                 f_type = (
                     (f.get("type") or f.get("check") or f.get("category") or "")
                     .lower()
@@ -1660,23 +1824,32 @@ def report(
                 )
                 f_title = (f.get("title") or f.get("name") or "").lower()
 
-                # Try to match by type or title
-                for key, (swc_id, swc_title) in SWC_MAPPING.items():
-                    if key in f_type or key in f_title:
-                        if swc_id not in swc_found:
-                            swc_found[swc_id] = {
-                                "id": swc_id,
-                                "title": swc_title,
-                                "count": 0,
-                                "status": "Found",
-                                "status_icon": "⚠️",
-                                "finding_ids": [],
-                            }
-                        swc_found[swc_id]["count"] += 1
-                        swc_found[swc_id]["finding_ids"].append(
-                            f"F{len(swc_found[swc_id]['finding_ids'])+1}"
-                        )
-                        break
+                # Prefer the finding's own SWC id; else match by type/title.
+                own_swc = str(f.get("swc_id") or "").strip().upper()
+                matched_id = None
+                matched_title = None
+                if swc_re.match(own_swc):
+                    matched_id = own_swc
+                    matched_title = swc_titles.get(own_swc, "See SWC registry")
+                else:
+                    for key, (swc_id, swc_title) in SWC_MAPPING.items():
+                        if key in f_type or key in f_title:
+                            matched_id = swc_id
+                            matched_title = swc_title
+                            break
+
+                if matched_id:
+                    if matched_id not in swc_found:
+                        swc_found[matched_id] = {
+                            "id": matched_id,
+                            "title": matched_title,
+                            "count": 0,
+                            "status": "Found",
+                            "status_icon": "⚠️",
+                            "finding_ids": [],
+                        }
+                    swc_found[matched_id]["count"] += 1
+                    swc_found[matched_id]["finding_ids"].append(f"F-{idx:03d}")
 
             # Add common SWC entries that were checked but not found
             common_swc = [
@@ -1972,12 +2145,14 @@ def report(
             "informational": "#17a2b8",
         }
 
-        # Get CVSS score if available
+        # Get CVSS score if available. cvss_scores is parallel to findings in
+        # order, so index by position — matching on title breaks the moment two
+        # findings share a type/title.
         cvss_score = None
-        for score in variables.get("cvss_scores", []):
-            if score.get("title") == title_field or score.get("finding_id") == f"F-{i:03d}":
-                cvss_score = score.get("base_score")
-                break
+        cvss_rows = variables.get("cvss_scores", [])
+        if i - 1 < len(cvss_rows):
+            row = cvss_rows[i - 1]
+            cvss_score = None if row.get("uncategorized") else row.get("base_score")
 
         # Get attack scenario — first from global list, then from intelligence engine
         attack_scenario = None
@@ -2054,7 +2229,9 @@ def report(
                 "location": loc_str,
                 "description": finding.get("description", finding.get("message", "")),
                 "recommendation": (
-                    _get_recommendation(category, severity_lower)
+                    _get_recommendation(
+                        category, severity_lower, canonical=finding.get("_canonical")
+                    )
                     if not finding.get("recommendation")
                     or finding.get("recommendation", "").startswith("Review and fix")
                     else finding["recommendation"]
@@ -2062,7 +2239,9 @@ def report(
                 "tool": detected_by,
                 "status": status_display,
                 "impact": (
-                    _get_impact_description(severity_lower, category)
+                    _get_impact_description(
+                        severity_lower, category, canonical=finding.get("_canonical")
+                    )
                     if not finding.get("impact")
                     or finding.get("impact", "").startswith("Significant financial")
                     or finding.get("impact", "").startswith("Minor impact")
@@ -2086,6 +2265,7 @@ def report(
                         )
                     ),
                     base_dir=detected_contract_full_path,
+                    extra_dirs=[results_file],
                 )
                 or "// Source code not available for this finding",
                 "references": finding.get("references")
