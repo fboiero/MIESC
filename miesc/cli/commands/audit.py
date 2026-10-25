@@ -11,6 +11,7 @@ import concurrent.futures
 import glob as glob_module
 import json
 import logging
+import os
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -2051,6 +2052,17 @@ def audit_single(tool: str, contract: str, output: str | None, timeout: int) -> 
 @click.option(
     "--fail-on", type=str, default="", help="Fail on severity (comma-separated: critical,high)"
 )
+@click.option(
+    "--checkpoint",
+    type=click.Path(dir_okay=False),
+    default=None,
+    help="Write progress to this file after each contract completes",
+)
+@click.option(
+    "--resume",
+    is_flag=True,
+    help="Skip the contracts already completed in --checkpoint",
+)
 def audit_batch(
     path: str,
     output: str | None,
@@ -2060,6 +2072,8 @@ def audit_batch(
     recursive: bool,
     pattern: str,
     fail_on: str,
+    checkpoint: str | None,
+    resume: bool,
 ) -> None:
     """Batch analysis of multiple contracts.
 
@@ -2071,7 +2085,11 @@ def audit_batch(
       miesc audit batch ./src -r --profile balanced    # Recursive with balanced profile
       miesc audit batch . -j 8 -o report.json          # 8 parallel workers
       miesc audit batch ./contracts --fail-on critical,high  # CI mode
+      miesc audit batch ./contracts --checkpoint state.json           # Save progress
+      miesc audit batch ./contracts --checkpoint state.json --resume  # Continue after a crash
     """
+    if resume and not checkpoint:
+        raise click.UsageError("--resume needs --checkpoint")
     print_banner()
 
     # Find all Solidity files
@@ -2109,8 +2127,44 @@ def audit_batch(
     # Results storage
     all_contract_results = []
     aggregated_summary = {"CRITICAL": 0, "HIGH": 0, "MEDIUM": 0, "LOW": 0, "INFO": 0}
-    failed_contracts = []
+    failed_contracts: List[Dict[str, str]] = []
     start_time = datetime.now()
+
+    # The checkpoint has the report's own `contracts`/`failed` shape, so an unfinished run
+    # still leaves a usable partial result. Failed contracts are retried on --resume.
+    checkpoint_path = Path(checkpoint) if checkpoint else None
+    if resume and checkpoint_path and checkpoint_path.exists():
+        try:
+            saved = json.loads(checkpoint_path.read_text())
+        except (OSError, ValueError) as e:
+            error(f"Could not read checkpoint {checkpoint_path}: {e}")
+            sys.exit(1)
+        if saved.get("tools") != tools_to_run:
+            error(
+                f"Checkpoint {checkpoint_path} was made with {saved.get('tools')}, "
+                f"not {tools_to_run}: use the same --profile or a new --checkpoint"
+            )
+            sys.exit(1)
+        all_contract_results = saved.get("contracts", [])
+        for done_result in all_contract_results:
+            for sev, count in done_result["summary"].items():
+                aggregated_summary[sev] += count
+        done = {Path(r["contract"]).resolve() for r in all_contract_results}
+        sol_files = [f for f in sol_files if Path(f).resolve() not in done]
+        info(f"Resumed from {checkpoint_path}: {len(done)} done, {len(sol_files)} left")
+
+    def write_checkpoint() -> None:
+        if not checkpoint_path:
+            return
+        state = {
+            "tools": tools_to_run,
+            "contracts": all_contract_results,
+            "failed": failed_contracts,
+        }
+        # Written aside and renamed, so a crash mid-write never leaves a truncated checkpoint.
+        tmp = checkpoint_path.with_name(checkpoint_path.name + ".tmp")
+        tmp.write_text(json.dumps(state, indent=2, default=str))
+        os.replace(tmp, checkpoint_path)
 
     def analyze_contract(contract_path: str) -> Dict[str, Any]:
         """Analyze a single contract with all tools."""
@@ -2171,6 +2225,7 @@ def audit_batch(
                         failed_contracts.append({"contract": contract, "error": str(e)})
                         console.print(f"  [red]{Path(contract).name}[/red]: error - {e}")
 
+                    write_checkpoint()
                     progress.advance(task)
     else:
         with concurrent.futures.ThreadPoolExecutor(max_workers=parallel) as executor:
@@ -2192,6 +2247,8 @@ def audit_batch(
                 except Exception as e:
                     failed_contracts.append({"contract": contract, "error": str(e)})
                     print(f"  Error: {e}")
+
+                write_checkpoint()
 
     elapsed = (datetime.now() - start_time).total_seconds()
     total_findings = sum(aggregated_summary.values())
