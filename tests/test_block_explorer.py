@@ -263,9 +263,9 @@ def test_a_payload_foundry_toml_cannot_redirect_the_build_out_of_the_sandbox(tmp
 @pytest.mark.parametrize(
     "bad_source",
     [
-        '{{"sources": not-valid-json}}',   # enters the standard-json branch, json.loads fails
-        '{"sources": "not-a-dict"}',       # .items() on a str -> AttributeError
-        '{{"sources": 123}}',              # .items() on an int -> AttributeError
+        '{{"sources": not-valid-json}}',  # enters the standard-json branch, json.loads fails
+        '{"sources": "not-a-dict"}',  # .items() on a str -> AttributeError
+        '{{"sources": 123}}',  # .items() on an int -> AttributeError
         '{{"sources": {"A.sol": "a-string-not-an-object"}}}',  # entry.get on a str -> AttributeError
     ],
 )
