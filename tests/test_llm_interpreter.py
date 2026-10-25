@@ -77,8 +77,14 @@ class TestLLMInterpreterConfig:
 class TestLLMReportInterpreterInit:
     """Tests for LLMReportInterpreter initialization."""
 
-    def test_default_init(self):
-        """Test default initialization."""
+    def test_default_init(self, monkeypatch):
+        """Test default initialization.
+
+        ``LLMReportInterpreter.__init__`` overrides ``ollama_host`` from the ``OLLAMA_HOST``
+        environment variable, so clear it first: this asserts the built-in default, not whatever
+        host the developer (or a coverage run) happens to have exported.
+        """
+        monkeypatch.delenv("OLLAMA_HOST", raising=False)
         interpreter = LLMReportInterpreter()
         assert interpreter.config.model == "mistral:latest"
         assert interpreter.config.ollama_host == "http://localhost:11434"
