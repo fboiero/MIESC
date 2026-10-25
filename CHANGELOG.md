@@ -7,6 +7,27 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **`miesc audit batch --checkpoint PATH [--resume]`.** The checkpoint is written after every
+  contract, aside and renamed so a crash mid-write never truncates it, with the report's own
+  `contracts`/`failed` shape plus the tool list. `--resume` skips the contracts already done
+  (paths compared resolved, so `./src` and an absolute path match), retries the failed ones and
+  merges everything into the final report; it refuses a checkpoint made with other tools
+  (another `--profile`) instead of mixing results. Contributed by @alva-p.
+
+### Fixed
+
+- **Peculiar hung for minutes on common OpenZeppelin and Solady files.** Its function-extraction
+  pattern backtracked exponentially on a modifier with nested parentheses
+  (`onlyModule(X, Calldata.emptyBytes())`) or a declaration ending in `;`: OZ's
+  `draft-AccountERC7579.sol` ran for over 15 minutes with `--timeout 60`, Solady's `EIP712.sol`
+  over 3. The regex holds the GIL while it runs, so a thread-based timeout around the adapter
+  cannot interrupt it either; the pattern is now linear (1.2 s and 0.8 s for those two files).
+  It also extracts functions the old one missed, such as OZ's `grantRole` with
+  `onlyRole(getRoleAdmin(role))`, and no longer lists the `returns (...)` clause as modifiers.
+  Contributed by @alva-p.
+
 ## [6.7.0] - 2026-10-25 — Vyper analyzer, directory & on-chain audit, revert-invariant Phase 2 execution
 
 Minor release. Adds a Vyper pattern analyzer and `.vy` routing, `miesc audit deep <dir>` and

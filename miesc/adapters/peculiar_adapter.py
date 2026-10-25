@@ -536,18 +536,16 @@ class PeculiarAdapter(ToolAdapter):
         and the raw body text.
         """
         functions: List[Dict[str, Any]] = []
-        # Non-greedy match that handles nested braces up to one level
-        pattern = re.compile(
-            r"function\s+(\w+)\s*\(([^)]*)\)\s*"
-            r"((?:public|private|internal|external|view|pure|payable|"
-            r"virtual|override|\w+\s*(?:\([^)]*\))?[\s]*)*)"
-            r"\s*(?:returns\s*\([^)]*\))?\s*\{",
-            re.DOTALL,
-        )
+        # Qualifiers are whatever sits between the parameters and the body. A pattern
+        # that spelled them out word by word (`(?:public|...|\w+\s*(?:\([^)]*\))?\s*)*`)
+        # backtracked exponentially on a modifier with nested parentheses or a
+        # declaration ending in `;` (OZ's AccountERC7579 ran for over 15 minutes);
+        # a negated class cannot, and stops at the first `;` or brace.
+        pattern = re.compile(r"function\s+(\w+)\s*\(([^)]*)\)([^{};]*)\{")
         for match in pattern.finditer(source_code):
             name = match.group(1)
             params = match.group(2).strip()
-            qualifiers_raw = match.group(3).strip()
+            qualifiers_raw = re.split(r"\breturns\b", match.group(3))[0].strip()
             start_line = source_code[: match.start()].count("\n") + 1
             body_start = match.end()
 
