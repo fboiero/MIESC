@@ -5,9 +5,11 @@ Provides CVSS-like scoring and risk matrix generation for smart contract
 security findings. Designed for premium audit reports.
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from enum import Enum
 from typing import Any, Optional, TypedDict
+
+from miesc.core.finding_taxonomy import CanonicalCategory, normalize_finding_type
 
 
 class EffortImpactCell(TypedDict):
@@ -161,9 +163,18 @@ class RiskCalculator:
         (0.0, "Info"),
     ]
 
-    # Category to CVSS vector mapping for smart contracts
+    # Canonical-category -> CVSS vector mapping.
+    #
+    # Phase 1: these are keyed by ``CanonicalCategory`` (a ``str`` enum, so a
+    # plain string such as ``"reentrancy"`` still matches a key). A tool check
+    # name is first run through ``normalize_finding_type`` so idiosyncratic
+    # detector strings (``weak-prng``, ``suicidal``, ``unchecked-return`` …)
+    # resolve to the right canonical vector instead of silently missing.
+    #
+    # ``CanonicalCategory.OTHER`` is intentionally absent: a finding that only
+    # maps to OTHER is "not scored (uncategorized)", never a fabricated default.
     CATEGORY_VECTORS = {
-        "reentrancy": CVSSVector(
+        CanonicalCategory.REENTRANCY: CVSSVector(
             attack_vector=AttackVector.NETWORK,
             attack_complexity=AttackComplexity.LOW,
             privileges_required=PrivilegesRequired.NONE,
@@ -171,7 +182,7 @@ class RiskCalculator:
             integrity_impact=Impact.HIGH,
             availability_impact=Impact.HIGH,
         ),
-        "access-control": CVSSVector(
+        CanonicalCategory.ACCESS_CONTROL: CVSSVector(
             attack_vector=AttackVector.NETWORK,
             attack_complexity=AttackComplexity.LOW,
             privileges_required=PrivilegesRequired.NONE,
@@ -179,14 +190,31 @@ class RiskCalculator:
             confidentiality_impact=Impact.HIGH,
             integrity_impact=Impact.HIGH,
         ),
-        "integer-overflow": CVSSVector(
+        CanonicalCategory.ORACLE_MANIPULATION: CVSSVector(
+            attack_vector=AttackVector.NETWORK,
+            attack_complexity=AttackComplexity.HIGH,
+            privileges_required=PrivilegesRequired.NONE,
+            user_interaction=UserInteraction.NONE,
+            integrity_impact=Impact.HIGH,
+            availability_impact=Impact.LOW,
+        ),
+        CanonicalCategory.FLASH_LOAN: CVSSVector(
+            attack_vector=AttackVector.NETWORK,
+            attack_complexity=AttackComplexity.LOW,
+            privileges_required=PrivilegesRequired.NONE,
+            user_interaction=UserInteraction.NONE,
+            confidentiality_impact=Impact.HIGH,
+            integrity_impact=Impact.HIGH,
+            availability_impact=Impact.HIGH,
+        ),
+        CanonicalCategory.ARITHMETIC: CVSSVector(
             attack_vector=AttackVector.NETWORK,
             attack_complexity=AttackComplexity.HIGH,
             privileges_required=PrivilegesRequired.NONE,
             user_interaction=UserInteraction.NONE,
             integrity_impact=Impact.HIGH,
         ),
-        "unchecked-call": CVSSVector(
+        CanonicalCategory.UNCHECKED_CALL: CVSSVector(
             attack_vector=AttackVector.NETWORK,
             attack_complexity=AttackComplexity.LOW,
             privileges_required=PrivilegesRequired.NONE,
@@ -194,21 +222,29 @@ class RiskCalculator:
             integrity_impact=Impact.LOW,
             availability_impact=Impact.LOW,
         ),
-        "dos": CVSSVector(
+        CanonicalCategory.INITIALIZATION: CVSSVector(
             attack_vector=AttackVector.NETWORK,
             attack_complexity=AttackComplexity.LOW,
             privileges_required=PrivilegesRequired.NONE,
             user_interaction=UserInteraction.NONE,
-            availability_impact=Impact.HIGH,
+            integrity_impact=Impact.HIGH,
+            availability_impact=Impact.LOW,
         ),
-        "front-running": CVSSVector(
+        CanonicalCategory.SIGNATURE_VERIFICATION: CVSSVector(
             attack_vector=AttackVector.NETWORK,
             attack_complexity=AttackComplexity.HIGH,
             privileges_required=PrivilegesRequired.NONE,
             user_interaction=UserInteraction.NONE,
             integrity_impact=Impact.HIGH,
         ),
-        "oracle": CVSSVector(
+        CanonicalCategory.BAD_RANDOMNESS: CVSSVector(
+            attack_vector=AttackVector.NETWORK,
+            attack_complexity=AttackComplexity.LOW,
+            privileges_required=PrivilegesRequired.NONE,
+            user_interaction=UserInteraction.NONE,
+            integrity_impact=Impact.HIGH,
+        ),
+        CanonicalCategory.TIME_MANIPULATION: CVSSVector(
             attack_vector=AttackVector.NETWORK,
             attack_complexity=AttackComplexity.HIGH,
             privileges_required=PrivilegesRequired.NONE,
@@ -216,37 +252,51 @@ class RiskCalculator:
             integrity_impact=Impact.HIGH,
             availability_impact=Impact.LOW,
         ),
-        "selfdestruct": CVSSVector(
+        CanonicalCategory.DENIAL_OF_SERVICE: CVSSVector(
             attack_vector=AttackVector.NETWORK,
             attack_complexity=AttackComplexity.LOW,
             privileges_required=PrivilegesRequired.NONE,
             user_interaction=UserInteraction.NONE,
-            integrity_impact=Impact.HIGH,
             availability_impact=Impact.HIGH,
         ),
-        "tx-origin": CVSSVector(
+        CanonicalCategory.FRONT_RUNNING: CVSSVector(
             attack_vector=AttackVector.NETWORK,
             attack_complexity=AttackComplexity.HIGH,
             privileges_required=PrivilegesRequired.NONE,
-            user_interaction=UserInteraction.REQUIRED,
+            user_interaction=UserInteraction.NONE,
+            integrity_impact=Impact.HIGH,
+        ),
+        CanonicalCategory.PROXY_UPGRADE: CVSSVector(
+            attack_vector=AttackVector.NETWORK,
+            attack_complexity=AttackComplexity.LOW,
+            privileges_required=PrivilegesRequired.NONE,
+            user_interaction=UserInteraction.NONE,
             confidentiality_impact=Impact.HIGH,
             integrity_impact=Impact.HIGH,
+            availability_impact=Impact.HIGH,
         ),
-        "weak-randomness": CVSSVector(
+        CanonicalCategory.CENTRALIZATION: CVSSVector(
+            attack_vector=AttackVector.NETWORK,
+            attack_complexity=AttackComplexity.HIGH,
+            privileges_required=PrivilegesRequired.HIGH,
+            user_interaction=UserInteraction.NONE,
+            integrity_impact=Impact.LOW,
+        ),
+        CanonicalCategory.INPUT_VALIDATION: CVSSVector(
             attack_vector=AttackVector.NETWORK,
             attack_complexity=AttackComplexity.LOW,
-            privileges_required=PrivilegesRequired.NONE,
+            privileges_required=PrivilegesRequired.LOW,
             user_interaction=UserInteraction.NONE,
-            integrity_impact=Impact.HIGH,
-        ),
-        "uninitialized": CVSSVector(
-            attack_vector=AttackVector.NETWORK,
-            attack_complexity=AttackComplexity.LOW,
-            privileges_required=PrivilegesRequired.NONE,
-            user_interaction=UserInteraction.NONE,
-            integrity_impact=Impact.HIGH,
+            integrity_impact=Impact.LOW,
             availability_impact=Impact.LOW,
         ),
+    }
+
+    # Hygiene / best-practice detector names that carry no canonical category
+    # (they normalize to OTHER) but still have a well-understood, low risk
+    # profile. Kept keyed by raw substring so PR-0 scoring coverage for these
+    # does not regress. These are NOT security-impact categories.
+    HYGIENE_VECTORS = {
         "solc-version": CVSSVector(
             attack_vector=AttackVector.NETWORK,
             attack_complexity=AttackComplexity.HIGH,
@@ -289,47 +339,89 @@ class RiskCalculator:
             integrity_impact=Impact.LOW,
             availability_impact=Impact.LOW,
         ),
-        "flash-loan": CVSSVector(
-            attack_vector=AttackVector.NETWORK,
-            attack_complexity=AttackComplexity.LOW,
-            privileges_required=PrivilegesRequired.NONE,
-            user_interaction=UserInteraction.NONE,
-            confidentiality_impact=Impact.HIGH,
-            integrity_impact=Impact.HIGH,
-            availability_impact=Impact.HIGH,
-        ),
-        "default": CVSSVector(
-            attack_vector=AttackVector.NETWORK,
-            attack_complexity=AttackComplexity.LOW,
-            privileges_required=PrivilegesRequired.LOW,
-            user_interaction=UserInteraction.NONE,
-            integrity_impact=Impact.LOW,
-        ),
     }
 
     def __init__(self) -> None:
         """Initialize the risk calculator."""
         pass
 
+    @staticmethod
+    def _canonical_of(text: str) -> Optional[CanonicalCategory]:
+        """Normalize a category string to a canonical category.
+
+        Tries the raw string first, then a dash-normalized variant so
+        underscore/space spellings (``access_control``, ``access control``)
+        resolve the same as the canonical dashed form.
+        """
+        canonical = normalize_finding_type(text)
+        if canonical is None or canonical is CanonicalCategory.OTHER:
+            variant = text.replace(" ", "-").replace("_", "-")
+            if variant != text:
+                canonical = normalize_finding_type(variant)
+        return canonical
+
+    def _hygiene_vector(self, category: str) -> Optional[CVSSVector]:
+        """Return a hygiene vector (copy) for a best-practice detector name."""
+        category_lower = category.lower().replace(" ", "-").replace("_", "-")
+        for key, vector in self.HYGIENE_VECTORS.items():
+            if key in category_lower or category_lower in key:
+                return replace(vector)
+        return None
+
     def get_vector_for_category(self, category: str) -> Optional[CVSSVector]:
         """Get the CVSS vector for a vulnerability category.
 
-        Returns ``None`` when the category does not match any known vector. The
-        caller then marks the finding as "not scored" instead of silently using
-        a fabricated default vector and base score.
+        The category string is routed through ``normalize_finding_type`` first,
+        so raw tool check names (``weak-prng``, ``suicidal``, ``unused-return`` …)
+        resolve to their canonical category vector. Hygiene/best-practice names
+        that carry no canonical category fall back to :attr:`HYGIENE_VECTORS`.
+
+        Returns a **fresh copy** so callers that adjust the vector cannot mutate
+        the shared class-level template. Returns ``None`` when nothing matches,
+        so the caller renders "not scored" rather than a fabricated default.
         """
         if not isinstance(category, str) or not category.strip():
             return None
 
-        category_lower = category.lower().replace(" ", "-").replace("_", "-")
+        canonical = self._canonical_of(category)
+        if canonical is not None and canonical is not CanonicalCategory.OTHER:
+            vector = self.CATEGORY_VECTORS.get(canonical)
+            if vector is not None:
+                return replace(vector)
 
-        # Check for partial matches (the "default" fallback is not a real match).
-        for key in self.CATEGORY_VECTORS:
-            if key == "default":
-                continue
-            if key in category_lower or category_lower in key:
-                return self.CATEGORY_VECTORS[key]
+        # No real category: last-resort hygiene lookup for best-practice checks.
+        return self._hygiene_vector(category)
 
+    def _vector_for_finding(self, finding: dict[str, Any]) -> Optional[CVSSVector]:
+        """Resolve a CVSS vector from a finding, normalizing its taxonomy first.
+
+        Builds the normalization candidates from ``type``/``check``/``swc_id``
+        (deliberately **excluding** ``title``/``message`` so an over-eager
+        ``owner``/``price`` substring in free text cannot inflate a hygiene nit
+        into a high-impact category). Falls back to the ``category`` string for
+        hygiene detectors.
+        """
+        type_str = str(finding.get("type") or finding.get("category") or "")
+        norm_input = {
+            "type": type_str,
+            "check": str(finding.get("check") or ""),
+            "swc_id": str(finding.get("swc_id") or ""),
+        }
+        canonical = normalize_finding_type(norm_input)
+        if canonical is None or canonical is CanonicalCategory.OTHER:
+            # Retry with separator-normalized type (access_control -> access-control).
+            canonical = self._canonical_of(type_str)
+        if canonical is not None and canonical is not CanonicalCategory.OTHER:
+            vector = self.CATEGORY_VECTORS.get(canonical)
+            if vector is not None:
+                return replace(vector)
+
+        for key in ("category", "type", "check"):
+            value = finding.get(key)
+            if isinstance(value, str) and value.strip():
+                hygiene = self._hygiene_vector(value)
+                if hygiene is not None:
+                    return hygiene
         return None
 
     def calculate_exploitability(self, vector: CVSSVector) -> float:
@@ -376,48 +468,67 @@ class RiskCalculator:
         return "Info"
 
     def adjust_vector_by_severity(self, vector: CVSSVector, severity: str) -> CVSSVector:
-        """Adjust vector lightly based on reported severity.
+        """Nudge a category vector toward the tool-reported severity.
 
-        Only nudge the vector if the category mapping is the default.
-        Category-specific vectors already encode the correct risk profile.
+        Category vectors already encode the right risk profile, so the nudge is
+        deliberately light and **symmetric**: a reported-critical finding gets an
+        easier attack complexity, while a reported-low/info finding has its HIGH
+        impacts and complexity relaxed. This keeps the computed CVSS direction
+        consistent with the reported severity (no LOW finding scoring 9.x).
+
+        Mutates and returns the passed vector, which callers already own as a
+        fresh copy (see :meth:`get_vector_for_category`).
         """
-        severity_lower = severity.lower()
-        # Check if this is a default vector (no category match was found)
-        is_default = (
-            vector.integrity_impact == Impact.LOW
-            and vector.availability_impact == Impact.NONE
-            and vector.confidentiality_impact == Impact.NONE
-            and vector.privileges_required == PrivilegesRequired.LOW
-        )
-        if not is_default:
-            # Category-specific vector: only nudge AC for critical
-            if severity_lower == "critical":
-                vector.attack_complexity = AttackComplexity.LOW
-            return vector
+        severity_lower = severity.lower().strip()
 
-        # Default vector: adjust based on severity
         if severity_lower == "critical":
             vector.attack_complexity = AttackComplexity.LOW
-            vector.privileges_required = PrivilegesRequired.NONE
-            vector.integrity_impact = Impact.HIGH
-            vector.availability_impact = Impact.HIGH
-        elif severity_lower == "high":
-            vector.attack_complexity = AttackComplexity.LOW
-            vector.integrity_impact = Impact.HIGH
-        elif severity_lower in ["low", "info", "informational"]:
+        elif severity_lower in ("low", "info", "informational"):
+            # Relax a high-impact category vector down toward the reported low
+            # severity instead of printing an inflated score.
             vector.attack_complexity = AttackComplexity.HIGH
+            if vector.integrity_impact == Impact.HIGH:
+                vector.integrity_impact = Impact.LOW
+            if vector.availability_impact == Impact.HIGH:
+                vector.availability_impact = Impact.LOW
+            if vector.confidentiality_impact == Impact.HIGH:
+                vector.confidentiality_impact = Impact.LOW
 
         return vector
 
+    # Severity band index used to check CVSS/severity directional consistency.
+    _SEVERITY_BANDS = {
+        "info": 0,
+        "informational": 0,
+        "none": 0,
+        "low": 1,
+        "medium": 2,
+        "high": 3,
+        "critical": 4,
+    }
+
+    def _severity_band(self, severity: str) -> Optional[int]:
+        """Return the band index for a severity label, or ``None`` if unknown."""
+        if not isinstance(severity, str):
+            return None
+        return self._SEVERITY_BANDS.get(severity.lower().strip())
+
     def calculate_finding_score(self, finding: dict[str, Any]) -> CVSSScore:
-        """Calculate CVSS score for a single finding."""
+        """Calculate CVSS score for a single finding.
+
+        The finding's taxonomy is normalized first so recognized categories get
+        a real vector/score. A finding with no real category stays "not scored
+        (uncategorized)", and a score whose severity band is more than one step
+        away from the tool-reported severity is withheld as "not scored
+        (inconsistent with reported severity)" rather than printed — honest
+        blanks over misleading numbers.
+        """
         finding_id = finding.get("id", "UNK")
         title = _get_finding_title(finding)
-        category = finding.get("category", "unknown")
-        severity = finding.get("severity", "Medium")
+        severity = str(finding.get("severity", "Medium"))
 
-        # Get base vector for category
-        vector = self.get_vector_for_category(category)
+        # Route through the taxonomy so raw tool check names resolve correctly.
+        vector = self._vector_for_finding(finding)
 
         if vector is None:
             # Uncategorized: do not fabricate a vector/score. Flag it so the
@@ -426,7 +537,7 @@ class RiskCalculator:
                 finding_id=finding_id,
                 title=title,
                 base_score=0.0,
-                severity=str(severity),
+                severity=severity,
                 vector="not scored (uncategorized)",
                 uncategorized=True,
             )
@@ -438,12 +549,32 @@ class RiskCalculator:
         base_score = self.calculate_base_score(vector)
         exploitability = self.calculate_exploitability(vector)
         impact = self.calculate_impact(vector)
+        computed_severity = self.get_severity_from_score(base_score)
+
+        # Directional-consistency guard: never let a LOW finding show a high
+        # CVSS (or vice versa). If the computed band is more than one step from
+        # the reported band, withhold the score instead of printing it.
+        reported_band = self._severity_band(severity)
+        computed_band = self._severity_band(computed_severity)
+        if (
+            reported_band is not None
+            and computed_band is not None
+            and abs(reported_band - computed_band) > 1
+        ):
+            return CVSSScore(
+                finding_id=finding_id,
+                title=title,
+                base_score=0.0,
+                severity=severity,
+                vector="not scored (inconsistent with reported severity)",
+                uncategorized=True,
+            )
 
         return CVSSScore(
             finding_id=finding_id,
             title=title,
             base_score=base_score,
-            severity=self.get_severity_from_score(base_score),
+            severity=computed_severity,
             vector=vector.to_string(),
             exploitability_subscore=round(exploitability, 1),
             impact_subscore=round(impact, 1),

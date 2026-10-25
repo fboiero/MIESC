@@ -231,10 +231,19 @@ class TestRiskCalculatorInit:
         assert len(calc.IMPACT_WEIGHTS) == 3
 
     def test_category_vectors_defined(self):
-        """Test that category vectors are defined."""
+        """Category vectors are keyed by canonical category (Phase 1).
+
+        CanonicalCategory is a str-enum, so the plain string "reentrancy" still
+        matches the key. The fabricated "default" vector was removed: a finding
+        with no real category is now "not scored", never a default.
+        """
+        from miesc.core.finding_taxonomy import CanonicalCategory
+
         calc = RiskCalculator()
-        assert "reentrancy" in calc.CATEGORY_VECTORS
-        assert "default" in calc.CATEGORY_VECTORS
+        assert CanonicalCategory.REENTRANCY in calc.CATEGORY_VECTORS
+        assert "reentrancy" in calc.CATEGORY_VECTORS  # str-enum string lookup
+        assert "default" not in calc.CATEGORY_VECTORS
+        assert CanonicalCategory.OTHER not in calc.CATEGORY_VECTORS
 
 
 class TestGetVectorForCategory:
@@ -276,9 +285,20 @@ class TestGetVectorForCategory:
         assert calc.get_vector_for_category("   ") is None
 
     def test_no_partial_match(self, calc):
-        """Partial names that do not match any real category return None, not a default."""
-        # "reentrant-issue" does NOT match any category vector
-        assert calc.get_vector_for_category("reentrant-issue") is None
+        """A genuinely uncategorized name returns None (not a fabricated default)."""
+        # No canonical category and not a hygiene detector -> not scored.
+        assert calc.get_vector_for_category("naming-convention") is None
+        assert calc.get_vector_for_category("gas-optimization") is None
+
+    def test_semantic_partial_now_resolves(self, calc):
+        """Phase 1: semantic partials resolve via the taxonomy, not a default.
+
+        ``reentrant-issue`` normalizes to REENTRANCY, so it receives the real
+        reentrancy vector instead of the old "not scored" blank.
+        """
+        vector = calc.get_vector_for_category("reentrant-issue")
+        assert vector is not None
+        assert vector.integrity_impact == Impact.HIGH
 
     def test_case_insensitive(self, calc):
         """Test case insensitive matching."""
@@ -441,67 +461,67 @@ class TestGetSeverityFromScore:
 
 
 class TestAdjustVectorBySeverity:
-    """Tests for adjust_vector_by_severity method.
+    """Tests for adjust_vector_by_severity (Phase 1 symmetric nudge).
 
-    The is_default check requires: integrity=LOW, availability=NONE,
-    confidentiality=NONE, privileges=LOW. Only default vectors get
-    full severity adjustments; category-specific vectors are only
-    nudged on AC for critical.
+    There is no "default" vector any more. Category vectors are nudged lightly
+    and symmetrically: critical eases attack complexity, low/info relaxes HIGH
+    impacts (and raises complexity) so the computed score stays directionally
+    consistent with the reported severity. High/medium leave the vector as-is.
     """
 
     @pytest.fixture
     def calc(self):
         return RiskCalculator()
 
-    @pytest.fixture
-    def default_vector(self):
-        """A vector that matches the is_default condition."""
-        return CVSSVector(
+    def test_critical_nudges_attack_complexity_only(self, calc):
+        """Critical only eases attack complexity; impacts come from the category."""
+        vector = CVSSVector(
+            attack_complexity=AttackComplexity.HIGH,
             integrity_impact=Impact.LOW,
             availability_impact=Impact.NONE,
             confidentiality_impact=Impact.NONE,
-            privileges_required=PrivilegesRequired.LOW,
         )
-
-    def test_critical_adjustment(self, calc, default_vector):
-        """Test critical severity adjustments on default vector."""
-        adjusted = calc.adjust_vector_by_severity(default_vector, "critical")
-        assert adjusted.attack_complexity == AttackComplexity.LOW
-        assert adjusted.privileges_required == PrivilegesRequired.NONE
-        assert adjusted.integrity_impact == Impact.HIGH
-        assert adjusted.availability_impact == Impact.HIGH
-
-    def test_high_adjustment(self, calc, default_vector):
-        """Test high severity adjustments on default vector."""
-        adjusted = calc.adjust_vector_by_severity(default_vector, "high")
-        assert adjusted.attack_complexity == AttackComplexity.LOW
-        assert adjusted.integrity_impact == Impact.HIGH
-
-    def test_medium_adjustment(self, calc):
-        """Test medium severity on non-default vector returns unchanged."""
-        vector = CVSSVector(integrity_impact=Impact.HIGH)
-        adjusted = calc.adjust_vector_by_severity(vector, "medium")
-        # Non-default vector: no adjustments for medium
-        assert adjusted.attack_complexity == vector.attack_complexity
-
-    def test_low_adjustment(self, calc, default_vector):
-        """Test low severity adjustments on default vector."""
-        adjusted = calc.adjust_vector_by_severity(default_vector, "low")
-        assert adjusted.attack_complexity == AttackComplexity.HIGH
-
-    def test_info_adjustment(self, calc, default_vector):
-        """Test informational severity adjustments on default vector."""
-        adjusted = calc.adjust_vector_by_severity(default_vector, "informational")
-        assert adjusted.attack_complexity == AttackComplexity.HIGH
-
-    def test_category_vector_critical_nudge(self, calc):
-        """Non-default vector only gets AC nudge for critical."""
-        vector = CVSSVector()  # Default has integrity=HIGH, not is_default
         adjusted = calc.adjust_vector_by_severity(vector, "critical")
         assert adjusted.attack_complexity == AttackComplexity.LOW
+        # Impacts are NOT fabricated upward any more.
+        assert adjusted.integrity_impact == Impact.LOW
+        assert adjusted.availability_impact == Impact.NONE
+
+    def test_high_leaves_vector_unchanged(self, calc):
+        """High severity leaves a category vector as-is."""
+        vector = CVSSVector(attack_complexity=AttackComplexity.LOW, integrity_impact=Impact.LOW)
+        adjusted = calc.adjust_vector_by_severity(vector, "high")
+        assert adjusted.attack_complexity == AttackComplexity.LOW
+        assert adjusted.integrity_impact == Impact.LOW
+
+    def test_medium_adjustment(self, calc):
+        """Medium severity leaves the vector unchanged."""
+        vector = CVSSVector(integrity_impact=Impact.HIGH)
+        adjusted = calc.adjust_vector_by_severity(vector, "medium")
+        assert adjusted.attack_complexity == vector.attack_complexity
+        assert adjusted.integrity_impact == Impact.HIGH
+
+    def test_low_relaxes_high_impacts(self, calc):
+        """Low severity relaxes HIGH impacts and raises attack complexity."""
+        vector = CVSSVector(
+            attack_complexity=AttackComplexity.LOW,
+            integrity_impact=Impact.HIGH,
+            availability_impact=Impact.HIGH,
+        )
+        adjusted = calc.adjust_vector_by_severity(vector, "low")
+        assert adjusted.attack_complexity == AttackComplexity.HIGH
+        assert adjusted.integrity_impact == Impact.LOW
+        assert adjusted.availability_impact == Impact.LOW
+
+    def test_info_relaxes_high_impacts(self, calc):
+        """Informational severity behaves like low."""
+        vector = CVSSVector(integrity_impact=Impact.HIGH)
+        adjusted = calc.adjust_vector_by_severity(vector, "informational")
+        assert adjusted.attack_complexity == AttackComplexity.HIGH
+        assert adjusted.integrity_impact == Impact.LOW
 
     def test_category_vector_high_unchanged(self, calc):
-        """Non-default vector unchanged for high severity."""
+        """A category vector is unchanged for high severity."""
         vector = CVSSVector()
         original_ac = vector.attack_complexity
         adjusted = calc.adjust_vector_by_severity(vector, "high")

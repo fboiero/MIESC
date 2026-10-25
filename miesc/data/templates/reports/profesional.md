@@ -97,7 +97,7 @@ Based on the identified vulnerabilities:
 |----------------|------------|
 | **Confidentiality** | {{ 'High' if critical_count > 0 else ('Medium' if high_count > 0 else 'Low') }} - {% if critical_count > 0 or high_count > 0 %}Sensitive data or state could be exposed{% else %}No significant confidentiality risks identified{% endif %} |
 | **Integrity** | {{ 'High' if critical_count > 0 else ('Medium' if high_count > 0 else 'Low') }} - {% if critical_count > 0 or high_count > 0 %}Contract state could be manipulated{% else %}Contract logic appears sound{% endif %} |
-| **Availability** | {{ 'Medium' if critical_count > 0 or high_count > 0 else 'Low' }} - {% if critical_count > 0 %}Denial of service possible{% else %}No significant availability risks{% endif %} |
+| **Availability** | {{ availability_rating | default('Low') }} - {{ availability_note | default('No significant availability risks identified') }} |
 {%- endif %}
 
 ---
@@ -286,7 +286,7 @@ The analyzed contract presents security concerns that should be addressed before
 | Property | Value |
 |----------|-------|
 | **Severity** | <span style="background: {{ finding.severity_color | default('#e0e0e0') }}; color: white; padding: 2px 8px; border-radius: 4px;">{{ finding.severity_badge }}</span> |
-| **Category** | {{ finding.category }} |
+| **Category** | {{ finding.canonical_category or finding.category }} |
 | **CVSS Score** | {{ finding.cvss_score | default('N/A') }} |
 | **Location** | `{{ finding.location }}` |
 | **Status** | {{ finding.status }} |
@@ -386,11 +386,12 @@ The analyzed contract presents security concerns that should be addressed before
 {%- else %}
 | Priority | Finding | Severity | Recommended Action |
 |:--------:|---------|----------|-------------------|
-{%- for finding in findings %}
-{%- if finding.severity in ['critical', 'high'] %}
+{%- for finding in critical_high_findings %}
 | {{ loop.index }} | {{ finding.title }} | {{ finding.severity_badge }} | Immediate fix required |
-{%- endif %}
 {%- endfor %}
+{%- if not critical_high_findings %}
+| -- | No critical or high severity findings | -- | -- |
+{%- endif %}
 {%- endif %}
 
 ## 6.2 Remediation Timeline
@@ -528,7 +529,7 @@ Review findings marked as "Low" effort for quick security improvements.
 
 # Disclaimer
 
-This audit report is provided on an "AS IS" basis without warranties of any kind, whether express or implied. The findings and recommendations represent the auditor's professional opinion based on the scope and methodology described.
+This audit report is provided on an "AS IS" basis without warranties of any kind, whether express or implied. The findings and recommendations are the output of automated analysis based on the scope and methodology described, and do not constitute a human professional opinion unless an auditor is explicitly named on the cover and attests to them.
 
 **This report is the output of automated security tooling (plus optional local-LLM interpretation), not a manual professional audit.** It has not been reviewed or signed off by a human security auditor unless an auditor is explicitly named on the cover and attests to the findings.
 
