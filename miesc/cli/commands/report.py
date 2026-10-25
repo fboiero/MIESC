@@ -1898,6 +1898,14 @@ def report(
                             elif isinstance(loc, str) and ":" in loc:
                                 target = loc.split(":")[0]
                         poc = poc_generator.generate(finding, target_contract=target)
+                        if poc is None:
+                            # No PoC template for this vulnerability type: omit it
+                            # rather than ship a mislabelled exploit.
+                            logger.debug(
+                                "No PoC template available for type %s; omitting",
+                                finding.get("type"),
+                            )
+                            continue
                         finding["poc"] = poc.solidity_code
                         finding["poc_available"] = True
                         finding["poc_name"] = poc.name

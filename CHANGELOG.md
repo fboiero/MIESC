@@ -7,6 +7,24 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- **`miesc report -t premium` stops overclaiming — four honesty fixes.** The premium/profesional
+  report no longer presents automated output as a manual professional audit:
+  - The "Audit Process" methodology no longer lists **Manual Review** or human **Verification**
+    steps; those are rewritten to describe what the pipeline actually does (automated multi-tool
+    static/dynamic/symbolic analysis, cross-tool corroboration and false-positive filtering with
+    execution-based confirmation where enabled).
+  - The Disclaimer now states plainly that the report is the output of automated security tooling
+    (plus optional local-LLM interpretation), not a manual professional audit, and is unsigned
+    unless a named human auditor attests to it.
+  - PoC generation returns no exploit for a vulnerability type it has no template for, instead of
+    shipping a reentrancy exploit mislabelled as, e.g., a weak-PRNG finding. `PoCGenerator.generate`
+    now returns `Optional[PoCTemplate]`, `generate_batch` drops the `None`s, and the report omits
+    findings with no PoC.
+  - Uncategorized findings render `not scored (uncategorized)` for their CVSS vector and base score
+    instead of a fabricated default (~6.8). Findings that match a category are unaffected.
+
 ## [6.8.0] - 2026-10-25 — Audit batch checkpoint/resume, linear Peculiar parsing, test-suite hardening
 
 Minor release. Adds crash-safe checkpoint/resume to `miesc audit batch` and fixes a

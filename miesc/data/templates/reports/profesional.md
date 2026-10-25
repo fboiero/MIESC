@@ -166,11 +166,11 @@ Layer 9: Advanced Detection     [{{ layer9_coverage | default('--') }}]
 
 ### Audit Process
 
-1. **Initial Assessment** - Review documentation, understand architecture
-2. **Automated Analysis** - Execute multi-layer tool suite
-3. **Manual Review** - Deep dive into flagged code sections
+1. **Initial Assessment** - Parse the target sources and build the analysis scope
+2. **Automated Analysis** - Execute the multi-layer tool suite
+3. **Multi-Tool Analysis** - Automated static, dynamic, and symbolic analysis across the defense-in-depth layers
 4. **AI Correlation** - Cross-reference findings, reduce false positives
-5. **Verification** - Reproduce and validate vulnerabilities
+5. **Corroboration & Filtering** - Cross-tool corroboration, false-positive filtering, and execution-based confirmation where enabled
 6. **Report Generation** - Document findings with remediation guidance
 
 ## 2.4 Limitations
@@ -529,6 +529,8 @@ Review findings marked as "Low" effort for quick security improvements.
 # Disclaimer
 
 This audit report is provided on an "AS IS" basis without warranties of any kind, whether express or implied. The findings and recommendations represent the auditor's professional opinion based on the scope and methodology described.
+
+**This report is the output of automated security tooling (plus optional local-LLM interpretation), not a manual professional audit.** It has not been reviewed or signed off by a human security auditor unless an auditor is explicitly named on the cover and attests to the findings.
 
 **Limitations:**
 - This audit does not guarantee the absence of vulnerabilities
