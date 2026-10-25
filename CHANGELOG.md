@@ -7,6 +7,34 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Security
+
+- **`audit address`: the verified-source payload can no longer steer the build out of the sandbox.**
+  `write_contract_to_dir` used to keep a `foundry.toml` that arrived in a contract's verified
+  source, and the static analyzers honour it, so a payload `foundry.toml` with an `out`/`cache_path`
+  pointing outside the temp directory made `forge build`/`forge clean` write and delete files on a
+  path the contract author chose — confirmed by a planted file outside the sandbox being deleted
+  during an `audit address` run. The writer now drops any `foundry.toml`, `foundry.lock`,
+  `hardhat.config.*`, `truffle-config.*`/`truffle.js` and `remappings.txt` from the payload and
+  always generates the build config itself, with `out`/`cache_path` pinned inside the temp
+  directory. The payload supplies sources only. Not present in any release (post-dates 6.6.0).
+
+### Fixed
+
+- **`audit address`: malformed explorer payloads exit cleanly instead of crashing.** The
+  `SourceCode` parse and result extraction in `fetch_verified_source` now run inside the guard, so
+  a malformed standard-json, a non-list `result` or a non-object `sources` entry raises
+  `BlockExplorerError` (clean `exit 1`) rather than an unhandled traceback.
+- **`audit deep <dir>`: location-less findings are no longer collapsed across files.** The
+  directory dedupe keyed on `(tool, type, file, line)`, which degenerated to one row per
+  `(tool, type)` for every finding without a resolvable location (enriched/LLM-normalized to an
+  empty location) — a recall loss. Such findings are now kept per id, or each when they have none.
+- **`audit deep <dir>`: one unreadable file no longer aborts the whole run.** A file that raises
+  during analysis (e.g. a non-UTF-8 source) is recorded as `{contract, error}`, counted in
+  `metadata.files_failed`, and the remaining files still run, instead of discarding every report
+  already gathered. The last file in a tight time budget also gets at least one second.
+
+
 ### Fixed
 
 - **Revert-invariant reasoning executor: the control probe no longer fails open.** A post-merge

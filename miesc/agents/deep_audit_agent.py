@@ -15,6 +15,7 @@ License: AGPL-3.0
 """
 
 import logging
+import math
 import re
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -361,21 +362,43 @@ class DeepAuditAgent(BaseAgent):
         graph = build_protocol_graph(sol_files)
 
         file_reports: List[Dict[str, Any]] = []
+        failed = 0
         for sol_file in sol_files:
             remaining = self.config.timeout_seconds - (time.monotonic() - start)
             if remaining <= 0:
                 break
-            agent = DeepAuditAgent(config=replace(self.config, timeout_seconds=int(remaining)))
-            file_report = agent.analyze(sol_file)
+            budget = max(1, math.ceil(remaining))
+            agent = DeepAuditAgent(config=replace(self.config, timeout_seconds=budget))
+            try:
+                file_report = agent.analyze(sol_file)
+            except Exception as e:
+                # One unreadable/undecodable file must not abort the whole directory run and
+                # discard every report already gathered.
+                logger.warning(f"Skipping {sol_file}: {e}")
+                failed += 1
+                file_reports.append({"contract": sol_file, "error": str(e), "findings": []})
+                continue
             file_reports.append(file_report)
 
         # Each file's run also reports what it imports (Slither and Aderyn compile the
         # imports), so a base contract imported by n files comes back n times.
         findings: List[Dict[str, Any]] = []
         seen: Set[Tuple[Any, ...]] = set()
-        for finding in (f for r in file_reports for f in r.get("findings", [])):
+        for idx, finding in enumerate(f for r in file_reports for f in r.get("findings", [])):
             loc = finding.get("location") or {}
-            key = (finding.get("tool"), finding.get("type"), loc.get("file"), loc.get("line"))
+            file_name = loc.get("file")
+            if file_name:
+                key: Tuple[Any, ...] = (
+                    finding.get("tool"),
+                    finding.get("type"),
+                    file_name,
+                    loc.get("line"),
+                )
+            else:
+                # A finding with no resolvable location (enriched/LLM-normalized to location {})
+                # must not collapse into one row per (tool, type) across every file: key it on its
+                # own id, or keep it as distinct when it has none.
+                key = ("__noloc__", finding.get("id", idx))
             if key not in seen:
                 seen.add(key)
                 findings.append(finding)
@@ -413,6 +436,7 @@ class DeepAuditAgent(BaseAgent):
             "metadata": {
                 "files_analyzed": len(file_reports),
                 "files_total": len(sol_files),
+                "files_failed": failed,
                 "timed_out": len(file_reports) < len(sol_files),
                 "total_duration_ms": (time.monotonic() - start) * 1000,
             },
