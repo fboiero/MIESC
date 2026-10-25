@@ -26,20 +26,14 @@ V2_BASE_URL = "https://api.etherscan.io/v2/api"
 API_KEY_ENV = "ETHERSCAN_API_KEY"
 ADDRESS_RE = re.compile(r"^0x[0-9a-fA-F]{40}$")
 
-# Build-configuration files are never taken from the payload: they are the deployer's, and the
-# analyzers (crytic-compile/forge) honour a foundry.toml/hardhat.config found walking up from the
-# contract, so a payload one with its own `out`/`cache_path` would steer the build to write and
-# clean outside our temp dir. We always generate the build config ourselves; the payload supplies
-# sources only. Matched case-insensitively by basename, at any depth.
-_CONFIG_BASENAMES = frozenset(
-    {"foundry.toml", "foundry.lock", "truffle-config.js", "truffle.js", "remappings.txt"}
-)
-_CONFIG_RE = re.compile(r"^(hardhat\.config\.[cm]?[jt]s|truffle-config\.[cm]?js)$", re.I)
 
-
-def _is_config_file(rel_path: str) -> bool:
-    base = posixpath.basename(rel_path).lower()
-    return base in _CONFIG_BASENAMES or bool(_CONFIG_RE.match(base))
+# The payload supplies Solidity SOURCES ONLY. Anything else — a foundry.toml, hardhat.config,
+# brownie-config.yaml, waffle.json, a dapp/embark config — is build configuration the analyzers
+# (crytic-compile/forge) auto-detect and honour, so a payload one with its own `out`/`cache_path`
+# would steer the build to write and clean outside our temp dir. We allow-list `.sol` and always
+# generate the build config ourselves, which closes the whole class rather than a known list.
+def _is_source_file(rel_path: str) -> bool:
+    return posixpath.basename(rel_path).lower().endswith(".sol")
 
 
 CHAIN_IDS: Dict[ChainType, int] = {
@@ -169,8 +163,8 @@ def write_contract_to_dir(contract: FetchedContract, target_dir: Path) -> Path:
     prefix = posixpath.commonpath([posixpath.dirname(p) for p in absolute]) if absolute else "/"
     sources = {}
     for rel_path, content in contract.files.items():
-        if _is_config_file(rel_path):
-            continue  # never honour deployer build config; we generate our own below
+        if not _is_source_file(rel_path):
+            continue  # payload is sources only; we generate the build config ourselves below
         if rel_path.startswith("/"):
             rel_path = posixpath.relpath(rel_path, prefix)
         if rel_path.startswith("@"):

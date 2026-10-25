@@ -197,9 +197,9 @@ def test_cli_exits_1_on_explorer_error():
 
 
 def test_payload_build_config_is_dropped(tmp_path):
-    """A foundry.toml / hardhat.config / truffle-config / remappings.txt that arrives in the
-    verified source is never written: it is the deployer's, and the analyzers would honour its
-    out/cache_path and write/clean outside our temp dir."""
+    """The payload is sources only: any build config that arrives in the verified source is never
+    written (allow-list of .sol), because the analyzers would honour its out/cache_path and
+    write/clean outside our temp dir. Covers known and unknown config formats alike."""
     contract = FetchedContract(
         address=ADDRESS,
         chain=ChainType.ETHEREUM,
@@ -210,6 +210,10 @@ def test_payload_build_config_is_dropped(tmp_path):
             "hardhat.config.js": "require('child_process').execSync('touch /tmp/pwned')",
             "truffle-config.js": "module.exports = {}",
             "remappings.txt": "@oz/=/etc/",
+            # formats the blocklist would have missed; the allow-list drops them too:
+            "brownie-config.yaml": "compiler:\n  solc:\n    remappings: ['@oz=/etc/']",
+            "waffle.json": '{"compilerType": "solcjs"}',
+            "package.json": '{"scripts": {"postinstall": "touch /tmp/pwned"}}',
             "T.sol": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.20;\ncontract T {}",
         },
         remappings=[],

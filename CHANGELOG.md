@@ -14,10 +14,11 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   source, and the static analyzers honour it, so a payload `foundry.toml` with an `out`/`cache_path`
   pointing outside the temp directory made `forge build`/`forge clean` write and delete files on a
   path the contract author chose — confirmed by a planted file outside the sandbox being deleted
-  during an `audit address` run. The writer now drops any `foundry.toml`, `foundry.lock`,
-  `hardhat.config.*`, `truffle-config.*`/`truffle.js` and `remappings.txt` from the payload and
-  always generates the build config itself, with `out`/`cache_path` pinned inside the temp
-  directory. The payload supplies sources only. Not present in any release (post-dates 6.6.0).
+  during an `audit address` run. The writer now writes **only `.sol` sources** from the payload
+  (an allow-list) and always generates the build config itself, with `out`/`cache_path` pinned
+  inside the temp directory — closing the whole class, not just `foundry.toml`/`hardhat.config`
+  (crytic-compile also auto-detects `brownie-config.yaml`, `waffle.json`, dapp/embark). The payload
+  supplies sources only. Not present in any release (post-dates 6.6.0).
 
 ### Fixed
 
