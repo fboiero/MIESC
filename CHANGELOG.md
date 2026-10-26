@@ -9,6 +9,15 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Spanish finding descriptions for `-t profesional-es` (curated, deterministic).** The per-finding
+  description now shows a curated Spanish description keyed by the detector's check id (so variants
+  like `weak-prng` vs `weak-randomness` keep their distinction), covering the checks the taxonomy
+  recognizes. The instance specifics are preserved in the Location field and the embedded Vulnerable
+  Code snippet, so nothing technical is lost. An unrecognized check keeps the detector's English text
+  plus a visible note (never a silent language mix). No LLM is used, so the report stays deterministic
+  and its SHA-256 attestation reproducible. Generated PoC exploit code and raw detector text for
+  unrecognized checks remain in English.
+
 - **Spanish report content: `-t profesional-es` now localizes the finding prose and PDF chrome.**
   Building on the `profesional-es` template, the per-finding **impact** and **recommendation**
   prose (from `report.py`'s canonical content dictionaries) is now selected by language, and a
