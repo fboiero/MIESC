@@ -1,0 +1,208 @@
+{
+  "results": [
+    {
+      "tool": "miesc-agentic-profile",
+      "status": "success",
+      "findings": [
+        {
+          "tool": "slither",
+          "type": "centralization-risk",
+          "severity": "Low",
+          "title": "Centralization: owner can set config unilaterally",
+          "message": "owner-only setConfig concentrates trust",
+          "location": {
+            "file": "Governed.sol",
+            "line": 16
+          },
+          "confidence": 0.8
+        },
+        {
+          "tool": "slither",
+          "type": "missing-access-control",
+          "severity": "High",
+          "title": "Missing access control on upgradeTo",
+          "message": "upgrade path relies on a single declared modifier",
+          "location": {
+            "file": "Governed.sol",
+            "line": 26
+          },
+          "confidence": 0.75
+        },
+        {
+          "tool": "slither",
+          "type": "controlled-delegatecall",
+          "severity": "High",
+          "title": "Controlled delegatecall in upgrade path",
+          "message": "delegatecall target derived from caller input",
+          "location": {
+            "file": "Governed.sol",
+            "line": 26
+          },
+          "confidence": 0.75
+        },
+        {
+          "tool": "slither",
+          "type": "reentrancy-eth",
+          "severity": "Medium",
+          "title": "Reentrancy in withdraw",
+          "message": "state write after external call",
+          "location": {
+            "file": "Governed.sol",
+            "line": 10
+          },
+          "confidence": 0.6
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "CRITICAL": 0,
+    "HIGH": 2,
+    "MEDIUM": 1,
+    "LOW": 1,
+    "INFO": 0,
+    "total": 4
+  },
+  "version": "phase3-fixture",
+  "advisory_plans": {
+    "enabled": true,
+    "count": 1,
+    "capabilities": {
+      "revert_invariants": {
+        "count": 0,
+        "plans": [],
+        "oracle_plans": [],
+        "harnesses": []
+      },
+      "privileged_governance": {
+        "count": 1,
+        "plans": [
+          {
+            "id": "gov-Governed.sol",
+            "objective": "Authority graph for Governed.sol (5 privileged actors/roles)",
+            "authority_graph": {
+              "actors": [
+                {
+                  "id": "owner",
+                  "kind": "owner",
+                  "source": "modifier",
+                  "source_anchors": [
+                    "Governed.sol:15",
+                    "Governed.sol:19"
+                  ]
+                },
+                {
+                  "id": "upgrader",
+                  "kind": "upgrader",
+                  "source": "modifier",
+                  "source_anchors": [
+                    "Governed.sol:27"
+                  ]
+                }
+              ],
+              "roles": [
+                {
+                  "name": "DEFAULT_ADMIN_ROLE",
+                  "admin_role": "",
+                  "grant_functions": [],
+                  "revoke_functions": []
+                },
+                {
+                  "name": "MINTER_ROLE",
+                  "admin_role": "",
+                  "grant_functions": [
+                    "grantMinter"
+                  ],
+                  "revoke_functions": [
+                    "revokeMinter"
+                  ]
+                },
+                {
+                  "name": "PAUSER_ROLE",
+                  "admin_role": "",
+                  "grant_functions": [],
+                  "revoke_functions": []
+                }
+              ],
+              "edges": [
+                {
+                  "source": "PAUSER_ROLE",
+                  "target": "pause",
+                  "relation": "guards",
+                  "evidence": [
+                    "onlyRole(PAUSER_ROLE)"
+                  ]
+                },
+                {
+                  "source": "owner",
+                  "target": "setConfig",
+                  "relation": "guards",
+                  "evidence": [
+                    "onlyOwner"
+                  ]
+                },
+                {
+                  "source": "owner",
+                  "target": "grantMinter",
+                  "relation": "guards",
+                  "evidence": [
+                    "onlyOwner"
+                  ]
+                },
+                {
+                  "source": "grantMinter",
+                  "target": "MINTER_ROLE",
+                  "relation": "grants",
+                  "evidence": [
+                    "grantRole"
+                  ]
+                },
+                {
+                  "source": "DEFAULT_ADMIN_ROLE",
+                  "target": "revokeMinter",
+                  "relation": "guards",
+                  "evidence": [
+                    "onlyRole(DEFAULT_ADMIN_ROLE)"
+                  ]
+                },
+                {
+                  "source": "revokeMinter",
+                  "target": "MINTER_ROLE",
+                  "relation": "revokes",
+                  "evidence": [
+                    "revokeRole"
+                  ]
+                },
+                {
+                  "source": "upgrader",
+                  "target": "upgradeTo",
+                  "relation": "guards",
+                  "evidence": [
+                    "onlyUpgrader"
+                  ]
+                }
+              ]
+            },
+            "promotion": {
+              "state": "hypothesis",
+              "evidence": [],
+              "blockers": []
+            },
+            "metadata": {
+              "capability": "privileged_governance_lifecycle_hardening",
+              "schema_version": "1"
+            }
+          }
+        ]
+      },
+      "resource_liveness_griefing": {
+        "count": 0,
+        "plans": []
+      },
+      "lending_solvency_liquidation": {
+        "count": 0,
+        "plans": []
+      }
+    }
+  }
+}

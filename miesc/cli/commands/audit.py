@@ -44,6 +44,7 @@ from miesc.cli.utils import (
     summarize_tool_statuses,
     warning,
 )
+from miesc.core.advisory_plans_io import ADVISORY_PLANS_KEY, hoist_advisory_plans
 from miesc.core.provenance import build_provenance
 
 # Import Rich components if available
@@ -140,6 +141,14 @@ def _run_agentic_audit_profile(
                 "summary": summary,
                 "version": VERSION,
             }
+            # Phase 3: hoist the deterministic advisory-plan inventory (privileged
+            # governance et al.) to a stable top-level key so the premium report can
+            # render §4.5 without reaching into the nested ``result.phases`` shape.
+            # Present only when the agent ran with ``enable_advisory_plans``; omitted
+            # entirely otherwise, so the default-path output is unchanged.
+            advisory_plans_block = hoist_advisory_plans(result)
+            if advisory_plans_block is not None:
+                data[ADVISORY_PLANS_KEY] = advisory_plans_block
         mode = "w"
         with open(output, mode, encoding="utf-8") as f:
             if fmt == "markdown":

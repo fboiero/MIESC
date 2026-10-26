@@ -7,6 +7,28 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **`miesc report -t premium` Phase 3 — §4.5 "Trust Model & Privileged Roles".** A new,
+  additive, honest section surfacing privileged authority. It is an **advisory static model**,
+  not a verified governance audit — a role is a trust *assumption*, never a finding, so it
+  changes no §1/§4 count and no risk score. Three pieces:
+  - **Writer** (`audit.py` agentic-profile output): the deterministic advisory-plan inventory
+    that `DeepAuditAgent` already builds under `report["phases"]["advisory_plans"]` (only when
+    `enable_advisory_plans` is set) is now hoisted to a stable top-level `advisory_plans` key in
+    the results JSON. The key is omitted entirely on the default path, so flag-off output is
+    structurally unchanged; a new `miesc/core/advisory_plans_io.py` owns the key plus the
+    write-side and read-side accessors so the two cannot drift.
+  - **Reader + renderer** (`report.py`, `premium.md`, `profesional.md`): §4.5(a) renders the
+    privileged actors/roles with their guarded/granted/revoked functions and source anchors,
+    labelled advisory ("identified by static extraction"), distinguishing "not extracted" (key
+    absent) from "extraction found nothing" (ran, empty); §4.5(b) cross-references existing
+    findings whose canonical category is access control, centralization, or proxy/upgrade, by
+    F-id and severity — a findings-based floor that works even for directory audits.
+  - Mandatory custody and completeness disclaimers (did not verify key custody or off-chain
+    governance; may miss inherited/proxied/assembly-level authority), neutral tone, and a
+    banned-word gate (no "verified"/"confirmed"/"exhaustive"/"proven" in the section).
+
 ### Changed
 
 - **Execution-verified pause/freshness findings are now High severity.** A revert-invariant
