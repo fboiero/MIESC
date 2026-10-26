@@ -177,6 +177,19 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
     rendered as findings, so §1/§4 counts and the risk score are byte-identical on the static
     sample.
 
+### Fixed
+
+- **`miesc audit batch --resume` could mix two runs or crash on a malformed checkpoint.** The
+  checkpoint now records a format `version`, the resolved source path, `--pattern` and
+  `--recursive`, and `--resume` refuses one made for another directory instead of merging both
+  trees into the report (and inflating `total_findings`). A checkpoint that parses as JSON but has
+  another shape is reported as unreadable instead of raising `KeyError`. Done contracts are kept as
+  resolved paths, so resuming from another working directory no longer re-audits and duplicates
+  them. Also: a warning when `--checkpoint` without `--resume` overwrites an existing file, a
+  per-process temp file, and a failed checkpoint write no longer aborts the batch. The Peculiar
+  regression test now times a body-less signature, the case where the old pattern blew up.
+  Follow-up to the #247 review. Contributed by @alva-p.
+
 ## [6.8.0] - 2026-10-25 — Audit batch checkpoint/resume, linear Peculiar parsing, test-suite hardening
 
 Minor release. Adds crash-safe checkpoint/resume to `miesc audit batch` and fixes a
