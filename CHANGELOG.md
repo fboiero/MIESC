@@ -9,6 +9,14 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Spanish report content: `-t profesional-es` now localizes the finding prose and PDF chrome.**
+  Building on the `profesional-es` template, the per-finding **impact** and **recommendation**
+  prose (from `report.py`'s canonical content dictionaries) is now selected by language, and a
+  Spanish stylesheet `profesional-es.css` supplies the Spanish PDF running header/footer
+  ("CONFIDENCIAL — Auditoría…", "Página N de M") with `<html lang="es">`. The Spanish text lives
+  in a separate code path, so the English templates (`profesional`/`premium`) are byte-for-byte
+  unchanged, and finding counts and the risk score are identical across languages. Detector-emitted
+  finding descriptions remain in the tool's own language (upstream output).
 - **Spanish report template `profesional-es`.** `miesc report -t profesional-es` renders the
   premium/profesional report with its static scaffolding in Spanish — headings, table labels,
   methodology, the §4.4 invariant / §4.5 trust-model / §4.6 fuzzing section prose, disclaimers

@@ -290,15 +290,65 @@ _CANONICAL_KEYWORD = {
 }
 
 
+# Spanish mirrors of the impact prose, selected when the report template is a
+# ``*-es`` variant. Kept as a separate path so the English text above stays
+# byte-for-byte unchanged (no regression risk for the English templates).
+_CANONICAL_IMPACTS_ES: Dict[CanonicalCategory, str] = {
+    CanonicalCategory.PROXY_UPGRADE: "Un delegatecall sin verificar o una falla de proxy actualizable permite a un atacante ejecutar código arbitrario en el contexto de almacenamiento del contrato, sobrescribiendo estado crítico (owner, dirección de implementación) y tomando el control total del contrato y sus fondos.",
+    CanonicalCategory.CENTRALIZATION: "Una única cuenta privilegiada (owner/admin) puede realizar operaciones sensibles de forma unilateral. Si esa llave se compromete o actúa de forma maliciosa, puede drenar fondos, congelar el contrato o alterar parámetros críticos, concentrando la confianza en una sola parte.",
+    CanonicalCategory.SIGNATURE_VERIFICATION: "Un manejo defectuoso de firmas (maleabilidad, falta de chequeos de dirección cero o de nonce) permite a un atacante falsificar o reutilizar mensajes firmados, eludiendo la autorización o gastando dos veces aprobaciones firmadas.",
+    CanonicalCategory.TIME_MANIPULATION: "Depender de block.timestamp/block.number para lógica crítica permite a los mineros/validadores ajustar esos valores dentro de los límites del consenso, sesgando comportamientos dependientes del tiempo como deadlines, vesting o subastas.",
+    CanonicalCategory.DENIAL_OF_SERVICE: "Un atacante puede hacer que una función crítica revierta permanentemente o agote el gas (p. ej., bucles sin cota, llamadas externas que fallan dentro de un bucle), bloqueando fondos o impidiendo que usuarios legítimos interactúen con el contrato.",
+    CanonicalCategory.INPUT_VALIDATION: "La falta de validación de las entradas de las funciones (rangos, direcciones cero, longitudes de arreglos) puede dejar al contrato en un estado inconsistente o enviar fondos a destinos no deseados.",
+}
+
+_CATEGORY_IMPACTS_ES: Dict[str, str] = {
+    "reentrancy": "Un atacante puede llamar recursivamente a la función vulnerable antes de que se completen las actualizaciones de estado, drenando los fondos del contrato en una sola transacción. Es una de las clases de vulnerabilidad más explotadas en DeFi (p. ej., el hackeo de The DAO, US$60M perdidos).",
+    "selfdestruct": "Un selfdestruct sin protección permite a cualquier llamante destruir permanentemente el contrato y redirigir todo el ETH restante a una dirección arbitraria. Tras EIP-6780 (upgrade Dencun), selfdestruct solo envía ETH sin destruir el almacenamiento, pero el riesgo de pérdida de fondos persiste.",
+    "uninitialized state": "Las variables de estado sin inicializar toman valores cero por defecto, lo que para los tipos address significa address(0). Los fondos enviados a direcciones sin inicializar se pierden de forma permanente. Para banderas booleanas, sin inicializar significa false, pudiendo eludir controles de acceso.",
+    "unchecked send": "Las llamadas de bajo nivel (send, call) pueden fallar silenciosamente sin revertir la transacción. Si no se verifica el valor de retorno, el estado del contrato avanza como si la transferencia hubiera tenido éxito, generando inconsistencias contables y potencial pérdida de fondos.",
+    "weak randomness": "Usar block.timestamp, block.number o blockhash como fuente de aleatoriedad es predecible para mineros/validadores. Un atacante puede manipular o predecir estos valores para ganar loterías de forma consistente, eludir chequeos aleatorios o hacer front-running de lógica dependiente del azar.",
+    "tx origin": "Usar tx.origin para autenticación habilita ataques de phishing: si el owner del contrato interactúa con un contrato malicioso, ese contrato puede llamar a la función vulnerable y pasar el chequeo de tx.origin. Use siempre msg.sender para autenticación.",
+    "access control": "Un control de acceso ausente o incorrecto permite a usuarios no autorizados ejecutar funciones privilegiadas como acuñar tokens, modificar estado, transferir la propiedad o retirar fondos.",
+    "integer overflow": "El desbordamiento aritmético (overflow/underflow) puede hacer que los balances se envuelvan, permitiendo a los atacantes acuñar tokens o manipular la contabilidad. Solidity 0.8+ tiene protección incorporada contra overflow, pero los bloques unchecked y el ensamblador la eluden.",
+    "front running": "Las transacciones pendientes en el mempool son visibles para cualquiera. Un atacante puede observar una transacción rentable y enviar la suya con mayor gas para que se ejecute primero, extrayendo valor (ataques sándwich, arbitraje en DEX).",
+    "oracle": "La manipulación del oráculo de precios permite a los atacantes distorsionar los precios de activos que usa el protocolo, habilitando exploits como ataques de préstamo flash que drenan pools de préstamo o manipulan los ratios de colateral.",
+    "flash loan": "Los ataques de préstamo flash permiten tomar prestado capital ilimitado sin colateral dentro de una sola transacción. Combinados con otras vulnerabilidades (manipulación de oráculo, reentrada), habilitan un drenaje catastrófico de fondos.",
+}
+
+_SEVERITY_IMPACTS_ES: Dict[str, str] = {
+    "critical": "Pérdida total de fondos o toma de control del contrato posible. Riesgo de explotación inmediato con alta probabilidad de explotación activa.",
+    "high": "Pérdida financiera significativa o compromiso del contrato posible. La explotación requiere esfuerzo moderado pero el impacto es severo.",
+    "medium": "Impacto financiero limitado o requiere condiciones previas específicas para explotarse. Debería atenderse antes del despliegue en mainnet.",
+    "low": "Impacto menor en la funcionalidad del contrato, la eficiencia de gas o la calidad del código. Bajo riesgo pero recomendable corregir por buenas prácticas.",
+    "info": "Hallazgo informativo para mejorar la calidad del código. Sin impacto de seguridad directo.",
+}
+
+
 def _get_impact_description(
-    severity: str, category: str = "", canonical: CanonicalCategory | None = None
+    severity: str,
+    category: str = "",
+    canonical: CanonicalCategory | None = None,
+    lang: str = "en",
 ) -> str:
     """Get impact description based on canonical category, then severity.
 
     ``canonical`` (from :func:`normalize_finding_type`) is consulted first so the
     description matches the normalized category. ``category`` and ``severity``
     remain as fallbacks for hygiene detectors and the uncategorized case.
+    ``lang="es"`` selects the Spanish prose (for ``*-es`` templates).
     """
+    if lang == "es":
+        if canonical is not None and canonical is not CanonicalCategory.OTHER:
+            canon_text = _CANONICAL_IMPACTS_ES.get(canonical)
+            if canon_text:
+                return canon_text
+            category = _CANONICAL_KEYWORD.get(canonical, canonical.value)
+        cat = category.lower().replace("-", " ").replace("_", " ") if category else ""
+        for key, desc in _CATEGORY_IMPACTS_ES.items():
+            if key in cat:
+                return desc
+        return _SEVERITY_IMPACTS_ES.get(severity, "Evaluación de impacto pendiente.")
     if canonical is not None and canonical is not CanonicalCategory.OTHER:
         canon_text = _CANONICAL_IMPACTS.get(canonical)
         if canon_text:
@@ -347,14 +397,59 @@ _CANONICAL_RECOMMENDATIONS: Dict[CanonicalCategory, str] = {
 }
 
 
+# Spanish mirrors of the recommendation prose (for ``*-es`` templates). Separate
+# path so the English text above is byte-for-byte unchanged.
+_CANONICAL_RECOMMENDATIONS_ES: Dict[CanonicalCategory, str] = {
+    CanonicalCategory.PROXY_UPGRADE: "Valide y mantenga en allow-list los destinos de delegatecall; nunca los derive de entradas no confiables. Para contratos actualizables use los proxies UUPS/Transparent de OpenZeppelin con un storage gap y restrinja la autorización de actualización detrás de un timelock o multisig.",
+    CanonicalCategory.CENTRALIZATION: "Reduzca la confianza en una sola llave: mueva las operaciones privilegiadas detrás de un multisig y/o timelock, separe roles con AccessControl de OpenZeppelin y emita eventos en cada acción privilegiada para que los cambios sean auditables.",
+    CanonicalCategory.SIGNATURE_VERIFICATION: "Use ECDSA de OpenZeppelin (que rechaza firmas maleables), incluya un nonce por firmante y un separador de dominio (EIP-712), y rechace la dirección cero que ecrecover devuelve ante entradas malformadas.",
+    CanonicalCategory.TIME_MANIPULATION: "Evite usar block.timestamp/block.number como reloj preciso o fuente de entropía. Amplíe las tolerancias, use rangos de número de bloque donde corresponda y obtenga aleatoriedad de Chainlink VRF.",
+    CanonicalCategory.DENIAL_OF_SERVICE: "Prefiera el patrón pull sobre push para pagos, acote todos los bucles y nunca permita que el fallo de una sola llamada externa revierta un lote. Aísle las llamadas no confiables y limite el gas donde corresponda.",
+    CanonicalCategory.INPUT_VALIDATION: "Valide todas las entradas externas con chequeos require(): direcciones no cero, rangos numéricos razonables y longitudes de arreglos coincidentes antes de mutar estado o transferir fondos.",
+}
+
+_RECOMMENDATIONS_ES: Dict[str, str] = {
+    "reentrancy": "Aplique el patrón Checks-Effects-Interactions: verifique condiciones, actualice el estado y luego haga las llamadas externas. Considere usar el modificador ReentrancyGuard de OpenZeppelin.",
+    "selfdestruct": "Elimine selfdestruct por completo (obsoleto desde Solidity 0.8.24). Si necesita limpieza del contrato, implemente un patrón de migración con control de acceso adecuado.",
+    "uninitialized state": "Inicialice explícitamente todas las variables de estado en el constructor o en la declaración. Use chequeos require() para asegurar que las direcciones sean no cero antes de transferir fondos.",
+    "unchecked send": "Verifique siempre el valor de retorno de las llamadas de bajo nivel. Use Address.sendValue() de OpenZeppelin o SafeERC20 para transferencias de tokens, que manejan los fallos automáticamente.",
+    "weak randomness": "Use Chainlink VRF o un esquema commit-reveal para aleatoriedad criptográficamente segura. Nunca use block.timestamp, block.number o blockhash como fuentes de entropía.",
+    "tx origin": "Reemplace tx.origin por msg.sender en todos los chequeos de autenticación. tx.origin solo debería usarse para verificar que el llamante es una EOA (no un contrato), nunca para autorización.",
+    "access control": "Implemente control de acceso basado en roles usando AccessControl u Ownable2Step de OpenZeppelin. Use chequeos con modificadores y emita eventos en todas las operaciones privilegiadas.",
+    "unspecific solidity pragma": "Fije la versión de Solidity a un release específico (p. ej., pragma solidity 0.8.20;) en lugar de un rango (^0.8.0). Esto garantiza una compilación consistente y evita comportamientos inesperados por actualizaciones del compilador.",
+    "zero address check": "Agregue validación require(addr != address(0)) para todos los parámetros de dirección en funciones que asignan variables de estado o transfieren fondos.",
+    "unindexed events": "Agregue la palabra clave indexed a los parámetros de evento que se usarán para filtrar (típicamente direcciones e IDs). Cada evento puede tener hasta 3 parámetros indexados.",
+    "unsafe erc20": "Use la librería SafeERC20 de OpenZeppelin, que maneja implementaciones de ERC20 no estándar (tokens que no devuelven bool en transfer).",
+    "push zero opcode": "Configure el target del compilador de Solidity a >= 0.8.20 para aprovechar el opcode PUSH0 (EIP-3855), que ahorra gas en el despliegue del contrato.",
+    "solc version": "Actualice a una versión estable reciente de Solidity (0.8.20+) para obtener las últimas correcciones de seguridad, optimizaciones de gas y características del lenguaje.",
+}
+
+_GENERIC_RECOMMENDATION_ES = "Revise y corrija según las buenas prácticas de seguridad de contratos inteligentes. Consulte el Registro SWC para una guía de remediación detallada."
+
+
 def _get_recommendation(
-    category: str, severity: str = "", canonical: CanonicalCategory | None = None
+    category: str,
+    severity: str = "",
+    canonical: CanonicalCategory | None = None,
+    lang: str = "en",
 ) -> str:
     """Get specific recommendation based on canonical category.
 
     ``canonical`` (from :func:`normalize_finding_type`) is consulted first, then
     the legacy keyword table, then a generic best-practice recommendation.
+    ``lang="es"`` selects the Spanish prose (for ``*-es`` templates).
     """
+    if lang == "es":
+        if canonical is not None and canonical is not CanonicalCategory.OTHER:
+            canon_text = _CANONICAL_RECOMMENDATIONS_ES.get(canonical)
+            if canon_text:
+                return canon_text
+            category = _CANONICAL_KEYWORD.get(canonical, canonical.value)
+        cat = category.lower().replace("-", " ").replace("_", " ") if category else ""
+        for key, rec in _RECOMMENDATIONS_ES.items():
+            if key in cat:
+                return rec
+        return _GENERIC_RECOMMENDATION_ES
     if canonical is not None and canonical is not CanonicalCategory.OTHER:
         canon_text = _CANONICAL_RECOMMENDATIONS.get(canonical)
         if canon_text:
@@ -897,8 +992,18 @@ def _simple_render_template(template: str, variables: dict[str, Any]) -> str:
     return output
 
 
-def _markdown_to_html(markdown: str, title: str, use_premium_css: bool = True) -> str:
-    """Convert markdown to HTML with professional styling."""
+def _markdown_to_html(
+    markdown: str,
+    title: str,
+    use_premium_css: bool = True,
+    css_name: str = "profesional.css",
+    html_lang: str = "en",
+) -> str:
+    """Convert markdown to HTML with professional styling.
+
+    ``css_name`` selects the stylesheet (``profesional-es.css`` carries the
+    Spanish running header/footer); ``html_lang`` sets the ``<html lang>``.
+    """
     try:
         import markdown as md  # type: ignore[import-untyped]
 
@@ -910,7 +1015,9 @@ def _markdown_to_html(markdown: str, title: str, use_premium_css: bool = True) -
     # Try to load premium CSS
     css_content = ""
     if use_premium_css:
-        css_path = ROOT_DIR / "docs" / "templates" / "reports" / "profesional.css"
+        css_path = ROOT_DIR / "docs" / "templates" / "reports" / css_name
+        if not css_path.exists():
+            css_path = ROOT_DIR / "docs" / "templates" / "reports" / "profesional.css"
         if css_path.exists():
             css_content = css_path.read_text(encoding="utf-8")
 
@@ -935,7 +1042,7 @@ def _markdown_to_html(markdown: str, title: str, use_premium_css: bool = True) -
     html_body = _enhance_html_severity(html_body)
 
     return f"""<!DOCTYPE html>
-<html lang="en">
+<html lang="{html_lang}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -2583,7 +2690,10 @@ def report(
                 "description": finding.get("description", finding.get("message", "")),
                 "recommendation": (
                     _get_recommendation(
-                        category, severity_lower, canonical=finding.get("_canonical")
+                        category,
+                        severity_lower,
+                        canonical=finding.get("_canonical"),
+                        lang=("es" if template.endswith("-es") else "en"),
                     )
                     if not finding.get("recommendation")
                     or finding.get("recommendation", "").startswith("Review and fix")
@@ -2593,7 +2703,10 @@ def report(
                 "status": status_display,
                 "impact": (
                     _get_impact_description(
-                        severity_lower, category, canonical=finding.get("_canonical")
+                        severity_lower,
+                        category,
+                        canonical=finding.get("_canonical"),
+                        lang=("es" if template.endswith("-es") else "en"),
                     )
                     if not finding.get("impact")
                     or finding.get("impact", "").startswith("Significant financial")
@@ -2703,15 +2816,31 @@ def report(
     # Simple template rendering (basic variable substitution)
     output_content = _render_template(template_content, variables)
 
+    # Spanish ``*-es`` templates get the Spanish stylesheet (Spanish running
+    # header/footer) and <html lang="es">; everything else stays English.
+    _is_es = template.endswith("-es")
+    report_css_name = "profesional-es.css" if _is_es else "profesional.css"
+    report_html_lang = "es" if _is_es else "en"
+
     # Handle output
     if output:
         output_path = Path(output)
 
         if output_format == "html":
-            output_content = _markdown_to_html(output_content, title or "MIESC Security Report")
+            output_content = _markdown_to_html(
+                output_content,
+                title or "MIESC Security Report",
+                css_name=report_css_name,
+                html_lang=report_html_lang,
+            )
         elif output_format == "pdf":
             # Generate PDF from HTML using weasyprint (preferred) or pandoc fallback
-            html_content = _markdown_to_html(output_content, title or "MIESC Security Report")
+            html_content = _markdown_to_html(
+                output_content,
+                title or "MIESC Security Report",
+                css_name=report_css_name,
+                html_lang=report_html_lang,
+            )
             pdf_generated = False
             pdf_degraded_to_html = False
 
@@ -2723,8 +2852,10 @@ def report(
                 info("Generating PDF with WeasyPrint...")
                 font_config = FontConfiguration()
 
-                # Load premium CSS if available
-                css_path = ROOT_DIR / "docs" / "templates" / "reports" / "profesional.css"
+                # Load premium CSS if available (Spanish variant for *-es templates)
+                css_path = ROOT_DIR / "docs" / "templates" / "reports" / report_css_name
+                if not css_path.exists():
+                    css_path = ROOT_DIR / "docs" / "templates" / "reports" / "profesional.css"
                 if css_path.exists():
                     css_content = css_path.read_text(encoding="utf-8")
                     css = CSS(string=css_content, font_config=font_config)
