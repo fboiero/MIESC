@@ -1,0 +1,132 @@
+MIESC Test Suite Evidence
+=========================
+
+Date: 2026-05-14 23:30:15 -03; focused revalidation: 2026-05-16
+Version: 5.4.2
+Workspace: /Users/fboiero/Documents/GitHub/MIESC
+
+Primary regression command
+--------------------------
+
+.venv/bin/python -m pytest
+
+Result
+------
+
+5967 passed, 8 skipped, 5992 warnings in 243.26s (0:04:03)
+
+Environment
+-----------
+
+platform darwin -- Python 3.14.4, pytest-9.0.3, pluggy-1.6.0
+rootdir: /Users/fboiero/Documents/GitHub/MIESC
+configfile: pyproject.toml
+testpaths: tests
+plugins: cov-7.1.0, asyncio-1.3.0, anyio-4.13.0
+
+Focused public-surface regression
+---------------------------------
+
+.venv/bin/python -m pytest \
+  tests/test_rest_api.py \
+  tests/test_mcp_server.py \
+  tests/test_distribution_contents.py \
+  tests/test_openapi_contract.py
+
+Result:
+
+70 passed, 3 warnings in 20.70s
+
+Focused public-surface plus paper artifacts
+-------------------------------------------
+
+.venv/bin/python -m pytest \
+  tests/test_rest_api.py \
+  tests/test_mcp_server.py \
+  tests/test_distribution_contents.py \
+  tests/test_openapi_contract.py \
+  tests/test_generate_paper1_artifacts.py \
+  tests/test_generate_paper2_artifacts.py
+
+Result:
+
+72 passed, 3 warnings in 23.47s
+
+Known contract smoke
+--------------------
+
+Contract: tests/fixtures/reentrancy.sol
+
+CLI scan:
+- Command: miesc scan tests/fixtures/reentrancy.sol --fp-strictness off --verbose
+- Result: success
+- Findings: 8 total; 2 HIGH, 3 MEDIUM, 3 INFO
+- First high finding: reentrancy-eth, tool slither, confidence 0.978, line 27
+
+CLI CI mode:
+- Command: miesc scan tests/fixtures/reentrancy.sol --ci --quiet --fp-strictness off
+- Result: exit code 1, expected because HIGH findings are present
+
+REST API:
+- Endpoint: /api/v1/health/
+- Result: HTTP 200, status healthy, version 5.4.2
+- Endpoint: /api/v1/analyze/tool/slither/
+- Result: HTTP 200, tool slither, status success, 5 findings
+
+MCP:
+- Tool: miesc_quick_scan
+- Result: success
+- Findings: 10 total
+- Severity counts: Critical 0, High 1, Medium 0, Low 6, Info 3
+- Tools succeeded: 6
+
+Package checks
+--------------
+
+.venv/bin/python -m build
+
+Result:
+
+Successfully built miesc-5.4.2.tar.gz and miesc-5.4.2-py3-none-any.whl
+Revalidated: 2026-05-16
+
+.venv/bin/python -m twine check dist/miesc-5.4.2-py3-none-any.whl dist/miesc-5.4.2.tar.gz
+
+Result:
+
+Checking dist/miesc-5.4.2-py3-none-any.whl: PASSED
+Checking dist/miesc-5.4.2.tar.gz: PASSED
+Revalidated: 2026-05-16
+
+.venv/bin/python scripts/check_distribution_contents.py dist
+
+Result:
+
+Checking distribution contents: dist/miesc-5.4.2-py3-none-any.whl
+Checking distribution contents: dist/miesc-5.4.2.tar.gz
+
+No blocked platform, Streamlit, IDE, dashboard, licensing, or test package
+contents were found in the wheel or source distribution.
+Revalidated: 2026-05-16
+
+Package metadata:
+- Wheel/sdist expose `Provides-Extra: api`
+- Wheel/sdist do not expose `Provides-Extra: web`
+- Wheel/sdist do not require Streamlit
+- Wheel/sdist metadata inspected directly after rebuild: `api=True`, `web=False`, Streamlit requirements `0`
+
+Wheel smoke:
+- Command: PYTHONPATH=dist/miesc-5.4.2-py3-none-any.whl python -m miesc --version
+- Result: MIESC version 5.4.2
+- Command: PYTHONPATH=dist/miesc-5.4.2-py3-none-any.whl python -m miesc audit quick tests/fixtures/reentrancy.sol -f json
+- Result: success; 8 findings; 2 HIGH, 3 MEDIUM, 3 INFO; revalidated post-build 2026-05-16
+- Tools/results: slither, aderyn, solhint, miesc-intelligence
+
+Additional checks
+-----------------
+
+git diff --check
+
+Result:
+
+PASS

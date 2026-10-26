@@ -1,0 +1,2 @@
+$ miesc --version
+miesc, version 4.0.0
