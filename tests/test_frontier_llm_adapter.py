@@ -218,3 +218,18 @@ class TestOllamaContextWindow:
         with patch.dict("os.environ", {"MIESC_OLLAMA_NUM_CTX": "16000"}, clear=True):
             body = self._captured_body(a)
         assert body["options"]["num_ctx"] == 16000
+
+    def test_num_ctx_non_integer_falls_back(self):
+        # A malformed value (e.g. "32k") must not abort the analysis mid-request;
+        # it falls back to the default so _analyze_ollama still runs.
+        a = FrontierLLMAdapter(provider="ollama")
+        with patch.dict("os.environ", {"MIESC_OLLAMA_NUM_CTX": "32k"}, clear=True):
+            body = self._captured_body(a)
+        assert body["options"]["num_ctx"] == 32768
+
+    def test_seed_non_integer_falls_back(self):
+        # Same guard for the adjacent seed read in the /api/chat options.
+        a = FrontierLLMAdapter(provider="ollama")
+        with patch.dict("os.environ", {"MIESC_LLM_SEED": "not-a-number"}, clear=True):
+            body = self._captured_body(a)
+        assert body["options"]["seed"] == 42

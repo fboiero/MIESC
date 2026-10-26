@@ -53,6 +53,23 @@ from miesc.llm.json_extraction import extract_llm_json
 logger = logging.getLogger(__name__)
 
 
+def _env_int(name: str, default: int) -> int:
+    """Read an integer from the environment, falling back to ``default``.
+
+    A malformed value (e.g. ``MIESC_OLLAMA_NUM_CTX=32k``) logs a warning and
+    uses the default instead of raising ``ValueError`` mid-request and aborting
+    the analysis.
+    """
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    try:
+        return int(raw)
+    except ValueError:
+        logger.warning("Ignoring non-integer %s=%r; using default %d", name, raw, default)
+        return default
+
+
 # ---------------------------------------------------------------------------
 # Tool-use conversational surface (additive) — provider-neutral spec + result
 #
@@ -1323,12 +1340,12 @@ Respond with a JSON array."""
             token_param["max_tokens"] = 32768
             # Determinism: temperature 0 + fixed seed so repeated runs match.
             extra["temperature"] = 0.0
-            extra["seed"] = int(os.environ.get("MIESC_LLM_SEED", "42"))
+            extra["seed"] = _env_int("MIESC_LLM_SEED", 42)
         else:
             token_param["max_tokens"] = 8192
             # Determinism: temperature 0 + fixed seed so repeated runs match.
             extra["temperature"] = 0.0
-            extra["seed"] = int(os.environ.get("MIESC_LLM_SEED", "42"))
+            extra["seed"] = _env_int("MIESC_LLM_SEED", 42)
 
         logger.info(
             "FrontierLLM: Starting tool-use conversation with %s " "(%d tools, max_iterations=%d)",
@@ -1496,12 +1513,12 @@ Respond with a JSON array."""
             token_param["max_tokens"] = 32768
             # Determinism: temperature 0 + fixed seed so repeated runs match.
             extra["temperature"] = 0.0
-            extra["seed"] = int(os.environ.get("MIESC_LLM_SEED", "42"))
+            extra["seed"] = _env_int("MIESC_LLM_SEED", 42)
         else:
             token_param["max_tokens"] = 8192
             # Determinism: temperature 0 + fixed seed so repeated runs match.
             extra["temperature"] = 0.0
-            extra["seed"] = int(os.environ.get("MIESC_LLM_SEED", "42"))
+            extra["seed"] = _env_int("MIESC_LLM_SEED", 42)
 
         response = client.chat.completions.create(
             model=model,
@@ -1627,12 +1644,12 @@ Respond with a JSON array."""
             "stream": False,
             "options": {
                 "temperature": 0,
-                "seed": int(os.environ.get("MIESC_LLM_SEED", "42")),
+                "seed": _env_int("MIESC_LLM_SEED", 42),
                 "num_predict": 4096,
                 # Ollama's per-request context defaults to 4096 tokens, which
                 # silently truncates contracts larger than ~12 KB. Set it so the
                 # full source reaches the model (32B models have ~32K context).
-                "num_ctx": int(os.environ.get("MIESC_OLLAMA_NUM_CTX", "32768")),
+                "num_ctx": _env_int("MIESC_OLLAMA_NUM_CTX", 32768),
             },
         }
         if ollama_format_json_default():
