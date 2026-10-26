@@ -23,6 +23,7 @@ The writer (``hoist_advisory_plans``) and the reader (``read_governance_plans``)
 one module so the persisted key cannot drift from the consumed key.
 """
 
+import importlib
 import json
 import re
 from pathlib import Path
@@ -32,6 +33,7 @@ from click.testing import CliRunner
 
 import miesc
 from miesc.agents.deep_audit_agent import DeepAuditAgent, DeepAuditConfig
+from miesc.cli.commands.audit import audit_profile
 from miesc.cli.commands.report import report
 from miesc.core.advisory_plans_io import (
     ADVISORY_PLANS_KEY,
@@ -257,3 +259,60 @@ def test_fixture_inventory_does_not_change_counts_or_score(tmp_path):
         ]
 
     assert _digest(with_key) == _digest(without_key)
+
+
+# ---------------------------------------------------------------------------
+# Writer branch (audit.py) — the key is emitted when the phase ran, omitted
+# otherwise, and the default-path key set is structurally unchanged.
+# ---------------------------------------------------------------------------
+
+
+def _run_agentic_profile(monkeypatch, tmp_path, analyze_return) -> dict:
+    """Invoke the real agentic-profile writer with a mocked agent, return the JSON."""
+    contract = tmp_path / "Vault.sol"
+    contract.write_text("pragma solidity ^0.8.20; contract Vault {}")
+    output = tmp_path / "report.json"
+
+    class FakeAgent:
+        def __init__(self, config):
+            pass
+
+        def analyze(self, contract_path):
+            return analyze_return
+
+    audit_module = importlib.import_module("miesc.cli.commands.audit")
+    monkeypatch.setattr("miesc.agents.deep_audit_agent.DeepAuditAgent", FakeAgent)
+    monkeypatch.setattr(
+        audit_module,
+        "run_tool",
+        lambda *_a, **_k: (_ for _ in ()).throw(AssertionError("run_tool called")),
+    )
+    result = CliRunner().invoke(
+        audit_profile, ["paper1-evmbench-ensemble", str(contract), "-o", str(output)]
+    )
+    assert result.exit_code == 0, result.output
+    return json.loads(output.read_text())
+
+
+def test_writer_emits_top_level_key_when_phase_present(monkeypatch, tmp_path):
+    """When analyze() carries an advisory-plan phase, the writer hoists it to the
+    shared top-level key — and the reader finds governance plans there."""
+    phase = DeepAuditAgent(
+        config=DeepAuditConfig(enable_llm=False, enable_rag=False)
+    )._extract_advisory_plans(_SOURCE, _FIXTURE_FILE_NAME)
+    data = _run_agentic_profile(
+        monkeypatch,
+        tmp_path,
+        {"findings": [], "summary": {"total": 0}, "phases": {"advisory_plans": phase}},
+    )
+    assert ADVISORY_PLANS_KEY in data
+    assert read_governance_plans(data)  # non-empty, read from the SAME key the writer used
+
+
+def test_writer_omits_key_on_default_path(monkeypatch, tmp_path):
+    """No advisory-plan phase → the output key set is structurally identical to today."""
+    data = _run_agentic_profile(
+        monkeypatch, tmp_path, {"findings": [], "summary": {"total": 0}, "phases": {}}
+    )
+    assert ADVISORY_PLANS_KEY not in data
+    assert set(data.keys()) == {"profile", "agentic", "result", "results", "summary", "version"}
