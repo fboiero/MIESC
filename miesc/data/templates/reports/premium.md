@@ -125,18 +125,22 @@ Based on the identified vulnerabilities:
 {%- endfor %}
 
 **Total:** {{ files_count }} files, {{ lines_of_code }} lines of code
+{%- if scope_source_unavailable %}
+
+> Line counts shown as `—` could not be measured: source not available at report time for one or more in-scope files.
+{%- endif %}
 
 ### Out of Scope
 
 {%- if out_of_scope %}
+
+The following were not exercised in this run and are therefore outside the analysed scope:
 {%- for item in out_of_scope %}
 - {{ item }}
 {%- endfor %}
 {%- else %}
-- External dependencies and imported libraries
-- Off-chain components
-- Economic/tokenomics analysis
-- Frontend/backend applications
+
+Out-of-scope boundaries were not explicitly assessed in this engagement.
 {%- endif %}
 
 ## 2.3 Methodology
@@ -703,7 +707,17 @@ No PoC exploit templates were generated for this audit.
 | Analysis Started | {{ analysis_start | default(audit_date) }} | -- |
 | Analysis Completed | {{ analysis_end | default(generation_date) }} | -- |
 | Report Generated | {{ generation_date }} | -- |
-| Report Hash | {{ generation_date }} | `{{ report_hash | default('N/A') }}` |
+
+### Report Integrity
+
+| Attribute | Value |
+|-----------|-------|
+| Input results file (SHA-256) | `{{ input_sha256 | default('—', true) }}` |
+| Report template version | {{ report_version | default('1.0') }} |
+| Generator (MIESC) version | {{ generator_version | default(miesc_version) }} |
+| Generated (UTC) | {{ generated_at_utc | default(generation_date) }} |
+
+{% if input_sha256 %}This report was generated from results.json with SHA-256 `{{ input_sha256 }}`; recompute it (`shasum -a 256 <results.json>`) to verify the report corresponds to this scan.{% else %}The input results file was not available for hashing at report time, so no integrity hash is attested.{% endif %} This hash attests only the correspondence between this report and that results file; it does not attest that the scan was run correctly, that the analysis tools were unmodified, or that the analysed source was not substituted.
 
 <!-- section-break -->
 

@@ -9,6 +9,35 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **`miesc report -t premium` Phase 5 — honest Scope data + a SHA-256 report-integrity
+  attestation.** A narrow, additive pass that fixes the Scope section's data and attests the
+  report↔input correspondence. Findings, counts and the Overall Risk Score are byte-identical to
+  Phase 4 on the static sample — this touches scope and provenance only.
+  - **§2.2 Lines of Code (bug fix).** The single-contract scope rendered `0` lines / `N/A` total
+    whenever the contract path could not be resolved (an absolute `base/contract_path` join
+    discarded the results-file directory, so the `base/<basename>` fallback was never tried and a
+    `lines = 0` default leaked through). Line counting now goes through the same resolver the
+    Phase-1 source-snippet embedding uses (`_extract_source_code`, factored into
+    `_resolve_source_path`), so a stale-absolute or relative path is still located next to the
+    results JSON. When a file resolves, the real line count and a real total are shown; when it
+    does not, an em-dash `—` plus a "source not available at report time" note — **never `0`**,
+    which would be a false claim. A partial total (some files unmeasured) is also dashed.
+  - **§2.2 Out of Scope (derived, not boilerplate).** The exclusion list is now derived from what
+    the run did not exercise — analysis layers with no successful tool (read from the same
+    `layer_summary` that feeds §4.3, so the two agree) and tools present but not run cleanly.
+    "Economic / tokenomics analysis" is listed only when no DeFi-economic detector actually ran.
+    When nothing can be derived, the report says "Out-of-scope boundaries were not explicitly
+    assessed in this engagement" rather than presenting generic exclusions as engagement
+    decisions.
+  - **Report Integrity attestation (Appendix G).** The dead `Report Hash: N/A` row is replaced by
+    a real integrity block: the SHA-256 of the input `results.json` **raw file bytes** (matching
+    `shasum -a 256`, not a re-serialized dict), the report template version, the generator (MIESC)
+    version and a UTC generation timestamp. A one-sentence statement tells the reader to recompute
+    the hash to verify the report corresponds to the scan, and a scope sentence states the hash
+    attests **only** that correspondence — not that the scan ran correctly, that tools were
+    unmodified, or that the source was not substituted. This is an integrity hash, **not** a
+    cryptographic signature (signing is intentionally out of scope).
+  - Regression tests in `tests/test_report_phase5_scope_attestation.py`.
 - **`miesc report -t premium` Phase 4 — §4.6 "Dynamic Testing & Fuzzing".** A new,
   additive, honest section surfacing fuzzing-campaign activity. A campaign statistic is **not a
   finding** — the numbers here change no §1/§4 count and no risk score; fuzzer findings are
