@@ -26,7 +26,7 @@ crytic-compile==0.4.2
     # via slither-analyzer
 cytoolz==1.2.0
     # via eth-utils
-eth-abi==5.2.0
+eth-abi==6.0.0
     # via
     #   eth-account
     #   slither-analyzer
