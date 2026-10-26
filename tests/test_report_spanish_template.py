@@ -15,7 +15,12 @@ import json
 import pytest
 from click.testing import CliRunner
 
-from miesc.cli.commands.report import report
+from miesc.cli.commands.report import (
+    _get_impact_description,
+    _get_recommendation,
+    report,
+)
+from miesc.core.finding_taxonomy import CanonicalCategory
 
 SAMPLE = {
     "contract": "VulnerableDeFi.sol",
@@ -90,3 +95,44 @@ def test_profesional_es_is_registered_and_distinct_from_english(results_file, tm
     # English sibling keeps English headings; Spanish one does not.
     assert "# 1. Executive Summary" in en and "# 1. Resumen Ejecutivo" not in en
     assert "# 1. Resumen Ejecutivo" in es and "# 1. Executive Summary" not in es
+
+
+def test_impact_and_recommendation_localize_by_lang():
+    """The impact/recommendation prose is Spanish for lang='es' and English for 'en',
+    selected per-category; English output is unchanged (separate code path)."""
+    # Canonical category path.
+    es_impact = _get_impact_description(
+        "high", canonical=CanonicalCategory.PROXY_UPGRADE, lang="es"
+    )
+    en_impact = _get_impact_description(
+        "high", canonical=CanonicalCategory.PROXY_UPGRADE, lang="en"
+    )
+    assert "delegatecall sin verificar" in es_impact
+    assert "unchecked delegatecall" in en_impact
+    es_rec = _get_recommendation("", canonical=CanonicalCategory.CENTRALIZATION, lang="es")
+    en_rec = _get_recommendation("", canonical=CanonicalCategory.CENTRALIZATION, lang="en")
+    assert "multisig" in es_rec and "Reduzca la confianza" in es_rec
+    assert "Reduce single-key trust" in en_rec
+    # Keyword-table path (reentrancy) + severity fallback.
+    assert "patrón Checks-Effects-Interactions" in _get_recommendation("reentrancy", lang="es")
+    assert "Pérdida total de fondos" in _get_impact_description("critical", lang="es")
+    # Default stays English.
+    assert "Complete loss of funds" in _get_impact_description("critical")
+
+
+def test_rendered_report_impact_is_spanish_for_es_english_for_en(results_file, tmp_path):
+    """End-to-end: the per-finding impact prose follows the template's language."""
+    es = _render(results_file, tmp_path)
+    out_en = tmp_path / "en.md"
+    assert (
+        CliRunner()
+        .invoke(
+            report, [str(results_file), "-t", "profesional", "-f", "markdown", "-o", str(out_en)]
+        )
+        .exit_code
+        == 0
+    )
+    en = out_en.read_text(encoding="utf-8")
+    # The one finding is 'suicidal' -> access_control; its impact localizes.
+    assert "usuarios no autorizados" in es
+    assert "unauthorized users" in en
