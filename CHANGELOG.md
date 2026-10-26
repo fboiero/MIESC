@@ -9,6 +9,12 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **Execution-verified pause/freshness findings are now High severity.** A revert-invariant
+  counterexample that reproduces a pause-gating or deadline/freshness bypass by execution is
+  raised from Medium to High: these are execution-reproduced emergency-stop and expired-request
+  bypasses, not advisory hints. This also lets them carry a real CVSS score in the premium report
+  (their Critical-scoring category vector now lands within one band of the reported severity, so
+  the directional-consistency guard no longer withholds the number as a blank).
 - **`miesc report -t premium` stops overclaiming — four honesty fixes.** The premium/profesional
   report no longer presents automated output as a manual professional audit:
   - The "Audit Process" methodology no longer lists **Manual Review** or human **Verification**

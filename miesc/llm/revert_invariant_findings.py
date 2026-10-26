@@ -66,7 +66,9 @@ def _pause_toggle_finding(
             f"mutated storage. `{fn}` is not pause-gated: it keeps executing when the protocol is "
             f"paused, so the pause switch cannot stop it. Reproduced by execution, not inferred."
         ),
-        "severity": "Medium",
+        # Execution-reproduced: an unguarded state-mutating call that keeps running while the
+        # protocol is paused defeats the emergency stop during an incident -- High, not Medium.
+        "severity": "High",
         "confidence": _CONFIDENCE,
         "type": "dos",
         "location": {"file": file_name, "line": line},
@@ -84,7 +86,9 @@ def _freshness_finding(fn: str, file_name: str, line: int, evidence: List[str]) 
             f"and mutated storage. `{fn}` accepts a deadline/expiry argument but never enforces it, "
             f"so a stale request still executes. Reproduced by execution, not inferred."
         ),
-        "severity": "Medium",
+        # Execution-reproduced: a stale/expired request that still executes because the deadline
+        # is accepted but never enforced enables replay of expired authorizations -- High.
+        "severity": "High",
         "confidence": _CONFIDENCE,
         "type": "timestamp",
         "location": {"file": file_name, "line": line},
