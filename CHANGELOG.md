@@ -7,6 +7,17 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Foundry adapter now parses forge >=1.x test JSON, so `audit single foundry` reports real
+  stats.** Two compounding bugs made live foundry runs report `tests_run=0` on forge 1.3.5:
+  (1) forge >=1.x nests `test_results` under each suite id and reports pass/fail as a `status`
+  string, but the parser expected a top-level `test_results` map with a boolean `success`;
+  (2) the adapter combined `--gas-report` with `--json`, which in forge >=1.x emits only the
+  gas-report JSON and suppresses the test-results JSON. The parser now handles both the nested
+  and legacy shapes, and the test run no longer passes `--gas-report`. This lets the premium
+  report's §4.6 Dynamic Testing & Fuzzing populate with real Foundry campaign statistics.
+
 ### Changed
 
 - **`miesc report -f pdf` failure guidance now names weasyprint's system libraries.** When PDF

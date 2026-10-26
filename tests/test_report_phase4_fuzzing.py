@@ -291,11 +291,26 @@ def test_counterexample_sample_ran_without_campaign_stats(template, tmp_path):
 
 
 @pytest.mark.parametrize("template", ["premium", "profesional"])
-def test_live_forge_json_unparsed_renders_honestly(template, tmp_path):
-    """The production path today: forge 1.3.5's nested ``--json`` doesn't match the
-    adapter parser, so tests_run=0. §4.6 must say the statistics could not be parsed —
-    never print a fabricated "0 tests (0 passed / 0 failed)"."""
+def test_forge_1x_nested_json_parses_and_renders_stats(template, tmp_path):
+    """forge >=1.x nests ``test_results`` under each suite id and reports pass/fail as
+    a "status" string. The adapter now parses that shape, so a real Foundry campaign
+    surfaces its stats in §4.6 instead of the old tests_run=0."""
     entry = _build_foundry_entry(stdout=_FORGE_JSON_NESTED)
+    campaign = entry["metadata"][FUZZ_CAMPAIGN_KEY]
+    assert campaign["tests_run"] == 2
+    assert campaign["tests_passed"] == 1 and campaign["tests_failed"] == 1
+    assert campaign["fuzz_runs"] == 256
+    doc = {"results": [entry], "summary": {}, "version": "t"}
+    section = _section_46(_render_doc(doc, template, tmp_path))
+    assert "could not be parsed" not in section
+
+
+@pytest.mark.parametrize("template", ["premium", "profesional"])
+def test_unparseable_forge_output_renders_honestly(template, tmp_path):
+    """When forge output carries no recognizable test JSON (build noise, a crash),
+    §4.6 must say the statistics could not be parsed — never fabricate a
+    "0 tests (0 passed / 0 failed)" campaign."""
+    entry = _build_foundry_entry(stdout="forge build output, no test json here")
     campaign = entry["metadata"][FUZZ_CAMPAIGN_KEY]
     assert campaign["tests_run"] == 0 and campaign["fuzz_runs"] == 256
     doc = {"results": [entry], "summary": {}, "version": "t"}
