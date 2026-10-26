@@ -193,9 +193,12 @@ class FoundryAdapter(ToolAdapter):
             # Add fuzz runs
             cmd.extend(["--fuzz-runs", str(self.fuzz_runs)])
 
-            # Add gas reporting
-            if self.gas_report:
-                cmd.append("--gas-report")
+            # NOTE: --gas-report is intentionally NOT combined with --json below.
+            # In forge >=1.x the two are mutually exclusive: `--gas-report --json`
+            # emits only the gas-report JSON and SUPPRESSES the test-results JSON
+            # this adapter parses for tests_run/passed/failed and failure findings.
+            # Gas metrics are not surfaced in the premium report, so we keep the
+            # test-results JSON. (self.gas_report is retained for config compat.)
 
             # Add test contract filter if specified
             test_contract = kwargs.get("test_contract")
@@ -319,18 +322,16 @@ class FoundryAdapter(ToolAdapter):
         """
         Parse Foundry test output to extract findings and statistics
 
-        Foundry JSON output format:
+        Foundry JSON output format (forge >=1.x):
         {
-          "test_results": {
-            "ContractName": {
-              "test_functionName": {
-                "success": false,
-                "reason": "assertion failed",
-                ...
-              }
+          "path/to/Test.t.sol:ContractTest": {
+            "test_results": {
+              "test_functionName()": {"status": "Success"|"Failure", "reason": ...}
             }
           }
         }
+        The older shape put a top-level "test_results" map keyed by contract with
+        a boolean "success"; both are recognized.
         """
         findings = []
         test_stats = {"total": 0, "passed": 0, "failed": 0}
@@ -342,7 +343,7 @@ class FoundryAdapter(ToolAdapter):
                 if line.strip().startswith("{"):
                     try:
                         data = json.loads(line)
-                        if "test_results" in data:
+                        if self._is_forge_test_results(data):
                             findings, test_stats = self._parse_json_results(data)
                             return findings, test_stats
                     except json.JSONDecodeError:
@@ -355,25 +356,63 @@ class FoundryAdapter(ToolAdapter):
 
         return findings, test_stats
 
+    @staticmethod
+    def _is_forge_test_results(data: Any) -> bool:
+        """True if a parsed JSON object is a forge ``test`` results payload.
+
+        Recognizes both the older top-level ``test_results`` map and the
+        forge >=1.x shape that nests ``test_results`` under each suite id.
+        forge prints other JSON lines (e.g. build output), so this guards
+        against feeding those to the results parser.
+        """
+        if not isinstance(data, dict):
+            return False
+        if isinstance(data.get("test_results"), dict):
+            return True
+        return any(isinstance(v, dict) and "test_results" in v for v in data.values())
+
     def _parse_json_results(self, data: Dict[str, Any]) -> tuple:
         """Parse JSON test results from Foundry"""
         findings = []
         test_stats = {"total": 0, "passed": 0, "failed": 0}
 
-        test_results = data.get("test_results", {})
+        # forge's JSON shape changed: forge >=1.x nests per-test results under
+        # each suite id ({"path:Contract": {"test_results": {name: {...}}}}) and
+        # reports pass/fail as a "status" string ("Success"/"Failure"), whereas
+        # the older shape put a top-level "test_results" map keyed by contract
+        # with a boolean "success". Normalize both into a list of suites so the
+        # stats and findings are correct on either.
+        if isinstance(data.get("test_results"), dict):
+            # Older shape: {"test_results": {contract: {test: result}}}.
+            suites = {c: {"test_results": tests} for c, tests in data["test_results"].items()}
+        else:
+            # forge >=1.x: top level maps each suite id to a suite object.
+            suites = {
+                suite_id: suite
+                for suite_id, suite in data.items()
+                if isinstance(suite, dict) and "test_results" in suite
+            }
 
-        for contract_name, tests in test_results.items():
-            for test_name, result in tests.items():
+        for contract_name, suite in suites.items():
+            for test_name, result in (suite.get("test_results") or {}).items():
                 test_stats["total"] += 1
 
-                success = result.get("success", True)
-                if success:
+                # "status" is the forge >=1.x field; fall back to the legacy
+                # boolean "success". Unknown/absent is treated as passing so a
+                # shape we don't recognize never fabricates a failure finding.
+                status = result.get("status")
+                if status is not None:
+                    passed = str(status).lower() == "success"
+                else:
+                    passed = bool(result.get("success", True))
+
+                if passed:
                     test_stats["passed"] += 1
                 else:
                     test_stats["failed"] += 1
 
                     # Create finding for failed test
-                    reason = result.get("reason", "Test failed")
+                    reason = result.get("reason") or "Test failed"
                     findings.append(
                         {
                             "type": "test_failure",
