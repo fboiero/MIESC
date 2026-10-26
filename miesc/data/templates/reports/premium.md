@@ -328,6 +328,90 @@ No execution-verified counterexamples were produced in this engagement.
 {%- endif %}
 {%- endif %}
 
+## 4.5 Trust Model & Privileged Roles
+{%- if not governance_plans and not trust_inventory_ran and not trust_findings %}
+
+**Trust model not assessed in this engagement.** No privileged-role inventory was
+extracted and no trust-relevant findings (access control, centralization, or
+proxy/upgrade) were reported.
+{%- else %}
+
+This section inventories the privileged actors and roles the contract source declares
+and cross-references the trust-relevant findings above. It is an **advisory static
+model of authority**, not a governance audit: a role is a trust assumption, not a
+vulnerability, and nothing here changes any finding count or the risk score.
+
+> **Custody.** This audit did not verify key custody or off-chain governance; roles are
+> as declared in source. An account named `owner` is not assumed to be a multisig or a
+> timelock.
+>
+> **Completeness.** The role inventory is identified by static extraction; it may miss
+> inherited, proxied, or assembly-level authority and may be incomplete. The extracted
+> role graph is produced for single-file agentic audits only — directory audits carry
+> the findings-based cross-reference in §4.5.2 but no extracted role graph.
+
+### 4.5.1 Privileged roles identified
+{%- if governance_plans %}
+
+Identified by static extraction (advisory). Each actor and role is anchored to the
+source lines where it was observed.
+{%- for plan in governance_plans %}
+
+{{ plan.objective }}
+{%- if plan.actors %}
+
+**Actors**
+
+| Actor | Declared kind | Source | Guards functions | Source anchors |
+|-------|---------------|--------|------------------|----------------|
+{%- for actor in plan.actors %}
+| `{{ actor.id }}` | {{ actor.kind }} | {{ actor.source }} | {{ actor.guards | default('—', true) }} | {{ actor.anchors | default('—', true) }} |
+{%- endfor %}
+{%- endif %}
+{%- if plan.roles %}
+
+**Roles**
+
+| Role | Admin role | Guards functions | Grant functions | Revoke functions |
+|------|------------|------------------|-----------------|------------------|
+{%- for role in plan.roles %}
+| `{{ role.name }}` | {{ role.admin_role | default('—', true) }} | {{ role.guards | default('—', true) }} | {{ role.grant_functions | default('—', true) }} | {{ role.revoke_functions | default('—', true) }} |
+{%- endfor %}
+{%- endif %}
+{%- if plan.truncated %}
+
+_Note: this inventory reached the per-list extraction cap and may be truncated._
+{%- endif %}
+{%- endfor %}
+{%- elif trust_inventory_ran %}
+
+Static extraction ran; no privileged actors or roles were identified in the analyzed
+source. This does not establish that none exist (see the completeness note above).
+{%- else %}
+
+Role inventory not extracted in this engagement. Enable it with `enable_advisory_plans`
+(single-file agentic audits).
+{%- endif %}
+
+### 4.5.2 Trust-relevant findings
+{%- if trust_findings %}
+
+Findings above whose canonical category concerns privileged authority (access control,
+centralization, or proxy/upgrade), cross-referenced by id and severity. The detail and
+scoring stay in §5; this is a cross-reference, not a new finding.
+
+| Finding | Title | Category | Severity |
+|---------|-------|----------|----------|
+{%- for f in trust_findings %}
+| {{ f.id }} | {{ f.title }} | {{ f.category }} | {{ f.severity_badge }} |
+{%- endfor %}
+{%- else %}
+
+No trust-relevant findings (access control, centralization, or proxy/upgrade) were
+reported in this engagement.
+{%- endif %}
+{%- endif %}
+
 <!-- section-break -->
 
 # 5. Detailed Findings

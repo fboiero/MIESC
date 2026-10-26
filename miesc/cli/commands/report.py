@@ -30,6 +30,7 @@ from miesc.cli.utils import (
     success,
     warning,
 )
+from miesc.core.advisory_plans_io import MAX_AGENT_ITEMS, read_governance_plans
 from miesc.core.finding_taxonomy import CanonicalCategory, normalize_finding_type
 
 # Import Rich components if available
@@ -52,6 +53,110 @@ _EXECUTION_SOURCES = {"revert_invariant_executor", "revert_invariant_reasoning"}
 # report run). Used to derive §4.4.1 straight from the same tool execution data
 # that feeds ``layer4_coverage`` in §2.3, so the two can never disagree.
 _LAYER4_TOOLS = {"certora", "scribble", "pyrometer", "smtchecker", "propertygpt"}
+
+# Phase 3 — §4.5 Trust Model & Privileged Roles. A finding is "trust-relevant" when its
+# canonical category concerns who holds privileged power over the contract. The
+# taxonomy already routes ``suicidal`` / ``selfdestruct-identifier`` / ``tx-origin`` to
+# ACCESS_CONTROL, so no per-type special-casing is needed here.
+_TRUST_FINDING_CATEGORIES = {
+    CanonicalCategory.ACCESS_CONTROL.value,
+    CanonicalCategory.CENTRALIZATION.value,
+    CanonicalCategory.PROXY_UPGRADE.value,
+}
+
+
+def _guarded_functions(edges: list[Any], source_id: str) -> str:
+    """Join the (de-duplicated) functions an actor or role guards, from the edges."""
+    targets = [
+        str(e.get("target") or "")
+        for e in edges
+        if isinstance(e, dict) and e.get("source") == source_id and e.get("relation") == "guards"
+    ]
+    return ", ".join(t for t in dict.fromkeys(targets) if t)
+
+
+def _build_trust_model_vars(
+    results: Dict[str, Any], formatted_findings: list[dict[str, Any]]
+) -> Dict[str, Any]:
+    """Build the §4.5 template variables from the advisory-plan inventory + findings.
+
+    Two blocks, both honest and additive — a role is a trust *assumption*, never a
+    ``Finding`` (it must not change any count or the risk score):
+
+    (a) ``governance_plans`` — the deterministic privileged-role inventory, when the
+        agentic audit persisted it. ``trust_inventory_ran`` distinguishes "not
+        extracted" (key absent) from "extraction found nothing" (key present, empty).
+    (b) ``trust_findings`` — existing findings whose canonical category is access
+        control / centralization / proxy-upgrade, cross-referenced by F-id. This is the
+        findings-based floor that works even for directory audits (which carry no
+        per-file advisory phase).
+
+    Nothing here is inferred about key custody or off-chain governance; the inventory is
+    rendered exactly as the static miner declared it.
+    """
+    plans = read_governance_plans(results)
+    trust_inventory_ran = plans is not None
+
+    governance_plans: list[dict[str, Any]] = []
+    for plan in plans or []:
+        graph = plan.get("authority_graph") or {}
+        actors_raw = graph.get("actors") or []
+        roles_raw = graph.get("roles") or []
+        edges_raw = graph.get("edges") or []
+
+        actors = [
+            {
+                "id": str(a.get("id") or ""),
+                "kind": str(a.get("kind") or "unknown"),
+                "source": str(a.get("source") or "unknown"),
+                "anchors": ", ".join(str(x) for x in (a.get("source_anchors") or [])),
+                "guards": _guarded_functions(edges_raw, str(a.get("id") or "")),
+            }
+            for a in actors_raw
+            if isinstance(a, dict) and a.get("id")
+        ]
+        roles = [
+            {
+                "name": str(r.get("name") or ""),
+                "admin_role": str(r.get("admin_role") or ""),
+                "grant_functions": ", ".join(str(x) for x in (r.get("grant_functions") or [])),
+                "revoke_functions": ", ".join(str(x) for x in (r.get("revoke_functions") or [])),
+                "guards": _guarded_functions(edges_raw, str(r.get("name") or "")),
+            }
+            for r in roles_raw
+            if isinstance(r, dict) and r.get("name")
+        ]
+        truncated = (
+            len(actors_raw) >= MAX_AGENT_ITEMS
+            or len(roles_raw) >= MAX_AGENT_ITEMS
+            or len(edges_raw) >= MAX_AGENT_ITEMS
+        )
+        governance_plans.append(
+            {
+                "id": str(plan.get("id") or ""),
+                "objective": str(plan.get("objective") or ""),
+                "actors": actors,
+                "roles": roles,
+                "truncated": truncated,
+            }
+        )
+
+    trust_findings = [
+        {
+            "id": f.get("id", ""),
+            "title": f.get("title", ""),
+            "severity_badge": f.get("severity_badge", ""),
+            "category": f.get("canonical_category") or f.get("category") or "",
+        }
+        for f in formatted_findings
+        if (f.get("canonical_category") or "") in _TRUST_FINDING_CATEGORIES
+    ]
+
+    return {
+        "trust_inventory_ran": trust_inventory_ran,
+        "governance_plans": governance_plans,
+        "trust_findings": trust_findings,
+    }
 
 
 def _verification_method(source: str, detected_by: str) -> str:
@@ -2372,6 +2477,11 @@ def report(
     variables["medium_low_findings"] = [
         f for f in formatted_findings if f["severity"] in ("medium", "low")
     ]
+
+    # Phase 3 (§4.5): Trust Model & Privileged Roles. Additive and advisory — the
+    # inventory and the trust-relevant finding cross-reference carry ZERO weight in any
+    # count or the risk score (a role is a trust assumption, not a Finding).
+    variables.update(_build_trust_model_vars(results, formatted_findings))
 
     # Simple template rendering (basic variable substitution)
     output_content = _render_template(template_content, variables)
