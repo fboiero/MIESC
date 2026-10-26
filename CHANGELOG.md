@@ -9,6 +9,13 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **PoC `FoundryRunner` now parses forge >=1.x test JSON too.** The PoC-validation runner had the
+  same two bugs the Foundry adapter did: it only parsed the legacy top-level `test_results`/boolean
+  `success` shape (not forge >=1.x's per-suite nesting with a `status` string), and it combined
+  `--gas-report` with `--json` (which in forge >=1.x suppresses the per-test results JSON). The
+  parser now handles the nested + `status`-string shape, and the test run no longer passes
+  `--gas-report`. PoC pass/fail already came from the exit code, so validation verdicts were
+  unaffected; this restores the per-test detail (names, pass/fail, logs).
 - **Foundry adapter now parses forge >=1.x test JSON, so `audit single foundry` reports real
   stats.** Two compounding bugs made live foundry runs report `tests_run=0` on forge 1.3.5:
   (1) forge >=1.x nests `test_results` under each suite id and reports pass/fail as a `status`
