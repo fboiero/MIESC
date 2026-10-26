@@ -172,6 +172,14 @@ def test_fixture_execution_verified_findings(template, tmp_path):
     assert "no access-control guard" in text
     assert "no pause gate protects" in text
 
+    # Execution-verified findings carry a real CVSS score, never a withheld blank.
+    # A pause/DoS counterexample is High (an execution-reproduced emergency-stop
+    # bypass), so its Critical-scoring vector lands within one band of the reported
+    # severity and the directional guard no longer withholds it.
+    assert "not scored (inconsistent with reported severity)" not in text
+    f012_summary = [ln for ln in text.splitlines() if ln.startswith("| F-012 ") and "conf.)" in ln]
+    assert f012_summary and "9.6" in f012_summary[0], f012_summary
+
     # Their Verification field is the execution label; it appears exactly twice
     # in the §4.1 summary table (one row each) plus once per §4.4.2 entry and
     # once per §5 metadata row — i.e. it is present and tied only to them.

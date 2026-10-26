@@ -273,7 +273,7 @@
         {
           "title": "Missing pause gating on `emergencyWithdraw`",
           "description": "A Foundry probe paused the contract and confirmed that a sibling function reverts while paused, then called `emergencyWithdraw` in the same paused state and the call succeeded and mutated storage. `emergencyWithdraw` is not pause-gated: it keeps executing when the protocol is paused, so the pause switch cannot stop it. Reproduced by execution, not inferred.",
-          "severity": "Medium",
+          "severity": "High",
           "confidence": 0.85,
           "type": "dos",
           "location": {
@@ -290,8 +290,8 @@
   ],
   "summary": {
     "CRITICAL": 0,
-    "HIGH": 9,
-    "MEDIUM": 2,
+    "HIGH": 10,
+    "MEDIUM": 1,
     "LOW": 1,
     "INFO": 0
   },
