@@ -2,7 +2,7 @@
 <div class="cover-page">
 
 <div style="margin-bottom: 60px;">
-<h1 style="font-size: 42pt; margin-bottom: 10px; color: white; border: none;">🛡️ MIESC</h1>
+<h1 style="font-size: 42pt; margin-bottom: 10px; color: white; border: none;"><svg width="46" height="46" viewBox="0 0 24 24" style="vertical-align: -7px; margin-right: 14px;" xmlns="http://www.w3.org/2000/svg"><path d="M12 2L4 5v6c0 5 3.4 8.9 8 11 4.6-2.1 8-6 8-11V5l-8-3z" fill="#ffffff"/><path d="M9.1 11.9l2 2 3.7-4" fill="none" stroke="#1e293b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>MIESC</h1>
 <p style="font-size: 14pt; color: #94a3b8;">Evaluación Inteligente Multicapa para Contratos Inteligentes</p>
 </div>
 
@@ -27,7 +27,7 @@
 </div>
 
 <p style="color: #64748b; font-size: 9pt; margin-top: 60px; max-width: 400px;">
-Este documento contiene hallazgos de seguridad confidenciales y está destinado únicamente a su destinatario. Queda prohibida su distribución no autorizada.
+Este documento contiene hallazgos de seguridad confidenciales y está destinado únicamente al destinatario designado. Queda prohibida su distribución, reproducción o divulgación no autorizada.
 </p>
 
 </div>
@@ -81,6 +81,37 @@ Este documento contiene hallazgos de seguridad confidenciales y está destinado 
 | **Baja** | {{ low_count | default(0) }} | {{ low_percent | default(0) }}% |
 | **Informativa** | {{ info_count | default(0) }} | {{ info_percent | default(0) }}% |
 | **Total** | **{{ total_findings | default(0) }}** | 100% |
+
+<div class="chart chart-severity">
+{%- if total_findings and (total_findings | int) > 0 %}
+{%- set s = 380 / (total_findings | int) %}
+<svg viewBox="0 0 520 172" width="520" height="172" role="img" aria-label="Hallazgos por severidad" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
+<text x="88" y="28" text-anchor="end" font-size="10" font-weight="600" fill="#1e293b">Crítica</text>
+<rect x="96" y="16" width="380" height="16" rx="3" fill="#eef2f7"/>
+<rect x="96" y="16" width="{{ (critical_count * s) | round(2) }}" height="16" rx="3" fill="#dc2626"/>
+<text x="{{ (102 + critical_count * s) | round(2) }}" y="28" font-size="10" font-weight="700" fill="#334155">{{ critical_count }}</text>
+<text x="88" y="59" text-anchor="end" font-size="10" font-weight="600" fill="#1e293b">Alta</text>
+<rect x="96" y="47" width="380" height="16" rx="3" fill="#eef2f7"/>
+<rect x="96" y="47" width="{{ (high_count * s) | round(2) }}" height="16" rx="3" fill="#f97316"/>
+<text x="{{ (102 + high_count * s) | round(2) }}" y="59" font-size="10" font-weight="700" fill="#334155">{{ high_count }}</text>
+<text x="88" y="90" text-anchor="end" font-size="10" font-weight="600" fill="#1e293b">Media</text>
+<rect x="96" y="78" width="380" height="16" rx="3" fill="#eef2f7"/>
+<rect x="96" y="78" width="{{ (medium_count * s) | round(2) }}" height="16" rx="3" fill="#eab308"/>
+<text x="{{ (102 + medium_count * s) | round(2) }}" y="90" font-size="10" font-weight="700" fill="#334155">{{ medium_count }}</text>
+<text x="88" y="121" text-anchor="end" font-size="10" font-weight="600" fill="#1e293b">Baja</text>
+<rect x="96" y="109" width="380" height="16" rx="3" fill="#eef2f7"/>
+<rect x="96" y="109" width="{{ (low_count * s) | round(2) }}" height="16" rx="3" fill="#3b82f6"/>
+<text x="{{ (102 + low_count * s) | round(2) }}" y="121" font-size="10" font-weight="700" fill="#334155">{{ low_count }}</text>
+<text x="88" y="152" text-anchor="end" font-size="10" font-weight="600" fill="#1e293b">Informativa</text>
+<rect x="96" y="140" width="380" height="16" rx="3" fill="#eef2f7"/>
+<rect x="96" y="140" width="{{ (info_count * s) | round(2) }}" height="16" rx="3" fill="#64748b"/>
+<text x="{{ (102 + info_count * s) | round(2) }}" y="152" font-size="10" font-weight="700" fill="#334155">{{ info_count }}</text>
+</svg>
+<span class="chart-caption">Figura 1 — Hallazgos por severidad ({{ total_findings | int }} en total). La longitud de cada barra es proporcional a la fracción del total que representa esa severidad.</span>
+{%- else %}
+<p style="text-align:center;color:#64748b;font-style:italic;">No hay hallazgos para graficar.</p>
+{%- endif %}
+</div>
 
 ## 1.4 Evaluación de Impacto
 
@@ -189,40 +220,46 @@ Capa 9: Detección Avanzada        [{{ layer9_coverage | default('--') }}]
 
 La siguiente matriz ubica los hallazgos por **Impacto** (vertical) y **Probabilidad** (horizontal):
 
-<table style="width: 100%; max-width: 500px; margin: 20px auto; border-collapse: collapse; text-align: center;">
-<tr>
-<td style="border: none; width: 80px;"></td>
-<td style="border: none;" colspan="3"><strong>PROBABILIDAD</strong></td>
-</tr>
-<tr>
-<td style="border: none;"></td>
-<td style="border: none; color: #6b7280; padding: 8px;">Baja</td>
-<td style="border: none; color: #6b7280; padding: 8px;">Media</td>
-<td style="border: none; color: #6b7280; padding: 8px;">Alta</td>
-</tr>
-<tr>
-<td style="border: none; color: #6b7280; vertical-align: middle;"><strong>Alto</strong></td>
-<td style="background: #fbbf24; color: white; padding: 15px; border-radius: 4px;"><small>Media</small><br><strong style="font-size: 18pt;">{{ risk_matrix.high_low | default(0) }}</strong></td>
-<td style="background: #f97316; color: white; padding: 15px; border-radius: 4px;"><small>Alta</small><br><strong style="font-size: 18pt;">{{ risk_matrix.high_med | default(0) }}</strong></td>
-<td style="background: #dc2626; color: white; padding: 15px; border-radius: 4px;"><small>Crítica</small><br><strong style="font-size: 18pt;">{{ risk_matrix.high_high | default(0) }}</strong></td>
-</tr>
-<tr>
-<td style="border: none; color: #6b7280; vertical-align: middle;"><strong>Med</strong></td>
-<td style="background: #22c55e; color: white; padding: 15px; border-radius: 4px;"><small>Baja</small><br><strong style="font-size: 18pt;">{{ risk_matrix.med_low | default(0) }}</strong></td>
-<td style="background: #fbbf24; color: white; padding: 15px; border-radius: 4px;"><small>Media</small><br><strong style="font-size: 18pt;">{{ risk_matrix.med_med | default(0) }}</strong></td>
-<td style="background: #f97316; color: white; padding: 15px; border-radius: 4px;"><small>Alta</small><br><strong style="font-size: 18pt;">{{ risk_matrix.med_high | default(0) }}</strong></td>
-</tr>
-<tr>
-<td style="border: none; color: #6b7280; vertical-align: middle;"><strong>Bajo</strong></td>
-<td style="background: #94a3b8; color: white; padding: 15px; border-radius: 4px;"><small>Info</small><br><strong style="font-size: 18pt;">{{ risk_matrix.low_low | default(0) }}</strong></td>
-<td style="background: #22c55e; color: white; padding: 15px; border-radius: 4px;"><small>Baja</small><br><strong style="font-size: 18pt;">{{ risk_matrix.low_med | default(0) }}</strong></td>
-<td style="background: #fbbf24; color: white; padding: 15px; border-radius: 4px;"><small>Media</small><br><strong style="font-size: 18pt;">{{ risk_matrix.low_high | default(0) }}</strong></td>
-</tr>
-<tr>
-<td style="border: none;"></td>
-<td style="border: none;" colspan="3"><em style="color: #6b7280; font-size: 9pt;">IMPACTO →</em></td>
-</tr>
-</table>
+<div class="chart chart-matrix">
+<svg viewBox="0 0 470 268" width="470" height="268" role="img" aria-label="Matriz de riesgo por impacto y probabilidad" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
+<text x="274" y="18" text-anchor="middle" font-size="10" font-weight="700" letter-spacing="1" fill="#475569">PROBABILIDAD</text>
+<text x="170" y="38" text-anchor="middle" font-size="9" fill="#6b7280">Baja</text>
+<text x="274" y="38" text-anchor="middle" font-size="9" fill="#6b7280">Media</text>
+<text x="378" y="38" text-anchor="middle" font-size="9" fill="#6b7280">Alta</text>
+<text x="22" y="144" text-anchor="middle" font-size="10" font-weight="700" letter-spacing="1" fill="#475569" transform="rotate(-90 22 144)">IMPACTO</text>
+<text x="112" y="80" text-anchor="end" font-size="9" font-weight="600" fill="#475569">Alto</text>
+<text x="112" y="148" text-anchor="end" font-size="9" font-weight="600" fill="#475569">Med</text>
+<text x="112" y="216" text-anchor="end" font-size="9" font-weight="600" fill="#475569">Bajo</text>
+<rect x="120" y="44" width="100" height="64" rx="4" fill="#fbbf24"/>
+<text x="170" y="66" text-anchor="middle" font-size="8" fill="#ffffff">Media</text>
+<text x="170" y="92" text-anchor="middle" font-size="19" font-weight="700" fill="#ffffff">{{ risk_matrix.high_low | default(0) }}</text>
+<rect x="224" y="44" width="100" height="64" rx="4" fill="#f97316"/>
+<text x="274" y="66" text-anchor="middle" font-size="8" fill="#ffffff">Alta</text>
+<text x="274" y="92" text-anchor="middle" font-size="19" font-weight="700" fill="#ffffff">{{ risk_matrix.high_med | default(0) }}</text>
+<rect x="328" y="44" width="100" height="64" rx="4" fill="#dc2626"/>
+<text x="378" y="66" text-anchor="middle" font-size="8" fill="#ffffff">Crítica</text>
+<text x="378" y="92" text-anchor="middle" font-size="19" font-weight="700" fill="#ffffff">{{ risk_matrix.high_high | default(0) }}</text>
+<rect x="120" y="112" width="100" height="64" rx="4" fill="#22c55e"/>
+<text x="170" y="134" text-anchor="middle" font-size="8" fill="#ffffff">Baja</text>
+<text x="170" y="160" text-anchor="middle" font-size="19" font-weight="700" fill="#ffffff">{{ risk_matrix.med_low | default(0) }}</text>
+<rect x="224" y="112" width="100" height="64" rx="4" fill="#fbbf24"/>
+<text x="274" y="134" text-anchor="middle" font-size="8" fill="#ffffff">Media</text>
+<text x="274" y="160" text-anchor="middle" font-size="19" font-weight="700" fill="#ffffff">{{ risk_matrix.med_med | default(0) }}</text>
+<rect x="328" y="112" width="100" height="64" rx="4" fill="#f97316"/>
+<text x="378" y="134" text-anchor="middle" font-size="8" fill="#ffffff">Alta</text>
+<text x="378" y="160" text-anchor="middle" font-size="19" font-weight="700" fill="#ffffff">{{ risk_matrix.med_high | default(0) }}</text>
+<rect x="120" y="180" width="100" height="64" rx="4" fill="#94a3b8"/>
+<text x="170" y="202" text-anchor="middle" font-size="8" fill="#ffffff">Info</text>
+<text x="170" y="228" text-anchor="middle" font-size="19" font-weight="700" fill="#ffffff">{{ risk_matrix.low_low | default(0) }}</text>
+<rect x="224" y="180" width="100" height="64" rx="4" fill="#22c55e"/>
+<text x="274" y="202" text-anchor="middle" font-size="8" fill="#ffffff">Baja</text>
+<text x="274" y="228" text-anchor="middle" font-size="19" font-weight="700" fill="#ffffff">{{ risk_matrix.low_med | default(0) }}</text>
+<rect x="328" y="180" width="100" height="64" rx="4" fill="#fbbf24"/>
+<text x="378" y="202" text-anchor="middle" font-size="8" fill="#ffffff">Media</text>
+<text x="378" y="228" text-anchor="middle" font-size="19" font-weight="700" fill="#ffffff">{{ risk_matrix.low_high | default(0) }}</text>
+</svg>
+<span class="chart-caption">Figura 2 — Matriz de riesgo. Cada celda cuenta los hallazgos en ese par impacto / probabilidad; el color codifica la banda de riesgo resultante.</span>
+</div>
 
 ## 3.2 Puntuación tipo CVSS
 
@@ -244,7 +281,7 @@ La siguiente matriz ubica los hallazgos por **Impacto** (vertical) y **Probabili
 {%- if llm_risk_narrative %}
 {{ llm_risk_narrative }}
 {%- else %}
-El contrato analizado presenta preocupaciones de seguridad que deberían atenderse antes del despliegue en producción. La combinación de hallazgos indica potencial de explotación si no se mitiga.
+El contrato analizado presenta preocupaciones de seguridad que deberían resolverse antes del despliegue en producción. En conjunto, los hallazgos indican un potencial creíble de explotación si no se mitigan.
 {%- endif %}
 
 ---
@@ -593,36 +630,50 @@ Revise los hallazgos marcados como de esfuerzo "Bajo" para mejoras rápidas de s
 
 ## 6.4 Matriz de Esfuerzo vs Impacto
 
-<table style="width: 100%; max-width: 550px; margin: 20px auto; border-collapse: collapse; text-align: center;">
-<tr>
-<td style="border: none; width: 80px;"></td>
-<td style="border: none;" colspan="3"><strong>IMPACTO</strong></td>
-</tr>
-<tr>
-<td style="border: none;"></td>
-<td style="border: none; color: #6b7280; padding: 8px;">Bajo</td>
-<td style="border: none; color: #6b7280; padding: 8px;">Medio</td>
-<td style="border: none; color: #6b7280; padding: 8px;">Alto</td>
-</tr>
-<tr>
-<td style="border: none; color: #6b7280; vertical-align: middle;"><strong>E<br/>S<br/>F<br/>U<br/>E<br/>R<br/>Z<br/>O</strong></td>
-<td style="background: #ef4444; color: white; padding: 15px; border-radius: 4px;"><strong>Evitar</strong><br/><span style="font-size: 18pt;">{{ effort_impact_matrix.high_low.count if effort_impact_matrix else 0 }}</span></td>
-<td style="background: #f97316; color: white; padding: 15px; border-radius: 4px;"><strong>Considerar</strong><br/><span style="font-size: 18pt;">{{ effort_impact_matrix.high_medium.count if effort_impact_matrix else 0 }}</span></td>
-<td style="background: #eab308; color: white; padding: 15px; border-radius: 4px;"><strong>Agendar</strong><br/><span style="font-size: 18pt;">{{ effort_impact_matrix.high_high.count if effort_impact_matrix else 0 }}</span></td>
-</tr>
-<tr>
-<td style="border: none; color: #6b7280; vertical-align: middle;"><strong>Alto<br/>↑<br/>Med<br/>↑<br/>Bajo</strong></td>
-<td style="background: #94a3b8; color: white; padding: 15px; border-radius: 4px;"><strong>Diferir</strong><br/><span style="font-size: 18pt;">{{ effort_impact_matrix.medium_low.count if effort_impact_matrix else 0 }}</span></td>
-<td style="background: #3b82f6; color: white; padding: 15px; border-radius: 4px;"><strong>Planificar</strong><br/><span style="font-size: 18pt;">{{ effort_impact_matrix.medium_medium.count if effort_impact_matrix else 0 }}</span></td>
-<td style="background: #8b5cf6; color: white; padding: 15px; border-radius: 4px;"><strong>Prioritario</strong><br/><span style="font-size: 18pt;">{{ effort_impact_matrix.medium_high.count if effort_impact_matrix else 0 }}</span></td>
-</tr>
-<tr>
-<td style="border: none;"></td>
-<td style="background: #64748b; color: white; padding: 15px; border-radius: 4px;"><strong>Si Hay Tiempo</strong><br/><span style="font-size: 18pt;">{{ effort_impact_matrix.low_low.count if effort_impact_matrix else 0 }}</span></td>
-<td style="background: #22c55e; color: white; padding: 15px; border-radius: 4px;"><strong>Mejora Rápida</strong><br/><span style="font-size: 18pt;">{{ effort_impact_matrix.low_medium.count if effort_impact_matrix else 0 }}</span></td>
-<td style="background: #16a34a; color: white; padding: 15px; border-radius: 4px;"><strong>¡HACER PRIMERO!</strong><br/><span style="font-size: 18pt;">{{ effort_impact_matrix.low_high.count if effort_impact_matrix else 0 }}</span></td>
-</tr>
-</table>
+<div class="chart chart-effort">
+{%- if effort_impact_matrix %}
+<svg viewBox="0 0 470 268" width="470" height="268" role="img" aria-label="Matriz de esfuerzo frente a impacto" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
+<text x="274" y="18" text-anchor="middle" font-size="10" font-weight="700" letter-spacing="1" fill="#475569">IMPACTO</text>
+<text x="170" y="38" text-anchor="middle" font-size="9" fill="#6b7280">Bajo</text>
+<text x="274" y="38" text-anchor="middle" font-size="9" fill="#6b7280">Medio</text>
+<text x="378" y="38" text-anchor="middle" font-size="9" fill="#6b7280">Alto</text>
+<text x="22" y="144" text-anchor="middle" font-size="10" font-weight="700" letter-spacing="1" fill="#475569" transform="rotate(-90 22 144)">ESFUERZO</text>
+<text x="112" y="80" text-anchor="end" font-size="9" font-weight="600" fill="#475569">Alto</text>
+<text x="112" y="148" text-anchor="end" font-size="9" font-weight="600" fill="#475569">Med</text>
+<text x="112" y="216" text-anchor="end" font-size="9" font-weight="600" fill="#475569">Bajo</text>
+<rect x="120" y="44" width="100" height="64" rx="4" fill="#ef4444"/>
+<text x="170" y="66" text-anchor="middle" font-size="8" fill="#ffffff">Evitar</text>
+<text x="170" y="92" text-anchor="middle" font-size="19" font-weight="700" fill="#ffffff">{{ effort_impact_matrix.high_low.count }}</text>
+<rect x="224" y="44" width="100" height="64" rx="4" fill="#f97316"/>
+<text x="274" y="66" text-anchor="middle" font-size="8" fill="#ffffff">Considerar</text>
+<text x="274" y="92" text-anchor="middle" font-size="19" font-weight="700" fill="#ffffff">{{ effort_impact_matrix.high_medium.count }}</text>
+<rect x="328" y="44" width="100" height="64" rx="4" fill="#eab308"/>
+<text x="378" y="66" text-anchor="middle" font-size="8" fill="#ffffff">Agendar</text>
+<text x="378" y="92" text-anchor="middle" font-size="19" font-weight="700" fill="#ffffff">{{ effort_impact_matrix.high_high.count }}</text>
+<rect x="120" y="112" width="100" height="64" rx="4" fill="#94a3b8"/>
+<text x="170" y="134" text-anchor="middle" font-size="8" fill="#ffffff">Diferir</text>
+<text x="170" y="160" text-anchor="middle" font-size="19" font-weight="700" fill="#ffffff">{{ effort_impact_matrix.medium_low.count }}</text>
+<rect x="224" y="112" width="100" height="64" rx="4" fill="#3b82f6"/>
+<text x="274" y="134" text-anchor="middle" font-size="8" fill="#ffffff">Planificar</text>
+<text x="274" y="160" text-anchor="middle" font-size="19" font-weight="700" fill="#ffffff">{{ effort_impact_matrix.medium_medium.count }}</text>
+<rect x="328" y="112" width="100" height="64" rx="4" fill="#8b5cf6"/>
+<text x="378" y="134" text-anchor="middle" font-size="8" fill="#ffffff">Prioritario</text>
+<text x="378" y="160" text-anchor="middle" font-size="19" font-weight="700" fill="#ffffff">{{ effort_impact_matrix.medium_high.count }}</text>
+<rect x="120" y="180" width="100" height="64" rx="4" fill="#64748b"/>
+<text x="170" y="202" text-anchor="middle" font-size="8" fill="#ffffff">Si hay tiempo</text>
+<text x="170" y="228" text-anchor="middle" font-size="19" font-weight="700" fill="#ffffff">{{ effort_impact_matrix.low_low.count }}</text>
+<rect x="224" y="180" width="100" height="64" rx="4" fill="#22c55e"/>
+<text x="274" y="202" text-anchor="middle" font-size="8" fill="#ffffff">Mejora rápida</text>
+<text x="274" y="228" text-anchor="middle" font-size="19" font-weight="700" fill="#ffffff">{{ effort_impact_matrix.low_medium.count }}</text>
+<rect x="328" y="180" width="100" height="64" rx="4" fill="#16a34a"/>
+<text x="378" y="202" text-anchor="middle" font-size="8" fill="#ffffff">Hacer primero</text>
+<text x="378" y="228" text-anchor="middle" font-size="19" font-weight="700" fill="#ffffff">{{ effort_impact_matrix.low_high.count }}</text>
+</svg>
+<span class="chart-caption">Figura 3 — Esfuerzo frente a impacto. Cada celda cuenta los hallazgos por esfuerzo de remediación e impacto de seguridad; la banda verde es el trabajo de mayor valor.</span>
+{%- else %}
+<p style="text-align:center;color:#64748b;font-style:italic;">No se calculó la priorización esfuerzo / impacto para este trabajo.</p>
+{%- endif %}
+</div>
 
 {% if effort_impact_matrix %}
 **Resumen de priorización:**
@@ -631,6 +682,21 @@ Revise los hallazgos marcados como de esfuerzo "Bajo" para mejoras rápidas de s
 {% if effort_impact_matrix.medium_high.count > 0 %}- ⚡ **Prioritario ({{ effort_impact_matrix.medium_high.count }})**: Esfuerzo medio, alto impacto - planifíquelos a continuación{% endif %}
 {% if effort_impact_matrix.high_high.count > 0 %}- 📅 **Agendar ({{ effort_impact_matrix.high_high.count }})**: Alto esfuerzo, alto impacto - importantes pero complejos{% endif %}
 {% endif %}
+
+## 6.5 Preparación para Envío a Bug Bounty
+
+Esta sección es un punto de partida de triaje automatizado, no un paquete de envío. Los hallazgos de este informe **no son vulnerabilidades confirmadas** y **no están listos para enviarse tal como están**: cada uno debe verificarse de forma independiente y respaldarse con una Prueba de Concepto funcional antes de llevarlo a cualquier programa. La mayoría de los programas en Immunefi evalúan la severidad con el **Immunefi Vulnerability Severity Classification System V2.3** y, para **todas** las severidades, exigen una Prueba de Concepto obligatoria, un impacto dentro del alcance, un problema previamente desconocido (no cubierto por una auditoría o informe previo), la realización de KYC y el pago de una tarifa de envío no reembolsable. Lea la tabla siguiente como una lista de trabajo pendiente, nunca como evidencia de que un hallazgo pueda enviarse.
+
+| Hallazgo | Severidad | PoC disponible | Preparación |
+|----------|-----------|:--------------:|-------------|
+{%- for finding in findings %}
+| {{ finding.id }}. {{ finding.title }} | {{ finding.severity_badge }} | {{ 'Sí' if finding.poc_available else 'No' }} | Requiere triaje manual + PoC |
+{%- endfor %}
+{%- if not findings %}
+| — | — | — | Sin hallazgos para evaluar |
+{%- endif %}
+
+Un "Sí" en **PoC disponible** significa que MIESC generó una *plantilla* de PoC local para Foundry para ese hallazgo — un punto de partida para la reproducción, no un exploit validado. La preparación permanece en "Requiere triaje manual + PoC" para todos los hallazgos, sin importar la severidad ni el estado de la PoC: nada aquí está listo para enviarse sin verificación humana y un impacto demostrado dentro del alcance.
 
 ---
 

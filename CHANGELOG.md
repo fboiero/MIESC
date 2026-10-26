@@ -9,6 +9,26 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Visual polish + Immunefi submission-readiness for the premium / profesional / profesional-es
+  reports.** The three audit templates and the `profesional.css` / `profesional-es.css`
+  stylesheets were refined to read like a top-tier firm's report (tighter typography, accent
+  section rules, cleaner tables with header shading and zebra rows, a polished cover). The
+  HTML-table charts are replaced/augmented with crisp, deterministic inline **SVG**: a horizontal
+  severity-distribution bar chart (§1.3), a 3×3 risk-matrix heatmap (§3.1), a 3×3 effort/impact
+  heatmap (§6.4), and a clean inline shield mark + "MIESC" wordmark on the cover (replacing the
+  emoji). Every chart is drawn only from variables the template already has — it visualises
+  existing counts and never introduces or changes a number. A new **§6.5 "Bug Bounty Submission
+  Readiness"** section (Spanish "§6.5 Preparación para Envío a Bug Bounty") frames the report as an
+  automated triage starting point: findings are not confirmed vulnerabilities and are not
+  submission-ready, programs on Immunefi use the Immunefi Vulnerability Severity Classification
+  System V2.3 and require, for all severities, a mandatory PoC, an in-scope impact, a
+  previously-unknown issue, KYC and a non-refundable fee; a per-finding table (driven by
+  `finding.poc_available`) marks every finding "Requires manual triage + PoC" and never "ready to
+  submit". The two stylesheets stay byte-identical except for the Spanish running header/footer.
+  §1.3 finding counts and the Overall Risk Score are byte-for-byte unchanged on the bundled sample,
+  the SHA-256 attestation still renders and matches the input, and no "proven" / "formally
+  verified" / "Manual Review" wording is introduced.
+
 - **SHA-256 Report Integrity attestation in the `profesional` and `profesional-es` templates.**
   The Phase-5a integrity block (input-file SHA-256 + template/generator version + UTC timestamp,
   with the "recompute to verify" statement and its scope caveat) was premium-only; it now also
