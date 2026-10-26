@@ -7,11 +7,12 @@ Author: Fernando Boiero
 License: AGPL-3.0
 """
 
+import hashlib
 import json
 import logging
 import re
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Match, cast
 
@@ -445,12 +446,21 @@ def _finding_list(value: Any) -> list[dict[str, Any]]:
     return finding_list(value)
 
 
-def _coverage_and_provenance_variables(results: dict[str, Any]) -> dict[str, Any]:
+def _coverage_and_provenance_variables(
+    results: dict[str, Any], results_file: str | None = None
+) -> dict[str, Any]:
     """Template variables describing coverage gaps and run provenance.
 
     Works for both the scan JSON (``tools`` / ``tools_failed``) and the audit JSON
     (``tools_run`` / ``tools_success`` / ``tools_skipped`` / ``tools_fallback`` /
     ``tool_status``). Everything degrades to empty lists when a key is absent.
+
+    When ``results_file`` is given, a SHA-256 integrity attestation is added: the
+    hash is computed over the *raw bytes* of that file as read from disk (never a
+    re-serialized dict), so it matches ``shasum -a 256 <results.json>``. The
+    attestation covers only the correspondence between this report and that input
+    file — it is not a cryptographic signature and does not attest how the scan
+    itself was run.
     """
     tool_status = results.get("tool_status") or {}
     tools_run = list(results.get("tools_run") or results.get("tools") or tool_status.keys())
@@ -522,6 +532,15 @@ def _coverage_and_provenance_variables(results: dict[str, Any]) -> dict[str, Any
         for t, v in tool_versions.items()
         if v and str(v).lower() != "unknown" and len(str(v)) < 80
     )
+    # Report-integrity attestation: SHA-256 of the input file's raw bytes (not a
+    # re-serialized dict), the generator version and a UTC generation timestamp.
+    input_sha256: str | None = None
+    if results_file:
+        try:
+            input_sha256 = hashlib.sha256(Path(results_file).read_bytes()).hexdigest()
+        except Exception:
+            input_sha256 = None
+    generated_at_utc = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
     return {
         "coverage_tools_run": tools_run,
         "coverage_tools_clean": ran_clean,
@@ -532,6 +551,9 @@ def _coverage_and_provenance_variables(results: dict[str, Any]) -> dict[str, Any
         "provenance_rows": rows,
         "provenance_tool_versions": known_tool_versions,
         "has_provenance": bool(prov),
+        "input_sha256": input_sha256,
+        "generated_at_utc": generated_at_utc,
+        "generator_version": VERSION,
     }
 
 
@@ -568,6 +590,50 @@ def _get_swc_references(category: str, swc_id: str = "") -> list[str]:
     return refs
 
 
+def _resolve_source_path(
+    contract_path: str,
+    base_dir: str = "",
+    extra_dirs: list[str] | None = None,
+) -> Path | None:
+    """Locate a contract source file on disk, or return ``None``.
+
+    Single source of truth for source-file resolution, shared by the §5
+    source-snippet embedding (:func:`_extract_source_code`) and the §2.2 scope
+    line count. Searches, in order: the path as given, the audited source paths
+    (``extra_dirs``) and the results-file directory, the ``base_dir`` and its
+    parent, the CWD, and finally ``/contracts`` / ``/tmp``. For each base both
+    ``base/contract_path`` and ``base/<basename>`` are tried, so a finding whose
+    location is just ``Foo.sol`` (or an absolute ``/contracts/Foo.sol`` that no
+    longer exists) is still located next to the results JSON.
+    """
+    if not contract_path or contract_path == "unknown":
+        return None
+    try:
+        path = Path(contract_path)
+        if path.exists() and path.is_file():
+            return path
+        # Build the ordered list of directories to search.
+        search_dirs: list[Path] = []
+        for extra in extra_dirs or []:
+            if extra:
+                ed = Path(extra)
+                search_dirs.append(ed.parent if ed.is_file() else ed)
+        if base_dir:
+            bd = Path(base_dir)
+            search_dirs.append(bd.parent if bd.is_file() else bd)
+        search_dirs.append(Path.cwd())
+        search_dirs.extend([Path("/contracts"), Path("/tmp")])
+
+        basename = Path(contract_path).name
+        for base in search_dirs:
+            for candidate in (base / contract_path, base / basename):
+                if candidate.exists() and candidate.is_file():
+                    return candidate
+    except Exception:
+        return None
+    return None
+
+
 def _extract_source_code(
     contract_path: str,
     line_number: int,
@@ -577,44 +643,15 @@ def _extract_source_code(
 ) -> str:
     """Extract actual source code lines from the contract file.
 
-    Searches, in order: the path as given, the results-file directory and the
-    audited source paths (``extra_dirs``), the base_dir and its parent, the CWD,
-    and finally ``/contracts`` / ``/tmp``. For each base both ``base/contract_path``
-    and ``base/<basename>`` are tried, so a finding whose location is just
-    ``Foo.sol`` is still located next to the results JSON.
+    Uses :func:`_resolve_source_path` to locate the file, then returns a snippet
+    centred on ``line_number`` (empty string when the file cannot be located).
     """
     if not contract_path or contract_path == "unknown" or not line_number:
         return ""
     try:
-        path = Path(contract_path)
-        if not path.exists():
-            # Build the ordered list of directories to search.
-            search_dirs: list[Path] = []
-            for extra in extra_dirs or []:
-                if extra:
-                    ed = Path(extra)
-                    search_dirs.append(ed.parent if ed.is_file() else ed)
-            if base_dir:
-                bd = Path(base_dir)
-                if bd.is_file():
-                    search_dirs.append(bd.parent)
-                else:
-                    search_dirs.append(bd)
-            search_dirs.append(Path.cwd())
-            search_dirs.extend([Path("/contracts"), Path("/tmp")])
-
-            basename = Path(contract_path).name
-            resolved = None
-            for base in search_dirs:
-                for candidate in (base / contract_path, base / basename):
-                    if candidate.exists() and candidate.is_file():
-                        resolved = candidate
-                        break
-                if resolved:
-                    break
-            if resolved is None:
-                return ""
-            path = resolved
+        path = _resolve_source_path(contract_path, base_dir, extra_dirs)
+        if path is None:
+            return ""
         lines = path.read_text(encoding="utf-8").splitlines()
         start = max(0, line_number - context - 1)
         end = min(len(lines), line_number + context)
@@ -625,6 +662,75 @@ def _extract_source_code(
         return "\n".join(snippet_lines)
     except Exception:
         return ""
+
+
+# Layer key → human capability name for the derived §2.2 out-of-scope list.
+# Only layers that tools are actually mapped to in ``TOOL_LAYER_MAP`` belong
+# here: a layer no tool can populate (e.g. ``property_testing``, which has no
+# mapped tool) would render unconditionally and become boilerplate in disguise.
+_LAYER_SCOPE_LABEL: dict[str, str] = {
+    "dynamic_testing": "Dynamic testing / fuzzing",
+    "symbolic_execution": "Symbolic execution",
+    "formal_verification": "Formal verification",
+    "ai_analysis": "AI/LLM-assisted review",
+    "ml_detection": "ML-based detection",
+    "specialized": "Specialized analysis (gas, threat modeling, clone detection)",
+}
+
+
+def _derive_out_of_scope(
+    layer_summary: dict[str, Any],
+    tools_execution_summary: list[dict[str, Any]],
+    coverage_tools_skipped: list[str],
+) -> list[str]:
+    """Out-of-scope boundaries derived from what this run did NOT exercise.
+
+    Honest and run-specific: a boundary appears only when the matching analysis
+    layer produced no successful tool in *this* run, or a tool was present but
+    did not run cleanly. Nothing is asserted as a pre-decided engagement
+    exclusion. Returns an empty list when nothing could be derived, in which case
+    the template renders an explicit "not explicitly assessed" sentence instead
+    of boilerplate.
+    """
+    out: list[str] = []
+    ran_layers = {lk for lk, ls in layer_summary.items() if (ls or {}).get("tools_success", 0) > 0}
+
+    # Analysis layers with no successful tool this run.
+    for lk, label in _LAYER_SCOPE_LABEL.items():
+        if lk not in ran_layers:
+            out.append(f"{label} — no tool from this layer produced results in this run")
+
+    # Economic / tokenomics (DeFi) analysis: in scope only if a DeFi-economic
+    # detector actually ran and succeeded. Checked against both the layer map and
+    # explicit tool names (defi_detectors / economic_invariants / mev) so a tool
+    # mapped outside the "defi" layer is still honoured.
+    econ_markers = ("defi", "economic", "tokenomics", "mev")
+    econ_ran = "defi" in ran_layers or any(
+        t.get("status") == "Success"
+        and any(m in str(t.get("name", "")).lower() for m in econ_markers)
+        for t in tools_execution_summary
+    )
+    if not econ_ran:
+        out.append(
+            "Economic / tokenomics (DeFi) analysis — no economic detector "
+            "produced results in this run"
+        )
+
+    # Tools that were present but did not run cleanly (skipped / unavailable /
+    # failed), so their coverage is explicitly excluded.
+    not_clean = sorted(
+        {
+            str(t.get("name"))
+            for t in tools_execution_summary
+            if t.get("status")
+            in ("Skipped", "Not Available", "Not Run", "Failed", "Error", "Timeout")
+        }
+        | set(coverage_tools_skipped)
+    )
+    if not_clean:
+        out.append("Tools not executed or unavailable at run time: " + ", ".join(not_clean))
+
+    return out
 
 
 def _interactive_wizard(variables: dict[str, Any], console: Any) -> dict[str, Any]:
@@ -1309,7 +1415,7 @@ def report(
     # Coverage and provenance (Product Excellence Plan B.2/B.3): what did not run,
     # what ran in fallback mode, and the exact environment, straight from the
     # result JSON so the report can be cited and its gaps are visible.
-    variables.update(_coverage_and_provenance_variables(results))
+    variables.update(_coverage_and_provenance_variables(results, results_file))
     # Also set llm_executive_summary if not already set by LLM
     if not variables.get("llm_executive_summary"):
         variables["llm_executive_summary"] = key_takeaways
@@ -1320,6 +1426,11 @@ def report(
     files_analyzed: list[dict[str, Any]] = []
     files_in_scope: list[dict[str, Any]] = []
     total_lines = 0
+    # An in-scope file whose source cannot be located at report time renders an
+    # em-dash (—), never ``0`` — a 0 LOC count would be a false claim. This flag
+    # records whether ANY in-scope file could not be measured, so the "Total" is
+    # also dashed (a partial sum labelled Total would itself be false).
+    scope_source_unavailable = False
 
     # Check if batch audit (has "contracts" array)
     if "contracts" in results:
@@ -1330,15 +1441,24 @@ def report(
             )
             contract_findings = contract_data.get("total_findings", 0)
 
-            # Try to get lines of code
-            lines: int | str = "N/A"
-            try:
-                if contract_path and Path(contract_path).exists():
-                    with open(contract_path, encoding="utf-8") as contract_handle:
-                        lines = len(contract_handle.readlines())
-                        total_lines += lines
-            except Exception:
-                pass
+            # Count lines via the shared source resolver (same resolution used by
+            # the §5 snippet embedding), so a relative or stale-absolute path is
+            # still found next to the results JSON.
+            lines: int | str = "—"
+            resolved = _resolve_source_path(
+                contract_path if contract_path and contract_path != "Unknown" else "",
+                base_dir=contract_path if contract_path != "Unknown" else "",
+                extra_dirs=[results_file],
+            )
+            if resolved is not None:
+                try:
+                    lines = len(resolved.read_text(encoding="utf-8").splitlines())
+                    total_lines += lines
+                except Exception:
+                    lines = "—"
+                    scope_source_unavailable = True
+            else:
+                scope_source_unavailable = True
 
             files_analyzed.append(
                 {
@@ -1368,37 +1488,24 @@ def report(
             Path(contract_path).name if contract_path and contract_path != "Unknown" else "Contract"
         )
 
-        lines = 0
+        lines = "—"
         functions_count = 0
-        try:
-            resolved_path = None
-            if contract_path and contract_path != "Unknown":
-                p = Path(contract_path)
-                if p.exists():
-                    resolved_path = p
-                else:
-                    # Try resolving relative to results file directory
-                    results_dir = Path(results_file).parent
-                    search_candidates = [
-                        results_dir / contract_path,
-                        results_dir.parent / contract_path,
-                        Path.cwd() / contract_path,
-                        Path("/contracts") / Path(contract_path).name,
-                        Path("/tmp") / Path(contract_path).name,
-                    ]
-                    for candidate in search_candidates:
-                        if candidate.exists():
-                            resolved_path = candidate
-                            break
-
-            if resolved_path and resolved_path.is_file():
+        resolved_path = _resolve_source_path(
+            contract_path if contract_path and contract_path != "Unknown" else "",
+            base_dir=contract_path if contract_path and contract_path != "Unknown" else "",
+            extra_dirs=[results_file],
+        )
+        if resolved_path is not None:
+            try:
                 content = resolved_path.read_text(encoding="utf-8")
                 lines = len(content.splitlines())
-                total_lines = lines
-                # Count functions
+                total_lines += lines
                 functions_count = len(re.findall(r"\bfunction\s+\w+\s*\(", content))
-        except Exception:
-            lines = "N/A"
+            except Exception:
+                lines = "—"
+                scope_source_unavailable = True
+        else:
+            scope_source_unavailable = True
 
         files_analyzed.append(
             {
@@ -1421,8 +1528,12 @@ def report(
     variables["files_analyzed"] = files_analyzed
     variables["files_in_scope"] = files_in_scope
     variables["files_count"] = len(files_analyzed)
-    if total_lines > 0:
-        variables["lines_of_code"] = total_lines
+    variables["scope_source_unavailable"] = scope_source_unavailable
+    # Only report a numeric total when every in-scope file was measured; an
+    # em-dash otherwise (never a partial sum or ``N/A``/``0``).
+    variables["lines_of_code"] = (
+        total_lines if (total_lines > 0 and not scope_source_unavailable) else "—"
+    )
 
     # =========================================================================
     # Enhanced Tool Execution Summary
@@ -1710,6 +1821,16 @@ def report(
     variables["tools_execution_summary"] = tools_execution_summary
     variables["layer_summary"] = layer_summary_list
     variables["total_tools_executed"] = len(tools_execution_summary)
+
+    # §2.2 Out of Scope — derived from what this run did not exercise (layers with
+    # no successful tool, and tools present but not run cleanly), never generic
+    # boilerplate. Uses the same ``layer_summary`` that feeds §4.3 so the two
+    # sections agree on what ran.
+    variables["out_of_scope"] = _derive_out_of_scope(
+        layer_summary,
+        tools_execution_summary,
+        variables.get("coverage_tools_skipped", []),
+    )
 
     # Populate layer coverage status for methodology section (§2.3)
     layer_coverage_map = {
