@@ -191,6 +191,7 @@ class TestCredentialsAndClients:
             "api_key": "secret",
             "timeout": 300,
             "base_url": "https://api.moonshot.ai/v1",
+            "max_retries": 5,
         }
 
     def test_make_client_anthropic(self, monkeypatch):
@@ -207,7 +208,33 @@ class TestCredentialsAndClients:
         )
         monkeypatch.setenv("ANTHROPIC_API_KEY", "a")
         lp.make_client(lp.get_provider("anthropic"), timeout=42)
-        assert seen == {"api_key": "a", "timeout": 42}
+        assert seen == {"api_key": "a", "timeout": 42, "max_retries": 5}
+
+    def test_make_client_sets_max_retries(self, monkeypatch):
+        """429/5xx are retried via the SDK backoff; MIESC_LLM_MAX_RETRIES wins,
+        and a non-integer value falls back to the default instead of raising."""
+        seen = {}
+
+        class FakeOpenAI:
+            def __init__(self, **kwargs):
+                seen.update(kwargs)
+
+        monkeypatch.setitem(
+            sys.modules, "openai", types.SimpleNamespace(OpenAI=FakeOpenAI, AsyncOpenAI=FakeOpenAI)
+        )
+        monkeypatch.setenv("MOONSHOT_API_KEY", "secret")
+        lp.make_client(lp.get_provider("kimi"))
+        assert seen["max_retries"] == 5
+
+        seen.clear()
+        monkeypatch.setenv("MIESC_LLM_MAX_RETRIES", "9")
+        lp.make_client(lp.get_provider("kimi"))
+        assert seen["max_retries"] == 9
+
+        seen.clear()
+        monkeypatch.setenv("MIESC_LLM_MAX_RETRIES", "not-an-int")
+        lp.make_client(lp.get_provider("kimi"))
+        assert seen["max_retries"] == 5
 
     def test_make_client_without_key_names_the_variables(self):
         with pytest.raises(RuntimeError) as err:
