@@ -477,6 +477,149 @@ def _get_recommendation(
     return "Review and fix according to smart contract security best practices. See SWC Registry for detailed remediation guidance."
 
 
+# Curated Spanish descriptions keyed by raw detector check id (not canonical
+# category, so variants like weak-prng vs weak-randomness keep their distinction).
+# Each says WHAT the check flags; the WHERE/exact code stays in the Location field
+# and the embedded Vulnerable Code snippet, so no technical specifics are lost.
+# An unrecognized check falls back to the detector's own English text plus a
+# visible note (see ``_localized_description``) — never a silent mix.
+_REENTRANCY_ES = (
+    "Reentrada: una llamada externa ocurre antes de actualizar el estado, permitiendo "
+    "reingresar a la función y repetir operaciones."
+)
+_ORACLE_STALE_ES = (
+    "Oráculo de precios potencialmente obsoleto: falta validación de frescura/antigüedad "
+    "del dato, lo que permite operar con un precio desactualizado."
+)
+_LOOP_CALL_ES = (
+    "Llamada externa dentro de un bucle: puede agotar el gas o ser bloqueada por un "
+    "elemento que falla, derivando en denegación de servicio."
+)
+_ARITH_ES = (
+    "Desbordamiento aritmético (overflow/underflow): una operación puede envolver el "
+    "valor y corromper la contabilidad o los balances."
+)
+_UNCHECKED_ES = (
+    "Valor de retorno de una llamada de bajo nivel o transferencia sin verificar: el "
+    "estado avanza aunque la operación haya fallado."
+)
+_UNINIT_ES = (
+    "Variable sin inicializar: toma el valor cero por defecto, pudiendo apuntar a "
+    "address(0) o dejar banderas de control en false."
+)
+_SIG_MALLEABLE_ES = (
+    "Firma maleable: ecrecover acepta firmas maleables, lo que permite falsificar o "
+    "reutilizar mensajes firmados."
+)
+_FLASH_LOAN_ES = (
+    "Exposición a préstamos flash: la lógica puede manipularse con capital sin colateral "
+    "dentro de una única transacción."
+)
+
+_CHECK_DESCRIPTIONS_ES: Dict[str, str] = {
+    "access-control": "Falta o es incorrecto el control de acceso: una función sensible puede ser invocada por cuentas no autorizadas.",
+    "access-control-missing": "Falta control de acceso: una función privilegiada no restringe quién puede invocarla.",
+    "missing-access-control": "Falta control de acceso: una función privilegiada no restringe quién puede invocarla.",
+    "arbitrary-send-erc20": "Transferencia de tokens ERC20 desde una dirección arbitraria: permite mover fondos de terceros sin su autorización.",
+    "arbitrary-send-erc20-permit": "Uso de permit() con parámetros controlables que habilita transferir tokens de terceros.",
+    "arbitrary-send-eth": "Envío de ETH a un destino controlable por el atacante o desde un origen arbitrario.",
+    "bad-randomness": "Aleatoriedad insegura: la fuente de entropía es predecible o manipulable en cadena.",
+    "weak-prng": "Generador pseudoaleatorio débil: se usa una fuente predecible en cadena (p. ej. block.timestamp) como semilla.",
+    "weak-randomness": "Aleatoriedad débil: se usan valores predecibles (block.timestamp/number, blockhash), incluido keccak256 sobre ellos, como entropía.",
+    "block-other-parameters": "Uso de parámetros de bloque (block.*) para lógica crítica, ajustables por mineros/validadores dentro del consenso.",
+    "calls-loop": _LOOP_CALL_ES,
+    "delegatecall-loop": _LOOP_CALL_ES,
+    "msg-value-loop": "Uso de msg.value dentro de un bucle: la contabilización repetida del valor enviado es incorrecta.",
+    "gas-limit-loop": "Bucle sin cota que puede superar el límite de gas del bloque y bloquear la función (denegación de servicio).",
+    "centralization-risk": "Riesgo de centralización: una cuenta privilegiada puede realizar acciones sensibles de forma unilateral.",
+    "owner-privileged": "El propietario tiene derechos privilegiados para operar el contrato y debe ser confiable para no abusar de ellos.",
+    "incorrect-owner": "Propietario mal asignado o incorrecto para una operación privilegiada.",
+    "protected-vars": "Variables que deberían estar protegidas por control de acceso y no lo están.",
+    "chainlink-stale": _ORACLE_STALE_ES,
+    "stale-oracle": _ORACLE_STALE_ES,
+    "stale-price": _ORACLE_STALE_ES,
+    "pragma_oracle_stale": _ORACLE_STALE_ES,
+    "twap-missing": "Falta un TWAP: se usa un precio spot manipulable en lugar de un promedio ponderado por tiempo.",
+    "spot-price": "Uso de precio spot manipulable (por ejemplo, mediante préstamos flash) en lugar de un precio robusto.",
+    "price-oracle": "Dependencia de un oráculo de precios sin las validaciones adecuadas.",
+    "oracle-manipulation": "Manipulación de oráculo: el precio o dato externo puede distorsionarse para explotar el protocolo.",
+    "controlled-delegatecall": "delegatecall con destino o datos controlables: permite ejecutar código arbitrario en el contexto de almacenamiento del contrato.",
+    "delegate-call-unchecked-address": "delegatecall a una dirección sin validar.",
+    "reentrancy": _REENTRANCY_ES,
+    "reentrancy-eth": "Reentrada con ETH en juego: los fondos pueden drenarse por reingreso antes de actualizar el estado.",
+    "reentrancy-no-eth": "Reentrada sin transferencia de ETH: el estado puede manipularse por reingreso.",
+    "reentrancy-benign": "Patrón de reentrada de bajo impacto, sin consecuencia directa aparente.",
+    "reentrancy-events": "Reentrada que altera el orden de emisión de eventos.",
+    "reentrancy-unlimited-gas": "Reentrada a través de una llamada con gas ilimitado (call), que no limita el gas como transfer/send.",
+    "cross-function-reentrancy": "Reentrada entre funciones: el reingreso ocurre a través de otra función que comparte el mismo estado.",
+    "read-only-reentrancy": "Reentrada de solo lectura: una función de vista devuelve estado inconsistente durante una llamada externa.",
+    "divide-before-multiply": "División antes de multiplicación: pérdida de precisión por el orden de las operaciones.",
+    "dos": "Denegación de servicio: una función crítica puede quedar permanentemente bloqueada o agotar el gas.",
+    "race-condition": "Condición de carrera / dependencia del orden de transacciones: el resultado depende del orden de minado y es explotable por front-running.",
+    "tod": "Dependencia del orden de transacciones (TOD): el resultado cambia según el orden de minado.",
+    "ecrecover-malleable": _SIG_MALLEABLE_ES,
+    "signature-malleability": _SIG_MALLEABLE_ES,
+    "signature_replay": "Reutilización de firma (replay): falta un nonce o separador de dominio que impida reusar una firma válida.",
+    "merkle-proof-forge": "Prueba de Merkle falsificable por una validación insuficiente de la prueba.",
+    "single-tx-vote": "Voto en una sola transacción: permite manipular una votación con poder adquirido y devuelto en la misma transacción (préstamo flash).",
+    "ecrecover-no-zero-check": "Falta verificar la dirección cero que ecrecover devuelve ante una firma malformada.",
+    "external-call-before-state-change": "Llamada externa antes de actualizar el estado, violando el patrón Checks-Effects-Interactions.",
+    "flash-loan": _FLASH_LOAN_ES,
+    "flash-loan-attack": _FLASH_LOAN_ES,
+    "flash-loan-governance": "Gobernanza manipulable con préstamos flash: el poder de voto puede adquirirse temporalmente en una sola transacción.",
+    "front-running": "Front-running: una transacción pendiente visible en el mempool puede ser adelantada para extraer valor.",
+    "integer-overflow": _ARITH_ES,
+    "integer-underflow": _ARITH_ES,
+    "overflow": _ARITH_ES,
+    "underflow": _ARITH_ES,
+    "unchecked_u256": _ARITH_ES,
+    "missing-initializer-guard": "Falta el guard del inicializador: la función de inicialización puede ser invocada por un atacante en un contrato actualizable.",
+    "upgrade_no_init_guard": "Falta el guard del inicializador tras la actualización, dejando el contrato reinicializable.",
+    "unprotected-upgrade": "Función de actualización sin la restricción de acceso adecuada.",
+    "storage-collision": "Colisión de almacenamiento entre el proxy y la implementación.",
+    "proxy_upgrade": "Falla de proxy/actualización: posible ejecución de código arbitrario o toma de control del contrato.",
+    "suicidal": "selfdestruct desprotegido: cualquiera puede destruir el contrato y redirigir el ETH restante a una dirección arbitraria.",
+    "selfdestruct-identifier": "Uso de la instrucción obsoleta selfdestruct, desaconsejada.",
+    "time-manipulation": "Dependencia de block.timestamp/number para lógica crítica, ajustable por mineros/validadores dentro del consenso.",
+    "timestamp": "Dependencia de block.timestamp para lógica crítica, manipulable dentro de los límites del consenso.",
+    "tx-origin": "Uso de tx.origin para autenticación: vulnerable a phishing; debe usarse msg.sender.",
+    "unchecked-call": _UNCHECKED_ES,
+    "unchecked-low-level-calls": _UNCHECKED_ES,
+    "unchecked-lowlevel": _UNCHECKED_ES,
+    "unchecked-return": _UNCHECKED_ES,
+    "unchecked-send": _UNCHECKED_ES,
+    "unchecked-transfer": "Transferencia de tokens sin verificar su valor de retorno: algunos ERC20 no revierten ante fallo.",
+    "unchecked_syscall_result": _UNCHECKED_ES,
+    "unused-return": "Valor de retorno ignorado: no se verifica el resultado de una llamada que puede fallar.",
+    "uninitialized-local": "Variable local sin inicializar: toma el valor cero por defecto.",
+    "uninitialized-state": _UNINIT_ES,
+    "uninitialized-storage": "Puntero de almacenamiento sin inicializar que puede sobrescribir otras variables de estado.",
+}
+
+
+def _localized_description(finding: dict[str, Any], lang: str) -> str:
+    """Finding description in the report language.
+
+    English (``lang != 'es'``) returns the detector's own text unchanged. Spanish
+    returns the curated description for the check id; an unrecognized check keeps
+    the detector's English text plus a visible note, so a reader always knows which
+    descriptions are curated and which are raw detector output (never a silent mix).
+    """
+    raw = finding.get("description", finding.get("message", "")) or ""
+    if lang != "es":
+        return raw
+    check = str(finding.get("type") or finding.get("check") or "").strip().lower()
+    for key in (check, check.replace("_", "-"), check.replace("-", "_")):
+        if key in _CHECK_DESCRIPTIONS_ES:
+            return _CHECK_DESCRIPTIONS_ES[key]
+    if not raw:
+        return ""
+    return (
+        f"{raw}\n\n> _Descripción provista por el detector (sin traducción curada "
+        f"para `{check or 'desconocido'}`)._"
+    )
+
+
 def _extract_attack_scenarios(findings: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Extract attack scenarios from intelligence-enhanced findings."""
     scenarios = []
@@ -2687,7 +2830,9 @@ def report(
                 "severity_color": severity_colors.get(severity_lower, "#6c757d"),
                 "category": category,
                 "location": loc_str,
-                "description": finding.get("description", finding.get("message", "")),
+                "description": _localized_description(
+                    finding, "es" if template.endswith("-es") else "en"
+                ),
                 "recommendation": (
                     _get_recommendation(
                         category,

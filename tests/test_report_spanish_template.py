@@ -18,6 +18,7 @@ from click.testing import CliRunner
 from miesc.cli.commands.report import (
     _get_impact_description,
     _get_recommendation,
+    _localized_description,
     report,
 )
 from miesc.core.finding_taxonomy import CanonicalCategory
@@ -136,3 +137,27 @@ def test_rendered_report_impact_is_spanish_for_es_english_for_en(results_file, t
     # The one finding is 'suicidal' -> access_control; its impact localizes.
     assert "usuarios no autorizados" in es
     assert "unauthorized users" in en
+
+
+def test_localized_description_curated_fallback_and_english():
+    """ES uses the curated Spanish description keyed by check id; an unknown check
+    keeps the English detector text plus a visible note; English is unchanged."""
+    known = {"type": "suicidal", "description": "allows anyone to destruct the contract"}
+    assert _localized_description(known, "en") == "allows anyone to destruct the contract"
+    es = _localized_description(known, "es")
+    assert "selfdestruct desprotegido" in es
+    assert "allows anyone to destruct" not in es  # curated, not the raw detector text
+    # Unknown check: English kept + visible honest note, never a silent mix.
+    unknown = {"type": "some-unknown-check", "description": "Raw detector text."}
+    out = _localized_description(unknown, "es")
+    assert "Raw detector text." in out
+    assert "sin traducción curada para `some-unknown-check`" in out
+
+
+def test_rendered_es_descriptions_are_curated_with_no_silent_english(results_file, tmp_path):
+    """On a sample of recognized checks, every §5 description is curated Spanish and
+    carries no 'sin traducción curada' note; the English report keeps the raw text."""
+    es = _render(results_file, tmp_path)
+    # 'suicidal' is recognized -> curated Spanish, and no fallback note for it.
+    assert "selfdestruct desprotegido" in es
+    assert "sin traducción curada" not in es
