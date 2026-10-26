@@ -308,6 +308,8 @@ class TestFoundryCommandBuilders:
             match_contract="BankTest",
         )
 
+        # --gas-report is intentionally absent: in forge >=1.x it suppresses the
+        # per-test results JSON this runner parses (see _apply_common_test_options).
         assert cmd == [
             "forge",
             "test",
@@ -318,7 +320,6 @@ class TestFoundryCommandBuilders:
             "--match-contract",
             "BankTest",
             "-vvv",
-            "--gas-report",
             "--json",
         ]
 
@@ -391,7 +392,8 @@ class TestFoundryCommandBuilders:
         cmd = runner._build_run_all_tests_command()
 
         assert "--match-path" not in cmd
-        assert cmd == ["forge", "test", "-vvv", "--gas-report", "--json"]
+        assert "--gas-report" not in cmd
+        assert cmd == ["forge", "test", "-vvv", "--json"]
 
     def test_build_run_all_tests_command_with_dir(self, runner):
         """All-test commands can be restricted to a directory glob."""
@@ -403,7 +405,6 @@ class TestFoundryCommandBuilders:
             "--match-path",
             "test/exploits/*",
             "-vvv",
-            "--gas-report",
             "--json",
         ]
 
@@ -1090,6 +1091,28 @@ class TestParseOutput:
             TestStatus.FAILED,
             TestStatus.SKIPPED,
         ]
+
+    def test_parse_test_results_handles_forge_1x_nested_status_shape(self, runner):
+        """forge >=1.x nests test_results under each suite id and uses a "status"
+        string; both the nesting and the string status must be parsed."""
+        data = {
+            "test/Counter.t.sol:CounterTest": {
+                "duration": "2ms",
+                "test_results": {
+                    "testFuzz_NeverLarge(uint256)": {
+                        "status": "Failure",
+                        "reason": "number too large",
+                    },
+                    "testFuzz_SetNumber(uint256)": {"status": "Success", "reason": None},
+                },
+                "warnings": [],
+            }
+        }
+        tests = runner._parse_test_results(data)
+        by_status = {t.status for t in tests}
+        assert len(tests) == 2
+        assert TestStatus.PASSED in by_status and TestStatus.FAILED in by_status
+        assert any("testFuzz_NeverLarge" in t.name for t in tests)
 
     def test_parse_test_results_handles_hostile_top_level_dict_accessors(self, runner):
         """Hostile dict subclasses should be ignored safely."""
