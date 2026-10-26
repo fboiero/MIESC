@@ -32,6 +32,7 @@ from miesc.cli.utils import (
 )
 from miesc.core.advisory_plans_io import MAX_AGENT_ITEMS, read_governance_plans
 from miesc.core.finding_taxonomy import CanonicalCategory, normalize_finding_type
+from miesc.core.fuzz_campaign_io import read_fuzz_campaign
 
 # Import Rich components if available
 if RICH_AVAILABLE:
@@ -156,6 +157,86 @@ def _build_trust_model_vars(
         "trust_inventory_ran": trust_inventory_ran,
         "governance_plans": governance_plans,
         "trust_findings": trust_findings,
+    }
+
+
+# Phase 4 — §4.6 Dynamic Testing & Fuzzing. The tools whose campaign statistics the
+# writer (``collect_fuzz_campaign``) knows how to preserve. Rendering per tool is keyed
+# off the entry's own ``tool`` field, not this set, so the two cannot disagree.
+_FUZZING_DISPLAY = {"foundry": "Foundry", "echidna": "Echidna", "medusa": "Medusa"}
+
+
+def _fuzzer_finding_ids(tool: str, formatted_findings: list[dict[str, Any]]) -> list[str]:
+    """F-ids of findings attributed to ``tool`` (raw ``tool`` field or a confirming
+    tool). This is a cross-reference by id — the findings are already counted in
+    §1/§4, so §4.6 never re-counts them."""
+    key = tool.lower().strip()
+    ids: list[str] = []
+    for f in formatted_findings:
+        attributed = str(f.get("tool") or "").lower() == key or key in {
+            str(c).lower().strip() for c in (f.get("confirming_tools") or [])
+        }
+        if attributed and f.get("id"):
+            ids.append(str(f["id"]))
+    return ids
+
+
+def _build_dynamic_testing_vars(
+    tool_results: list[dict[str, Any]],
+    formatted_findings: list[dict[str, Any]],
+    layer_summary: Dict[str, Any],
+) -> Dict[str, Any]:
+    """Build the §4.6 template variables — a three-state, honest dynamic-testing view.
+
+    A fuzzing-campaign statistic is NOT a finding: the counts here (tests run,
+    configured limits, violations reported) change no §1/§4 total and no risk score;
+    the renderer cross-references real fuzzer findings by F-id instead of re-counting.
+
+    Three states, so §4.6 never contradicts §2.3's Layer-2 line or §4.4:
+
+    * ``fuzzing_tools`` non-empty → at least one Layer-2 tool carried a campaign block;
+      render its metrics with the tool and scope named.
+    * else ``dynamic_layer_ran`` → a Layer-2 (dynamic-testing) tool ran but recorded no
+      campaign statistics (e.g. revert-invariant execution); point at §4.4.
+    * else → no dynamic/fuzzing testing was performed (the common static-only case).
+
+    ``dynamic_layer_ran`` is read from the SAME ``layer_summary`` that feeds
+    ``layer2_coverage`` in §2.3, so the two can never disagree. ``coverage`` and
+    ``gas_report`` are never read here (see ``fuzz_campaign_io``).
+    """
+    fuzzing_tools: list[dict[str, Any]] = []
+    for entry in tool_results:
+        campaign = read_fuzz_campaign(entry)
+        if campaign is None:
+            continue
+        tool_name = str(entry.get("tool") or "").lower().strip()
+        display = _FUZZING_DISPLAY.get(tool_name, tool_name or "unknown")
+        finding_ids = _fuzzer_finding_ids(tool_name, formatted_findings)
+        # Foundry reports observed test counts; a success with zero parsed tests means
+        # the statistics could not be read, which we state rather than printing "0/0".
+        tests_run = campaign.get("tests_run")
+        stats_unparsed = tool_name == "foundry" and (
+            not isinstance(tests_run, int) or tests_run <= 0
+        )
+        fuzzing_tools.append(
+            {
+                "tool": tool_name,
+                "display": display,
+                "is_foundry": tool_name == "foundry",
+                "tests_run": tests_run,
+                "tests_passed": campaign.get("tests_passed"),
+                "tests_failed": campaign.get("tests_failed"),
+                "fuzz_runs": campaign.get("fuzz_runs"),
+                "test_limit": campaign.get("test_limit"),
+                "property_violations": campaign.get("property_violations"),
+                "finding_ids": ", ".join(finding_ids),
+                "stats_unparsed": stats_unparsed,
+            }
+        )
+
+    return {
+        "fuzzing_tools": fuzzing_tools,
+        "dynamic_layer_ran": "dynamic_testing" in layer_summary,
     }
 
 
@@ -2482,6 +2563,12 @@ def report(
     # inventory and the trust-relevant finding cross-reference carry ZERO weight in any
     # count or the risk score (a role is a trust assumption, not a Finding).
     variables.update(_build_trust_model_vars(results, formatted_findings))
+
+    # Phase 4 (§4.6): Dynamic Testing & Fuzzing. Additive and honest — campaign
+    # statistics are not findings, so this carries ZERO weight in any count or the
+    # risk score. State is derived from the same ``layer_summary`` that feeds §2.3's
+    # Layer-2 coverage, so the two sections cannot contradict each other.
+    variables.update(_build_dynamic_testing_vars(tool_results, formatted_findings, layer_summary))
 
     # Simple template rendering (basic variable substitution)
     output_content = _render_template(template_content, variables)

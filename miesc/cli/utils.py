@@ -17,6 +17,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Set, cast
 
+from miesc.core.fuzz_campaign_io import FUZZ_CAMPAIGN_KEY, collect_fuzz_campaign
 from miesc.core.llm_budget import get_llm_timeout, set_llm_timeout  # noqa: F401
 from miesc.core.rule_classes import apply_rule_class_caps
 
@@ -653,6 +654,17 @@ def run_tool(tool: str, contract: str, timeout: int = 0, **kwargs: Any) -> Dict[
             record["reason"] = normalized["reason"]
         if normalized.get("fallback"):
             record["fallback"] = True
+        # Phase 4 (§4.6): preserve fuzzing-campaign statistics that the base schema
+        # drops (it carries only ``metadata``). Inert for non-fuzzing tools —
+        # ``collect_fuzz_campaign`` returns ``None`` and ``record["metadata"]`` stays
+        # byte-identical to today; additive for fuzzers, where existing ``metadata``
+        # keys are merged (never replaced) under one namespaced sub-key.
+        campaign = collect_fuzz_campaign(tool, result)
+        if campaign is not None:
+            record["metadata"] = {
+                **(result.get("metadata") or {}),
+                FUZZ_CAMPAIGN_KEY: campaign,
+            }
         return record
 
     except Exception as e:

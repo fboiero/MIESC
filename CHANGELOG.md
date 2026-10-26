@@ -9,6 +9,32 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **`miesc report -t premium` Phase 4 — §4.6 "Dynamic Testing & Fuzzing".** A new,
+  additive, honest section surfacing fuzzing-campaign activity. A campaign statistic is **not a
+  finding** — the numbers here change no §1/§4 count and no risk score; fuzzer findings are
+  already counted in §1/§4 and are only cross-referenced by F-id, never re-counted. Three pieces:
+  - **Writer** (`miesc/cli/utils.py:run_tool`, the choke point for every `audit single/full/layer`
+    call): fuzzing adapters emit campaign stats at the top level of their `analyze()` result, but
+    the per-tool results entry preserves only `metadata`, so those stats were dropped before
+    `results.json`. The writer now merges a defined allow-list into the entry's existing
+    `metadata` under one namespaced key (`metadata["fuzz_campaign"]`): Foundry —
+    `tests_run/tests_passed/tests_failed/fuzz_runs`; Echidna/Medusa — `test_limit` (the configured
+    cap) and the property-violation count. A new `miesc/core/fuzz_campaign_io.py` owns the key plus
+    the collect (write) and read accessors so they cannot drift. Inert for non-fuzzing tools
+    (a slither entry is byte-identical to before) and additive for fuzzers (existing `metadata`
+    keys are merged, never replaced).
+  - **Reader + renderer** (`report.py`, `premium.md`, `profesional.md`): a three-state §4.6 that
+    never contradicts §2.3's Layer-2 line or §4.4 — (1) a fuzzing tool carried a campaign block →
+    render its metrics with the tool and scope named ("Foundry test suite: N tests (P passed /
+    Q failed), configured 256 fuzz runs per test"), cross-referencing fuzzer findings by F-id;
+    (2) a Layer-2 tool ran but recorded no campaign stats → say so and point at §4.4; (3) the
+    common static-only case → "No dynamic or fuzzing testing was performed in this engagement,"
+    naming the tools that would supply the layer. The Layer-2-ran signal is read from the same
+    `layer_summary` that feeds §2.3's `layer2_coverage`.
+  - **Cuts and honesty gate.** Coverage % and gas report are deliberately never surfaced
+    (line coverage is not security coverage; gas is noise); `test_limit`/`fuzz_runs` are always
+    labelled configured caps, never "sequences run"/"executed"; and the section carries a
+    banned-word gate (no "verified"/"confirmed"/"exhaustive"/"proven"/"formally verified").
 - **`miesc report -t premium` Phase 3 — §4.5 "Trust Model & Privileged Roles".** A new,
   additive, honest section surfacing privileged authority. It is an **advisory static model**,
   not a verified governance audit — a role is a trust *assumption*, never a finding, so it
