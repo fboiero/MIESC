@@ -415,6 +415,39 @@ reported in this engagement.
 {%- endif %}
 {%- endif %}
 
+## 4.6 Dynamic Testing & Fuzzing
+{%- if fuzzing_tools %}
+
+Fuzzing campaigns ran in this engagement. The metrics below describe each campaign's
+scope and outcome and correspond to **Layer 2 (Dynamic Testing)** of the methodology
+(§2.3). A campaign statistic is not a finding: any issue a fuzzer produced is already
+counted in §1 and detailed in §5, and is cross-referenced here by id, never re-counted.
+{%- for ft in fuzzing_tools %}
+{%- if ft.is_foundry %}
+{%- if ft.stats_unparsed %}
+
+- **{{ ft.display }} test suite:** ran with a configured {{ ft.fuzz_runs | default('--', true) }} fuzz runs per test; campaign statistics could not be parsed from the tool output.{% if ft.finding_ids %} Findings reproduced by execution: {{ ft.finding_ids }}.{% endif %}
+{%- else %}
+
+- **{{ ft.display }} test suite:** {{ ft.tests_run }} tests ({{ ft.tests_passed | default(0, true) }} passed / {{ ft.tests_failed | default(0, true) }} failed), configured {{ ft.fuzz_runs | default('--', true) }} fuzz runs per test.{% if ft.finding_ids %} Findings reproduced by execution: {{ ft.finding_ids }}.{% endif %}
+{%- endif %}
+{%- else %}
+
+- **{{ ft.display }}:** configured test limit {{ ft.test_limit | default('--', true) }} (a cap, not the number of sequences run); {{ ft.property_violations | default(0, true) }} property violations reported by the tool.{% if ft.finding_ids %} See {{ ft.finding_ids }}.{% endif %}
+{%- endif %}
+{%- endfor %}
+{%- elif dynamic_layer_ran %}
+
+Dynamic-testing tooling ran in this engagement (**Layer 2**, §2.3) but recorded no
+fuzzing-campaign statistics. Any results reproduced by execution are reported in §4.4
+(Property & Invariant Analysis).
+{%- else %}
+
+No dynamic or fuzzing testing was performed in this engagement. This is **Layer 2
+(Dynamic Testing)** of the methodology (§2.3); property-based fuzzing with Foundry,
+Echidna, or Medusa would supply this layer.
+{%- endif %}
+
 ---
 
 # 5. Detailed Findings
