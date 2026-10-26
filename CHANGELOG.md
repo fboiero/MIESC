@@ -7,6 +7,17 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Spanish report template `profesional-es`.** `miesc report -t profesional-es` renders the
+  premium/profesional report with its static scaffolding in Spanish — headings, table labels,
+  methodology, the §4.4 invariant / §4.5 trust-model / §4.6 fuzzing section prose, disclaimers
+  and glossary — while reusing the same Jinja variables and premium data path (CVSS, risk matrix)
+  as the English `profesional` template, so finding counts and the risk score are identical.
+  Per-finding technical prose that comes from the analysis engine (the impact/recommendation
+  content dictionaries and detector-emitted descriptions) and the PDF running header are still
+  English; localizing those is a follow-up.
+
 ### Fixed
 
 - **PoC `FoundryRunner` now parses forge >=1.x test JSON too.** The PoC-validation runner had the

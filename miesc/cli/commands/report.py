@@ -987,7 +987,16 @@ def _enhance_html_severity(html: str) -> str:
     "--template",
     "-t",
     type=click.Choice(
-        ["professional", "executive", "technical", "github-pr", "simple", "profesional", "premium"]
+        [
+            "professional",
+            "executive",
+            "technical",
+            "github-pr",
+            "simple",
+            "profesional",
+            "profesional-es",
+            "premium",
+        ]
     ),
     default="simple",
     help="Report template to use (premium/profesional include CVSS scores, attack scenarios, and deployment recommendations)",
@@ -1982,7 +1991,7 @@ def report(
     # =========================================================================
     # Profesional Template Processing
     # =========================================================================
-    if template in ("profesional", "premium"):
+    if template in ("profesional", "profesional-es", "premium"):
         info("Generating premium report data (CVSS scores, risk matrix, etc.)...")
         try:
             from miesc.reports.risk_calculator import calculate_premium_risk_data
@@ -2371,7 +2380,7 @@ def report(
     # =========================================================================
     # Proof of Concept Generation (for Critical/High findings)
     # =========================================================================
-    if template in ("profesional", "premium"):
+    if template in ("profesional", "profesional-es", "premium"):
         try:
             from miesc.poc.poc_generator import PoCGenerator
 
