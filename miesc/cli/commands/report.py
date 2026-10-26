@@ -41,6 +41,33 @@ logger = logging.getLogger(__name__)
 # Get ROOT_DIR for template paths
 ROOT_DIR = get_root_dir()
 
+# Finding sources whose counterexamples were reproduced by running the call under
+# Foundry (revert-invariant SDD, see ``miesc.llm.revert_invariant_findings``). These
+# are DYNAMIC, execution-reproduced PoCs -- never formal proofs. The report labels
+# them "Execution-reproduced (Foundry)" and must never call them "proven" or
+# "formally verified" (that is the overclaim class PR 0 removed).
+_EXECUTION_SOURCES = {"revert_invariant_executor", "revert_invariant_reasoning"}
+
+# Layer 4 formal-verification tools (mirrors the TOOL_LAYER_MAP entries built per
+# report run). Used to derive §4.4.1 straight from the same tool execution data
+# that feeds ``layer4_coverage`` in §2.3, so the two can never disagree.
+_LAYER4_TOOLS = {"certora", "scribble", "pyrometer", "smtchecker", "propertygpt"}
+
+
+def _verification_method(source: str, detected_by: str) -> str:
+    """Honest per-finding verification label (Phase 2, Piece A).
+
+    A counterexample reproduced by a Foundry probe is ``"Execution-reproduced
+    (Foundry)"`` -- reproduced by execution, never "proven"/"formally verified".
+    Everything else is static analysis attributed to the detecting tool. This is
+    the honest replacement for PR-0's removed "Manual Review" step; it changes no
+    counts and no scores.
+    """
+    if source in _EXECUTION_SOURCES:
+        return "Execution-reproduced (Foundry)"
+    tool = (detected_by or "").strip() or "unknown"
+    return f"Static analysis ({tool})"
+
 
 # =============================================================================
 # Helper Functions
@@ -1290,6 +1317,10 @@ def report(
         "medusa": "dynamic_testing",
         "dogefuzz": "dynamic_testing",
         "vertigo": "dynamic_testing",
+        # Revert-invariant counterexamples are reproduced by Foundry execution, so
+        # they belong to the dynamic-testing layer (not formal verification).
+        "revert_invariant_executor": "dynamic_testing",
+        "revert_invariant_reasoning": "dynamic_testing",
         # Layer 3: Symbolic Execution
         "mythril": "symbolic_execution",
         "manticore": "symbolic_execution",
@@ -2202,12 +2233,18 @@ def report(
         if confirming:
             detected_by = ", ".join(confirming)
         else:
-            raw_tool = finding.get("tool", "unknown")
+            # ``source`` is the attributing field for formats without ``tool``
+            # (e.g. revert-invariant counterexamples), matching the tool_set
+            # fallback used when building the tool list.
+            raw_tool = finding.get("tool") or finding.get("source") or "unknown"
             if raw_tool == "miesc-intelligence":
                 # Fall back to any tool info from the finding itself
                 detected_by = finding.get("original_tool", raw_tool)
             else:
                 detected_by = raw_tool
+
+        # Phase 2 (Piece A): honest verification method per finding.
+        verification = _verification_method(str(finding.get("source") or ""), detected_by)
 
         # Fix #10: Include confidence in status display
         raw_status = finding.get("status", "Open")
@@ -2297,10 +2334,38 @@ def report(
                 "poc_name": finding.get("poc_name", ""),
                 "poc_prerequisites": finding.get("poc_prerequisites", []),
                 "poc_expected_outcome": finding.get("poc_expected_outcome", ""),
+                # Phase 2 — formal/invariant evidence passthrough. The whitelist
+                # above reconstructs each finding, so these keys must be carried
+                # explicitly or they are dropped before the template. ``evidence``
+                # text comes verbatim from the real finding dict, never invented.
+                "source": str(finding.get("source") or ""),
+                "evidence": list(finding.get("evidence") or []),
+                "verification": verification,
             }
         )
 
     variables["findings"] = formatted_findings
+    # Phase 2 (Piece B): property & invariant analysis inputs.
+    # (b) Execution-verified findings: discriminated by their ``source`` so only
+    # Foundry-reproduced counterexamples appear — labelled "reproduced by
+    # execution", never "proven"/"formally verified".
+    variables["execution_verified_findings"] = [
+        f for f in formatted_findings if f.get("source") in _EXECUTION_SOURCES
+    ]
+    # (a) Formal verification (Layer 4): per-tool ran / status / #findings, drawn
+    # from the SAME tool-execution summary that feeds ``layer4_coverage`` (§2.3),
+    # so the two sections can never contradict. Only ran/not-run/#findings is
+    # reported — never "N invariants proven", which this data does not support.
+    variables["formal_verification_tools"] = [
+        {
+            "name": t.get("name", ""),
+            "status": t.get("status", ""),
+            "status_icon": t.get("status_icon", ""),
+            "findings_count": t.get("findings_count", 0),
+        }
+        for t in variables.get("tools_execution_summary", [])
+        if str(t.get("name", "")).lower().strip() in _LAYER4_TOOLS
+    ]
     variables["critical_high_findings"] = [
         f for f in formatted_findings if f["severity"] in ("critical", "high")
     ]
