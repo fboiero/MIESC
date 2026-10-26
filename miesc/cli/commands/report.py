@@ -2758,7 +2758,9 @@ def report(
                     temp_html.unlink(missing_ok=True)
                     warning(
                         "PDF generation requires weasyprint or pandoc. "
-                        "Install with: pip install 'miesc\\[pdf]'"
+                        "Install with: pip install 'miesc\\[pdf]' "
+                        "plus weasyprint's system libraries (cairo, pango, gdk-pixbuf) -- "
+                        "see the README, or use the Docker image which bundles them."
                     )
                     output_path = output_path.with_suffix(".html")
                     output_content = html_content
@@ -2778,7 +2780,9 @@ def report(
             # HTML is kept, but the exit code tells scripts/CI that no PDF exists.
             error(
                 f"No PDF was produced; HTML fallback written to {output_path}. "
-                "Install PDF support with: pip install 'miesc\\[pdf]'"
+                "Install PDF support with: pip install 'miesc\\[pdf]' plus weasyprint's "
+                "system libraries (cairo, pango, gdk-pixbuf; see the README), or use the "
+                "Docker image which bundles them."
             )
             sys.exit(1)
         success(f"Report saved to {output_path}")

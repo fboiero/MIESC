@@ -7,6 +7,15 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- **`miesc report -f pdf` failure guidance now names weasyprint's system libraries.** When PDF
+  generation falls back to HTML, the CLI message pointed only to `pip install 'miesc[pdf]'` —
+  which is necessary but not sufficient: weasyprint also needs cairo, pango and gdk-pixbuf. The
+  warning and the final error now name those libraries and the Docker image that bundles them, so
+  installing the extra and retrying no longer sends the user in a circle. (The `[pdf]` extra and
+  the exit-1 HTML fallback were already in place.)
+
 ### Added
 
 - **`miesc report -t premium` Phase 5 — honest Scope data + a SHA-256 report-integrity
