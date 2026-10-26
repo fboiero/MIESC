@@ -9,6 +9,13 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **SHA-256 Report Integrity attestation in the `profesional` and `profesional-es` templates.**
+  The Phase-5a integrity block (input-file SHA-256 + template/generator version + UTC timestamp,
+  with the "recompute to verify" statement and its scope caveat) was premium-only; it now also
+  renders in the English `profesional` and Spanish `profesional-es` reports (the Spanish one fully
+  translated). The underlying variables were already computed for every template, so this is a
+  template-only change; `premium` is unchanged.
+
 - **Spanish finding descriptions for `-t profesional-es` (curated, deterministic).** The per-finding
   description now shows a curated Spanish description keyed by the detector's check id (so variants
   like `weak-prng` vs `weak-randomness` keep their distinction), covering the checks the taxonomy
