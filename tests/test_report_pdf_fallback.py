@@ -52,6 +52,9 @@ def test_pdf_without_backends_exits_1_and_keeps_html(results_file, tmp_path):
     assert not (tmp_path / "audit.tmp.html").exists()
     assert "No PDF was produced" in result.output
     assert "miesc[pdf]" in result.output
+    # The guidance must name weasyprint's system libraries, not just the pip extra:
+    # installing the extra alone does not produce a PDF without them.
+    assert "cairo" in result.output and "pango" in result.output
 
 
 def test_markdown_output_still_exits_0(results_file, tmp_path):
