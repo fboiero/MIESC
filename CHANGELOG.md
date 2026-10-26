@@ -52,6 +52,28 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
     the Disclaimer's "professional opinion" wording is reconciled with the automated-output
     disclosure.
 
+- **`miesc report -t premium` Phase 2 — formal / invariant evidence layer (additive, honest).**
+  The report now surfaces the execution-based invariant evidence without ever overclaiming it as a
+  formal proof:
+  - **Per-finding Verification field** (§4.1 summary table and §5 metadata): a counterexample
+    reproduced by a Foundry probe (`source` is `revert_invariant_executor` /
+    `revert_invariant_reasoning`) reads **"Execution-reproduced (Foundry)"**; every other finding
+    reads **"Static analysis (<tool>)"**. This is the honest replacement for PR-0's removed
+    "Manual Review" step and changes no finding counts and no scores.
+  - **New §4.4 "Property & Invariant Analysis"** with two sub-blocks: (a) Layer 4 formal
+    verification reports tool ran/not-run and finding counts only — never "N invariants proven",
+    which the result data does not support — tied to the same execution summary that feeds the
+    §2.3 Layer 4 line so the two cannot disagree; (b) execution-verified findings are listed with
+    their real `evidence` traces, labelled "reproduced by execution". When both are empty the
+    section states **"Not performed in this engagement"** and how to enable it
+    (`enable_gap_execution` / `enable_gap_reasoning` on the deep-audit agent).
+  - **Honesty invariant:** the words "proven" and "formally verified" never appear in rendered
+    output for these dynamic PoCs. The `evidence`/`source`/`verification` keys are now carried
+    through the template whitelist (previously dropped); evidence text comes verbatim from the
+    finding dict, never invented. Advisory `hypothesis` / `test_generated` states are still never
+    rendered as findings, so §1/§4 counts and the risk score are byte-identical on the static
+    sample.
+
 ## [6.8.0] - 2026-10-25 — Audit batch checkpoint/resume, linear Peculiar parsing, test-suite hardening
 
 Minor release. Adds crash-safe checkpoint/resume to `miesc audit batch` and fixes a

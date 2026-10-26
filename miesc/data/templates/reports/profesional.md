@@ -253,10 +253,10 @@ The analyzed contract presents security concerns that should be addressed before
 
 ## 4.1 Summary Table
 
-| ID | Title | Severity | Status | CVSS |
-|----|-------|----------|--------|-----:|
+| ID | Title | Severity | Verification | Status | CVSS |
+|----|-------|----------|--------------|--------|-----:|
 {%- for finding in findings %}
-| {{ finding.id }} | {{ finding.title }} | {{ finding.severity_badge }} | {{ finding.status }} | {{ finding.cvss_score | default('--') }} |
+| {{ finding.id }} | {{ finding.title }} | {{ finding.severity_badge }} | {{ finding.verification }} | {{ finding.status }} | {{ finding.cvss_score | default('--') }} |
 {%- endfor %}
 
 ## 4.2 Category Distribution
@@ -275,6 +275,62 @@ The analyzed contract presents security concerns that should be addressed before
 | {{ layer.name }} | {{ layer.tools }} | {{ layer.success_count }} | {{ layer.failed_count }} | {{ layer.findings_count }} | {{ layer.coverage_bar }} |
 {%- endfor %}
 
+## 4.4 Property & Invariant Analysis
+
+This section reports the formal and invariant evidence layer separately from the
+static findings above. An execution-verified finding is a counterexample that was
+reproduced by running the call under Foundry: a dynamic counterexample, not a
+formal proof. No invariant is asserted as mathematically established here.
+
+{%- if not formal_verification_tools and not execution_verified_findings %}
+
+**Not performed in this engagement.** Neither formal verification (Layer 4) nor
+execution-based invariant checking produced evidence for this contract. To enable
+the execution-verified invariant layer, run the deep-audit agent with
+`enable_gap_execution` (access-control gaps) and/or `enable_gap_reasoning`
+(pause and freshness gaps).
+{%- else %}
+
+### 4.4.1 Formal Verification (Layer 4)
+
+{%- if formal_verification_tools %}
+
+Tool execution status and finding counts only — no invariant is reported as
+established by these tools.
+
+| Tool | Status | Findings |
+|------|--------|---------:|
+{%- for tool in formal_verification_tools %}
+| {{ tool.name }} | {{ tool.status_icon }} {{ tool.status }} | {{ tool.findings_count | default(0) }} |
+{%- endfor %}
+{%- else %}
+
+No formal-verification tool (certora, smtchecker, scribble, pyrometer,
+propertygpt) ran in this engagement.
+{%- endif %}
+
+### 4.4.2 Execution-Verified Findings
+
+{%- if execution_verified_findings %}
+
+The following findings were reproduced by execution under Foundry — a dynamic
+counterexample, not a formal proof.
+
+{%- for finding in execution_verified_findings %}
+
+**{{ finding.id }}. {{ finding.title }}** &nbsp; {{ finding.severity_badge }} &nbsp; `{{ finding.location }}`
+
+- **Verification:** {{ finding.verification }}
+{%- for line in finding.evidence %}
+- Evidence: {{ line }}
+{%- endfor %}
+{%- endfor %}
+{%- else %}
+
+No execution-verified counterexamples were produced in this engagement.
+{%- endif %}
+{%- endif %}
+
 ---
 
 # 5. Detailed Findings
@@ -291,6 +347,7 @@ The analyzed contract presents security concerns that should be addressed before
 | **Location** | `{{ finding.location }}` |
 | **Status** | {{ finding.status }} |
 | **Detected By** | {{ finding.tool }} |
+| **Verification** | {{ finding.verification }} |
 
 ### Description
 
