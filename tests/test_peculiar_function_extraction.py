@@ -1,4 +1,4 @@
-"""Peculiar's function extraction runs in linear time.
+"""Peculiar's function extraction does not backtrack catastrophically.
 
 The old pattern backtracked exponentially on a modifier with nested parentheses and on
 declarations ending in `;`, and it holds the GIL while it does, so no thread-based
@@ -41,9 +41,9 @@ contract Account {
 
 def _extract(source: str) -> dict:
     script = (
-        "import json, sys; from miesc.adapters.peculiar_adapter import PeculiarAdapter;"
-        "fs = PeculiarAdapter()._extract_functions(sys.stdin.read());"
-        "print(json.dumps({f['name']: f for f in fs}))"
+        "import json, sys, time; from miesc.adapters.peculiar_adapter import PeculiarAdapter;"
+        "t = time.perf_counter(); fs = PeculiarAdapter()._extract_functions(sys.stdin.read());"
+        "print(json.dumps({'seconds': time.perf_counter() - t, 'functions': {f['name']: f for f in fs}}))"
     )
     run = subprocess.run(
         [sys.executable, "-c", script],
@@ -57,8 +57,15 @@ def _extract(source: str) -> dict:
     return json.loads(run.stdout)
 
 
-def test_nested_parentheses_and_interfaces_extract_in_linear_time():
-    functions = _extract(SOURCE)
+def test_signature_without_body_does_not_backtrack():
+    # The match fails on `;`; the old pattern took over 60 s on 16 qualifiers.
+    source = "interface I {\n    function f(uint a) external " + " ".join(["view"] * 40) + ";\n}\n"
+
+    assert _extract(source)["seconds"] < 1
+
+
+def test_nested_parentheses_and_interfaces_are_extracted():
+    functions = _extract(SOURCE)["functions"]
 
     assert set(functions) == {"executeFromExecutor", "grantRole", "owner"}
     execute = functions["executeFromExecutor"]

@@ -56,6 +56,9 @@ if RICH_AVAILABLE:
 
 logger = logging.getLogger(__name__)
 
+# Bump when the `audit batch` checkpoint format changes; --resume refuses other versions.
+CHECKPOINT_VERSION = 1
+
 
 def _apply_deep_profile_config(config: Any, profile_name: str | None) -> tuple[Any, Dict[str, Any]]:
     """Apply profile settings that are safe for agentic deep audit."""
@@ -2141,39 +2144,59 @@ def audit_batch(
 
     # The checkpoint has the report's own `contracts`/`failed` shape, so an unfinished run
     # still leaves a usable partial result. Failed contracts are retried on --resume.
+    # `done` keeps resolved paths, so a resume from another cwd still matches.
     checkpoint_path = Path(checkpoint) if checkpoint else None
+    source = {"path": str(path_obj.resolve()), "pattern": pattern, "recursive": recursive}
+    done: set[str] = set()
     if resume and checkpoint_path and checkpoint_path.exists():
         try:
             saved = json.loads(checkpoint_path.read_text())
-        except (OSError, ValueError) as e:
+            if saved.get("version") != CHECKPOINT_VERSION:
+                raise ValueError(f"version {saved.get('version')}, expected {CHECKPOINT_VERSION}")
+            mismatch = [
+                f"{key} {saved[key]} (now {now})"
+                for key, now in (("tools", tools_to_run), ("source", source))
+                if saved[key] != now
+            ]
+            contracts = saved["contracts"]
+            for done_result in contracts:
+                for sev, count in done_result["summary"].items():
+                    aggregated_summary[sev] += count
+            done = set(saved["done"])
+        except (OSError, ValueError, KeyError, TypeError, AttributeError) as e:
             error(f"Could not read checkpoint {checkpoint_path}: {e}")
             sys.exit(1)
-        if saved.get("tools") != tools_to_run:
+        if mismatch:
             error(
-                f"Checkpoint {checkpoint_path} was made with {saved.get('tools')}, "
-                f"not {tools_to_run}: use the same --profile or a new --checkpoint"
+                f"Checkpoint {checkpoint_path} was made with {'; '.join(mismatch)}: "
+                "use the same path, --pattern, --recursive and --profile, or a new --checkpoint"
             )
             sys.exit(1)
-        all_contract_results = saved.get("contracts", [])
-        for done_result in all_contract_results:
-            for sev, count in done_result["summary"].items():
-                aggregated_summary[sev] += count
-        done = {Path(r["contract"]).resolve() for r in all_contract_results}
-        sol_files = [f for f in sol_files if Path(f).resolve() not in done]
+        all_contract_results = contracts
+        sol_files = [f for f in sol_files if str(Path(f).resolve()) not in done]
         info(f"Resumed from {checkpoint_path}: {len(done)} done, {len(sol_files)} left")
+    elif checkpoint_path and checkpoint_path.exists():
+        warning(f"Overwriting {checkpoint_path}; pass --resume to continue it instead")
 
     def write_checkpoint() -> None:
         if not checkpoint_path:
             return
         state = {
+            "version": CHECKPOINT_VERSION,
             "tools": tools_to_run,
+            "source": source,
+            "done": sorted(done),
             "contracts": all_contract_results,
             "failed": failed_contracts,
         }
         # Written aside and renamed, so a crash mid-write never leaves a truncated checkpoint.
-        tmp = checkpoint_path.with_name(checkpoint_path.name + ".tmp")
-        tmp.write_text(json.dumps(state, indent=2, default=str))
-        os.replace(tmp, checkpoint_path)
+        # The PID keeps two runs on the same checkpoint from sharing the temp file.
+        tmp = checkpoint_path.with_name(f"{checkpoint_path.name}.{os.getpid()}.tmp")
+        try:
+            tmp.write_text(json.dumps(state, indent=2, default=str))
+            os.replace(tmp, checkpoint_path)
+        except OSError as e:
+            warning(f"Could not write checkpoint {checkpoint_path}: {e}")
 
     def analyze_contract(contract_path: str) -> Dict[str, Any]:
         """Analyze a single contract with all tools."""
@@ -2209,6 +2232,7 @@ def audit_batch(
                     try:
                         result = future.result()
                         all_contract_results.append(result)
+                        done.add(str(Path(contract).resolve()))
 
                         # Update aggregated summary
                         for sev, count in result["summary"].items():
@@ -2249,6 +2273,7 @@ def audit_batch(
                 try:
                     result = future.result()
                     all_contract_results.append(result)
+                    done.add(str(Path(contract).resolve()))
 
                     for sev, count in result["summary"].items():
                         aggregated_summary[sev] += count
