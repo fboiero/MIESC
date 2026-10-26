@@ -701,6 +701,17 @@ Revise los hallazgos marcados como de esfuerzo "Bajo" para mejoras rápidas de s
 | Informe generado | {{ generation_date }} | -- |
 | Hash del informe | {{ generation_date }} | `{{ report_hash | default('N/D') }}` |
 
+### Integridad del Informe
+
+| Atributo | Valor |
+|-----------|-------|
+| Archivo de resultados de entrada (SHA-256) | `{{ input_sha256 | default('—', true) }}` |
+| Versión de la plantilla del informe | {{ report_version | default('1.0') }} |
+| Versión del generador (MIESC) | {{ generator_version | default(miesc_version) }} |
+| Generado (UTC) | {{ generated_at_utc | default(generation_date) }} |
+
+{% if input_sha256 %}Este informe se generó a partir de results.json con SHA-256 `{{ input_sha256 }}`; recalcúlelo (`shasum -a 256 <results.json>`) para verificar que el informe corresponde a este análisis.{% else %}El archivo de resultados de entrada no estaba disponible para el hash al momento de generar el informe, por lo que no se atesta ningún hash de integridad.{% endif %} Este hash atesta únicamente la correspondencia entre este informe y ese archivo de resultados; no atesta que el análisis se haya ejecutado correctamente, que las herramientas de análisis no hayan sido modificadas, ni que el código fuente analizado no haya sido sustituido.
+
 ---
 
 # Descargo de Responsabilidad

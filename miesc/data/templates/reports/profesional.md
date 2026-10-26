@@ -699,6 +699,17 @@ Review findings marked as "Low" effort for quick security improvements.
 | Report Generated | {{ generation_date }} | -- |
 | Report Hash | {{ generation_date }} | `{{ report_hash | default('N/A') }}` |
 
+### Report Integrity
+
+| Attribute | Value |
+|-----------|-------|
+| Input results file (SHA-256) | `{{ input_sha256 | default('—', true) }}` |
+| Report template version | {{ report_version | default('1.0') }} |
+| Generator (MIESC) version | {{ generator_version | default(miesc_version) }} |
+| Generated (UTC) | {{ generated_at_utc | default(generation_date) }} |
+
+{% if input_sha256 %}This report was generated from results.json with SHA-256 `{{ input_sha256 }}`; recompute it (`shasum -a 256 <results.json>`) to verify the report corresponds to this scan.{% else %}The input results file was not available for hashing at report time, so no integrity hash is attested.{% endif %} This hash attests only the correspondence between this report and that results file; it does not attest that the scan was run correctly, that the analysis tools were unmodified, or that the analysed source was not substituted.
+
 ---
 
 # Disclaimer

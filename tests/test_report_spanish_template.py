@@ -161,3 +161,26 @@ def test_rendered_es_descriptions_are_curated_with_no_silent_english(results_fil
     # 'suicidal' is recognized -> curated Spanish, and no fallback note for it.
     assert "selfdestruct desprotegido" in es
     assert "sin traducción curada" not in es
+
+
+import hashlib  # noqa: E402
+
+
+@pytest.mark.parametrize(
+    "template,heading",
+    [("profesional", "### Report Integrity"), ("profesional-es", "### Integridad del Informe")],
+)
+def test_attestation_block_ported_to_profesional_templates(
+    template, heading, results_file, tmp_path
+):
+    """The SHA-256 Report Integrity attestation (Phase 5a) now renders in the
+    profesional and profesional-es templates, with the real input-file hash."""
+    out = tmp_path / f"r_{template}.md"
+    res = CliRunner().invoke(
+        report, [str(results_file), "-t", template, "-f", "markdown", "-o", str(out)]
+    )
+    assert res.exit_code == 0, res.output
+    text = out.read_text(encoding="utf-8")
+    assert heading in text
+    expected = hashlib.sha256(results_file.read_bytes()).hexdigest()
+    assert expected in text  # hash of the raw input bytes, verifiable with shasum
