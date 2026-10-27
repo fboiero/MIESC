@@ -1,0 +1,386 @@
+{
+  "contract": "LBTC (Lombard Finance)",
+  "results": [
+    {
+      "tool": "slither",
+      "contract": "contracts/LBTC",
+      "status": "success",
+      "findings": [
+        {
+          "title": "shadowing-state",
+          "type": "shadowing-state",
+          "severity": "High",
+          "confidence": 0.9,
+          "description": "BaseLBTC.EIP712StorageLocation (contracts/LBTC/BaseLBTC.sol#82-83) shadows:\n\t- EIP712Upgradeable.EIP712StorageLocation (../../audit-deps/node_modules/@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol#48)",
+          "location": {
+            "file": "BaseLBTC.sol",
+            "line": 82
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "shadowing-state",
+          "type": "shadowing-state",
+          "severity": "High",
+          "confidence": 0.9,
+          "description": "BaseLBTC.ERC20StorageLocation (contracts/LBTC/BaseLBTC.sol#79-80) shadows:\n\t- ERC20Upgradeable.ERC20StorageLocation (../../audit-deps/node_modules/@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol#49)",
+          "location": {
+            "file": "BaseLBTC.sol",
+            "line": 79
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "arbitrary-send-erc20",
+          "type": "arbitrary-send-erc20",
+          "severity": "High",
+          "confidence": 0.9,
+          "description": "BridgeTokenAdapter.transferFrom(address,address,uint256) (contracts/LBTC/BridgeTokenAdapter.sol#356-364) uses arbitrary from in transferFrom: SafeERC20.safeTransferFrom($.bridgeToken,from,address(this),amount) (contracts/LBTC/BridgeTokenAdapter.sol#362)",
+          "location": {
+            "file": "BridgeTokenAdapter.sol",
+            "line": 356
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "mapping-deletion",
+          "type": "mapping-deletion",
+          "severity": "Medium",
+          "confidence": 0.9,
+          "description": "AssetRouter._changeNativeToken(address) (contracts/LBTC/AssetRouter.sol#906-914) deletes AssetRouter.Routes (contracts/LBTC/AssetRouter.sol#84-86) which contains a mapping:\n\t-delete $.routes[key] (contracts/LBTC/AssetRouter.sol#911)",
+          "location": {
+            "file": "AssetRouter.sol",
+            "line": 906
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "unused-return",
+          "type": "unused-return",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "AssetRouter.handlePayload(GMPUtils.Payload) (contracts/LBTC/AssetRouter.sol#821-849) ignores return value by (receipt,None) = Assets.decodeRelease(payload.msgBody) (contracts/LBTC/AssetRouter.sol#836-838)",
+          "location": {
+            "file": "AssetRouter.sol",
+            "line": 821
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "unused-return",
+          "type": "unused-return",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "AssetRouter._mint(bytes,bytes) (contracts/LBTC/AssetRouter.sol#737-754) ignores return value by (None,success,result) = $.mailbox.deliverAndHandle(rawPayload,proof) (contracts/LBTC/AssetRouter.sol#742-745)",
+          "location": {
+            "file": "AssetRouter.sol",
+            "line": 737
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "unused-return",
+          "type": "unused-return",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "AssetRouter.calcUnstakeRequestAmount(address,bytes,uint256) (contracts/LBTC/AssetRouter.sol#479-506) ignores return value by (amountAfterFee,None,isAboveMinLimit) = Validation.calcFeeAndDustLimit(scriptPubkey,amount - tokenCfg.redeemFee,tokenCfg.toNativeCommission,tokenCfg.redeemForBtcMinAmount) (contracts/LBTC/AssetRouter.sol#499-504)",
+          "location": {
+            "file": "AssetRouter.sol",
+            "line": 479
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "unused-return",
+          "type": "unused-return",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "AssetRouter._redeem(AssetRouter.AssetRouterStorage,address,bytes32,address,bytes32,bytes,uint256,uint256,bytes32,bool) (contracts/LBTC/AssetRouter.sol#604-669) ignores return value by $.mailbox.send($.ledgerChainId,gmpRecipient,Assets.LEDGER_CALLER,rawPayload) (contracts/LBTC/AssetRouter.sol#659-664)",
+          "location": {
+            "file": "AssetRouter.sol",
+            "line": 604
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "unused-return",
+          "type": "unused-return",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "AssetRouter._deposit(address,bytes32,bytes32,bytes32,uint256) (contracts/LBTC/AssetRouter.sol#442-477) ignores return value by $.mailbox.send($.ledgerChainId,Assets.BTC_STAKING_MODULE_ADDRESS,Assets.LEDGER_CALLER,rawPayload) (contracts/LBTC/AssetRouter.sol#470-475)",
+          "location": {
+            "file": "AssetRouter.sol",
+            "line": 442
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "uninitialized-local",
+          "type": "uninitialized-local",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "BaseLBTC._batchMintWithLimit(address[],uint256[]).totalAmount (contracts/LBTC/BaseLBTC.sol#175) is a local variable never initialized",
+          "location": {
+            "file": "BaseLBTC.sol",
+            "line": 175
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "erc20-interface",
+          "type": "erc20-interface",
+          "severity": "Medium",
+          "confidence": 0.9,
+          "description": "BridgeTokenAdapter (contracts/LBTC/BridgeTokenAdapter.sol#21-551) has incorrect ERC20 function interface:BridgeTokenAdapter.transferFrom(address,address,uint256) (contracts/LBTC/BridgeTokenAdapter.sol#356-364)",
+          "location": {
+            "file": "BridgeTokenAdapter.sol",
+            "line": 21
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "uninitialized-local",
+          "type": "uninitialized-local",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "BridgeTokenAdapter._batchMint(address[],uint256[]).totalAmount (contracts/LBTC/BridgeTokenAdapter.sol#299) is a local variable never initialized",
+          "location": {
+            "file": "BridgeTokenAdapter.sol",
+            "line": 299
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "unused-return",
+          "type": "unused-return",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "BridgeTokenAdapter.isRedeemsEnabled() (contracts/LBTC/BridgeTokenAdapter.sol#171-176) ignores return value by (None,None,isRedeemEnabled) = _getBridgeTokenAdapterStorage().assetRouter.tokenConfig(address(this)) (contracts/LBTC/BridgeTokenAdapter.sol#172-174)",
+          "location": {
+            "file": "BridgeTokenAdapter.sol",
+            "line": 171
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "unused-return",
+          "type": "unused-return",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "BridgeTokenAdapter.getRedeemFee() (contracts/LBTC/BridgeTokenAdapter.sol#184-189) ignores return value by (redeemFee,None,None) = _getBridgeTokenAdapterStorage().assetRouter.tokenConfig(address(this)) (contracts/LBTC/BridgeTokenAdapter.sol#185-187)",
+          "location": {
+            "file": "BridgeTokenAdapter.sol",
+            "line": 184
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "unused-return",
+          "type": "unused-return",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "NativeLBTC.calcUnstakeRequestAmount(bytes,uint256) (contracts/LBTC/NativeLBTC.sol#152-163) ignores return value by $.assetRouter.calcUnstakeRequestAmount(address(this),scriptPubkey,amount) (contracts/LBTC/NativeLBTC.sol#157-162)",
+          "location": {
+            "file": "NativeLBTC.sol",
+            "line": 152
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "unused-return",
+          "type": "unused-return",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "NativeLBTC.getRedeemForBtcMinAmount() (contracts/LBTC/NativeLBTC.sol#209-214) ignores return value by (None,redeemForBtcMinAmount,None) = _getNativeLBTCStorage().assetRouter.tokenConfig(address(this)) (contracts/LBTC/NativeLBTC.sol#210-212)",
+          "location": {
+            "file": "NativeLBTC.sol",
+            "line": 209
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "unused-return",
+          "type": "unused-return",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "NativeLBTC.getRedeemFee() (contracts/LBTC/NativeLBTC.sol#202-207) ignores return value by (redeemFee,None,None) = _getNativeLBTCStorage().assetRouter.tokenConfig(address(this)) (contracts/LBTC/NativeLBTC.sol#203-205)",
+          "location": {
+            "file": "NativeLBTC.sol",
+            "line": 202
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "unused-return",
+          "type": "unused-return",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "NativeLBTC.isRedeemsEnabled() (contracts/LBTC/NativeLBTC.sol#184-189) ignores return value by (None,None,isRedeemEnabled) = _getNativeLBTCStorage().assetRouter.tokenConfig(address(this)) (contracts/LBTC/NativeLBTC.sol#185-187)",
+          "location": {
+            "file": "NativeLBTC.sol",
+            "line": 184
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "unused-return",
+          "type": "unused-return",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "StakedLBTC.getRedeemFee() (contracts/LBTC/StakedLBTC.sol#242-247) ignores return value by (redeemFee,None,None) = _getStakedLBTCStorage().assetRouter.tokenConfig(address(this)) (contracts/LBTC/StakedLBTC.sol#243-245)",
+          "location": {
+            "file": "StakedLBTC.sol",
+            "line": 242
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "unused-return",
+          "type": "unused-return",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "StakedLBTC.getRedeemForBtcMinAmount() (contracts/LBTC/StakedLBTC.sol#249-254) ignores return value by (None,redeemForBtcMinAmount,None) = _getStakedLBTCStorage().assetRouter.tokenConfig(address(this)) (contracts/LBTC/StakedLBTC.sol#250-252)",
+          "location": {
+            "file": "StakedLBTC.sol",
+            "line": 249
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "unused-return",
+          "type": "unused-return",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "StakedLBTC.calcUnstakeRequestAmount(bytes,uint256) (contracts/LBTC/StakedLBTC.sol#207-218) ignores return value by $.assetRouter.calcUnstakeRequestAmount(address(this),scriptPubkey,amount) (contracts/LBTC/StakedLBTC.sol#212-217)",
+          "location": {
+            "file": "StakedLBTC.sol",
+            "line": 207
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "unused-return",
+          "type": "unused-return",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "StakedLBTC.isRedeemsEnabled() (contracts/LBTC/StakedLBTC.sol#266-271) ignores return value by (None,None,isRedeemEnabled) = _getStakedLBTCStorage().assetRouter.tokenConfig(address(this)) (contracts/LBTC/StakedLBTC.sol#267-269)",
+          "location": {
+            "file": "StakedLBTC.sol",
+            "line": 266
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "calls-loop",
+          "type": "calls-loop",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "AssetRouter._mint(bytes,bytes) (contracts/LBTC/AssetRouter.sol#737-754) has external calls inside a loop: (None,success,result) = $.mailbox.deliverAndHandle(rawPayload,proof) (contracts/LBTC/AssetRouter.sol#742-745)\n\tCalls stack containing the loop:\n\t\tAssetRouter.batchMint(bytes[],bytes[])",
+          "location": {
+            "file": "AssetRouter.sol",
+            "line": 737
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "timestamp",
+          "type": "timestamp",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Actions.feeApproval(bytes) (contracts/libs/Actions.sol#371-387) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- block.timestamp > expiry (contracts/libs/Actions.sol#379)",
+          "location": {
+            "file": "Actions.sol",
+            "line": 371
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "timestamp",
+          "type": "timestamp",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "RateLimitsV2.availableAmount(RateLimitsV2.Data) (contracts/libs/RateLimitsV2.sol#104-130) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- timeSinceLastUpdate >= rl.window (contracts/libs/RateLimitsV2.sol#117)\n\t- rl.amountInFlight <= decay (contracts/libs/RateLimitsV2.sol#123-125)\n\t- rl.limit <= currentAmountInFlight (contracts/libs/RateLimitsV2.sol#126-128)",
+          "location": {
+            "file": "RateLimitsV2.sol",
+            "line": 104
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "calls-loop",
+          "type": "calls-loop",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "BridgeTokenAdapter._batchMint(address[],uint256[]) (contracts/LBTC/BridgeTokenAdapter.sol#292-318) has external calls inside a loop: $.bridgeToken.mint(to[i_scope_0],amount[i_scope_0],address(0),0,bytes32(0),type()(uint256).max) (contracts/LBTC/BridgeTokenAdapter.sol#309-316)\n\tCalls stack containing the loop:\n\t\tBridgeTokenAdapter.batchMint(address[],uint256[])",
+          "location": {
+            "file": "BridgeTokenAdapter.sol",
+            "line": 292
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-events",
+          "type": "reentrancy-events",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in NativeLBTC._validateAndMint(address,uint256,bytes,bytes) (contracts/LBTC/NativeLBTC.sol#459-485):\n\tExternal calls:\n\t- _confirmDeposit($,legacyHash,amountToMint) (contracts/LBTC/NativeLBTC.sol#478)\n\t\t- bascule.validateWithdrawal(depositID,amount) (contracts/LBTC/NativeLBTC.sol#500)\n\tEvent emitted after the call(s):\n\t- MintProofConsumed(recipient,payloadHash,payload) (contracts/LBTC/NativeLBTC.sol#484)\n\t- Transfer(from,to,value) (../../audit-deps/node_modules/@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol#239)\n\t\t- _mint(recipient,amountToMint) (contracts/LBTC/NativeLBTC.sol#482)",
+          "location": {
+            "file": "NativeLBTC.sol",
+            "line": 459
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "timestamp",
+          "type": "timestamp",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "StakedLBTCOracle._ratioWithTimestamp() (contracts/LBTC/StakedLBTCOracle.sol#274-280) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- block.timestamp >= $.switchTime (contracts/LBTC/StakedLBTCOracle.sol#276)",
+          "location": {
+            "file": "StakedLBTCOracle.sol",
+            "line": 274
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "timestamp",
+          "type": "timestamp",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "StakedLBTCOracle._ratio() (contracts/LBTC/StakedLBTCOracle.sol#266-272) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- block.timestamp >= $.switchTime (contracts/LBTC/StakedLBTCOracle.sol#268)",
+          "location": {
+            "file": "StakedLBTCOracle.sol",
+            "line": 266
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "timestamp",
+          "type": "timestamp",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "StakedLBTCOracle._setNewRatio(uint256,uint256) (contracts/LBTC/StakedLBTCOracle.sol#224-234) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- block.timestamp >= $.switchTime (contracts/LBTC/StakedLBTCOracle.sol#227)",
+          "location": {
+            "file": "StakedLBTCOracle.sol",
+            "line": 224
+          },
+          "tool": "slither"
+        }
+      ],
+      "execution_time": 0.0,
+      "metadata": {}
+    }
+  ],
+  "summary": {
+    "CRITICAL": 0,
+    "HIGH": 3,
+    "MEDIUM": 19,
+    "LOW": 8,
+    "INFO": 0
+  },
+  "tools_run": [
+    "slither"
+  ],
+  "version": "6.x",
+  "info_findings_omitted": 63
+}

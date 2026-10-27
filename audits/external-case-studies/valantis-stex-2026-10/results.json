@@ -1,0 +1,2977 @@
+{
+  "contract": "Valantis STEX (ValantisLabs/valantis-stex, src/)",
+  "results": [
+    {
+      "tool": "slither",
+      "contract": "src/",
+      "status": "success",
+      "findings": [
+        {
+          "title": "arbitrary-send-erc20",
+          "type": "arbitrary-send-erc20",
+          "severity": "High",
+          "confidence": 0.9,
+          "description": "STEXAMM.onDepositLiquidityCallback(uint256,uint256,bytes) (src/STEXAMM.sol#532-548) uses arbitrary from in transferFrom: ERC20(token1).safeTransferFrom(user,msg.sender,_amount1) (src/STEXAMM.sol#546)",
+          "location": {
+            "file": "src/STEXAMM.sol",
+            "line": 532
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "arbitrary-send-eth",
+          "type": "arbitrary-send-eth",
+          "severity": "High",
+          "confidence": 0.6,
+          "description": "kHYPEWithdrawalModule._update() (src/withdrawal-modules/kHYPEWithdrawalModule.sol#966-1012) sends eth to arbitrary user\n\tDangerous calls:\n\t- token1.deposit{value: excessNativeBalance}() (src/withdrawal-modules/kHYPEWithdrawalModule.sol#1006)",
+          "location": {
+            "file": "src/withdrawal-modules/kHYPEWithdrawalModule.sol",
+            "line": 966
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-eth",
+          "type": "reentrancy-eth",
+          "severity": "High",
+          "confidence": 0.6,
+          "description": "Reentrancy in kHYPEWithdrawalModule.settlePendingWithdrawalsWithPoolReserves(uint256) (src/withdrawal-modules/kHYPEWithdrawalModule.sol#744-767):\n\tExternal calls:\n\t- _syncPendingUnstakeRequests(true) (src/withdrawal-modules/kHYPEWithdrawalModule.sol#754)\n\t\t- stakingManagerInterface.confirmWithdrawal(requestId) (src/withdrawal-modules/kHYPEWithdrawalModule.sol#1105-1112)\n\t- _update() (src/withdrawal-modules/kHYPEWithdrawalModule.sol#757)\n\t\t- token1.deposit{value: excessNativeBalance}() (src/withdrawal-modules/kHYPEWithdrawalModule.sol#1006)\n\t- ISTEXAMM(stex).supplyToken1Reserves(_amountToken1) (src/withdrawal-modules/kHYPEWithdrawalModule.sol#759)\n\t- _getWrappedNativeToken().withdraw(_amountToken1) (src/withdrawal-modules/kHYPEWithdrawalModule.sol#762)\n\t- _update() (src/withdrawal-modules/kHYPEWithdrawalModule.sol#766)\n\t\t- token1.deposit{value: excessNativeBalance}() (src/withdrawal-modules/kHYPEWithdrawalModule.sol#1006)\n\tExternal calls sending eth:\n\t- _update() (src/withdrawal-modules/kHYPEWithdrawalModule.sol#757)\n\t\t- token1.deposit{value: excessNativeBalance}() (src/withdrawal-modules/kHYPEWithdrawalModule.sol#1006)\n\t- _update() (src/withdrawal-modules/kHYPEWithdrawalModule.sol#766)\n\t\t- token1.deposit{value: excessNativeBalance}() (src/withdrawal-modules/kHYPEWithdrawalModule.sol#1006)\n\tState variables written after the call(s):\n\t- _update() (src/withdrawal-modules/kHYPEWithdrawalModule.sol#766)\n\t\t- _amountToken1PendingLPWithdrawal = 0 (src/withdrawal-modules/kHYPEWithdrawalModule.sol#984)\n\t\t- _amountToken1PendingLPWithdrawal -= excessNativeBalance (src/withdrawal-modules/kHYPEWithdrawalModule.sol#987)\n\tkHYPEWithdrawalModule._amountToken1PendingLPWithdrawal (src/withdrawal-modules/kHYPEWithdrawalModule.sol#205) can be used in cross function reentrancies:\n\t- kHYPEWithdrawalModule.amountToken1PendingLPWithdrawal() (src/withdrawal-modules/kHYPEWithdrawalModule.sol#379-417)\n\t- kHYPEWithdrawalModule.amountToken1PendingLPWithdrawalBeforeUpdate() (src/withdrawal-modules/kHYPEWithdrawalModule.sol#423-425)\n\t- _update() (src/withdrawal-modules/kHYPEWithdrawalModule.sol#766)\n\t\t- _amountToken1PendingLPWithdrawalCoveredByQueuedUnstake = 0 (src/withdrawal-modules/kHYPEWithdrawalModule.sol#985)\n\t\t- _amountToken1PendingLPWithdrawalCoveredByQueuedUnstake = amountToken1PendingCoveredByQueuedUnstakeCache - excessNativeBalance (src/withdrawal-modules/kHYPEWithdrawalModule.sol#989-990)\n\t\t- _amountToken1PendingLPWithdrawalCoveredByQueuedUnstake = 0 (src/withdrawal-modules/kHYPEWithdrawalModule.sol#992)\n\tkHYPEWithdrawalModule._amountToken1PendingLPWithdrawalCoveredByQueuedUnstake (src/withdrawal-modules/kHYPEWithdrawalModule.sol#230) can be used in cross function reentrancies:\n\t- kHYPEWithdrawalModule.amountToken1PendingLPWithdrawal() (src/withdrawal-modules/kHYPEWithdrawalModule.sol#379-417)\n\t- kHYPEWithdrawalModule.amountToken1PendingLPWithdrawalCoveredByQueuedUnstake() (src/withdrawal-modules/kHYPEWithdrawalModule.sol#430-432)\n\t- _update() (src/withdrawal-modules/kHYPEWithdrawalModule.sol#766)\n\t\t- amountToken1ClaimableLPWithdrawal += amountToken1PendingLPWithdrawalCache (src/withdrawal-modules/kHYPEWithdrawalModule.sol#982)\n\t\t- amountToken1ClaimableLPWithdrawal += excessNativeBalance (src/withdrawal-modules/kHYPEWithdrawalModule.sol#994)\n\tkHYPEWithdrawalModule.amountToken1ClaimableLPWithdrawal (src/withdrawal-modules/kHYPEWithdrawalModule.sol#142) can be used in cross function reentrancies:\n\t- kHYPEWithdrawalModule._getExcessNativeBalance() (src/withdrawal-modules/kHYPEWithdrawalModule.sol#1183-1192)\n\t- kHYPEWithdrawalModule.amountToken1ClaimableLPWithdrawal (src/withdrawal-modules/kHYPEWithdrawalModule.sol#142)\n\t- _update() (src/withdrawal-modules/kHYPEWithdrawalModule.sol#766)\n\t\t- cumulativeAmountToken1ClaimableLPWithdrawal += amountToken1PendingLPWithdrawalCache (src/withdrawal-modules/kHYPEWithdrawalModule.sol#983)\n\t\t- cumulativeAmountToken1ClaimableLPWithdrawal += excessNativeBalance (src/withdrawal-modules/kHYPEWithdrawalModule.sol#995)\n\tkHYPEWithdrawalModule.cumulativeAmountToken1ClaimableLPWithdrawal (src/withdrawal-modules/kHYPEWithdrawalModule.sol#152) can be used in cross function reentrancies:\n\t- kHYPEWithdrawalModule.cumulativeAmountToken1ClaimableLPWithdrawal (src/withdrawal-modules/kHYPEWithdrawalModule.sol#152)",
+          "location": {
+            "file": "src/withdrawal-modules/kHYPEWithdrawalModule.sol",
+            "line": 744
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "incorrect-equality",
+          "type": "incorrect-equality",
+          "severity": "Medium",
+          "confidence": 0.9,
+          "description": "MultiMarketLendingModule._withdraw(uint256,uint256,uint256,address) (src/lending-modules/MultiMarketLendingModule.sol#524-598) uses a dangerous strict equality:\n\t- amountToWithdraw == 0 (src/lending-modules/MultiMarketLendingModule.sol#565)",
+          "location": {
+            "file": "src/lending-modules/MultiMarketLendingModule.sol",
+            "line": 524
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "incorrect-equality",
+          "type": "incorrect-equality",
+          "severity": "Medium",
+          "confidence": 0.9,
+          "description": "kHYPEWithdrawalModule._update() (src/withdrawal-modules/kHYPEWithdrawalModule.sol#966-1012) uses a dangerous strict equality:\n\t- excessNativeBalance == 0 (src/withdrawal-modules/kHYPEWithdrawalModule.sol#974)",
+          "location": {
+            "file": "src/withdrawal-modules/kHYPEWithdrawalModule.sol",
+            "line": 966
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "incorrect-equality",
+          "type": "incorrect-equality",
+          "severity": "Medium",
+          "confidence": 0.9,
+          "description": "kHYPEWithdrawalModule.unstakeExcessToken0() (src/withdrawal-modules/kHYPEWithdrawalModule.sol#887-895) uses a dangerous strict equality:\n\t- token0Balance == 0 (src/withdrawal-modules/kHYPEWithdrawalModule.sol#891)",
+          "location": {
+            "file": "src/withdrawal-modules/kHYPEWithdrawalModule.sol",
+            "line": 887
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "incorrect-equality",
+          "type": "incorrect-equality",
+          "severity": "Medium",
+          "confidence": 0.9,
+          "description": "stHYPEWithdrawalModule.update() (src/withdrawal-modules/stHYPEWithdrawalModule.sol#578-620) uses a dangerous strict equality:\n\t- excessNativeBalance == 0 (src/withdrawal-modules/stHYPEWithdrawalModule.sol#582)",
+          "location": {
+            "file": "src/withdrawal-modules/stHYPEWithdrawalModule.sol",
+            "line": 578
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-no-eth",
+          "type": "reentrancy-no-eth",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "Reentrancy in stHYPEWithdrawalModule.setProposedLendingModule() (src/withdrawal-modules/stHYPEWithdrawalModule.sol#404-431):\n\tExternal calls:\n\t- lendingModule.withdraw(amountToken1LendingModule,pool) (src/withdrawal-modules/stHYPEWithdrawalModule.sol#418)\n\tState variables written after the call(s):\n\t- lendingModule = ILendingModule(lendingModuleProposal.lendingModule) (src/withdrawal-modules/stHYPEWithdrawalModule.sol#423)\n\tstHYPEWithdrawalModule.lendingModule (src/withdrawal-modules/stHYPEWithdrawalModule.sol#146) can be used in cross function reentrancies:\n\t- stHYPEWithdrawalModule.amountToken1LendingPool() (src/withdrawal-modules/stHYPEWithdrawalModule.sol#308-315)\n\t- stHYPEWithdrawalModule.lendingModule (src/withdrawal-modules/stHYPEWithdrawalModule.sol#146)\n\t- stHYPEWithdrawalModule.setProposedLendingModule() (src/withdrawal-modules/stHYPEWithdrawalModule.sol#404-431)\n\t- delete lendingModuleProposal (src/withdrawal-modules/stHYPEWithdrawalModule.sol#428)\n\tstHYPEWithdrawalModule.lendingModuleProposal (src/withdrawal-modules/stHYPEWithdrawalModule.sol#141) can be used in cross function reentrancies:\n\t- stHYPEWithdrawalModule.cancelLendingModuleProposal() (src/withdrawal-modules/stHYPEWithdrawalModule.sol#394-398)\n\t- stHYPEWithdrawalModule.lendingModuleProposal (src/withdrawal-modules/stHYPEWithdrawalModule.sol#141)\n\t- stHYPEWithdrawalModule.proposeLendingModule(address,uint256) (src/withdrawal-modules/stHYPEWithdrawalModule.sol#377-388)\n\t- stHYPEWithdrawalModule.setProposedLendingModule() (src/withdrawal-modules/stHYPEWithdrawalModule.sol#404-431)",
+          "location": {
+            "file": "src/withdrawal-modules/stHYPEWithdrawalModule.sol",
+            "line": 404
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-no-eth",
+          "type": "reentrancy-no-eth",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "Reentrancy in STEXAMM.setProposedSwapFeeModule() (src/STEXAMM.sol#325-341):\n\tExternal calls:\n\t- ISovereignPool(pool).setSwapFeeModule(proposal.swapFeeModule) (src/STEXAMM.sol#336)\n\tState variables written after the call(s):\n\t- delete swapFeeModuleProposal (src/STEXAMM.sol#340)\n\tSTEXAMM.swapFeeModuleProposal (src/STEXAMM.sol#120) can be used in cross function reentrancies:\n\t- STEXAMM.cancelSwapFeeModuleProposal() (src/STEXAMM.sol#315-319)\n\t- STEXAMM.proposeSwapFeeModule(address,uint256) (src/STEXAMM.sol#294-309)\n\t- STEXAMM.setProposedSwapFeeModule() (src/STEXAMM.sol#325-341)\n\t- STEXAMM.swapFeeModuleProposal (src/STEXAMM.sol#120)",
+          "location": {
+            "file": "src/STEXAMM.sol",
+            "line": 325
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-no-eth",
+          "type": "reentrancy-no-eth",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "Reentrancy in kHYPEWithdrawalModule.setProposedLendingModule() (src/withdrawal-modules/kHYPEWithdrawalModule.sol#600-627):\n\tExternal calls:\n\t- lendingModule.withdraw(amountToken1LendingModule,pool) (src/withdrawal-modules/kHYPEWithdrawalModule.sol#614)\n\tState variables written after the call(s):\n\t- lendingModule = ILendingModule(lendingModuleProposal.lendingModule) (src/withdrawal-modules/kHYPEWithdrawalModule.sol#619)\n\tkHYPEWithdrawalModule.lendingModule (src/withdrawal-modules/kHYPEWithdrawalModule.sol#175) can be used in cross function reentrancies:\n\t- kHYPEWithdrawalModule.amountToken1LendingPool() (src/withdrawal-modules/kHYPEWithdrawalModule.sol#437-444)\n\t- kHYPEWithdrawalModule.lendingModule (src/withdrawal-modules/kHYPEWithdrawalModule.sol#175)\n\t- kHYPEWithdrawalModule.setProposedLendingModule() (src/withdrawal-modules/kHYPEWithdrawalModule.sol#600-627)\n\t- delete lendingModuleProposal (src/withdrawal-modules/kHYPEWithdrawalModule.sol#624)\n\tkHYPEWithdrawalModule.lendingModuleProposal (src/withdrawal-modules/kHYPEWithdrawalModule.sol#170) can be used in cross function reentrancies:\n\t- kHYPEWithdrawalModule.cancelLendingModuleProposal() (src/withdrawal-modules/kHYPEWithdrawalModule.sol#590-594)\n\t- kHYPEWithdrawalModule.lendingModuleProposal (src/withdrawal-modules/kHYPEWithdrawalModule.sol#170)\n\t- kHYPEWithdrawalModule.proposeLendingModule(address,uint256) (src/withdrawal-modules/kHYPEWithdrawalModule.sol#573-584)\n\t- kHYPEWithdrawalModule.setProposedLendingModule() (src/withdrawal-modules/kHYPEWithdrawalModule.sol#600-627)",
+          "location": {
+            "file": "src/withdrawal-modules/kHYPEWithdrawalModule.sol",
+            "line": 600
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-no-eth",
+          "type": "reentrancy-no-eth",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "Reentrancy in kHYPEWithdrawalModule._unstakeToken0Reserves(uint256) (src/withdrawal-modules/kHYPEWithdrawalModule.sol#1031-1069):\n\tExternal calls:\n\t- _syncPendingUnstakeRequests(false) (src/withdrawal-modules/kHYPEWithdrawalModule.sol#1032)\n\t\t- stakingManagerInterface.confirmWithdrawal(requestId) (src/withdrawal-modules/kHYPEWithdrawalModule.sol#1105-1112)\n\t- ISTEXAMM(stex).unstakeToken0Reserves(amountToken0) (src/withdrawal-modules/kHYPEWithdrawalModule.sol#1040)\n\tState variables written after the call(s):\n\t- _amountToken0PendingUnstaking += amountToken0AfterFee (src/withdrawal-modules/kHYPEWithdrawalModule.sol#1046)\n\tkHYPEWithdrawalModule._amountToken0PendingUnstaking (src/withdrawal-modules/kHYPEWithdrawalModule.sol#181) can be used in cross function reentrancies:\n\t- kHYPEWithdrawalModule.amountToken0PendingUnstaking() (src/withdrawal-modules/kHYPEWithdrawalModule.sol#336-338)\n\t- kHYPEWithdrawalModule.amountToken0PendingUnstakingBeforeUpdate() (src/withdrawal-modules/kHYPEWithdrawalModule.sol#344-346)",
+          "location": {
+            "file": "src/withdrawal-modules/kHYPEWithdrawalModule.sol",
+            "line": 1031
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-no-eth",
+          "type": "reentrancy-no-eth",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "Reentrancy in kHYPEWithdrawalModule._syncPendingUnstakeRequests(bool) (src/withdrawal-modules/kHYPEWithdrawalModule.sol#1071-1117):\n\tExternal calls:\n\t- stakingManagerInterface.confirmWithdrawal(requestId) (src/withdrawal-modules/kHYPEWithdrawalModule.sol#1105-1112)\n\tState variables written after the call(s):\n\t- _decreaseAmountToken0PendingUnstaking(request.kHYPEAmount) (src/withdrawal-modules/kHYPEWithdrawalModule.sol#1106)\n\t\t- _amountToken0PendingUnstaking = amountToken0PendingUnstakingCache - _amountToken0Settled (src/withdrawal-modules/kHYPEWithdrawalModule.sol#1157)\n\t\t- _amountToken0PendingUnstaking = 0 (src/withdrawal-modules/kHYPEWithdrawalModule.sol#1159)\n\tkHYPEWithdrawalModule._amountToken0PendingUnstaking (src/withdrawal-modules/kHYPEWithdrawalModule.sol#181) can be used in cross function reentrancies:\n\t- kHYPEWithdrawalModule.amountToken0PendingUnstaking() (src/withdrawal-modules/kHYPEWithdrawalModule.sol#336-338)\n\t- kHYPEWithdrawalModule.amountToken0PendingUnstakingBeforeUpdate() (src/withdrawal-modules/kHYPEWithdrawalModule.sol#344-346)\n\t- _removePendingUnstakeRequestAt(i) (src/withdrawal-modules/kHYPEWithdrawalModule.sol#1100)\n\t\t- _pendingUnstakeRequestCount = lastIndex (src/withdrawal-modules/kHYPEWithdrawalModule.sol#1151)\n\tkHYPEWithdrawalModule._pendingUnstakeRequestCount (src/withdrawal-modules/kHYPEWithdrawalModule.sol#199) can be used in cross function reentrancies:\n\t- kHYPEWithdrawalModule.pendingUnstakeRequestCount() (src/withdrawal-modules/kHYPEWithdrawalModule.sol#358-360)\n\t- kHYPEWithdrawalModule.pendingUnstakeRequestIdAt(uint256) (src/withdrawal-modules/kHYPEWithdrawalModule.sol#366-372)\n\t- _removePendingUnstakeRequestAt(i) (src/withdrawal-modules/kHYPEWithdrawalModule.sol#1108)\n\t\t- _pendingUnstakeRequestCount = lastIndex (src/withdrawal-modules/kHYPEWithdrawalModule.sol#1151)\n\tkHYPEWithdrawalModule._pendingUnstakeRequestCount (src/withdrawal-modules/kHYPEWithdrawalModule.sol#199) can be used in cross function reentrancies:\n\t- kHYPEWithdrawalModule.pendingUnstakeRequestCount() (src/withdrawal-modules/kHYPEWithdrawalModule.sol#358-360)\n\t- kHYPEWithdrawalModule.pendingUnstakeRequestIdAt(uint256) (src/withdrawal-modules/kHYPEWithdrawalModule.sol#366-372)\n\t- _removePendingUnstakeRequestAt(i) (src/withdrawal-modules/kHYPEWithdrawalModule.sol#1100)\n\t\t- _pendingUnstakeRequestIds[_index] = _pendingUnstakeRequestIds[lastIndex] (src/withdrawal-modules/kHYPEWithdrawalModule.sol#1146)\n\t\t- delete _pendingUnstakeRequestIds[lastIndex] (src/withdrawal-modules/kHYPEWithdrawalModule.sol#1149)\n\tkHYPEWithdrawalModule._pendingUnstakeRequestIds (src/withdrawal-modules/kHYPEWithdrawalModule.sol#194) can be used in cross function reentrancies:\n\t- kHYPEWithdrawalModule.pendingUnstakeRequestIdAt(uint256) (src/withdrawal-modules/kHYPEWithdrawalModule.sol#366-372)\n\t- _removePendingUnstakeRequestAt(i) (src/withdrawal-modules/kHYPEWithdrawalModule.sol#1108)\n\t\t- _pendingUnstakeRequestIds[_index] = _pendingUnstakeRequestIds[lastIndex] (src/withdrawal-modules/kHYPEWithdrawalModule.sol#1146)\n\t\t- delete _pendingUnstakeRequestIds[lastIndex] (src/withdrawal-modules/kHYPEWithdrawalModule.sol#1149)\n\tkHYPEWithdrawalModule._pendingUnstakeRequestIds (src/withdrawal-modules/kHYPEWithdrawalModule.sol#194) can be used in cross function reentrancies:\n\t- kHYPEWithdrawalModule.pendingUnstakeRequestIdAt(uint256) (src/withdrawal-modules/kHYPEWithdrawalModule.sol#366-372)",
+          "location": {
+            "file": "src/withdrawal-modules/kHYPEWithdrawalModule.sol",
+            "line": 1071
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-no-eth",
+          "type": "reentrancy-no-eth",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "Reentrancy in MultiMarketLendingModule.claimManagerFee(address) (src/lending-modules/MultiMarketLendingModule.sol#379-393):\n\tExternal calls:\n\t- amountClaimed = _withdraw(claimable,claimable,assetBalance(),_recipient) (src/lending-modules/MultiMarketLendingModule.sol#387)\n\t\t- ILendingModule(lendingModule).withdraw(amountToWithdraw,recipient) (src/lending-modules/MultiMarketLendingModule.sol#576)\n\tState variables written after the call(s):\n\t- totalManagerClaimed += amountClaimed (src/lending-modules/MultiMarketLendingModule.sol#389)\n\tMultiMarketLendingModule.totalManagerClaimed (src/lending-modules/MultiMarketLendingModule.sol#134) can be used in cross function reentrancies:\n\t- MultiMarketLendingModule._getManagerFee(uint256) (src/lending-modules/MultiMarketLendingModule.sol#514-522)\n\t- MultiMarketLendingModule.claimManagerFee(address) (src/lending-modules/MultiMarketLendingModule.sol#379-393)\n\t- MultiMarketLendingModule.totalManagerClaimed (src/lending-modules/MultiMarketLendingModule.sol#134)",
+          "location": {
+            "file": "src/lending-modules/MultiMarketLendingModule.sol",
+            "line": 379
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "uninitialized-local",
+          "type": "uninitialized-local",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "DepositWrapper._depositFromToken0(uint256,uint256,uint256,uint256,address).swapParams (src/DepositWrapper.sol#175) is a local variable never initialized",
+          "location": {
+            "file": "src/DepositWrapper.sol",
+            "line": 175
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "uninitialized-local",
+          "type": "uninitialized-local",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "MultiMarketLendingModule.setDepositWeights(uint16[]).totalDepositWeightBips (src/lending-modules/MultiMarketLendingModule.sol#329) is a local variable never initialized",
+          "location": {
+            "file": "src/lending-modules/MultiMarketLendingModule.sol",
+            "line": 329
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "uninitialized-local",
+          "type": "uninitialized-local",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "STEXAMM.withdraw(uint256,uint256,uint256,uint256,address,bool,bool).amount0Deduction (src/STEXAMM.sol#591) is a local variable never initialized",
+          "location": {
+            "file": "src/STEXAMM.sol",
+            "line": 591
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "uninitialized-local",
+          "type": "uninitialized-local",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "STEXAMM.withdraw(uint256,uint256,uint256,uint256,address,bool,bool).cache (src/STEXAMM.sol#581) is a local variable never initialized",
+          "location": {
+            "file": "src/STEXAMM.sol",
+            "line": 581
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "uninitialized-local",
+          "type": "uninitialized-local",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "STEXLens.getAmountsForWithdraw(address,uint256,bool).cache (src/STEXLens.sol#168) is a local variable never initialized",
+          "location": {
+            "file": "src/STEXLens.sol",
+            "line": 168
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "uninitialized-local",
+          "type": "uninitialized-local",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "MultiMarketLendingModule.setWithdrawWeights(uint16[]).totalWithdrawWeightBips (src/lending-modules/MultiMarketLendingModule.sol#356) is a local variable never initialized",
+          "location": {
+            "file": "src/lending-modules/MultiMarketLendingModule.sol",
+            "line": 356
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "uninitialized-local",
+          "type": "uninitialized-local",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "RebalanceModule._validateInputs(uint256,address,address,uint256[],address[],bytes[]).amountToken0Total (src/RebalanceModule.sol#182) is a local variable never initialized",
+          "location": {
+            "file": "src/RebalanceModule.sol",
+            "line": 182
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "uninitialized-local",
+          "type": "uninitialized-local",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "MultiMarketLendingModule.initialize(address[],MultiMarketLendingModule.LendingModuleConfig[]).totalWithdrawWeightBips (src/lending-modules/MultiMarketLendingModule.sol#279) is a local variable never initialized",
+          "location": {
+            "file": "src/lending-modules/MultiMarketLendingModule.sol",
+            "line": 279
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "uninitialized-local",
+          "type": "uninitialized-local",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "STEXLens.getAmountsForWithdraw(address,uint256,bool).amount0Deduction (src/STEXLens.sol#178) is a local variable never initialized",
+          "location": {
+            "file": "src/STEXLens.sol",
+            "line": 178
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "uninitialized-local",
+          "type": "uninitialized-local",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "STEXLens.getAmountsForWithdraw(address,uint256,bool).amount0 (src/STEXLens.sol#164) is a local variable never initialized",
+          "location": {
+            "file": "src/STEXLens.sol",
+            "line": 164
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "uninitialized-local",
+          "type": "uninitialized-local",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "MultiMarketLendingModule.initialize(address[],MultiMarketLendingModule.LendingModuleConfig[]).totalDepositWeightBips (src/lending-modules/MultiMarketLendingModule.sol#278) is a local variable never initialized",
+          "location": {
+            "file": "src/lending-modules/MultiMarketLendingModule.sol",
+            "line": 278
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "unused-return",
+          "type": "unused-return",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "AaveLendingModule.withdraw(uint256,address) (src/lending-modules/AaveLendingModule.sol#141-143) ignores return value by pool.withdraw(asset,_amount,_recipient) (src/lending-modules/AaveLendingModule.sol#142)",
+          "location": {
+            "file": "src/lending-modules/AaveLendingModule.sol",
+            "line": 141
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "unused-return",
+          "type": "unused-return",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "STEXAMM.withdraw(uint256,uint256,uint256,uint256,address,bool,bool) (src/STEXAMM.sol#562-686) ignores return value by (None,reserve1) = ISovereignPool(pool).getReserves() (src/STEXAMM.sol#659)",
+          "location": {
+            "file": "src/STEXAMM.sol",
+            "line": 562
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "unused-return",
+          "type": "unused-return",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "STEXAMM.deposit(uint256,uint256,uint256,address) (src/STEXAMM.sol#486-526) ignores return value by ISovereignPool(pool).depositLiquidity(0,_amount,msg.sender,new bytes(0),abi.encode(msg.sender)) (src/STEXAMM.sol#523)",
+          "location": {
+            "file": "src/STEXAMM.sol",
+            "line": 486
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "unused-return",
+          "type": "unused-return",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "stHYPEWithdrawalModule.stakeToken1(uint256,string) (src/withdrawal-modules/stHYPEWithdrawalModule.sol#509-527) ignores return value by IOverseer(overseer).mint{value: _amountToken1}(pool,_communityCode) (src/withdrawal-modules/stHYPEWithdrawalModule.sol#524)",
+          "location": {
+            "file": "src/withdrawal-modules/stHYPEWithdrawalModule.sol",
+            "line": 509
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "unused-return",
+          "type": "unused-return",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "ERC4626LendingModule.withdraw(uint256,address) (src/lending-modules/ERC4626LendingModule.sol#146-148) ignores return value by vault.withdraw(_amount,_recipient,address(this)) (src/lending-modules/ERC4626LendingModule.sol#147)",
+          "location": {
+            "file": "src/lending-modules/ERC4626LendingModule.sol",
+            "line": 146
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "unused-return",
+          "type": "unused-return",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "STEXAMM.unstakeToken0Reserves(uint256) (src/STEXAMM.sol#455-467) ignores return value by (reserve0,None) = poolInterface.getReserves() (src/STEXAMM.sol#461)",
+          "location": {
+            "file": "src/STEXAMM.sol",
+            "line": 455
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "unused-return",
+          "type": "unused-return",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "ERC4626LendingModule.deposit(uint256) (src/lending-modules/ERC4626LendingModule.sol#133-138) ignores return value by vault.deposit(_amount,address(this)) (src/lending-modules/ERC4626LendingModule.sol#137)",
+          "location": {
+            "file": "src/lending-modules/ERC4626LendingModule.sol",
+            "line": 133
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "unused-return",
+          "type": "unused-return",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "kHYPEWithdrawalModule.setProposedLendingModule() (src/withdrawal-modules/kHYPEWithdrawalModule.sol#600-627) ignores return value by lendingModule.assetBalance() (src/withdrawal-modules/kHYPEWithdrawalModule.sol#622)",
+          "location": {
+            "file": "src/withdrawal-modules/kHYPEWithdrawalModule.sol",
+            "line": 600
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "unused-return",
+          "type": "unused-return",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "StepwiseFeeModule.getSwapFeeInBips(address,address,uint256,address,bytes) (src/swap-fee-modules/StepwiseFeeModule.sol#85-154) ignores return value by (None,reserve1) = poolInterface.getReserves() (src/swap-fee-modules/StepwiseFeeModule.sol#117)",
+          "location": {
+            "file": "src/swap-fee-modules/StepwiseFeeModule.sol",
+            "line": 85
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "unused-return",
+          "type": "unused-return",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "MultiMarketLendingModule.initialize(address[],MultiMarketLendingModule.LendingModuleConfig[]) (src/lending-modules/MultiMarketLendingModule.sol#258-317) ignores return value by ILendingModule(lendingModule).assetBalance() (src/lending-modules/MultiMarketLendingModule.sol#292)",
+          "location": {
+            "file": "src/lending-modules/MultiMarketLendingModule.sol",
+            "line": 258
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "unused-return",
+          "type": "unused-return",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "stHYPEWithdrawalModule.unstakeToken0Reserves(uint256) (src/withdrawal-modules/stHYPEWithdrawalModule.sol#555-570) ignores return value by IOverseer(overseer).burnAndRedeemIfPossible(address(this),amountToken0,) (src/withdrawal-modules/stHYPEWithdrawalModule.sol#567)",
+          "location": {
+            "file": "src/withdrawal-modules/stHYPEWithdrawalModule.sol",
+            "line": 555
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "unused-return",
+          "type": "unused-return",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "stHYPEWithdrawalModule.setProposedLendingModule() (src/withdrawal-modules/stHYPEWithdrawalModule.sol#404-431) ignores return value by lendingModule.assetBalance() (src/withdrawal-modules/stHYPEWithdrawalModule.sol#426)",
+          "location": {
+            "file": "src/withdrawal-modules/stHYPEWithdrawalModule.sol",
+            "line": 404
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "unused-return",
+          "type": "unused-return",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "DepositWrapper._depositFromToken0(uint256,uint256,uint256,uint256,address) (src/DepositWrapper.sol#156-187) ignores return value by (None,amountToken1) = pool.swap(swapParams) (src/DepositWrapper.sol#183)",
+          "location": {
+            "file": "src/DepositWrapper.sol",
+            "line": 156
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "shadowing-local",
+          "type": "shadowing-local",
+          "severity": "Low",
+          "confidence": 0.9,
+          "description": "stHYPEWithdrawalModuleKeeper.constructor(address)._owner (src/owner/stHYPEWithdrawalModuleKeeper.sol#39) shadows:\n\t- Ownable._owner (lib/openzeppelin-contracts/contracts/access/Ownable.sol#21) (state variable)",
+          "location": {
+            "file": "src/owner/stHYPEWithdrawalModuleKeeper.sol",
+            "line": 39
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "shadowing-local",
+          "type": "shadowing-local",
+          "severity": "Low",
+          "confidence": 0.9,
+          "description": "RebalanceModule.constructor(address,address,address)._owner (src/RebalanceModule.sol#52) shadows:\n\t- Ownable._owner (lib/openzeppelin-contracts/contracts/access/Ownable.sol#21) (state variable)",
+          "location": {
+            "file": "src/RebalanceModule.sol",
+            "line": 52
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "shadowing-local",
+          "type": "shadowing-local",
+          "severity": "Low",
+          "confidence": 0.9,
+          "description": "kHYPEWithdrawalModule.constructor(address,address,address,uint256)._owner (src/withdrawal-modules/kHYPEWithdrawalModule.sol#240) shadows:\n\t- Ownable._owner (lib/openzeppelin-contracts/contracts/access/Ownable.sol#21) (state variable)",
+          "location": {
+            "file": "src/withdrawal-modules/kHYPEWithdrawalModule.sol",
+            "line": 240
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "shadowing-local",
+          "type": "shadowing-local",
+          "severity": "Low",
+          "confidence": 0.9,
+          "description": "ERC4626LendingModule.constructor(address,address,address)._owner (src/lending-modules/ERC4626LendingModule.sol#79) shadows:\n\t- Ownable._owner (lib/openzeppelin-contracts/contracts/access/Ownable.sol#21) (state variable)",
+          "location": {
+            "file": "src/lending-modules/ERC4626LendingModule.sol",
+            "line": 79
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "shadowing-local",
+          "type": "shadowing-local",
+          "severity": "Low",
+          "confidence": 0.9,
+          "description": "MultiMarketLendingModule.constructor(address,address,address,address,uint256)._owner (src/lending-modules/MultiMarketLendingModule.sol#183) shadows:\n\t- Ownable._owner (lib/openzeppelin-contracts/contracts/access/Ownable.sol#21) (state variable)",
+          "location": {
+            "file": "src/lending-modules/MultiMarketLendingModule.sol",
+            "line": 183
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "shadowing-local",
+          "type": "shadowing-local",
+          "severity": "Low",
+          "confidence": 0.9,
+          "description": "STEXAMM.constructor(string,string,address,address,address,address,address,address,address,address,uint256)._name (src/STEXAMM.sol#144) shadows:\n\t- ERC20._name (lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol#36) (state variable)",
+          "location": {
+            "file": "src/STEXAMM.sol",
+            "line": 144
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "shadowing-local",
+          "type": "shadowing-local",
+          "severity": "Low",
+          "confidence": 0.9,
+          "description": "MultiMarketLendingModuleManager.constructor(address,address)._owner (src/owner/MultiMarketLendingModuleManager.sol#34) shadows:\n\t- Ownable._owner (lib/openzeppelin-contracts/contracts/access/Ownable.sol#21) (state variable)",
+          "location": {
+            "file": "src/owner/MultiMarketLendingModuleManager.sol",
+            "line": 34
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "shadowing-local",
+          "type": "shadowing-local",
+          "severity": "Low",
+          "confidence": 0.9,
+          "description": "MultiMarketLendingModuleKeeper.constructor(address)._owner (src/owner/MultiMarketLendingModuleKeeper.sol#36) shadows:\n\t- Ownable._owner (lib/openzeppelin-contracts/contracts/access/Ownable.sol#21) (state variable)",
+          "location": {
+            "file": "src/owner/MultiMarketLendingModuleKeeper.sol",
+            "line": 36
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "shadowing-local",
+          "type": "shadowing-local",
+          "severity": "Low",
+          "confidence": 0.9,
+          "description": "StepwiseFeeModuleKeeper.constructor(address)._owner (src/owner/StepwiseFeeModuleKeeper.sol#37) shadows:\n\t- Ownable._owner (lib/openzeppelin-contracts/contracts/access/Ownable.sol#21) (state variable)",
+          "location": {
+            "file": "src/owner/StepwiseFeeModuleKeeper.sol",
+            "line": 37
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "shadowing-local",
+          "type": "shadowing-local",
+          "severity": "Low",
+          "confidence": 0.9,
+          "description": "STEXAMM.constructor(string,string,address,address,address,address,address,address,address,address,uint256)._symbol (src/STEXAMM.sol#145) shadows:\n\t- ERC20._symbol (lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol#37) (state variable)",
+          "location": {
+            "file": "src/STEXAMM.sol",
+            "line": 145
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "shadowing-local",
+          "type": "shadowing-local",
+          "severity": "Low",
+          "confidence": 0.9,
+          "description": "STEXAMM.constructor(string,string,address,address,address,address,address,address,address,address,uint256)._owner (src/STEXAMM.sol#152) shadows:\n\t- Ownable._owner (lib/openzeppelin-contracts/contracts/access/Ownable.sol#21) (state variable)",
+          "location": {
+            "file": "src/STEXAMM.sol",
+            "line": 152
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "shadowing-local",
+          "type": "shadowing-local",
+          "severity": "Low",
+          "confidence": 0.9,
+          "description": "AaveLendingModule.constructor(address,address,address,address,address,uint16)._owner (src/lending-modules/AaveLendingModule.sol#85) shadows:\n\t- Ownable._owner (lib/openzeppelin-contracts/contracts/access/Ownable.sol#21) (state variable)",
+          "location": {
+            "file": "src/lending-modules/AaveLendingModule.sol",
+            "line": 85
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "shadowing-local",
+          "type": "shadowing-local",
+          "severity": "Low",
+          "confidence": 0.9,
+          "description": "kHYPEWithdrawalModuleManager.constructor(address,address)._owner (src/owner/kHYPEWithdrawalModuleManager.sol#41) shadows:\n\t- Ownable._owner (lib/openzeppelin-contracts/contracts/access/Ownable.sol#21) (state variable)",
+          "location": {
+            "file": "src/owner/kHYPEWithdrawalModuleManager.sol",
+            "line": 41
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "shadowing-local",
+          "type": "shadowing-local",
+          "severity": "Low",
+          "confidence": 0.9,
+          "description": "stHYPEWithdrawalModuleManager.constructor(address,address)._owner (src/owner/stHYPEWithdrawalModuleManager.sol#40) shadows:\n\t- Ownable._owner (lib/openzeppelin-contracts/contracts/access/Ownable.sol#21) (state variable)",
+          "location": {
+            "file": "src/owner/stHYPEWithdrawalModuleManager.sol",
+            "line": 40
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "shadowing-local",
+          "type": "shadowing-local",
+          "severity": "Low",
+          "confidence": 0.9,
+          "description": "StepwiseFeeModule.constructor(address)._owner (src/swap-fee-modules/StepwiseFeeModule.sol#43) shadows:\n\t- Ownable._owner (lib/openzeppelin-contracts/contracts/access/Ownable.sol#21) (state variable)",
+          "location": {
+            "file": "src/swap-fee-modules/StepwiseFeeModule.sol",
+            "line": 43
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "shadowing-local",
+          "type": "shadowing-local",
+          "severity": "Low",
+          "confidence": 0.9,
+          "description": "stHYPEWithdrawalModule.constructor(address,address,address)._owner (src/withdrawal-modules/stHYPEWithdrawalModule.sol#165) shadows:\n\t- Ownable._owner (lib/openzeppelin-contracts/contracts/access/Ownable.sol#21) (state variable)",
+          "location": {
+            "file": "src/withdrawal-modules/stHYPEWithdrawalModule.sol",
+            "line": 165
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "shadowing-local",
+          "type": "shadowing-local",
+          "severity": "Low",
+          "confidence": 0.9,
+          "description": "kHYPEWithdrawalModuleKeeper.constructor(address)._owner (src/owner/kHYPEWithdrawalModuleKeeper.sol#38) shadows:\n\t- Ownable._owner (lib/openzeppelin-contracts/contracts/access/Ownable.sol#21) (state variable)",
+          "location": {
+            "file": "src/owner/kHYPEWithdrawalModuleKeeper.sol",
+            "line": 38
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "events-access",
+          "type": "events-access",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "MultiMarketLendingModuleManager.setKeeper(address) (src/owner/MultiMarketLendingModuleManager.sol#72-78) should emit an event for: \n\t- keeper = _keeper (src/owner/MultiMarketLendingModuleManager.sol#77)",
+          "location": {
+            "file": "src/owner/MultiMarketLendingModuleManager.sol",
+            "line": 72
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "events-access",
+          "type": "events-access",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "kHYPEWithdrawalModuleManager.setKeeper(address) (src/owner/kHYPEWithdrawalModuleManager.sol#70-75) should emit an event for: \n\t- keeper = _keeper (src/owner/kHYPEWithdrawalModuleManager.sol#74)",
+          "location": {
+            "file": "src/owner/kHYPEWithdrawalModuleManager.sol",
+            "line": 70
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "events-access",
+          "type": "events-access",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "stHYPEWithdrawalModuleManager.setKeeper(address) (src/owner/stHYPEWithdrawalModuleManager.sol#69-74) should emit an event for: \n\t- keeper = _keeper (src/owner/stHYPEWithdrawalModuleManager.sol#73)",
+          "location": {
+            "file": "src/owner/stHYPEWithdrawalModuleManager.sol",
+            "line": 69
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "events-maths",
+          "type": "events-maths",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "MultiMarketLendingModule.deposit(uint256) (src/lending-modules/MultiMarketLendingModule.sol#415-456) should emit an event for: \n\t- totalPrincipal += _amount (src/lending-modules/MultiMarketLendingModule.sol#455)",
+          "location": {
+            "file": "src/lending-modules/MultiMarketLendingModule.sol",
+            "line": 415
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "missing-zero-check",
+          "type": "missing-zero-check",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "AaveLendingModule.constructor(address,address,address,address,address,uint16)._yieldToken (src/lending-modules/AaveLendingModule.sol#83) lacks a zero-check on :\n\t\t- yieldToken = _yieldToken (src/lending-modules/AaveLendingModule.sol#90)",
+          "location": {
+            "file": "src/lending-modules/AaveLendingModule.sol",
+            "line": 83
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "missing-zero-check",
+          "type": "missing-zero-check",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "MultiMarketLendingModuleManager.call(address,bytes)._lendingModule (src/owner/MultiMarketLendingModuleManager.sol#88) lacks a zero-check on :\n\t\t- (success,None) = _lendingModule.call(_payload) (src/owner/MultiMarketLendingModuleManager.sol#89)",
+          "location": {
+            "file": "src/owner/MultiMarketLendingModuleManager.sol",
+            "line": 88
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "missing-zero-check",
+          "type": "missing-zero-check",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "AaveLendingModule.constructor(address,address,address,address,address,uint16)._tokenSweepManager (src/lending-modules/AaveLendingModule.sol#86) lacks a zero-check on :\n\t\t- tokenSweepManager = _tokenSweepManager (src/lending-modules/AaveLendingModule.sol#92)",
+          "location": {
+            "file": "src/lending-modules/AaveLendingModule.sol",
+            "line": 86
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "missing-zero-check",
+          "type": "missing-zero-check",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "MultiMarketLendingModuleKeeper.call(address,bytes)._lendingModuleManager (src/owner/MultiMarketLendingModuleKeeper.sol#75) lacks a zero-check on :\n\t\t- (success,None) = _lendingModuleManager.call(_payload) (src/owner/MultiMarketLendingModuleKeeper.sol#80)",
+          "location": {
+            "file": "src/owner/MultiMarketLendingModuleKeeper.sol",
+            "line": 75
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "missing-zero-check",
+          "type": "missing-zero-check",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "kHYPEWithdrawalModuleManager.call(address,bytes)._withdrawalModule (src/owner/kHYPEWithdrawalModuleManager.sol#85) lacks a zero-check on :\n\t\t- (success,None) = _withdrawalModule.call(_payload) (src/owner/kHYPEWithdrawalModuleManager.sol#86)",
+          "location": {
+            "file": "src/owner/kHYPEWithdrawalModuleManager.sol",
+            "line": 85
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "missing-zero-check",
+          "type": "missing-zero-check",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "stHYPEWithdrawalModuleKeeper.call(address,bytes)._withdrawalModuleManager (src/owner/stHYPEWithdrawalModuleKeeper.sol#93) lacks a zero-check on :\n\t\t- (success,None) = _withdrawalModuleManager.call(_payload) (src/owner/stHYPEWithdrawalModuleKeeper.sol#98)",
+          "location": {
+            "file": "src/owner/stHYPEWithdrawalModuleKeeper.sol",
+            "line": 93
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "missing-zero-check",
+          "type": "missing-zero-check",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "AaveLendingModule.constructor(address,address,address,address,address,uint16)._asset (src/lending-modules/AaveLendingModule.sol#84) lacks a zero-check on :\n\t\t- asset = _asset (src/lending-modules/AaveLendingModule.sol#91)",
+          "location": {
+            "file": "src/lending-modules/AaveLendingModule.sol",
+            "line": 84
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "missing-zero-check",
+          "type": "missing-zero-check",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "stHYPEWithdrawalModuleManager.call(address,bytes)._withdrawalModule (src/owner/stHYPEWithdrawalModuleManager.sol#84) lacks a zero-check on :\n\t\t- (success,None) = _withdrawalModule.call(_payload) (src/owner/stHYPEWithdrawalModuleManager.sol#85)",
+          "location": {
+            "file": "src/owner/stHYPEWithdrawalModuleManager.sol",
+            "line": 84
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "missing-zero-check",
+          "type": "missing-zero-check",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "kHYPEWithdrawalModuleKeeper.call(address,bytes)._withdrawalModuleManager (src/owner/kHYPEWithdrawalModuleKeeper.sol#77) lacks a zero-check on :\n\t\t- (success,None) = _withdrawalModuleManager.call(_payload) (src/owner/kHYPEWithdrawalModuleKeeper.sol#82)",
+          "location": {
+            "file": "src/owner/kHYPEWithdrawalModuleKeeper.sol",
+            "line": 77
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "calls-loop",
+          "type": "calls-loop",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "MultiMarketLendingModule.initialize(address[],MultiMarketLendingModule.LendingModuleConfig[]) (src/lending-modules/MultiMarketLendingModule.sol#258-317) has external calls inside a loop: Ownable(lendingModule).owner() != address(this) (src/lending-modules/MultiMarketLendingModule.sol#287)",
+          "location": {
+            "file": "src/lending-modules/MultiMarketLendingModule.sol",
+            "line": 258
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "calls-loop",
+          "type": "calls-loop",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "kHYPEWithdrawalModuleKeeper.redeemBurnsAndUpdate(uint256[],address) (src/owner/kHYPEWithdrawalModuleKeeper.sol#92-107) has external calls inside a loop: burnIdsProcessed[i] = kHYPEWithdrawalModule(address(_withdrawalModule)).confirmWithdrawal(_burnIds[i]) (src/owner/kHYPEWithdrawalModuleKeeper.sol#100)",
+          "location": {
+            "file": "src/owner/kHYPEWithdrawalModuleKeeper.sol",
+            "line": 92
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "calls-loop",
+          "type": "calls-loop",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "MultiMarketLendingModule._getTotalBalance() (src/lending-modules/MultiMarketLendingModule.sol#508-512) has external calls inside a loop: totalBalance += ILendingModule(_lendingModules.at(i)).assetBalance() (src/lending-modules/MultiMarketLendingModule.sol#510)\n\tCalls stack containing the loop:\n\t\tMultiMarketLendingModule.claimManagerFee(address)\n\t\tMultiMarketLendingModule.managerFeeClaimable()",
+          "location": {
+            "file": "src/lending-modules/MultiMarketLendingModule.sol",
+            "line": 508
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "calls-loop",
+          "type": "calls-loop",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "MultiMarketLendingModule._withdraw(uint256,uint256,uint256,address) (src/lending-modules/MultiMarketLendingModule.sol#524-598) has external calls inside a loop: ILendingModule(lendingModule).withdraw(amountToWithdraw,recipient) (src/lending-modules/MultiMarketLendingModule.sol#576)\n\tCalls stack containing the loop:\n\t\tMultiMarketLendingModule.withdraw(uint256,address)",
+          "location": {
+            "file": "src/lending-modules/MultiMarketLendingModule.sol",
+            "line": 524
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "calls-loop",
+          "type": "calls-loop",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "kHYPEWithdrawalModule._syncPendingUnstakeRequests(bool) (src/withdrawal-modules/kHYPEWithdrawalModule.sol#1071-1117) has external calls inside a loop: request = stakingManagerInterface.withdrawalRequests(address(this),requestId) (src/withdrawal-modules/kHYPEWithdrawalModule.sol#1081-1082)\n\tCalls stack containing the loop:\n\t\tkHYPEWithdrawalModule.unstakeToken0Reserves(uint256)\n\t\tkHYPEWithdrawalModule._unstakeToken0Reserves(uint256)",
+          "location": {
+            "file": "src/withdrawal-modules/kHYPEWithdrawalModule.sol",
+            "line": 1071
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "calls-loop",
+          "type": "calls-loop",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "RebalanceModule.rebalance(uint256,bytes) (src/RebalanceModule.sol#105-150) has external calls inside a loop: (success,None) = targetAddresses[i].call(payloads[i]) (src/RebalanceModule.sol#128)",
+          "location": {
+            "file": "src/RebalanceModule.sol",
+            "line": 105
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "calls-loop",
+          "type": "calls-loop",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "stHYPEWithdrawalModuleKeeper.redeemBurnsAndUpdate(uint256[],address,address) (src/owner/stHYPEWithdrawalModuleKeeper.sol#109-128) has external calls inside a loop: isRedeemable = IOverseer(_overseer).redeemable(_burnIds[i]) (src/owner/stHYPEWithdrawalModuleKeeper.sol#117)",
+          "location": {
+            "file": "src/owner/stHYPEWithdrawalModuleKeeper.sol",
+            "line": 109
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "calls-loop",
+          "type": "calls-loop",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "MultiMarketLendingModule.deposit(uint256) (src/lending-modules/MultiMarketLendingModule.sol#415-456) has external calls inside a loop: ILendingModule(lendingModule).deposit(amountToDeposit) (src/lending-modules/MultiMarketLendingModule.sol#446)",
+          "location": {
+            "file": "src/lending-modules/MultiMarketLendingModule.sol",
+            "line": 415
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-benign",
+          "type": "reentrancy-benign",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in kHYPEWithdrawalModule._confirmWithdrawal(uint256) (src/withdrawal-modules/kHYPEWithdrawalModule.sol#1014-1029):\n\tExternal calls:\n\t- IStakingManager(stakingManager).confirmWithdrawal(id) (src/withdrawal-modules/kHYPEWithdrawalModule.sol#1022)\n\tState variables written after the call(s):\n\t- _decreaseAmountToken0PendingUnstaking(request.kHYPEAmount) (src/withdrawal-modules/kHYPEWithdrawalModule.sol#1025)\n\t\t- _amountToken0PendingUnstaking = amountToken0PendingUnstakingCache - _amountToken0Settled (src/withdrawal-modules/kHYPEWithdrawalModule.sol#1157)\n\t\t- _amountToken0PendingUnstaking = 0 (src/withdrawal-modules/kHYPEWithdrawalModule.sol#1159)\n\t- _removePendingUnstakeRequestId(id) (src/withdrawal-modules/kHYPEWithdrawalModule.sol#1026)\n\t\t- _pendingUnstakeRequestCount = lastIndex (src/withdrawal-modules/kHYPEWithdrawalModule.sol#1151)\n\t- _removePendingUnstakeRequestId(id) (src/withdrawal-modules/kHYPEWithdrawalModule.sol#1026)\n\t\t- _pendingUnstakeRequestIds[_index] = _pendingUnstakeRequestIds[lastIndex] (src/withdrawal-modules/kHYPEWithdrawalModule.sol#1146)\n\t\t- delete _pendingUnstakeRequestIds[lastIndex] (src/withdrawal-modules/kHYPEWithdrawalModule.sol#1149)",
+          "location": {
+            "file": "src/withdrawal-modules/kHYPEWithdrawalModule.sol",
+            "line": 1014
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-benign",
+          "type": "reentrancy-benign",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in MultiMarketLendingModule._withdraw(uint256,uint256,uint256,address) (src/lending-modules/MultiMarketLendingModule.sol#524-598):\n\tExternal calls:\n\t- ILendingModule(lendingModule).withdraw(amountToWithdraw,recipient) (src/lending-modules/MultiMarketLendingModule.sol#576)\n\tState variables written after the call(s):\n\t- totalPrincipal -= amountReceived (src/lending-modules/MultiMarketLendingModule.sol#593)\n\t- totalPrincipal = 0 (src/lending-modules/MultiMarketLendingModule.sol#596)\n\t- virtualYield += (amountReceived - totalPrincipal) (src/lending-modules/MultiMarketLendingModule.sol#595)",
+          "location": {
+            "file": "src/lending-modules/MultiMarketLendingModule.sol",
+            "line": 524
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-benign",
+          "type": "reentrancy-benign",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in kHYPEWithdrawalModule._unstakeToken0Reserves(uint256) (src/withdrawal-modules/kHYPEWithdrawalModule.sol#1031-1069):\n\tExternal calls:\n\t- _syncPendingUnstakeRequests(false) (src/withdrawal-modules/kHYPEWithdrawalModule.sol#1032)\n\t\t- stakingManagerInterface.confirmWithdrawal(requestId) (src/withdrawal-modules/kHYPEWithdrawalModule.sol#1105-1112)\n\t- ISTEXAMM(stex).unstakeToken0Reserves(amountToken0) (src/withdrawal-modules/kHYPEWithdrawalModule.sol#1040)\n\tState variables written after the call(s):\n\t- _amountToken1PendingLPWithdrawalCoveredByQueuedUnstake = pendingToken1CoveredByQueuedUnstake + amountToken1CoveredByThisUnstake (src/withdrawal-modules/kHYPEWithdrawalModule.sol#1064-1065)",
+          "location": {
+            "file": "src/withdrawal-modules/kHYPEWithdrawalModule.sol",
+            "line": 1031
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-benign",
+          "type": "reentrancy-benign",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in stHYPEWithdrawalModule.unstakeToken0Reserves(uint256) (src/withdrawal-modules/stHYPEWithdrawalModule.sol#555-570):\n\tExternal calls:\n\t- stexInterface.unstakeToken0Reserves(_unstakeAmountToken0) (src/withdrawal-modules/stHYPEWithdrawalModule.sol#557)\n\tState variables written after the call(s):\n\t- _amountToken0PendingUnstaking += amountToken0 (src/withdrawal-modules/stHYPEWithdrawalModule.sol#561)",
+          "location": {
+            "file": "src/withdrawal-modules/stHYPEWithdrawalModule.sol",
+            "line": 555
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-benign",
+          "type": "reentrancy-benign",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in STEXAMM.withdraw(uint256,uint256,uint256,uint256,address,bool,bool) (src/STEXAMM.sol#562-686):\n\tExternal calls:\n\t- _withdrawalModule.update() (src/STEXAMM.sol#579)\n\tState variables written after the call(s):\n\t- _burn(msg.sender,_shares) (src/STEXAMM.sol#647)\n\t\t- _balances[from] = fromBalance - value (lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol#194)\n\t\t- _balances[to] += value (lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol#206)\n\t- _burn(msg.sender,_shares) (src/STEXAMM.sol#647)\n\t\t- _totalSupply += value (lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol#186)\n\t\t- _totalSupply -= value (lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol#201)",
+          "location": {
+            "file": "src/STEXAMM.sol",
+            "line": 562
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-benign",
+          "type": "reentrancy-benign",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in STEXAMM.deposit(uint256,uint256,uint256,address) (src/STEXAMM.sol#486-526):\n\tExternal calls:\n\t- _withdrawalModule.update() (src/STEXAMM.sol#495)\n\tState variables written after the call(s):\n\t- _mint(address(1),MINIMUM_LIQUIDITY) (src/STEXAMM.sol#499)\n\t\t- _balances[from] = fromBalance - value (lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol#194)\n\t\t- _balances[to] += value (lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol#206)\n\t- _mint(_recipient,shares) (src/STEXAMM.sol#521)\n\t\t- _balances[from] = fromBalance - value (lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol#194)\n\t\t- _balances[to] += value (lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol#206)\n\t- _mint(address(1),MINIMUM_LIQUIDITY) (src/STEXAMM.sol#499)\n\t\t- _totalSupply += value (lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol#186)\n\t\t- _totalSupply -= value (lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol#201)\n\t- _mint(_recipient,shares) (src/STEXAMM.sol#521)\n\t\t- _totalSupply += value (lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol#186)\n\t\t- _totalSupply -= value (lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol#201)",
+          "location": {
+            "file": "src/STEXAMM.sol",
+            "line": 486
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-benign",
+          "type": "reentrancy-benign",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in MultiMarketLendingModule.deposit(uint256) (src/lending-modules/MultiMarketLendingModule.sol#415-456):\n\tExternal calls:\n\t- ILendingModule(lendingModule).deposit(amountToDeposit) (src/lending-modules/MultiMarketLendingModule.sol#446)\n\tState variables written after the call(s):\n\t- totalPrincipal += _amount (src/lending-modules/MultiMarketLendingModule.sol#455)",
+          "location": {
+            "file": "src/lending-modules/MultiMarketLendingModule.sol",
+            "line": 415
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-events",
+          "type": "reentrancy-events",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in MultiMarketLendingModule.claimManagerFee(address) (src/lending-modules/MultiMarketLendingModule.sol#379-393):\n\tExternal calls:\n\t- amountClaimed = _withdraw(claimable,claimable,assetBalance(),_recipient) (src/lending-modules/MultiMarketLendingModule.sol#387)\n\t\t- ILendingModule(lendingModule).withdraw(amountToWithdraw,recipient) (src/lending-modules/MultiMarketLendingModule.sol#576)\n\tEvent emitted after the call(s):\n\t- ManagerFeeClaimed(_recipient,amountClaimed) (src/lending-modules/MultiMarketLendingModule.sol#391)",
+          "location": {
+            "file": "src/lending-modules/MultiMarketLendingModule.sol",
+            "line": 379
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-events",
+          "type": "reentrancy-events",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in STEXAMM.setProposedSwapFeeModule() (src/STEXAMM.sol#325-341):\n\tExternal calls:\n\t- ISovereignPool(pool).setSwapFeeModule(proposal.swapFeeModule) (src/STEXAMM.sol#336)\n\tEvent emitted after the call(s):\n\t- SwapFeeModuleSet(proposal.swapFeeModule) (src/STEXAMM.sol#338)",
+          "location": {
+            "file": "src/STEXAMM.sol",
+            "line": 325
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-events",
+          "type": "reentrancy-events",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in stHYPEWithdrawalModule.setProposedLendingModule() (src/withdrawal-modules/stHYPEWithdrawalModule.sol#404-431):\n\tExternal calls:\n\t- lendingModule.withdraw(amountToken1LendingModule,pool) (src/withdrawal-modules/stHYPEWithdrawalModule.sol#418)\n\tEvent emitted after the call(s):\n\t- LendingModuleSet(address(lendingModule)) (src/withdrawal-modules/stHYPEWithdrawalModule.sol#430)",
+          "location": {
+            "file": "src/withdrawal-modules/stHYPEWithdrawalModule.sol",
+            "line": 404
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-events",
+          "type": "reentrancy-events",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in kHYPEWithdrawalModule.setProposedLendingModule() (src/withdrawal-modules/kHYPEWithdrawalModule.sol#600-627):\n\tExternal calls:\n\t- lendingModule.withdraw(amountToken1LendingModule,pool) (src/withdrawal-modules/kHYPEWithdrawalModule.sol#614)\n\tEvent emitted after the call(s):\n\t- LendingModuleSet(address(lendingModule)) (src/withdrawal-modules/kHYPEWithdrawalModule.sol#626)",
+          "location": {
+            "file": "src/withdrawal-modules/kHYPEWithdrawalModule.sol",
+            "line": 600
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "timestamp",
+          "type": "timestamp",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "kHYPEWithdrawalModule.setProposedLendingModule() (src/withdrawal-modules/kHYPEWithdrawalModule.sol#600-627) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- lendingModuleProposal.startTimestamp > block.timestamp (src/withdrawal-modules/kHYPEWithdrawalModule.sol#601)",
+          "location": {
+            "file": "src/withdrawal-modules/kHYPEWithdrawalModule.sol",
+            "line": 600
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "timestamp",
+          "type": "timestamp",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "stHYPEWithdrawalModule.setProposedLendingModule() (src/withdrawal-modules/stHYPEWithdrawalModule.sol#404-431) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- lendingModuleProposal.startTimestamp > block.timestamp (src/withdrawal-modules/stHYPEWithdrawalModule.sol#405)",
+          "location": {
+            "file": "src/withdrawal-modules/stHYPEWithdrawalModule.sol",
+            "line": 404
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "timestamp",
+          "type": "timestamp",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "STEXAMM._checkDeadline(uint256) (src/STEXAMM.sol#744-748) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- block.timestamp > deadline (src/STEXAMM.sol#745)",
+          "location": {
+            "file": "src/STEXAMM.sol",
+            "line": 744
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "timestamp",
+          "type": "timestamp",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "stHYPEWithdrawalModule.amountToken1LendingPool() (src/withdrawal-modules/stHYPEWithdrawalModule.sol#308-315) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- address(lendingModule) != address(0) (src/withdrawal-modules/stHYPEWithdrawalModule.sol#309)",
+          "location": {
+            "file": "src/withdrawal-modules/stHYPEWithdrawalModule.sol",
+            "line": 308
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "timestamp",
+          "type": "timestamp",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "kHYPEWithdrawalModule.amountToken1LendingPool() (src/withdrawal-modules/kHYPEWithdrawalModule.sol#437-444) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- address(lendingModule) != address(0) (src/withdrawal-modules/kHYPEWithdrawalModule.sol#438)",
+          "location": {
+            "file": "src/withdrawal-modules/kHYPEWithdrawalModule.sol",
+            "line": 437
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "timestamp",
+          "type": "timestamp",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "kHYPEWithdrawalModule.setProposedBurnFeeBips() (src/withdrawal-modules/kHYPEWithdrawalModule.sol#522-536) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- burnFeeBipsProposal.startTimestamp > block.timestamp (src/withdrawal-modules/kHYPEWithdrawalModule.sol#523)",
+          "location": {
+            "file": "src/withdrawal-modules/kHYPEWithdrawalModule.sol",
+            "line": 522
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "timestamp",
+          "type": "timestamp",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "STEXAMM.setProposedSwapFeeModule() (src/STEXAMM.sol#325-341) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- block.timestamp < proposal.startTimestamp (src/STEXAMM.sol#332)",
+          "location": {
+            "file": "src/STEXAMM.sol",
+            "line": 325
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "timestamp",
+          "type": "timestamp",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "STEXAMM.setProposedWithdrawalModule() (src/STEXAMM.sol#377-393) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- block.timestamp < proposal.startTimestamp (src/STEXAMM.sol#384)",
+          "location": {
+            "file": "src/STEXAMM.sol",
+            "line": 377
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "cyclomatic-complexity",
+          "type": "cyclomatic-complexity",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "STEXAMM.withdraw(uint256,uint256,uint256,uint256,address,bool,bool) (src/STEXAMM.sol#562-686) has a high cyclomatic complexity (14).",
+          "location": {
+            "file": "src/STEXAMM.sol",
+            "line": 562
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "low-level-calls",
+          "type": "low-level-calls",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Low level call in MultiMarketLendingModuleKeeper.call(address,bytes) (src/owner/MultiMarketLendingModuleKeeper.sol#75-82):\n\t- (success,None) = _lendingModuleManager.call(_payload) (src/owner/MultiMarketLendingModuleKeeper.sol#80)",
+          "location": {
+            "file": "src/owner/MultiMarketLendingModuleKeeper.sol",
+            "line": 75
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "low-level-calls",
+          "type": "low-level-calls",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Low level call in MultiMarketLendingModuleManager.call(address,bytes) (src/owner/MultiMarketLendingModuleManager.sol#88-91):\n\t- (success,None) = _lendingModule.call(_payload) (src/owner/MultiMarketLendingModuleManager.sol#89)",
+          "location": {
+            "file": "src/owner/MultiMarketLendingModuleManager.sol",
+            "line": 88
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "low-level-calls",
+          "type": "low-level-calls",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Low level call in kHYPEWithdrawalModuleManager.call(address,bytes) (src/owner/kHYPEWithdrawalModuleManager.sol#85-88):\n\t- (success,None) = _withdrawalModule.call(_payload) (src/owner/kHYPEWithdrawalModuleManager.sol#86)",
+          "location": {
+            "file": "src/owner/kHYPEWithdrawalModuleManager.sol",
+            "line": 85
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "low-level-calls",
+          "type": "low-level-calls",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Low level call in stHYPEWithdrawalModuleKeeper.call(address,bytes) (src/owner/stHYPEWithdrawalModuleKeeper.sol#93-100):\n\t- (success,None) = _withdrawalModuleManager.call(_payload) (src/owner/stHYPEWithdrawalModuleKeeper.sol#98)",
+          "location": {
+            "file": "src/owner/stHYPEWithdrawalModuleKeeper.sol",
+            "line": 93
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "low-level-calls",
+          "type": "low-level-calls",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Low level call in RebalanceModule.rebalance(uint256,bytes) (src/RebalanceModule.sol#105-150):\n\t- (success,None) = targetAddresses[i].call(payloads[i]) (src/RebalanceModule.sol#128)",
+          "location": {
+            "file": "src/RebalanceModule.sol",
+            "line": 105
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "low-level-calls",
+          "type": "low-level-calls",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Low level call in kHYPEWithdrawalModuleKeeper.call(address,bytes) (src/owner/kHYPEWithdrawalModuleKeeper.sol#77-84):\n\t- (success,None) = _withdrawalModuleManager.call(_payload) (src/owner/kHYPEWithdrawalModuleKeeper.sol#82)",
+          "location": {
+            "file": "src/owner/kHYPEWithdrawalModuleKeeper.sol",
+            "line": 77
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "low-level-calls",
+          "type": "low-level-calls",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Low level call in stHYPEWithdrawalModuleManager.call(address,bytes) (src/owner/stHYPEWithdrawalModuleManager.sol#84-87):\n\t- (success,None) = _withdrawalModule.call(_payload) (src/owner/stHYPEWithdrawalModuleManager.sol#85)",
+          "location": {
+            "file": "src/owner/stHYPEWithdrawalModuleManager.sol",
+            "line": 84
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter MultiMarketLendingModuleManager.setWithdrawWeights(address,uint16[])._withdrawWeightBipsArray (src/owner/MultiMarketLendingModuleManager.sol#109) is not in mixedCase",
+          "location": {
+            "file": "src/owner/MultiMarketLendingModuleManager.sol",
+            "line": 109
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter MultiMarketLendingModule.setTokenSweepManager(address)._tokenSweepManager (src/lending-modules/MultiMarketLendingModule.sol#400) is not in mixedCase",
+          "location": {
+            "file": "src/lending-modules/MultiMarketLendingModule.sol",
+            "line": 400
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter StepwiseFeeModuleKeeper.removeKeeper(address)._keeper (src/owner/StepwiseFeeModuleKeeper.sol#62) is not in mixedCase",
+          "location": {
+            "file": "src/owner/StepwiseFeeModuleKeeper.sol",
+            "line": 62
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter RebalanceModule.sweep(address,address)._recipient (src/RebalanceModule.sol#85) is not in mixedCase",
+          "location": {
+            "file": "src/RebalanceModule.sol",
+            "line": 85
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter STEXAMM.deposit(uint256,uint256,uint256,address)._minShares (src/STEXAMM.sol#486) is not in mixedCase",
+          "location": {
+            "file": "src/STEXAMM.sol",
+            "line": 486
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter kHYPEWithdrawalModuleKeeper.setKeeper(address)._keeper (src/owner/kHYPEWithdrawalModuleKeeper.sol#51) is not in mixedCase",
+          "location": {
+            "file": "src/owner/kHYPEWithdrawalModuleKeeper.sol",
+            "line": 51
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter kHYPEWithdrawalModule.stakeToken1(uint256)._amountToken1 (src/withdrawal-modules/kHYPEWithdrawalModule.sol#716) is not in mixedCase",
+          "location": {
+            "file": "src/withdrawal-modules/kHYPEWithdrawalModule.sol",
+            "line": 716
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter MultiMarketLendingModule.getLendingModuleConfig(address)._lendingModule (src/lending-modules/MultiMarketLendingModule.sol#235) is not in mixedCase",
+          "location": {
+            "file": "src/lending-modules/MultiMarketLendingModule.sol",
+            "line": 235
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter kHYPEWithdrawalModuleManager.withdrawToken1FromLendingPool(address,uint256)._amountToken1 (src/owner/kHYPEWithdrawalModuleManager.sol#129) is not in mixedCase",
+          "location": {
+            "file": "src/owner/kHYPEWithdrawalModuleManager.sol",
+            "line": 129
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Variable kHYPEWithdrawalModule.MAX_AMOUNT_TOKEN0_PENDING_UNSTAKING_OFFSET (src/withdrawal-modules/kHYPEWithdrawalModule.sol#121) is not in mixedCase",
+          "location": {
+            "file": "src/withdrawal-modules/kHYPEWithdrawalModule.sol",
+            "line": 121
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter DepositWrapper.depositFromToken0WithCode(uint256,uint256,uint256,uint256,address,bytes32)._minShares (src/DepositWrapper.sol#127) is not in mixedCase",
+          "location": {
+            "file": "src/DepositWrapper.sol",
+            "line": 127
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter STEXAMM.withdraw(uint256,uint256,uint256,uint256,address,bool,bool)._deadline (src/STEXAMM.sol#566) is not in mixedCase",
+          "location": {
+            "file": "src/STEXAMM.sol",
+            "line": 566
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter STEXAMM.onDepositLiquidityCallback(uint256,uint256,bytes)._amount1 (src/STEXAMM.sol#535) is not in mixedCase",
+          "location": {
+            "file": "src/STEXAMM.sol",
+            "line": 535
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter stHYPEWithdrawalModule.convertToToken0(uint256)._amountToken1 (src/withdrawal-modules/stHYPEWithdrawalModule.sol#214) is not in mixedCase",
+          "location": {
+            "file": "src/withdrawal-modules/stHYPEWithdrawalModule.sol",
+            "line": 214
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter STEXAMM.proposeSwapFeeModule(address,uint256)._timelockDelay (src/STEXAMM.sol#294) is not in mixedCase",
+          "location": {
+            "file": "src/STEXAMM.sol",
+            "line": 294
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter kHYPEWithdrawalModule.getLPWithdrawals(uint256)._idLPWithdrawal (src/withdrawal-modules/kHYPEWithdrawalModule.sol#324) is not in mixedCase",
+          "location": {
+            "file": "src/withdrawal-modules/kHYPEWithdrawalModule.sol",
+            "line": 324
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter stHYPEWithdrawalModuleManager.supplyToken1ToLendingPool(address,uint256)._amountToken1 (src/owner/stHYPEWithdrawalModuleManager.sol#106) is not in mixedCase",
+          "location": {
+            "file": "src/owner/stHYPEWithdrawalModuleManager.sol",
+            "line": 106
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter STEXAMM.withdraw(uint256,uint256,uint256,uint256,address,bool,bool)._amount0Min (src/STEXAMM.sol#564) is not in mixedCase",
+          "location": {
+            "file": "src/STEXAMM.sol",
+            "line": 564
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter StepwiseFeeModuleKeeper.setFeeParamsToken0(address,uint256,uint256,uint32[])._swapFeeModule (src/owner/StepwiseFeeModuleKeeper.sol#79) is not in mixedCase",
+          "location": {
+            "file": "src/owner/StepwiseFeeModuleKeeper.sol",
+            "line": 79
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter RebalanceModule.rebalance(uint256,bytes)._payload (src/RebalanceModule.sol#105) is not in mixedCase",
+          "location": {
+            "file": "src/RebalanceModule.sol",
+            "line": 105
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter kHYPEWithdrawalModuleManager.supplyToken1ToLendingPool(address,uint256)._withdrawalModule (src/owner/kHYPEWithdrawalModuleManager.sol#118) is not in mixedCase",
+          "location": {
+            "file": "src/owner/kHYPEWithdrawalModuleManager.sol",
+            "line": 118
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter stHYPEWithdrawalModuleManager.unstakeToken0Reserves(address,uint256)._amount (src/owner/stHYPEWithdrawalModuleManager.sol#95) is not in mixedCase",
+          "location": {
+            "file": "src/owner/stHYPEWithdrawalModuleManager.sol",
+            "line": 95
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter kHYPEWithdrawalModuleKeeper.removeKeeper(address)._keeper (src/owner/kHYPEWithdrawalModuleKeeper.sol#63) is not in mixedCase",
+          "location": {
+            "file": "src/owner/kHYPEWithdrawalModuleKeeper.sol",
+            "line": 63
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter stHYPEWithdrawalModuleKeeper.removeKeeper(address)._keeper (src/owner/stHYPEWithdrawalModuleKeeper.sol#79) is not in mixedCase",
+          "location": {
+            "file": "src/owner/stHYPEWithdrawalModuleKeeper.sol",
+            "line": 79
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter kHYPEWithdrawalModule.proposeBurnFeeBips(uint256,uint256)._burnFeeBips (src/withdrawal-modules/kHYPEWithdrawalModule.sol#492) is not in mixedCase",
+          "location": {
+            "file": "src/withdrawal-modules/kHYPEWithdrawalModule.sol",
+            "line": 492
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter stHYPEWithdrawalModule.getLPWithdrawals(uint256)._idLPWithdrawal (src/withdrawal-modules/stHYPEWithdrawalModule.sol#250) is not in mixedCase",
+          "location": {
+            "file": "src/withdrawal-modules/stHYPEWithdrawalModule.sol",
+            "line": 250
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter kHYPEWithdrawalModule.convertToToken0(uint256)._amountToken1 (src/withdrawal-modules/kHYPEWithdrawalModule.sol#298) is not in mixedCase",
+          "location": {
+            "file": "src/withdrawal-modules/kHYPEWithdrawalModule.sol",
+            "line": 298
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter DepositWrapper.depositFromToken0WithCode(uint256,uint256,uint256,uint256,address,bytes32)._deadline (src/DepositWrapper.sol#128) is not in mixedCase",
+          "location": {
+            "file": "src/DepositWrapper.sol",
+            "line": 128
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter stHYPEWithdrawalModuleKeeper.redeemBurnsAndUpdate(uint256[],address,address)._withdrawalModule (src/owner/stHYPEWithdrawalModuleKeeper.sol#109) is not in mixedCase",
+          "location": {
+            "file": "src/owner/stHYPEWithdrawalModuleKeeper.sol",
+            "line": 109
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter StepwiseFeeModule.setPool(address)._pool (src/swap-fee-modules/StepwiseFeeModule.sol#167) is not in mixedCase",
+          "location": {
+            "file": "src/swap-fee-modules/StepwiseFeeModule.sol",
+            "line": 167
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter kHYPEWithdrawalModuleManager.call(address,bytes)._payload (src/owner/kHYPEWithdrawalModuleManager.sol#85) is not in mixedCase",
+          "location": {
+            "file": "src/owner/kHYPEWithdrawalModuleManager.sol",
+            "line": 85
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter kHYPEWithdrawalModule.rebalanceToken0Reserves(uint256,address,address,bytes)._rebalanceModule (src/withdrawal-modules/kHYPEWithdrawalModule.sol#811) is not in mixedCase",
+          "location": {
+            "file": "src/withdrawal-modules/kHYPEWithdrawalModule.sol",
+            "line": 811
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter MultiMarketLendingModule.initialize(address[],MultiMarketLendingModule.LendingModuleConfig[])._lendingModuleArray (src/lending-modules/MultiMarketLendingModule.sol#258) is not in mixedCase",
+          "location": {
+            "file": "src/lending-modules/MultiMarketLendingModule.sol",
+            "line": 258
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter STEXAMM.withdraw(uint256,uint256,uint256,uint256,address,bool,bool)._isInstantWithdrawal (src/STEXAMM.sol#569) is not in mixedCase",
+          "location": {
+            "file": "src/STEXAMM.sol",
+            "line": 569
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter DepositWrapper.depositFromToken0WithCode(uint256,uint256,uint256,uint256,address,bytes32)._code (src/DepositWrapper.sol#130) is not in mixedCase",
+          "location": {
+            "file": "src/DepositWrapper.sol",
+            "line": 130
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter ERC4626LendingModule.withdraw(uint256,address)._recipient (src/lending-modules/ERC4626LendingModule.sol#146) is not in mixedCase",
+          "location": {
+            "file": "src/lending-modules/ERC4626LendingModule.sol",
+            "line": 146
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter stHYPEWithdrawalModule.burnToken0AfterWithdraw(uint256,address)._recipient (src/withdrawal-modules/stHYPEWithdrawalModule.sol#446) is not in mixedCase",
+          "location": {
+            "file": "src/withdrawal-modules/stHYPEWithdrawalModule.sol",
+            "line": 446
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter stHYPEWithdrawalModule.proposeLendingModule(address,uint256)._lendingModule (src/withdrawal-modules/stHYPEWithdrawalModule.sol#377) is not in mixedCase",
+          "location": {
+            "file": "src/withdrawal-modules/stHYPEWithdrawalModule.sol",
+            "line": 377
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter STEXAMM.onDepositLiquidityCallback(uint256,uint256,bytes)._data (src/STEXAMM.sol#536) is not in mixedCase",
+          "location": {
+            "file": "src/STEXAMM.sol",
+            "line": 536
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter kHYPEWithdrawalModule.burnToken0AfterWithdraw(uint256,address)._amountToken0 (src/withdrawal-modules/kHYPEWithdrawalModule.sol#642) is not in mixedCase",
+          "location": {
+            "file": "src/withdrawal-modules/kHYPEWithdrawalModule.sol",
+            "line": 642
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter kHYPEWithdrawalModule.unstakeToken0Reserves(uint256)._unstakeAmountToken0 (src/withdrawal-modules/kHYPEWithdrawalModule.sol#794) is not in mixedCase",
+          "location": {
+            "file": "src/withdrawal-modules/kHYPEWithdrawalModule.sol",
+            "line": 794
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter StepwiseFeeModuleKeeper.setKeeper(address)._keeper (src/owner/StepwiseFeeModuleKeeper.sol#50) is not in mixedCase",
+          "location": {
+            "file": "src/owner/StepwiseFeeModuleKeeper.sol",
+            "line": 50
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter stHYPEWithdrawalModule.stakeToken1(uint256,string)._communityCode (src/withdrawal-modules/stHYPEWithdrawalModule.sol#509) is not in mixedCase",
+          "location": {
+            "file": "src/withdrawal-modules/stHYPEWithdrawalModule.sol",
+            "line": 509
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter DepositWrapper.depositFromToken0(uint256,uint256,uint256,uint256,address)._amountToken0 (src/DepositWrapper.sol#112) is not in mixedCase",
+          "location": {
+            "file": "src/DepositWrapper.sol",
+            "line": 112
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Contract kHYPEWithdrawalModuleKeeper (src/owner/kHYPEWithdrawalModuleKeeper.sol#12-108) is not in CapWords",
+          "location": {
+            "file": "src/owner/kHYPEWithdrawalModuleKeeper.sol",
+            "line": 12
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter DepositWrapper.depositFromToken0(uint256,uint256,uint256,uint256,address)._recipient (src/DepositWrapper.sol#116) is not in mixedCase",
+          "location": {
+            "file": "src/DepositWrapper.sol",
+            "line": 116
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter stHYPEWithdrawalModule.setSTEX(address)._stex (src/withdrawal-modules/stHYPEWithdrawalModule.sol#328) is not in mixedCase",
+          "location": {
+            "file": "src/withdrawal-modules/stHYPEWithdrawalModule.sol",
+            "line": 328
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Variable kHYPEWithdrawalModule.LPWithdrawals (src/withdrawal-modules/kHYPEWithdrawalModule.sol#162) is not in mixedCase",
+          "location": {
+            "file": "src/withdrawal-modules/kHYPEWithdrawalModule.sol",
+            "line": 162
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter kHYPEWithdrawalModule.claim(uint256)._idLPQueue (src/withdrawal-modules/kHYPEWithdrawalModule.sol#928) is not in mixedCase",
+          "location": {
+            "file": "src/withdrawal-modules/kHYPEWithdrawalModule.sol",
+            "line": 928
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter DepositWrapper.depositFromNativeWithCode(uint256,uint256,address,bytes32)._code (src/DepositWrapper.sol#91) is not in mixedCase",
+          "location": {
+            "file": "src/DepositWrapper.sol",
+            "line": 91
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter ERC4626LendingModule.sweep(address,address)._token (src/lending-modules/ERC4626LendingModule.sol#156) is not in mixedCase",
+          "location": {
+            "file": "src/lending-modules/ERC4626LendingModule.sol",
+            "line": 156
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter kHYPEWithdrawalModule.proposeLendingModule(address,uint256)._lendingModule (src/withdrawal-modules/kHYPEWithdrawalModule.sol#573) is not in mixedCase",
+          "location": {
+            "file": "src/withdrawal-modules/kHYPEWithdrawalModule.sol",
+            "line": 573
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter kHYPEWithdrawalModule.rebalanceToken0Reserves(uint256,address,address,bytes)._amountToken0 (src/withdrawal-modules/kHYPEWithdrawalModule.sol#809) is not in mixedCase",
+          "location": {
+            "file": "src/withdrawal-modules/kHYPEWithdrawalModule.sol",
+            "line": 809
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter AaveLendingModule.withdraw(uint256,address)._amount (src/lending-modules/AaveLendingModule.sol#141) is not in mixedCase",
+          "location": {
+            "file": "src/lending-modules/AaveLendingModule.sol",
+            "line": 141
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter AaveLendingModule.setTokenSweepManager(address)._tokenSweepManager (src/lending-modules/AaveLendingModule.sol#114) is not in mixedCase",
+          "location": {
+            "file": "src/lending-modules/AaveLendingModule.sol",
+            "line": 114
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter STEXAMM.supplyToken1Reserves(uint256)._amount1 (src/STEXAMM.sol#474) is not in mixedCase",
+          "location": {
+            "file": "src/STEXAMM.sol",
+            "line": 474
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter stHYPEWithdrawalModuleManager.withdrawToken1FromLendingPool(address,uint256)._withdrawalModule (src/owner/stHYPEWithdrawalModuleManager.sol#117) is not in mixedCase",
+          "location": {
+            "file": "src/owner/stHYPEWithdrawalModuleManager.sol",
+            "line": 117
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Contract stHYPEWithdrawalModule (src/withdrawal-modules/stHYPEWithdrawalModule.sol#25-684) is not in CapWords",
+          "location": {
+            "file": "src/withdrawal-modules/stHYPEWithdrawalModule.sol",
+            "line": 25
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter kHYPEWithdrawalModule.token0BalanceToShares(uint256)._balance (src/withdrawal-modules/kHYPEWithdrawalModule.sol#310) is not in mixedCase",
+          "location": {
+            "file": "src/withdrawal-modules/kHYPEWithdrawalModule.sol",
+            "line": 310
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter kHYPEWithdrawalModule.sweep(address,address)._token (src/withdrawal-modules/kHYPEWithdrawalModule.sol#544) is not in mixedCase",
+          "location": {
+            "file": "src/withdrawal-modules/kHYPEWithdrawalModule.sol",
+            "line": 544
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter kHYPEWithdrawalModule.settlePendingWithdrawalsWithPoolReserves(uint256)._amountToken1 (src/withdrawal-modules/kHYPEWithdrawalModule.sol#744) is not in mixedCase",
+          "location": {
+            "file": "src/withdrawal-modules/kHYPEWithdrawalModule.sol",
+            "line": 744
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter STEXAMM.withdraw(uint256,uint256,uint256,uint256,address,bool,bool)._unwrapToNativeToken (src/STEXAMM.sol#568) is not in mixedCase",
+          "location": {
+            "file": "src/STEXAMM.sol",
+            "line": 568
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter stHYPEWithdrawalModuleKeeper.call(address,bytes)._payload (src/owner/stHYPEWithdrawalModuleKeeper.sol#93) is not in mixedCase",
+          "location": {
+            "file": "src/owner/stHYPEWithdrawalModuleKeeper.sol",
+            "line": 93
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter kHYPEWithdrawalModule.rebalanceToken0Reserves(uint256,address,address,bytes)._recipient (src/withdrawal-modules/kHYPEWithdrawalModule.sol#810) is not in mixedCase",
+          "location": {
+            "file": "src/withdrawal-modules/kHYPEWithdrawalModule.sol",
+            "line": 810
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter DepositWrapper.depositFromToken0(uint256,uint256,uint256,uint256,address)._minShares (src/DepositWrapper.sol#114) is not in mixedCase",
+          "location": {
+            "file": "src/DepositWrapper.sol",
+            "line": 114
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter stHYPEWithdrawalModule.token0SharesOf(address)._account (src/withdrawal-modules/stHYPEWithdrawalModule.sol#238) is not in mixedCase",
+          "location": {
+            "file": "src/withdrawal-modules/stHYPEWithdrawalModule.sol",
+            "line": 238
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter StepwiseFeeModuleKeeper.setFeeParamsToken0(address,uint256,uint256,uint32[])._maxThresholdToken1 (src/owner/StepwiseFeeModuleKeeper.sol#81) is not in mixedCase",
+          "location": {
+            "file": "src/owner/StepwiseFeeModuleKeeper.sol",
+            "line": 81
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter kHYPEWithdrawalModuleManager.settlePendingWithdrawalsWithPoolReserves(address,uint256)._withdrawalModule (src/owner/kHYPEWithdrawalModuleManager.sol#144) is not in mixedCase",
+          "location": {
+            "file": "src/owner/kHYPEWithdrawalModuleManager.sol",
+            "line": 144
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter AaveLendingModule.sweep(address,address)._token (src/lending-modules/AaveLendingModule.sol#151) is not in mixedCase",
+          "location": {
+            "file": "src/lending-modules/AaveLendingModule.sol",
+            "line": 151
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter stHYPEWithdrawalModuleManager.setKeeper(address)._keeper (src/owner/stHYPEWithdrawalModuleManager.sol#69) is not in mixedCase",
+          "location": {
+            "file": "src/owner/stHYPEWithdrawalModuleManager.sol",
+            "line": 69
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter kHYPEWithdrawalModuleManager.stakeToken1(address,uint256)._withdrawalModule (src/owner/kHYPEWithdrawalModuleManager.sol#97) is not in mixedCase",
+          "location": {
+            "file": "src/owner/kHYPEWithdrawalModuleManager.sol",
+            "line": 97
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter ERC4626LendingModule.setTokenSweepManager(address)._tokenSweepManager (src/lending-modules/ERC4626LendingModule.sol#118) is not in mixedCase",
+          "location": {
+            "file": "src/lending-modules/ERC4626LendingModule.sol",
+            "line": 118
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter kHYPEWithdrawalModule.token0SharesToBalance(uint256)._shares (src/withdrawal-modules/kHYPEWithdrawalModule.sol#306) is not in mixedCase",
+          "location": {
+            "file": "src/withdrawal-modules/kHYPEWithdrawalModule.sol",
+            "line": 306
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Contract stHYPEWithdrawalModuleManager (src/owner/stHYPEWithdrawalModuleManager.sol#13-124) is not in CapWords",
+          "location": {
+            "file": "src/owner/stHYPEWithdrawalModuleManager.sol",
+            "line": 13
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter stHYPEWithdrawalModule.supplyToken1ToLendingPool(uint256)._amountToken1 (src/withdrawal-modules/stHYPEWithdrawalModule.sol#534) is not in mixedCase",
+          "location": {
+            "file": "src/withdrawal-modules/stHYPEWithdrawalModule.sol",
+            "line": 534
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter AaveLendingModule.deposit(uint256)._amount (src/lending-modules/AaveLendingModule.sol#129) is not in mixedCase",
+          "location": {
+            "file": "src/lending-modules/AaveLendingModule.sol",
+            "line": 129
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter MultiMarketLendingModule.setWithdrawWeights(uint16[])._withdrawWeightBipsArray (src/lending-modules/MultiMarketLendingModule.sol#351) is not in mixedCase",
+          "location": {
+            "file": "src/lending-modules/MultiMarketLendingModule.sol",
+            "line": 351
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter kHYPEWithdrawalModule.convertToToken1(uint256)._amountToken0 (src/withdrawal-modules/kHYPEWithdrawalModule.sol#302) is not in mixedCase",
+          "location": {
+            "file": "src/withdrawal-modules/kHYPEWithdrawalModule.sol",
+            "line": 302
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter kHYPEWithdrawalModuleManager.rebalanceToken0Reserves(address,uint256,address,address,bytes)._withdrawalModule (src/owner/kHYPEWithdrawalModuleManager.sol#162) is not in mixedCase",
+          "location": {
+            "file": "src/owner/kHYPEWithdrawalModuleManager.sol",
+            "line": 162
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter StepwiseFeeModule.getSwapFeeInBips(address,address,uint256,address,bytes)._tokenIn (src/swap-fee-modules/StepwiseFeeModule.sol#86) is not in mixedCase",
+          "location": {
+            "file": "src/swap-fee-modules/StepwiseFeeModule.sol",
+            "line": 86
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter kHYPEWithdrawalModule.supplyToken1ToLendingPool(uint256)._amountToken1 (src/withdrawal-modules/kHYPEWithdrawalModule.sol#774) is not in mixedCase",
+          "location": {
+            "file": "src/withdrawal-modules/kHYPEWithdrawalModule.sol",
+            "line": 774
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter DepositWrapper.depositFromNative(uint256,uint256,address)._minShares (src/DepositWrapper.sol#79) is not in mixedCase",
+          "location": {
+            "file": "src/DepositWrapper.sol",
+            "line": 79
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter stHYPEWithdrawalModuleKeeper.getOverseerBurnIds(address,address)._account (src/owner/stHYPEWithdrawalModuleKeeper.sol#52) is not in mixedCase",
+          "location": {
+            "file": "src/owner/stHYPEWithdrawalModuleKeeper.sol",
+            "line": 52
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter MultiMarketLendingModule.withdraw(uint256,address)._recipient (src/lending-modules/MultiMarketLendingModule.sol#464) is not in mixedCase",
+          "location": {
+            "file": "src/lending-modules/MultiMarketLendingModule.sol",
+            "line": 464
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter kHYPEWithdrawalModule.pendingUnstakeRequestIdAt(uint256)._index (src/withdrawal-modules/kHYPEWithdrawalModule.sol#366) is not in mixedCase",
+          "location": {
+            "file": "src/withdrawal-modules/kHYPEWithdrawalModule.sol",
+            "line": 366
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter MultiMarketLendingModuleManager.setDepositWeights(address,uint16[])._depositWeightBipsArray (src/owner/MultiMarketLendingModuleManager.sol#99) is not in mixedCase",
+          "location": {
+            "file": "src/owner/MultiMarketLendingModuleManager.sol",
+            "line": 99
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter StepwiseFeeModule.getSwapFeeInBips(address,address,uint256,address,bytes)._amountIn (src/swap-fee-modules/StepwiseFeeModule.sol#88) is not in mixedCase",
+          "location": {
+            "file": "src/swap-fee-modules/StepwiseFeeModule.sol",
+            "line": 88
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter StepwiseFeeModule.setFeeParamsToken0(uint256,uint256,uint32[])._minThresholdToken1 (src/swap-fee-modules/StepwiseFeeModule.sol#190) is not in mixedCase",
+          "location": {
+            "file": "src/swap-fee-modules/StepwiseFeeModule.sol",
+            "line": 190
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter MultiMarketLendingModuleManager.call(address,bytes)._lendingModule (src/owner/MultiMarketLendingModuleManager.sol#88) is not in mixedCase",
+          "location": {
+            "file": "src/owner/MultiMarketLendingModuleManager.sol",
+            "line": 88
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter DepositWrapper.depositFromToken0(uint256,uint256,uint256,uint256,address)._amountToken1Min (src/DepositWrapper.sol#113) is not in mixedCase",
+          "location": {
+            "file": "src/DepositWrapper.sol",
+            "line": 113
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter kHYPEWithdrawalModuleManager.rebalanceToken0Reserves(address,uint256,address,address,bytes)._recipient (src/owner/kHYPEWithdrawalModuleManager.sol#164) is not in mixedCase",
+          "location": {
+            "file": "src/owner/kHYPEWithdrawalModuleManager.sol",
+            "line": 164
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter STEXAMM.getAmountOut(address,uint256,bool)._tokenIn (src/STEXAMM.sol#240) is not in mixedCase",
+          "location": {
+            "file": "src/STEXAMM.sol",
+            "line": 240
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter stHYPEWithdrawalModule.convertToToken1(uint256)._amountToken0 (src/withdrawal-modules/stHYPEWithdrawalModule.sol#219) is not in mixedCase",
+          "location": {
+            "file": "src/withdrawal-modules/stHYPEWithdrawalModule.sol",
+            "line": 219
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter MultiMarketLendingModuleKeeper.call(address,bytes)._payload (src/owner/MultiMarketLendingModuleKeeper.sol#75) is not in mixedCase",
+          "location": {
+            "file": "src/owner/MultiMarketLendingModuleKeeper.sol",
+            "line": 75
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter DepositWrapper.depositFromToken0WithCode(uint256,uint256,uint256,uint256,address,bytes32)._recipient (src/DepositWrapper.sol#129) is not in mixedCase",
+          "location": {
+            "file": "src/DepositWrapper.sol",
+            "line": 129
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter kHYPEWithdrawalModule.setAmountToken0PendingUnstakingOffset(uint256)._offset (src/withdrawal-modules/kHYPEWithdrawalModule.sol#476) is not in mixedCase",
+          "location": {
+            "file": "src/withdrawal-modules/kHYPEWithdrawalModule.sol",
+            "line": 476
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter StepwiseFeeModuleKeeper.setFeeParamsToken0(address,uint256,uint256,uint32[])._feeStepsInBips (src/owner/StepwiseFeeModuleKeeper.sol#82) is not in mixedCase",
+          "location": {
+            "file": "src/owner/StepwiseFeeModuleKeeper.sol",
+            "line": 82
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter MultiMarketLendingModuleManager.claimManagerFee(address,address)._recipient (src/owner/MultiMarketLendingModuleManager.sol#119) is not in mixedCase",
+          "location": {
+            "file": "src/owner/MultiMarketLendingModuleManager.sol",
+            "line": 119
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter stHYPEWithdrawalModule.withdrawToken1FromLendingPool(uint256,address)._amountToken1 (src/withdrawal-modules/stHYPEWithdrawalModule.sol#479) is not in mixedCase",
+          "location": {
+            "file": "src/withdrawal-modules/stHYPEWithdrawalModule.sol",
+            "line": 479
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter kHYPEWithdrawalModuleManager.rebalanceToken0Reserves(address,uint256,address,address,bytes)._amountToken0 (src/owner/kHYPEWithdrawalModuleManager.sol#163) is not in mixedCase",
+          "location": {
+            "file": "src/owner/kHYPEWithdrawalModuleManager.sol",
+            "line": 163
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter stHYPEWithdrawalModule.unstakeToken0Reserves(uint256)._unstakeAmountToken0 (src/withdrawal-modules/stHYPEWithdrawalModule.sol#555) is not in mixedCase",
+          "location": {
+            "file": "src/withdrawal-modules/stHYPEWithdrawalModule.sol",
+            "line": 555
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter kHYPEWithdrawalModuleKeeper.redeemBurnsAndUpdate(uint256[],address)._burnIds (src/owner/kHYPEWithdrawalModuleKeeper.sol#92) is not in mixedCase",
+          "location": {
+            "file": "src/owner/kHYPEWithdrawalModuleKeeper.sol",
+            "line": 92
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter kHYPEWithdrawalModuleManager.setKeeper(address)._keeper (src/owner/kHYPEWithdrawalModuleManager.sol#70) is not in mixedCase",
+          "location": {
+            "file": "src/owner/kHYPEWithdrawalModuleManager.sol",
+            "line": 70
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter STEXAMM.withdraw(uint256,uint256,uint256,uint256,address,bool,bool)._recipient (src/STEXAMM.sol#567) is not in mixedCase",
+          "location": {
+            "file": "src/STEXAMM.sol",
+            "line": 567
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter STEXAMM.withdraw(uint256,uint256,uint256,uint256,address,bool,bool)._shares (src/STEXAMM.sol#563) is not in mixedCase",
+          "location": {
+            "file": "src/STEXAMM.sol",
+            "line": 563
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter stHYPEWithdrawalModule.token0BalanceToShares(uint256)._balance (src/withdrawal-modules/stHYPEWithdrawalModule.sol#231) is not in mixedCase",
+          "location": {
+            "file": "src/withdrawal-modules/stHYPEWithdrawalModule.sol",
+            "line": 231
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter stHYPEWithdrawalModuleKeeper.setKeeper(address)._keeper (src/owner/stHYPEWithdrawalModuleKeeper.sol#67) is not in mixedCase",
+          "location": {
+            "file": "src/owner/stHYPEWithdrawalModuleKeeper.sol",
+            "line": 67
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter ERC4626LendingModule.deposit(uint256)._amount (src/lending-modules/ERC4626LendingModule.sol#133) is not in mixedCase",
+          "location": {
+            "file": "src/lending-modules/ERC4626LendingModule.sol",
+            "line": 133
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter STEXAMM.unstakeToken0Reserves(uint256)._unstakeAmountToken0 (src/STEXAMM.sol#455) is not in mixedCase",
+          "location": {
+            "file": "src/STEXAMM.sol",
+            "line": 455
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter DepositWrapper.depositFromToken0WithCode(uint256,uint256,uint256,uint256,address,bytes32)._amountToken0 (src/DepositWrapper.sol#125) is not in mixedCase",
+          "location": {
+            "file": "src/DepositWrapper.sol",
+            "line": 125
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter stHYPEWithdrawalModule.sweep(address,address)._token (src/withdrawal-modules/stHYPEWithdrawalModule.sol#347) is not in mixedCase",
+          "location": {
+            "file": "src/withdrawal-modules/stHYPEWithdrawalModule.sol",
+            "line": 347
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Variable stHYPEWithdrawalModule.LPWithdrawals (src/withdrawal-modules/stHYPEWithdrawalModule.sol#133) is not in mixedCase",
+          "location": {
+            "file": "src/withdrawal-modules/stHYPEWithdrawalModule.sol",
+            "line": 133
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter StepwiseFeeModule.setFeeParamsToken0(uint256,uint256,uint32[])._feeStepsInBips (src/swap-fee-modules/StepwiseFeeModule.sol#192) is not in mixedCase",
+          "location": {
+            "file": "src/swap-fee-modules/StepwiseFeeModule.sol",
+            "line": 192
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter STEXAMM.getLiquidityQuote(ALMLiquidityQuoteInput,bytes,bytes)._almLiquidityQuoteInput (src/STEXAMM.sol#694) is not in mixedCase",
+          "location": {
+            "file": "src/STEXAMM.sol",
+            "line": 694
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter MultiMarketLendingModule.deposit(uint256)._amount (src/lending-modules/MultiMarketLendingModule.sol#415) is not in mixedCase",
+          "location": {
+            "file": "src/lending-modules/MultiMarketLendingModule.sol",
+            "line": 415
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter kHYPEWithdrawalModule.rebalanceToken0Reserves(uint256,address,address,bytes)._payload (src/withdrawal-modules/kHYPEWithdrawalModule.sol#812) is not in mixedCase",
+          "location": {
+            "file": "src/withdrawal-modules/kHYPEWithdrawalModule.sol",
+            "line": 812
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter kHYPEWithdrawalModuleManager.unstakeExcessToken0(address)._withdrawalModule (src/owner/kHYPEWithdrawalModuleManager.sol#177) is not in mixedCase",
+          "location": {
+            "file": "src/owner/kHYPEWithdrawalModuleManager.sol",
+            "line": 177
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter STEXAMM.setPoolManagerFeeBips(uint256)._poolManagerFeeBips (src/STEXAMM.sol#400) is not in mixedCase",
+          "location": {
+            "file": "src/STEXAMM.sol",
+            "line": 400
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter MultiMarketLendingModule.sweep(address,address)._recipient (src/lending-modules/MultiMarketLendingModule.sol#485) is not in mixedCase",
+          "location": {
+            "file": "src/lending-modules/MultiMarketLendingModule.sol",
+            "line": 485
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter kHYPEWithdrawalModuleManager.rebalanceToken0Reserves(address,uint256,address,address,bytes)._payload (src/owner/kHYPEWithdrawalModuleManager.sol#166) is not in mixedCase",
+          "location": {
+            "file": "src/owner/kHYPEWithdrawalModuleManager.sol",
+            "line": 166
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter stHYPEWithdrawalModuleManager.call(address,bytes)._payload (src/owner/stHYPEWithdrawalModuleManager.sol#84) is not in mixedCase",
+          "location": {
+            "file": "src/owner/stHYPEWithdrawalModuleManager.sol",
+            "line": 84
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Contract stHYPEWithdrawalModuleKeeper (src/owner/stHYPEWithdrawalModuleKeeper.sol#13-129) is not in CapWords",
+          "location": {
+            "file": "src/owner/stHYPEWithdrawalModuleKeeper.sol",
+            "line": 13
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter kHYPEWithdrawalModule.token0SharesOf(address)._account (src/withdrawal-modules/kHYPEWithdrawalModule.sol#314) is not in mixedCase",
+          "location": {
+            "file": "src/withdrawal-modules/kHYPEWithdrawalModule.sol",
+            "line": 314
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter DepositWrapper.depositFromToken0(uint256,uint256,uint256,uint256,address)._deadline (src/DepositWrapper.sol#115) is not in mixedCase",
+          "location": {
+            "file": "src/DepositWrapper.sol",
+            "line": 115
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter MultiMarketLendingModuleKeeper.setKeeper(address)._keeper (src/owner/MultiMarketLendingModuleKeeper.sol#49) is not in mixedCase",
+          "location": {
+            "file": "src/owner/MultiMarketLendingModuleKeeper.sol",
+            "line": 49
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Contract kHYPEWithdrawalModuleManager (src/owner/kHYPEWithdrawalModuleManager.sol#14-180) is not in CapWords",
+          "location": {
+            "file": "src/owner/kHYPEWithdrawalModuleManager.sol",
+            "line": 14
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter STEXAMM.withdraw(uint256,uint256,uint256,uint256,address,bool,bool)._amount1Min (src/STEXAMM.sol#565) is not in mixedCase",
+          "location": {
+            "file": "src/STEXAMM.sol",
+            "line": 565
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter kHYPEWithdrawalModuleKeeper.call(address,bytes)._withdrawalModuleManager (src/owner/kHYPEWithdrawalModuleKeeper.sol#77) is not in mixedCase",
+          "location": {
+            "file": "src/owner/kHYPEWithdrawalModuleKeeper.sol",
+            "line": 77
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter kHYPEWithdrawalModule.confirmWithdrawal(uint256)._id (src/withdrawal-modules/kHYPEWithdrawalModule.sol#903) is not in mixedCase",
+          "location": {
+            "file": "src/withdrawal-modules/kHYPEWithdrawalModule.sol",
+            "line": 903
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter StepwiseFeeModule.setFeeParamsToken0(uint256,uint256,uint32[])._maxThresholdToken1 (src/swap-fee-modules/StepwiseFeeModule.sol#191) is not in mixedCase",
+          "location": {
+            "file": "src/swap-fee-modules/StepwiseFeeModule.sol",
+            "line": 191
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter MultiMarketLendingModule.setDepositWeights(uint16[])._depositWeightBipsArray (src/lending-modules/MultiMarketLendingModule.sol#324) is not in mixedCase",
+          "location": {
+            "file": "src/lending-modules/MultiMarketLendingModule.sol",
+            "line": 324
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter kHYPEWithdrawalModuleManager.unstakeToken0Reserves(address,uint256)._withdrawalModule (src/owner/kHYPEWithdrawalModuleManager.sol#107) is not in mixedCase",
+          "location": {
+            "file": "src/owner/kHYPEWithdrawalModuleManager.sol",
+            "line": 107
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter stHYPEWithdrawalModule.token0SharesToBalance(uint256)._shares (src/withdrawal-modules/stHYPEWithdrawalModule.sol#224) is not in mixedCase",
+          "location": {
+            "file": "src/withdrawal-modules/stHYPEWithdrawalModule.sol",
+            "line": 224
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter kHYPEWithdrawalModuleManager.rebalanceToken0Reserves(address,uint256,address,address,bytes)._rebalanceModule (src/owner/kHYPEWithdrawalModuleManager.sol#165) is not in mixedCase",
+          "location": {
+            "file": "src/owner/kHYPEWithdrawalModuleManager.sol",
+            "line": 165
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter kHYPEWithdrawalModule.setSTEX(address)._stex (src/withdrawal-modules/kHYPEWithdrawalModule.sol#457) is not in mixedCase",
+          "location": {
+            "file": "src/withdrawal-modules/kHYPEWithdrawalModule.sol",
+            "line": 457
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Contract kHYPEWithdrawalModule (src/withdrawal-modules/kHYPEWithdrawalModule.sol#26-1203) is not in CapWords",
+          "location": {
+            "file": "src/withdrawal-modules/kHYPEWithdrawalModule.sol",
+            "line": 26
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter DepositWrapper.depositFromToken0WithCode(uint256,uint256,uint256,uint256,address,bytes32)._amountToken1Min (src/DepositWrapper.sol#126) is not in mixedCase",
+          "location": {
+            "file": "src/DepositWrapper.sol",
+            "line": 126
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter StepwiseFeeModuleKeeper.setFeeParamsToken0(address,uint256,uint256,uint32[])._minThresholdToken1 (src/owner/StepwiseFeeModuleKeeper.sol#80) is not in mixedCase",
+          "location": {
+            "file": "src/owner/StepwiseFeeModuleKeeper.sol",
+            "line": 80
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter kHYPEWithdrawalModule.withdrawToken1FromLendingPool(uint256,address)._recipient (src/withdrawal-modules/kHYPEWithdrawalModule.sol#687) is not in mixedCase",
+          "location": {
+            "file": "src/withdrawal-modules/kHYPEWithdrawalModule.sol",
+            "line": 687
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter MultiMarketLendingModuleManager.setKeeper(address)._keeper (src/owner/MultiMarketLendingModuleManager.sol#72) is not in mixedCase",
+          "location": {
+            "file": "src/owner/MultiMarketLendingModuleManager.sol",
+            "line": 72
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter MultiMarketLendingModule.claimManagerFee(address)._recipient (src/lending-modules/MultiMarketLendingModule.sol#379) is not in mixedCase",
+          "location": {
+            "file": "src/lending-modules/MultiMarketLendingModule.sol",
+            "line": 379
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter MultiMarketLendingModuleManager.acceptOwnership(address)._lendingModule (src/owner/MultiMarketLendingModuleManager.sol#64) is not in mixedCase",
+          "location": {
+            "file": "src/owner/MultiMarketLendingModuleManager.sol",
+            "line": 64
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter stHYPEWithdrawalModule.claim(uint256)._idLPQueue (src/withdrawal-modules/stHYPEWithdrawalModule.sol#627) is not in mixedCase",
+          "location": {
+            "file": "src/withdrawal-modules/stHYPEWithdrawalModule.sol",
+            "line": 627
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter MultiMarketLendingModuleKeeper.removeKeeper(address)._keeper (src/owner/MultiMarketLendingModuleKeeper.sol#61) is not in mixedCase",
+          "location": {
+            "file": "src/owner/MultiMarketLendingModuleKeeper.sol",
+            "line": 61
+          },
+          "tool": "slither"
+        }
+      ],
+      "execution_time": 0.0,
+      "metadata": {}
+    }
+  ],
+  "summary": {
+    "CRITICAL": 0,
+    "HIGH": 3,
+    "MEDIUM": 34,
+    "LOW": 57,
+    "INFO": 152
+  },
+  "tools_run": [
+    "slither"
+  ],
+  "version": "6.x"
+}
