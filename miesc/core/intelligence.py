@@ -32,8 +32,11 @@ from miesc.core.finding_taxonomy import CanonicalCategory, normalize_finding_typ
 from miesc.core.rule_classes import class_max_severity, finding_rule_class, rule_ids
 from miesc.detectors.access_guards import (
     OWNER_LIKE_RE,
+    enclosing_function_text,
     function_text_at,
     has_caller_guard,
+    loop_bound_is_local,
+    tx_origin_authorizes,
 )
 from miesc.detectors.chain_attribute_flow import has_time_dependence
 
@@ -212,6 +215,7 @@ ZERO_RECALL_PATTERNS: Dict[str, Dict[str, Any]] = {
         "severity": "Critical",
         "swc": "SWC-106",
         "message": "selfdestruct/suicide found — if reachable by unauthorized caller, contract can be permanently destroyed.",
+        "post_filter": "unguarded_enclosing_function",
     },
     "delegatecall_to_untrusted": {
         "patterns": [
@@ -262,6 +266,7 @@ ZERO_RECALL_PATTERNS: Dict[str, Dict[str, Any]] = {
         "severity": "High",
         "swc": "SWC-115",
         "message": "tx.origin used for authentication — vulnerable to phishing via intermediate contracts. Use msg.sender instead.",
+        "post_filter": "tx_origin_authorizes",
     },
     "hardcoded_gas": {
         "patterns": [
@@ -298,10 +303,13 @@ ZERO_RECALL_PATTERNS: Dict[str, Dict[str, Any]] = {
         "severity": "Medium",
         "swc": "SWC-128",
         "message": "Loop bounded by dynamic array length — may exceed block gas limit on large arrays. Consider pagination.",
+        "post_filter": "loop_over_state",
     },
     "erc20_return_check": {
+        # Two arguments: a one-argument `addr.transfer(x)` is the ETH transfer, which
+        # reverts on failure and returns nothing.
         "patterns": [
-            r"\.transfer\s*\([^)]+\)(?!\s*;?\s*\n?\s*(require|assert|if))",
+            r"\.transfer\s*\((?:[^();]|\([^();]*\))*,[^;]*\)(?!\s*;?\s*\n?\s*(require|assert|if))",
             r"IERC20\([^)]+\)\.transfer\s*\(",
         ],
         "severity": "Medium",
@@ -476,6 +484,7 @@ ZERO_RECALL_PATTERNS: Dict[str, Dict[str, Any]] = {
         "severity": "Medium",
         "swc": "SWC-128",
         "message": "Loop bounded by dynamic array length — may exceed block gas limit. Use pagination or pull pattern.",
+        "post_filter": "loop_over_state",
     },
     "dos_send_in_loop": {
         "patterns": [
@@ -833,12 +842,25 @@ def _passes_post_filter(
     - ``legacy_constructor_typo``: the matched function is public and unguarded, assigns
       ``msg.sender`` to an owner-like variable, sits in a contract that has no function
       named after itself (no real legacy constructor) and no ``constructor``.
+    - ``unguarded_enclosing_function``: the function that contains the match (the
+      ``selfdestruct``) has no caller guard.
+    - ``tx_origin_authorizes``: the ``tx.origin`` read decides a condition without
+      ``msg.sender`` (Slither's ``tx-origin`` rule; ``msg.sender == tx.origin`` is an EOA check).
+    - ``loop_over_state``: the loop bound is not an array the function receives.
     Measured on SmartBugs-curated (2026-10-23): the unfiltered rules fired on 16
     contracts labelled with other categories (BECToken's `Ownable()` matched from the
     `SafeMath` declaration, ``init()`` of the overflow samples) and kept every labelled one.
+    The last three, with the matching Peculiar/threat-model/SmartBugs-detector checks
+    (2026-10-26): access_control FP 42 -> 36, denial_of_service FP 19 -> 9, every TP kept.
     """
     if not name:
         return True
+    if name == "unguarded_enclosing_function":
+        return not has_caller_guard(*enclosing_function_text(source_code, abs_pos))
+    if name == "tx_origin_authorizes":
+        return tx_origin_authorizes(source_code, abs_pos)
+    if name == "loop_over_state":
+        return not loop_bound_is_local(source_code, abs_pos)
     if name == "unguarded_function":
         header, body = function_text_at(source_code, abs_pos)
         return not has_caller_guard(header, body)

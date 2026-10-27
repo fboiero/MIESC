@@ -580,6 +580,53 @@ one false positive short of the reference. Before comparing two artifacts, check
 `.tools_used` lists the same tools and that `.provenance.solc.binaries` shows installed
 versions in both; a missing tool is a different experiment, not a better number.
 
+### Taxonomy and own-detector false positives (2026-10-26)
+
+Same command (`make bench`, `--no-llm`, fresh `HOME`, temp caches cleared), `main` at
+`31344d19` and this change run back to back on the same machine. Artifact
+`benchmarks/results/smartbugs_eval_layers_1_6_7_20261026_fp_precision.{json,jsonl}`.
+
+| Metric | `main` 31344d19 (reference) | This change | Δ |
+|---|---|---|---|
+| Recall (contracts) | 143/143 | **143/143** | 0 |
+| Precision | 33.7 % (281 FP) | **40.3 % (212 FP)** | +6.6 pt, −69 FP |
+| F1 | 50.4 % | **57.4 %** | +7.0 pt |
+| `unchecked_low_level_calls` | 52 TP / 62 FP | 52 TP / 17 FP | −45 FP |
+| `denial_of_service` | 6 TP / 19 FP | 6 TP / 9 FP | −10 FP |
+| `time_manipulation` | 5 TP / 30 FP | 5 TP / 22 FP | −8 FP |
+| `access_control` | 18 TP / 42 FP | 18 TP / 36 FP | −6 FP |
+
+Every other category is unchanged, and both runs used the same tools contract for contract
+(Slither 140, Aderyn 125, the rest 143). The reference reproduces the 2026-10-24 baseline
+exactly. Two harness hazards on the way: with Slither installed by `pip install --user`, a
+fresh `HOME` hides it from Python (`skipped … configuration_error` on all 143), so keep
+`PYTHONUSERBASE=$OLD_HOME/.local`; and Slither needs solc 0.4.25 and 0.4.9 in
+`~/.solc-select` (15 and 1 contracts), without which it runs on 124 and the reference drops
+to 275 FP.
+
+Each removed finding was wrong for a stated reason, not for its label:
+
+- Slither `low-level-calls` (Informational, every `.call`, checked or not), Aderyn
+  `unsafe-erc20-operation` and 4naly3er `use_of_transfer_instead_of_call` (remediation
+  notes) are out of taxonomy; an unchecked call still scores through Slither
+  `unchecked-lowlevel` / `unchecked-send`. The ERC20 return-value rules of 4naly3er and the
+  intelligence engine require two arguments: `addr.transfer(x)` is the ETH transfer, which
+  reverts on failure and returns nothing.
+- `block.number` left `TimeManipulationDetector`: a miner cannot skew it, and its use as
+  entropy is `BadRandomnessDetector`'s.
+- `tx.origin` counts only when it decides a condition without `msg.sender` (Slither's
+  `tx-origin` rule); `require(msg.sender == tx.origin)` rejects contract callers.
+- `selfdestruct` inside a guarded function is not unprotected.
+- A loop over an array the function receives or builds is not SWC-128: the caller sizes it
+  and pays for the gas. A `storage` parameter still counts.
+
+Outside SmartBugs (OpenZeppelin 5.x, Solady and `benchmarks/real_projects/`, 374 files, the
+touched detectors run directly) no finding appears; 97 loops over parameters
+(`Multicall.data`, `MerkleProof.proof`, `TimelockController.targets`) and 3 non-authorizing
+`tx.origin` reads disappear. What remains in `arithmetic` and `reentrancy` is mostly real
+bugs in contracts filed under another label, and send/transfer followed by a write, which is
+flagged on purpose; cutting those would fit the labels, not improve the tool.
+
 ## 5. What is not covered here
 
 - **LLM follow-up (97.9 %)**: Paper 1 reports a local-Ollama pass on the six misses as a

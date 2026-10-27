@@ -59,8 +59,10 @@ FOURANALYZER_PATTERNS: Dict[str, Dict[str, Any]] = {
         "cwe_id": "CWE-252",
         "description": "ERC20 transfer/transferFrom return value not checked - tokens may silently fail",
         "recommendation": "Use SafeERC20.safeTransfer() or check return value explicitly",
+        # ERC20 transfer takes (to, amount); a one-argument `addr.transfer(x)` is the
+        # ETH transfer, which reverts on failure and has no return value to check.
         "patterns": [
-            r"\.transfer\s*\([^)]+\)\s*;",
+            r"\.transfer\s*\([^);]*,[^)]*\)\s*;",
             r"\.transferFrom\s*\([^)]+\)\s*;",
         ],
         "exclude_patterns": [

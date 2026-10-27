@@ -49,6 +49,7 @@ from miesc.detectors.access_guards import (
     has_caller_guard,
     is_self_service_withdrawal,
     moves_value,
+    tx_origin_authorizes,
 )
 
 logger = logging.getLogger(__name__)
@@ -1315,6 +1316,8 @@ class PeculiarAdapter(ToolAdapter):
         for func in graph.get("functions", []):
             body = func.get("body", "")
             for match in re.finditer(r"tx\.origin", body):
+                if not tx_origin_authorizes(body, match.start()):
+                    continue
                 line_offset = body[: match.start()].count("\n")
                 context = body[max(0, match.start() - 40) : match.end() + 40]
                 # Higher confidence if used in require/if

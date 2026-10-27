@@ -22,6 +22,7 @@ from miesc.core.tool_protocol import (
     ToolMetadata,
     ToolStatus,
 )
+from miesc.detectors.access_guards import loop_bound_is_local
 
 logger = logging.getLogger(__name__)
 
@@ -153,6 +154,8 @@ class ThreatModelAdapter(ToolAdapter):
         # DENIAL OF SERVICE: Denegación de servicio
         "dos_unbounded_loop": {
             "regex": r"for\s*\([^)]*;\s*\w+\s*<\s*\w+\.length",
+            # A loop over an array the caller passes in only fails the caller's own tx.
+            "unless": loop_bound_is_local,
             "stride_category": "Denial of Service",
             "threat": "Unbounded loop over dynamic array",
             "impact": "Gas limit can prevent function execution",
@@ -345,14 +348,20 @@ class ThreatModelAdapter(ToolAdapter):
         """Analiza amenazas usando framework STRIDE"""
         threats = []
         lines = source_code.split("\n")
+        line_offsets = [0]
+        for line in lines[:-1]:
+            line_offsets.append(line_offsets[-1] + len(line) + 1)
 
         for _pattern_name, pattern_info in self.STRIDE_PATTERNS.items():
             regex = re.compile(pattern_info["regex"], re.MULTILINE)
+            unless = pattern_info.get("unless")
 
             for line_num, line in enumerate(lines, 1):
                 matches = regex.finditer(line)
 
                 for match in matches:
+                    if unless and unless(source_code, line_offsets[line_num - 1] + match.start()):
+                        continue
                     # Calcular DREAD score
                     dread_scores = pattern_info["dread"]
                     dread_score = sum(dread_scores.values()) / len(dread_scores)
