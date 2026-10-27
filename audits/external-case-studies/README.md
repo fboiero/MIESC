@@ -6,9 +6,9 @@ static-analysis scan, then apply a disciplined **manual triage** that separates 
 from the (many) false positives a scanner produces. These are kept as an evidence trail of
 MIESC's real-world behaviour, not as formal audit opinions.
 
-> **TL;DR:** Across three mature-enough targets (Lombard LBTC, Doppler, Valantis STEX), **every
-> High-severity finding the scanner produced was a false positive** once read against the real
-> code. That is the expected outcome for audited production code — and it is exactly why the
+> **TL;DR:** Across four mature-enough targets (Lombard LBTC, Doppler, Valantis STEX, YieldNest),
+> **every High-severity finding the scanner produced was a false positive** once read against the
+> real code. That is the expected outcome for audited production code — and it is exactly why the
 > **triage layer, not the raw scan, is the product.**
 
 ---
@@ -68,6 +68,7 @@ premium PDFs are regenerable from `results.json` and are not committed here to k
 | **Lombard LBTC** (`lombard-finance/evm-smart-contracts`) | `7fe83e5` | 30 security-relevant (3 High) | All 3 High = false positives; one real **non-exploitable** code-quality bug (`AssetRouter._changeNativeToken` no-op `delete`) |
 | **Doppler** (`whetstoneresearch/doppler`) | `5754c7e` | 275 (0 Crit / 14 High / 106 Med / 88 Low / 67 Info) | **0/14 High exploitable** — access-gated sends, V2-LP-safe transfers, V4-lock + `nonReentrant`/CEI reentrancy |
 | **Valantis STEX** (`ValantisLabs/valantis-stex`) | `27b5c74` | 246 (0 Crit / 3 High / 34 Med / 57 Low / 152 Info) | **0/3 High exploitable** — Sovereign-Pool callback is `onlyALM` + depositor-pinned; native-wrap + owner/`nonReentrant` settle |
+| **YieldNest** (`yieldnest/yieldnest-protocol`) | `034cd65` | 225 (0 Crit / 5 High / 38 Med / 98 Low / 84 Info) | **0/5 High exploitable** — role-gated ETH sends to canonical/internal recipients; the one reentrancy is CEI-ordered + structurally unreachable |
 
 ### lombard-lbtc-2026-10
 Lombard LBTC (Bitcoin-backed liquid token). The three scanner Highs (private-constant "shadowing",
@@ -90,6 +91,16 @@ positives, confirmed against the `valantis-core` dependency: the deposit callbac
 `from` is defended because `SovereignPool.depositLiquidity` is `onlyALM` and the STEXAMM pins the
 callback `user` to the original depositor; the "arbitrary ETH send" is a native→WHYPE wrap; the
 reentrancy is `onlyOwner` + `nonReentrant` with trusted callees. See `triage-memo.md`.
+
+### yieldnest-2026-10
+YieldNest (EigenLayer restaking — ynETH native-ETH LST + ynEigen LSD restaking). All 5 scanner
+Highs were false positives: four `arbitrary-send-eth` sit on role-gated functions
+(`WITHDRAWER_ROLE`, `VALIDATOR_MANAGER_ROLE`, `WITHDRAWAL_MANAGER_ROLE`) whose ETH recipients are
+canonical (the ETH2 deposit contract) or protocol-internal (`ynETH`, `redemptionAssetsVault`,
+admin-set `feesReceiver`); the one `reentrancy-eth` (`PooledDepositsVault.finalizeDeposits`) is
+CEI-ordered (balance zeroed before the call), sends ETH to the trusted vault rather than the
+depositor, and `deposit()` is disabled once `ynETH` is set — so it is structurally unreachable.
+See `triage-memo.md`.
 
 ---
 

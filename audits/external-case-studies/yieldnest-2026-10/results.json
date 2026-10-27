@@ -1,0 +1,2725 @@
+{
+  "contract": "YieldNest (yieldnest/yieldnest-protocol, src/)",
+  "results": [
+    {
+      "tool": "slither",
+      "contract": "src/",
+      "status": "success",
+      "findings": [
+        {
+          "title": "arbitrary-send-eth",
+          "type": "arbitrary-send-eth",
+          "severity": "High",
+          "confidence": 0.6,
+          "description": "RewardsReceiver.transferETH(address,uint256) (src/RewardsReceiver.sol#79-89) sends eth to arbitrary user\n\tDangerous calls:\n\t- (success,None) = to.call{value: amount}() (src/RewardsReceiver.sol#83)",
+          "location": {
+            "file": "src/RewardsReceiver.sol",
+            "line": 79
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "arbitrary-send-eth",
+          "type": "arbitrary-send-eth",
+          "severity": "High",
+          "confidence": 0.6,
+          "description": "StakingNodesManager._processPrincipalWithdrawalForNode(IStakingNodesManager.WithdrawalAction) (src/StakingNodesManager.sol#599-663) sends eth to arbitrary user\n\tDangerous calls:\n\t- ynETH.processWithdrawnETH{value: amountToReinvest}() (src/StakingNodesManager.sol#632)\n\t- (success,None) = address(redemptionAssetsVault).call{value: amountToQueue}() (src/StakingNodesManager.sol#637)\n\t- (sent,None) = address(rewardsDistributor.consensusLayerReceiver()).call{value: rewardsAmount}() (src/StakingNodesManager.sol#653)",
+          "location": {
+            "file": "src/StakingNodesManager.sol",
+            "line": 599
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "arbitrary-send-eth",
+          "type": "arbitrary-send-eth",
+          "severity": "High",
+          "confidence": 0.6,
+          "description": "StakingNodesManager._registerValidator(IStakingNodesManager.ValidatorData,uint256) (src/StakingNodesManager.sol#328-354) sends eth to arbitrary user\n\tDangerous calls:\n\t- depositContractEth2.deposit{value: _depositAmount}(validator.publicKey,withdrawalCredentials,validator.signature,depositDataRoot) (src/StakingNodesManager.sol#341)",
+          "location": {
+            "file": "src/StakingNodesManager.sol",
+            "line": 328
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "arbitrary-send-eth",
+          "type": "arbitrary-send-eth",
+          "severity": "High",
+          "confidence": 0.6,
+          "description": "RewardsDistributor.processRewards() (src/RewardsDistributor.sol#107-142) sends eth to arbitrary user\n\tDangerous calls:\n\t- ynETH.receiveRewards{value: netRewards}() (src/RewardsDistributor.sol#130)\n\t- (success,None) = feesReceiver.call{value: fees}() (src/RewardsDistributor.sol#135)",
+          "location": {
+            "file": "src/RewardsDistributor.sol",
+            "line": 107
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-eth",
+          "type": "reentrancy-eth",
+          "severity": "High",
+          "confidence": 0.6,
+          "description": "Reentrancy in PooledDepositsVault.finalizeDeposits(address[]) (src/PooledDepositsVault.sol#58-71):\n\tExternal calls:\n\t- shares = ynETH.depositETH{value: depositAmountPerDepositor}(depositor) (src/PooledDepositsVault.sol#68)\n\tState variables written after the call(s):\n\t- balances[depositor] = 0 (src/PooledDepositsVault.sol#67)\n\tPooledDepositsVault.balances (src/PooledDepositsVault.sol#25) can be used in cross function reentrancies:\n\t- PooledDepositsVault.balances (src/PooledDepositsVault.sol#25)\n\t- PooledDepositsVault.deposit() (src/PooledDepositsVault.sol#48-53)\n\t- PooledDepositsVault.finalizeDeposits(address[]) (src/PooledDepositsVault.sol#58-71)",
+          "location": {
+            "file": "src/PooledDepositsVault.sol",
+            "line": 58
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "incorrect-equality",
+          "type": "incorrect-equality",
+          "severity": "Medium",
+          "confidence": 0.9,
+          "description": "RewardsDistributor.assertBalanceUnchanged() (src/RewardsDistributor.sol#177-181) uses a dangerous strict equality:\n\t- assert(bool)(address(this).balance == before) (src/RewardsDistributor.sol#180)",
+          "location": {
+            "file": "src/RewardsDistributor.sol",
+            "line": 177
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-no-eth",
+          "type": "reentrancy-no-eth",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "Reentrancy in StakingNode.undelegate() (src/StakingNode.sol#314-329):\n\tExternal calls:\n\t- withdrawalRoots = delegationManager.undelegate(address(this)) (src/StakingNode.sol#324)\n\tState variables written after the call(s):\n\t- synchronize() (src/StakingNode.sol#326)\n\t\t- delegatedTo = delegationManager.delegatedTo(address(this)) (src/StakingNode.sol#581)\n\tStakingNode.delegatedTo (src/StakingNode.sol#129) can be used in cross function reentrancies:\n\t- StakingNode.delegate(address,ISignatureUtilsMixinTypes.SignatureWithExpiry,bytes32) (src/StakingNode.sol#296-307)\n\t- StakingNode.delegatedTo (src/StakingNode.sol#129)\n\t- StakingNode.initializeV3() (src/StakingNode.sol#199-201)\n\t- StakingNode.isSynchronized() (src/StakingNode.sol#567-570)\n\t- StakingNode.synchronize() (src/StakingNode.sol#576-582)",
+          "location": {
+            "file": "src/StakingNode.sol",
+            "line": 314
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-no-eth",
+          "type": "reentrancy-no-eth",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "Reentrancy in RedemptionAssetsVault.withdrawRedemptionAssets(uint256) (src/ynEIGEN/RedemptionAssetsVault.sol#198-220):\n\tExternal calls:\n\t- ynEigen.processWithdrawn(reqAmountInAsset,address(asset)) (src/ynEIGEN/RedemptionAssetsVault.sol#207)\n\t- ynEigen.processWithdrawn(assetBalance,address(asset)) (src/ynEIGEN/RedemptionAssetsVault.sol#212)\n\tState variables written after the call(s):\n\t- balances[address(asset)] -= reqAmountInAsset (src/ynEIGEN/RedemptionAssetsVault.sol#208)\n\tRedemptionAssetsVault.balances (src/ynEIGEN/RedemptionAssetsVault.sol#53) can be used in cross function reentrancies:\n\t- RedemptionAssetsVault.assetBalances(IERC20[]) (src/ynEIGEN/RedemptionAssetsVault.sol#90-96)\n\t- RedemptionAssetsVault.availableRedemptionAssets() (src/ynEIGEN/RedemptionAssetsVault.sol#146-156)\n\t- RedemptionAssetsVault.balances (src/ynEIGEN/RedemptionAssetsVault.sol#53)\n\t- RedemptionAssetsVault.deposit(uint256,address) (src/ynEIGEN/RedemptionAssetsVault.sol#125-132)\n\t- RedemptionAssetsVault.previewClaim(uint256) (src/ynEIGEN/RedemptionAssetsVault.sol#98-119)",
+          "location": {
+            "file": "src/ynEIGEN/RedemptionAssetsVault.sol",
+            "line": 198
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-no-eth",
+          "type": "reentrancy-no-eth",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "Reentrancy in TokenStakingNodesManager.createTokenStakingNode() (src/ynEIGEN/TokenStakingNodesManager.sol#149-171):\n\tExternal calls:\n\t- proxy = new BeaconProxy(address(upgradeableBeacon),) (src/ynEIGEN/TokenStakingNodesManager.sol#161)\n\t- initializeTokenStakingNode(node,nodeId) (src/ynEIGEN/TokenStakingNodesManager.sol#164)\n\t\t- node.initialize(ITokenStakingNode.Init(ITokenStakingNodesManager(address(this)),nodeId)) (src/ynEIGEN/TokenStakingNodesManager.sol#184-186)\n\t\t- node.initializeV2() (src/ynEIGEN/TokenStakingNodesManager.sol#194)\n\t\t- node.initializeV3() (src/ynEIGEN/TokenStakingNodesManager.sol#200)\n\tState variables written after the call(s):\n\t- nodes.push(node) (src/ynEIGEN/TokenStakingNodesManager.sol#166)\n\tTokenStakingNodesManager.nodes (src/ynEIGEN/TokenStakingNodesManager.sol#69) can be used in cross function reentrancies:\n\t- TokenStakingNodesManager.createTokenStakingNode() (src/ynEIGEN/TokenStakingNodesManager.sol#149-171)\n\t- TokenStakingNodesManager.getAllNodes() (src/ynEIGEN/TokenStakingNodesManager.sol#303-305)\n\t- TokenStakingNodesManager.getNodeById(uint256) (src/ynEIGEN/TokenStakingNodesManager.sol#321-326)\n\t- TokenStakingNodesManager.nodes (src/ynEIGEN/TokenStakingNodesManager.sol#69)\n\t- TokenStakingNodesManager.nodesLength() (src/ynEIGEN/TokenStakingNodesManager.sol#311-313)\n\t- TokenStakingNodesManager.upgradeTokenStakingNode(address) (src/ynEIGEN/TokenStakingNodesManager.sol#236-255)",
+          "location": {
+            "file": "src/ynEIGEN/TokenStakingNodesManager.sol",
+            "line": 149
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-no-eth",
+          "type": "reentrancy-no-eth",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "Reentrancy in WithdrawalsProcessor.processPrincipalWithdrawals() (src/ynEIGEN/WithdrawalsProcessor.sol#440-508):\n\tExternal calls:\n\t- _actions[i] = IYieldNestStrategyManager.WithdrawalAction({nodeId:ITokenStakingNode(queuedWithdrawal_.node).nodeId(),amountToReinvest:_amountToReinvest,amountToQueue:_amountToQueue,asset:_asset}) (src/ynEIGEN/WithdrawalsProcessor.sol#489-494)\n\tState variables written after the call(s):\n\t- _ids.processed = _processedId (src/ynEIGEN/WithdrawalsProcessor.sol#501)\n\tWithdrawalsProcessor._ids (src/ynEIGEN/WithdrawalsProcessor.sol#33) can be used in cross function reentrancies:\n\t- WithdrawalsProcessor.completeQueuedWithdrawals() (src/ynEIGEN/WithdrawalsProcessor.sol#398-435)\n\t- WithdrawalsProcessor.ids() (src/ynEIGEN/WithdrawalsProcessor.sol#153-155)\n\t- WithdrawalsProcessor.processPrincipalWithdrawals() (src/ynEIGEN/WithdrawalsProcessor.sol#440-508)\n\t- WithdrawalsProcessor.queueWithdrawals(IWithdrawalsProcessor.QueueWithdrawalsArgs) (src/ynEIGEN/WithdrawalsProcessor.sol#332-394)\n\t- WithdrawalsProcessor.shouldCompleteQueuedWithdrawals() (src/ynEIGEN/WithdrawalsProcessor.sol#183-200)\n\t- WithdrawalsProcessor.shouldProcessPrincipalWithdrawals() (src/ynEIGEN/WithdrawalsProcessor.sol#204-206)",
+          "location": {
+            "file": "src/ynEIGEN/WithdrawalsProcessor.sol",
+            "line": 440
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-no-eth",
+          "type": "reentrancy-no-eth",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "Reentrancy in StakingNode.createEigenPod() (src/StakingNode.sol#217-226):\n\tExternal calls:\n\t- eigenPodManager.createPod() (src/StakingNode.sol#221)\n\tState variables written after the call(s):\n\t- eigenPod = eigenPodManager.getPod(address(this)) (src/StakingNode.sol#222)\n\tStakingNode.eigenPod (src/StakingNode.sol#98) can be used in cross function reentrancies:\n\t- StakingNode.eigenPod (src/StakingNode.sol#98)\n\t- StakingNode.receive() (src/StakingNode.sol#174-178)\n\t- StakingNode.startCheckpoint(bool) (src/StakingNode.sol#279-283)\n\t- StakingNode.verifyWithdrawalCredentials(uint64,BeaconChainProofs.StateRootProof,uint40[],bytes[],bytes32[][]) (src/StakingNode.sol#244-272)",
+          "location": {
+            "file": "src/StakingNode.sol",
+            "line": 217
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-no-eth",
+          "type": "reentrancy-no-eth",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "Reentrancy in StakingNode.delegate(address,ISignatureUtilsMixinTypes.SignatureWithExpiry,bytes32) (src/StakingNode.sol#296-307):\n\tExternal calls:\n\t- delegationManager.delegateTo(operator,approverSignatureAndExpiry,approverSalt) (src/StakingNode.sol#302)\n\tState variables written after the call(s):\n\t- delegatedTo = operator (src/StakingNode.sol#304)\n\tStakingNode.delegatedTo (src/StakingNode.sol#129) can be used in cross function reentrancies:\n\t- StakingNode.delegate(address,ISignatureUtilsMixinTypes.SignatureWithExpiry,bytes32) (src/StakingNode.sol#296-307)\n\t- StakingNode.delegatedTo (src/StakingNode.sol#129)\n\t- StakingNode.initializeV3() (src/StakingNode.sol#199-201)\n\t- StakingNode.isSynchronized() (src/StakingNode.sol#567-570)\n\t- StakingNode.synchronize() (src/StakingNode.sol#576-582)",
+          "location": {
+            "file": "src/StakingNode.sol",
+            "line": 296
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-no-eth",
+          "type": "reentrancy-no-eth",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "Reentrancy in WithdrawalsProcessor.queueWithdrawals(IWithdrawalsProcessor.QueueWithdrawalsArgs) (src/ynEIGEN/WithdrawalsProcessor.sol#332-394):\n\tExternal calls:\n\t- _fullWithdrawalRoots = ITokenStakingNode(_node).queueWithdrawals(_strategy,_depositShares) (src/ynEIGEN/WithdrawalsProcessor.sol#364)\n\tState variables written after the call(s):\n\t- _ids.queued = _queuedId (src/ynEIGEN/WithdrawalsProcessor.sol#381)\n\tWithdrawalsProcessor._ids (src/ynEIGEN/WithdrawalsProcessor.sol#33) can be used in cross function reentrancies:\n\t- WithdrawalsProcessor.completeQueuedWithdrawals() (src/ynEIGEN/WithdrawalsProcessor.sol#398-435)\n\t- WithdrawalsProcessor.ids() (src/ynEIGEN/WithdrawalsProcessor.sol#153-155)\n\t- WithdrawalsProcessor.processPrincipalWithdrawals() (src/ynEIGEN/WithdrawalsProcessor.sol#440-508)\n\t- WithdrawalsProcessor.queueWithdrawals(IWithdrawalsProcessor.QueueWithdrawalsArgs) (src/ynEIGEN/WithdrawalsProcessor.sol#332-394)\n\t- WithdrawalsProcessor.shouldCompleteQueuedWithdrawals() (src/ynEIGEN/WithdrawalsProcessor.sol#183-200)\n\t- WithdrawalsProcessor.shouldProcessPrincipalWithdrawals() (src/ynEIGEN/WithdrawalsProcessor.sol#204-206)\n\t- _ids.queued = _queuedId (src/ynEIGEN/WithdrawalsProcessor.sol#390)\n\tWithdrawalsProcessor._ids (src/ynEIGEN/WithdrawalsProcessor.sol#33) can be used in cross function reentrancies:\n\t- WithdrawalsProcessor.completeQueuedWithdrawals() (src/ynEIGEN/WithdrawalsProcessor.sol#398-435)\n\t- WithdrawalsProcessor.ids() (src/ynEIGEN/WithdrawalsProcessor.sol#153-155)\n\t- WithdrawalsProcessor.processPrincipalWithdrawals() (src/ynEIGEN/WithdrawalsProcessor.sol#440-508)\n\t- WithdrawalsProcessor.queueWithdrawals(IWithdrawalsProcessor.QueueWithdrawalsArgs) (src/ynEIGEN/WithdrawalsProcessor.sol#332-394)\n\t- WithdrawalsProcessor.shouldCompleteQueuedWithdrawals() (src/ynEIGEN/WithdrawalsProcessor.sol#183-200)\n\t- WithdrawalsProcessor.shouldProcessPrincipalWithdrawals() (src/ynEIGEN/WithdrawalsProcessor.sol#204-206)",
+          "location": {
+            "file": "src/ynEIGEN/WithdrawalsProcessor.sol",
+            "line": 332
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-no-eth",
+          "type": "reentrancy-no-eth",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "Reentrancy in TokenStakingNode.delegate(address,ISignatureUtilsMixinTypes.SignatureWithExpiry,bytes32) (src/ynEIGEN/TokenStakingNode.sol#356-368):\n\tExternal calls:\n\t- delegationManager.delegateTo(operator,signature,approverSalt) (src/ynEIGEN/TokenStakingNode.sol#363)\n\tState variables written after the call(s):\n\t- delegatedTo = operator (src/ynEIGEN/TokenStakingNode.sol#365)\n\tTokenStakingNode.delegatedTo (src/ynEIGEN/TokenStakingNode.sol#69) can be used in cross function reentrancies:\n\t- TokenStakingNode.delegate(address,ISignatureUtilsMixinTypes.SignatureWithExpiry,bytes32) (src/ynEIGEN/TokenStakingNode.sol#356-368)\n\t- TokenStakingNode.delegatedTo (src/ynEIGEN/TokenStakingNode.sol#69)\n\t- TokenStakingNode.initializeV2() (src/ynEIGEN/TokenStakingNode.sol#118-121)\n\t- TokenStakingNode.isSynchronized() (src/ynEIGEN/TokenStakingNode.sol#410-413)\n\t- TokenStakingNode.synchronize() (src/ynEIGEN/TokenStakingNode.sol#419-454)",
+          "location": {
+            "file": "src/ynEIGEN/TokenStakingNode.sol",
+            "line": 356
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-no-eth",
+          "type": "reentrancy-no-eth",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "Reentrancy in TokenStakingNode.undelegate() (src/ynEIGEN/TokenStakingNode.sol#373-388):\n\tExternal calls:\n\t- withdrawalRoots = delegationManager.undelegate(address(this)) (src/ynEIGEN/TokenStakingNode.sol#382)\n\tState variables written after the call(s):\n\t- synchronize() (src/ynEIGEN/TokenStakingNode.sol#385)\n\t\t- delegatedTo = delegationManager.delegatedTo(address(this)) (src/ynEIGEN/TokenStakingNode.sol#423)\n\tTokenStakingNode.delegatedTo (src/ynEIGEN/TokenStakingNode.sol#69) can be used in cross function reentrancies:\n\t- TokenStakingNode.delegate(address,ISignatureUtilsMixinTypes.SignatureWithExpiry,bytes32) (src/ynEIGEN/TokenStakingNode.sol#356-368)\n\t- TokenStakingNode.delegatedTo (src/ynEIGEN/TokenStakingNode.sol#69)\n\t- TokenStakingNode.initializeV2() (src/ynEIGEN/TokenStakingNode.sol#118-121)\n\t- TokenStakingNode.isSynchronized() (src/ynEIGEN/TokenStakingNode.sol#410-413)\n\t- TokenStakingNode.synchronize() (src/ynEIGEN/TokenStakingNode.sol#419-454)",
+          "location": {
+            "file": "src/ynEIGEN/TokenStakingNode.sol",
+            "line": 373
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-no-eth",
+          "type": "reentrancy-no-eth",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "Reentrancy in TokenStakingNode.completeQueuedWithdrawals(IDelegationManagerTypes.Withdrawal[],bool) (src/ynEIGEN/TokenStakingNode.sol#235-286):\n\tExternal calls:\n\t- _delegationManager.completeQueuedWithdrawals(withdrawals,_tokens,_receiveAsTokens) (src/ynEIGEN/TokenStakingNode.sol#271)\n\t- (_actualAmountOut,_token) = _wrapper.wrap(_actualAmountOut,_token) (src/ynEIGEN/TokenStakingNode.sol#277)\n\t- IYieldNestStrategyManager(tokenStakingNodesManager.yieldNestStrategyManager()).updateTokenStakingNodesBalances(_token) (src/ynEIGEN/TokenStakingNode.sol#280-281)\n\tState variables written after the call(s):\n\t- withdrawn[_token] += _actualAmountOut (src/ynEIGEN/TokenStakingNode.sol#278)\n\tTokenStakingNode.withdrawn (src/ynEIGEN/TokenStakingNode.sol#67) can be used in cross function reentrancies:\n\t- TokenStakingNode.completeQueuedWithdrawals(IDelegationManagerTypes.Withdrawal[],bool) (src/ynEIGEN/TokenStakingNode.sol#235-286)\n\t- TokenStakingNode.deallocateTokens(IERC20,uint256) (src/ynEIGEN/TokenStakingNode.sol#341-346)\n\t- TokenStakingNode.getQueuedSharesAndWithdrawn(IStrategy,IERC20) (src/ynEIGEN/TokenStakingNode.sol#182-184)\n\t- TokenStakingNode.withdrawn (src/ynEIGEN/TokenStakingNode.sol#67)",
+          "location": {
+            "file": "src/ynEIGEN/TokenStakingNode.sol",
+            "line": 235
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-no-eth",
+          "type": "reentrancy-no-eth",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "Reentrancy in WithdrawalsProcessor.completeQueuedWithdrawals() (src/ynEIGEN/WithdrawalsProcessor.sol#398-435):\n\tExternal calls:\n\t- ITokenStakingNode(queuedWithdrawal_.node).completeQueuedWithdrawals(_withdrawal,true) (src/ynEIGEN/WithdrawalsProcessor.sol#424-427)\n\tState variables written after the call(s):\n\t- _ids.completed = _completedId (src/ynEIGEN/WithdrawalsProcessor.sol#434)\n\tWithdrawalsProcessor._ids (src/ynEIGEN/WithdrawalsProcessor.sol#33) can be used in cross function reentrancies:\n\t- WithdrawalsProcessor.completeQueuedWithdrawals() (src/ynEIGEN/WithdrawalsProcessor.sol#398-435)\n\t- WithdrawalsProcessor.ids() (src/ynEIGEN/WithdrawalsProcessor.sol#153-155)\n\t- WithdrawalsProcessor.processPrincipalWithdrawals() (src/ynEIGEN/WithdrawalsProcessor.sol#440-508)\n\t- WithdrawalsProcessor.queueWithdrawals(IWithdrawalsProcessor.QueueWithdrawalsArgs) (src/ynEIGEN/WithdrawalsProcessor.sol#332-394)\n\t- WithdrawalsProcessor.shouldCompleteQueuedWithdrawals() (src/ynEIGEN/WithdrawalsProcessor.sol#183-200)\n\t- WithdrawalsProcessor.shouldProcessPrincipalWithdrawals() (src/ynEIGEN/WithdrawalsProcessor.sol#204-206)\n\t- _queuedWithdrawals[_completedId].completed = true (src/ynEIGEN/WithdrawalsProcessor.sol#404)\n\tWithdrawalsProcessor._queuedWithdrawals (src/ynEIGEN/WithdrawalsProcessor.sol#35) can be used in cross function reentrancies:\n\t- WithdrawalsProcessor.completeQueuedWithdrawals() (src/ynEIGEN/WithdrawalsProcessor.sol#398-435)\n\t- WithdrawalsProcessor.processPrincipalWithdrawals() (src/ynEIGEN/WithdrawalsProcessor.sol#440-508)\n\t- WithdrawalsProcessor.queueWithdrawals(IWithdrawalsProcessor.QueueWithdrawalsArgs) (src/ynEIGEN/WithdrawalsProcessor.sol#332-394)\n\t- WithdrawalsProcessor.queuedWithdrawals(uint256) (src/ynEIGEN/WithdrawalsProcessor.sol#160-164)\n\t- WithdrawalsProcessor.shouldCompleteQueuedWithdrawals() (src/ynEIGEN/WithdrawalsProcessor.sol#183-200)",
+          "location": {
+            "file": "src/ynEIGEN/WithdrawalsProcessor.sol",
+            "line": 398
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-no-eth",
+          "type": "reentrancy-no-eth",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "Reentrancy in StakingNodesManager.createStakingNode() (src/StakingNodesManager.sol#418-442):\n\tExternal calls:\n\t- proxy = new BeaconProxy(address(upgradeableBeacon),) (src/StakingNodesManager.sol#430)\n\t- initializeStakingNode(node,nodeCount) (src/StakingNodesManager.sol#433)\n\t\t- node.initialize(IStakingNode.Init(IStakingNodesManager(address(this)),nodeCount)) (src/StakingNodesManager.sol#456-458)\n\t\t- node.initializeV2(0) (src/StakingNodesManager.sol#465)\n\t\t- node.initializeV3() (src/StakingNodesManager.sol#470)\n\t\t- node.initializeV4() (src/StakingNodesManager.sol#475)\n\t- eigenPod = node.createEigenPod() (src/StakingNodesManager.sol#435)\n\tState variables written after the call(s):\n\t- nodes.push(node) (src/StakingNodesManager.sol#437)\n\tStakingNodesManager.nodes (src/StakingNodesManager.sol#128) can be used in cross function reentrancies:\n\t- StakingNodesManager._processPrincipalWithdrawalForNode(IStakingNodesManager.WithdrawalAction) (src/StakingNodesManager.sol#599-663)\n\t- StakingNodesManager._upgradeStakingNodeImplementation(address) (src/StakingNodesManager.sol#517-532)\n\t- StakingNodesManager.createStakingNode() (src/StakingNodesManager.sol#418-442)\n\t- StakingNodesManager.getAllNodes() (src/StakingNodesManager.sol#702-704)\n\t- StakingNodesManager.getWithdrawalCredentials(uint256) (src/StakingNodesManager.sol#378-381)\n\t- StakingNodesManager.nodes (src/StakingNodesManager.sol#128)\n\t- StakingNodesManager.nodesLength() (src/StakingNodesManager.sol#710-712)\n\t- StakingNodesManager.processRewards(uint256,RewardsType) (src/StakingNodesManager.sol#553-558)\n\t- StakingNodesManager.validateNodes(IStakingNodesManager.ValidatorData[]) (src/StakingNodesManager.sol#313-324)",
+          "location": {
+            "file": "src/StakingNodesManager.sol",
+            "line": 418
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "uninitialized-local",
+          "type": "uninitialized-local",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "WithdrawalsProcessor.getQueueWithdrawalsArgs()._highestBalance (src/ynEIGEN/WithdrawalsProcessor.sol#246) is a local variable never initialized",
+          "location": {
+            "file": "src/ynEIGEN/WithdrawalsProcessor.sol",
+            "line": 246
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "uninitialized-local",
+          "type": "uninitialized-local",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "WithdrawalsProcessor.processPrincipalWithdrawals()._tokenIdToFinalize (src/ynEIGEN/WithdrawalsProcessor.sol#451) is a local variable never initialized",
+          "location": {
+            "file": "src/ynEIGEN/WithdrawalsProcessor.sol",
+            "line": 451
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "uninitialized-local",
+          "type": "uninitialized-local",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "WithdrawalsProcessor.processPrincipalWithdrawals()._strategy (src/ynEIGEN/WithdrawalsProcessor.sol#450) is a local variable never initialized",
+          "location": {
+            "file": "src/ynEIGEN/WithdrawalsProcessor.sol",
+            "line": 450
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "uninitialized-local",
+          "type": "uninitialized-local",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "EigenStrategyManager._updateTokenStakingNodesBalances(IERC20,IStrategy)._strategiesWithdrawnBalance (src/ynEIGEN/EigenStrategyManager.sol#244) is a local variable never initialized",
+          "location": {
+            "file": "src/ynEIGEN/EigenStrategyManager.sol",
+            "line": 244
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "uninitialized-local",
+          "type": "uninitialized-local",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "WithdrawalsProcessor.processPrincipalWithdrawals()._asset (src/ynEIGEN/WithdrawalsProcessor.sol#449) is a local variable never initialized",
+          "location": {
+            "file": "src/ynEIGEN/WithdrawalsProcessor.sol",
+            "line": 449
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "uninitialized-local",
+          "type": "uninitialized-local",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "StakingNodesManager._processRewards(uint256,RewardsType,uint256).receiver (src/StakingNodesManager.sol#561) is a local variable never initialized",
+          "location": {
+            "file": "src/StakingNodesManager.sol",
+            "line": 561
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "uninitialized-local",
+          "type": "uninitialized-local",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "WithdrawalsProcessor._stakedBalanceForStrategy(IERC20)._stakedShares (src/ynEIGEN/WithdrawalsProcessor.sol#554) is a local variable never initialized",
+          "location": {
+            "file": "src/ynEIGEN/WithdrawalsProcessor.sol",
+            "line": 554
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "uninitialized-local",
+          "type": "uninitialized-local",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "EigenStrategyManager._updateTokenStakingNodesBalances(IERC20,IStrategy)._strategiesWithdrawalQueueBalance (src/ynEIGEN/EigenStrategyManager.sol#243) is a local variable never initialized",
+          "location": {
+            "file": "src/ynEIGEN/EigenStrategyManager.sol",
+            "line": 243
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "uninitialized-local",
+          "type": "uninitialized-local",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "EigenStrategyManager._updateTokenStakingNodesBalances(IERC20,IStrategy)._strategiesBalance (src/ynEIGEN/EigenStrategyManager.sol#242) is a local variable never initialized",
+          "location": {
+            "file": "src/ynEIGEN/EigenStrategyManager.sol",
+            "line": 242
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "uninitialized-local",
+          "type": "uninitialized-local",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "WithdrawalsProcessor.processPrincipalWithdrawals()._accWithdrawnUnits (src/ynEIGEN/WithdrawalsProcessor.sol#455) is a local variable never initialized",
+          "location": {
+            "file": "src/ynEIGEN/WithdrawalsProcessor.sol",
+            "line": 455
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "unused-return",
+          "type": "unused-return",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "WithdrawalsProcessor.processPrincipalWithdrawals() (src/ynEIGEN/WithdrawalsProcessor.sol#440-508) ignores return value by withdrawalQueueManager.finalizeRequestsUpToIndex(_tokenIdToFinalize) (src/ynEIGEN/WithdrawalsProcessor.sol#506)",
+          "location": {
+            "file": "src/ynEIGEN/WithdrawalsProcessor.sol",
+            "line": 440
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "unused-return",
+          "type": "unused-return",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "StakingNode._decreaseQueuedSharesOnCompleteQueuedWithdrawal(IDelegationManager,IDelegationManagerTypes.Withdrawal) (src/StakingNode.sol#526-556) ignores return value by (None,_singleWithdrawableShares) = delegationManager.getQueuedWithdrawal(withdrawalRoot) (src/StakingNode.sol#542)",
+          "location": {
+            "file": "src/StakingNode.sol",
+            "line": 526
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "unused-return",
+          "type": "unused-return",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "WithdrawalsProcessor.getQueueWithdrawalsArgs() (src/ynEIGEN/WithdrawalsProcessor.sol#241-320) ignores return value by (_singleWithdrawableShares,None) = delegationManager.getWithdrawableShares(address(_node),_singleStrategy) (src/ynEIGEN/WithdrawalsProcessor.sol#270)",
+          "location": {
+            "file": "src/ynEIGEN/WithdrawalsProcessor.sol",
+            "line": 241
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "unused-return",
+          "type": "unused-return",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "ynEigenDepositAdapter.depositStETH(uint256,address) (src/ynEIGEN/ynEigenDepositAdapter.sol#167-176) ignores return value by (wstETHAmount,None) = wrapper.wrap(amount,stETH) (src/ynEIGEN/ynEigenDepositAdapter.sol#170)",
+          "location": {
+            "file": "src/ynEIGEN/ynEigenDepositAdapter.sol",
+            "line": 167
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "unused-return",
+          "type": "unused-return",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "StakingNode.queueWithdrawals(uint256) (src/StakingNode.sol#382-418) ignores return value by (None,withdrawableShares) = delegationManager.getQueuedWithdrawal(fullWithdrawalRoots[0]) (src/StakingNode.sol#406)",
+          "location": {
+            "file": "src/StakingNode.sol",
+            "line": 382
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "unused-return",
+          "type": "unused-return",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "ynEigenDepositAdapter.depositOETH(uint256,address) (src/ynEIGEN/ynEigenDepositAdapter.sol#178-187) ignores return value by (woETHShares,None) = wrapper.wrap(amount,oETH) (src/ynEIGEN/ynEigenDepositAdapter.sol#181)",
+          "location": {
+            "file": "src/ynEIGEN/ynEigenDepositAdapter.sol",
+            "line": 178
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "unused-return",
+          "type": "unused-return",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "TokenStakingNode._decreaseQueuedSharesOnCompleteWithdrawals(DelegationManagerStorage,IStrategy,IDelegationManagerTypes.Withdrawal) (src/ynEIGEN/TokenStakingNode.sol#546-576) ignores return value by (None,_singleWithdrawableShares) = _delegationManager.getQueuedWithdrawal(withdrawalRoot) (src/ynEIGEN/TokenStakingNode.sol#563)",
+          "location": {
+            "file": "src/ynEIGEN/TokenStakingNode.sol",
+            "line": 546
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "unused-return",
+          "type": "unused-return",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "WithdrawalsProcessor._stakedBalanceForStrategy(IERC20) (src/ynEIGEN/WithdrawalsProcessor.sol#548-564) ignores return value by (_singleWithdrawableShares,None) = delegationManager.getWithdrawableShares(address(_nodesArray[i]),_singleStrategy) (src/ynEIGEN/WithdrawalsProcessor.sol#559)",
+          "location": {
+            "file": "src/ynEIGEN/WithdrawalsProcessor.sol",
+            "line": 548
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "unused-return",
+          "type": "unused-return",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "AssetRegistry._addAsset(IERC20) (src/ynEIGEN/AssetRegistry.sol#130-153) ignores return value by rateProvider.rate(address(asset)) (src/ynEIGEN/AssetRegistry.sol#139-144)",
+          "location": {
+            "file": "src/ynEIGEN/AssetRegistry.sol",
+            "line": 130
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "unused-return",
+          "type": "unused-return",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "TokenStakingNode.getWithdrawableShares(IStrategy) (src/ynEIGEN/TokenStakingNode.sol#578-584) ignores return value by (withdrawableShares,None) = delegationManager.getWithdrawableShares(address(this),singleStrategy) (src/ynEIGEN/TokenStakingNode.sol#582)",
+          "location": {
+            "file": "src/ynEIGEN/TokenStakingNode.sol",
+            "line": 578
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "unused-return",
+          "type": "unused-return",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "StakingNode.getETHBalance() (src/StakingNode.sol#630-642) ignores return value by (withdrawableShares,None) = delegationManager.getWithdrawableShares(address(this),strategies) (src/StakingNode.sol#635)",
+          "location": {
+            "file": "src/StakingNode.sol",
+            "line": 630
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "unused-return",
+          "type": "unused-return",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "TokenStakingNode.queueWithdrawals(IStrategy,uint256) (src/ynEIGEN/TokenStakingNode.sol#192-228) ignores return value by (None,_singleWithdrawableShares) = _delegationManager.getQueuedWithdrawal(_withdrawalRoot) (src/ynEIGEN/TokenStakingNode.sol#216)",
+          "location": {
+            "file": "src/ynEIGEN/TokenStakingNode.sol",
+            "line": 192
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "unused-return",
+          "type": "unused-return",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "StakingNode.createEigenPod() (src/StakingNode.sol#217-226) ignores return value by eigenPodManager.createPod() (src/StakingNode.sol#221)",
+          "location": {
+            "file": "src/StakingNode.sol",
+            "line": 217
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "unused-return",
+          "type": "unused-return",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "WithdrawalsProcessor.queueWithdrawals(IWithdrawalsProcessor.QueueWithdrawalsArgs) (src/ynEIGEN/WithdrawalsProcessor.sol#332-394) ignores return value by (_queuedWithdrawal,None) = delegationManager.getQueuedWithdrawal(_fullWithdrawalRoots[0]) (src/ynEIGEN/WithdrawalsProcessor.sol#365)",
+          "location": {
+            "file": "src/ynEIGEN/WithdrawalsProcessor.sol",
+            "line": 332
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "unused-return",
+          "type": "unused-return",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "StakingNode.undelegate() (src/StakingNode.sol#314-329) ignores return value by (withdrawableShares,None) = delegationManager.getWithdrawableShares(address(this),strategies) (src/StakingNode.sol#322)",
+          "location": {
+            "file": "src/StakingNode.sol",
+            "line": 314
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "events-maths",
+          "type": "events-maths",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "StakingNode.initializeV2(uint256) (src/StakingNode.sol#193-197) should emit an event for: \n\t- unverifiedStakedETH = initialUnverifiedStakedETH (src/StakingNode.sol#196)",
+          "location": {
+            "file": "src/StakingNode.sol",
+            "line": 193
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "missing-zero-check",
+          "type": "missing-zero-check",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "RewardsReceiver.transferETH(address,uint256).to (src/RewardsReceiver.sol#79) lacks a zero-check on :\n\t\t- (success,None) = to.call{value: amount}() (src/RewardsReceiver.sol#83)",
+          "location": {
+            "file": "src/RewardsReceiver.sol",
+            "line": 79
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "missing-zero-check",
+          "type": "missing-zero-check",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "ynETHRedemptionAssetsVault.transferRedemptionAssets(address,uint256,bytes).to (src/ynETHRedemptionAssetsVault.sol#95) lacks a zero-check on :\n\t\t- (success,None) = address(to).call{value: amount}() (src/ynETHRedemptionAssetsVault.sol#101)",
+          "location": {
+            "file": "src/ynETHRedemptionAssetsVault.sol",
+            "line": 95
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "missing-zero-check",
+          "type": "missing-zero-check",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "TokenStakingNode.delegate(address,ISignatureUtilsMixinTypes.SignatureWithExpiry,bytes32).operator (src/ynEIGEN/TokenStakingNode.sol#356) lacks a zero-check on :\n\t\t- delegatedTo = operator (src/ynEIGEN/TokenStakingNode.sol#365)",
+          "location": {
+            "file": "src/ynEIGEN/TokenStakingNode.sol",
+            "line": 356
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "missing-zero-check",
+          "type": "missing-zero-check",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "StakingNode.delegate(address,ISignatureUtilsMixinTypes.SignatureWithExpiry,bytes32).operator (src/StakingNode.sol#297) lacks a zero-check on :\n\t\t- delegatedTo = operator (src/StakingNode.sol#304)",
+          "location": {
+            "file": "src/StakingNode.sol",
+            "line": 297
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "calls-loop",
+          "type": "calls-loop",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "WithdrawalsProcessor._sharesToUnit(uint256,IERC20,IStrategy) (src/ynEIGEN/WithdrawalsProcessor.sol#583-591) has external calls inside a loop: assetRegistry.convertToUnitOfAccount(_asset,WOETH.previewDeposit(_amount)) (src/ynEIGEN/WithdrawalsProcessor.sol#585-590)\n\tCalls stack containing the loop:\n\t\tWithdrawalsProcessor.processPrincipalWithdrawals()",
+          "location": {
+            "file": "src/ynEIGEN/WithdrawalsProcessor.sol",
+            "line": 583
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "calls-loop",
+          "type": "calls-loop",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "EigenStrategyManager._updateTokenStakingNodesBalances(IERC20,IStrategy) (src/ynEIGEN/EigenStrategyManager.sol#237-285) has external calls inside a loop: withdrawableShares = node.getWithdrawableShares(strategy) (src/ynEIGEN/EigenStrategyManager.sol#249)\n\tCalls stack containing the loop:\n\t\tEigenStrategyManager.stakeAssetsToNode(uint256,IERC20[],uint256[])\n\t\tEigenStrategyManager._stakeAssetsToNode(uint256,IERC20[],uint256[])",
+          "location": {
+            "file": "src/ynEIGEN/EigenStrategyManager.sol",
+            "line": 237
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "calls-loop",
+          "type": "calls-loop",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "WithdrawalQueueManager._claimWithdrawal(IWithdrawalQueueManager.WithdrawalClaim) (src/WithdrawalQueueManager.sol#253-320) has external calls inside a loop: redeemableAsset.burn(request.amount) (src/WithdrawalQueueManager.sol#303)\n\tCalls stack containing the loop:\n\t\tWithdrawalQueueManager.claimWithdrawals(uint256[],address[])\n\t\tWithdrawalQueueManager.claimWithdrawal(uint256,address)",
+          "location": {
+            "file": "src/WithdrawalQueueManager.sol",
+            "line": 253
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "calls-loop",
+          "type": "calls-loop",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "AssetRegistry._addAsset(IERC20) (src/ynEIGEN/AssetRegistry.sol#130-153) has external calls inside a loop: ! strategyManager.supportsAsset(asset) (src/ynEIGEN/AssetRegistry.sol#135)\n\tCalls stack containing the loop:\n\t\tAssetRegistry.initialize(AssetRegistry.Init)",
+          "location": {
+            "file": "src/ynEIGEN/AssetRegistry.sol",
+            "line": 130
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "calls-loop",
+          "type": "calls-loop",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "StakingNodesManager.updateTotalETHStaked() (src/StakingNodesManager.sol#671-684) has external calls inside a loop: ! allNodes[i].isSynchronized() (src/StakingNodesManager.sol#675)\n\tCalls stack containing the loop:\n\t\tStakingNodesManager.processPrincipalWithdrawals(IStakingNodesManager.WithdrawalAction[])",
+          "location": {
+            "file": "src/StakingNodesManager.sol",
+            "line": 671
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "calls-loop",
+          "type": "calls-loop",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "StakingNode.syncQueuedShares() (src/StakingNode.sol#348-369) has external calls inside a loop: withdrawalRoot = delegationManager.calculateWithdrawalRoot(withdrawals[i]) (src/StakingNode.sol#356)\n\tCalls stack containing the loop:\n\t\tStakingNode.synchronize()",
+          "location": {
+            "file": "src/StakingNode.sol",
+            "line": 348
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "calls-loop",
+          "type": "calls-loop",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "TokenStakingNode._decreaseQueuedSharesOnCompleteWithdrawals(DelegationManagerStorage,IStrategy,IDelegationManagerTypes.Withdrawal) (src/ynEIGEN/TokenStakingNode.sol#546-576) has external calls inside a loop: (None,_singleWithdrawableShares) = _delegationManager.getQueuedWithdrawal(withdrawalRoot) (src/ynEIGEN/TokenStakingNode.sol#563)\n\tCalls stack containing the loop:\n\t\tTokenStakingNode.completeQueuedWithdrawals(IDelegationManagerTypes.Withdrawal,bool)\n\t\tTokenStakingNode.completeQueuedWithdrawals(IDelegationManagerTypes.Withdrawal[],bool)",
+          "location": {
+            "file": "src/ynEIGEN/TokenStakingNode.sol",
+            "line": 546
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "calls-loop",
+          "type": "calls-loop",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "RedemptionAssetsVault.availableRedemptionAssets() (src/ynEIGEN/RedemptionAssetsVault.sol#146-156) has external calls inside a loop: _availableRedemptionAssets += assetRegistry.convertToUnitOfAccount(asset,balance) (src/ynEIGEN/RedemptionAssetsVault.sol#154)",
+          "location": {
+            "file": "src/ynEIGEN/RedemptionAssetsVault.sol",
+            "line": 146
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "calls-loop",
+          "type": "calls-loop",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "EigenStrategyManager._processPrincipalWithdrawalForNode(IYieldNestStrategyManager.WithdrawalAction) (src/ynEIGEN/EigenStrategyManager.sol#389-411) has external calls inside a loop: _ynEigen.processWithdrawn(_action.amountToReinvest,_action.asset) (src/ynEIGEN/EigenStrategyManager.sol#399)\n\tCalls stack containing the loop:\n\t\tEigenStrategyManager.processPrincipalWithdrawals(IYieldNestStrategyManager.WithdrawalAction[])",
+          "location": {
+            "file": "src/ynEIGEN/EigenStrategyManager.sol",
+            "line": 389
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "calls-loop",
+          "type": "calls-loop",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "TokenStakingNode.synchronize() (src/ynEIGEN/TokenStakingNode.sol#419-454) has external calls inside a loop: withdrawalRoot = delegationManager.calculateWithdrawalRoot(withdrawal) (src/ynEIGEN/TokenStakingNode.sol#439)",
+          "location": {
+            "file": "src/ynEIGEN/TokenStakingNode.sol",
+            "line": 419
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "calls-loop",
+          "type": "calls-loop",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "RedemptionAssetsVault.withdrawRedemptionAssets(uint256) (src/ynEIGEN/RedemptionAssetsVault.sol#198-220) has external calls inside a loop: reqAmountInAsset = assetRegistry.convertFromUnitOfAccount(asset,amount) (src/ynEIGEN/RedemptionAssetsVault.sol#206)",
+          "location": {
+            "file": "src/ynEIGEN/RedemptionAssetsVault.sol",
+            "line": 198
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "calls-loop",
+          "type": "calls-loop",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "StakingNodesManager.initializeStakingNode(IStakingNode,uint256) (src/StakingNodesManager.sol#453-483) has external calls inside a loop: node.initialize(IStakingNode.Init(IStakingNodesManager(address(this)),nodeCount)) (src/StakingNodesManager.sol#456-458)\n\tCalls stack containing the loop:\n\t\tStakingNodesManager.upgradeStakingNodeImplementation(address)\n\t\tStakingNodesManager._upgradeStakingNodeImplementation(address)",
+          "location": {
+            "file": "src/StakingNodesManager.sol",
+            "line": 453
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "calls-loop",
+          "type": "calls-loop",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "WithdrawalsProcessor.getTotalQueuedWithdrawals() (src/ynEIGEN/WithdrawalsProcessor.sol#216-237) has external calls inside a loop: (_queuedShares,_withdrawn) = _node.getQueuedSharesAndWithdrawn(_strategy,_asset) (src/ynEIGEN/WithdrawalsProcessor.sol#227)\n\tCalls stack containing the loop:\n\t\tWithdrawalsProcessor.getQueueWithdrawalsArgs()",
+          "location": {
+            "file": "src/ynEIGEN/WithdrawalsProcessor.sol",
+            "line": 216
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "calls-loop",
+          "type": "calls-loop",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "WithdrawalsProcessor.processPrincipalWithdrawals() (src/ynEIGEN/WithdrawalsProcessor.sol#440-508) has external calls inside a loop: _actions[i] = IYieldNestStrategyManager.WithdrawalAction({nodeId:ITokenStakingNode(queuedWithdrawal_.node).nodeId(),amountToReinvest:_amountToReinvest,amountToQueue:_amountToQueue,asset:_asset}) (src/ynEIGEN/WithdrawalsProcessor.sol#489-494)",
+          "location": {
+            "file": "src/ynEIGEN/WithdrawalsProcessor.sol",
+            "line": 440
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "calls-loop",
+          "type": "calls-loop",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "StakingNode._decreaseQueuedSharesOnCompleteQueuedWithdrawal(IDelegationManager,IDelegationManagerTypes.Withdrawal) (src/StakingNode.sol#526-556) has external calls inside a loop: (None,_singleWithdrawableShares) = delegationManager.getQueuedWithdrawal(withdrawalRoot) (src/StakingNode.sol#542)\n\tCalls stack containing the loop:\n\t\tStakingNode.completeQueuedWithdrawalsAsShares(IDelegationManagerTypes.Withdrawal[])",
+          "location": {
+            "file": "src/StakingNode.sol",
+            "line": 526
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "calls-loop",
+          "type": "calls-loop",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "StakingNodesManager._processPrincipalWithdrawalForNode(IStakingNodesManager.WithdrawalAction) (src/StakingNodesManager.sol#599-663) has external calls inside a loop: node.deallocateStakedETH(totalAmount) (src/StakingNodesManager.sol#627)\n\tCalls stack containing the loop:\n\t\tStakingNodesManager.processPrincipalWithdrawals(IStakingNodesManager.WithdrawalAction[])",
+          "location": {
+            "file": "src/StakingNodesManager.sol",
+            "line": 599
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "calls-loop",
+          "type": "calls-loop",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "AssetRegistry.convertToUnitOfAccount(IERC20,uint256) (src/ynEIGEN/AssetRegistry.sol#306-312) has external calls inside a loop: assetDecimals = IERC20Metadata(address(asset)).decimals() (src/ynEIGEN/AssetRegistry.sol#308)\n\tCalls stack containing the loop:\n\t\tAssetRegistry.totalAssets()",
+          "location": {
+            "file": "src/ynEIGEN/AssetRegistry.sol",
+            "line": 306
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "calls-loop",
+          "type": "calls-loop",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "StakingNodesManager.getWithdrawalCredentials(uint256) (src/StakingNodesManager.sol#378-381) has external calls inside a loop: eigenPodAddress = address(IStakingNode(nodes[nodeId]).eigenPod()) (src/StakingNodesManager.sol#379)\n\tCalls stack containing the loop:\n\t\tStakingNodesManager.registerValidators(IStakingNodesManager.ValidatorData[])\n\t\tStakingNodesManager._registerValidator(IStakingNodesManager.ValidatorData,uint256)",
+          "location": {
+            "file": "src/StakingNodesManager.sol",
+            "line": 378
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "calls-loop",
+          "type": "calls-loop",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "WithdrawalsProcessor.queueWithdrawals(IWithdrawalsProcessor.QueueWithdrawalsArgs) (src/ynEIGEN/WithdrawalsProcessor.sol#332-394) has external calls inside a loop: _queuedWithdrawals[_queuedId ++] = QueuedWithdrawal({node:_node,strategy:address(_queuedWithdrawal.strategies[0]),nonce:_queuedWithdrawal.nonce,shares:_queuedWithdrawal.scaledShares[0],tokenIdToFinalize:withdrawalQueueManager._tokenIdCounter(),startBlock:_queuedWithdrawal.startBlock,completed:false,delegatedTo:_queuedWithdrawal.delegatedTo}) (src/ynEIGEN/WithdrawalsProcessor.sol#367-376)",
+          "location": {
+            "file": "src/ynEIGEN/WithdrawalsProcessor.sol",
+            "line": 332
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "calls-loop",
+          "type": "calls-loop",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "EigenStrategyManager.getStakedAssetsBalances(IERC20[]) (src/ynEIGEN/EigenStrategyManager.sol#444-458) has external calls inside a loop: stakedBalances[j] = wrapper.toUserAssetAmount(asset,balance.stakedBalance) + balance.withdrawnBalance (src/ynEIGEN/EigenStrategyManager.sol#454)",
+          "location": {
+            "file": "src/ynEIGEN/EigenStrategyManager.sol",
+            "line": 444
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "calls-loop",
+          "type": "calls-loop",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "StakingNodesManager._registerValidator(IStakingNodesManager.ValidatorData,uint256) (src/StakingNodesManager.sol#328-354) has external calls inside a loop: IStakingNode(nodes[nodeId]).allocateStakedETH(_depositAmount) (src/StakingNodesManager.sol#345)\n\tCalls stack containing the loop:\n\t\tStakingNodesManager.registerValidators(IStakingNodesManager.ValidatorData[])",
+          "location": {
+            "file": "src/StakingNodesManager.sol",
+            "line": 328
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "calls-loop",
+          "type": "calls-loop",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "EigenStrategyManager._stakeAssetsToNode(uint256,IERC20[],uint256[]) (src/ynEIGEN/EigenStrategyManager.sol#317-374) has external calls inside a loop: node.depositAssetsToEigenlayer(depositAssets,depositAmounts,strategiesForNode) (src/ynEIGEN/EigenStrategyManager.sol#367)\n\tCalls stack containing the loop:\n\t\tEigenStrategyManager.stakeAssetsToNodes(EigenStrategyManager.NodeAllocation[])",
+          "location": {
+            "file": "src/ynEIGEN/EigenStrategyManager.sol",
+            "line": 317
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "calls-loop",
+          "type": "calls-loop",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "TokenStakingNodesManager.initializeTokenStakingNode(ITokenStakingNode,uint256) (src/ynEIGEN/TokenStakingNodesManager.sol#180-207) has external calls inside a loop: node.initialize(ITokenStakingNode.Init(ITokenStakingNodesManager(address(this)),nodeId)) (src/ynEIGEN/TokenStakingNodesManager.sol#184-186)\n\tCalls stack containing the loop:\n\t\tTokenStakingNodesManager.upgradeTokenStakingNode(address)",
+          "location": {
+            "file": "src/ynEIGEN/TokenStakingNodesManager.sol",
+            "line": 180
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "calls-loop",
+          "type": "calls-loop",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "PooledDepositsVault.finalizeDeposits(address[]) (src/PooledDepositsVault.sol#58-71) has external calls inside a loop: shares = ynETH.depositETH{value: depositAmountPerDepositor}(depositor) (src/PooledDepositsVault.sol#68)",
+          "location": {
+            "file": "src/PooledDepositsVault.sol",
+            "line": 58
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "calls-loop",
+          "type": "calls-loop",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "RedemptionAssetsVault.transferRedemptionAssets(address,uint256,bytes) (src/ynEIGEN/RedemptionAssetsVault.sol#165-191) has external calls inside a loop: assetBalanceInUnit = assetRegistry.convertToUnitOfAccount(asset,assetBalance) (src/ynEIGEN/RedemptionAssetsVault.sol#175)",
+          "location": {
+            "file": "src/ynEIGEN/RedemptionAssetsVault.sol",
+            "line": 165
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "calls-loop",
+          "type": "calls-loop",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "WithdrawalsProcessor.completeQueuedWithdrawals() (src/ynEIGEN/WithdrawalsProcessor.sol#398-435) has external calls inside a loop: ITokenStakingNode(queuedWithdrawal_.node).completeQueuedWithdrawals(_withdrawal,true) (src/ynEIGEN/WithdrawalsProcessor.sol#424-427)",
+          "location": {
+            "file": "src/ynEIGEN/WithdrawalsProcessor.sol",
+            "line": 398
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "calls-loop",
+          "type": "calls-loop",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "TokenStakingNode.completeQueuedWithdrawalsAsShares(IDelegationManagerTypes.Withdrawal[]) (src/ynEIGEN/TokenStakingNode.sol#306-334) has external calls inside a loop: _tokens[i][0] = _strategy.underlyingToken() (src/ynEIGEN/TokenStakingNode.sol#324)",
+          "location": {
+            "file": "src/ynEIGEN/TokenStakingNode.sol",
+            "line": 306
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "calls-loop",
+          "type": "calls-loop",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "WithdrawalQueueManager.calculateRedemptionAmount(uint256,uint256) (src/WithdrawalQueueManager.sol#387-392) has external calls inside a loop: amount * redemptionRate / (10 ** redeemableAsset.decimals()) (src/WithdrawalQueueManager.sol#391)\n\tCalls stack containing the loop:\n\t\tWithdrawalQueueManager.claimWithdrawals(uint256[],address[])\n\t\tWithdrawalQueueManager.claimWithdrawal(uint256,address)\n\t\tWithdrawalQueueManager._claimWithdrawal(IWithdrawalQueueManager.WithdrawalClaim)",
+          "location": {
+            "file": "src/WithdrawalQueueManager.sol",
+            "line": 387
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "calls-loop",
+          "type": "calls-loop",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "TokenStakingNode.completeQueuedWithdrawals(IDelegationManagerTypes.Withdrawal[],bool) (src/ynEIGEN/TokenStakingNode.sol#235-286) has external calls inside a loop: _actualAmountOut = _token.balanceOf(address(this)) - _balancesBefore[i_scope_1] (src/ynEIGEN/TokenStakingNode.sol#275)",
+          "location": {
+            "file": "src/ynEIGEN/TokenStakingNode.sol",
+            "line": 235
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "calls-loop",
+          "type": "calls-loop",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "RedemptionAssetsVault.previewClaim(uint256) (src/ynEIGEN/RedemptionAssetsVault.sol#98-119) has external calls inside a loop: assetBalanceInUnit = assetRegistry.convertToUnitOfAccount(asset,assetBalance) (src/ynEIGEN/RedemptionAssetsVault.sol#108)",
+          "location": {
+            "file": "src/ynEIGEN/RedemptionAssetsVault.sol",
+            "line": 98
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "calls-loop",
+          "type": "calls-loop",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "ynEigenViewer.getYnEigenAssets() (src/ynEIGEN/ynEigenViewer.sol#80-106) has external calls inside a loop: _assetsInfo[i] = AssetInfo({asset:address(_assets[i]),name:IERC20Metadata(address(_assets[i])).name(),symbol:IERC20Metadata(address(_assets[i])).symbol(),rate:rateProvider.rate(address(_assets[i])),ratioOfTotalAssets:0,totalBalanceInUnitOfAccount:_balance,totalBalanceInAsset:assetBalance}) (src/ynEIGEN/ynEigenViewer.sol#96-104)",
+          "location": {
+            "file": "src/ynEIGEN/ynEigenViewer.sol",
+            "line": 80
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "calls-loop",
+          "type": "calls-loop",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "WithdrawalsProcessor._stakedBalanceForStrategy(IERC20) (src/ynEIGEN/WithdrawalsProcessor.sol#548-564) has external calls inside a loop: _strategy = ynStrategyManager.strategies(_asset) (src/ynEIGEN/WithdrawalsProcessor.sol#552)\n\tCalls stack containing the loop:\n\t\tWithdrawalsProcessor.getQueueWithdrawalsArgs()",
+          "location": {
+            "file": "src/ynEIGEN/WithdrawalsProcessor.sol",
+            "line": 548
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "calls-loop",
+          "type": "calls-loop",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "EigenStrategyManager.synchronizeNodesAndUpdateBalances(ITokenStakingNode[]) (src/ynEIGEN/EigenStrategyManager.sol#207-218) has external calls inside a loop: nodes[i].synchronize() (src/ynEIGEN/EigenStrategyManager.sol#210)",
+          "location": {
+            "file": "src/ynEIGEN/EigenStrategyManager.sol",
+            "line": 207
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "calls-loop",
+          "type": "calls-loop",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "WithdrawalsProcessor.shouldCompleteQueuedWithdrawals() (src/ynEIGEN/WithdrawalsProcessor.sol#183-200) has external calls inside a loop: _withdrawalDelay = delegationManager.minWithdrawalDelayBlocks() (src/ynEIGEN/WithdrawalsProcessor.sol#193)",
+          "location": {
+            "file": "src/ynEIGEN/WithdrawalsProcessor.sol",
+            "line": 183
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "calls-loop",
+          "type": "calls-loop",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "ynViewer.getStakingNodeData() (src/ynViewer.sol#47-67) has external calls inside a loop: _data[i] = StakingNodeData({nodeId:_node.nodeId(),ethBalance:_node.getETHBalance(),eigenPodEthBalance:_eigenPod.balance,podOwnerShares:_eigenPodManager.podOwnerDepositShares(address(_node)),stakingNode:address(_node),eigenPod:_eigenPod,delegatedTo:stakingNodesManager.delegationManager().delegatedTo(address(_node))}) (src/ynViewer.sol#57-65)",
+          "location": {
+            "file": "src/ynViewer.sol",
+            "line": 47
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "calls-loop",
+          "type": "calls-loop",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "TokenStakingNode.initializeV3() (src/ynEIGEN/TokenStakingNode.sol#126-138) has external calls inside a loop: strategy = eigenStrategyManager.strategies(assets[i]) (src/ynEIGEN/TokenStakingNode.sol#132)",
+          "location": {
+            "file": "src/ynEIGEN/TokenStakingNode.sol",
+            "line": 126
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "calls-loop",
+          "type": "calls-loop",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "WithdrawalsProcessor.getQueueWithdrawalsArgs() (src/ynEIGEN/WithdrawalsProcessor.sol#241-320) has external calls inside a loop: (_singleWithdrawableShares,None) = delegationManager.getWithdrawableShares(address(_node),_singleStrategy) (src/ynEIGEN/WithdrawalsProcessor.sol#270)",
+          "location": {
+            "file": "src/ynEIGEN/WithdrawalsProcessor.sol",
+            "line": 241
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "calls-loop",
+          "type": "calls-loop",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "ynEigen.retrieveAssets(IERC20[],uint256[]) (src/ynEIGEN/ynEigen.sol#294-321) has external calls inside a loop: ! assetRegistry.assetIsSupported(asset) (src/ynEIGEN/ynEigen.sol#308)",
+          "location": {
+            "file": "src/ynEIGEN/ynEigen.sol",
+            "line": 294
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "calls-loop",
+          "type": "calls-loop",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "StakingNodesManager.initializeV3(IRewardsCoordinator) (src/StakingNodesManager.sol#248-261) has external calls inside a loop: updatedTotalETHStaked += _nodes[i].getETHBalance() (src/StakingNodesManager.sol#257)",
+          "location": {
+            "file": "src/StakingNodesManager.sol",
+            "line": 248
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "calls-loop",
+          "type": "calls-loop",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "WithdrawalsProcessor._underlyingTokenForStrategy(IStrategy) (src/ynEIGEN/WithdrawalsProcessor.sol#566-573) has external calls inside a loop: _token = address(_strategy.underlyingToken()) (src/ynEIGEN/WithdrawalsProcessor.sol#569)\n\tCalls stack containing the loop:\n\t\tWithdrawalsProcessor.processPrincipalWithdrawals()",
+          "location": {
+            "file": "src/ynEIGEN/WithdrawalsProcessor.sol",
+            "line": 566
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "calls-loop",
+          "type": "calls-loop",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "TokenStakingNode.depositAssetsToEigenlayer(IERC20[],uint256[],IStrategy[]) (src/ynEIGEN/TokenStakingNode.sol#150-172) has external calls inside a loop: eigenShares = strategyManager.depositIntoStrategy(IStrategy(strategy),IERC20(address(asset)),amount) (src/ynEIGEN/TokenStakingNode.sol#169)",
+          "location": {
+            "file": "src/ynEIGEN/TokenStakingNode.sol",
+            "line": 150
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-benign",
+          "type": "reentrancy-benign",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in TokenStakingNode.queueWithdrawals(IStrategy,uint256) (src/ynEIGEN/TokenStakingNode.sol#192-228):\n\tExternal calls:\n\t- _fullWithdrawalRoots = _delegationManager.queueWithdrawals(_params) (src/ynEIGEN/TokenStakingNode.sol#211)\n\tState variables written after the call(s):\n\t- queuedShares[_strategy] += _withdrawableShares (src/ynEIGEN/TokenStakingNode.sol#220)\n\t- withdrawableShareInfo[_withdrawalRoot] = WithdrawableShareInfo({withdrawableShares:_withdrawableShares,postELIP002SlashingUpgrade:true}) (src/ynEIGEN/TokenStakingNode.sol#222-225)",
+          "location": {
+            "file": "src/ynEIGEN/TokenStakingNode.sol",
+            "line": 192
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-benign",
+          "type": "reentrancy-benign",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in EigenStrategyManager._processPrincipalWithdrawalForNode(IYieldNestStrategyManager.WithdrawalAction) (src/ynEIGEN/EigenStrategyManager.sol#389-411):\n\tExternal calls:\n\t- _node.deallocateTokens(IERC20(_action.asset),_totalAmount) (src/ynEIGEN/EigenStrategyManager.sol#394)\n\t- _ynEigen.processWithdrawn(_action.amountToReinvest,_action.asset) (src/ynEIGEN/EigenStrategyManager.sol#399)\n\t- _redemptionAssetsVault.deposit(_action.amountToQueue,_action.asset) (src/ynEIGEN/EigenStrategyManager.sol#405)\n\tState variables written after the call(s):\n\t- _updateTokenStakingNodesBalances(IERC20(_action.asset),IStrategy(address(0))) (src/ynEIGEN/EigenStrategyManager.sol#408)\n\t\t- strategiesBalance[strategy] = _strategyBalance (src/ynEIGEN/EigenStrategyManager.sol#275)",
+          "location": {
+            "file": "src/ynEIGEN/EigenStrategyManager.sol",
+            "line": 389
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-benign",
+          "type": "reentrancy-benign",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in WithdrawalsProcessor.completeQueuedWithdrawals() (src/ynEIGEN/WithdrawalsProcessor.sol#398-435):\n\tExternal calls:\n\t- ITokenStakingNode(queuedWithdrawal_.node).completeQueuedWithdrawals(_withdrawal,true) (src/ynEIGEN/WithdrawalsProcessor.sol#424-427)\n\tState variables written after the call(s):\n\t- withdrawnAtCompletedWithdrawal[_completedId] = _totalSharesBefore - _strategies[0].totalShares() (src/ynEIGEN/WithdrawalsProcessor.sol#431)",
+          "location": {
+            "file": "src/ynEIGEN/WithdrawalsProcessor.sol",
+            "line": 398
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-benign",
+          "type": "reentrancy-benign",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in EigenStrategyManager._stakeAssetsToNode(uint256,IERC20[],uint256[]) (src/ynEIGEN/EigenStrategyManager.sol#317-374):\n\tExternal calls:\n\t- ynEigen.retrieveAssets(assets,amounts) (src/ynEIGEN/EigenStrategyManager.sol#348)\n\t- (depositAmount,depositAsset) = _wrapper.unwrap(amounts[i_scope_0],assets[i_scope_0]) (src/ynEIGEN/EigenStrategyManager.sol#357)\n\t- node.depositAssetsToEigenlayer(depositAssets,depositAmounts,strategiesForNode) (src/ynEIGEN/EigenStrategyManager.sol#367)\n\tState variables written after the call(s):\n\t- _updateTokenStakingNodesBalances(assets[i_scope_1],IStrategy(address(0))) (src/ynEIGEN/EigenStrategyManager.sol#370)\n\t\t- strategiesBalance[strategy] = _strategyBalance (src/ynEIGEN/EigenStrategyManager.sol#275)",
+          "location": {
+            "file": "src/ynEIGEN/EigenStrategyManager.sol",
+            "line": 317
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-benign",
+          "type": "reentrancy-benign",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in EigenStrategyManager.synchronizeNodesAndUpdateBalances(ITokenStakingNode[]) (src/ynEIGEN/EigenStrategyManager.sol#207-218):\n\tExternal calls:\n\t- nodes[i].synchronize() (src/ynEIGEN/EigenStrategyManager.sol#210)\n\tState variables written after the call(s):\n\t- _updateTokenStakingNodesBalances(assets[i_scope_0],IStrategy(address(0))) (src/ynEIGEN/EigenStrategyManager.sol#216)\n\t\t- strategiesBalance[strategy] = _strategyBalance (src/ynEIGEN/EigenStrategyManager.sol#275)",
+          "location": {
+            "file": "src/ynEIGEN/EigenStrategyManager.sol",
+            "line": 207
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-benign",
+          "type": "reentrancy-benign",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in WithdrawalsProcessor.queueWithdrawals(IWithdrawalsProcessor.QueueWithdrawalsArgs) (src/ynEIGEN/WithdrawalsProcessor.sol#332-394):\n\tExternal calls:\n\t- _fullWithdrawalRoots = ITokenStakingNode(_node).queueWithdrawals(_strategy,_depositShares) (src/ynEIGEN/WithdrawalsProcessor.sol#364)\n\tState variables written after the call(s):\n\t- _queuedWithdrawals[_queuedId ++] = QueuedWithdrawal({node:_node,strategy:address(_queuedWithdrawal.strategies[0]),nonce:_queuedWithdrawal.nonce,shares:_queuedWithdrawal.scaledShares[0],tokenIdToFinalize:withdrawalQueueManager._tokenIdCounter(),startBlock:_queuedWithdrawal.startBlock,completed:false,delegatedTo:_queuedWithdrawal.delegatedTo}) (src/ynEIGEN/WithdrawalsProcessor.sol#367-376)\n\t- batch[_ids.queued] = _queuedId (src/ynEIGEN/WithdrawalsProcessor.sol#380)\n\t- batch[_ids.queued] = _queuedId (src/ynEIGEN/WithdrawalsProcessor.sol#389)",
+          "location": {
+            "file": "src/ynEIGEN/WithdrawalsProcessor.sol",
+            "line": 332
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-benign",
+          "type": "reentrancy-benign",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in StakingNodesManager.processPrincipalWithdrawals(IStakingNodesManager.WithdrawalAction[]) (src/StakingNodesManager.sol#583-593):\n\tExternal calls:\n\t- _processPrincipalWithdrawalForNode(actions[i]) (src/StakingNodesManager.sol#587)\n\t\t- node.deallocateStakedETH(totalAmount) (src/StakingNodesManager.sol#627)\n\t\t- ynETH.processWithdrawnETH{value: amountToReinvest}() (src/StakingNodesManager.sol#632)\n\t\t- (success,None) = address(redemptionAssetsVault).call{value: amountToQueue}() (src/StakingNodesManager.sol#637)\n\t\t- (sent,None) = address(rewardsDistributor.consensusLayerReceiver()).call{value: rewardsAmount}() (src/StakingNodesManager.sol#653)\n\t\t- rewardsDistributor.processRewards() (src/StakingNodesManager.sol#658)\n\tExternal calls sending eth:\n\t- _processPrincipalWithdrawalForNode(actions[i]) (src/StakingNodesManager.sol#587)\n\t\t- ynETH.processWithdrawnETH{value: amountToReinvest}() (src/StakingNodesManager.sol#632)\n\t\t- (success,None) = address(redemptionAssetsVault).call{value: amountToQueue}() (src/StakingNodesManager.sol#637)\n\t\t- (sent,None) = address(rewardsDistributor.consensusLayerReceiver()).call{value: rewardsAmount}() (src/StakingNodesManager.sol#653)\n\tState variables written after the call(s):\n\t- updateTotalETHStaked() (src/StakingNodesManager.sol#592)\n\t\t- totalETHStaked = updatedTotalETHStaked (src/StakingNodesManager.sol#683)",
+          "location": {
+            "file": "src/StakingNodesManager.sol",
+            "line": 583
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-benign",
+          "type": "reentrancy-benign",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in StakingNode.queueWithdrawals(uint256) (src/StakingNode.sol#382-418):\n\tExternal calls:\n\t- fullWithdrawalRoots = delegationManager.queueWithdrawals(params) (src/StakingNode.sol#404)\n\tState variables written after the call(s):\n\t- queuedSharesAmount += withdrawableShares[0] (src/StakingNode.sol#410)\n\t- withdrawableShareInfo[fullWithdrawalRoots[0]] = WithdrawableShareInfo({withdrawableShares:withdrawableShares[0],postELIP002SlashingUpgrade:true}) (src/StakingNode.sol#411-414)",
+          "location": {
+            "file": "src/StakingNode.sol",
+            "line": 382
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-benign",
+          "type": "reentrancy-benign",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in StakingNode.undelegate() (src/StakingNode.sol#314-329):\n\tExternal calls:\n\t- withdrawalRoots = delegationManager.undelegate(address(this)) (src/StakingNode.sol#324)\n\tState variables written after the call(s):\n\t- synchronize() (src/StakingNode.sol#326)\n\t\t- queuedSharesAmount = queuedWithdrawableShares (src/StakingNode.sol#366)\n\t- synchronize() (src/StakingNode.sol#326)\n\t\t- withdrawableShareInfo[withdrawalRoot] = WithdrawableShareInfo({withdrawableShares:withdrawableShares,postELIP002SlashingUpgrade:true}) (src/StakingNode.sol#358-361)",
+          "location": {
+            "file": "src/StakingNode.sol",
+            "line": 314
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-benign",
+          "type": "reentrancy-benign",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in ynETH.processWithdrawnETH() (src/ynETH.sol#298-308):\n\tExternal calls:\n\t- ! (msg.sender == address(stakingNodesManager) || msg.sender == (address(stakingNodesManager.redemptionAssetsVault()))) (src/ynETH.sol#301-302)\n\tState variables written after the call(s):\n\t- totalDepositedInPool += msg.value (src/ynETH.sol#305)",
+          "location": {
+            "file": "src/ynETH.sol",
+            "line": 298
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-benign",
+          "type": "reentrancy-benign",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in StakingNodesManager.registerValidators(IStakingNodesManager.ValidatorData[]) (src/StakingNodesManager.sol#276-307):\n\tExternal calls:\n\t- ynETH.withdrawETH(totalDepositAmount) (src/StakingNodesManager.sol#291)\n\t- _registerValidator(validator,DEFAULT_VALIDATOR_STAKE) (src/StakingNodesManager.sol#302)\n\t\t- depositContractEth2.deposit{value: _depositAmount}(validator.publicKey,withdrawalCredentials,validator.signature,depositDataRoot) (src/StakingNodesManager.sol#341)\n\t\t- IStakingNode(nodes[nodeId]).allocateStakedETH(_depositAmount) (src/StakingNodesManager.sol#345)\n\tExternal calls sending eth:\n\t- _registerValidator(validator,DEFAULT_VALIDATOR_STAKE) (src/StakingNodesManager.sol#302)\n\t\t- depositContractEth2.deposit{value: _depositAmount}(validator.publicKey,withdrawalCredentials,validator.signature,depositDataRoot) (src/StakingNodesManager.sol#341)\n\tState variables written after the call(s):\n\t- updateTotalETHStaked() (src/StakingNodesManager.sol#306)\n\t\t- totalETHStaked = updatedTotalETHStaked (src/StakingNodesManager.sol#683)",
+          "location": {
+            "file": "src/StakingNodesManager.sol",
+            "line": 276
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-benign",
+          "type": "reentrancy-benign",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in StakingNode.verifyWithdrawalCredentials(uint64,BeaconChainProofs.StateRootProof,uint40[],bytes[],bytes32[][]) (src/StakingNode.sol#244-272):\n\tExternal calls:\n\t- IEigenPod(address(eigenPod)).verifyWithdrawalCredentials(beaconTimestamp,stateRootProof,validatorIndices,validatorFieldsProofs,validatorFields) (src/StakingNode.sol#251-253)\n\tState variables written after the call(s):\n\t- unverifiedStakedETH -= DEFAULT_VALIDATOR_STAKE (src/StakingNode.sol#268)",
+          "location": {
+            "file": "src/StakingNode.sol",
+            "line": 244
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-benign",
+          "type": "reentrancy-benign",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in StakingNodesManager._registerValidator(IStakingNodesManager.ValidatorData,uint256) (src/StakingNodesManager.sol#328-354):\n\tExternal calls:\n\t- depositContractEth2.deposit{value: _depositAmount}(validator.publicKey,withdrawalCredentials,validator.signature,depositDataRoot) (src/StakingNodesManager.sol#341)\n\tState variables written after the call(s):\n\t- validators.push(Validator({publicKey:validator.publicKey,nodeId:validator.nodeId})) (src/StakingNodesManager.sol#342)",
+          "location": {
+            "file": "src/StakingNodesManager.sol",
+            "line": 328
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-benign",
+          "type": "reentrancy-benign",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in TokenStakingNode.undelegate() (src/ynEIGEN/TokenStakingNode.sol#373-388):\n\tExternal calls:\n\t- withdrawalRoots = delegationManager.undelegate(address(this)) (src/ynEIGEN/TokenStakingNode.sol#382)\n\tState variables written after the call(s):\n\t- synchronize() (src/ynEIGEN/TokenStakingNode.sol#385)\n\t\t- delete queuedShares[strategy] (src/ynEIGEN/TokenStakingNode.sol#431)\n\t\t- queuedShares[strategy_scope_1] += withdrawableShares (src/ynEIGEN/TokenStakingNode.sol#442)\n\t- synchronize() (src/ynEIGEN/TokenStakingNode.sol#385)\n\t\t- withdrawableShareInfo[withdrawalRoot] = WithdrawableShareInfo({withdrawableShares:withdrawableShares,postELIP002SlashingUpgrade:true}) (src/ynEIGEN/TokenStakingNode.sol#446-449)",
+          "location": {
+            "file": "src/ynEIGEN/TokenStakingNode.sol",
+            "line": 373
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-benign",
+          "type": "reentrancy-benign",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in StakingNode.completeQueuedWithdrawals(IDelegationManagerTypes.Withdrawal[]) (src/StakingNode.sol#428-478):\n\tExternal calls:\n\t- delegationManager.completeQueuedWithdrawals(withdrawals,tokens,receiveAsTokens) (src/StakingNode.sol#463)\n\tState variables written after the call(s):\n\t- withdrawnETH += actualWithdrawalAmount (src/StakingNode.sol#475)",
+          "location": {
+            "file": "src/StakingNode.sol",
+            "line": 428
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-events",
+          "type": "reentrancy-events",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in StakingNodesManager.initializeStakingNode(IStakingNode,uint256) (src/StakingNodesManager.sol#453-483):\n\tExternal calls:\n\t- node.initialize(IStakingNode.Init(IStakingNodesManager(address(this)),nodeCount)) (src/StakingNodesManager.sol#456-458)\n\t- node.initializeV2(0) (src/StakingNodesManager.sol#465)\n\t- node.initializeV3() (src/StakingNodesManager.sol#470)\n\t- node.initializeV4() (src/StakingNodesManager.sol#475)\n\tEvent emitted after the call(s):\n\t- NodeInitialized(address(node),initializedVersion) (src/StakingNodesManager.sol#479)",
+          "location": {
+            "file": "src/StakingNodesManager.sol",
+            "line": 453
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-events",
+          "type": "reentrancy-events",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in TokenStakingNodesManager.createTokenStakingNode() (src/ynEIGEN/TokenStakingNodesManager.sol#149-171):\n\tExternal calls:\n\t- proxy = new BeaconProxy(address(upgradeableBeacon),) (src/ynEIGEN/TokenStakingNodesManager.sol#161)\n\t- initializeTokenStakingNode(node,nodeId) (src/ynEIGEN/TokenStakingNodesManager.sol#164)\n\t\t- node.initialize(ITokenStakingNode.Init(ITokenStakingNodesManager(address(this)),nodeId)) (src/ynEIGEN/TokenStakingNodesManager.sol#184-186)\n\t\t- node.initializeV2() (src/ynEIGEN/TokenStakingNodesManager.sol#194)\n\t\t- node.initializeV3() (src/ynEIGEN/TokenStakingNodesManager.sol#200)\n\tEvent emitted after the call(s):\n\t- NodeInitialized(address(node),initializedVersion) (src/ynEIGEN/TokenStakingNodesManager.sol#190)\n\t\t- initializeTokenStakingNode(node,nodeId) (src/ynEIGEN/TokenStakingNodesManager.sol#164)\n\t- NodeInitialized(address(node),initializedVersion) (src/ynEIGEN/TokenStakingNodesManager.sol#196)\n\t\t- initializeTokenStakingNode(node,nodeId) (src/ynEIGEN/TokenStakingNodesManager.sol#164)\n\t- NodeInitialized(address(node),initializedVersion) (src/ynEIGEN/TokenStakingNodesManager.sol#202)\n\t\t- initializeTokenStakingNode(node,nodeId) (src/ynEIGEN/TokenStakingNodesManager.sol#164)\n\t- TokenStakingNodeCreated(nodeId,address(node)) (src/ynEIGEN/TokenStakingNodesManager.sol#168)",
+          "location": {
+            "file": "src/ynEIGEN/TokenStakingNodesManager.sol",
+            "line": 149
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-events",
+          "type": "reentrancy-events",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in ynETH.withdrawETH(uint256) (src/ynETH.sol#272-291):\n\tExternal calls:\n\t- (success,None) = address(address(stakingNodesManager)).call{value: ethAmount}() (src/ynETH.sol#285)\n\tEvent emitted after the call(s):\n\t- ETHWithdrawn(ethAmount,newTotalDepositedInPool) (src/ynETH.sol#290)",
+          "location": {
+            "file": "src/ynETH.sol",
+            "line": 272
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-events",
+          "type": "reentrancy-events",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in ynETH.processWithdrawnETH() (src/ynETH.sol#298-308):\n\tExternal calls:\n\t- ! (msg.sender == address(stakingNodesManager) || msg.sender == (address(stakingNodesManager.redemptionAssetsVault()))) (src/ynETH.sol#301-302)\n\tEvent emitted after the call(s):\n\t- WithdrawnETHProcessed(msg.value,totalDepositedInPool) (src/ynETH.sol#307)",
+          "location": {
+            "file": "src/ynETH.sol",
+            "line": 298
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-events",
+          "type": "reentrancy-events",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in StakingNode.queueWithdrawals(uint256) (src/StakingNode.sol#382-418):\n\tExternal calls:\n\t- fullWithdrawalRoots = delegationManager.queueWithdrawals(params) (src/StakingNode.sol#404)\n\tEvent emitted after the call(s):\n\t- QueuedWithdrawals(depositSharesAmount,fullWithdrawalRoots) (src/StakingNode.sol#415)",
+          "location": {
+            "file": "src/StakingNode.sol",
+            "line": 382
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-events",
+          "type": "reentrancy-events",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in ynEigenDepositAdapter.depositStETH(uint256,address) (src/ynEIGEN/ynEigenDepositAdapter.sol#167-176):\n\tExternal calls:\n\t- (wstETHAmount,None) = wrapper.wrap(amount,stETH) (src/ynEIGEN/ynEigenDepositAdapter.sol#170)\n\t- shares = ynEigen.deposit(IERC20(address(wstETH)),wstETHAmount,receiver) (src/ynEIGEN/ynEigenDepositAdapter.sol#173)\n\tEvent emitted after the call(s):\n\t- DepositWrappedAsset(msg.sender,receiver,address(stETH),amount,wstETHAmount,shares) (src/ynEIGEN/ynEigenDepositAdapter.sol#175)",
+          "location": {
+            "file": "src/ynEIGEN/ynEigenDepositAdapter.sol",
+            "line": 167
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-events",
+          "type": "reentrancy-events",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in ReferralDepositAdapter.depositWithReferral(address,address) (src/ReferralDepositAdapter.sol#69-86):\n\tExternal calls:\n\t- shares = ynETH.depositETH{value: msg.value}(receiver) (src/ReferralDepositAdapter.sol#83)\n\tEvent emitted after the call(s):\n\t- ReferralDepositProcessed(msg.sender,receiver,msg.value,shares,referrer,block.timestamp,false) (src/ReferralDepositAdapter.sol#85)",
+          "location": {
+            "file": "src/ReferralDepositAdapter.sol",
+            "line": 69
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-events",
+          "type": "reentrancy-events",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in EigenStrategyManager._processPrincipalWithdrawalForNode(IYieldNestStrategyManager.WithdrawalAction) (src/ynEIGEN/EigenStrategyManager.sol#389-411):\n\tExternal calls:\n\t- _node.deallocateTokens(IERC20(_action.asset),_totalAmount) (src/ynEIGEN/EigenStrategyManager.sol#394)\n\t- _ynEigen.processWithdrawn(_action.amountToReinvest,_action.asset) (src/ynEIGEN/EigenStrategyManager.sol#399)\n\t- _redemptionAssetsVault.deposit(_action.amountToQueue,_action.asset) (src/ynEIGEN/EigenStrategyManager.sol#405)\n\tEvent emitted after the call(s):\n\t- PrincipalWithdrawalProcessed(_action.nodeId,_action.asset,_action.amountToReinvest,_action.amountToQueue) (src/ynEIGEN/EigenStrategyManager.sol#410)\n\t- StrategyBalanceUpdated(address(asset),address(strategy),nodesCount,_strategyBalance.stakedBalance,_strategyBalance.withdrawnBalance) (src/ynEIGEN/EigenStrategyManager.sol#277-283)\n\t\t- _updateTokenStakingNodesBalances(IERC20(_action.asset),IStrategy(address(0))) (src/ynEIGEN/EigenStrategyManager.sol#408)",
+          "location": {
+            "file": "src/ynEIGEN/EigenStrategyManager.sol",
+            "line": 389
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-events",
+          "type": "reentrancy-events",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in StakingNodesManager._upgradeStakingNodeImplementation(address) (src/StakingNodesManager.sol#517-532):\n\tExternal calls:\n\t- upgradeableBeacon.upgradeTo(_implementationContract) (src/StakingNodesManager.sol#521)\n\t- initializeStakingNode(nodes[i],nodeCount) (src/StakingNodesManager.sol#527)\n\t\t- node.initialize(IStakingNode.Init(IStakingNodesManager(address(this)),nodeCount)) (src/StakingNodesManager.sol#456-458)\n\t\t- node.initializeV2(0) (src/StakingNodesManager.sol#465)\n\t\t- node.initializeV3() (src/StakingNodesManager.sol#470)\n\t\t- node.initializeV4() (src/StakingNodesManager.sol#475)\n\tEvent emitted after the call(s):\n\t- NodeInitialized(address(node),initializedVersion) (src/StakingNodesManager.sol#479)\n\t\t- initializeStakingNode(nodes[i],nodeCount) (src/StakingNodesManager.sol#527)\n\t- UpgradedStakingNodeImplementationContract(_implementationContract,nodeCount) (src/StakingNodesManager.sol#530)",
+          "location": {
+            "file": "src/StakingNodesManager.sol",
+            "line": 517
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-events",
+          "type": "reentrancy-events",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in ynEigenDepositAdapter.depositOETH(uint256,address) (src/ynEIGEN/ynEigenDepositAdapter.sol#178-187):\n\tExternal calls:\n\t- (woETHShares,None) = wrapper.wrap(amount,oETH) (src/ynEIGEN/ynEigenDepositAdapter.sol#181)\n\t- shares = ynEigen.deposit(IERC20(address(woETH)),woETHShares,receiver) (src/ynEIGEN/ynEigenDepositAdapter.sol#184)\n\tEvent emitted after the call(s):\n\t- DepositWrappedAsset(msg.sender,receiver,address(oETH),amount,woETHShares,shares) (src/ynEIGEN/ynEigenDepositAdapter.sol#186)",
+          "location": {
+            "file": "src/ynEIGEN/ynEigenDepositAdapter.sol",
+            "line": 178
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-events",
+          "type": "reentrancy-events",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in ynEigenDepositAdapter.depositWithReferral(IERC20,uint256,address,address) (src/ynEIGEN/ynEigenDepositAdapter.sol#148-165):\n\tExternal calls:\n\t- shares = deposit(asset,amount,receiver) (src/ynEIGEN/ynEigenDepositAdapter.sol#163)\n\t\t- (woETHShares,None) = wrapper.wrap(amount,oETH) (src/ynEIGEN/ynEigenDepositAdapter.sol#181)\n\t\t- (wstETHAmount,None) = wrapper.wrap(amount,stETH) (src/ynEIGEN/ynEigenDepositAdapter.sol#170)\n\t\t- shares = ynEigen.deposit(IERC20(address(woETH)),woETHShares,receiver) (src/ynEIGEN/ynEigenDepositAdapter.sol#184)\n\t\t- shares = ynEigen.deposit(IERC20(address(wstETH)),wstETHAmount,receiver) (src/ynEIGEN/ynEigenDepositAdapter.sol#173)\n\t\t- ynEigen.deposit(asset,amount,receiver) (src/ynEIGEN/ynEigenDepositAdapter.sol#112)\n\tEvent emitted after the call(s):\n\t- ReferralDepositProcessed(msg.sender,receiver,address(asset),amount,shares,referrer,block.timestamp) (src/ynEIGEN/ynEigenDepositAdapter.sol#164)",
+          "location": {
+            "file": "src/ynEIGEN/ynEigenDepositAdapter.sol",
+            "line": 148
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-events",
+          "type": "reentrancy-events",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in TokenStakingNode.completeQueuedWithdrawals(IDelegationManagerTypes.Withdrawal[],bool) (src/ynEIGEN/TokenStakingNode.sol#235-286):\n\tExternal calls:\n\t- _delegationManager.completeQueuedWithdrawals(withdrawals,_tokens,_receiveAsTokens) (src/ynEIGEN/TokenStakingNode.sol#271)\n\t- (_actualAmountOut,_token) = _wrapper.wrap(_actualAmountOut,_token) (src/ynEIGEN/TokenStakingNode.sol#277)\n\t- IYieldNestStrategyManager(tokenStakingNodesManager.yieldNestStrategyManager()).updateTokenStakingNodesBalances(_token) (src/ynEIGEN/TokenStakingNode.sol#280-281)\n\tEvent emitted after the call(s):\n\t- CompletedManyQueuedWithdrawals(withdrawals) (src/ynEIGEN/TokenStakingNode.sol#285)",
+          "location": {
+            "file": "src/ynEIGEN/TokenStakingNode.sol",
+            "line": 235
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-events",
+          "type": "reentrancy-events",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in TokenStakingNode.delegate(address,ISignatureUtilsMixinTypes.SignatureWithExpiry,bytes32) (src/ynEIGEN/TokenStakingNode.sol#356-368):\n\tExternal calls:\n\t- delegationManager.delegateTo(operator,signature,approverSalt) (src/ynEIGEN/TokenStakingNode.sol#363)\n\tEvent emitted after the call(s):\n\t- Delegated(operator,approverSalt) (src/ynEIGEN/TokenStakingNode.sol#367)",
+          "location": {
+            "file": "src/ynEIGEN/TokenStakingNode.sol",
+            "line": 356
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-events",
+          "type": "reentrancy-events",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in WithdrawalQueueManager.withdrawSurplusRedemptionAssets(uint256) (src/WithdrawalQueueManager.sol#437-445):\n\tExternal calls:\n\t- redemptionAssetsVault.withdrawRedemptionAssets(amount) (src/WithdrawalQueueManager.sol#442)\n\tEvent emitted after the call(s):\n\t- SurplusRedemptionAssetsWithdrawn(amount,surplus) (src/WithdrawalQueueManager.sol#444)",
+          "location": {
+            "file": "src/WithdrawalQueueManager.sol",
+            "line": 437
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-events",
+          "type": "reentrancy-events",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in WithdrawalsProcessor.completeAndProcessWithdrawalsForNode(IStakingNodesManager.WithdrawalAction,IDelegationManagerTypes.Withdrawal[]) (src/WithdrawalsProcessor.sol#67-84):\n\tExternal calls:\n\t- stakingNodesManager.nodes(withdrawalAction.nodeId).completeQueuedWithdrawals(withdrawals) (src/WithdrawalsProcessor.sol#72)\n\t- stakingNodesManager.processPrincipalWithdrawals(actions) (src/WithdrawalsProcessor.sol#77)\n\tEvent emitted after the call(s):\n\t- WithdrawalsCompletedAndProcessed(withdrawalAction,withdrawals.length) (src/WithdrawalsProcessor.sol#80-83)",
+          "location": {
+            "file": "src/WithdrawalsProcessor.sol",
+            "line": 67
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-events",
+          "type": "reentrancy-events",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in StakingNode.completeQueuedWithdrawals(IDelegationManagerTypes.Withdrawal[]) (src/StakingNode.sol#428-478):\n\tExternal calls:\n\t- delegationManager.completeQueuedWithdrawals(withdrawals,tokens,receiveAsTokens) (src/StakingNode.sol#463)\n\tEvent emitted after the call(s):\n\t- CompletedQueuedWithdrawals(withdrawals,totalWithdrawableShares,actualWithdrawalAmount) (src/StakingNode.sol#477)",
+          "location": {
+            "file": "src/StakingNode.sol",
+            "line": 428
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-events",
+          "type": "reentrancy-events",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in RewardsReceiver.transferETH(address,uint256) (src/RewardsReceiver.sol#79-89):\n\tExternal calls:\n\t- (success,None) = to.call{value: amount}() (src/RewardsReceiver.sol#83)\n\tEvent emitted after the call(s):\n\t- EthWithdrawn(to,amount) (src/RewardsReceiver.sol#88)",
+          "location": {
+            "file": "src/RewardsReceiver.sol",
+            "line": 79
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-events",
+          "type": "reentrancy-events",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in TokenStakingNodesManager.initializeTokenStakingNode(ITokenStakingNode,uint256) (src/ynEIGEN/TokenStakingNodesManager.sol#180-207):\n\tExternal calls:\n\t- node.initialize(ITokenStakingNode.Init(ITokenStakingNodesManager(address(this)),nodeId)) (src/ynEIGEN/TokenStakingNodesManager.sol#184-186)\n\t- node.initializeV2() (src/ynEIGEN/TokenStakingNodesManager.sol#194)\n\tEvent emitted after the call(s):\n\t- NodeInitialized(address(node),initializedVersion) (src/ynEIGEN/TokenStakingNodesManager.sol#196)",
+          "location": {
+            "file": "src/ynEIGEN/TokenStakingNodesManager.sol",
+            "line": 180
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-events",
+          "type": "reentrancy-events",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in TokenStakingNodesManager.upgradeTokenStakingNode(address) (src/ynEIGEN/TokenStakingNodesManager.sol#236-255):\n\tExternal calls:\n\t- upgradeableBeacon.upgradeTo(_implementationContract) (src/ynEIGEN/TokenStakingNodesManager.sol#245)\n\t- initializeTokenStakingNode(nodes[i],nodeCount) (src/ynEIGEN/TokenStakingNodesManager.sol#251)\n\t\t- node.initialize(ITokenStakingNode.Init(ITokenStakingNodesManager(address(this)),nodeId)) (src/ynEIGEN/TokenStakingNodesManager.sol#184-186)\n\t\t- node.initializeV2() (src/ynEIGEN/TokenStakingNodesManager.sol#194)\n\t\t- node.initializeV3() (src/ynEIGEN/TokenStakingNodesManager.sol#200)\n\tEvent emitted after the call(s):\n\t- NodeInitialized(address(node),initializedVersion) (src/ynEIGEN/TokenStakingNodesManager.sol#190)\n\t\t- initializeTokenStakingNode(nodes[i],nodeCount) (src/ynEIGEN/TokenStakingNodesManager.sol#251)\n\t- NodeInitialized(address(node),initializedVersion) (src/ynEIGEN/TokenStakingNodesManager.sol#196)\n\t\t- initializeTokenStakingNode(nodes[i],nodeCount) (src/ynEIGEN/TokenStakingNodesManager.sol#251)\n\t- NodeInitialized(address(node),initializedVersion) (src/ynEIGEN/TokenStakingNodesManager.sol#202)\n\t\t- initializeTokenStakingNode(nodes[i],nodeCount) (src/ynEIGEN/TokenStakingNodesManager.sol#251)\n\t- UpgradedStakingNodeImplementationContract(address(_implementationContract),nodeCount) (src/ynEIGEN/TokenStakingNodesManager.sol#254)",
+          "location": {
+            "file": "src/ynEIGEN/TokenStakingNodesManager.sol",
+            "line": 236
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-events",
+          "type": "reentrancy-events",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in TokenStakingNode.queueWithdrawals(IStrategy,uint256) (src/ynEIGEN/TokenStakingNode.sol#192-228):\n\tExternal calls:\n\t- _fullWithdrawalRoots = _delegationManager.queueWithdrawals(_params) (src/ynEIGEN/TokenStakingNode.sol#211)\n\tEvent emitted after the call(s):\n\t- QueuedWithdrawals(_strategy,_withdrawableShares,_fullWithdrawalRoots) (src/ynEIGEN/TokenStakingNode.sol#227)",
+          "location": {
+            "file": "src/ynEIGEN/TokenStakingNode.sol",
+            "line": 192
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-events",
+          "type": "reentrancy-events",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in StakingNode.delegate(address,ISignatureUtilsMixinTypes.SignatureWithExpiry,bytes32) (src/StakingNode.sol#296-307):\n\tExternal calls:\n\t- delegationManager.delegateTo(operator,approverSignatureAndExpiry,approverSalt) (src/StakingNode.sol#302)\n\tEvent emitted after the call(s):\n\t- Delegated(operator,approverSalt) (src/StakingNode.sol#306)",
+          "location": {
+            "file": "src/StakingNode.sol",
+            "line": 296
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-events",
+          "type": "reentrancy-events",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in TokenStakingNode.setClaimer(address) (src/ynEIGEN/TokenStakingNode.sol#395-399):\n\tExternal calls:\n\t- rewardsCoordinator.setClaimerFor(claimer) (src/ynEIGEN/TokenStakingNode.sol#397)\n\tEvent emitted after the call(s):\n\t- ClaimerSet(claimer) (src/ynEIGEN/TokenStakingNode.sol#398)",
+          "location": {
+            "file": "src/ynEIGEN/TokenStakingNode.sol",
+            "line": 395
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-events",
+          "type": "reentrancy-events",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in TokenStakingNode.completeQueuedWithdrawalsAsShares(IDelegationManagerTypes.Withdrawal[]) (src/ynEIGEN/TokenStakingNode.sol#306-334):\n\tExternal calls:\n\t- _delegationManager.completeQueuedWithdrawals(withdrawals,_tokens,_receiveAsTokens) (src/ynEIGEN/TokenStakingNode.sol#331)\n\tEvent emitted after the call(s):\n\t- CompletedManyQueuedWithdrawals(withdrawals) (src/ynEIGEN/TokenStakingNode.sol#333)",
+          "location": {
+            "file": "src/ynEIGEN/TokenStakingNode.sol",
+            "line": 306
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-events",
+          "type": "reentrancy-events",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in StakingNodesManager.processPrincipalWithdrawals(IStakingNodesManager.WithdrawalAction[]) (src/StakingNodesManager.sol#583-593):\n\tExternal calls:\n\t- _processPrincipalWithdrawalForNode(actions[i]) (src/StakingNodesManager.sol#587)\n\t\t- node.deallocateStakedETH(totalAmount) (src/StakingNodesManager.sol#627)\n\t\t- ynETH.processWithdrawnETH{value: amountToReinvest}() (src/StakingNodesManager.sol#632)\n\t\t- (success,None) = address(redemptionAssetsVault).call{value: amountToQueue}() (src/StakingNodesManager.sol#637)\n\t\t- (sent,None) = address(rewardsDistributor.consensusLayerReceiver()).call{value: rewardsAmount}() (src/StakingNodesManager.sol#653)\n\t\t- rewardsDistributor.processRewards() (src/StakingNodesManager.sol#658)\n\tExternal calls sending eth:\n\t- _processPrincipalWithdrawalForNode(actions[i]) (src/StakingNodesManager.sol#587)\n\t\t- ynETH.processWithdrawnETH{value: amountToReinvest}() (src/StakingNodesManager.sol#632)\n\t\t- (success,None) = address(redemptionAssetsVault).call{value: amountToQueue}() (src/StakingNodesManager.sol#637)\n\t\t- (sent,None) = address(rewardsDistributor.consensusLayerReceiver()).call{value: rewardsAmount}() (src/StakingNodesManager.sol#653)\n\tEvent emitted after the call(s):\n\t- TotalETHStakedUpdated(updatedTotalETHStaked) (src/StakingNodesManager.sol#681)\n\t\t- updateTotalETHStaked() (src/StakingNodesManager.sol#592)",
+          "location": {
+            "file": "src/StakingNodesManager.sol",
+            "line": 583
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-events",
+          "type": "reentrancy-events",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in PooledDepositsVault.finalizeDeposits(address[]) (src/PooledDepositsVault.sol#58-71):\n\tExternal calls:\n\t- shares = ynETH.depositETH{value: depositAmountPerDepositor}(depositor) (src/PooledDepositsVault.sol#68)\n\tEvent emitted after the call(s):\n\t- DepositFinalized(depositor,depositAmountPerDepositor,shares) (src/PooledDepositsVault.sol#69)",
+          "location": {
+            "file": "src/PooledDepositsVault.sol",
+            "line": 58
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-events",
+          "type": "reentrancy-events",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in WithdrawalQueueManager._claimWithdrawal(IWithdrawalQueueManager.WithdrawalClaim) (src/WithdrawalQueueManager.sol#253-320):\n\tExternal calls:\n\t- redeemableAsset.burn(request.amount) (src/WithdrawalQueueManager.sol#303)\n\t- redemptionAssetsVault.transferRedemptionAssets(receiver,unitOfAccountAmount - feeAmount,request.data) (src/WithdrawalQueueManager.sol#313)\n\t- redemptionAssetsVault.transferRedemptionAssets(feeReceiver,feeAmount,request.data) (src/WithdrawalQueueManager.sol#316)\n\tEvent emitted after the call(s):\n\t- WithdrawalClaimed(tokenId,msg.sender,receiver,request,finalizationId,unitOfAccountAmount,redemptionRate) (src/WithdrawalQueueManager.sol#319)",
+          "location": {
+            "file": "src/WithdrawalQueueManager.sol",
+            "line": 253
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-events",
+          "type": "reentrancy-events",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in StakingNodesManager.createStakingNode() (src/StakingNodesManager.sol#418-442):\n\tExternal calls:\n\t- proxy = new BeaconProxy(address(upgradeableBeacon),) (src/StakingNodesManager.sol#430)\n\t- initializeStakingNode(node,nodeCount) (src/StakingNodesManager.sol#433)\n\t\t- node.initialize(IStakingNode.Init(IStakingNodesManager(address(this)),nodeCount)) (src/StakingNodesManager.sol#456-458)\n\t\t- node.initializeV2(0) (src/StakingNodesManager.sol#465)\n\t\t- node.initializeV3() (src/StakingNodesManager.sol#470)\n\t\t- node.initializeV4() (src/StakingNodesManager.sol#475)\n\tEvent emitted after the call(s):\n\t- NodeInitialized(address(node),initializedVersion) (src/StakingNodesManager.sol#479)\n\t\t- initializeStakingNode(node,nodeCount) (src/StakingNodesManager.sol#433)",
+          "location": {
+            "file": "src/StakingNodesManager.sol",
+            "line": 418
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-events",
+          "type": "reentrancy-events",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in EigenStrategyManager.synchronizeNodesAndUpdateBalances(ITokenStakingNode[]) (src/ynEIGEN/EigenStrategyManager.sol#207-218):\n\tExternal calls:\n\t- nodes[i].synchronize() (src/ynEIGEN/EigenStrategyManager.sol#210)\n\tEvent emitted after the call(s):\n\t- StrategyBalanceUpdated(address(asset),address(strategy),nodesCount,_strategyBalance.stakedBalance,_strategyBalance.withdrawnBalance) (src/ynEIGEN/EigenStrategyManager.sol#277-283)\n\t\t- _updateTokenStakingNodesBalances(assets[i_scope_0],IStrategy(address(0))) (src/ynEIGEN/EigenStrategyManager.sol#216)",
+          "location": {
+            "file": "src/ynEIGEN/EigenStrategyManager.sol",
+            "line": 207
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-events",
+          "type": "reentrancy-events",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in StakingNode.completeQueuedWithdrawalsAsShares(IDelegationManagerTypes.Withdrawal[]) (src/StakingNode.sol#485-518):\n\tExternal calls:\n\t- delegationManager.completeQueuedWithdrawals(withdrawals,tokens,receiveAsTokens) (src/StakingNode.sol#511-515)\n\tEvent emitted after the call(s):\n\t- CompletedQueuedWithdrawals(withdrawals,totalWithdrawableShares,0) (src/StakingNode.sol#517)",
+          "location": {
+            "file": "src/StakingNode.sol",
+            "line": 485
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-events",
+          "type": "reentrancy-events",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in StakingNodesManager._processPrincipalWithdrawalForNode(IStakingNodesManager.WithdrawalAction) (src/StakingNodesManager.sol#599-663):\n\tExternal calls:\n\t- node.deallocateStakedETH(totalAmount) (src/StakingNodesManager.sol#627)\n\t- ynETH.processWithdrawnETH{value: amountToReinvest}() (src/StakingNodesManager.sol#632)\n\t- (success,None) = address(redemptionAssetsVault).call{value: amountToQueue}() (src/StakingNodesManager.sol#637)\n\t- (sent,None) = address(rewardsDistributor.consensusLayerReceiver()).call{value: rewardsAmount}() (src/StakingNodesManager.sol#653)\n\t- rewardsDistributor.processRewards() (src/StakingNodesManager.sol#658)\n\tExternal calls sending eth:\n\t- ynETH.processWithdrawnETH{value: amountToReinvest}() (src/StakingNodesManager.sol#632)\n\t- (success,None) = address(redemptionAssetsVault).call{value: amountToQueue}() (src/StakingNodesManager.sol#637)\n\t- (sent,None) = address(rewardsDistributor.consensusLayerReceiver()).call{value: rewardsAmount}() (src/StakingNodesManager.sol#653)\n\tEvent emitted after the call(s):\n\t- PrincipalWithdrawalProcessed(nodeId,amountToReinvest,amountToQueue,rewardsAmount) (src/StakingNodesManager.sol#662)",
+          "location": {
+            "file": "src/StakingNodesManager.sol",
+            "line": 599
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-events",
+          "type": "reentrancy-events",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in StakingNode.verifyWithdrawalCredentials(uint64,BeaconChainProofs.StateRootProof,uint40[],bytes[],bytes32[][]) (src/StakingNode.sol#244-272):\n\tExternal calls:\n\t- IEigenPod(address(eigenPod)).verifyWithdrawalCredentials(beaconTimestamp,stateRootProof,validatorIndices,validatorFieldsProofs,validatorFields) (src/StakingNode.sol#251-253)\n\tEvent emitted after the call(s):\n\t- ValidatorRestaked(validatorIndices[i],beaconTimestamp,effectiveBalanceGwei) (src/StakingNode.sol#270)\n\t- VerifyWithdrawalCredentialsCompleted(validatorIndices[i],beaconTimestamp,effectiveBalanceGwei) (src/StakingNode.sol#261)",
+          "location": {
+            "file": "src/StakingNode.sol",
+            "line": 244
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-events",
+          "type": "reentrancy-events",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in RewardsDistributor.processRewards() (src/RewardsDistributor.sol#107-142):\n\tExternal calls:\n\t- executionLayerReceiver.transferETH(self,elRewards) (src/RewardsDistributor.sol#123)\n\t- consensusLayerReceiver.transferETH(self,clRewards) (src/RewardsDistributor.sol#124)\n\t- ynETH.receiveRewards{value: netRewards}() (src/RewardsDistributor.sol#130)\n\t- (success,None) = feesReceiver.call{value: fees}() (src/RewardsDistributor.sol#135)\n\tExternal calls sending eth:\n\t- ynETH.receiveRewards{value: netRewards}() (src/RewardsDistributor.sol#130)\n\t- (success,None) = feesReceiver.call{value: fees}() (src/RewardsDistributor.sol#135)\n\tEvent emitted after the call(s):\n\t- RewardsProcessed(totalRewards,elRewards,clRewards,netRewards,fees) (src/RewardsDistributor.sol#141)",
+          "location": {
+            "file": "src/RewardsDistributor.sol",
+            "line": 107
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-events",
+          "type": "reentrancy-events",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in StakingNode.undelegate() (src/StakingNode.sol#314-329):\n\tExternal calls:\n\t- withdrawalRoots = delegationManager.undelegate(address(this)) (src/StakingNode.sol#324)\n\tEvent emitted after the call(s):\n\t- QueuedSharesSynced(queuedWithdrawableShares + preELIP002QueuedSharesAmount) (src/StakingNode.sol#368)\n\t\t- synchronize() (src/StakingNode.sol#326)\n\t- Undelegated(operator,int256(withdrawableShares[0])) (src/StakingNode.sol#328)",
+          "location": {
+            "file": "src/StakingNode.sol",
+            "line": 314
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-events",
+          "type": "reentrancy-events",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in StakingNode.setClaimer(address) (src/StakingNode.sol#336-342):\n\tExternal calls:\n\t- rewardsCoordinator.setClaimerFor(claimer) (src/StakingNode.sol#340)\n\tEvent emitted after the call(s):\n\t- ClaimerSet(claimer) (src/StakingNode.sol#341)",
+          "location": {
+            "file": "src/StakingNode.sol",
+            "line": 336
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-events",
+          "type": "reentrancy-events",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in TokenStakingNode.undelegate() (src/ynEIGEN/TokenStakingNode.sol#373-388):\n\tExternal calls:\n\t- withdrawalRoots = delegationManager.undelegate(address(this)) (src/ynEIGEN/TokenStakingNode.sol#382)\n\tEvent emitted after the call(s):\n\t- QueuedSharesSynced() (src/ynEIGEN/TokenStakingNode.sol#453)\n\t\t- synchronize() (src/ynEIGEN/TokenStakingNode.sol#385)\n\t- Undelegated(withdrawalRoots) (src/ynEIGEN/TokenStakingNode.sol#387)",
+          "location": {
+            "file": "src/ynEIGEN/TokenStakingNode.sol",
+            "line": 373
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-events",
+          "type": "reentrancy-events",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in StakingNodesManager._processRewards(uint256,RewardsType,uint256) (src/StakingNodesManager.sol#560-577):\n\tExternal calls:\n\t- (sent,None) = address(receiver).call{value: rewards}() (src/StakingNodesManager.sol#571)\n\tEvent emitted after the call(s):\n\t- WithdrawnETHRewardsProcessed(nodeId,rewardsType,rewards) (src/StakingNodesManager.sol#576)",
+          "location": {
+            "file": "src/StakingNodesManager.sol",
+            "line": 560
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "timestamp",
+          "type": "timestamp",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "WithdrawalQueueManager.withdrawalRequestExists(IWithdrawalQueueManager.WithdrawalRequest) (src/WithdrawalQueueManager.sol#555-557) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- request.creationTimestamp > 0 (src/WithdrawalQueueManager.sol#556)",
+          "location": {
+            "file": "src/WithdrawalQueueManager.sol",
+            "line": 555
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "assembly",
+          "type": "assembly",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "StakingNode.implementation() (src/StakingNode.sol#677-686) uses assembly\n\t- INLINE ASM (src/StakingNode.sol#680-682)",
+          "location": {
+            "file": "src/StakingNode.sol",
+            "line": 677
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "assembly",
+          "type": "assembly",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "ynBase._getYnBaseStorage() (src/ynBase.sol#49-53) uses assembly\n\t- INLINE ASM (src/ynBase.sol#50-52)",
+          "location": {
+            "file": "src/ynBase.sol",
+            "line": 49
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "assembly",
+          "type": "assembly",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "TokenStakingNode.implementation() (src/ynEIGEN/TokenStakingNode.sol#498-507) uses assembly\n\t- INLINE ASM (src/ynEIGEN/TokenStakingNode.sol#501-503)",
+          "location": {
+            "file": "src/ynEIGEN/TokenStakingNode.sol",
+            "line": 498
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "costly-loop",
+          "type": "costly-loop",
+          "severity": "Info",
+          "confidence": 0.6,
+          "description": "WithdrawalQueueManager._claimWithdrawal(IWithdrawalQueueManager.WithdrawalClaim) (src/WithdrawalQueueManager.sol#253-320) has costly operations inside a loop:\n\t- pendingRequestedRedemptionAmount -= unitOfAccountAmount (src/WithdrawalQueueManager.sol#300)\n\tCalls stack containing the loop:\n\t\tWithdrawalQueueManager.claimWithdrawals(IWithdrawalQueueManager.WithdrawalClaim[])\n\t\tWithdrawalQueueManager.claimWithdrawal(IWithdrawalQueueManager.WithdrawalClaim)",
+          "location": {
+            "file": "src/WithdrawalQueueManager.sol",
+            "line": 253
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "costly-loop",
+          "type": "costly-loop",
+          "severity": "Info",
+          "confidence": 0.6,
+          "description": "TokenStakingNode.initializeV3() (src/ynEIGEN/TokenStakingNode.sol#126-138) has costly operations inside a loop:\n\t- delete queuedShares[strategy] (src/ynEIGEN/TokenStakingNode.sol#136)",
+          "location": {
+            "file": "src/ynEIGEN/TokenStakingNode.sol",
+            "line": 126
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "costly-loop",
+          "type": "costly-loop",
+          "severity": "Info",
+          "confidence": 0.6,
+          "description": "StakingNode._decreaseQueuedSharesOnCompleteQueuedWithdrawal(IDelegationManager,IDelegationManagerTypes.Withdrawal) (src/StakingNode.sol#526-556) has costly operations inside a loop:\n\t- preELIP002QueuedSharesAmount -= totalWithdrawableShare (src/StakingNode.sol#537)\n\tCalls stack containing the loop:\n\t\tStakingNode.completeQueuedWithdrawals(IDelegationManagerTypes.Withdrawal[])",
+          "location": {
+            "file": "src/StakingNode.sol",
+            "line": 526
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "costly-loop",
+          "type": "costly-loop",
+          "severity": "Info",
+          "confidence": 0.6,
+          "description": "TokenStakingNode.synchronize() (src/ynEIGEN/TokenStakingNode.sol#419-454) has costly operations inside a loop:\n\t- delete queuedShares[strategy] (src/ynEIGEN/TokenStakingNode.sol#431)",
+          "location": {
+            "file": "src/ynEIGEN/TokenStakingNode.sol",
+            "line": 419
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "costly-loop",
+          "type": "costly-loop",
+          "severity": "Info",
+          "confidence": 0.6,
+          "description": "StakingNode.verifyWithdrawalCredentials(uint64,BeaconChainProofs.StateRootProof,uint40[],bytes[],bytes32[][]) (src/StakingNode.sol#244-272) has costly operations inside a loop:\n\t- unverifiedStakedETH -= DEFAULT_VALIDATOR_STAKE (src/StakingNode.sol#268)",
+          "location": {
+            "file": "src/StakingNode.sol",
+            "line": 244
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "low-level-calls",
+          "type": "low-level-calls",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Low level call in StakingNodesManager._processRewards(uint256,RewardsType,uint256) (src/StakingNodesManager.sol#560-577):\n\t- (sent,None) = address(receiver).call{value: rewards}() (src/StakingNodesManager.sol#571)",
+          "location": {
+            "file": "src/StakingNodesManager.sol",
+            "line": 560
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "low-level-calls",
+          "type": "low-level-calls",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Low level call in StakingNode.deallocateStakedETH(uint256) (src/StakingNode.sol#606-618):\n\t- (success,None) = address(stakingNodesManager).call{value: amount}() (src/StakingNode.sol#616)",
+          "location": {
+            "file": "src/StakingNode.sol",
+            "line": 606
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "low-level-calls",
+          "type": "low-level-calls",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Low level call in RewardsReceiver.transferETH(address,uint256) (src/RewardsReceiver.sol#79-89):\n\t- (success,None) = to.call{value: amount}() (src/RewardsReceiver.sol#83)",
+          "location": {
+            "file": "src/RewardsReceiver.sol",
+            "line": 79
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "low-level-calls",
+          "type": "low-level-calls",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Low level call in ynETHRedemptionAssetsVault.transferRedemptionAssets(address,uint256,bytes) (src/ynETHRedemptionAssetsVault.sol#95-106):\n\t- (success,None) = address(to).call{value: amount}() (src/ynETHRedemptionAssetsVault.sol#101)",
+          "location": {
+            "file": "src/ynETHRedemptionAssetsVault.sol",
+            "line": 95
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "low-level-calls",
+          "type": "low-level-calls",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Low level call in ynETH.withdrawETH(uint256) (src/ynETH.sol#272-291):\n\t- (success,None) = address(address(stakingNodesManager)).call{value: ethAmount}() (src/ynETH.sol#285)",
+          "location": {
+            "file": "src/ynETH.sol",
+            "line": 272
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "low-level-calls",
+          "type": "low-level-calls",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Low level call in RewardsDistributor.processRewards() (src/RewardsDistributor.sol#107-142):\n\t- (success,None) = feesReceiver.call{value: fees}() (src/RewardsDistributor.sol#135)",
+          "location": {
+            "file": "src/RewardsDistributor.sol",
+            "line": 107
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "low-level-calls",
+          "type": "low-level-calls",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Low level call in StakingNodesManager._processPrincipalWithdrawalForNode(IStakingNodesManager.WithdrawalAction) (src/StakingNodesManager.sol#599-663):\n\t- (success,None) = address(redemptionAssetsVault).call{value: amountToQueue}() (src/StakingNodesManager.sol#637)\n\t- (sent,None) = address(rewardsDistributor.consensusLayerReceiver()).call{value: rewardsAmount}() (src/StakingNodesManager.sol#653)",
+          "location": {
+            "file": "src/StakingNodesManager.sol",
+            "line": 599
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "missing-inheritance",
+          "type": "missing-inheritance",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "LSDRateProvider (src/ynEIGEN/LSDRateProvider.sol#12-79) should inherit from IRateProvider (src/interfaces/IRateProvider.sol#4-6)",
+          "location": {
+            "file": "src/ynEIGEN/LSDRateProvider.sol",
+            "line": 12
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter LSDRateProvider.rate(address)._asset (src/ynEIGEN/LSDRateProvider.sol#49) is not in mixedCase",
+          "location": {
+            "file": "src/ynEIGEN/LSDRateProvider.sol",
+            "line": 49
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter WithdrawalQueueManager.setFeeReceiver(address)._feeReceiver (src/WithdrawalQueueManager.sol#370) is not in mixedCase",
+          "location": {
+            "file": "src/WithdrawalQueueManager.sol",
+            "line": 370
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Variable StakingNodesManager.___deprecated_delayedWithdrawalRouter (src/StakingNodesManager.sol#120) is not in mixedCase",
+          "location": {
+            "file": "src/StakingNodesManager.sol",
+            "line": 120
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter StakingNodesManager.setMaxNodeCount(uint256)._maxNodeCount (src/StakingNodesManager.sol#538) is not in mixedCase",
+          "location": {
+            "file": "src/StakingNodesManager.sol",
+            "line": 538
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Contract ynETH (src/ynETH.sol#26-359) is not in CapWords",
+          "location": {
+            "file": "src/ynETH.sol",
+            "line": 26
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter LSDWrapper.unwrap(uint256,IERC20)._token (src/ynEIGEN/LSDWrapper.sol#66) is not in mixedCase",
+          "location": {
+            "file": "src/ynEIGEN/LSDWrapper.sol",
+            "line": 66
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter TokenStakingNode.getWithdrawableShares(IStrategy)._strategy (src/ynEIGEN/TokenStakingNode.sol#578) is not in mixedCase",
+          "location": {
+            "file": "src/ynEIGEN/TokenStakingNode.sol",
+            "line": 578
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter PooledDepositsVault.initialize(address)._initialOwner (src/PooledDepositsVault.sol#34) is not in mixedCase",
+          "location": {
+            "file": "src/PooledDepositsVault.sol",
+            "line": 34
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Contract ynBase (src/ynBase.sol#18-146) is not in CapWords",
+          "location": {
+            "file": "src/ynBase.sol",
+            "line": 18
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter LSDWrapper.wrap(uint256,IERC20)._amount (src/ynEIGEN/LSDWrapper.sol#51) is not in mixedCase",
+          "location": {
+            "file": "src/ynEIGEN/LSDWrapper.sol",
+            "line": 51
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter PooledDepositsVault.finalizeDeposits(address[])._depositors (src/PooledDepositsVault.sol#58) is not in mixedCase",
+          "location": {
+            "file": "src/PooledDepositsVault.sol",
+            "line": 58
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter TokenStakingNode.getQueuedSharesAndWithdrawn(IStrategy,IERC20)._asset (src/ynEIGEN/TokenStakingNode.sol#182) is not in mixedCase",
+          "location": {
+            "file": "src/ynEIGEN/TokenStakingNode.sol",
+            "line": 182
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter StakingNodesManager.isStakingNodesWithdrawer(address)._address (src/StakingNodesManager.sol#737) is not in mixedCase",
+          "location": {
+            "file": "src/StakingNodesManager.sol",
+            "line": 737
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Contract ynETHRedemptionAssetsVault (src/ynETHRedemptionAssetsVault.sol#12-170) is not in CapWords",
+          "location": {
+            "file": "src/ynETHRedemptionAssetsVault.sol",
+            "line": 12
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter EigenStrategyManager.processPrincipalWithdrawals(IYieldNestStrategyManager.WithdrawalAction[])._actions (src/ynEIGEN/EigenStrategyManager.sol#381) is not in mixedCase",
+          "location": {
+            "file": "src/ynEIGEN/EigenStrategyManager.sol",
+            "line": 381
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter WithdrawalsProcessor.initialize(IStakingNodesManager,address,address)._admin (src/WithdrawalsProcessor.sol#49) is not in mixedCase",
+          "location": {
+            "file": "src/WithdrawalsProcessor.sol",
+            "line": 49
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter EigenStrategyManager.initializeV2(address,address,address)._redemptionAssetsVault (src/ynEIGEN/EigenStrategyManager.sol#188) is not in mixedCase",
+          "location": {
+            "file": "src/ynEIGEN/EigenStrategyManager.sol",
+            "line": 188
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter WithdrawalsProcessor.initializeV2(address,uint256)._bufferMultiplierSetter (src/ynEIGEN/WithdrawalsProcessor.sol#127) is not in mixedCase",
+          "location": {
+            "file": "src/ynEIGEN/WithdrawalsProcessor.sol",
+            "line": 127
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter EigenStrategyManager.isStakingNodesWithdrawer(address)._address (src/ynEIGEN/EigenStrategyManager.sol#474) is not in mixedCase",
+          "location": {
+            "file": "src/ynEIGEN/EigenStrategyManager.sol",
+            "line": 474
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter ynEigenDepositAdapter.initializeV2(address)._wrapper (src/ynEIGEN/ynEigenDepositAdapter.sol#90) is not in mixedCase",
+          "location": {
+            "file": "src/ynEIGEN/ynEigenDepositAdapter.sol",
+            "line": 90
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter TokenStakingNodesManager.upgradeTokenStakingNode(address)._implementationContract (src/ynEIGEN/TokenStakingNodesManager.sol#236) is not in mixedCase",
+          "location": {
+            "file": "src/ynEIGEN/TokenStakingNodesManager.sol",
+            "line": 236
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter ynEigen.processWithdrawn(uint256,address)._amount (src/ynEIGEN/ynEigen.sol#323) is not in mixedCase",
+          "location": {
+            "file": "src/ynEIGEN/ynEigen.sol",
+            "line": 323
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter TokenStakingNode.deallocateTokens(IERC20,uint256)._amount (src/ynEIGEN/TokenStakingNode.sol#341) is not in mixedCase",
+          "location": {
+            "file": "src/ynEIGEN/TokenStakingNode.sol",
+            "line": 341
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Variable WithdrawalsProcessor.OETH (src/ynEIGEN/WithdrawalsProcessor.sol#53) is not in mixedCase",
+          "location": {
+            "file": "src/ynEIGEN/WithdrawalsProcessor.sol",
+            "line": 53
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter StakingNodesManager.initializeV3(IRewardsCoordinator)._rewardsCoordinator (src/StakingNodesManager.sol#249) is not in mixedCase",
+          "location": {
+            "file": "src/StakingNodesManager.sol",
+            "line": 249
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter WithdrawalsProcessor.initialize(IStakingNodesManager,address,address)._stakingNodesManager (src/WithdrawalsProcessor.sol#48) is not in mixedCase",
+          "location": {
+            "file": "src/WithdrawalsProcessor.sol",
+            "line": 48
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter StakingNodesManager.generateWithdrawalCredentials(address)._address (src/StakingNodesManager.sol#388) is not in mixedCase",
+          "location": {
+            "file": "src/StakingNodesManager.sol",
+            "line": 388
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter WithdrawalsProcessor.setBufferMultiplier(uint256)._bufferMultiplier (src/ynEIGEN/WithdrawalsProcessor.sol#527) is not in mixedCase",
+          "location": {
+            "file": "src/ynEIGEN/WithdrawalsProcessor.sol",
+            "line": 527
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Function ynBase.__ynBase_init(string,string) (src/ynBase.sol#65-67) is not in mixedCase",
+          "location": {
+            "file": "src/ynBase.sol",
+            "line": 65
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter WithdrawalsProcessor.updateMinPendingWithdrawalRequestAmount(uint256)._minPendingWithdrawalRequestAmount (src/ynEIGEN/WithdrawalsProcessor.sol#517) is not in mixedCase",
+          "location": {
+            "file": "src/ynEIGEN/WithdrawalsProcessor.sol",
+            "line": 517
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter WithdrawalQueueManager.finalizeRequestsUpToIndex(uint256)._lastFinalizedIndex (src/WithdrawalQueueManager.sol#466) is not in mixedCase",
+          "location": {
+            "file": "src/WithdrawalQueueManager.sol",
+            "line": 466
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter StakingNodesManager.upgradeStakingNodeImplementation(address)._implementationContract (src/StakingNodesManager.sol#509) is not in mixedCase",
+          "location": {
+            "file": "src/StakingNodesManager.sol",
+            "line": 509
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter EigenStrategyManager.initializeV2(address,address,address)._wrapper (src/ynEIGEN/EigenStrategyManager.sol#189) is not in mixedCase",
+          "location": {
+            "file": "src/ynEIGEN/EigenStrategyManager.sol",
+            "line": 189
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Variable WithdrawalQueueManager._tokenIdCounter (src/WithdrawalQueueManager.sol#98) is not in mixedCase",
+          "location": {
+            "file": "src/WithdrawalQueueManager.sol",
+            "line": 98
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter StakingNodesManager.isStakingNodesOperator(address)._address (src/StakingNodesManager.sol#719) is not in mixedCase",
+          "location": {
+            "file": "src/StakingNodesManager.sol",
+            "line": 719
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter WithdrawalsProcessor.initialize(address,address)._owner (src/ynEIGEN/WithdrawalsProcessor.sol#116) is not in mixedCase",
+          "location": {
+            "file": "src/ynEIGEN/WithdrawalsProcessor.sol",
+            "line": 116
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Struct ynBase.ynBaseStorage (src/ynBase.sol#41-44) is not in CapWords",
+          "location": {
+            "file": "src/ynBase.sol",
+            "line": 41
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter EigenStrategyManager.initializeV2(address,address,address)._withdrawer (src/ynEIGEN/EigenStrategyManager.sol#190) is not in mixedCase",
+          "location": {
+            "file": "src/ynEIGEN/EigenStrategyManager.sol",
+            "line": 190
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter StakingNodesManager.isStakingNodesDelegator(address)._address (src/StakingNodesManager.sol#728) is not in mixedCase",
+          "location": {
+            "file": "src/StakingNodesManager.sol",
+            "line": 728
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Contract ynEigenDepositAdapter (src/ynEIGEN/ynEigenDepositAdapter.sol#37-203) is not in CapWords",
+          "location": {
+            "file": "src/ynEIGEN/ynEigenDepositAdapter.sol",
+            "line": 37
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter TokenStakingNode.queueWithdrawals(IStrategy,uint256)._depositShares (src/ynEIGEN/TokenStakingNode.sol#192) is not in mixedCase",
+          "location": {
+            "file": "src/ynEIGEN/TokenStakingNode.sol",
+            "line": 192
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter WithdrawalsProcessor.initialize(IStakingNodesManager,address,address)._withdrawalManager (src/WithdrawalsProcessor.sol#50) is not in mixedCase",
+          "location": {
+            "file": "src/WithdrawalsProcessor.sol",
+            "line": 50
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Variable StakingNode._unused_former_allocatedETH (src/StakingNode.sol#104) is not in mixedCase",
+          "location": {
+            "file": "src/StakingNode.sol",
+            "line": 104
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Variable WithdrawalsProcessor.WOETH (src/ynEIGEN/WithdrawalsProcessor.sol#54) is not in mixedCase",
+          "location": {
+            "file": "src/ynEIGEN/WithdrawalsProcessor.sol",
+            "line": 54
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter WithdrawalsProcessor.queueWithdrawals(IWithdrawalsProcessor.QueueWithdrawalsArgs)._args (src/ynEIGEN/WithdrawalsProcessor.sol#332) is not in mixedCase",
+          "location": {
+            "file": "src/ynEIGEN/WithdrawalsProcessor.sol",
+            "line": 332
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Contract ynEigen (src/ynEIGEN/ynEigen.sol#24-385) is not in CapWords",
+          "location": {
+            "file": "src/ynEIGEN/ynEigen.sol",
+            "line": 24
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter WithdrawalsProcessor.queuedWithdrawals(uint256)._id (src/ynEIGEN/WithdrawalsProcessor.sol#161) is not in mixedCase",
+          "location": {
+            "file": "src/ynEIGEN/WithdrawalsProcessor.sol",
+            "line": 161
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Variable WithdrawalsProcessor.WSTETH (src/ynEIGEN/WithdrawalsProcessor.sol#52) is not in mixedCase",
+          "location": {
+            "file": "src/ynEIGEN/WithdrawalsProcessor.sol",
+            "line": 52
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Variable AssetRegistry._assetData (src/ynEIGEN/AssetRegistry.sol#60) is not in mixedCase",
+          "location": {
+            "file": "src/ynEIGEN/AssetRegistry.sol",
+            "line": 60
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter StakingNodesManager.registerStakingNodeImplementationContract(address)._implementationContract (src/StakingNodesManager.sol#490) is not in mixedCase",
+          "location": {
+            "file": "src/StakingNodesManager.sol",
+            "line": 490
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Variable WithdrawalsProcessor.STETH (src/ynEIGEN/WithdrawalsProcessor.sol#51) is not in mixedCase",
+          "location": {
+            "file": "src/ynEIGEN/WithdrawalsProcessor.sol",
+            "line": 51
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Contract ynViewer (src/ynViewer.sol#14-69) is not in CapWords",
+          "location": {
+            "file": "src/ynViewer.sol",
+            "line": 14
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter TokenStakingNodesManager.initializeV2(IRewardsCoordinator)._rewardsCoordinator (src/ynEIGEN/TokenStakingNodesManager.sol#130) is not in mixedCase",
+          "location": {
+            "file": "src/ynEIGEN/TokenStakingNodesManager.sol",
+            "line": 130
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Contract ynEigenViewer (src/ynEIGEN/ynEigenViewer.sol#14-136) is not in CapWords",
+          "location": {
+            "file": "src/ynEIGEN/ynEigenViewer.sol",
+            "line": 14
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Constant ynBase.ynBaseStorageLocation (src/ynBase.sol#47) is not in UPPER_CASE_WITH_UNDERSCORES",
+          "location": {
+            "file": "src/ynBase.sol",
+            "line": 47
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter PooledDepositsVault.setYnETH(IynETH)._ynETH (src/PooledDepositsVault.sol#40) is not in mixedCase",
+          "location": {
+            "file": "src/PooledDepositsVault.sol",
+            "line": 40
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter LSDWrapper.toUserAssetAmount(IERC20,uint256)._userUnderlyingView (src/ynEIGEN/LSDWrapper.sol#80) is not in mixedCase",
+          "location": {
+            "file": "src/ynEIGEN/LSDWrapper.sol",
+            "line": 80
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter TokenStakingNodesManager.setMaxNodeCount(uint256)._maxNodeCount (src/ynEIGEN/TokenStakingNodesManager.sol#259) is not in mixedCase",
+          "location": {
+            "file": "src/ynEIGEN/TokenStakingNodesManager.sol",
+            "line": 259
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter TokenStakingNodesManager.hasTokenStakingNodeDelegatorRole(address)._address (src/ynEIGEN/TokenStakingNodesManager.sol#282) is not in mixedCase",
+          "location": {
+            "file": "src/ynEIGEN/TokenStakingNodesManager.sol",
+            "line": 282
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "naming-convention",
+          "type": "naming-convention",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "Parameter TokenStakingNodesManager.registerTokenStakingNode(address)._implementationContract (src/ynEIGEN/TokenStakingNodesManager.sol#215) is not in mixedCase",
+          "location": {
+            "file": "src/ynEIGEN/TokenStakingNodesManager.sol",
+            "line": 215
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "too-many-digits",
+          "type": "too-many-digits",
+          "severity": "Info",
+          "confidence": 0.6,
+          "description": "WithdrawalQueueManager.slitherConstructorConstantVariables() (src/WithdrawalQueueManager.sol#44-614) uses literals with too many digits:\n\t- FEE_PRECISION = 1000000 (src/WithdrawalQueueManager.sol#84)",
+          "location": {
+            "file": "src/WithdrawalQueueManager.sol",
+            "line": 44
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "unimplemented-functions",
+          "type": "unimplemented-functions",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "EigenStrategyManager (src/ynEIGEN/EigenStrategyManager.sol#37-490) does not implement functions:\n\t- IYieldNestStrategyManager.strategies(IERC20) (src/interfaces/IYieldNestStrategyManager.sol#44)",
+          "location": {
+            "file": "src/ynEIGEN/EigenStrategyManager.sol",
+            "line": 37
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "unimplemented-functions",
+          "type": "unimplemented-functions",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "TokenStakingNode (src/ynEIGEN/TokenStakingNode.sol#41-585) does not implement functions:\n\t- ITokenStakingNode.preELIP002QueuedSharesAmount(IStrategy) (src/interfaces/ITokenStakingNode.sol#70)\n\t- ITokenStakingNode.queuedShares(IStrategy) (src/interfaces/ITokenStakingNode.sol#67)\n\t- ITokenStakingNode.withdrawn(IERC20) (src/interfaces/ITokenStakingNode.sol#68)",
+          "location": {
+            "file": "src/ynEIGEN/TokenStakingNode.sol",
+            "line": 41
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "unused-state",
+          "type": "unused-state",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "StakingNode._unused_former_allocatedETH (src/StakingNode.sol#104) is never used in StakingNode (src/StakingNode.sol#59-716)",
+          "location": {
+            "file": "src/StakingNode.sol",
+            "line": 104
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "constable-states",
+          "type": "constable-states",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "WithdrawalsProcessor.totalQueuedWithdrawals (src/ynEIGEN/WithdrawalsProcessor.sol#28) should be constant",
+          "location": {
+            "file": "src/ynEIGEN/WithdrawalsProcessor.sol",
+            "line": 28
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "constable-states",
+          "type": "constable-states",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "WithdrawalQueueManager.secondsToFinalization (src/WithdrawalQueueManager.sol#104) should be constant",
+          "location": {
+            "file": "src/WithdrawalQueueManager.sol",
+            "line": 104
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "constable-states",
+          "type": "constable-states",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "WithdrawalQueueManager.requestFinalizer (src/WithdrawalQueueManager.sol#113) should be constant",
+          "location": {
+            "file": "src/WithdrawalQueueManager.sol",
+            "line": 113
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "constable-states",
+          "type": "constable-states",
+          "severity": "Info",
+          "confidence": 0.9,
+          "description": "StakingNode._unused_former_allocatedETH (src/StakingNode.sol#104) should be constant",
+          "location": {
+            "file": "src/StakingNode.sol",
+            "line": 104
+          },
+          "tool": "slither"
+        }
+      ],
+      "execution_time": 0.0,
+      "metadata": {}
+    }
+  ],
+  "summary": {
+    "CRITICAL": 0,
+    "HIGH": 5,
+    "MEDIUM": 38,
+    "LOW": 98,
+    "INFO": 84
+  },
+  "tools_run": [
+    "slither"
+  ],
+  "version": "6.x"
+}
