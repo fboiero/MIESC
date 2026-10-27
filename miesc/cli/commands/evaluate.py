@@ -120,11 +120,9 @@ CATEGORY_ALIASES = {
         "unchecked-call-return-value",
         "unchecked-send",
         "unchecked-transfer",
-        "low-level-calls",
         "unchecked_send",
         "unchecked_transfer",
         "unchecked_call_return_value",
-        "low_level_calls",
         "calls-loop",
         "missing-return-value-check",
     },
@@ -193,6 +191,17 @@ OUT_OF_TAXONOMY_TYPES = {
     # ("has onlyOwner functions") the keyword fallback read as access_control.
     # Measured 2026-10-23: 22 non-access-control contracts, 0 labelled ones.
     "ownership_not_renounced",
+    # Slither `low-level-calls` (Informational) reports every `.call`, checked or
+    # not; the unchecked return is Slither `unchecked-lowlevel`/`unchecked-send`.
+    # 4naly3er `use_of_transfer_instead_of_call` is SWC-134, the same 2300-gas note
+    # as `hardcoded_gas`. Aderyn `unsafe-erc20-operation` recommends SafeERC20 and
+    # fires on ETH `addr.transfer(x)`, which reverts on failure; its text ("return
+    # values are not always meaningful") was read as the diagnosis.
+    # Measured 2026-10-26, with the two-argument ERC20 patterns in fouranalyzer and
+    # erc20_return_check: unchecked_low_level_calls FP 62 -> 17, all 52 TP kept.
+    "low_level_calls",
+    "use_of_transfer_instead_of_call",
+    "unsafe_erc20_operation",
     # miesc/detectors/defi_detectors.py::DeFiCategory
     "flash_loan",
     "oracle_manipulation",

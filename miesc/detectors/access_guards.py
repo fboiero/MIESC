@@ -29,6 +29,9 @@ __all__ = [
     "has_caller_guard",
     "is_self_service_withdrawal",
     "moves_value",
+    "enclosing_function_text",
+    "tx_origin_authorizes",
+    "loop_bound_is_local",
     "OWNER_LIKE_RE",
     "function_text_at",
 ]
@@ -119,3 +122,65 @@ def function_text_at(source: str, pos: int) -> tuple[str, str]:
 def moves_value(body: str) -> bool:
     """True when the function body sends ether (transfer/send/call.value/call{value})."""
     return bool(_VALUE_SINK_RE.search(body))
+
+
+_COMMENT_RE = re.compile(r"//[^\n]*|/\*.*?\*/", re.S)
+
+
+def enclosing_function_text(source: str, pos: int) -> tuple[str, str]:
+    """Return ``(header, body)`` of the function whose body contains ``pos``.
+
+    Comments are blanked (offsets kept). Empty strings when ``pos`` is outside every
+    function body. A function-type parameter
+    (``function(bytes32) view returns (bytes32) hasher``) also starts with ``function``
+    and reaches the same body, so the earliest start that reaches it is the declaration.
+    """
+    source = _COMMENT_RE.sub(lambda m: re.sub(r"[^\n]", " ", m.group()), source)
+    found = ("", "")
+    for start in reversed([m.start() for m in _FUNCTION_START_RE.finditer(source, 0, pos)]):
+        header, body = function_text_at(source, start)
+        body_start = start + len(header)
+        if body and body_start <= pos < body_start + len(body):
+            found = (header, body)
+        elif found[1]:
+            break
+    return found
+
+
+_CONDITION_START_RE = re.compile(r"\b(?:require|assert|if)\s*\(")
+
+
+def tx_origin_authorizes(source: str, pos: int) -> bool:
+    """True when the ``tx.origin`` read at ``pos`` decides a condition without ``msg.sender``.
+
+    Slither's ``tx-origin`` rule: ``require(tx.origin == owner)`` authorizes by origin;
+    ``require(msg.sender == tx.origin)`` only rejects contract callers, and a plain read
+    (``balances[tx.origin] = 10000``) decides nothing.
+    """
+    start = max(source.rfind(c, 0, pos) for c in ";{}") + 1
+    ends = [i for i in (source.find(c, pos) for c in ";{") if i != -1]
+    statement = source[start : min(ends) if ends else len(source)]
+    return bool(_CONDITION_START_RE.search(statement)) and "msg.sender" not in statement
+
+
+_LOOP_BOUND_RE = re.compile(r"(?:for|while)\s*\([^)]*?\b(\w+)\s*\.\s*length\b")
+
+
+def loop_bound_is_local(source: str, pos: int) -> bool:
+    """True when the loop at ``pos`` iterates over an array its function receives or builds.
+
+    The caller sizes that array and pays for the gas, so a long one only fails the
+    caller's own transaction. The block-gas-limit DoS (SWC-128) is a loop over state
+    that other users grow; a ``storage`` parameter or local is that state.
+    """
+    loop = _LOOP_BOUND_RE.match(source, pos)
+    if not loop:
+        return False
+    name = loop.group(1)
+    header, body = enclosing_function_text(source, pos)
+    params = re.search(r"\(([^)]*)\)", re.sub(r"\bfunction\s*\([^)]*\)", "", header))
+    for param in params.group(1).split(",") if params else []:
+        tokens = param.split()
+        if tokens and tokens[-1] == name:
+            return "storage" not in tokens
+    return bool(re.search(r"\b(?:memory|calldata)\s+%s\b" % re.escape(name), body))
