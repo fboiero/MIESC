@@ -83,7 +83,7 @@ markupsafe==3.0.4
     # via jinja2
 mdurl==0.1.2
     # via markdown-it-py
-multidict==7.1.0
+multidict==7.2.1
     # via
     #   aiohttp
     #   yarl
@@ -106,13 +106,13 @@ pycryptodome==3.23.0
     #   eth-keyfile
     #   slither-analyzer
     #   solc-select
-pydantic==2.14.1
+pydantic==2.14.2
     # via
     #   miesc (pyproject.toml)
     #   eth-account
     #   eth-utils
     #   web3
-pydantic-core==2.50.1
+pydantic-core==2.50.2
     # via pydantic
 pygments==2.21.0
     # via rich
@@ -154,7 +154,7 @@ urllib3==2.8.0
     # via
     #   requests
     #   types-requests
-wcwidth==0.9.3
+wcwidth==0.9.4
     # via prettytable
 web3==7.16.0
     # via slither-analyzer
