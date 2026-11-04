@@ -6,10 +6,10 @@ static-analysis scan, then apply a disciplined **manual triage** that separates 
 from the (many) false positives a scanner produces. These are kept as an evidence trail of
 MIESC's real-world behaviour, not as formal audit opinions.
 
-> **TL;DR:** Across four mature-enough targets (Lombard LBTC, Doppler, Valantis STEX, YieldNest),
-> **every High-severity finding the scanner produced was a false positive** once read against the
-> real code. That is the expected outcome for audited production code — and it is exactly why the
-> **triage layer, not the raw scan, is the product.**
+> **TL;DR:** Across five mature-enough targets (Lombard LBTC, Doppler, Valantis STEX, YieldNest,
+> Arcadia lending-v2), **every High-severity finding the scanner produced was a false positive**
+> once read against the real code. That is the expected outcome for audited production code — and
+> it is exactly why the **triage layer, not the raw scan, is the product.**
 
 ---
 
@@ -69,6 +69,7 @@ premium PDFs are regenerable from `results.json` and are not committed here to k
 | **Doppler** (`whetstoneresearch/doppler`) | `5754c7e` | 275 (0 Crit / 14 High / 106 Med / 88 Low / 67 Info) | **0/14 High exploitable** — access-gated sends, V2-LP-safe transfers, V4-lock + `nonReentrant`/CEI reentrancy |
 | **Valantis STEX** (`ValantisLabs/valantis-stex`) | `27b5c74` | 246 (0 Crit / 3 High / 34 Med / 57 Low / 152 Info) | **0/3 High exploitable** — Sovereign-Pool callback is `onlyALM` + depositor-pinned; native-wrap + owner/`nonReentrant` settle |
 | **YieldNest** (`yieldnest/yieldnest-protocol`) | `034cd65` | 225 (0 Crit / 5 High / 38 Med / 98 Low / 84 Info) | **0/5 High exploitable** — role-gated ETH sends to canonical/internal recipients; the one reentrancy is CEI-ordered + structurally unreachable |
+| **Arcadia lending-v2** (`arcadia-finance/lending-v2`) | `dc2ccb9` | 85 (0 Crit / 2 High / 35 Med / 48 Low / 0 Info) | **0/2 High exploitable** — `arbitrary-send-erc20` on `onlyTranche` / `onlyLiquidator` functions; the team already suppressed both with inline lint comments |
 
 ### lombard-lbtc-2026-10
 Lombard LBTC (Bitcoin-backed liquid token). The three scanner Highs (private-constant "shadowing",
@@ -101,6 +102,17 @@ admin-set `feesReceiver`); the one `reentrancy-eth` (`PooledDepositsVault.finali
 CEI-ordered (balance zeroed before the call), sends ETH to the trusted vault rather than the
 depositor, and `deposit()` is disabled once `ynETH` is set — so it is structurally unreachable.
 See `triage-memo.md`.
+
+### arcadia-lending-v2-2026-11
+Arcadia Finance lending layer (margin lending on Base — `LendingPool`, `Tranche`, liquidators).
+Both scanner Highs were false positives: `LendingPool.depositInLendingPool` is `onlyTranche` and
+`LendingPool.auctionRepay` is `onlyLiquidator`, so the "arbitrary" `transferFrom(from, …)` always
+takes `from` from a trusted internal caller (a registered Tranche, or the Liquidator passing the
+real bidder). Notably the Arcadia team had **already acknowledged both** with inline
+`// forge-lint: disable-next-item(arbitrary-send-erc20,…)` suppressions. The only class worth a
+team double-check is the liquidation-flow `reentrancy-no-eth` (trusted callees, documented
+ordering). See `triage-memo.md`. Toolchain note: this target pins solc `0.8.34`, newer than the
+pinned forge's bundled list — installed via solc-select and passed to forge with `--use`.
 
 ---
 
