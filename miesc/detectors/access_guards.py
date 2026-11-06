@@ -45,7 +45,13 @@ _SENDER_COMPARE_RE = re.compile(r"msg\.sender\s*(?:==|!=)|(?:==|!=)\s*msg\.sende
 _SENDER_MAPPING_BOOL_RE = re.compile(
     r"(?:^|[(!,]|&&|\|\|)\s*!?\s*\w+\s*\[\s*msg\.sender\s*\]\s*(?:$|[),]|&&|\|\||==|!=)"
 )
-_SENDER_MAPPING_READ_RE = re.compile(r"\b\w+\s*\[\s*msg\.sender\s*\]")
+# Tokens that make up an amount expression but never name the variable carrying it.
+_AMOUNT_IDENT_RE = re.compile(r"[A-Za-z_]\w*")
+_AMOUNT_UNIT_TOKENS = frozenset(
+    {"wei", "ether", "gwei", "finney", "szabo", "uint", "uint256", "payable"}
+)
+# =, +=, -=, *=, /=, ==, !=, <, >, <=, >= — the relation that ties an amount to a balance.
+_AMOUNT_BINDING_OP = r"(?:[-+*/]?=|[<>]=?|!=)"
 _VALUE_SINK_RE = re.compile(
     r"(?:payable\s*\(\s*)?(?P<rcpt>msg\.sender|\w+)\s*\)?\s*\.\s*"
     r"(?:(?:transfer|send)\s*\((?P<a1>[^;]*)"
@@ -68,24 +74,48 @@ def has_caller_guard(header: str, body: str) -> bool:
     return False
 
 
+def _amount_bound_to_entry(body: str, amount: str, key: str) -> bool:
+    """True when ``amount`` is drawn from, or checked against, ``key``'s own mapping entry.
+
+    Either the amount expression reads ``bal[key]`` directly, or it is a local identifier
+    tied to ``bal[key]`` by an operator within one statement: ``bal[key] -= amt``,
+    ``bal[key] >= amt``, ``uint amt = bal[key]``. The tie is what makes it the account's own
+    money — a bare ``bal[key]`` read elsewhere in the function does not bind the amount.
+    """
+    mread = r"\w+\s*\[\s*%s\s*\]" % re.escape(key)
+    if re.search(mread, amount):
+        return True
+    for ident in _AMOUNT_IDENT_RE.findall(amount):
+        if ident in _AMOUNT_UNIT_TOKENS:
+            continue
+        esc = re.escape(ident)
+        if re.search(mread + r"\s*" + _AMOUNT_BINDING_OP + r"\s*[^;{}]*\b" + esc + r"\b", body):
+            return True
+        if re.search(r"\b" + esc + r"\s*" + _AMOUNT_BINDING_OP + r"\s*[^;{}]*" + mread, body):
+            return True
+    return False
+
+
 def is_self_service_withdrawal(body: str) -> bool:
     """True when the value sent is bound to the caller's or the recipient's own entry.
 
     Shapes: ``msg.sender.transfer(balances[msg.sender])``, ``to.transfer(amount)`` after
     ``balances[msg.sender] -= amount``, ``recipient.call.value(rewards[recipient])()``, or a
-    ``msg.value`` refund. False when the amount mentions the contract balance, or when no
-    mapping keyed by ``msg.sender`` or by the recipient is read in the function.
+    ``msg.value`` refund. False when the amount mentions the contract balance, or when the
+    amount is not tied to a mapping keyed by ``msg.sender`` or by the recipient — sending an
+    arbitrary amount out, even from a function that happens to read ``bal[msg.sender]``
+    elsewhere, is a missing-access-control bug, not a user withdrawing their own deposit.
     """
     for sink in _VALUE_SINK_RE.finditer(body):
         amount = sink.group("a1") or sink.group("a2") or sink.group("a3") or ""
         if _CONTRACT_BALANCE_RE.search(amount):
             return False
-        recipient = sink.group("rcpt")
-        if "msg.value" in amount or _SENDER_MAPPING_READ_RE.search(body):
+        if "msg.value" in amount:
             return True
-        if recipient != "msg.sender" and re.search(
-            r"\b\w+\s*\[\s*%s\s*\]" % re.escape(recipient), body
-        ):
+        recipient = sink.group("rcpt")
+        if _amount_bound_to_entry(body, amount, "msg.sender"):
+            return True
+        if recipient != "msg.sender" and _amount_bound_to_entry(body, amount, recipient):
             return True
     return False
 
