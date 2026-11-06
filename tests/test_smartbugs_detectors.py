@@ -1061,8 +1061,8 @@ class TestTimeManipulationDetectorEdgeCases:
     def detector(self):
         return TimeManipulationDetector()
 
-    def test_detects_block_number(self, detector):
-        """Test detection of block.number usage."""
+    def test_block_number_entropy_is_randomness_not_time(self, detector):
+        """block.number as entropy is bad randomness; a miner cannot skew it as time."""
         code = """
         pragma solidity ^0.4.24;
         contract Vulnerable {
@@ -1071,8 +1071,20 @@ class TestTimeManipulationDetectorEdgeCases:
             }
         }
         """
-        findings = detector.detect(code)
-        assert len(findings) > 0
+        assert detector.detect(code) == []
+        assert BadRandomnessDetector().detect(code)
+
+    def test_block_number_deadline_is_not_time_manipulation(self, detector):
+        code = """
+        pragma solidity ^0.4.24;
+        contract Lotto {
+            uint decisionBlock;
+            function draw() public {
+                if (decisionBlock > block.number) throw;
+            }
+        }
+        """
+        assert detector.detect(code) == []
 
 
 class TestSmartBugsDetectorEngineEdgeCases:
