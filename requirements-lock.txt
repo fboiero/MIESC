@@ -99,7 +99,7 @@ propcache==0.5.4
     # via
     #   aiohttp
     #   yarl
-pycryptodome==3.23.0
+pycryptodome==4.2.0
     # via
     #   crytic-compile
     #   eth-hash
