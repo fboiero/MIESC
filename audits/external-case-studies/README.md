@@ -6,10 +6,10 @@ static-analysis scan, then apply a disciplined **manual triage** that separates 
 from the (many) false positives a scanner produces. These are kept as an evidence trail of
 MIESC's real-world behaviour, not as formal audit opinions.
 
-> **TL;DR:** Across five mature-enough targets (Lombard LBTC, Doppler, Valantis STEX, YieldNest,
-> Arcadia lending-v2), **every High-severity finding the scanner produced was a false positive**
-> once read against the real code. That is the expected outcome for audited production code — and
-> it is exactly why the **triage layer, not the raw scan, is the product.**
+> **TL;DR:** Across six mature-enough targets (Lombard LBTC, Doppler, Valantis STEX, YieldNest,
+> Arcadia lending-v2, Revert v4lend), **every High-severity finding the scanner produced was a
+> false positive** once read against the real code. That is the expected outcome for audited
+> production code — and it is exactly why the **triage layer, not the raw scan, is the product.**
 
 ---
 
@@ -70,6 +70,7 @@ premium PDFs are regenerable from `results.json` and are not committed here to k
 | **Valantis STEX** (`ValantisLabs/valantis-stex`) | `27b5c74` | 246 (0 Crit / 3 High / 34 Med / 57 Low / 152 Info) | **0/3 High exploitable** — Sovereign-Pool callback is `onlyALM` + depositor-pinned; native-wrap + owner/`nonReentrant` settle |
 | **YieldNest** (`yieldnest/yieldnest-protocol`) | `034cd65` | 225 (0 Crit / 5 High / 38 Med / 98 Low / 84 Info) | **0/5 High exploitable** — role-gated ETH sends to canonical/internal recipients; the one reentrancy is CEI-ordered + structurally unreachable |
 | **Arcadia lending-v2** (`arcadia-finance/lending-v2`) | `dc2ccb9` | 85 (0 Crit / 2 High / 35 Med / 48 Low / 0 Info) | **0/2 High exploitable** — `arbitrary-send-erc20` on `onlyTranche` / `onlyLiquidator` functions; the team already suppressed both with inline lint comments |
+| **Revert v4lend** (`revert-finance/v4lend`) | `f6d0fb41` | 441 (0 Crit / 36 High / 144 Med / 163 Low / 98 Info) | **0/36 High exploitable** — reentrancy under the vault's `transformedTokenId` mutex / trusted-asset direct path, OZ `ReentrancyGuard` automators and owner-registered hook callees; ETH sends to the position's NFT owner or trusted Uniswap routers; `incorrect-shift`/`-exp` fired only in Uniswap v4-core deps |
 
 ### lombard-lbtc-2026-10
 Lombard LBTC (Bitcoin-backed liquid token). The three scanner Highs (private-constant "shadowing",
@@ -113,6 +114,25 @@ real bidder). Notably the Arcadia team had **already acknowledged both** with in
 team double-check is the liquidation-flow `reentrancy-no-eth` (trusted callees, documented
 ordering). See `triage-memo.md`. Toolchain note: this target pins solc `0.8.34`, newer than the
 pinned forge's bundled list — installed via solc-select and passed to forge with `--use`.
+
+### revert-v4lend-2026-11
+Revert v4lend (a Uniswap-v4-native lending & LP-automation protocol — single-asset ERC4626 vault,
+v4-LP-NFT collateral, an on-swap `RevertHook`, standalone automators and transformers; the commit
+carried a Cantina audit competition that **closed 03 Nov 2026**). All 36 scanner Highs were false
+positives. The `reentrancy-eth`/`-balance` bulk (28) resolves per contract: `V4Vault` has no generic
+guard but uses a `transformedTokenId` storage mutex plus a direct path whose only external calls are
+the trusted configured ERC20 asset and Uniswap's `PositionManager`; the automators inherit
+OpenZeppelin `ReentrancyGuard`; the hook action contracts call only owner-registered ERC4626 vaults.
+`arbitrary-send-eth` (3) always targets the position's current NFT owner, the admin-set protocol-fee
+recipient, or trusted Uniswap routers; `uninitialized-state` (4) are storage mappings with verified
+cross-contract writers; `weak-prng` (1) is a rent fee-carry remainder. The high-signal
+`incorrect-shift`/`incorrect-exp` detectors fired **only inside Uniswap v4-core dependencies**
+(`BitMath`, `TickBitmap`, `FullMath.mulDiv`) — out of scope. Reconciled against the project's own
+Cantina Scan #1/#2 tables and `audit-handoff.md`; MIESC surfaced nothing those scans had not already
+found and fixed/accepted. See `triage-memo.md`. **Scoping lesson recorded:** an initial run reported
+536/40-High until the owned-filter was tightened to "path **begins** with `src/`" (dependency files
+under `lib/.../src/…` were being mis-promoted to first-party) — a scanner that doesn't scope
+precisely manufactures its own false Highs.
 
 ---
 
