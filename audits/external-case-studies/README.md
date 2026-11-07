@@ -6,10 +6,11 @@ static-analysis scan, then apply a disciplined **manual triage** that separates 
 from the (many) false positives a scanner produces. These are kept as an evidence trail of
 MIESC's real-world behaviour, not as formal audit opinions.
 
-> **TL;DR:** Across six mature-enough targets (Lombard LBTC, Doppler, Valantis STEX, YieldNest,
-> Arcadia lending-v2, Revert v4lend), **every High-severity finding the scanner produced was a
-> false positive** once read against the real code. That is the expected outcome for audited
-> production code — and it is exactly why the **triage layer, not the raw scan, is the product.**
+> **TL;DR:** Across seven mature-enough targets (Lombard LBTC, Doppler, Valantis STEX, YieldNest,
+> Arcadia lending-v2, Revert v4lend, Malda), **every High-severity finding the scanner produced was
+> a false positive** once read against the real code. On the newest (Malda) a real, judged High
+> *did* exist — but it lived in a trust-boundary invariant the static scanner cannot express, the
+> sharpest illustration yet of why the **triage layer, not the raw scan, is the product.**
 
 ---
 
@@ -71,6 +72,7 @@ premium PDFs are regenerable from `results.json` and are not committed here to k
 | **YieldNest** (`yieldnest/yieldnest-protocol`) | `034cd65` | 225 (0 Crit / 5 High / 38 Med / 98 Low / 84 Info) | **0/5 High exploitable** — role-gated ETH sends to canonical/internal recipients; the one reentrancy is CEI-ordered + structurally unreachable |
 | **Arcadia lending-v2** (`arcadia-finance/lending-v2`) | `dc2ccb9` | 85 (0 Crit / 2 High / 35 Med / 48 Low / 0 Info) | **0/2 High exploitable** — `arbitrary-send-erc20` on `onlyTranche` / `onlyLiquidator` functions; the team already suppressed both with inline lint comments |
 | **Revert v4lend** (`revert-finance/v4lend`) | `f6d0fb41` | 441 (0 Crit / 36 High / 144 Med / 163 Low / 98 Info) | **0/36 High exploitable** — reentrancy under the vault's `transformedTokenId` mutex / trusted-asset direct path, OZ `ReentrancyGuard` automators and owner-registered hook callees; ETH sends to the position's NFT owner or trusted Uniswap routers; `incorrect-shift`/`-exp` fired only in Uniswap v4-core deps |
+| **Malda** (`malda-protocol/malda-lending`) | `ab4fa9b2` | 195 (0 Crit / 2 High / 25 Med / 80 Low / 88 Info) | **0/2 scanner Highs exploitable** — `arbitrary-send-eth` is an ETH-rescue to a constructor-set address, `reentrancy-balance` is the caller's own Mendi→Malda migration via trusted markets. The contest's one judged **High (H-1)** — an unchecked cross-chain `receiver` in `EverclearBridge` — sat in the same rebalancer subsystem but **outside Slither's lens** (a trust-boundary invariant, not an `arbitrary-send-*` pattern) |
 
 ### lombard-lbtc-2026-10
 Lombard LBTC (Bitcoin-backed liquid token). The three scanner Highs (private-constant "shadowing",
@@ -133,6 +135,24 @@ found and fixed/accepted. See `triage-memo.md`. **Scoping lesson recorded:** an 
 536/40-High until the owned-filter was tightened to "path **begins** with `src/`" (dependency files
 under `lib/.../src/…` were being mis-promoted to first-party) — a scanner that doesn't scope
 precisely manufactures its own false Highs.
+
+### malda-lending-2026-11
+Malda (a Compound-V2-style cross-chain *unified-liquidity* lending protocol — `mToken` markets, an
+`Operator` comptroller, a `Rebalancer` that moves liquidity across chains through bridge adapters,
+and a `Migrator` for Compound-fork positions; the ZK coprocessor is Rust and out of scope). Scoped
+to the exact 26 first-party `src/` files Sherlock put in-scope. Both scanner Highs were false
+positives: `arbitrary-send-eth` is `Rebalancer.saveEth` sweeping the contract's own ETH to a
+constructor-set rescue address with no setter (`GUARDIAN_BRIDGE`-gated); `reentrancy-balance` is
+`Migrator.migrateAllPositions` operating on the caller's own Mendi→Malda migration through trusted,
+fixed markets. The notable result is a **limitation, honestly stated**: the contest's one judged
+**High (H-1)** — `EverclearBridge.sendMsg` forwards a rebalancer-supplied `bytes32 receiver` into an
+external `newIntent(...)` with no check that it is a valid market, letting the privileged rebalancer
+redirect bridged funds — lived in the same subsystem the scanner flagged yet was **invisible to
+Slither**, because it is a trust-boundary / business-logic invariant, not a native-ETH send
+(`arbitrary-send-eth`) or a tainted `transfer` (`arbitrary-send-erc20`). All 16 judged Mediums are
+likewise semantic (rounding, oracle, bridge-flow, DoS); the static scan found none of them. This is
+the clearest demonstration in this directory of **where the static lens ends and semantic review
+must begin.** See `triage-memo.md`.
 
 ---
 
