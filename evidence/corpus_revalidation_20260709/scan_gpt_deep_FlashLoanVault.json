@@ -1,0 +1,2015 @@
+{
+  "contract": "/data/audit/FlashLoanVault.sol",
+  "timestamp": "2026-07-09T20:53:51.021820",
+  "version": "5.4.1",
+  "success": true,
+  "summary": {
+    "CRITICAL": 5,
+    "HIGH": 5,
+    "MEDIUM": 16,
+    "LOW": 7,
+    "INFO": 0
+  },
+  "total_findings": 33,
+  "tools": [
+    "aderyn",
+    "frontier-openai",
+    "miesc-intelligence",
+    "slither",
+    "solhint"
+  ],
+  "tools_failed": [],
+  "findings": [
+    {
+      "type": "logic_error",
+      "title": "Unknown",
+      "severity": "Critical",
+      "tool": "frontier-openai-deep",
+      "confidence": 0.938,
+      "location": {
+        "file": "/data/audit/FlashLoanVault.sol",
+        "line": 0,
+        "function": "unknown"
+      },
+      "description": "Cross-function interaction between flashLoan() and borrow() allows free borrowing during flash loan operation without proper reentrancy guard.",
+      "message": "",
+      "recommendation": "Implement a proper reentrancy guard in the flashLoan() function to prevent calling other functions such as borrow() during a flash loan. Additionally, include checks in borrow() to ensure no active flash loans.",
+      "exploit_scenario": "",
+      "swc_id": "",
+      "canonical_category": "other",
+      "confirming_tools": [
+        "frontier-openai-deep"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": false,
+      "cross_validated_llm": false,
+      "fp_suppressed": false
+    },
+    {
+      "type": "oracle_manipulation",
+      "title": "Oracle Manipulation",
+      "severity": "Critical",
+      "tool": "frontier-openai",
+      "confidence": 0.5,
+      "location": {
+        "file": "/data/audit/FlashLoanVault.sol",
+        "line": 39,
+        "function": "getTokenPrice()"
+      },
+      "description": "The contract relies on a single oracle source ('oracle.getPrice') which can be manipulated by any user. This opens the contract to critical attacks by allowing attackers to arbitrarily set token prices, impacting all operations that depend on token valuation.",
+      "message": "An attacker can set the token price to a very high or low value, manipulate collateral values, borrow excessively, or initiate liquidations wrongly, potentially draining user funds or the protocol itself.",
+      "recommendation": "Use a decentralized oracle service with aggregated price feeds like Chainlink. Implement time-weighted average price (TWAP) mechanisms to mitigate sudden price manipulations.",
+      "exploit_scenario": [
+        "1. Attacker takes a flash loan of a large amount of the quote token from a lending protocol.",
+        "2. Attacker dumps the borrowed token into the DEX pool, crashing the spot price.",
+        "3. Victim contract reads the manipulated spot price via getReserves() or similar \u2014 treats it as market price.",
+        "4. Attacker exploits the mispriced collateral: borrows against inflated collateral or liquidates positions unfairly.",
+        "5. Attacker swaps back to restore the price, repays the flash loan, and pockets the arbitrage profit.",
+        "6. Entire attack is atomic \u2014 completes within a single transaction with no capital at risk."
+      ],
+      "swc_id": "",
+      "canonical_category": "oracle_manipulation",
+      "confirming_tools": [
+        "frontier-openai"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": false,
+      "cross_validated_llm": false,
+      "fp_suppressed": false,
+      "fix_code": "// Fix: Use Chainlink latestRoundData with staleness and validity checks\nimport \"@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol\";\n\ncontract SafeOracle {\n    AggregatorV3Interface public immutable priceFeed;\n    uint256 public constant STALENESS_THRESHOLD = 1 hours;\n\n    constructor(address _feed) {\n        priceFeed = AggregatorV3Interface(_feed);\n    }\n\n    function getPrice() public view returns (uint256) {\n        (\n            uint80 roundId,\n            int256 answer,\n            ,\n            uint256 updatedAt,\n            uint80 answeredInRound\n        ) = priceFeed.latestRoundData();\n        require(answer > 0, \"Invalid price\");\n        require(updatedAt != 0, \"Round not complete\");\n        require(block.timestamp - updatedAt <= STALENESS_THRESHOLD, \"Stale price\");\n        require(answeredInRound >= roundId, \"Round incomplete\");\n        return uint256(answer);\n    }\n}"
+    },
+    {
+      "type": "reentrancy",
+      "title": "Reentrancy via Flash Loan",
+      "severity": "Critical",
+      "tool": "frontier-openai",
+      "confidence": 0.5,
+      "location": {
+        "file": "/data/audit/FlashLoanVault.sol",
+        "line": 46,
+        "function": "flashLoan()"
+      },
+      "description": "The 'flashLoan' function uses a boolean lock to prevent reentrancy instead of a proper reentrancy guard. This leaves the function open to manipulation where a nested reentrant call can modify the contract's state before it resolves the initial call.",
+      "message": "An attacker can perform operations like modifying or withdrawing collateral during a nested call, leading to funds being drained or incorrectly calculated loans.",
+      "recommendation": "Use a ReentrancyGuard pattern provided by OpenZeppelin to prevent nested calls appropriately.",
+      "exploit_scenario": [
+        "1. Attacker deploys a malicious contract with a fallback/receive function that calls back into the victim.",
+        "2. Attacker calls the victim's withdraw() function with a valid balance.",
+        "3. Victim sends ETH to attacker \u2014 attacker's fallback immediately calls withdraw() again before state is updated.",
+        "4. Re-entry loop drains the contract balance in a single transaction (no per-call state update blocks it).",
+        "5. Attack ends when gas runs out or balance is exhausted; attacker keeps all drained ETH."
+      ],
+      "swc_id": "",
+      "canonical_category": "reentrancy",
+      "confirming_tools": [
+        "frontier-openai"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": false,
+      "cross_validated_llm": false,
+      "fp_suppressed": false,
+      "fix_code": "// Fix: Apply Checks-Effects-Interactions (CEI) pattern + ReentrancyGuard\n// 1. Import OpenZeppelin's ReentrancyGuard\nimport \"@openzeppelin/contracts/security/ReentrancyGuard.sol\";\n\ncontract SafeVault is ReentrancyGuard {\n    mapping(address => uint256) private balances;\n\n    function withdraw(uint256 amount) external nonReentrant {\n        // CHECKS\n        require(balances[msg.sender] >= amount, \"Insufficient balance\");\n        // EFFECTS \u2014 update state BEFORE external call\n        balances[msg.sender] -= amount;\n        // INTERACTIONS \u2014 external call last\n        (bool success, ) = msg.sender.call{value: amount}(\"\");\n        require(success, \"Transfer failed\");\n    }\n}"
+    },
+    {
+      "type": "access_control",
+      "title": "Emergency Withdraw by Owner",
+      "severity": "Critical",
+      "tool": "frontier-openai",
+      "confidence": 0.5,
+      "location": {
+        "file": "/data/audit/FlashLoanVault.sol",
+        "line": 135,
+        "function": "emergencyWithdraw()"
+      },
+      "description": "The 'emergencyWithdraw' function allows the contract owner to withdraw all funds instantly without any delay, such as a timelock, enabling a potential rug pull where the owner drains all funds from the contract.",
+      "message": "The owner can take control of all deposited tokens in the contract, effectively stealing user funds without any accountability or preventative measures.",
+      "recommendation": "Implement a timelock mechanism giving users time to react to such an action. Additionally, consider governance to approve such critical actions.",
+      "exploit_scenario": [
+        "1. Attacker inspects the contract ABI and identifies a privileged function lacking an access modifier.",
+        "2. Attacker calls the unprotected function (e.g. setOwner, mint, pause) directly from any EOA.",
+        "3. Without an onlyOwner or role check, the call succeeds immediately.",
+        "4. Attacker takes ownership, mints unlimited tokens, or pauses the protocol at will.",
+        "5. Legitimate users lose access or funds; attacker drains or disables the contract."
+      ],
+      "swc_id": "",
+      "canonical_category": "access_control",
+      "confirming_tools": [
+        "frontier-openai"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": false,
+      "cross_validated_llm": false,
+      "fp_suppressed": false,
+      "fix_code": "// Fix: Add onlyOwner modifier using OpenZeppelin Ownable\nimport \"@openzeppelin/contracts/access/Ownable.sol\";\n\ncontract SecureContract is Ownable {\n    uint256 public sensitiveValue;\n\n    // Restrict sensitive function to owner only\n    function setSensitiveValue(uint256 newValue) external onlyOwner {\n        sensitiveValue = newValue;\n    }\n\n    // For role-based access, use AccessControl instead:\n    // import \"@openzeppelin/contracts/access/AccessControl.sol\";\n    // bytes32 public constant ADMIN_ROLE = keccak256(\"ADMIN_ROLE\");\n    // function setSensitiveValue(uint256 v) external onlyRole(ADMIN_ROLE) { ... }\n}"
+    },
+    {
+      "type": "incorrect_constructor_name",
+      "severity": "Critical",
+      "swc_id": "SWC-118",
+      "tool": "miesc-intelligence",
+      "confidence": 0.5,
+      "location": {
+        "file": "",
+        "line": 18,
+        "function": "unknown"
+      },
+      "message": "Function assigns ownership but may not be the constructor \u2014 in Solidity <0.4.22, constructors were functions with the contract name. A typo means anyone can call it and become owner.",
+      "description": "Function assigns ownership but may not be the constructor \u2014 in Solidity <0.4.22, constructors were functions with the contract name. A typo means anyone can call it and become owner.",
+      "recommendation": "Function assigns ownership but may not be the constructor \u2014 in Solidity <0.4.22, constructors were functions with the contract name. A typo means anyone can call it and become owner.",
+      "canonical_category": "other",
+      "confirming_tools": [
+        "miesc-intelligence"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": false,
+      "cross_validated_llm": false,
+      "fp_suppressed": false
+    },
+    {
+      "id": "slither-reentrancy-balance-0",
+      "type": "reentrancy-balance",
+      "severity": "High",
+      "confidence": 0.99,
+      "location": {
+        "file": "../data/audit/FlashLoanVault.sol",
+        "line": 59,
+        "function": "flashLoan"
+      },
+      "message": "Reentrancy in FlashLoanVault.flashLoan(uint256,address,bytes) (../data/audit/FlashLoanVault.sol#59-83):",
+      "description": "Reentrancy in [FlashLoanVault.flashLoan(uint256,address,bytes)](../data/audit/FlashLoanVault.sol#L59-L83):\n\tExternal call allowing reentrancy:\n\t- [require(bool,string)(token.transfer(receiver,amount),Transfer failed)](../data/audit/FlashLoanVault.sol#L69)\n\tBalance read before the call:\n\t- [balanceBefore = token.balanceOf(address(this))](../data/audit/FlashLoanVault.sol#L63)\n\tPossible stale balance used after the call in a condition:\n\t- [require(bool,string)(balanceAfter >= balanceBefore + fee,Flash loan not repaid)](../data/audit/FlashLoanVault.sol#L79)\n\t\t- stale variable `balanceBefore`\n",
+      "recommendation": "Apply Checks-Effects-Interactions pattern: update state BEFORE external calls. Use OpenZeppelin's ReentrancyGuard (`nonReentrant` modifier).",
+      "swc_id": "SWC-107",
+      "cwe_id": "CWE-841",
+      "owasp_category": "SC01: Reentrancy",
+      "_slither_detector": "reentrancy-balance",
+      "_slither_impact": "High",
+      "_slither_confidence": "Medium",
+      "tool": "slither",
+      "canonical_category": "reentrancy",
+      "confirming_tools": [
+        "slither"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": true,
+      "cross_validated_llm": false,
+      "fp_suppressed": false,
+      "fix_code": "// Fix: Apply Checks-Effects-Interactions (CEI) pattern + ReentrancyGuard\n// 1. Import OpenZeppelin's ReentrancyGuard\nimport \"@openzeppelin/contracts/security/ReentrancyGuard.sol\";\n\ncontract SafeVault is ReentrancyGuard {\n    mapping(address => uint256) private balances;\n\n    function withdraw(uint256 amount) external nonReentrant {\n        // CHECKS\n        require(balances[msg.sender] >= amount, \"Insufficient balance\");\n        // EFFECTS \u2014 update state BEFORE external call\n        balances[msg.sender] -= amount;\n        // INTERACTIONS \u2014 external call last\n        (bool success, ) = msg.sender.call{value: amount}(\"\");\n        require(success, \"Transfer failed\");\n    }\n}",
+      "exploit_scenario": [
+        "1. Attacker deploys a malicious contract with a fallback/receive function that calls back into the victim.",
+        "2. Attacker calls the victim's withdraw() function with a valid balance.",
+        "3. Victim sends ETH to attacker \u2014 attacker's fallback immediately calls withdraw() again before state is updated.",
+        "4. Re-entry loop drains the contract balance in a single transaction (no per-call state update blocks it).",
+        "5. Attack ends when gas runs out or balance is exhausted; attacker keeps all drained ETH."
+      ]
+    },
+    {
+      "id": "aderyn-contract-locks-ether-0-0",
+      "type": "contract-locks-ether",
+      "severity": "High",
+      "confidence": 0.75,
+      "location": {
+        "file": "FlashLoanVault.sol",
+        "line": 219,
+        "function": "unknown"
+      },
+      "message": "Contract locks Ether without a withdraw function.",
+      "description": "It appears that the contract includes a payable function to accept Ether but lacks a corresponding function to withdraw it, which leads to the Ether being locked in the contract. To resolve this issue, please implement a public or external function that allows for the withdrawal of Ether from the contract.",
+      "recommendation": "Review and fix the issue according to best practices",
+      "swc_id": null,
+      "cwe_id": null,
+      "owasp_category": null,
+      "_aderyn_detector": "contract-locks-ether",
+      "tool": "aderyn",
+      "canonical_category": "other",
+      "confirming_tools": [
+        "aderyn"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": true,
+      "cross_validated_llm": false,
+      "fp_suppressed": false
+    },
+    {
+      "type": "unchecked_return_value",
+      "title": "Unchecked External Call in Flash Loan",
+      "severity": "High",
+      "tool": "frontier-openai",
+      "confidence": 0.5,
+      "location": {
+        "file": "/data/audit/FlashLoanVault.sol",
+        "line": 54,
+        "function": "flashLoan()"
+      },
+      "description": "The flashLoan function performs an external call to the receiver's callback without checking the returned success status. This can lead to unexpected behavior since the contract continues execution without verifying if the external call succeeded.",
+      "message": "The receiver can fail silently without reverting, leading to incomplete loan settlement, state inconsistency, or potential loss of funds.",
+      "recommendation": "Add same-block protection (compare `block.number` at entry/exit). Use snapshot-based governance voting. Add timelock delays on sensitive operations.",
+      "exploit_scenario": "Create an attacker contract with a fallback function that reverts without any indication and watch as the transaction continues without being reverted.",
+      "swc_id": "",
+      "canonical_category": "flash_loan",
+      "confirming_tools": [
+        "frontier-openai"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": false,
+      "cross_validated_llm": false,
+      "fp_suppressed": false
+    },
+    {
+      "type": "economic_exploit",
+      "title": "Liquidation without Slippage Protection",
+      "severity": "High",
+      "tool": "frontier-openai",
+      "confidence": 0.5,
+      "location": {
+        "file": "/data/audit/FlashLoanVault.sol",
+        "line": 87,
+        "function": "liquidate()"
+      },
+      "description": "The liquidate function does not protect against slippage, meaning on-chain liquidation could occur at manipulated prices leading to worse terms for the liquidated user.",
+      "message": "Users can have their positions liquidated at unfavorable rates during price manipulations, losing a greater portion of their collateral.",
+      "recommendation": "Add slippage protection by calculating minimum collateral returned based on oracle price and incorporating a buffer in price calculation.",
+      "exploit_scenario": "Manipulate spot price via oracle, calling liquidate() function immediately after manipulation resulting in excessive collateral being transferred.",
+      "swc_id": "",
+      "canonical_category": "other",
+      "confirming_tools": [
+        "frontier-openai"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": false,
+      "cross_validated_llm": false,
+      "fp_suppressed": false
+    },
+    {
+      "type": "dos_send_require",
+      "severity": "High",
+      "swc_id": "SWC-113",
+      "tool": "miesc-intelligence",
+      "confidence": 0.5,
+      "location": {
+        "file": "",
+        "line": 69,
+        "function": "unknown"
+      },
+      "message": "External send/transfer inside require \u2014 if recipient reverts, entire function is blocked (DoS). Use pull pattern instead.",
+      "description": "External send/transfer inside require \u2014 if recipient reverts, entire function is blocked (DoS). Use pull pattern instead.",
+      "recommendation": "External send/transfer inside require \u2014 if recipient reverts, entire function is blocked (DoS). Use pull pattern instead.",
+      "canonical_category": "denial_of_service",
+      "confirming_tools": [
+        "miesc-intelligence"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": false,
+      "cross_validated_llm": false,
+      "fp_suppressed": false
+    },
+    {
+      "id": "aderyn-unindexed-events-5-0",
+      "type": "unindexed-events",
+      "severity": "Medium",
+      "confidence": 0.99,
+      "location": {
+        "file": "FlashLoanVault.sol",
+        "line": 39,
+        "function": "unknown"
+      },
+      "message": "Event is missing `indexed` fields",
+      "description": "Index event fields make the field more quickly accessible to off-chain tools that parse events. However, note that each index field costs extra gas during emission, so it's not necessarily best to index the maximum allowed per event (three fields). Each event should use three indexed fields if there are three or more fields, and gas usage is not particularly of concern for the events in question. If there are fewer than three fields, all of the fields should be indexed.",
+      "recommendation": "Review and fix the issue according to best practices",
+      "swc_id": null,
+      "cwe_id": null,
+      "owasp_category": null,
+      "_aderyn_detector": "unindexed-events",
+      "tool": "aderyn",
+      "canonical_category": "other",
+      "confirming_tools": [
+        "aderyn"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": true,
+      "cross_validated_llm": false,
+      "fp_suppressed": false
+    },
+    {
+      "id": "aderyn-unsafe-erc20-functions-1-8",
+      "type": "unsafe-erc20-functions",
+      "severity": "Medium",
+      "confidence": 0.984,
+      "location": {
+        "file": "FlashLoanVault.sol",
+        "line": 189,
+        "function": "unknown"
+      },
+      "message": "Unsafe ERC20 Operations should not be used",
+      "description": "ERC20 functions may not behave as expected. For example: return values are not always meaningful. It is recommended to use OpenZeppelin's SafeERC20 library.",
+      "recommendation": "Review and fix the issue according to best practices",
+      "swc_id": null,
+      "cwe_id": null,
+      "owasp_category": null,
+      "_aderyn_detector": "unsafe-erc20-functions",
+      "tool": "aderyn",
+      "canonical_category": "other",
+      "confirming_tools": [
+        "aderyn"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": true,
+      "cross_validated_llm": false,
+      "fp_suppressed": false
+    },
+    {
+      "id": "aderyn-zero-address-check-3-2",
+      "type": "zero-address-check",
+      "severity": "Medium",
+      "confidence": 0.984,
+      "location": {
+        "file": "FlashLoanVault.sol",
+        "line": 225,
+        "function": "unknown"
+      },
+      "message": "Missing checks for `address(0)` when assigning values to address state variables",
+      "description": "Check for `address(0)` when assigning values to address state variables.",
+      "recommendation": "Review and fix the issue according to best practices",
+      "swc_id": null,
+      "cwe_id": null,
+      "owasp_category": null,
+      "_aderyn_detector": "zero-address-check",
+      "tool": "aderyn",
+      "canonical_category": "other",
+      "confirming_tools": [
+        "aderyn"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": true,
+      "cross_validated_llm": false,
+      "fp_suppressed": false
+    },
+    {
+      "id": "aderyn-unsafe-erc20-functions-1-1",
+      "type": "unsafe-erc20-functions",
+      "severity": "Medium",
+      "confidence": 0.938,
+      "location": {
+        "file": "FlashLoanVault.sol",
+        "line": 107,
+        "function": "unknown"
+      },
+      "message": "Unsafe ERC20 Operations should not be used",
+      "description": "ERC20 functions may not behave as expected. For example: return values are not always meaningful. It is recommended to use OpenZeppelin's SafeERC20 library.",
+      "recommendation": "Review and fix the issue according to best practices",
+      "swc_id": null,
+      "cwe_id": null,
+      "owasp_category": null,
+      "_aderyn_detector": "unsafe-erc20-functions",
+      "tool": "aderyn",
+      "canonical_category": "other",
+      "confirming_tools": [
+        "aderyn"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": true,
+      "cross_validated_llm": false,
+      "fp_suppressed": false
+    },
+    {
+      "id": "aderyn-unsafe-erc20-functions-1-4",
+      "type": "unsafe-erc20-functions",
+      "severity": "Medium",
+      "confidence": 0.938,
+      "location": {
+        "file": "FlashLoanVault.sol",
+        "line": 151,
+        "function": "unknown"
+      },
+      "message": "Unsafe ERC20 Operations should not be used",
+      "description": "ERC20 functions may not behave as expected. For example: return values are not always meaningful. It is recommended to use OpenZeppelin's SafeERC20 library.",
+      "recommendation": "Review and fix the issue according to best practices",
+      "swc_id": null,
+      "cwe_id": null,
+      "owasp_category": null,
+      "_aderyn_detector": "unsafe-erc20-functions",
+      "tool": "aderyn",
+      "canonical_category": "other",
+      "confirming_tools": [
+        "aderyn"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": true,
+      "cross_validated_llm": false,
+      "fp_suppressed": false
+    },
+    {
+      "id": "aderyn-unsafe-erc20-functions-1-6",
+      "type": "unsafe-erc20-functions",
+      "severity": "Medium",
+      "confidence": 0.938,
+      "location": {
+        "file": "FlashLoanVault.sol",
+        "line": 172,
+        "function": "unknown"
+      },
+      "message": "Unsafe ERC20 Operations should not be used",
+      "description": "ERC20 functions may not behave as expected. For example: return values are not always meaningful. It is recommended to use OpenZeppelin's SafeERC20 library.",
+      "recommendation": "Review and fix the issue according to best practices",
+      "swc_id": null,
+      "cwe_id": null,
+      "owasp_category": null,
+      "_aderyn_detector": "unsafe-erc20-functions",
+      "tool": "aderyn",
+      "canonical_category": "other",
+      "confirming_tools": [
+        "aderyn"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": true,
+      "cross_validated_llm": false,
+      "fp_suppressed": false
+    },
+    {
+      "id": "aderyn-zero-address-check-3-0",
+      "type": "zero-address-check",
+      "severity": "Medium",
+      "confidence": 0.938,
+      "location": {
+        "file": "FlashLoanVault.sol",
+        "line": 47,
+        "function": "unknown"
+      },
+      "message": "Missing checks for `address(0)` when assigning values to address state variables",
+      "description": "Check for `address(0)` when assigning values to address state variables.",
+      "recommendation": "Review and fix the issue according to best practices",
+      "swc_id": null,
+      "cwe_id": null,
+      "owasp_category": null,
+      "_aderyn_detector": "zero-address-check",
+      "tool": "aderyn",
+      "canonical_category": "other",
+      "confirming_tools": [
+        "aderyn"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": true,
+      "cross_validated_llm": false,
+      "fp_suppressed": false
+    },
+    {
+      "type": "unchecked_return_value",
+      "severity": "Medium",
+      "swc_id": "SWC-104",
+      "tool": "miesc-intelligence",
+      "confidence": 0.875,
+      "location": {
+        "file": "",
+        "line": 73,
+        "function": "unknown"
+      },
+      "message": "Low-level call without explicit success check \u2014 use require(success) or SafeERC20.",
+      "description": "Low-level call without explicit success check \u2014 use require(success) or SafeERC20.",
+      "recommendation": "Low-level call without explicit success check \u2014 use require(success) or SafeERC20.",
+      "canonical_category": "unchecked_call",
+      "confirming_tools": [
+        "miesc-intelligence"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": false,
+      "cross_validated_llm": false,
+      "fp_suppressed": false,
+      "fix_code": "// Fix: Use SafeERC20 for token transfers; require(success) for low-level calls\nimport \"@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol\";\nimport \"@openzeppelin/contracts/token/ERC20/IERC20.sol\";\n\ncontract SafeTransfer {\n    using SafeERC20 for IERC20;\n\n    function transferTokens(IERC20 token, address to, uint256 amount) external {\n        // SafeERC20 wraps transfer/transferFrom and reverts on failure\n        token.safeTransfer(to, amount);\n    }\n\n    function sendEther(address payable recipient, uint256 amount) external {\n        // Always check the return value of low-level calls\n        (bool success, ) = recipient.call{value: amount}(\"\");\n        require(success, \"ETH transfer failed\");\n    }\n}",
+      "exploit_scenario": [
+        "1. Contract calls an external address using .call() or .send() but does not check the boolean return value.",
+        "2. The external call silently fails (e.g. recipient is a contract that reverts, or gas stipend is exceeded).",
+        "3. Because the return value is ignored, the contract continues execution and marks the operation as successful.",
+        "4. Tokens or ETH are never delivered, but the contract's internal state (balances, flags) is updated as if they were.",
+        "5. Attacker exploits the accounting discrepancy to double-spend or claim funds they should not have."
+      ]
+    },
+    {
+      "id": "slither-locked-ether-3",
+      "type": "locked-ether",
+      "severity": "Medium",
+      "confidence": 0.85,
+      "location": {
+        "file": "../data/audit/FlashLoanVault.sol",
+        "line": 219,
+        "function": "FlashLoanAttacker"
+      },
+      "message": "Contract locking ether found:",
+      "description": "Contract locking ether found:\n\tContract [FlashLoanAttacker](../data/audit/FlashLoanVault.sol#L219-L252) has payable functions:\n\t - [FlashLoanAttacker.receive()](../data/audit/FlashLoanVault.sol#L251)\n\tBut does not have a function to withdraw the ether\n",
+      "recommendation": "Provide a withdrawal function or ensure contract is payable",
+      "swc_id": "SWC-132",
+      "cwe_id": "CWE-400",
+      "owasp_category": null,
+      "_slither_detector": "locked-ether",
+      "_slither_impact": "Medium",
+      "_slither_confidence": "High",
+      "tool": "slither",
+      "canonical_category": "other",
+      "confirming_tools": [
+        "slither"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": true,
+      "cross_validated_llm": false,
+      "fp_suppressed": false
+    },
+    {
+      "id": "aderyn-unsafe-erc20-functions-1-0",
+      "type": "unsafe-erc20-functions",
+      "severity": "Medium",
+      "confidence": 0.75,
+      "location": {
+        "file": "FlashLoanVault.sol",
+        "line": 69,
+        "function": "unknown"
+      },
+      "message": "Unsafe ERC20 Operations should not be used",
+      "description": "ERC20 functions may not behave as expected. For example: return values are not always meaningful. It is recommended to use OpenZeppelin's SafeERC20 library.",
+      "recommendation": "Review and fix the issue according to best practices",
+      "swc_id": null,
+      "cwe_id": null,
+      "owasp_category": null,
+      "_aderyn_detector": "unsafe-erc20-functions",
+      "tool": "aderyn",
+      "canonical_category": "other",
+      "confirming_tools": [
+        "aderyn"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": true,
+      "cross_validated_llm": false,
+      "fp_suppressed": false
+    },
+    {
+      "id": "aderyn-unsafe-erc20-functions-1-3",
+      "type": "unsafe-erc20-functions",
+      "severity": "Medium",
+      "confidence": 0.75,
+      "location": {
+        "file": "FlashLoanVault.sol",
+        "line": 133,
+        "function": "unknown"
+      },
+      "message": "Unsafe ERC20 Operations should not be used",
+      "description": "ERC20 functions may not behave as expected. For example: return values are not always meaningful. It is recommended to use OpenZeppelin's SafeERC20 library.",
+      "recommendation": "Review and fix the issue according to best practices",
+      "swc_id": null,
+      "cwe_id": null,
+      "owasp_category": null,
+      "_aderyn_detector": "unsafe-erc20-functions",
+      "tool": "aderyn",
+      "canonical_category": "other",
+      "confirming_tools": [
+        "aderyn"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": true,
+      "cross_validated_llm": false,
+      "fp_suppressed": false
+    },
+    {
+      "id": "aderyn-constants-instead-of-literals-4-0",
+      "type": "constants-instead-of-literals",
+      "severity": "Medium",
+      "confidence": 0.75,
+      "location": {
+        "file": "FlashLoanVault.sol",
+        "line": 89,
+        "function": "unknown"
+      },
+      "message": "Define and use `constant` variables instead of using literals",
+      "description": "If the same constant literal value is used multiple times, create a constant state variable and reference it throughout the contract.",
+      "recommendation": "Review and fix the issue according to best practices",
+      "swc_id": null,
+      "cwe_id": null,
+      "owasp_category": null,
+      "_aderyn_detector": "constants-instead-of-literals",
+      "tool": "aderyn",
+      "canonical_category": "other",
+      "confirming_tools": [
+        "aderyn"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": true,
+      "cross_validated_llm": false,
+      "fp_suppressed": false
+    },
+    {
+      "id": "aderyn-constants-instead-of-literals-4-1",
+      "type": "constants-instead-of-literals",
+      "severity": "Medium",
+      "confidence": 0.75,
+      "location": {
+        "file": "FlashLoanVault.sol",
+        "line": 98,
+        "function": "unknown"
+      },
+      "message": "Define and use `constant` variables instead of using literals",
+      "description": "If the same constant literal value is used multiple times, create a constant state variable and reference it throughout the contract.",
+      "recommendation": "Review and fix the issue according to best practices",
+      "swc_id": null,
+      "cwe_id": null,
+      "owasp_category": null,
+      "_aderyn_detector": "constants-instead-of-literals",
+      "tool": "aderyn",
+      "canonical_category": "other",
+      "confirming_tools": [
+        "aderyn"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": true,
+      "cross_validated_llm": false,
+      "fp_suppressed": false
+    },
+    {
+      "id": "aderyn-constants-instead-of-literals-4-2",
+      "type": "constants-instead-of-literals",
+      "severity": "Medium",
+      "confidence": 0.75,
+      "location": {
+        "file": "FlashLoanVault.sol",
+        "line": 143,
+        "function": "unknown"
+      },
+      "message": "Define and use `constant` variables instead of using literals",
+      "description": "If the same constant literal value is used multiple times, create a constant state variable and reference it throughout the contract.",
+      "recommendation": "Review and fix the issue according to best practices",
+      "swc_id": null,
+      "cwe_id": null,
+      "owasp_category": null,
+      "_aderyn_detector": "constants-instead-of-literals",
+      "tool": "aderyn",
+      "canonical_category": "other",
+      "confirming_tools": [
+        "aderyn"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": true,
+      "cross_validated_llm": false,
+      "fp_suppressed": false
+    },
+    {
+      "type": "front_running",
+      "severity": "Medium",
+      "swc_id": "SWC-114",
+      "tool": "miesc-intelligence",
+      "confidence": 0.5,
+      "location": {
+        "file": "",
+        "line": 14,
+        "function": "unknown"
+      },
+      "message": "Approval pattern susceptible to front-running race condition. Consider increaseAllowance/decreaseAllowance.",
+      "description": "Approval pattern susceptible to front-running race condition. Consider increaseAllowance/decreaseAllowance.",
+      "recommendation": "Approval pattern susceptible to front-running race condition. Consider increaseAllowance/decreaseAllowance.",
+      "canonical_category": "front_running",
+      "confirming_tools": [
+        "miesc-intelligence"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": false,
+      "cross_validated_llm": false,
+      "fp_suppressed": false,
+      "fix_code": "// Fix: Use increaseAllowance/decreaseAllowance instead of approve\n// Prevents the ERC-20 approval race condition (SWC-114)\n\nimport \"@openzeppelin/contracts/token/ERC20/ERC20.sol\";\n\ncontract SafeToken is ERC20 {\n    constructor() ERC20(\"SafeToken\", \"STK\") {}\n\n    // Use increaseAllowance to avoid front-running on approve:\n    function safeIncreaseAllowance(address spender, uint256 addedValue) external {\n        _approve(msg.sender, spender, allowance(msg.sender, spender) + addedValue);\n    }\n\n    function safeDecreaseAllowance(address spender, uint256 subtractedValue) external {\n        uint256 current = allowance(msg.sender, spender);\n        require(current >= subtractedValue, \"Allowance below zero\");\n        _approve(msg.sender, spender, current - subtractedValue);\n    }\n    // NOTE: OpenZeppelin's ERC20 already includes increaseAllowance/decreaseAllowance\n}",
+      "exploit_scenario": [
+        "1. Victim calls token.approve(spender, 100) to change an existing approval from 50 to 100.",
+        "2. Attacker monitors the mempool and sees the approve transaction before it is mined.",
+        "3. Attacker front-runs by calling transferFrom(victim, attacker, 50) while the old allowance of 50 is still active.",
+        "4. After the victim's approve is mined, attacker calls transferFrom again using the new allowance of 100.",
+        "5. Attacker steals 150 tokens even though the victim intended to grant only 100.",
+        "6. Fix: use increaseAllowance/decreaseAllowance which are atomic and race-free."
+      ]
+    },
+    {
+      "type": "hardcoded_gas",
+      "severity": "Medium",
+      "swc_id": "SWC-134",
+      "tool": "miesc-intelligence",
+      "confidence": 0.5,
+      "location": {
+        "file": "",
+        "line": 69,
+        "function": "unknown"
+      },
+      "message": "transfer()/send() forwards only 2300 gas \u2014 will fail with contract recipients after EIP-1884. Use call{value:}() with reentrancy guard.",
+      "description": "transfer()/send() forwards only 2300 gas \u2014 will fail with contract recipients after EIP-1884. Use call{value:}() with reentrancy guard.",
+      "recommendation": "transfer()/send() forwards only 2300 gas \u2014 will fail with contract recipients after EIP-1884. Use call{value:}() with reentrancy guard.",
+      "canonical_category": "other",
+      "confirming_tools": [
+        "miesc-intelligence"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": false,
+      "cross_validated_llm": false,
+      "fp_suppressed": false
+    },
+    {
+      "id": "slither-reentrancy-benign-5",
+      "type": "reentrancy-benign",
+      "severity": "Low",
+      "confidence": 0.978,
+      "location": {
+        "file": "../data/audit/FlashLoanVault.sol",
+        "line": 157,
+        "function": "repay"
+      },
+      "message": "Reentrancy in FlashLoanVault.repay(uint256) (../data/audit/FlashLoanVault.sol#157-165):",
+      "description": "Reentrancy in [FlashLoanVault.repay(uint256)](../data/audit/FlashLoanVault.sol#L157-L165):\n\tExternal calls:\n\t- [require(bool,string)(token.transferFrom(msg.sender,address(this),amount),Transfer failed)](../data/audit/FlashLoanVault.sol#L158)\n\tState variables written after the call(s):\n\t- [borrowed[msg.sender] -= amount](../data/audit/FlashLoanVault.sol#L161)\n\t- [totalBorrowed -= amount](../data/audit/FlashLoanVault.sol#L162)\n",
+      "recommendation": "Apply Checks-Effects-Interactions pattern: update state BEFORE external calls. Use OpenZeppelin's ReentrancyGuard (`nonReentrant` modifier).",
+      "swc_id": "SWC-107",
+      "cwe_id": "CWE-841",
+      "owasp_category": "SC01: Reentrancy",
+      "_slither_detector": "reentrancy-benign",
+      "_slither_impact": "Low",
+      "_slither_confidence": "Medium",
+      "tool": "slither",
+      "canonical_category": "reentrancy",
+      "confirming_tools": [
+        "slither"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": true,
+      "cross_validated_llm": false,
+      "fp_suppressed": false,
+      "fix_code": "// Fix: Apply Checks-Effects-Interactions (CEI) pattern + ReentrancyGuard\n// 1. Import OpenZeppelin's ReentrancyGuard\nimport \"@openzeppelin/contracts/security/ReentrancyGuard.sol\";\n\ncontract SafeVault is ReentrancyGuard {\n    mapping(address => uint256) private balances;\n\n    function withdraw(uint256 amount) external nonReentrant {\n        // CHECKS\n        require(balances[msg.sender] >= amount, \"Insufficient balance\");\n        // EFFECTS \u2014 update state BEFORE external call\n        balances[msg.sender] -= amount;\n        // INTERACTIONS \u2014 external call last\n        (bool success, ) = msg.sender.call{value: amount}(\"\");\n        require(success, \"Transfer failed\");\n    }\n}",
+      "exploit_scenario": [
+        "1. Attacker deploys a malicious contract with a fallback/receive function that calls back into the victim.",
+        "2. Attacker calls the victim's withdraw() function with a valid balance.",
+        "3. Victim sends ETH to attacker \u2014 attacker's fallback immediately calls withdraw() again before state is updated.",
+        "4. Re-entry loop drains the contract balance in a single transaction (no per-call state update blocks it).",
+        "5. Attack ends when gas runs out or balance is exhausted; attacker keeps all drained ETH."
+      ]
+    },
+    {
+      "id": "slither-reentrancy-benign-7",
+      "type": "reentrancy-benign",
+      "severity": "Low",
+      "confidence": 0.978,
+      "location": {
+        "file": "../data/audit/FlashLoanVault.sol",
+        "line": 113,
+        "function": "deposit"
+      },
+      "message": "Reentrancy in FlashLoanVault.deposit(uint256) (../data/audit/FlashLoanVault.sol#113-123):",
+      "description": "Reentrancy in [FlashLoanVault.deposit(uint256)](../data/audit/FlashLoanVault.sol#L113-L123):\n\tExternal calls:\n\t- [require(bool,string)(token.transferFrom(msg.sender,address(this),amount),Transfer failed)](../data/audit/FlashLoanVault.sol#L115)\n\tState variables written after the call(s):\n\t- [deposits[msg.sender] += amount](../data/audit/FlashLoanVault.sol#L119)\n\t- [totalDeposits += amount](../data/audit/FlashLoanVault.sol#L120)\n",
+      "recommendation": "Apply Checks-Effects-Interactions pattern: update state BEFORE external calls. Use OpenZeppelin's ReentrancyGuard (`nonReentrant` modifier).",
+      "swc_id": "SWC-107",
+      "cwe_id": "CWE-841",
+      "owasp_category": "SC01: Reentrancy",
+      "_slither_detector": "reentrancy-benign",
+      "_slither_impact": "Low",
+      "_slither_confidence": "Medium",
+      "tool": "slither",
+      "canonical_category": "reentrancy",
+      "confirming_tools": [
+        "slither"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": true,
+      "cross_validated_llm": false,
+      "fp_suppressed": false,
+      "fix_code": "// Fix: Apply Checks-Effects-Interactions (CEI) pattern + ReentrancyGuard\n// 1. Import OpenZeppelin's ReentrancyGuard\nimport \"@openzeppelin/contracts/security/ReentrancyGuard.sol\";\n\ncontract SafeVault is ReentrancyGuard {\n    mapping(address => uint256) private balances;\n\n    function withdraw(uint256 amount) external nonReentrant {\n        // CHECKS\n        require(balances[msg.sender] >= amount, \"Insufficient balance\");\n        // EFFECTS \u2014 update state BEFORE external call\n        balances[msg.sender] -= amount;\n        // INTERACTIONS \u2014 external call last\n        (bool success, ) = msg.sender.call{value: amount}(\"\");\n        require(success, \"Transfer failed\");\n    }\n}",
+      "exploit_scenario": [
+        "1. Attacker deploys a malicious contract with a fallback/receive function that calls back into the victim.",
+        "2. Attacker calls the victim's withdraw() function with a valid balance.",
+        "3. Victim sends ETH to attacker \u2014 attacker's fallback immediately calls withdraw() again before state is updated.",
+        "4. Re-entry loop drains the contract balance in a single transaction (no per-call state update blocks it).",
+        "5. Attack ends when gas runs out or balance is exhausted; attacker keeps all drained ETH."
+      ]
+    },
+    {
+      "id": "slither-reentrancy-benign-6",
+      "type": "reentrancy-benign",
+      "severity": "Low",
+      "confidence": 0.85,
+      "location": {
+        "file": "../data/audit/FlashLoanVault.sol",
+        "line": 176,
+        "function": "addCollateral"
+      },
+      "message": "Reentrancy in FlashLoanVault.addCollateral(uint256) (../data/audit/FlashLoanVault.sol#176-179):",
+      "description": "Reentrancy in [FlashLoanVault.addCollateral(uint256)](../data/audit/FlashLoanVault.sol#L176-L179):\n\tExternal calls:\n\t- [require(bool,string)(token.transferFrom(msg.sender,address(this),amount),Transfer failed)](../data/audit/FlashLoanVault.sol#L177)\n\tState variables written after the call(s):\n\t- [collateral[msg.sender] += amount](../data/audit/FlashLoanVault.sol#L178)\n",
+      "recommendation": "Apply Checks-Effects-Interactions pattern: update state BEFORE external calls. Use OpenZeppelin's ReentrancyGuard (`nonReentrant` modifier).",
+      "swc_id": "SWC-107",
+      "cwe_id": "CWE-841",
+      "owasp_category": "SC01: Reentrancy",
+      "_slither_detector": "reentrancy-benign",
+      "_slither_impact": "Low",
+      "_slither_confidence": "Medium",
+      "tool": "slither",
+      "canonical_category": "reentrancy",
+      "confirming_tools": [
+        "slither"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": true,
+      "cross_validated_llm": false,
+      "fp_suppressed": false,
+      "fix_code": "// Fix: Apply Checks-Effects-Interactions (CEI) pattern + ReentrancyGuard\n// 1. Import OpenZeppelin's ReentrancyGuard\nimport \"@openzeppelin/contracts/security/ReentrancyGuard.sol\";\n\ncontract SafeVault is ReentrancyGuard {\n    mapping(address => uint256) private balances;\n\n    function withdraw(uint256 amount) external nonReentrant {\n        // CHECKS\n        require(balances[msg.sender] >= amount, \"Insufficient balance\");\n        // EFFECTS \u2014 update state BEFORE external call\n        balances[msg.sender] -= amount;\n        // INTERACTIONS \u2014 external call last\n        (bool success, ) = msg.sender.call{value: amount}(\"\");\n        require(success, \"Transfer failed\");\n    }\n}",
+      "exploit_scenario": [
+        "1. Attacker deploys a malicious contract with a fallback/receive function that calls back into the victim.",
+        "2. Attacker calls the victim's withdraw() function with a valid balance.",
+        "3. Victim sends ETH to attacker \u2014 attacker's fallback immediately calls withdraw() again before state is updated.",
+        "4. Re-entry loop drains the contract balance in a single transaction (no per-call state update blocks it).",
+        "5. Attack ends when gas runs out or balance is exhausted; attacker keeps all drained ETH."
+      ]
+    },
+    {
+      "id": "slither-reentrancy-events-8",
+      "type": "reentrancy-events",
+      "severity": "Low",
+      "confidence": 0.85,
+      "location": {
+        "file": "../data/audit/FlashLoanVault.sol",
+        "line": 126,
+        "function": "withdraw"
+      },
+      "message": "Reentrancy in FlashLoanVault.withdraw(uint256) (../data/audit/FlashLoanVault.sol#126-136):",
+      "description": "Reentrancy in [FlashLoanVault.withdraw(uint256)](../data/audit/FlashLoanVault.sol#L126-L136):\n\tExternal calls:\n\t- [require(bool,string)(token.transfer(msg.sender,amount),Transfer failed)](../data/audit/FlashLoanVault.sol#L133)\n\tEvent emitted after the call(s):\n\t- [Withdraw(msg.sender,amount)](../data/audit/FlashLoanVault.sol#L135)\n",
+      "recommendation": "Apply Checks-Effects-Interactions pattern: update state BEFORE external calls. Use OpenZeppelin's ReentrancyGuard (`nonReentrant` modifier).",
+      "swc_id": "SWC-107",
+      "cwe_id": "CWE-841",
+      "owasp_category": "SC01: Reentrancy",
+      "_slither_detector": "reentrancy-events",
+      "_slither_impact": "Low",
+      "_slither_confidence": "Medium",
+      "tool": "slither",
+      "canonical_category": "reentrancy",
+      "confirming_tools": [
+        "slither"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": true,
+      "cross_validated_llm": false,
+      "fp_suppressed": false,
+      "fix_code": "// Fix: Apply Checks-Effects-Interactions (CEI) pattern + ReentrancyGuard\n// 1. Import OpenZeppelin's ReentrancyGuard\nimport \"@openzeppelin/contracts/security/ReentrancyGuard.sol\";\n\ncontract SafeVault is ReentrancyGuard {\n    mapping(address => uint256) private balances;\n\n    function withdraw(uint256 amount) external nonReentrant {\n        // CHECKS\n        require(balances[msg.sender] >= amount, \"Insufficient balance\");\n        // EFFECTS \u2014 update state BEFORE external call\n        balances[msg.sender] -= amount;\n        // INTERACTIONS \u2014 external call last\n        (bool success, ) = msg.sender.call{value: amount}(\"\");\n        require(success, \"Transfer failed\");\n    }\n}",
+      "exploit_scenario": [
+        "1. Attacker deploys a malicious contract with a fallback/receive function that calls back into the victim.",
+        "2. Attacker calls the victim's withdraw() function with a valid balance.",
+        "3. Victim sends ETH to attacker \u2014 attacker's fallback immediately calls withdraw() again before state is updated.",
+        "4. Re-entry loop drains the contract balance in a single transaction (no per-call state update blocks it).",
+        "5. Attack ends when gas runs out or balance is exhausted; attacker keeps all drained ETH."
+      ]
+    },
+    {
+      "id": "slither-reentrancy-events-12",
+      "type": "reentrancy-events",
+      "severity": "Low",
+      "confidence": 0.85,
+      "location": {
+        "file": "../data/audit/FlashLoanVault.sol",
+        "line": 139,
+        "function": "borrow"
+      },
+      "message": "Reentrancy in FlashLoanVault.borrow(uint256) (../data/audit/FlashLoanVault.sol#139-154):",
+      "description": "Reentrancy in [FlashLoanVault.borrow(uint256)](../data/audit/FlashLoanVault.sol#L139-L154):\n\tExternal calls:\n\t- [require(bool,string)(token.transfer(msg.sender,amount),Transfer failed)](../data/audit/FlashLoanVault.sol#L151)\n\tEvent emitted after the call(s):\n\t- [Borrow(msg.sender,amount)](../data/audit/FlashLoanVault.sol#L153)\n",
+      "recommendation": "Apply Checks-Effects-Interactions pattern: update state BEFORE external calls. Use OpenZeppelin's ReentrancyGuard (`nonReentrant` modifier).",
+      "swc_id": "SWC-107",
+      "cwe_id": "CWE-841",
+      "owasp_category": "SC01: Reentrancy",
+      "_slither_detector": "reentrancy-events",
+      "_slither_impact": "Low",
+      "_slither_confidence": "Medium",
+      "tool": "slither",
+      "canonical_category": "reentrancy",
+      "confirming_tools": [
+        "slither"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": true,
+      "cross_validated_llm": false,
+      "fp_suppressed": false,
+      "fix_code": "// Fix: Apply Checks-Effects-Interactions (CEI) pattern + ReentrancyGuard\n// 1. Import OpenZeppelin's ReentrancyGuard\nimport \"@openzeppelin/contracts/security/ReentrancyGuard.sol\";\n\ncontract SafeVault is ReentrancyGuard {\n    mapping(address => uint256) private balances;\n\n    function withdraw(uint256 amount) external nonReentrant {\n        // CHECKS\n        require(balances[msg.sender] >= amount, \"Insufficient balance\");\n        // EFFECTS \u2014 update state BEFORE external call\n        balances[msg.sender] -= amount;\n        // INTERACTIONS \u2014 external call last\n        (bool success, ) = msg.sender.call{value: amount}(\"\");\n        require(success, \"Transfer failed\");\n    }\n}",
+      "exploit_scenario": [
+        "1. Attacker deploys a malicious contract with a fallback/receive function that calls back into the victim.",
+        "2. Attacker calls the victim's withdraw() function with a valid balance.",
+        "3. Victim sends ETH to attacker \u2014 attacker's fallback immediately calls withdraw() again before state is updated.",
+        "4. Re-entry loop drains the contract balance in a single transaction (no per-call state update blocks it).",
+        "5. Attack ends when gas runs out or balance is exhausted; attacker keeps all drained ETH."
+      ]
+    },
+    {
+      "id": "slither-reentrancy-events-13",
+      "type": "reentrancy-events",
+      "severity": "Low",
+      "confidence": 0.85,
+      "location": {
+        "file": "../data/audit/FlashLoanVault.sol",
+        "line": 93,
+        "function": "liquidate"
+      },
+      "message": "Reentrancy in FlashLoanVault.liquidate(address) (../data/audit/FlashLoanVault.sol#93-110):",
+      "description": "Reentrancy in [FlashLoanVault.liquidate(address)](../data/audit/FlashLoanVault.sol#L93-L110):\n\tExternal calls:\n\t- [require(bool,string)(token.transfer(msg.sender,liquidationAmount),Transfer failed)](../data/audit/FlashLoanVault.sol#L107)\n\tEvent emitted after the call(s):\n\t- [Liquidation(msg.sender,user,liquidationAmount)](../data/audit/FlashLoanVault.sol#L109)\n",
+      "recommendation": "Apply Checks-Effects-Interactions pattern: update state BEFORE external calls. Use OpenZeppelin's ReentrancyGuard (`nonReentrant` modifier).",
+      "swc_id": "SWC-107",
+      "cwe_id": "CWE-841",
+      "owasp_category": "SC01: Reentrancy",
+      "_slither_detector": "reentrancy-events",
+      "_slither_impact": "Low",
+      "_slither_confidence": "Medium",
+      "tool": "slither",
+      "canonical_category": "reentrancy",
+      "confirming_tools": [
+        "slither"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": true,
+      "cross_validated_llm": false,
+      "fp_suppressed": false,
+      "fix_code": "// Fix: Apply Checks-Effects-Interactions (CEI) pattern + ReentrancyGuard\n// 1. Import OpenZeppelin's ReentrancyGuard\nimport \"@openzeppelin/contracts/security/ReentrancyGuard.sol\";\n\ncontract SafeVault is ReentrancyGuard {\n    mapping(address => uint256) private balances;\n\n    function withdraw(uint256 amount) external nonReentrant {\n        // CHECKS\n        require(balances[msg.sender] >= amount, \"Insufficient balance\");\n        // EFFECTS \u2014 update state BEFORE external call\n        balances[msg.sender] -= amount;\n        // INTERACTIONS \u2014 external call last\n        (bool success, ) = msg.sender.call{value: amount}(\"\");\n        require(success, \"Transfer failed\");\n    }\n}",
+      "exploit_scenario": [
+        "1. Attacker deploys a malicious contract with a fallback/receive function that calls back into the victim.",
+        "2. Attacker calls the victim's withdraw() function with a valid balance.",
+        "3. Victim sends ETH to attacker \u2014 attacker's fallback immediately calls withdraw() again before state is updated.",
+        "4. Re-entry loop drains the contract balance in a single transaction (no per-call state update blocks it).",
+        "5. Attack ends when gas runs out or balance is exhausted; attacker keeps all drained ETH."
+      ]
+    },
+    {
+      "type": "missing_event_emission",
+      "severity": "Low",
+      "swc_id": "SWC-100",
+      "tool": "miesc-intelligence",
+      "confidence": 0.5,
+      "location": {
+        "file": "",
+        "line": 205,
+        "function": "unknown"
+      },
+      "message": "State-changing function without event emission \u2014 limits off-chain monitoring and indexing.",
+      "description": "State-changing function without event emission \u2014 limits off-chain monitoring and indexing.",
+      "recommendation": "State-changing function without event emission \u2014 limits off-chain monitoring and indexing.",
+      "canonical_category": "other",
+      "confirming_tools": [
+        "miesc-intelligence"
+      ],
+      "tool_count": 1,
+      "cross_validated_static": false,
+      "cross_validated_llm": false,
+      "fp_suppressed": false
+    }
+  ],
+  "results": [
+    {
+      "tool": "aderyn",
+      "contract": "/data/audit/FlashLoanVault.sol",
+      "status": "success",
+      "execution_time": 0.3421285152435303,
+      "timestamp": "2026-07-09T20:53:24.266595",
+      "metadata": {
+        "contract_analyzed": "/data/audit/FlashLoanVault.sol",
+        "output_file": "/tmp/aderyn_output.json",
+        "raw_findings_count": 0,
+        "normalized_findings_count": 29,
+        "aderyn_version": "unknown",
+        "analysis_timestamp": "unknown"
+      },
+      "error": null
+    },
+    {
+      "tool": "solhint",
+      "contract": "/data/audit/FlashLoanVault.sol",
+      "status": "success",
+      "execution_time": 0.43,
+      "timestamp": "2026-07-09T20:53:24.466586",
+      "metadata": {},
+      "error": null
+    },
+    {
+      "tool": "slither",
+      "contract": "/data/audit/FlashLoanVault.sol",
+      "status": "success",
+      "execution_time": 1.2429981231689453,
+      "timestamp": "2026-07-09T20:53:25.515521",
+      "metadata": {
+        "contract_analyzed": "/data/audit/FlashLoanVault.sol",
+        "output_file": "/tmp/slither_output.json",
+        "raw_findings_count": 23,
+        "normalized_findings_count": 23,
+        "slither_version": true,
+        "excluded_detectors": []
+      },
+      "error": null
+    },
+    {
+      "tool": "frontier-openai",
+      "status": "success",
+      "execution_time": 13.93594241142273,
+      "metadata": {
+        "provider": "openai",
+        "model": "gpt-4o",
+        "source_chars": 9003
+      }
+    },
+    {
+      "tool": "miesc-intelligence",
+      "status": "success",
+      "findings": [
+        {
+          "type": "logic_error",
+          "title": "Unknown",
+          "severity": "Critical",
+          "tool": "frontier-openai-deep",
+          "confidence": 0.938,
+          "location": {
+            "file": "/data/audit/FlashLoanVault.sol",
+            "line": 0,
+            "function": "unknown"
+          },
+          "description": "Cross-function interaction between flashLoan() and borrow() allows free borrowing during flash loan operation without proper reentrancy guard.",
+          "message": "",
+          "recommendation": "Implement a proper reentrancy guard in the flashLoan() function to prevent calling other functions such as borrow() during a flash loan. Additionally, include checks in borrow() to ensure no active flash loans.",
+          "exploit_scenario": "",
+          "swc_id": "",
+          "canonical_category": "other",
+          "confirming_tools": [
+            "frontier-openai-deep"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": false,
+          "cross_validated_llm": false,
+          "fp_suppressed": false
+        },
+        {
+          "type": "oracle_manipulation",
+          "title": "Oracle Manipulation",
+          "severity": "Critical",
+          "tool": "frontier-openai",
+          "confidence": 0.5,
+          "location": {
+            "file": "/data/audit/FlashLoanVault.sol",
+            "line": 39,
+            "function": "getTokenPrice()"
+          },
+          "description": "The contract relies on a single oracle source ('oracle.getPrice') which can be manipulated by any user. This opens the contract to critical attacks by allowing attackers to arbitrarily set token prices, impacting all operations that depend on token valuation.",
+          "message": "An attacker can set the token price to a very high or low value, manipulate collateral values, borrow excessively, or initiate liquidations wrongly, potentially draining user funds or the protocol itself.",
+          "recommendation": "Use a decentralized oracle service with aggregated price feeds like Chainlink. Implement time-weighted average price (TWAP) mechanisms to mitigate sudden price manipulations.",
+          "exploit_scenario": [
+            "1. Attacker takes a flash loan of a large amount of the quote token from a lending protocol.",
+            "2. Attacker dumps the borrowed token into the DEX pool, crashing the spot price.",
+            "3. Victim contract reads the manipulated spot price via getReserves() or similar \u2014 treats it as market price.",
+            "4. Attacker exploits the mispriced collateral: borrows against inflated collateral or liquidates positions unfairly.",
+            "5. Attacker swaps back to restore the price, repays the flash loan, and pockets the arbitrage profit.",
+            "6. Entire attack is atomic \u2014 completes within a single transaction with no capital at risk."
+          ],
+          "swc_id": "",
+          "canonical_category": "oracle_manipulation",
+          "confirming_tools": [
+            "frontier-openai"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": false,
+          "cross_validated_llm": false,
+          "fp_suppressed": false,
+          "fix_code": "// Fix: Use Chainlink latestRoundData with staleness and validity checks\nimport \"@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol\";\n\ncontract SafeOracle {\n    AggregatorV3Interface public immutable priceFeed;\n    uint256 public constant STALENESS_THRESHOLD = 1 hours;\n\n    constructor(address _feed) {\n        priceFeed = AggregatorV3Interface(_feed);\n    }\n\n    function getPrice() public view returns (uint256) {\n        (\n            uint80 roundId,\n            int256 answer,\n            ,\n            uint256 updatedAt,\n            uint80 answeredInRound\n        ) = priceFeed.latestRoundData();\n        require(answer > 0, \"Invalid price\");\n        require(updatedAt != 0, \"Round not complete\");\n        require(block.timestamp - updatedAt <= STALENESS_THRESHOLD, \"Stale price\");\n        require(answeredInRound >= roundId, \"Round incomplete\");\n        return uint256(answer);\n    }\n}"
+        },
+        {
+          "type": "reentrancy",
+          "title": "Reentrancy via Flash Loan",
+          "severity": "Critical",
+          "tool": "frontier-openai",
+          "confidence": 0.5,
+          "location": {
+            "file": "/data/audit/FlashLoanVault.sol",
+            "line": 46,
+            "function": "flashLoan()"
+          },
+          "description": "The 'flashLoan' function uses a boolean lock to prevent reentrancy instead of a proper reentrancy guard. This leaves the function open to manipulation where a nested reentrant call can modify the contract's state before it resolves the initial call.",
+          "message": "An attacker can perform operations like modifying or withdrawing collateral during a nested call, leading to funds being drained or incorrectly calculated loans.",
+          "recommendation": "Use a ReentrancyGuard pattern provided by OpenZeppelin to prevent nested calls appropriately.",
+          "exploit_scenario": [
+            "1. Attacker deploys a malicious contract with a fallback/receive function that calls back into the victim.",
+            "2. Attacker calls the victim's withdraw() function with a valid balance.",
+            "3. Victim sends ETH to attacker \u2014 attacker's fallback immediately calls withdraw() again before state is updated.",
+            "4. Re-entry loop drains the contract balance in a single transaction (no per-call state update blocks it).",
+            "5. Attack ends when gas runs out or balance is exhausted; attacker keeps all drained ETH."
+          ],
+          "swc_id": "",
+          "canonical_category": "reentrancy",
+          "confirming_tools": [
+            "frontier-openai"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": false,
+          "cross_validated_llm": false,
+          "fp_suppressed": false,
+          "fix_code": "// Fix: Apply Checks-Effects-Interactions (CEI) pattern + ReentrancyGuard\n// 1. Import OpenZeppelin's ReentrancyGuard\nimport \"@openzeppelin/contracts/security/ReentrancyGuard.sol\";\n\ncontract SafeVault is ReentrancyGuard {\n    mapping(address => uint256) private balances;\n\n    function withdraw(uint256 amount) external nonReentrant {\n        // CHECKS\n        require(balances[msg.sender] >= amount, \"Insufficient balance\");\n        // EFFECTS \u2014 update state BEFORE external call\n        balances[msg.sender] -= amount;\n        // INTERACTIONS \u2014 external call last\n        (bool success, ) = msg.sender.call{value: amount}(\"\");\n        require(success, \"Transfer failed\");\n    }\n}"
+        },
+        {
+          "type": "access_control",
+          "title": "Emergency Withdraw by Owner",
+          "severity": "Critical",
+          "tool": "frontier-openai",
+          "confidence": 0.5,
+          "location": {
+            "file": "/data/audit/FlashLoanVault.sol",
+            "line": 135,
+            "function": "emergencyWithdraw()"
+          },
+          "description": "The 'emergencyWithdraw' function allows the contract owner to withdraw all funds instantly without any delay, such as a timelock, enabling a potential rug pull where the owner drains all funds from the contract.",
+          "message": "The owner can take control of all deposited tokens in the contract, effectively stealing user funds without any accountability or preventative measures.",
+          "recommendation": "Implement a timelock mechanism giving users time to react to such an action. Additionally, consider governance to approve such critical actions.",
+          "exploit_scenario": [
+            "1. Attacker inspects the contract ABI and identifies a privileged function lacking an access modifier.",
+            "2. Attacker calls the unprotected function (e.g. setOwner, mint, pause) directly from any EOA.",
+            "3. Without an onlyOwner or role check, the call succeeds immediately.",
+            "4. Attacker takes ownership, mints unlimited tokens, or pauses the protocol at will.",
+            "5. Legitimate users lose access or funds; attacker drains or disables the contract."
+          ],
+          "swc_id": "",
+          "canonical_category": "access_control",
+          "confirming_tools": [
+            "frontier-openai"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": false,
+          "cross_validated_llm": false,
+          "fp_suppressed": false,
+          "fix_code": "// Fix: Add onlyOwner modifier using OpenZeppelin Ownable\nimport \"@openzeppelin/contracts/access/Ownable.sol\";\n\ncontract SecureContract is Ownable {\n    uint256 public sensitiveValue;\n\n    // Restrict sensitive function to owner only\n    function setSensitiveValue(uint256 newValue) external onlyOwner {\n        sensitiveValue = newValue;\n    }\n\n    // For role-based access, use AccessControl instead:\n    // import \"@openzeppelin/contracts/access/AccessControl.sol\";\n    // bytes32 public constant ADMIN_ROLE = keccak256(\"ADMIN_ROLE\");\n    // function setSensitiveValue(uint256 v) external onlyRole(ADMIN_ROLE) { ... }\n}"
+        },
+        {
+          "type": "incorrect_constructor_name",
+          "severity": "Critical",
+          "swc_id": "SWC-118",
+          "tool": "miesc-intelligence",
+          "confidence": 0.5,
+          "location": {
+            "file": "",
+            "line": 18,
+            "function": "unknown"
+          },
+          "message": "Function assigns ownership but may not be the constructor \u2014 in Solidity <0.4.22, constructors were functions with the contract name. A typo means anyone can call it and become owner.",
+          "description": "Function assigns ownership but may not be the constructor \u2014 in Solidity <0.4.22, constructors were functions with the contract name. A typo means anyone can call it and become owner.",
+          "recommendation": "Function assigns ownership but may not be the constructor \u2014 in Solidity <0.4.22, constructors were functions with the contract name. A typo means anyone can call it and become owner.",
+          "canonical_category": "other",
+          "confirming_tools": [
+            "miesc-intelligence"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": false,
+          "cross_validated_llm": false,
+          "fp_suppressed": false
+        },
+        {
+          "id": "slither-reentrancy-balance-0",
+          "type": "reentrancy-balance",
+          "severity": "High",
+          "confidence": 0.99,
+          "location": {
+            "file": "../data/audit/FlashLoanVault.sol",
+            "line": 59,
+            "function": "flashLoan"
+          },
+          "message": "Reentrancy in FlashLoanVault.flashLoan(uint256,address,bytes) (../data/audit/FlashLoanVault.sol#59-83):",
+          "description": "Reentrancy in [FlashLoanVault.flashLoan(uint256,address,bytes)](../data/audit/FlashLoanVault.sol#L59-L83):\n\tExternal call allowing reentrancy:\n\t- [require(bool,string)(token.transfer(receiver,amount),Transfer failed)](../data/audit/FlashLoanVault.sol#L69)\n\tBalance read before the call:\n\t- [balanceBefore = token.balanceOf(address(this))](../data/audit/FlashLoanVault.sol#L63)\n\tPossible stale balance used after the call in a condition:\n\t- [require(bool,string)(balanceAfter >= balanceBefore + fee,Flash loan not repaid)](../data/audit/FlashLoanVault.sol#L79)\n\t\t- stale variable `balanceBefore`\n",
+          "recommendation": "Apply Checks-Effects-Interactions pattern: update state BEFORE external calls. Use OpenZeppelin's ReentrancyGuard (`nonReentrant` modifier).",
+          "swc_id": "SWC-107",
+          "cwe_id": "CWE-841",
+          "owasp_category": "SC01: Reentrancy",
+          "_slither_detector": "reentrancy-balance",
+          "_slither_impact": "High",
+          "_slither_confidence": "Medium",
+          "tool": "slither",
+          "canonical_category": "reentrancy",
+          "confirming_tools": [
+            "slither"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": true,
+          "cross_validated_llm": false,
+          "fp_suppressed": false,
+          "fix_code": "// Fix: Apply Checks-Effects-Interactions (CEI) pattern + ReentrancyGuard\n// 1. Import OpenZeppelin's ReentrancyGuard\nimport \"@openzeppelin/contracts/security/ReentrancyGuard.sol\";\n\ncontract SafeVault is ReentrancyGuard {\n    mapping(address => uint256) private balances;\n\n    function withdraw(uint256 amount) external nonReentrant {\n        // CHECKS\n        require(balances[msg.sender] >= amount, \"Insufficient balance\");\n        // EFFECTS \u2014 update state BEFORE external call\n        balances[msg.sender] -= amount;\n        // INTERACTIONS \u2014 external call last\n        (bool success, ) = msg.sender.call{value: amount}(\"\");\n        require(success, \"Transfer failed\");\n    }\n}",
+          "exploit_scenario": [
+            "1. Attacker deploys a malicious contract with a fallback/receive function that calls back into the victim.",
+            "2. Attacker calls the victim's withdraw() function with a valid balance.",
+            "3. Victim sends ETH to attacker \u2014 attacker's fallback immediately calls withdraw() again before state is updated.",
+            "4. Re-entry loop drains the contract balance in a single transaction (no per-call state update blocks it).",
+            "5. Attack ends when gas runs out or balance is exhausted; attacker keeps all drained ETH."
+          ]
+        },
+        {
+          "id": "aderyn-contract-locks-ether-0-0",
+          "type": "contract-locks-ether",
+          "severity": "High",
+          "confidence": 0.75,
+          "location": {
+            "file": "FlashLoanVault.sol",
+            "line": 219,
+            "function": "unknown"
+          },
+          "message": "Contract locks Ether without a withdraw function.",
+          "description": "It appears that the contract includes a payable function to accept Ether but lacks a corresponding function to withdraw it, which leads to the Ether being locked in the contract. To resolve this issue, please implement a public or external function that allows for the withdrawal of Ether from the contract.",
+          "recommendation": "Review and fix the issue according to best practices",
+          "swc_id": null,
+          "cwe_id": null,
+          "owasp_category": null,
+          "_aderyn_detector": "contract-locks-ether",
+          "tool": "aderyn",
+          "canonical_category": "other",
+          "confirming_tools": [
+            "aderyn"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": true,
+          "cross_validated_llm": false,
+          "fp_suppressed": false
+        },
+        {
+          "type": "unchecked_return_value",
+          "title": "Unchecked External Call in Flash Loan",
+          "severity": "High",
+          "tool": "frontier-openai",
+          "confidence": 0.5,
+          "location": {
+            "file": "/data/audit/FlashLoanVault.sol",
+            "line": 54,
+            "function": "flashLoan()"
+          },
+          "description": "The flashLoan function performs an external call to the receiver's callback without checking the returned success status. This can lead to unexpected behavior since the contract continues execution without verifying if the external call succeeded.",
+          "message": "The receiver can fail silently without reverting, leading to incomplete loan settlement, state inconsistency, or potential loss of funds.",
+          "recommendation": "Add same-block protection (compare `block.number` at entry/exit). Use snapshot-based governance voting. Add timelock delays on sensitive operations.",
+          "exploit_scenario": "Create an attacker contract with a fallback function that reverts without any indication and watch as the transaction continues without being reverted.",
+          "swc_id": "",
+          "canonical_category": "flash_loan",
+          "confirming_tools": [
+            "frontier-openai"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": false,
+          "cross_validated_llm": false,
+          "fp_suppressed": false
+        },
+        {
+          "type": "economic_exploit",
+          "title": "Liquidation without Slippage Protection",
+          "severity": "High",
+          "tool": "frontier-openai",
+          "confidence": 0.5,
+          "location": {
+            "file": "/data/audit/FlashLoanVault.sol",
+            "line": 87,
+            "function": "liquidate()"
+          },
+          "description": "The liquidate function does not protect against slippage, meaning on-chain liquidation could occur at manipulated prices leading to worse terms for the liquidated user.",
+          "message": "Users can have their positions liquidated at unfavorable rates during price manipulations, losing a greater portion of their collateral.",
+          "recommendation": "Add slippage protection by calculating minimum collateral returned based on oracle price and incorporating a buffer in price calculation.",
+          "exploit_scenario": "Manipulate spot price via oracle, calling liquidate() function immediately after manipulation resulting in excessive collateral being transferred.",
+          "swc_id": "",
+          "canonical_category": "other",
+          "confirming_tools": [
+            "frontier-openai"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": false,
+          "cross_validated_llm": false,
+          "fp_suppressed": false
+        },
+        {
+          "type": "dos_send_require",
+          "severity": "High",
+          "swc_id": "SWC-113",
+          "tool": "miesc-intelligence",
+          "confidence": 0.5,
+          "location": {
+            "file": "",
+            "line": 69,
+            "function": "unknown"
+          },
+          "message": "External send/transfer inside require \u2014 if recipient reverts, entire function is blocked (DoS). Use pull pattern instead.",
+          "description": "External send/transfer inside require \u2014 if recipient reverts, entire function is blocked (DoS). Use pull pattern instead.",
+          "recommendation": "External send/transfer inside require \u2014 if recipient reverts, entire function is blocked (DoS). Use pull pattern instead.",
+          "canonical_category": "denial_of_service",
+          "confirming_tools": [
+            "miesc-intelligence"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": false,
+          "cross_validated_llm": false,
+          "fp_suppressed": false
+        },
+        {
+          "id": "aderyn-unindexed-events-5-0",
+          "type": "unindexed-events",
+          "severity": "Medium",
+          "confidence": 0.99,
+          "location": {
+            "file": "FlashLoanVault.sol",
+            "line": 39,
+            "function": "unknown"
+          },
+          "message": "Event is missing `indexed` fields",
+          "description": "Index event fields make the field more quickly accessible to off-chain tools that parse events. However, note that each index field costs extra gas during emission, so it's not necessarily best to index the maximum allowed per event (three fields). Each event should use three indexed fields if there are three or more fields, and gas usage is not particularly of concern for the events in question. If there are fewer than three fields, all of the fields should be indexed.",
+          "recommendation": "Review and fix the issue according to best practices",
+          "swc_id": null,
+          "cwe_id": null,
+          "owasp_category": null,
+          "_aderyn_detector": "unindexed-events",
+          "tool": "aderyn",
+          "canonical_category": "other",
+          "confirming_tools": [
+            "aderyn"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": true,
+          "cross_validated_llm": false,
+          "fp_suppressed": false
+        },
+        {
+          "id": "aderyn-unsafe-erc20-functions-1-8",
+          "type": "unsafe-erc20-functions",
+          "severity": "Medium",
+          "confidence": 0.984,
+          "location": {
+            "file": "FlashLoanVault.sol",
+            "line": 189,
+            "function": "unknown"
+          },
+          "message": "Unsafe ERC20 Operations should not be used",
+          "description": "ERC20 functions may not behave as expected. For example: return values are not always meaningful. It is recommended to use OpenZeppelin's SafeERC20 library.",
+          "recommendation": "Review and fix the issue according to best practices",
+          "swc_id": null,
+          "cwe_id": null,
+          "owasp_category": null,
+          "_aderyn_detector": "unsafe-erc20-functions",
+          "tool": "aderyn",
+          "canonical_category": "other",
+          "confirming_tools": [
+            "aderyn"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": true,
+          "cross_validated_llm": false,
+          "fp_suppressed": false
+        },
+        {
+          "id": "aderyn-zero-address-check-3-2",
+          "type": "zero-address-check",
+          "severity": "Medium",
+          "confidence": 0.984,
+          "location": {
+            "file": "FlashLoanVault.sol",
+            "line": 225,
+            "function": "unknown"
+          },
+          "message": "Missing checks for `address(0)` when assigning values to address state variables",
+          "description": "Check for `address(0)` when assigning values to address state variables.",
+          "recommendation": "Review and fix the issue according to best practices",
+          "swc_id": null,
+          "cwe_id": null,
+          "owasp_category": null,
+          "_aderyn_detector": "zero-address-check",
+          "tool": "aderyn",
+          "canonical_category": "other",
+          "confirming_tools": [
+            "aderyn"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": true,
+          "cross_validated_llm": false,
+          "fp_suppressed": false
+        },
+        {
+          "id": "aderyn-unsafe-erc20-functions-1-1",
+          "type": "unsafe-erc20-functions",
+          "severity": "Medium",
+          "confidence": 0.938,
+          "location": {
+            "file": "FlashLoanVault.sol",
+            "line": 107,
+            "function": "unknown"
+          },
+          "message": "Unsafe ERC20 Operations should not be used",
+          "description": "ERC20 functions may not behave as expected. For example: return values are not always meaningful. It is recommended to use OpenZeppelin's SafeERC20 library.",
+          "recommendation": "Review and fix the issue according to best practices",
+          "swc_id": null,
+          "cwe_id": null,
+          "owasp_category": null,
+          "_aderyn_detector": "unsafe-erc20-functions",
+          "tool": "aderyn",
+          "canonical_category": "other",
+          "confirming_tools": [
+            "aderyn"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": true,
+          "cross_validated_llm": false,
+          "fp_suppressed": false
+        },
+        {
+          "id": "aderyn-unsafe-erc20-functions-1-4",
+          "type": "unsafe-erc20-functions",
+          "severity": "Medium",
+          "confidence": 0.938,
+          "location": {
+            "file": "FlashLoanVault.sol",
+            "line": 151,
+            "function": "unknown"
+          },
+          "message": "Unsafe ERC20 Operations should not be used",
+          "description": "ERC20 functions may not behave as expected. For example: return values are not always meaningful. It is recommended to use OpenZeppelin's SafeERC20 library.",
+          "recommendation": "Review and fix the issue according to best practices",
+          "swc_id": null,
+          "cwe_id": null,
+          "owasp_category": null,
+          "_aderyn_detector": "unsafe-erc20-functions",
+          "tool": "aderyn",
+          "canonical_category": "other",
+          "confirming_tools": [
+            "aderyn"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": true,
+          "cross_validated_llm": false,
+          "fp_suppressed": false
+        },
+        {
+          "id": "aderyn-unsafe-erc20-functions-1-6",
+          "type": "unsafe-erc20-functions",
+          "severity": "Medium",
+          "confidence": 0.938,
+          "location": {
+            "file": "FlashLoanVault.sol",
+            "line": 172,
+            "function": "unknown"
+          },
+          "message": "Unsafe ERC20 Operations should not be used",
+          "description": "ERC20 functions may not behave as expected. For example: return values are not always meaningful. It is recommended to use OpenZeppelin's SafeERC20 library.",
+          "recommendation": "Review and fix the issue according to best practices",
+          "swc_id": null,
+          "cwe_id": null,
+          "owasp_category": null,
+          "_aderyn_detector": "unsafe-erc20-functions",
+          "tool": "aderyn",
+          "canonical_category": "other",
+          "confirming_tools": [
+            "aderyn"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": true,
+          "cross_validated_llm": false,
+          "fp_suppressed": false
+        },
+        {
+          "id": "aderyn-zero-address-check-3-0",
+          "type": "zero-address-check",
+          "severity": "Medium",
+          "confidence": 0.938,
+          "location": {
+            "file": "FlashLoanVault.sol",
+            "line": 47,
+            "function": "unknown"
+          },
+          "message": "Missing checks for `address(0)` when assigning values to address state variables",
+          "description": "Check for `address(0)` when assigning values to address state variables.",
+          "recommendation": "Review and fix the issue according to best practices",
+          "swc_id": null,
+          "cwe_id": null,
+          "owasp_category": null,
+          "_aderyn_detector": "zero-address-check",
+          "tool": "aderyn",
+          "canonical_category": "other",
+          "confirming_tools": [
+            "aderyn"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": true,
+          "cross_validated_llm": false,
+          "fp_suppressed": false
+        },
+        {
+          "type": "unchecked_return_value",
+          "severity": "Medium",
+          "swc_id": "SWC-104",
+          "tool": "miesc-intelligence",
+          "confidence": 0.875,
+          "location": {
+            "file": "",
+            "line": 73,
+            "function": "unknown"
+          },
+          "message": "Low-level call without explicit success check \u2014 use require(success) or SafeERC20.",
+          "description": "Low-level call without explicit success check \u2014 use require(success) or SafeERC20.",
+          "recommendation": "Low-level call without explicit success check \u2014 use require(success) or SafeERC20.",
+          "canonical_category": "unchecked_call",
+          "confirming_tools": [
+            "miesc-intelligence"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": false,
+          "cross_validated_llm": false,
+          "fp_suppressed": false,
+          "fix_code": "// Fix: Use SafeERC20 for token transfers; require(success) for low-level calls\nimport \"@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol\";\nimport \"@openzeppelin/contracts/token/ERC20/IERC20.sol\";\n\ncontract SafeTransfer {\n    using SafeERC20 for IERC20;\n\n    function transferTokens(IERC20 token, address to, uint256 amount) external {\n        // SafeERC20 wraps transfer/transferFrom and reverts on failure\n        token.safeTransfer(to, amount);\n    }\n\n    function sendEther(address payable recipient, uint256 amount) external {\n        // Always check the return value of low-level calls\n        (bool success, ) = recipient.call{value: amount}(\"\");\n        require(success, \"ETH transfer failed\");\n    }\n}",
+          "exploit_scenario": [
+            "1. Contract calls an external address using .call() or .send() but does not check the boolean return value.",
+            "2. The external call silently fails (e.g. recipient is a contract that reverts, or gas stipend is exceeded).",
+            "3. Because the return value is ignored, the contract continues execution and marks the operation as successful.",
+            "4. Tokens or ETH are never delivered, but the contract's internal state (balances, flags) is updated as if they were.",
+            "5. Attacker exploits the accounting discrepancy to double-spend or claim funds they should not have."
+          ]
+        },
+        {
+          "id": "slither-locked-ether-3",
+          "type": "locked-ether",
+          "severity": "Medium",
+          "confidence": 0.85,
+          "location": {
+            "file": "../data/audit/FlashLoanVault.sol",
+            "line": 219,
+            "function": "FlashLoanAttacker"
+          },
+          "message": "Contract locking ether found:",
+          "description": "Contract locking ether found:\n\tContract [FlashLoanAttacker](../data/audit/FlashLoanVault.sol#L219-L252) has payable functions:\n\t - [FlashLoanAttacker.receive()](../data/audit/FlashLoanVault.sol#L251)\n\tBut does not have a function to withdraw the ether\n",
+          "recommendation": "Provide a withdrawal function or ensure contract is payable",
+          "swc_id": "SWC-132",
+          "cwe_id": "CWE-400",
+          "owasp_category": null,
+          "_slither_detector": "locked-ether",
+          "_slither_impact": "Medium",
+          "_slither_confidence": "High",
+          "tool": "slither",
+          "canonical_category": "other",
+          "confirming_tools": [
+            "slither"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": true,
+          "cross_validated_llm": false,
+          "fp_suppressed": false
+        },
+        {
+          "id": "aderyn-unsafe-erc20-functions-1-0",
+          "type": "unsafe-erc20-functions",
+          "severity": "Medium",
+          "confidence": 0.75,
+          "location": {
+            "file": "FlashLoanVault.sol",
+            "line": 69,
+            "function": "unknown"
+          },
+          "message": "Unsafe ERC20 Operations should not be used",
+          "description": "ERC20 functions may not behave as expected. For example: return values are not always meaningful. It is recommended to use OpenZeppelin's SafeERC20 library.",
+          "recommendation": "Review and fix the issue according to best practices",
+          "swc_id": null,
+          "cwe_id": null,
+          "owasp_category": null,
+          "_aderyn_detector": "unsafe-erc20-functions",
+          "tool": "aderyn",
+          "canonical_category": "other",
+          "confirming_tools": [
+            "aderyn"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": true,
+          "cross_validated_llm": false,
+          "fp_suppressed": false
+        },
+        {
+          "id": "aderyn-unsafe-erc20-functions-1-3",
+          "type": "unsafe-erc20-functions",
+          "severity": "Medium",
+          "confidence": 0.75,
+          "location": {
+            "file": "FlashLoanVault.sol",
+            "line": 133,
+            "function": "unknown"
+          },
+          "message": "Unsafe ERC20 Operations should not be used",
+          "description": "ERC20 functions may not behave as expected. For example: return values are not always meaningful. It is recommended to use OpenZeppelin's SafeERC20 library.",
+          "recommendation": "Review and fix the issue according to best practices",
+          "swc_id": null,
+          "cwe_id": null,
+          "owasp_category": null,
+          "_aderyn_detector": "unsafe-erc20-functions",
+          "tool": "aderyn",
+          "canonical_category": "other",
+          "confirming_tools": [
+            "aderyn"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": true,
+          "cross_validated_llm": false,
+          "fp_suppressed": false
+        },
+        {
+          "id": "aderyn-constants-instead-of-literals-4-0",
+          "type": "constants-instead-of-literals",
+          "severity": "Medium",
+          "confidence": 0.75,
+          "location": {
+            "file": "FlashLoanVault.sol",
+            "line": 89,
+            "function": "unknown"
+          },
+          "message": "Define and use `constant` variables instead of using literals",
+          "description": "If the same constant literal value is used multiple times, create a constant state variable and reference it throughout the contract.",
+          "recommendation": "Review and fix the issue according to best practices",
+          "swc_id": null,
+          "cwe_id": null,
+          "owasp_category": null,
+          "_aderyn_detector": "constants-instead-of-literals",
+          "tool": "aderyn",
+          "canonical_category": "other",
+          "confirming_tools": [
+            "aderyn"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": true,
+          "cross_validated_llm": false,
+          "fp_suppressed": false
+        },
+        {
+          "id": "aderyn-constants-instead-of-literals-4-1",
+          "type": "constants-instead-of-literals",
+          "severity": "Medium",
+          "confidence": 0.75,
+          "location": {
+            "file": "FlashLoanVault.sol",
+            "line": 98,
+            "function": "unknown"
+          },
+          "message": "Define and use `constant` variables instead of using literals",
+          "description": "If the same constant literal value is used multiple times, create a constant state variable and reference it throughout the contract.",
+          "recommendation": "Review and fix the issue according to best practices",
+          "swc_id": null,
+          "cwe_id": null,
+          "owasp_category": null,
+          "_aderyn_detector": "constants-instead-of-literals",
+          "tool": "aderyn",
+          "canonical_category": "other",
+          "confirming_tools": [
+            "aderyn"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": true,
+          "cross_validated_llm": false,
+          "fp_suppressed": false
+        },
+        {
+          "id": "aderyn-constants-instead-of-literals-4-2",
+          "type": "constants-instead-of-literals",
+          "severity": "Medium",
+          "confidence": 0.75,
+          "location": {
+            "file": "FlashLoanVault.sol",
+            "line": 143,
+            "function": "unknown"
+          },
+          "message": "Define and use `constant` variables instead of using literals",
+          "description": "If the same constant literal value is used multiple times, create a constant state variable and reference it throughout the contract.",
+          "recommendation": "Review and fix the issue according to best practices",
+          "swc_id": null,
+          "cwe_id": null,
+          "owasp_category": null,
+          "_aderyn_detector": "constants-instead-of-literals",
+          "tool": "aderyn",
+          "canonical_category": "other",
+          "confirming_tools": [
+            "aderyn"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": true,
+          "cross_validated_llm": false,
+          "fp_suppressed": false
+        },
+        {
+          "type": "front_running",
+          "severity": "Medium",
+          "swc_id": "SWC-114",
+          "tool": "miesc-intelligence",
+          "confidence": 0.5,
+          "location": {
+            "file": "",
+            "line": 14,
+            "function": "unknown"
+          },
+          "message": "Approval pattern susceptible to front-running race condition. Consider increaseAllowance/decreaseAllowance.",
+          "description": "Approval pattern susceptible to front-running race condition. Consider increaseAllowance/decreaseAllowance.",
+          "recommendation": "Approval pattern susceptible to front-running race condition. Consider increaseAllowance/decreaseAllowance.",
+          "canonical_category": "front_running",
+          "confirming_tools": [
+            "miesc-intelligence"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": false,
+          "cross_validated_llm": false,
+          "fp_suppressed": false,
+          "fix_code": "// Fix: Use increaseAllowance/decreaseAllowance instead of approve\n// Prevents the ERC-20 approval race condition (SWC-114)\n\nimport \"@openzeppelin/contracts/token/ERC20/ERC20.sol\";\n\ncontract SafeToken is ERC20 {\n    constructor() ERC20(\"SafeToken\", \"STK\") {}\n\n    // Use increaseAllowance to avoid front-running on approve:\n    function safeIncreaseAllowance(address spender, uint256 addedValue) external {\n        _approve(msg.sender, spender, allowance(msg.sender, spender) + addedValue);\n    }\n\n    function safeDecreaseAllowance(address spender, uint256 subtractedValue) external {\n        uint256 current = allowance(msg.sender, spender);\n        require(current >= subtractedValue, \"Allowance below zero\");\n        _approve(msg.sender, spender, current - subtractedValue);\n    }\n    // NOTE: OpenZeppelin's ERC20 already includes increaseAllowance/decreaseAllowance\n}",
+          "exploit_scenario": [
+            "1. Victim calls token.approve(spender, 100) to change an existing approval from 50 to 100.",
+            "2. Attacker monitors the mempool and sees the approve transaction before it is mined.",
+            "3. Attacker front-runs by calling transferFrom(victim, attacker, 50) while the old allowance of 50 is still active.",
+            "4. After the victim's approve is mined, attacker calls transferFrom again using the new allowance of 100.",
+            "5. Attacker steals 150 tokens even though the victim intended to grant only 100.",
+            "6. Fix: use increaseAllowance/decreaseAllowance which are atomic and race-free."
+          ]
+        },
+        {
+          "type": "hardcoded_gas",
+          "severity": "Medium",
+          "swc_id": "SWC-134",
+          "tool": "miesc-intelligence",
+          "confidence": 0.5,
+          "location": {
+            "file": "",
+            "line": 69,
+            "function": "unknown"
+          },
+          "message": "transfer()/send() forwards only 2300 gas \u2014 will fail with contract recipients after EIP-1884. Use call{value:}() with reentrancy guard.",
+          "description": "transfer()/send() forwards only 2300 gas \u2014 will fail with contract recipients after EIP-1884. Use call{value:}() with reentrancy guard.",
+          "recommendation": "transfer()/send() forwards only 2300 gas \u2014 will fail with contract recipients after EIP-1884. Use call{value:}() with reentrancy guard.",
+          "canonical_category": "other",
+          "confirming_tools": [
+            "miesc-intelligence"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": false,
+          "cross_validated_llm": false,
+          "fp_suppressed": false
+        },
+        {
+          "id": "slither-reentrancy-benign-5",
+          "type": "reentrancy-benign",
+          "severity": "Low",
+          "confidence": 0.978,
+          "location": {
+            "file": "../data/audit/FlashLoanVault.sol",
+            "line": 157,
+            "function": "repay"
+          },
+          "message": "Reentrancy in FlashLoanVault.repay(uint256) (../data/audit/FlashLoanVault.sol#157-165):",
+          "description": "Reentrancy in [FlashLoanVault.repay(uint256)](../data/audit/FlashLoanVault.sol#L157-L165):\n\tExternal calls:\n\t- [require(bool,string)(token.transferFrom(msg.sender,address(this),amount),Transfer failed)](../data/audit/FlashLoanVault.sol#L158)\n\tState variables written after the call(s):\n\t- [borrowed[msg.sender] -= amount](../data/audit/FlashLoanVault.sol#L161)\n\t- [totalBorrowed -= amount](../data/audit/FlashLoanVault.sol#L162)\n",
+          "recommendation": "Apply Checks-Effects-Interactions pattern: update state BEFORE external calls. Use OpenZeppelin's ReentrancyGuard (`nonReentrant` modifier).",
+          "swc_id": "SWC-107",
+          "cwe_id": "CWE-841",
+          "owasp_category": "SC01: Reentrancy",
+          "_slither_detector": "reentrancy-benign",
+          "_slither_impact": "Low",
+          "_slither_confidence": "Medium",
+          "tool": "slither",
+          "canonical_category": "reentrancy",
+          "confirming_tools": [
+            "slither"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": true,
+          "cross_validated_llm": false,
+          "fp_suppressed": false,
+          "fix_code": "// Fix: Apply Checks-Effects-Interactions (CEI) pattern + ReentrancyGuard\n// 1. Import OpenZeppelin's ReentrancyGuard\nimport \"@openzeppelin/contracts/security/ReentrancyGuard.sol\";\n\ncontract SafeVault is ReentrancyGuard {\n    mapping(address => uint256) private balances;\n\n    function withdraw(uint256 amount) external nonReentrant {\n        // CHECKS\n        require(balances[msg.sender] >= amount, \"Insufficient balance\");\n        // EFFECTS \u2014 update state BEFORE external call\n        balances[msg.sender] -= amount;\n        // INTERACTIONS \u2014 external call last\n        (bool success, ) = msg.sender.call{value: amount}(\"\");\n        require(success, \"Transfer failed\");\n    }\n}",
+          "exploit_scenario": [
+            "1. Attacker deploys a malicious contract with a fallback/receive function that calls back into the victim.",
+            "2. Attacker calls the victim's withdraw() function with a valid balance.",
+            "3. Victim sends ETH to attacker \u2014 attacker's fallback immediately calls withdraw() again before state is updated.",
+            "4. Re-entry loop drains the contract balance in a single transaction (no per-call state update blocks it).",
+            "5. Attack ends when gas runs out or balance is exhausted; attacker keeps all drained ETH."
+          ]
+        },
+        {
+          "id": "slither-reentrancy-benign-7",
+          "type": "reentrancy-benign",
+          "severity": "Low",
+          "confidence": 0.978,
+          "location": {
+            "file": "../data/audit/FlashLoanVault.sol",
+            "line": 113,
+            "function": "deposit"
+          },
+          "message": "Reentrancy in FlashLoanVault.deposit(uint256) (../data/audit/FlashLoanVault.sol#113-123):",
+          "description": "Reentrancy in [FlashLoanVault.deposit(uint256)](../data/audit/FlashLoanVault.sol#L113-L123):\n\tExternal calls:\n\t- [require(bool,string)(token.transferFrom(msg.sender,address(this),amount),Transfer failed)](../data/audit/FlashLoanVault.sol#L115)\n\tState variables written after the call(s):\n\t- [deposits[msg.sender] += amount](../data/audit/FlashLoanVault.sol#L119)\n\t- [totalDeposits += amount](../data/audit/FlashLoanVault.sol#L120)\n",
+          "recommendation": "Apply Checks-Effects-Interactions pattern: update state BEFORE external calls. Use OpenZeppelin's ReentrancyGuard (`nonReentrant` modifier).",
+          "swc_id": "SWC-107",
+          "cwe_id": "CWE-841",
+          "owasp_category": "SC01: Reentrancy",
+          "_slither_detector": "reentrancy-benign",
+          "_slither_impact": "Low",
+          "_slither_confidence": "Medium",
+          "tool": "slither",
+          "canonical_category": "reentrancy",
+          "confirming_tools": [
+            "slither"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": true,
+          "cross_validated_llm": false,
+          "fp_suppressed": false,
+          "fix_code": "// Fix: Apply Checks-Effects-Interactions (CEI) pattern + ReentrancyGuard\n// 1. Import OpenZeppelin's ReentrancyGuard\nimport \"@openzeppelin/contracts/security/ReentrancyGuard.sol\";\n\ncontract SafeVault is ReentrancyGuard {\n    mapping(address => uint256) private balances;\n\n    function withdraw(uint256 amount) external nonReentrant {\n        // CHECKS\n        require(balances[msg.sender] >= amount, \"Insufficient balance\");\n        // EFFECTS \u2014 update state BEFORE external call\n        balances[msg.sender] -= amount;\n        // INTERACTIONS \u2014 external call last\n        (bool success, ) = msg.sender.call{value: amount}(\"\");\n        require(success, \"Transfer failed\");\n    }\n}",
+          "exploit_scenario": [
+            "1. Attacker deploys a malicious contract with a fallback/receive function that calls back into the victim.",
+            "2. Attacker calls the victim's withdraw() function with a valid balance.",
+            "3. Victim sends ETH to attacker \u2014 attacker's fallback immediately calls withdraw() again before state is updated.",
+            "4. Re-entry loop drains the contract balance in a single transaction (no per-call state update blocks it).",
+            "5. Attack ends when gas runs out or balance is exhausted; attacker keeps all drained ETH."
+          ]
+        },
+        {
+          "id": "slither-reentrancy-benign-6",
+          "type": "reentrancy-benign",
+          "severity": "Low",
+          "confidence": 0.85,
+          "location": {
+            "file": "../data/audit/FlashLoanVault.sol",
+            "line": 176,
+            "function": "addCollateral"
+          },
+          "message": "Reentrancy in FlashLoanVault.addCollateral(uint256) (../data/audit/FlashLoanVault.sol#176-179):",
+          "description": "Reentrancy in [FlashLoanVault.addCollateral(uint256)](../data/audit/FlashLoanVault.sol#L176-L179):\n\tExternal calls:\n\t- [require(bool,string)(token.transferFrom(msg.sender,address(this),amount),Transfer failed)](../data/audit/FlashLoanVault.sol#L177)\n\tState variables written after the call(s):\n\t- [collateral[msg.sender] += amount](../data/audit/FlashLoanVault.sol#L178)\n",
+          "recommendation": "Apply Checks-Effects-Interactions pattern: update state BEFORE external calls. Use OpenZeppelin's ReentrancyGuard (`nonReentrant` modifier).",
+          "swc_id": "SWC-107",
+          "cwe_id": "CWE-841",
+          "owasp_category": "SC01: Reentrancy",
+          "_slither_detector": "reentrancy-benign",
+          "_slither_impact": "Low",
+          "_slither_confidence": "Medium",
+          "tool": "slither",
+          "canonical_category": "reentrancy",
+          "confirming_tools": [
+            "slither"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": true,
+          "cross_validated_llm": false,
+          "fp_suppressed": false,
+          "fix_code": "// Fix: Apply Checks-Effects-Interactions (CEI) pattern + ReentrancyGuard\n// 1. Import OpenZeppelin's ReentrancyGuard\nimport \"@openzeppelin/contracts/security/ReentrancyGuard.sol\";\n\ncontract SafeVault is ReentrancyGuard {\n    mapping(address => uint256) private balances;\n\n    function withdraw(uint256 amount) external nonReentrant {\n        // CHECKS\n        require(balances[msg.sender] >= amount, \"Insufficient balance\");\n        // EFFECTS \u2014 update state BEFORE external call\n        balances[msg.sender] -= amount;\n        // INTERACTIONS \u2014 external call last\n        (bool success, ) = msg.sender.call{value: amount}(\"\");\n        require(success, \"Transfer failed\");\n    }\n}",
+          "exploit_scenario": [
+            "1. Attacker deploys a malicious contract with a fallback/receive function that calls back into the victim.",
+            "2. Attacker calls the victim's withdraw() function with a valid balance.",
+            "3. Victim sends ETH to attacker \u2014 attacker's fallback immediately calls withdraw() again before state is updated.",
+            "4. Re-entry loop drains the contract balance in a single transaction (no per-call state update blocks it).",
+            "5. Attack ends when gas runs out or balance is exhausted; attacker keeps all drained ETH."
+          ]
+        },
+        {
+          "id": "slither-reentrancy-events-8",
+          "type": "reentrancy-events",
+          "severity": "Low",
+          "confidence": 0.85,
+          "location": {
+            "file": "../data/audit/FlashLoanVault.sol",
+            "line": 126,
+            "function": "withdraw"
+          },
+          "message": "Reentrancy in FlashLoanVault.withdraw(uint256) (../data/audit/FlashLoanVault.sol#126-136):",
+          "description": "Reentrancy in [FlashLoanVault.withdraw(uint256)](../data/audit/FlashLoanVault.sol#L126-L136):\n\tExternal calls:\n\t- [require(bool,string)(token.transfer(msg.sender,amount),Transfer failed)](../data/audit/FlashLoanVault.sol#L133)\n\tEvent emitted after the call(s):\n\t- [Withdraw(msg.sender,amount)](../data/audit/FlashLoanVault.sol#L135)\n",
+          "recommendation": "Apply Checks-Effects-Interactions pattern: update state BEFORE external calls. Use OpenZeppelin's ReentrancyGuard (`nonReentrant` modifier).",
+          "swc_id": "SWC-107",
+          "cwe_id": "CWE-841",
+          "owasp_category": "SC01: Reentrancy",
+          "_slither_detector": "reentrancy-events",
+          "_slither_impact": "Low",
+          "_slither_confidence": "Medium",
+          "tool": "slither",
+          "canonical_category": "reentrancy",
+          "confirming_tools": [
+            "slither"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": true,
+          "cross_validated_llm": false,
+          "fp_suppressed": false,
+          "fix_code": "// Fix: Apply Checks-Effects-Interactions (CEI) pattern + ReentrancyGuard\n// 1. Import OpenZeppelin's ReentrancyGuard\nimport \"@openzeppelin/contracts/security/ReentrancyGuard.sol\";\n\ncontract SafeVault is ReentrancyGuard {\n    mapping(address => uint256) private balances;\n\n    function withdraw(uint256 amount) external nonReentrant {\n        // CHECKS\n        require(balances[msg.sender] >= amount, \"Insufficient balance\");\n        // EFFECTS \u2014 update state BEFORE external call\n        balances[msg.sender] -= amount;\n        // INTERACTIONS \u2014 external call last\n        (bool success, ) = msg.sender.call{value: amount}(\"\");\n        require(success, \"Transfer failed\");\n    }\n}",
+          "exploit_scenario": [
+            "1. Attacker deploys a malicious contract with a fallback/receive function that calls back into the victim.",
+            "2. Attacker calls the victim's withdraw() function with a valid balance.",
+            "3. Victim sends ETH to attacker \u2014 attacker's fallback immediately calls withdraw() again before state is updated.",
+            "4. Re-entry loop drains the contract balance in a single transaction (no per-call state update blocks it).",
+            "5. Attack ends when gas runs out or balance is exhausted; attacker keeps all drained ETH."
+          ]
+        },
+        {
+          "id": "slither-reentrancy-events-12",
+          "type": "reentrancy-events",
+          "severity": "Low",
+          "confidence": 0.85,
+          "location": {
+            "file": "../data/audit/FlashLoanVault.sol",
+            "line": 139,
+            "function": "borrow"
+          },
+          "message": "Reentrancy in FlashLoanVault.borrow(uint256) (../data/audit/FlashLoanVault.sol#139-154):",
+          "description": "Reentrancy in [FlashLoanVault.borrow(uint256)](../data/audit/FlashLoanVault.sol#L139-L154):\n\tExternal calls:\n\t- [require(bool,string)(token.transfer(msg.sender,amount),Transfer failed)](../data/audit/FlashLoanVault.sol#L151)\n\tEvent emitted after the call(s):\n\t- [Borrow(msg.sender,amount)](../data/audit/FlashLoanVault.sol#L153)\n",
+          "recommendation": "Apply Checks-Effects-Interactions pattern: update state BEFORE external calls. Use OpenZeppelin's ReentrancyGuard (`nonReentrant` modifier).",
+          "swc_id": "SWC-107",
+          "cwe_id": "CWE-841",
+          "owasp_category": "SC01: Reentrancy",
+          "_slither_detector": "reentrancy-events",
+          "_slither_impact": "Low",
+          "_slither_confidence": "Medium",
+          "tool": "slither",
+          "canonical_category": "reentrancy",
+          "confirming_tools": [
+            "slither"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": true,
+          "cross_validated_llm": false,
+          "fp_suppressed": false,
+          "fix_code": "// Fix: Apply Checks-Effects-Interactions (CEI) pattern + ReentrancyGuard\n// 1. Import OpenZeppelin's ReentrancyGuard\nimport \"@openzeppelin/contracts/security/ReentrancyGuard.sol\";\n\ncontract SafeVault is ReentrancyGuard {\n    mapping(address => uint256) private balances;\n\n    function withdraw(uint256 amount) external nonReentrant {\n        // CHECKS\n        require(balances[msg.sender] >= amount, \"Insufficient balance\");\n        // EFFECTS \u2014 update state BEFORE external call\n        balances[msg.sender] -= amount;\n        // INTERACTIONS \u2014 external call last\n        (bool success, ) = msg.sender.call{value: amount}(\"\");\n        require(success, \"Transfer failed\");\n    }\n}",
+          "exploit_scenario": [
+            "1. Attacker deploys a malicious contract with a fallback/receive function that calls back into the victim.",
+            "2. Attacker calls the victim's withdraw() function with a valid balance.",
+            "3. Victim sends ETH to attacker \u2014 attacker's fallback immediately calls withdraw() again before state is updated.",
+            "4. Re-entry loop drains the contract balance in a single transaction (no per-call state update blocks it).",
+            "5. Attack ends when gas runs out or balance is exhausted; attacker keeps all drained ETH."
+          ]
+        },
+        {
+          "id": "slither-reentrancy-events-13",
+          "type": "reentrancy-events",
+          "severity": "Low",
+          "confidence": 0.85,
+          "location": {
+            "file": "../data/audit/FlashLoanVault.sol",
+            "line": 93,
+            "function": "liquidate"
+          },
+          "message": "Reentrancy in FlashLoanVault.liquidate(address) (../data/audit/FlashLoanVault.sol#93-110):",
+          "description": "Reentrancy in [FlashLoanVault.liquidate(address)](../data/audit/FlashLoanVault.sol#L93-L110):\n\tExternal calls:\n\t- [require(bool,string)(token.transfer(msg.sender,liquidationAmount),Transfer failed)](../data/audit/FlashLoanVault.sol#L107)\n\tEvent emitted after the call(s):\n\t- [Liquidation(msg.sender,user,liquidationAmount)](../data/audit/FlashLoanVault.sol#L109)\n",
+          "recommendation": "Apply Checks-Effects-Interactions pattern: update state BEFORE external calls. Use OpenZeppelin's ReentrancyGuard (`nonReentrant` modifier).",
+          "swc_id": "SWC-107",
+          "cwe_id": "CWE-841",
+          "owasp_category": "SC01: Reentrancy",
+          "_slither_detector": "reentrancy-events",
+          "_slither_impact": "Low",
+          "_slither_confidence": "Medium",
+          "tool": "slither",
+          "canonical_category": "reentrancy",
+          "confirming_tools": [
+            "slither"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": true,
+          "cross_validated_llm": false,
+          "fp_suppressed": false,
+          "fix_code": "// Fix: Apply Checks-Effects-Interactions (CEI) pattern + ReentrancyGuard\n// 1. Import OpenZeppelin's ReentrancyGuard\nimport \"@openzeppelin/contracts/security/ReentrancyGuard.sol\";\n\ncontract SafeVault is ReentrancyGuard {\n    mapping(address => uint256) private balances;\n\n    function withdraw(uint256 amount) external nonReentrant {\n        // CHECKS\n        require(balances[msg.sender] >= amount, \"Insufficient balance\");\n        // EFFECTS \u2014 update state BEFORE external call\n        balances[msg.sender] -= amount;\n        // INTERACTIONS \u2014 external call last\n        (bool success, ) = msg.sender.call{value: amount}(\"\");\n        require(success, \"Transfer failed\");\n    }\n}",
+          "exploit_scenario": [
+            "1. Attacker deploys a malicious contract with a fallback/receive function that calls back into the victim.",
+            "2. Attacker calls the victim's withdraw() function with a valid balance.",
+            "3. Victim sends ETH to attacker \u2014 attacker's fallback immediately calls withdraw() again before state is updated.",
+            "4. Re-entry loop drains the contract balance in a single transaction (no per-call state update blocks it).",
+            "5. Attack ends when gas runs out or balance is exhausted; attacker keeps all drained ETH."
+          ]
+        },
+        {
+          "type": "missing_event_emission",
+          "severity": "Low",
+          "swc_id": "SWC-100",
+          "tool": "miesc-intelligence",
+          "confidence": 0.5,
+          "location": {
+            "file": "",
+            "line": 205,
+            "function": "unknown"
+          },
+          "message": "State-changing function without event emission \u2014 limits off-chain monitoring and indexing.",
+          "description": "State-changing function without event emission \u2014 limits off-chain monitoring and indexing.",
+          "recommendation": "State-changing function without event emission \u2014 limits off-chain monitoring and indexing.",
+          "canonical_category": "other",
+          "confirming_tools": [
+            "miesc-intelligence"
+          ],
+          "tool_count": 1,
+          "cross_validated_static": false,
+          "cross_validated_llm": false,
+          "fp_suppressed": false
+        }
+      ]
+    }
+  ]
+}

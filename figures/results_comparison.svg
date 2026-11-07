@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="900" height="550" viewBox="0 0 900 550" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="ossBar" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#1B5E20"/>
+      <stop offset="100%" style="stop-color:#4CAF50"/>
+    </linearGradient>
+    <linearGradient id="ensembleBar" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#0D3B12"/>
+      <stop offset="100%" style="stop-color:#2E7D32"/>
+    </linearGradient>
+    <linearGradient id="frontierBar" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#1565C0"/>
+      <stop offset="100%" style="stop-color:#42A5F5"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="0" y="0" width="900" height="550" fill="#FFFFFF"/>
+
+  <!-- Title -->
+  <text x="450" y="38" font-family="Arial, sans-serif" font-size="19" font-weight="bold" fill="#222" text-anchor="middle">EVMBench: recall por configuración / recall by configuration</text>
+  <text x="450" y="60" font-family="Arial, sans-serif" font-size="12" fill="#666" text-anchor="middle">40 auditorías DeFi reales, 120 vulnerabilidades HIGH — corrida única por modelo (evmbench_eval.py v5.3.1)</text>
+
+  <!-- Vertical gridlines + axis labels (0..100%) -->
+  <g font-family="Arial, sans-serif" font-size="10" fill="#999" text-anchor="middle">
+    <line x1="240" y1="95" x2="240" y2="482" stroke="#CCCCCC" stroke-width="1"/>
+    <line x1="356" y1="95" x2="356" y2="482" stroke="#EEEEEE" stroke-width="1"/>
+    <line x1="472" y1="95" x2="472" y2="482" stroke="#EEEEEE" stroke-width="1"/>
+    <line x1="588" y1="95" x2="588" y2="482" stroke="#EEEEEE" stroke-width="1"/>
+    <line x1="704" y1="95" x2="704" y2="482" stroke="#EEEEEE" stroke-width="1"/>
+    <line x1="820" y1="95" x2="820" y2="482" stroke="#CCCCCC" stroke-width="1"/>
+    <text x="240" y="498">0%</text>
+    <text x="356" y="498">20%</text>
+    <text x="472" y="498">40%</text>
+    <text x="588" y="498">60%</text>
+    <text x="704" y="498">80%</text>
+    <text x="820" y="498">100%</text>
+  </g>
+
+  <!-- Bars: x0=240, 5.8 px per %, height 34, row pitch 55 -->
+  <g font-family="Arial, sans-serif">
+    <!-- static-only 18.3% -->
+    <text x="230" y="132" font-size="12" fill="#333" text-anchor="end">static-only</text>
+    <text x="230" y="146" font-size="9" fill="#999" text-anchor="end">baseline</text>
+    <rect x="240" y="110" width="106" height="34" fill="#9E9E9E" rx="2"/>
+    <text x="356" y="132" font-size="12" font-weight="bold" fill="#555" text-anchor="start">18.3%</text>
+
+    <!-- qwen2.5-coder:32b 59.2% -->
+    <text x="230" y="187" font-size="12" fill="#333" text-anchor="end">qwen2.5-coder:32b</text>
+    <text x="230" y="201" font-size="9" fill="#999" text-anchor="end">local ($0)</text>
+    <rect x="240" y="165" width="343" height="34" fill="#26A69A" rx="2"/>
+    <text x="593" y="187" font-size="12" font-weight="bold" fill="#00695C" text-anchor="start">59.2%</text>
+
+    <!-- DeepSeek-reasoner 70.8% (OSS highlight) -->
+    <text x="230" y="242" font-size="12" font-weight="bold" fill="#1B5E20" text-anchor="end">DeepSeek-reasoner</text>
+    <text x="230" y="256" font-size="9" fill="#2E7D32" text-anchor="end">open-weight (MIT)</text>
+    <rect x="240" y="220" width="411" height="34" fill="url(#ossBar)" rx="2"/>
+    <text x="661" y="242" font-size="12" font-weight="bold" fill="#1B5E20" text-anchor="start">70.8%</text>
+
+    <!-- GPT-4o 73.7% -->
+    <text x="230" y="297" font-size="12" fill="#333" text-anchor="end">GPT-4o</text>
+    <text x="230" y="311" font-size="9" fill="#999" text-anchor="end">frontier</text>
+    <rect x="240" y="275" width="427" height="34" fill="url(#frontierBar)" rx="2"/>
+    <text x="677" y="297" font-size="12" font-weight="bold" fill="#0D47A1" text-anchor="start">73.7%</text>
+
+    <!-- GPT-5 77.5% -->
+    <text x="230" y="352" font-size="12" fill="#333" text-anchor="end">GPT-5</text>
+    <text x="230" y="366" font-size="9" fill="#999" text-anchor="end">frontier</text>
+    <rect x="240" y="330" width="450" height="34" fill="url(#frontierBar)" rx="2"/>
+    <text x="700" y="352" font-size="12" font-weight="bold" fill="#0D47A1" text-anchor="start">77.5%</text>
+
+    <!-- Claude Sonnet 4.6 82.5% -->
+    <text x="230" y="407" font-size="12" fill="#333" text-anchor="end">Claude Sonnet 4.6</text>
+    <text x="230" y="421" font-size="9" fill="#999" text-anchor="end">frontier</text>
+    <rect x="240" y="385" width="479" height="34" fill="url(#frontierBar)" rx="2"/>
+    <text x="729" y="407" font-size="12" font-weight="bold" fill="#0D47A1" text-anchor="start">82.5%</text>
+
+    <!-- Ensemble 92.5% (dark green highlight) -->
+    <text x="230" y="462" font-size="12" font-weight="bold" fill="#1B5E20" text-anchor="end">Ensemble (unión)</text>
+    <text x="230" y="476" font-size="9" fill="#2E7D32" text-anchor="end">4-frontier union</text>
+    <rect x="240" y="440" width="537" height="34" fill="url(#ensembleBar)" rx="2"/>
+    <text x="787" y="462" font-size="12" font-weight="bold" fill="#1B5E20" text-anchor="start">92.5%</text>
+  </g>
+
+  <!-- Footnote -->
+  <text x="240" y="520" font-family="Arial, sans-serif" font-size="10" fill="#888" text-anchor="start">Fuente / Source: paper1_claims_matrix.json (frontier, local, ensemble) + evmbench_eval.py v5.3.1 artifact (DeepSeek, open-weight).</text>
+  <text x="240" y="534" font-family="Arial, sans-serif" font-size="10" fill="#888" text-anchor="start">Single stored run per model; ensemble = deterministic union over audit:vulnerability keys.</text>
+</svg>

@@ -1,0 +1,11 @@
+{
+  "metrics": {
+    "evmbench_ensemble_recall": 0.925,
+    "real_world_exploit_recall": 0.818,
+    "real_world_exploit_wilson_ci_95": [0.52, 0.95],
+    "smartbugs_curated_recall": 0.958,
+    "source": "benchmarks/results/paper1_claims_matrix.json"
+  },
+  "status": "success",
+  "timestamp": "2025-12-08T15:42:54.040225Z"
+}

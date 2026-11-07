@@ -1,0 +1,216 @@
+{
+  "input": {
+    "findings_count": 3,
+    "findings": [
+      {
+        "title": "Reentrancy Vulnerability",
+        "severity": "High",
+        "tool": "slither",
+        "description": "External call to user-controlled address before state update",
+        "location": {
+          "file": "VulnerableBank.sol",
+          "line": 35
+        },
+        "swc": "SWC-107",
+        "cwe": "CWE-841",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [],
+          "features": {
+            "in_test": false,
+            "near_require": false,
+            "near_modifier": false,
+            "confirmations": 1
+          }
+        },
+        "confidence": 0.7
+      },
+      {
+        "title": "Unchecked Return Value",
+        "severity": "Medium",
+        "tool": "slither",
+        "description": "Return value of external call not checked",
+        "location": {
+          "file": "VulnerableBank.sol",
+          "line": 52
+        },
+        "swc": "SWC-104",
+        "cwe": "CWE-252",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [],
+          "features": {
+            "in_test": false,
+            "near_require": false,
+            "near_modifier": false,
+            "confirmations": 1
+          }
+        },
+        "confidence": 0.7
+      },
+      {
+        "title": "Missing Zero Address Check",
+        "severity": "Low",
+        "tool": "aderyn",
+        "description": "Function does not validate against zero address",
+        "location": {
+          "file": "VulnerableBank.sol",
+          "line": 19
+        },
+        "swc": "SWC-123",
+        "cwe": "CWE-20",
+        "_fp_analysis": {
+          "fp_probability": 0.0,
+          "is_likely_fp": false,
+          "confidence_adjustment": 1.0,
+          "reasons": [],
+          "features": {
+            "in_test": false,
+            "near_require": false,
+            "near_modifier": false,
+            "confirmations": 1
+          }
+        },
+        "confidence": 0.7
+      }
+    ]
+  },
+  "output": {
+    "original_count": 3,
+    "filtered_count": 3,
+    "fp_filtered": 0,
+    "severity_adjustments": 2,
+    "cluster_count": 1,
+    "processing_time_ms": 0.58
+  },
+  "filtered_findings": [
+    {
+      "title": "Reentrancy Vulnerability",
+      "severity": "High",
+      "tool": "slither",
+      "description": "External call to user-controlled address before state update",
+      "location": {
+        "file": "VulnerableBank.sol",
+        "line": 35
+      },
+      "swc": "SWC-107",
+      "cwe": "CWE-841",
+      "_fp_analysis": {
+        "fp_probability": 0.0,
+        "is_likely_fp": false,
+        "confidence_adjustment": 1.0,
+        "reasons": [],
+        "features": {
+          "in_test": false,
+          "near_require": false,
+          "near_modifier": false,
+          "confirmations": 1
+        }
+      },
+      "confidence": 0.7,
+      "_confidence_adjusted": true,
+      "_adjustment": 0.0
+    },
+    {
+      "title": "Unchecked Return Value",
+      "severity": "high",
+      "tool": "slither",
+      "description": "Return value of external call not checked",
+      "location": {
+        "file": "VulnerableBank.sol",
+        "line": 52
+      },
+      "swc": "SWC-104",
+      "cwe": "CWE-252",
+      "_fp_analysis": {
+        "fp_probability": 0.0,
+        "is_likely_fp": false,
+        "confidence_adjustment": 1.0,
+        "reasons": [],
+        "features": {
+          "in_test": false,
+          "near_require": false,
+          "near_modifier": false,
+          "confirmations": 1
+        }
+      },
+      "confidence": 0.7,
+      "_severity_prediction": {
+        "original": "medium",
+        "predicted": "high",
+        "confidence": 0.7,
+        "reasons": []
+      },
+      "_confidence_adjusted": true,
+      "_adjustment": 0.0
+    },
+    {
+      "title": "Missing Zero Address Check",
+      "severity": "high",
+      "tool": "aderyn",
+      "description": "Function does not validate against zero address",
+      "location": {
+        "file": "VulnerableBank.sol",
+        "line": 19
+      },
+      "swc": "SWC-123",
+      "cwe": "CWE-20",
+      "_fp_analysis": {
+        "fp_probability": 0.0,
+        "is_likely_fp": false,
+        "confidence_adjustment": 1.0,
+        "reasons": [],
+        "features": {
+          "in_test": false,
+          "near_require": false,
+          "near_modifier": false,
+          "confirmations": 1
+        }
+      },
+      "confidence": 0.7,
+      "_severity_prediction": {
+        "original": "low",
+        "predicted": "high",
+        "confidence": 0.7,
+        "reasons": []
+      },
+      "_confidence_adjusted": true,
+      "_adjustment": 0.0
+    }
+  ],
+  "clusters": [
+    {
+      "id": "CLUSTER-130ad348",
+      "category": "uncategorized",
+      "root_cause": "Unknown root cause",
+      "severity": "high",
+      "finding_count": 3,
+      "affected_functions": [],
+      "affected_files": [
+        "VulnerableBank.sol"
+      ],
+      "common_patterns": [],
+      "remediation": "Manual review required",
+      "confidence": 0.697
+    }
+  ],
+  "remediation_plan": [
+    {
+      "priority": 1,
+      "cluster_id": "CLUSTER-130ad348",
+      "category": "uncategorized",
+      "severity": "high",
+      "finding_count": 3,
+      "affected_files": [
+        "VulnerableBank.sol"
+      ],
+      "root_cause": "Unknown root cause",
+      "remediation": "Manual review required",
+      "estimated_effort": "Medium (1-4 hours)"
+    }
+  ]
+}
