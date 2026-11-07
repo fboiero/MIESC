@@ -81,6 +81,35 @@ class TestSelfServiceWithdrawal:
         assert not moves_value("{ rewardsForA[recipient] += 100; }")
         assert moves_value("{ to.send(amount); }")
 
+    def test_balance_check_without_decrement_is_self_service(self):
+        # `require(bal[msg.sender] >= amt)` then pay `amt`: still the caller's own money.
+        assert is_self_service_withdrawal(
+            "{ require(balances[msg.sender] >= amt); msg.sender.transfer(amt); }"
+        )
+
+    def test_recipient_local_var_is_self_service(self):
+        assert is_self_service_withdrawal(
+            "{ uint a = credit[to]; credit[to] = 0; to.transfer(a); }"
+        )
+
+    def test_amount_var_named_value_is_still_bound(self):
+        # `value` is a unit keyword but here names the local carrying the amount.
+        assert is_self_service_withdrawal(
+            "{ uint value = balances[msg.sender]; balances[msg.sender] = 0; msg.sender.transfer(value); }"
+        )
+
+    def test_arbitrary_amount_with_unrelated_sender_read_is_not_self_service(self):
+        # Sends an arbitrary amount to `owner`; the `bal[msg.sender]` read is not tied to it.
+        assert not is_self_service_withdrawal(
+            "{ owner.transfer(amount); uint mine = balances[msg.sender]; emit Seen(mine); }"
+        )
+
+    def test_sender_mapping_touched_but_amount_unbound_is_not_self_service(self):
+        # `records[msg.sender].push(amt)` co-occurs but does not bind the amount sent out.
+        assert not is_self_service_withdrawal(
+            "{ records[msg.sender].push(amt); owner.transfer(amt); }"
+        )
+
 
 class TestHelpers:
     def test_owner_like_names(self):
