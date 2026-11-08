@@ -19,6 +19,7 @@ Version: 1.0.0
 
 import logging
 import os
+import re
 import subprocess
 import time
 from pathlib import Path
@@ -34,6 +35,90 @@ from miesc.core.tool_protocol import (
 from miesc.llm import enhance_findings_with_llm
 
 logger = logging.getLogger(__name__)
+
+# CSI / charset escape sequences and carriage returns that Echidna emits under a tty.
+_ANSI_RE = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]|\x1b[()][AB012]|\r")
+
+
+def _strip_ansi(text: str) -> str:
+    return _ANSI_RE.sub("", text)
+
+
+def _run_capturing_pty(cmd: List[str], cwd: str, timeout: int) -> tuple[int, str]:
+    """Run ``cmd`` under a pseudo-tty and return ``(returncode, combined_output)``.
+
+    Echidna gates its full (non-TUI) output on a controlling terminal: a plain captured
+    subprocess receives only the compile banner and drops every ``name: failed!`` verdict, so
+    the run looks clean even when properties were falsified. A pty makes Echidna emit the
+    complete text output, which we strip of ANSI control codes. Raises
+    :class:`subprocess.TimeoutExpired` on timeout. Falls back to a plain pipe where ``pty`` is
+    unavailable (e.g. Windows).
+    """
+    # Echidna shells out to its own Python toolchain (crytic-compile, slither). MIESC's
+    # PYTHON* environment (a PYTHONPATH into the package, PYTHONNOUSERSITE isolating the venv)
+    # leaks into that child and makes crytic-compile unimportable ("Couldn't compile given
+    # file"), so strip those variables for the subprocess and let Echidna find its own install.
+    child_env = {k: v for k, v in os.environ.items() if not k.startswith("PYTHON")}
+
+    try:
+        import pty
+        import select
+    except ImportError:  # pragma: no cover - non-POSIX
+        proc = subprocess.run(
+            cmd, capture_output=True, text=True, timeout=timeout, cwd=cwd, env=child_env
+        )
+        return proc.returncode, _strip_ansi((proc.stdout or "") + (proc.stderr or ""))
+
+    master, slave = pty.openpty()
+    process = subprocess.Popen(
+        cmd,
+        stdin=slave,
+        stdout=slave,
+        stderr=slave,
+        cwd=cwd,
+        close_fds=True,
+        start_new_session=True,
+        env=child_env,
+    )
+    os.close(slave)
+    chunks: List[bytes] = []
+    deadline = time.time() + timeout
+    timed_out = False
+    try:
+        # Read until EOF (the slave closes when the child and its children all exit, which
+        # surfaces as an empty read or EIO) rather than on process exit: Echidna flushes its
+        # final verdict lines as it is tearing down, so stopping at process.poll() truncates
+        # exactly the output we need.
+        while True:
+            if time.time() > deadline:
+                process.kill()
+                timed_out = True
+                break
+            try:
+                readable, _, _ = select.select([master], [], [], 1.0)
+            except (OSError, ValueError):
+                break
+            if master in readable:
+                try:
+                    data = os.read(master, 65536)
+                except OSError:  # slave fully closed (EIO on Linux)
+                    break
+                if not data:  # EOF
+                    break
+                chunks.append(data)
+    finally:
+        try:
+            os.close(master)
+        except OSError:
+            pass
+        try:
+            process.wait(timeout=5)
+        except Exception:
+            process.kill()
+    if timed_out:
+        raise subprocess.TimeoutExpired(cmd, timeout)
+    output = b"".join(chunks).decode("utf-8", errors="replace")
+    return (process.returncode or 0), _strip_ansi(output)
 
 
 class EchidnaAdapter(ToolAdapter):
@@ -192,21 +277,24 @@ class EchidnaAdapter(ToolAdapter):
             if test_mode == "assertion":
                 cmd.append("--test-mode=assertion")
 
+            # Line-oriented text output. Echidna's default TUI renders via cursor control that
+            # does not survive capture; --format text emits the `name: failed!/passing` verdict
+            # lines that _parse_output reads.
+            cmd.extend(["--format", "text"])
+
             logger.info(f"Running Echidna: {' '.join(cmd)}")
 
-            # Run echidna
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                timeout=self.timeout,
-                text=True,
-                cwd=os.path.dirname(contract_path) or ".",
+            # Run under a pseudo-tty. Echidna only emits its full results when it believes a
+            # terminal is attached, so a plain captured subprocess loses every verdict line and
+            # the run looks clean even when properties were falsified.
+            returncode, output = _run_capturing_pty(
+                cmd, cwd=os.path.dirname(contract_path) or ".", timeout=self.timeout
             )
 
             duration = time.time() - start_time
 
-            # Parse output
-            findings = self._parse_output(result.stdout, result.stderr)
+            # Parse output (combined stdout+stderr, ANSI stripped, from the pty)
+            findings = self._parse_output(output, "")
             # Enhance findings with OpenLLaMA (opt-in via llm_enhance=True)
             # Default: SKIP — adds 8s per finding. Enable for client reports.
             if kwargs.get("llm_enhance", False):
@@ -219,8 +307,8 @@ class EchidnaAdapter(ToolAdapter):
                     logger.debug(f"LLM enhancement failed: {e}")
 
             # Extract metrics
-            tests_run = self._extract_tests_run(result.stdout)
-            coverage_info = self._extract_coverage(result.stdout)
+            tests_run = self._extract_tests_run(output)
+            coverage_info = self._extract_coverage(output)
 
             return {
                 "tool": "echidna",
@@ -280,8 +368,11 @@ class EchidnaAdapter(ToolAdapter):
         for line in lines:
             line = line.strip()
 
-            # Detect failed property
-            if "failed" in line.lower() and ":" in line:
+            # Detect a falsified property: Echidna prints `name: failed!💥` for a violation.
+            # Require the `!` so log noise such as "WARNING: Running slither failed." (a period,
+            # not a verdict) does not read as a finding.
+            verdict = re.match(r"(\w+):\s*failed!", line)
+            if verdict:
                 if current_finding:
                     # Save previous finding
                     current_finding["call_sequence"] = call_sequence
@@ -289,7 +380,7 @@ class EchidnaAdapter(ToolAdapter):
                     call_sequence = []
 
                 # Start new finding
-                property_name = line.split(":")[0].strip()
+                property_name = verdict.group(1)
                 current_finding = {
                     "type": "property_violation",
                     "severity": "high",
@@ -324,10 +415,15 @@ class EchidnaAdapter(ToolAdapter):
         return findings
 
     def _extract_tests_run(self, output: str) -> int:
-        """Extract number of tests run from output"""
-        # Look for patterns like "Ran 50000 tests"
-        import re
+        """Extract the number of properties Echidna evaluated from its output.
 
+        Echidna's status line reads ``[status] tests: 2/2, fuzzing: ...``; the first number is
+        the count of properties resolved and the second the total. Fall back to the older
+        ``Ran N tests`` phrasing.
+        """
+        match = re.search(r"tests:\s*(\d+)\s*/\s*(\d+)", output, re.IGNORECASE)
+        if match:
+            return int(match.group(2))
         match = re.search(r"(\d+)\s+tests?", output, re.IGNORECASE)
         if match:
             return int(match.group(1))

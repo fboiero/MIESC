@@ -2851,7 +2851,7 @@ class TestEchidnaAdapterExtended(TestAdapterBase):
         adapter = EchidnaAdapter()
         with (
             patch.object(adapter, "is_available") as mock_avail,
-            patch("subprocess.run") as mock_run,
+            patch("miesc.adapters.echidna_adapter._run_capturing_pty") as mock_run,
         ):
             from miesc.core.tool_protocol import ToolStatus
 
@@ -2884,7 +2884,7 @@ class TestEchidnaAdapterExtended(TestAdapterBase):
         adapter = EchidnaAdapter()
         with (
             patch.object(adapter, "is_available") as mock_avail,
-            patch("subprocess.run") as mock_run,
+            patch("miesc.adapters.echidna_adapter._run_capturing_pty") as mock_run,
         ):
             from miesc.core.tool_protocol import ToolStatus
 

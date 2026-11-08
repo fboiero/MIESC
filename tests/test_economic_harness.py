@@ -10,6 +10,7 @@ Covers, WITHOUT requiring Echidna to be installed:
 
 from __future__ import annotations
 
+import shutil
 from typing import Any, Dict
 
 import pytest
@@ -222,3 +223,55 @@ def test_run_skips_when_no_runnable_invariant(vault_file):
     fake = _FakeAdapter(available=True, result={"status": "success", "findings": []})
     out = run_economic_fuzz(vault_file, ["total_supply_equals_sum_balances"], adapter=fake)
     assert out["status"] == "skipped"
+
+
+# ---------------------------------------------------------------------------
+# Real end-to-end run (requires Echidna) — regression guard for the output-capture bug:
+# Echidna only emits its verdict lines under a controlling terminal, so a plain captured
+# subprocess silently reported "clean". The mocked tests above never exercised that path.
+# ---------------------------------------------------------------------------
+
+_VULN_VAULT = """// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+interface IToken {
+    function transferFrom(address, address, uint256) external returns (bool);
+    function transfer(address, uint256) external returns (bool);
+    function balanceOf(address) external view returns (uint256);
+}
+contract VulnVault {
+    IToken public asset; uint256 public totalSupply; mapping(address => uint256) public balanceOf;
+    constructor(address a) { asset = IToken(a); }
+    function totalAssets() public view returns (uint256) { return asset.balanceOf(address(this)); }
+    function convertToShares(uint256 x) public view returns (uint256) {
+        uint256 ts = totalSupply; if (ts == 0) return x; return (x * ts) / totalAssets();
+    }
+    function convertToAssets(uint256 s) public view returns (uint256) {
+        uint256 ts = totalSupply; if (ts == 0) return s; return (s * totalAssets()) / ts;
+    }
+    function deposit(uint256 a, address r) public returns (uint256 sh) {
+        sh = convertToShares(a); asset.transferFrom(msg.sender, address(this), a);
+        totalSupply += sh; balanceOf[r] += sh;
+    }
+    function redeem(uint256 s, address r, address) public returns (uint256 a) {
+        a = convertToAssets(s); balanceOf[msg.sender] -= s; totalSupply -= s; asset.transfer(r, a);
+    }
+}
+"""
+
+
+@pytest.mark.skipif(not shutil.which("echidna"), reason="echidna not installed")
+def test_run_economic_fuzz_detects_inflation_end_to_end(tmp_path):
+    """Real Echidna on a donation-inflatable vault must report `detected` with a violation.
+
+    Regression guard: before the pty-based capture fix this returned `clean` / 0 tests because
+    Echidna's output was lost to the pipe.
+    """
+    vault = tmp_path / "VulnVault.sol"
+    vault.write_text(_VULN_VAULT, encoding="utf-8")
+    out = run_economic_fuzz(
+        str(vault), ["erc4626_first_deposit_guard"], test_limit=10000, timeout=240
+    )
+    assert out["status"] == "detected", out
+    # Echidna actually evaluated the properties (the capture bug yielded 0).
+    assert (out.get("echidna") or {}).get("tests_run", 0) >= 1, out
+    assert any(f.get("type") == "economic_invariant_violation" for f in out["findings"]), out
