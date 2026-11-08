@@ -137,4 +137,64 @@ def counterexample_findings(
     return findings
 
 
-__all__ = ["counterexample_findings"]
+# Static/heuristic, not execution-reproduced: confidence is well below the verified _CONFIDENCE,
+# and the severity is Medium (a lead to confirm), never High.
+_STATIC_CONFIDENCE = 0.5
+
+
+def _trust_boundary_finding(fn: str, file_name: str, line: int, gap: Any) -> Dict[str, Any]:
+    """Build a Medium, advisory finding from a ``trust_boundary`` gap hypothesis.
+
+    Unlike the counterexample builders this is **inferred, not reproduced by execution**: the
+    description says so and the ``negative_checks`` ride along as evidence so a reader confirms the
+    lead rather than trusting it.
+    """
+    negative_checks = list(getattr(gap, "negative_checks", []))
+    return {
+        "title": f"Unvalidated recipient forwarded across trust boundary in `{fn}`",
+        "description": (
+            f"{getattr(gap, 'expected_guard', '')}. A recipient/destination value is forwarded "
+            f"into an external call while its sibling fields are validated, so an unchecked "
+            f"recipient can redirect value or control to an attacker-chosen address. "
+            f"Static/heuristic -- inferred from the guard pattern, NOT reproduced by execution; "
+            f"confirm against the callee and any base-contract or modifier guards."
+        ),
+        "severity": "Medium",
+        "confidence": _STATIC_CONFIDENCE,
+        "type": "access_control",
+        "location": {"file": file_name, "line": line},
+        "source": "revert_invariant_mining",
+        "evidence": [getattr(gap, "expected_guard", ""), *negative_checks],
+    }
+
+
+def trust_boundary_findings(
+    plans: List[Any],
+    source_code: str,
+    contract_path: Optional[str] = None,
+) -> List[Dict[str, Any]]:
+    """Promote ``trust_boundary`` gap hypotheses to Medium, advisory findings.
+
+    ``plans`` are the :class:`RevertInvariantOraclePlan` objects from ``mine_revert_invariants``.
+    Only ``category == "trust_boundary"`` hypotheses are emitted; the rest stay advisory metadata.
+    Deterministic, LLM-free, and forge-free -- unlike :func:`counterexample_findings` this makes no
+    execution claim, so each finding is Medium and clearly marked inferred.
+    """
+    masked = _strip_comments(source_code)
+    line_of: Dict[str, int] = {
+        f.name: _line_of(source_code, f.decl_offset) for f in _collect_functions(masked)
+    }
+    file_name = contract_path or "<memory>"
+
+    findings: List[Dict[str, Any]] = []
+    for plan in plans:
+        for gap in getattr(plan, "gap_hypotheses", []):
+            if getattr(gap, "category", "") != "trust_boundary":
+                continue
+            affected = getattr(gap, "affected_functions", [])
+            fn = affected[0] if affected else "?"
+            findings.append(_trust_boundary_finding(fn, file_name, line_of.get(fn, 0), gap))
+    return findings
+
+
+__all__ = ["counterexample_findings", "trust_boundary_findings"]
