@@ -85,6 +85,12 @@ class DeepAuditConfig:
     # fact fails closed. The remote gate reuses agentic_invariants_allow_remote (no new flag); this
     # first slice runs the deterministic local fallback only.
     enable_gap_reasoning: bool = False
+    # Opt-in: promote trust-boundary gap hypotheses (an unvalidated recipient forwarded into an
+    # external call while its sibling fields are validated) to Medium, advisory findings. Static
+    # and forge-free -- inferred, not execution-reproduced -- so the findings are Medium and marked
+    # as such. Off by default like the other invariant capabilities; when on, they pass through the
+    # same FP filter and correlation as every other finding.
+    enable_trust_boundary_findings: bool = False
     fp_threshold: float = 0.5
     max_workers: int = 4
 
@@ -803,6 +809,26 @@ class DeepAuditAgent(BaseAgent):
             logger.debug(f"Counterexample finding emission skipped: {e}")
             return []
 
+    def _trust_boundary_findings(self, source_code: str, contract_path: str) -> List[Dict]:
+        """Promote trust-boundary gap hypotheses to Medium advisory findings (static, forge-free).
+
+        Deterministic and inferred (not execution-reproduced): mines the plans, emits a Medium
+        finding per ``trust_boundary`` hypothesis, and runs the same FP filter as every other
+        finding. Returns [] when nothing is eligible. Never raises into synthesis.
+        """
+        try:
+            from miesc.llm import mine_revert_invariants
+            from miesc.llm.revert_invariant_findings import trust_boundary_findings
+
+            plans = mine_revert_invariants(
+                source_code, Path(contract_path) if contract_path else None
+            )
+            emitted = trust_boundary_findings(plans, source_code, contract_path)
+            return self._filter_false_positives(emitted) if emitted else []
+        except Exception as e:  # never let a static emitter break synthesis
+            logger.debug(f"Trust-boundary finding emission skipped: {e}")
+            return []
+
     def _filter_false_positives(self, findings: List[Dict]) -> List[Dict]:
         """Apply FP filter to findings."""
         try:
@@ -1512,6 +1538,10 @@ Respond ONLY with JSON of the shape:
         # pass through the same FP filter and the correlation/dedup below as every other finding.
         if self.config.enable_gap_execution:
             findings = findings + self._counterexample_findings(source_code, contract_path)
+
+        # Static trust-boundary hypotheses promoted to Medium advisory findings (opt-in, forge-free).
+        if self.config.enable_trust_boundary_findings:
+            findings = findings + self._trust_boundary_findings(source_code, contract_path)
 
         # Correlation pass
         correlated = self._correlate_findings(findings)
