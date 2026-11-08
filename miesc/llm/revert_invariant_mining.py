@@ -662,6 +662,96 @@ def _gap_hypotheses(
     return out
 
 
+# Trust-boundary class (H-1): a recipient/destination value, decoded or passed into the function
+# and forwarded into an external call, that does not get the validation its sibling fields do.
+_TB_CALL_RE = re.compile(r"\b([a-z]\w*)\.(\w+)\s*(?:\{[^}]*\})?\s*\(")
+# A struct-typed local assigned in-body. The type starts uppercase (``IntentParams memory x =``),
+# which keeps primitives (``bytes``/``string``/``uint`` ``memory`` ...) out — they carry no fields.
+_TB_LOCAL_STRUCT_RE = re.compile(r"\b[A-Z]\w*\s+memory\s+([A-Za-z_]\w*)\s*=")
+_TB_COMPARE_RE = re.compile(r"==|!=|<=|>=|<|>")
+_TB_IF_RE = re.compile(r"\bif\b")
+# Long hints match as substrings; short ones must be the whole field name (``to`` is in ``token``).
+_TB_RECIPIENT_SUBSTR = ("receiver", "recipient", "beneficiary", "payee", "destination", "refund")
+_TB_RECIPIENT_EXACT = frozenset({"to", "dst", "dest", "target", "spender", "operator"})
+_TB_SINK_SKIP = frozenset({"msg", "abi", "block", "tx", "this", "super", "type", "keccak256"})
+
+
+def _is_recipient_field(field: str) -> bool:
+    """True when the field names a recipient/destination — an unvalidated one redirects value."""
+    f = field.lower()
+    return any(h in f for h in _TB_RECIPIENT_SUBSTR) or f in _TB_RECIPIENT_EXACT
+
+
+def _trust_boundary_hypotheses(functions: List["_FuncSig"]) -> List[GuardGapHypothesis]:
+    """Hypothesize an unvalidated recipient forwarded across a trust boundary (the H-1 class).
+
+    Within one function: a local struct assigned in the body (typically decoded from an untrusted
+    ``bytes`` message); one or more of its fields validated (compared / required) before use; and a
+    *recipient/destination*-like sibling field forwarded as an argument to an external call without
+    any such validation. The inconsistency — the siblings are checked, this destination is not — is
+    the signal, because an unchecked recipient redirects value or control to an attacker-chosen
+    address. Deterministic and advisory: never a Finding on its own, and the ``negative_checks``
+    list why the gap may be benign so a reader weighs it. Returns one hypothesis per (function,
+    field).
+    """
+    out: List[GuardGapHypothesis] = []
+    seen: set = set()
+    for f in functions:
+        body = f.body
+        struct_vars = {m.group(1) for m in _TB_LOCAL_STRUCT_RE.finditer(body)}
+        for var in struct_vars:
+            vfield = re.compile(re.escape(var) + r"\.(\w+)")
+            validated: set = set()
+            for m in vfield.finditer(body):
+                start = max(body.rfind(";", 0, m.start()), body.rfind("{", 0, m.start())) + 1
+                end = body.find(";", m.end())
+                stmt = body[start : end if end != -1 else len(body)]
+                if _TB_COMPARE_RE.search(stmt) or "require" in stmt or _TB_IF_RE.search(stmt):
+                    validated.add(m.group(1))
+            if not validated:
+                continue  # need >=1 validated sibling as the inconsistency anchor
+            for cm in _TB_CALL_RE.finditer(body):
+                recv, meth = cm.group(1), cm.group(2)
+                if recv in _TB_SINK_SKIP or recv == var:
+                    continue
+                args, _ = _balanced_arg(body, cm.end() - 1)
+                for fm in vfield.finditer(args):
+                    field = fm.group(1)
+                    if field in validated or not _is_recipient_field(field):
+                        continue
+                    key = (f.name, var, field)
+                    if key in seen:
+                        continue
+                    seen.add(key)
+                    checked = sorted(validated)
+                    out.append(
+                        GuardGapHypothesis(
+                            category="trust_boundary",
+                            expected_guard=(
+                                f"validate `{var}.{field}` before forwarding it to "
+                                f"`{recv}.{meth}(...)`, as its siblings "
+                                f"({', '.join(checked[:3])}) are validated"
+                            ),
+                            observed_gap="missing",
+                            affected_functions=[f.name],
+                            semantic_preconditions=[
+                                f"`{var}` is populated in-body (e.g. decoded from untrusted input)",
+                                f"`{var}.{field}` is a recipient/destination-like value",
+                                f"`{var}.{field}` is forwarded to the external call `{recv}.{meth}`",
+                            ],
+                            negative_checks=[
+                                "the recipient may be validated inside the external callee",
+                                "the recipient may be constrained by a modifier or base not parsed"
+                                " here",
+                                "the field name may only look recipient-like without carrying an"
+                                " address",
+                            ],
+                            guarded_example=checked[0],
+                        )
+                    )
+    return out
+
+
 def mine_revert_invariants(
     source_code: str,
     file_path: Optional[Path] = None,
@@ -747,7 +837,8 @@ def mine_revert_invariants(
         g for g in guards if not (g.guard_kind == "custom_error" and g.source_anchor in if_anchors)
     ]
     guards.sort(key=lambda g: (g.function, g.source_anchor))
-    gaps = _gap_hypotheses(guards, _collect_functions(masked))
+    funcs = _collect_functions(masked)
+    gaps = _gap_hypotheses(guards, funcs) + _trust_boundary_hypotheses(funcs)
     objective = f"Guard inventory for {anchor} ({len(guards)} guards"
     objective += f", {len(gaps)} gap hypotheses)" if gaps else ")"
     return [
