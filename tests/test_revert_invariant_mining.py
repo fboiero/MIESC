@@ -428,3 +428,89 @@ class TestPhase2FreshnessGaps:
         assert plan["promotion"]["state"] == "hypothesis"
         assert "finding" not in plan
         assert any("interface/ABI" in nc for nc in gap["negative_checks"])
+
+
+class TestPhase2TrustBoundaryGaps:
+    """Unvalidated recipient forwarded across a trust boundary (the H-1 class)."""
+
+    @staticmethod
+    def _tb(src: str) -> list:
+        p = mine_revert_invariants(src)
+        return [
+            g
+            for g in (p[0].to_dict()["gap_hypotheses"] if p else [])
+            if g["category"] == "trust_boundary"
+        ]
+
+    # A decoded struct: inputAsset validated, receiver forwarded to an external call unchecked.
+    _H1 = (
+        "contract Bridge {\n"
+        "  IAdapter adapter;\n"
+        "  function sendMsg(bytes memory _message, address _token) external {\n"
+        "    Params memory params = _decode(_message);\n"
+        '    require(params.inputAsset == _token, "mismatch");\n'
+        "    adapter.newIntent(params.receiver, params.inputAsset, params.amount);\n"
+        "  }\n"
+        "}\n"
+    )
+
+    def test_unvalidated_receiver_forwarded_is_flagged(self):
+        gaps = self._tb(self._H1)
+        assert len(gaps) == 1
+        g = gaps[0]
+        assert g["affected_functions"] == ["sendMsg"]
+        assert "params.receiver" in g["expected_guard"]
+        assert g["observed_gap"] == "missing"
+
+    def test_validated_receiver_is_silent(self):
+        src = self._H1.replace(
+            '    require(params.inputAsset == _token, "mismatch");\n',
+            '    require(params.inputAsset == _token, "mismatch");\n'
+            '    require(params.receiver == _token, "bad receiver");\n',
+        )
+        assert self._tb(src) == []
+
+    def test_no_validated_sibling_is_silent(self):
+        # Nothing validated -> no inconsistency anchor, so no hypothesis.
+        src = (
+            "contract Bridge {\n"
+            "  IAdapter adapter;\n"
+            "  function sendMsg(bytes memory _message) external {\n"
+            "    Params memory params = _decode(_message);\n"
+            "    adapter.newIntent(params.receiver, params.amount);\n"
+            "  }\n"
+            "}\n"
+        )
+        assert self._tb(src) == []
+
+    def test_non_recipient_field_is_not_flagged(self):
+        # amount is forwarded unvalidated but is not a recipient/destination, so it is silent.
+        src = (
+            "contract Bridge {\n"
+            "  IAdapter adapter;\n"
+            "  function sendMsg(bytes memory _message, address _token) external {\n"
+            "    Params memory params = _decode(_message);\n"
+            '    require(params.inputAsset == _token, "mismatch");\n'
+            "    adapter.newIntent(params.inputAsset, params.amount);\n"
+            "  }\n"
+            "}\n"
+        )
+        assert self._tb(src) == []
+
+    def test_advisory_hypothesis_carries_negative_checks(self):
+        g = self._tb(self._H1)[0]
+        assert g["negative_checks"]
+        assert any("callee" in nc for nc in g["negative_checks"])
+
+    def test_primitive_memory_local_is_not_a_struct(self):
+        # `bytes memory payload` is a primitive, not a field-bearing struct: no hypothesis.
+        src = (
+            "contract Bridge {\n"
+            "  IAdapter adapter;\n"
+            "  function sendMsg(bytes memory _message) external {\n"
+            "    bytes memory payload = _slice(_message);\n"
+            "    adapter.send(payload, msg.sender);\n"
+            "  }\n"
+            "}\n"
+        )
+        assert self._tb(src) == []
