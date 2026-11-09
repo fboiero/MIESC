@@ -322,6 +322,53 @@ def vault_contract(tmp_path):
     return str(p)
 
 
+CTOKEN_BALANCEOF_SRC = """// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+interface IERC20 { function balanceOf(address) external view returns (uint256); }
+contract CErc20 {
+    uint256 public totalSupply;
+    IERC20 public underlying;
+    function getCashPrior() internal view returns (uint256) {
+        return underlying.balanceOf(address(this));
+    }
+    function exchangeRateStored() public view returns (uint256) {}
+    function mint(uint256 amount) public returns (uint256) {}
+    function redeem(uint256 cTokens) public returns (uint256) {}
+}
+"""
+
+
+@pytest.fixture
+def ctoken_contract(tmp_path):
+    p = tmp_path / "CErc20.sol"
+    p.write_text(CTOKEN_BALANCEOF_SRC)
+    return str(p)
+
+
+MTOKEN_TRACKED_SRC = """// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+interface IERC20 { function balanceOf(address) external view returns (uint256); }
+contract mErc20 {
+    uint256 public totalSupply;
+    uint256 public totalUnderlying;
+    IERC20 public underlying;
+    function _getCashPrior() internal view returns (uint256) {
+        return totalUnderlying;
+    }
+    function exchangeRateStored() public view returns (uint256) {}
+    function mint(uint256 amount) public returns (uint256) {}
+    function redeem(uint256 cTokens) public returns (uint256) {}
+}
+"""
+
+
+@pytest.fixture
+def mtoken_tracked_contract(tmp_path):
+    p = tmp_path / "mErc20.sol"
+    p.write_text(MTOKEN_TRACKED_SRC)
+    return str(p)
+
+
 class TestEconomicInvariantsFlag:
     def test_help_lists_economic_flag(self):
         runner = CliRunner()
@@ -360,6 +407,70 @@ class TestEconomicInvariantsFlag:
         assert (out / "Vault.economic.invariants.t.sol").exists()
         cvl = (out / "Vault.economic.spec").read_text()
         assert "vaultSolvency" in cvl
+
+    def test_compound_artifact_header_carries_inflation_surface(self, ctoken_contract, tmp_path):
+        """A balanceOf-cash cToken's Echidna artifact header must carry the OPEN
+        inflation-surface note — the surface a reviewer reads before fuzzing."""
+        out = tmp_path / "econ"
+        runner = CliRunner()
+        with patch("miesc.formal.SpecRunner") as SR:
+            SR.return_value.availability_report.return_value = {
+                "certora": False,
+                "halmos": False,
+                "smtchecker": False,
+                "scribble": False,
+                "kontrol": False,
+            }
+            with patch(
+                "miesc.adapters.invariant_synthesizer.InvariantSynthesizer._is_ollama_available",
+                return_value=False,
+            ):
+                result = runner.invoke(
+                    verify,
+                    [
+                        ctoken_contract,
+                        "--economic-invariants",
+                        "--invariants-out",
+                        str(out),
+                        "--quiet",
+                    ],
+                )
+        assert result.exit_code == 0
+        ech = (out / "CErc20.economic.echidna.sol").read_text()
+        assert "inflation surface: OPEN" in ech
+        assert "balanceOf(this)" in ech
+
+    def test_tracked_cash_artifact_header_is_closed(self, mtoken_tracked_contract, tmp_path):
+        """The Malda-style tracked-cash market renders a CLOSED note — the headline:
+        MIESC no longer implies an inflation bug on a market that shuts the vector."""
+        out = tmp_path / "econ"
+        runner = CliRunner()
+        with patch("miesc.formal.SpecRunner") as SR:
+            SR.return_value.availability_report.return_value = {
+                "certora": False,
+                "halmos": False,
+                "smtchecker": False,
+                "scribble": False,
+                "kontrol": False,
+            }
+            with patch(
+                "miesc.adapters.invariant_synthesizer.InvariantSynthesizer._is_ollama_available",
+                return_value=False,
+            ):
+                result = runner.invoke(
+                    verify,
+                    [
+                        mtoken_tracked_contract,
+                        "--economic-invariants",
+                        "--invariants-out",
+                        str(out),
+                        "--quiet",
+                    ],
+                )
+        assert result.exit_code == 0
+        ech = (out / "mErc20.economic.echidna.sol").read_text()
+        assert "inflation surface: closed" in ech
+        assert "internally tracked" in ech
 
     def test_economic_only_is_offline_no_ollama_required(self, vault_contract):
         """No --invariants-out, no provers, no Ollama — must still succeed."""
