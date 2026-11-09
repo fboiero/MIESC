@@ -64,6 +64,18 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **Clear, fail-fast error when `miesc` runs under an unsupported Python.** MIESC targets Python
+  >= 3.12, but when the `miesc` console script is installed for an older interpreter, importing the
+  package failed with a cryptic error far from the cause — a runtime `TypeError` on a PEP 604
+  `X | None` annotation under Python 3.9, or a dependency `ModuleNotFoundError` under 3.11. A fail-fast
+  version guard at the top of `miesc/__init__` (which runs first on every entry path, so it pre-empts
+  those downstream failures) now raises one actionable message instead:
+  `MIESC requires Python >= 3.12, but is running under Python X.Y.Z (<path>). … Reinstall it under
+  Python 3.12+ (for example 'pipx install miesc' or 'uv tool install miesc'), or run it with a 3.12+
+  interpreter via 'python3 -m miesc'.` The guard itself uses only `typing` generics (never a runtime
+  `X | None`), so it stays importable under Python < 3.10 and reaches the message. This fixes the
+  diagnostics; reinstalling the console script under a 3.12+ interpreter remains a host action.
+
 - **Fuzzing adapters no longer report a campaign that never fuzzed as a clean pass.** The
   coverage-guided fuzzers (`medusa`, `echidna`, `dogefuzz`) returned `status: "success"` with `0`
   findings whenever the subprocess exited, even when the campaign achieved **0% coverage / 0
