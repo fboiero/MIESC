@@ -226,9 +226,33 @@ def triage_summary(findings: List[Dict[str, Any]]) -> Dict[str, int]:
     }
 
 
+def annotate_results(all_results: List[Dict[str, Any]]) -> Dict[str, int]:
+    """Annotate reentrancy findings across scan results, in place, recall-safe.
+
+    Each reentrancy finding gains ``finding["reentrancy_triage"] = {tier, signals,
+    reason}``; nothing is dropped or reordered. ``all_results`` is the scan's list
+    of per-tool result dicts (each with a ``findings`` list). Returns the aggregate
+    ``{'reentrancy_total', 'review', 'noise'}`` so the caller can print a summary.
+    """
+    total = 0
+    review = 0
+    for result in all_results:
+        for t in triage_reentrancy(result.get("findings") or []):
+            t.finding["reentrancy_triage"] = {
+                "tier": t.tier,
+                "signals": list(t.signals),
+                "reason": t.reason,
+            }
+            total += 1
+            if t.tier == "review":
+                review += 1
+    return {"reentrancy_total": total, "review": review, "noise": total - review}
+
+
 __all__ = [
     "TriagedReentrancy",
     "triage_reentrancy",
     "review_tier",
     "triage_summary",
+    "annotate_results",
 ]
