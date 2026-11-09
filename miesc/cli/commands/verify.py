@@ -25,6 +25,32 @@ def _find_foundry_root(start: Path) -> Optional[Path]:
     return None
 
 
+# Human-readable note for the Compound-V2 cash-source discriminator, phrased as a
+# verification instruction (not a severity): tells a reviewer about to spend
+# prover/fuzzer time whether the inflation vector is live on this market.
+_INFLATION_SURFACE_NOTE = {
+    "open": (
+        "inflation surface: OPEN — exchange rate reads balanceOf(this); "
+        "verify a dead-shares seed or a zero initial collateral factor"
+    ),
+    "closed": (
+        "inflation surface: closed — cash is internally tracked, "
+        "a bare donation cannot move the rate"
+    ),
+    "unknown": "inflation surface: unknown — no recognizable getCash shape",
+}
+
+
+def _inflation_surface_note(inv: Dict[str, Any]) -> Optional[str]:
+    """One-line inflation-surface note for an economic invariant, or None.
+
+    Reads the `inflation_surface` annotation threaded through the invariant's
+    metadata by the cash-source discriminator; only Compound-V2 templates carry it.
+    """
+    surface = inv.get("metadata", {}).get("inflation_surface")
+    return _INFLATION_SURFACE_NOTE.get(surface) if surface else None
+
+
 def _emit_economic_invariants(
     contract_path: str,
     out_dir: Optional[str],
@@ -81,15 +107,18 @@ def _emit_economic_invariants(
         ech = ["// Auto-generated economic Echidna properties (CANDIDATES).", ""]
         fnd = ["// Auto-generated economic Foundry invariants (CANDIDATES).", ""]
         for inv in invariants:
-            header = (
+            header_lines = [
                 f"// [{inv.get('importance')}] {inv.get('name')}: {inv.get('natural_language')}"
-            )
+            ]
+            note = _inflation_surface_note(inv)
+            if note:
+                header_lines.append(f"//   ↳ {note}")
             if inv.get("certora_spec"):
-                cvl += [header, inv["certora_spec"], ""]
+                cvl += [*header_lines, inv["certora_spec"], ""]
             if inv.get("echidna_property"):
-                ech += [header, inv["echidna_property"], ""]
+                ech += [*header_lines, inv["echidna_property"], ""]
             if inv.get("foundry_test"):
-                fnd += [header, inv["foundry_test"], ""]
+                fnd += [*header_lines, inv["foundry_test"], ""]
 
         cvl_path = out / f"{stem}.economic.spec"
         ech_path = out / f"{stem}.economic.echidna.sol"
@@ -104,6 +133,9 @@ def _emit_economic_invariants(
             console.print(f"\n[bold]Economic invariants:[/bold] {len(invariants)} generated")
             for inv in invariants:
                 console.print(f"  • [{inv.get('importance')}] {inv.get('name')}")
+                note = _inflation_surface_note(inv)
+                if note:
+                    console.print(f"      ↳ {note}")
             for f in files:
                 success(f"Wrote {f}")
             if not out_dir:

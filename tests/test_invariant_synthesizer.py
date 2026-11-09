@@ -1072,6 +1072,28 @@ def _write_vault(tmp_path):
     return str(p)
 
 
+CTOKEN_BALANCEOF_SRC = """
+pragma solidity ^0.8.0;
+interface IERC20 { function balanceOf(address) external view returns (uint256); }
+contract CErc20 {
+    uint256 public totalSupply;
+    IERC20 public underlying;
+    function getCashPrior() internal view returns (uint256) {
+        return underlying.balanceOf(address(this));
+    }
+    function exchangeRateStored() public view returns (uint256) {}
+    function mint(uint256 amount) public returns (uint256) {}
+    function redeem(uint256 cTokens) public returns (uint256) {}
+}
+"""
+
+
+def _write_ctoken(tmp_path):
+    p = tmp_path / "CErc20.sol"
+    p.write_text(CTOKEN_BALANCEOF_SRC)
+    return str(p)
+
+
 class TestEconomicInvariantWiring:
     def _synth(self):
         with (
@@ -1131,3 +1153,18 @@ class TestEconomicInvariantWiring:
         )
         assert result["metadata"]["economic_invariants"] == 0
         assert not any(i["source"] == "economic-template" for i in result["invariants"])
+
+    def test_compound_invariants_carry_inflation_surface_metadata(self, tmp_path):
+        # End-to-end proof the cash-source annotation survives merge + format and
+        # reaches the serialized result (not just a direct detect_economic call).
+        synth = self._synth()
+        result = synth.synthesize(
+            _write_ctoken(tmp_path),
+            formats=[InvariantFormat.ECHIDNA],
+            use_cache=False,
+        )
+        compound = [i for i in result["invariants"] if i["name"].startswith("compound_")]
+        assert compound, "compound templates must be emitted for a cToken"
+        for inv in compound:
+            assert inv["metadata"]["cash_source"] == "balanceof"
+            assert inv["metadata"]["inflation_surface"] == "open"

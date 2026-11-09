@@ -106,6 +106,20 @@ class SynthesizedInvariant:
         }
 
 
+def _economic_metadata(tmpl: Dict[str, Any]) -> Dict[str, Any]:
+    """Metadata for an economic-template invariant.
+
+    Carries `auto_checkable` plus, for the Compound-V2 class, the static
+    cash-source discriminator (`cash_source` / `inflation_surface`) so downstream
+    surfaces can tell an open inflation surface from one closed by design.
+    """
+    meta: Dict[str, Any] = {"auto_checkable": tmpl.get("auto_checkable", True)}
+    for key in ("cash_source", "inflation_surface"):
+        if key in tmpl:
+            meta[key] = tmpl[key]
+    return meta
+
+
 class InvariantSynthesizer:
     """
     LLM-powered invariant synthesizer for smart contracts.
@@ -415,7 +429,7 @@ class InvariantSynthesizer:
                     confidence=0.85,
                     source="economic-template",
                     related_vulnerabilities=tmpl.get("related_vulnerabilities", []),
-                    metadata={"auto_checkable": tmpl.get("auto_checkable", True)},
+                    metadata=_economic_metadata(tmpl),
                 )
             )
 
